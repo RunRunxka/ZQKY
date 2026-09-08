@@ -1,0 +1,86 @@
+@page lesson-plan {
+  size: A4 portrait;
+  margin: 0;
+}
+@media print {
+  html:has(.lesson-workspace),
+  body:has(.lesson-workspace) {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    width: 210mm !important;
+    height: auto !important;
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .app-shell:where(.lesson-workspace) {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+  :where(.lesson-workspace) .app-header,
+  :where(.lesson-workspace) .global-nav,
+  :where(.lesson-workspace) .outline-panel,
+  :where(.lesson-workspace) .editor-panel,
+  :where(.lesson-workspace) .preview-toolbar,
+  :where(.lesson-workspace) .preview-bottom,
+  :where(.lesson-workspace) .mobile-tabs,
+  :where(.lesson-workspace) .modal,
+  :where(.lesson-workspace) .toast,
+  :where(.lesson-workspace) .storage-alert {
+    display: none !important;
+  }
+  :where(.lesson-workspace) .preview-pane,
+  :where(.lesson-workspace).mobile-edit .preview-pane {
+    display: block !important;
+    background: white !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+  :where(.lesson-workspace) .preview-viewport,
+  :where(.lesson-workspace) .paper-stack {
+    display: block !important;
+    height: auto !important;
+    width: 210mm !important;
+    min-width: 0 !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  :where(.lesson-workspace) .paper-wrapper {
+    width: 210mm !important;
+    height: 297mm !important;
+    position: relative !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    break-after: page;
+    page-break-after: always;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  :where(.lesson-workspace) .paper-wrapper:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+  :where(.lesson-workspace) .paper {
+    transform: none !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    position: relative !important;
+    overflow: visible !important;
+  }
+  :where(.lesson-workspace) .lesson-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+@media print {
+  .lesson-workspace .paper-wrapper {
+    page: lesson-plan;
+  }
+}

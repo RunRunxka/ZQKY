@@ -1,0 +1,28 @@
+node_modules/
+.next/
+.next-test/
+dist/
+*.tsbuildinfo
+*.log
+.env*
+!.env.example
+_work/
+test-results/
+tests/.e2e-output-*/
+playwright-report/
+.npm-cache/
+教案模板部分/node_modules/
+教案模板部分/.npm-cache/
+教案模板部分/dist/
+教案模板部分/qa/*.pdf
+教案模板部分/qa/*.docx
+
+# Python 后端（apps/api）
+__pycache__/
+.venv/
+.pytest_cache/
+.local-data/
+
+# Local agent memory/state, review outputs and recovery bundles are not source.
+.workbuddy/
+*.bundle

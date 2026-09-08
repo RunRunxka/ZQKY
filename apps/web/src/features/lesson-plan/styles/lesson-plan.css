@@ -1,0 +1,1651 @@
+:where(.lesson-workspace) * {
+  box-sizing: border-box;
+}
+:where(.lesson-workspace) body {
+  margin: 0;
+}
+:where(.lesson-workspace) button,
+:where(.lesson-workspace) input,
+:where(.lesson-workspace) textarea,
+:where(.lesson-workspace) select {
+  font: inherit;
+}
+:where(.lesson-workspace) button,
+:where(.lesson-workspace) a,
+:where(.lesson-workspace) input,
+:where(.lesson-workspace) textarea,
+:where(.lesson-workspace) select {
+  -webkit-tap-highlight-color: transparent;
+}
+:where(.lesson-workspace) button {
+  cursor: pointer;
+  border: 0;
+  background: none;
+  color: inherit;
+}
+:where(.lesson-workspace) button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+:where(.lesson-workspace) button:focus-visible,
+:where(.lesson-workspace) a:focus-visible,
+:where(.lesson-workspace) input:focus-visible,
+:where(.lesson-workspace) textarea:focus-visible,
+:where(.lesson-workspace) select:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+:where(.lesson-workspace) button {
+  transition:
+    background 0.15s,
+    color 0.15s,
+    box-shadow 0.15s;
+}
+:where(.lesson-workspace) a {
+  color: inherit;
+  text-decoration: none;
+}
+:where(.lesson-workspace) svg {
+  flex-shrink: 0;
+}
+:where(.lesson-workspace) h1,
+:where(.lesson-workspace) h2,
+:where(.lesson-workspace) h3,
+:where(.lesson-workspace) p {
+  margin: 0;
+}
+:where(.lesson-workspace) hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 5px 8px;
+}
+:where(.lesson-workspace) small {
+  font-size: 11px;
+}
+:where(.lesson-workspace) ::selection {
+  background: #dce8ff;
+}
+:where(.lesson-workspace) ::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+:where(.lesson-workspace) ::-webkit-scrollbar-thumb {
+  background: #d1d4da;
+  border-radius: 9px;
+}
+:where(.lesson-workspace) ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.app-shell:where(.lesson-workspace) {
+  height: 100dvh;
+  display: grid;
+  grid-template-columns: 60px 218px 400px minmax(0, 1fr);
+  grid-template-rows: 66px minmax(0, 1fr);
+  overflow: hidden;
+  min-height: 450px;
+}
+:where(.lesson-workspace) .app-header {
+  grid-column: 1/-1;
+  display: flex;
+  align-items: center;
+  padding: 0 24px 0 18px;
+  border-bottom: 1px solid var(--line);
+  z-index: 20;
+  gap: 18px;
+  background: #fff;
+}
+:where(.lesson-workspace) .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+:where(.lesson-workspace) .brand strong {
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: 1px;
+}
+:where(.lesson-workspace) .brand-mark {
+  height: 33px;
+  width: 33px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--blue);
+  color: white;
+  box-shadow: 0 3px 7px #2563eb1f;
+}
+:where(.lesson-workspace) .brand-divider {
+  height: 20px;
+  border-left: 1px solid var(--line);
+  margin-left: 17px;
+}
+:where(.lesson-workspace) .breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #8b8d91;
+  font-size: 12px;
+}
+:where(.lesson-workspace) .breadcrumb span {
+  color: #3f4349;
+}
+:where(.lesson-workspace) .header-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+:where(.lesson-workspace) .save-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+:where(.lesson-workspace) .status-dot {
+  height: 5px;
+  width: 5px;
+  border-radius: 50%;
+  background: var(--green);
+}
+:where(.lesson-workspace) .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 36px;
+  border-radius: 8px;
+  padding: 8px 13px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+:where(.lesson-workspace) .button.primary {
+  color: white;
+  background: var(--blue);
+  box-shadow: 0 2px 4px #2563eb1a;
+}
+:where(.lesson-workspace) .button.primary:hover {
+  background: #1e54ce;
+}
+:where(.lesson-workspace) .button.subtle {
+  border: 1px solid var(--line);
+  background: white;
+}
+:where(.lesson-workspace) .button.subtle:hover {
+  background: var(--surface);
+}
+:where(.lesson-workspace) .icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 29px;
+  height: 29px;
+  padding: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+:where(.lesson-workspace) .icon-button:hover:not(:disabled) {
+  background: #e9ebee;
+  color: var(--ink);
+}
+:where(.lesson-workspace) .export-container {
+  position: relative;
+}
+:where(.lesson-workspace) .export-menu {
+  position: absolute;
+  right: 0;
+  top: 45px;
+  width: 236px;
+  padding: 6px;
+  background: #fff;
+  box-shadow: 0 12px 40px #12244226;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  z-index: 32;
+}
+:where(.lesson-workspace) .export-menu button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  padding: 12px;
+  border-radius: 7px;
+  font-size: 13px;
+}
+:where(.lesson-workspace) .export-menu button:hover {
+  background: var(--surface);
+}
+:where(.lesson-workspace) .export-menu small {
+  display: block;
+  color: var(--muted);
+  margin-top: 3px;
+}
+:where(.lesson-workspace) .menu-backdrop {
+  position: fixed;
+  inset: 66px 0 0;
+  cursor: default;
+  z-index: 30;
+}
+:where(.lesson-workspace) .global-nav {
+  grid-column: 1;
+  grid-row: 2;
+  background: var(--surface);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 18px 0 14px;
+  overflow: hidden;
+}
+:where(.lesson-workspace) .nav-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  width: 38px;
+  color: #94979b;
+  margin-bottom: 25px;
+}
+:where(.lesson-workspace) .nav-items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  align-items: center;
+}
+:where(.lesson-workspace) .global-nav-item {
+  height: 40px;
+  width: 40px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #777c83;
+  position: relative;
+}
+:where(.lesson-workspace) .global-nav-item:hover {
+  background: #e9e9e9;
+}
+:where(.lesson-workspace) .global-nav-item.current {
+  color: var(--blue);
+  background: #e6edfc;
+}
+:where(.lesson-workspace) .global-nav-item.current:before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  width: 3px;
+  height: 20px;
+  background: var(--blue);
+  border-radius: 0 3px 3px 0;
+}
+:where(.lesson-workspace) .global-nav-item > span {
+  display: none;
+  font-size: 12px;
+}
+:where(.lesson-workspace) .nav-bottom {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+:where(.lesson-workspace) .avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #e2e7ee;
+  color: #6f7a8b;
+  font-size: 12px;
+  display: grid;
+  place-items: center;
+  margin-top: 9px;
+}
+:where(.lesson-workspace).nav-expanded {
+  grid-template-columns: 220px 218px 400px minmax(0, 1fr);
+}
+:where(.lesson-workspace).nav-expanded .global-nav-item {
+  width: calc(100% - 24px);
+  justify-content: flex-start;
+  padding: 0 12px;
+  gap: 13px;
+}
+:where(.lesson-workspace).nav-expanded .global-nav-item > span {
+  display: flex;
+  flex: 1;
+  justify-content: space-between;
+  align-items: center;
+}
+:where(.lesson-workspace).nav-expanded .global-nav-item small {
+  font-size: 9px;
+  color: #96999e;
+}
+:where(.lesson-workspace).nav-expanded .nav-toggle {
+  align-self: flex-start;
+  margin-left: 20px;
+}
+:where(.lesson-workspace) .outline-panel {
+  grid-column: 2;
+  grid-row: 2;
+  background: #fafafa;
+  border-right: 1px solid var(--line);
+  padding: 18px 15px 15px;
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+:where(.lesson-workspace) .outline-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0 0 14px 3px;
+  font-size: 13px;
+  font-weight: 600;
+}
+:where(.lesson-workspace) .segmented {
+  display: flex;
+  align-items: center;
+  padding: 3px;
+  background: #ededee;
+  border-radius: 8px;
+  margin-bottom: 27px;
+}
+:where(.lesson-workspace) .segmented button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex: 1;
+  font-size: 11px;
+  padding: 7px 0;
+  color: #777;
+}
+:where(.lesson-workspace) .segmented button.selected {
+  background: white;
+  border-radius: 6px;
+  color: #202329;
+  box-shadow: 0 1px 3px #0000000d;
+}
+:where(.lesson-workspace) .sidebar-section-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #96999e;
+  letter-spacing: 0.6px;
+  padding: 0 7px;
+  margin-bottom: 10px;
+}
+:where(.lesson-workspace) .sidebar-section-label > span {
+  font-size: 10px;
+  letter-spacing: 0;
+}
+:where(.lesson-workspace) .section-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+:where(.lesson-workspace) .section-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 11px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  text-align: left;
+  font-size: 12px;
+  color: #62666d;
+}
+:where(.lesson-workspace) .section-nav-item > span:first-of-type {
+  flex: 1;
+}
+:where(.lesson-workspace) .section-nav-item:hover {
+  background: #f0f1f3;
+}
+:where(.lesson-workspace) .section-nav-item.active {
+  background: white;
+  color: var(--blue);
+  border-color: #cbdcfb;
+  box-shadow: 0 2px 5px #2563eb08;
+}
+:where(.lesson-workspace) .completion-check {
+  color: #b3b8bf;
+}
+:where(.lesson-workspace) .section-nav-item.active .completion-check {
+  color: var(--blue);
+}
+:where(.lesson-workspace) .section-index {
+  font:
+    10px Consolas,
+    monospace;
+  color: #b2b6bd;
+}
+:where(.lesson-workspace) .outline-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  color: #9b9ea4;
+  margin: 15px 0 0 8px;
+  white-space: nowrap;
+}
+:where(.lesson-workspace) .small-dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #aeb4bf;
+}
+:where(.lesson-workspace) .sidebar-divider {
+  border-top: 1px solid var(--line);
+  margin: 25px 5px 21px;
+}
+:where(.lesson-workspace) .small-badge {
+  font-size: 10px;
+  color: #8c929c;
+  background: #f1f2f4;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 400;
+}
+:where(.lesson-workspace) .template-card {
+  margin: 0 5px;
+  border: 1px solid #cddcf6;
+  background: #edf1f7;
+  border-radius: 9px;
+  overflow: hidden;
+}
+:where(.lesson-workspace) .template-mini {
+  width: 102px;
+  height: 126px;
+  margin: 17px auto -3px;
+  padding: 10px 8px;
+  background: #fff;
+  box-shadow: 0 2px 6px #0d1f4012;
+  transform: rotate(-3deg);
+  font-family: var(--serif);
+}
+:where(.lesson-workspace) .mini-title {
+  text-align: center;
+  font-size: 5px;
+  margin-bottom: 7px;
+  font-weight: bold;
+}
+:where(.lesson-workspace) .mini-table {
+  border: 1px solid #939ba8;
+}
+:where(.lesson-workspace) .mini-table > div {
+  display: flex;
+  height: 12px;
+  border-bottom: 1px solid #c3c8d1;
+}
+:where(.lesson-workspace) .mini-table > div:nth-child(3) {
+  height: 22px;
+}
+:where(.lesson-workspace) .mini-table i {
+  display: block;
+  width: 20%;
+  border-right: 1px solid #b5bdc8;
+}
+:where(.lesson-workspace) .mini-table span {
+  height: 2px;
+  margin: 4px;
+  width: 50%;
+  background: #e0e3e9;
+}
+:where(.lesson-workspace) .template-card-caption {
+  background: white;
+  position: relative;
+  padding: 12px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+}
+:where(.lesson-workspace) .template-card-caption small {
+  display: block;
+  font-size: 9px;
+  color: #96999f;
+  margin-top: 4px;
+}
+:where(.lesson-workspace) .template-selected {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  background: var(--blue);
+  color: #fff;
+}
+:where(.lesson-workspace) .import-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #6f7887;
+  font-size: 10px;
+  padding: 15px 0;
+}
+:where(.lesson-workspace) .import-link:hover {
+  color: var(--blue);
+}
+:where(.lesson-workspace) .local-mode {
+  margin-top: auto;
+  padding: 25px 7px 3px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #838c99;
+  font-size: 10px;
+}
+:where(.lesson-workspace) .local-mode small {
+  font-size: 9px;
+  display: block;
+  margin-top: 4px;
+  color: #a6aab0;
+}
+:where(.lesson-workspace) .style-settings {
+  padding: 0 6px;
+}
+:where(.lesson-workspace) .style-settings h3 {
+  font-size: 13px;
+  margin-bottom: 25px;
+}
+:where(.lesson-workspace) .setting-note {
+  display: flex;
+  gap: 8px;
+  margin: 22px 0;
+  font-size: 11px;
+  line-height: 1.8;
+  color: #89909c;
+}
+:where(.lesson-workspace) .setting-note svg {
+  margin-top: 3px;
+}
+:where(.lesson-workspace).outline-hidden {
+  grid-template-columns: 60px 0 400px minmax(0, 1fr);
+}
+:where(.lesson-workspace).outline-hidden .outline-panel {
+  display: none;
+}
+:where(.lesson-workspace).outline-hidden.nav-expanded {
+  grid-template-columns: 220px 0 400px minmax(0, 1fr);
+}
+:where(.lesson-workspace) .editor-panel {
+  grid-column: 3;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-right: 1px solid var(--line);
+  background: #fff;
+  overflow: hidden;
+}
+:where(.lesson-workspace) .editor-heading {
+  padding: 28px 27px 23px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+:where(.lesson-workspace) .eyebrow {
+  font:
+    9px 'Segoe UI',
+    sans-serif;
+  letter-spacing: 2px;
+  color: #9ba3b1;
+  margin-bottom: 8px;
+}
+:where(.lesson-workspace) .editor-heading h1 {
+  font-size: 19px;
+  letter-spacing: -0.3px;
+  font-weight: 600;
+  color: #292f39;
+}
+:where(.lesson-workspace) .editor-tabs {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 0 26px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+:where(.lesson-workspace) .editor-tabs > button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: #8c929b;
+  padding: 0 0 14px;
+  position: relative;
+  white-space: nowrap;
+}
+:where(.lesson-workspace) .editor-tabs > button.active {
+  color: var(--blue);
+  font-weight: 500;
+}
+:where(.lesson-workspace) .editor-tabs > button.active:after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--blue);
+}
+:where(.lesson-workspace) .editor-tabs > button > span {
+  font-size: 8px;
+  line-height: 13px;
+  padding: 0 3px;
+  border-radius: 3px;
+  background: #f0f2f7;
+  color: #8890a0;
+}
+:where(.lesson-workspace) .history-actions {
+  display: flex;
+  margin-left: auto;
+  gap: 0;
+  align-self: flex-start;
+  margin-top: -6px;
+}
+:where(.lesson-workspace) .history-actions .icon-button {
+  width: 24px;
+}
+:where(.lesson-workspace) .editor-scroll {
+  overflow: auto;
+  flex: 1;
+  scroll-behavior: smooth;
+  padding: 0 27px;
+}
+:where(.lesson-workspace) .form-section {
+  padding: 27px 0 25px;
+  border-bottom: 1px solid #eceef1;
+  scroll-margin-top: 0;
+}
+:where(.lesson-workspace) .form-section:last-child {
+  border-bottom: 0;
+}
+:where(.lesson-workspace) .form-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 23px;
+}
+:where(.lesson-workspace) .section-icon {
+  width: 33px;
+  height: 33px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #f1f5fc;
+  color: #6a87b6;
+  flex-shrink: 0;
+}
+:where(.lesson-workspace) .form-section-heading h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: #303642;
+}
+:where(.lesson-workspace) .form-section-heading p {
+  font-size: 10px;
+  color: #9a9fa8;
+  letter-spacing: 0.1px;
+}
+:where(.lesson-workspace) .form-section-heading .small-badge {
+  margin-left: auto;
+  white-space: nowrap;
+  font-size: 9px;
+}
+:where(.lesson-workspace) .field {
+  display: block;
+  margin: 0 0 19px;
+}
+:where(.lesson-workspace) .field:last-child {
+  margin-bottom: 0;
+}
+:where(.lesson-workspace) .field-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 9px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #525965;
+}
+:where(.lesson-workspace) .field-label small {
+  font-size: 9px;
+  color: #a0a5ae;
+  font-weight: 400;
+}
+:where(.lesson-workspace) input:not([type='checkbox']):not([type='file']):not([type='range']),
+:where(.lesson-workspace) textarea,
+:where(.lesson-workspace) select {
+  width: 100%;
+  border: 1px solid #e2e6ec;
+  border-radius: 7px;
+  padding: 11px 12px;
+  background: #fff;
+  color: #424a57;
+  font-size: 12px;
+  transition:
+    border 0.15s,
+    box-shadow 0.15s;
+  outline: none;
+}
+:where(.lesson-workspace) input:not([type='checkbox']):not([type='file']):not([type='range']):focus,
+:where(.lesson-workspace) textarea:focus,
+:where(.lesson-workspace) select:focus {
+  border-color: #83abfa;
+  box-shadow: 0 0 0 3px #2563eb0b;
+}
+:where(.lesson-workspace) input::placeholder,
+:where(.lesson-workspace) textarea::placeholder {
+  color: #b1b6c0;
+}
+:where(.lesson-workspace) textarea {
+  resize: vertical;
+  line-height: 1.9;
+  min-height: 75px;
+  display: block;
+}
+:where(.lesson-workspace) input[type='range'] {
+  width: 100%;
+  accent-color: var(--blue);
+}
+:where(.lesson-workspace) .field-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+:where(.lesson-workspace) .input-suffix {
+  position: relative;
+}
+:where(.lesson-workspace) .input-suffix input {
+  padding-right: 40px !important;
+}
+:where(.lesson-workspace) .input-suffix > span {
+  position: absolute;
+  right: 13px;
+  top: 12px;
+  color: #a3a8b2;
+  font-size: 10px;
+}
+:where(.lesson-workspace) .lesson-types {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+:where(.lesson-workspace) .type-chip {
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #e3e6eb;
+  border-radius: 6px;
+  font-size: 10px;
+  color: #747b87;
+  cursor: pointer;
+  position: relative;
+}
+:where(.lesson-workspace) .type-chip.checked {
+  border-color: #b6cefc;
+  background: #f2f6ff;
+  color: var(--blue);
+}
+:where(.lesson-workspace) .type-chip input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  left: 0;
+  top: 0;
+  cursor: pointer;
+  margin: 0;
+}
+:where(.lesson-workspace) .type-chip:focus-within {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+:where(.lesson-workspace) .chip-checkbox {
+  width: 12px;
+  height: 12px;
+  border: 1px solid #cbd1d9;
+  border-radius: 3px;
+  display: grid;
+  place-items: center;
+}
+:where(.lesson-workspace) .checked .chip-checkbox {
+  background: var(--blue);
+  color: white;
+  border-color: var(--blue);
+}
+:where(.lesson-workspace) .textarea-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: #a5aab2;
+  margin-top: 8px;
+}
+:where(.lesson-workspace) .editor-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  flex-shrink: 0;
+  font-size: 9px;
+  color: #9da4af;
+  background: white;
+}
+:where(.lesson-workspace) .editor-footer > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+:where(.lesson-workspace) .live-dot {
+  height: 5px;
+  width: 5px;
+  background: #5a9d87;
+  border-radius: 50%;
+  display: inline-block;
+}
+:where(.lesson-workspace) .process-editor {
+  background: #fafbfc;
+  border: 1px solid #e6e9ed;
+  border-radius: 9px;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+:where(.lesson-workspace) .process-editor-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #99a2af;
+  margin-bottom: 12px;
+  font-size: 10px;
+}
+:where(.lesson-workspace) .process-row-actions {
+  display: flex;
+  margin-left: auto;
+}
+:where(.lesson-workspace) .process-row-actions .icon-button {
+  width: 24px;
+  height: 24px;
+}
+:where(.lesson-workspace) .danger:hover {
+  color: var(--danger) !important;
+}
+:where(.lesson-workspace) .process-editor .field {
+  margin-bottom: 13px;
+}
+:where(.lesson-workspace) .process-editor .field:last-child {
+  margin-bottom: 0;
+}
+:where(.lesson-workspace) .add-stage {
+  width: 100%;
+  border: 1px dashed #cfd8e8;
+  border-radius: 7px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: 11px;
+  color: #7188aa;
+}
+:where(.lesson-workspace) .add-stage:hover {
+  background: var(--blue-soft);
+}
+:where(.lesson-workspace) .validation-message {
+  font-size: 10px;
+  color: var(--danger);
+  margin: 0 0 15px;
+}
+:where(.lesson-workspace) .error-text {
+  color: var(--danger);
+}
+:where(.lesson-workspace) .preview-pane {
+  grid-column: 4;
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: var(--preview);
+  overflow: hidden;
+}
+:where(.lesson-workspace) .preview-toolbar {
+  height: 53px;
+  padding: 0 23px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  border-bottom: 1px solid #e2e5e9;
+  background: #f5f6f8;
+  gap: 10px;
+}
+:where(.lesson-workspace) .preview-title {
+  font-size: 11px;
+  color: #727b89;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+:where(.lesson-workspace) .preview-title .small-badge {
+  background: #e9ecf0;
+  color: #98a0ad;
+  font-size: 9px;
+}
+:where(.lesson-workspace) .preview-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+:where(.lesson-workspace) .preview-controls .icon-button {
+  width: 25px;
+  height: 26px;
+  color: #8b939f;
+}
+:where(.lesson-workspace) .zoom-label {
+  font-size: 10px;
+  min-width: 38px;
+  color: #737d8c;
+}
+:where(.lesson-workspace) .toolbar-divider {
+  height: 13px;
+  border-left: 1px solid #d9dde3;
+  margin: 0 7px;
+}
+:where(.lesson-workspace) .preview-viewport {
+  flex: 1;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+:where(.lesson-workspace) .paper-stack {
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 26px;
+  min-width: max-content;
+}
+:where(.lesson-workspace) .paper-wrapper {
+  position: relative;
+  flex-shrink: 0;
+  scroll-margin-top: 28px;
+  background: white;
+  box-shadow:
+    0 3px 14px #18253f0d,
+    0 12px 35px #18253f08;
+}
+:where(.lesson-workspace) .paper {
+  width: 794px;
+  height: 1123px;
+  background: white;
+  padding: 43px 53px 50px;
+  transform-origin: top left;
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: #21252b;
+  font-family: var(--serif);
+  line-height: 1.8;
+  overflow: visible;
+}
+:where(.lesson-workspace) .paper-eyebrow {
+  display: flex;
+  justify-content: space-between;
+  font-family: 'Microsoft YaHei', sans-serif;
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: #aaaeb5;
+  margin-bottom: 17px;
+}
+:where(.lesson-workspace) .paper-eyebrow > span {
+  font-size: 8px;
+  letter-spacing: 1px;
+}
+:where(.lesson-workspace) .paper h1 {
+  font-size: 25px;
+  text-align: center;
+  letter-spacing: 5px;
+  font-weight: bold;
+  margin: 0 0 23px;
+  line-height: 1.5;
+  color: #181b20;
+}
+:where(.lesson-workspace) .paper h1 small {
+  font-size: 17px;
+  letter-spacing: 1px;
+}
+:where(.lesson-workspace) .lesson-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  border: 1px solid #646a73;
+  line-height: 1.8;
+}
+:where(.lesson-workspace) .lesson-table th,
+:where(.lesson-workspace) .lesson-table td {
+  border: 1px solid #8c9199;
+  padding: 12px 13px;
+  vertical-align: middle;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+:where(.lesson-workspace) .lesson-table th {
+  font-weight: normal;
+  text-align: center;
+  line-height: 1.65;
+  font-size: 0.95em;
+  background: #fcfcfc;
+  white-space: pre-line;
+}
+:where(.lesson-workspace) .basic-table tr:first-child {
+  height: 57px;
+}
+:where(.lesson-workspace) .basic-table th,
+:where(.lesson-workspace) .basic-table td {
+  padding: 10px 8px;
+}
+:where(.lesson-workspace) .basic-table .subject-cell {
+  font-weight: bold;
+  font-size: 1.1em;
+}
+:where(.lesson-workspace) .center {
+  text-align: center;
+}
+:where(.lesson-workspace) .printed-types {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12px;
+}
+:where(.lesson-workspace) .printed-types > span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: normal;
+}
+:where(.lesson-workspace) .printed-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 11px;
+  height: 11px;
+  border: 1px solid #6e747e;
+}
+:where(.lesson-workspace) .content-table {
+  margin-top: -1px;
+}
+:where(.lesson-workspace) .content-table td {
+  vertical-align: top;
+}
+:where(.lesson-workspace) .content-table th {
+  padding: 12px 9px;
+}
+:where(.lesson-workspace) .content-table small {
+  display: block;
+  font-size: 11px;
+}
+:where(.lesson-workspace) .print-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.8;
+}
+:where(.lesson-workspace) .vertical-label {
+  writing-mode: vertical-rl;
+  letter-spacing: 13px;
+  margin: 0 auto;
+  font-size: 15px;
+  white-space: nowrap;
+}
+:where(.lesson-workspace) .table-column-label {
+  display: block;
+  text-align: center;
+  color: #666e7a;
+  font-size: 12px;
+  padding-bottom: 9px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #dce0e5;
+  white-space: nowrap;
+}
+:where(.lesson-workspace) .process-print-heading strong {
+  display: block;
+  font-size: 1em;
+  font-weight: bold;
+  margin-bottom: 5px;
+  line-height: 1.8;
+}
+:where(.lesson-workspace) .secondary-cell {
+  font-size: 0.9em;
+  color: #5c6572;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
+}
+:where(.lesson-workspace) .continuation-title {
+  font-size: 12px;
+  color: #6d7481;
+  margin-bottom: 12px;
+  text-align: right;
+}
+:where(.lesson-workspace) .approval-line {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+  font-size: 11px;
+  line-height: 2.1;
+  gap: 12px;
+}
+:where(.lesson-workspace) .approval-date {
+  display: block;
+  text-align: right;
+}
+:where(.lesson-workspace) .paper-footer {
+  position: absolute;
+  bottom: 25px;
+  left: 53px;
+  right: 53px;
+  display: flex;
+  justify-content: space-between;
+  color: #b1b5bd;
+  font:
+    9px 'Microsoft YaHei',
+    sans-serif;
+  letter-spacing: 0.3px;
+}
+:where(.lesson-workspace) .preview-bottom {
+  height: 43px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  flex-shrink: 0;
+  border-top: 1px solid #e0e4e9;
+  background: #f5f6f8;
+  font-size: 9px;
+  color: #8c96a5;
+}
+:where(.lesson-workspace) .preview-bottom > span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+:where(.lesson-workspace) .page-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+}
+:where(.lesson-workspace).focus-mode .outline-panel,
+:where(.lesson-workspace).focus-mode .editor-panel {
+  display: none;
+}
+:where(.lesson-workspace).focus-mode .preview-pane {
+  grid-column: 2/-1;
+}
+:where(.lesson-workspace).focus-mode .paper-stack {
+  min-width: 100%;
+}
+:where(.lesson-workspace) .fill-panel {
+  padding: 28px 0;
+}
+:where(.lesson-workspace) .fill-intro-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  display: grid;
+  place-items: center;
+  margin-bottom: 17px;
+}
+:where(.lesson-workspace) .fill-panel h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+:where(.lesson-workspace) .fill-panel > p {
+  color: #939aa6;
+  font-size: 11px;
+  line-height: 1.9;
+  margin-bottom: 26px;
+}
+:where(.lesson-workspace) .fill-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: #646e7c;
+  margin-bottom: 10px;
+}
+:where(.lesson-workspace) .fill-label button {
+  color: var(--blue);
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+:where(.lesson-workspace) .fill-disclaimer {
+  display: flex;
+  gap: 6px;
+  color: #9ba3ae;
+  font-size: 10px;
+  line-height: 1.7;
+  margin: 12px 0 20px;
+}
+:where(.lesson-workspace) .full-width {
+  width: 100%;
+}
+:where(.lesson-workspace) .proposal {
+  padding-top: 25px;
+  margin-top: 25px;
+  border-top: 1px solid var(--line);
+}
+:where(.lesson-workspace) .proposal-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--green);
+  margin-bottom: 18px;
+}
+:where(.lesson-workspace) .proposal-title h3 {
+  font-size: 13px;
+}
+:where(.lesson-workspace) .proposal-field {
+  padding: 10px 12px;
+  background: #f7f9fc;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+:where(.lesson-workspace) .proposal-field strong {
+  font-size: 11px;
+  font-weight: 500;
+  color: #485366;
+}
+:where(.lesson-workspace) .proposal-field p {
+  font-size: 11px;
+  white-space: pre-wrap;
+  color: #8290a2;
+  margin-top: 6px;
+  line-height: 1.8;
+  max-height: 210px;
+  overflow: auto;
+}
+:where(.lesson-workspace) .fill-warnings {
+  padding: 12px;
+  background: #fff8ec;
+  color: #9a7432;
+  border: 1px solid #f1e6cd;
+  border-radius: 7px;
+  font-size: 10px;
+  margin: 17px 0;
+}
+:where(.lesson-workspace) .fill-warnings p {
+  margin-top: 8px;
+  line-height: 1.8;
+}
+:where(.lesson-workspace) .proposal > .field {
+  margin-top: 18px;
+}
+:where(.lesson-workspace) .modal {
+  border: 1px solid #e2e6ef;
+  border-radius: 16px;
+  padding: 25px;
+  width: min(500px, calc(100vw - 32px));
+  color: #344055;
+  box-shadow: 0 24px 100px #10214130;
+}
+:where(.lesson-workspace) .modal::backdrop {
+  background: #16233c45;
+  backdrop-filter: blur(3px);
+}
+:where(.lesson-workspace) .modal-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+:where(.lesson-workspace) .modal h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+:where(.lesson-workspace) .modal p {
+  font-size: 13px;
+  line-height: 1.9;
+  color: #8791a1;
+}
+:where(.lesson-workspace) .modal p strong {
+  font-weight: 600;
+  color: #414e62;
+}
+:where(.lesson-workspace) .modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 28px;
+  flex-wrap: wrap;
+}
+:where(.lesson-workspace) .pdf-options {
+  background: #f7f9fc;
+  border-radius: 9px;
+  padding: 16px;
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-size: 11px;
+  color: #7d899c;
+}
+:where(.lesson-workspace) .pdf-options > div {
+  display: flex;
+  gap: 8px;
+  line-height: 1.6;
+}
+:where(.lesson-workspace) .pdf-options svg {
+  color: #6f8baa;
+}
+:where(.lesson-workspace) .toast {
+  position: fixed;
+  z-index: 100;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #273448;
+  color: white;
+  padding: 10px 12px 10px 16px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  box-shadow: 0 8px 30px #18294330;
+  max-width: calc(100vw - 28px);
+  width: max-content;
+}
+:where(.lesson-workspace) .toast .icon-button {
+  color: #bdc9dc;
+}
+:where(.lesson-workspace) .toast span {
+  line-height: 1.7;
+}
+:where(.lesson-workspace) .storage-alert {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff1dc;
+  padding: 12px;
+  text-align: center;
+  z-index: 80;
+  font-size: 12px;
+}
+:where(.lesson-workspace) .storage-alert button {
+  text-decoration: underline;
+  margin-left: 12px;
+}
+:where(.lesson-workspace) .mobile-tabs {
+  display: none;
+}
+:where(.lesson-workspace) .spin {
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (min-width: 1600px) {
+  .app-shell:where(.lesson-workspace) {
+    grid-template-columns: 60px 234px 432px minmax(0, 1fr);
+  }
+  .app-shell:where(.lesson-workspace).outline-hidden {
+    grid-template-columns: 60px 0 432px minmax(0, 1fr);
+  }
+  .app-shell:where(.lesson-workspace).nav-expanded {
+    grid-template-columns: 220px 234px 432px minmax(0, 1fr);
+  }
+  :where(.lesson-workspace) .editor-heading {
+    padding: 31px 32px 26px;
+  }
+  :where(.lesson-workspace) .editor-scroll {
+    padding: 0 32px;
+  }
+  :where(.lesson-workspace) .editor-tabs {
+    padding: 0 32px;
+  }
+  :where(.lesson-workspace) .form-section {
+    padding-top: 30px;
+  }
+}
+@media (max-height: 850px) and (min-width: 1101px) {
+  :where(.lesson-workspace) .sidebar-divider {
+    margin-top: 20px;
+    margin-bottom: 15px;
+  }
+  :where(.lesson-workspace) .section-nav-item {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+  :where(.lesson-workspace) .template-mini {
+    height: 95px;
+    margin-top: 11px;
+  }
+  :where(.lesson-workspace) .template-mini .mini-table > div {
+    height: 8px;
+  }
+  :where(.lesson-workspace) .local-mode {
+    padding-top: 16px;
+  }
+  :where(.lesson-workspace) .outline-note {
+    font-size: 8px;
+  }
+}
+@media (max-width: 1279px) {
+  .app-shell:where(.lesson-workspace) {
+    grid-template-columns: 60px 0 370px minmax(0, 1fr);
+  }
+  :where(.lesson-workspace) .outline-panel {
+    display: none;
+  }
+  .app-shell:where(.lesson-workspace).nav-expanded {
+    grid-template-columns: 180px 0 350px minmax(0, 1fr);
+  }
+  .app-shell:where(.lesson-workspace).outline-hidden {
+    grid-template-columns: 60px 0 370px minmax(0, 1fr);
+  }
+  :where(.lesson-workspace) .preview-toolbar {
+    padding: 0 15px;
+  }
+  :where(.lesson-workspace) .editor-heading {
+    padding: 26px 23px 23px;
+  }
+  :where(.lesson-workspace) .editor-scroll {
+    padding: 0 23px;
+  }
+  :where(.lesson-workspace) .editor-tabs {
+    padding: 0 23px;
+    gap: 17px;
+  }
+  :where(.lesson-workspace) .editor-heading h1 {
+    font-size: 18px;
+  }
+  :where(.lesson-workspace) .header-actions {
+    gap: 10px;
+  }
+  :where(.lesson-workspace) .breadcrumb {
+    font-size: 11px;
+  }
+  :where(.lesson-workspace) .paper-stack {
+    padding: 23px;
+  }
+  :where(.lesson-workspace) .preview-bottom {
+    padding: 0 12px;
+  }
+  :where(.lesson-workspace) .preview-bottom > span {
+    font-size: 8px;
+  }
+}
+@media (max-width: 767px) {
+  .app-shell:where(.lesson-workspace),
+  .app-shell:where(.lesson-workspace).nav-expanded,
+  .app-shell:where(.lesson-workspace).outline-hidden {
+    grid-template-columns: 1fr;
+    grid-template-rows: 59px minmax(0, 1fr) 54px;
+    height: 100dvh;
+  }
+  :where(.lesson-workspace) .global-nav,
+  :where(.lesson-workspace) .outline-panel {
+    display: none;
+  }
+  :where(.lesson-workspace) .app-header {
+    padding: 0 14px;
+    gap: 0;
+    grid-row: 1;
+  }
+  :where(.lesson-workspace) .brand {
+    gap: 8px;
+  }
+  :where(.lesson-workspace) .brand-mark {
+    height: 28px;
+    width: 28px;
+    border-radius: 8px;
+  }
+  :where(.lesson-workspace) .brand strong {
+    font-size: 15px;
+  }
+  :where(.lesson-workspace) .brand-divider,
+  :where(.lesson-workspace) .breadcrumb,
+  :where(.lesson-workspace) .save-status,
+  :where(.lesson-workspace) .new-button {
+    display: none;
+  }
+  :where(.lesson-workspace) .header-actions {
+    gap: 0;
+  }
+  :where(.lesson-workspace) .header-actions .button {
+    min-height: 32px;
+    font-size: 11px;
+    padding: 7px 10px;
+  }
+  :where(.lesson-workspace) .header-actions .button svg {
+    width: 14px;
+  }
+  :where(.lesson-workspace) .editor-panel,
+  :where(.lesson-workspace) .preview-pane,
+  :where(.lesson-workspace).focus-mode .preview-pane {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  :where(.lesson-workspace).mobile-edit .preview-pane {
+    display: none;
+  }
+  :where(.lesson-workspace).mobile-preview .editor-panel {
+    display: none;
+  }
+  :where(.lesson-workspace) .editor-heading {
+    padding: 24px 23px 22px;
+  }
+  :where(.lesson-workspace) .editor-heading h1 {
+    font-size: 21px;
+  }
+  :where(.lesson-workspace) .editor-tabs {
+    gap: 23px;
+  }
+  :where(.lesson-workspace) .editor-scroll {
+    padding: 0 23px;
+  }
+  :where(.lesson-workspace) .editor-footer {
+    padding: 11px 23px;
+  }
+  :where(.lesson-workspace) .form-section {
+    padding-top: 26px;
+  }
+  :where(.lesson-workspace) .form-section-heading p {
+    font-size: 11px;
+  }
+  :where(.lesson-workspace) .field-label {
+    font-size: 12px;
+  }
+  :where(.lesson-workspace) .type-chip {
+    font-size: 11px;
+  }
+  :where(.lesson-workspace) input:not([type='checkbox']):not([type='file']):not([type='range']),
+  :where(.lesson-workspace) textarea,
+  :where(.lesson-workspace) select {
+    font-size: 14px;
+  }
+  :where(.lesson-workspace) .mobile-tabs {
+    grid-column: 1;
+    grid-row: 3;
+    display: flex;
+    align-items: stretch;
+    border-top: 1px solid var(--line);
+    background: white;
+    z-index: 25;
+  }
+  :where(.lesson-workspace) .mobile-tabs button {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    color: #98a1af;
+    font-size: 12px;
+  }
+  :where(.lesson-workspace) .mobile-tabs button.active {
+    color: var(--blue);
+    background: #f8faff;
+  }
+  :where(.lesson-workspace) .preview-toolbar {
+    height: 49px;
+  }
+  :where(.lesson-workspace) .preview-viewport {
+    overflow: auto;
+  }
+  :where(.lesson-workspace) .preview-bottom {
+    height: 37px;
+  }
+  :where(.lesson-workspace) .paper-stack {
+    padding: 20px;
+  }
+  :where(.lesson-workspace) .toast {
+    bottom: 70px;
+    font-size: 11px;
+  }
+  :where(.lesson-workspace) .modal {
+    padding: 21px;
+  }
+  :where(.lesson-workspace) .modal h2 {
+    font-size: 18px;
+  }
+  :where(.lesson-workspace) .modal-actions .button {
+    font-size: 10px;
+    padding: 8px 10px;
+  }
+  :where(.lesson-workspace).focus-mode.mobile-edit .preview-pane {
+    display: flex;
+  }
+  :where(.lesson-workspace).focus-mode .editor-panel {
+    display: none;
+  }
+  :where(.lesson-workspace) .brand-divider {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :where(.lesson-workspace) *,
+  :where(.lesson-workspace) *:before,
+  :where(.lesson-workspace) *:after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "name": "zhiqikeyuan",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "workspaces": [
+    "apps/web"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=@zqky/web",
+    "dev:api": "cd apps/api && uv run uvicorn app.main:app --host 127.0.0.1 --port 8000",
+    "setup:api": "cd apps/api && uv sync",
+    "test:api": "cd apps/api && uv run python -m pytest",
+    "build": "npm run build --workspace=@zqky/web",
+    "start": "npm run start --workspace=@zqky/web",
+    "typecheck": "npm run typecheck --workspace=@zqky/web",
+    "lint": "eslint apps/web/src tests scripts --max-warnings=0",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
+    "test:chat": "node scripts/test-chat.mjs",
+    "template:build": "node scripts/build-template.mjs",
+    "template:verify": "node scripts/verify-template.mjs",
+    "format:check": "prettier --check apps/web/src tests scripts",
+    "check": "npm run typecheck && npm run lint && npm run test:unit && npm run build"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.58.2",
+    "@testing-library/jest-dom": "6.6.3",
+    "@testing-library/react": "16.3.0",
+    "@types/node": "22.10.5",
+    "eslint": "9.39.1",
+    "eslint-config-next": "16.3.4",
+    "fake-indexeddb": "6.2.5",
+    "jsdom": "26.1.0",
+    "prettier": "3.6.2",
+    "typescript": "5.7.3",
+    "vitest": "3.2.4"
+  }
+}

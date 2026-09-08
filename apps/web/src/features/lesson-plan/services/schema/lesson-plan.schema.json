@@ -1,0 +1,229 @@
+{
+  "version": 1,
+  "sourceSha256": "f51bae6b1cae0cce1072650a7ffdef07fb12708c5502eb36b70910c4276fa164",
+  "page": {
+    "widthTwips": 11900,
+    "heightTwips": 17160,
+    "topTwips": 840,
+    "bottomTwips": 840,
+    "leftTwips": 940,
+    "rightTwips": 940
+  },
+  "tables": [
+    {
+      "grid": [1660, 3780, 920, 940, 1200, 60, 1280],
+      "rows": [
+        {
+          "minHeightTwips": 660,
+          "cells": [
+            {
+              "label": "课题",
+              "colSpan": 1,
+              "vMerge": null
+            },
+            {
+              "label": "",
+              "colSpan": 1,
+              "vMerge": null
+            },
+            {
+              "label": "本课题总课时",
+              "colSpan": 1,
+              "vMerge": null
+            },
+            {
+              "label": "",
+              "colSpan": 1,
+              "vMerge": null
+            },
+            {
+              "label": "本节课",
+              "colSpan": 2,
+              "vMerge": null
+            },
+            {
+              "label": "第＿课时",
+              "colSpan": 1,
+              "vMerge": null
+            }
+          ]
+        },
+        {
+          "minHeightTwips": 660,
+          "cells": [
+            {
+              "label": "课型",
+              "colSpan": 1,
+              "vMerge": null
+            },
+            {
+              "label": "☐新课□复习课□试题讲评课□实验课□其它",
+              "colSpan": 6,
+              "vMerge": null
+            }
+          ]
+        },
+        {
+          "minHeightTwips": 2360,
+          "cells": [
+            {
+              "label": "核心素养目标",
+              "colSpan": 1,
+              "vMerge": null
+            },
+            {
+              "label": "",
+              "colSpan": 6,
+              "vMerge": null
+            }
+          ]
+        },
+        {
+          "minHeightTwips": 1520,
+          "cells": [
+            {
+              "label": "教学重、难点",
+              "colSpan": 1,
+              "vMerge": null
+            },
+            {
+              "label": "",
+              "colSpan": 6,
+              "vMerge": null
+            }
+          ]
+        },
+        {
+          "minHeightTwips": 3200,
+          "cells": [
+            {
+              "label": "教学设计（板书、思路、教学方法等）",
+              "colSpan": 1,
+              "vMerge": null
+            },
+            {
+              "label": "",
+              "colSpan": 6,
+              "vMerge": null
+            }
+          ]
+        },
+        {
+          "minHeightTwips": 840,
+          "cells": [
+            {
+              "label": "教学过程",
+              "colSpan": 1,
+              "vMerge": "restart"
+            },
+            {
+              "label": "教学设计",
+              "colSpan": 4,
+              "vMerge": null
+            },
+            {
+              "label": "二次备课",
+              "colSpan": 2,
+              "vMerge": null
+            }
+          ]
+        },
+        {
+          "minHeightTwips": 5080,
+          "cells": [
+            {
+              "label": "",
+              "colSpan": 1,
+              "vMerge": "continue"
+            },
+            {
+              "label": "",
+              "colSpan": 4,
+              "vMerge": null
+            },
+            {
+              "label": "",
+              "colSpan": 2,
+              "vMerge": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "grid": [1640, 6960, 1360],
+      "rows": [
+        {
+          "minHeightTwips": 940,
+          "cells": [
+            {
+              "label": "教学过程",
+              "colSpan": 1,
+              "vMerge": "restart"
+            },
+            {
+              "label": "教学设计",
+              "colSpan": 1,
+              "vMerge": null
+            },
+            {
+              "label": "二次备课",
+              "colSpan": 1,
+              "vMerge": null
+            }
+          ]
+        },
+        {
+          "minHeightTwips": 9520,
+          "cells": [
+            {
+              "label": "",
+              "colSpan": 1,
+              "vMerge": "continue"
+            },
+            {
+              "label": "",
+              "colSpan": 1,
+              "vMerge": null
+            },
+            {
+              "label": "",
+              "colSpan": 1,
+              "vMerge": null
+            }
+          ]
+        },
+        {
+          "minHeightTwips": 2460,
+          "cells": [
+            {
+              "label": "课堂练习及作业布置",
+              "colSpan": 1,
+              "vMerge": null
+            },
+            {
+              "label": "",
+              "colSpan": 2,
+              "vMerge": null
+            }
+          ]
+        },
+        {
+          "minHeightTwips": 2460,
+          "cells": [
+            {
+              "label": "教学反思",
+              "colSpan": 1,
+              "vMerge": null
+            },
+            {
+              "label": "",
+              "colSpan": 2,
+              "vMerge": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

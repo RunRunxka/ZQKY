@@ -1,0 +1,43 @@
+.workspace-modal {
+  width: min(580px, calc(100vw - 32px));
+  max-height: 85dvh;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  color: var(--ink);
+  background: white;
+  box-shadow: 0 24px 100px #14244233;
+}
+.workspace-modal::backdrop {
+  background: #15233855;
+  backdrop-filter: blur(3px);
+}
+.workspace-modal-body {
+  padding: 24px;
+}
+.workspace-modal-body > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.workspace-modal-body > header h2 {
+  font-size: 18px;
+  margin: 0;
+}
+.workspace-modal-body input:not([type='checkbox']),
+.workspace-modal-body select,
+.workspace-modal-body textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: white;
+}
+.workspace-modal-body footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}

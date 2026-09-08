@@ -1,0 +1,98 @@
+"""隔离的真实 HTTP 上游 + 正式 FastAPI，固定测试数据，不读取用户配置。"""
+import json
+import sys
+import tempfile
+import threading
+import time
+import os
+from pathlib import Path
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'apps/api'))
+import uvicorn
+from app.main import create_app
+from app.core.config import Settings
+from app.core.secrets import SecretStore
+from app.repositories.model_config_repository import ModelConfigRepository
+from app.schemas.model_config import ModelConnection,ModelProfile,now_utc
+
+gate = threading.Event()
+stats = {'first':None,'last':None,'cancelled':False}
+ANSWER = '''## 从现象理解概念
+
+这是一段用于验收的**中文分块回答**。先观察，再解释。
+
+1. 明确研究对象
+2. 比较不同情境
+3. 用证据检验结论
+
+### 数学表达
+
+$$E = mc^2$$
+
+| 阶段 | 学习目标 | 教学活动 |
+| --- | --- | --- |
+| 观察 | 发现差异 | 描述实验现象 |
+| 解释 | 建立联系 | 分组讨论与归纳 |
+
+```python
+def energy(mass):
+    return mass * 299792458 ** 2
+```
+
+'''
+
+class Upstream(BaseHTTPRequestHandler):
+    def log_message(self,*args): pass
+    def do_GET(self):
+        if self.path.startswith('/release'): gate.set(); body={'ok':True}
+        elif self.path.startswith('/stats'): body=stats
+        else: body={'data':[{'id':'teaching-alpha'},{'id':'teaching-beta'},{'id':'teaching-beta'}]}
+        data=json.dumps(body).encode(); self.send_response(200); self.send_header('Content-Type','application/json'); self.send_header('Content-Length',str(len(data))); self.end_headers(); self.wfile.write(data)
+    def do_POST(self):
+        body=json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+        if not body.get('stream'):
+            data=json.dumps({'choices':[{'message':{'content':'连接正常'},'finish_reason':'stop'}]}).encode()
+            self.send_response(200); self.send_header('Content-Type','application/json'); self.send_header('Content-Length',str(len(data))); self.end_headers(); self.wfile.write(data); return
+        gate.clear(); stats.update(first=None,last=None,cancelled=False)
+        self.send_response(200); self.send_header('Content-Type','text/event-stream'); self.send_header('Cache-Control','no-cache'); self.end_headers()
+        kind='responses' if self.path.endswith('/responses') else 'anthropic' if self.path.endswith('/messages') else 'chat'
+        def emit(name,payload):
+            wire=(('event: '+name+'\n') if name else '')+'data: '+json.dumps(payload,ensure_ascii=False)+'\n\n'
+            self.wfile.write(wire.encode()); self.wfile.flush()
+        def text(value):
+            if kind=='chat': emit('',{'choices':[{'delta':{'content':value}}]})
+            elif kind=='responses': emit('response.output_text.delta',{'delta':value})
+            else: emit('content_block_delta',{'delta':{'type':'text_delta','text':value}})
+        try:
+            stats['first']=time.monotonic(); text('第一段中文已经到达。\n\n')
+            # 握手门闩：由浏览器断言首段可见后释放，避免用固定延时冒充时序验证。
+            deadline=time.monotonic()+25
+            while not gate.wait(.1) and time.monotonic()<deadline:
+                self.wfile.write(b': heartbeat\n\n'); self.wfile.flush()
+            if '长回答' in json.dumps(body,ensure_ascii=False):
+                for _ in range(6): text(ANSWER); time.sleep(.03)
+            text('最后一段已释放。'); stats['last']=time.monotonic()
+            if kind=='chat': emit('',{'choices':[{'delta':{},'finish_reason':'stop'}]}); self.wfile.write(b'data: [DONE]\n\n')
+            elif kind=='responses': emit('response.completed',{'response':{'status':'completed','usage':{'input_tokens':9,'output_tokens':12}}})
+            else: emit('message_delta',{'delta':{'stop_reason':'end_turn'},'usage':{'output_tokens':12}}); emit('message_stop',{})
+            self.wfile.flush()
+        except (BrokenPipeError,ConnectionResetError,ConnectionAbortedError,OSError): stats['cancelled']=True
+
+server=ThreadingHTTPServer(('127.0.0.1',8002),Upstream)
+threading.Thread(target=server.serve_forever,daemon=True).start()
+temporary=tempfile.TemporaryDirectory(prefix='zqky-chat-test-')
+repo=ModelConfigRepository(Path(temporary.name)/'model-config.json'); secrets=SecretStore()
+for index,protocol in enumerate(['openai-chat','openai-responses','anthropic-messages']):
+    cid='c'+str(index); pid='p'+str(index)
+    repo.create_connection(ModelConnection(id=cid,displayName=['教学模型服务','Responses 服务','Anthropic 服务'][index],protocol=protocol,baseUrl='http://127.0.0.1:8002/v1',createdAt=now_utc(),updatedAt=now_utc()))
+    secrets.put(cid,'synthetic-test-key')
+    repo.create_profile(ModelProfile(id=pid,connectionId=cid,displayName=['教学问答模型','Responses 模型','Anthropic 模型'][index],modelId='teaching-alpha',purpose='chat',contextTokens=32000,maxOutputTokens=2048,createdAt=now_utc(),updatedAt=now_utc()))
+repo.mutate(lambda d:setattr(d,'defaultChatProfileId','p0'))
+os.environ['ZQKY_API_PORT']='8001'
+os.environ['ZQKY_ENV']='test'
+settings=Settings.from_env()
+app=create_app(settings,repository=repo,secret_store=secrets)
+if __name__=='__main__':
+    try: uvicorn.run(app,host='127.0.0.1',port=8001,log_level='warning')
+    finally: server.shutdown(); temporary.cleanup()

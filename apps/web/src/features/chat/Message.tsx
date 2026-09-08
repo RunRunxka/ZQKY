@@ -1,0 +1,277 @@
+'use client';
+import { Fragment, useEffect, useState } from 'react';
+import { BookOpen, Check, Copy, FileText, Pencil, Plus, RotateCcw } from 'lucide-react';
+import type { AskUserAnswer, AskUserDraft, ChatMessage } from '@/contracts/chat';
+import { conversationProjection } from './model/context-budget';
+import { formatTurnDuration, turnDurationSeconds } from './model/trace-timing';
+import { AnswerMarkdown } from './AnswerMarkdown';
+import { TraceStages } from './TraceStages';
+import { AskUserCard } from './AskUserCard';
+import { ToolProcessPanel } from './ToolProcessPanel';
+
+/** 来源与上下文条目（S3 引用/来源定位）：来自本轮冻结的扩展快照，只如实展示 */
+interface MessageSourceItem {
+  key: string;
+  label: string;
+  detail: string;
+}
+
+function collectSources(message: ChatMessage): MessageSourceItem[] {
+  const ext = message.extensions;
+  if (!ext) return [];
+  const items: MessageSourceItem[] = [];
+  if (ext.persona)
+    items.push({
+      key: `persona:${ext.persona.id}`,
+      label: `角色 · ${ext.persona.name}`,
+      detail: '本轮启用的会话级角色人设（演示目录），随轮次快照冻结。',
+    });
+  (ext.knowledge ?? []).forEach((entry) =>
+    items.push({
+      key: `knowledge:${entry.id}`,
+      label: `知识 · ${entry.name}`,
+      detail: '声明的检索范围（演示目录）；本轮未执行真实检索，不假装返回文档内容。',
+    }),
+  );
+  (ext.historyRefs ?? []).forEach((entry) =>
+    items.push({
+      key: `history:${entry.id}`,
+      label: `会话引用 · ${entry.title}`,
+      detail: '纳入本轮上下文说明的历史会话。',
+    }),
+  );
+  (ext.attachments ?? []).forEach((entry, index) =>
+    items.push({
+      key: `attachment:${entry.filename}:${index}`,
+      label: `附件 · ${entry.filename}`,
+      detail: '仅携带文件名/类型/大小元数据；未读取文件内容（当前无解析服务）。',
+    }),
+  );
+  (ext.mcps ?? []).forEach((entry) =>
+    items.push({
+      key: `mcp:${entry.id}`,
+      label: `MCP · ${entry.name}`,
+      detail: entry.description || '本轮载入的扩展（模拟执行，明确标识）。',
+    }),
+  );
+  (ext.skills ?? []).forEach((entry) =>
+    items.push({
+      key: `skill:${entry.id}`,
+      label: `Skill · ${entry.name}`,
+      detail: entry.description || '技能上下文已加载（非远程工具调用）。',
+    }),
+  );
+  return items;
+}
+
+/**
+ * 轮级耗时（S3）：流式逐秒滴答、完成后冻结（对照参考 trace-timing 的单一状态行设计）。
+ * R25：只渲染一处（标题区），正文/推理/工具/追问/产物期间持续可见；
+ * 全部结束路径（end/error/停止/断流/恢复）都写入 finishedAt，终态后冻结。
+ */
+function TurnDuration({ startedAt, finishedAt }: { startedAt?: string; finishedAt?: string }) {
+  const [, setTick] = useState(0);
+  const streaming = !finishedAt;
+  useEffect(() => {
+    if (!streaming || !startedAt) return;
+    const timer = window.setInterval(() => setTick((n) => n + 1), 1000);
+    return () => window.clearInterval(timer);
+  }, [streaming, startedAt]);
+  if (!startedAt) return null;
+  return (
+    <span className="chat-turn-duration">
+      {formatTurnDuration(turnDurationSeconds(startedAt, finishedAt))}
+    </span>
+  );
+}
+
+export function Message({
+  message,
+  copied,
+  onCopy,
+  onRetry,
+  onReuse,
+  ask,
+  onOpenArtifact,
+}: {
+  message: ChatMessage;
+  copied: boolean;
+  onCopy: () => void;
+  onRetry?: () => void;
+  onReuse: () => void;
+  /** 追问交互句柄：等待回答的卡可交互，草稿与提交路由到 store */
+  ask?: {
+    waitingId: string | null;
+    submitting: boolean;
+    onDraft(interactionId: string, questionId: string, draft: AskUserDraft): void;
+    onSubmit(interactionId: string, answers: AskUserAnswer[]): void;
+  };
+  /** S3：点击产物入口打开右侧结果工作区 */
+  onOpenArtifact?: (artifactId: string) => void;
+}) {
+  // R12 补充：复制等操作的可用性按统一投影判断——纯追问续答有正文即可复制，
+  // 真正的空白占位不显示无意义操作
+  const copyableText = conversationProjection(message);
+  // S3 引用/来源定位：本轮冻结快照中的来源条目（知识/会话引用/附件/扩展）
+  const sources = collectSources(message);
+  if (message.role === 'user')
+    return (
+      <div className="chat-row user">
+        <div className="chat-bubble user">{message.content}</div>
+        {/* S3 消息操作（对照参考 ChatMessageList 悬停操作）：复制 / 复用到输入框 */}
+        <div className="chat-msg-actions">
+          <button aria-label={copied ? '已复制' : '复制提问'} onClick={onCopy}>
+            {copied ? <Check size={13} /> : <Copy size={13} />}
+          </button>
+          <button aria-label="复用此提问到输入框" onClick={onReuse}>
+            <Pencil size={13} />
+          </button>
+        </div>
+      </div>
+    );
+  return (
+    <article className="chat-row assistant">
+      <div className="chat-bubble assistant">
+        <div className="chat-assistant-label">
+          <span className="chat-assistant-mark">
+            <BookOpen size={13} />
+          </span>
+          智启课源
+          <span>{message.status === 'streaming' ? '正在生成' : ''}</span>
+          {/* R25：耗时唯一渲染点——只要有开始时间就显示（流式滴答/终态冻结），
+              修复“正文出现后耗时而从状态行消失、部分终态继续计时”的问题 */}
+          {message.startedAt && (
+            <TurnDuration startedAt={message.startedAt} finishedAt={message.finishedAt} />
+          )}
+        </div>
+        {/* 工具/技能执行过程：对照原版位于正文之前，按 callId 原地更新，手动展开态不被正文增量重置 */}
+        <ToolProcessPanel toolCalls={message.toolCalls} />
+        {/* S4 轮内阶段序列（planning→…→writing 等）：进行中可见，终态收起为紧凑消息 */}
+        <TraceStages stages={message.stages} />
+        {/* S3：产物入口（关联结果定位到右侧结果工作区） */}
+        {!!message.artifacts?.length && (
+          <div className="chat-artifact-chips" role="list" aria-label="本轮产物">
+            {message.artifacts.map((artifact) => (
+              <button
+                key={artifact.id}
+                type="button"
+                onClick={() => onOpenArtifact?.(artifact.id)}
+                title={artifact.title}
+              >
+                <FileText size={13} />
+                <span className="chat-artifact-chip-title">{artifact.title}</span>
+                <small>{artifact.kind.toUpperCase()}</small>
+              </button>
+            ))}
+          </div>
+        )}
+        {message.content ? (
+          <AnswerMarkdown text={message.content} />
+        ) : message.reasoning ? null : message.status === 'streaming' ? (
+          /* R25：等待占位不再重复渲染耗时（标题区已有唯一耗时节点） */
+          <p className="chat-status-text" role="status">
+            {message.stageLabel ?? '正在等待模型回复'}
+            <span className="chat-stream-dot">…</span>
+          </p>
+        ) : null}
+        {/* 追问卡与各自续写按序渲染：正文→提问→回答记录→续写（同轮顺序） */}
+        {message.asks?.map((interaction) => (
+          <Fragment key={interaction.interactionId}>
+            {ask ? (
+              <AskUserCard
+                interaction={interaction}
+                active={ask.waitingId === interaction.interactionId}
+                submitting={ask.submitting}
+                onDraft={ask.onDraft}
+                onSubmit={ask.onSubmit}
+              />
+            ) : (
+              <AskUserCard
+                interaction={interaction}
+                active={false}
+                submitting={false}
+                onDraft={() => undefined}
+                onSubmit={() => undefined}
+              />
+            )}
+            {interaction.followUp && <AnswerMarkdown text={interaction.followUp} />}
+          </Fragment>
+        ))}
+        {message.status === 'streaming' && message.processNote && (
+          <p className="chat-process-note">{message.processNote}</p>
+        )}
+        {/* S3 引用/来源定位：本轮冻结快照的来源条目，展开定位详情（只如实展示，不伪造检索） */}
+        {sources.length > 0 && (
+          <details className="chat-sources">
+            <summary>
+              <FileText size={12} />
+              来源与上下文（{sources.length}）
+            </summary>
+            <ul>
+              {sources.map((source) => (
+                <li key={source.key}>
+                  <strong>{source.label}</strong>
+                  <small>{source.detail}</small>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+        {message.reasoning &&
+          (message.status === 'streaming' ? (
+            <div className="chat-reasoning streaming">
+              <span className="chat-reasoning-label">推理中</span>
+              <p className="chat-reasoning-text">{message.reasoning}</p>
+            </div>
+          ) : (
+            <details className="chat-reasoning">
+              <summary>推理过程</summary>
+              <p className="chat-reasoning-text">{message.reasoning}</p>
+            </details>
+          ))}
+        {message.status === 'stopped' && (
+          <span className="small-badge">
+            {message.finishReason === 'client-stop' ? '已停止' : '已中断'}
+          </span>
+        )}
+        {message.finishReason === 'length' && (
+          <p className="chat-status-text">已达到输出上限，回答可能不完整。</p>
+        )}
+        {message.status === 'error' && (
+          <div className="chat-error" role="alert">
+            <p>
+              {message.error?.message}（{message.error?.code}）
+            </p>
+            {onRetry && <button onClick={onRetry}>重试</button>}
+          </div>
+        )}
+        {message.superseded && <span className="small-badge">之前的尝试 · 已保留</span>}
+        <footer className="chat-bubble-foot">
+          <span title={message.modelLabel}>{message.modelLabel}</span>
+          {message.usage && (
+            <span>
+              输入 {message.usage.inputTokens ?? '未知'} · 输出{' '}
+              {message.usage.outputTokens ?? '未知'} tokens
+            </span>
+          )}
+          <span className="chat-flex-spacer" />
+          {copyableText.trim() && (
+            <button aria-label={copied ? '已复制' : '复制回答'} onClick={onCopy}>
+              {copied ? <Check size={14} /> : <Copy size={14} />}
+            </button>
+          )}
+          {message.status === 'stopped' && onRetry && (
+            <button aria-label="重新生成" onClick={onRetry}>
+              <RotateCcw size={14} />
+            </button>
+          )}
+          {message.status !== 'streaming' && (
+            <button aria-label="复制问题到输入框" onClick={onReuse}>
+              <Plus size={14} />
+            </button>
+          )}
+        </footer>
+      </div>
+    </article>
+  );
+}

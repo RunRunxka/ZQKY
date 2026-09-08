@@ -1,0 +1,91 @@
+/* 书籍模块补充样式（基于 space 设计语言变量；仅作用域内类名） */
+.books-layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .books-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.books-rail {
+  position: sticky;
+  top: 16px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+.space-card-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.space-reading-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  margin: 8px 0 4px;
+}
+
+.space-reading-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent, #2563eb);
+  transition: width 0.2s ease;
+}
+
+.books-reader {
+  background: var(--bg, #fff);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  padding: 20px 22px;
+}
+
+.books-block {
+  margin: 0 0 16px;
+}
+
+.books-block-callout {
+  border-left: 3px solid var(--accent, #2563eb);
+  background: rgba(37, 99, 235, 0.06);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.books-quiz-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin: 6px 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  background: transparent;
+  cursor: pointer;
+}
+
+.books-quiz-option.correct {
+  border-color: #2f855a;
+  background: rgba(47, 133, 90, 0.1);
+}
+
+.books-quiz-option.wrong {
+  border-color: #c53030;
+  background: rgba(197, 48, 48, 0.08);
+}
+
+.books-reader-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}

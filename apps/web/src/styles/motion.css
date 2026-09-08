@@ -1,0 +1,27 @@
+:root {
+  --motion-pop: 160ms;
+  --motion-trace: 300ms;
+  --motion-composer: 650ms;
+  /* 输入区弹出层/宽度变化（原版 ChatComposer：cubic-bezier(.16,1,.3,1)） */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  /* 过程展开（原版 TracePresentation：Tailwind duration-300 ease-out = cubic-bezier(0,0,0.2,1)） */
+  --ease-standard: cubic-bezier(0, 0, 0.2, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+html[data-motion='reduced'] *,
+html[data-motion='reduced'] *::before,
+html[data-motion='reduced'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}

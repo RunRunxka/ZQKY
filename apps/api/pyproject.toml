@@ -1,0 +1,22 @@
+[project]
+name = "zhiqikeyuan-api"
+version = "0.3.0"
+description = "智启课源本机后端：模型设置、统一 Provider 适配层与后续导出能力的最小骨架"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.116",
+    "uvicorn>=0.30",
+]
+
+[dependency-groups]
+dev = [
+    "httpx2>=2.12.0",
+    "pytest>=8.3",
+    "pytest-asyncio>=1.4.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+asyncio_mode = "auto"
