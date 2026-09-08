@@ -1,0 +1,158 @@
+Evidence log: ANSI controls and trailing whitespace removed; original log retained in _work/review-reading-20260908/.
+
+npm notice run zhiqikeyuan@0.2.0 npx
+npm notice run playwright test --config tests/review/reading-20260908/playwright.config.ts --trace=off --output=_work/review-reading-20260908/browser-probes-traceoff
+(node:28764) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[WebServer] (node:24364) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+
+(node:28052) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+(node:28052) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(node:28052) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[1/4] tests\review\reading-20260908\reading.probe.spec.ts:26:1 › R28: material library button changes the rendered route, not only the URL
+  1) tests\review\reading-20260908\reading.probe.spec.ts:26:1 › R28: material library button changes the rendered route, not only the URL
+
+    Error: expect(locator).toBeVisible() failed
+
+    Locator: getByRole('heading', { name: '阅读材料库', exact: true })
+    Expected: visible
+    Timeout: 2500ms
+    Error: element(s) not found
+
+    Call log:
+      - Expect "toBeVisible" with timeout 2500ms
+      - waiting for getByRole('heading', { name: '阅读材料库', exact: true })
+
+
+      28 |   await page.getByRole('button', { name: '材料库…', exact: true }).click();
+      29 |   await expect(page).toHaveURL(/\/reading\/materials$/);
+    > 30 |   await expect(page.getByRole('heading', { name: '阅读材料库', exact: true })).toBeVisible();
+         |                                                                           ^
+      31 | });
+      32 |
+      33 | test('R29: highlighting the second identical paragraph only marks that occurrence', async ({ page }, testInfo) => {
+        at H:\备份xuexi\智启课源\tests\review\reading-20260908\reading.probe.spec.ts:30:75
+
+    Error Context: _work\review-reading-20260908\browser-probes-traceoff\reading.probe-R28-material-292ce-ered-route-not-only-the-URL\error-context.md
+
+
+
+
+(node:27884) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+(node:27884) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(node:27884) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+
+[2/4] tests\review\reading-20260908\reading.probe.spec.ts:33:1 › R29: highlighting the second identical paragraph only marks that occurrence
+  2) tests\review\reading-20260908\reading.probe.spec.ts:33:1 › R29: highlighting the second identical paragraph only marks that occurrence
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  locator('.reading-layout > .reading-pane:not(aside)').locator('mark')
+    Expected: 1
+    Received: 2
+    Timeout:  2500ms
+
+    Call log:
+      - Expect "toHaveCount" with timeout 2500ms
+      - waiting for locator('.reading-layout > .reading-pane:not(aside)').locator('mark')
+        6 × locator resolved to 2 elements
+          - unexpected value "2"
+
+
+      43 |   await page.getByRole('button', { name: '高亮（yellow）', exact: true }).click();
+      44 |   await page.screenshot({ path: testInfo.outputPath('duplicate-highlight.png') });
+    > 45 |   await expect(reader(page).locator('mark')).toHaveCount(1);
+         |                                              ^
+      46 |   await expect(reader(page).locator('p[data-loc]').nth(0).locator('mark')).toHaveCount(0);
+      47 | });
+      48 |
+        at H:\备份xuexi\智启课源\tests\review\reading-20260908\reading.probe.spec.ts:45:46
+
+    Error Context: _work\review-reading-20260908\browser-probes-traceoff\reading.probe-R29-highligh-10cb2--only-marks-that-occurrence\error-context.md
+
+
+
+
+(node:26568) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+(node:26568) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+
+
+(node:26568) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[3/4] tests\review\reading-20260908\reading.probe.spec.ts:49:1 › R30: switching to an unread material restores position zero
+  3) tests\review\reading-20260908\reading.probe.spec.ts:49:1 › R30: switching to an unread material restores position zero
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 3199
+
+    Call Log:
+    - Timeout 2500ms exceeded while waiting on the predicate
+
+      55 |   await expect(reader(page).locator('header strong')).toHaveText('材料B');
+      56 |   await page.screenshot({ path: testInfo.outputPath('unread-position.png') });
+    > 57 |   await expect.poll(() => reader(page).evaluate((el) => el.scrollTop)).toBe(0);
+         |   ^
+      58 | });
+      59 |
+      60 | test('R31: collapsing navigation gives the reader additional width', async ({ page }, testInfo) => {
+        at H:\备份xuexi\智启课源\tests\review\reading-20260908\reading.probe.spec.ts:57:3
+
+    Error Context: _work\review-reading-20260908\browser-probes-traceoff\reading.probe-R30-switchin-f8a2f-rial-restores-position-zero\error-context.md
+
+
+
+
+(node:25724) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+(node:25724) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+
+
+(node:25724) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[4/4] tests\review\reading-20260908\reading.probe.spec.ts:60:1 › R31: collapsing navigation gives the reader additional width
+  4) tests\review\reading-20260908\reading.probe.spec.ts:60:1 › R31: collapsing navigation gives the reader additional width
+
+    Error: expect(received).toBeGreaterThan(expected)
+
+    Expected: > 338
+    Received:   250
+
+    Call Log:
+    - Timeout 2500ms exceeded while waiting on the predicate
+
+      64 |   await expect(page.getByRole('complementary', { name: '阅读导航' })).toHaveCount(0);
+      65 |   await page.screenshot({ path: testInfo.outputPath('collapsed-navigation.png') });
+    > 66 |   await expect.poll(async () => (await reader(page).boundingBox())!.width).toBeGreaterThan(before);
+         |   ^
+      67 | });
+      68 |
+        at H:\备份xuexi\智启课源\tests\review\reading-20260908\reading.probe.spec.ts:66:3
+
+    Error Context: _work\review-reading-20260908\browser-probes-traceoff\reading.probe-R31-collapsi-8a36a-the-reader-additional-width\error-context.md
+
+
+  4 failed
+    tests\review\reading-20260908\reading.probe.spec.ts:26:1 › R28: material library button changes the rendered route, not only the URL
+    tests\review\reading-20260908\reading.probe.spec.ts:33:1 › R29: highlighting the second identical paragraph only marks that occurrence
+    tests\review\reading-20260908\reading.probe.spec.ts:49:1 › R30: switching to an unread material restores position zero
+    tests\review\reading-20260908\reading.probe.spec.ts:60:1 › R31: collapsing navigation gives the reader additional width

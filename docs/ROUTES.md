@@ -1,6 +1,6 @@
 # 路由与状态
 
-更新：2026-09-08（S5-C 书籍/课程落地；同步 S5-A/S5-B 实现状态）。
+更新：2026-09-08 独立审查。此表仅说明运行时路由/导航，不是完整复刻验收结论；验收状态唯一来源是 [页面矩阵](replica/PAGE_MATRIX.md)。阅读已确认 R26–R32 待修与补齐，书籍/课程仍为部分实现。
 
 ## 已建立路由
 
@@ -29,10 +29,10 @@
 | `/question-bank` | 题库 | 规划状态页 |
 | `/templates` | 模板中心 | 规划状态页 |
 | `/co-writer` | 协同写作 | 规划状态页 |
-| `/reading` | 沉浸阅读（集合列表；材料解析仅文本形态，显式标注） | 已实现（`ready`） |
-| `/reading/materials` | 阅读材料库（新建/分配/删除） | 已实现（`ready`） |
-| `/reading/[workspaceId]` | 三栏工作区（导航/阅读器/伴生模拟 AI） | 已实现（`ready`） |
-| `/reading/[workspaceId]/sessions(/[sessionId])` | 阅读会话深链（会话切换用 replaceState 写 URL） | 已实现（`ready`） |
+| `/reading` | 沉浸阅读（集合列表；材料解析仅文本形态，显式标注） | 入口 ready，交付实现待修复 |
+| `/reading/materials` | 阅读材料库（新建/分配/删除） | 入口 ready，交付实现待修复 |
+| `/reading/[workspaceId]` | 三栏工作区（导航/阅读器/伴生模拟 AI） | 入口 ready，交付实现待修复 |
+| `/reading/[workspaceId]/sessions(/[sessionId])` | 阅读会话深链（会话切换用 replaceState 写 URL） | 入口 ready，交付实现待修复 |
 | `/agents` | Agent 任务 | 规划状态页 |
 | `/mcp` | MCP | 重定向 `/settings#mcp`；本地模拟管理 |
 | `/skills` | Skills | 重定向 `/settings#skills`；本地模拟管理 |

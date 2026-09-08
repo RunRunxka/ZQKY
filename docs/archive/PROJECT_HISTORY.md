@@ -1,3 +1,191 @@
+# 历史合并归档：PROJECT_HISTORY.md
+
+归档日期：2026-09-08。以下为过去记录原文，含已作废目标、旧状态与旧提示词，**不是当前执行指令**。当前目标见 [项目说明](../PROJECT_GUIDE.md)，当前进度见 [STATUS](../STATUS.md)。
+
+原文件字节哈希见 [MANIFEST.json](MANIFEST.json)，保留原文内容、换行按仓库规范转为 LF；旧相对链接按原文件所在目录理解。完整原路径版本可从 Git 基线 b8cf71f 查看。
+
+<a id="source-1"></a>
+
+## 原文件：docs/ARCHITECTURE.md
+
+<!-- BEGIN ORIGINAL docs/ARCHITECTURE.md -->
+# 工程架构
+
+## 当前结构
+
+根目录是npm workspace和本地Git边界，仅纳入 `apps/web`。原规划材料和冻结旧版用于追溯，不参与正式依赖解析或运行。
+
+正式前端使用Next.js App Router。根布局提供全局主题；根页面跳转 `/lesson-plans`。教案页面加载客户端 `LessonPlanWorkspace`，但模块加载过程不读取浏览器状态，服务端预渲染首先展示恢复状态。
+
+`WorkspaceShell` 提供项目标识、全局导航、标题和操作插槽。它依赖公共NavigationItem和Next路由，不导入教案数据。未开发入口统一显示“规划中”；未知路径返回404。
+
+## 教案数据流
+
+```text
+页面 → LessonPlanProvider（每个编辑器创建独立store）
+     → DraftRepository.load → 恢复草稿 → 开放编辑
+     → 表单修改store → 即时预览
+                   → 600ms防抖 → 串行DraftRepository.save
+     → FillProvider.parse → 建议和警告 → 用户确认 → store
+     → Word模板映射 / 命名A4打印页面
+```
+
+写入器合并尚未发出的版本，异步保存按序执行；失败保留待写版本。导航前等待flush成功，卸载和pagehide也尝试刷新。浏览器关闭时，异步后台写入不具备必达保证，因此未完成保存会触发离开提示。当前默认本地存储写入是同步的。
+
+草稿读取失败不会写入初始示例覆盖坏数据。用户可以备份当前内容后明确替换旧草稿。单机草稿仍是一份文档；跨标签页冲突、多账号、多教案不在当前实现范围。
+
+## 扩展方式
+
+1. 在统一导航和ROUTES文档登记入口及状态。
+2. 在 `features/<module>` 实现业务，在 `app` 建薄页面入口；复用公共壳和控件。
+3. 模块专有类型留在模块，跨模块契约进入 `contracts`。页面通过明确服务接口读写，避免直接调用模型或数据库。
+4. 真正实现时才将导航 `available` 改为true；保留空、错、加载、取消及恢复状态。
+5. 新增后端时遵循apps/api规划，不在前端创建假接口或隐式回退演示实现。
+
+## 样式与测试
+
+公共主题在globals.css；教案CSS限定 `.lesson-workspace`。教案打印采用命名 `@page lesson-plan`，只有教案存在时才应用纸张和隐藏规则。切换到其他路由后残留CSS不会触发教案打印布局。
+
+单元测试与纯服务相邻；浏览器回归使用根 `tests/e2e`、固定JSON数据与5174生产服务。浏览器上下文隔离，绝不操作用户现有页面或依赖Vite源码模块地址。
+
+<!-- END ORIGINAL docs/ARCHITECTURE.md -->
+
+<a id="source-2"></a>
+
+## 原文件：docs/DECISIONS.md
+
+<!-- BEGIN ORIGINAL docs/DECISIONS.md -->
+# 当前生效的工程决策
+
+## 当前复刻任务口径（2026-09-08）
+
+用户现行目标为 DeepTutor v1.6.5 / 42fab3cf429a1fbf36b257ab8d116a3814964202 全部产品前端、AI交互与原版动画复刻，目标品牌智启课源；MCP/Skills管理统一在设置。连续执行入口为 [replica/NEXT_SESSION_START.md](replica/NEXT_SESSION_START.md)，先修 [R19–R25](replica/REVIEW_S2_S3_2026-09-08.md) 后推进全部剩余工作。保留现有技术栈/真实SSE/模型管理/教案/用户数据，当前 `/`→`/chat`，教案独立入口保留。下表及旧章节中 v1.6.4、视觉只沿用教案、Dxx单阶段任务等叙述为历史范围，不能覆盖现行用户目标；基础数据保护与工程约束继续有效。
+
+更新：2026-09-06。以用户批准的问答修复与模型管理计划增补；旧阶段叙述作为历史保留。
+
+| 决策 | 内容 |
+| --- | --- |
+| 工程根 | `H:\备份xuexi\智启课源`（2026-09-06 起本仓库实际位置；旧记录中的 F:\智启课源 为迁移前路径） |
+| 前端 | Next.js 16.3.4、React/ReactDOM 19.2.8、TypeScript、Tailwind 3.4.17 |
+| 版本来源 | 实施时查询npm官方注册表，Next16兼容React19；具体依赖以根锁文件为准 |
+| 包管理 | npm workspaces只包含apps/web；冻结旧版锁文件不属于正式工程依赖 |
+| 参考基线 | 最新UI以本项目教案工作台为准；后续模型调用参考DeepTutor v1.6.4适配层，不整仓移植 |
+| 当前可用功能 | 教案工作台、学习问答、模型管理；其他业务入口仍规划中 |
+| 默认入口 | `/` 跳转 `/chat`（2026-09-06 用户指定并经 2026-09-07 续审确认；更早"跳转教案"的陈述已作废，仅作历史记录） |
+| 草稿 | 保留旧键、版本与JSON；正式地址保持127.0.0.1:5173 |
+| 依赖注入 | 正式模块通过props/Context接收服务；移除旧window注入入口 |
+| 后端 | FastAPI 三协议调用、模型目录与设置、聊天 SSE；不启动数据库或 Redis |
+| 旧版 | 原目录冻结，仅新增ARCHIVED.md，保留源码及资料回退 |
+| 原模板 | 根Word保持原样；正式副本、manifest与派生模板独立存放 |
+| Git | 初始化本地仓库和忽略规则；不自动提交、不配置远程、不推送 |
+
+### 问答与模型管理现行决策
+
+交互参考 DeepTutor v1.6.4，视觉沿用教案。模型按连接组织，发现仅建议 ID，不推断能力；全局默认仅面向问答，任务分配仍规划。会话显式选择优先于默认，失效不静默换供应商。参数实际值由同一目录供设置与问答使用。
+
+连接与流式测试证据分开；测试中配置改变不写回旧验证结果。凭证只在后端进程，普通配置 JSON 不含凭证，`.local-data/` 忽略。聊天使用安全 Markdown/公式渲染；这取代此前 D04 纯文本范围。会话 IndexedDB 用版本检查、串行合并写入，刷新恢复中断状态，冲突不覆盖编辑内容。
+
+最新检查和未验证边界见 [CHAT_MODEL_REVIEW.md](CHAT_MODEL_REVIEW.md)；模拟上游结果不等于实际供应商验收。
+
+旧模块文档中的Vite启动方式、窗口注入接口、脚本路径已被本轮正式工程替代。原始规划仍保留，不复制修改出另一套完整历史计划；当前实施状态以本目录文档和源码为准。
+
+框架迁移不改变用户确认的界面方向。为可维护性拆出了公共壳、表单、填充、配置、导出和弹窗；存储增加离开页面前刷新及实例隔离。
+
+技术依据：[Next.js迁移指南](https://nextjs.org/docs/app/guides/migrating/from-vite)、[AGENTS.md官方说明](https://learn.chatgpt.com/docs/agent-configuration/agents-md)。标准规则文件为AGENTS.md，小写agent.md只作指引，不修改用户全局Codex配置。
+
+## 2026-09-05 后续开发范围调整（计划，尚未实施）
+
+最新执行依据为 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md)，包含 D01–D09 的可复制 AI 任务包。用户本次要求编写详细 Markdown，未要求本轮开始业务代码实现。
+
+- 不接教材数据库、题库数据库、向量数据库、SQLite 或 Redis；保留仓储、检索与能力接口。浏览器 IndexedDB 和后端本地配置/任务文件是拟定的无数据库实现方式。
+- 未实现模块提前展示入口和“规划中”；已实现模块的未接通子能力单独标注，不能将模块可用误写成全部能力可用。
+- 学习问答优先接真实 API 模型；为保护凭证建立精简 FastAPI，不由浏览器直接调用供应商。此服务当前还没有实现。
+- UI 延续现有教案工作台；组卷使用左配置、中编辑、右实时预览，A3 默认正式试卷、A4 默认课堂小练，两种纸张均可切换。
+- 无题库阶段先做手动/结构化导入的本地组卷；“从题库自动选题”和“根据教材出题”继续规划中，不用示例冒充真实库。
+- DOCX 上传采用支持检查、字段映射和模板版本；实时编辑预览与正式分页预览分开，正式PDF预览和下载应来自同一产物。旧教案模板、草稿及导出兼容性保留。
+- 教材库、题库、RAG、教材生成教案、AgentRun、MCP与Skills的真实服务属于后续F系列任务，需用户另行指定。
+
+参考版本校正：GitHub API已核实 `e5f2d38c393497a57fda13209be55067c1740ca7` 是 v1.6.4 的标签对象，其实际提交为 `93df3d48b70586c36b20ebf82c613a67ed20677f`。旧规划将标签对象称为提交的描述以此校正；历史正文保留，不混用本机其他版本。核验来源见完整计划第17节。
+
+## 2026-09-06 D01 模块导航与统一状态（已实施）
+
+依据 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) 第3节执行 D01，以下决策随代码生效：
+
+- 导航登记项由 `available:boolean` 演进为 `status: planned | local | ready`；教案工作台为 `local`，其余模块均为 `planned`。运行态（unconfigured/connecting/error 等）留给 D02 及之后的模型与导出能力，本阶段不引入。
+- 新增入口：`/papers` 智能组卷、`/question-bank` 题库、`/templates` 模板中心、`/agents` Agent任务、`/mcp` MCP、`/skills` Skills；`/knowledge-bases` 名称由“知识中心”改为“教材资料库”，路径不变。以上全部为规划状态页。
+- 图标、分组与规划页内容统一登记在 `services/navigation.ts` 单一来源；`WorkspaceShell` 不再维护固定图标表，避免新增菜单缺图标导致运行错误。
+- 手机端（≤767px）新增页头“功能导航”抽屉，桌面侧栏增加分组标题与内部滚动；规划中模块的可访问名称统一为“模块名（规划中）”。
+
+## 2026-09-06 D02 精简后端与接口骨架（已实施）
+
+依据 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) D02 任务包与第5、6、11节执行，以下决策随代码生效：
+
+- 后端位于 `apps/api`，FastAPI 应用工厂 + 生命周期 + 本机访问防护中间件；只监听 `127.0.0.1`（开发 8000，后端测试 8001），非回环 host 在配置阶段直接拒绝。
+- 工具链：uv 0.12.6 管理，uv 托管 CPython 3.12.14（`apps/api/.python-version` 固定 3.12）；锁定版本 fastapi 0.141.1、uvicorn 0.52.4、pydantic 2.13.5、starlette 1.6.0、pytest 9.1.1、httpx2 2.12.0，以 `uv.lock` 为准。Python 不加入 npm workspaces。
+- 接口：真实 `GET /api/v1/health`（不含配置）与 `GET /api/v1/capabilities`（10 项能力全部 `planned`）；其余 `/api/v1/*` 统一 501 `FEATURE_NOT_IMPLEMENTED`，不返回假成功。
+- 错误信封 `code、message、requestId、retryable、details?` + `X-Request-Id` 头；来源检查：非回环 Host → 400 `INVALID_HOST`，Origin 存在但不在允许列表 → 403 `FORBIDDEN_ORIGIN`，无 Origin 的本机直连放行；默认允许 5173/5174 前端来源，`ZQKY_ALLOWED_ORIGINS` 可覆盖。
+- 前端经 Next rewrites 同源代理 `/api/v1/*` 到 8000（`ZQKY_API_ORIGIN` 可覆盖）；Next 只代理，没有新增业务 Route Handlers。新增手写契约 `contracts/api.ts` 与适配器 `services/api-client.ts`（网络失败/网关 5xx → `SERVICE_UNAVAILABLE`，准确报“后端服务不可用”），页面默认不调用后端，教案离线可用。
+- 根脚本新增 `setup:api`、`dev:api`、`test:api`；`test:e2e`/教案行为不变。测试证据：后端 18 项 pytest 通过；前端单测 29 项、e2e 12 项通过；代理转发、501、403、后端停止行为均实测。
+- 本期没有接入任何数据库、Redis 或模型凭证；`apps/api/.env.example` 只含无敏感信息示例。
+
+## 2026-09-06 D03 统一模型调用与模型设置（已实施）
+
+依据 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) 第7节与 D03 任务包执行，以下决策随代码生效：
+
+- 供应商适配层参考 DeepTutor v1.6.4（固定提交 `93df3d48…`，Apache-2.0）的 `LLMProvider`/`LLMResponse`/`GenerationSettings`、按协议懒加载的工厂与分层能力声明设计；实现为本项目自有代码（`apps/api/app/providers/llm/`），未复制其源码。
+- D03 实现 openai-chat、openai-responses、anthropic-messages 三个独立协议适配器（请求形状、响应解析、结束原因规范化为 stop/length/error/unknown、用量提取、错误映射 UPSTREAM_AUTH_FAILED/RATE_LIMITED/UPSTREAM_TIMEOUT/UPSTREAM_UNREACHABLE/UPSTREAM_ERROR）；其他协议（Gemini 原生等）保持 `UNSUPPORTED_PROTOCOL`。
+- 参数能力双层校验：模型配置 `supportedParams` 声明（temperature/top_p）→ 测试请求未声明的参数返回 422 `UNSUPPORTED_PARAMETER`；协议级不支持参数在 Provider 基类拦截。能力证据三值 `verified/claimed/unknown`，测试成功后 `chat` 自动更新为 `verified`。
+- 凭证采用计划 6.3 允许的“仅当前服务进程使用”方案：进程内 `SecretStore`，只写入不回显（响应仅 `hasCredential`，`credentialScope=process`），服务重启后需重新填写，绝不写入磁盘/日志/错误；磁盘加密凭证存储留作后续增强。
+- 非敏感配置存 `.local-data/model-config.json`（项目根，`.gitignore` 已忽略；`ZQKY_DATA_DIR` 可覆盖）：单文件 JSON、threading 串行化、临时文件 + `os.replace` 原子写、全局 revision，PUT 支持幂等 `expectedRevision` 冲突检测（409 `REVISION_CONFLICT`），文件损坏时报 `CONFIG_CORRUPTED` 且不自动覆盖。
+- Base URL 安全规则：仅 http(s)；公网地址必须 https，http 仅允许本机回环（本机模型服务）；附加请求头名称白名单校验，凭证头（Authorization/x-api-key）由适配器最后写入、不可被覆盖。
+- 设置页 `/settings` 由规划页替换为真实页面（沿用教案工作台主题）：模型连接/模型配置卡片、添加与编辑表单、连接测试（明确提示“小额实际请求”）、其余设置组如实标注规划中；导航登记 settings → `ready`。
+- 模型列表自动发现未实现：模型 ID 一律手动填写；`purpose` 字段预留、当前仅 `chat`。
+
+## 2026-09-06 D04 真实学习问答（已实施）
+
+依据 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) 第4.2、7.1、7.4、11.4 节与 D04 任务包执行，以下决策随代码生效：
+
+- 流式接口 `POST /api/v1/chat/stream` 按第 11.4 节事件协议实现（message.start / text.delta / usage / message.end / error）；流开始前失败（未存凭证、参数未声明、消息超限）返回 HTTP 错误，流开始后失败以 `error` 事件下发；usage 缺失字段前端按“未知”展示，不算零费用。
+- 三协议适配器新增流式实现：openai-chat（`stream:true` + `stream_options.include_usage`，不兼容该字段的服务器用量按未知展示）、openai-responses（response.output_text.delta / completed / failed 事件）、anthropic-messages（message_start / content_block_delta / message_delta）。上游结束原因统一规范化；未知值不得伪装成 stop。
+- 取消链路：前端 AbortController → fetch 中止 → 后端 StreamingResponse 任务取消 → Provider 生成器 finally 关闭 httpx client 与上游连接。断流未收到 message.end 时，前端如实标记“已停止”，保留已收内容，不自动重发。
+- 对话历史存浏览器 IndexedDB（库名 `zhiqikeyuan-chat`，经 `ChatRepository` 封装，未来可换服务端存储）；不存任何 API Key。刷新后自动恢复最近会话；换模型/换会话不删除历史。
+- 上下文预算可解释：按 1 token≈2 字符估算并预留输出空间，从最新消息向前保留，始终保留最后一条用户消息；空 assistant 占位不发送。
+- 交互约定：发送中禁止重复发送（按钮切换为“停止”）；失败回复的“重试”会移除失败占位并重发同一条用户消息，绝不自动重试、绝不重复追加；停止的部分回复标注“已停止”并保留。
+- 模型回答按纯文本（pre-wrap）渲染，不插入模型生成的任何 HTML；Markdown/公式渲染为后续增强。信息面板如实列出 RAG、附件解析、MCP、Skills 为规划中。
+- 导航登记 chat → `ready`；`/chat` 由动态规划路由替换为静态页面（先例：D03 的 /settings）。
+
+## 2026-09-06 新对话发送静默失败排查与首页调整（已实施，用户指定）
+
+- 现象与根因：新建对话后发送有概率“无反应/无回复”。排查确认两条静默失败路径：①默认问答模型（`defaultChatProfileId`）指向的连接凭证失效（凭证只存后端进程，重启即失效的既定决策）时 `selection=null`，`submit()` 静默返回——Enter 发送毫无反馈，而旧会话若显式选过可用模型则正常，故表现为“新对话才有概率失败”；②页面刚加载 `ready=false` 时 `send()` 也静默丢弃。
+- 修复原则：**不做静默模型回退**（沿用“不静默改用其他供应商”决策）；改为消除静默——`send` 在未就绪时等待初始化（memoized，不改变已就绪时的同步语义）；发送被阻止时在输入框旁即时显示原因（缺凭证/未选模型/读取中）并附“打开设置”入口，草稿保留。
+- 已实测：默认模型有效时“新建对话→立即发送”压测 10/10 成功；默认模型缺凭证时 Enter 显示“当前模型缺少凭证，请到设置补充后重试。”且草稿保留。
+- 首页调整：根路径 `/` 默认跳转由 `/lesson-plans` 改为 `/chat`（用户指定）；教案工作台仍从导航与品牌按钮直达。
+- EMPTY_RESPONSE 增强（用户报告“模型未返回正文”后）：三个适配器识别推理输出形态（DeepSeek `reasoning_content`、Anthropic thinking、Responses 推理摘要），推理增量经 `reasoning.delta` 事件透传并在前端折叠展示；流干净结束但零正文时按结束原因给出可操作诊断（推理耗尽预算→提示增大输出上限），正文兼容分块形态；**不做静默模型回退**。
+
+## 2026-09-07 复刻阶段：ask_user 同轮续答语义（已实施）
+
+- 追问（ask_user）采用原版语义：当前轮生成→提问→暂停→接受回答→继续当前轮；同一 sessionId/turnId/助手消息保持关联，禁止以普通 send 另开一轮，也不重新打开已终结轮次。旧交接中"提交后以新轮次继续"的描述作废。
+- `ChatService.submitReply` 为可选能力：模拟实现以挂起点保持轮次活动并在提交后同轮续写（submissionId 幂等）；真实服务显式返回 REPLY_NOT_SUPPORTED，不静默转模拟、不把追问字段发给真实后端。
+- 追问卡（问题/草稿/确认答案/状态/续写正文）随会话持久化；等待与提交的运行上下文不持久化。刷新或载入历史时，未完成的等待统一标记 interrupted（与工具/消息中断恢复同一 normalizeLoaded 语义），禁止向失效旧卡提交，可显式重试原问题开启新尝试。
+- 未回答题目按原版语义在提交时标记为跳过，不加"必须答完"拦截；提交失败为卡片级失败，保留草稿与选项。
+
+## 2026-09-07 复刻阶段：聊天扩展快照与模拟边界（已实施）
+
+- 聊天统一事件服务改为 type 判别式联合；tool 事件必须携带 callId/kind/name/status（running/done/error/cancelled），终态（end/error/取消）后拒绝一切后续事件，工具卡按 callId 去重并随会话持久化（恢复不重放）。
+- 模拟扩展能力以“发送时冻结的快照（TurnExtensionSnapshot）”进入本轮：重试沿用原快照，设置修改只影响后续发送；失效的待发送选择明确提示并移除，不静默替换。快照与工具记录只存在于模拟会话数据，真实服务不读取、不向真实后端发送该字段，`/api/v1/chat/stream` 协议未变。
+- 模拟边界不变：MCP 工具为明确标识的本地模拟调用，Skills 仅展示为技能上下文已加载，不访问真实模型、MCP 或外部工具；真实模式明确显示未接入，不因真实服务错误自动切换模拟。
+
+## 2026-09-06 前端复刻首批实施
+
+设置改为分类与锚点内容；MCP、Skills 从主导航收进设置，旧路径重定向。扩展管理为独立本地模拟目录，模型管理保留真实服务。减少动画偏好已实现。完整八阶段尚未完成，实际范围、检查与剩余工作见 docs/replica/HANDOFF.md。
+
+<!-- END ORIGINAL docs/DECISIONS.md -->
+
+<a id="source-3"></a>
+
+## 原文件：docs/IMPLEMENTATION_PLAN.md
+
+<!-- BEGIN ORIGINAL docs/IMPLEMENTATION_PLAN.md -->
 # 2026-09-06 实施状态增补
 
 用户批准的 D04 修复与模型管理扩展已实施，包含真实网络流式门控验证、连接分组/发现/参数/默认模型、会话版本保存和富文本 UI。当前结果与真实供应商未验证边界见 [CHAT_MODEL_REVIEW.md](CHAT_MODEL_REVIEW.md)。以下路线图保留历史上下文，不将 D05–D09 或数据库自动纳入本次范围。
@@ -781,3 +969,145 @@ UI按当前教案主题；RAG、教材选择、MCP、Skills和附件解析保持
 新增本计划；在 README、DECISIONS、TASKS、HANDOFF 和旧规划阅读说明中链接并标记最新优先级。原项目规划正文、Word原件、冻结模块、前后端源码和依赖锁不修改。
 
 本次只做Markdown链接、目录、覆盖项和文档一致性检查；没有运行模型调用、数据库、文档转换或前端功能测试。后续开发者不能引用本计划作为功能已实现的证据。
+
+<!-- END ORIGINAL docs/IMPLEMENTATION_PLAN.md -->
+
+<a id="source-4"></a>
+
+## 原文件：docs/CHAT_MODEL_REVIEW.md
+
+<!-- BEGIN ORIGINAL docs/CHAT_MODEL_REVIEW.md -->
+# 学习问答与模型管理：修复、验收和交接
+
+日期：2026-09-06。工作目录：`H:\备份xuexi\智启课源`。本记录优先于旧 D04 交接中的纯文本范围、测试数量和“无阻塞问题”结论。
+
+## Review 结论与处理
+
+| 问题 | 处理与证据 |
+| --- | --- |
+| 原测试完整响应回填不能证明浏览器流式 | 新增真实 HTTP 上游 → FastAPI → Next 代理 → 浏览器门控测试：浏览器首段中文已可见时，上游末段尚未获准发送；三协议均通过 |
+| 生成中新建/切换可能丢失或串写 | 请求绑定会话和消息 ID，停止使旧回调失效，保存后再导航；自动化验证晚到文本不进入新会话 |
+| 重试覆盖部分答案 | 保留原尝试，标记被替代并从模型上下文排除；仅最后失败轮次可直接重试，旧轮次可复制问题 |
+| IndexedDB 每个分块写入、未等待事务、无冲突保护 | 400ms 合并、串行保存、事务完成确认、revision 比较、草稿恢复；失败保留内存并提供备份 |
+| 上游错误可回显敏感内容 | 返回本地错误文案，认证头集中处理，限制附加头，Base URL 不允许用户信息 |
+| SSE 关闭和结束状态不完整 | 显式关闭上游上下文；处理空回答、断流、错误和截断，取消传播到实际 HTTP 连接 |
+| 模型目录割裂、缺默认模型 | 原子目录接口、连接分组、统一搜索选择器、默认模型；失效会话选择不切换到另一供应商 |
+| 配置能力与实测混淆 | 人工声明不能写为 verified；普通测试与流式测试分别记录；配置改变清除关联验证状态；测试期间版本变化不写回旧证据 |
+| 手机正文只有半屏、页头被裁切 | 修复网格列与外壳滚动范围；新增正文宽度断言并查看实际截图 |
+
+**实际供应商“等待后一次性输出”的根因尚未确认。** 本次没有可用的后端进程内凭证，未请求用户实际模型。已证明受控上游分块可穿过生产构建代理并及时显示，不能据此断言特定供应商已经修好。没有逐字播放完整回答来伪装流式。
+
+## 实现范围
+
+- 设置页：连接、问答模型、默认模型三个区域；按连接展开模型卡片，搜索、手动新增、发现多选追加、去重、编辑和删除。被引用连接禁止直接删除，凭证仅显示存在状态。
+- 模型详情：模型 ID、名称、上下文、输出上限和声明支持参数的实际值。获取列表不会覆盖既有参数、名称或能力。发现失败保留手动路径。
+- 表单提交锁、防重复提交、成功/失败反馈；版本冲突保留表单，重新读取版本后可继续保存。
+- 学习问答：白/灰/蓝教案风格，折叠会话列表、默认收起详情、自动增高输入框、模型选择与发送/停止；Markdown、公式、代码复制、高亮、表格横向滚动、安全链接；不加载回答中的远程图片或执行 HTML。
+- 阅读时离开底部停止自动跟随，提供回到最新；移动端会话与详情使用原生 dialog 焦点管理。学习问答导航第一，教案第二，首页仍跳转教案。
+- 会话保存 schemaVersion、revision、草稿和选择，消息保存实际模型快照；旧记录兼容读取，未完成回答刷新后标中断。教案草稿和原 Word 未迁移或覆盖。
+
+## 实际检查
+
+| 命令 | 结果 |
+| --- | --- |
+| `npm run typecheck` | 通过 |
+| `npm run lint` | 通过，0 警告 |
+| `npm run test:unit` | 54 项通过；含存储失败、草稿/中断恢复、部分重试、事务和双写版本冲突 |
+| `npm run build` | 通过 |
+| `npm run test:api` | 78 项通过；1 条依赖弃用警告 |
+| `npm run test:e2e` | 17 项通过；含导航、教案草稿、Word/PDF 回归 |
+| `npm run test:chat` | 6 项通过；真实网络三协议门控流、关闭上游、模型发现追加/默认/冲突、三尺寸截图 |
+| `npm run template:verify` | original/source 均 true |
+
+隔离集成使用端口 5174/8001/8002、临时配置和独立浏览器上下文，不读取真实凭证和草稿。测试构建位于 `.next-test`，正式构建仍为 `.next`。源码入口：`tests/integration/chat-live.spec.ts`、`tests/fixtures/stream_backend.py`、`playwright.chat.config.ts`。
+
+协议单测覆盖 UTF-8 跨块、上游错误/超时、终止与异常断流；集成测试证明最后分块发送前已渲染首段，而非仅检查字符串或构建成功。并非下述全部边界都有独立浏览器用例：实际双浏览器标签竞争由两个仓储实例事务测试覆盖；发现超时/空列表、所有触控组合尚未逐一完成浏览器交互测试。
+
+## 前后截图
+
+截图均使用隔离样例数据，不含真实凭证或历史。1440/1024/390px 已查看问答长正文与模型管理；空会话保存桌面截图。移动端极长公式/复杂嵌套表格仍建议真实内容复核。
+
+| 修改前 | 修改后 |
+| --- | --- |
+| ![原问答](qa/chat-models/chat-before.png) | ![新问答](qa/chat-models/chat-after-1440.png) |
+| ![原模型设置](qa/chat-models/models-before.png) | ![新模型管理](qa/chat-models/models-after-1440.png) |
+
+![手机问答](qa/chat-models/chat-after-390.png)
+
+![手机模型管理](qa/chat-models/models-after-390.png)
+
+## 参考与后续边界
+
+交互参考固定为 DeepTutor v1.6.4（commit `93df3d48b70586c36b20ebf82c613a67ed20677f`）：[ConnectionsEditor](https://github.com/HKUDS/DeepTutor/blob/v1.6.4/web/components/settings/ConnectionsEditor.tsx)、[ModelCards](https://github.com/HKUDS/DeepTutor/blob/v1.6.4/web/components/settings/ModelCards.tsx)、[ModelListPicker](https://github.com/HKUDS/DeepTutor/blob/v1.6.4/web/components/settings/ModelListPicker.tsx)。结合现有教案风格实现，并非照搬其品牌或后端。
+
+真实供应商下一步：启动后端，在设置重新填写凭证，分别测试普通与流式，再发送较长中文问题检查首段时机、停止和重试。若仅收到单块，记录供应商首块/末块时序进一步定位；单次普通连接成功不代表流式验证。
+
+浏览器强制结束进程无法保证最后 400ms 未提交草稿已落盘；应用内导航等待保存，异常关闭依靠已落盘的中断恢复。凭证重启失效是既定行为。无数据库、账号、RAG、附件解析、工具调用或任务模型分配；没有提交、推送、部署。
+
+<!-- END ORIGINAL docs/CHAT_MODEL_REVIEW.md -->
+
+<a id="source-5"></a>
+
+## 原文件：docs/QA_REPORT.md
+
+<!-- BEGIN ORIGINAL docs/QA_REPORT.md -->
+# Next.js迁移验收
+
+2026-09-05，Windows / Node26.2.0 / Next16.3.4 / React19.2.8。正式模块与冻结旧版分开记录。
+
+| 检查 | 结果 |
+| --- | --- |
+| 正式依赖 | 根npm安装完成，npm ls --depth=0无依赖树错误 |
+| TypeScript | Next路由类型生成与tsc通过 |
+| ESLint | 零错误、零警告 |
+| 单元测试 | 15项通过：原11项+4项实例隔离、即时写入、异步顺序、失败重试 |
+| 生产构建 | 通过，根重定向、教案页、规划状态和404路由可用 |
+| 浏览器回归 | 7项通过，最终运行8.9秒 |
+| 直接访问与刷新 | 教案恢复，无pageerror或hydration错误 |
+| 快速离开路由 | 最后编辑落盘，返回后恢复 |
+| 填充与历史 | 警告、确认、撤销、重做、排序及增删通过 |
+| 草稿备份/导入 | 实际JSON下载与导入还原通过 |
+| Word | 实际下载，表格属性/网格/单元格/行高/页面设置一致，无未填占位符 |
+| 模板原件 | 根原Word和正式源副本SHA256一致 |
+| PDF | 通过当前页面打印引擎生成短/长文PDF；打印按钮调用通过受控替身验证 |
+| 长文 | 最大字号下页面高度不溢出、正文不覆盖页脚，核心目标和二次备课文字完整 |
+| 响应式 | 1440×900、1024×768、390×844，无页面横向溢出 |
+| 打印隔离 | 从教案进入规划页面后，公共页头仍可打印，body使用auto页面 |
+| 坏草稿 | 内容损坏时暂停自动覆盖 |
+
+## 证据位置
+
+自动化结果在test-results/results.json，各场景目录包含截图、JSON备份、sample.docx、sample.pdf、long-content.pdf和分页度量。该目录为可再生的本地产物，不进入Git。正式视觉快照另保存于docs/modules/lesson-plan/screenshots。
+
+## 限制
+
+Word/WPS最终视觉排版仍未人工验收，不能将结构检查解释为分页完全一致。浏览器系统打印窗口中的目标选择未自动操作；PDF通过同页同样式的浏览器打印引擎生成。真实后台、AI、账号、云端和部署不在本轮范围，没有伪造服务验收。
+
+没有执行npm审计作为安全上线结论；本轮结果只覆盖工程迁移与列明的行为。
+<!-- END ORIGINAL docs/QA_REPORT.md -->
+
+<a id="source-6"></a>
+
+## 原文件：docs/replica/BASELINE.md
+
+<!-- BEGIN ORIGINAL docs/replica/BASELINE.md -->
+# 前端复刻基线
+
+参考仓库：`F:\Deeptutor`，v1.6.5，提交 `42fab3cf429a1fbf36b257ab8d116a3814964202`。
+目标仓库：`H:\备份xuexi\智启课源`。参考仓库保持只读；保留目标根锁文件和现有业务。
+
+## 已确认决策
+
+- 使用智启课源名称与现有品牌资产；完整复刻目标尚未完成。
+- MCP、Skills 管理进入 `/settings#mcp`、`/settings#skills`。原版相应页面在学习空间，本项目遵循用户指定的设置归属。
+- 原 `/mcp`、`/skills` 重定向兼容。主导航仅移除这两个扩展管理入口，业务模块保留。
+- 模型管理复用真实服务，不迁移后端凭据；模拟扩展以独立浏览器存储键 `zqky.replica.extensions.v1` 保存，不接入真实扩展服务。
+- 全局减少动画支持系统偏好和用户本地设置。禁止清空原会话、教案草稿或模型配置。
+
+## 验收边界
+
+页面清单由参考仓库路由扫描生成。清单不代表功能完成。
+本轮未调用真实模型供应商，未实现全部原版页面或完整聊天动画。
+后续每阶段必须更新页面、交互、动画和真实服务验证状态。
+
+<!-- END ORIGINAL docs/replica/BASELINE.md -->

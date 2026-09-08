@@ -1,0 +1,199 @@
+Evidence log: ANSI controls and trailing whitespace removed; original log retained in _work/review-reading-20260908/.
+
+npm notice run zhiqikeyuan@0.2.0 npx
+npm notice run vitest run --config tests/review/reading-20260908/vitest.config.ts
+
+ RUN  v3.2.4 H:/备份xuexi/智启课源
+
+ ❯ tests/review/reading-20260908/storage.probe.ts (3 tests | 3 failed) 12ms
+   × R26: loading demo preserves existing user annotations, bookmarks and sessions 7ms
+     → expected [ { …(7) } ] to deep equally contain { …(7) }
+     → expected [ { …(5) } ] to deep equally contain { …(5) }
+     → expected [ { id: 'demo-reading-ss-1', …(6) } ] to deep equally contain { id: 'rss-mtsipa3m-o6a62q', …(6) }
+   × R26: deleting the demo workspace and loading demo again does not duplicate material identities 2ms
+     → expected 2 to be 4 // Object.is equality
+   × R27: corrupt storage must be reported and preserved instead of replaced on the next write 3ms
+     → expected [Function] to throw an error
+     → expected '[{"id":"mat-mtsipa3t-tk27yn","title":…' to be '[{"id":"precious","text":"recoverable…' // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/review/reading-20260908/storage.probe.ts > R26: loading demo preserves existing user annotations, bookmarks and sessions
+AssertionError: expected [ { …(7) } ] to deep equally contain { …(7) }
+
+- Expected:
+{
+  "annotationId": "ann-mtsipa3m-ml2aqo",
+  "color": "yellow",
+  "createdAt": "2026-09-08T10:19:23.362Z",
+  "kind": "note",
+  "materialId": "mat-mtsipa3l-adnang",
+  "note": "不能丢失",
+  "quote": "用户笔记原文",
+}
+
++ Received:
+[
+  {
+    "annotationId": "demo-reading-ann-1",
+    "color": "yellow",
+    "createdAt": "2026-09-08T10:19:23.362Z",
+    "kind": "note",
+    "materialId": "demo-reading-mat-a",
+    "note": "约分通分的依据，考试常考。",
+    "quote": "分子和分母同时乘或除以同一个不为零的数，分数的大小不变。",
+  },
+]
+
+ ❯ tests/review/reading-20260908/storage.probe.ts:19:34
+     17|   const savedSession = readSessions().find((item) => item.id === sessi…
+     18|   loadDemoReading();
+     19|   expect.soft(readAnnotations()).toContainEqual(annotation);
+       |                                  ^
+     20|   expect.soft(readBookmarks()).toContainEqual(bookmark);
+     21|   expect.soft(readSessions()).toContainEqual(savedSession);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/6]⎯
+
+ FAIL  tests/review/reading-20260908/storage.probe.ts > R26: loading demo preserves existing user annotations, bookmarks and sessions
+AssertionError: expected [ { …(5) } ] to deep equally contain { …(5) }
+
+- Expected:
+{
+  "bookmarkId": "bm-mtsipa3m-cfhke5",
+  "createdAt": "2026-09-08T10:19:23.362Z",
+  "label": "用户书签",
+  "locator": "p-0",
+  "materialId": "mat-mtsipa3l-adnang",
+}
+
++ Received:
+[
+  {
+    "bookmarkId": "demo-reading-bm-1",
+    "createdAt": "2026-09-08T10:19:23.362Z",
+    "label": "生活中的分数",
+    "locator": "h-4",
+    "materialId": "demo-reading-mat-a",
+  },
+]
+
+ ❯ tests/review/reading-20260908/storage.probe.ts:20:32
+     18|   loadDemoReading();
+     19|   expect.soft(readAnnotations()).toContainEqual(annotation);
+     20|   expect.soft(readBookmarks()).toContainEqual(bookmark);
+       |                                ^
+     21|   expect.soft(readSessions()).toContainEqual(savedSession);
+     22| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/6]⎯
+
+ FAIL  tests/review/reading-20260908/storage.probe.ts > R26: loading demo preserves existing user annotations, bookmarks and sessions
+AssertionError: expected [ { id: 'demo-reading-ss-1', …(6) } ] to deep equally contain { id: 'rss-mtsipa3m-o6a62q', …(6) }
+
+- Expected:
+{
+  "activeMaterialId": "mat-mtsipa3l-adnang",
+  "createdAt": "2026-09-08T10:19:23.362Z",
+  "id": "rss-mtsipa3m-o6a62q",
+  "messages": [
+    {
+      "at": "2026-09-08T10:19:23.362Z",
+      "content": "我的问题",
+      "id": "msg-mtsipa3m-tlhdch",
+      "role": "user",
+    },
+  ],
+  "title": "我的问题",
+  "updatedAt": "2026-09-08T10:19:23.362Z",
+  "workspaceId": "rws-mtsipa3l-umt9w7",
+}
+
++ Received:
+[
+  {
+    "activeMaterialId": "demo-reading-mat-a",
+    "createdAt": "2026-09-08T10:19:23.362Z",
+    "id": "demo-reading-ss-1",
+    "messages": [
+      {
+        "at": "2026-09-08T10:19:23.362Z",
+        "content": "什么是约分？",
+        "id": "demo-reading-msg-1",
+        "role": "user",
+      },
+      {
+        "at": "2026-09-08T10:19:23.362Z",
+        "content": "【模拟回复】约分是把分子分母的公因数约去，使分数更简洁，例如 2/4 = 1/2。（本地模板生成，未接入模型）",
+        "id": "demo-reading-msg-2",
+        "role": "assistant",
+      },
+    ],
+    "title": "什么是约分？",
+    "updatedAt": "2026-09-08T10:19:23.362Z",
+    "workspaceId": "demo-reading-ws",
+  },
+]
+
+ ❯ tests/review/reading-20260908/storage.probe.ts:21:31
+     19|   expect.soft(readAnnotations()).toContainEqual(annotation);
+     20|   expect.soft(readBookmarks()).toContainEqual(bookmark);
+     21|   expect.soft(readSessions()).toContainEqual(savedSession);
+       |                               ^
+     22| });
+     23|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/6]⎯
+
+ FAIL  tests/review/reading-20260908/storage.probe.ts > R26: deleting the demo workspace and loading demo again does not duplicate material identities
+AssertionError: expected 2 to be 4 // Object.is equality
+
+- Expected
++ Received
+
+- 4
++ 2
+
+ ❯ tests/review/reading-20260908/storage.probe.ts:29:29
+     27|   loadDemoReading();
+     28|   const ids = readMaterials().map((item) => item.id);
+     29|   expect(new Set(ids).size).toBe(ids.length);
+       |                             ^
+     30| });
+     31|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/6]⎯
+
+ FAIL  tests/review/reading-20260908/storage.probe.ts > R27: corrupt storage must be reported and preserved instead of replaced on the next write
+AssertionError: expected [Function] to throw an error
+ ❯ tests/review/reading-20260908/storage.probe.ts:36:68
+     34|   const damaged = '[{"id":"precious","text":"recoverable"}';
+     35|   window.localStorage.setItem(key, damaged);
+     36|   expect.soft(() => createMaterial({ title: '新材料', text: '新正文' })).toT…
+       |                                                                    ^
+     37|   expect(window.localStorage.getItem(key)).toBe(damaged);
+     38| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/6]⎯
+
+ FAIL  tests/review/reading-20260908/storage.probe.ts > R27: corrupt storage must be reported and preserved instead of replaced on the next write
+AssertionError: expected '[{"id":"mat-mtsipa3t-tk27yn","title":…' to be '[{"id":"precious","text":"recoverable…' // Object.is equality
+
+Expected: "[{"id":"precious","text":"recoverable"}"
+Received: "[{"id":"mat-mtsipa3t-tk27yn","title":"新材料","filename":null,"sourceKind":"text","sourceUrl":null,"text":"新正文","charCount":3,"sizeBytes":9,"positionPct":0,"workspaceIds":[],"createdAt":"2026-09-08T10:19:23.369Z","updatedAt":"2026-09-08T10:19:23.369Z"}]"
+
+ ❯ tests/review/reading-20260908/storage.probe.ts:37:44
+     35|   window.localStorage.setItem(key, damaged);
+     36|   expect.soft(() => createMaterial({ title: '新材料', text: '新正文' })).toT…
+     37|   expect(window.localStorage.getItem(key)).toBe(damaged);
+       |                                            ^
+     38| });
+     39|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/6]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed (3)
+   Start at  18:19:22
+   Duration  1.00s (transform 44ms, setup 70ms, collect 50ms, tests 12ms, environment 273ms, prepare 55ms)

@@ -9,7 +9,7 @@
 - 聊天仍使用 `POST /api/v1/chat/stream`，已保存参数作为默认值。上游连接建立后 start，随后 text/usage/end；未正常终止、空回答或协议失败为脱敏错误。主动停止逐层关闭资源。
 - IndexedDB 会话增加 `schemaVersion:1`、revision、draft、modelProfileId；消息记录 modelProfileId、modelLabel、replyToId、superseded。旧记录读取补默认值。保存/删除在同一事务检查预期 revision，事务提交才返回成功。
 
-配置及历史均不存密钥。JSON 配置与数据库边界不变。行为与验收见 [review 记录](CHAT_MODEL_REVIEW.md)。下方 D02–D04 条目作为历史说明保留。
+配置及历史均不存密钥。JSON 配置与数据库边界不变。行为与验收见 [review 记录](archive/PROJECT_HISTORY.md#source-4)。下方 D02–D04 条目作为历史说明保留。
 
 # 接口与模块边界
 

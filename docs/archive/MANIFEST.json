@@ -1,0 +1,159 @@
+{
+  "baseline": "b8cf71ff3476ad0ca35b79543670bc34d5243cb4",
+  "archivedAt": "2026-09-08",
+  "files": [
+    {
+      "source": "docs/ARCHITECTURE.md",
+      "destination": "docs/archive/PROJECT_HISTORY.md",
+      "anchor": "source-1",
+      "sha256": "26026dced973dbd9c31756b2cb89addaccafc36b31d7a3256145378b707ad35e",
+      "bytes": 2580,
+      "archivedTextSha256": "26026dced973dbd9c31756b2cb89addaccafc36b31d7a3256145378b707ad35e"
+    },
+    {
+      "source": "docs/DECISIONS.md",
+      "destination": "docs/archive/PROJECT_HISTORY.md",
+      "anchor": "source-2",
+      "sha256": "e595e093fcc6101363a030a4bf2b2aeb262a8c7c34b2f080cf604619007b31ce",
+      "bytes": 17436,
+      "archivedTextSha256": "e595e093fcc6101363a030a4bf2b2aeb262a8c7c34b2f080cf604619007b31ce"
+    },
+    {
+      "source": "docs/IMPLEMENTATION_PLAN.md",
+      "destination": "docs/archive/PROJECT_HISTORY.md",
+      "anchor": "source-3",
+      "sha256": "6e06d2819817d423f7ec73595d0d8fc62c7b8aa39fe033097691d4083cd9d73a",
+      "bytes": 56918,
+      "archivedTextSha256": "582ae12b54ddfa49139813d00a08b3447d105d5183f5878247ac05972c4f4574"
+    },
+    {
+      "source": "docs/CHAT_MODEL_REVIEW.md",
+      "destination": "docs/archive/PROJECT_HISTORY.md",
+      "anchor": "source-4",
+      "sha256": "96f92d2be59c194365082bb22dad8c8e42caefd74f11050c4eb72a0495575924",
+      "bytes": 6429,
+      "archivedTextSha256": "96f92d2be59c194365082bb22dad8c8e42caefd74f11050c4eb72a0495575924"
+    },
+    {
+      "source": "docs/QA_REPORT.md",
+      "destination": "docs/archive/PROJECT_HISTORY.md",
+      "anchor": "source-5",
+      "sha256": "aaa2a7062905dec4edea2e7c241c7d963948a657af137bd50440e4080cd89081",
+      "bytes": 2175,
+      "archivedTextSha256": "aaa2a7062905dec4edea2e7c241c7d963948a657af137bd50440e4080cd89081"
+    },
+    {
+      "source": "docs/replica/BASELINE.md",
+      "destination": "docs/archive/PROJECT_HISTORY.md",
+      "anchor": "source-6",
+      "sha256": "fab39dcc8bc0c1b93ed48065f2f61b71ede9a859ad2d73f103a623d605fe907c",
+      "bytes": 1155,
+      "archivedTextSha256": "fab39dcc8bc0c1b93ed48065f2f61b71ede9a859ad2d73f103a623d605fe907c"
+    },
+    {
+      "source": "docs/TASKS.md",
+      "destination": "docs/archive/DELIVERY_HISTORY.md",
+      "anchor": "source-1",
+      "sha256": "1fa308831c0b74ade46cc9029313369ac1a3eea29afc9b0afe83133f70de9320",
+      "bytes": 17125,
+      "archivedTextSha256": "1fa308831c0b74ade46cc9029313369ac1a3eea29afc9b0afe83133f70de9320"
+    },
+    {
+      "source": "docs/HANDOFF.md",
+      "destination": "docs/archive/DELIVERY_HISTORY.md",
+      "anchor": "source-2",
+      "sha256": "cc11798eac125b04e80870656afd2e42ff3d898eb95aa448718ac8b9c361da86",
+      "bytes": 42257,
+      "archivedTextSha256": "cc11798eac125b04e80870656afd2e42ff3d898eb95aa448718ac8b9c361da86"
+    },
+    {
+      "source": "docs/replica/HANDOFF.md",
+      "destination": "docs/archive/DELIVERY_HISTORY.md",
+      "anchor": "source-3",
+      "sha256": "0b556448caf48ee84708caf2c7ce1f24db9529bc3a9459811a8321baa058b5e2",
+      "bytes": 66448,
+      "archivedTextSha256": "0b556448caf48ee84708caf2c7ce1f24db9529bc3a9459811a8321baa058b5e2"
+    },
+    {
+      "source": "docs/replica/REVIEW_2026-09-07.md",
+      "destination": "docs/archive/REVIEW_HISTORY.md",
+      "anchor": "source-1",
+      "sha256": "bddaca0d893c58766b0b4c5e414b2e7402ecc140cd3c088a8bfd08873f9657c5",
+      "bytes": 8181,
+      "archivedTextSha256": "bddaca0d893c58766b0b4c5e414b2e7402ecc140cd3c088a8bfd08873f9657c5"
+    },
+    {
+      "source": "docs/replica/REVIEW_EXTENSIONS_2026-09-07.md",
+      "destination": "docs/archive/REVIEW_HISTORY.md",
+      "anchor": "source-2",
+      "sha256": "7c8e51e86b697d3ddd5147c08d7a63fbfc6dff463394377182935c4b7254b252",
+      "bytes": 24263,
+      "archivedTextSha256": "7c8e51e86b697d3ddd5147c08d7a63fbfc6dff463394377182935c4b7254b252"
+    },
+    {
+      "source": "docs/replica/REVIEW_ASK_USER_2026-09-07.md",
+      "destination": "docs/archive/REVIEW_HISTORY.md",
+      "anchor": "source-3",
+      "sha256": "d2ac6c23e1c7e88f77b9c697500c25043f644d44b187f6e95723b6d70c1fd722",
+      "bytes": 14279,
+      "archivedTextSha256": "d2ac6c23e1c7e88f77b9c697500c25043f644d44b187f6e95723b6d70c1fd722"
+    },
+    {
+      "source": "docs/replica/REVIEW_S0_S2_2026-09-07.md",
+      "destination": "docs/archive/REVIEW_HISTORY.md",
+      "anchor": "source-4",
+      "sha256": "84152ea52fb990db56eb2231ae8c0a6e2e620bbd2bba71dfa76a9872505443b9",
+      "bytes": 11586,
+      "archivedTextSha256": "84152ea52fb990db56eb2231ae8c0a6e2e620bbd2bba71dfa76a9872505443b9"
+    },
+    {
+      "source": "docs/replica/REVIEW_DELIVERY_2026-09-07.md",
+      "destination": "docs/archive/REVIEW_HISTORY.md",
+      "anchor": "source-5",
+      "sha256": "6986ec2cdf5ea5b3eabe64cc0ceb8448497fca9f13f7b63c4956cc71a0824700",
+      "bytes": 8077,
+      "archivedTextSha256": "6986ec2cdf5ea5b3eabe64cc0ceb8448497fca9f13f7b63c4956cc71a0824700"
+    },
+    {
+      "source": "docs/replica/REVIEW_S2_S3_2026-09-08.md",
+      "destination": "docs/archive/REVIEW_HISTORY.md",
+      "anchor": "source-6",
+      "sha256": "d33f32138aac4972dd016cd33568c915dfc2c2fac74965f13afc472a5883c828",
+      "bytes": 13430,
+      "archivedTextSha256": "d33f32138aac4972dd016cd33568c915dfc2c2fac74965f13afc472a5883c828"
+    },
+    {
+      "source": "docs/replica/NEXT_PHASE_ASK_USER.md",
+      "destination": "docs/archive/PROMPT_HISTORY.md",
+      "anchor": "source-1",
+      "sha256": "c36414f65bba31943644d18f27b881d0d76f5cc179a0369e0a0029133683475b",
+      "bytes": 9844,
+      "archivedTextSha256": "c36414f65bba31943644d18f27b881d0d76f5cc179a0369e0a0029133683475b"
+    },
+    {
+      "source": "docs/replica/FINAL_REPLICA_EXECUTION_PROMPT.md",
+      "destination": "docs/archive/PROMPT_HISTORY.md",
+      "anchor": "source-2",
+      "sha256": "0a3b2bb6df45012287d59e853a63cf84e69c65ed69efb04f2ad464ca55b15139",
+      "bytes": 27398,
+      "archivedTextSha256": "0a3b2bb6df45012287d59e853a63cf84e69c65ed69efb04f2ad464ca55b15139"
+    },
+    {
+      "source": "docs/replica/CONTINUE_TO_FINAL_2026-09-07.md",
+      "destination": "docs/archive/PROMPT_HISTORY.md",
+      "anchor": "source-3",
+      "sha256": "8076ca445dd4a8a6e40d3b33e78f9034ac6e60b6f06999b3582db675dac27cda",
+      "bytes": 8599,
+      "archivedTextSha256": "8076ca445dd4a8a6e40d3b33e78f9034ac6e60b6f06999b3582db675dac27cda"
+    },
+    {
+      "source": "docs/replica/NEXT_SESSION_START.md",
+      "destination": "docs/archive/PROMPT_HISTORY.md",
+      "anchor": "source-4",
+      "sha256": "0a29a772a45bd275a8e9ef64a668e102696beed31243b09d0b16316c4fc231cd",
+      "bytes": 18203,
+      "archivedTextSha256": "0a29a772a45bd275a8e9ef64a668e102696beed31243b09d0b16316c4fc231cd"
+    }
+  ],
+  "hashNotes": "sha256 and bytes describe the original working-tree file; archivedTextSha256 describes its UTF-8 text after LF normalization. Content matches the baseline after newline normalization."
+}
