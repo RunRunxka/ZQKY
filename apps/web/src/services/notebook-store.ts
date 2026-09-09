@@ -1,4 +1,5 @@
 'use client';
+import { readStrictList, writeStrictList } from './local-collection';
 /**
  * S5-B 笔记本本地仓储（对照参考 NotebookSummary / NotebookRecordItem）。
  *
@@ -49,19 +50,11 @@ export interface NotebookRecord {
 }
 
 function readList<T>(key: string): T[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = window.localStorage.getItem(key);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? (parsed as T[]) : [];
-  } catch {
-    return [];
-  }
+  return readStrictList<T>(key);
 }
 
 function writeList<T>(key: string, list: T[]): void {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(key, JSON.stringify(list));
+  writeStrictList(key, list);
 }
 
 function notify(): void {

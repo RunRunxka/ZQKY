@@ -8,6 +8,7 @@
 import { readKnowledge } from './knowledge-catalog';
 import { listNotebooks } from './notebook-store';
 import { readBooks } from './books-store';
+import { readStrictList, writeStrictList } from './local-collection';
 
 export type CourseResourceKind = 'knowledge_base' | 'notebook' | 'book';
 export type CourseColor = 'blue' | 'green' | 'amber' | 'purple' | 'gray';
@@ -69,23 +70,14 @@ function uid(prefix: string): string {
 }
 
 function readList(): StudyCourse[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = window.localStorage.getItem(KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (item): item is StudyCourse =>
-        item && typeof item.id === 'string' && typeof item.name === 'string',
-    );
-  } catch {
-    return [];
-  }
+  return readStrictList<StudyCourse>(KEY).filter(
+    (item): item is StudyCourse =>
+      item && typeof item.id === 'string' && typeof item.name === 'string',
+  );
 }
 
 function writeList(list: StudyCourse[]): void {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(KEY, JSON.stringify(list));
+  writeStrictList(KEY, list);
   notify();
 }
 

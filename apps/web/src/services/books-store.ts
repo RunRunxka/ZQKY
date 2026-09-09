@@ -87,6 +87,8 @@ const KEY = 'zhiqikeyuan:books';
 const QUIZ_KEY = 'zhiqikeyuan:book-quiz-attempts';
 const EVENT = 'zqky:books';
 
+import { readStrictList, writeStrictList } from './local-collection';
+
 export class BookValidationError extends Error {}
 
 /** 练习作答记录（对照参考 QuizAttempt 的本地形态；持久化，跨会话恢复） */
@@ -105,23 +107,14 @@ function uid(prefix: string): string {
 }
 
 function readList(): ReplicaBook[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = window.localStorage.getItem(KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (item): item is ReplicaBook =>
-        item && typeof item.id === 'string' && typeof item.title === 'string',
-    );
-  } catch {
-    return [];
-  }
+  return readStrictList<ReplicaBook>(KEY).filter(
+    (item): item is ReplicaBook =>
+      item && typeof item.id === 'string' && typeof item.title === 'string',
+  );
 }
 
 function writeList(list: ReplicaBook[]): void {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(KEY, JSON.stringify(list));
+  writeStrictList(KEY, list);
   notify();
 }
 
@@ -162,14 +155,7 @@ function mutateBook(id: string, mutate: (book: ReplicaBook) => ReplicaBook): Rep
 // ===== 练习作答与用户笔记（跨会话持久化；修复“作答不持久化”差距） =====
 
 function readQuizList(): BookQuizAttempt[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = window.localStorage.getItem(QUIZ_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? (parsed as BookQuizAttempt[]) : [];
-  } catch {
-    return [];
-  }
+  return readStrictList<BookQuizAttempt>(QUIZ_KEY);
 }
 
 /** 记录一次作答（保留历史；渲染取每个 block 的最新一条） */
@@ -190,7 +176,7 @@ export function recordQuizAttempt(input: {
     attemptedAt: new Date().toISOString(),
   };
   if (typeof window !== 'undefined') {
-    window.localStorage.setItem(QUIZ_KEY, JSON.stringify([...readQuizList(), attempt]));
+    writeStrictList(QUIZ_KEY, [...readQuizList(), attempt]);
     notify();
   }
   return attempt;

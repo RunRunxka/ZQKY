@@ -1,4 +1,5 @@
 'use client';
+import { readStrictList, writeStrictList } from './local-collection';
 /**
  * S4/S5 本地模拟仓储：题库（quiz-bank）与笔记（notebook）。
  *
@@ -66,19 +67,11 @@ export interface NotebookEntry {
 }
 
 function readList<T>(key: string): T[] {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = window.localStorage.getItem(key);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? (parsed as T[]) : [];
-  } catch {
-    return [];
-  }
+  return readStrictList<T>(key);
 }
 
 function writeList<T>(key: string, list: T[]): void {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(key, JSON.stringify(list));
+  writeStrictList(key, list);
 }
 
 // ===== 题库 =====
