@@ -109,3 +109,32 @@ npm.cmd run test:e2e -- --reporter=line --output=_work/review-reading-20260908/f
 先修 R26/R27，再修 R28–R31；随后补 R32 前端差距，继续剩余阶段。修复须保留旧数据、迁入正式回归、三视口相关交互验证，同一 review 追加“修复依据、实际命令、证据、未完成项”。当前审查不宣称缺陷已修。
 
 本次只改开发文档、审查探针、精选证据与 Git 忽略保护；产品 apps、锁文件、模板和原始规划均未改。基线 `b8cf71f`/`checkpoint/pre-reading-review-20260908` 可回退。历史文档原文和 SHA256 已合并归档；当前目标与进度见 [PROJECT_GUIDE](../PROJECT_GUIDE.md)、[STATUS](../STATUS.md)。
+
+## 修复记录 · R26–R31（2026-09-09）
+
+同一 review 追加修复依据、实际命令与结果；R32 未在本批处理。
+
+### 修复依据与实现
+
+- **R26**：`loadDemoReading` 改为按稳定 id 无损合并（`mergeById`，已存在条目原样保留、只补缺失演示条目），五个键单批原子提交；演示批注补 `segments` 精确定位（引用为所在行子串，按 includes 定位行、indexOf 定位偏移）；演示书签 locator 修正为「生活中的分数」实际标题行。
+- **R27**：`readList` 严格化——仅键不存在返回空数组；JSON 损坏/格式异常/读取被拒抛 `ReadingStorageError`，不再当空库。新增 `commitLists` 多键原子写入：先严格校验全部键，逐键写入，任一失败回滚本批已写键并抛错。`deleteMaterial`/`deleteWorkspace`/演示载入改走单批提交。页面刷新与渲染路径（ReadingLibrary、MaterialLibrary、SourceNavigator、ReaderPane、CompanionPane）读取均容错显示可恢复错误；演示载入按钮捕获异常提示，不再静默。
+- **R28**：删除自制 `routerPush`（pushState+popstate），改用 `next/navigation` 的 `router.push`；Tab 条与添加材料弹窗两处材料库入口均真实导航，跳转前 ReaderPane 卸载清理即结算待写位置。
+- **R29**：`ReadingAnnotation` 新增 `segments`（locator+start/end，块级 TextPositionSelector 形态，可跨块）。选区经 `collectSelectionSegments` 捕获（`Range.toString().length` 计算块内偏移，避免 mark 片段化 DOM 误差）；渲染改为按区间渲染（重叠先到先得），标题同样渲染 mark；单段定位须仍覆盖 quote 才接受，否则回退 quote 匹配；旧 quote-only 历史按全文唯一匹配回退，多处命中标记 ambiguous 并在导航点击时显式提示，不再猜位置。演示数据同步携带 segments，旧存量演示批注经唯一匹配兼容。
+- **R30**：阅读位置生命周期按材料 id 重构：切换/卸载时取消 rAF 与待写定时器；滚动时捕获 `{materialId, pct}` 待写值（pct 按滚动当时内容计算，杜绝旧任务读新视图再写旧材料），cleanup 结算；位置恢复统一执行——零位置也回到顶部；切材料时选区浮条/笔记表单同步失效。
+- **R31**：桌面（≥1280px）列模板由组件按状态内联设置——导航显示 4 列（`minmax(184px,230px)`＋正文 `1fr`＋5px 拖拽轨＋伴生），收起后 3 列，正文获得导航空间（对照参考 navigatorCollapsed）；新增伴生栏拖拽手柄（默认 380、范围 300–640、本地持久化 `zhiqikeyuan:reader:companionWidth`、指针拖拽与左右方向键键盘可达、焦点可见）；<1280px 维持单列堆叠。手机抽屉/面板属 R32 待补。
+
+### 实际命令与结果
+
+| 检查 | 结果 |
+| --- | --- |
+| typecheck / lint | 通过 / 0 警告 |
+| 正式单测 | **214/214 通过**（`NODE_OPTIONS=--no-experimental-webstorage`；含新增 R26×3、R27×5 用例） |
+| build | 通过 |
+| 独立存储探针 | **3/3 通过**（修复后复跑，未删失败条件） |
+| 独立浏览器探针 | **4/4 通过**（`--trace=off`，产物 `_work/reading-fix-20260909/browser-probes`） |
+| 正式全量 e2e | **96/96 通过**（含迁移后的 R28–R31 正式回归与既有 5 条阅读用例；上轮 chat-motion context teardown 超时本轮未复现） |
+| 真实供应商/解析/STT | 未调用，未验证 |
+
+迁移说明：R26/R27 存储探针迁入 `apps/web/src/services/reading-store.test.ts`（断言保留“内容和关联”，新增回滚/格式异常/键不存在用例；本环境 Storage 方法在原型上、`vi.spyOn` 拦截不生效，写失败用例改用 `Object.defineProperty` 替换 localStorage 实现）；R28–R31 迁入 `tests/e2e/reading.spec.ts`（断言未削弱，另补前进/后退、刷新恢复、切回旧材料位置、拖拽与键盘用例）；探针原件保留于 `tests/review/reading-20260908/` 作历史证据。
+
+未完成项：R32（伴生 AI 复用统一 ChatService 与消息组件、材料类型与解析模拟、会话草稿归属、移动端抽屉/面板）与 S3/S4/S5-A～C 差距核查不在本批；三视口完整验收在 S7。

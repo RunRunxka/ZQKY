@@ -1,12 +1,15 @@
 /* 沉浸阅读补充样式（基于 space 设计语言；仅模块内类名） */
+/* 桌面宽度（≥1280px）的列模板由组件按导航收起状态与伴生栏宽度内联设置：
+   导航显示 4 列（nav 184–230 / 正文 1fr / 拖拽轨 5px / 伴生 300–640），
+   收起后为 3 列（正文 / 拖拽轨 / 伴生），正文获得导航空间（R31）。 */
 .reading-layout {
   display: grid;
-  grid-template-columns: 250px minmax(0, 1fr) var(--companion-width, 320px);
+  grid-template-columns: minmax(184px, 230px) minmax(0, 1fr) 5px var(--companion-width, 380px);
   gap: 16px;
   align-items: start;
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1279px) {
   .reading-layout {
     grid-template-columns: 1fr;
   }
@@ -88,13 +91,19 @@
   resize: vertical;
 }
 
+/* 拖拽分隔轨：桌面端位于正文与伴生栏之间的网格列（键盘可达，焦点可见） */
 .reading-companion-drag {
-  position: absolute;
-  left: -6px;
-  top: 0;
-  bottom: 0;
-  width: 10px;
+  min-height: 320px;
+  border-radius: 4px;
   cursor: col-resize;
+  background: transparent;
+  touch-action: none;
+}
+
+.reading-companion-drag:hover,
+.reading-companion-drag:focus-visible {
+  background: rgba(37, 99, 235, 0.28);
+  outline: none;
 }
 
 .reading-selection-bar {

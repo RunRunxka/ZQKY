@@ -13,6 +13,7 @@ import {
   readWorkspaces,
   subscribeReading,
   type ReadingMaterial,
+  type ReadingWorkspace,
 } from '@/services/reading-store';
 import '@/features/space/styles/space.css';
 import '@/features/reading/reading.css';
@@ -21,6 +22,7 @@ import '@/features/reading/reading.css';
 export function MaterialLibrary() {
   const router = useRouter();
   const [materials, setMaterials] = useState<ReadingMaterial[]>([]);
+  const [workspaces, setWorkspaces] = useState<ReadingWorkspace[]>([]);
   const [filter, setFilter] = useState<'all' | 'unassigned'>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +32,7 @@ export function MaterialLibrary() {
   const refresh = useCallback(() => {
     try {
       setMaterials(readMaterials());
+      setWorkspaces(readWorkspaces());
       setError(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '材料库无法读取，原数据未修改。');
@@ -57,8 +60,12 @@ export function MaterialLibrary() {
             <button
               className="space-button"
               onClick={() => {
-                loadDemoReading();
-                setNotice('已载入演示阅读数据（重复载入不产生重复条目）。');
+                try {
+                  loadDemoReading();
+                  setNotice('已载入演示阅读数据（重复载入不产生重复条目）。');
+                } catch (cause) {
+                  setNotice(cause instanceof Error ? cause.message : '演示数据载入失败，原数据未修改。');
+                }
               }}
             >
               <Sparkles size={14} />
@@ -117,7 +124,9 @@ export function MaterialLibrary() {
                   <span className="space-chip">{material.charCount} 字</span>
                   <span className="space-chip">{material.workspaceIds.length > 0 ? `已入 ${material.workspaceIds.length} 个集合` : '未分配'}</span>
                   <span className="space-session-actions">
-                    {material.workspaceIds.length === 0 && <AssignButton material={material} onDone={(msg) => setNotice(msg)} />}
+                    {material.workspaceIds.length === 0 && (
+                      <AssignButton material={material} workspaces={workspaces} onDone={(msg) => setNotice(msg)} />
+                    )}
                     <button
                       className="icon-button"
                       aria-label={`删除材料 ${material.title}`}
@@ -153,9 +162,16 @@ export function MaterialLibrary() {
   );
 }
 
-function AssignButton({ material, onDone }: { material: ReadingMaterial; onDone: (message: string) => void }) {
+function AssignButton({
+  material,
+  workspaces,
+  onDone,
+}: {
+  material: ReadingMaterial;
+  workspaces: ReadingWorkspace[];
+  onDone: (message: string) => void;
+}) {
   const [open, setOpen] = useState(false);
-  const workspaces = readWorkspaces();
   return (
     <>
       <button className="space-button" aria-label={`分配材料 ${material.title}`} onClick={() => setOpen(true)}>

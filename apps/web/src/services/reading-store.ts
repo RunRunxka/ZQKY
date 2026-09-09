@@ -29,12 +29,24 @@ export interface ReadingMaterial {
   updatedAt: string;
 }
 
+/** 批注精确定位段：块定位（p-<行>/h-<行>）+ 块内字符区间（对照参考 TextPositionSelector 的块级形态） */
+export interface ReadingAnnotationSegment {
+  locator: string;
+  start: number;
+  end: number;
+}
+
 export interface ReadingAnnotation {
   annotationId: string;
   materialId: string;
   kind: ReadingAnnotationKind;
   color: 'yellow' | 'green' | 'blue' | 'pink' | 'purple';
   quote: string;
+  /**
+   * 精确定位段（新批注必填；可跨块）。旧 quote-only 历史数据为空：
+   * 渲染时按全文唯一匹配回退，多处命中视为歧义、显式提示，不猜位置。
+   */
+  segments?: ReadingAnnotationSegment[];
   note: string;
   createdAt: string;
 }
@@ -90,26 +102,79 @@ const SESSIONS_KEY = 'zhiqikeyuan:reading-sessions';
 const EVENT = 'zqky:reading';
 
 export class ReadingValidationError extends Error {}
+/** 存储层错误：损坏/格式异常/写入被拒。抛出时原数据未被修改或已回滚。 */
+export class ReadingStorageError extends Error {}
 
 function uid(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/**
+ * 严格读取（R27）：键不存在才返回空数组；JSON 损坏、格式异常、存储拒绝一律抛出
+ * ReadingStorageError，绝不把损坏库当空库，防止下一次写入覆盖可恢复数据。
+ */
 function readList<T>(key: string): T[] {
   if (typeof window === 'undefined') return [];
+  let raw: string | null;
   try {
-    const raw = window.localStorage.getItem(key);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? (parsed as T[]) : [];
-  } catch {
-    return [];
+    raw = window.localStorage.getItem(key);
+  } catch (cause) {
+    throw new ReadingStorageError(`本地阅读数据（${key}）读取被拒绝，原数据未修改。`, { cause });
   }
+  if (raw === null) return [];
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new ReadingStorageError(`本地阅读数据（${key}）已损坏，无法安全解析；为保护原数据未做修改。`);
+  }
+  if (!Array.isArray(parsed)) {
+    throw new ReadingStorageError(`本地阅读数据（${key}）格式异常（应为数组）；为保护原数据未做修改。`);
+  }
+  return parsed as T[];
+}
+
+function readRaw(key: string): string | null {
+  if (typeof window === 'undefined') return null;
+  return window.localStorage.getItem(key);
+}
+
+function writeRaw(key: string, raw: string): void {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(key, raw);
+}
+
+/**
+ * 多键原子写入（R27）：先严格校验全部键（损坏即抛错、不进入写入），再逐键写入；
+ * 任一写入失败回滚本批已写键并抛错，多键操作中途失败不再留下半套数据。
+ */
+function commitLists(entries: ReadonlyArray<readonly [string, unknown]>): void {
+  if (typeof window === 'undefined') return;
+  for (const [key] of entries) readList(key);
+  const originals = entries.map(([key]) => [key, readRaw(key)] as const);
+  const written: string[] = [];
+  try {
+    for (const [key, value] of entries) {
+      writeRaw(key, JSON.stringify(value));
+      written.push(key);
+    }
+  } catch (cause) {
+    for (const key of written) {
+      const original = originals.find(([k]) => k === key)?.[1] ?? null;
+      try {
+        if (original === null) window.localStorage.removeItem(key);
+        else window.localStorage.setItem(key, original);
+      } catch {
+        // 回滚失败时保留现场，仍抛出原始错误
+      }
+    }
+    throw new ReadingStorageError('写入本地阅读数据失败（存储可能已满）；本次修改已回滚，原数据保留。', { cause });
+  }
+  notify();
 }
 
 function writeList<T>(key: string, list: T[]): void {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(key, JSON.stringify(list));
-  notify();
+  commitLists([[key, list]]);
 }
 
 function notify(): void {
@@ -166,24 +231,27 @@ export function createMaterial(input: {
 }
 
 export function deleteMaterial(materialId: string): boolean {
-  const kept = readMaterials().filter((item) => item.id !== materialId);
-  if (kept.length === readMaterials().length) return false;
-  writeList(MATERIALS_KEY, kept);
-  // 级联清理批注/书签与工作区引用
-  writeList(ANNOTATIONS_KEY, readList<ReadingAnnotation>(ANNOTATIONS_KEY).filter((item) => item.materialId !== materialId));
-  writeList(BOOKMARKS_KEY, readList<ReadingBookmark>(BOOKMARKS_KEY).filter((item) => item.materialId !== materialId));
-  writeList(
-    WORKSPACES_KEY,
-    readList<ReadingWorkspace>(WORKSPACES_KEY).map((ws) => {
-      const tabs = ws.tabs.filter((tab) => tab.materialId !== materialId);
-      return {
-        ...ws,
-        tabs,
-        activeMaterialId:
-          ws.activeMaterialId === materialId ? tabs[0]?.materialId ?? null : ws.activeMaterialId,
-      };
-    }),
-  );
+  const materials = readMaterials();
+  const kept = materials.filter((item) => item.id !== materialId);
+  if (kept.length === materials.length) return false;
+  // 级联清理批注/书签与工作区引用（单批原子提交，失败整体回滚）
+  commitLists([
+    [MATERIALS_KEY, kept],
+    [ANNOTATIONS_KEY, readList<ReadingAnnotation>(ANNOTATIONS_KEY).filter((item) => item.materialId !== materialId)],
+    [BOOKMARKS_KEY, readList<ReadingBookmark>(BOOKMARKS_KEY).filter((item) => item.materialId !== materialId)],
+    [
+      WORKSPACES_KEY,
+      readList<ReadingWorkspace>(WORKSPACES_KEY).map((ws) => {
+        const tabs = ws.tabs.filter((tab) => tab.materialId !== materialId);
+        return {
+          ...ws,
+          tabs,
+          activeMaterialId:
+            ws.activeMaterialId === materialId ? tabs[0]?.materialId ?? null : ws.activeMaterialId,
+        };
+      }),
+    ],
+  ]);
   return true;
 }
 
@@ -238,17 +306,19 @@ export function deleteWorkspace(workspaceId: string): boolean {
   const list = readWorkspaces();
   const kept = list.filter((item) => item.id !== workspaceId);
   if (kept.length === list.length) return false;
-  writeList(WORKSPACES_KEY, kept);
-  // 材料保留在库中，仅解除归属；会话一并删除
-  writeList(
-    MATERIALS_KEY,
-    readMaterials().map((item) =>
-      item.workspaceIds.includes(workspaceId)
-        ? { ...item, workspaceIds: item.workspaceIds.filter((id) => id !== workspaceId), updatedAt: new Date().toISOString() }
-        : item,
-    ),
-  );
-  writeList(SESSIONS_KEY, readList<ReadingSession>(SESSIONS_KEY).filter((item) => item.workspaceId !== workspaceId));
+  // 材料保留在库中，仅解除归属；会话一并删除（单批原子提交）
+  commitLists([
+    [WORKSPACES_KEY, kept],
+    [
+      MATERIALS_KEY,
+      readMaterials().map((item) =>
+        item.workspaceIds.includes(workspaceId)
+          ? { ...item, workspaceIds: item.workspaceIds.filter((id) => id !== workspaceId), updatedAt: new Date().toISOString() }
+          : item,
+      ),
+    ],
+    [SESSIONS_KEY, readList<ReadingSession>(SESSIONS_KEY).filter((item) => item.workspaceId !== workspaceId)],
+  ]);
   return true;
 }
 
@@ -320,16 +390,22 @@ export function addAnnotation(input: {
   kind: ReadingAnnotationKind;
   color?: ReadingAnnotation['color'];
   quote: string;
+  /** 精确定位段（选区时携带；缺失则按 quote 唯一匹配回退） */
+  segments?: ReadingAnnotationSegment[];
   note?: string;
 }): ReadingAnnotation {
   const quote = input.quote.trim();
   if (!quote) throw new ReadingValidationError('批注引用文本不能为空（请先在正文中选择文字）。');
+  const segments = (input.segments ?? []).filter(
+    (segment) => segment && typeof segment.locator === 'string' && segment.locator,
+  );
   const annotation: ReadingAnnotation = {
     annotationId: uid('ann'),
     materialId: input.materialId,
     kind: input.kind,
     color: input.color ?? 'yellow',
     quote,
+    ...(segments.length > 0 ? { segments } : {}),
     note: input.note?.trim() ?? '',
     createdAt: new Date().toISOString(),
   };
@@ -509,9 +585,17 @@ const DEMO_MATERIAL_TEXT = [
   '半块蛋糕是 1/2，四分之一张纸是 1/4。分数在时间（半小时）、测量（毫米）中处处出现。',
 ].join('\n');
 
-/** 显式载入演示阅读数据（幂等）：1 工作区 + 2 材料 + 批注/书签/会话各 1 */
+/** 显式载入演示阅读数据（R26：按稳定 id 无损合并，用户数据优先，单批原子提交） */
 export function loadDemoReading(): void {
-  if (readWorkspaces().some((item) => item.id === 'demo-reading-ws')) return;
+  const demoLines = DEMO_MATERIAL_TEXT.split('\n');
+  const demoQuote = '分子和分母同时乘或除以同一个不为零的数，分数的大小不变。';
+  // 批注引用是所在行的子串：按 includes 定位行、indexOf 定位行内偏移
+  const demoLineIndex = demoLines.findIndex((line) => line.includes(demoQuote));
+  const demoStart = demoLineIndex >= 0 ? demoLines[demoLineIndex]!.indexOf(demoQuote) : 0;
+  const demoSegment =
+    demoLineIndex >= 0
+      ? [{ locator: `p-${demoLineIndex}`, start: demoStart, end: demoStart + demoQuote.length }]
+      : undefined;
   const now = new Date().toISOString();
   const materialA: ReadingMaterial = {
     id: 'demo-reading-mat-a',
@@ -541,7 +625,6 @@ export function loadDemoReading(): void {
     createdAt: now,
     updatedAt: now,
   };
-  writeList(MATERIALS_KEY, [...readMaterials(), materialA, materialB]);
   const workspace: ReadingWorkspace = {
     id: 'demo-reading-ws',
     title: '分数阅读（演示集合）',
@@ -551,44 +634,57 @@ export function loadDemoReading(): void {
     createdAt: now,
     updatedAt: now,
   };
-  writeList(WORKSPACES_KEY, [...readWorkspaces(), workspace]);
-  writeList(ANNOTATIONS_KEY, [
-    {
-      annotationId: 'demo-reading-ann-1',
-      materialId: materialA.id,
-      kind: 'note' as const,
-      color: 'yellow' as const,
-      quote: '分子和分母同时乘或除以同一个不为零的数，分数的大小不变。',
-      note: '约分通分的依据，考试常考。',
-      createdAt: now,
-    },
+  const demoAnnotation: ReadingAnnotation = {
+    annotationId: 'demo-reading-ann-1',
+    materialId: materialA.id,
+    kind: 'note',
+    color: 'yellow',
+    quote: demoQuote,
+    ...(demoSegment ? { segments: demoSegment } : {}),
+    note: '约分通分的依据，考试常考。',
+    createdAt: now,
+  };
+  const demoBookmark: ReadingBookmark = {
+    bookmarkId: 'demo-reading-bm-1',
+    materialId: materialA.id,
+    locator: `h-${demoLines.indexOf('## 生活中的分数')}`,
+    label: '生活中的分数',
+    createdAt: now,
+  };
+  const demoSession: ReadingSession = {
+    id: 'demo-reading-ss-1',
+    workspaceId: 'demo-reading-ws',
+    title: '什么是约分？',
+    activeMaterialId: materialA.id,
+    messages: [
+      { id: 'demo-reading-msg-1', role: 'user' as const, content: '什么是约分？', at: now },
+      {
+        id: 'demo-reading-msg-2',
+        role: 'assistant' as const,
+        content: '【模拟回复】约分是把分子分母的公因数约去，使分数更简洁，例如 2/4 = 1/2。（本地模板生成，未接入模型）',
+        at: now,
+      },
+    ],
+    createdAt: now,
+    updatedAt: now,
+  };
+  // 各集合按稳定 id 合并：已存在条目（用户或此前演示）原样保留，只补缺失的演示条目；
+  // 用户先建的批注/书签/会话不会被演示数据删除，删除演示后再载入不产生重复 id。
+  commitLists([
+    [MATERIALS_KEY, mergeById(readMaterials(), [materialA, materialB])],
+    [WORKSPACES_KEY, mergeById(readWorkspaces(), [workspace])],
+    [ANNOTATIONS_KEY, mergeById(readAnnotations(), [demoAnnotation])],
+    [BOOKMARKS_KEY, mergeById(readBookmarks(), [demoBookmark])],
+    [SESSIONS_KEY, mergeById(readSessions(), [demoSession])],
   ]);
-  writeList(BOOKMARKS_KEY, [
-    {
-      bookmarkId: 'demo-reading-bm-1',
-      materialId: materialA.id,
-      locator: 'h-4',
-      label: '生活中的分数',
-      createdAt: now,
-    },
-  ]);
-  writeList(SESSIONS_KEY, [
-    {
-      id: 'demo-reading-ss-1',
-      workspaceId: 'demo-reading-ws',
-      title: '什么是约分？',
-      activeMaterialId: materialA.id,
-      messages: [
-        { id: 'demo-reading-msg-1', role: 'user' as const, content: '什么是约分？', at: now },
-        {
-          id: 'demo-reading-msg-2',
-          role: 'assistant' as const,
-          content: '【模拟回复】约分是把分子分母的公因数约去，使分数更简洁，例如 2/4 = 1/2。（本地模板生成，未接入模型）',
-          at: now,
-        },
-      ],
-      createdAt: now,
-      updatedAt: now,
-    },
-  ]);
+}
+
+function mergeById<T extends { id?: string; annotationId?: string; bookmarkId?: string }>(
+  existing: T[],
+  demoItems: T[],
+): T[] {
+  const keyOf = (item: T) => item.annotationId ?? item.bookmarkId ?? item.id;
+  const existingIds = new Set(existing.map((item) => keyOf(item)).filter(Boolean));
+  const additions = demoItems.filter((item) => !existingIds.has(keyOf(item)!));
+  return [...existing, ...additions];
 }

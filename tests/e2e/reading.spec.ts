@@ -224,3 +224,116 @@ test('工作区管理：添加/切换/移除材料、重命名、整理笔记发
   await page.getByRole('link', { name: '返回沉浸阅读' }).click();
   await expect(page).toHaveURL(/\/reading$/);
 });
+
+// ===== R28–R31 审查修复回归（阅读审查 2026-09-08）=====
+
+/** 复现审查场景的自定义种子：两个材料（可选长文），重复段落用于 R29 */
+async function seedReviewMaterials(page: import('@playwright/test').Page, long = false) {
+  await page.addInitScript(({ longText }) => {
+    const now = '2026-09-08T00:00:00.000Z';
+    const text = longText
+      ? Array.from({ length: 100 }, (_, i) => `第 ${i} 段正文。这是用于验证阅读位置的足够长的测试材料。`).join('\n\n')
+      : '# 标题\n\n相同的句子。\n\n相同的句子。';
+    const materials = ['a', 'b'].map((id) => ({
+      id, title: `材料${id.toUpperCase()}`, text, filename: null, sourceKind: 'text', sourceUrl: null,
+      charCount: text.length, sizeBytes: text.length * 3, positionPct: 0,
+      workspaceIds: ['review-ws'], createdAt: now, updatedAt: now,
+    }));
+    localStorage.setItem('zhiqikeyuan:reading-materials', JSON.stringify(materials));
+    localStorage.setItem('zhiqikeyuan:reading-workspaces', JSON.stringify([{
+      id: 'review-ws', title: '审查集合', description: '', activeMaterialId: 'a',
+      tabs: materials.map((m) => ({ materialId: m.id, addedAt: now })), createdAt: now, updatedAt: now,
+    }]));
+  }, { longText: long });
+  await page.goto('/reading/review-ws');
+  await expect(page.getByRole('heading', { name: '审查集合' })).toBeVisible();
+}
+
+const reviewReader = (page: import('@playwright/test').Page) => page.locator('.reading-layout > .reading-pane:not(aside)');
+
+test('R28 材料库入口：真实路由跳转、前进后退一致', async ({ page }) => {
+  await gotoDemoWorkspace(page);
+  // 入口一：Tab 条「材料库…」
+  await page.getByRole('button', { name: '材料库…', exact: true }).click();
+  await expect(page).toHaveURL(/\/reading\/materials$/);
+  await expect(page.getByRole('heading', { name: '阅读材料库', exact: true })).toBeVisible();
+  await page.goBack();
+  await expect(page.getByRole('heading', { name: '分数阅读（演示集合）' })).toBeVisible();
+  await page.goForward();
+  await expect(page.getByRole('heading', { name: '阅读材料库', exact: true })).toBeVisible();
+
+  // 入口二：添加材料弹窗无候选时的「打开材料库」
+  await page.goto('/reading/demo-reading-ws');
+  await page.getByRole('button', { name: '添加材料' }).click();
+  await page
+    .getByRole('dialog', { name: '添加材料到集合' })
+    .locator('.space-session-card', { hasText: '修辞手法摘录（未分配演示材料）' })
+    .getByRole('button', { name: '添加' })
+    .click();
+  await expect(page.getByRole('status').filter({ hasText: '已添加材料' })).toBeVisible();
+  await page.getByRole('button', { name: '添加材料' }).click();
+  await page.getByRole('dialog', { name: '添加材料到集合' }).getByRole('button', { name: '打开材料库' }).click();
+  await expect(page).toHaveURL(/\/reading\/materials$/);
+  await expect(page.getByRole('heading', { name: '阅读材料库', exact: true })).toBeVisible();
+});
+
+test('R29 批注定位：高亮第二处重复段落只标记该处', async ({ page }, testInfo) => {
+  await seedReviewMaterials(page);
+  await reviewReader(page).locator('p[data-loc]').nth(1).evaluate((paragraph) => {
+    const range = document.createRange();
+    range.selectNodeContents(paragraph);
+    const selection = window.getSelection()!;
+    selection.removeAllRanges();
+    selection.addRange(range);
+    paragraph.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+  });
+  await page.getByRole('button', { name: '高亮（yellow）', exact: true }).click();
+  await page.screenshot({ path: testInfo.outputPath('duplicate-highlight.png') });
+  await expect(reviewReader(page).locator('mark')).toHaveCount(1);
+  await expect(reviewReader(page).locator('p[data-loc]').nth(0).locator('mark')).toHaveCount(0);
+  // 刷新后仍只恢复所标注的一处（segments 持久化）
+  await page.reload();
+  await expect(reviewReader(page).locator('mark')).toHaveCount(1);
+  await expect(reviewReader(page).locator('p[data-loc]').nth(0).locator('mark')).toHaveCount(0);
+});
+
+test('R30 阅读位置：切换到零位置材料回到顶部，旧材料位置保留', async ({ page }, testInfo) => {
+  await seedReviewMaterials(page, true);
+  await reviewReader(page).evaluate((el) => { el.scrollTop = (el.scrollHeight - el.clientHeight) * 0.6; });
+  await expect.poll(() => reviewReader(page).evaluate((el) => el.scrollTop)).toBeGreaterThan(100);
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('zhiqikeyuan:reading-materials')!)[0].positionPct)).toBeGreaterThan(0);
+  await page.getByRole('tab', { name: /^材料B/ }).click();
+  await expect(reviewReader(page).locator('header strong')).toHaveText('材料B');
+  await page.screenshot({ path: testInfo.outputPath('unread-position.png') });
+  await expect.poll(() => reviewReader(page).evaluate((el) => el.scrollTop)).toBe(0);
+  // 切回材料 A：已保存的位置恢复
+  await page.getByRole('tab', { name: /^材料A/ }).click();
+  await expect.poll(() => reviewReader(page).evaluate((el) => el.scrollTop)).toBeGreaterThan(100);
+});
+
+test('R31 布局：收起导航正文变宽；伴生栏拖拽与键盘可达', async ({ page }, testInfo) => {
+  await gotoDemoWorkspace(page);
+  const before = (await reviewReader(page).boundingBox())!.width;
+  await page.getByRole('button', { name: '收起导航', exact: true }).click();
+  await expect(page.getByRole('complementary', { name: '阅读导航' })).toHaveCount(0);
+  await page.screenshot({ path: testInfo.outputPath('collapsed-navigation.png') });
+  await expect.poll(async () => (await reviewReader(page).boundingBox())!.width).toBeGreaterThan(before);
+  // 展开恢复
+  await page.getByRole('button', { name: '展开导航', exact: true }).click();
+  await expect(page.getByRole('complementary', { name: '阅读导航' })).toBeVisible();
+
+  // 伴生栏拖拽（1440×900 ≥ 1280 分界）：向左拖 40px → 加宽 40 并持久化
+  const handle = page.getByRole('separator', { name: '调整伴生栏宽度' });
+  await expect(handle).toBeVisible();
+  const box = (await handle.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + 100);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 - 40, box.y + 100, { steps: 4 });
+  await page.mouse.up();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('zhiqikeyuan:reader:companionWidth'))).toBe('420');
+
+  // 键盘：ArrowLeft 加宽 16
+  await handle.focus();
+  await handle.press('ArrowLeft');
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('zhiqikeyuan:reader:companionWidth'))).toBe('436');
+});

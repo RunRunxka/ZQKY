@@ -13,6 +13,8 @@ import {
   readSessions,
   readWorkspaces,
   subscribeReading,
+  type ReadingMaterial,
+  type ReadingSession,
   type ReadingWorkspace,
 } from '@/services/reading-store';
 import '@/features/space/styles/space.css';
@@ -22,6 +24,8 @@ import '@/features/reading/reading.css';
 export function ReadingLibrary() {
   const router = useRouter();
   const [workspaces, setWorkspaces] = useState<ReadingWorkspace[]>([]);
+  const [materials, setMaterials] = useState<ReadingMaterial[]>([]);
+  const [sessions, setSessions] = useState<ReadingSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -30,6 +34,8 @@ export function ReadingLibrary() {
   const refresh = useCallback(() => {
     try {
       setWorkspaces(readWorkspaces());
+      setMaterials(readMaterials());
+      setSessions(readSessions());
       setError(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '阅读数据无法读取，原数据未修改。');
@@ -52,8 +58,12 @@ export function ReadingLibrary() {
             <button
               className="space-button"
               onClick={() => {
-                loadDemoReading();
-                setNotice('已载入演示阅读数据（重复载入不产生重复条目）。材料解析与伴生回复为本地模拟。');
+                try {
+                  loadDemoReading();
+                  setNotice('已载入演示阅读数据（重复载入不产生重复条目）。材料解析与伴生回复为本地模拟。');
+                } catch (cause) {
+                  setNotice(cause instanceof Error ? cause.message : '演示数据载入失败，原数据未修改。');
+                }
               }}
             >
               <Sparkles size={14} />
@@ -92,8 +102,8 @@ export function ReadingLibrary() {
         ) : (
           <div className="space-card-grid">
             {workspaces.map((workspace) => {
-              const materials = readMaterials().filter((item) => item.workspaceIds.includes(workspace.id));
-              const sessions = readSessions(workspace.id);
+              const materialsOf = materials.filter((item) => item.workspaceIds.includes(workspace.id));
+              const sessionsOf = sessions.filter((item) => item.workspaceId === workspace.id);
               return (
                 <article className="space-persona-card" key={workspace.id}>
                   <Link
@@ -107,8 +117,8 @@ export function ReadingLibrary() {
                     </div>
                     <p className="space-card-body">{workspace.description || '（无简介）'}</p>
                     <div className="space-meta-row">
-                      <span className="space-chip">材料 {materials.length}</span>
-                      <span className="space-chip">会话 {sessions.length}</span>
+                      <span className="space-chip">材料 {materialsOf.length}</span>
+                      <span className="space-chip">会话 {sessionsOf.length}</span>
                       <span className="space-chip">本地目录</span>
                     </div>
                   </Link>

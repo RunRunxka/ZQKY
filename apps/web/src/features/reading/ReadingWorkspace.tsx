@@ -1,7 +1,7 @@
 'use client';
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent, type ReactElement } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   Bookmark,
@@ -41,6 +41,7 @@ import {
   simulateCompanionReply,
   subscribeReading,
   type ReadingAnnotation,
+  type ReadingAnnotationSegment,
   type ReadingBookmark,
   type ReadingMaterial,
   type ReadingSession,
@@ -72,6 +73,7 @@ export function ReadingWorkspaceView() {
 }
 
 function WorkspaceView({ workspaceId, routeSessionId }: { workspaceId: string; routeSessionId: string | null }) {
+  const router = useRouter();
   const [workspaces, setWorkspaces] = useState<ReadingWorkspace[] | null>(null);
   const [materials, setMaterials] = useState<ReadingMaterial[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -83,6 +85,10 @@ function WorkspaceView({ workspaceId, routeSessionId }: { workspaceId: string; r
   const [sendingNotebook, setSendingNotebook] = useState(false);
   const [courseScope, setCourseScope] = useState<string | null>(null);
   const [navOpen, setNavOpen] = useState(true);
+  // 伴生栏宽度（对照参考 companionWidth：默认 380、范围 300–640、本地持久化、1280px 分界可拖拽）
+  const [companionWidth, setCompanionWidth] = useState(380);
+  const [isDesktopWide, setIsDesktopWide] = useState(false);
+  const dragStateRef = useRef<{ startX: number; startWidth: number } | null>(null);
 
   const refresh = useCallback(() => {
     try {
@@ -98,6 +104,67 @@ function WorkspaceView({ workspaceId, routeSessionId }: { workspaceId: string; r
     refresh();
     return subscribeReading(refresh);
   }, [refresh]);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem('zhiqikeyuan:reader:companionWidth');
+      const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+      if (Number.isFinite(parsed)) setCompanionWidth(Math.min(640, Math.max(300, parsed)));
+    } catch {
+      // 忽略本地读取失败，保持默认宽度
+    }
+    const mql = window.matchMedia('(min-width: 1280px)');
+    const update = () => setIsDesktopWide(mql.matches);
+    update();
+    mql.addEventListener('change', update);
+    return () => mql.removeEventListener('change', update);
+  }, []);
+
+  const persistCompanionWidth = useCallback((width: number) => {
+    try {
+      window.localStorage.setItem('zhiqikeyuan:reader:companionWidth', String(width));
+    } catch {
+      // 持久化失败不影响当前会话使用
+    }
+  }, []);
+
+  function onHandlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!isDesktopWide) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    dragStateRef.current = { startX: event.clientX, startWidth: companionWidth };
+  }
+
+  function onHandlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
+    const drag = dragStateRef.current;
+    if (!drag) return;
+    const next = Math.min(640, Math.max(300, drag.startWidth + (drag.startX - event.clientX)));
+    setCompanionWidth(next);
+  }
+
+  function onHandlePointerUp(event: ReactPointerEvent<HTMLDivElement>) {
+    if (!dragStateRef.current) return;
+    dragStateRef.current = null;
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    } catch {
+      // 指针捕获不存在时忽略
+    }
+    persistCompanionWidth(companionWidth);
+  }
+
+  function onHandleKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (!isDesktopWide) return;
+    const step = event.shiftKey ? 32 : 16;
+    let next: number | null = null;
+    if (event.key === 'ArrowLeft') next = Math.min(640, companionWidth + step);
+    else if (event.key === 'ArrowRight') next = Math.max(300, companionWidth - step);
+    if (next !== null) {
+      event.preventDefault();
+      setCompanionWidth(next);
+      persistCompanionWidth(next);
+    }
+  }
 
   // ?course= 作用域标记（参考经 useCourseScope 贯通；目标仅展示作用域，会话课程标记未接入）
   useEffect(() => {
@@ -233,16 +300,42 @@ function WorkspaceView({ workspaceId, routeSessionId }: { workspaceId: string; r
             <Plus size={13} />
             添加材料
           </button>
-          <button onClick={() => routerPush('/reading/materials')}>材料库…</button>
+          <button onClick={() => router.push('/reading/materials')}>材料库…</button>
         </div>
 
-        <div className="reading-layout" style={{ ['--companion-width' as string]: '340px' }}>
+        <div
+          className="reading-layout"
+          style={{
+            ['--companion-width' as string]: `${companionWidth}px`,
+            ...(isDesktopWide
+              ? {
+                  gridTemplateColumns: navOpen
+                    ? 'minmax(184px,230px) minmax(0,1fr) 5px var(--companion-width)'
+                    : 'minmax(0,1fr) 5px var(--companion-width)',
+                }
+              : {}),
+          }}
+        >
           {navOpen && <SourceNavigator activeMaterial={activeMaterial} onNotice={setNotice} />}
           <ReaderPane
             material={activeMaterial}
             onNotice={setNotice}
             onAskAi={(quote) => window.dispatchEvent(new CustomEvent('zqky:reading-ask', { detail: quote }))}
           />
+          {isDesktopWide && (
+            <div
+              className="reading-companion-drag"
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="调整伴生栏宽度"
+              title="拖拽或用左右方向键调整伴生栏宽度"
+              tabIndex={0}
+              onPointerDown={onHandlePointerDown}
+              onPointerMove={onHandlePointerMove}
+              onPointerUp={onHandlePointerUp}
+              onKeyDown={onHandleKeyDown}
+            />
+          )}
           <CompanionPane
             workspaceId={workspaceId}
             routeSessionId={routeSessionId}
@@ -268,6 +361,7 @@ function WorkspaceView({ workspaceId, routeSessionId }: { workspaceId: string; r
           workspace={workspace}
           materials={materials}
           onClose={() => setAddingMaterial(false)}
+          onOpenLibrary={() => router.push('/reading/materials')}
           onAdded={(title) => {
             setAddingMaterial(false);
             setNotice(`已添加材料「${title}」。`);
@@ -301,11 +395,6 @@ function WorkspaceView({ workspaceId, routeSessionId }: { workspaceId: string; r
   );
 }
 
-function routerPush(path: string) {
-  window.history.pushState(null, '', path);
-  window.dispatchEvent(new PopStateEvent('popstate'));
-}
-
 function removeMaterial(workspaceId: string, materialId: string) {
   if (window.confirm('从集合移除该材料？材料保留在材料库中。')) {
     removeMaterialFromWorkspace(workspaceId, materialId);
@@ -327,12 +416,21 @@ function SourceNavigator({
 
   useEffect(() => {
     const refresh = () => {
-      setAnnotations(activeMaterial ? readAnnotations(activeMaterial.id) : []);
-      setBookmarks(activeMaterial ? readBookmarks(activeMaterial.id) : []);
+      try {
+        setAnnotations(activeMaterial ? readAnnotations(activeMaterial.id) : []);
+        setBookmarks(activeMaterial ? readBookmarks(activeMaterial.id) : []);
+      } catch {
+        // 存储损坏时由页面级错误横幅提示；导航保持已有数据
+      }
     };
     refresh();
     return subscribeReading(refresh);
   }, [activeMaterial]);
+
+  const placements = useMemo(
+    () => (activeMaterial ? resolveAnnotationPlacements(activeMaterial, annotations) : new Map<string, AnnotationPlacement>()),
+    [activeMaterial, annotations],
+  );
 
   const outline = useMemo(() => {
     if (!activeMaterial) return [];
@@ -418,8 +516,11 @@ function SourceNavigator({
                     className="space-button"
                     style={{ flex: 1, justifyContent: 'flex-start' }}
                     onClick={() => {
+                      const placement = placements.get(annotation.annotationId);
                       const el = document.querySelector(`[data-annotation-id="${annotation.annotationId}"]`);
                       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      else if (placement?.status === 'ambiguous')
+                        onNotice('该批注为旧格式且引用的原文出现多处，无法唯一定位；可删除后重新添加。');
                       else onNotice('该批注引用的原文段落已被修改，无法定位。');
                     }}
                   >
@@ -466,33 +567,139 @@ function parseBlocks(material: ReadingMaterial): ReaderBlock[] {
     .filter((block) => block.text.trim().length > 0);
 }
 
-/** 按批注 quote 把段落文本切分为普通文本与高亮 mark */
-function renderMarked(text: string, annotations: ReadingAnnotation[]) {
-  let parts: Array<string | ReadingAnnotation> = [text];
-  for (const annotation of annotations) {
-    parts = parts.flatMap((part) => {
-      if (typeof part !== 'string' || !part.includes(annotation.quote)) return [part];
-      const idx = part.indexOf(annotation.quote);
-      return [part.slice(0, idx), annotation, part.slice(idx + annotation.quote.length)].filter(
-        (piece) => (typeof piece === 'string' ? piece.length > 0 : true),
-      );
-    });
+/** 边界在块内的字符偏移：用 Range 文本长度计算，避免 mark 片段化 DOM 的节点偏移误差 */
+function textOffsetWithin(block: HTMLElement, node: Node, offset: number): number {
+  const range = document.createRange();
+  range.selectNodeContents(block);
+  try {
+    range.setEnd(node, offset);
+    return range.toString().length;
+  } catch {
+    return 0;
   }
-  return parts.map((part, idx) =>
-    typeof part === 'string' ? (
-      part
-    ) : (
+}
+
+/** 选区覆盖的块级定位段（含跨块；文档顺序，与 parseBlocks 的 locator 对应） */
+function collectSelectionSegments(range: Range, container: HTMLElement): ReadingAnnotationSegment[] {
+  const blocks = Array.from(container.querySelectorAll<HTMLElement>('[data-loc]'));
+  const segments: ReadingAnnotationSegment[] = [];
+  for (const block of blocks) {
+    if (!range.intersectsNode(block)) continue;
+    const textLength = block.textContent?.length ?? 0;
+    let start = 0;
+    let end = textLength;
+    if (block.contains(range.startContainer)) start = textOffsetWithin(block, range.startContainer, range.startOffset);
+    if (block.contains(range.endContainer)) end = textOffsetWithin(block, range.endContainer, range.endOffset);
+    if (end > start) segments.push({ locator: block.dataset.loc!, start, end });
+  }
+  return segments;
+}
+
+/** 批注解析结果：ok=可精确定位；ambiguous=旧 quote-only 数据多处命中；missing=原文已不存在 */
+interface AnnotationPlacement {
+  annotationId: string;
+  color: ReadingAnnotation['color'];
+  note: string;
+  status: 'ok' | 'ambiguous' | 'missing';
+  spans: Array<{ locator: string; start: number; end: number }>;
+}
+
+function normalizeText(text: string): string {
+  return text.replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * 解析批注在材料中的渲染位置（对照参考 resolveTextSelectors）：
+ * 有 segments（TextPositionSelector 的块级形态）时按区间渲染，且单段需仍覆盖 quote，
+ * 不再覆盖时回退 quote 匹配；旧 quote-only 数据按全文唯一匹配回退，多处命中为歧义、
+ * 显式提示，不猜位置。
+ */
+function resolveAnnotationPlacements(
+  material: ReadingMaterial,
+  annotations: ReadingAnnotation[],
+): Map<string, AnnotationPlacement> {
+  const blocks = parseBlocks(material);
+  const placements = new Map<string, AnnotationPlacement>();
+  for (const annotation of annotations) {
+    const base = { annotationId: annotation.annotationId, color: annotation.color, note: annotation.note };
+    const matchByQuote = (): AnnotationPlacement => {
+      const occurrences: Array<{ locator: string; start: number; end: number }> = [];
+      for (const block of blocks) {
+        let idx = block.text.indexOf(annotation.quote);
+        while (idx !== -1) {
+          occurrences.push({ locator: block.locator, start: idx, end: idx + annotation.quote.length });
+          idx = block.text.indexOf(annotation.quote, idx + Math.max(1, annotation.quote.length));
+        }
+      }
+      if (occurrences.length === 1) return { ...base, status: 'ok', spans: occurrences };
+      return {
+        ...base,
+        status: occurrences.length === 0 ? 'missing' : 'ambiguous',
+        spans: [],
+      };
+    };
+    if (annotation.segments && annotation.segments.length > 0) {
+      const spans: Array<{ locator: string; start: number; end: number }> = [];
+      for (const segment of annotation.segments) {
+        const block = blocks.find((item) => item.locator === segment.locator);
+        if (!block) continue;
+        const start = Math.max(0, Math.min(Math.floor(segment.start), block.text.length));
+        const end = Math.max(start, Math.min(Math.floor(segment.end), block.text.length));
+        if (end > start) spans.push({ locator: block.locator, start, end });
+      }
+      // 单段定位必须仍覆盖 quote，否则回退 quote 匹配（材料可能已被重新登记）
+      if (
+        spans.length === 1 &&
+        annotation.segments.length === 1 &&
+        normalizeText(blocks.find((item) => item.locator === spans[0]!.locator)?.text.slice(spans[0]!.start, spans[0]!.end) ?? '') !==
+          normalizeText(annotation.quote)
+      ) {
+        placements.set(annotation.annotationId, matchByQuote());
+        continue;
+      }
+      placements.set(annotation.annotationId, { ...base, status: spans.length > 0 ? 'ok' : 'missing', spans });
+      continue;
+    }
+    placements.set(annotation.annotationId, matchByQuote());
+  }
+  return placements;
+}
+
+/** 按已解析区间把块文本切分为普通文本与高亮 mark（重叠区间跳过，先到先得） */
+function renderMarked(
+  text: string,
+  marks: Array<{ start: number; end: number; placement: AnnotationPlacement }> | undefined,
+) {
+  if (!marks || marks.length === 0) return text;
+  const sorted = [...marks].sort((a, b) => a.start - b.start);
+  const accepted: Array<{ start: number; end: number; placement: AnnotationPlacement }> = [];
+  let lastEnd = 0;
+  for (const mark of sorted) {
+    if (mark.start >= lastEnd && mark.end > mark.start) {
+      accepted.push(mark);
+      lastEnd = mark.end;
+    }
+  }
+  if (accepted.length === 0) return text;
+  const parts: Array<string | ReactElement> = [];
+  let cursor = 0;
+  for (const mark of accepted) {
+    if (mark.start > cursor) parts.push(text.slice(cursor, mark.start));
+    parts.push(
       <mark
-        key={`${part.annotationId}-${idx}`}
-        data-annotation-id={part.annotationId}
+        key={`${mark.placement.annotationId}-${mark.start}`}
+        data-annotation-id={mark.placement.annotationId}
         className="reading-mark"
-        style={{ background: MARK_COLORS[part.color] ?? MARK_COLORS.yellow }}
-        title={part.note || undefined}
+        style={{ background: MARK_COLORS[mark.placement.color] ?? MARK_COLORS.yellow }}
+        title={mark.placement.note || undefined}
       >
-        {part.quote}
-      </mark>
-    ),
-  );
+        {text.slice(mark.start, mark.end)}
+      </mark>,
+    );
+    cursor = mark.end;
+  }
+  if (cursor < text.length) parts.push(text.slice(cursor));
+  return parts;
 }
 
 function ReaderPane({
@@ -505,44 +712,91 @@ function ReaderPane({
   onAskAi: (quote: string) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const restoredRef = useRef(false);
+  const materialIdRef = useRef<string | null>(null);
+  const pendingPositionRef = useRef<{ materialId: string; pct: number } | null>(null);
   const saveTimerRef = useRef<number | null>(null);
   const [annotations, setAnnotations] = useState<ReadingAnnotation[]>([]);
-  const [selection, setSelection] = useState<{ quote: string; locator: string; top: number; left: number } | null>(null);
+  const [selection, setSelection] = useState<{
+    quote: string;
+    segments: ReadingAnnotationSegment[];
+    top: number;
+    left: number;
+  } | null>(null);
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteText, setNoteText] = useState('');
 
   useEffect(() => {
-    const refresh = () => setAnnotations(material ? readAnnotations(material.id) : []);
+    const refresh = () => {
+      try {
+        setAnnotations(material ? readAnnotations(material.id) : []);
+      } catch (cause) {
+        setAnnotations([]);
+        onNotice(cause instanceof Error ? cause.message : '批注数据无法读取，原数据未修改。');
+      }
+    };
     refresh();
     return subscribeReading(refresh);
-  }, [material]);
-
-  // 恢复上次阅读位置（材料切换时重置）
-  useEffect(() => {
-    restoredRef.current = false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [material?.id]);
+
+  // 阅读位置生命周期（R30）：按材料 id 切换时结算旧材料待写位置、
+  // 取消 rAF/定时器、失效选区浮条，并统一恢复新位置（含零位置回顶）。
   useEffect(() => {
-    if (!material || restoredRef.current) return;
-    restoredRef.current = true;
-    if (material.positionPct > 0) {
-      requestAnimationFrame(() => {
-        const el = containerRef.current;
-        if (el) el.scrollTop = ((el.scrollHeight - el.clientHeight) * material.positionPct) / 100;
-      });
-    }
-  }, [material]);
+    materialIdRef.current = material?.id ?? null;
+    if (!material) return;
+    const mat = material;
+    setSelection(null);
+    setNoteOpen(false);
+    setNoteText('');
+    const raf = requestAnimationFrame(() => {
+      const el = containerRef.current;
+      if (!el) return;
+      el.scrollTop = ((el.scrollHeight - el.clientHeight) * mat.positionPct) / 100;
+    });
+    return () => {
+      cancelAnimationFrame(raf);
+      if (saveTimerRef.current !== null) {
+        window.clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+        const pending = pendingPositionRef.current;
+        pendingPositionRef.current = null;
+        // pct 在滚动时已按旧材料内容捕获，此处只落盘，不会旧任务读新视图
+        if (pending && pending.materialId === mat.id) saveReadingPosition(pending.materialId, pending.pct);
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [material?.id]);
 
   const blocks = useMemo(() => (material ? parseBlocks(material) : []), [material]);
+  const placements = useMemo(
+    () => (material ? resolveAnnotationPlacements(material, annotations) : new Map<string, AnnotationPlacement>()),
+    [material, annotations],
+  );
+  const marksByLocator = useMemo(() => {
+    const map = new Map<string, Array<{ start: number; end: number; placement: AnnotationPlacement }>>();
+    for (const placement of placements.values()) {
+      if (placement.status !== 'ok') continue;
+      for (const span of placement.spans) {
+        const list = map.get(span.locator) ?? [];
+        list.push({ start: span.start, end: span.end, placement });
+        map.set(span.locator, list);
+      }
+    }
+    return map;
+  }, [placements]);
 
   function handleScroll() {
+    const el = containerRef.current;
+    const materialId = materialIdRef.current;
+    if (!el || !materialId) return;
+    const pct = Math.max(0, Math.min(100, (el.scrollTop / Math.max(1, el.scrollHeight - el.clientHeight)) * 100));
+    pendingPositionRef.current = { materialId, pct };
     if (saveTimerRef.current !== null) return;
     saveTimerRef.current = window.setTimeout(() => {
       saveTimerRef.current = null;
-      const el = containerRef.current;
-      if (!el || !material) return;
-      const pct = (el.scrollTop / Math.max(1, el.scrollHeight - el.clientHeight)) * 100;
-      saveReadingPosition(material.id, pct);
+      const pending = pendingPositionRef.current;
+      pendingPositionRef.current = null;
+      if (pending) saveReadingPosition(pending.materialId, pending.pct);
     }, 300);
   }
 
@@ -564,18 +818,11 @@ function ReaderPane({
     const range = sel.getRangeAt(0);
     const rect = range.getBoundingClientRect();
     const containerRect = containerRef.current.getBoundingClientRect();
-    let locator = '';
-    let node: Node | null = sel.anchorNode;
-    while (node && node !== containerRef.current) {
-      if (node instanceof HTMLElement && node.dataset.loc) {
-        locator = node.dataset.loc;
-        break;
-      }
-      node = node.parentNode;
-    }
+    // 记录块级精确定位段（含跨块）：offset 相对块原文，避免 mark 片段化 DOM 的影响
+    const segments = collectSelectionSegments(range, containerRef.current);
     setSelection({
       quote,
-      locator,
+      segments,
       top: rect.bottom - containerRect.top + 8,
       left: Math.max(8, Math.min(rect.left - containerRect.left, containerRect.width - 290)),
     });
@@ -597,7 +844,13 @@ function ReaderPane({
   function addHighlight(color: ReadingAnnotation['color']) {
     if (!material || !selection) return;
     try {
-      addAnnotation({ materialId: material.id, kind: 'highlight', color, quote: selection.quote });
+      addAnnotation({
+        materialId: material.id,
+        kind: 'highlight',
+        color,
+        quote: selection.quote,
+        segments: selection.segments,
+      });
       onNotice('已添加高亮。');
     } catch (cause) {
       onNotice(cause instanceof ReadingValidationError ? cause.message : '添加高亮失败，请重试。');
@@ -609,7 +862,13 @@ function ReaderPane({
     event.preventDefault();
     if (!material || !selection) return;
     try {
-      addAnnotation({ materialId: material.id, kind: 'note', quote: selection.quote, note: noteText });
+      addAnnotation({
+        materialId: material.id,
+        kind: 'note',
+        quote: selection.quote,
+        segments: selection.segments,
+        note: noteText,
+      });
       onNotice('已保存批注笔记。');
     } catch (cause) {
       onNotice(cause instanceof ReadingValidationError ? cause.message : '保存笔记失败，请重试。');
@@ -630,27 +889,15 @@ function ReaderPane({
         <span className="space-chip">{material.charCount} 字</span>
         <span className="space-chip">读到 {material.positionPct}%</span>
       </header>
-      {blocks.map((block) =>
-        block.kind === 'heading' ? (
-          block.level === 1 ? (
-            <h1 key={block.locator} data-loc={block.locator}>
-              {block.text}
-            </h1>
-          ) : block.level === 2 ? (
-            <h2 key={block.locator} data-loc={block.locator}>
-              {block.text}
-            </h2>
-          ) : (
-            <h3 key={block.locator} data-loc={block.locator}>
-              {block.text}
-            </h3>
-          )
-        ) : (
-          <p key={block.locator} data-loc={block.locator}>
-            {renderMarked(block.text, annotations)}
-          </p>
-        ),
-      )}
+      {blocks.map((block) => {
+        const content = renderMarked(block.text, marksByLocator.get(block.locator));
+        if (block.kind === 'heading') {
+          if (block.level === 1) return <h1 key={block.locator} data-loc={block.locator}>{content}</h1>;
+          if (block.level === 2) return <h2 key={block.locator} data-loc={block.locator}>{content}</h2>;
+          return <h3 key={block.locator} data-loc={block.locator}>{content}</h3>;
+        }
+        return <p key={block.locator} data-loc={block.locator}>{content}</p>;
+      })}
 
       {selection && (
         <div className="reading-selection-bar" style={{ top: selection.top, left: selection.left }} role="menu" aria-label="选区操作" onMouseDown={(event) => event.preventDefault()}>
@@ -688,7 +935,7 @@ function ReaderPane({
               onClick={() => {
                 if (!material) return;
                 try {
-                  addBookmark(material.id, selection.locator || 'p-0', selection.quote.slice(0, 24));
+                  addBookmark(material.id, selection.segments[0]?.locator ?? 'p-0', selection.quote.slice(0, 24));
                   onNotice('已添加书签。');
                 } catch (cause) {
                   onNotice(cause instanceof ReadingValidationError ? cause.message : '添加书签失败，请重试。');
@@ -744,27 +991,37 @@ function CompanionPane({
 
   useEffect(() => {
     const refresh = () => {
-      const list = readSessions(workspaceId);
-      setSessions(list);
-      setActiveId((current) => {
-        if (current && list.some((item) => item.id === current)) return current;
-        const routeValid = routeSessionRef.current && list.some((item) => item.id === routeSessionRef.current) ? routeSessionRef.current : null;
-        return routeValid ?? list[0]?.id ?? null;
-      });
+      try {
+        const list = readSessions(workspaceId);
+        setSessions(list);
+        setActiveId((current) => {
+          if (current && list.some((item) => item.id === current)) return current;
+          const routeValid = routeSessionRef.current && list.some((item) => item.id === routeSessionRef.current) ? routeSessionRef.current : null;
+          return routeValid ?? list[0]?.id ?? null;
+        });
+      } catch (cause) {
+        setSessions([]);
+        onSessionError(cause instanceof Error ? cause.message : '伴生会话数据无法读取，原数据未修改。');
+      }
     };
     refresh();
     return subscribeReading(refresh);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspaceId]);
 
   // 路由会话 id 首次同步（深链进入时定位会话）
   useEffect(() => {
     routeSessionRef.current = routeSessionId;
     if (!routeSessionId) return;
-    const list = readSessions(workspaceId);
-    if (list.some((item) => item.id === routeSessionId)) {
-      setActiveId(routeSessionId);
-    } else if (list.length > 0) {
-      onSessionError('链接指向的会话不存在，已切换到最近会话。');
+    try {
+      const list = readSessions(workspaceId);
+      if (list.some((item) => item.id === routeSessionId)) {
+        setActiveId(routeSessionId);
+      } else if (list.length > 0) {
+        onSessionError('链接指向的会话不存在，已切换到最近会话。');
+      }
+    } catch {
+      // 读取失败由订阅刷新的错误提示呈现
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeSessionId, workspaceId]);
@@ -946,11 +1203,13 @@ function AddMaterialForm({
   workspace,
   materials,
   onClose,
+  onOpenLibrary,
   onAdded,
 }: {
   workspace: ReadingWorkspace;
   materials: ReadingMaterial[];
   onClose: () => void;
+  onOpenLibrary: () => void;
   onAdded: (title: string) => void;
 }) {
   const candidates = materials.filter((item) => !workspace.tabs.some((tab) => tab.materialId === item.id));
@@ -964,13 +1223,7 @@ function AddMaterialForm({
             <button className="space-button" onClick={onClose}>
               关闭
             </button>
-            <button
-              className="space-button primary"
-              onClick={() => {
-                onClose();
-                routerPush('/reading/materials');
-              }}
-            >
+            <button className="space-button primary" onClick={onOpenLibrary}>
               打开材料库
             </button>
           </div>

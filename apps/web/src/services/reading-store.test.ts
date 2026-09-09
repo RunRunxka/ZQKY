@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   addAnnotation,
   addBookmark,
@@ -165,5 +165,115 @@ describe('reading-store 演示数据', () => {
     expect(readSessions('demo-reading-ws')).toHaveLength(1);
     // 未分配材料在库中存在
     expect(readMaterials().some((item) => item.workspaceIds.length === 0)).toBe(true);
+  });
+
+  it('R26: 载入演示保留既有用户批注/书签/会话（内容与关联不丢）', () => {
+    const material = createMaterial({ title: '用户材料', text: '用户笔记原文' });
+    const workspace = createWorkspace('用户集合');
+    const annotation = addAnnotation({ materialId: material.id, kind: 'note', quote: material.text, note: '不能丢失' });
+    const bookmark = addBookmark(material.id, 'p-0', '用户书签');
+    const session = createSession(workspace.id, material.id);
+    appendMessage(session.id, { role: 'user', content: '我的问题' });
+    const savedSession = readSessions().find((item) => item.id === session.id);
+    loadDemoReading();
+    expect(readAnnotations()).toContainEqual(annotation);
+    expect(readBookmarks()).toContainEqual(bookmark);
+    expect(readSessions()).toContainEqual(savedSession);
+    // 演示条目同时补齐
+    expect(readMaterials().some((item) => item.id === 'demo-reading-mat-a')).toBe(true);
+  });
+
+  it('R26: 删除演示集合后再载入不产生重复材料身份', () => {
+    loadDemoReading();
+    deleteWorkspace('demo-reading-ws');
+    loadDemoReading();
+    const ids = readMaterials().map((item) => item.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('R26: 演示批注携带精确定位段，可唯一定位', () => {
+    loadDemoReading();
+    const [demo] = readAnnotations('demo-reading-mat-a');
+    expect(demo?.segments).toEqual([{ locator: 'p-6', start: 0, end: demo!.quote.length }]);
+  });
+});
+
+describe('reading-store 存储保护（R27）', () => {
+  const MATERIALS_KEY = 'zhiqikeyuan:reading-materials';
+  const ANNOTATIONS_KEY = 'zhiqikeyuan:reading-annotations';
+  const WORKSPACES_KEY = 'zhiqikeyuan:reading-workspaces';
+  const SESSIONS_KEY = 'zhiqikeyuan:reading-sessions';
+
+  /**
+   * 模拟写失败：把 window.localStorage 换成对指定键抛 QuotaExceededError 的替身。
+   * （本环境 Storage 方法在原型上，vi.spyOn 实例拦截不生效；run 结束后恢复原对象。）
+   */
+  function withWriteFailure(blockedKey: string, run: () => void): void {
+    const real = window.localStorage;
+    const fake = {
+      getItem: (key: string) => real.getItem(key),
+      setItem: (key: string, value: string) => {
+        if (key === blockedKey) throw new DOMException('QuotaExceededError', 'QuotaExceededError');
+        real.setItem(key, value);
+      },
+      removeItem: (key: string) => real.removeItem(key),
+      clear: () => real.clear(),
+      key: (index: number) => real.key(index),
+      get length() {
+        return real.length;
+      },
+    };
+    Object.defineProperty(window, 'localStorage', { configurable: true, get: () => fake });
+    try {
+      run();
+    } finally {
+      Object.defineProperty(window, 'localStorage', { configurable: true, value: real });
+    }
+  }
+
+  it('R27: 损坏 JSON 阻止写入并保留原始字节', () => {
+    const damaged = '[{"id":"precious","text":"recoverable"}';
+    window.localStorage.setItem(MATERIALS_KEY, damaged);
+    expect(() => createMaterial({ title: '新材料', text: '新正文' })).toThrow(/已损坏/);
+    expect(window.localStorage.getItem(MATERIALS_KEY)).toBe(damaged);
+  });
+
+  it('R27: 非数组格式异常报错而非当作空库', () => {
+    const broken = '{"id":"not-an-array"}';
+    window.localStorage.setItem(MATERIALS_KEY, broken);
+    expect(() => readMaterials()).toThrow(/格式异常/);
+    expect(() => loadDemoReading()).toThrow(/格式异常/);
+    expect(window.localStorage.getItem(MATERIALS_KEY)).toBe(broken);
+  });
+
+  it('R27: 键不存在才初始化为空（未写入前无键）', () => {
+    expect(window.localStorage.getItem(MATERIALS_KEY)).toBeNull();
+    expect(readMaterials()).toHaveLength(0);
+  });
+
+  it('R27: 多键级联删除在中途失败时整体回滚（deleteMaterial）', () => {
+    loadDemoReading();
+    const beforeMaterials = window.localStorage.getItem(MATERIALS_KEY);
+    const beforeWorkspaces = window.localStorage.getItem(WORKSPACES_KEY);
+    const beforeAnnotations = window.localStorage.getItem(ANNOTATIONS_KEY);
+    withWriteFailure(WORKSPACES_KEY, () => {
+      expect(() => deleteMaterial('demo-reading-mat-a')).toThrow(/已回滚/);
+    });
+    expect(window.localStorage.getItem(MATERIALS_KEY)).toBe(beforeMaterials);
+    expect(window.localStorage.getItem(WORKSPACES_KEY)).toBe(beforeWorkspaces);
+    expect(window.localStorage.getItem(ANNOTATIONS_KEY)).toBe(beforeAnnotations);
+  });
+
+  it('R27: 多键级联删除在中途失败时整体回滚（deleteWorkspace）', () => {
+    loadDemoReading();
+    const beforeMaterials = window.localStorage.getItem(MATERIALS_KEY);
+    const beforeWorkspaces = window.localStorage.getItem(WORKSPACES_KEY);
+    withWriteFailure(SESSIONS_KEY, () => {
+      expect(() => deleteWorkspace('demo-reading-ws')).toThrow(/已回滚/);
+    });
+    expect(window.localStorage.getItem(MATERIALS_KEY)).toBe(beforeMaterials);
+    expect(window.localStorage.getItem(WORKSPACES_KEY)).toBe(beforeWorkspaces);
+    // 未回滚路径不受影响：正常删除仍成功
+    expect(deleteWorkspace('demo-reading-ws')).toBe(true);
   });
 });
