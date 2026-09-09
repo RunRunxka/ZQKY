@@ -8,8 +8,10 @@
  */
 import { createNotebookRecord } from './notebook-store';
 
-export type ReadingSourceKind = 'text';
+export type ReadingSourceKind = 'text' | 'pdf' | 'epub' | 'webpage' | 'video' | 'audio';
 export type ReadingAnnotationKind = 'highlight' | 'note';
+/** 材料解析状态（对照参考 queued/processing/ready）：真实解析未接入，非文本为显式模拟流程 */
+export type ReadingMaterialStatus = 'ready' | 'queued' | 'processing' | 'failed';
 
 export interface ReadingMaterial {
   id: string;
@@ -17,12 +19,18 @@ export interface ReadingMaterial {
   filename: string | null;
   sourceKind: ReadingSourceKind;
   sourceUrl: string | null;
-  /** 文本内容（# 开头行按标题渲染） */
+  /** 正文文本（# 开头行按标题渲染）。非文本材料在模拟解析完成后填充（结构化样例，显式标注） */
   text: string;
   charCount: number;
   sizeBytes: number;
   /** 阅读位置（0-100，文本滚动百分比；对照参考 ReadingPosition 的本地形态） */
   positionPct: number;
+  /** 解析状态；旧数据缺省视为 ready（读取时归一化） */
+  status?: ReadingMaterialStatus;
+  /** 解析器标识（对照参考 extractor：youtube-transcript / pdf-text 等，显式模拟） */
+  extractor?: string | null;
+  /** 解析说明（失败原因/取消/模拟标注） */
+  statusNote?: string | null;
   /** 归属工作区 id 列表（未分配为空） */
   workspaceIds: string[];
   createdAt: string;
@@ -75,6 +83,10 @@ export interface ReadingSession {
   title: string;
   activeMaterialId: string | null;
   messages: ReadingMessage[];
+  /** 未发送草稿（按会话归属，切会话不串） */
+  draft?: string;
+  /** 草稿携带的选区引用（与草稿同会话归属） */
+  draftQuote?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -198,36 +210,91 @@ export function subscribeReading(listener: () => void): () => void {
 
 // ===== 材料 =====
 
+/** 读取归一化：旧数据无 status 视为 ready（缺字段不破坏既有库） */
 export function readMaterials(): ReadingMaterial[] {
-  return readList<ReadingMaterial>(MATERIALS_KEY).filter((item) => item && item.id && typeof item.text === 'string');
+  return readList<ReadingMaterial>(MATERIALS_KEY)
+    .filter((item) => item && item.id && typeof item.text === 'string')
+    .map((item) => ({ ...item, status: item.status ?? 'ready' }));
 }
 
 export function createMaterial(input: {
   title: string;
-  text: string;
+  /** 文本材料必填；非文本材料允许为空（等模拟解析填充） */
+  text?: string;
   filename?: string;
+  /** 默认 text；非文本走显式模拟解析流程 */
+  sourceKind?: ReadingSourceKind;
+  sourceUrl?: string | null;
+  /** 非文本导入的初始状态（默认 queued） */
+  status?: ReadingMaterialStatus;
+  extractor?: string | null;
 }): ReadingMaterial {
   const title = input.title.trim();
-  const text = input.text.replace(/\r\n/g, '\n');
+  const text = (input.text ?? '').replace(/\r\n/g, '\n');
+  const sourceKind = input.sourceKind ?? 'text';
   if (!title) throw new ReadingValidationError('材料标题不能为空。');
-  if (!text.trim()) throw new ReadingValidationError('材料正文不能为空（参考的 PDF/网页解析未接入，仅登记文本材料）。');
+  if (sourceKind === 'text' && !text.trim())
+    throw new ReadingValidationError('材料正文不能为空（参考的 PDF/网页解析未接入，仅登记文本材料）。');
+  if (sourceKind !== 'text' && !input.filename?.trim())
+    throw new ReadingValidationError('模拟导入需要提供文件名（解析为本地模拟，不读取真实文件）。');
   const now = new Date().toISOString();
   const material: ReadingMaterial = {
     id: uid('mat'),
     title,
     filename: input.filename?.trim() || null,
-    sourceKind: 'text',
-    sourceUrl: null,
+    sourceKind,
+    sourceUrl: input.sourceUrl?.trim() || null,
     text,
     charCount: text.length,
-    sizeBytes: new Blob([text]).size,
+    sizeBytes: text.length > 0 ? new Blob([text]).size : 0,
     positionPct: 0,
+    status: input.status ?? (sourceKind === 'text' ? 'ready' : 'queued'),
+    extractor: input.extractor ?? null,
+    statusNote: null,
     workspaceIds: [],
     createdAt: now,
     updatedAt: now,
   };
   writeList(MATERIALS_KEY, [...readMaterials(), material]);
   return material;
+}
+
+/** 更新解析状态（供模拟解析流程推进；写前经严格校验） */
+export function updateMaterialStatus(
+  materialId: string,
+  status: ReadingMaterialStatus,
+  statusNote?: string | null,
+): ReadingMaterial | null {
+  const list = readMaterials();
+  const idx = list.findIndex((item) => item.id === materialId);
+  if (idx === -1) return null;
+  list[idx] = {
+    ...list[idx]!,
+    status,
+    statusNote: statusNote ?? null,
+    updatedAt: new Date().toISOString(),
+  };
+  writeList(MATERIALS_KEY, list);
+  return list[idx]!;
+}
+
+/** 模拟解析完成：写入结构化样例文本并置为 ready */
+export function completeMaterialIngest(materialId: string, text: string, statusNote?: string | null): ReadingMaterial | null {
+  const list = readMaterials();
+  const idx = list.findIndex((item) => item.id === materialId);
+  if (idx === -1) return null;
+  const normalized = text.replace(/\r\n/g, '\n');
+  list[idx] = {
+    ...list[idx]!,
+    text: normalized,
+    charCount: normalized.length,
+    sizeBytes: new Blob([normalized]).size,
+    status: 'ready',
+    statusNote: statusNote ?? null,
+    updatedAt: new Date().toISOString(),
+  };
+  writeList(MATERIALS_KEY, list);
+  return list[idx]!;
 }
 
 export function deleteMaterial(materialId: string): boolean {
@@ -496,6 +563,20 @@ export function renameSession(sessionId: string, title: string): ReadingSession 
   const idx = list.findIndex((item) => item.id === sessionId);
   if (idx === -1) return null;
   list[idx] = { ...list[idx]!, title: title.trim() || list[idx]!.title, updatedAt: new Date().toISOString() };
+  writeList(SESSIONS_KEY, list);
+  return list[idx]!;
+}
+
+/** 保存会话草稿与引用（R32.3：切会话/刷新后按会话恢复，不跨会话串写） */
+export function saveSessionDraft(sessionId: string, draft: string, draftQuote?: string | null): ReadingSession | null {
+  const list = readSessions();
+  const idx = list.findIndex((item) => item.id === sessionId);
+  if (idx === -1) return null;
+  const session = list[idx]!;
+  const nextDraft = draft;
+  const nextQuote = draftQuote ?? null;
+  if ((session.draft ?? '') === nextDraft && (session.draftQuote ?? null) === nextQuote) return session;
+  list[idx] = { ...session, draft: nextDraft, draftQuote: nextQuote, updatedAt: new Date().toISOString() };
   writeList(SESSIONS_KEY, list);
   return list[idx]!;
 }

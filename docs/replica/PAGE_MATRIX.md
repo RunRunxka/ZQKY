@@ -31,11 +31,11 @@
 | P-books-pages-[pageId] | `/books/[bookId]/pages/[pageId]` | 同 | 部分实现 | 页阅读器（S5-C）：Block 分发渲染（text/section/callout/quiz 子集，对照参考 14 种的尚未补齐，非批准缩减）、上一页/下一页+←/→ 键盘翻页、书签切换与侧栏标记、打开即登记已读（进度持久化）、无效页码显式报错；e2e 同上  完整 block/阶段/作答保存/课程会话依对应页面补齐。 |
 | P-courses | `/courses` | `/courses` | 实现待验收 | 课程目录（S5-C）：进行中/已归档折叠区、演示载入（幂等）、新建（颜色标记）；主导航入口按参考隐藏（hidden ready，路由可达）；e2e 同上 |
 | P-courses-[courseId] | `/courses/[courseId]` | `/courses/[courseId]` | 部分实现 | 已有大纲逐行编辑、覆盖标记、下一单元提示、资料附加/移除、失效资源提示、约定与归档恢复；课程学习会话及聊天 course_id 关联尚未实现，须补齐并验收。e2e `books-courses.spec.ts` 仅覆盖已有切片。 |
-| P-reading | `/reading` | `/reading` | 实现待修复 | 沉浸阅读入口（S5-D）：集合卡片（材料/会话计数）、演示载入（R26 待修）、新建/删除确认；材料解析仅文本形态（显式标注）；e2e `reading.spec.ts`（含 R28–R31 正式回归）  当前仅文本切片；R26–R31 已修复（2026-09-09），R32 前端差距补齐后再验收。 |
-| P-reading-materials | `/reading/materials` | `/reading/materials` | 实现待修复 | 材料库（S5-D）：全部/未分配页签、新建文本材料（# 行按标题渲染）、分配到集合、删除级联清理；e2e 同上  当前仅文本切片；R26–R31 已修复（2026-09-09），R32 前端差距补齐后再验收。 |
-| P-reading-[workspaceId] | `/reading/[workspaceId]` | `/reading/[workspaceId]` | 实现待修复 | 三栏工作区（S5-D）：材料 Tab 条、大纲/书签/批注导航（locator=h-<行索引>）、文本阅读器（标题层级+quote 批注高亮+滚动进度保存/恢复+选区浮条 高亮五色/笔记/书签/问 AI）、伴生模拟 AI（显式【模拟回复】+replaceState 会话 URL）；e2e 同上  当前仅文本切片；R26–R31 已修复（2026-09-09），R32 前端差距补齐后再验收。 |
-| P-reading-sessions | `/reading/[workspaceId]/sessions` | `/reading/[workspaceId]/sessions` | 实现待修复 | 会话深链（S5-D）：与工作区同组件，无 sessionId 时取最近/首个会话；e2e 同上  当前仅文本切片；R26–R31 已修复（2026-09-09），R32 前端差距补齐后再验收。 |
-| P-reading-sessions-[sessionId] | `/reading/[workspaceId]/sessions/[sessionId]` | 同 | 实现待修复 | 会话恢复深链（S5-D）：routeSessionId 定位会话，无效提示并回退最近会话；e2e 同上  当前仅文本切片；R26–R31 已修复（2026-09-09），R32 前端差距补齐后再验收。 |
+| P-reading | `/reading` | `/reading` | 实现待验收 | 沉浸阅读入口（S5-D）：集合卡片（材料/会话计数）、演示载入（R26 待修）、新建/删除确认；材料解析仅文本形态（显式标注）；e2e `reading.spec.ts`（含 R28–R31 正式回归）  R26–R31 已修复、R32 已补齐（2026-09-09）；实现待验收（媒体播放器原视图为显式模拟边界，S7 三视口/动画待验收）。 |
+| P-reading-materials | `/reading/materials` | `/reading/materials` | 实现待验收 | 材料库（S5-D）：全部/未分配页签、新建文本材料（# 行按标题渲染）、分配到集合、删除级联清理；e2e 同上  R26–R31 已修复、R32 已补齐（2026-09-09）；实现待验收（媒体播放器原视图为显式模拟边界，S7 三视口/动画待验收）。 |
+| P-reading-[workspaceId] | `/reading/[workspaceId]` | `/reading/[workspaceId]` | 实现待验收 | 三栏工作区（S5-D）：材料 Tab 条、大纲/书签/批注导航（locator=h-<行索引>）、文本阅读器（标题层级+quote 批注高亮+滚动进度保存/恢复+选区浮条 高亮五色/笔记/书签/问 AI）、伴生模拟 AI（显式【模拟回复】+replaceState 会话 URL）；e2e 同上  R26–R31 已修复、R32 已补齐（2026-09-09）；实现待验收（媒体播放器原视图为显式模拟边界，S7 三视口/动画待验收）。 |
+| P-reading-sessions | `/reading/[workspaceId]/sessions` | `/reading/[workspaceId]/sessions` | 实现待验收 | 会话深链（S5-D）：与工作区同组件，无 sessionId 时取最近/首个会话；e2e 同上  R26–R31 已修复、R32 已补齐（2026-09-09）；实现待验收（媒体播放器原视图为显式模拟边界，S7 三视口/动画待验收）。 |
+| P-reading-sessions-[sessionId] | `/reading/[workspaceId]/sessions/[sessionId]` | 同 | 实现待验收 | 会话恢复深链（S5-D）：routeSessionId 定位会话，无效提示并回退最近会话；e2e 同上  R26–R31 已修复、R32 已补齐（2026-09-09）；实现待验收（媒体播放器原视图为显式模拟边界，S7 三视口/动画待验收）。 |
 | P-co-writer | `/co-writer` | `/co-writer` | 待实现 | 文档列表（S5-E） |
 | P-co-writer-[docId] | `/co-writer/[docId]` | `/co-writer/[docId]` | 待实现 | 文档编辑/AI 写作（S5-E） |
 | P-whisper | `/whisper` | `/whisper` | 待实现 | 用途以源码为准（S5-E） |
@@ -63,6 +63,6 @@
 | P-admin-users | `/admin/users` | `/admin/users` | 待实现 | 管理视图（S5-I），按原版权限表达 |
 | P-avatar-preview | `/avatar-preview` | — | 内部调试 | 只登记；不纳入必需完成项，不暴露主导航 |
 
-必需完成分母：除 P-avatar-preview 外共 53 项（参考产品页 50 + 自有教案 1 + 额外兼容别名 2）。2026-09-08 审查后实际行标签：**已验收 4 / 实现待验收 13 / 部分实现 6 / 实现待修复 5 / 待实现 25**。
+必需完成分母：除 P-avatar-preview 外共 53 项（参考产品页 50 + 自有教案 1 + 额外兼容别名 2）。2026-09-09（R26–R32 后）实际行标签：**已验收 4 / 实现待验收 18 / 部分实现 6 / 待实现 25**；此前 2026-09-08 审查后为 已验收 4 / 实现待验收 13 / 部分实现 6 / 实现待修复 5 / 待实现 25。
 
 标签不是完整产品验收百分比：路由 ready、自动用例通过、视觉/动画验收与真实后端验证分开记录。改变状态或条目时重算本段，禁止保留第二份旧统计。

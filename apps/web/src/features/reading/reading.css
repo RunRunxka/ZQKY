@@ -106,6 +106,30 @@
   outline: none;
 }
 
+/* 移动端（<1280px）抽屉：导航/伴生收入右侧滑出面板，正文保持可见 */
+.reading-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.32);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.reading-drawer {
+  width: min(420px, 92vw);
+  height: 100%;
+  overflow-y: auto;
+  background: var(--bg, #fff);
+  padding: 12px;
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.18);
+}
+
+.reading-drawer .reading-pane,
+.reading-drawer .reading-companion {
+  max-height: none;
+}
+
 .reading-selection-bar {
   position: absolute;
   z-index: 30;

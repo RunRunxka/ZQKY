@@ -139,11 +139,11 @@ test('材料库：新建文本材料、分配到集合与删除', async ({ page 
   await expect(page.getByRole('status').filter({ hasText: '已载入演示阅读数据' })).toBeVisible();
   await expect(page.locator('.space-session-card', { hasText: '修辞手法摘录（未分配演示材料）' })).toBeVisible();
 
-  await page.getByRole('button', { name: '新建文本材料' }).click();
-  const dialog = page.getByRole('dialog', { name: '新建文本材料' });
+  await page.getByRole('button', { name: '新建材料' }).click();
+  const dialog = page.getByRole('dialog', { name: '新建材料' });
   await dialog.getByLabel('标题').fill('阅读理解步骤');
   await dialog.getByLabel('正文').fill('# 三步读文章\n\n先看题目，再读正文，最后回题作答。');
-  await dialog.getByRole('button', { name: '创建' }).click();
+  await dialog.getByRole('button', { name: '创建', exact: true }).click();
   await expect(page).toHaveURL(/\/reading\/materials\?focus=mat-/);
   await expect(page.locator('.space-session-card', { hasText: '阅读理解步骤' })).toBeVisible();
 
@@ -336,4 +336,70 @@ test('R31 布局：收起导航正文变宽；伴生栏拖拽与键盘可达', a
   await handle.focus();
   await handle.press('ArrowLeft');
   await expect.poll(() => page.evaluate(() => localStorage.getItem('zhiqikeyuan:reader:companionWidth'))).toBe('436');
+});
+
+test('R32 伴生 AI：会话草稿归属与流式模拟回复落盘', async ({ page }) => {
+  await gotoDemoWorkspace(page);
+  const companion = page.getByRole('complementary', { name: '伴生助手（模拟）' });
+  // 草稿按会话归属：演示会话输入 → 切新会话为空 → 切回恢复
+  await companion.getByLabel('向伴生助手提问').fill('会话草稿测试');
+  await companion.getByRole('button', { name: '新建阅读会话' }).click();
+  await expect(companion.getByLabel('向伴生助手提问')).toHaveValue('');
+  await companion.getByRole('combobox', { name: '阅读会话选择' }).selectOption({ label: '什么是约分？' });
+  await expect(companion.getByLabel('向伴生助手提问')).toHaveValue('会话草稿测试');
+  // 发送 → 统一服务流式回复结束落盘（用户消息 + 模拟回复）
+  await companion.getByLabel('向伴生助手提问').fill('流式回复测试');
+  await companion.getByLabel('发送提问').click();
+  await expect(
+    companion.locator('.reading-msg').filter({ hasText: /【模拟回复】关于《分数是什么（演示材料）》/ }),
+  ).toHaveCount(1);
+  // 刷新后消息与草稿按会话恢复，不重放生成过程
+  await page.reload();
+  await expect(companion.locator('.reading-msg').filter({ hasText: '流式回复测试' })).toHaveCount(1);
+});
+
+test('R32 材料导入：模拟解析失败与重试、产物标注', async ({ page }) => {
+  await page.goto('/reading/materials');
+  await page.getByRole('button', { name: '载入演示数据' }).click();
+  await page.getByRole('button', { name: '新建材料' }).click();
+  const dialog = page.getByRole('dialog', { name: '新建材料' });
+  await dialog.getByLabel('材料类型').selectOption('pdf');
+  await dialog.getByLabel('标题').fill('模拟 PDF 材料');
+  await dialog.getByLabel(/文件名/).fill('样例文件.pdf');
+  await dialog.getByRole('checkbox').check();
+  await dialog.getByRole('button', { name: '导入并开始模拟解析' }).click();
+  const card = page.locator('.space-session-card', { hasText: '模拟 PDF 材料' });
+  // 失败路径显式呈现
+  await expect(card.getByText('解析失败', { exact: true })).toBeVisible({ timeout: 15000 });
+  // 重试后走完 queued → processing → ready
+  await card.getByRole('button', { name: '重试解析 模拟 PDF 材料' }).click();
+  await expect(card.getByText('就绪')).toBeVisible({ timeout: 15000 });
+  await expect(card.getByText('PDF · 模拟解析')).toBeVisible();
+  // 进入工作区阅读模拟产物
+  await card.getByRole('button', { name: /分配材料 模拟 PDF 材料/ }).click();
+  await page
+    .getByRole('dialog', { name: /分配「模拟 PDF 材料」/ })
+    .locator('.space-session-card', { hasText: '分数阅读（演示集合）' })
+    .getByRole('button', { name: '加入' })
+    .click();
+  await expect(page.getByRole('status').filter({ hasText: '已把「模拟 PDF 材料」加入' })).toBeVisible();
+});
+
+test('R32 移动端：小屏导航/伴生抽屉面板', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await gotoDemoWorkspace(page);
+  await expect(page.getByRole('button', { name: '打开伴生助手面板' })).toBeVisible();
+  await page.getByRole('button', { name: '打开伴生助手面板' }).click();
+  const drawer = page.getByRole('dialog', { name: '伴生助手（模拟）' });
+  await expect(drawer).toBeVisible();
+  await expect(drawer.getByLabel('向伴生助手提问')).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('mobile-companion-drawer.png') });
+  // 背板点击关闭
+  await page.mouse.click(10, 400);
+  await expect(drawer).toHaveCount(0);
+  // 导航抽屉
+  await page.getByRole('button', { name: '打开导航面板' }).click();
+  const navDrawer = page.getByRole('dialog', { name: '阅读导航' });
+  await expect(navDrawer.getByRole('tab', { name: /大纲/ })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('mobile-nav-drawer.png') });
 });

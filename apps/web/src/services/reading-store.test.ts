@@ -1,9 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
   addAnnotation,
   addBookmark,
   addMaterialToWorkspace,
   appendMessage,
+  completeMaterialIngest,
   createMaterial,
   createSession,
   createWorkspace,
@@ -24,8 +25,10 @@ import {
   renameSession,
   renameWorkspace,
   saveReadingPosition,
+  saveSessionDraft,
   sendToNotebook,
   simulateCompanionReply,
+  updateMaterialStatus,
 } from './reading-store';
 import { listRecordsOf } from './notebook-store';
 
@@ -56,6 +59,36 @@ describe('reading-store 材料', () => {
     expect(readMaterials()[0]!.positionPct).toBe(42);
     saveReadingPosition(material.id, 42);
     expect(readMaterials()[0]!.positionPct).toBe(42);
+  });
+
+  it('R32: 非文本材料需文件名、初始排队；状态更新与解析完成写入', () => {
+    expect(() =>
+      createMaterial({ title: '无文件名', sourceKind: 'pdf', filename: '  ' }),
+    ).toThrow(/模拟导入需要提供文件名/);
+    const material = createMaterial({
+      title: '模拟 PDF',
+      sourceKind: 'pdf',
+      filename: '样例.pdf',
+      status: 'queued',
+      extractor: 'pdf-simulated',
+    });
+    expect(material.status).toBe('queued');
+    expect(material.text).toBe('');
+    expect(updateMaterialStatus(material.id, 'processing', '解析中')?.status).toBe('processing');
+    const done = completeMaterialIngest(material.id, '【模拟解析产物】样例');
+    expect(done?.status).toBe('ready');
+    expect(readMaterials()[0]!.charCount).toBe('【模拟解析产物】样例'.length);
+    expect(readMaterials()[0]!.text).toContain('模拟解析产物');
+  });
+
+  it('R32: 旧数据无 status 字段读取时归一化为 ready', () => {
+    const material = createMaterial({ title: '旧材料', text: '正文' });
+    const raw = window.localStorage.getItem('zhiqikeyuan:reading-materials')!;
+    const list = JSON.parse(raw) as Array<Record<string, unknown>>;
+    delete list[0]!.status;
+    window.localStorage.setItem('zhiqikeyuan:reading-materials', JSON.stringify(list));
+    expect(readMaterials()[0]!.id).toBe(material.id);
+    expect(readMaterials()[0]!.status).toBe('ready');
   });
 });
 
@@ -125,6 +158,23 @@ describe('reading-store 会话与模拟', () => {
     expect(renameSession(session.id, '自定义标题')?.title).toBe('自定义标题');
     expect(deleteSession(session.id)).toBe(true);
     expect(getSession(session.id)).toBeNull();
+  });
+
+  it('R32: saveSessionDraft 按会话保存草稿与引用，切会话互不影响', () => {
+    const ws = createWorkspace('草稿集合');
+    const a = createSession(ws.id, null);
+    const b = createSession(ws.id, null);
+    saveSessionDraft(a.id, '会话 A 的草稿', '选中文本 A');
+    saveSessionDraft(b.id, '会话 B 的草稿', null);
+    expect(getSession(a.id)?.draft).toBe('会话 A 的草稿');
+    expect(getSession(a.id)?.draftQuote).toBe('选中文本 A');
+    expect(getSession(b.id)?.draft).toBe('会话 B 的草稿');
+    expect(getSession(b.id)?.draftQuote).toBeNull();
+    // 幂等：相同内容不产生额外写入（返回同一对象）
+    expect(saveSessionDraft(b.id, '会话 B 的草稿', null)?.draft).toBe('会话 B 的草稿');
+    // 发送消息不丢草稿字段（appendMessage 保留会话其余字段）
+    appendMessage(a.id, { role: 'user', content: '问题' });
+    expect(getSession(a.id)?.draft).toBe('会话 A 的草稿');
   });
 
   it('simulateCompanionReply 显式模拟标注并携带材料与选段', () => {

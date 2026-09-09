@@ -138,3 +138,30 @@ npm.cmd run test:e2e -- --reporter=line --output=_work/review-reading-20260908/f
 迁移说明：R26/R27 存储探针迁入 `apps/web/src/services/reading-store.test.ts`（断言保留“内容和关联”，新增回滚/格式异常/键不存在用例；本环境 Storage 方法在原型上、`vi.spyOn` 拦截不生效，写失败用例改用 `Object.defineProperty` 替换 localStorage 实现）；R28–R31 迁入 `tests/e2e/reading.spec.ts`（断言未削弱，另补前进/后退、刷新恢复、切回旧材料位置、拖拽与键盘用例）；探针原件保留于 `tests/review/reading-20260908/` 作历史证据。
 
 未完成项：R32（伴生 AI 复用统一 ChatService 与消息组件、材料类型与解析模拟、会话草稿归属、移动端抽屉/面板）与 S3/S4/S5-A～C 差距核查不在本批；三视口完整验收在 S7。
+
+## 修复记录 · R32（2026-09-09，第二批）
+
+对照参考补齐 R32 四项交付范围缺口；真实解析/播放器未接入保持显式模拟边界。
+
+### 实现内容
+
+1. **伴生 AI 服务化**：新增 `features/reading/companion-service.ts`，实现与主聊天一致的 ChatService 事件模型（turn-start/process/stage/text/usage/end/error）。伴生回复由一次性模板字符串改为**确定性模拟事件流**：过程与阶段事件、逐块流式正文、`AbortSignal` 取消、`armFailure` 失败布防 + 可重试错误、usage/end 收尾；轮次守卫按 sessionId/turnId 丢弃迟到事件。消息渲染复用主聊天 `AnswerMarkdown`（含样式表）。取消保留已生成部分并追加（已取消）落盘；错误横幅提供重试（不重复落盘用户消息）。
+2. **材料类型与解析模拟**：`ReadingSourceKind` 扩展为 text/pdf/epub/webpage/video/audio；材料新增 `status`（queued/processing/ready/failed，读取归一化旧数据）、`extractor`、`statusNote`。新增 `services/reading-ingest.ts`：queued → processing → ready 推进并写入**标注【模拟解析产物】的结构化样例**（PDF 按页、EPUB 按章、网页 markdown、视频/音频带时间戳转录），支持失败布防、卡片级取消（`cancelMaterialIngest`）与重试。材料库新建对话框支持类型选择与模拟导入，卡片显示类型/状态/说明芯片与重试/取消操作；阅读器对非就绪材料显示状态面板，就绪非文本材料显示类型与模拟标识。
+3. **会话编辑上下文**：`ReadingSession` 新增 `draft/draftQuote`，新增 `saveSessionDraft`；伴生输入草稿与「问 AI」引用按会话归属（切换即存、进入即载、卸载兜底、防抖落盘），切会话/切工作区/刷新互不串写；e2e 覆盖“切走→切回草稿恢复”与刷新后消息恢复不重放。
+4. **布局与移动端**：桌面 4/3 列网格 + 拖拽轨 + 伴生栏宽度（380 默认、300–640、持久化、键盘可达）在第一批已就位；本批补 <1280px 抽屉面板——导航/伴生收入右侧滑出抽屉（背板点击关闭、正文保持可见），对照参考移动布局。
+
+### 实际命令与结果
+
+| 检查 | 结果 |
+| --- | --- |
+| typecheck / lint | 通过 / 0 警告 |
+| 正式单测 | **225/225 通过**（新增 companion-service ×4、reading-ingest ×4、store 草稿/状态/归一化 ×4） |
+| build | 通过 |
+| 阅读相关 e2e | 15/15 通过（含新增 R32 伴生草稿+流式落盘、模拟导入失败与重试、移动端抽屉 ×3） |
+| 正式全量 e2e | **99/99 通过**（`_work/reading-r32-20260909/`；ECONNREFUSED 8000 为未启动后端的环境边界） |
+| 真实解析/转录/播放器/供应商 | 未接入，未调用；全部以显式模拟呈现 |
+
+### 边界与剩余项
+
+- 参考的原生 PDF 视图、YouTube/Bilibili 播放器组件未复刻（属媒体播放前端），当前以转录文本形态进入统一阅读器并全程标注模拟；接入真实解析服务时按既有服务接口替换，不动存储契约。
+- S3/S4/S5-A～C 有界差距核查未在本批，随后单独小批进行。

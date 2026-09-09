@@ -12,11 +12,15 @@ import {
   Plus,
   Send,
   Sparkles,
+  Square,
   Trash2,
   X,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
+import { AnswerMarkdown } from '@/features/chat/AnswerMarkdown';
+import { createReadingCompanionService, type CompanionService } from '@/features/reading/companion-service';
 import { listNotebooks } from '@/services/notebook-store';
+import { simulateMaterialIngest } from '@/services/reading-ingest';
 import {
   ReadingValidationError,
   activateMaterial,
@@ -37,9 +41,10 @@ import {
   removeMaterialFromWorkspace,
   renameWorkspace,
   saveReadingPosition,
+  saveSessionDraft,
   sendToNotebook,
-  simulateCompanionReply,
   subscribeReading,
+  updateMaterialStatus,
   type ReadingAnnotation,
   type ReadingAnnotationSegment,
   type ReadingBookmark,
@@ -48,6 +53,7 @@ import {
   type ReadingWorkspace,
 } from '@/services/reading-store';
 import '@/features/space/styles/space.css';
+import '@/features/chat/styles/chat.css';
 import '@/features/reading/reading.css';
 
 /** 会话 id 提取（对照参考 readingSessionIdFromPath） */
@@ -62,6 +68,15 @@ const MARK_COLORS: Record<string, string> = {
   blue: 'rgba(96, 165, 250, 0.45)',
   pink: 'rgba(244, 114, 182, 0.45)',
   purple: 'rgba(192, 132, 252, 0.45)',
+};
+
+const SOURCE_KIND_LABELS: Record<string, string> = {
+  text: '文本',
+  pdf: 'PDF',
+  epub: 'EPUB',
+  webpage: '网页',
+  video: '视频',
+  audio: '音频',
 };
 
 export function ReadingWorkspaceView() {
@@ -85,6 +100,8 @@ function WorkspaceView({ workspaceId, routeSessionId }: { workspaceId: string; r
   const [sendingNotebook, setSendingNotebook] = useState(false);
   const [courseScope, setCourseScope] = useState<string | null>(null);
   const [navOpen, setNavOpen] = useState(true);
+  // 移动端（<1280px）抽屉面板：导航/伴生收入抽屉，正文保持可见（对照参考移动布局）
+  const [mobilePanel, setMobilePanel] = useState<'nav' | 'companion' | null>(null);
   // 伴生栏宽度（对照参考 companionWidth：默认 380、范围 300–640、本地持久化、1280px 分界可拖拽）
   const [companionWidth, setCompanionWidth] = useState(380);
   const [isDesktopWide, setIsDesktopWide] = useState(false);
@@ -219,10 +236,23 @@ function WorkspaceView({ workspaceId, routeSessionId }: { workspaceId: string; r
             返回沉浸阅读
           </Link>
           <div className="space-card-actions">
-            <button className="space-button" onClick={() => setNavOpen((current) => !current)}>
-              <ListTree size={14} />
-              {navOpen ? '收起导航' : '展开导航'}
-            </button>
+            {isDesktopWide ? (
+              <button className="space-button" onClick={() => setNavOpen((current) => !current)}>
+                <ListTree size={14} />
+                {navOpen ? '收起导航' : '展开导航'}
+              </button>
+            ) : (
+              <>
+                <button className="space-button" onClick={() => setMobilePanel('nav')} aria-label="打开导航面板">
+                  <ListTree size={14} />
+                  导航
+                </button>
+                <button className="space-button" onClick={() => setMobilePanel('companion')} aria-label="打开伴生助手面板">
+                  <NotebookPen size={14} />
+                  伴生
+                </button>
+              </>
+            )}
             <button
               className="space-button"
               onClick={() => {
@@ -316,7 +346,7 @@ function WorkspaceView({ workspaceId, routeSessionId }: { workspaceId: string; r
               : {}),
           }}
         >
-          {navOpen && <SourceNavigator activeMaterial={activeMaterial} onNotice={setNotice} />}
+          {navOpen && isDesktopWide && <SourceNavigator activeMaterial={activeMaterial} onNotice={setNotice} />}
           <ReaderPane
             material={activeMaterial}
             onNotice={setNotice}
@@ -336,14 +366,39 @@ function WorkspaceView({ workspaceId, routeSessionId }: { workspaceId: string; r
               onKeyDown={onHandleKeyDown}
             />
           )}
-          <CompanionPane
-            workspaceId={workspaceId}
-            routeSessionId={routeSessionId}
-            activeMaterial={activeMaterial}
-            sessionError={sessionError}
-            onSessionError={setSessionError}
-          />
+          {isDesktopWide && (
+            <CompanionPane
+              workspaceId={workspaceId}
+              routeSessionId={routeSessionId}
+              activeMaterial={activeMaterial}
+              sessionError={sessionError}
+              onSessionError={setSessionError}
+            />
+          )}
         </div>
+
+        {!isDesktopWide && mobilePanel && (
+          <div className="reading-drawer-backdrop" onClick={() => setMobilePanel(null)}>
+            <aside
+              className="reading-drawer"
+              role="dialog"
+              aria-label={mobilePanel === 'nav' ? '阅读导航' : '伴生助手（模拟）'}
+              onClick={(event) => event.stopPropagation()}
+            >
+              {mobilePanel === 'nav' ? (
+                <SourceNavigator activeMaterial={activeMaterial} onNotice={setNotice} />
+              ) : (
+                <CompanionPane
+                  workspaceId={workspaceId}
+                  routeSessionId={routeSessionId}
+                  activeMaterial={activeMaterial}
+                  sessionError={sessionError}
+                  onSessionError={setSessionError}
+                />
+              )}
+            </aside>
+          </div>
+        )}
       </main>
 
       {renaming && (
@@ -858,6 +913,13 @@ function ReaderPane({
     clearSelection();
   }
 
+  /** 解析失败后的重试：重新排队并启动显式模拟解析 */
+  function retryIngest() {
+    if (!material) return;
+    updateMaterialStatus(material.id, 'queued', null);
+    simulateMaterialIngest(material.id);
+  }
+
   function saveNote(event: ReactMouseEvent | React.FormEvent) {
     event.preventDefault();
     if (!material || !selection) return;
@@ -888,16 +950,39 @@ function ReaderPane({
         <strong style={{ fontSize: 15 }}>{material.title}</strong>
         <span className="space-chip">{material.charCount} 字</span>
         <span className="space-chip">读到 {material.positionPct}%</span>
+        {material.sourceKind !== 'text' && (
+          <span className="space-chip" title={material.statusNote ?? undefined}>
+            {SOURCE_KIND_LABELS[material.sourceKind] ?? material.sourceKind} · 模拟解析
+          </span>
+        )}
       </header>
-      {blocks.map((block) => {
-        const content = renderMarked(block.text, marksByLocator.get(block.locator));
-        if (block.kind === 'heading') {
-          if (block.level === 1) return <h1 key={block.locator} data-loc={block.locator}>{content}</h1>;
-          if (block.level === 2) return <h2 key={block.locator} data-loc={block.locator}>{content}</h2>;
-          return <h3 key={block.locator} data-loc={block.locator}>{content}</h3>;
-        }
-        return <p key={block.locator} data-loc={block.locator}>{content}</p>;
-      })}
+      {(material.status ?? 'ready') !== 'ready' ? (
+        <div className="space-empty" role="status">
+          <strong>
+            {material.status === 'queued' && '排队解析中…（模拟）'}
+            {material.status === 'processing' && '解析进行中…（模拟）'}
+            {material.status === 'failed' && '解析失败（模拟）'}
+          </strong>
+          <span>{material.statusNote ?? '真实解析未接入；非文本材料按显式模拟流程演示。'}</span>
+          {material.status === 'failed' && (
+            <button className="space-button" onClick={retryIngest} aria-label="重试解析">
+              重试解析
+            </button>
+          )}
+        </div>
+      ) : (
+        <>
+          {blocks.map((block) => {
+            const content = renderMarked(block.text, marksByLocator.get(block.locator));
+            if (block.kind === 'heading') {
+              if (block.level === 1) return <h1 key={block.locator} data-loc={block.locator}>{content}</h1>;
+              if (block.level === 2) return <h2 key={block.locator} data-loc={block.locator}>{content}</h2>;
+              return <h3 key={block.locator} data-loc={block.locator}>{content}</h3>;
+            }
+            return <p key={block.locator} data-loc={block.locator}>{content}</p>;
+          })}
+        </>
+      )}
 
       {selection && (
         <div className="reading-selection-bar" style={{ top: selection.top, left: selection.left }} role="menu" aria-label="选区操作" onMouseDown={(event) => event.preventDefault()}>
@@ -967,7 +1052,16 @@ function ReaderPane({
   );
 }
 
-// ===== 右栏：伴生助手（本地模拟回复） =====
+// ===== 右栏：伴生助手（统一 ChatService 事件模型 + 本地确定性模拟） =====
+
+interface CompanionTurnState {
+  turnId: string;
+  text: string;
+  process: string[];
+  stage: string | null;
+  error: string | null;
+  retryable: boolean;
+}
 
 function CompanionPane({
   workspaceId,
@@ -986,8 +1080,21 @@ function CompanionPane({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [pendingQuote, setPendingQuote] = useState<string | null>(null);
+  const [turn, setTurn] = useState<CompanionTurnState | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const routeSessionRef = useRef<string | null>(null);
+  const serviceRef = useRef<CompanionService | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const turnTextRef = useRef('');
+  const lastSendRef = useRef<{ sessionId: string; text: string; quote?: string } | null>(null);
+  /** 草稿归属：记录草稿状态对应的会话，切会话/卸载时按会话保存，不串写 */
+  const draftOwnerRef = useRef<{ sessionId: string | null; draft: string; quote: string | null }>({
+    sessionId: null,
+    draft: '',
+    quote: null,
+  });
+  const loadedSessionRef = useRef<string | null>(null);
+  if (!serviceRef.current) serviceRef.current = createReadingCompanionService();
 
   useEffect(() => {
     const refresh = () => {
@@ -1026,7 +1133,42 @@ function CompanionPane({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeSessionId, workspaceId]);
 
-  // 「问 AI」事件：选中文本预填输入框
+  // 切换会话时加载该会话的持久化草稿（每会话一份，不互相覆盖）
+  useEffect(() => {
+    if (!activeId) {
+      loadedSessionRef.current = null;
+      setDraft('');
+      setPendingQuote(null);
+      return;
+    }
+    if (loadedSessionRef.current === activeId) return;
+    loadedSessionRef.current = activeId;
+    const session = sessions.find((item) => item.id === activeId);
+    setDraft(session?.draft ?? '');
+    setPendingQuote(session?.draftQuote ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeId]);
+
+  // 草稿变更防抖落盘 + 卸载兜底保存（归属当前会话）
+  useEffect(() => {
+    draftOwnerRef.current = { sessionId: activeId, draft, quote: pendingQuote };
+  }, [activeId, draft, pendingQuote]);
+  useEffect(() => {
+    if (!activeId) return;
+    const timer = window.setTimeout(() => {
+      saveSessionDraft(activeId, draft, pendingQuote);
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [activeId, draft, pendingQuote]);
+  useEffect(
+    () => () => {
+      const owner = draftOwnerRef.current;
+      if (owner.sessionId) saveSessionDraft(owner.sessionId, owner.draft, owner.quote);
+    },
+    [],
+  );
+
+  // 「问 AI」事件：选中文本预填当前会话草稿（引用随会话归属保存）
   useEffect(() => {
     const handler = (event: Event) => {
       const quote = (event as CustomEvent<string>).detail;
@@ -1041,14 +1183,29 @@ function CompanionPane({
 
   const active = sessions.find((item) => item.id === activeId) ?? null;
   const messageCount = active?.messages.length ?? 0;
+  const turnActive = turn !== null && turn.error === null;
 
-  // 新消息自动滚到底部
+  // 新消息与流式增量自动滚到底部
   useEffect(() => {
     const el = bodyRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [activeId, messageCount]);
+  }, [activeId, messageCount, turn?.text, turn?.process.length]);
+
+  // 卸载时中止进行中的轮次（保留已生成部分并落盘）
+  useEffect(
+    () => () => {
+      abortRef.current?.abort();
+    },
+    [],
+  );
+
+  function flushDraft() {
+    const owner = draftOwnerRef.current;
+    if (owner.sessionId) saveSessionDraft(owner.sessionId, owner.draft, owner.quote);
+  }
 
   function focusSession(sessionId: string) {
+    if (sessionId !== activeId) flushDraft();
     setActiveId(sessionId);
     onSessionError(null);
     window.history.replaceState(null, '', `/reading/${encodeURIComponent(workspaceId)}/sessions/${sessionId}`);
@@ -1059,24 +1216,97 @@ function CompanionPane({
     focusSession(session.id);
   }
 
+  function finalizeTurn(sessionId: string, content: string, cancelled = false) {
+    abortRef.current = null;
+    if (content.trim()) {
+      appendMessage(sessionId, { role: 'assistant', content });
+    }
+    setTurn(null);
+    if (!cancelled) lastSendRef.current = null;
+  }
+
+  function startTurn(sessionId: string, userText: string, quote?: string) {
+    lastSendRef.current = { sessionId, text: userText, quote };
+    const controller = new AbortController();
+    abortRef.current = controller;
+    turnTextRef.current = '';
+    const turnId = `rturn-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    setTurn({ turnId, text: '', process: [], stage: null, error: null, retryable: false });
+    void serviceRef.current!.run(
+      {
+        sessionId,
+        turnId,
+        materialTitle: activeMaterial?.title ?? null,
+        quote,
+        userText,
+        signal: controller.signal,
+      },
+      (event) => {
+        // 轮次守卫：丢弃迟到/串会话事件（对齐主聊天 turnId/sessionId 校验）
+        if (event.type !== 'end' && event.type !== 'error' && (event.turnId !== turnId || event.sessionId !== sessionId)) return;
+        switch (event.type) {
+          case 'turn-start':
+            break;
+          case 'process':
+            setTurn((current) => (current && current.turnId === turnId ? { ...current, process: [...current.process, event.delta] } : current));
+            break;
+          case 'stage':
+            setTurn((current) => (current && current.turnId === turnId ? { ...current, stage: event.phase === 'start' ? event.label : null } : current));
+            break;
+          case 'text':
+            turnTextRef.current += event.delta;
+            setTurn((current) => (current && current.turnId === turnId ? { ...current, text: turnTextRef.current } : current));
+            break;
+          case 'error':
+            setTurn((current) => (current && current.turnId === turnId ? { ...current, error: event.error.message, retryable: event.error.retryable ?? false } : current));
+            break;
+          case 'end':
+            finalizeTurn(sessionId, turnTextRef.current);
+            break;
+          default:
+            break;
+        }
+      },
+    ).catch((cause: unknown) => {
+      if (cause instanceof DOMException && cause.name === 'AbortError') {
+        // 取消：保留已生成部分并显式标注
+        finalizeTurn(sessionId, turnTextRef.current ? `${turnTextRef.current}\n\n（已取消）` : '', true);
+        return;
+      }
+      setTurn((current) => (current ? { ...current, error: cause instanceof Error ? cause.message : '伴生回复失败，请重试。', retryable: true } : current));
+    });
+  }
+
   function send() {
     const content = draft.trim();
-    if (!content) return;
+    if (!content || turn) return;
     let sessionId = activeId;
     if (!sessionId || !getSession(sessionId)) {
       const session = createSession(workspaceId, activeMaterial?.id ?? null);
       sessionId = session.id;
+      loadedSessionRef.current = sessionId;
       window.history.replaceState(null, '', `/reading/${encodeURIComponent(workspaceId)}/sessions/${sessionId}`);
     } else {
       setActiveId(sessionId);
     }
     onSessionError(null);
     const quote = pendingQuote ?? undefined;
-    appendMessage(sessionId!, { role: 'user', content, ...(quote ? { quote } : {}) });
+    appendMessage(sessionId, { role: 'user', content, ...(quote ? { quote } : {}) });
     setDraft('');
     setPendingQuote(null);
-    const reply = simulateCompanionReply({ materialTitle: activeMaterial?.title ?? null, userText: content, quote });
-    appendMessage(sessionId!, { role: 'assistant', content: reply });
+    saveSessionDraft(sessionId, '', null);
+    startTurn(sessionId, content, quote);
+  }
+
+  function cancelTurn() {
+    abortRef.current?.abort();
+  }
+
+  function retryTurn() {
+    const last = lastSendRef.current;
+    if (!last || turn) return;
+    onSessionError(null);
+    startTurn(last.sessionId, last.text, last.quote);
   }
 
   return (
@@ -1114,17 +1344,38 @@ function CompanionPane({
         </div>
       )}
       <div className="reading-companion-body" ref={bodyRef}>
-        {!active || active.messages.length === 0 ? (
+        {!active || (active.messages.length === 0 && !turn) ? (
           <p className="space-footnote" style={{ margin: 0 }}>
-            伴生助手为本地模拟（未接入模型）：提问、或选中正文「问 AI」。回复均为模板生成并标注【模拟回复】。
+            伴生助手为本地模拟（未接入模型）：提问、或选中正文「问 AI」。回复为显式模拟事件流（流式/过程/取消/重试）并标注【模拟回复】。
           </p>
         ) : (
-          active.messages.map((message) => (
-            <div key={message.id} className={`reading-msg ${message.role}`}>
-              {message.quote && <div className="reading-quote-block" style={{ marginBottom: 6 }}>{message.quote.slice(0, 60)}{message.quote.length > 60 ? '…' : ''}</div>}
-              {message.content}
-            </div>
-          ))
+          <>
+            {active.messages.map((message) => (
+              <div key={message.id} className={`reading-msg ${message.role}`}>
+                {message.quote && <div className="reading-quote-block" style={{ marginBottom: 6 }}>{message.quote.slice(0, 60)}{message.quote.length > 60 ? '…' : ''}</div>}
+                {message.role === 'assistant' ? <AnswerMarkdown text={message.content} /> : message.content}
+              </div>
+            ))}
+            {turn && (
+              <div className="reading-msg assistant" aria-label="伴生回复生成中" data-testid="companion-turn">
+                {turn.process.map((line, idx) => (
+                  <p key={idx} className="chat-status-text" style={{ margin: '0 0 4px' }}>{line}</p>
+                ))}
+                {turn.stage && <p className="chat-status-text" style={{ margin: '0 0 4px' }}>〔{turn.stage}〕</p>}
+                {turn.text && <AnswerMarkdown text={turn.text} />}
+              </div>
+            )}
+            {turn?.error && (
+              <div className="space-banner error" role="alert" style={{ margin: 0 }}>
+                {turn.error}
+                {turn.retryable && (
+                  <button className="space-button" style={{ marginLeft: 8 }} onClick={retryTurn} aria-label="重试伴生回复">
+                    重试
+                  </button>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
       <div className="reading-composer">
@@ -1140,10 +1391,17 @@ function CompanionPane({
             }
           }}
         />
-        <button className="space-button primary" onClick={send} aria-label="发送提问" disabled={!draft.trim()}>
-          <Send size={14} />
-          发送
-        </button>
+        {turnActive ? (
+          <button className="space-button danger" onClick={cancelTurn} aria-label="停止生成">
+            <Square size={14} />
+            停止
+          </button>
+        ) : (
+          <button className="space-button primary" onClick={send} aria-label="发送提问" disabled={!draft.trim()}>
+            <Send size={14} />
+            发送
+          </button>
+        )}
       </div>
     </aside>
   );
