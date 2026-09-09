@@ -8,15 +8,36 @@
  */
 
 export type BookStatus = 'draft' | 'spine_ready' | 'ready' | 'archived';
-/** 阅读器 Block 类型（覆盖参考 14 种中的常用子集；有意缩减，见 docs/replica/HANDOFF） */
-export type BookBlockType = 'text' | 'section' | 'callout' | 'quiz' | 'placeholder';
+/**
+ * 阅读器 Block 类型（对照参考 BlockRenderer 的 14 类全覆盖）：
+ * text/section/callout/quiz/placeholder + code/timeline/flash_cards/figure/
+ * user_note/deep_dive/concept_graph/interactive/animation。
+ * 其中 interactive/animation/concept_graph/figure 为显式模拟形态（真实生成未接入）。
+ */
+export type BookBlockType =
+  | 'text'
+  | 'section'
+  | 'callout'
+  | 'quiz'
+  | 'placeholder'
+  | 'code'
+  | 'timeline'
+  | 'flash_cards'
+  | 'figure'
+  | 'user_note'
+  | 'deep_dive'
+  | 'concept_graph'
+  | 'interactive'
+  | 'animation';
 
 export interface BookBlock {
   id: string;
   type: BookBlockType;
   title?: string;
-  /** text/callout 为 Markdown 文本；quiz 为题干；section 为小节导语 */
+  /** 文本类为 Markdown；code 为源码；timeline/flash_cards/concept_graph 为行结构文本 */
   content: string;
+  /** 代码块语言（code 专用） */
+  language?: string;
   /** quiz 专用 */
   quiz?: { options: Record<string, string>; correct: string; explanation?: string };
 }
@@ -63,9 +84,21 @@ export interface ReplicaBook {
 }
 
 const KEY = 'zhiqikeyuan:books';
+const QUIZ_KEY = 'zhiqikeyuan:book-quiz-attempts';
 const EVENT = 'zqky:books';
 
 export class BookValidationError extends Error {}
+
+/** 练习作答记录（对照参考 QuizAttempt 的本地形态；持久化，跨会话恢复） */
+export interface BookQuizAttempt {
+  attemptId: string;
+  bookId: string;
+  pageId: string;
+  blockId: string;
+  choice: string;
+  correct: boolean;
+  attemptedAt: string;
+}
 
 function uid(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -126,6 +159,73 @@ function mutateBook(id: string, mutate: (book: ReplicaBook) => ReplicaBook): Rep
   return list[idx]!;
 }
 
+// ===== 练习作答与用户笔记（跨会话持久化；修复“作答不持久化”差距） =====
+
+function readQuizList(): BookQuizAttempt[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = window.localStorage.getItem(QUIZ_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? (parsed as BookQuizAttempt[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** 记录一次作答（保留历史；渲染取每个 block 的最新一条） */
+export function recordQuizAttempt(input: {
+  bookId: string;
+  pageId: string;
+  blockId: string;
+  choice: string;
+  correct: boolean;
+}): BookQuizAttempt {
+  const attempt: BookQuizAttempt = {
+    attemptId: uid('att'),
+    bookId: input.bookId,
+    pageId: input.pageId,
+    blockId: input.blockId,
+    choice: input.choice,
+    correct: input.correct,
+    attemptedAt: new Date().toISOString(),
+  };
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem(QUIZ_KEY, JSON.stringify([...readQuizList(), attempt]));
+    notify();
+  }
+  return attempt;
+}
+
+export function readQuizAttempts(filter?: { bookId?: string; pageId?: string; blockId?: string }): BookQuizAttempt[] {
+  let list = readQuizList();
+  if (filter?.bookId) list = list.filter((item) => item.bookId === filter.bookId);
+  if (filter?.pageId) list = list.filter((item) => item.pageId === filter.pageId);
+  if (filter?.blockId) list = list.filter((item) => item.blockId === filter.blockId);
+  return list;
+}
+
+/** 某 block 的最新作答（无作答返回 null） */
+export function latestQuizAttempt(bookId: string, pageId: string, blockId: string): BookQuizAttempt | null {
+  const list = readQuizAttempts({ bookId, pageId, blockId });
+  return list.length > 0 ? list[list.length - 1]! : null;
+}
+
+/** 保存 user_note block 的用户笔记（写回书籍记录内的 block 内容） */
+export function setUserNote(bookId: string, pageId: string, blockId: string, text: string): boolean {
+  const book = readInternal().find((item) => item.id === bookId);
+  if (!book?.pages) return false;
+  const page = book.pages.find((item) => item.id === pageId);
+  if (!page) return false;
+  const block = page.blocks.find((item) => item.id === blockId);
+  if (!block || block.type !== 'user_note') return false;
+  block.content = text;
+  const idx = readInternal().findIndex((item) => item.id === bookId);
+  if (idx === -1) return false;
+  writeList(readInternal().map((item) => (item.id === bookId ? book : item)));
+  notify();
+  return true;
+}
+
 // ===== 模拟生成（确定性模板，显式标注） =====
 
 function simulateProposal(title: string, description: string): BookProposal {
@@ -138,7 +238,7 @@ function simulateProposal(title: string, description: string): BookProposal {
 }
 
 function simulateBlocks(chapterTitle: string, pageTitle: string): BookBlock[] {
-  return [
+  const blocks: BookBlock[] = [
     {
       id: uid('blk'),
       type: 'section',
@@ -168,6 +268,71 @@ function simulateBlocks(chapterTitle: string, pageTitle: string): BookBlock[] {
       },
     },
   ];
+  // 第二页补充参考其余 block 品类的模拟演示形态（真实生成未接入，内容为模板样例）
+  if (pageTitle.endsWith('第2页')) {
+    blocks.push(
+      {
+        id: uid('blk'),
+        type: 'code',
+        title: '示例代码（模拟生成）',
+        language: 'python',
+        content: 'def solve(x):\n    # 模拟示例：两倍\n    return x * 2\n\nprint(solve(21))',
+      },
+      {
+        id: uid('blk'),
+        type: 'timeline',
+        title: '学习路径时间线（模拟生成）',
+        content: [
+          '第 1 步 :: 认识基本概念',
+          '第 2 步 :: 完成第一组练习',
+          '第 3 步 :: 综合应用与复述',
+        ].join('\n'),
+      },
+      {
+        id: uid('blk'),
+        type: 'flash_cards',
+        title: '记忆卡（点击翻面；模拟生成）',
+        content: ['本页的关键词是什么？ :: 参考本页 section 标题', '下一页要做什么？ :: 完成综合练习'].join('\n'),
+      },
+      {
+        id: uid('blk'),
+        type: 'deep_dive',
+        title: '深入探究（展开查看；模拟生成）',
+        content: '扩展阅读方向：把本页概念与生活实例对照，尝试向别人讲解一遍（模拟生成）。',
+      },
+      {
+        id: uid('blk'),
+        type: 'figure',
+        title: '插图位（模拟占位）',
+        content: '真实图像生成/上传未接入；此处保留图注结构。',
+      },
+      {
+        id: uid('blk'),
+        type: 'concept_graph',
+        title: '概念关联（模拟静态展示）',
+        content: [`${chapterTitle} - ${pageTitle}`, `${pageTitle} - 练习巩固`].join('\n'),
+      },
+      {
+        id: uid('blk'),
+        type: 'user_note',
+        title: '我的笔记（本地保存）',
+        content: '',
+      },
+      {
+        id: uid('blk'),
+        type: 'interactive',
+        title: '互动组件（显式模拟占位）',
+        content: '真实互动课件生成未接入；本块仅保留前端占位与说明。',
+      },
+      {
+        id: uid('blk'),
+        type: 'animation',
+        title: '动画演示（显式模拟占位）',
+        content: '真实教学动画生成未接入；本块仅保留前端占位与说明。',
+      },
+    );
+  }
+  return blocks;
 }
 
 /** 存储页面与章节归属：页面不单独入库，编译产物内联在书籍记录的 pages */

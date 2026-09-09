@@ -9,11 +9,15 @@ import {
   exportBookMarkdown,
   getBookPage,
   getBookPages,
+  latestQuizAttempt,
   loadDemoBooks,
   markVisited,
   readBooks,
+  readQuizAttempts,
   rebuildBook,
   readingPercent,
+  recordQuizAttempt,
+  setUserNote,
   toggleBookmark,
   updateBook,
 } from './books-store';
@@ -123,5 +127,42 @@ describe('books-store', () => {
     expect(ready.reading.visitedPageIds).toEqual(['demo-book-fractions-p0']);
     const draft = books.find((book) => book.id === 'demo-book-draft')!;
     expect(draft.proposal?.chapters.length).toBeGreaterThan(0);
+  });
+
+  it('练习作答持久化：记录/最新作答恢复/历史保留', () => {
+    const book = createBook('作答书', '');
+    confirmProposal(book.id);
+    confirmSpine(book.id);
+    const [page] = getBookPages(book.id);
+    const quizBlock = page!.blocks.find((block) => block.type === 'quiz')!;
+    expect(latestQuizAttempt(book.id, page!.id, quizBlock.id)).toBeNull();
+
+    recordQuizAttempt({ bookId: book.id, pageId: page!.id, blockId: quizBlock.id, choice: 'B', correct: false });
+    recordQuizAttempt({ bookId: book.id, pageId: page!.id, blockId: quizBlock.id, choice: 'A', correct: true });
+
+    // 历史保留（2 条），最新一条为最终选择
+    expect(readQuizAttempts({ bookId: book.id })).toHaveLength(2);
+    const latest = latestQuizAttempt(book.id, page!.id, quizBlock.id)!;
+    expect(latest.choice).toBe('A');
+    expect(latest.correct).toBe(true);
+  });
+
+  it('block 品类覆盖参考 14 类；user_note 失焦保存写回', () => {
+    const book = createBook('品类书', '');
+    confirmProposal(book.id);
+    confirmSpine(book.id);
+    const pages = getBookPages(book.id);
+    const secondPage = pages[1]!;
+    const types = new Set(secondPage.blocks.map((block) => block.type));
+    // 第二页补充其余品类演示
+    for (const kind of ['code', 'timeline', 'flash_cards', 'deep_dive', 'figure', 'concept_graph', 'user_note', 'interactive', 'animation'] as const) {
+      expect(types.has(kind)).toBe(true);
+    }
+    const noteBlock = secondPage.blocks.find((block) => block.type === 'user_note')!;
+    expect(setUserNote(book.id, secondPage.id, noteBlock.id, '我的页内笔记')).toBe(true);
+    expect(getBookPages(book.id)[1]!.blocks.find((item) => item.id === noteBlock.id)?.content).toBe('我的页内笔记');
+    // 非用户笔记 block 拒绝写入
+    const textBlock = secondPage.blocks.find((block) => block.type === 'text')!;
+    expect(setUserNote(book.id, secondPage.id, textBlock.id, 'x')).toBe(false);
   });
 });
