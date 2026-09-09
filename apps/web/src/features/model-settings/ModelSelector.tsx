@@ -1,34 +1,91 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Check, ChevronDown, Search } from 'lucide-react';
 import type { ModelCatalog } from '@/contracts/model-settings';
 import { Modal } from '@/components/ui/Modal';
+import { ModelBrandIcon } from './ModelBrandIcon';
+
+function PickerPanel({
+  children,
+  popover,
+  onClose,
+}: {
+  children: ReactNode;
+  popover: boolean;
+  onClose: () => void;
+}) {
+  if (!popover)
+    return (
+      <Modal title="选择问答模型" onClose={onClose}>
+        {children}
+      </Modal>
+    );
+  return (
+    <div className="chat-model-popover" role="dialog" aria-label="选择问答模型">
+      {children}
+    </div>
+  );
+}
 
 export function ModelSelector({
   catalog,
   value,
   onChange,
   disabled = false,
+  presentation = 'modal',
 }: {
   catalog: ModelCatalog | null;
   value: string | null;
   onChange: (id: string | null) => void;
   disabled?: boolean;
+  presentation?: 'modal' | 'popover';
 }) {
   const [open, setOpen] = useState(false),
     [query, setQuery] = useState('');
   const effective = value ?? catalog?.defaultChatProfileId;
   const active = catalog?.profiles.find((p) => p.id === effective);
+  const root = useRef<HTMLDivElement>(null);
+  function closePicker() {
+    setOpen(false);
+    if (presentation === 'popover')
+      root.current?.querySelector<HTMLButtonElement>('.model-select-trigger')?.focus();
+  }
+  useEffect(() => {
+    if (disabled) setOpen(false);
+  }, [disabled]);
+  useEffect(() => {
+    if (!open || presentation !== 'popover') return;
+    const close = (event: PointerEvent) => {
+      if (!root.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, [open, presentation]);
   return (
-    <div className="model-selector">
+    <div
+      className="model-selector"
+      ref={root}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape' && open) {
+          event.stopPropagation();
+          closePicker();
+        }
+      }}
+    >
       <button
         className="model-select-trigger"
         aria-label="选择模型"
+        aria-expanded={open}
+        aria-haspopup="dialog"
         disabled={disabled}
-        onClick={() => setOpen(true)}
+        onClick={() => setOpen(!open)}
       >
-        <span className={`model-dot ${active?.connection?.hasCredential ? 'ready' : ''}`} />
+        {presentation === 'popover' ? (
+          <ModelBrandIcon modelId={active?.modelId} />
+        ) : (
+          <span className={`model-dot ${active?.connection?.hasCredential ? 'ready' : ''}`} />
+        )}
         <span>
           {active?.displayName ?? (effective ? '原模型已不可用' : '选择模型')}
           {!value && active ? ' · 默认' : ''}
@@ -36,7 +93,7 @@ export function ModelSelector({
         <ChevronDown size={14} />
       </button>
       {open && (
-        <Modal title="选择问答模型" onClose={() => setOpen(false)}>
+        <PickerPanel popover={presentation === 'popover'} onClose={closePicker}>
           <div className="model-search">
             <Search size={16} />
             <input
@@ -49,9 +106,10 @@ export function ModelSelector({
           </div>
           <button
             className="model-choice"
+            disabled={disabled}
             onClick={() => {
               onChange(null);
-              setOpen(false);
+              closePicker();
             }}
           >
             <span>使用全局默认模型</span>
@@ -75,11 +133,13 @@ export function ModelSelector({
                       <button
                         key={p.id}
                         className="model-choice"
+                        disabled={disabled}
                         onClick={() => {
                           onChange(p.id);
-                          setOpen(false);
+                          closePicker();
                         }}
                       >
+                        {presentation === 'popover' && <ModelBrandIcon modelId={p.modelId} />}
                         <span>
                           <strong>{p.displayName}</strong>
                           <small>
@@ -101,7 +161,7 @@ export function ModelSelector({
               管理模型
             </Link>
           </footer>
-        </Modal>
+        </PickerPanel>
       )}
     </div>
   );

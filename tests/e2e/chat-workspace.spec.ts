@@ -9,14 +9,31 @@ import { test, expect } from '@playwright/test';
  */
 
 const SEED_EXTENSIONS = [
-  { id: 'm1', kind: 'mcp', name: '演示检索', description: '本地演示 MCP', content: '', enabled: true },
-  { id: 's1', kind: 'skill', name: '提问技能', description: '本地演示技能', content: '', enabled: true },
+  {
+    id: 'm1',
+    kind: 'mcp',
+    name: '演示检索',
+    description: '本地演示 MCP',
+    content: '',
+    enabled: true,
+  },
+  {
+    id: 's1',
+    kind: 'skill',
+    name: '提问技能',
+    description: '本地演示技能',
+    content: '',
+    enabled: true,
+  },
 ];
 
 function seedExtensions(page: import('@playwright/test').Page) {
-  return page.addInitScript(({ seed }) => {
-    window.localStorage.setItem('zqky.replica.extensions.v1', JSON.stringify(seed));
-  }, { seed: SEED_EXTENSIONS });
+  return page.addInitScript(
+    ({ seed }) => {
+      window.localStorage.setItem('zqky.replica.extensions.v1', JSON.stringify(seed));
+    },
+    { seed: SEED_EXTENSIONS },
+  );
 }
 
 async function switchToMock(page: import('@playwright/test').Page) {
@@ -89,7 +106,9 @@ test('S3 出口组合：工具→追问→同轮续写→产物→下载→刷�
   });
 
   // 等轮次结束后刷新：会话与产物持久化，恢复不重放
-  await expect(page.getByRole('button', { name: '发送', exact: true })).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole('button', { name: '发送', exact: true })).toBeVisible({
+    timeout: 15000,
+  });
   await page.reload();
   await switchToMock(page);
   const restoredChip = page.getByRole('button', { name: /出题结果（模拟）/ }).first();
@@ -124,12 +143,18 @@ test('多标签工作区：活动主页常驻，产物标签打开/切换/关闭
 
   const tabs = page.locator('.chat-workspace-tabs .chat-workspace-tab');
   // 打开第一个产物（出题）
-  await page.getByRole('button', { name: /出题结果（模拟）/ }).first().click();
+  await page
+    .getByRole('button', { name: /出题结果（模拟）/ })
+    .first()
+    .click();
   const workspace = page.locator('.chat-workspace');
   await expect(workspace.getByRole('tab', { selected: true })).toContainText('出题结果（模拟）');
   // 打开第二个产物（可视化）→ 两个标签 + SVG 预览
   // （SVG 走 data-URL <img> 安全渲染，"模拟图表"在图片内，不作为 DOM 文本断言）
-  await page.getByRole('button', { name: /可视化结果（模拟）/ }).first().click();
+  await page
+    .getByRole('button', { name: /可视化结果（模拟）/ })
+    .first()
+    .click();
   await expect(tabs).toHaveCount(2);
   const visImg = workspace.locator('.chat-artifact-preview-body img[alt="可视化结果（模拟）"]');
   await expect(visImg).toBeVisible();
@@ -165,11 +190,13 @@ test('工作区宽度拖动、持久化与 220ms 展开动画', async ({ page },
     const cs = getComputedStyle(node);
     return { name: cs.animationName, duration: cs.animationDuration };
   });
-  expect(anim.name).toBe('chat-workspace-in');
+  expect(anim.name).toBe('chat-home-viewer');
   expect(anim.duration).toBe('0.22s');
 
   // 拖动左缘把手：宽度写入 CSS var 并钳制在 400–960
   const handle = page.locator('.chat-workspace-resize');
+  // 指定主页为整幅滑入；拖拽从动画结束后的真实边缘开始。
+  await expect(workspace).toHaveCSS('transform', 'none');
   const box = await handle.boundingBox();
   expect(box).not.toBeNull();
   const startX = box!.x + box!.width / 2;
@@ -193,10 +220,11 @@ test('工作区宽度拖动、持久化与 220ms 展开动画', async ({ page },
   await page.reload();
   await switchToMock(page);
   await page.getByRole('button', { name: '会话详情' }).click();
-  const widthAfterReload = await page.evaluate(
-    () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--viewer-width')),
+  const widthAfterReload = await page.evaluate(() =>
+    parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--viewer-width')),
   );
   expect(widthAfterReload).toBe(700);
+  await expect(page.locator('.chat-workspace')).toHaveCSS('transform', 'none');
 
   // 越界钳制：拖到极左 → 上限 960（1440*0.7=1008 软上限不触发，硬上限 960 生效）
   const box2 = await page.locator('.chat-workspace-resize').boundingBox();

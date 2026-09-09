@@ -25,6 +25,8 @@ interface NavigationBase {
   /** 不进侧栏（如仅从 /space 仪表盘进入的规划页），但保持路由与 [planned] 解析可用 */
   hidden?: boolean;
   icon: LucideIcon;
+  /** 单侧栏布局的参考图标；功能、名称和路由仍来自同一条目。 */
+  sidebarIcon?: LucideIcon;
 }
 
 export type PlannedNavigationItem = NavigationBase & {

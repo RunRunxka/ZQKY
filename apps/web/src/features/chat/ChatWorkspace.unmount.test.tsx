@@ -4,6 +4,9 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import '@testing-library/jest-dom/vitest';
 import { ChatWorkspace } from './ChatWorkspace';
 
+// Canvas 动画由真实浏览器回归验收；此处只测会话卸载生命周期。
+vi.mock('./vendor/thinking-orbs', () => ({ ThinkingOrb: () => null }));
+
 /**
  * 审查 R1 回归：客户端路由卸载（不触发 pagehide、不经过侧栏 beforeNavigate）时，
  * ChatProvider 的清理必须取消两个 store 中仍在生成的请求。

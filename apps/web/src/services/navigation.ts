@@ -14,6 +14,11 @@ import {
   NotebookPen,
   PanelsTopLeft,
   Settings2,
+  House,
+  PenLine,
+  BookText,
+  LayoutGrid,
+  Settings,
 } from 'lucide-react';
 import type { NavigationItem } from '@/contracts/navigation';
 
@@ -30,6 +35,7 @@ export const navigation: NavigationItem[] = [
     position: 'main',
     group: '教学工作台',
     icon: MessageSquare,
+    sidebarIcon: House,
   },
   {
     id: 'lesson-plan',
@@ -66,6 +72,7 @@ export const navigation: NavigationItem[] = [
     position: 'main',
     group: '教学工作台',
     icon: PanelsTopLeft,
+    sidebarIcon: PenLine,
   },
   {
     // 参考中 /whisper 为密室双席位会话页（未挂主导航）；目标同样以路由直达
@@ -86,6 +93,7 @@ export const navigation: NavigationItem[] = [
     position: 'main',
     group: '教学工作台',
     icon: BookOpen,
+    sidebarIcon: BookText,
   },
   {
     id: 'space',
@@ -95,6 +103,7 @@ export const navigation: NavigationItem[] = [
     position: 'main',
     group: '教学工作台',
     icon: FolderOpen,
+    sidebarIcon: LayoutGrid,
   },
   {
     id: 'notebooks',
@@ -123,6 +132,7 @@ export const navigation: NavigationItem[] = [
     position: 'main',
     group: '教学资源',
     icon: BookMarked,
+    sidebarIcon: Library,
   },
   {
     // 参考中 /courses 主导航被临时隐藏（路由与数据完好）；目标遵循同样行为
@@ -181,6 +191,7 @@ export const navigation: NavigationItem[] = [
     status: 'ready',
     position: 'bottom',
     icon: Settings2,
+    sidebarIcon: Settings,
   },
 ];
 

@@ -25,7 +25,10 @@ async function chooseCapability(page: import('@playwright/test').Page, label: st
   }
   // 次要能力收进“更多能力”飞出层（悬停展开——点击会 toggle 关闭，同参考交互）
   await dialog.getByRole('button', { name: /更多能力/ }).hover();
-  await dialog.getByRole('button', { name: new RegExp('^' + label) }).last().click();
+  await dialog
+    .getByRole('button', { name: new RegExp('^' + label) })
+    .last()
+    .click();
 }
 
 async function waitTurnEnd(page: import('@playwright/test').Page) {
@@ -147,15 +150,35 @@ test('visualize 数学动画路由：六阶段与演示媒体如实标识', asyn
   await card.getByRole('button', { name: '确认', exact: true }).click();
   await expect(card.getByText('已确认').first()).toBeVisible();
 
+  // 最后一个阶段只显示一个 chunkDelay；逐项 Playwright 轮询可能错过它。
+  // 在发送前观察真实 DOM 的阶段行，保留六阶段的出现顺序，不用最终 store 数据代替可见证据。
+  const stagesSeen: string[] = [];
+  await page.exposeFunction('recordRenderedStage', (label: string) => {
+    if (!stagesSeen.includes(label)) stagesSeen.push(label);
+  });
+  await page.evaluate(() => {
+    const observe = () => {
+      document.querySelectorAll('.chat-stage-label').forEach((node) => {
+        if (node.getClientRects().length) {
+          void (
+            window as Window & { recordRenderedStage(label: string): Promise<void> }
+          ).recordRenderedStage(node.textContent ?? '');
+        }
+      });
+    };
+    new MutationObserver(observe).observe(document.querySelector('.chat-messages')!, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+  });
   await textarea.fill('动画验证');
   await page.getByRole('button', { name: '发送', exact: true }).click();
 
   // 六阶段（对照参考 math_animator）
-  for (const stage of ['概念分析', '分镜设计', '生成 Manim 代码', '渲染重试', '总结', '渲染输出']) {
-    await expect(page.locator('.chat-stage', { hasText: stage }).first()).toBeVisible({
-      timeout: 15000,
-    });
-  }
+  await expect
+    .poll(() => stagesSeen)
+    .toEqual(['概念分析', '分镜设计', '生成 Manim 代码', '渲染重试', '总结', '渲染输出']);
   const chip = page.getByRole('button', { name: /数学动画（模拟）/ }).first();
   await expect(chip).toBeVisible({ timeout: 20000 });
   await waitTurnEnd(page);

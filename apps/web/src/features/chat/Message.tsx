@@ -1,6 +1,7 @@
 'use client';
 import { Fragment, useEffect, useState } from 'react';
-import { BookOpen, Check, Copy, FileText, Pencil, Plus, RotateCcw } from 'lucide-react';
+import { Check, Copy, FileText, Pencil, Plus, RotateCcw } from 'lucide-react';
+import { ThinkingOrb } from './vendor/thinking-orbs';
 import type { AskUserAnswer, AskUserDraft, ChatMessage } from '@/contracts/chat';
 import { conversationProjection } from './model/context-budget';
 import { formatTurnDuration, turnDurationSeconds } from './model/trace-timing';
@@ -134,10 +135,31 @@ export function Message({
       <div className="chat-bubble assistant">
         <div className="chat-assistant-label">
           <span className="chat-assistant-mark">
-            <BookOpen size={13} />
+            <ThinkingOrb
+              state={
+                message.status === 'streaming'
+                  ? message.content
+                    ? 'solving'
+                    : 'working'
+                  : 'breathing'
+              }
+              size={20}
+              superSample={3}
+              speed={message.status === 'streaming' ? 1 : 0.5}
+              theme="light"
+              style={{ width: 18, height: 18 }}
+              aria-label="智启课源"
+            />
           </span>
-          智启课源
-          <span>{message.status === 'streaming' ? '正在生成' : ''}</span>
+          <strong className={message.status === 'streaming' ? 'chat-thinking-label' : undefined}>
+            {message.status === 'streaming'
+              ? '正在生成'
+              : message.status === 'error'
+                ? '生成失败'
+                : message.status === 'stopped'
+                  ? '生成中断'
+                  : '已完成'}
+          </strong>
           {/* R25：耗时唯一渲染点——只要有开始时间就显示（流式滴答/终态冻结），
               修复“正文出现后耗时而从状态行消失、部分终态继续计时”的问题 */}
           {message.startedAt && (

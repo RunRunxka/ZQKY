@@ -1,8 +1,11 @@
 import { cleanup, render } from '@testing-library/react';
-import { afterEach, expect, it } from 'vitest';
+import { afterEach, expect, it, vi } from 'vitest';
 import { Message } from '@/features/chat/Message';
 import { createChatStore } from './model/store';
 import { createMemoryChatRepository } from '@/services/chat-repository';
+
+// 真实 Canvas 绘制与减少动画见 chat-home.spec.ts，此处聚焦轮级计时。
+vi.mock('./vendor/thinking-orbs', () => ({ ThinkingOrb: () => null }));
 
 /**
  * R25 轮级耗时终态回归（自 _work/review-s2-s3-20260908/timing.test.tsx 迁入正式回归）：

@@ -5,9 +5,30 @@ const REPLY_FRAGMENT = '【模拟回复】';
 
 // 本地模拟扩展目录种子：两个 MCP、一个技能（全部启用）
 const SEED_EXTENSIONS = [
-  { id: 'm1', kind: 'mcp', name: '演示检索', description: '本地演示 MCP', content: '', enabled: true },
-  { id: 'm2', kind: 'mcp', name: '课程数据', description: '本地演示 MCP 2', content: '', enabled: true },
-  { id: 's1', kind: 'skill', name: '提问技能', description: '本地演示技能', content: '', enabled: true },
+  {
+    id: 'm1',
+    kind: 'mcp',
+    name: '演示检索',
+    description: '本地演示 MCP',
+    content: '',
+    enabled: true,
+  },
+  {
+    id: 'm2',
+    kind: 'mcp',
+    name: '课程数据',
+    description: '本地演示 MCP 2',
+    content: '',
+    enabled: true,
+  },
+  {
+    id: 's1',
+    kind: 'skill',
+    name: '提问技能',
+    description: '本地演示技能',
+    content: '',
+    enabled: true,
+  },
 ];
 
 function seedExtensions(page: import('@playwright/test').Page, reducedMotion = false) {
@@ -48,9 +69,7 @@ async function bounds(page: import('@playwright/test').Page) {
 /** R7 焦点证据：当前焦点是否落在收起/展开的工具详情内 */
 async function focusEvidence(page: import('@playwright/test').Page) {
   return page.evaluate(() => ({
-    hiddenDetailHasFocus: Boolean(
-      document.activeElement?.closest('.chat-tool-detail:not(.open)'),
-    ),
+    hiddenDetailHasFocus: Boolean(document.activeElement?.closest('.chat-tool-detail:not(.open)')),
     openDetailHasFocus: Boolean(document.activeElement?.closest('.chat-tool-detail.open')),
     focused: document.activeElement?.className ?? '',
   }));
@@ -287,7 +306,7 @@ test('减少动画 + 手机布局下的扩展闭环可用', async ({ page }, tes
   const panel = page.getByRole('dialog', { name: '选择本轮扩展' });
   await expect(panel).toBeVisible();
   const box = await panel.boundingBox();
-  expect((box?.width ?? 0)).toBeLessThanOrEqual(390 * 0.9);
+  expect(box?.width ?? 0).toBeLessThanOrEqual(390 * 0.9);
   await page.getByRole('button', { name: '选择MCP 演示检索' }).click();
   await page.getByRole('button', { name: '选择技能 提问技能' }).click();
   await page.keyboard.press('Escape');
@@ -306,7 +325,14 @@ test('R6：390px 多扩展与长名称，输入区不溢出、控件可达', asy
     window.localStorage.setItem(
       'zqky.replica.extensions.v1',
       JSON.stringify([
-        { id: 'm1', kind: 'mcp', name: '演示检索', description: '本地演示 MCP', content: '', enabled: true },
+        {
+          id: 'm1',
+          kind: 'mcp',
+          name: '演示检索',
+          description: '本地演示 MCP',
+          content: '',
+          enabled: true,
+        },
         {
           id: 's2',
           kind: 'skill',
@@ -390,10 +416,15 @@ test('R8：菜单进出场动画与缓动参数，快速开关最终状态正确
   await page.getByRole('button', { name: '选择MCP 演示检索' }).click(); // 后半段需要工具卡
   const enter = await panel.evaluate((node) => {
     const cs = getComputedStyle(node);
-    return { name: cs.animationName, duration: cs.animationDuration, timing: cs.animationTimingFunction };
+    return {
+      name: cs.animationName,
+      duration: cs.animationDuration,
+      timing: cs.animationTimingFunction,
+    };
   });
   expect(enter.name).toBe('chat-ext-pop');
-  expect(enter.duration).toBe('0.16s');
+  // 2026-09-09 指定主页参考：菜单入场 180ms，原有退场仍为 160ms。
+  expect(enter.duration).toBe('0.18s');
   expect(enter.timing).toContain('0.16, 1, 0.3, 1'); // 弹出层缓动对齐原版 ChatComposer
 
   // 退场：第一帧仍挂载且播放 chat-ext-pop-out；用 Web Animations API 定格中间帧取证
@@ -403,7 +434,9 @@ test('R8：菜单进出场动画与缓动参数，快速开关最终状态正确
   });
   await expect(panel).toHaveClass(/closing/);
   await page.evaluate(() => {
-    const anim = document.getAnimations().find((a) => (a as Animation).animationName === 'chat-ext-pop-out');
+    const anim = document
+      .getAnimations()
+      .find((a) => (a as Animation).animationName === 'chat-ext-pop-out');
     if (anim) {
       anim.pause();
       anim.currentTime = 80;
@@ -458,7 +491,8 @@ test('R9：键盘从打开的菜单返回输入框发送，菜单关闭且选项
   await expect(bubble).toContainText(REPLY_FRAGMENT, { timeout: 15000 });
 });
 
-test('R6：1920×1080 扩展闭环与边界截图', async ({ page }, testInfo) => {  await seedExtensions(page);
+test('R6：1920×1080 扩展闭环与边界截图', async ({ page }, testInfo) => {
+  await seedExtensions(page);
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto('/chat');
   const textarea = await switchToMock(page);
@@ -567,7 +601,11 @@ test('追问：主输入框回答当前追问，走同一提交接口', async ({
   await expect(card1.locator('.chat-ask-summary')).toContainText('我想要按题目场景讲解');
   // 第二卡跳过完成
   await expect(page.locator('.chat-ask-card')).toHaveCount(2);
-  await page.locator('.chat-ask-card').nth(1).getByRole('button', { name: '提交', exact: true }).click();
+  await page
+    .locator('.chat-ask-card')
+    .nth(1)
+    .getByRole('button', { name: '提交', exact: true })
+    .click();
   await expect(page.locator('.chat-bubble.assistant').last()).toContainText(
     '【模拟回复】本轮续答完成',
     { timeout: 15000 },
@@ -604,7 +642,11 @@ test('追问：提交失败保留草稿与选择，可重试成功', async ({ pa
   await error.getByRole('button', { name: '重试提交' }).click();
   await expect(card1).toContainText('已回答', { timeout: 15000 });
   await expect(page.locator('.chat-ask-card')).toHaveCount(2);
-  await page.locator('.chat-ask-card').nth(1).getByRole('button', { name: '提交', exact: true }).click();
+  await page
+    .locator('.chat-ask-card')
+    .nth(1)
+    .getByRole('button', { name: '提交', exact: true })
+    .click();
   await expect(page.locator('.chat-bubble.assistant').last()).toContainText(
     '【模拟回复】本轮续答完成',
     { timeout: 15000 },
@@ -659,6 +701,10 @@ test('追问：全部跳过按原版语义提交为跳过', async ({ page }) => 
   await expect(bubble).toContainText('已按跳过处理', { timeout: 15000 });
   // 第二卡跳过完成整轮
   await expect(page.locator('.chat-ask-card')).toHaveCount(2);
-  await page.locator('.chat-ask-card').nth(1).getByRole('button', { name: '提交', exact: true }).click();
+  await page
+    .locator('.chat-ask-card')
+    .nth(1)
+    .getByRole('button', { name: '提交', exact: true })
+    .click();
   await expect(bubble).toContainText('【模拟回复】本轮续答完成', { timeout: 15000 });
 });

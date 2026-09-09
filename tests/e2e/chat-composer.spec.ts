@@ -18,7 +18,10 @@ test('能力选择→配置门控→确认→发送：模拟回复复述冻结�
   const textarea = await switchToMock(page);
   // 选择“智能出题”
   await page.getByRole('button', { name: '选择业务能力，当前：对话' }).click();
-  await page.getByRole('dialog', { name: '选择业务能力' }).getByRole('button', { name: /^智能出题/ }).click();
+  await page
+    .getByRole('dialog', { name: '选择业务能力' })
+    .getByRole('button', { name: /^智能出题/ })
+    .click();
   // 配置未确认：发送按钮为 blocked 态，点击后打开右侧配置卡而非静默失败
   await textarea.fill('帮我出题复习');
   const send = page.getByRole('button', { name: '先确认能力配置' });
@@ -113,7 +116,7 @@ test('真实模式：能力菜单列出目录但非对话能力禁用并标注�
   });
 });
 
-test('欢迎区→首次发送：max-width 768→960 以 650ms 过渡真实发生', async ({ page }, testInfo) => {
+test('指定主页参考：首次发送保持 912px 输入区和按钮位置稳定', async ({ page }, testInfo) => {
   await page.goto('/chat');
   const textarea = await switchToMock(page);
   const widthProbe = () =>
@@ -128,10 +131,9 @@ test('欢迎区→首次发送：max-width 768→960 以 650ms 过渡真实发�
       };
     });
   const before = await widthProbe();
-  expect(before.maxWidth).toBe('768px');
-  expect(before.transition).toContain('0.65s');
-  expect(before.easing).toContain('0.16, 1, 0.3, 1');
-  // 发送后立即采样：应观察到严格介于起止之间的中间宽度（动画真实播放）
+  // 2026-09-09 用户改为指定 deeptutor-page 主页；其 composer 固定 912px，外层含 48px 留白。
+  expect(before.maxWidth).toBe('960px');
+  // 保留连续采样，验证发送期间不会发生旧的 768→960 横向跳位。
   await textarea.fill('过渡验证');
   await page.getByRole('button', { name: '发送' }).click();
   const seen: number[] = [];
@@ -141,15 +143,21 @@ test('欢迎区→首次发送：max-width 768→960 以 650ms 过渡真实发�
   }
   const after = await widthProbe();
   expect(after.maxWidth).toBe('960px');
-  const intermediate = seen.some((w) => w > 769 && w < 959);
-  expect(intermediate, `应捕获到中间帧宽度，实际采样=${seen.join(',')}`).toBe(true);
+  expect(
+    seen.every((width) => Math.abs(width - before.width) < 1),
+    `输入区应稳定，实际采样=${seen.join(',')}`,
+  ).toBe(true);
+  await expect(page.locator('.chat-composer')).toHaveCSS('border-radius', '27px');
+  await expect(textarea).toHaveCSS('transition-duration', '0.15s');
   await testInfo.attach('s2-width-samples.txt', {
     body: seen.map((w, i) => `${i * 40}ms: ${Math.round(w)}`).join('\n'),
     contentType: 'text/plain',
   });
 });
 
-test('S3 结果工作区：出题轮产物 chip → 打开预览 → 下载真实内容 → 刷新恢复不重放', async ({ page }, testInfo) => {
+test('S3 结果工作区：出题轮产物 chip → 打开预览 → 下载真实内容 → 刷新恢复不重放', async ({
+  page,
+}, testInfo) => {
   await page.goto('/chat');
   const textarea = await switchToMock(page);
   await page.getByRole('button', { name: '选择业务能力，当前：对话' }).click();

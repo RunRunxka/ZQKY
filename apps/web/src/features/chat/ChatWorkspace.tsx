@@ -7,6 +7,7 @@ import {
   BookOpen,
   Download,
   List,
+  Paperclip,
   Mic,
   PanelRight,
   Plus,
@@ -65,8 +66,10 @@ import { Message } from './Message';
 import { SessionPanel } from './SessionPanel';
 import { InfoPanel } from './InfoPanel';
 import { ArtifactPanelItem, WorkspacePanel } from './ArtifactPanel';
+import { ComposerContextChips } from './ComposerContextChips';
 import '@/features/model-settings/styles/model-settings.css';
 import './styles/chat.css';
+import './styles/chat-home.css';
 
 /** R21：会话级待发送状态（人设/知识/会话引用/附件）——归属键为「模式+会话」 */
 interface SessionPending {
@@ -106,7 +109,17 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
     [sessionsCollapsed, setSessionsCollapsed] = useState(false);
   // R22/S3：右面板 = 结果工作区（标签页形态：活动主页 + 产物标签）。
   // null=关闭；'workspace'=打开（活动标签或某个产物标签由 artifactKey 决定）
-  const [panelView, setPanelView] = useState<'workspace' | null>(null);
+  const [panelView, setPanelViewState] = useState<'workspace' | null>(null);
+  const [panelExiting, setPanelExiting] = useState(false);
+  function setPanelView(next: 'workspace' | null) {
+    setPanelExiting(next === null);
+    setPanelViewState(next);
+  }
+  useEffect(() => {
+    if (!panelExiting) return;
+    const timer = window.setTimeout(() => setPanelExiting(false), 220);
+    return () => window.clearTimeout(timer);
+  }, [panelExiting]);
   // R24：当前打开产物的复合身份 key（`${messageId}:${artifactId}`）；null=未选中
   const [artifactKey, setArtifactKey] = useState<string | null>(null);
   // S3：已关闭的产物标签（复合 key）。产物本体仍在消息上，关闭只是不再以标签呈现；
@@ -194,7 +207,7 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
   useEffect(() => {
     if (textarea.current) {
       textarea.current.style.height = 'auto';
-      textarea.current.style.height = `${Math.min(textarea.current.scrollHeight, 200)}px`;
+      textarea.current.style.height = `${Math.min(textarea.current.scrollHeight, 180)}px`;
     }
   }, [store.draft]);
   useEffect(() => {
@@ -261,8 +274,7 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
       const known = store.conversations.some((c) => c.id === initialSessionId);
       if (known) {
         setMissingSession(false);
-        if (store.activeId !== initialSessionId)
-          await store.selectConversation(initialSessionId);
+        if (store.activeId !== initialSessionId) await store.selectConversation(initialSessionId);
       } else {
         setMissingSession(true);
       }
@@ -540,7 +552,8 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
   }
 
   /** 语音输入演示转写：无 STT 服务，不采集音频；插入带标识的演示文本体验流程 */
-  const DEMO_TRANSCRIPT = '[演示转写] 这是语音输入的演示文本，用于体验转写接入流程（未访问任何语音服务）。';
+  const DEMO_TRANSCRIPT =
+    '[演示转写] 这是语音输入的演示文本，用于体验转写接入流程（未访问任何语音服务）。';
   function insertDemoTranscript() {
     const current = store.draft.trim();
     store.setDraft(current ? `${current} ${DEMO_TRANSCRIPT}` : DEMO_TRANSCRIPT);
@@ -556,9 +569,7 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
     const persona = selectedPersonaId
       ? personas.find((item) => item.id === selectedPersonaId)
       : null;
-    const knowledgeSel = knowledgeEntries.filter((item) =>
-      selectedKnowledgeIds.includes(item.id),
-    );
+    const knowledgeSel = knowledgeEntries.filter((item) => selectedKnowledgeIds.includes(item.id));
     const historySel = store.conversations.filter((c) => selectedHistoryIds.includes(c.id));
     if (
       !picked.length &&
@@ -648,7 +659,9 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
     }
     if (!capabilityAvailableInReal(capabilityValue)) {
       // 防御路径：真实模式不允许非对话能力发起（菜单已禁用），仍到达时明确说明
-      setBlockedNotice(`「${activeCap.label}」暂无真实服务，已保留选择；请切回“对话”能力或使用模拟模式。`);
+      setBlockedNotice(
+        `「${activeCap.label}」暂无真实服务，已保留选择；请切回“对话”能力或使用模拟模式。`,
+      );
       return;
     }
     if (attachments.length) {
@@ -737,6 +750,24 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
   return (
     <WorkspaceShell
       pageTitle="学习问答"
+      className="chat-home-shell"
+      sidebarLayout
+      sidebarContent={
+        <aside className={`chat-sessions ${sessionsCollapsed ? 'history-hidden' : ''}`}>
+          <div className="chat-session-head">
+            <span>学习记录</span>
+            <button
+              className="icon-button"
+              aria-label="收起会话列表"
+              onClick={() => setSessionsCollapsed(true)}
+            >
+              <List size={16} />
+            </button>
+          </div>
+          {sessions}
+          <p className="chat-local-note">会话保存在当前浏览器</p>
+        </aside>
+      }
       beforeNavigate={async () => {
         stores.real.getState().stop();
         stores.mock.getState().stop();
@@ -752,27 +783,17 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
           panelView !== null ? 'info-open' : ''
         }`}
       >
-        <aside className="chat-sessions">
-          <div className="chat-session-head">
-            <span>学习记录</span>
-            <button
-              className="icon-button"
-              aria-label="收起会话列表"
-              onClick={() => setSessionsCollapsed(true)}
-            >
-              <List size={16} />
-            </button>
-          </div>
-          {sessions}
-          <p className="chat-local-note">会话保存在当前浏览器</p>
-        </aside>
         <section className={`chat-main ${hasMessages ? '' : 'chat-welcome'}`}>
           <header className="chat-toolbar">
             <button
               className="icon-button"
               aria-label="打开会话列表"
               onClick={() => {
-                if (window.innerWidth < 768) setSessionsOpen(true);
+                if (
+                  window.innerWidth < 768 ||
+                  !document.querySelector('.chat-home-shell.nav-expanded')
+                )
+                  setSessionsOpen(true);
                 else setSessionsCollapsed(!sessionsCollapsed);
               }}
             >
@@ -1002,9 +1023,7 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
                 tabIndex={-1}
               />
               <ContextRefTree
-                personaName={
-                  personas.find((item) => item.id === selectedPersonaId)?.name ?? null
-                }
+                personaName={personas.find((item) => item.id === selectedPersonaId)?.name ?? null}
                 knowledgeNames={knowledgeEntries
                   .filter((item) => selectedKnowledgeIds.includes(item.id))
                   .map((item) => ({ id: item.id, name: item.name }))}
@@ -1025,7 +1044,7 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
               />
               <textarea
                 ref={textarea}
-                rows={2}
+                rows={1}
                 aria-label="输入问题"
                 disabled={!store.ready}
                 value={store.draft}
@@ -1070,9 +1089,7 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
                           aria-label={`移除 ${item.name}`}
                           disabled={store.sending}
                           onClick={() =>
-                            setSelectedExtensions((prev) =>
-                              prev.filter((id) => id !== item.id),
-                            )
+                            setSelectedExtensions((prev) => prev.filter((id) => id !== item.id))
                           }
                         >
                           <X size={11} />
@@ -1087,7 +1104,11 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
                     const spec = docIconFor(a.filename);
                     const SpecIcon = spec.Icon;
                     return (
-                      <div key={`${a.filename}-${i}`} className="chat-attach-card" title={a.filename}>
+                      <div
+                        key={`${a.filename}-${i}`}
+                        className="chat-attach-card"
+                        title={a.filename}
+                      >
                         {a.previewUrl ? (
                           <button
                             type="button"
@@ -1182,11 +1203,38 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
                     onLoadDemoKnowledge={loadDemoKnowledge}
                   />
                 ) : (
+                  <button
+                    className="chat-add-trigger"
+                    aria-label="添加附件"
+                    title="添加附件（真实模式暂不支持发送附件）"
+                    disabled={store.sending}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Paperclip size={18} strokeWidth={1.65} />
+                  </button>
+                )}
+                <span className="chat-flex-spacer" />
+                <ComposerContextChips
+                  mock={mode === 'mock'}
+                  personas={personas}
+                  personaId={selectedPersonaId}
+                  onPersona={(id) => patchPending(pendingKey, () => ({ personaId: id }))}
+                  disabled={store.sending}
+                  contextTokens={mode === 'mock' ? 4000 : profile?.contextTokens}
+                  contentChars={
+                    store.messages.reduce(
+                      (total, message) => total + conversationProjection(message).length,
+                      0,
+                    ) + store.draft.length
+                  }
+                />
+                {mode === 'real' && (
                   <ModelSelector
                     catalog={catalog}
                     value={store.modelProfileId}
                     onChange={(id) => store.setModel(id)}
                     disabled={store.sending || loading}
+                    presentation="popover"
                   />
                 )}
                 {mode === 'mock' ? (
@@ -1194,7 +1242,6 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
                 ) : (
                   <span className="chat-ext-unavailable">扩展 · 真实模式尚未接入</span>
                 )}
-                <span className="chat-flex-spacer" />
                 {/* 语音入口（S2）：无 STT 服务——明确未接入说明与演示转写，不采集音频 */}
                 <div className="chat-voice-picker">
                   <button
@@ -1214,7 +1261,11 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
                         语音转写需要 STT 服务，当前未接入；此处不采集任何音频。
                         可插入一段带标识的演示转写文本，体验接入后的流程。
                       </p>
-                      <button type="button" className="button subtle" onClick={insertDemoTranscript}>
+                      <button
+                        type="button"
+                        className="button subtle"
+                        onClick={insertDemoTranscript}
+                      >
                         插入演示转写
                       </button>
                     </div>
@@ -1318,8 +1369,12 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
             )}
           </div>
         </section>
-        {panelView !== null && !isMobile && (
-          <aside className="chat-info">
+        {(panelView !== null || panelExiting) && !isMobile && (
+          <aside
+            className={`chat-info ${panelView === null ? 'closing' : ''}`}
+            inert={panelView === null}
+            aria-hidden={panelView === null}
+          >
             <WorkspacePanel
               items={openArtifacts}
               activeKey={artifactKey}
@@ -1390,10 +1445,7 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
         </Modal>
       )}
       {previewIndex !== null && attachments[previewIndex] && (
-        <Modal
-          title={attachments[previewIndex]!.filename}
-          onClose={() => setPreviewIndex(null)}
-        >
+        <Modal title={attachments[previewIndex]!.filename} onClose={() => setPreviewIndex(null)}>
           {attachments[previewIndex]!.previewUrl ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img

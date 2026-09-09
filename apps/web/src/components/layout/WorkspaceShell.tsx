@@ -17,12 +17,14 @@ function NavButton({
   item,
   current,
   onNavigate,
+  sidebarLayout,
 }: {
   item: NavigationItem;
   current: boolean;
   onNavigate: () => void;
+  sidebarLayout?: boolean;
 }) {
-  const Icon = item.icon;
+  const Icon = (sidebarLayout && item.sidebarIcon) || item.icon;
   return (
     <button
       className={`global-nav-item ${current ? 'current' : ''}`}
@@ -45,6 +47,8 @@ export function WorkspaceShell({
   headerActions,
   pageTitle,
   className = '',
+  sidebarContent,
+  sidebarLayout = false,
   beforeNavigate,
   onNavigationError,
 }: {
@@ -52,10 +56,12 @@ export function WorkspaceShell({
   headerActions?: ReactNode;
   pageTitle: string;
   className?: string;
+  sidebarContent?: ReactNode;
+  sidebarLayout?: boolean;
   beforeNavigate?: () => Promise<void>;
   onNavigationError?: (message: string) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(sidebarLayout);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const mobileNavRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname(),
@@ -87,7 +93,10 @@ export function WorkspaceShell({
         <NavButton
           key={item.id}
           item={item}
-          current={pathname === item.path}
+          sidebarLayout={sidebarLayout}
+          current={
+            pathname === item.path || (item.path === '/chat' && pathname.startsWith('/chat/'))
+          }
           onNavigate={fromMenu ? () => navigateFromMenu(item.path) : () => void navigate(item.path)}
         />
       ));
@@ -124,6 +133,16 @@ export function WorkspaceShell({
         {headerActions}
       </header>
       <nav className="global-nav" aria-label="项目功能导航">
+        {sidebarLayout && (
+          <button
+            className="sidebar-brand"
+            aria-label="返回教案工作台"
+            onClick={() => void navigate('/lesson-plans')}
+          >
+            <BookOpen size={22} strokeWidth={1.65} />
+            <strong>智启课源</strong>
+          </button>
+        )}
         <button
           className="nav-toggle"
           aria-label={expanded ? '收起项目导航' : '展开项目导航'}
@@ -139,6 +158,7 @@ export function WorkspaceShell({
             </Fragment>
           ))}
         </div>
+        {sidebarContent && <div className="sidebar-content">{sidebarContent}</div>}
         <div className="nav-bottom">
           {renderGroupItems(bottomItems, false)}
           <div className="avatar" title="本地工作台">

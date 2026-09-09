@@ -91,6 +91,8 @@ export function WorkspacePanel({
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const active = items.find((item) => item.key === activeKey) ?? null;
   const rootRef = useRef<HTMLDivElement>(null);
+  const resizeCleanup = useRef<(() => void) | null>(null);
+  useEffect(() => () => resizeCleanup.current?.(), []);
 
   // 宽度：挂载后恢复持久化值（首渲染用默认值，避免 SSR/水合不一致——同参考）
   useEffect(() => {
@@ -100,8 +102,12 @@ export function WorkspacePanel({
 
   const startResize = useCallback((event: React.PointerEvent) => {
     event.preventDefault();
+    resizeCleanup.current?.();
+    const previousSelect = document.body.style.userSelect;
+    const previousCursor = document.body.style.cursor;
     document.body.style.userSelect = 'none';
     document.body.style.cursor = 'col-resize';
+    document.body.dataset.chatResizing = 'true';
     let rafId = 0;
     let pendingX = event.clientX;
     let current = readStoredViewerWidth();
@@ -115,16 +121,32 @@ export function WorkspacePanel({
       pendingX = ev.clientX;
       if (!rafId) rafId = requestAnimationFrame(apply);
     };
-    const onUp = () => {
+    const cleanup = () => {
       if (rafId) cancelAnimationFrame(rafId);
-      document.body.style.userSelect = '';
-      document.body.style.cursor = '';
-      window.localStorage.setItem(VIEWER_WIDTH_KEY, String(current));
+      document.body.style.userSelect = previousSelect;
+      document.body.style.cursor = previousCursor;
+      delete document.body.dataset.chatResizing;
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', cleanup);
+      resizeCleanup.current = null;
     };
+    const onUp = () => {
+      if (rafId) {
+        cancelAnimationFrame(rafId);
+        apply();
+      }
+      cleanup();
+      try {
+        window.localStorage.setItem(VIEWER_WIDTH_KEY, String(current));
+      } catch {
+        /* 宽度偏好不能阻断拖动结束。 */
+      }
+    };
+    resizeCleanup.current = cleanup;
     window.addEventListener('pointermove', onMove);
     window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', cleanup);
   }, []);
 
   // ESC 关闭工作区（同参考）
@@ -188,7 +210,10 @@ export function WorkspacePanel({
           <span>活动</span>
         </button>
         {items.map((item) => (
-          <span key={item.key} className={`chat-workspace-tab ${active?.key === item.key ? 'active' : ''}`}>
+          <span
+            key={item.key}
+            className={`chat-workspace-tab ${active?.key === item.key ? 'active' : ''}`}
+          >
             <button
               type="button"
               role="tab"
@@ -248,7 +273,10 @@ export function WorkspacePanel({
                   <AnswerMarkdown text={active.artifact.content} />
                 )}
                 {active.artifact.kind === 'quiz' && (
-                  <QuizArtifactView artifact={active.artifact} messageId={messageIdOf(active.key)} />
+                  <QuizArtifactView
+                    artifact={active.artifact}
+                    messageId={messageIdOf(active.key)}
+                  />
                 )}
                 {active.artifact.kind === 'report' && (
                   <ReportArtifactView
@@ -270,7 +298,11 @@ export function WorkspacePanel({
                 )}
                 {active.artifact.kind === 'html' && (
                   // 空 sandbox：禁脚本禁表单，隔离不受信任产物
-                  <iframe title={active.artifact.title} sandbox="" srcDoc={active.artifact.content} />
+                  <iframe
+                    title={active.artifact.title}
+                    sandbox=""
+                    srcDoc={active.artifact.content}
+                  />
                 )}
                 {active.artifact.kind === 'text' && <pre>{active.artifact.content}</pre>}
               </div>
