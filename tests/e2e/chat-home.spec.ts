@@ -72,10 +72,10 @@ for (const viewport of [
       true,
     );
     const mainWidth = (await page.locator('.chat-main').boundingBox())!.width;
-    expect(mainWidth).toBe(viewport.width >= 768 ? viewport.width - 220 : viewport.width);
+    expect(mainWidth).toBe(viewport.width >= 768 ? viewport.width - 220 - 236 : viewport.width);
     if (viewport.width >= 768) {
       expect((await page.locator('.global-nav').boundingBox())?.width).toBe(220);
-      expect((await page.locator('.chat-composer').boundingBox())?.width).toBe(912);
+      expect((await page.locator('.chat-composer').boundingBox())?.width).toBe(Math.min(912, mainWidth - 48));
       await expect(page.getByRole('button', { name: '学习问答', exact: true })).toHaveAttribute(
         'aria-current',
         'page',

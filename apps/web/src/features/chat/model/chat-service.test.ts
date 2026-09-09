@@ -1,9 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import {
-  createMockChatService,
-  createRealChatService,
-  type ChatServiceEvent,
-} from './chat-service';
+import { createMockChatService } from '../../../../../../tests/fixtures/scripted-chat-service';
+import { createRealChatService, type ChatServiceEvent } from './chat-service';
 import { streamChat, type ChatStreamInput } from '@/services/chat-stream';
 
 function collect() {

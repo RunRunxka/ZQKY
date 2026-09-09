@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createMemoryChatRepository } from '@/services/chat-repository';
 import { formatTurnDuration, turnDurationSeconds } from './trace-timing';
-import { createChatStore } from './store';
+import { createScriptedChatStore as createChatStore } from '../../../../../../tests/fixtures/scripted-chat-store';
 
 describe('轮级耗时格式（对照参考 formatTurnDuration）', () => {
   it('秒/分秒/时分格式', () => {

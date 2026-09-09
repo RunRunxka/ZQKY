@@ -36,6 +36,8 @@ _HTTP_ERROR_CODES = {404: "NOT_FOUND", 405: "METHOD_NOT_ALLOWED"}
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings: Settings = app.state.settings
+    if app.state.load_env_credentials and settings.credentials_file:
+        app.state.secret_store = SecretStore(settings.credentials_file)
     logger.info(
         "后端服务启动：%s:%s（env=%s）",
         settings.host,
@@ -62,7 +64,9 @@ def create_app(
     app.state.model_config_repo = repository or ModelConfigRepository(
         settings.data_dir / "model-config.json"
     )
+    # 只在实际启动本应用时读凭证；导入 create_app 的隔离测试不会读取用户 .env。
     app.state.secret_store = secret_store or SecretStore()
+    app.state.load_env_credentials = secret_store is None
     app.add_middleware(LocalAccessGuardMiddleware, settings=settings)
 
     app.include_router(health_route.router, prefix="/api/v1")

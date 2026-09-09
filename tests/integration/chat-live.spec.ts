@@ -84,7 +84,8 @@ test('模型发现追加、默认模型同步、表单冲突保留', async ({ pa
     await page.setViewportSize({ width, height: 900 });
     await page.screenshot({ path: info.outputPath(`models-${width}.png`) });
     expect((await page.locator('.app-header').boundingBox())!.y).toBeGreaterThanOrEqual(0);
-    expect((await page.locator('.brand').boundingBox())!.y).toBeGreaterThanOrEqual(0);
+    if (width === 390) expect((await page.locator('.brand').boundingBox())!.y).toBeGreaterThanOrEqual(0);
+    else await expect(page.locator('.sidebar-brand')).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );

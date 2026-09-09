@@ -1,5 +1,7 @@
 # 动画清单（S1 结构化版）
 
+2026-09-09 新增限定验收：全站侧栏 220/56px，手机抽屉 200ms 位移与原生遮罩；推理折叠直接对照 `TracePresentation.tsx:1844` 的 grid rows + opacity、300ms、cubic-bezier(0,0,0.2,1)，正文先后门闩测试覆盖自动折叠与手动覆盖；滚动区上限 180px。系统与本地减少动画均关闭过渡。旧模拟扩展动画测试随主聊天模拟功能删除，不作为当前产品验收。
+
 2026-09-09 本批学习问答改按用户指定 `deeptutor-page/src/style.css` 与 vendored Thinking-orbs 核对。三视口静态/动态检查和菜单录像通过；最终相关 e2e **65/65**，本轮 FFmpeg 无效二进制及修复证据见 [STATUS](../STATUS.md)。以下旧轮失败保留作历史，其他模块动画未重新验收。
 
 2026-09-08 本轮实际全量 e2e：91 通过、chat-motion 1 项 context teardown 超时（45 秒）。保留该失败，后续专项诊断见 [STATUS](../STATUS.md)。本轮只人工查看阅读缺陷静态截图，未重新验收全部动画。

@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createMemoryChatRepository, type ChatRepository } from '@/services/chat-repository';
 import type { ChatService, ChatServiceEvent } from './chat-service';
-import { createMockChatService } from './chat-service';
-import { createChatStore } from './store';
+import { createMockChatService } from '../../../../../../tests/fixtures/scripted-chat-service';
+
+import { createScriptedChatStore as createChatStore } from '../../../../../../tests/fixtures/scripted-chat-store';
 
 function gateService() {
   const events: ChatServiceEvent[] = [];

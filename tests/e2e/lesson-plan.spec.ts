@@ -38,7 +38,8 @@ test('路由切换立即保存，返回恢复；其他页面不继承教案打�
   await expect(page).toHaveURL(/\/chat$/);
   await expect(page.locator('.chat-page')).toBeVisible();
   await page.emulateMedia({ media: 'print' });
-  await expect(page.locator('.app-header')).toBeVisible();
+  // 学习问答主页使用自己的工具栏；全局顶栏自主页复刻后在桌面隐藏。
+  await expect(page.locator('.chat-toolbar')).toBeVisible();
   await expect(page.locator('.chat-page')).toBeVisible();
   expect(await page.locator('body').evaluate((e) => getComputedStyle(e).page)).toBe('auto');
   await page.emulateMedia({ media: 'screen' });

@@ -14,7 +14,7 @@ import { SpaceMain } from './SpaceMain';
 import { createIdbChatRepository } from '@/services/chat-repository';
 import type { ChatServiceKind } from '@/contracts/chat';
 
-/** 汇总两条仓储（真实/模拟）的会话条目——与聊天侧同库同身份，不另造副本 */
+/** 读取真实问答仓储的会话条目——与聊天侧同库同身份，不另造副本 */
 interface HistoryEntry {
   mode: ChatServiceKind;
   id: string;
@@ -27,10 +27,7 @@ interface HistoryEntry {
   revision: number;
 }
 
-type KindFilter = 'all' | 'real' | 'mock';
 type ArchiveFilter = 'active' | 'archived' | 'all';
-
-const MODE_LABEL: Record<ChatServiceKind, string> = { real: '真实', mock: '模拟' };
 
 function truncate(text: string, max = 80): string {
   const flat = text.replace(/\s+/g, ' ').trim();
@@ -55,7 +52,7 @@ export function ChatHistorySection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
-  const [kindFilter, setKindFilter] = useState<KindFilter>('all');
+
   const [archiveFilter, setArchiveFilter] = useState<ArchiveFilter>('active');
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState('');
@@ -67,9 +64,8 @@ export function ChatHistorySection() {
     try {
       const repos = {
         real: createIdbChatRepository('zhiqikeyuan-chat'),
-        mock: createIdbChatRepository('zhiqikeyuan-chat-mock'),
       } as const;
-      const modes: ChatServiceKind[] = ['real', 'mock'];
+      const modes: Array<'real'> = ['real'];
       const all: HistoryEntry[] = [];
       for (const mode of modes) {
         const metas = await repos[mode].list();
@@ -104,11 +100,11 @@ export function ChatHistorySection() {
   }, [load]);
 
   /** 变更前重新载入该会话，用最新 revision 提交（防跨页/跨标签冲突） */
-  async function mutate(id: string, mode: ChatServiceKind, patch: { archived?: boolean; title?: string }) {
+  async function mutate(id: string, patch: { archived?: boolean; title?: string }) {
     setBusy(true);
     setError(null);
     try {
-      const repo = createIdbChatRepository(mode === 'mock' ? 'zhiqikeyuan-chat-mock' : 'zhiqikeyuan-chat');
+      const repo = createIdbChatRepository();
       const conversation = await repo.load(id);
       if (!conversation) {
         setError('会话不存在或已被删除，正在刷新列表。');
@@ -130,7 +126,7 @@ export function ChatHistorySection() {
     setBusy(true);
     setError(null);
     try {
-      const repo = createIdbChatRepository(entry.mode === 'mock' ? 'zhiqikeyuan-chat-mock' : 'zhiqikeyuan-chat');
+      const repo = createIdbChatRepository();
       const conversation = await repo.load(entry.id);
       if (conversation) await repo.remove(entry.id, conversation.revision ?? 0);
       await load();
@@ -150,19 +146,18 @@ export function ChatHistorySection() {
     setRenamingId(null);
     const title = renameDraft.trim();
     if (!title || title === entry.title) return;
-    await mutate(entry.id, entry.mode, { title });
+    await mutate(entry.id, { title });
   }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return entries.filter((entry) => {
-      if (kindFilter !== 'all' && entry.mode !== kindFilter) return false;
       if (archiveFilter === 'active' && entry.archived) return false;
       if (archiveFilter === 'archived' && !entry.archived) return false;
       if (q && !`${entry.title}\n${entry.lastMessage}`.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [entries, query, kindFilter, archiveFilter]);
+  }, [entries, query, archiveFilter]);
 
   const archivedCount = entries.filter((e) => e.archived).length;
   const activeCount = entries.length - archivedCount;
@@ -170,7 +165,7 @@ export function ChatHistorySection() {
   return (
     <SpaceMain
       title="会话历史"
-      description="真实与模拟问答的全部会话；重开、重命名、归档或删除。"
+      description="学习问答的全部会话；重开、重命名、归档或删除。"
       actions={
         <button className="space-button" onClick={() => void load()} disabled={busy || loading}>
           <RefreshCw size={14} />
@@ -187,24 +182,7 @@ export function ChatHistorySection() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <div className="space-segment" role="group" aria-label="按模式筛选">
-          {(
-            [
-              ['all', '全部'],
-              ['real', '真实'],
-              ['mock', '模拟'],
-            ] as [KindFilter, string][]
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              className={kindFilter === value ? 'current' : ''}
-              aria-pressed={kindFilter === value}
-              onClick={() => setKindFilter(value)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+
         <div className="space-segment" role="group" aria-label="按归档筛选">
           {(
             [
@@ -271,9 +249,7 @@ export function ChatHistorySection() {
                 ) : (
                   <span className="space-session-title">{entry.title}</span>
                 )}
-                <span className={`space-chip ${entry.mode === 'mock' ? 'blue' : ''}`}>
-                  {MODE_LABEL[entry.mode]}
-                </span>
+                <span className="space-chip">真实</span>
                 {entry.archived && <span className="space-chip amber">已归档</span>}
                 <span className="space-session-actions">
                   {renamingId !== entry.id && (
@@ -291,7 +267,7 @@ export function ChatHistorySection() {
                       className="icon-button"
                       aria-label={`恢复会话 ${entry.title}`}
                       disabled={busy}
-                      onClick={() => void mutate(entry.id, entry.mode, { archived: false })}
+                      onClick={() => void mutate(entry.id, { archived: false })}
                     >
                       <ArchiveRestore size={14} />
                     </button>
@@ -300,7 +276,7 @@ export function ChatHistorySection() {
                       className="icon-button"
                       aria-label={`归档会话 ${entry.title}`}
                       disabled={busy}
-                      onClick={() => void mutate(entry.id, entry.mode, { archived: true })}
+                      onClick={() => void mutate(entry.id, { archived: true })}
                     >
                       <Archive size={14} />
                     </button>
@@ -315,16 +291,11 @@ export function ChatHistorySection() {
                   </button>
                 </span>
               </div>
-              {entry.lastMessage && (
-                <p className="space-session-preview">{entry.lastMessage}</p>
-              )}
+              {entry.lastMessage && <p className="space-session-preview">{entry.lastMessage}</p>}
               <div className="space-meta-row">
                 <span>{entry.messageCount} 条消息</span>
                 <span>更新于 {formatTime(entry.updatedAt)}</span>
-                <Link
-                  className="space-button"
-                  href={entry.mode === 'mock' ? `/chat/${entry.id}?mode=mock` : `/chat/${entry.id}`}
-                >
+                <Link className="space-button" href={`/chat/${entry.id}`}>
                   <ExternalLink size={13} />
                   重新打开
                 </Link>

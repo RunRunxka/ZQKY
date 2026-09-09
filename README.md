@@ -28,7 +28,7 @@ npm.cmd run dev
 
 前端 `http://127.0.0.1:5173`，首页 `/chat`，教案 `/lesson-plans`。保持原浏览器来源；`localhost`、`127.0.0.1` 与不同端口的数据互不相同。已有依赖时无需重复 `ci`；不要停止归属不明的服务。
 
-真实问答需另开终端运行 `npm.cmd run setup:api`（首次）及 `npm.cmd run dev:api`，后端监听 `127.0.0.1:8000`。在设置中配置连接和模型；当前凭证仅在后端进程内，重启后需重填。模拟模式不调用供应商或 MCP。生产预览用 `npm.cmd run build` 后运行 `npm.cmd run start`。
+真实问答需另开终端运行 `npm.cmd run setup:api`（首次）及 `npm.cmd run dev:api`，后端监听 `127.0.0.1:8000`。在设置中配置连接和模型；API Key 保存到后端 `apps/api/.env`，重启后恢复。也可按连接编辑窗口显示的 `ZQKY_API_KEY_<连接ID>` 手动填写该文件后重启 API。聊天模拟模式已按 2026-09-09 用户指令删除；其他模块的演示能力不变。生产预览用 `npm.cmd run build` 后运行 `npm.cmd run start`。
 
 ## 检查与版本
 

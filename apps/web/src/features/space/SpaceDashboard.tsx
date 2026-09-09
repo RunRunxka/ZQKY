@@ -43,9 +43,7 @@ const DASHBOARD_GROUPS: { label: string; tiles: DashboardTile[] }[] = [
         blurb: '全部学习问答会话，可搜索、归档与重开。',
         load: async () => {
           const real = createIdbChatRepository('zhiqikeyuan-chat');
-          const mock = createIdbChatRepository('zhiqikeyuan-chat-mock');
-          const [a, b] = await Promise.all([real.list(), mock.list()]);
-          return a.length + b.length;
+          return (await real.list()).length;
         },
       },
       {

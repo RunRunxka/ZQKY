@@ -6,6 +6,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeHighlight from 'rehype-highlight';
 import 'katex/dist/katex.min.css';
+import { normalizeMathDelimiters } from './model/markdown-math';
 
 function CodeBlock({ children }: { children?: ReactNode }) {
   const ref = useRef<HTMLPreElement>(null),
@@ -55,7 +56,7 @@ export const AnswerMarkdown = memo(function AnswerMarkdown({ text }: { text: str
           ),
         }}
       >
-        {text}
+        {normalizeMathDelimiters(text)}
       </Markdown>
     </div>
   );

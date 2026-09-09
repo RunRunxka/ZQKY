@@ -9,7 +9,7 @@ vi.mock('./vendor/thinking-orbs', () => ({ ThinkingOrb: () => null }));
 
 /**
  * 审查 R1 回归：客户端路由卸载（不触发 pagehide、不经过侧栏 beforeNavigate）时，
- * ChatProvider 的清理必须取消两个 store 中仍在生成的请求。
+ * ChatProvider 的清理必须取消真实问答 store 中仍在生成的请求。
  * 探针服务捕获请求的 AbortSignal，卸载后断言其已 aborted。
  */
 const probe = vi.hoisted(() => ({
@@ -26,7 +26,27 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
 }));
 vi.mock('@/features/model-settings/useModelCatalog', () => ({
-  useModelCatalog: () => ({ catalog: null, loading: false, error: null, refresh: vi.fn() }),
+  useModelCatalog: () => ({
+    catalog: {
+      revision: 1,
+      defaultChatProfileId: 'test-p',
+      profiles: [
+        {
+          id: 'test-p',
+          purpose: 'chat',
+          modelId: 'test-m',
+          displayName: '测试模型',
+          connectionId: 'test-c',
+          connection: { hasCredential: true },
+          contextTokens: 8000,
+        },
+      ],
+      connections: [],
+    },
+    loading: false,
+    error: null,
+    refresh: vi.fn(),
+  }),
 }));
 vi.mock('@/services/chat-repository', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/services/chat-repository')>();
@@ -36,8 +56,8 @@ vi.mock('@/features/chat/model/chat-service', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/features/chat/model/chat-service')>();
   return {
     ...actual,
-    createMockChatService: () => ({
-      kind: 'mock' as const,
+    createRealChatService: () => ({
+      kind: 'real' as const,
       armFailure: vi.fn(),
       run: (request: { signal: AbortSignal }) => {
         probe.signal = request.signal;
@@ -62,8 +82,7 @@ function mockMatchMedia() {
   });
 }
 
-async function sendInMockMode() {
-  fireEvent.click(screen.getByRole('button', { name: '模拟' }));
+async function sendWithTestUpstream() {
   const input = screen.getByRole('textbox', { name: '输入问题' });
   await waitFor(() => expect(input).not.toBeDisabled());
   fireEvent.change(input, { target: { value: '测试卸载' } });
@@ -75,7 +94,7 @@ describe('聊天页面卸载清理（审查 R1）', () => {
   it('客户端卸载立即取消仍在生成的请求，不依赖 pagehide', async () => {
     mockMatchMedia();
     const ui = render(<ChatWorkspace />);
-    await sendInMockMode();
+    await sendWithTestUpstream();
     const signal = probe.signal!;
     ui.unmount();
     expect(signal.aborted).toBe(true);
@@ -91,7 +110,7 @@ describe('聊天页面卸载清理（审查 R1）', () => {
         <ChatWorkspace />
       </StrictMode>,
     );
-    await sendInMockMode();
+    await sendWithTestUpstream();
     const signal = probe.signal!;
     ui.unmount();
     expect(signal.aborted).toBe(true);

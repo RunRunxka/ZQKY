@@ -17,12 +17,10 @@ import { createIdbChatRepository, type ChatRepository, toMeta } from '@/services
 import { streamChat, type ChatStreamInput } from '@/services/chat-stream';
 import { ApiError } from '@/services/api-client';
 import {
-  createMockChatService,
   createRealChatService,
   type ChatService,
   type ChatServiceEvent,
   type ChatToolCall,
-  type MockChatService,
 } from './chat-service';
 import { selectMessagesForRequest } from './context-budget';
 
@@ -33,16 +31,11 @@ export interface ChatProfileSelection {
   maxOutputTokens?: number | null;
 }
 export interface ChatDeps {
-  /** store 固定的服务模式：构造后不可切换（模式切换由上层在不同 store 实例间选择） */
-  mode?: ChatServiceKind;
-  /**
-   * 本 store 的会话仓储。R2：固定模式 store 只实例化、加载和读写这一个仓储；
-   * 未提供时按模式取默认库——real 用 zhiqikeyuan-chat，mock 用独立的 zhiqikeyuan-chat-mock
-   */
+  /** 当前会话仓储，默认只打开真实问答库。 */
   repository?: ChatRepository;
-  /** 兼容旧测试：等价于提供 services.real 的底层 SSE 客户端 */
+  /** 兼容旧测试：注入真实服务的底层 SSE 客户端 */
   stream?: (input: ChatStreamInput, handlers: Parameters<typeof streamChat>[1]) => Promise<void>;
-  services?: { real?: ChatService; mock?: MockChatService };
+  service?: ChatService;
 }
 export interface ChatState {
   ready: boolean;
@@ -89,26 +82,9 @@ export interface ChatState {
 const uid = () => crypto.randomUUID();
 const now = () => new Date().toISOString();
 
-/** 模拟模式使用的伪模型档案：不需要真实模型凭证 */
-export const MOCK_CHAT_PROFILE: ChatProfileSelection = {
-  id: 'mock-local',
-  modelLabel: '模拟模型 · 本地脚本',
-  contextTokens: 4000,
-  maxOutputTokens: 1000,
-};
-
 export function createChatStore(deps: ChatDeps = {}) {
-  const storeMode: ChatServiceKind = deps.mode ?? 'real';
-  // R2：每个固定模式 store 只持有自己的仓储，不存在"真实+模拟两套数据混在一个实例"的路径
-  const repo: ChatRepository =
-    deps.repository ??
-    (storeMode === 'mock'
-      ? createIdbChatRepository('zhiqikeyuan-chat-mock')
-      : createIdbChatRepository());
-  const services = {
-    real: deps.services?.real ?? createRealChatService({ stream: deps.stream }),
-    mock: deps.services?.mock ?? createMockChatService(),
-  };
+  const repo = deps.repository ?? createIdbChatRepository();
+  const service = deps.service ?? createRealChatService({ stream: deps.stream });
   const docs = new Map<string, Conversation>(),
     dirty = new Set<string>();
   let timer: ReturnType<typeof setTimeout> | null = null;
@@ -305,7 +281,6 @@ export function createChatStore(deps: ChatDeps = {}) {
       const turnId = activeGeneration.turnId;
       const ownerToken = activeGeneration;
       const submissionId = uid();
-      const service: ChatService = storeMode === 'mock' ? services.mock : services.real;
       if (!service.submitReply) {
         markReplyFailed(sessionId, interactionId, 'REPLY_NOT_SUPPORTED', '当前服务不支持追问回答。');
         return false;
@@ -485,7 +460,7 @@ export function createChatStore(deps: ChatDeps = {}) {
         revision: 0,
         draft: '',
         modelProfileId: null,
-        mode: storeMode,
+        mode: 'real',
       });
       set({ activeId: id });
       change(id, (conversation) => conversation);
@@ -643,7 +618,6 @@ export function createChatStore(deps: ChatDeps = {}) {
       replyToId: string,
       extensions?: TurnExtensionSnapshot,
     ) {
-      const service: ChatService = storeMode === 'mock' ? services.mock : services.real;
       const id = get().activeId!;
       const conversation = docs.get(id)!;
       const assistantId = uid();
@@ -674,7 +648,7 @@ export function createChatStore(deps: ChatDeps = {}) {
             status: 'streaming',
             startedAt: now(),
             modelLabel: profile.modelLabel,
-            modelProfileId: storeMode === 'mock' ? undefined : profile.id,
+            modelProfileId: profile.id,
             // 快照随消息冻结并持久化：重试沿用，目录后续变化不影响本轮与历史展示
             ...(extensions ? { extensions: structuredClone(extensions) } : {}),
           },
@@ -808,7 +782,7 @@ export function createChatStore(deps: ChatDeps = {}) {
     function normalizeLoaded(c: Conversation): Conversation {
       return {
         ...c,
-        mode: storeMode,
+        mode: 'real',
         messages: c.messages.map((m) => {
           const closed = closeUnansweredAsks(
             closeRunningTools(
@@ -856,13 +830,13 @@ export function createChatStore(deps: ChatDeps = {}) {
     }
     function resolveProfile(profile: ChatProfileSelection | null): ChatProfileSelection | null {
       if (profile) return profile;
-      return storeMode === 'mock' ? MOCK_CHAT_PROFILE : null;
+      return null;
     }
     return {
       ready: false,
       loadError: null,
       storageWarning: null,
-      mode: storeMode,
+      mode: 'real',
       conversations: [],
       activeId: null,
       messages: [],

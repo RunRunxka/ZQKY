@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createMemoryChatRepository, type ChatRepository } from '@/services/chat-repository';
 import type { ChatServiceEvent, ChatServiceRequest } from './chat-service';
 import type { ChatService } from './chat-service';
-import { createChatStore } from './store';
+import { createScriptedChatStore as createChatStore } from '../../../../../../tests/fixtures/scripted-chat-store';
 
 type Emit = (event: ChatServiceEvent) => void;
 type ScriptedRun = (emit: Emit, request: ChatServiceRequest) => Promise<void>;
@@ -67,7 +67,7 @@ describe('模拟模式（固定 mock store）', () => {
     expect(mockSave).toHaveBeenCalled();
     expect(store.getState().conversations).toHaveLength(1);
     expect(calls[0].messages.at(-1)?.content).toBe('模拟问题');
-    expect(store.getState().messages[1].modelLabel).toBe('模拟模型 · 本地脚本');
+    expect(store.getState().messages[1].modelLabel).toBe('测试模型 · 本地脚本');
     expect(store.getState().messages[1].content).toBe('【模拟回复】内容');
     // 模拟仓储实际落库一条会话
     const saved = await mockRepo.load(store.getState().activeId!);
@@ -85,7 +85,7 @@ describe('模拟模式（固定 mock store）', () => {
     const realStore = createChatStore({ mode: 'real', repository: hangingReal });
     const mockRepo: ChatRepository = createMemoryChatRepository();
     const mockList = vi.spyOn(mockRepo, 'list');
-    const mockStore = createChatStore({ mode: 'mock', repository: mockRepo });
+    const mockStore = createChatStore({ mode: 'mock', repository: mockRepo, services: { mock: scriptedMockService([]).service } });
 
     void realStore.getState().init(); // 真实库读取挂起中
     await mockStore.getState().init();
@@ -109,11 +109,11 @@ describe('模拟模式（固定 mock store）', () => {
     await realRepo.save(base);
     await mockRepo.save({ ...base, title: '模拟会话', mode: 'mock' });
     const realStore = createChatStore({ mode: 'real', repository: realRepo });
-    const mockStore = createChatStore({ mode: 'mock', repository: mockRepo });
+    const mockStore = createChatStore({ mode: 'mock', repository: mockRepo, services: { mock: scriptedMockService([]).service } });
     await realStore.getState().init();
     await mockStore.getState().init();
     expect(mockStore.getState().conversations.map((c) => c.title)).toEqual(['模拟会话']);
-    expect(mockStore.getState().mode).toBe('mock');
+    expect(mockStore.getState().mode).toBe('real');
     expect(realStore.getState().conversations.map((c) => c.title)).toEqual(['真实会话']);
     expect(realStore.getState().mode).toBe('real');
   });

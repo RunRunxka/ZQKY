@@ -1,8 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createMemoryChatRepository, type ChatRepository } from '@/services/chat-repository';
 import type { TurnExtensionSnapshot } from '@/contracts/chat';
-import { createMockChatService, type ChatService, type MockChatService } from './chat-service';
-import { createChatStore } from './store';
+import { createMockChatService, type MockChatService } from '../../../../../../tests/fixtures/scripted-chat-service';
+import { type ChatService } from './chat-service';
+import { createScriptedChatStore as createChatStore } from '../../../../../../tests/fixtures/scripted-chat-store';
 
 const COMPOSER_SNAPSHOT: TurnExtensionSnapshot = {
   mcps: [],

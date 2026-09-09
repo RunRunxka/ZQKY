@@ -1,21 +1,82 @@
-"""进程内凭证存储：凭证只写入、不返回明文，服务重启即失效。
-
-D03 明确采用“仅当前服务进程使用”方案；磁盘加密存储属后续增强，
-在此之前不得把任何凭证写入文件、日志或错误信息。
-"""
+"""凭证只写入不回显；生产使用后端 .env，注入测试实例默认仅存内存。"""
 
 from __future__ import annotations
 
 import threading
+import json
+import os
+import re
+import uuid
+from pathlib import Path
+from app.core.exceptions import AppError
+
+PREFIX = 'ZQKY_API_KEY_'
+
+
+def _parse_value(raw: str) -> str:
+    value = raw.strip()
+    if value.startswith('"'):
+        try:
+            parsed = json.loads(value)
+            return parsed if isinstance(parsed, str) else ''
+        except ValueError:
+            return ''
+    if value.startswith("'") and value.endswith("'"):
+        return value[1:-1]
+    return value
 
 
 class SecretStore:
-    def __init__(self) -> None:
+    def __init__(self, env_path: Path | None = None) -> None:
         self._lock = threading.Lock()
         self._secrets: dict[str, str] = {}
+        self._env_path = env_path
+        if env_path:
+            try:
+                lines = env_path.read_text(encoding='utf-8-sig').splitlines() if env_path.exists() else []
+                for line in lines:
+                    name, separator, raw = line.strip().removeprefix('export ').partition('=')
+                    if separator and name.strip().startswith(PREFIX):
+                        value = _parse_value(raw)
+                        if value:
+                            self._secrets[name.strip()[len(PREFIX):]] = value
+            except OSError as exc:
+                raise AppError('无法读取后端凭证文件。', code='CREDENTIAL_STORAGE_ERROR', status_code=500) from exc
+            for name, value in os.environ.items():
+                if name.startswith(PREFIX) and value:
+                    self._secrets[name[len(PREFIX):].lower()] = value
+
+    @property
+    def scope(self) -> str:
+        return 'env-file' if self._env_path else 'process'
+
+    def _persist(self, key_id: str, value: str | None) -> None:
+        if not self._env_path:
+            return
+        if not re.fullmatch(r'[A-Za-z0-9_-]+', key_id):
+            raise AppError('凭证标识无效。', code='INVALID_REQUEST', status_code=422)
+        path = self._env_path
+        temporary = path.with_name(f'.env.{uuid.uuid4().hex}.tmp')
+        try:
+            lines = path.read_text(encoding='utf-8-sig').splitlines() if path.exists() else []
+            name = PREFIX + key_id
+            lines = [line for line in lines if line.strip().removeprefix('export ').partition('=')[0].strip() != name]
+            if value is not None:
+                lines.append(f'{name}={json.dumps(value, ensure_ascii=False)}')
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with temporary.open('x', encoding='utf-8', newline='\n') as output:
+                output.write('\n'.join(lines) + '\n')
+                output.flush()
+                os.fsync(output.fileno())
+            os.replace(temporary, path)
+        except OSError as exc:
+            raise AppError('后端凭证保存失败，请检查 .env 文件权限后重试。', code='CREDENTIAL_STORAGE_ERROR', status_code=500) from exc
+        finally:
+            temporary.unlink(missing_ok=True)
 
     def put(self, key_id: str, value: str) -> None:
         with self._lock:
+            self._persist(key_id, value)
             self._secrets[key_id] = value
 
     def resolve(self, key_id: str) -> str | None:
@@ -28,4 +89,5 @@ class SecretStore:
 
     def delete(self, key_id: str) -> None:
         with self._lock:
+            self._persist(key_id, None)
             self._secrets.pop(key_id, None)

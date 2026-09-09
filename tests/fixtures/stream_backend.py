@@ -17,6 +17,7 @@ from app.repositories.model_config_repository import ModelConfigRepository
 from app.schemas.model_config import ModelConnection,ModelProfile,now_utc
 
 gate = threading.Event()
+answer_gate = threading.Event()
 stats = {'first':None,'last':None,'cancelled':False}
 ANSWER = '''## 从现象理解概念
 
@@ -45,7 +46,8 @@ def energy(mass):
 class Upstream(BaseHTTPRequestHandler):
     def log_message(self,*args): pass
     def do_GET(self):
-        if self.path.startswith('/release'): gate.set(); body={'ok':True}
+        if self.path.startswith('/answer'): answer_gate.set(); body={'ok':True}
+        elif self.path.startswith('/release'): gate.set(); body={'ok':True}
         elif self.path.startswith('/stats'): body=stats
         else: body={'data':[{'id':'teaching-alpha'},{'id':'teaching-beta'},{'id':'teaching-beta'}]}
         data=json.dumps(body).encode(); self.send_response(200); self.send_header('Content-Type','application/json'); self.send_header('Content-Length',str(len(data))); self.end_headers(); self.wfile.write(data)
@@ -54,7 +56,7 @@ class Upstream(BaseHTTPRequestHandler):
         if not body.get('stream'):
             data=json.dumps({'choices':[{'message':{'content':'连接正常'},'finish_reason':'stop'}]}).encode()
             self.send_response(200); self.send_header('Content-Type','application/json'); self.send_header('Content-Length',str(len(data))); self.end_headers(); self.wfile.write(data); return
-        gate.clear(); stats.update(first=None,last=None,cancelled=False)
+        gate.clear(); answer_gate.clear(); stats.update(first=None,last=None,cancelled=False)
         self.send_response(200); self.send_header('Content-Type','text/event-stream'); self.send_header('Cache-Control','no-cache'); self.end_headers()
         kind='responses' if self.path.endswith('/responses') else 'anthropic' if self.path.endswith('/messages') else 'chat'
         def emit(name,payload):
@@ -65,6 +67,15 @@ class Upstream(BaseHTTPRequestHandler):
             elif kind=='responses': emit('response.output_text.delta',{'delta':value})
             else: emit('content_block_delta',{'delta':{'type':'text_delta','text':value}})
         try:
+            if '推理验收' in json.dumps(body, ensure_ascii=False):
+                reasoning = r'先分析公式 \(a^2+b^2=c^2\)，再给出结论。'
+                if kind == 'chat': emit('', {'choices': [{'delta': {'reasoning_content': reasoning}}]})
+                elif kind == 'responses': emit('response.reasoning_summary_text.delta', {'delta': reasoning})
+                else: emit('content_block_delta', {'delta': {'type': 'thinking_delta', 'thinking': reasoning}})
+                deadline = time.monotonic() + 25
+                while not answer_gate.wait(.1) and time.monotonic() < deadline:
+                    self.wfile.write(b': heartbeat\n\n'); self.wfile.flush()
+                text(r'结论：\(a^2+b^2=c^2\)。' + '\n\n' + r'\[\frac{1}{2}+\sqrt{x}\]' + '\n\n')
             stats['first']=time.monotonic(); text('第一段中文已经到达。\n\n')
             # 握手门闩：由浏览器断言首段可见后释放，避免用固定延时冒充时序验证。
             deadline=time.monotonic()+25

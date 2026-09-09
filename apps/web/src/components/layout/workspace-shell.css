@@ -1,0 +1,223 @@
+/* 全站共用学习问答侧栏；业务内容区维持各模块原布局。 */
+@media print {
+  .app-shell.module-workspace-shell {
+    display: block;
+    height: auto;
+    overflow: visible;
+  }
+  .module-workspace-shell > .app-header,
+  .module-workspace-shell > .global-nav {
+    display: none;
+  }
+  .module-workspace-content {
+    overflow: visible;
+  }
+}
+@media screen {
+  .app-shell.module-workspace-shell {
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .module-workspace-shell > .app-header {
+    display: none;
+  }
+  .module-workspace-content {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    min-height: 0;
+    overflow: auto;
+  }
+  .module-workspace-content > .space-page {
+    min-height: 100%;
+  }
+  .app-shell.unified-shell {
+    --navigation-width: 56px;
+  }
+  .app-shell.unified-shell.nav-expanded {
+    --navigation-width: 220px;
+  }
+  .unified-shell .global-nav {
+    grid-row: 1 / -1;
+    grid-column: 1;
+    padding: 56px 8px 8px;
+    position: relative;
+    background: var(--surface);
+    border: 0;
+    align-items: stretch;
+    gap: 0;
+    min-height: 0;
+  }
+  .unified-shell .sidebar-brand {
+    position: absolute;
+    left: 16px;
+    top: 0;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--blue);
+    white-space: nowrap;
+  }
+  .unified-shell .sidebar-brand strong {
+    font-size: 18px;
+    letter-spacing: 1px;
+  }
+  .unified-shell:not(.nav-expanded) .sidebar-brand {
+    display: none;
+  }
+  .unified-shell .nav-toggle {
+    position: absolute;
+    top: 13px;
+    right: 12px;
+    margin: 0;
+    width: 30px;
+    height: 30px;
+  }
+  .unified-shell .nav-items {
+    width: 100%;
+    gap: 1px;
+    flex: 0 1 auto;
+    min-height: 110px;
+  }
+  .unified-shell .nav-group-label {
+    display: none;
+  }
+  .unified-shell .global-nav-item {
+    width: 100%;
+    height: 36px;
+    min-height: 36px;
+    border-radius: 8px;
+    color: var(--ink);
+    padding: 0 12px;
+    gap: 10px;
+  }
+  .unified-shell:not(.nav-expanded) .global-nav-item {
+    padding: 0;
+  }
+  .unified-shell .global-nav-item svg {
+    width: 16px;
+    height: 16px;
+    stroke-width: 1.65;
+  }
+  .unified-shell .global-nav-item > span {
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  .unified-shell .global-nav-item.current {
+    color: var(--blue);
+    background: #e6edfc;
+  }
+  .unified-shell .global-nav-item.current::before {
+    display: none;
+  }
+  .unified-shell .nav-bottom {
+    border-top: 1px solid var(--line);
+    padding-top: 8px;
+    gap: 0;
+    align-items: stretch;
+  }
+  .unified-shell .nav-bottom .avatar {
+    margin: 8px 12px 0;
+    width: 24px;
+    height: 24px;
+  }
+
+  .unified-shell .global-nav {
+    font-family: Arial, 'Microsoft YaHei', sans-serif;
+  }
+  .unified-shell .global-nav .nav-toggle {
+    margin-left: 0;
+  }
+  .unified-shell.nav-expanded .global-nav-item {
+    justify-content: flex-start;
+  }
+  .unified-shell:not(.nav-expanded) .global-nav > .nav-items .global-nav-item > span,
+  .unified-shell:not(.nav-expanded) .nav-bottom .global-nav-item > span {
+    display: none;
+  }
+  .unified-shell .mobile-nav-panel {
+    margin: 0;
+    border: 0;
+    max-height: none;
+    height: 100dvh;
+    color: var(--ink);
+    animation: workspace-drawer-in 200ms ease-out;
+  }
+  .unified-shell .mobile-nav-panel::backdrop {
+    background: #16233c66;
+  }
+  .unified-shell .mobile-nav-panel .global-nav-item {
+    justify-content: flex-start;
+  }
+  .unified-shell .mobile-nav-panel .global-nav-item > span {
+    display: flex;
+  }
+  @media (min-width: 768px) {
+    .app-shell.unified-shell:not(.lesson-workspace) {
+      grid-template-columns: var(--navigation-width) minmax(0, 1fr);
+    }
+    .unified-shell > .app-header {
+      grid-column: 2 / -1;
+    }
+    .unified-shell > .app-header > .brand {
+      display: none;
+    }
+    .app-shell.unified-shell.lesson-workspace {
+      grid-template-columns: var(--navigation-width) 218px 400px minmax(0, 1fr);
+    }
+    .app-shell.unified-shell.lesson-workspace.outline-hidden {
+      grid-template-columns: var(--navigation-width) 0 400px minmax(0, 1fr);
+    }
+  }
+  @media (min-width: 1600px) {
+    .app-shell.unified-shell.lesson-workspace {
+      grid-template-columns: var(--navigation-width) 234px 432px minmax(0, 1fr);
+    }
+    .app-shell.unified-shell.lesson-workspace.outline-hidden {
+      grid-template-columns: var(--navigation-width) 0 432px minmax(0, 1fr);
+    }
+  }
+  @media (min-width: 768px) and (max-width: 1279px) {
+    .app-shell.unified-shell.lesson-workspace,
+    .app-shell.unified-shell.lesson-workspace.outline-hidden {
+      grid-template-columns: var(--navigation-width) 0 370px minmax(0, 1fr);
+    }
+    .app-shell.unified-shell.lesson-workspace.nav-expanded {
+      grid-template-columns: var(--navigation-width) 0 350px minmax(0, 1fr);
+    }
+  }
+  @media (max-width: 767px) {
+    .app-shell.module-workspace-shell {
+      grid-template-rows: 59px minmax(0, 1fr);
+    }
+    .module-workspace-shell > .app-header {
+      display: flex;
+    }
+    .module-workspace-content {
+      grid-column: 1;
+      grid-row: 2;
+    }
+    .app-shell.unified-shell:not(.lesson-workspace) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .unified-shell > .global-nav {
+      display: none;
+    }
+  }
+  @keyframes workspace-drawer-in {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .unified-shell .mobile-nav-panel {
+      animation: none;
+    }
+  }
+  html[data-motion='reduced'] .unified-shell .mobile-nav-panel {
+    animation: none;
+  }
+}

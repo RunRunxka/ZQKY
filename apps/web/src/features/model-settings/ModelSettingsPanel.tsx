@@ -249,7 +249,7 @@ export function ModelSettingsPanel() {
         </div>
         <div className="settings-process-note">
           <span className="model-dot" />
-          凭证仅在当前后端进程有效，重启服务后需重新填写。
+          凭证保存到本机后端 apps/api/.env，重启后自动恢复；也可编辑文件后重启 API。
         </div>
         {(error || actionError) && !editor && !picker && (
           <p className="settings-feedback error" role="alert">
@@ -334,7 +334,7 @@ export function ModelSettingsPanel() {
                       }
                       setConfirm({
                         title: '删除连接',
-                        text: `删除「${c.displayName}」及当前进程内凭证？`,
+                        text: `删除「${c.displayName}」及后端保存的凭证？`,
                         action: () =>
                           action(() => deleteConnection(c.id, catalog?.revision), '连接已删除'),
                       });

@@ -22,7 +22,8 @@ export interface ModelConnectionView {
   protocol: ModelProtocol;
   baseUrl: string;
   hasCredential: boolean;
-  credentialScope: 'process';
+  credentialScope: 'process' | 'env-file';
+  credentialEnvName?: string;
   extraHeaderNames: string[];
   createdAt: string;
   updatedAt: string;

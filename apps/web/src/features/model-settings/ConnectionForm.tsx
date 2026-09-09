@@ -88,12 +88,19 @@ export function ConnectionForm({
           autoComplete="off"
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
-          placeholder={connection?.hasCredential ? '已保存，留空保持不变' : '仅写入当前服务进程'}
+          placeholder={connection?.hasCredential ? '已保存，留空保持不变' : '保存到后端 .env'}
         />
       </label>
       <small className="settings-hint">
-        认证头按协议自动处理（OpenAI 系 Bearer、Anthropic x-api-key），凭证不会回显也不会写入文件。
+        认证头按协议自动处理（OpenAI 系 Bearer、Anthropic x-api-key），凭证不回显，保存到本机后端
+        apps/api/.env，重启后自动恢复。
       </small>
+      {connection && (
+        <small className="settings-hint">
+          手动配置项：<code>{connection.credentialEnvName ?? `ZQKY_API_KEY_${connection.id}`}</code>
+          （后端 .env）
+        </small>
+      )}
       <label>
         附加请求头（可选，每行“名称: 值”）
         <textarea

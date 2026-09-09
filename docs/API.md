@@ -1,4 +1,13 @@
-# 2026-09-06 问答与模型目录增补（优先于下方历史契约说明）
+# 2026-09-09 后端凭证文件（优先于下方历史进程凭证说明）
+
+- 正式 FastAPI 在应用启动生命周期读取 `apps/api/.env`；仅凭证项使用此文件，不将其读入前端。导入 `create_app` 不读取用户凭证；测试注入临时目录和 SecretStore。
+- 设置页原创建/编辑连接 API 不变，非空 `apiKey` 写入 `.env` 的 `ZQKY_API_KEY_<连接ID>`；空值仍表示保持原凭证。每个连接独立映射，模型共用所属连接的 Key。写入采用临时文件、flush/fsync、原子替换，保留其他行；删除连接会移除对应文件项。
+- 可手动编辑该变量（原样字符串、单引号或 JSON 双引号字符串均支持；不进行 shell 展开或变量插值），然后重启 API。进程环境变量在启动时覆盖同名文件项；Windows 环境变量名大小写不影响小写连接 ID 匹配。
+- 连接响应仍不回显密钥，新增非敏感 `credentialEnvName`，`credentialScope` 为 `env-file`（正式持久化存储）或 `process`（注入的内存存储）。`.env`、临时 `.env.*.tmp` 均由既有 `.gitignore` 排除；仅无密钥 `.env.example` 入库。
+- 文件读写失败返回 `CREDENTIAL_STORAGE_ERROR`，不回显凭证/底层异常。更新先校验 revision 与字段，凭证写失败不提交本次连接配置变更。没有数据库或第二套业务后端。
+- 主聊天仅实例化真实服务、真实 IndexedDB 会话库；移除模拟生成与免密伪模型。SSE 事件名与三协议适配保持原契约。
+
+# 2026-09-06 问答与模型目录增补（历史契约说明）
 
 - `GET /api/v1/model-catalog`：原子读取 `{revision, defaultChatProfileId, connections, profiles}`。连接只返回 `hasCredential`；模型包含 `params` 和关联连接可用状态。
 - `GET /api/v1/model-connections/{id}/models`：后端使用已保存连接和进程凭证发现列表，返回 `{models:[{id}]}`。只读、去重，不写入模型或推断能力。区分认证、超时、接口不支持及格式错误；空数组为成功但无可选项。

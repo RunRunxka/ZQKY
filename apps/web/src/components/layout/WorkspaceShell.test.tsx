@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, afterEach } from 'vitest';
+import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { WorkspaceShell } from './WorkspaceShell';
@@ -19,6 +19,18 @@ function renderShell() {
 }
 
 describe('WorkspaceShell 导航', () => {
+  beforeEach(() => {
+    localStorage.removeItem('zhiqikeyuan:nav-expanded');
+    HTMLDialogElement.prototype.showModal = function () {
+      this.open = true;
+    };
+    HTMLDialogElement.prototype.close = function () {
+      this.open = false;
+    };
+    window.matchMedia = vi
+      .fn()
+      .mockReturnValue({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() });
+  });
   afterEach(cleanup);
 
   it('渲染全部登记入口（隐藏项除外），规划中模块的可访问名称统一携带状态', () => {
@@ -42,6 +54,7 @@ describe('WorkspaceShell 导航', () => {
 
   it('展开项目导航后显示分组标题与完整标签', () => {
     renderShell();
+    fireEvent.click(screen.getByRole('button', { name: '收起项目导航' }));
     fireEvent.click(screen.getByRole('button', { name: '展开项目导航' }));
     expect(screen.getByText('教学工作台')).toBeInTheDocument();
     expect(screen.getByText('教学资源')).toBeInTheDocument();
@@ -59,7 +72,9 @@ describe('WorkspaceShell 导航', () => {
       const name = item.status === 'planned' ? `${item.label}（规划中）` : item.label;
       expect(within(dialog).getByRole('button', { name })).toBeInTheDocument();
     }
-    fireEvent.keyDown(dialog, { key: 'Escape' });
+    expect(within(dialog).getByRole('button', { name: '教案工作台' })).toHaveFocus();
+    fireEvent(dialog, new Event('cancel', { bubbles: false, cancelable: true }));
     expect(screen.queryByRole('dialog', { name: '功能导航' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '打开功能导航' })).toHaveFocus();
   });
 });

@@ -191,22 +191,12 @@ test('会话历史：筛选、重命名、归档、删除与重开', async ({ pa
   await expect(page.locator('.space-session-card')).toHaveCount(1, { timeout: 15000 });
 });
 
-test('会话历史重开模拟会话：深链携带 mode=mock 并正确定位', async ({ page }) => {
-  await seedConversation(
-    page,
-    'zhiqikeyuan-chat-mock',
-    conversation('seed-mock-1', '模拟会话一', '2026-09-08T05:00:00.000Z', { mode: 'mock' }),
-  );
+test('移除模拟聊天后不展示旧模拟入口，也不删除旧模拟库', async ({ page }) => {
+  await seedConversation(page, 'zhiqikeyuan-chat-mock', conversation('seed-mock-1', '旧模拟记录', '2026-09-08T05:00:00.000Z', { mode: 'mock' }));
   await page.goto('/space/chat-history');
-  const card = page.locator('.space-session-card', { hasText: '模拟会话一' });
-  await expect(card).toBeVisible({ timeout: 15000 });
-  await expect(card.locator('.space-chip', { hasText: '模拟' })).toBeVisible();
-  await card.getByRole('link', { name: '重新打开' }).click();
-  await expect(page).toHaveURL(/\/chat\/seed-mock-1\?mode=mock$/);
-  await expect(page.locator('.chat-bubble.assistant').last()).toContainText('回答-seed-mock-1', {
-    timeout: 15000,
-  });
-  await expect(page.getByRole('status').filter({ hasText: '会话不存在' })).toHaveCount(0);
+  await expect(page.locator('.space-session-card', { hasText: '旧模拟记录' })).toHaveCount(0);
+  await expect(page.getByRole('group', { name: '按模式筛选' })).toHaveCount(0);
+  expect(await page.evaluate(async () => (await indexedDB.databases()).map(db => db.name))).toContain('zhiqikeyuan-chat-mock');
 });
 
 test('题库：范围计数、收藏切换、演示载入、分类与删除', async ({ page }) => {

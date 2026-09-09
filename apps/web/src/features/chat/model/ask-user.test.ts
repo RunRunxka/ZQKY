@@ -2,15 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { createMemoryChatRepository, type ChatRepository } from '@/services/chat-repository';
 import { conversationProjection, selectMessagesForRequest } from './context-budget';
 import type { AskUserInteraction } from '@/contracts/chat';
-import {
-  createMockChatService,
-  createRealChatService,
-  type ChatService,
-  type ChatServiceEvent,
-  type ChatServiceRequest,
-  type MockChatService,
-} from './chat-service';
-import { createChatStore } from './store';
+import { createMockChatService, type MockChatService } from '../../../../../../tests/fixtures/scripted-chat-service';
+import { createRealChatService, type ChatService, type ChatServiceEvent, type ChatServiceRequest } from './chat-service';
+import { createScriptedChatStore as createChatStore } from '../../../../../../tests/fixtures/scripted-chat-store';
 
 function turn(request: ChatServiceRequest) {
   return { sessionId: request.sessionId, turnId: request.turnId };

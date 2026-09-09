@@ -30,6 +30,7 @@ class Settings:
     allowed_origins: frozenset[str]
     env: str
     data_dir: Path
+    credentials_file: Path | None = None
 
     @staticmethod
     def from_env(environ: Mapping[str, str] | None = None) -> "Settings":
@@ -52,4 +53,5 @@ class Settings:
             allowed_origins=frozenset(_split_origins(raw_origins)),
             env=env.get("ZQKY_ENV", "development"),
             data_dir=data_dir,
+            credentials_file=REPO_ROOT / 'apps' / 'api' / '.env',
         )

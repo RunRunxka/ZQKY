@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { BookOpen, ChevronRight, Menu, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import { groupMainNavigation, navigation } from '@/services/navigation';
 import type { NavigationItem } from '@/contracts/navigation';
+import './workspace-shell.css';
 
 const mainGroups = groupMainNavigation();
 const bottomItems = navigation.filter((n) => n.position === 'bottom');
@@ -48,7 +49,7 @@ export function WorkspaceShell({
   pageTitle,
   className = '',
   sidebarContent,
-  sidebarLayout = false,
+  sidebarLayout = true,
   beforeNavigate,
   onNavigationError,
 }: {
@@ -63,13 +64,40 @@ export function WorkspaceShell({
 }) {
   const [expanded, setExpanded] = useState(sidebarLayout);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const mobileNavRef = useRef<HTMLDivElement>(null);
+  const mobileNavRef = useRef<HTMLDialogElement>(null);
+  const mobileTriggerRef = useRef<HTMLButtonElement>(null);
   const pathname = usePathname(),
     router = useRouter();
 
   useEffect(() => {
-    if (mobileNavOpen) mobileNavRef.current?.focus();
+    if (!mobileNavOpen) return;
+    const dialog = mobileNavRef.current;
+    if (!dialog) return;
+    const trigger = mobileTriggerRef.current;
+    dialog.showModal();
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    dialog.querySelector<HTMLButtonElement>('[aria-current="page"]')?.focus();
+    const desktop = window.matchMedia('(min-width: 768px)');
+    const closeOnDesktop = () => {
+      if (desktop.matches) setMobileNavOpen(false);
+    };
+    desktop.addEventListener('change', closeOnDesktop);
+    return () => {
+      desktop.removeEventListener('change', closeOnDesktop);
+      dialog.close();
+      document.body.style.overflow = previousOverflow;
+      trigger?.focus();
+    };
   }, [mobileNavOpen]);
+
+  useEffect(() => {
+    try {
+      setExpanded(localStorage.getItem('zhiqikeyuan:nav-expanded') !== 'false');
+    } catch {
+      /* 本地偏好不可用时保持展开 */
+    }
+  }, []);
 
   async function navigate(path: string) {
     if (path === pathname) return;
@@ -94,19 +122,18 @@ export function WorkspaceShell({
           key={item.id}
           item={item}
           sidebarLayout={sidebarLayout}
-          current={
-            pathname === item.path || (item.path === '/chat' && pathname.startsWith('/chat/'))
-          }
+          current={pathname === item.path || pathname.startsWith(`${item.path}/`)}
           onNavigate={fromMenu ? () => navigateFromMenu(item.path) : () => void navigate(item.path)}
         />
       ));
   }
 
   return (
-    <div className={`app-shell ${className} ${expanded ? 'nav-expanded' : ''}`}>
+    <div className={`app-shell unified-shell ${className} ${expanded ? 'nav-expanded' : ''}`}>
       <header className="app-header">
         <button
           className="mobile-nav-toggle"
+          ref={mobileTriggerRef}
           aria-label="打开功能导航"
           aria-expanded={mobileNavOpen}
           aria-controls="mobile-nav-panel"
@@ -146,7 +173,15 @@ export function WorkspaceShell({
         <button
           className="nav-toggle"
           aria-label={expanded ? '收起项目导航' : '展开项目导航'}
-          onClick={() => setExpanded(!expanded)}
+          aria-expanded={expanded}
+          onClick={() => {
+            setExpanded(!expanded);
+            try {
+              localStorage.setItem('zhiqikeyuan:nav-expanded', String(!expanded));
+            } catch {
+              /* 偏好保存失败不阻止折叠 */
+            }
+          }}
         >
           {expanded ? <PanelLeftClose size={19} /> : <PanelLeftOpen size={19} />}
         </button>
@@ -168,8 +203,7 @@ export function WorkspaceShell({
       </nav>
       {mobileNavOpen && (
         <>
-          <div className="mobile-nav-backdrop" onClick={() => setMobileNavOpen(false)} />
-          <div
+          <dialog
             id="mobile-nav-panel"
             ref={mobileNavRef}
             className="mobile-nav-panel"
@@ -177,8 +211,31 @@ export function WorkspaceShell({
             aria-modal="true"
             aria-label="功能导航"
             tabIndex={-1}
+            onCancel={(event) => {
+              event.preventDefault();
+              setMobileNavOpen(false);
+            }}
+            onClick={(event) => {
+              if (
+                event.target === event.currentTarget &&
+                event.clientX > event.currentTarget.getBoundingClientRect().right
+              )
+                setMobileNavOpen(false);
+            }}
             onKeyDown={(event) => {
-              if (event.key === 'Escape') setMobileNavOpen(false);
+              if (event.key !== 'Tab') return;
+              const buttons = Array.from(
+                event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'),
+              );
+              const first = buttons[0],
+                last = buttons[buttons.length - 1];
+              if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last?.focus();
+              } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first?.focus();
+              }
             }}
           >
             <div className="mobile-nav-head">
@@ -199,7 +256,7 @@ export function WorkspaceShell({
             ))}
             <div className="mobile-nav-group">{renderGroupItems(bottomItems, true)}</div>
             <div className="mobile-nav-footnote">未实现模块均处于规划中</div>
-          </div>
+          </dialog>
         </>
       )}
       {children}

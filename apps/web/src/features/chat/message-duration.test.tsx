@@ -56,13 +56,11 @@ it('R25 等待占位（无正文无推理）同样只渲染一处耗时', () => 
 it('R25 服务 Promise 抛错后终态冻结耗时（finishedAt 必须写入）', async () => {
   const store = createChatStore({
     repository: createMemoryChatRepository(),
-    services: {
-      real: {
+    service: {
         kind: 'real',
         run: async () => {
           throw new Error('offline');
         },
-      },
     },
   });
   try {

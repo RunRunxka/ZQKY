@@ -24,14 +24,13 @@ test('全部登记路由可直达并刷新，规划页内容统一且无假提�
   }
 });
 
-test('导航可访问名称在收起、展开与底部入口保持一致，分组标题可见', async ({ page }) => {
+test('导航可访问名称在收起、展开与底部入口保持一致', async ({ page }) => {
   await page.goto('/papers');
+  await page.getByRole('button', { name: '收起项目导航' }).click();
   await expect(page.locator('.app-shell.nav-expanded')).toHaveCount(0);
   await page.getByRole('button', { name: '展开项目导航' }).click();
   await expect(page.locator('.app-shell.nav-expanded')).toHaveCount(1);
-  await expect(page.getByText('教学工作台', { exact: true })).toBeVisible();
-  await expect(page.getByText('教学资源', { exact: true })).toBeVisible();
-  await expect(page.getByText('扩展能力', { exact: true })).toBeVisible();
+  await expect(page.locator('.global-nav .nav-group-label').first()).toBeHidden();
   for (const name of [
     '学习问答',
     '沉浸阅读',

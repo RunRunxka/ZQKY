@@ -6,7 +6,7 @@ import type {
   ChatToolCall,
 } from './chat-service';
 import type { TurnExtensionSnapshot } from '@/contracts/chat';
-import { createChatStore } from './store';
+import { createScriptedChatStore as createChatStore } from '../../../../../../tests/fixtures/scripted-chat-store';
 
 type Emit = (event: ChatServiceEvent) => void;
 type ScriptedRun = (emit: Emit, request: ChatServiceRequest) => Promise<void>;

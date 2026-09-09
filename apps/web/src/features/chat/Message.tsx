@@ -5,6 +5,7 @@ import { ThinkingOrb } from './vendor/thinking-orbs';
 import type { AskUserAnswer, AskUserDraft, ChatMessage } from '@/contracts/chat';
 import { conversationProjection } from './model/context-budget';
 import { formatTurnDuration, turnDurationSeconds } from './model/trace-timing';
+import { ReasoningDisclosure } from './ReasoningDisclosure';
 import { AnswerMarkdown } from './AnswerMarkdown';
 import { TraceStages } from './TraceStages';
 import { AskUserCard } from './AskUserCard';
@@ -133,7 +134,10 @@ export function Message({
   return (
     <article className="chat-row assistant">
       <div className="chat-bubble assistant">
-        <div className="chat-assistant-label">
+        <ReasoningDisclosure
+          text={message.reasoning}
+          working={message.status === 'streaming' && !message.content?.trim()}
+        >
           <span className="chat-assistant-mark">
             <ThinkingOrb
               state={
@@ -153,7 +157,11 @@ export function Message({
           </span>
           <strong className={message.status === 'streaming' ? 'chat-thinking-label' : undefined}>
             {message.status === 'streaming'
-              ? '正在生成'
+              ? message.content?.trim()
+                ? '正在回答'
+                : message.reasoning
+                  ? '正在推理'
+                  : '正在生成'
               : message.status === 'error'
                 ? '生成失败'
                 : message.status === 'stopped'
@@ -165,7 +173,7 @@ export function Message({
           {message.startedAt && (
             <TurnDuration startedAt={message.startedAt} finishedAt={message.finishedAt} />
           )}
-        </div>
+        </ReasoningDisclosure>
         {/* 工具/技能执行过程：对照原版位于正文之前，按 callId 原地更新，手动展开态不被正文增量重置 */}
         <ToolProcessPanel toolCalls={message.toolCalls} />
         {/* S4 轮内阶段序列（planning→…→writing 等）：进行中可见，终态收起为紧凑消息 */}
@@ -239,18 +247,7 @@ export function Message({
             </ul>
           </details>
         )}
-        {message.reasoning &&
-          (message.status === 'streaming' ? (
-            <div className="chat-reasoning streaming">
-              <span className="chat-reasoning-label">推理中</span>
-              <p className="chat-reasoning-text">{message.reasoning}</p>
-            </div>
-          ) : (
-            <details className="chat-reasoning">
-              <summary>推理过程</summary>
-              <p className="chat-reasoning-text">{message.reasoning}</p>
-            </details>
-          ))}
+
         {message.status === 'stopped' && (
           <span className="small-badge">
             {message.finishReason === 'client-stop' ? '已停止' : '已中断'}

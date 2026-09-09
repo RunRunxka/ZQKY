@@ -43,9 +43,13 @@ def create_connection(request: Request, body: ConnectionCreate) -> dict:
         createdAt=now,
         updatedAt=now,
     )
-    repo.create_connection(connection)
     if body.apiKey:
         secrets.put(connection.id, body.apiKey)
+    try:
+        repo.create_connection(connection)
+    except Exception:
+        secrets.delete(connection.id)
+        raise
     return connection_view(connection, secrets)
 
 
@@ -62,10 +66,11 @@ def update_connection(request: Request, connection_id: str, body: ConnectionUpda
             connection.baseUrl = validate_base_url(body.baseUrl)
         if body.extraHeaders is not None:
             connection.extraHeaders = validate_extra_headers(body.extraHeaders)
+        # revision 与字段先验证；凭证文件写入失败时不保存本次配置变更。
+        if body.apiKey:
+            secrets.put(connection_id, body.apiKey)
 
     updated = repo.update_connection(connection_id, apply, body.expectedRevision)
-    if body.apiKey:
-        secrets.put(connection_id, body.apiKey)
     return connection_view(updated, secrets)
 
 
