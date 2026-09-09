@@ -36,9 +36,9 @@
 | P-reading-[workspaceId] | `/reading/[workspaceId]` | `/reading/[workspaceId]` | 实现待验收 | 三栏工作区（S5-D）：材料 Tab 条、大纲/书签/批注导航（locator=h-<行索引>）、文本阅读器（标题层级+quote 批注高亮+滚动进度保存/恢复+选区浮条 高亮五色/笔记/书签/问 AI）、伴生模拟 AI（显式【模拟回复】+replaceState 会话 URL）；e2e 同上  R26–R31 已修复、R32 已补齐（2026-09-09）；实现待验收（媒体播放器原视图为显式模拟边界，S7 三视口/动画待验收）。 |
 | P-reading-sessions | `/reading/[workspaceId]/sessions` | `/reading/[workspaceId]/sessions` | 实现待验收 | 会话深链（S5-D）：与工作区同组件，无 sessionId 时取最近/首个会话；e2e 同上  R26–R31 已修复、R32 已补齐（2026-09-09）；实现待验收（媒体播放器原视图为显式模拟边界，S7 三视口/动画待验收）。 |
 | P-reading-sessions-[sessionId] | `/reading/[workspaceId]/sessions/[sessionId]` | 同 | 实现待验收 | 会话恢复深链（S5-D）：routeSessionId 定位会话，无效提示并回退最近会话；e2e 同上  R26–R31 已修复、R32 已补齐（2026-09-09）；实现待验收（媒体播放器原视图为显式模拟边界，S7 三视口/动画待验收）。 |
-| P-co-writer | `/co-writer` | `/co-writer` | 待实现 | 文档列表（S5-E） |
-| P-co-writer-[docId] | `/co-writer/[docId]` | `/co-writer/[docId]` | 待实现 | 文档编辑/AI 写作（S5-E） |
-| P-whisper | `/whisper` | `/whisper` | 待实现 | 用途以源码为准（S5-E） |
+| P-co-writer | `/co-writer` | `/co-writer` | 实现待验收 | 文档列表（S5-E）：新建空白/模板、删除确认、更新时间与字数；DOCX 导入未接入为显式说明；AI 修改为统一事件模型显式模拟；e2e `writing.spec.ts` |
+| P-co-writer-[docId] | `/co-writer/[docId]` | `/co-writer/[docId]` | 实现待验收 | 编辑器（S5-E）：即时自动保存与保存状态、选区改写/润色/扩写与全文生成（流式预览/应用/放弃/取消/失败重试，应用前自动快照）、撤销栈、版本历史与恢复；e2e 同上 |
+| P-whisper | `/whisper` | `/whisper` | 实现待验收 | Whisper 密室（S5-E，用途以固定源码为准）：双席位（访客/学员）分席会话、房间创建/结束态、危机表述系统引导卡（援助热线）；回复为显式模拟流式；能力未接入保留可演示前端路径；e2e 同上 |
 | P-partners | `/partners` | `/partners` | 待实现 | 伙伴列表（S5-F） |
 | P-partners-new | `/partners/new` | `/partners/new` | 待实现 | 创建/配置（S5-F） |
 | P-partners-[partnerId] | `/partners/[partnerId]` | `/partners/[partnerId]` | 待实现 | 会话/详情（S5-F） |

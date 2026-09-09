@@ -15,11 +15,13 @@ describe('导航注册表', () => {
     }
   });
 
-  it('教案工作台本地可用，学习问答、沉浸阅读、学习空间、笔记本、资料库、书籍、课程与设置页已实现，其余均为规划中', () => {
+  it('教案工作台本地可用，学习问答、沉浸阅读、学习空间、笔记本、资料库、书籍、课程、协同写作、whisper 与设置页已实现，其余均为规划中', () => {
     const implemented = navigation.filter((item) => item.status !== 'planned');
     expect(implemented.map((item) => item.id)).toEqual([
       'chat',
       'lesson-plan',
+      'co-writer',
+      'whisper',
       'reading',
       'space',
       'notebooks',
@@ -33,9 +35,11 @@ describe('导航注册表', () => {
     for (const item of implemented.slice(2)) {
       expect(item.status).toBe('ready');
     }
-    // 课程按参考行为隐藏主导航入口（路由可达）
+    // 课程与 whisper 按参考行为隐藏主导航入口（路由可达）
     const courses = implemented.find((item) => item.id === 'courses');
     expect(courses?.hidden).toBe(true);
+    const whisper = implemented.find((item) => item.id === 'whisper');
+    expect(whisper?.hidden).toBe(true);
   });
 
   it('每个规划模块都登记了用途简介与能力清单', () => {
@@ -56,10 +60,10 @@ describe('导航注册表', () => {
         '/papers',
         '/question-bank',
         '/templates',
-        '/co-writer',
         '/agents',
       ]),
     );
+    expect(plannedPaths).not.toContain('/co-writer');
     expect(plannedPaths).not.toContain('/space');
     expect(plannedPaths).not.toContain('/notebooks');
     expect(plannedPaths).not.toContain('/knowledge-bases');

@@ -2,12 +2,11 @@ import { test, expect } from '@playwright/test';
 
 // 与 services/navigation.ts 登记表一致的规划模块路由
 // （/chat、/settings、/space、/knowledge-bases、/notebooks 自 D03/S5 起为已实现页面，
-//  /reading 自 S5-D 起为实现页面，各自由对应 spec 覆盖）
+//  /reading 自 S5-D、/co-writer 与 /whisper 自 S5-E 起为实现页面，各自由对应 spec 覆盖）
 const plannedRoutes = [
   '/papers',
   '/question-bank',
   '/templates',
-  '/co-writer',
   '/agents',
 ];
 
