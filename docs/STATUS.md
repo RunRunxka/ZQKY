@@ -2,7 +2,7 @@
 
 ## 2026-09-09 本次交付：学习问答主页视觉复刻
 
-**本次用户指定范围已完成：`/chat` 与 `/chat/[sessionId]` 按指定本地主页复刻，保留蓝色品牌和原有功能；不表示整个项目的 S5～S8 已完成。** 本地 Git 检查点标签：`checkpoint/chat-home-20260909`；提交主题 `feat(chat): replicate requested home UI with blue theme`。无远程推送、部署。
+**本次用户指定范围已完成：`/chat` 与 `/chat/[sessionId]` 按指定本地主页复刻，保留蓝色品牌和原有功能；不表示整个项目的 S5～S8 已完成。** 产品代码及首版交接提交：`723e20f`（`feat(chat): replicate requested home UI with blue theme`），检查点标签：`checkpoint/chat-home-20260909`；随后仅追加本节 Git 完整性记录。无远程推送、部署。
 
 ### 参考与范围
 
@@ -50,6 +50,7 @@
 2. 首次相关回归 **60 通过 / 4 失败**：菜单旧 160ms 断言与新参考 180ms 不同；数学动画最后阶段短于轮询间隔而漏采；整幅滑入时测试在面板尚未就位处拖动；录像 context teardown 超时。前两项按新参考/真实 DOM 阶段观察修正测试，拖拽从动画结束位置执行。
 3. 中间专项 **30 通过 / 2 失败**：第二次刷新后的拖拽也需要等待面板就位；录像环境问题仍在。随后 9 项专项与最终 65 项均通过。
 4. 录像根因已在本机定位：Playwright 缓存 `ffmpeg-1011/ffmpeg-win64.exe` 为不可执行文件，直接 `-version` 报“不是此 OS 的有效应用”，纯空白页录像也无法关闭。旧文件备份在 `_work/chat-home-20260909/ffmpeg-win64.before.exe`，SHA256 `1B5B32021F6F95C5A7CC85FC555B28910C66ACEA828D13FEA9BCD8B8ECBD0A84`。Node 26 安装过程下载后停在解包；改用 Codex bundled Node **24.19.0** 执行项目锁定的 `playwright install --force ffmpeg`，成功恢复 **v1011**（附带其依赖 winldd v1007），新文件 SHA256 `5B8F3F59BA61685828939FF3C833109748ADBDEA2FFF4B4AE570C9FC0FC1FF4D`。随后 `-version`、空白页录像关闭、正式动画录像均通过。没有修改全局 Node 版本、项目依赖或测试超时。
+5. 提交 `723e20f` 成功，但提交后的 `git show-ref` / `git fsck` 发现 `.git/packed-refs` 第 3 行只有残缺短哈希 `46a832c`，缺少完整对象 ID 和 ref 名称。备份到 `_work/chat-home-20260909/packed-refs.before-repair.txt` 后，只移除该无效行，保留所有合法引用，并用同目录锁文件与原子替换写回。随后 `git show-ref`、`git fsck --no-reflogs --no-dangling` 均通过；当前分支、提交链和新检查点标签均可读取。未重置历史或修改远程引用。原有 `apps/web/next-env.d.ts` 开发类型路径改动已保留在工作区、未纳入提交。
 
 本次范围已结项。后续若继续全项目复刻，按下方既有模块差距另行推进；本次没有顺带实施 S5-F～I / S6～S8。
 
