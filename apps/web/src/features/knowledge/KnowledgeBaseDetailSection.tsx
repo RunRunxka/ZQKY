@@ -9,6 +9,8 @@ import {
   FileUp,
   Github,
   Globe,
+  RefreshCw,
+  Square,
   Star,
   Trash2,
   TriangleAlert,
@@ -17,15 +19,25 @@ import {
   addKbDocument,
   addKbSource,
   deleteKnowledge,
+  kbPipelineSummary,
   KnowledgeValidationError,
   readKnowledge,
   removeKbDocument,
   removeKbSource,
   setDefaultKnowledge,
   subscribeKnowledge,
+  updateKbDocument,
   updateKnowledge,
+  type KbDocStatus,
+  type KbPipelineSummary,
   type KnowledgeEntry,
 } from '@/services/knowledge-catalog';
+import {
+  cancelKbDocIngest,
+  resumeKbIngests,
+  simulateKbDocIngest,
+  simulateKbIngestAll,
+} from '@/services/knowledge-ingest';
 
 type DetailSection = 'files' | 'add' | 'sources' | 'versions' | 'settings';
 
@@ -36,6 +48,39 @@ const SECTIONS: { id: DetailSection; label: string }[] = [
   { id: 'versions', label: '索引' },
   { id: 'settings', label: '设置' },
 ];
+
+const KB_PIPELINE_LABEL: Record<KbPipelineSummary['status'], string> = {
+  empty: '空',
+  registered: '待处理',
+  processing: '处理中',
+  ready: '已就绪',
+  error: '有失败',
+};
+
+/** 复用现有 space-chip 变体（green 表就绪） */
+const KB_PIPELINE_TONE: Record<KbPipelineSummary['status'], string> = {
+  empty: '',
+  registered: '',
+  processing: 'blue',
+  ready: 'green',
+  error: 'amber',
+};
+
+const DOC_STATUS_LABEL: Record<KbDocStatus, string> = {
+  registered: '未解析 · 未索引',
+  parsing: '解析中',
+  indexing: '索引中',
+  ready: '已解析 · 已索引',
+  error: '处理失败',
+};
+
+const DOC_STATUS_TONE: Record<KbDocStatus, string> = {
+  registered: '',
+  parsing: 'blue',
+  indexing: 'blue',
+  ready: 'green',
+  error: 'amber',
+};
 
 function formatSize(size: number | undefined): string {
   if (!size) return '—';
@@ -66,6 +111,13 @@ export function KnowledgeBaseDetailSection() {
   }, [refresh]);
 
   const kb = useMemo(() => kbs?.find((entry) => entry.name === kbName) ?? null, [kbs, kbName]);
+  const kbId = kb?.id ?? null;
+
+  // 刷新恢复：挂载后对处于 parsing/indexing 的文档重新挂载模拟推进。
+  // 仅在对应 KB 的 id 变化时执行，避免与 subscribeKnowledge 的每次刷新重复启动。
+  useEffect(() => {
+    if (kbId) resumeKbIngests(kbId);
+  }, [kbId]);
 
   if (kbs !== null && !kb) {
     return (
@@ -83,14 +135,23 @@ export function KnowledgeBaseDetailSection() {
   }
 
   if (!kb) {
+    // kbs 仍为 null 时可能是读取中，也可能是读取失败：失败必须如实提示，不能停在“读取中”
     return (
       <div className="space-page">
-        <div className="space-banner" style={{ marginTop: 80 }}>
-          正在读取知识库…
-        </div>
+        {error ? (
+          <div className="space-banner error" role="alert" style={{ marginTop: 80 }}>
+            {error}
+          </div>
+        ) : (
+          <div className="space-banner" style={{ marginTop: 80 }}>
+            正在读取知识库…
+          </div>
+        )}
       </div>
     );
   }
+
+  const summary = kbPipelineSummary(kb);
 
   return (
     <div className="space-page">
@@ -118,13 +179,16 @@ export function KnowledgeBaseDetailSection() {
         <h1>
           {kb.name}
           {kb.isDefault && <span className="space-chip amber" style={{ marginLeft: 10 }}>默认库</span>}
+          <span className={`space-chip ${KB_PIPELINE_TONE[summary.status]}`} style={{ marginLeft: 8 }}>
+            知识库状态：{KB_PIPELINE_LABEL[summary.status]}
+          </span>
         </h1>
         <p className="space-description">{kb.description || '（无简介）'}</p>
       </header>
       <main className="space-content">
         <div className="space-banner info" role="note">
           <TriangleAlert size={13} aria-hidden style={{ display: 'inline', marginRight: 6 }} />
-          解析与索引服务未接入：文档登记仅保存元信息，不解析内容、不建索引、不执行来源同步。
+          解析与索引为显式模拟：真实文件内容读取与向量检索服务未接入，模拟产物为本地结构化样例并全程标注，不代表真实服务结果。
         </div>
         {notice && (
           <div className="space-banner info" role="status">
@@ -153,14 +217,7 @@ export function KnowledgeBaseDetailSection() {
         {section === 'files' && <DocList kb={kb} onNotice={setNotice} onError={setError} />}
         {section === 'add' && <RegisterDocs kb={kb} onNotice={setNotice} />}
         {section === 'sources' && <SourceList kb={kb} onNotice={setNotice} onError={setError} />}
-        {section === 'versions' && (
-          <div className="space-empty">
-            <strong>还没有索引版本</strong>
-            <span>
-              索引/重建依赖解析与向量检索服务，目标项目未接入；文档登记不会产生索引版本，聊天引用也不执行真实检索。
-            </span>
-          </div>
-        )}
+        {section === 'versions' && <IndexVersions kb={kb} onNotice={setNotice} />}
         {section === 'settings' && (
           <SettingsTab kb={kb} onNotice={setNotice} onError={setError} />
         )}
@@ -179,45 +236,209 @@ function DocList({
   onError: (value: string) => void;
 }) {
   const docs = kb.docs ?? [];
-  return docs.length === 0 ? (
-    <div className="space-empty">
-      <strong>还没有登记文档</strong>
-      <span>到「登记文档」选择文件登记（仅元信息），或载入演示数据。</span>
+  const summary = kbPipelineSummary(kb);
+  const errorDocs = docs.filter((doc) => (doc.status ?? 'registered') === 'error');
+
+  if (docs.length === 0) {
+    return (
+      <div className="space-empty">
+        <strong>还没有登记文档</strong>
+        <span>到「登记文档」选择文件登记（仅元信息），或载入演示数据。</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-category-manager">
+      <div className="space-toolbar">
+        <span className="space-footnote" style={{ marginTop: 0, flex: '1 1 200px' }}>
+          共 {summary.total} 个文档 · 就绪 {summary.ready} · 处理中 {summary.active} · 失败 {summary.error}（解析/索引为显式模拟）
+        </span>
+        <button
+          className="space-button"
+          onClick={() => {
+            simulateKbIngestAll(kb.id);
+            onNotice('已启动全部文档的模拟解析（本地结构化样例，非真实解析）。');
+          }}
+        >
+          <RefreshCw size={12} />
+          全部解析并索引
+        </button>
+        {summary.error > 0 && (
+          <button
+            className="space-button"
+            onClick={() => {
+              for (const doc of errorDocs) simulateKbDocIngest(kb.id, doc.id);
+              onNotice(`已重试 ${errorDocs.length} 个失败文档的模拟解析。`);
+            }}
+          >
+            <RefreshCw size={12} />
+            重试失败项
+          </button>
+        )}
+      </div>
+      <ul className="space-session-list">
+        {docs.map((doc) => {
+          const status = doc.status ?? 'registered';
+          const active = status === 'parsing' || status === 'indexing';
+          const percent = doc.progress?.percent ?? 0;
+          return (
+            <li className="space-session-card" key={doc.id}>
+              <div className="space-session-top">
+                <span className="space-session-title">{doc.name}</span>
+                <span className={`space-chip ${DOC_STATUS_TONE[status]}`}>
+                  {DOC_STATUS_LABEL[status]}
+                </span>
+                {status === 'ready' && doc.chunks != null && (
+                  <span className="space-chip">{doc.chunks} 块（模拟）</span>
+                )}
+                {active && (
+                  <button
+                    className="space-button"
+                    aria-label={`取消解析 ${doc.name}`}
+                    onClick={() => {
+                      cancelKbDocIngest(kb.id, doc.id);
+                      onNotice(`已取消「${doc.name}」的模拟解析（可重试）。`);
+                    }}
+                  >
+                    <Square size={12} />
+                    取消解析
+                  </button>
+                )}
+                {status === 'error' && (
+                  <button
+                    className="space-button"
+                    aria-label={`重试解析 ${doc.name}`}
+                    onClick={() => {
+                      simulateKbDocIngest(kb.id, doc.id);
+                      onNotice(`已重新启动「${doc.name}」的模拟解析。`);
+                    }}
+                  >
+                    <RefreshCw size={12} />
+                    重试解析
+                  </button>
+                )}
+                <button
+                  className="icon-button"
+                  aria-label={`移除文档 ${doc.name}`}
+                  onClick={() => {
+                    if (removeKbDocument(kb.id, doc.id)) onNotice(`已移除登记：${doc.name}。`);
+                    else onError('移除失败：文档不存在或已被删除。');
+                  }}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+              {active && (
+                <div className="space-meta-row">
+                  <span className="space-chip blue">
+                    {doc.progress?.stage ?? DOC_STATUS_LABEL[status]} {percent}%
+                  </span>
+                  <div
+                    role="progressbar"
+                    aria-label={`${doc.name} 模拟处理进度`}
+                    aria-valuenow={percent}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    style={{ flex: 1, height: 6, borderRadius: 999, background: '#dbeafe', overflow: 'hidden' }}
+                  >
+                    <div
+                      className="transition-all duration-300"
+                      style={{
+                        height: '100%',
+                        width: `${Math.max(percent, 4)}%`,
+                        borderRadius: 999,
+                        background: '#2563eb',
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+              {status === 'error' && doc.statusNote && (
+                <div className="space-meta-row">
+                  <span role="status">{doc.statusNote}</span>
+                </div>
+              )}
+              <div className="space-meta-row">
+                <span>{formatSize(doc.size)}</span>
+                <span>登记于 {new Date(doc.registeredAt).toLocaleString('zh-CN')}</span>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
     </div>
-  ) : (
-    <ul className="space-session-list">
-      {docs.map((doc) => (
-        <li className="space-session-card" key={doc.id}>
-          <div className="space-session-top">
-            <span className="space-session-title">{doc.name}</span>
-            <span className="space-chip">未解析 · 未索引</span>
-            <button
-              className="icon-button"
-              aria-label={`移除文档 ${doc.name}`}
-              onClick={() => {
-                if (removeKbDocument(kb.id, doc.id)) onNotice(`已移除登记：${doc.name}。`);
-                else onError('移除失败：文档不存在或已被删除。');
-              }}
-            >
-              <Trash2 size={14} />
-            </button>
-          </div>
-          <div className="space-meta-row">
-            <span>{formatSize(doc.size)}</span>
-            <span>登记于 {new Date(doc.registeredAt).toLocaleString('zh-CN')}</span>
-          </div>
-        </li>
-      ))}
-    </ul>
+  );
+}
+
+function IndexVersions({
+  kb,
+  onNotice,
+}: {
+  kb: KnowledgeEntry;
+  onNotice: (value: string) => void;
+}) {
+  const versions = [...(kb.indexVersions ?? [])].sort((a, b) => b.version - a.version);
+  const docs = kb.docs ?? [];
+  return (
+    <div className="space-category-manager">
+      <div className="space-toolbar">
+        <span className="space-footnote" style={{ marginTop: 0, flex: '1 1 200px' }}>
+          索引为显式模拟：版本记录为本地结构化样例，真实向量检索未接入。
+        </span>
+        <button
+          className="space-button"
+          disabled={docs.length === 0}
+          onClick={() => {
+            for (const doc of docs) {
+              updateKbDocument(kb.id, doc.id, { status: 'registered', statusNote: null, progress: null });
+            }
+            simulateKbIngestAll(kb.id);
+            onNotice('已重跑全部文档的模拟索引流水线（本地样例，非真实索引）。');
+          }}
+        >
+          <RefreshCw size={12} />
+          重建索引
+        </button>
+      </div>
+      {versions.length === 0 ? (
+        <div className="space-empty">
+          <strong>还没有索引版本</strong>
+          <span>
+            解析与索引为显式模拟：登记文档并处理完成后会生成标注为模拟的本地索引版本；真实向量检索服务未接入。
+          </span>
+        </div>
+      ) : (
+        <ul className="space-session-list">
+          {versions.map((version) => (
+            <li className="space-session-card" key={version.id}>
+              <div className="space-session-top">
+                <span className="space-session-title">版本 {version.version}</span>
+                <span className={`space-chip ${version.ready ? 'green' : ''}`}>
+                  {version.ready ? '就绪' : '未就绪'}
+                </span>
+                <span className="space-chip">{version.docCount} 文档</span>
+                <span className="space-chip">{version.chunkCount} 块</span>
+              </div>
+              <div className="space-meta-row">
+                <span>{version.provider}</span>
+                <span>{new Date(version.createdAt).toLocaleString('zh-CN')}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
 function RegisterDocs({ kb, onNotice }: { kb: KnowledgeEntry; onNotice: (value: string) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [simulateFail, setSimulateFail] = useState(false);
   return (
     <div className="space-category-manager">
       <p className="space-footnote" style={{ marginTop: 0 }}>
-        选择文件后仅登记名称与大小（本机浏览器存储），不读取内容、不解析、不索引；聊天引用该库时只声明范围。
+        选择文件后登记名称与大小（本机浏览器存储），并自动启动显式模拟解析：不读取真实文件内容，产物为本地结构化样例并全程标注。
       </p>
       <div className="space-category-row">
         <input
@@ -228,23 +449,34 @@ function RegisterDocs({ kb, onNotice }: { kb: KnowledgeEntry; onNotice: (value: 
           onChange={(event) => {
             const files = [...(event.target.files ?? [])];
             if (files.length === 0) return;
-            let added = 0;
+            const added: string[] = [];
             for (const file of files) {
-              if (addKbDocument(kb.id, { name: file.name, size: file.size })) added += 1;
+              const doc = addKbDocument(kb.id, { name: file.name, size: file.size });
+              if (doc) added.push(doc.id);
             }
-            onNotice(
-              added > 0
-                ? `已登记 ${added} 个文档（未解析，仅元信息）。`
-                : '没有文档被登记（名称为空或已删除）。',
-            );
+            if (added.length > 0) {
+              for (const docId of added) simulateKbDocIngest(kb.id, docId, { fail: simulateFail });
+              onNotice(`已登记 ${added.length} 个文档，正在模拟解析（本地结构化样例，非真实解析）。`);
+            } else {
+              onNotice('没有文档被登记（名称为空或已删除）。');
+            }
             if (inputRef.current) inputRef.current.value = '';
           }}
         />
         <span className="space-chip">
           <FileUp size={12} />
-          登记不解析
+          登记后模拟解析
         </span>
       </div>
+      <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, marginTop: 10 }}>
+        <input
+          type="checkbox"
+          checked={simulateFail}
+          aria-label="模拟一次解析失败（演示失败与重试路径）"
+          onChange={(event) => setSimulateFail(event.target.checked)}
+        />
+        模拟一次解析失败（演示失败与重试路径）
+      </label>
     </div>
   );
 }

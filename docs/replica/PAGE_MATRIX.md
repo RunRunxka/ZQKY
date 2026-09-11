@@ -1,6 +1,6 @@
 # 页面复刻矩阵（规格部分完成，逐项验收）
 
-更新：2026-09-10。全站视觉以当前学习问答为准；模块信息结构/功能/动画对照固定 DeepTutor。根级 NavigationPreference 保留跨壳折叠状态，统一菜单几何和动画；本批导航回归见 [STATUS](../STATUS.md)，不升级其他模块完整验收状态。
+更新：2026-09-11。全站视觉以当前学习问答为准；模块信息结构/功能/动画对照固定 DeepTutor。根级 NavigationPreference 保留跨壳折叠状态，统一菜单几何和动画；本批导航回归见 [STATUS](../STATUS.md)。2026-09-11 完成 H1 知识库「导入→解析→索引」显式模拟闭环（B-H1-KB），逐项证据见 [STATUS §4](../STATUS.md)，不升级其他模块完整验收状态。
 
 历史主页/侧栏批次记录已合入 [交付历史](../archive/DELIVERY_HISTORY.md#snapshot-status-20260910)。主聊天模拟执行已删除，旧模拟测试仅是历史证据。阅读与书籍已有修复不重复列为未开始；尚需复核的具体问题见 STATUS H-R1–H-R4。
 
@@ -24,8 +24,8 @@
 | P-space-skills | `/space/skills` | `/space/skills`（跳设置#skills） | 实现待验收 | 同上（S5-A） |
 | P-mcp | `/mcp` | `/mcp`（跳设置#mcp） | 已验收 | e2e `replica-settings.spec.ts` 覆盖重定向 |
 | P-skills | `/skills` | `/skills`（跳设置#skills） | 已验收 | 同上 |
-| P-knowledge-bases | `/knowledge-bases` | `/knowledge-bases` | 实现待验收 | 教材资料库列表（S5-B）：知识库/检索引擎双页签、演示载入幂等、新建重名拒绝、登记仅元信息（显式标注）；e2e `knowledge-notebooks.spec.ts` |
-| P-knowledge-bases-[kbName] | `/knowledge-bases/[kbName]` | 同 | 实现待验收 | 库详情（S5-B）：文档/登记/来源/索引（显式空态）/设置分区；改名同步 URL、设默认库、删除确认；e2e 同上 |
+| P-knowledge-bases | `/knowledge-bases` | `/knowledge-bases` | 实现待验收 | 教材资料库列表（S5-B/H1）：知识库/检索引擎双页签、演示载入幂等、新建重名拒绝、KB 级流水线状态徽标（空/待处理/处理中/已就绪/有失败，对照参考 KbStatusBadge）。2026-09-11 H1：登记/解析/索引为显式模拟，未接真实服务；e2e `knowledge-notebooks.spec.ts` |
+| P-knowledge-bases-[kbName] | `/knowledge-bases/[kbName]` | 同 | 实现待验收 | 库详情（S5-B/H1）：文档/登记/来源/索引/设置分区；改名同步 URL、设默认库、删除确认；2026-09-11 补文档导入→解析→索引显式模拟：逐文档状态徽标（registered/parsing/indexing/ready/error）、进度条、取消/重试、全量解析、索引版本列表与重建（版本按 (docCount,chunkCount) 去重）、刷新恢复、旧数据兼容、损坏读取如实报错不覆盖。真实解析/向量检索未接；e2e 同上。出处 `_work/kb-h1/CONTRACT.md` |
 | P-notebooks | `/notebooks` | `/notebooks` | 实现待验收 | 笔记本列表（S5-B）：默认笔记本虚拟项、记录展开/编辑/移动复制/导出/删除；e2e 同上 |
 | P-notebooks-[notebookId] | `/notebooks/[notebookId]` | 同 | 实现待验收 | 笔记本详情（S5-B）：深链选中、无效 id 报错、搜索；S5-D 起"发到笔记本"写入此目录；e2e 同上 |
 | P-books | `/books` | `/books` | 部分实现 | 统计/目录/演示无损载入/新建模拟提案/状态徽标/进度/删除已有。生成目前为同步模拟；compiling/paused/error和流式生成、暂停恢复仍缺，见 STATUS H1。历史用例 books-courses.spec.ts 覆盖已有切片。 |

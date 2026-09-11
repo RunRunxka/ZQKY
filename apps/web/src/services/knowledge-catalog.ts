@@ -17,8 +17,23 @@ export interface KnowledgeEntry {
   docs?: KbDocument[];
   /** S5-B：登记的外部源（github/web，仅登记不同步） */
   sources?: KbExternalSource[];
+  /** B-H1-KB：模拟索引版本（旧数据缺省归一化为 []，不写库） */
+  indexVersions?: KbIndexVersion[];
   createdAt?: string;
   updatedAt?: string;
+}
+
+/** B-H1-KB：文档入库流水线状态（解析/索引为显式模拟） */
+export type KbDocStatus = 'registered' | 'parsing' | 'indexing' | 'ready' | 'error';
+
+/** B-H1-KB：进度表示（字段对齐参考 ProgressInfo 的可见子集） */
+export interface KbDocProgress {
+  /** 中文阶段名，如「解析中」「切片」「向量化」 */
+  stage: string;
+  /** 0-100 */
+  percent: number;
+  current?: number;
+  total?: number;
 }
 
 /** 登记文档：目标项目无解析/索引服务，登记仅保存元信息并显式标注未解析 */
@@ -28,6 +43,30 @@ export interface KbDocument {
   /** 字节数（选取文件时读取；演示数据缺省） */
   size?: number;
   registeredAt: string;
+  // ===== B-H1-KB 新增，全部可选；旧数据缺省归一化 =====
+  /** 缺省 'registered'（旧记录含义不变：未解析 · 未索引） */
+  status?: KbDocStatus;
+  /** 失败/取消说明 */
+  statusNote?: string | null;
+  progress?: KbDocProgress | null;
+  /** 模拟解析产出的字符数（显式模拟，不读取真实文件内容） */
+  parsedChars?: number;
+  /** 模拟切片数 */
+  chunks?: number;
+}
+
+/** B-H1-KB：索引版本（模拟；字段对齐参考 IndexVersion） */
+export interface KbIndexVersion {
+  id: string;
+  /** 从 1 递增 */
+  version: number;
+  createdAt: string;
+  docCount: number;
+  chunkCount: number;
+  /** 例：'内置本地索引（模拟）' */
+  provider: string;
+  ready: boolean;
+  note?: string | null;
 }
 
 /** 外部源登记（参考的 GitHub/网页源同步依赖后端，这里仅登记并显式说明） */
@@ -76,10 +115,29 @@ function validate(parsed: unknown): KnowledgeEntry[] {
   return parsed;
 }
 
+/**
+ * B-H1-KB：读取归一化。仅归一化内存中的返回对象，不写回 localStorage
+ * （避免干扰用户已有数据）：`indexVersions ?? []`、每个 doc `status ?? 'registered'`。
+ */
+function normalizeEntry(entry: KnowledgeEntry): KnowledgeEntry {
+  return {
+    ...entry,
+    indexVersions: entry.indexVersions ?? [],
+    docs: entry.docs?.map((doc) => ({ ...doc, status: doc.status ?? 'registered' })),
+  };
+}
+
 export function readKnowledge(): KnowledgeEntry[] {
   const raw = window.localStorage.getItem(KEY);
   if (!raw) return [];
-  return validate(JSON.parse(raw));
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    // 结构损坏不能当空库覆盖：抛出统一说明，调用方如实提示且不写库
+    throw new Error('知识来源目录格式不兼容，原数据已保留。');
+  }
+  return validate(parsed).map(normalizeEntry);
 }
 
 export function loadDemoKnowledge() {
@@ -173,7 +231,7 @@ function mutateEntry(id: string, mutate: (entry: KnowledgeEntry) => KnowledgeEnt
   return list[idx]!;
 }
 
-/** 登记文档（仅元信息；显式"未解析/未索引"） */
+/** 登记文档（仅元信息；显式"未解析/未索引"，status 归一为 registered） */
 export function addKbDocument(kbId: string, doc: { name: string; size?: number }): KbDocument | null {
   const trimmed = doc.name.trim();
   if (!trimmed) return null;
@@ -182,9 +240,83 @@ export function addKbDocument(kbId: string, doc: { name: string; size?: number }
     name: trimmed,
     ...(doc.size !== undefined ? { size: doc.size } : {}),
     registeredAt: new Date().toISOString(),
+    status: 'registered',
   };
   const entry = mutateEntry(kbId, (kb) => ({ ...kb, docs: [...(kb.docs ?? []), record] }));
   return entry ? record : null;
+}
+
+/**
+ * B-H1-KB：局部更新某文档（模拟流水线推进用）。
+ * 返回更新后的 doc；库或文档不存在返回 null。
+ */
+export function updateKbDocument(
+  kbId: string,
+  docId: string,
+  patch: Partial<Pick<KbDocument, 'status' | 'statusNote' | 'progress' | 'parsedChars' | 'chunks'>>,
+): KbDocument | null {
+  const kb = readKnowledge().find((item) => item.id === kbId);
+  if (!kb) return null;
+  const doc = (kb.docs ?? []).find((item) => item.id === docId);
+  if (!doc) return null;
+  const updated: KbDocument = { ...doc, ...patch };
+  mutateEntry(kbId, (entry) => ({
+    ...entry,
+    docs: (entry.docs ?? []).map((item) => (item.id === docId ? updated : item)),
+  }));
+  return updated;
+}
+
+/** B-H1-KB：追加模拟索引版本；version = (max 现有 version) + 1 */
+export function addKbIndexVersion(
+  kbId: string,
+  input: { docCount: number; chunkCount: number; provider: string; note?: string | null },
+): KbIndexVersion | null {
+  const existing = readKnowledge().find((kb) => kb.id === kbId);
+  if (!existing) return null;
+  const maxVersion = (existing.indexVersions ?? []).reduce(
+    (max, version) => Math.max(max, version.version),
+    0,
+  );
+  const record: KbIndexVersion = {
+    id: `idx-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    version: maxVersion + 1,
+    createdAt: new Date().toISOString(),
+    docCount: input.docCount,
+    chunkCount: input.chunkCount,
+    provider: input.provider,
+    ready: true,
+    ...(input.note !== undefined ? { note: input.note } : {}),
+  };
+  const entry = mutateEntry(kbId, (kb) => ({
+    ...kb,
+    indexVersions: [...(kb.indexVersions ?? []), record],
+  }));
+  return entry ? record : null;
+}
+
+/** B-H1-KB：UI 徽标/进度用汇总；纯函数，无副作用 */
+export interface KbPipelineSummary {
+  total: number;
+  ready: number;
+  error: number;
+  active: number;
+  status: 'empty' | 'registered' | 'processing' | 'ready' | 'error';
+}
+
+export function kbPipelineSummary(kb: KnowledgeEntry): KbPipelineSummary {
+  const docs = kb.docs ?? [];
+  const total = docs.length;
+  const ready = docs.filter((doc) => doc.status === 'ready').length;
+  const error = docs.filter((doc) => doc.status === 'error').length;
+  const active = docs.filter((doc) => doc.status === 'parsing' || doc.status === 'indexing').length;
+  let status: KbPipelineSummary['status'];
+  if (total === 0) status = 'empty';
+  else if (active > 0) status = 'processing';
+  else if (error > 0) status = 'error';
+  else if (ready === total) status = 'ready';
+  else status = 'registered';
+  return { total, ready, error, active, status };
 }
 
 export function removeKbDocument(kbId: string, docId: string): boolean {

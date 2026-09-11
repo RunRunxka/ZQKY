@@ -186,8 +186,11 @@ test('课程新建与导航显示：书籍可见、课程按参考隐藏', async
   await expect(page.getByText('还没有大纲')).toBeVisible();
 
   // 导航：书籍入口可见；课程入口按参考隐藏（路由可达）
+  // 项目导航根级默认展开（NavigationPreference）；仅在收起偏好下先展开，兼容两种状态
   await page.goto('/papers');
-  await page.getByRole('button', { name: '展开项目导航' }).click();
+  await expect(page.locator('.app-shell')).toBeVisible();
+  const expandNav = page.getByRole('button', { name: '展开项目导航' });
+  if (await expandNav.isVisible()) await expandNav.click();
   await expect(page.getByRole('button', { name: '书籍', exact: true })).toHaveCount(1);
   await expect(page.getByRole('button', { name: '课程', exact: true })).toHaveCount(0);
 });

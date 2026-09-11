@@ -4,11 +4,22 @@ import { test, expect, type Page } from '@playwright/test';
  * S5-B 教材资料库与笔记本浏览器回归：
  * 资料库列表（演示载入幂等/新建与重名拒绝/检索引擎页签）、
  * 资料库详情（登记文档仅元信息/外部来源登记与移除/索引显式空态/改名同步 URL/删除）、
+ * 知识库解析与索引显式模拟（登记后自动模拟解析/取消/失败重试/刷新恢复/旧数据兼容）、
  * 笔记本（默认笔记本归集/记录展开与编辑/移动与复制/新建/导出/删除笔记本记录回退/深链报错）。
  * 全部使用隔离上下文与显式种子数据，不读取真实用户数据。
  */
 
-const KB_DETAIL_SEED = [
+type KbSeed = {
+  id: string;
+  name: string;
+  description: string;
+  isDefault?: boolean;
+  docs?: Record<string, unknown>[];
+  sources?: Record<string, unknown>[];
+  indexVersions?: Record<string, unknown>[];
+};
+
+const KB_DETAIL_SEED: KbSeed[] = [
   {
     id: 'seed-kb-1',
     name: '课程标准库',
@@ -26,6 +37,49 @@ const KB_DETAIL_SEED = [
         name: '课程标准摘录二.md',
         size: 2048,
         registeredAt: '2026-09-08T01:05:00.000Z',
+      },
+    ],
+    sources: [],
+  },
+];
+
+/** 空库种子：登记后自动模拟解析会生成首个索引版本 */
+const KB_EMPTY_SEED: KbSeed[] = [
+  { id: 'seed-kb-empty', name: '空种子库', description: '空库种子', docs: [], sources: [] },
+];
+
+/** 缺 status/indexVersions 的旧数据种子：读取后应归一化为 registered */
+const KB_LEGACY_SEED: KbSeed[] = [
+  {
+    id: 'seed-kb-legacy',
+    name: '旧数据种子库',
+    description: '缺 status/indexVersions 的旧数据',
+    docs: [
+      {
+        id: 'legacy-doc-1',
+        name: '旧文档一.md',
+        size: 1000,
+        registeredAt: '2026-09-08T01:00:00.000Z',
+      },
+    ],
+    sources: [],
+  },
+];
+
+/** 进行中种子：进入页面时 resumeKbIngests 会重新推进 parsing 文档 */
+const KB_PARSING_SEED: KbSeed[] = [
+  {
+    id: 'seed-kb-parsing',
+    name: '进行中种子库',
+    description: '进行中解析的种子',
+    docs: [
+      {
+        id: 'parsing-doc-1',
+        name: '解析中文档.md',
+        size: 2048,
+        registeredAt: '2026-09-08T01:00:00.000Z',
+        status: 'parsing',
+        progress: { stage: '解析中', percent: 35 },
       },
     ],
     sources: [],
@@ -66,9 +120,12 @@ const RECORDS_SEED = [
   },
 ];
 
-async function seedKnowledge(page: Page, entries: typeof KB_DETAIL_SEED) {
+/** 仅首次写入种子：保证 reload 后不把进行中的模拟推进状态重置回初始种子 */
+async function seedKnowledge(page: Page, entries: KbSeed[]) {
   await page.addInitScript((value) => {
-    window.localStorage.setItem('zqky.replica.knowledge.v1', JSON.stringify(value));
+    if (!window.localStorage.getItem('zqky.replica.knowledge.v1')) {
+      window.localStorage.setItem('zqky.replica.knowledge.v1', JSON.stringify(value));
+    }
   }, entries);
 }
 
@@ -77,6 +134,14 @@ async function seedNotebookData(page: Page, notebooks: typeof NOTEBOOKS_SEED, re
     window.localStorage.setItem('zhiqikeyuan:notebooks', JSON.stringify(notebooks));
     window.localStorage.setItem('zhiqikeyuan:notebook-entries', JSON.stringify(records));
   }, { notebooks, records });
+}
+
+/**
+ * 分区导航按钮：限定在分区 nav 内并 exact 匹配。
+ * 避免与详情页工具条按钮（如「全部解析并索引」包含子串「索引」）产生 strict mode 歧义。
+ */
+function gotoSection(page: Page, name: string) {
+  return page.locator('nav[aria-label="知识库分区"]').getByRole('button', { name, exact: true });
 }
 
 test('教材资料库列表：演示载入幂等、新建与重名拒绝、检索引擎页签', async ({ page }) => {
@@ -133,24 +198,31 @@ test('知识库详情：登记文档、来源登记/移除、索引空态、改�
   await expect(page.getByRole('heading', { name: /课程标准库/ })).toBeVisible();
   await expect(page.getByText('默认库', { exact: true })).toBeVisible();
 
-  // 文档分区：种子文档带"未解析 · 未索引"标记
+  // 文档分区：种子文档无 status → 归一化为 registered，带"未解析 · 未索引"标记
   await expect(page.locator('.space-session-card')).toHaveCount(2);
   await expect(page.locator('.space-chip', { hasText: '未解析 · 未索引' })).toHaveCount(2);
 
-  // 登记文档（仅元信息，不解析）
-  await page.getByRole('button', { name: '登记文档' }).click();
+  // 索引分区：显式模拟说明 + 未产生版本时空态（在登记触发模拟前验证）
+  await gotoSection(page, '索引').click();
+  await expect(page.getByText('还没有索引版本')).toBeVisible();
+  await expect(page.locator('.space-empty', { hasText: '还没有索引版本' })).toContainText(
+    '真实向量检索服务未接入',
+  );
+
+  // 登记文档（仅元信息，登记后启动显式模拟解析）
+  await gotoSection(page, '登记文档').click();
   await page.getByLabel('选择要登记的文件').setInputFiles({
     name: '课堂练习-分数.md',
     mimeType: 'text/markdown',
     buffer: Buffer.from('# 练习'),
   });
   await expect(page.getByRole('status').filter({ hasText: '已登记 1 个文档' })).toBeVisible();
-  await page.getByRole('button', { name: '文档', exact: true }).click();
+  await gotoSection(page, '文档').click();
   await expect(page.locator('.space-session-card', { hasText: '课堂练习-分数.md' })).toBeVisible();
   await expect(page.locator('.space-session-card')).toHaveCount(3);
 
   // 外部来源：登记与移除（不同步抓取）
-  await page.getByRole('button', { name: '外部来源' }).click();
+  await gotoSection(page, '外部来源').click();
   await expect(page.getByText('还没有登记来源。')).toBeVisible();
   await page.getByLabel('来源类型').selectOption({ label: 'GitHub 仓库' });
   await page.getByLabel('来源地址').fill('https://github.com/owner/repo');
@@ -166,13 +238,8 @@ test('知识库详情：登记文档、来源登记/移除、索引空态、改�
   await expect(page.getByRole('status').filter({ hasText: '已移除来源登记' })).toBeVisible();
   await expect(page.locator('.space-session-card')).toHaveCount(0);
 
-  // 索引分区：显式空态说明未接入
-  await page.getByRole('button', { name: '索引' }).click();
-  await expect(page.getByText('还没有索引版本')).toBeVisible();
-  await expect(page.getByText(/索引\/重建依赖解析与向量检索服务/)).toBeVisible();
-
   // 设置分区：改名后 URL 同步替换，不落"不存在"页
-  await page.getByRole('button', { name: '设置' }).click();
+  await gotoSection(page, '设置').click();
   await page.getByLabel('知识库名称').fill('课程标准库（改）');
   await page.getByRole('button', { name: '保存修改' }).click();
   await expect(page).toHaveURL(
@@ -182,11 +249,140 @@ test('知识库详情：登记文档、来源登记/移除、索引空态、改�
   await expect(page.getByText('知识库「课程标准库」不存在')).toHaveCount(0);
 
   // 改名导航后页面重挂载回默认分区；重新进入设置删除
-  await page.getByRole('button', { name: '设置' }).click();
+  await gotoSection(page, '设置').click();
   page.once('dialog', (dialog) => void dialog.accept());
   await page.getByRole('button', { name: '删除知识库' }).click();
   await expect(page).toHaveURL(/\/knowledge-bases$/);
   await expect(page.getByText('还没有知识库')).toBeVisible();
+});
+
+test('知识库详情：登记后自动模拟解析到就绪并生成索引版本', async ({ page }) => {
+  await seedKnowledge(page, KB_EMPTY_SEED);
+  await page.goto(`/knowledge-bases/${encodeURIComponent('空种子库')}`);
+  await expect(page.getByRole('heading', { name: /空种子库/ })).toBeVisible();
+
+  // 空库：无版本
+  await gotoSection(page, '索引').click();
+  await expect(page.getByText('还没有索引版本')).toBeVisible();
+
+  // 登记一个文档 → 自动模拟解析
+  await gotoSection(page, '登记文档').click();
+  await page.getByLabel('选择要登记的文件').setInputFiles({
+    name: '自动解析样例.md',
+    mimeType: 'text/markdown',
+    buffer: Buffer.from('# 自动解析'),
+  });
+  // 立即回到文档分区，捕捉进行中的进度条（parsing/indexing 窗口）
+  await gotoSection(page, '文档').click();
+  await expect(page.locator('[role="progressbar"]').first()).toBeVisible({ timeout: 5000 });
+  await expect(page.getByRole('status').filter({ hasText: '已登记 1 个文档' })).toBeVisible();
+
+  // 进行中（解析中/索引中）→ 已解析 · 已索引
+  await expect(page.locator('.space-chip', { hasText: '已解析 · 已索引' })).toBeVisible({
+    timeout: 8000,
+  });
+
+  // 索引分区出现 1 个版本
+  await gotoSection(page, '索引').click();
+  await expect(page.locator('.space-session-card', { hasText: /版本 1/ })).toBeVisible();
+  await expect(page.getByText('还没有索引版本')).toHaveCount(0);
+});
+
+test('知识库详情：进行中取消解析进入处理失败并可重试', async ({ page }) => {
+  await seedKnowledge(page, KB_PARSING_SEED);
+  await page.goto(`/knowledge-bases/${encodeURIComponent('进行中种子库')}`);
+  const card = page.locator('.space-session-card', { hasText: '解析中文档.md' });
+  await expect(card.locator('.space-chip', { hasText: /解析中|索引中/ }).first()).toBeVisible();
+
+  // 进行中取消 → 处理失败 + 取消说明
+  await card.getByRole('button', { name: '取消解析 解析中文档.md', exact: true }).click();
+  await expect(card.locator('.space-chip', { hasText: '处理失败' })).toBeVisible();
+  await expect(card.getByText(/已取消解析/)).toBeVisible();
+
+  // 重试解析 → 成功
+  await card.getByRole('button', { name: '重试解析 解析中文档.md', exact: true }).click();
+  await expect(page.locator('.space-chip', { hasText: '已解析 · 已索引' })).toBeVisible({
+    timeout: 8000,
+  });
+});
+
+test('知识库详情：模拟失败后重试成功并生成索引版本', async ({ page }) => {
+  await seedKnowledge(page, KB_EMPTY_SEED);
+  await page.goto(`/knowledge-bases/${encodeURIComponent('空种子库')}`);
+
+  await gotoSection(page, '登记文档').click();
+  await page.getByLabel('模拟一次解析失败（演示失败与重试路径）').check();
+  await page.getByLabel('选择要登记的文件').setInputFiles({
+    name: '失败重试样例.md',
+    mimeType: 'text/markdown',
+    buffer: Buffer.from('# 失败重试'),
+  });
+  await expect(page.getByRole('status').filter({ hasText: '已登记 1 个文档' })).toBeVisible();
+  await gotoSection(page, '文档').click();
+
+  const card = page.locator('.space-session-card', { hasText: '失败重试样例.md' });
+  await expect(card.locator('.space-chip', { hasText: '处理失败' })).toBeVisible({ timeout: 8000 });
+  await expect(card.getByText(/解析失败/)).toBeVisible();
+
+  await card.getByRole('button', { name: '重试解析 失败重试样例.md', exact: true }).click();
+  await expect(card.locator('.space-chip', { hasText: '已解析 · 已索引' })).toBeVisible({
+    timeout: 8000,
+  });
+
+  await gotoSection(page, '索引').click();
+  await expect(page.locator('.space-session-card', { hasText: /版本 1/ })).toBeVisible();
+});
+
+test('知识库详情：登记后刷新可恢复进行中的模拟解析', async ({ page }) => {
+  await seedKnowledge(page, KB_EMPTY_SEED);
+  await page.goto(`/knowledge-bases/${encodeURIComponent('空种子库')}`);
+
+  await gotoSection(page, '登记文档').click();
+  await page.getByLabel('选择要登记的文件').setInputFiles({
+    name: '刷新恢复样例.md',
+    mimeType: 'text/markdown',
+    buffer: Buffer.from('# 刷新恢复'),
+  });
+  await expect(page.getByRole('status').filter({ hasText: '已登记 1 个文档' })).toBeVisible();
+  await gotoSection(page, '文档').click();
+
+  // 等到进入进行中再刷新，确保写入的进度快照为 parsing/indexing
+  await expect(page.locator('[role="progressbar"]').first()).toBeVisible({ timeout: 6000 });
+  await page.reload();
+
+  // resumeKbIngests 挂载恢复，不永久卡在进行中
+  await expect(page.locator('.space-chip', { hasText: '已解析 · 已索引' })).toBeVisible({
+    timeout: 8000,
+  });
+});
+
+test('知识库详情：缺 status/indexVersions 的旧种子正常渲染', async ({ page }) => {
+  await seedKnowledge(page, KB_LEGACY_SEED);
+  await page.goto(`/knowledge-bases/${encodeURIComponent('旧数据种子库')}`);
+  await expect(page.getByRole('heading', { name: /旧数据种子库/ })).toBeVisible();
+  await expect(page.locator('.space-chip', { hasText: '未解析 · 未索引' })).toHaveCount(1);
+  await expect(page.locator('.space-banner.error')).toHaveCount(0);
+
+  await gotoSection(page, '索引').click();
+  await expect(page.getByText('还没有索引版本')).toBeVisible();
+});
+
+test('知识库详情：目录数据损坏时如实报错且不覆盖原数据', async ({ page }) => {
+  const corrupted = '{ this is not valid json';
+  await page.addInitScript((value) => {
+    window.localStorage.setItem('zqky.replica.knowledge.v1', value);
+  }, corrupted);
+  await page.goto(`/knowledge-bases/${encodeURIComponent('任意库')}`);
+
+  // 读取失败必须显示错误，而不是停在“正在读取知识库…”
+  await expect(page.locator('.space-banner.error')).toContainText('原数据已保留');
+  await expect(page.getByText('正在读取知识库…')).toHaveCount(0);
+
+  // 原数据未被覆盖
+  const stored = await page.evaluate(() =>
+    window.localStorage.getItem('zqky.replica.knowledge.v1'),
+  );
+  expect(stored).toBe(corrupted);
 });
 
 test('笔记本：默认笔记本、记录展开/编辑/移动复制、新建/导出/删除回退', async ({ page }) => {

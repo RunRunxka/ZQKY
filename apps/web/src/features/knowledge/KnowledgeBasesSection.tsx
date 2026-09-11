@@ -15,10 +15,12 @@ import {
 import { Modal } from '@/components/ui/Modal';
 import {
   createKnowledge,
+  kbPipelineSummary,
   loadDemoKnowledge,
   KnowledgeValidationError,
   readKnowledge,
   subscribeKnowledge,
+  type KbPipelineSummary,
   type KnowledgeEntry,
 } from '@/services/knowledge-catalog';
 
@@ -27,8 +29,26 @@ function docCount(kb: KnowledgeEntry): number {
   return kb.docs?.length ?? 0;
 }
 
-function statusOf(kb: KnowledgeEntry): { label: string; tone: 'emerald' | 'gray' } {
-  return docCount(kb) > 0 ? { label: '已登记文档', tone: 'emerald' } : { label: '空', tone: 'gray' };
+const PIPELINE_LABEL: Record<KbPipelineSummary['status'], string> = {
+  empty: '空',
+  registered: '待处理',
+  processing: '处理中',
+  ready: '已就绪',
+  error: '有失败',
+};
+
+/** 复用现有 space-chip 变体（green 表就绪），tone 为空串时用默认样式 */
+const PIPELINE_TONE: Record<KbPipelineSummary['status'], string> = {
+  empty: '',
+  registered: '',
+  processing: 'blue',
+  ready: 'green',
+  error: 'amber',
+};
+
+function statusOf(kb: KnowledgeEntry): { label: string; tone: string } {
+  const summary = kbPipelineSummary(kb);
+  return { label: PIPELINE_LABEL[summary.status], tone: PIPELINE_TONE[summary.status] };
 }
 
 /** 检索引擎分组（静态演示：目标项目无真实 RAG 服务部署） */
@@ -134,7 +154,7 @@ export function KnowledgeBasesSection() {
         </div>
 
         <div className="space-banner info" role="note">
-          解析与索引服务未接入：文档登记仅保存名称与大小，不解析内容、不建索引；聊天中的知识来源是范围声明，不执行真实检索。
+          解析与索引为显式模拟：真实文件内容读取与向量检索服务未接入，模拟产物为本地结构化样例并全程标注；聊天中的知识来源是范围声明，不执行真实检索。
         </div>
         {notice && (
           <div className="space-banner info" role="status">
@@ -190,9 +210,7 @@ export function KnowledgeBasesSection() {
                       </div>
                       <p className="space-card-body">{kb.description || '（无简介）'}</p>
                       <div className="space-meta-row">
-                        <span className={`space-chip ${status.tone === 'emerald' ? 'green' : ''}`}>
-                          {status.label}
-                        </span>
+                        <span className={`space-chip ${status.tone}`}>{status.label}</span>
                         <span className="space-chip">{docCount(kb)} 个文档</span>
                         <span className="space-chip">本地目录</span>
                       </div>
