@@ -2,6 +2,7 @@ import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { WorkspaceShell } from './WorkspaceShell';
+import { NavigationPreference, useNavigationPreference } from './NavigationPreference';
 import { navigation } from '@/services/navigation';
 
 const { push } = vi.hoisted(() => ({ push: vi.fn() }));
@@ -12,9 +13,11 @@ vi.mock('next/navigation', () => ({
 
 function renderShell() {
   return render(
-    <WorkspaceShell pageTitle="教案工作台">
-      <main>页面内容</main>
-    </WorkspaceShell>,
+    <NavigationPreference>
+      <WorkspaceShell pageTitle="教案工作台">
+        <main>页面内容</main>
+      </WorkspaceShell>
+    </NavigationPreference>,
   );
 }
 
@@ -76,5 +79,51 @@ describe('WorkspaceShell 导航', () => {
     fireEvent(dialog, new Event('cancel', { bubbles: false, cancelable: true }));
     expect(screen.queryByRole('dialog', { name: '功能导航' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '打开功能导航' })).toHaveFocus();
+  });
+
+  it('切换业务壳首帧沿用折叠状态，不先展开再读取存储', () => {
+    const renders: boolean[] = [];
+    function RouteShell({ route }: { route: string }) {
+      renders.push(useNavigationPreference().expanded);
+      return (
+        <WorkspaceShell pageTitle={route}>
+          <main>{route}</main>
+        </WorkspaceShell>
+      );
+    }
+    const ui = render(
+      <NavigationPreference>
+        <RouteShell key="chat" route="学习问答" />
+      </NavigationPreference>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: '收起项目导航' }));
+    renders.length = 0;
+    ui.rerender(
+      <NavigationPreference>
+        <RouteShell key="lesson" route="教案工作台" />
+      </NavigationPreference>,
+    );
+    expect(renders.length).toBeGreaterThan(0);
+    expect(renders.every((value) => !value)).toBe(true);
+    expect(screen.getByRole('button', { name: '展开项目导航' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+  });
+
+  it('存储写入失败仍能折叠并跨业务壳保留，不共享其他根实例状态', () => {
+    const storage = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('quota');
+    });
+    try {
+      const ui = renderShell();
+      fireEvent.click(screen.getByRole('button', { name: '收起项目导航' }));
+      expect(screen.getByRole('button', { name: '展开项目导航' })).toBeInTheDocument();
+      ui.unmount();
+      renderShell();
+      expect(screen.getByRole('button', { name: '收起项目导航' })).toBeInTheDocument();
+    } finally {
+      storage.mockRestore();
+    }
   });
 });

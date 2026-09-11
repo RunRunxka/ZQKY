@@ -1,4 +1,8 @@
-# 2026-09-09 后端凭证文件（优先于下方历史进程凭证说明）
+# 接口与模块边界
+
+更新：2026-09-10。本文为当前契约；进度与验收只维护在 [STATUS](STATUS.md)。前端 TypeScript 服务与真实 HTTP 接口分别列明。
+
+## 后端凭证文件
 
 - 正式 FastAPI 在应用启动生命周期读取 `apps/api/.env`；仅凭证项使用此文件，不将其读入前端。导入 `create_app` 不读取用户凭证；测试注入临时目录和 SecretStore。
 - 设置页原创建/编辑连接 API 不变，非空 `apiKey` 写入 `.env` 的 `ZQKY_API_KEY_<连接ID>`；空值仍表示保持原凭证。每个连接独立映射，模型共用所属连接的 Key。写入采用临时文件、flush/fsync、原子替换，保留其他行；删除连接会移除对应文件项。
@@ -7,22 +11,20 @@
 - 文件读写失败返回 `CREDENTIAL_STORAGE_ERROR`，不回显凭证/底层异常。更新先校验 revision 与字段，凭证写失败不提交本次连接配置变更。没有数据库或第二套业务后端。
 - 主聊天仅实例化真实服务、真实 IndexedDB 会话库；移除模拟生成与免密伪模型。SSE 事件名与三协议适配保持原契约。
 
-# 2026-09-06 问答与模型目录增补（历史契约说明）
+## 模型目录与会话约定
 
 - `GET /api/v1/model-catalog`：原子读取 `{revision, defaultChatProfileId, connections, profiles}`。连接只返回 `hasCredential`；模型包含 `params` 和关联连接可用状态。
-- `GET /api/v1/model-connections/{id}/models`：后端使用已保存连接和进程凭证发现列表，返回 `{models:[{id}]}`。只读、去重，不写入模型或推断能力。区分认证、超时、接口不支持及格式错误；空数组为成功但无可选项。
+- `GET /api/v1/model-connections/{id}/models`：后端使用已保存连接和服务端凭证发现列表，返回 `{models:[{id}]}`。只读、去重，不写入模型或推断能力。区分认证、超时、接口不支持及格式错误；空数组为成功但无可选项。
 - `PUT /api/v1/model-defaults`：`{modelProfileId:string|null, expectedRevision:number}`，返回更新目录；版本过期为 409 `REVISION_CONFLICT`。
 - 模型创建/修改新增 `params`，只接受 `supportedParams` 已声明且数值有效的参数；上下文/输出上限修改接受 null 清空。人工提交 verified 会降为 claimed。
 - 既有连接/模型 PUT 保留 `expectedRevision`，DELETE 新增可选同名 query 参数；新前端删除携带版本。旧调用方可继续使用原接口。新增记录为追加，不覆盖已有模型，同连接相同 modelId 拒绝重复。
 - `POST /api/v1/model-profiles/{id}/test` 新增 `stream:boolean`；流式结果额外包含 `stream:{chunks,firstTextMs,lastTextMs}`。普通/流式证据分别写入 chat/stream；版本变更后旧测试不覆盖新配置。该测试端点返回最终测试报告，不是聊天 SSE。
-- 聊天仍使用 `POST /api/v1/chat/stream`，已保存参数作为默认值。上游连接建立后 start，随后 text/usage/end；未正常终止、空回答或协议失败为脱敏错误。主动停止逐层关闭资源。
+- 聊天使用 `POST /api/v1/chat/stream`，已保存参数作为默认值。上游连接建立后 start，随后 text/reasoning/usage/end；未正常终止、空回答或协议失败为脱敏错误。主动停止逐层关闭资源。
 - IndexedDB 会话增加 `schemaVersion:1`、revision、draft、modelProfileId；消息记录 modelProfileId、modelLabel、replyToId、superseded。旧记录读取补默认值。保存/删除在同一事务检查预期 revision，事务提交才返回成功。
 
-配置及历史均不存密钥。JSON 配置与数据库边界不变。行为与验收见 [review 记录](archive/PROJECT_HISTORY.md#source-4)。下方 D02–D04 条目作为历史说明保留。
+模型 JSON 配置及聊天历史不存密钥；凭证仅在服务端 SecretStore 和忽略的 .env 文件。历史实现依据见 [review 记录](archive/PROJECT_HISTORY.md#source-4)。
 
-# 接口与模块边界
-
-## 当前实际可调用能力
+## 教案与公共壳 TypeScript 接口
 
 以下是前端TypeScript接口，不是已部署HTTP服务。
 
@@ -43,7 +45,7 @@
 
 默认仅使用规则填充和本地存储，页面不请求后台。可选 `HttpFillProvider` 已保留，但没有默认启用。
 
-## 后端已实现接口（D02–D04，2026-09-06）
+## 后端已实现 HTTP 接口
 
 FastAPI 服务位于 apps/api，仅监听 127.0.0.1:8000；浏览器经 Next 同源代理访问 `/api/v1/*`（apps/web/next.config.ts rewrites，目标可用 `ZQKY_API_ORIGIN` 覆盖）。启动与测试见 apps/api/README.md，根脚本 `npm run setup:api / dev:api / test:api`。
 
@@ -51,15 +53,18 @@ FastAPI 服务位于 apps/api，仅监听 127.0.0.1:8000；浏览器经 Next 同
 | --- | --- | --- |
 | GET `/api/v1/health` | 已实现 | 返回 `status/service/apiVersion/time`，不含配置内容 |
 | GET `/api/v1/capabilities` | 已实现 | 能力清单；`model_settings`、`chat` 为 `ready`，组卷/模板/教材库/题库/RAG/Agent/MCP/Skills 为 `planned` |
-| GET/POST `/api/v1/model-connections` | 已实现（D03） | 连接列表/创建；创建时 `apiKey` 只写入进程内 SecretStore，响应仅含 `hasCredential` |
+| GET/POST `/api/v1/model-connections` | 已实现 | 连接列表/创建；非空 `apiKey` 经 SecretStore 持久化到 .env，响应只返回凭证状态和变量名，不回显 Key |
+| GET `/api/v1/model-catalog` | 已实现 | 一次读取带 revision 的连接/模型/默认模型目录 |
+| GET `/api/v1/model-connections/{id}/models` | 已实现 | 使用服务端凭证发现上游模型；不修改目录 |
+| PUT `/api/v1/model-defaults` | 已实现 | 更新默认模型，expectedRevision 冲突返回409 |
 | PUT/DELETE `/api/v1/model-connections/{id}` | 已实现（D03） | 更新（支持 `expectedRevision`，冲突 409）；被模型配置引用时删除返回 409 `CONFLICT` |
 | GET/POST `/api/v1/model-profiles` | 已实现（D03） | 模型配置（模型 ID、上下文/输出上限、`supportedParams`、能力证据）列表/创建 |
 | PUT/DELETE `/api/v1/model-profiles/{id}` | 已实现（D03） | 更新/删除；能力证据取值 `verified/claimed/unknown` |
 | POST `/api/v1/model-profiles/{id}/test` | 已实现（D03） | 真实小额上游请求；无论上游成败都返回 200 `ok:true/false`，成功后 `chat` 证据更新为 `verified` |
 | POST `/api/v1/chat/stream` | 已实现（D04） | 规范化 SSE 流式对话（见下方事件协议）；客户端断开时取消上游连接 |
-| 其余 `/api/v1/*` | 已挂载占位 | 501 `FEATURE_NOT_IMPLEMENTED`，前端不得自动调用 |
+| 其余 `/api/v1/*` | 通配占位 | GET/POST/PUT/DELETE/PATCH 返回501 `FEATURE_NOT_IMPLEMENTED`，不能假成功 |
 
-错误信封统一为 `code、message、requestId、retryable、details?`（details 只含脱敏展示内容），并附 `X-Request-Id` 头。已实测行为：非允许 Origin → 403 `FORBIDDEN_ORIGIN`；非回环 Host → 400 `INVALID_HOST`；未知路径 → 404 `NOT_FOUND`；参数错误 → 422 `INVALID_REQUEST`。后端停止时 Next 代理返回 500 纯文本，前端 `services/api-client.ts` 将其与网络失败统一转换为 `ApiError('SERVICE_UNAVAILABLE')`，不会出现假成功。
+错误信封统一为 `code、message、requestId、retryable、details?`（details 只含脱敏展示内容），并附 `X-Request-Id` 头。约定：非允许 Origin → 403 `FORBIDDEN_ORIGIN`；非回环 Host → 400 `INVALID_HOST`；非 `/api/v1/*` 的未知路径 → 404 `NOT_FOUND`；参数错误 → 422 `INVALID_REQUEST`。后端停止时 Next 代理返回500纯文本，前端 `services/api-client.ts` 转为 `ApiError('SERVICE_UNAVAILABLE')`。本次与历史验收范围以 STATUS 为准。
 
 ### POST /api/v1/chat/stream 事件协议（D04 已实现）
 
@@ -80,13 +85,12 @@ FastAPI 服务位于 apps/api，仅监听 127.0.0.1:8000；浏览器经 Next 同
 
 已锁定的错误码（随任务扩充）：MODEL_NOT_CONFIGURED、UNSUPPORTED_PROTOCOL、UPSTREAM_AUTH_FAILED、RATE_LIMITED、CONTEXT_TOO_LARGE、UPSTREAM_TIMEOUT、FEATURE_NOT_IMPLEMENTED、TEMPLATE_UNSUPPORTED、RENDER_FAILED、REVISION_CONFLICT、SERVICE_UNAVAILABLE、REQUEST_FAILED、INVALID_REQUEST、INVALID_HOST、FORBIDDEN_ORIGIN、NOT_FOUND、METHOD_NOT_ALLOWED、EMPTY_RESPONSE、STREAM_INTERRUPTED。
 
-## 后续 HTTP 草案（未实现）
+## 后续 HTTP 草案（未实现，不作当前调用契约）
 
-下表按 IMPLEMENTATION_PLAN 的阶段标注；实现前这些路由实际返回 501，下表仍是设计而非现状。
+下表保留历史 D 阶段映射；实际排期以 STATUS 为准。这些 `/api/v1/*` 草案由通配占位返回501，不代表具体业务接口已实现。
 
 | 方法和路径 | 用途 | 实施阶段 |
 | --- | --- | --- |
-| POST `/api/v1/chat/stream` | 规范化 SSE 对话 | D04 |
 | POST `/api/v1/templates/inspect` | DOCX 上传检查与临时上传 ID | D05–D07 |
 | POST/GET `/api/v1/exports`、cancel、artifacts | 渲染任务与受控下载 | D07 |
 | POST `/api/v1/lesson-plans/fill` | 生成填充建议 | 随 D08 评估 |
@@ -97,6 +101,6 @@ FastAPI 服务位于 apps/api，仅监听 127.0.0.1:8000；浏览器经 Next 同
 
 ## 后端接入前置条件
 
-确定用户和文档ID、鉴权、服务端版本号、任务状态、数据保留及错误规范后，再建立OpenAPI并生成HTTP类型。当前前端契约（`apps/web/src/contracts/api.ts`）为手写对齐，没有声明“类型已由OpenAPI生成”；health 与 capabilities 为真实实现，其余路由不提供假成功响应。
+后续多用户/任务服务接入前，先确定用户和文档ID、鉴权、版本冲突、任务状态、数据保留及错误规范。FastAPI 已有接口由服务端声明；当前前端契约（`apps/web/src/contracts/api.ts`）为手写对齐，未宣称由 OpenAPI 生成。health、capabilities、模型管理和聊天为实际实现；其他功能以实际路由登记和能力状态为准。
 
 资料、问答、练习、笔记等全项目接口仍参考原项目规划，待具体任务再细化。模型密钥与数据库连接仅放服务端，浏览器不接收供应商凭证。

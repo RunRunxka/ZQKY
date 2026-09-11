@@ -1,8 +1,8 @@
 # 智启课源
 
-以 **智启课源品牌**复刻 `F:\DeepTutor` **v1.6.5 / 42fab3cf429a1fbf36b257ab8d116a3814964202** 的全部产品前端页面、AI 交互和原有动画。正式工程在 `apps/web`，参考仓库只读。
+以 **智启课源品牌**完成全部产品前端、AI 交互和参考动画。**全站视觉以当前学习问答为准**；各业务功能和信息结构参考只读 `F:\DeepTutor` **v1.6.5 / 42fab3cf429a1fbf36b257ab8d116a3814964202**。正式前端在 `apps/web`，真实后端在 `apps/api`。
 
-**当前未达到最终交付标准。** S5-D 建立了文本阅读切片，但本次独立审查发现数据丢失及交互缺陷；先修复，再补齐参考交互。S5-E～I、S6～S8 仍未完成。批次测试通过不等于完整复刻验收通过。
+**整体尚未完成。** 主聊天/模型已有真实接口，教案为本地规则；阅读、书籍、写作等已有部分本地或显式模拟流程；伙伴、精通、记忆、账户和完整设置仍待补齐。实际进度、已知差距、完整计划与本批验证统一查看 [STATUS](docs/STATUS.md)，历史测试不代表当前整体验收。
 
 ## 文档入口
 
@@ -11,12 +11,13 @@
 | [开发规则](AGENTS.md) | 工作范围、数据保护和工程规则 |
 | [项目说明](docs/PROJECT_GUIDE.md) | 当前目标、技术结构、数据流、允许差异、Git 恢复方法 |
 | [当前进度](docs/STATUS.md) | 唯一进度与交接入口，当前缺陷、验证边界、下一动作 |
-| [下一会话执行提示词](docs/replica/NEXT_SESSION_START.md) | 从当前断点连续实施到最终验收 |
-| [阅读代码审查](docs/reviews/READING_REVIEW_2026-09-08.md) | 本次源码依据、复现与修复验收要求 |
+| [新会话启动文本](docs/replica/NEXT_SESSION_START.md) | 接手步骤，不复制进度与计划、不扩大当次授权 |
+| [阅读代码审查](docs/reviews/READING_REVIEW_2026-09-08.md) | 历史首败、修复和局部验收证据 |
+| [多智能体协作提案](docs/MULTI_AGENT_COLLABORATION_PROPOSAL.md) | 可复用任务卡与职责，不是第二份项目计划 |
 | [页面矩阵](docs/replica/PAGE_MATRIX.md) · [AI 交互矩阵](docs/replica/AI_INTERACTIONS.md) · [动画矩阵](docs/replica/MOTION_MATRIX.md) | 逐项验收，不另抄阶段统计 |
 | [路由索引](docs/ROUTES.md) · [后端 API](docs/API.md) | 运行时入口和真实接口 |
 
-旧 HANDOFF、TASKS、规划和 review 已合并到 `docs/archive/`，原文件映射与 SHA256 见 [归档清单](docs/archive/MANIFEST.json)。其中旧提示词、旧“已完成”结论不是当前指令。原始 `项目规划/` 和 Word/模板原件保留。
+旧 HANDOFF、TASKS、规划和 review 已合并到 `docs/archive/`；2026-09-10 又将旧进度流水、续做长提示、有界差距审计合入原归档，映射与 SHA256 见 [归档清单](docs/archive/MANIFEST.json)。旧提示词和旧“已完成”结论不是当前指令。原始 `项目规划/` 和 Word/模板原件保留。
 
 ## 本地启动
 
@@ -34,4 +35,4 @@ npm.cmd run dev
 
 根命令：`npm.cmd run typecheck`、`npm.cmd run lint`、`npm.cmd run test:unit`、`npm.cmd run build`、`npm.cmd run test:e2e`。typecheck/build 顺序执行；浏览器检查使用隔离上下文与 5174，每批输出目录唯一。本机 Node 26 测试兼容命令和独立审查用例见 [审查报告](docs/reviews/READING_REVIEW_2026-09-08.md)。
 
-本地 Git 基线 `b8cf71f`，标签 `checkpoint/pre-reading-review-20260908`；它是审查前快照，**不是合格发布版**。分支 `codex/replica-review-20260908`。以后按“检查 → 小批改动 → 验证 → 明确范围提交”推进，不自动推送。Git 管代码和文档，不备份浏览器数据库或运行时凭证。
+当前分支与本批起点见 [STATUS](docs/STATUS.md)，最新提交以 `git log -5 --oneline` 为准。旧标签 `checkpoint/pre-reading-review-20260908` 是带已知缺陷的历史快照，不是发布版。按“检查 → 小批改动 → 验证 → 明确范围提交”推进，不自动推送。Git 不备份浏览器数据库或运行时凭证。

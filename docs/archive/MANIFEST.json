@@ -155,5 +155,31 @@
       "archivedTextSha256": "0a29a772a45bd275a8e9ef64a668e102696beed31243b09d0b16316c4fc231cd"
     }
   ],
-  "hashNotes": "sha256 and bytes describe the original working-tree file; archivedTextSha256 describes its UTF-8 text after LF normalization. Content matches the baseline after newline normalization."
+  "hashNotes": "sha256 and bytes describe the original working-tree file; archivedTextSha256 describes its UTF-8 text after LF normalization. Content matches the baseline after newline normalization.",
+  "consolidation20260910": {
+    "files": [
+      {
+        "sha256": "5f81748fb288429ec14c23f3a32ed669eff4a62cf906c13ce61c556730b5325c",
+        "source": "docs/STATUS.md",
+        "destination": "docs/archive/DELIVERY_HISTORY.md",
+        "anchor": "snapshot-status-20260910",
+        "normalizedSha256": "5f81748fb288429ec14c23f3a32ed669eff4a62cf906c13ce61c556730b5325c"
+      },
+      {
+        "sha256": "838973fcf289ddab0c2cb3148a1bb12b7b1e71857acda5f4921aa584774e6c54",
+        "source": "docs/replica/NEXT_SESSION_START.md",
+        "destination": "docs/archive/PROMPT_HISTORY.md",
+        "anchor": "snapshot-next-session-20260910",
+        "normalizedSha256": "838973fcf289ddab0c2cb3148a1bb12b7b1e71857acda5f4921aa584774e6c54"
+      },
+      {
+        "sha256": "c99889f87588796d61cdd21c0a58810aeb1ee395275fb080adc42f09c6d66e5e",
+        "source": "docs/replica/GAP_AUDIT_2026-09-09.md",
+        "destination": "docs/archive/REVIEW_HISTORY.md",
+        "anchor": "snapshot-gap-audit-20260909",
+        "normalizedSha256": "c99889f87588796d61cdd21c0a58810aeb1ee395275fb080adc42f09c6d66e5e"
+      }
+    ],
+    "baseline": "6e3f642"
+  }
 }

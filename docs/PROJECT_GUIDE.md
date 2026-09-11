@@ -1,31 +1,33 @@
 # 项目目标与工程说明
 
-更新：2026-09-08。取代旧 ARCHITECTURE、DECISIONS、BASELINE 的现行说明；历史原文见 [项目历史](archive/PROJECT_HISTORY.md)。当前进度只维护在 [STATUS](STATUS.md)。
+更新：2026-09-10。取代旧 ARCHITECTURE、DECISIONS、BASELINE 的现行说明；历史原文见 [项目历史](archive/PROJECT_HISTORY.md)。当前进度、完整阶段计划与下一动作只维护在 [STATUS](STATUS.md)。
 
 ## 1. 唯一目标
 
-目标仓库 `H:\备份xuexi\智启课源`；只读参考 `F:\DeepTutor`，固定 **v1.6.5 / 42fab3cf429a1fbf36b257ab8d116a3814964202**。本轮已核对参考 HEAD 与干净工作区，后续不自动更新参考版本。
+目标仓库 `H:\备份xuexi\智启课源`；功能、业务信息结构与动画参考 `F:\DeepTutor`，固定 **v1.6.5 / 42fab3cf429a1fbf36b257ab8d116a3814964202**，只读且不自动更新版本。历史核对不替代后续每批的源码确认。
 
-用智启课源名称和品牌资产，完成参考**全部产品前端页面、AI 交互、原有动画**。保留既有教案编辑、草稿恢复、Word/PDF 导出、模型管理、真实 SSE 问答及本地数据。当前首页 `/` → `/chat`，教案保留独立入口 `/lesson-plans`。
+用智启课源名称和品牌资产，完成参考**全部产品前端页面、AI 交互、原有动画**。全站首页、列表、详情、弹窗和公共控件以当前学习问答为视觉基准，保留蓝色主题；各模块保留完成业务所需的信息结构。保留既有教案编辑、草稿恢复、Word/PDF 导出、模型管理、真实 SSE 问答及本地数据。首页 `/` → `/chat`，教案独立入口 `/lesson-plans`。
 
-**允许模拟的是新服务的执行，不是删减前端。** 配置、输入、加载、流式/阶段、工具、等待用户、产物、失败、取消、重试、恢复、保存、跨页联动，凡参考存在的相关状态都要完整。无服务不构成“前端不适用”的理由；通过同一接口注入 mock/real，真实不可用时明确表达，不静默回退模拟。
+**允许模拟的是其他模块新服务的执行，不是删减前端；主聊天除外，生产只能调用真实服务。** 配置、输入、加载、流式/阶段、工具、等待用户、产物、失败、取消、重试、恢复、保存、跨页联动，凡参考存在的相关状态都要完整。服务边界显式注入，真实失败不回退模拟。主聊天复杂能力待真实通道接入后启用，不能把测试替身重新放回生产。
 
-“只做文本材料”“书籍只做部分 block”“同步模拟所以省略暂停/恢复”“练习答案不保存”是**待补齐差距**，不是用户批准的永久缩减。解析、安装、联网、转录、鉴权未接入时，保留前端状态和服务契约，演示结果明确标注。
+只完成部分材料视图、block 呈现或省略暂停/恢复，均不是用户批准的永久缩减；是否已有修复看 STATUS 与源码，不在目标文档重复保存待办。解析、安装、联网、转录、鉴权未接入时，保留前端状态和服务契约，演示结果明确标注。
 
 ## 2. 批准差异与统一规则
 
-2026-09-09 本次追加指令优先于下面历史模拟计划：全站使用学习问答同款蓝色侧栏；学习记录独立位于导航与聊天之间；桌面折叠，手机模态抽屉。主聊天删除模拟模式、模拟服务与伪模型，生产仅走真实 FastAPI；原模拟浏览器数据库不清除，其他模块演示功能不变。凭证允许通过后端 `.env` 持久化；推理展示/折叠以固定 `F:\DeepTutor` 的 `AssistantActivity` 为依据，修复 AI 正文公式展示。此次不扩展其他业务能力。
+2026-09-10 最新决定：**所有板块整体界面以当前学习问答为准**，覆盖旧“主页外观仅限聊天”的范围说明。跨页全局侧栏共用尺寸、图标、排版、折叠状态和动画；学习记录独立位于导航与聊天之间。手机导航使用带遮罩、关闭入口和焦点管理的抽屉。统一外观不能删减模块状态或改变原业务功能；本次先修侧栏并完成交接，其余全站内容对齐列入 STATUS 计划。
 
-2026-09-09 用户指定学习问答 `/chat`、`/chat/[sessionId]` 改为复刻本地 `C:\Users\96022\Documents\Codex\2026-09-09\wo\outputs\deeptutor-page` 主页：保留智启课源蓝色、名称与现有功能，其余布局、对应图标与动画以该包为依据。该覆盖仅用于学习问答，不改变其他模块的固定参考目标。来源、SHA256 与许可见 [本批资源说明](licenses/deeptutor-chat/README.md)。因此主输入区采用该包的 912px 固定内容宽度，不再使用旧 S2 的欢迎 768→会话 960 宽度变化；业务和数据契约不变。
+2026-09-09 已批准服务差异继续有效：主聊天删除模拟模式、模拟服务与伪模型，生产仅走真实 FastAPI；原模拟浏览器数据库不清除，其他模块演示功能保留。凭证允许通过后端 `.env` 持久化；推理展示/折叠以固定 `F:\DeepTutor` 的 `AssistantActivity` 为依据，AI 正文与推理支持公式。
+
+视觉来源顺序：当前学习问答实现 → 其来源包 `C:\Users\96022\Documents\Codex\2026-09-09\wo\outputs\deeptutor-page` → 固定 DeepTutor 的模块专属功能/交互/动画。来源、SHA256 与许可见 [资源说明](licenses/deeptutor-chat/README.md)。聊天输入区采用 912px 内容上限，不恢复旧 S2 的欢迎 768→会话 960 扩宽；其他业务工作区按内容需要布局，不把聊天宽度硬套到编辑器或阅读器。
 
 | 项目 | 要求 |
 | --- | --- |
 | 品牌 | 智启课源；参考交互不等于沿用参考品牌 |
 | MCP/Skills | 唯一管理实现 `/settings#mcp`、`/settings#skills` |
 | 兼容地址 | `/mcp`、`/skills`、`/space/mcp`、`/space/skills` 只重定向设置 |
-| 聊天扩展 | 保留选择及管理跳转，订阅同一 extension-catalog |
+| 聊天扩展 | 目录和管理只维护一套；当前未接入执行项明确不可用，不能把保留组件写成可用能力 |
 | 真实问答 | 保留 FastAPI、SSE、模型目录，不改为参考后端协议 |
-| 运行隔离 | 模拟显式选择，真实失败不转模拟；轮次快照固定，历史不重放 |
+| 运行隔离 | 主聊天仅真实执行；其他模块演示明确标识；真实失败不转模拟，轮次快照固定，历史不重放 |
 | 教案 | 原功能与数据兼容，冻结旧版和 Word 原件不改 |
 | 动画 | 逐组件核对属性、时长、缓动、退出与中断；原版没有则不添加 |
 | 减少动画 | 系统偏好与本地设置均生效，保留反馈和焦点；不加第二套动画库 |
@@ -62,12 +64,12 @@ _work/ test-results/      本机日志、截图、trace、备份（Git 忽略）
 
 | 数据 | 当前实现 | 保持的关系 |
 | --- | --- | --- |
-| 聊天 | chat-repository，IndexedDB `zhiqikeyuan-chat` / `zhiqikeyuan-chat-mock` | 模式隔离、revision、会话草稿、轮次快照、串行 flush、终态守卫 |
+| 聊天 | chat-repository，当前仅 IndexedDB `zhiqikeyuan-chat`；旧 `zhiqikeyuan-chat-mock` 留存但不读写 | revision、会话草稿、轮次快照、串行 flush、终态守卫；不得清旧数据解决兼容问题 |
 | MCP/Skills | extension-catalog | 设置修改更新聊天候选，历史快照不变 |
 | 人设/知识 | persona-catalog / knowledge-catalog | 业务页与聊天共享 id 和目录，失效引用提示 |
 | 题库/笔记 | space-store / notebook-store | 聊天保存、列表、编辑、作答记录与导出同源 |
 | 书籍/课程 | books-store / courses-store | 章节、进度和课程资源引用关联；删除资源显示不可用 |
-| 阅读 | reading-store 五组 localStorage 键 | 材料/集合/批注/书签/会话；发到笔记本真实本地写入；当前缺陷见 review |
+| 阅读 | reading-store 本地仓储 | 材料/集合/批注/书签/会话及会话草稿；发到笔记本真实本地写入；当前问题见 STATUS，历史首败见 review |
 | 教案 | 模块内 repository/store | 原格式兼容，读取失败不覆盖，编辑/恢复/导出可回归 |
 | 模型 | 既有 model-catalog / 后端 | 配置、普通调用、流式供应商验收分开，凭证不进入 Git |
 
@@ -89,15 +91,14 @@ _work/ test-results/      本机日志、截图、trace、备份（Git 忽略）
 git log --oneline --decorate -8
 git diff checkpoint/pre-reading-review-20260908 -- docs
 git show checkpoint/pre-reading-review-20260908:docs/replica/HANDOFF.md
-# 工作区干净时，新建恢复分支查看原基线，保留当前分支：
-git switch -c codex/recovery-reading checkpoint/pre-reading-review-20260908
-git switch codex/replica-review-20260908
+# 在共享工作区只读查看，不切换其他实例正在使用的分支：
+git show checkpoint/pre-reading-review-20260908:README.md
 ```
 
 撤销明确提交优先 `git revert <提交>`，不用 `reset --hard`、`clean -fd` 或批量覆盖。备份包在 `_work/git-backups/`，可 `git bundle verify <文件>` 校验。**Git/bundle 不含浏览器 localStorage/IndexedDB、忽略的运行数据与凭证**；数据迁移前另做可控导出与兼容验证，测试只用隔离数据。
 
 ## 7. 文档规则
 
-README 做入口，PROJECT_GUIDE 管目标/架构/决定，STATUS 管进度/下一动作，NEXT_SESSION_START 管续做合同。保留 API、ROUTES、三矩阵和独立证据 review；不再维护多份 TASKS/HANDOFF/FINAL 提示词。
+README 做入口，PROJECT_GUIDE 管目标/架构/决定，STATUS 管进度/完整计划/下一动作，NEXT_SESSION_START 仅提供接手步骤。API、ROUTES 管现行契约，三矩阵管条目证据，独立 review 保留首败与修复依据。MULTI_AGENT_COLLABORATION_PROPOSAL 是可复用协作模板，不是项目进度副本。不再维护多份 TASKS/HANDOFF/FINAL 提示词。
 
-19 份旧文档合并为 [项目历史](archive/PROJECT_HISTORY.md)、[交付历史](archive/DELIVERY_HISTORY.md)、[审查历史](archive/REVIEW_HISTORY.md)、[提示词历史](archive/PROMPT_HISTORY.md)。[清单](archive/MANIFEST.json) 保留原路径、原始与规范化 SHA256；内容保留，换行按仓库规范转为 LF。旧相对链接以原文件位置解释，完整文件可从基线 Git 读取。原始规划/参考图/Word 保留。修复记录追加同批 review，不为每次重跑新造方案。
+19 份旧文档已合并为 [项目历史](archive/PROJECT_HISTORY.md)、[交付历史](archive/DELIVERY_HISTORY.md)、[审查历史](archive/REVIEW_HISTORY.md)、[提示词历史](archive/PROMPT_HISTORY.md)。2026-09-10 将旧 STATUS、旧 NEXT_SESSION_START、GAP_AUDIT 原文继续合入后三份归档，撤销 GAP_AUDIT 的独立状态维护入口。修复记录仍追加原 review，当前任务只更新 STATUS。清单保留原路径、原始与规范化 SHA256；旧相对链接以原文件目录解释，完整文件可从来源 Git 读取。原始规划/参考图/Word 保留。

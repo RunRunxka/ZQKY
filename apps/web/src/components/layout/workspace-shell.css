@@ -36,6 +36,9 @@
   .app-shell.unified-shell.nav-expanded {
     --navigation-width: 220px;
   }
+  .app-shell.unified-shell[data-navigation-ready='true'] {
+    transition: grid-template-columns 200ms;
+  }
   .unified-shell .global-nav {
     grid-row: 1 / -1;
     grid-column: 1;
@@ -82,7 +85,7 @@
   .unified-shell .nav-group-label {
     display: none;
   }
-  .unified-shell .global-nav-item {
+  .unified-shell :is(.global-nav, .mobile-nav-panel) .global-nav-item {
     width: 100%;
     height: 36px;
     min-height: 36px;
@@ -122,7 +125,8 @@
     height: 24px;
   }
 
-  .unified-shell .global-nav {
+  .unified-shell .global-nav,
+  .unified-shell .mobile-nav-panel {
     font-family: Arial, 'Microsoft YaHei', sans-serif;
   }
   .unified-shell .global-nav .nav-toggle {

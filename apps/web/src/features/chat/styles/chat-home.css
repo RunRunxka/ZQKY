@@ -16,13 +16,8 @@
 }
 .app-shell.chat-home-shell:not(.lesson-workspace) {
   --chat-serif: 'Chat Lora', 'Songti SC', STSong, 'Noto Serif SC', SimSun, Georgia, serif;
-  grid-template-columns: 56px minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
   font-family: 'Chat Geist', Arial, 'Microsoft YaHei', sans-serif;
-  transition: grid-template-columns 200ms;
-}
-.app-shell.chat-home-shell.nav-expanded:not(.lesson-workspace) {
-  grid-template-columns: 220px minmax(0, 1fr);
 }
 .chat-home-shell > .app-header {
   display: none;

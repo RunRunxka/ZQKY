@@ -4,7 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { BookOpen, ChevronRight, Menu, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import { groupMainNavigation, navigation } from '@/services/navigation';
 import type { NavigationItem } from '@/contracts/navigation';
-import './workspace-shell.css';
+import { useNavigationPreference } from './NavigationPreference';
 
 const mainGroups = groupMainNavigation();
 const bottomItems = navigation.filter((n) => n.position === 'bottom');
@@ -62,7 +62,7 @@ export function WorkspaceShell({
   beforeNavigate?: () => Promise<void>;
   onNavigationError?: (message: string) => void;
 }) {
-  const [expanded, setExpanded] = useState(sidebarLayout);
+  const { expanded, ready, toggle } = useNavigationPreference();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const mobileNavRef = useRef<HTMLDialogElement>(null);
   const mobileTriggerRef = useRef<HTMLButtonElement>(null);
@@ -90,14 +90,6 @@ export function WorkspaceShell({
       trigger?.focus();
     };
   }, [mobileNavOpen]);
-
-  useEffect(() => {
-    try {
-      setExpanded(localStorage.getItem('zhiqikeyuan:nav-expanded') !== 'false');
-    } catch {
-      /* 本地偏好不可用时保持展开 */
-    }
-  }, []);
 
   async function navigate(path: string) {
     if (path === pathname) return;
@@ -129,7 +121,10 @@ export function WorkspaceShell({
   }
 
   return (
-    <div className={`app-shell unified-shell ${className} ${expanded ? 'nav-expanded' : ''}`}>
+    <div
+      className={`app-shell unified-shell ${className} ${expanded ? 'nav-expanded' : ''}`}
+      data-navigation-ready={ready}
+    >
       <header className="app-header">
         <button
           className="mobile-nav-toggle"
@@ -174,14 +169,7 @@ export function WorkspaceShell({
           className="nav-toggle"
           aria-label={expanded ? '收起项目导航' : '展开项目导航'}
           aria-expanded={expanded}
-          onClick={() => {
-            setExpanded(!expanded);
-            try {
-              localStorage.setItem('zhiqikeyuan:nav-expanded', String(!expanded));
-            } catch {
-              /* 偏好保存失败不阻止折叠 */
-            }
-          }}
+          onClick={toggle}
         >
           {expanded ? <PanelLeftClose size={19} /> : <PanelLeftOpen size={19} />}
         </button>

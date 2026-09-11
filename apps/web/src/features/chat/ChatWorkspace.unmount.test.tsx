@@ -3,6 +3,7 @@ import { StrictMode } from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { ChatWorkspace } from './ChatWorkspace';
+import { NavigationPreference } from '@/components/layout/NavigationPreference';
 
 // Canvas 动画由真实浏览器回归验收；此处只测会话卸载生命周期。
 vi.mock('./vendor/thinking-orbs', () => ({ ThinkingOrb: () => null }));
@@ -93,7 +94,11 @@ async function sendWithTestUpstream() {
 describe('聊天页面卸载清理（审查 R1）', () => {
   it('客户端卸载立即取消仍在生成的请求，不依赖 pagehide', async () => {
     mockMatchMedia();
-    const ui = render(<ChatWorkspace />);
+    const ui = render(
+      <NavigationPreference>
+        <ChatWorkspace />
+      </NavigationPreference>,
+    );
     await sendWithTestUpstream();
     const signal = probe.signal!;
     ui.unmount();
@@ -107,7 +112,9 @@ describe('聊天页面卸载清理（审查 R1）', () => {
     mockMatchMedia();
     const ui = render(
       <StrictMode>
-        <ChatWorkspace />
+        <NavigationPreference>
+          <ChatWorkspace />
+        </NavigationPreference>
       </StrictMode>,
     );
     await sendWithTestUpstream();
