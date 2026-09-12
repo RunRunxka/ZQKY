@@ -37,4 +37,4 @@ PDF使用标准A4、网页预览的紧凑布局和字号；长文本保守分片
 
 真实AI、多教案列表、云端存储、账号、协同冲突、任意模板上传、图片/公式富文本、服务端一键PDF下载均未实现。Word/WPS实际打开后的长文分页和细节排版仍需人工验收。
 
-本轮验证结果记录在根 `docs/QA_REPORT.md`。原归档中15:00前后的截图/报告是迁移前基准，不作为Next.js验收证据。
+当前进度与最近验证只看 [STATUS](../../STATUS.md)，逐页功能和视觉状态看 [页面矩阵](../../replica/PAGE_MATRIX.md)。旧 `docs/QA_REPORT.md` 已合入 [项目历史 source-5](../../archive/PROJECT_HISTORY.md#source-5)，只作迁移前追溯，不作为当前 Next.js 验收证据。
