@@ -1,0 +1,106 @@
+{
+  "drawers": [
+    {
+      "route": "/chat",
+      "focus": {
+        "tag": "BUTTON",
+        "label": "学习问答",
+        "text": "学习问答"
+      },
+      "shiftTabToLast": true,
+      "tabToFirst": true,
+      "escapeClosed": true,
+      "escapeReturned": true,
+      "overlayClosed": true,
+      "overlayReturned": true
+    },
+    {
+      "route": "/courses",
+      "focus": {
+        "tag": "BUTTON",
+        "label": "关闭功能导航",
+        "text": ""
+      },
+      "shiftTabToLast": true,
+      "tabToFirst": true,
+      "escapeClosed": true,
+      "escapeReturned": true,
+      "overlayClosed": true,
+      "overlayReturned": true
+    },
+    {
+      "route": "/notebooks",
+      "focus": {
+        "tag": "BUTTON",
+        "label": "关闭功能导航",
+        "text": ""
+      },
+      "shiftTabToLast": true,
+      "tabToFirst": true,
+      "escapeClosed": true,
+      "escapeReturned": true,
+      "overlayClosed": true,
+      "overlayReturned": true
+    },
+    {
+      "route": "/whisper",
+      "focus": {
+        "tag": "BUTTON",
+        "label": "关闭功能导航",
+        "text": ""
+      },
+      "shiftTabToLast": true,
+      "tabToFirst": true,
+      "escapeClosed": true,
+      "escapeReturned": true,
+      "overlayClosed": true,
+      "overlayReturned": true
+    }
+  ],
+  "activeKnowledge": [
+    {
+      "width": 1920,
+      "reducedMotion": "no-preference",
+      "screenshot": "knowledge-progress-1920-no-preference.png",
+      "horizontalOverflow": false,
+      "animations": [],
+      "transition": "0.2s",
+      "progress": "35",
+      "explicitSimulation": true,
+      "terminalReady": true
+    },
+    {
+      "width": 1920,
+      "reducedMotion": "reduce",
+      "screenshot": "knowledge-progress-1920-reduce.png",
+      "horizontalOverflow": false,
+      "animations": [],
+      "transition": "1e-05s",
+      "progress": "35",
+      "explicitSimulation": true,
+      "terminalReady": true
+    },
+    {
+      "width": 390,
+      "reducedMotion": "no-preference",
+      "screenshot": "knowledge-progress-390-no-preference.png",
+      "horizontalOverflow": false,
+      "animations": [],
+      "transition": "0.2s",
+      "progress": "35",
+      "explicitSimulation": true,
+      "terminalReady": true
+    },
+    {
+      "width": 390,
+      "reducedMotion": "reduce",
+      "screenshot": "knowledge-progress-390-reduce.png",
+      "horizontalOverflow": false,
+      "animations": [],
+      "transition": "1e-05s",
+      "progress": "35",
+      "explicitSimulation": true,
+      "terminalReady": true
+    }
+  ]
+}

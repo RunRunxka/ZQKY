@@ -1,0 +1,1397 @@
+{
+  "pages": [
+    {
+      "route": "/chat",
+      "status": 200,
+      "screenshot": "chat-1440.png",
+      "title": "智启课源 · 学习问答",
+      "viewport": 1440,
+      "scrollWidth": 1440,
+      "horizontalOverflow": false,
+      "navigationVisible": true,
+      "navigationWidth": 220,
+      "currentItems": [
+        "学习问答"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgb(230, 237, 252)"
+      },
+      "headingText": "从一个问题，开始理解。",
+      "headingStyle": {
+        "font": "\"Chat Geist\", Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "32px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [],
+      "overflowingElements": []
+    },
+    {
+      "route": "/lesson-plans",
+      "status": 200,
+      "screenshot": "lesson-plans-1440.png",
+      "title": "智启课源 · 教案工作台",
+      "viewport": 1440,
+      "scrollWidth": 1440,
+      "horizontalOverflow": false,
+      "navigationVisible": true,
+      "navigationWidth": 220,
+      "currentItems": [
+        "教案工作台"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "把教学思路，写进课堂。",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "19px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "editor-panel"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/settings",
+      "status": 200,
+      "screenshot": "settings-1440.png",
+      "title": "智启课源 · 设置",
+      "viewport": 1440,
+      "scrollWidth": 1440,
+      "horizontalOverflow": false,
+      "navigationVisible": true,
+      "navigationWidth": 220,
+      "currentItems": [
+        "设置"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "设置",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "model-settings"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/space",
+      "status": 200,
+      "screenshot": "space-1440.png",
+      "title": "智启课源 · 学习空间",
+      "viewport": 1440,
+      "scrollWidth": 1440,
+      "horizontalOverflow": false,
+      "navigationVisible": true,
+      "navigationWidth": 220,
+      "currentItems": [
+        "学习空间"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "学习空间",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/knowledge-bases",
+      "status": 200,
+      "screenshot": "knowledge-bases-1440.png",
+      "title": "智启课源 · 教材资料库",
+      "viewport": 1440,
+      "scrollWidth": 1440,
+      "horizontalOverflow": false,
+      "navigationVisible": true,
+      "navigationWidth": 220,
+      "currentItems": [
+        "教材资料库"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "教材资料库",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/books",
+      "status": 200,
+      "screenshot": "books-1440.png",
+      "title": "智启课源 · 书籍",
+      "viewport": 1440,
+      "scrollWidth": 1440,
+      "horizontalOverflow": false,
+      "navigationVisible": true,
+      "navigationWidth": 220,
+      "currentItems": [
+        "书籍"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "书籍",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/courses",
+      "status": 200,
+      "screenshot": "courses-1440.png",
+      "title": "智启课源 · 课程",
+      "viewport": 1440,
+      "scrollWidth": 1440,
+      "horizontalOverflow": false,
+      "navigationVisible": true,
+      "navigationWidth": 220,
+      "currentItems": [],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "课程",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/notebooks",
+      "status": 200,
+      "screenshot": "notebooks-1440.png",
+      "title": "智启课源 · 笔记本",
+      "viewport": 1440,
+      "scrollWidth": 1440,
+      "horizontalOverflow": false,
+      "navigationVisible": true,
+      "navigationWidth": 220,
+      "currentItems": [],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "笔记本",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/reading",
+      "status": 200,
+      "screenshot": "reading-1440.png",
+      "title": "智启课源 · 沉浸阅读",
+      "viewport": 1440,
+      "scrollWidth": 1440,
+      "horizontalOverflow": false,
+      "navigationVisible": true,
+      "navigationWidth": 220,
+      "currentItems": [
+        "沉浸阅读"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "沉浸阅读",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/co-writer",
+      "status": 200,
+      "screenshot": "co-writer-1440.png",
+      "title": "智启课源 · 协同写作",
+      "viewport": 1440,
+      "scrollWidth": 1440,
+      "horizontalOverflow": false,
+      "navigationVisible": true,
+      "navigationWidth": 220,
+      "currentItems": [
+        "协同写作"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "协同写作",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/whisper",
+      "status": 200,
+      "screenshot": "whisper-1440.png",
+      "title": "智启课源 · Whisper 密室",
+      "viewport": 1440,
+      "scrollWidth": 1440,
+      "horizontalOverflow": false,
+      "navigationVisible": true,
+      "navigationWidth": 220,
+      "currentItems": [],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "Whisper 密室",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/acceptance-404",
+      "status": 404,
+      "screenshot": "acceptance-404-1440.png",
+      "title": "智启课源",
+      "viewport": 1440,
+      "scrollWidth": 1440,
+      "horizontalOverflow": false,
+      "navigationVisible": false,
+      "navigationWidth": null,
+      "currentItems": [],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": null,
+      "headingText": "页面不存在",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "26px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "status-page"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/chat",
+      "status": 200,
+      "screenshot": "chat-1920.png",
+      "title": "智启课源 · 学习问答",
+      "viewport": 1920,
+      "scrollWidth": 1920,
+      "horizontalOverflow": false,
+      "navigationVisible": true,
+      "navigationWidth": 220,
+      "currentItems": [
+        "学习问答"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgb(230, 237, 252)"
+      },
+      "headingText": "从一个问题，开始理解。",
+      "headingStyle": {
+        "font": "\"Chat Geist\", Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "32px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [],
+      "overflowingElements": []
+    },
+    {
+      "route": "/lesson-plans",
+      "status": 200,
+      "screenshot": "lesson-plans-1920.png",
+      "title": "智启课源 · 教案工作台",
+      "viewport": 1920,
+      "scrollWidth": 1920,
+      "horizontalOverflow": false,
+      "navigationVisible": true,
+      "navigationWidth": 220,
+      "currentItems": [
+        "教案工作台"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "把教学思路，写进课堂。",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "19px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "editor-panel"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/settings",
+      "status": 200,
+      "screenshot": "settings-1920.png",
+      "title": "智启课源 · 设置",
+      "viewport": 1920,
+      "scrollWidth": 1920,
+      "horizontalOverflow": false,
+      "navigationVisible": true,
+      "navigationWidth": 220,
+      "currentItems": [
+        "设置"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "设置",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "model-settings"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/space",
+      "status": 200,
+      "screenshot": "space-1920.png",
+      "title": "智启课源 · 学习空间",
+      "viewport": 1920,
+      "scrollWidth": 1920,
+      "horizontalOverflow": false,
+      "navigationVisible": true,
+      "navigationWidth": 220,
+      "currentItems": [
+        "学习空间"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "学习空间",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/knowledge-bases",
+      "status": 200,
+      "screenshot": "knowledge-bases-1920.png",
+      "title": "智启课源 · 教材资料库",
+      "viewport": 1920,
+      "scrollWidth": 1920,
+      "horizontalOverflow": false,
+      "navigationVisible": true,
+      "navigationWidth": 220,
+      "currentItems": [
+        "教材资料库"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "教材资料库",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/books",
+      "status": 200,
+      "screenshot": "books-1920.png",
+      "title": "智启课源 · 书籍",
+      "viewport": 1920,
+      "scrollWidth": 1920,
+      "horizontalOverflow": false,
+      "navigationVisible": true,
+      "navigationWidth": 220,
+      "currentItems": [
+        "书籍"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "书籍",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/courses",
+      "status": 200,
+      "screenshot": "courses-1920.png",
+      "title": "智启课源 · 课程",
+      "viewport": 1920,
+      "scrollWidth": 1920,
+      "horizontalOverflow": false,
+      "navigationVisible": true,
+      "navigationWidth": 220,
+      "currentItems": [],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "课程",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/notebooks",
+      "status": 200,
+      "screenshot": "notebooks-1920.png",
+      "title": "智启课源 · 笔记本",
+      "viewport": 1920,
+      "scrollWidth": 1920,
+      "horizontalOverflow": false,
+      "navigationVisible": true,
+      "navigationWidth": 220,
+      "currentItems": [],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "笔记本",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/reading",
+      "status": 200,
+      "screenshot": "reading-1920.png",
+      "title": "智启课源 · 沉浸阅读",
+      "viewport": 1920,
+      "scrollWidth": 1920,
+      "horizontalOverflow": false,
+      "navigationVisible": true,
+      "navigationWidth": 220,
+      "currentItems": [
+        "沉浸阅读"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "沉浸阅读",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/co-writer",
+      "status": 200,
+      "screenshot": "co-writer-1920.png",
+      "title": "智启课源 · 协同写作",
+      "viewport": 1920,
+      "scrollWidth": 1920,
+      "horizontalOverflow": false,
+      "navigationVisible": true,
+      "navigationWidth": 220,
+      "currentItems": [
+        "协同写作"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "协同写作",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/whisper",
+      "status": 200,
+      "screenshot": "whisper-1920.png",
+      "title": "智启课源 · Whisper 密室",
+      "viewport": 1920,
+      "scrollWidth": 1920,
+      "horizontalOverflow": false,
+      "navigationVisible": true,
+      "navigationWidth": 220,
+      "currentItems": [],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "Whisper 密室",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/acceptance-404",
+      "status": 404,
+      "screenshot": "acceptance-404-1920.png",
+      "title": "智启课源",
+      "viewport": 1920,
+      "scrollWidth": 1920,
+      "horizontalOverflow": false,
+      "navigationVisible": false,
+      "navigationWidth": null,
+      "currentItems": [],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": null,
+      "headingText": "页面不存在",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "26px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "status-page"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/chat",
+      "status": 200,
+      "screenshot": "chat-390.png",
+      "title": "智启课源 · 学习问答",
+      "viewport": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": false,
+      "navigationVisible": false,
+      "navigationWidth": 0,
+      "currentItems": [
+        "学习问答"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgb(230, 237, 252)"
+      },
+      "headingText": "从一个问题，开始理解。",
+      "headingStyle": {
+        "font": "\"Chat Geist\", Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "25px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [],
+      "overflowingElements": []
+    },
+    {
+      "route": "/lesson-plans",
+      "status": 200,
+      "screenshot": "lesson-plans-390.png",
+      "title": "智启课源 · 教案工作台",
+      "viewport": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": false,
+      "navigationVisible": false,
+      "navigationWidth": 0,
+      "currentItems": [
+        "教案工作台"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "把教学思路，写进课堂。",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "21px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "editor-panel"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/settings",
+      "status": 200,
+      "screenshot": "settings-390.png",
+      "title": "智启课源 · 设置",
+      "viewport": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": false,
+      "navigationVisible": false,
+      "navigationWidth": 0,
+      "currentItems": [
+        "设置"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "设置",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "model-settings"
+      ],
+      "overflowingElements": [
+        {
+          "tag": "A",
+          "class": "",
+          "right": 415.609375
+        },
+        {
+          "tag": "A",
+          "class": "",
+          "right": 475.609375
+        }
+      ]
+    },
+    {
+      "route": "/space",
+      "status": 200,
+      "screenshot": "space-390.png",
+      "title": "智启课源 · 学习空间",
+      "viewport": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": false,
+      "navigationVisible": false,
+      "navigationWidth": 0,
+      "currentItems": [
+        "学习空间"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "学习空间",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/knowledge-bases",
+      "status": 200,
+      "screenshot": "knowledge-bases-390.png",
+      "title": "智启课源 · 教材资料库",
+      "viewport": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": false,
+      "navigationVisible": false,
+      "navigationWidth": 0,
+      "currentItems": [
+        "教材资料库"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "教材资料库",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/books",
+      "status": 200,
+      "screenshot": "books-390.png",
+      "title": "智启课源 · 书籍",
+      "viewport": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": false,
+      "navigationVisible": false,
+      "navigationWidth": 0,
+      "currentItems": [
+        "书籍"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "书籍",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/courses",
+      "status": 200,
+      "screenshot": "courses-390.png",
+      "title": "智启课源 · 课程",
+      "viewport": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": false,
+      "navigationVisible": false,
+      "navigationWidth": 0,
+      "currentItems": [],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "课程",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/notebooks",
+      "status": 200,
+      "screenshot": "notebooks-390.png",
+      "title": "智启课源 · 笔记本",
+      "viewport": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": false,
+      "navigationVisible": false,
+      "navigationWidth": 0,
+      "currentItems": [],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "笔记本",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/reading",
+      "status": 200,
+      "screenshot": "reading-390.png",
+      "title": "智启课源 · 沉浸阅读",
+      "viewport": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": false,
+      "navigationVisible": false,
+      "navigationWidth": 0,
+      "currentItems": [
+        "沉浸阅读"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "沉浸阅读",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/co-writer",
+      "status": 200,
+      "screenshot": "co-writer-390.png",
+      "title": "智启课源 · 协同写作",
+      "viewport": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": false,
+      "navigationVisible": false,
+      "navigationWidth": 0,
+      "currentItems": [
+        "协同写作"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "协同写作",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/whisper",
+      "status": 200,
+      "screenshot": "whisper-390.png",
+      "title": "智启课源 · Whisper 密室",
+      "viewport": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": false,
+      "navigationVisible": false,
+      "navigationWidth": 0,
+      "currentItems": [],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "Whisper 密室",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": []
+    },
+    {
+      "route": "/acceptance-404",
+      "status": 404,
+      "screenshot": "acceptance-404-390.png",
+      "title": "智启课源",
+      "viewport": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": false,
+      "navigationVisible": false,
+      "navigationWidth": null,
+      "currentItems": [],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": null,
+      "headingText": "页面不存在",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "26px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "status-page"
+      ],
+      "overflowingElements": []
+    }
+  ],
+  "drawers": [
+    {
+      "route": "/chat",
+      "current": [
+        "学习问答"
+      ],
+      "focused": "学习问答",
+      "focusInside": true,
+      "backdrop": "rgba(22, 35, 60, 0.4)",
+      "transform": "none",
+      "closeReturnedFocus": true
+    },
+    {
+      "route": "/courses",
+      "current": [],
+      "focused": "",
+      "focusInside": true,
+      "backdrop": "rgba(22, 35, 60, 0.4)",
+      "transform": "none",
+      "closeReturnedFocus": true
+    },
+    {
+      "route": "/notebooks",
+      "current": [],
+      "focused": "",
+      "focusInside": true,
+      "backdrop": "rgba(22, 35, 60, 0.4)",
+      "transform": "none",
+      "closeReturnedFocus": true
+    },
+    {
+      "route": "/whisper",
+      "current": [],
+      "focused": "",
+      "focusInside": true,
+      "backdrop": "rgba(22, 35, 60, 0.4)",
+      "transform": "none",
+      "closeReturnedFocus": true
+    }
+  ],
+  "knowledge": [
+    {
+      "width": 1920,
+      "reducedMotion": "no-preference",
+      "screenshot": "knowledge-detail-1920-no-preference.png",
+      "title": "智启课源 · 知识库详情",
+      "viewport": 1920,
+      "scrollWidth": 1920,
+      "horizontalOverflow": false,
+      "navigationVisible": true,
+      "navigationWidth": 220,
+      "currentItems": [
+        "教材资料库"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "视觉验收种子库知识库状态：有失败",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": [],
+      "motion": {
+        "systemReduced": false,
+        "transition": "0.2s",
+        "bodyText": "智启课源\n学习问答\n教案工作台\n智能组卷\n规划中\n协同写作\n沉浸阅读\n学习空间\n教材资料库\n书籍\n题库\n规划中\n模板中心\n规划中\nAgent 任务\n规划中\n设置\n教\n返回资料库\n设为默认库\n视觉验收种子库知识库状态：有失败\n\n隔离浏览器中的显式模拟解析状态\n\n解析与索引为显式模拟：真实文件内容读取与向量检索服务未接入，模拟产物为本地结构化样例并全程标注，不代表真实服务结果。\n文档\n登记文档\n外部来源\n索引\n设置\n共 2 个文档 · 就绪 1 · 处理中 0 · 失败 1（解析/索引为显式模拟）\n全部解析并索引\n重试失败项\n已解析课程资料.md\n已解析 · 已索引\n2.0 KB\n登记于 2026/9/12 09:00:00\n失败状态样本.md\n处理失败\n重试解析\n1.0 KB\n登记于 2026/9/12 09:00:00"
+      }
+    },
+    {
+      "width": 1920,
+      "reducedMotion": "reduce",
+      "screenshot": "knowledge-detail-1920-reduce.png",
+      "title": "智启课源 · 知识库详情",
+      "viewport": 1920,
+      "scrollWidth": 1920,
+      "horizontalOverflow": false,
+      "navigationVisible": true,
+      "navigationWidth": 220,
+      "currentItems": [
+        "教材资料库"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "视觉验收种子库知识库状态：有失败",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": [],
+      "motion": {
+        "systemReduced": true,
+        "transition": "1e-05s",
+        "bodyText": "智启课源\n学习问答\n教案工作台\n智能组卷\n规划中\n协同写作\n沉浸阅读\n学习空间\n教材资料库\n书籍\n题库\n规划中\n模板中心\n规划中\nAgent 任务\n规划中\n设置\n教\n返回资料库\n设为默认库\n视觉验收种子库知识库状态：有失败\n\n隔离浏览器中的显式模拟解析状态\n\n解析与索引为显式模拟：真实文件内容读取与向量检索服务未接入，模拟产物为本地结构化样例并全程标注，不代表真实服务结果。\n文档\n登记文档\n外部来源\n索引\n设置\n共 2 个文档 · 就绪 1 · 处理中 0 · 失败 1（解析/索引为显式模拟）\n全部解析并索引\n重试失败项\n已解析课程资料.md\n已解析 · 已索引\n2.0 KB\n登记于 2026/9/12 09:00:00\n失败状态样本.md\n处理失败\n重试解析\n1.0 KB\n登记于 2026/9/12 09:00:00"
+      }
+    },
+    {
+      "width": 390,
+      "reducedMotion": "no-preference",
+      "screenshot": "knowledge-detail-390-no-preference.png",
+      "title": "智启课源 · 知识库详情",
+      "viewport": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": false,
+      "navigationVisible": false,
+      "navigationWidth": 0,
+      "currentItems": [
+        "教材资料库"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "视觉验收种子库知识库状态：有失败",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": [],
+      "motion": {
+        "systemReduced": false,
+        "transition": "0.2s",
+        "bodyText": "智启课源\n返回资料库\n设为默认库\n视觉验收种子库知识库状态：有失败\n\n隔离浏览器中的显式模拟解析状态\n\n解析与索引为显式模拟：真实文件内容读取与向量检索服务未接入，模拟产物为本地结构化样例并全程标注，不代表真实服务结果。\n文档\n登记文档\n外部来源\n索引\n设置\n共 2 个文档 · 就绪 1 · 处理中 0 · 失败 1（解析/索引为显式模拟）\n全部解析并索引\n重试失败项\n已解析课程资料.md\n已解析 · 已索引\n2.0 KB\n登记于 2026/9/12 09:00:00\n失败状态样本.md\n处理失败\n重试解析\n1.0 KB\n登记于 2026/9/12 09:00:00"
+      }
+    },
+    {
+      "width": 390,
+      "reducedMotion": "reduce",
+      "screenshot": "knowledge-detail-390-reduce.png",
+      "title": "智启课源 · 知识库详情",
+      "viewport": 390,
+      "scrollWidth": 390,
+      "horizontalOverflow": false,
+      "navigationVisible": false,
+      "navigationWidth": 0,
+      "currentItems": [
+        "教材资料库"
+      ],
+      "bodyStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "navStyle": {
+        "font": "Arial, \"Microsoft YaHei\", sans-serif",
+        "fontSize": "14px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "headingText": "视觉验收种子库知识库状态：有失败",
+      "headingStyle": {
+        "font": "\"Segoe UI\", \"Microsoft YaHei UI\", \"Microsoft YaHei\", sans-serif",
+        "fontSize": "22px",
+        "background": "rgba(0, 0, 0, 0)"
+      },
+      "pageShells": [
+        "space-content"
+      ],
+      "overflowingElements": [],
+      "motion": {
+        "systemReduced": true,
+        "transition": "1e-05s",
+        "bodyText": "智启课源\n返回资料库\n设为默认库\n视觉验收种子库知识库状态：有失败\n\n隔离浏览器中的显式模拟解析状态\n\n解析与索引为显式模拟：真实文件内容读取与向量检索服务未接入，模拟产物为本地结构化样例并全程标注，不代表真实服务结果。\n文档\n登记文档\n外部来源\n索引\n设置\n共 2 个文档 · 就绪 1 · 处理中 0 · 失败 1（解析/索引为显式模拟）\n全部解析并索引\n重试失败项\n已解析课程资料.md\n已解析 · 已索引\n2.0 KB\n登记于 2026/9/12 09:00:00\n失败状态样本.md\n处理失败\n重试解析\n1.0 KB\n登记于 2026/9/12 09:00:00"
+      }
+    }
+  ],
+  "errors": [],
+  "blockedWrites": []
+}

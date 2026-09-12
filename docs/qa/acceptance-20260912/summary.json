@@ -1,0 +1,297 @@
+{
+  "date": "2026-09-12",
+  "candidate": "99aea55",
+  "productCode": "21d9898",
+  "browser": "Playwright 1.58.2 / msedge",
+  "e2e": {
+    "startTime": "2026-09-12T13:36:59.458Z",
+    "duration": 90959.282,
+    "expected": 80,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "realProvider": {
+    "hostname": "api.deepseek.com",
+    "protocol": "openai-chat",
+    "originalMaxOutputTokens": null,
+    "effectiveDefaultMaxOutputTokens": 2048,
+    "discoveryAndProfileTests": [
+      {
+        "test": "real-model-discovery",
+        "protocol": "openai-chat",
+        "httpStatus": 200,
+        "models": [
+          "deepseek-flash",
+          "deepseek-v4-pro"
+        ],
+        "errorCode": null
+      },
+      {
+        "test": "ordinary-profile",
+        "model": "deepseek-v4-pro",
+        "httpStatus": 200,
+        "elapsedMs": 2148,
+        "result": {
+          "ok": true,
+          "text": "连接正常。",
+          "finishReason": "stop",
+          "usage": {
+            "inputTokens": 90,
+            "outputTokens": 40
+          },
+          "latencyMs": 2144
+        }
+      },
+      {
+        "test": "stream-profile",
+        "model": "deepseek-v4-pro",
+        "httpStatus": 200,
+        "elapsedMs": 2355,
+        "result": {
+          "ok": true,
+          "text": "连接正常。",
+          "finishReason": "stop",
+          "usage": {
+            "inputTokens": 90,
+            "outputTokens": 39
+          },
+          "latencyMs": 2351,
+          "stream": {
+            "chunks": 3,
+            "firstTextMs": 2323,
+            "lastTextMs": 2351
+          }
+        }
+      },
+      {
+        "test": "ordinary-profile",
+        "model": "deepseek-flash",
+        "httpStatus": 200,
+        "elapsedMs": 1249,
+        "result": {
+          "ok": true,
+          "text": "连接正常。",
+          "finishReason": "stop",
+          "usage": {
+            "inputTokens": 37,
+            "outputTokens": 32
+          },
+          "latencyMs": 1246
+        }
+      },
+      {
+        "test": "stream-profile",
+        "model": "deepseek-flash",
+        "httpStatus": 200,
+        "elapsedMs": 1046,
+        "result": {
+          "ok": true,
+          "text": "连接正常。",
+          "finishReason": "stop",
+          "usage": {
+            "inputTokens": 37,
+            "outputTokens": 32
+          },
+          "latencyMs": 1043,
+          "stream": {
+            "chunks": 3,
+            "firstTextMs": 1042,
+            "lastTextMs": 1042
+          }
+        }
+      }
+    ],
+    "originalBudgetLongAnswer": [
+      {
+        "test": "real-stream-deepseek-v4-pro",
+        "status": "fail",
+        "error": "expect(received).toMatch(expected)\n\nExpected pattern: /[\\u4e00-\\u9fff]/\nReceived string:  \"\"\n\nCall Log:\n- Timeout 120000ms exceeded while waiting on the predicate",
+        "metrics": {
+          "httpStatus": 200,
+          "textDeltas": 0,
+          "reasoningDeltas": 2048,
+          "firstReasoningMs": 1237,
+          "errorEvent": true,
+          "reasoningStates": [
+            {
+              "ms": 1261,
+              "open": "true"
+            },
+            {
+              "ms": 23533,
+              "open": "false"
+            }
+          ]
+        }
+      },
+      {
+        "test": "real-stream-deepseek-flash",
+        "status": "fail",
+        "error": "expect(received).toMatch(expected)\n\nExpected pattern: /[\\u4e00-\\u9fff]/\nReceived string:  \"\"\n\nCall Log:\n- Timeout 120000ms exceeded while waiting on the predicate",
+        "metrics": {
+          "httpStatus": 200,
+          "textDeltas": 0,
+          "reasoningDeltas": 2048,
+          "firstReasoningMs": 1137,
+          "errorEvent": true,
+          "reasoningStates": [
+            {
+              "ms": 1160,
+              "open": "true"
+            },
+            {
+              "ms": 11006,
+              "open": "false"
+            }
+          ]
+        }
+      }
+    ],
+    "isolated8192LongAnswer": [
+      {
+        "test": "real-stream-deepseek-v4-pro",
+        "status": "fail",
+        "error": "expect(received).toMatch(expected)\n\nExpected pattern: /[\\u4e00-\\u9fff]/\nReceived string:  \"\"\n\nCall Log:\n- Timeout 120000ms exceeded while waiting on the predicate",
+        "metrics": {
+          "httpStatus": 200,
+          "textDeltas": 0,
+          "reasoningDeltas": 8192,
+          "firstReasoningMs": 976,
+          "errorEvent": true,
+          "reasoningStates": [
+            {
+              "ms": 999,
+              "open": "true"
+            },
+            {
+              "ms": 78729,
+              "open": "false"
+            }
+          ]
+        }
+      },
+      {
+        "test": "real-stream-deepseek-flash",
+        "status": "pass",
+        "chineseChars": 465,
+        "mathCount": 27,
+        "mathErrors": 0,
+        "hasReasoning": true,
+        "restored": true,
+        "viewports": [
+          {
+            "width": 1440,
+            "fits": true
+          },
+          {
+            "width": 1920,
+            "fits": true
+          },
+          {
+            "width": 390,
+            "fits": true
+          }
+        ],
+        "metrics": {
+          "httpStatus": 200,
+          "textDeltas": 588,
+          "reasoningDeltas": 3031,
+          "firstTextMs": 13793,
+          "firstReasoningMs": 1076,
+          "firstVisibleMs": 13820,
+          "endMs": 15428,
+          "reasoningStates": [
+            {
+              "ms": 1099,
+              "open": "true"
+            },
+            {
+              "ms": 13820,
+              "open": "false"
+            },
+            {
+              "ms": 14234,
+              "open": "true"
+            }
+          ]
+        }
+      }
+    ],
+    "isolatedLifecycle": [
+      {
+        "test": "real-stop",
+        "status": "pass",
+        "newSessionClean": true,
+        "metrics": {
+          "httpStatus": 200,
+          "textDeltas": 0,
+          "reasoningDeltas": 152,
+          "firstReasoningMs": 1053,
+          "readError": "AbortError",
+          "reasoningStates": [
+            {
+              "ms": 1076,
+              "open": "true"
+            },
+            {
+              "ms": 1913,
+              "open": "false"
+            }
+          ]
+        }
+      },
+      {
+        "test": "real-error-retry",
+        "status": "pass",
+        "retrySucceeded": true,
+        "errorText": "上游返回错误（HTTP 400）。（UPSTREAM_ERROR）\n\n重试",
+        "metrics": {
+          "httpStatus": 502,
+          "textDeltas": 0,
+          "reasoningDeltas": 0,
+          "reasoningStates": []
+        },
+        "retryRequests": [
+          {
+            "httpStatus": 502,
+            "textDeltas": 0
+          },
+          {
+            "httpStatus": 200,
+            "textDeltas": 3,
+            "endMs": 1903
+          }
+        ]
+      }
+    ],
+    "isolated8192FocusedMath": {
+      "test": "real-flash-focused-math",
+      "status": "pass",
+      "mathCount": 2,
+      "mathErrors": 0,
+      "noOverflow": true
+    },
+    "otherProtocols": "not_run: no configured credentials",
+    "remoteComputeCancellation": "not_observable; only browser AbortError and new-session isolation tested"
+  },
+  "originalFilesUnchanged": {
+    ".local-data\\model-config.json": true,
+    "apps\\api\\.env": true
+  },
+  "visual": {
+    "screenshots": 48,
+    "pageSamples": 36,
+    "knowledgeSamples": 8,
+    "manuallyViewedByVerifier": 20,
+    "pageHorizontalOverflow": 0,
+    "currentMenuFailures": [
+      "/courses",
+      "/notebooks",
+      "/whisper"
+    ],
+    "missingShell": "/acceptance-404",
+    "overall": "fail",
+    "referencePixelDiff": "not_run"
+  }
+}

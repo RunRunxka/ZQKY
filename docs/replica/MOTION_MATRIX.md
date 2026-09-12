@@ -4,6 +4,8 @@
 
 状态词汇：待实现、部分实现、实现待验收、已验收；逐项记录开始/过渡/结束、快速中断、减少动画与焦点。
 
+2026-09-12 B-ACCEPT补验：候选99aea55现有e2e 80/80通过，其中`chat-home.spec.ts` 4项、`sidebar-transition.spec.ts` 4项、`sidebar-chat-fixes.spec.ts` 5项重新验证思考球像素变化/系统与本地减少动画、右面板退出中断/inert/拖拽Escape清理、三视口聊天与导航过渡。实际DeepSeek Flash8192样本又验证推理自动展开/收起与手动优先，但不声称全站动画或推理动画曲线已完整验收。数据与截图见 [本次结果](../qa/acceptance-20260912/summary.json)。
+
 | id | 场景 | 参考参数与来源 | 状态 | 证据 |
 | --- | --- | --- | --- | --- |
 | M-composer-width | 输入框宽度 | 指定主页 composer max-width 912px，外层含 48px 留白 | 已验收 | 2026-09-09 用户参考覆盖旧 768→960 扩宽；首次发送 20 帧采样证明输入列不横向跳动；测试同步保留 textarea 150ms 高度过渡 |
@@ -20,6 +22,6 @@
 | M-buttons | 按钮悬停/按下/禁用/加载 | 逐组件核对原版 | 待实现 | S7 |
 | M-ask-states | 追问卡状态切换（预览→可答→提交→摘要） | AskUserOptions 实际过渡 | 待实现 | 原版无装饰进场；状态切换动画待逐项核对（S7） |
 | M-reading-layout | 阅读导航/伴生面板/选区浮条 | ReadingWorkspace/ReadingCompanion 原版逐组件参数 | 部分实现 | R31布局/拖拽和R32手机面板有历史实现记录；本次未跑阅读专属动画验收，仍需按参考逐个核参数/中断/退出，不能将原视图缺项视为允许缩减。 |
-| M-kb-progress | 知识库文档处理进度条/徽标切换 | 参考 KbStatusBadge/进度条：`transition-all duration-300`、`animate-spin`；徽标/banner 无进出场动画 | 实现待验收 | 2026-09-11 B-H1-KB：进度内条 `transition-all duration-300`（逐阶段 35%→75%→完成），徽标按状态切换；参考对徽标/banner 无装饰动画，目标未添加臆造动画。1440×900 人工查看进度条/徽标排布正常（`_work/kb-h1/verify/doc-progress.png`、`doc-ready.png`）；1920×1080、390×844、减少动画专项未跑 |
+| M-kb-progress | 知识库文档处理进度条/徽标切换 | 参考 KbStatusBadge/进度条：`transition-all duration-300`、`animate-spin`；徽标/banner 无进出场动画 | 实现待验收 | 2026-09-12补查1920/390×正常/系统reduce共4个解析中样本，35%与取消入口可读，均能到就绪；系统reduce使公共壳transition 0.2s→1e-05s。采样未观察到活动CSS/Web Animations，未证明进度内条300ms曲线或完整中断，故不升为已验收；[探针](../qa/acceptance-20260912/visual-probes.json) |
 
 动画证据边界：历史截图/录像和首败不删；已验收只覆盖表中日期与候选。H1–H5 随功能批同步验收模块动画，H6 再集中补漏；不以存在 animationName 或截图文件作为整段已播放证据。

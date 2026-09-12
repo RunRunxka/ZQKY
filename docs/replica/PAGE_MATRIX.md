@@ -65,22 +65,26 @@
 | P-admin-users | `/admin/users` | `/admin/users` | 待实现 | 管理视图（S5-I），按原版权限表达 |
 | P-avatar-preview | `/avatar-preview` | — | 内部调试 | 只登记；不纳入必需完成项，不暴露主导航 |
 
-必需完成功能分母：除 P-avatar-preview 外共53项（参考产品页50 + 自有教案1 + 额外兼容别名2）。2026-09-12按实际行复核：**已验收4 / 实现待验收21 / 部分实现6 / 待实现22**。2026-09-11 的知识库显式模拟闭环有独立批次证据，但因全视口和完整视觉未验，页面功能标签仍为“实现待验收”。
+必需完成功能分母：除 P-avatar-preview 外共53项（参考产品页50 + 自有教案1 + 额外兼容别名2）。2026-09-12按实际行复核：**已验收4 / 实现待验收21 / 部分实现6 / 待实现22**。本次80项既有e2e通过，并补知识库1920/390状态样本；这些检查未覆盖所有条目完整规格，功能标签不因样本通过整体升级。功能与视觉状态分别记录。
 
 标签不是完整产品验收百分比：路由 ready、自动用例通过、视觉/动画验收与真实后端验证分开记录。改变状态或条目时重算本段，禁止保留第二份旧统计。
 
 ## 学习问答视觉验收状态
 
-视觉状态使用“基准页 / 部分验收 / 待验收 / 待实现 / 无独立页面”。当前没有全站视觉完成率，避免把公共侧栏通过误算成页面内容完成。
+视觉状态使用“基准页 / 部分验收 / 未通过 / 待验收 / 待实现 / 无独立页面”。2026-09-12补验候选99aea55：36页面、4抽屉、8知识状态样本，48张截图，独立验收者实际查看20张代表图；整体未通过。具体测量见 [视觉证据](../qa/acceptance-20260912/visual-measurements.json)，不计算全站视觉完成率。
 
 | 状态 | 页面范围 | 当前证据与缺口 |
 | --- | --- | --- |
 | 基准页 | `P-chat` | 蓝色主题、Chat Geist/Lora、220/56px 导航、236px 学习记录中栏、912px 对话列、模型弹层和思考球是全站来源 |
-| 部分验收 | `P-chat-[sessionId]` | 聊天深链复用主页外观；完整消息交互、历史数据和跨页来源仍待核验 |
-| 待验收 | `P-settings`、`P-lesson-plans`、`P-space`、`P-space-chat-history`、`P-space-questions`、`P-space-personas`、`P-space-cli-apps`、`P-knowledge-bases*`、`P-notebooks*`、`P-books*`、`P-courses*`、`P-reading*`、`P-co-writer*`、`P-whisper` | 需逐页迁移学习问答的字体、色彩、间距、圆角、控件、空态/错误和动效；保留各模块业务结构。隐藏直达页当前菜单和错误页统一壳先按 STATUS R-04/R-06 修复 |
+| 部分验收 | `P-chat-[sessionId]` | 2026-09-12 Flash测试预算8192的真实长答：465汉字、27处公式，三视口无页面级溢出、推理折叠和刷新恢复通过；默认预算两模型和Pro8192长答失败。完整消息交互、历史数据和跨页来源仍待核验 |
+| 部分验收 | `P-knowledge-bases-[kbName]` | 1920/390下就绪、失败、解析中显式模拟样本可读，系统减少动画下可到达就绪；完整内容风格、全部分区/弹窗与进度动画时序仍待验 |
+| 未通过 | `P-settings`、`P-lesson-plans`、`P-space`、`P-knowledge-bases`、`P-notebooks`、`P-books`、`P-courses`、`P-reading`、`P-co-writer`、`P-whisper` | 本次三视口巡检确认内容字体/标题/卡片体系未按chat统一；courses/notebooks/whisper还缺当前菜单，手机打开焦点落在关闭按钮。蓝色、共享侧栏、无页面级溢出为局部通过，不能抵消R-04/R-05 |
+| 待验收 | `P-space-chat-history`、`P-space-questions`、`P-space-personas`、`P-space-cli-apps`、`P-notebooks-[notebookId]`、`P-books-[bookId]`、`P-books-pages-[pageId]`、`P-courses-[courseId]`、`P-reading-materials`、`P-reading-[workspaceId]`、`P-reading-sessions`、`P-reading-sessions-[sessionId]`、`P-co-writer-[docId]` | 既有e2e覆盖部分功能；本次未逐页完成全部状态的视觉对照，保留待验收 |
 | 待实现 | `P-papers`、`P-question-bank`、`P-templates`、`P-partners*`、`P-agents`、`P-mastery*`、`P-memory*`、`P-login`、`P-register`、`P-profile`、`P-admin-users` | 规划状态页不是最终业务视觉验收；正式页面实现时直接按学习问答基准建设 |
 | 无独立页面 | `P-root`、`P-space-mcp`、`P-space-skills`、`P-mcp`、`P-skills` | 仅重定向；验收目标是去向、历史、焦点和最终页面当前菜单 |
 
 每个页面升级视觉状态时必须提供 1440×900、1920×1080、390×844、键盘/焦点、长文/空态/错误和减少动画证据；业务功能状态保持独立。
 
 H0 公共壳是横向证据：现有页面已共用 220/56px 侧栏、折叠偏好和选定响应式行为，但这不为任何页面内容区授予“部分验收”。隐藏直达页的当前菜单/抽屉焦点和部分错误场景的统一壳仍待修复。
+
+额外错误场景 `/acceptance-404`：三视口均无公共壳，恢复入口仍回教案，判定未通过（R-02/R-06）；这是错误态证据，不增加53项分母。本次未做固定DeepTutor像素差分或全部主题/详情/弹窗覆盖。

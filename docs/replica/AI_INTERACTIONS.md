@@ -1,13 +1,14 @@
 # AI 交互映射与验收边界
 
-更新：2026-09-12。主聊天运行时只走真实 SSE，模拟服务和切换入口已删除；主聊天会话契约、不可达分支、文案和样式仍有 mock 残留，见 STATUS R-03。普通对话外的复杂能力、工具与扩展执行未接。知识库解析/索引为独立模块的显式模拟（A-kb-ingest），与主聊天分开记录。测试 fixtures 和历史 S2–S4 模拟成绩不能当作当前可调用能力。模型弹层、正文/推理公式、推理自动展开/正文出现收起及手动优先已有，真实供应商仍未验收。
+更新：2026-09-12。主聊天运行时只走真实 SSE；模拟残留见 STATUS R-03，复杂能力/工具/扩展执行未接。补验候选99aea55：DeepSeek两个模型普通/流式连接通过，Flash在隔离8192预算下的真实长答、正文公式、推理折叠和恢复通过；默认预算两模型以及Pro8192长答失败。其他协议无供应商连接，不标全协议通过。知识库及阅读/写作的显式模拟单独记录，80项e2e的fixtures不能替代供应商验收。完整证据见 [STATUS](../STATUS.md) 与 [结果JSON](../qa/acceptance-20260912/summary.json)。
 
 状态包含待实现、部分实现、实现待验收、已验收、实现待修复、真实服务未接入、已移除。下表“组件保留”不等于运行通道已接通；阅读/写作等模块的显式模拟与主聊天分开。
 
 | id | 交互 | 原版来源 | 状态 | 现状与待办 |
 | --- | --- | --- | --- | --- |
-| A-send | 发起、取消、恢复 | features/chat/model/protocol.ts、transport | 部分实现 | 真实 SSE 发起/取消/终态守卫/历史恢复已有；隔离HTTP链路有历史证据，实际供应商验收见 A-real。 |
-| A-real | 真实流式问答 | transport | 部分实现 | 真实 SSE 与三协议后端已接；本轮供应商未验证（与新能力未接入不同），不可标全部真实验证完成。 |
+| A-send | 发起、取消、恢复 | features/chat/model/protocol.ts、transport | 部分实现 | 2026-09-12真实Flash发起、推理中停止（AbortError）、新会话2秒无晚到消息、真实错误后重试与刷新恢复通过；供应商远端计算/计费取消未观测，其他协议实际供应商未验。 |
+| A-real | 真实流式问答 | transport | 部分实现 | DeepSeek发现和两模型普通/流式连接5/5通过。默认2048长答两模型均EMPTY_RESPONSE；测试副本8192下Flash长答465汉字，首中文13820ms早于结束15428ms；Pro仍预算耗尽无正文。用户正式配置未改，R-13未关闭；Responses/Anthropic无可用供应商配置。 |
+| A-reasoning-math | 真实推理展示/正文公式 | 固定DeepTutor AssistantActivity、AnswerMarkdown/KaTeX | 部分实现 | Flash8192样本：3031推理增量、588正文增量；自动展开→正文出现折叠→手动开保持，刷新可恢复；27处公式/0KaTeX错误，另独立双公式样本与手机通过。推理区公式专项及其他模型/协议不据此升级全验收，Pro长答无正文仍失败。 |
 | A-mode | 原真实/模拟模式切换 | 目标自有，2026-09-09 用户要求删除 | 实现待修复 | 运行界面和服务创建已是单一真实 store，无切换和免密伪模型；但生产 ChatServiceKind/Conversation.mode、不可达分支、无效提示和专用 CSS 尚未清理。测试替身只留 tests/fixtures，旧浏览器库不读取也不清除 |
 | A-model | 模型选择 | 指定主页模型弹层 + 原 ChatComposer 模型选择器 | 已验收 | 2026-09-09：输入区向上弹层、实际模型品牌图标、搜索/连接分组、默认/会话级选择、管理跳转、Escape/选择焦点与生成禁用；三个视口验证；真实模型配置与协议保持原实现 |
 | A-ask-user | ask_user 追问卡 | AskUserOptions.tsx、use-card-submission.ts、ChatStateAdapter submitUserReply | 真实服务未接入 | 追问组件、同轮状态机与历史渲染保留；当前真实SSE不提供wait-user，不能新发起此闭环。旧模拟测试仅历史；接入真实事件后补全卡片状态、提交归属与取消恢复验收。 |
@@ -27,6 +28,8 @@
 | A-voice | 语音输入 | ChatComposer 录音入口 | 实现待验收 | 无 STT 服务：明确“未接入”说明+带标识演示转写，不采集音频；真实权限/设备拒绝状态待真实服务接入；e2e chat-composer.spec.ts |
 | A-reading-companion | 沉浸阅读伴生 AI | reading/workspace/ReadingCompanion、ReadingComposer | 部分实现 | companion-service 已使用统一 ChatService 事件模型，支持显式模拟流式/取消/失败重试/草稿归属；并非旧同步模板。过程/追问/产物/来源完整性、滚动与会话历史、媒体视图仍需补验，见 STATUS H2。 |
 | A-kb-ingest | 知识库导入→解析→索引 | 参考 `lib/knowledge-helpers.ts`（resolveKbStatus/kbHasLiveProgress/IndexVersion）、`components/knowledge/KbStatusBadge`、`KbIndexVersionsSection` | 显式模拟（前端闭环已验收） | 2026-09-11 B-H1-KB：`services/knowledge-ingest.ts` 复刻 registered→parsing→indexing→ready、进度、取消、失败重试、刷新恢复、全部就绪追加索引版本；产物为本地结构化样例并全程标注。真实文件解析/向量检索未接入，与真实服务验收分开记录；参考另有 WS/SSE 进度与 KB 级状态（target 以逐文档状态 + KB 汇总呈现），接入真实服务时按参考协议重对齐。e2e `knowledge-notebooks.spec.ts` |
+
+本次知识库相关既有e2e 10/10通过，1920/390的已就绪、失败、解析中和系统减少动画状态样本补验通过；仍无真实文件解析/索引/检索调用。所有结果仅更新文档，未修改生产模型配置或能力标记。
 
 ## 统一事件约束（已实施部分见 chat-service.ts）
 
