@@ -11,6 +11,7 @@
 - 浏览器/供应商验收批 `B-ACCEPT-20260912`：候选 `99aea55`，产品代码仍为 `21d9898`。只新增验收记录与证据；未修产品。本批关键 JSON 与 8 张截图保存在 `docs/qa/acceptance-20260912/` 并纳入 Git，完整运行产物保留在忽略的 `_work/acceptance-20260912/` 和 `test-results/acceptance-20260912-e2e/`。
 - 审查开始时已有用户未提交内容：`AGENTS.md`、`apps/web/next-env.d.ts`、`.zcode/`。本批保留且不纳入提交。
 - 页面矩阵现有 53 个非调试条目：功能标签为**已验收 4 / 实现待验收 21 / 部分实现 6 / 待实现 22**。这是条目分类，不是整体完成率；视觉状态另列在 [页面矩阵](replica/PAGE_MATRIX.md)。
+- 2026-09-12 用户调整首要任务：**B-MODEL-UI v1（本 Codex 使用 frontend-design 重做模型管理）和 B-LLM-PROVIDERS v1（其他 Agent 工具实现参考已有 LLM 供应商）**。先冻结共享契约，再按前后端范围实施；完整任务卡见第 6 节。本次仅完成源码取证、任务重排和协作提示词，尚未启动这两项代码实现，不改变上一批验收结论。
 
 ## 2. 当前实际进度
 
@@ -95,14 +96,18 @@ typecheck/lint/单元/API结果来自同日早前审查，产品代码未变；�
 
 本机复跑命令记录：`npx.cmd playwright test --config _work/acceptance-20260912/e2e.config.ts`；`node _work/acceptance-20260912/visual-audit.mjs` / `visual-probes.mjs`；测试后端 `apps/api/.venv/Scripts/python.exe _work/acceptance-20260912/provider_server.py`；供应商 `provider_probe.py`、`browser-provider.mjs`、`browser-provider-budget.mjs`、`provider-formula.mjs`。供应商复跑会产生实际请求，先确认测试副本预算和8001/5174归属；原始长答用2048，预算复测用隔离副本8192，不能混记。首次e2e临时配置启动失败发生在用例运行前，修正临时配置后80项首跑全绿；单独保留该启动日志。浏览器补验启动命令的一次自动审批拒绝以只绑定回环的启动脚本解决，未影响产品用例结果。
 
-## 5. 完整实施计划 v2
+## 5. 完整实施计划 v3
 
 每个阶段都必须以当前学习问答为视觉入口和完成门槛；H6 只做跨模块补漏及总验收，不把视觉统一推迟到最后。每批先更新对应矩阵规格，再实现、回归、独立验收和本地小提交。
 
 | 顺序 | 范围 | 可核验出口 |
 | --- | --- | --- |
-| B-H0R 审查阻断收口 | 依次修 R-02/R-04/R-06 的主页与统一壳、R-03/R-10 的主聊天 mock 残留和深链、R-01/R-08/R-12 的凭证一致性与状态文案，再按复现结果处理 R-09/R-11 | 全站主页唯一为 `/chat`；所有已实现路由有当前菜单/抽屉焦点；主聊天生产路径无 mock 模式，其他模块批准的显式模拟保留且标注；凭证故障可回滚；相关前后端与浏览器回归通过 |
-| B-H0R-MODEL 模型推理配置 | 处理 R-07/R-13：受控 reasoning/thinking 配置、不同模型输出预算和预算耗尽行为；以本次DeepSeek首败作为T1前置问题 | 设置 UI、配置契约和后端映射一致；拒绝无效组合；解决默认预算/Pro长答首败后重验，不能以Flash隔离8192成功关闭全协议验收 |
+| 首要：B-MODEL-CONTRACT v1 | 总控与外部后端负责人核对供应商元数据、连接认证、参数、迁移及错误契约；先交接口提案，再冻结唯一版本 | 前后端字段/枚举/样例/兼容规则明确；文件和端口各有单一负责人，不各造一套目录 |
+| 首要任务 1：B-MODEL-UI v1 | 本 Codex 使用 frontend-design，按 DeepTutor 重做模型连接与 LLM 管理，保留学习问答蓝色与现有业务 | 供应商卡片、详情、模型发现/配置/默认切换、保存失败恢复和移动焦点闭环；三视口视觉/e2e 通过 |
+| 首要任务 2：B-LLM-PROVIDERS v1 | 其他 Agent 工具完成固定参考全部 LLM 注册条目、协议与专用认证适配；契约冻结后可与 UI 并行 | 逐供应商实现和隔离上游证据；可用凭证下真实测试独立记录；没有真实凭证的条目保持 not_run |
+| B-MODEL-INTEGRATE v1 | 两项候选稳定后，由总控组织联调及独立验收 | 同一目录从管理到真实聊天可用，旧配置兼容，R-01/R-07/R-08/R-12/R-13逐项复核；未通过项保留阻断 |
+| 后续：B-H0R 审查阻断收口 | 模型两项之后，依次修 R-02/R-04/R-06 的主页与统一壳、R-03/R-10 的主聊天 mock 残留和深链，再按复现结果处理 R-09/R-11；R-01/R-08/R-12仅跟踪首要任务尚未关闭的余项 | 全站主页唯一为 `/chat`；所有已实现路由有当前菜单/抽屉焦点；主聊天生产路径无 mock 模式，其他模块批准的显式模拟保留且标注；凭证故障可回滚；相关前后端与浏览器回归通过 |
+| B-H0R-MODEL 原任务并入首要两项 | R-07/R-13 的受控 reasoning/thinking、模型预算和耗尽行为并入模型前后端任务，不再另开重复实现批；R-01/R-08/R-12也在该范围处理 | 历史缺陷编号与首败保留，只有实际回归通过才关闭；不能以Flash隔离8192成功关闭全协议验收 |
 | H1 书籍与课程闭环 | 补 compiling/paused/error、流式生成、暂停恢复、书籍聊天和课程学习会话，复用既有 14 类 block 与保存数据 | 状态链、取消、失败重试、刷新恢复、资源/产物引用完整；三视口按聊天基准通过 |
 | H2 既有模块收口 | 阅读媒体原视图与伴生过程，写作/Whisper，学习空间/笔记/题库来源，S3 产物来源 | 损坏读取、配额、多键失败和过期事件不丢数据；跨页身份正确；各模块视觉和动画有证据 |
 | H3 伙伴与智能体 | 列表、新建、详情、群组、渠道、任务过程、工具、产物和历史 | 创建→执行→结果→恢复可演示；等待、失败、取消、重试齐全；配置单一来源 |
@@ -115,14 +120,88 @@ typecheck/lint/单元/API结果来自同日早前审查，产品代码未变；�
 
 停止规则：出现数据丢失、错误会话归属、凭证不一致或假成功时，先修阻断问题再扩展。主聊天复杂能力仍全部禁用时只能交付受限阶段，不能称“全部 AI 交互完成”。
 
-## 6. 下一动作与接手顺序
+## 6. 首要任务卡与接手顺序
 
-1. 先执行只读 `git status --short`、`git log -5 --oneline`，读取根 AGENTS、README、PROJECT_GUIDE、本文和三矩阵；保留用户未提交内容和浏览器数据。
-2. 若用户未另行指定，建议下一代码批为 `B-H0R-UI v1`：统一 `/chat` 主页入口、品牌/404/metadata、隐藏路由的当前菜单与手机焦点、实际缺壳的错误场景。先在页面/动画矩阵写清路由归属和视觉出口，再改代码。
-3. 随后建议依次执行 `B-H0R-MOCK`、`B-H0R-SECRET` 与 `B-H0R-MODEL`；三批分别处理主聊天契约/文案/CSS 残留、凭证两文件一致性、受控推理配置，不与 H1 新功能混改。
-4. 每批记录任务 ID、版本、负责人、可写文件、依赖、验收和产物路径；公共契约、文档、锁文件与 Git 由单一负责人写入。
-5. 根检查为 typecheck、lint、test:unit、build；涉及 API 再跑 test:api/test:chat，涉及布局/路由/保存必须使用隔离数据和 5174 跑对应浏览器用例。
-6. 结果只写本文和三矩阵；显式暂存本批文件，运行 `git diff --cached --check` 和敏感数据检查后本地提交，不推送或部署。
+以下取代原“先 B-H0R-UI”的建议；其他页面修复保留在后续计划，本轮不顺手实施。两项状态均为**待实现**，负责人分配是用户指定的分工，并不表示外部工具已启动。任务卡统一版本 v1；开始实施时记录当时 HEAD 和工作树差异，不把文档提交号当产品已验收候选。
+
+### B-MODEL-CONTRACT v1：前后端共同前置
+
+负责人：本 Codex 总控；外部后端负责人只提交契约提案。先读根及 apps/web、apps/api 的 AGENTS、README、PROJECT_GUIDE、本文、三矩阵、现有 `docs/API.md` 和实际源码。
+
+当前数据是 `ModelConnection(protocol/baseUrl)` + `ModelProfile(connectionId/modelId/params)`，不是参考的 provider/profile 同名结构。以现有 ID 和目录为骨架，冻结以下增量语义后才能并行修改依赖它的代码：
+
+| 合同项 | 实现要求（设计提案，尚非已上线 API） |
+| --- | --- |
+| 供应商目录 | 后端单一注册表提供稳定 providerId、名称、别名、认证类型、可选 API 格式及各格式默认 URL、参数/能力约束、发现策略；前端按元数据展示，不维护另一份 URL/能力真值 |
+| 连接 | providerId 与 API 格式分开；保留既有 protocol 兼容映射，Azure 等专用认证字段强类型化；自定义 URL 不被切换控件静默覆盖；凭证输入保持/替换/清除语义独立 |
+| 模型 | 保留 profileId、connectionId、modelId、默认模型引用；上下文、输出预算、推理开关/深度按供应商约束，区分未知、人工声明、实测证据；模型存在不意味着支持全部能力 |
+| 认证 | API Key 的状态接口不回显；OAuth/设备或本机凭证的开始、等待、成功、失败、取消、过期、断开按参考实际流程映射；令牌仅服务端，不能复制用户其他工具的登录态充作测试数据 |
+| 保存与迁移 | 版本迁移保留旧三协议、ID、revision与历史；无providerId的旧连接按显式协议映射自定义兼容类型，不猜供应商并换URL。跨.env与JSON写入锁/补偿处理R-01，删除及清除处理R-08 |
+| 错误/SSE | 保持现有HTTP错误信封和message.start/text.delta/reasoning.delta/usage/message.end/error事件；取消关闭上游；预算耗尽、认证缺失/过期、未支持能力均不能假成功或回退模拟 |
+
+外部负责人将具体字段、路径、请求/响应脱敏样例、迁移样例及错误码建议写到 `_work/model-providers-v1/contract-proposal.md`。本 Codex 负责 Python schemas/请求模型、前端 `contracts/model-settings.ts`、必要的 `contracts/api.ts`/`contracts/chat.ts`、服务接口和 API 文档的一致落地。冻结记录为 `contract-v1`（包含文件清单及散列），两边在结果卡引用同一版本；未冻结时可做只读取证及不依赖契约的适配器实验，不能各自发布新接口。契约变化由总控更新版本并通知双方，已停止写入后才转交所有权。
+
+### B-MODEL-UI v1：DeepTutor 模型管理界面
+
+**负责人：本 Codex；执行必须使用 `C:/Users/96022/.codex/skills/frontend-design/SKILL.md`。** 本次已读取该 skill 并用于下列设计约束，尚未完成 UI 实现或视觉验收。
+
+参考固定为 `F:/DeepTutor` SHA `42fab3cf429a1fbf36b257ab8d116a3814964202`。主要源码为 `web/features/settings/sections/models/{ConnectionsSettingsSection,LlmSettingsSection}.tsx` 和 `web/components/settings/{ConnectionsEditor,ServiceConfigEditor,ModelCards,ModelListPicker,ModelCapabilityFields,ProviderIcon}.tsx`，认证状态参考 `CodexOAuthCard`、`CodeBuddyAuthCard`。实施前还需在隔离浏览器实际核对参考界面，不能只凭组件名宣称视觉复刻。
+
+需求与实现方式：
+
+1. 在现有设置的模型区域保留“连接 / LLM 模型”层级，连接凭证可被多个模型复用。页面展示供应商卡片、图标、名称、模型摘要、当前使用状态和新增入口；供应商卡片打开详情弹窗。**打开/编辑卡片不得切换默认模型**，只有明确“使用此模型”动作才更新默认；会话级模型选择继续沿用现有语义。
+2. 详情依次呈现供应商/连接字段、认证状态、API 格式与地址、模型列表。模型卡片支持重命名、展开参数、使用、删除；发现模型支持加载、搜索、多选、去重、空列表、失败重试，保留手工添加任意合法 modelId。不能用静态候选冒充发现结果。
+3. 保留当前真实连接/模型增删改、普通测试/流式测试、默认选择、revision 冲突、配置失败时保留输入、刷新恢复和聊天目录联动。表单草稿与服务器已保存态分开；成功响应前不能显示已保存，关闭含未保存更改的详情有明确保留/放弃行为。删除有关联模型/默认模型时先说明影响；Key 空值保持，清除凭证单独确认，不展示已存Key。
+4. 由 contract-v1 驱动 API 格式、认证控件、推理深度、输出预算和能力提示。缺后端能力显示真实不可用原因，不能靠 UI 填表声称供应商可用；测试fixtures只能在测试路径。处理 R-07/R-08/R-13 的表单与错误展示，保留原长答首败用于联调复验。
+5. 按 frontend-design 先提炼当前学习问答的 4–6 个颜色 token、标题/表单字体层级和桌面/手机布局草图，再实现。蓝色 `#2563eb` 与现有 surface/ink/line 复用；主标题可用现有阅读字体，密集表单用现有无衬线。参考以细分隔线、留白、紧凑卡片为主，不增加无关仪表盘、渐变装饰或新动画库。模型专属 CSS 限定作用域，其他设置与业务页严格不变。
+6. 桌面保持原公共壳，供应商网格自适应；详情里的模型网格至多两列，手机单列且弹窗可滚动，操作始终可达。参考图标/动画按实际源文件复用并记录许可。保持150ms卡片颜色/边框过渡、按下scale .995与箭头反馈；弹窗/折叠的其他参数先核来源再写矩阵。键盘Enter/Space、Escape、焦点圈定/返回、aria-expanded与减少动画同时覆盖。
+
+可写：`apps/web/src/features/model-settings/**`、`features/settings/SettingsWorkspace.tsx` 的模型挂载/锚点、必要的模型作用域样式、`tests/e2e/model-settings*.spec.ts`、模型专属测试与经核许可的图标资源。公共壳、导航、聊天渲染及其他业务不在本任务修改范围；共享契约/API服务文件由总控作为 CONTRACT 单独修改。依赖与锁文件不自行升级。
+
+资源：前端 `127.0.0.1:5174`、`.next-test`、隔离浏览器上下文由本 Codex独占；证据 `_work/model-ui-v1/`。前端并行阶段用合约fixtures，不占用外部8001；最后联调串行使用后端候选。禁止操作用户5173的会话。
+
+验收：新增连接→发现/手添模型→保存→普通及流式测试→设默认→聊天可选择→刷新仍正确；覆盖重名/重复、缺凭证、超时/失败、取消、删除关联、revision冲突与旧配置。1440×900、1920×1080、390×844逐状态截图并实际查看；焦点、键盘、减少动画和快速开关有断言。运行根typecheck/lint/test:unit/build及相关浏览器测试；真实联调属于INTEGRATE，不以fixtures替代。实现结果只交 `ready_for_review`。
+
+### B-LLM-PROVIDERS v1：参考已有 LLM 供应商
+
+**负责人：用户选用的其他 Agent 工具；本 Codex负责集成，不在本轮代为实施。** 启动文本和队内角色提示词见 [团队协作提示词](MULTI_AGENT_COLLABORATION_PROPOSAL.md#可复制的外部团队提示词)。
+
+固定参考同上。注册表 `deeptutor/services/provider_registry.py` 实查38条，其中36现行、2旧兼容；以下分组用于任务拆解，不把条目数量写成已实现数量：
+
+| 分组 | 必须覆盖的 providerId |
+| --- | --- |
+| 自定义与专用API | `custom`、`azure_openai`、`anthropic` |
+| 网关/聚合与区域方案 | `openrouter`、`orcarouter`、`edenai`、`aihubmix`、`siliconflow`、`novita`、`atlascloud`、`volcengine`、`volcengine_coding_plan`、`byteplus`、`byteplus_coding_plan`、`nvidia_nim` |
+| 标准云供应商 | `openai`、`deepseek`、`gemini`、`zhipu`、`dashscope`、`moonshot`、`minimax`、`mistral`、`stepfun`、`xiaomi_mimo`、`groq`、`qianfan` |
+| 本机服务 | `vllm`、`ollama`、`lm_studio`、`llama_cpp`、`lemonade`、`ovms` |
+| 专用认证 | `openai_codex`、`github_copilot`、`codebuddy`（CodeBuddy/WorkBuddy） |
+| 旧条目兼容 | `custom_anthropic` → custom + anthropic格式；`minimax_anthropic` → minimax + anthropic格式；不作为重复新增选项，旧ID/别名仍可解析 |
+
+需求与实现方式：
+
+1. 先逐条核对注册表、`services/llm/provider_factory.py`、`provider_core/*`、`reasoning_params.py`、`request_compat.py`、`services/config/provider_runtime.py` 和设置发现/认证路由。建立38行核对表，包含参考源位置、别名、默认URL/各格式URL、认证、后端适配器、发现方式、推理及特殊参数、实现/隔离/真实三种状态。不能从图标清单猜范围，也不能将Gemini强行改成参考未使用的原生协议（固定参考走兼容端点）。
+2. 在现有 `apps/api/app/providers/llm` 维护单一供应商注册表和分派层，复用三个传输适配器；专用Azure、Codex、Copilot、CodeBuddy按参考真实实现扩展，不做38份重复HTTP代码。不复制DeepTutor进程全局环境注入/可变会话；请求明确携带连接快照并释放客户端，连接A的认证和参数不得污染B。
+3. 实现别名/旧配置兼容、各API格式默认地址、用户自定义地址保留、模型名前缀规则、Azure deployment/api-version、受保护请求头、局部无Key服务及云服务缺凭证分支。元数据支持选格式不等于所有上游模型都支持该格式；未支持组合要明确拒绝。维持公网HTTPS和HTTP仅回环约束。
+4. 完成发现与普通/流式测试的真实后端路径；无发现API的供应商按参考采用有来源的目录或手工输入并标记来源，不能返回假发现成功。能力证据继续只在实测后verified。SSE拆包、推理/正文分离、usage、终态、空回答、错误、超时、取消与连接关闭保持现有合同。
+5. 推理控制按供应商/模型映射，处理thinking_type、enable_thinking、reasoning_split等参考差异，以及不支持stream_options、max_completion_tokens、固定温度/移除参数等约束。不可让前端传任意JSON。用DeepSeek历史失败复验默认预算和Pro只有推理问题，记录首正文时间；不得无界加预算或自动降级为模拟来通过。
+6. 专用认证作为单独适配阶段：核对参考实际使用的OAuth/设备码/本机认证方式，补开始、轮询或回调、状态、刷新、取消、过期、断开与错误清理；API Key型与本机无Key型分别处理。不得读取其他工具的真实登录文件作为测试fixture；真实交互登录缺用户操作时记录阻塞并继续可独立的实现/隔离测试，不能删去这三个供应商范围。
+7. 在统一secret store上补R-01的两文件补偿、R-08明确清除、R-12实际状态说明；测试用临时目录/内存。模型JSON、API响应、日志、trace/截图不得泄漏凭证。普通调用与流式验收分别报告；没可用凭证/本地服务的真实用例写not_run与原因，不能把全部供应商标为真实通过。
+
+可写：`apps/api/app/providers/llm/**`、模型专属 `app/api/v1/model_*.py`、必要的 `chat.py`/`capabilities.py` 模型接入、`app/core/secrets.py`、`app/repositories/model_config_repository.py`、新增模型服务层、对应 `apps/api/tests/**`；外部队长先列实际文件归属。`app/schemas/**`、前端contracts/services、权威MD、矩阵、依赖/锁文件和最终Git由本 Codex独占。若需要新增路由挂载、lifespan、设置字段或依赖，提交最小差异建议，由总控串行集成，不自行越界。
+
+资源：外部后端团队独占 `127.0.0.1:8001`，数据/凭证全在临时目录或内存，证据 `_work/model-providers-v1/`；各子角色再分子目录，只有后端队长启停服务。不得使用8000/5173或修改正式`.env`、`.local-data`。不启动Next、不占用`.next-test`、不改`next-env.d.ts`。交验时明确停止写代码并释放8001，等待总控接管联调。
+
+建议内部顺序：P0只读取证/合同提案 → P1注册表+兼容/三协议 → P2专用认证 → P3发现/推理/凭证一致性 → V独立验证。可并行取证；实现并行必须有不重叠文件清单，工厂/注册表/secret store只有一位写入者。每个子任务用 `B-LLM-PROVIDERS-Pn v1` 标识；不得默认递归扩队。
+
+验收：38条元数据与别名逐条核对；各适配器有成功/认证失败/不支持/流式拆包/断连测试；专用认证有状态机与过期取消隔离测试；旧三协议、默认模型和revision保留；跨连接并发不串Key/参数；故障注入证明.env/JSON失败恢复。运行 `npm.cmd run test:api`，SSE变更加 `npm.cmd run test:chat`。真实供应商仅用已授权且可用凭证发送固定验收问题，低调用量并记录预算；一项失败不能被更大预算的成功覆盖。
+
+交付：按协作结果卡返回 `ready_for_review`、候选HEAD+补丁/文件散列、contract版本、修改文件、38行覆盖表、命令/退出码/证据、首败、not_run、剩余风险与资源释放状态。证据与提案可写专属 `_work`；由总控把必要脱敏证据纳入Git并更新权威状态，外部Agent不自行提交或宣称全体验收。
+
+### B-MODEL-INTEGRATE v1：联合验收与提交
+
+本 Codex固定两项稳定候选、串行联调8001/5174；独立验收角色不边验边改。逐项检查模型配置→默认/会话选择→真实SSE→推理/公式→取消/重试/刷新，并回归受影响的设置及原聊天。UI、动画、隔离上游、真实供应商分别给pass/fail/not_run；缺凭证不阻碍记录实现结果，但不能升级真实验收。
+
+总控运行适用根检查，更新本文和三矩阵；审查暂存范围、敏感数据与生成物后，显式暂存本批文件并运行 `git diff --cached --check`，作本地小提交，不推送/部署。用户现有AGENTS、next-env.d.ts与.zcode改动保持原样。团队提示词只是执行约定，不能代替宿主工具实际的文件权限、锁、消息与任务回传能力；平台不支持时用单一后端写入者加只读取证/验收。
 
 ## 7. 本次文档整理
 
@@ -132,9 +211,10 @@ typecheck/lint/单元/API结果来自同日早前审查，产品代码未变；�
 - 页面矩阵把功能状态和学习问答视觉状态分开；AI 矩阵将“模拟模式已移除”校正为“主聊天运行时已移除、主聊天残留待修”，并保留其他模块批准的显式模拟；动画矩阵为历史候选补日期和范围。
 - ROUTES 校正知识库“显式模拟已有、真实解析未接”；API 契约补充凭证跨文件一致性缺口；后端 README 不再重复端点状态。
 - 486 行多智能体提案压缩为 115 行稳定任务/结果模板，删除旧 HEAD、旧工作树和演练断点；旧全文保留在 Git 提交 `6e3f642`。
-- 修正教案模块的已归档 QA 链接和 infra 对现有 FastAPI 的过时描述；NEXT_SESSION_START 只保留接手方法与建议的 `B-H0R-UI` 断点。
+- 早前修正教案模块的已归档 QA 链接和 infra 对现有 FastAPI 的过时描述；当时NEXT_SESSION_START建议的 `B-H0R-UI` 断点已由本次任务重排替换，当前只跟随第6节。
 - 本批没有修改产品业务代码、依赖、锁文件、浏览器数据或凭证；用户的 `AGENTS.md`、`apps/web/next-env.d.ts`、`.zcode/` 保持未提交。
 - 随后按用户要求完成 `B-ACCEPT-20260912`：补跑80项e2e、48张图的有界视觉巡检、DeepSeek实际请求与配置变体验证；更新本节及三矩阵，新增可随Git交接的脱敏机器证据和8张关键截图。所有测试在隔离数据中完成，正式配置未改。
+- 本次任务重排批 `B-MODEL-PLAN v1`：读取frontend-design及固定DeepTutor模型管理/供应商源码，确认38个注册条目；将模型UI与供应商设为首要任务，补合同前置、文件/资源归属、实现步骤、验收及外部团队启动/角色提示词。同步PROJECT_GUIDE、接手入口和三矩阵，历史验收与首败保留。检查文档差异、相对文件链接和供应商清单覆盖；本批没有产品代码变更，未重新运行工程、浏览器或真实供应商测试，旧结果不算本批新验收。
 
 ## 8. 文档职责
 

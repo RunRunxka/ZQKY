@@ -49,6 +49,13 @@
 
 ## 3. 工程结构
 
+### 模型管理与供应商决定（2026-09-12）
+
+- 模型管理的信息结构和交互以固定 DeepTutor 的 `ConnectionsEditor`、`ServiceConfigEditor`、`ModelCards`、`ModelListPicker` 为准：连接可复用，供应商卡片打开详情，详情中配置连接及模型；打开编辑不等于切换当前模型。视觉仍使用智启课源学习问答的蓝色、字体和公共壳。仅调整模型相关设置，不借此重做其他设置与业务页。
+- 供应商身份、认证方式、API 格式和模型参数分层。供应商清单以固定源码 `deeptutor/services/provider_registry.py` 的注册表为依据；图标存在、通用三协议可调用均不代表已实现该供应商。旧别名和配置必须兼容，不按模型名猜测并改写用户显式连接。
+- 在既有 FastAPI Provider 工厂、模型目录和 SSE 事件上扩展，保留连接/profile ID、revision、默认模型与历史引用。旧数据迁移可回退；不照搬 DeepTutor 的配置文件结构或将 Key 镜像到非敏感模型 JSON。凭证只经服务端 secret store，前端只见状态；OAuth/本机认证需专门服务端生命周期，不能当普通 API Key 下拉选项实现。
+- 本轮模型范围只含 LLM 连接、模型配置和其必要认证/发现/推理能力。Embedding、搜索、TTS/STT、图像/视频生成、任务模型分配及其他业务模块不因参考页面包含它们而自动纳入。供应商实际请求格式以固定参考核对后实现；实测发现上游变化时单独记录差异，不静默更换参考版本。
+
 ```text
 apps/web/src/
   app/                   Next 薄路由、布局、错误/规划页
@@ -114,6 +121,6 @@ git show checkpoint/pre-reading-review-20260908:README.md
 
 ## 7. 文档规则
 
-README 做入口，PROJECT_GUIDE 管目标/架构/决定，STATUS 管进度/代码审查/完整计划/下一动作，NEXT_SESSION_START 仅提供接手步骤。API、ROUTES 管现行契约，三矩阵管条目证据，独立 review 保留首败与修复依据。MULTI_AGENT_COLLABORATION_PROPOSAL 只保留可复用任务卡和结果卡，不保存当前 HEAD、进度或断点。不再维护多份 TASKS/HANDOFF/FINAL 提示词。
+README 做入口，PROJECT_GUIDE 管目标/架构/决定，STATUS 管进度/代码审查/完整计划/下一动作，NEXT_SESSION_START 仅提供接手步骤。API、ROUTES 管现行契约，三矩阵管条目证据，独立 review 保留首败与修复依据。MULTI_AGENT_COLLABORATION_PROPOSAL 保留可复用任务卡、结果卡和团队启动/角色提示词，详细任务引用STATUS，不保存当前 HEAD、进度或断点。不再维护多份 TASKS/HANDOFF/FINAL 提示词。
 
 19 份旧文档已合并为 [项目历史](archive/PROJECT_HISTORY.md)、[交付历史](archive/DELIVERY_HISTORY.md)、[审查历史](archive/REVIEW_HISTORY.md)、[提示词历史](archive/PROMPT_HISTORY.md)。2026-09-10 将旧 STATUS、旧 NEXT_SESSION_START、GAP_AUDIT 原文继续合入后三份归档，撤销 GAP_AUDIT 的独立状态维护入口。修复记录仍追加原 review，当前任务只更新 STATUS。清单保留原路径、原始与规范化 SHA256；旧相对链接以原文件目录解释，完整文件可从来源 Git 读取。原始规划/参考图/Word 保留。
