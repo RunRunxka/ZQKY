@@ -12,7 +12,7 @@
 | A-mode | 原真实/模拟模式切换 | 目标自有，2026-09-09 用户要求删除 | 实现待修复 | 运行界面和服务创建已是单一真实 store，无切换和免密伪模型；但生产 ChatServiceKind/Conversation.mode、不可达分支、无效提示和专用 CSS 尚未清理。测试替身只留 tests/fixtures，旧浏览器库不读取也不清除 |
 | A-model | 模型选择 | 指定主页模型弹层 + 原 ChatComposer 模型选择器 | 已验收 | 2026-09-09：输入区向上弹层、实际模型品牌图标、搜索/连接分组、默认/会话级选择、管理跳转、Escape/选择焦点与生成禁用；三个视口验证；仅指当时聊天选择器，不涵盖新模型管理/供应商任务 |
 | A-model-management | 连接/模型管理重做 | 固定DeepTutor ConnectionsEditor/ServiceConfigEditor/ModelCards/ModelListPicker | 待实现 | B-MODEL-UI规格：打开编辑与设默认分离；共享连接、发现/手工添加、保存冲突/失败保留、删除关联和明确清除凭证；已有管理能力保留。仅任务规划，新实现及e2e未执行 |
-| A-provider-parity | 参考已有LLM供应商 | 固定DeepTutor services/provider_registry.py、llm/provider_factory.py、provider_core/* | 待实现 | B-LLM-PROVIDERS：源码核对38条（36现行+2旧兼容），需注册表/协议/专用认证/发现/推理/迁移逐条覆盖；不以已有三协议或DeepSeek局部实测代替。详细任务见STATUS第6节，新供应商实现/隔离测试/真实验收均未执行 |
+| A-provider-parity | 参考已有LLM供应商 | 固定DeepTutor services/provider_registry.py、llm/provider_factory.py、provider_core/* | 待实现 | B-LLM-PROVIDERS：源码核对38条（36现行+2旧兼容），需注册表/协议/专用认证/发现/推理/迁移逐条覆盖；不以已有三协议或DeepSeek局部实测代替。2026-09-13回退af9cb78后P0 v2已交，当前按STATUS第6.1节MODEL-EXEC v3由外部团队完成合同和代码；尚未新增实现/隔离/真实验收结果，旧探针仅作复验线索 |
 | A-ask-user | ask_user 追问卡 | AskUserOptions.tsx、use-card-submission.ts、ChatStateAdapter submitUserReply | 真实服务未接入 | 追问组件、同轮状态机与历史渲染保留；当前真实SSE不提供wait-user，不能新发起此闭环。旧模拟测试仅历史；接入真实事件后补全卡片状态、提交归属与取消恢复验收。 |
 | A-tools | 工具过程 | trace/TracePresentation | 真实服务未接入 | 工具过程渲染、callId身份/状态守卫与历史展示保留，生产无工具执行事件；视觉与真实通道待验收。 |
 | A-extensions | 扩展选择与目录联动 | ChatComposer 上下文选择 | 真实服务未接入 | extension-catalog 与设置唯一管理保留；主聊天显示“扩展·真实模式尚未接入”，选择/快照组件存量不等于可执行扩展。 |

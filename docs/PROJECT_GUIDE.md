@@ -1,6 +1,6 @@
 # 项目目标与工程说明
 
-更新：2026-09-12。取代旧 ARCHITECTURE、DECISIONS、BASELINE 的现行说明；历史原文见 [项目历史](archive/PROJECT_HISTORY.md)。当前进度、代码审查、完整阶段计划与下一动作只维护在 [STATUS](STATUS.md)。
+更新：2026-09-13。取代旧 ARCHITECTURE、DECISIONS、BASELINE 的现行说明；历史原文见 [项目历史](archive/PROJECT_HISTORY.md)。当前进度、代码审查、完整阶段计划与下一动作只维护在 [STATUS](STATUS.md)。
 
 ## 1. 唯一目标
 
@@ -83,6 +83,31 @@ _work/ test-results/      本机日志、截图、trace、备份（Git 忽略）
 延用 npm workspace、Next App Router、React、TypeScript、Tailwind、Lucide、Zustand，版本以根锁文件为准。业务进 features，路由保持薄层，服务明确注入；不在服务端共享用户可变状态，不新建第二套业务后端。
 
 ## 4. 数据与联动
+
+### 回退后实施授权与draft-2裁决（2026-09-13）
+
+用户明确要求外部Agent完成代码落地，本Codex只做交付审查。回退Git不会撤销这条用户授权。外部队长担任本批临时实施总控，可以定稿完整contract-v1、编写共享契约及全部模型相关前后端代码、组织测试、更新权威文档和本地提交；不再等待本Codex冻结合同或应用补丁。仍需内部单一写入者，合同定稿是团队内部步骤。实际资源交接与当前进度见STATUS第6.1节；本文不宣称合同或功能已经完成。
+
+| 项 | draft-2实施决定 |
+| --- | --- |
+| D1 | providerId落库；旧连接缺字段时按原protocol映射custom，不猜供应商、不改URL、ID和默认引用。别名仅来自显式别名表，keywords是匹配词，二者分开。 |
+| D2 | apiFormat连接级，profile覆盖不纳入本批；非法新请求组合报明确错误，不静默换协议。旧配置规范化与新请求校验分开。 |
+| D3 | 支持请求开始前按供应商/模型/端点解析auto；OpenAI官方端点限制与Copilot专用规则分开。显式格式优先，记录本轮实际协议；流开始后不得切协议重放，认证/配额错误不被fallback掩盖。 |
+| D4 | Azure modelId复用deployment，运行时归一到/openai/v1并按参考走Responses；存储URL原值不改。apiVersion独立字段，参考仅preview实际转发，其他值不得显示为已生效。 |
+| D5 | 现有validate_base_url已允许路径，无需放宽。继续禁止query/fragment/内嵌凭证；版本走apiVersion字段，公网HTTPS、HTTP仅回环。 |
+| D6 | reasoningEnabled三态与reasoningEffort独立；reasoningStyle只读派生、不接受写入、不落库。effort覆盖参考含xhigh/max的受控全集，再按供应商/模型限制子集；明确关闭与非关闭effort冲突应校验。 |
+| D7 | 保留temperature/top_p，推理不放任意JSON；后端删除或固定参数时给出可解释状态，不暗示保存即上游已采用。 |
+| D8 | schema、Python/TS合同和仓储迁移均由外部队长指定负责人直接落地。读取v1不自动覆盖文件，首次写v2保留可恢复原配置并测失败回滚；不能只靠版本分支宣称可回退。 |
+| D9 | 接受model-providers与auth/status/start/cancel/logout路径方案；外部团队可调整模块拆分并修改main/lifespan挂载，无需本Codex加include。既有SSE事件与错误信封保留。 |
+| D10 | 认证四态可用，增加有定义的操作ID、过期/取消语义和可用方式；迟到回调不能复活已取消授权。不仅实现静态状态，须按实际流程完成生命周期和隔离测试。 |
+| D11 | Codex客户端常量存在不证明它属于DeepTutor或必需自有应用，实施者核对官方支持方式后实现；缺必要真实登录条件时精确记录。不得凭假设将三个专用供应商全部缩成API Key。 |
+| D12 | 发现返回upstream/catalog/manual来源；catalog注明来源/版本，manual明确无发现能力。认证/网络失败不能吞成空列表或回退静态候选冒充成功。 |
+| D13 | 接受提案新增认证/格式/操作错误类别；外部合同负责人同步HTTP状态、retryable、幂等语义和前端处理。 |
+| D14 | model_views、schemas、前端contracts/services及必要路由接线都归外部团队，文件各自单一写入者，不再只交diff建议。 |
+| D15 | 不向产品UI暴露原始backend作为选择或业务判断依据；下发apiFormats、认证方式、模型能力与实现/配置状态即可，backend保留服务端分派。 |
+| D16 | 不自动读取第三方CLI/IDE登录文件。CodeBuddy按参考已有API Key通道实现；Copilot的GitHub令牌交换与普通模型API Key不同，可对智启课源自身受管令牌存储实现注入和交换并用测试凭证隔离验证。真实获取/导入需用户操作时给具体步骤，未具备路径标不可用，不能伪造已支持或删供应商范围。 |
+
+共同约束：不新增isCustomProvider布尔来混合供应商类型和URL编辑状态；providerId=custom表达前者，显式baseUrl始终保留，默认地址替换由用户操作。目录支持多认证方式和可选无Key本机服务，不能用单一oauth/api_key枚举决定全部控件。以上决定供外部队长直接实施，剩余常规字段和文件组织由其自行完成；确实超出用户范围或需要用户登录时再提出具体问题。
 
 | 数据 | 当前实现 | 保持的关系 |
 | --- | --- | --- |

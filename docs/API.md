@@ -1,6 +1,8 @@
 # 接口与模块边界
 
-更新：2026-09-12。本文为当前契约；进度、代码审查与验收只维护在 [STATUS](STATUS.md)。前端 TypeScript 服务与真实 HTTP 接口分别列明。
+更新：2026-09-13。本文为当前契约；进度、代码审查与验收只维护在 [STATUS](STATUS.md)。前端 TypeScript 服务与真实 HTTP 接口分别列明。
+
+**实施责任：** 模型增量合同由外部队长按STATUS的MODEL-EXEC v3和PROJECT_GUIDE的D1–D16直接定稿并落地，Python schemas、TS contracts/services、响应投影与必要路由挂载无需本Codex代写。draft-2仍是提案，本节现行接口不因权限转交自动变为新合同；实施者完成后同步实际字段与测试证据。
 
 ## 后端凭证文件
 
