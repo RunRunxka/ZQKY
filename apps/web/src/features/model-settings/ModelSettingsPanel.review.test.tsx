@@ -20,6 +20,10 @@ const mocks = vi.hoisted(() => ({
   setDefaultModel: vi.fn(),
   discoverModels: vi.fn(),
   notifyModelCatalogChanged: vi.fn(),
+  getAuthStatus: vi.fn(),
+  startAuth: vi.fn(),
+  cancelAuth: vi.fn(),
+  logoutAuth: vi.fn(),
 }));
 vi.mock('@/services/model-settings-api', async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -259,5 +263,28 @@ describe('模型管理审查回归', () => {
   it('详情可维护附加请求头（MR-14）', async () => {
     await open();
     expect(screen.getByLabelText(/每行“名称: 值”/)).toBeInTheDocument();
+  });
+
+  it('受管认证可断开时点击后面板刷新目录（AuthPanel 接线）', async () => {
+    mocks.getAuthStatus.mockResolvedValue({
+      connection: 'connected',
+      authMode: 'oauth',
+      provider: 'github_copilot',
+      available: true,
+      userLabel: '已登录',
+    });
+    mocks.logoutAuth.mockResolvedValue({
+      ok: true,
+      status: { connection: 'disconnected', authMode: 'oauth', provider: 'github_copilot', available: false },
+    });
+    await open({ ...connection, providerId: 'github_copilot', providerLabel: 'GitHub Copilot' });
+    // AuthPanel 读到已连接状态
+    await screen.findByText('已连接');
+    const callsBefore = mocks.loadModelCatalog.mock.calls.length;
+    fireEvent.click(screen.getByRole('button', { name: /断开连接/ }));
+    // 认证变化回调应触发父层刷新目录（不再是无操作）
+    await waitFor(() =>
+      expect(mocks.loadModelCatalog.mock.calls.length).toBeGreaterThan(callsBefore),
+    );
   });
 });

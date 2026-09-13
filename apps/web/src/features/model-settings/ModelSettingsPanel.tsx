@@ -515,6 +515,10 @@ export function ModelSettingsPanel() {
               void runAction(() => setDefaultModel(profile.id, catalog.revision), '已设为问答默认模型')
             }
             onTestModel={(profile, stream) => requestTest(profile, stream)}
+            onAuthChanged={() => {
+              void refresh();
+              notifyModelCatalogChanged();
+            }}
             tests={tests}
             onEditModel={(profile) => setOverlay({ kind: 'profile', profile, connectionId: overlayConnection.id })}
             onDeleteModel={(profile) =>

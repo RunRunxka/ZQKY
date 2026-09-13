@@ -50,6 +50,7 @@ export function ConnectionDetail({
   onDeleteConnection,
   onEditModel,
   onTestModel,
+  onAuthChanged,
   tests,
   busy,
   dirty,
@@ -70,6 +71,8 @@ export function ConnectionDetail({
   onDeleteConnection: () => void;
   onEditModel: (profile: ModelProfileView) => void;
   onTestModel: (profile: ModelProfileView, stream: boolean) => void;
+  /** 受管认证状态变化（授权完成/退出）后通知父层刷新目录与可调用性 */
+  onAuthChanged: () => void;
   tests: Record<string, { running: boolean; result?: ModelTestResult; stream: boolean }>;
   busy: boolean;
   dirty: boolean;
@@ -219,7 +222,7 @@ export function ConnectionDetail({
         </label>
       </section>
 
-      <AuthPanel connection={connection} onChanged={() => undefined} />
+      <AuthPanel connection={connection} onChanged={onAuthChanged} />
 
       <section className="detail-section" aria-label="模型列表">
         <div className="detail-section-head">
