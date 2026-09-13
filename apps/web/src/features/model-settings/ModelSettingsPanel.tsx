@@ -34,9 +34,12 @@ import './styles/model-detail.css';
 type Overlay =
   | { kind: 'pick-provider' }
   | { kind: 'new-connection'; provider: ModelProviderView }
-  | { kind: 'detail'; connectionId: string }
-  | { kind: 'discover'; connectionId: string }
-  | { kind: 'profile'; profile: ModelProfileView | null; connectionId?: string };
+  | { kind: 'detail'; connectionId: string };
+
+/** 从详情打开的二层面板：叠加在详情之上，关闭后回到详情，不丢草稿（MR-12 扩展）。 */
+type ChildOverlay =
+  | { kind: 'discover' }
+  | { kind: 'profile'; profile: ModelProfileView | null };
 
 function draftFrom(connection: ModelConnectionView): ConnectionDraft {
   return {
@@ -68,6 +71,7 @@ export function ModelSettingsPanel() {
   const [query, setQuery] = useState('');
   const [section, setSection] = useState<'models' | 'connections' | 'defaults'>('models');
   const [overlay, setOverlay] = useState<Overlay | null>(null);
+  const [child, setChild] = useState<ChildOverlay | null>(null);
   const [draft, setDraft] = useState<ConnectionDraft | null>(null);
   const [draftConnectionId, setDraftConnectionId] = useState<string | null>(null);
   const [newDraft, setNewDraft] = useState<DraftConnectionForm | null>(null);
@@ -114,7 +118,7 @@ export function ModelSettingsPanel() {
   }
 
   const overlayConnection: ModelConnectionView | null =
-    overlay && overlay.kind !== 'pick-provider' && overlay.kind !== 'new-connection' && 'connectionId' in overlay
+    overlay?.kind === 'detail'
       ? catalog?.connections.find((connection) => connection.id === overlay.connectionId) ?? null
       : null;
 
@@ -127,12 +131,18 @@ export function ModelSettingsPanel() {
     setImportError(null);
     setDraft(draftFrom(connection));
     setDraftConnectionId(connection.id);
+    setChild(null);
     setOverlay({ kind: 'detail', connectionId: connection.id });
   }
 
   /** 统一的关闭入口：有未保存更改时先确认（MR-12）。 */
   function requestOverlayClose() {
     if (busy) return;
+    // 二层面板优先：先关它，详情与草稿保留
+    if (child) {
+      setChild(null);
+      return;
+    }
     if (overlay?.kind === 'detail' && detailDirty) {
       setDiscard({ onDiscard: () => setOverlay(null) });
       return;
@@ -193,8 +203,8 @@ export function ModelSettingsPanel() {
   }
 
   async function saveProfile(value: ProfileFormValue) {
-    if (overlay?.kind !== 'profile') return;
-    const existing = overlay.profile;
+    if (child?.kind !== 'profile') return;
+    const existing = child.profile;
     const destination = value.connectionId;
     await runAction(async () => {
       if (existing) {
@@ -211,6 +221,7 @@ export function ModelSettingsPanel() {
         setDraft(null);
         setDraftConnectionId(null);
       }
+      setChild(null);
       setOverlay({ kind: 'detail', connectionId: destination });
     }, existing ? '模型已保存' : '模型已添加');
   }
@@ -477,7 +488,7 @@ export function ModelSettingsPanel() {
         </Modal>
       )}
 
-      {overlay?.kind === 'detail' && overlayConnection && activeDraft && (
+      {overlay?.kind === 'detail' && overlayConnection && activeDraft && !child && (
         <Modal
           title={`连接 · ${overlayConnection.displayName}`}
           onClose={requestOverlayClose}
@@ -504,12 +515,13 @@ export function ModelSettingsPanel() {
             onDraftChange={setDraft}
             onSave={() => void saveConnectionDetail()}
             onClose={requestOverlayClose}
-            onCreateModel={() =>
-              setOverlay({ kind: 'profile', profile: null, connectionId: overlayConnection.id })
-            }
+            onCreateModel={() => {
+              setImportError(null);
+              setChild({ kind: 'profile', profile: null });
+            }}
             onDiscover={() => {
               setImportError(null);
-              setOverlay({ kind: 'discover', connectionId: overlayConnection.id });
+              setChild({ kind: 'discover' });
             }}
             onUseModel={(profile) =>
               void runAction(() => setDefaultModel(profile.id, catalog.revision), '已设为问答默认模型')
@@ -520,7 +532,7 @@ export function ModelSettingsPanel() {
               notifyModelCatalogChanged();
             }}
             tests={tests}
-            onEditModel={(profile) => setOverlay({ kind: 'profile', profile, connectionId: overlayConnection.id })}
+            onEditModel={(profile) => setChild({ kind: 'profile', profile })}
             onDeleteModel={(profile) =>
               setConfirm({
                 title: '删除模型',
@@ -548,8 +560,8 @@ export function ModelSettingsPanel() {
         </Modal>
       )}
 
-      {overlay?.kind === 'discover' && overlayConnection && (
-        <Modal title="从服务获取模型" onClose={() => !busy && setOverlay(null)}>
+      {child?.kind === 'discover' && overlayConnection && (
+        <Modal title="从服务获取模型" onClose={() => !busy && setChild(null)}>
           <ModelListPicker
             connectionId={overlayConnection.id}
             connectionName={overlayConnection.displayName}
@@ -563,17 +575,17 @@ export function ModelSettingsPanel() {
               const result = await importModels(overlayConnection.id, ids);
               return result.ok;
             }}
-            onManual={() => setOverlay({ kind: 'profile', profile: null, connectionId: overlayConnection.id })}
-            onClose={() => !busy && setOverlay(null)}
+            onManual={() => setChild({ kind: 'profile', profile: null })}
+            onClose={() => !busy && setChild(null)}
           />
         </Modal>
       )}
 
-      {overlay?.kind === 'profile' && (
+      {child?.kind === 'profile' && overlayConnection && (
         <Modal
-          title={overlay.profile ? '编辑模型' : '添加模型'}
+          title={child.profile ? '编辑模型' : '添加模型'}
           onClose={() => {
-            if (!busy) setOverlay({ kind: 'detail', connectionId: overlay.connectionId ?? '' });
+            if (!busy) setChild(null);
           }}
         >
           {actionError && (
@@ -582,11 +594,11 @@ export function ModelSettingsPanel() {
             </div>
           )}
           <ProfileForm
-            profile={overlay.profile}
+            profile={child.profile}
             connections={catalog.connections}
-            initialConnectionId={overlay.connectionId}
+            initialConnectionId={overlayConnection.id}
             busy={busy}
-            onCancel={() => setOverlay({ kind: 'detail', connectionId: overlay.connectionId ?? '' })}
+            onCancel={() => setChild(null)}
             onSave={(value) => void saveProfile(value)}
           />
         </Modal>

@@ -1,0 +1,41 @@
+[
+  {
+    "case": "controlled-8192-flash",
+    "model": "acc-deepseek-flash-budget8192",
+    "firstVisibleChineseMs": 1172,
+    "assistantBubblesBeforeSend": 0,
+    "matchedText": "勾股定理说明：在任何一个直角三角形中，两条直角边的平方和等于斜边的",
+    "katex": 12,
+    "katexErrors": 0,
+    "question": "请用一个中文段落解释勾股定理，并给出公式 $a^2+b^2=c^2$ 与一个数值例子。"
+  },
+  {
+    "case": "default-2048-pro",
+    "model": "deepseek-v4-pro",
+    "observed": "budget-exhausted",
+    "bodyHasEmptyResponse": true,
+    "question": "请写一篇不少于 4000 字的中文长文，系统讲解中国古代数学的发展脉络，按朝代分节，每节都要有小标题、具体人物、著作与代表例题，最后做完整总结。必须直接输出正文，不要只给提纲。"
+  },
+  {
+    "case": "stop-pro-8192",
+    "model": "acc-deepseek-v4-pro-budget8192",
+    "observed": "stopped-label"
+  },
+  {
+    "case": "off-8192-pro",
+    "model": "acc-deepseek-v4-pro-budget8192",
+    "bodyLength": 6812,
+    "endedComplete": false,
+    "question": "请写一篇不少于 4000 字的中文长文，系统讲解中国古代数学的发展脉络，按朝代分节，每节都要有小标题、具体人物、著作与代表例题，最后做完整总结。必须直接输出正文，不要只给提纲。"
+  },
+  {
+    "case": "retry-entry",
+    "model": "deepseek-v4-pro",
+    "retryVisible": true
+  },
+  {
+    "case": "retry-clicked",
+    "model": "deepseek-v4-pro",
+    "stillShowsBudgetError": false
+  }
+]

@@ -7,7 +7,7 @@
 | id | 交互 | 原版来源 | 状态 | 现状与待办 |
 | --- | --- | --- | --- | --- |
 | A-send | 发起、取消、恢复 | features/chat/model/protocol.ts、transport | 部分实现 | 2026-09-12真实Flash发起、推理中停止（AbortError）、新会话2秒无晚到消息、真实错误后重试与刷新恢复通过；供应商远端计算/计费取消未观测，其他协议实际供应商未验。 |
-| A-real | 真实流式问答 | transport | 部分实现 | DeepSeek发现和两模型普通/流式连接5/5通过。默认2048长答两模型均EMPTY_RESPONSE；测试副本8192下Flash长答465汉字，首中文13820ms早于结束15428ms；Pro仍预算耗尽无正文。用户正式配置未改，R-13未关闭；Responses/Anthropic无可用供应商配置。 |
+| A-real | 真实流式问答 | transport | 部分实现 | 2026-09-13 B-MODEL-ACCEPT：普通非流式与SSE**分开**测量（`/test` stream:false 返回 application/json 单 JSON；`/chat/stream` 为 text/event-stream），纠正上轮用SSE冒充普通调用。DeepSeek两模型三档：默认2048零正文(EMPTY_RESPONSE)；关推理默认预算出正文但 finishReason=length（**截断，不算成功**）；受控8192 stop 完整结束。浏览器受控档首可见中文1172ms、KaTeX 12处0错误、停止/重试/刷新通过。R-13**仍未关闭**；Responses/Anthropic无可用凭证。 |
 | A-reasoning-math | 真实推理展示/正文公式 | 固定DeepTutor AssistantActivity、AnswerMarkdown/KaTeX | 部分实现 | Flash8192样本：3031推理增量、588正文增量；自动展开→正文出现折叠→手动开保持，刷新可恢复；27处公式/0KaTeX错误，另独立双公式样本与手机通过。推理区公式专项及其他模型/协议不据此升级全验收，Pro长答无正文仍失败。 |
 | A-mode | 原真实/模拟模式切换 | 目标自有，2026-09-09 用户要求删除 | 实现待修复 | 运行界面和服务创建已是单一真实 store，无切换和免密伪模型；但生产 ChatServiceKind/Conversation.mode、不可达分支、无效提示和专用 CSS 尚未清理。测试替身只留 tests/fixtures，旧浏览器库不读取也不清除 |
 | A-model | 模型选择 | 指定主页模型弹层 + 原 ChatComposer 模型选择器 | 已验收 | 2026-09-09：输入区向上弹层、实际模型品牌图标、搜索/连接分组、默认/会话级选择、管理跳转、Escape/选择焦点与生成禁用；三个视口验证；仅指当时聊天选择器，不涵盖新模型管理/供应商任务 |
