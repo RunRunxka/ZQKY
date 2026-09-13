@@ -1,22 +1,10 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { Check, ChevronRight, CircleHelp, Plus, Search, Settings2, Star, Zap } from 'lucide-react';
 import {
-  Check,
-  ChevronRight,
-  CircleHelp,
-  Download,
-  Plus,
-  Search,
-  Settings2,
-  Star,
-  Trash2,
-  Zap,
-} from 'lucide-react';
-import {
-  CAPABILITY_EVIDENCE_LABELS,
-  MODEL_PROTOCOL_LABELS,
   type ModelConnectionView,
   type ModelProfileView,
+  type ModelProviderView,
   type ModelTestResult,
 } from '@/contracts/model-settings';
 import {
@@ -24,49 +12,67 @@ import {
   createProfile,
   deleteConnection,
   deleteProfile,
-  discoverModels,
+  notifyModelCatalogChanged,
   setDefaultModel,
   testProfile,
   updateConnection,
   updateProfile,
-  notifyModelCatalogChanged,
 } from '@/services/model-settings-api';
 import { Modal } from '@/components/ui/Modal';
-import { TestResult } from './TestResult';
 import { ModelSelector } from './ModelSelector';
 import { useModelCatalog } from './useModelCatalog';
-import { ConnectionForm, type ConnectionFormValue } from './ConnectionForm';
+import { useProviderDirectory } from './useProviderDirectory';
+import { ProviderCard } from './ProviderCard';
+import { ProviderPicker } from './ProviderPicker';
+import { ConnectionDetail, type ConnectionDraft } from './ConnectionDetail';
+import { ModelListPicker } from './ModelListPicker';
 import { ProfileForm, type ProfileFormValue } from './ProfileForm';
 import './styles/model-settings.css';
+import './styles/model-detail.css';
 
-type Editor =
-  | { kind: 'connection'; value: ModelConnectionView | null; revision: number }
-  | { kind: 'profile'; value: ModelProfileView | null; connectionId?: string; revision: number };
+type Overlay =
+  | { kind: 'pick-provider' }
+  | { kind: 'detail'; connectionId: string }
+  | { kind: 'discover'; connectionId: string }
+  | { kind: 'profile'; profile: ModelProfileView | null; connectionId?: string };
+
+function draftFrom(connection: ModelConnectionView): ConnectionDraft {
+  return {
+    displayName: connection.displayName,
+    baseUrl: connection.baseUrl,
+    apiFormat: connection.apiFormat,
+    apiVersion: connection.apiVersion ?? '',
+    extraHeadersText: '',
+    apiKey: '',
+    clearCredential: false,
+  };
+}
+
 export function ModelSettingsPanel() {
   const { catalog, error, loading, refresh } = useModelCatalog();
-  const [query, setQuery] = useState(''),
-    [section, setSection] = useState('models');
-  const [editor, setEditor] = useState<Editor | null>(null),
-    [busy, setBusy] = useState(false);
+  const { directory, error: directoryError, refresh: refreshDirectory } = useProviderDirectory();
+  const [query, setQuery] = useState('');
+  const [section, setSection] = useState<'models' | 'connections' | 'defaults'>('models');
+  const [overlay, setOverlay] = useState<Overlay | null>(null);
+  const [draft, setDraft] = useState<ConnectionDraft | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [importing, setImporting] = useState(false);
   const lock = useRef(false);
-  const [notice, setNotice] = useState<string | null>(null),
-    [actionError, setActionError] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState<{
-    title: string;
-    text: string;
-    action: () => Promise<void>;
-  } | null>(null);
-  const [picker, setPicker] = useState<{
-    connection: ModelConnectionView;
-    ids: string[] | null;
-    error?: string;
-  } | null>(null);
-  const [selected, setSelected] = useState<string[]>([]),
-    [modelQuery, setModelQuery] = useState('');
-  const [tests, setTests] = useState<
-    Record<string, { running: boolean; result?: ModelTestResult; stream: boolean }>
-  >({});
-  const pickerEpoch = useRef(0);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<{ title: string; text: string; action: () => Promise<void> } | null>(null);
+  const [tests, setTests] = useState<Record<string, { running: boolean; result?: ModelTestResult; stream: boolean }>>({});
+
+  const providersById = useMemo(() => {
+    const map = new Map<string, ModelProviderView>();
+    if (directory) {
+      for (const provider of [...directory.providers, ...directory.legacy]) {
+        map.set(provider.providerId, provider);
+      }
+    }
+    return map;
+  }, [directory]);
+
   async function action(fn: () => Promise<unknown>, success = '已保存') {
     if (lock.current) return;
     lock.current = true;
@@ -85,91 +91,86 @@ export function ModelSettingsPanel() {
       setBusy(false);
     }
   }
-  async function saveConnection(value: ConnectionFormValue) {
-    if (editor?.kind !== 'connection') return;
-    await action(async () => {
-      if (editor.value)
-        await updateConnection(editor.value.id, { ...value, expectedRevision: editor.revision });
-      else await createConnection(value);
-      setEditor(null);
+
+  const overlayConnection: ModelConnectionView | null =
+    overlay && overlay.kind !== 'pick-provider' && 'connectionId' in overlay
+      ? catalog?.connections.find((connection) => connection.id === overlay.connectionId) ?? null
+      : null;
+
+  async function addProvider(provider: ModelProviderView) {
+    const needsBase = !provider.defaultApiBase;
+    setOverlay({
+      kind: 'detail',
+      connectionId: '',
     });
+    // 新建走同一个详情形态：先创建连接，再进入详情
+    await action(async () => {
+      const created = await createConnection({
+        displayName: provider.label,
+        providerId: provider.providerId,
+        apiFormat: provider.defaultApiFormat,
+        baseUrl: provider.defaultApiBase,
+      });
+      setDraft(draftFrom(created));
+      setOverlay({ kind: 'detail', connectionId: created.id });
+      if (needsBase) setNotice('请在详情中填写 Base URL。');
+    }, '连接已创建');
   }
+
+  async function saveConnectionDetail() {
+    if (!overlayConnection || !draft) return;
+    await action(async () => {
+      const extraHeaders = parseHeaders(draft.extraHeadersText);
+      await updateConnection(overlayConnection.id, {
+        displayName: draft.displayName.trim(),
+        apiFormat: draft.apiFormat,
+        baseUrl: draft.baseUrl.trim(),
+        apiVersion: draft.apiVersion.trim() || null,
+        ...(draft.apiKey && !draft.clearCredential ? { apiKey: draft.apiKey } : {}),
+        ...(draft.clearCredential ? { credentialAction: 'clear' as const } : {}),
+        ...(Object.keys(extraHeaders).length > 0 ? { extraHeaders } : {}),
+        expectedRevision: catalog?.revision,
+      });
+      const updated = catalog?.connections.find((connection) => connection.id === overlayConnection.id);
+      setDraft(updated ? draftFrom(updated) : null);
+    }, '连接已保存');
+  }
+
   async function saveProfile(value: ProfileFormValue) {
-    if (editor?.kind !== 'profile') return;
+    if (overlay?.kind !== 'profile') return;
+    const existing = overlay.profile;
     await action(async () => {
-      if (editor.value)
-        await updateProfile(editor.value.id, { ...value, expectedRevision: editor.revision });
+      if (existing) await updateProfile(existing.id, { ...value, expectedRevision: catalog?.revision });
       else await createProfile(value);
-      setEditor(null);
-    });
+      setOverlay({ kind: 'detail', connectionId: value.connectionId });
+    }, existing ? '模型已保存' : '模型已添加');
   }
-  async function openPicker(connection: ModelConnectionView) {
-    const epoch = ++pickerEpoch.current;
-    setSelected([]);
-    setModelQuery('');
-    setPicker({ connection, ids: null });
-    setActionError(null);
-    try {
-      const { models } = await discoverModels(connection.id);
-      if (epoch === pickerEpoch.current) setPicker({ connection, ids: models.map((m) => m.id) });
-    } catch (e) {
-      if (epoch === pickerEpoch.current)
-        setPicker({
-          connection,
-          ids: [],
-          error: e instanceof Error ? e.message : '获取失败，请手动添加。',
-        });
-    }
-  }
-  async function addSelected() {
-    if (!picker || !catalog) return;
-    await action(async () => {
-      for (const id of selected) {
-        if (
-          !catalog.profiles.some((p) => p.connectionId === picker.connection.id && p.modelId === id)
-        ) {
-          await createProfile({
-            connectionId: picker.connection.id,
-            displayName: id.slice(0, 64),
-            modelId: id,
-            purpose: 'chat',
-          });
-          setSelected((prev) => prev.filter((value) => value !== id));
-        }
-      }
-      setPicker(null);
-    }, '所选模型已添加');
-  }
-  function requestTest(p: ModelProfileView, stream: boolean) {
+
+  function requestTest(profile: ModelProfileView, stream: boolean) {
     setConfirm({
       title: stream ? '测试流式输出' : '测试模型连接',
       text: '将发送一次少量文本的真实请求，可能产生少量费用。测试不会发送你的会话历史。',
       action: async () => {
-        setTests((prev) => ({ ...prev, [p.id]: { running: true, stream } }));
+        setTests((prev) => ({ ...prev, [profile.id]: { running: true, stream } }));
         try {
-          const result = await testProfile(p.id, { stream });
-          setTests((prev) => ({ ...prev, [p.id]: { running: false, result, stream } }));
+          const result = await testProfile(profile.id, { stream });
+          setTests((prev) => ({ ...prev, [profile.id]: { running: false, result, stream } }));
           await refresh();
           notifyModelCatalogChanged();
         } catch (e) {
           setTests((prev) => ({
             ...prev,
-            [p.id]: {
+            [profile.id]: {
               running: false,
               stream,
-              result: {
-                ok: false,
-                error: {
-                  code: 'REQUEST_FAILED',
-                  message: e instanceof Error ? e.message : '测试失败。',
-                },
-              },
+              result: { ok: false, error: { code: 'REQUEST_FAILED', message: e instanceof Error ? e.message : '测试失败。' } },
             },
           }));
         }
       },
     });
   }
+
   if (!catalog)
     return (
       <main className="model-settings settings-loading">
@@ -186,33 +187,36 @@ export function ModelSettingsPanel() {
         )}
       </main>
     );
-  const filtered = catalog.connections.filter((c) =>
-    section === 'connections'
-      ? `${c.displayName} ${c.baseUrl}`.toLowerCase().includes(query.toLowerCase())
-      : !query ||
-        catalog.profiles.some(
-          (p) =>
-            p.connectionId === c.id &&
-            `${p.displayName} ${p.modelId} ${c.displayName}`
-              .toLowerCase()
-              .includes(query.toLowerCase()),
-        ),
-  );
+
+  const filteredConnections = catalog.connections.filter((connection) => {
+    const modelMatch =
+      section === 'models' &&
+      catalog.profiles.some(
+        (profile) =>
+          profile.connectionId === connection.id &&
+          `${profile.displayName} ${profile.modelId} ${connection.displayName}`
+            .toLowerCase()
+            .includes(query.toLowerCase()),
+      );
+    const connectionMatch = `${connection.displayName} ${connection.providerLabel ?? ''} ${connection.baseUrl}`
+      .toLowerCase()
+      .includes(query.toLowerCase());
+    return !query || connectionMatch || modelMatch;
+  });
+
   return (
     <main className="model-settings">
       <aside className="settings-navigation">
         <span className="settings-eyebrow">工作台设置</span>
         <h2>模型管理</h2>
-        {[
-          ['models', '问答模型'],
-          ['connections', '连接管理'],
-          ['defaults', '默认模型'],
-        ].map(([id, label]) => (
-          <button
-            key={id}
-            className={section === id ? 'current' : ''}
-            onClick={() => setSection(id)}
-          >
+        {(
+          [
+            ['models', '问答模型'],
+            ['connections', '连接管理'],
+            ['defaults', '默认模型'],
+          ] as const
+        ).map(([id, label]) => (
+          <button key={id} className={section === id ? 'current' : ''} onClick={() => setSection(id)}>
             <Settings2 size={16} />
             {label}
             <ChevronRight size={14} />
@@ -220,41 +224,39 @@ export function ModelSettingsPanel() {
         ))}
         <div className="settings-nav-note">
           <CircleHelp size={17} />
-          <p>同一连接下的模型共用凭证。所有问答入口使用这里的模型目录。</p>
+          <p>一个连接的一套凭证可被多个模型复用。所有问答入口使用这里的模型目录。</p>
         </div>
       </aside>
+
       <div className="settings-scroll">
         <div className="settings-page-head">
           <div>
             <span className="settings-eyebrow">模型与连接</span>
-            <h1>
-              {section === 'models'
-                ? '问答模型'
-                : section === 'connections'
-                  ? '连接管理'
-                  : '默认模型'}
-            </h1>
+            <h1>{section === 'models' ? '问答模型' : section === 'connections' ? '连接管理' : '默认模型'}</h1>
             <p>选择适合教学与学习的模型，在一个地方管理。</p>
           </div>
-          <button
-            className="button primary"
-            onClick={() => {
-              setActionError(null);
-              setEditor({ kind: 'connection', value: null, revision: catalog.revision });
-            }}
-          >
+          <button className="button primary" onClick={() => setOverlay({ kind: 'pick-provider' })}>
             <Plus size={16} />
             添加连接
           </button>
         </div>
+
         <div className="settings-process-note">
           <span className="model-dot" />
-          凭证保存到本机后端 apps/api/.env，重启后自动恢复；也可编辑文件后重启 API。
+          凭证保存在服务端（正式服务为忽略的 apps/api/.env），响应不回显明文；重启后自动恢复。
         </div>
-        {(error || actionError) && !editor && !picker && (
+
+        {(actionError || error || directoryError) && overlay === null && (
           <p className="settings-feedback error" role="alert">
-            {actionError ?? error}
-            <button onClick={() => void refresh()}>刷新配置</button>
+            {actionError ?? error ?? directoryError}
+            <button
+              onClick={() => {
+                void refresh();
+                void refreshDirectory();
+              }}
+            >
+              刷新配置
+            </button>
           </p>
         )}
         {notice && (
@@ -263,6 +265,7 @@ export function ModelSettingsPanel() {
             {notice}
           </p>
         )}
+
         {section === 'defaults' ? (
           <section className="settings-default-card">
             <Star size={22} />
@@ -271,9 +274,7 @@ export function ModelSettingsPanel() {
             <ModelSelector
               catalog={{ ...catalog, defaultChatProfileId: null }}
               value={catalog.defaultChatProfileId}
-              onChange={(id) =>
-                void action(() => setDefaultModel(id, catalog.revision), '默认模型已更新')
-              }
+              onChange={(id) => void action(() => setDefaultModel(id, catalog.revision), '默认模型已更新')}
               disabled={busy}
             />
             <p className="settings-hint">教案生成、组卷等任务的模型分配仍在规划中。</p>
@@ -294,196 +295,72 @@ export function ModelSettingsPanel() {
                 {catalog.connections.length} 个连接 · {catalog.profiles.length} 个模型
               </span>
             </div>
+
             {catalog.connections.length === 0 && (
               <div className="settings-empty-state">
                 <Zap size={30} />
                 <h2>添加第一个模型连接</h2>
-                <p>填写服务地址和凭证，再获取模型列表或手动添加模型。</p>
+                <p>从供应商目录选择服务，填写凭证，再获取或手动添加模型。</p>
+                <button className="button primary" onClick={() => setOverlay({ kind: 'pick-provider' })}>
+                  <Plus size={16} />
+                  选择供应商
+                </button>
               </div>
             )}
-            {filtered.map((c) => (
-              <details className="connection-group" key={c.id} open>
-                <summary>
-                  <span className="connection-avatar">{c.displayName.slice(0, 1)}</span>
-                  <span>
-                    <strong>{c.displayName}</strong>
-                    <small>{MODEL_PROTOCOL_LABELS[c.protocol]}</small>
-                  </span>
-                  <span className={`small-badge ${c.hasCredential ? 'credential-ready' : ''}`}>
-                    {c.hasCredential ? '凭证已配置' : '需填写凭证'}
-                  </span>
-                </summary>
-                <div className="connection-tools">
-                  <span title={c.baseUrl}>{c.baseUrl}</span>
-                  <button
-                    className="button subtle"
-                    onClick={() => {
+
+            <div className="provider-grid">
+              {filteredConnections.map((connection) => {
+                const provider = connection.providerId ? providersById.get(connection.providerId) ?? null : null;
+                const profiles = catalog.profiles.filter((profile) => profile.connectionId === connection.id);
+                const defaultProfile = profiles.find((profile) => profile.id === catalog.defaultChatProfileId);
+                return (
+                  <ProviderCard
+                    key={connection.id}
+                    connection={connection}
+                    modelCount={profiles.length}
+                    inUseModelName={defaultProfile?.displayName ?? null}
+                    credentialKnown={provider ? provider.requiresKey : true}
+                    onOpen={() => {
                       setActionError(null);
-                      setEditor({ kind: 'connection', value: c, revision: catalog.revision });
+                      setDraft(draftFrom(connection));
+                      setOverlay({ kind: 'detail', connectionId: connection.id });
                     }}
-                  >
-                    编辑连接
-                  </button>
-                  <button
-                    className="icon-button"
-                    aria-label={`删除连接 ${c.displayName}`}
-                    onClick={() => {
-                      if (catalog.profiles.some((p) => p.connectionId === c.id)) {
-                        setActionError('该连接仍被模型引用，请先删除相关模型。');
-                        return;
-                      }
-                      setConfirm({
-                        title: '删除连接',
-                        text: `删除「${c.displayName}」及后端保存的凭证？`,
-                        action: () =>
-                          action(() => deleteConnection(c.id, catalog?.revision), '连接已删除'),
-                      });
-                    }}
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </div>
-                {section === 'models' && (
-                  <div className="model-card-list">
-                    {catalog.profiles
-                      .filter(
-                        (p) =>
-                          p.connectionId === c.id &&
-                          `${p.displayName} ${p.modelId} ${c.displayName}`
-                            .toLowerCase()
-                            .includes(query.toLowerCase()),
-                      )
-                      .map((p) => (
-                        <article className="managed-model" key={p.id}>
-                          <div className="managed-model-head">
-                            <div>
-                              <strong>{p.displayName}</strong>
-                              <code>{p.modelId}</code>
-                            </div>
-                            {catalog.defaultChatProfileId === p.id && (
-                              <span className="model-default">
-                                <Star size={12} />
-                                默认
-                              </span>
-                            )}
-                            <button
-                              className="icon-button"
-                              aria-label={`编辑模型 ${p.displayName}`}
-                              onClick={() => {
-                                setActionError(null);
-                                setEditor({
-                                  kind: 'profile',
-                                  value: p,
-                                  revision: catalog.revision,
-                                });
-                              }}
-                            >
-                              <Settings2 size={16} />
-                            </button>
-                          </div>
-                          <div className="model-facts">
-                            <span>上下文 {p.contextTokens?.toLocaleString() ?? '未知'}</span>
-                            <span>输出 {p.maxOutputTokens?.toLocaleString() ?? '默认'}</span>
-                            <span>
-                              对话 · {CAPABILITY_EVIDENCE_LABELS[p.capabilities.chat ?? 'unknown']}
-                            </span>
-                            <span>
-                              流式 ·{' '}
-                              {CAPABILITY_EVIDENCE_LABELS[p.capabilities.stream ?? 'unknown']}
-                            </span>
-                          </div>
-                          <div className="managed-model-actions">
-                            <button
-                              disabled={!c.hasCredential || tests[p.id]?.running}
-                              onClick={() => requestTest(p, false)}
-                            >
-                              连接测试
-                            </button>
-                            <button
-                              disabled={!c.hasCredential || tests[p.id]?.running}
-                              onClick={() => requestTest(p, true)}
-                            >
-                              流式测试
-                            </button>
-                            <button
-                              disabled={busy || catalog.defaultChatProfileId === p.id}
-                              onClick={() =>
-                                void action(
-                                  () => setDefaultModel(p.id, catalog.revision),
-                                  '默认模型已更新',
-                                )
-                              }
-                            >
-                              设为默认
-                            </button>
-                            <button
-                              aria-label={`删除模型 ${p.displayName}`}
-                              onClick={() =>
-                                setConfirm({
-                                  title: '删除模型',
-                                  text: `删除「${p.displayName}」？历史回答会保留，使用此模型的会话需重新选择。`,
-                                  action: () =>
-                                    action(
-                                      () => deleteProfile(p.id, catalog?.revision),
-                                      '模型已删除',
-                                    ),
-                                })
-                              }
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                          {tests[p.id] && <TestResult test={tests[p.id]} />}
-                        </article>
-                      ))}
-                  </div>
-                )}
-                <div className="connection-add">
-                  <button
-                    className="button subtle"
-                    disabled={!c.hasCredential}
-                    onClick={() => void openPicker(c)}
-                  >
-                    <Download size={14} />
-                    从服务获取模型
-                  </button>
-                  <button
-                    className="button subtle"
-                    onClick={() => {
-                      setActionError(null);
-                      setEditor({
-                        kind: 'profile',
-                        value: null,
-                        connectionId: c.id,
-                        revision: catalog.revision,
-                      });
-                    }}
-                  >
-                    <Plus size={14} />
-                    手动添加
-                  </button>
-                </div>
-              </details>
-            ))}
-            {filtered.length === 0 && catalog.connections.length > 0 && (
+                  />
+                );
+              })}
+              {catalog.connections.length > 0 && (
+                <button
+                  type="button"
+                  className="provider-card add-card"
+                  onClick={() => setOverlay({ kind: 'pick-provider' })}
+                >
+                  <Plus size={18} />
+                  添加连接
+                </button>
+              )}
+            </div>
+            {filteredConnections.length === 0 && catalog.connections.length > 0 && (
               <p className="settings-empty">没有匹配的连接或模型。</p>
             )}
           </>
         )}
       </div>
-      {editor && (
+
+      {overlay?.kind === 'pick-provider' && directory && (
+        <Modal title="选择供应商" onClose={() => setOverlay(null)}>
+          <ProviderPicker
+            directory={directory.providers}
+            onPick={(provider) => void addProvider(provider)}
+            onClose={() => setOverlay(null)}
+          />
+        </Modal>
+      )}
+
+      {overlay?.kind === 'detail' && overlayConnection && draft && (
         <Modal
-          title={
-            editor.kind === 'connection'
-              ? editor.value
-                ? '编辑连接'
-                : '添加连接'
-              : editor.value
-                ? '编辑模型'
-                : '添加模型'
-          }
+          title={`连接 · ${overlayConnection.displayName}`}
           onClose={() => {
-            if (!busy) setEditor(null);
+            if (!busy) setOverlay(null);
           }}
         >
           {actionError && (
@@ -492,118 +369,118 @@ export function ModelSettingsPanel() {
               <button
                 onClick={async () => {
                   const next = await refresh();
-                  if (next)
-                    setEditor((prev) => (prev ? { ...prev, revision: next.revision } : null));
+                  if (next) void next;
                 }}
               >
                 重新读取版本（保留表单）
               </button>
             </div>
           )}
-          {editor.kind === 'connection' ? (
-            <ConnectionForm
-              connection={editor.value}
-              busy={busy}
-              onCancel={() => {
-                if (!busy) setEditor(null);
-              }}
-              onSave={(value) => void saveConnection(value)}
-            />
-          ) : (
-            <ProfileForm
-              profile={editor.value}
-              connections={catalog.connections}
-              initialConnectionId={editor.connectionId}
-              busy={busy}
-              onCancel={() => {
-                if (!busy) setEditor(null);
-              }}
-              onSave={(value) => void saveProfile(value)}
-            />
-          )}
+          <ConnectionDetail
+            connection={overlayConnection}
+            provider={overlayConnection.providerId ? providersById.get(overlayConnection.providerId) ?? null : null}
+            profiles={catalog.profiles.filter((profile) => profile.connectionId === overlayConnection.id)}
+            defaultChatProfileId={catalog.defaultChatProfileId}
+            importing={importing}
+            draft={draft}
+            onDraftChange={setDraft}
+            onSave={() => void saveConnectionDetail()}
+            onClose={() => setOverlay(null)}
+            onCreateModel={() =>
+              setOverlay({ kind: 'profile', profile: null, connectionId: overlayConnection.id })
+            }
+            onDiscover={() => setOverlay({ kind: 'discover', connectionId: overlayConnection.id })}
+            onUseModel={(profile) =>
+              void action(() => setDefaultModel(profile.id, catalog.revision), '已设为问答默认模型')
+            }
+            onTestModel={(profile, stream) => requestTest(profile, stream)}
+            tests={tests}
+            onEditModel={(profile) => setOverlay({ kind: 'profile', profile, connectionId: overlayConnection.id })}
+            onDeleteModel={(profile) =>
+              setConfirm({
+                title: '删除模型',
+                text: `删除「${profile.displayName}」？历史回答会保留，使用此模型的会话需重新选择。`,
+                action: () => action(() => deleteProfile(profile.id, catalog?.revision), '模型已删除'),
+              })
+            }
+            onDeleteConnection={() =>
+              setConfirm({
+                title: '删除连接',
+                text: `删除「${overlayConnection.displayName}」及服务端保存的凭证？该连接下的模型会阻止删除。`,
+                action: () =>
+                  action(async () => {
+                    await deleteConnection(overlayConnection.id, catalog?.revision);
+                    setOverlay(null);
+                  }, '连接已删除'),
+              })
+            }
+            busy={busy}
+            dirty={overlayConnection ? connectionDirty(overlayConnection, draft) : false}
+          />
         </Modal>
       )}
-      {picker && (
+
+      {overlay?.kind === 'discover' && overlayConnection && (
+        <Modal title="从服务获取模型" onClose={() => setOverlay(null)}>
+          <ModelListPicker
+            connectionId={overlayConnection.id}
+            connectionName={overlayConnection.displayName}
+            providerId={overlayConnection.providerId}
+            providerLabel={overlayConnection.providerLabel}
+            existingIds={catalog.profiles
+              .filter((profile) => profile.connectionId === overlayConnection.id)
+              .map((profile) => profile.modelId)}
+            onAdd={async (ids) => {
+              setImporting(true);
+              try {
+                await action(async () => {
+                  for (const id of ids) {
+                    const exists = catalog.profiles.some(
+                      (profile) => profile.connectionId === overlayConnection.id && profile.modelId === id,
+                    );
+                    if (!exists) {
+                      await createProfile({
+                        connectionId: overlayConnection.id,
+                        displayName: id.slice(0, 64),
+                        modelId: id,
+                        purpose: 'chat',
+                      });
+                    }
+                  }
+                }, '所选模型已添加');
+              } finally {
+                setImporting(false);
+              }
+            }}
+            onManual={() => setOverlay({ kind: 'profile', profile: null, connectionId: overlayConnection.id })}
+            onClose={() => setOverlay(null)}
+          />
+        </Modal>
+      )}
+
+      {overlay?.kind === 'profile' && (
         <Modal
-          title={`添加模型 · ${picker.connection.displayName}`}
+          title={overlay.profile ? '编辑模型' : '添加模型'}
           onClose={() => {
-            if (!busy) {
-              pickerEpoch.current++;
-              setPicker(null);
-            }
+            if (!busy) setOverlay({ kind: 'detail', connectionId: overlay.connectionId ?? '' });
           }}
         >
-          <p className="settings-hint">勾选要添加的模型。已有配置会保留，不会被服务列表覆盖。</p>
-          {picker.ids === null ? (
-            <p role="status">正在获取模型列表…</p>
-          ) : picker.error ? (
-            <p role="alert">{picker.error}</p>
-          ) : (
-            <>
-              <input
-                aria-label="筛选发现的模型"
-                placeholder="搜索模型 ID"
-                value={modelQuery}
-                onChange={(e) => setModelQuery(e.target.value)}
-              />
-              <div className="discovery-list">
-                {picker.ids
-                  .filter((id) => id.toLowerCase().includes(modelQuery.toLowerCase()))
-                  .map((id) => {
-                    const exists = catalog.profiles.some(
-                      (p) => p.connectionId === picker.connection.id && p.modelId === id,
-                    );
-                    return (
-                      <label key={id}>
-                        <input
-                          type="checkbox"
-                          disabled={exists || busy}
-                          checked={exists || selected.includes(id)}
-                          onChange={() =>
-                            setSelected(
-                              selected.includes(id)
-                                ? selected.filter((x) => x !== id)
-                                : [...selected, id],
-                            )
-                          }
-                        />
-                        <span>{id}</span>
-                        {exists && <small>已添加</small>}
-                      </label>
-                    );
-                  })}
-              </div>
-              {picker.ids.length === 0 && <p>服务返回了空列表，你仍可手动添加模型。</p>}
-            </>
+          {actionError && (
+            <div className="settings-feedback error" role="alert">
+              {actionError}
+            </div>
           )}
-          {actionError && <p role="alert">{actionError}</p>}
-          <footer>
-            <button
-              className="button subtle"
-              disabled={busy}
-              onClick={() => {
-                setEditor({
-                  kind: 'profile',
-                  value: null,
-                  connectionId: picker.connection.id,
-                  revision: catalog.revision,
-                });
-                pickerEpoch.current++;
-                setPicker(null);
-              }}
-            >
-              手动添加
-            </button>
-            <button
-              className="button primary"
-              disabled={busy || selected.length === 0}
-              onClick={() => void addSelected()}
-            >
-              {busy ? '添加中…' : `添加所选 ${selected.length} 个模型`}
-            </button>
-          </footer>
+          <ProfileForm
+            profile={overlay.profile}
+            connections={catalog.connections}
+            initialConnectionId={overlay.connectionId}
+            busy={busy}
+            onCancel={() => setOverlay({ kind: 'detail', connectionId: overlay.connectionId ?? '' })}
+            onSave={(value) => void saveProfile(value)}
+          />
         </Modal>
       )}
+
       {confirm && (
         <Modal title={confirm.title} onClose={() => setConfirm(null)}>
           <p>{confirm.text}</p>
@@ -626,4 +503,27 @@ export function ModelSettingsPanel() {
       )}
     </main>
   );
+}
+
+function connectionDirty(connection: ModelConnectionView, draft: ConnectionDraft): boolean {
+  return (
+    draft.displayName !== connection.displayName ||
+    draft.baseUrl !== connection.baseUrl ||
+    draft.apiFormat !== connection.apiFormat ||
+    (draft.apiVersion || '') !== (connection.apiVersion ?? '') ||
+    draft.apiKey.length > 0 ||
+    draft.clearCredential
+  );
+}
+
+function parseHeaders(text: string): Record<string, string> {
+  const headers: Record<string, string> = {};
+  for (const line of text.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const index = trimmed.indexOf(':');
+    if (index <= 0) continue;
+    headers[trimmed.slice(0, index).trim()] = trimmed.slice(index + 1).trim();
+  }
+  return headers;
 }

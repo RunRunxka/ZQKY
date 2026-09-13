@@ -13,16 +13,17 @@ from fastapi import APIRouter, Request
 from app.api.v1.model_views import profile_view
 from app.core.exceptions import InvalidRequestError, NotFoundError, RevisionConflictError
 from app.core.secrets import SecretStore
-from app.providers.llm.base import LLMConfig, LLMMessage, LLMRequest
-from app.providers.llm.factory import create_provider
+from app.providers.llm.base import LLMRequest, LLMMessage
 from app.repositories.model_config_repository import ModelConfigRepository
 from app.schemas.model_config import (
     KnownParam,
     ModelProfile,
+    ReasoningEffort,
     validate_capability_map,
     now_utc,
 )
 from app.schemas.model_requests import ProfileCreate, ProfileTestRequest, ProfileUpdate
+from app.services.model_runtime import build_llm_config, build_provider
 
 router = APIRouter(tags=["model-settings"])
 
@@ -64,6 +65,7 @@ def list_profiles(request: Request) -> list[dict]:
 def create_profile(request: Request, body: ProfileCreate) -> dict:
     repo, secrets = _deps(request)
     now = now_utc()
+    _validate_reasoning(body.reasoningEnabled, body.reasoningEffort)
     profile = ModelProfile(
         id=uuid.uuid4().hex,
         connectionId=body.connectionId,
@@ -75,11 +77,19 @@ def create_profile(request: Request, body: ProfileCreate) -> dict:
         supportedParams=validate_supported_params(body.supportedParams),
         params=validate_params(body.params, body.supportedParams or []),
         capabilities=validate_capability_map(body.capabilities),
+        reasoningEnabled=body.reasoningEnabled,
+        reasoningEffort=body.reasoningEffort,
         createdAt=now,
         updatedAt=now,
     )
     repo.create_profile(profile)
     return profile_view(profile, repo.get_connection(profile.connectionId), secrets)
+
+
+def _validate_reasoning(enabled: bool | None, effort: ReasoningEffort | None) -> None:
+    """D6：明确关闭与非关闭 effort 冲突应校验。"""
+    if enabled is False and effort not in (None, ReasoningEffort.none):
+        raise InvalidRequestError("已关闭推理时不能再指定推理深度。")
 
 
 @router.put("/model-profiles/{profile_id}")
@@ -107,6 +117,11 @@ def update_profile(request: Request, profile_id: str, body: ProfileUpdate) -> di
             profile.params = {k: v for k, v in profile.params.items() if k in profile.supportedParams}
         if body.capabilities is not None:
             profile.capabilities = validate_capability_map(body.capabilities)
+        if "reasoningEnabled" in body.model_fields_set:
+            profile.reasoningEnabled = body.reasoningEnabled
+        if "reasoningEffort" in body.model_fields_set:
+            profile.reasoningEffort = body.reasoningEffort
+        _validate_reasoning(profile.reasoningEnabled, profile.reasoningEffort)
 
     updated = repo.update_profile(profile_id, apply, body.expectedRevision)
     return profile_view(updated, repo.get_connection(updated.connectionId), secrets)
@@ -134,14 +149,8 @@ async def test_profile(request: Request, profile_id: str, body: ProfileTestReque
             code="UNSUPPORTED_PARAMETER",
         )
 
-    provider = create_provider(connection.protocol)
-    config = LLMConfig(
-        protocol=connection.protocol,
-        baseUrl=connection.baseUrl,
-        modelId=profile.modelId,
-        apiKey=secrets.resolve(connection.id),
-        extraHeaders=dict(connection.extraHeaders),
-    )
+    config = build_llm_config(connection, profile, secrets)
+    provider = build_provider(connection, config, auth_service=request.app.state.model_auth_service)
     llm_request = LLMRequest(
         messages=[LLMMessage(role="user", content=body.prompt or TEST_PROMPT)],
         maxOutputTokens=min(body.maxOutputTokens or TEST_MAX_OUTPUT_TOKENS, TEST_MAX_OUTPUT_TOKENS),

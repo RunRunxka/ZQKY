@@ -52,7 +52,10 @@ def test_create_and_persist_roundtrip(tmp_path: Path):
     reloaded = ModelConfigRepository(path)
     assert [c.id for c in reloaded.list_connections()] == ["conn-1"]
     data = json.loads(path.read_text(encoding="utf-8"))
-    assert data["schemaVersion"] == 1
+    # contract-v1：新写入的文档为 schemaVersion 2。
+    # providerId 保持 None 是允许的（仓库直建的旧式对象），迁移只在读取 v1 文档时发生。
+    assert data["schemaVersion"] == 2
+    assert data["connections"][0]["providerId"] is None
     assert data["revision"] == 2
 
 

@@ -37,12 +37,26 @@ class ProviderError(AppError):
 
 @dataclass(frozen=True)
 class LLMConfig:
+    """单次调用的连接快照（D9/参考 configure_env=False 的等价物）。
+
+    连接 A 的凭证与参数只存在于本对象的生命周期内，绝不写入进程环境，
+    因此不同连接并发不会互相污染。
+    """
+
     protocol: ModelProtocol
     baseUrl: str
     modelId: str
     apiKey: str | None = None
     extraHeaders: dict[str, str] = field(default_factory=dict)
     timeoutSeconds: float = DEFAULT_TIMEOUT_SECONDS
+    # contract-v1 增量：供应商身份与格式决定分派、默认地址与专有参数
+    providerId: str | None = None
+    apiFormat: str = "auto"
+    apiVersion: str | None = None
+    connectionId: str | None = None
+    modelProfileId: str | None = None
+    reasoningEnabled: bool | None = None
+    reasoningEffort: str | None = None
 
 
 @dataclass(frozen=True)
@@ -99,6 +113,42 @@ def require_api_key(config: LLMConfig) -> str:
             status_code=400,
         )
     return config.apiKey
+
+
+def resolve_api_key(config: LLMConfig, *, required: bool) -> str | None:
+    """本机免 Key 服务（ollama / llama.cpp / ovms）与 OAuth 通道允许无 Key。
+
+    云服务仍必须显式凭证：缺 Key 时抛出可操作的 400，绝不静默发匿名请求。
+    """
+    if config.apiKey:
+        return config.apiKey
+    if required:
+        raise ProviderError(
+            "MODEL_NOT_CONFIGURED",
+            "该连接未保存凭证，请先在设置中填写 API Key。",
+            status_code=400,
+        )
+    return None
+
+
+# 认证头一律由适配器写入，用户附加头不得覆盖（D 系列共同约束/AGENTS）
+PROTECTED_AUTH_HEADERS = frozenset(
+    {
+        "authorization",
+        "x-api-key",
+        "api-key",
+        "anthropic-version",
+        "x-session-affinity",
+        "chatgpt-account-id",
+    }
+)
+
+
+def merge_headers(extra: dict[str, str], auth: dict[str, str]) -> dict[str, str]:
+    """先放用户附加头，再放认证头，确保认证头不可被覆盖。"""
+    merged = {k: v for k, v in extra.items() if k.lower() not in PROTECTED_AUTH_HEADERS}
+    merged.update(auth)
+    return merged
 
 
 def _sanitize_upstream_message(response: httpx.Response, fallback: str) -> str:
@@ -256,6 +306,10 @@ class LLMProvider(ABC):
     """
 
     supported_params: frozenset[str] = frozenset({"temperature", "top_p"})
+    # 公开协议兼容标签；OAuth/本机供应商由子类覆盖
+    protocol: ModelProtocol = ModelProtocol.openai_chat
+    # 是否必须凭证；本机免 Key 服务与 OAuth 通道为 False
+    requires_api_key: bool = True
 
     async def complete(
         self,
@@ -265,7 +319,7 @@ class LLMProvider(ABC):
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> LLMResponse:
         check_params(request, self.supported_params)
-        require_api_key(config)
+        resolve_api_key(config, required=self.requires_api_key)
         return await self._complete(config, request, transport)
 
     async def stream(
@@ -276,7 +330,7 @@ class LLMProvider(ABC):
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> AsyncIterator[LLMStreamEvent]:
         check_params(request, self.supported_params)
-        require_api_key(config)
+        resolve_api_key(config, required=self.requires_api_key)
         async with aclosing(self._stream(config, request, transport)) as delegate:
             async for event in delegate:
                 yield event

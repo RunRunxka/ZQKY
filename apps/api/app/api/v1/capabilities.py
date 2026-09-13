@@ -20,7 +20,11 @@ CAPABILITIES: tuple[Capability, ...] = (
         feature="model_settings",
         label="模型设置",
         status=CapabilityStatus.ready,
-        detail="模型连接、模型配置与真实连接测试已实现（D03）；凭证仅保存在当前服务进程。",
+        detail=(
+            "模型连接、模型配置、供应商目录（38 条）与真实连接测试已实现；"
+            "凭证存入服务端 SecretStore（正式服务为忽略的 apps/api/.env，测试为内存），"
+            "响应只返回凭证状态，不回显明文。"
+        ),
     ),
     Capability(
         feature="chat",

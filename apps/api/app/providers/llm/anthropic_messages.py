@@ -1,4 +1,11 @@
-"""Anthropic Messages 协议适配（POST {base}/v1/messages）。"""
+"""Anthropic Messages 协议适配（POST {base}/v1/messages）。
+
+同时服务两类供应商：backend=anthropic 的原生供应商，以及声明了 anthropic 格式的
+OpenAI 兼容供应商（如 MiniMax `/anthropic`）。
+
+推理控制（D6）：受控 effort → `thinking` 参数；关闭时不发送。Anthropic 要求
+thinking 开启时温度固定为 1 且 max_tokens 必须大于预算。
+"""
 
 from __future__ import annotations
 
@@ -20,31 +27,54 @@ from app.providers.llm.base import (
     LLMUsage,
     ProviderError,
     empty_response_error,
-    iter_sse,
+    merge_headers,
     open_stream,
     post_json,
-    require_api_key,
+    resolve_api_key,
 )
+from app.providers.llm.registry import find_provider, strip_provider_prefix
 from app.schemas.model_config import ModelProtocol
 
 ANTHROPIC_VERSION = "2023-06-01"
 # Anthropic 要求 max_tokens 必填；上游未给出预算时使用该安全默认值
 DEFAULT_MAX_TOKENS = 256
+# effort → thinking 预算（参考 anthropic_provider.py:429-437 的取值口径）
+_THINKING_BUDGETS = {
+    "minimal": 1024,
+    "low": 1024,
+    "medium": 4096,
+    "high": 8192,
+    "xhigh": 16384,
+    "max": 32768,
+}
+
+
+def _thinking_budget(config: LLMConfig) -> int | None:
+    if config.reasoningEnabled is False:
+        return None
+    effort = (config.reasoningEffort or "").lower()
+    if effort in {"none", ""}:
+        return None
+    return _THINKING_BUDGETS.get(effort)
 
 
 class AnthropicMessagesProvider(LLMProvider):
     protocol = ModelProtocol.anthropic_messages
+    requires_api_key = True
 
-    async def _complete(
-        self,
-        config: LLMConfig,
-        request: LLMRequest,
-        transport: httpx.AsyncBaseTransport | None = None,
-    ) -> LLMResponse:
-        api_key = require_api_key(config)
+    def _url(self, config: LLMConfig) -> str:
         base = config.baseUrl.rstrip("/")
-        url = f"{base}/messages" if base.endswith("/v1") else f"{base}/v1/messages"
+        return f"{base}/messages" if base.endswith("/v1") else f"{base}/v1/messages"
 
+    def _headers(self, config: LLMConfig) -> dict[str, str]:
+        key = resolve_api_key(config, required=self.requires_api_key)
+        auth: dict[str, str] = {"anthropic-version": ANTHROPIC_VERSION}
+        if key:
+            auth["x-api-key"] = key
+        return merge_headers(config.extraHeaders, auth)
+
+    def _body(self, config: LLMConfig, request: LLMRequest, *, stream: bool) -> dict[str, Any]:
+        model = strip_provider_prefix(config.modelId, find_provider(config.providerId))
         system_parts = [m.content for m in request.messages if m.role == "system"]
         messages = [
             {"role": m.role, "content": m.content}
@@ -57,21 +87,41 @@ class AnthropicMessagesProvider(LLMProvider):
                 "Anthropic 协议至少需要一条 user 消息。",
                 status_code=422,
             )
+        max_tokens = request.maxOutputTokens or DEFAULT_MAX_TOKENS
+
+        budget = _thinking_budget(config)
+        if budget is not None:
+            # Anthropic 要求 max_tokens > budget_tokens，且 thinking 开启时温度固定 1.0
+            max_tokens = max(max_tokens, budget + 4096)
+
         body: dict[str, Any] = {
-            "model": config.modelId,
-            "max_tokens": request.maxOutputTokens or DEFAULT_MAX_TOKENS,
+            "model": model,
+            "max_tokens": max_tokens,
             "messages": messages,
-            **request.params,
         }
+        body.update(request.params)
+        if budget is not None:
+            body["thinking"] = {"type": "enabled", "budget_tokens": budget}
+            body["temperature"] = 1.0
         if system_parts:
             body["system"] = "\n\n".join(system_parts)
-        headers = {
-            "anthropic-version": ANTHROPIC_VERSION,
-            **config.extraHeaders,
-            # 凭证头由适配器最后写入，附加请求头不能覆盖 x-api-key
-            "x-api-key": api_key,
-        }
-        data = await post_json(config, url, headers, body, transport)
+        if stream:
+            body["stream"] = True
+        return body
+
+    async def _complete(
+        self,
+        config: LLMConfig,
+        request: LLMRequest,
+        transport: httpx.AsyncBaseTransport | None = None,
+    ) -> LLMResponse:
+        data = await post_json(
+            config,
+            self._url(config),
+            self._headers(config),
+            self._body(config, request, stream=False),
+            transport,
+        )
 
         parts = [
             block.get("text") or ""
@@ -101,37 +151,9 @@ class AnthropicMessagesProvider(LLMProvider):
         request: LLMRequest,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> AsyncIterator[LLMStreamEvent]:
-        api_key = require_api_key(config)
-        base = config.baseUrl.rstrip("/")
-        url = f"{base}/messages" if base.endswith("/v1") else f"{base}/v1/messages"
-
-        system_parts = [m.content for m in request.messages if m.role == "system"]
-        messages = [
-            {"role": m.role, "content": m.content}
-            for m in request.messages
-            if m.role in ("user", "assistant")
-        ]
-        if not messages:
-            raise ProviderError(
-                "INVALID_REQUEST",
-                "Anthropic 协议至少需要一条 user 消息。",
-                status_code=422,
-            )
-        body: dict[str, Any] = {
-            "model": config.modelId,
-            "max_tokens": request.maxOutputTokens or DEFAULT_MAX_TOKENS,
-            "messages": messages,
-            "stream": True,
-            **request.params,
-        }
-        if system_parts:
-            body["system"] = "\n\n".join(system_parts)
-        headers = {
-            "anthropic-version": ANTHROPIC_VERSION,
-            **config.extraHeaders,
-            # 凭证头由适配器最后写入，附加请求头不能覆盖 x-api-key
-            "x-api-key": api_key,
-        }
+        url = self._url(config)
+        headers = self._headers(config)
+        body = self._body(config, request, stream=True)
 
         finish_reason: str | None = None
         usage = LLMUsage()

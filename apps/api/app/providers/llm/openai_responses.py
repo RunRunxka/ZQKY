@@ -20,16 +20,54 @@ from app.providers.llm.base import (
     LLMUsage,
     ProviderError,
     empty_response_error,
-    iter_sse,
+    merge_headers,
     open_stream,
     post_json,
-    require_api_key,
+    resolve_api_key,
 )
+from app.providers.llm.reasoning_params import build_reasoning_kwargs
+from app.providers.llm.registry import find_provider, strip_provider_prefix
 from app.schemas.model_config import ModelProtocol
 
 
 class OpenAIResponsesProvider(LLMProvider):
     protocol = ModelProtocol.openai_responses
+
+    def _url(self, config: LLMConfig) -> str:
+        """端点构造点；Azure 子类覆盖以归一化地址与附加 api-version。"""
+        return f"{config.baseUrl.rstrip('/')}/responses"
+
+    def _headers(self, config: LLMConfig) -> dict[str, str]:
+        key = resolve_api_key(config, required=self.requires_api_key)
+        auth = {"Authorization": f"Bearer {key}"} if key else {}
+        return merge_headers(config.extraHeaders, auth)
+
+    def _body(self, config: LLMConfig, request: LLMRequest, *, stream: bool) -> dict[str, Any]:
+        spec = find_provider(config.providerId)
+        model = strip_provider_prefix(config.modelId, spec)
+        input_items = []
+        for message in request.messages:
+            text_type = "output_text" if message.role == "assistant" else "input_text"
+            input_items.append(
+                {"role": message.role, "content": [{"type": text_type, "text": message.content}]}
+            )
+        body: dict[str, Any] = {"model": model, "input": input_items, **request.params}
+        if stream:
+            body["stream"] = True
+        if request.maxOutputTokens is not None:
+            body["max_output_tokens"] = request.maxOutputTokens
+        reasoning = build_reasoning_kwargs(
+            spec=spec,
+            provider_id=config.providerId,
+            model=config.modelId,
+            reasoning_enabled=config.reasoningEnabled,
+            reasoning_effort=config.reasoningEffort,
+        )
+        effort = reasoning.get("reasoning_effort")
+        if effort:
+            # Responses 用 reasoning.effort（而非顶层 reasoning_effort）
+            body["reasoning"] = {"effort": effort, "summary": "auto"}
+        return body
 
     async def _complete(
         self,
@@ -37,19 +75,8 @@ class OpenAIResponsesProvider(LLMProvider):
         request: LLMRequest,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> LLMResponse:
-        api_key = require_api_key(config)
-        url = f"{config.baseUrl}/responses"
-        input_items = []
-        for message in request.messages:
-            text_type = "output_text" if message.role == "assistant" else "input_text"
-            input_items.append(
-                {"role": message.role, "content": [{"type": text_type, "text": message.content}]}
-            )
-        body: dict[str, Any] = {"model": config.modelId, "input": input_items, **request.params}
-        if request.maxOutputTokens is not None:
-            body["max_output_tokens"] = request.maxOutputTokens
-        headers = {**config.extraHeaders, "Authorization": f"Bearer {api_key}"}
-        data = await post_json(config, url, headers, body, transport)
+        url = self._url(config)
+        data = await post_json(config, url, self._headers(config), self._body(config, request, stream=False), transport)
 
         text = self._extract_text(data)
         status = data.get("status")
@@ -89,18 +116,9 @@ class OpenAIResponsesProvider(LLMProvider):
         request: LLMRequest,
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> AsyncIterator[LLMStreamEvent]:
-        api_key = require_api_key(config)
-        url = f"{config.baseUrl}/responses"
-        input_items = []
-        for message in request.messages:
-            text_type = "output_text" if message.role == "assistant" else "input_text"
-            input_items.append(
-                {"role": message.role, "content": [{"type": text_type, "text": message.content}]}
-            )
-        body: dict[str, Any] = {"model": config.modelId, "input": input_items, "stream": True, **request.params}
-        if request.maxOutputTokens is not None:
-            body["max_output_tokens"] = request.maxOutputTokens
-        headers = {**config.extraHeaders, "Authorization": f"Bearer {api_key}"}
+        url = self._url(config)
+        headers = self._headers(config)
+        body = self._body(config, request, stream=True)
 
         finish_reason: str | None = None
         usage = LLMUsage()

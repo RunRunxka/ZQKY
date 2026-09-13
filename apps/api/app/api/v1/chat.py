@@ -15,9 +15,10 @@ from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 
 from app.core.exceptions import AppError
-from app.providers.llm.base import LLMConfig, LLMMessage, LLMRequest, LLMStreamEvent
-from app.providers.llm.factory import create_provider
+from app.providers.llm.base import LLMRequest, LLMMessage, LLMStreamEvent
+from app.providers.llm.registry import find_provider
 from app.schemas.chat import ChatStreamRequest, validate_chat_request
+from app.services.model_runtime import build_llm_config, build_provider
 
 router = APIRouter(tags=["chat"])
 
@@ -43,7 +44,12 @@ async def chat_stream(request: Request, body: ChatStreamRequest) -> StreamingRes
     if profile.purpose not in (None, "chat"):
         raise AppError(f"该模型配置用途为 {profile.purpose}，不能用于学习问答。", status_code=422)
     connection = repo.get_connection(profile.connectionId)
-    if not secrets.has(connection.id):
+    spec = find_provider(connection.providerId) if connection.providerId else None
+    # 本机免 Key 服务与 OAuth 供应商不要求连接凭证；云服务缺凭证明确拒绝
+    credential_required = True
+    if spec is not None and (spec.authMode != "api_key" or not spec.requires_key):
+        credential_required = False
+    if credential_required and not secrets.has(connection.id):
         raise AppError(
             "该模型连接未保存凭证，请先在设置中填写 API Key。",
             code="MODEL_NOT_CONFIGURED",
@@ -58,14 +64,8 @@ async def chat_stream(request: Request, body: ChatStreamRequest) -> StreamingRes
             status_code=422,
         )
 
-    provider = create_provider(connection.protocol)
-    config = LLMConfig(
-        protocol=connection.protocol,
-        baseUrl=connection.baseUrl,
-        modelId=profile.modelId,
-        apiKey=secrets.resolve(connection.id),
-        extraHeaders=dict(connection.extraHeaders),
-    )
+    config = build_llm_config(connection, profile, secrets)
+    provider = build_provider(connection, config, auth_service=request.app.state.model_auth_service)
     effective_max = body.maxOutputTokens or profile.maxOutputTokens or DEFAULT_CHAT_MAX_OUTPUT_TOKENS
     if profile.maxOutputTokens:
         effective_max = min(effective_max, profile.maxOutputTokens)

@@ -14,7 +14,7 @@
 | M-ask-card | ask_user 卡片 | AskUserOptions.tsx：卡片无进场装饰动画；选项 transition-colors 150ms | 实现待验收 | 组件保留原无装饰进场规则与150ms选项颜色；旧模拟e2e已删除，当前真实无ask_user事件，接入后重验完整运行过程。 |
 | M-config-list | 模拟配置列表插入 | 160ms opacity/translateY | 部分实现 | 历史模拟配置组件有160ms插入；主聊天执行禁用，退出/重排和真实运行场景未验收。 |
 | M-settings-nav | 设置分类悬停与定位 | 160ms 背景、滚动定位 | 部分实现 | 基础行为已有 |
-| M-model-management | 供应商/模型卡片、详情与参数折叠 | 固定DeepTutor ModelCards.tsx：background-color/border-color/transform 150ms、active scale .995，箭头150ms位移反馈；弹窗与折叠其余参数实施前核对Modal等实际来源 | 待实现 | B-MODEL-UI仅完成源码规格；需三视口、开始/过渡/结束、快速关闭重开、焦点圈定/返回及系统/本地减少动画验证，不沿用聊天弹层验收结论 |
+| M-model-management | 供应商/模型卡片、详情与参数折叠 | 固定DeepTutor ModelCards.tsx：background-color/border-color/transform 150ms、active scale .995，箭头150ms位移反馈 | 实现待验收 | 2026-09-13 MODEL-EXEC v3 实装：卡片 `transition: border-color/background-color/transform 150ms`、`:active scale(0.995)`、箭头 hover translateX(2px)；`@media (prefers-reduced-motion: reduce)` 关闭卡片/箭头/选项过渡与 spin 动画。e2e `model-settings.spec.ts` 覆盖三视口与减少动画可打开详情；未录制曲线采样，未做快速关闭重开与焦点返回断言，故不升为已验收 |
 | M-reduced | 减少动画 | prefers-reduced-motion + 本地覆盖 | 已验收 | 2026-09-09 补 Canvas 本地偏好监听；浏览器像素采样验证普通状态持续变化、系统/本地 reduced 均静止；原 CSS 全局机制保留 |
 | M-sidebar-panel | 侧栏/右面板宽度 | 学习问答左栏 200ms，右栏/聊天避让 220ms ease-out | 部分实现 | 2026-09-10 H0 候选：220/56px和200ms统一在公共壳；1440/1920的软导航逐帧、菜单几何与字体比较、折叠状态/历史返回回归；390抽屉遮罩/焦点/关闭/字体比较。隐藏直达页当前菜单和其他模块专属面板仍待验收。 |
 | M-first-send | 欢迎区→首次发送 | 学习问答固定 912px 输入内容列；textarea height 150ms ease-out | 已验收 | 2026-09-09 主页候选：固定内容列、textarea过渡、同一发送/停止按钮与三视口通过；范围限学习问答。 |

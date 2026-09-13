@@ -2,12 +2,16 @@
 
 import { apiRequest } from './api-client';
 import type {
+  AuthActionResult,
+  AuthStatus,
   ConnectionInput,
+  DiscoveryResult,
+  ModelCatalog,
   ModelConnectionView,
   ModelProfileView,
+  ModelProviderDirectory,
   ModelTestResult,
   ProfileInput,
-  ModelCatalog,
 } from '@/contracts/model-settings';
 
 export function listConnections(): Promise<ModelConnectionView[]> {
@@ -72,8 +76,9 @@ export interface ProfileTestInput {
 }
 
 export const loadModelCatalog = () => apiRequest<ModelCatalog>('/model-catalog');
+export const loadProviderDirectory = () => apiRequest<ModelProviderDirectory>('/model-providers');
 export const discoverModels = (id: string) =>
-  apiRequest<{ models: { id: string }[] }>(`/model-connections/${id}/models`);
+  apiRequest<DiscoveryResult>(`/model-connections/${id}/models`);
 export const setDefaultModel = (modelProfileId: string | null, expectedRevision: number) =>
   apiRequest<ModelCatalog>('/model-defaults', {
     method: 'PUT',
@@ -91,3 +96,14 @@ export function testProfile(id: string, input: ProfileTestInput = {}): Promise<M
     body: JSON.stringify(input),
   });
 }
+
+// --- 认证生命周期（D9/D10）------------------------------------------------
+
+export const getAuthStatus = (connectionId: string) =>
+  apiRequest<AuthStatus>(`/model-connections/${connectionId}/auth`);
+export const startAuth = (connectionId: string) =>
+  apiRequest<AuthActionResult>(`/model-connections/${connectionId}/auth/start`, { method: 'POST' });
+export const cancelAuth = (connectionId: string) =>
+  apiRequest<AuthActionResult>(`/model-connections/${connectionId}/auth/cancel`, { method: 'POST' });
+export const logoutAuth = (connectionId: string) =>
+  apiRequest<AuthActionResult>(`/model-connections/${connectionId}/auth/logout`, { method: 'POST' });

@@ -4,19 +4,49 @@
 
 **实施责任：** 模型增量合同由外部队长按STATUS的MODEL-EXEC v3和PROJECT_GUIDE的D1–D16直接定稿并落地，Python schemas、TS contracts/services、响应投影与必要路由挂载无需本Codex代写。draft-2仍是提案，本节现行接口不因权限转交自动变为新合同；实施者完成后同步实际字段与测试证据。
 
+### contract-v1 已落地（2026-09-13）
+
+外部队长已按 MODEL-EXEC v3 完成 contract-v1 并落地；以下为本节新增的现行接口与字段。
+实现文件：`apps/api/app/providers/llm/registry.py`（38 条单一真值）、`.../factory.py`（按 backend 分派）、
+`app/services/model_config_service.py`（跨 .env/JSON 补偿）、`app/services/model_auth.py`（认证状态机）。
+冻结散列与 D1–D16 落地位置见 `_work/model-providers-v1/contract-v1.md`（本机证据，不随 Git）。
+
+| 方法与路径 | 状态 | 说明 |
+| --- | --- | --- |
+| GET `/api/v1/model-providers` | 已实现 | 供应商目录（36 现行 + 2 legacy）；返回 providerId/label/aliases/mode/authMode/apiFormats/defaultApiBase/baseUrlsByFormat/thinkingStyle/requiresKey。**不下发原始 backend**（D15） |
+| GET `/api/v1/model-connections/{id}/auth` | 已实现 | 认证四态 `disconnected/authorizing/connected/error`，附 operationId/authorizeUrl/expiresIn/errorCode；不回显令牌 |
+| POST `/api/v1/model-connections/{id}/auth/start` | 已实现 | 仅 openai_codex 发起 PKCE 授权；缺自有 OAuth 应用凭据返回 `ok:false` + `OAUTH_APP_NOT_CONFIGURED`，**不伪造授权地址**；API Key 型返回 `UNSUPPORTED_OPERATION` |
+| POST `/api/v1/model-connections/{id}/auth/cancel` | 已实现 | 取消进行中的授权；取消后迟到回调不复活（operationId + cancelled 判定） |
+| POST `/api/v1/model-connections/{id}/auth/logout` | 已实现 | 断开并清理托管凭证（Codex/Copilot 令牌）；不注销第三方 CLI 会话 |
+
+连接/模型新增字段：`providerId`、`apiFormat`（`auto`/`openai_chat`/`openai_responses`/`anthropic`）、
+`apiVersion`（Azure，仅 `preview` 实际转发）；请求可带 `credentialAction: keep|replace|clear`（R-08 显式清除）；
+模型新增 `reasoningEnabled`（三态）与 `reasoningEffort`（`none|minimal|low|medium|high|xhigh|max`），
+响应另带只读派生 `reasoningStyle`（不落库）。
+
+迁移（D1/D8）：无 `providerId` 的旧 v1 连接按 `protocol` 映射为 `custom` + 对应 `apiFormat`，
+不猜供应商、不改 baseUrl、保留 id/revision/默认引用；读取 v1 不改写文件，首次写入前备份为
+`model-config.v1.backup.json`。无 `providerId` 的调用方请求字节保持不变。
+
+发现（D12）：响应新增 `source`：`upstream`（上游实时）| `manual`（该供应商无列表接口，需手工添加）|
+`catalog:<name>`（内置回退目录，非实时）。认证/网络失败不再吞成空列表。
+
+新增错误码：`UNSUPPORTED_PROVIDER`、`UNSUPPORTED_API_FORMAT`、`UNSUPPORTED_OPERATION`、
+`AUTH_REQUIRED`、`AUTH_EXPIRED`、`OAUTH_APP_NOT_CONFIGURED`、`AUTH_PENDING`、`AUTH_CANCELLED`。
+
 ## 后端凭证文件
 
 - 正式 FastAPI 在应用启动生命周期读取 `apps/api/.env`；仅凭证项使用此文件，不将其读入前端。导入 `create_app` 不读取用户凭证；测试注入临时目录和 SecretStore。
 - 设置页原创建/编辑连接 API 不变，非空 `apiKey` 写入 `.env` 的 `ZQKY_API_KEY_<连接ID>`；空值仍表示保持原凭证。每个连接独立映射，模型共用所属连接的 Key。写入采用临时文件、flush/fsync、原子替换，保留其他行；删除连接会移除对应文件项。
 - 可手动编辑该变量（原样字符串、单引号或 JSON 双引号字符串均支持；不进行 shell 展开或变量插值），然后重启 API。进程环境变量在启动时覆盖同名文件项；Windows 环境变量名大小写不影响小写连接 ID 匹配。
 - 连接响应仍不回显密钥，新增非敏感 `credentialEnvName`，`credentialScope` 为 `env-file`（正式持久化存储）或 `process`（注入的内存存储）。`.env`、临时 `.env.*.tmp` 均由既有 `.gitignore` 排除；仅无密钥 `.env.example` 入库。
-- 文件读写失败返回 `CREDENTIAL_STORAGE_ERROR`，不回显凭证/底层异常。更新先校验 revision 与字段，凭证写失败不提交本次连接配置变更；但凭证写成功后模型配置保存失败、或连接删除后凭证删除失败的跨文件补偿尚未实现，见 STATUS R-01。没有数据库或第二套业务后端。
+- 文件读写失败返回 `CREDENTIAL_STORAGE_ERROR`，不回显凭证/底层异常。更新先校验 revision 与字段，凭证写失败不提交本次连接配置变更。跨文件补偿已按 contract-v1 落地（R-01）：更新时先快照凭证、配置保存失败则回滚凭证；删除时配置删除后清理凭证，清理失败明确报错而非静默留孤儿；`credentialAction:"clear"` 提供独立清除动作（R-08）。相关回归见 `apps/api/tests/test_model_contract_v1_api.py`。没有数据库或第二套业务后端。
 - 主聊天仅实例化真实服务、真实 IndexedDB 会话库；移除模拟生成与免密伪模型。SSE 事件名与三协议适配保持原契约。
 
 ## 模型目录与会话约定
 
-- `GET /api/v1/model-catalog`：原子读取 `{revision, defaultChatProfileId, connections, profiles}`。连接只返回 `hasCredential`；模型包含 `params` 和关联连接可用状态。
-- `GET /api/v1/model-connections/{id}/models`：后端使用已保存连接和服务端凭证发现列表，返回 `{models:[{id}]}`。只读、去重，不写入模型或推断能力。区分认证、超时、接口不支持及格式错误；空数组为成功但无可选项。
+- `GET /api/v1/model-catalog`：原子读取 `{revision, defaultChatProfileId, connections, profiles}`。连接只返回 `hasCredential`；模型包含 `params` 和关联连接可用状态。contract-v1 后连接另返回 `providerId/providerLabel/apiFormat/apiVersion/baseUrl/resolvedBaseUrl`，模型另返回 `reasoningEnabled/reasoningEffort/reasoningStyle`。
+- `GET /api/v1/model-connections/{id}/models`：后端使用已保存连接和服务端凭证发现列表，返回 `{models:[{id}], source}`。`source` 取值 `upstream`/`manual`/`catalog:<name>`；只读、去重，不写入模型或推断能力。区分认证、超时、接口不支持及格式错误；空数组为成功但无可选项，**不吞掉认证/网络失败**。
 - `PUT /api/v1/model-defaults`：`{modelProfileId:string|null, expectedRevision:number}`，返回更新目录；版本过期为 409 `REVISION_CONFLICT`。
 - 模型创建/修改新增 `params`，只接受 `supportedParams` 已声明且数值有效的参数；上下文/输出上限修改接受 null 清空。人工提交 verified 会降为 claimed。
 - 既有连接/模型 PUT 保留 `expectedRevision`，DELETE 新增可选同名 query 参数；新前端删除携带版本。旧调用方可继续使用原接口。新增记录为追加，不覆盖已有模型，同连接相同 modelId 拒绝重复。
@@ -85,7 +115,7 @@ FastAPI 服务位于 apps/api，仅监听 127.0.0.1:8000；浏览器经 Next 同
 
 `EMPTY_RESPONSE`（流干净结束但零正文）会给出可操作诊断：`finishReason=length` 且存在推理内容 → “模型已产生推理内容，但输出预算在生成正文前耗尽（当前输出上限 N tokens）…请增大输出上限”；仅推理内容 → “模型仅返回推理内容，未输出正文”；否则为通用文案。正文兼容字符串与 `[{type:'text',text:'…'}]` 分块两种形态。
 
-已锁定的错误码（随任务扩充）：MODEL_NOT_CONFIGURED、UNSUPPORTED_PROTOCOL、UPSTREAM_AUTH_FAILED、RATE_LIMITED、CONTEXT_TOO_LARGE、UPSTREAM_TIMEOUT、FEATURE_NOT_IMPLEMENTED、TEMPLATE_UNSUPPORTED、RENDER_FAILED、REVISION_CONFLICT、SERVICE_UNAVAILABLE、REQUEST_FAILED、INVALID_REQUEST、INVALID_HOST、FORBIDDEN_ORIGIN、NOT_FOUND、METHOD_NOT_ALLOWED、EMPTY_RESPONSE、STREAM_INTERRUPTED。
+已锁定的错误码（随任务扩充）：MODEL_NOT_CONFIGURED、UNSUPPORTED_PROTOCOL、UNSUPPORTED_PROVIDER、UNSUPPORTED_API_FORMAT、UNSUPPORTED_OPERATION、AUTH_REQUIRED、AUTH_EXPIRED、AUTH_PENDING、AUTH_CANCELLED、OAUTH_APP_NOT_CONFIGURED、UPSTREAM_AUTH_FAILED、RATE_LIMITED、CONTEXT_TOO_LARGE、UPSTREAM_TIMEOUT、FEATURE_NOT_IMPLEMENTED、TEMPLATE_UNSUPPORTED、RENDER_FAILED、REVISION_CONFLICT、SERVICE_UNAVAILABLE、REQUEST_FAILED、INVALID_REQUEST、INVALID_HOST、FORBIDDEN_ORIGIN、NOT_FOUND、METHOD_NOT_ALLOWED、EMPTY_RESPONSE、STREAM_INTERRUPTED。
 
 ## 后续 HTTP 草案（未实现，不作当前调用契约）
 

@@ -1,9 +1,14 @@
-"""模型配置仓储：单个 JSON 文件，原子写入、revision 冲突检测、无数据库。"""
+"""模型配置仓储：单个 JSON 文件，原子写入、revision 冲突检测、无数据库。
+
+contract-v1 / D8：读取 v1 文档时在内存中迁移（不自动改写文件）；首次写 v2 前把
+原文件备份为 `model-config.v1.backup.json`，保证可恢复。
+"""
 
 from __future__ import annotations
 
 import json
 import os
+import shutil
 import threading
 import uuid
 from collections.abc import Callable
@@ -17,15 +22,52 @@ from app.core.exceptions import (
     RevisionConflictError,
 )
 from app.schemas.model_config import (
+    MODEL_CONFIG_SCHEMA_VERSION,
+    ApiFormat,
     ModelConfigDocument,
     ModelConnection,
     ModelProfile,
+    ModelProtocol,
     now_utc,
 )
 
 T = TypeVar("T")
 
-CREDENTIAL_SCOPE = "process"
+# 旧 protocol → 迁移后的 providerId/apiFormat（D1：不猜供应商、不改 URL）
+_PROTOCOL_MIGRATION: dict[str, tuple[str, str]] = {
+    ModelProtocol.openai_chat.value: ("custom", ApiFormat.openai_chat.value),
+    ModelProtocol.openai_responses.value: ("custom", ApiFormat.openai_responses.value),
+    ModelProtocol.anthropic_messages.value: ("custom", ApiFormat.anthropic.value),
+}
+
+
+def migrate_document(raw: dict) -> tuple[dict, bool]:
+    """把 v1 文档就地补成 v2 形状。返回 (文档, 是否发生迁移)。"""
+    version = int(raw.get("schemaVersion") or 1)
+    migrated = False
+    if version >= MODEL_CONFIG_SCHEMA_VERSION:
+        return raw, False
+    for connection in raw.get("connections") or []:
+        if not isinstance(connection, dict):
+            continue
+        if not connection.get("providerId"):
+            provider_id, api_format = _PROTOCOL_MIGRATION.get(
+                str(connection.get("protocol") or ""), ("custom", ApiFormat.auto.value)
+            )
+            connection["providerId"] = provider_id
+            connection["apiFormat"] = api_format
+            migrated = True
+        connection.setdefault("apiVersion", None)
+    for profile in raw.get("profiles") or []:
+        if not isinstance(profile, dict):
+            continue
+        if "reasoningEnabled" not in profile:
+            profile["reasoningEnabled"] = None
+            migrated = True
+        if "reasoningEffort" not in profile:
+            profile["reasoningEffort"] = None
+    raw["schemaVersion"] = MODEL_CONFIG_SCHEMA_VERSION
+    return raw, migrated or True
 
 
 class ModelConfigRepository:
@@ -34,17 +76,38 @@ class ModelConfigRepository:
     def __init__(self, path: Path) -> None:
         self._path = path
         self._lock = threading.RLock()
+        self._backed_up = False
+        self._pending_migration = False
 
     @property
     def path(self) -> Path:
         return self._path
+
+    def _backup_once(self) -> None:
+        """首次把 v1 文件升级为 v2 前保留可恢复副本（D8）。"""
+        if self._backed_up or not self._path.exists():
+            self._backed_up = True
+            return
+        backup = self._path.with_name("model-config.v1.backup.json")
+        if not backup.exists():
+            try:
+                shutil.copyfile(self._path, backup)
+            except OSError:
+                pass
+        self._backed_up = True
 
     def _load(self) -> ModelConfigDocument:
         if not self._path.exists():
             return ModelConfigDocument()
         try:
             raw = json.loads(self._path.read_text(encoding="utf-8"))
-            return ModelConfigDocument.model_validate(raw)
+            if not isinstance(raw, dict):
+                raise ValueError("模型配置根节点不是对象")
+            migrated, changed = migrate_document(raw)
+            if changed:
+                # 迁移只在内存中生效；文件直到首次写入才变为 v2
+                self._pending_migration = True
+            return ModelConfigDocument.model_validate(migrated)
         except (OSError, ValueError) as exc:
             raise ConfigCorruptedError(
                 f"模型配置文件损坏或无法读取：{self._path.name}；请备份后修复，服务不会自动覆盖。"
@@ -52,6 +115,9 @@ class ModelConfigRepository:
 
     def _save(self, document: ModelConfigDocument) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
+        if getattr(self, "_pending_migration", False):
+            self._backup_once()
+            self._pending_migration = False
         tmp = self._path.with_suffix(f".{uuid.uuid4().hex}.tmp")
         tmp.write_text(
             document.model_dump_json(indent=2),
@@ -109,7 +175,10 @@ class ModelConfigRepository:
             connection = self._require_connection(document, connection_id)
             previous = connection.model_dump()
             apply(connection)
-            if any(previous[key] != getattr(connection, key) for key in ('protocol', 'baseUrl', 'extraHeaders')):
+            if any(
+                previous[key] != getattr(connection, key)
+                for key in ("protocol", "baseUrl", "extraHeaders", "providerId", "apiFormat", "apiVersion")
+            ):
                 for profile in document.profiles:
                     if profile.connectionId == connection_id:
                         profile.capabilities = {"chat": "unknown", "stream": "unknown"}
@@ -164,7 +233,17 @@ class ModelConfigRepository:
             previous = profile.model_dump()
             apply(profile)
             self._require_connection(document, profile.connectionId)
-            if any(previous[key] != getattr(profile, key) for key in ('connectionId', 'modelId', 'params', 'maxOutputTokens')):
+            if any(
+                previous[key] != getattr(profile, key)
+                for key in (
+                    "connectionId",
+                    "modelId",
+                    "params",
+                    "maxOutputTokens",
+                    "reasoningEnabled",
+                    "reasoningEffort",
+                )
+            ):
                 profile.capabilities = {"chat": "unknown", "stream": "unknown"}
             if any(p.id != profile.id and p.connectionId == profile.connectionId and p.modelId == profile.modelId for p in document.profiles):
                 raise InvalidRequestError("该连接中已存在此模型。", code="CONFLICT", status_code=409)

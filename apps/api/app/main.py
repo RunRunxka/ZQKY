@@ -27,6 +27,8 @@ from app.core.http_safe import LocalAccessGuardMiddleware
 from app.core.secrets import SecretStore
 from app.repositories.model_config_repository import ModelConfigRepository
 from app.schemas.errors import error_response
+from app.services.model_auth import ModelAuthService
+from app.services.model_config_service import ModelConfigService
 
 logger = logging.getLogger("zhiqikeyuan.api")
 
@@ -37,7 +39,15 @@ _HTTP_ERROR_CODES = {404: "NOT_FOUND", 405: "METHOD_NOT_ALLOWED"}
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings: Settings = app.state.settings
     if app.state.load_env_credentials and settings.credentials_file:
+        # 启动时重建凭证存储；服务层必须一并重建，否则会写入启动前的内存存储，
+        # 导致 .env 落盘与读取不一致。
         app.state.secret_store = SecretStore(settings.credentials_file)
+        app.state.model_config_service = ModelConfigService(
+            app.state.model_config_repo, app.state.secret_store
+        )
+        app.state.model_auth_service = ModelAuthService(
+            app.state.model_config_repo, app.state.secret_store
+        )
     logger.info(
         "后端服务启动：%s:%s（env=%s）",
         settings.host,
@@ -67,6 +77,13 @@ def create_app(
     # 只在实际启动本应用时读凭证；导入 create_app 的隔离测试不会读取用户 .env。
     app.state.secret_store = secret_store or SecretStore()
     app.state.load_env_credentials = secret_store is None
+    # 服务层由应用持有：同一实例保证跨 .env/JSON 补偿与认证状态机的单一写入者
+    app.state.model_config_service = ModelConfigService(
+        app.state.model_config_repo, app.state.secret_store
+    )
+    app.state.model_auth_service = ModelAuthService(
+        app.state.model_config_repo, app.state.secret_store
+    )
     app.add_middleware(LocalAccessGuardMiddleware, settings=settings)
 
     app.include_router(health_route.router, prefix="/api/v1")

@@ -1,0 +1,453 @@
+/* contract-v1：供应商卡片、连接详情、认证面板与模型发现（作用域限定在 .model-settings） */
+
+.provider-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+.provider-card {
+  display: flex;
+  min-height: 116px;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  text-align: left;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease,
+    transform 150ms ease;
+}
+.provider-card:hover {
+  border-color: #b6b6b6;
+  background: var(--blue-soft);
+}
+.provider-card:active {
+  transform: scale(0.995);
+}
+.provider-card.in-use {
+  border-color: #a9c4f5;
+  background: #f5f9ff;
+}
+.provider-card:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+.provider-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.provider-card-title {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.provider-card-title strong {
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.provider-card-title small {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.provider-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.credential-chip,
+.model-count-chip {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+}
+.credential-chip.ready {
+  border-color: #9ecdb9;
+  color: var(--green);
+}
+.provider-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.in-use-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--blue);
+}
+.provider-card-chevron {
+  transition: transform 150ms ease;
+}
+.provider-card:hover .provider-card-chevron {
+  transform: translateX(2px);
+}
+.add-card {
+  align-items: center;
+  justify-content: center;
+  border-style: dashed;
+  color: var(--muted);
+  font-size: 13px;
+}
+.add-card:hover {
+  color: var(--ink);
+}
+.provider-mark-image {
+  flex-shrink: 0;
+  border-radius: 6px;
+}
+.provider-mark-initials {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+/* 连接详情 */
+.connection-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.detail-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.detail-head h3 {
+  margin: 0;
+  font-size: 17px;
+}
+.detail-subtitle {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.detail-section > h3 {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+.detail-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.detail-section-actions {
+  display: flex;
+  gap: 6px;
+}
+.detail-empty {
+  margin: 0;
+  padding: 14px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.detail-model-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.detail-model {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.detail-model-main {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+.detail-model-main code {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.detail-model-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.detail-model-actions .button,
+.detail-model-actions .icon-button,
+.detail-model-actions .model-default {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.detail-model-actions .icon-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.detail-model-actions .icon-button:hover:not(:disabled) {
+  border-color: #a9c4f5;
+  color: var(--blue);
+}
+.detail-model-actions .icon-button:disabled {
+  opacity: 0.45;
+}
+.detail-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.detail-footer-right {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+.credential-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.inline-confirm {
+  padding: 12px;
+  border: 1px solid #eab8b2;
+  border-radius: 10px;
+  background: #fdf5f4;
+}
+.inline-confirm p {
+  margin: 0 0 8px;
+  font-size: 12.5px;
+}
+.inline-confirm > div {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.button.danger {
+  color: var(--danger);
+}
+
+/* 认证面板 */
+.auth-section {
+  gap: 8px;
+}
+.auth-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12.5px;
+}
+.auth-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+.auth-state-connected {
+  border-color: #9ecdb9;
+  color: var(--green);
+}
+.auth-state-authorizing {
+  border-color: #a9c4f5;
+  color: var(--blue);
+}
+.auth-state-error {
+  border-color: #eab8b2;
+  color: var(--danger);
+}
+.auth-account,
+.auth-note {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.auth-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.settings-feedback ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+/* 供应商选择器 */
+.provider-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.provider-picker-scroll {
+  max-height: 52vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.provider-group {
+  margin-bottom: 14px;
+}
+.provider-group h4 {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+.provider-group-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 8px;
+}
+.provider-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  text-align: left;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease;
+}
+.provider-option:hover {
+  border-color: #a9c4f5;
+  background: var(--blue-soft);
+}
+.provider-option span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.provider-option small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* 发现弹窗 */
+.model-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.model-picker-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.model-picker-head > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  margin-right: auto;
+}
+.model-picker-head small {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.discovery-list label.already {
+  opacity: 0.62;
+}
+.settings-reasoning {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.settings-reasoning legend {
+  padding: 0 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.settings-inline-models {
+  margin-top: 22px;
+}
+.settings-inline-models h2 {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+.inline-model-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+}
+.spin {
+  animation: model-spin 1s linear infinite;
+}
+@keyframes model-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 767px) {
+  .provider-grid {
+    grid-template-columns: 1fr;
+  }
+  .inline-model-list {
+    grid-template-columns: 1fr;
+  }
+  .detail-model {
+    flex-direction: column;
+  }
+  .detail-model-actions {
+    flex-wrap: wrap;
+  }
+  .credential-actions {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .provider-card,
+  .provider-card-chevron,
+  .provider-option {
+    transition: none;
+  }
+  .provider-card:active {
+    transform: none;
+  }
+  .spin {
+    animation: none;
+  }
+}

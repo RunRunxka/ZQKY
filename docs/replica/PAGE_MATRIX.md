@@ -13,7 +13,7 @@
 | P-root | `/` | `/` | 已验收 | 默认跳转 /chat（用户指定）；e2e `lesson-plan.spec.ts` 首页断言 |
 | P-chat | `/chat` | `/chat` | 部分实现 | 当前全站视觉基准：220/56px 导航、独立236px学习记录列、912px内容上限、输入区图标/字体/思考球与模型弹层。普通真实聊天及本地历史已有；运行时模拟服务与切换入口已删除，生产 mock 残留见 STATUS R-03，复杂能力真实通道未接。历史主页和 H0 侧栏回归不代表全产品或真实供应商通过。 |
 | P-chat-[sessionId] | `/chat/[sessionId]` | `/chat/[sessionId]` | 实现待验收 | 与当前主页共用外观，真实会话深链/恢复/无效id处理已有；旧mode参数不恢复模拟。完整消息交互、历史数据与跨页来源待核验；侧栏父菜单高亮由 WorkspaceShell 统一。 |
-| P-settings | `/settings` | `/settings` | 部分实现 | 分类导航/锚点/搜索、模型真实管理、扩展模拟管理已有；模型区域按STATUS B-MODEL-UI待重做：参考ConnectionsEditor/ServiceConfigEditor/ModelCards的供应商卡片→详情→模型列表，保留蓝色与真实目录；本次只定规格，未做新视觉验收。其他S6设置整合仍待实现 |
+| P-settings | `/settings` | `/settings` | 实现待验收 | 分类导航/锚点/搜索、模型真实管理、扩展模拟管理已有。2026-09-13 MODEL-EXEC v3 完成模型区域重做：供应商卡片→详情弹窗→模型列表，保留蓝色与真实目录；e2e `tests/e2e/model-settings.spec.ts` 8 项覆盖 1440/1920/390 与减少动画，真实联调 3 项经隔离后端 8001 通过。其他 S6 设置整合仍待实现；独立验收者复核前不升级为已验收 |
 | P-lesson-plans | —（目标自有） | `/lesson-plans` | 已验收 | 目标项目既有教案工作台，保留独立地址与导航入口；首页现为 /chat；e2e `lesson-plan.spec.ts` 回归 |
 | P-space | `/space` | `/space` | 实现待验收 | 学习空间仪表盘（S5-A）：3 组磁贴+实时计数（会话/题库/笔记/角色/CLI/技能/MCP）；whisper 磁贴按参考行为隐藏（树外插件能力本地不存在）；e2e `space-pages.spec.ts` |
 | P-space-chat-history | `/space/chat-history` | `/space/chat-history` | 实现待验收 | 会话历史目录（S5-A）：真实仓储搜索/归档筛选、内联重命名、删除确认、归档恢复、重开；2026-09-09 移除模拟筛选与库读取，旧模拟数据留存不清理；e2e 同上 |
