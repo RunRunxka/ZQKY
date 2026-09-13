@@ -62,18 +62,28 @@ class OpenAICodexProvider(LLMProvider):
             )
         return self._oauth
 
-    def _ensure_token(self, config: LLMConfig) -> tuple[str, str | None]:
+    async def _ensure_token(self, config: LLMConfig) -> tuple[str, str | None]:
+        """取可用令牌：过期先续期，续不了就明确要求重新登录（MR-11）。"""
         service = self._require_service()
         if not config.connectionId:
             raise ProviderError("AUTH_REQUIRED", "缺少连接标识，无法读取 Codex 登录状态。", status_code=400)
-        tokens = service.load_tokens(config.connectionId)
-        if tokens is None or not tokens.access_token:
+        stored = service.load_tokens(config.connectionId)
+        if stored is None or not stored.access_token:
             raise ProviderError(
                 "AUTH_REQUIRED",
                 "尚未完成 Codex 登录，请先在设置中开始授权流程。",
                 status_code=400,
             )
-        return tokens.access_token, tokens.account_id
+        token = await service.get_access_token(config.connectionId)
+        if not token:
+            raise ProviderError(
+                "AUTH_EXPIRED",
+                "Codex 登录已过期且无法自动续期，请重新授权。",
+                status_code=401,
+            )
+        # 续期可能刷新 account_id，取最新快照
+        latest = service.load_tokens(config.connectionId) or stored
+        return token, latest.account_id
 
     def _url(self, config: LLMConfig) -> str:
         base = (config.baseUrl or DEFAULT_CODEX_BASE).rstrip("/")
@@ -81,8 +91,8 @@ class OpenAICodexProvider(LLMProvider):
             return f"{base}/responses"
         return f"{base}{CODEX_RESPONSES_PATH}"
 
-    def _headers(self, config: LLMConfig) -> dict[str, str]:
-        token, account_id = self._ensure_token(config)
+    async def _build_headers(self, config: LLMConfig) -> dict[str, str]:
+        token, account_id = await self._ensure_token(config)
         auth: dict[str, str] = {
             "Authorization": f"Bearer {token}",
             "OpenAI-Beta": "responses=experimental",
@@ -146,7 +156,7 @@ class OpenAICodexProvider(LLMProvider):
         transport: httpx.AsyncBaseTransport | None = None,
     ) -> AsyncIterator[LLMStreamEvent]:
         url = self._url(config)
-        headers = self._headers(config)
+        headers = await self._build_headers(config)
         body = self._body(config, request)
         timeout = httpx.Timeout(config.timeoutSeconds, read=STREAM_TIMEOUT_SECONDS)
         try:

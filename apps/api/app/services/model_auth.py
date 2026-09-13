@@ -79,9 +79,17 @@ class ModelAuthService:
 
     def _managed_status(self, connection_id: str, provider_id: str) -> dict[str, Any]:
         if provider_id == "github_copilot":
-            managed = self._secrets.resolve(f"copilot-token:{connection_id}")
-            has_access = bool(self._secrets.resolve(f"copilot-access:{connection_id}"))
-            if self._secrets.has(connection_id) or managed:
+            from app.core.secrets import legacy_scoped_key, scoped_key
+
+            has_connection_key = self._secrets.has(connection_id)
+            managed = self._secrets.resolve(scoped_key("copilot-token", connection_id)) or self._secrets.resolve(
+                legacy_scoped_key("copilot-token", connection_id)
+            )
+            has_access = bool(
+                self._secrets.resolve(scoped_key("copilot-access", connection_id))
+                or self._secrets.resolve(legacy_scoped_key("copilot-access", connection_id))
+            )
+            if has_connection_key or managed:
                 return {
                     "connection": CONNECTION_CONNECTED,
                     "authMode": AUTH_OAUTH,
@@ -142,12 +150,19 @@ class ModelAuthService:
         return {"ok": False, "errorCode": "UNSUPPORTED_OPERATION", "message": "没有可取消的授权流程。"}
 
     async def logout(self, connection_id: str) -> dict[str, Any]:
+        from app.core.secrets import legacy_scoped_key, scoped_key
+
         provider_id = self.provider_id(connection_id)
         if provider_id == "openai_codex":
             return await self._codex.logout(connection_id)
         if provider_id == "github_copilot":
-            self._secrets.delete(f"copilot-token:{connection_id}")
-            self._secrets.delete(f"copilot-access:{connection_id}")
+            # MR-10：清理本连接**全部**认证来源——托管缓存、历史键，以及 UI 保存在
+            # connectionId 上的 GitHub 令牌；只清展示状态会留下仍可调用的凭证。
+            self._secrets.delete(scoped_key("copilot-token", connection_id))
+            self._secrets.delete(scoped_key("copilot-access", connection_id))
+            self._secrets.delete(legacy_scoped_key("copilot-token", connection_id))
+            self._secrets.delete(legacy_scoped_key("copilot-access", connection_id))
+            self._secrets.delete(connection_id)
             return {"ok": True, "status": self.status(connection_id)}
         if provider_id == "codebuddy":
             self._secrets.delete(connection_id)

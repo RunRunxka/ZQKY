@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import TypeVar
 
 from app.core.exceptions import (
+    AppError,
     ConfigCorruptedError,
     InvalidRequestError,
     NotFoundError,
@@ -84,7 +85,11 @@ class ModelConfigRepository:
         return self._path
 
     def _backup_once(self) -> None:
-        """首次把 v1 文件升级为 v2 前保留可恢复副本（D8）。"""
+        """首次把 v1 文件升级为 v2 前保留可恢复副本（D8）。
+
+        备份失败必须抛出：调用方要保留可重试状态，**不能**在没有可恢复副本的情况下
+        把旧文件升级为 v2（MR-06）。
+        """
         if self._backed_up or not self._path.exists():
             self._backed_up = True
             return
@@ -92,8 +97,12 @@ class ModelConfigRepository:
         if not backup.exists():
             try:
                 shutil.copyfile(self._path, backup)
-            except OSError:
-                pass
+            except OSError as exc:
+                raise AppError(
+                    "升级模型配置前无法创建可恢复备份，本次写入已取消；请检查数据目录权限后重试。",
+                    code="CONFIG_BACKUP_FAILED",
+                    status_code=500,
+                ) from exc
         self._backed_up = True
 
     def _load(self) -> ModelConfigDocument:
@@ -136,6 +145,85 @@ class ModelConfigRepository:
     def with_document(self, reader: Callable[[ModelConfigDocument], T]) -> T:
         with self._lock:
             return reader(self._load())
+
+    def run_atomic(
+        self,
+        mutator: Callable[[ModelConfigDocument], T],
+        side_effect: Callable[[], Callable[[], None] | None],
+    ) -> T:
+        """在同一临界区内完成文档变更与跨存储副作用（R-01 / MR-04 / MR-05）。
+
+        - 整个序列（revision 校验 → 文档变更 → 凭证写入 → 落盘）持同一把锁，
+          并发请求不能在中途交错，也不会用过期 revision 回滚别人的成功写入。
+        - `side_effect` 执行跨存储写入并返回一个补偿函数；落盘失败时调用它回滚，
+          保证配置与凭证两侧一致。
+        - `side_effect` 自身抛错则不落盘，调用方看到的是原始错误。
+        """
+        with self._lock:
+            document = self._load()
+            result = mutator(document)
+            rollback = side_effect()
+            document.revision += 1
+            try:
+                self._save(document)
+            except Exception:
+                if rollback is not None:
+                    rollback()
+                raise
+            return result
+
+    def update_connection_atomic(
+        self,
+        connection_id: str,
+        apply: Callable[[ModelConnection], None],
+        *,
+        expected_revision: int | None,
+        credential_side_effect: Callable[[], Callable[[], None] | None],
+    ) -> ModelConnection:
+        """更新连接 + 凭证的原子版本；见 `run_atomic`。"""
+
+        def mutate(document: ModelConfigDocument) -> ModelConnection:
+            self._check_revision(document, expected_revision)
+            connection = self._require_connection(document, connection_id)
+            previous = connection.model_dump()
+            apply(connection)
+            if any(
+                previous[key] != getattr(connection, key)
+                for key in ("protocol", "baseUrl", "extraHeaders", "providerId", "apiFormat", "apiVersion")
+            ):
+                for profile in document.profiles:
+                    if profile.connectionId == connection_id:
+                        profile.capabilities = {"chat": "unknown", "stream": "unknown"}
+            connection.updatedAt = now_utc()
+            return connection
+
+        return self.run_atomic(mutate, credential_side_effect)
+
+    def delete_connection_atomic(
+        self,
+        connection_id: str,
+        *,
+        expected_revision: int | None,
+        credential_side_effect: Callable[[], Callable[[], None] | None],
+    ) -> None:
+        """删除连接 + 凭证的原子版本：凭证清理失败则整体不删（MR-05）。
+
+        先在同一锁内校验 revision 与引用关系，再清理凭证，最后落盘；
+        落盘失败会把凭证恢复回去，永远不留下"配置已删但凭证仍在"的孤儿。
+        """
+
+        def mutate(document: ModelConfigDocument) -> None:
+            self._check_revision(document, expected_revision)
+            self._require_connection(document, connection_id)
+            if any(profile.connectionId == connection_id for profile in document.profiles):
+                raise InvalidRequestError(
+                    "该连接仍被模型配置引用，请先删除相关模型配置。",
+                    code="CONFLICT",
+                    status_code=409,
+                )
+            document.connections = [c for c in document.connections if c.id != connection_id]
+
+        self.run_atomic(mutate, credential_side_effect)
 
     def _check_revision(self, document: ModelConfigDocument, expected_revision: int | None) -> None:
         if expected_revision is not None and expected_revision != document.revision:

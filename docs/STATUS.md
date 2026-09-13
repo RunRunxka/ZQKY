@@ -6,10 +6,12 @@
 
 **整体复刻尚未完成，不能称为全部界面、全部 AI 交互或真实服务已经交付。** 当前学习问答 `/chat` 是默认主页和全站唯一视觉基准。全站视觉巡检未通过，已复现隐藏菜单、404 和内容风格差距。
 
-**2026-09-13 MODEL-EXEC v3 完成模型供应商与模型管理 UI 落地（contract-v1）。** 在回退后的 `af9cb78` 代码上重新实现：后端 38 条供应商注册表 + 6 backend 分派、专用适配器（Azure/Codex/Copilot/CodeBuddy）、发现来源、推理控制、迁移 v1→v2、凭证补偿；前端供应商卡片 → 详情弹窗 → 发现多选 → 参数/推理表单；模型管理 UI 保留学习问答蓝色主题。工程/API/浏览器检查与 DeepSeek 真实复验见第 4 节，逐项证据见第 6.1 节结果卡。**整体仍未完成**：其他模块、真实供应商全面覆盖、R-13 全协议收口仍待后续批次。
+**2026-09-13 MODEL-EXEC v3 完成模型供应商与模型管理 UI 落地（contract-v1）。** 在回退后的 `af9cb78` 代码上重新实现：后端 38 条供应商注册表 + 6 backend 分派、专用适配器（Azure/Codex/Copilot/CodeBuddy）、发现来源、推理控制、迁移 v1→v2、凭证补偿；前端供应商卡片 → 详情弹窗 → 发现多选 → 参数/推理表单；模型管理 UI 保留学习问答蓝色主题。
 
-- 本批起点：`57d111d`（产品代码起点 `af9cb78`）；本批候选以最新 `git log -1` 为准。
-- 审查基线仍是 `21d9898`；本次不改变其结论，只在其后新增 contract-v1 实现批。
+**同行独立审查（候选 1805397）结论为 needs_revision**，复现 16 项缺陷（MR-01~MR-16），涵盖协议分派、本机免 Key、受管认证键持久化、并发凭证回滚、删除孤儿、迁移备份、前端保存/切连接/导入/创建与探针隔离。**本批已逐项修复并本地提交**（见 6.3 节结果卡）；R-01 与 R-13 仍**未关闭**（R-01 需独立复验确认，R-13 需对应真实长答复验通过）。**整体仍未完成**：其他模块、真实供应商全面覆盖、R-13 全协议收口仍待后续批次。
+
+- 本批起点：`57d111d`（产品代码起点 `af9cb78`）；contract-v1 首轮候选 `1805397`，本批修复候选以最新 `git log -1` 为准。
+- 审查基线仍是 `21d9898`；本次不改变其结论，只在其后新增 contract-v1 实现与修复批。
 - 用户当前未提交改动：`.zcode/agents/evidence-collector.md`、`.zcode/agents/independent-acceptor.md`，本批保留且不纳入提交。
 - 页面矩阵现有 53 个非调试条目：功能标签为**已验收 4 / 实现待验收 21 / 部分实现 6 / 待实现 22**；这是条目分类，不是整体完成率。
 
@@ -36,8 +38,8 @@
 
 本轮未发现 P0。R-01至R-12在审查基线 `21d9898` 上由源码确认，R-13来自本次真实供应商补验。
 
-**更新（2026-09-13 MODEL-EXEC v3）**：模型范围内的 R-01、R-07、R-08、R-12 已按 contract-v1 实现并回归通过（证据见第 4.1/6.2 节）：
-R-01 服务层补偿（`test_create_rolls_back_credential_when_config_save_fails`、`test_update_rolls_back_credential_when_config_save_fails`、`test_delete_connection_reports_credential_cleanup_failure`）；
+**更新（2026-09-13 MODEL-EXEC v3）**：模型范围内的 R-01、R-07、R-08、R-12 已按 contract-v1 实现，并在独立审查后逐项修复（见 6.3 节）：
+R-01 服务层跨存储原子性与补偿（首轮残留的并发/孤儿缺陷已修，`test_concurrent_update_cannot_roll_back_other_requests_credential`、`test_delete_failure_keeps_both_sides_and_is_retryable`）——**状态仍为"未关闭"，需独立复验确认**；
 R-08 `credentialAction:"clear"` 独立清除（`test_credential_clear_is_independent_from_empty_key`）；
 R-07 受控推理字段（`test_profile_reasoning_fields_roundtrip`、`test_reasoning_disabled_with_effort_is_rejected`）；
 R-12 capabilities 文案改为与 `.env` 实际一致。R-13 仍为验收阻断（复现并给出方向，未关闭）。R-02/R-03/R-04/R-05/R-06/R-09/R-10/R-11 本轮未动。
@@ -46,7 +48,7 @@ R-12 capabilities 文案改为与 `.env` 实际一致。R-13 仍为验收阻断�
 
 | ID / 级别 | 事实与影响 | 修复与验收要求 |
 | --- | --- | --- |
-| R-01 / P1 | `model_connections.py:60-83` 在仓储事务中先写 Key，配置 JSON 随后失败时 Key 已变化；删除先删配置再删 Key，后一步失败会留下孤儿凭证 | 建立服务层锁与补偿/回滚，故障注入覆盖“Key 成功、配置失败”和“配置删除、Key 删除失败” |
+| R-01 / P1 **未关闭** | `model_connections.py:60-83` 在仓储事务中先写 Key，配置 JSON 随后失败时 Key 已变化；删除先删配置再删 Key，后一步失败会留下孤儿凭证。独立审查又复现并发回滚与删除孤儿（MR-04/MR-05） | 建立服务层锁与补偿/回滚，故障注入覆盖“Key 成功、配置失败”和“配置删除、Key 删除失败”。**已实现并自检通过（6.3 节）；仍需独立复验后才能关闭** |
 | R-02 / P1 | 根路由进 `/chat`，但 `WorkspaceShell.tsx:140-162` 的品牌按钮和 `not-found.tsx:6` 仍回 `/lesson-plans`，metadata 也仍称教案工作台 | 建立单一主页常量 `/chat`，统一品牌、404、可访问名称与 metadata，并做桌面/手机导航回归 |
 | R-03 / P1 | 主聊天真实/模拟切换入口虽已移除，`contracts/chat.ts:13-14,187-188`、`ChatWorkspace.tsx:564-575`、部分组件与 CSS 仍保留 mock 分支并提示用户切换到不存在的模拟模式 | 只清理主聊天运行时/会话契约、不可达分支、无效文案和专用样式；阅读、写作等已批准的显式模拟继续保留并标注，必要时把共享服务类型拆成中性契约；测试替身只留 `tests/fixtures`，旧浏览器库不读写也不清除 |
 | R-04 / P1 | `navigation.ts` 将 `/whisper`、`/notebooks`、`/courses` 隐藏；`WorkspaceShell.tsx:80,111` 过滤后没有 `aria-current`，手机抽屉也无法聚焦当前菜单 | 明确每个隐藏页的可见父菜单或在抽屉显示该项；覆盖直达、详情、刷新、前进后退和焦点返回 |
@@ -64,21 +66,27 @@ R-12 capabilities 文案改为与 `.env` 实际一致。R-13 仍为验收阻断�
 
 ## 4. 本轮实际验证与边界
 
-### 4.1 2026-09-13 MODEL-EXEC v3（contract-v1 实现批）
+### 4.1 2026-09-13 MODEL-EXEC v3（contract-v1 实现 + 审查修复批）
 
-候选：本批本地提交（`git log -1`）；合同版本 `contract-v1`（`_work/model-providers-v1/contract-v1.md`，含 6 个文件 sha256）。
+候选：`1805397`（首轮）+ 本批修复提交（`git log -1`）；合同版本 `contract-v1`（`_work/model-providers-v1/contract-v1.md`，含 6 个文件 sha256）。
+
+**首轮候选 1805397 的独立审查结论为 needs_revision（16 项 MR）**，修复后的状态如下：
 
 | 检查 | 结果 |
 | --- | --- |
-| `npm.cmd run test:api` | **通过 164/164**（基线 88，本批新增 76：注册表 25、contract 适配 26、HTTP 迁移/补偿/认证/发现 25）；1 条 Starlette 弃用 warning |
-| `npm.cmd run typecheck` | 通过，Next route types 生成成功，exit 0 |
+| `npm.cmd run test:api` | **通过 181/181**（首轮 164；本批新增 `tests/test_review_regressions.py` 17 项，逐条对应审查探针）；1 条 Starlette 弃用 warning |
+| `npm.cmd run typecheck` | 通过，exit 0 |
 | `npm.cmd run lint` | 通过，0 error 0 warning，exit 0 |
-| `NODE_OPTIONS=--no-experimental-webstorage npm.cmd run test:unit` | 41 文件、**262/262 通过**（基线 260；模型面板测试按新的两层结构重写为 5 项） |
+| `NODE_OPTIONS=--no-experimental-webstorage npm.cmd run test:unit` | 42 文件、**273/273 通过**（首轮 262；新增 `ModelSettingsPanel.review.test.tsx` 11 项，对应 MR-02/07/08/12/13/14/16） |
 | `npm.cmd run build` | 通过，23/23 静态页面生成 |
-| 浏览器 e2e | **88/88 通过**（基线 80 + 新增 `tests/e2e/model-settings.spec.ts` 8 项，1440/1920/390 三视口与减少动画），1.4 分钟 |
-| 真实供应商（DeepSeek） | 普通调用与长答复验；隔离副本 + 只读加载正式 `.env`，正式 `model-config.json` 与 `.env` 前后一致 |
-| 视觉检查 | 独立查看 6 张联调截图（1440 详情/网格/发现、1920 网格、390 详情、减少动画）；发现并修复两处缺陷（详情操作按钮换行成竖排字、非 Anthropic 连接误显示 Anthropic 提示） |
-| 隔离/数据保护 | 8001 隔离后端（临时目录数据 + 内存凭证）、5174、`.next-test`（代理指向 8001）；正式 `.local-data`/`.env` 未被写入；`next-env.d.ts` 已还原；测试服务与端口已释放 |
+| 浏览器 e2e（正式套件） | **88/88 通过**（`tests/e2e/model-settings.spec.ts` 8 项，1440/1920/390 与减少动画） |
+| 真实联调 e2e（隔离后端 8001） | **5/5 通过**：真实 DeepSeek 连接卡片、UI 创建无默认地址供应商（先填地址再创建）、保存 Base URL 后表单保持新值、手机/1920 无横向溢出、减少动画 |
+| 真实供应商（DeepSeek） | 普通调用通过；R-13 三档复验见 4.3，**R-13 未关闭** |
+| 视觉检查 | 查看 6 张联调截图；首轮修复两处缺陷（操作按钮换行、误显示 Anthropic 提示），本批新增附加请求头编辑与创建草稿表单 |
+
+**`.env` 写入记录（修正 MR-15）**：首轮真实探针把文件型 `SecretStore` 直接注入应用，`secrets.put` 曾**误写**正式 `apps/api/.env`（新增一行 `ZQKY_API_KEY_probe-deepseek-v1`）；当时按行删除后恢复为 150 字节，但**没有本批前置散列，独立审查不能追认该次恢复**。本批已把探针与 `_work/model-providers-v1/live-backend.py` 改为**纯内存凭证副本**（先读入内存，再构造 `scope='process'` 存储），并加运行前后**逐字节断言**：本批真实探针与真实联调各跑一遍，正式 `.env`（md5 `c56f6ffbbbc45bb99f04ce339d270f61`）与 `.local-data/model-config.json` **运行前后逐字节不变**。表述从"从未写入"更正为"曾误写、已恢复、本批用内存隔离并加断言"。
+
+| 隔离/数据保护 | 8001 隔离后端（临时目录数据 + 内存凭证）、5174、`.next-test`（代理指向 8001）；正式 `.env`/`.local-data` 本批逐字节不变；`next-env.d.ts` 已还原；测试服务与端口已释放 |
 
 ### 4.2 2026-09-12 补验（历史，保留）
 
@@ -199,6 +207,31 @@ P0待决历史项：
 | 资源 | 8001/5174 已释放；正式 `.env`/`.local-data` 未被写入；`.zcode/` 用户改动保留 |
 
 首败与风险：R-13 默认预算零正文（预期复现，非回归）；Copilot 真实调用需用户自行获取 GitHub 令牌，属产品流程而非实现缺陷。
+
+### 6.3 独立审查 MR-01~MR-16 修复结果（2026-09-13）
+
+审查报告 `_work/review-1805397/REVIEW.md`。逐项修复、回归与状态：
+
+| MR | 修复位置 | 回归证据 | 状态 |
+| --- | --- | --- | --- |
+| MR-01 协议分派 | `factory.create_provider` + 新增 `resolve_effective_format`；openai_compat 的 Responses 格式不再固定落 Chat | `test_explicit_and_migrated_responses_both_use_responses_endpoint`、`test_openai_compat_provider_responses_format_is_not_downgraded_to_chat`、`test_migrated_responses_connection_keeps_protocol_after_repository_roundtrip` | pass |
+| MR-02 本机免 Key | 新增 `services/model_readiness.py`；`base.resolve_api_key` 按注册表判定；`chat.py` 与视图改用 `callable`；前端按 `callable` 禁用 | `test_local_provider_is_callable_without_key`、`test_readiness_distinguishes_local_cloud_and_managed`、`test_connection_view_exposes_callable_flag`；前端 MR-02 两项 | pass |
+| MR-03 受管键持久化 | `secrets.scoped_key`（`__` 命名）；codex/copilot 改用并兼容历史冒号键 | `test_managed_keys_are_writable_in_file_secret_store`、`test_legacy_colon_managed_keys_are_still_read`、`test_managed_auth_keys_survive_file_store_in_http_flow` | pass |
+| MR-04 并发回滚 | `ModelConfigRepository.run_atomic/update_connection_atomic`：revision 校验+写入+凭证同临界区 | `test_concurrent_update_cannot_roll_back_other_requests_credential` | pass |
+| MR-05 删除孤儿 | `delete_connection_atomic`：先清凭证再落盘，失败整体不删 | `test_delete_failure_keeps_both_sides_and_is_retryable`、`test_delete_connection_reports_credential_cleanup_failure` | pass |
+| MR-06 迁移备份 | `_backup_once` 失败抛 `CONFIG_BACKUP_FAILED` 并阻止写入 | `test_migration_backup_failure_blocks_write` | pass |
+| MR-07 保存回退旧值 | `saveConnectionDetail` 用 PUT 返回值重建草稿与基线 | 前端「保存后用服务端返回值刷新表单」、真实联调「保存 Base URL 后表单保持新值」 | pass |
+| MR-08 跨连接草稿 | `draftConnectionId` 隔离；`saveProfile` 切到目标连接草稿 | 前端「模型移到另一连接后详情加载目标连接草稿」 | pass |
+| MR-09 迟到换票复活 | `CodexOAuthService._generation` + 换票后重校验；`invalidate` 用于取消/退出 | `test_codex_logout_during_exchange_prevents_relogin`、`test_codex_cancel_during_exchange_prevents_relogin` | pass |
+| MR-10 Copilot 退出遗漏 | `ModelAuthService.logout` 清本连接全部来源（含 connectionId Key、历史键） | `test_copilot_logout_clears_the_connection_credential` | pass |
+| MR-11 Codex 过期/续期 | `CodexOAuthService.refresh_tokens/get_access_token`；provider 走 `_build_headers`；过期状态报 `AUTH_EXPIRED` | `test_codex_expired_token_is_not_used_and_requires_reauth`、`test_codex_expired_token_refreshes_when_refresh_succeeds` | pass |
+| MR-12 关闭绕过确认 | 统一 `requestOverlayClose` + 放弃确认对话框 | 前端「X 关闭在有未保存更改时先确认」 | pass |
+| MR-13 导入失败隐藏 | `importModels` 返回成功/失败；`ModelListPicker` 仅成功清空并展示父层错误 | 前端「导入失败保留勾选并在弹窗内显示错误」 | pass |
+| MR-14 附加头功能丢失 | `ConnectionDetail` 恢复附加请求头编辑（非敏感白名单，定义于后端） | 前端「详情可维护附加请求头」 | pass |
+| MR-15 探针可写正式 .env | 探针与 live-backend 改纯内存凭证 + 运行前后逐字节断言；文档记录更正 | 探针内 `_isolation` 断言 + 本批 `.env` md5 前后一致 | pass（记录已更正） |
+| MR-16 无默认地址无法创建 | 新增 `NewConnectionForm`：先收集必填草稿，失败保留输入 | 前端 3 个参数化创建 + 「创建失败保留表单与错误」；真实联调「UI 创建无默认地址供应商」 | pass |
+
+未关闭：**R-01**（本批修复已自检通过，仍需独立复验确认跨存储一致性）、**R-13**（见 4.3，需对应真实长答复验通过）。
 
 ### 原需求与验收任务卡（技术要求保留，负责人按6.1）
 

@@ -15,6 +15,7 @@ from app.providers.llm.registry import (
     find_provider,
 )
 from app.schemas.model_config import ModelConnection, ModelProfile
+from app.services.model_readiness import callable_state, credential_present
 
 
 def provider_view(spec: ProviderSpec) -> dict:
@@ -42,6 +43,8 @@ def provider_view(spec: ProviderSpec) -> dict:
 
 def connection_view(connection: ModelConnection, secrets: SecretStore) -> dict:
     spec = find_provider(connection.providerId) if connection.providerId else None
+    state = callable_state(connection, secrets, spec)
+    has_managed = credential_present(connection, secrets)
     return {
         "id": connection.id,
         "displayName": connection.displayName,
@@ -54,6 +57,10 @@ def connection_view(connection: ModelConnection, secrets: SecretStore) -> dict:
         "baseUrl": connection.baseUrl,
         "resolvedBaseUrl": _resolved_base_url(connection, spec),
         "hasCredential": secrets.has(connection.id),
+        # 可调用性同时考虑普通 Key、受管令牌与本机免 Key（MR-02）
+        "hasManagedCredential": has_managed,
+        "callable": state.ready,
+        "callableReason": state.reason,
         "credentialScope": secrets.scope,
         "credentialEnvName": f"ZQKY_API_KEY_{connection.id}",
         "extraHeaderNames": sorted(connection.extraHeaders.keys()),

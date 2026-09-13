@@ -15,10 +15,16 @@ from app.providers.llm.registry import (
     BACKEND_GITHUB_COPILOT,
     BACKEND_OPENAI_CODEX,
     BACKEND_OPENAI_COMPAT,
+    FORMAT_ANTHROPIC,
+    FORMAT_AUTO,
+    FORMAT_OPENAI_CHAT,
+    FORMAT_OPENAI_RESPONSES,
+    api_format_for_provider,
     effective_backend,
     find_provider,
+    normalize_api_format,
 )
-from app.schemas.model_config import ApiFormat, ModelProtocol
+from app.schemas.model_config import ModelProtocol
 
 def _protocol_provider(protocol: ModelProtocol) -> LLMProvider:
     # 延迟导入：避免无 providerId 的旧路径与专用适配器互相牵扯
@@ -41,8 +47,35 @@ def _protocol_provider(protocol: ModelProtocol) -> LLMProvider:
     )
 
 
+def resolve_effective_format(protocol: ModelProtocol | str, config: LLMConfig | None) -> str:
+    """请求开始前解析生效格式（D3）。解析结果同时决定 adapter 与 URL 线（MR-01）。
+
+    - 有 providerId：`auto` 与显式值都按注册表钳制；
+    - 无 providerId（旧调用方）：由 protocol 回退，`openai-responses` 必须保留为
+      Responses，不能被静默改成 Chat Completions。
+    """
+    if config is not None and config.providerId:
+        spec = find_provider(config.providerId)
+        if spec is not None:
+            return api_format_for_provider(config.apiFormat, spec)
+        return normalize_api_format(config.apiFormat)
+    try:
+        protocol_key = ModelProtocol(protocol)
+    except ValueError:
+        return FORMAT_AUTO
+    if protocol_key == ModelProtocol.openai_responses:
+        return FORMAT_OPENAI_RESPONSES
+    if protocol_key == ModelProtocol.anthropic_messages:
+        return FORMAT_ANTHROPIC
+    return FORMAT_OPENAI_CHAT
+
+
 def create_provider(protocol: ModelProtocol | str, config: LLMConfig | None = None) -> LLMProvider:
-    """创建适配器。传入 config 时优先按供应商 backend 分派（contract-v1 路径）。"""
+    """创建适配器。传入 config 时按供应商 backend + 生效格式分派（contract-v1 路径）。
+
+    MR-01：openai_compat 供应商选择 `openai_responses` 时必须创建 Responses 适配器；
+    迁移后的旧 Responses 连接（providerId=custom + apiFormat=openai_responses）同样如此。
+    """
     if config is not None and config.providerId:
         spec = find_provider(config.providerId)
         backend = effective_backend(spec, config.apiFormat)
@@ -67,6 +100,11 @@ def create_provider(protocol: ModelProtocol | str, config: LLMConfig | None = No
 
             return AnthropicMessagesProvider()
         if backend == BACKEND_OPENAI_COMPAT:
+            # OpenAI 兼容供应商的两种线格式由生效 apiFormat 决定，而非固定 Chat
+            if resolve_effective_format(protocol, config) == FORMAT_OPENAI_RESPONSES:
+                from app.providers.llm.openai_responses import OpenAIResponsesProvider
+
+                return OpenAIResponsesProvider()
             from app.providers.llm.openai_chat import OpenAIChatProvider
 
             return OpenAIChatProvider()
@@ -84,13 +122,8 @@ def create_provider(protocol: ModelProtocol | str, config: LLMConfig | None = No
 
 
 def resolve_api_format_for_request(config: LLMConfig) -> str:
-    """请求开始前解析生效格式（D3）；流开始后不得再切换。"""
-    spec = find_provider(config.providerId) if config.providerId else None
-    if spec is None:
-        return config.apiFormat or ApiFormat.auto.value
-    from app.providers.llm.registry import api_format_for_provider
-
-    return api_format_for_provider(config.apiFormat, spec)
+    """兼容入口：按连接快照解析生效格式（D3）；流开始后不得再切换。"""
+    return resolve_effective_format(config.protocol, config)
 
 
-__all__ = ["create_provider", "resolve_api_format_for_request"]
+__all__ = ["create_provider", "resolve_api_format_for_request", "resolve_effective_format"]

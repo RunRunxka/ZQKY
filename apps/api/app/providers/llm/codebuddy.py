@@ -28,8 +28,9 @@ class CodeBuddyProvider(OpenAIChatProvider):
     requires_api_key = True
 
     def _headers(self, config):  # type: ignore[override]
-        # 参考用 X-API-Key（非 Bearer）；占位 Key 视为未配置由 resolve_api_key 拒绝
-        key = resolve_api_key(config, required=True)
+        # 参考用 X-API-Key（非 Bearer）；该供应商虽然注册表标 oauth（本机会话），
+        # 但智启课源只实现 API Key 通道，因此强制要求 Key（MR-02/D16）
+        key = resolve_api_key(config, required=True, explicit_required=True)
         return merge_headers(config.extraHeaders, {"X-API-Key": key})
 
     def _base_url(self, config) -> str:  # type: ignore[override]

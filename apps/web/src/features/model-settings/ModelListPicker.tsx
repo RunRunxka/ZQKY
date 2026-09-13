@@ -18,6 +18,7 @@ export function ModelListPicker({
   providerId,
   providerLabel,
   existingIds,
+  error,
   onAdd,
   onManual,
   onClose,
@@ -27,12 +28,14 @@ export function ModelListPicker({
   providerId: string | null;
   providerLabel: string | null;
   existingIds: string[];
-  onAdd: (ids: string[]) => Promise<void>;
+  /** 导入失败时由父层传入，展示在本弹窗内（MR-13） */
+  error?: string | null;
+  onAdd: (ids: string[]) => Promise<boolean>;
   onManual: () => void;
   onClose: () => void;
 }) {
   const [result, setResult] = useState<DiscoveryResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
@@ -42,14 +45,14 @@ export function ModelListPicker({
 
   async function load() {
     setLoading(true);
-    setError(null);
+    setLocalError(null);
     setSelected([]);
     try {
       const next = await discoverModels(connectionId);
       setResult(next);
     } catch (e) {
       setResult(null);
-      setError(e instanceof Error ? e.message : '获取模型列表失败，请重试。');
+      setLocalError(e instanceof Error ? e.message : '获取模型列表失败，请重试。');
     } finally {
       setLoading(false);
     }
@@ -80,10 +83,10 @@ export function ModelListPicker({
         </button>
       </div>
 
-      {error && (
+      {(error || localError) && (
         <p className="settings-feedback error" role="alert">
           <AlertTriangle size={14} />
-          {error}
+          {localError ?? error}
         </p>
       )}
 
@@ -154,8 +157,9 @@ export function ModelListPicker({
             onClick={async () => {
               setSaving(true);
               try {
-                await onAdd(selected);
-                setSelected([]);
+                // 只有真正成功才清空选择；失败保留勾选以便重试（MR-13）
+                const ok = await onAdd(selected);
+                if (ok) setSelected([]);
               } finally {
                 setSaving(false);
               }

@@ -22,17 +22,28 @@
 连接/模型新增字段：`providerId`、`apiFormat`（`auto`/`openai_chat`/`openai_responses`/`anthropic`）、
 `apiVersion`（Azure，仅 `preview` 实际转发）；请求可带 `credentialAction: keep|replace|clear`（R-08 显式清除）；
 模型新增 `reasoningEnabled`（三态）与 `reasoningEffort`（`none|minimal|low|medium|high|xhigh|max`），
-响应另带只读派生 `reasoningStyle`（不落库）。
+响应另带只读派生 `reasoningStyle`（不落库）。连接响应新增可调用性字段
+`hasManagedCredential`、`callable`、`callableReason`：本机免 Key 服务（ollama 等）为 `callable:true`，
+缺凭证云服务为 `false` 并给出原因（MR-02）。
+
+**协议分派（MR-01）**：openai_compat 供应商选择 `openai_responses` 时创建 Responses 适配器；
+无 `providerId` 的旧 `openai-responses` 连接也保持 Responses，不被降级为 Chat。
 
 迁移（D1/D8）：无 `providerId` 的旧 v1 连接按 `protocol` 映射为 `custom` + 对应 `apiFormat`，
 不猜供应商、不改 baseUrl、保留 id/revision/默认引用；读取 v1 不改写文件，首次写入前备份为
-`model-config.v1.backup.json`。无 `providerId` 的调用方请求字节保持不变。
+`model-config.v1.backup.json`（备份失败返回 `CONFIG_BACKUP_FAILED` 且不写入，MR-06）。
+无 `providerId` 的调用方请求字节保持不变。
 
 发现（D12）：响应新增 `source`：`upstream`（上游实时）| `manual`（该供应商无列表接口，需手工添加）|
 `catalog:<name>`（内置回退目录，非实时）。认证/网络失败不再吞成空列表。
 
 新增错误码：`UNSUPPORTED_PROVIDER`、`UNSUPPORTED_API_FORMAT`、`UNSUPPORTED_OPERATION`、
-`AUTH_REQUIRED`、`AUTH_EXPIRED`、`OAUTH_APP_NOT_CONFIGURED`、`AUTH_PENDING`、`AUTH_CANCELLED`。
+`AUTH_REQUIRED`、`AUTH_EXPIRED`、`OAUTH_APP_NOT_CONFIGURED`、`AUTH_PENDING`、`AUTH_CANCELLED`、
+`CONFIG_BACKUP_FAILED`（迁移前备份失败，写入被取消，MR-06）。
+
+**跨存储一致性（R-01，未关闭）**：连接的更新/删除在仓储同一临界区内完成 revision 校验、文档变更与
+凭证写入（`ModelConfigRepository.run_atomic`）；配置落盘失败按快照回滚凭证，删除时凭证清理失败则整体不删，
+可安全重试。已自检通过，仍需独立复验确认。
 
 ## 后端凭证文件
 

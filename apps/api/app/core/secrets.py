@@ -12,6 +12,29 @@ from app.core.exceptions import AppError
 
 PREFIX = 'ZQKY_API_KEY_'
 
+# 凭证键必须能被文件型存储安全地写成 .env 变量名后缀（MR-03）。
+KEY_ID_PATTERN = re.compile(r'[A-Za-z0-9_-]+')
+
+
+def scoped_key(scope: str, connection_id: str) -> str:
+    """命名空间化的托管凭证键，例如 `codex-tokens__<连接ID>`。
+
+    早期实现用 `codex-tokens:<id>` 这样的冒号分隔，内存存储接受但文件型
+    `.env` 存储会以 `INVALID_REQUEST` 拒绝，导致"换票成功却存不进去"（MR-03）。
+    这里统一用正则允许的 `__` 连接，两种存储都可用。
+    """
+    if not KEY_ID_PATTERN.fullmatch(scope or '') or not KEY_ID_PATTERN.fullmatch(connection_id or ''):
+        raise AppError('凭证标识无效。', code='INVALID_REQUEST', status_code=422)
+    return f'{scope}__{connection_id}'
+
+
+LEGACY_MANAGED_PREFIXES = ('codex-tokens', 'copilot-token', 'copilot-access')
+
+
+def legacy_scoped_key(scope: str, connection_id: str) -> str:
+    """历史冒号形式的键，仅用于读取/清理兼容。"""
+    return f'{scope}:{connection_id}'
+
 
 def _parse_value(raw: str) -> str:
     value = raw.strip()

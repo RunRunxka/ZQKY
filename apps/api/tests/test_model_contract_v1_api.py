@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
+from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from app.core.config import Settings
@@ -170,6 +171,7 @@ def test_create_rolls_back_credential_when_config_save_fails(tmp_path: Path):
 
 
 def test_update_rolls_back_credential_when_config_save_fails(tmp_path: Path):
+    """配置落盘失败时，凭证必须回滚到旧值（R-01 / MR-04）。"""
     secrets = SecretStore()
     repo = ModelConfigRepository(tmp_path / "model-config.json")
     service = ModelConfigService(repo, secrets)
@@ -181,15 +183,12 @@ def test_update_rolls_back_credential_when_config_save_fails(tmp_path: Path):
     )
     service.create_connection(connection, "old-key")
 
-    def boom(*_args, **_kwargs):
-        raise AppError("写配置失败", code="CREDENTIAL_STORAGE_ERROR", status_code=500)
-
-    repo.update_connection = boom  # type: ignore[assignment]
-    with pytest.raises(AppError):
-        service.update_connection(
-            "c1", lambda c: None, api_key="new-key", credential_action=CREDENTIAL_REPLACE,
-            expected_revision=None,
-        )
+    with patch.object(repo, "_save", side_effect=AppError("写配置失败", code="CREDENTIAL_STORAGE_ERROR", status_code=500)):
+        with pytest.raises(AppError):
+            service.update_connection(
+                "c1", lambda c: None, api_key="new-key", credential_action=CREDENTIAL_REPLACE,
+                expected_revision=None,
+            )
     # Key 成功写入但配置失败 → 必须回滚为旧值
     assert secrets.resolve("c1") == "old-key"
 
@@ -206,15 +205,12 @@ def test_update_rolls_back_to_absent_when_no_previous_credential(tmp_path: Path)
     )
     service.create_connection(connection, None)
 
-    def boom(*_args, **_kwargs):
-        raise AppError("写配置失败", code="CREDENTIAL_STORAGE_ERROR", status_code=500)
-
-    repo.update_connection = boom  # type: ignore[assignment]
-    with pytest.raises(AppError):
-        service.update_connection(
-            "c1", lambda c: None, api_key="new-key", credential_action=CREDENTIAL_REPLACE,
-            expected_revision=None,
-        )
+    with patch.object(repo, "_save", side_effect=AppError("写配置失败", code="CREDENTIAL_STORAGE_ERROR", status_code=500)):
+        with pytest.raises(AppError):
+            service.update_connection(
+                "c1", lambda c: None, api_key="new-key", credential_action=CREDENTIAL_REPLACE,
+                expected_revision=None,
+            )
     assert secrets.has("c1") is False
 
 
@@ -237,6 +233,11 @@ def test_credential_clear_is_independent_from_empty_key(client):
 
 
 def test_delete_connection_reports_credential_cleanup_failure(tmp_path: Path):
+    """凭证清理失败时整体不删（MR-05）：连接与凭证都保持原状，可安全重试。
+
+    旧实现先删 JSON 再删凭证，失败会留下孤儿凭证且重试得到 NOT_FOUND；
+    现行为是删除前先清凭证，失败即中止，两侧一致。
+    """
     secrets = SecretStore()
     repo = ModelConfigRepository(tmp_path / "model-config.json")
     service = ModelConfigService(repo, secrets)
@@ -252,9 +253,17 @@ def test_delete_connection_reports_credential_cleanup_failure(tmp_path: Path):
         raise AppError("删除失败", code="CREDENTIAL_STORAGE_ERROR", status_code=500)
 
     secrets.delete = boom  # type: ignore[assignment]
-    with pytest.raises(AppError) as exc_info:
-        service.delete_connection("c1", None)
-    assert "凭证清理失败" in str(exc_info.value)
+    with pytest.raises(AppError):
+        service.delete_connection("c1", repo.revision())
+    # 两侧都还在：连接未删、凭证仍在，没有孤儿
+    assert [c.id for c in repo.list_connections()] == ["c1"]
+    assert secrets.has("c1") is True
+
+    # 恢复后重试可正常删除，不需要 NOT_FOUND 兜底
+    del secrets.delete
+    service.delete_connection("c1", repo.revision())
+    assert repo.list_connections() == []
+    assert secrets.has("c1") is False
 
 
 # --- 认证状态机 -----------------------------------------------------------

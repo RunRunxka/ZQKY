@@ -109,7 +109,14 @@ export interface ModelConnectionView {
   baseUrl: string;
   /** 运行期实际地址（baseUrl 或供应商默认） */
   resolvedBaseUrl: string;
+  /** 本连接是否已保存普通凭证（API Key） */
   hasCredential: boolean;
+  /** 是否存在任一可用凭证来源（普通 Key 或受管令牌） */
+  hasManagedCredential: boolean;
+  /** 现在是否可以发起调用：本机免 Key 为 true，缺凭证云服务为 false（MR-02） */
+  callable: boolean;
+  /** callable 为 false 时的可操作原因 */
+  callableReason: string | null;
   credentialScope: 'process' | 'env-file';
   credentialEnvName?: string;
   extraHeaderNames: string[];

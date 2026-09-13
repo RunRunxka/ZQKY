@@ -16,8 +16,8 @@ from fastapi.responses import StreamingResponse
 
 from app.core.exceptions import AppError
 from app.providers.llm.base import LLMRequest, LLMMessage, LLMStreamEvent
-from app.providers.llm.registry import find_provider
 from app.schemas.chat import ChatStreamRequest, validate_chat_request
+from app.services.model_readiness import callable_state
 from app.services.model_runtime import build_llm_config, build_provider
 
 router = APIRouter(tags=["chat"])
@@ -44,14 +44,11 @@ async def chat_stream(request: Request, body: ChatStreamRequest) -> StreamingRes
     if profile.purpose not in (None, "chat"):
         raise AppError(f"该模型配置用途为 {profile.purpose}，不能用于学习问答。", status_code=422)
     connection = repo.get_connection(profile.connectionId)
-    spec = find_provider(connection.providerId) if connection.providerId else None
-    # 本机免 Key 服务与 OAuth 供应商不要求连接凭证；云服务缺凭证明确拒绝
-    credential_required = True
-    if spec is not None and (spec.authMode != "api_key" or not spec.requires_key):
-        credential_required = False
-    if credential_required and not secrets.has(connection.id):
+    # 可调用性统一判定：本机免 Key 服务与受管认证不再被误判为缺凭证（MR-02）
+    state = callable_state(connection, secrets)
+    if not state.ready:
         raise AppError(
-            "该模型连接未保存凭证，请先在设置中填写 API Key。",
+            state.reason or "该模型连接当前不可调用。",
             code="MODEL_NOT_CONFIGURED",
             status_code=400,
         )

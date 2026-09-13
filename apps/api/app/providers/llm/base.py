@@ -115,13 +115,22 @@ def require_api_key(config: LLMConfig) -> str:
     return config.apiKey
 
 
-def resolve_api_key(config: LLMConfig, *, required: bool) -> str | None:
+def resolve_api_key(config: LLMConfig, *, required: bool, explicit_required: bool = False) -> str | None:
     """本机免 Key 服务（ollama / llama.cpp / ovms）与 OAuth 通道允许无 Key。
 
     云服务仍必须显式凭证：缺 Key 时抛出可操作的 400，绝不静默发匿名请求。
+    `explicit_required=True` 供 CodeBuddy 这类"注册表标 oauth 但实际走 API Key"
+    的供应商强制要求 Key。
     """
     if config.apiKey:
         return config.apiKey
+    if config.providerId and not explicit_required:
+        # 按注册表判定，而不是让适配器固定要求 Key（MR-02）
+        from app.providers.llm.registry import AUTH_API_KEY, find_provider
+
+        spec = find_provider(config.providerId)
+        if spec is not None and (spec.authMode != AUTH_API_KEY or not spec.requires_key):
+            return None
     if required:
         raise ProviderError(
             "MODEL_NOT_CONFIGURED",

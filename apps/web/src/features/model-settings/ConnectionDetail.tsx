@@ -179,6 +179,7 @@ export function ConnectionDetail({
         <div className="credential-actions">
           <span className="settings-hint">
             凭证状态：{connection.hasCredential ? `已保存（${connection.credentialScope}）` : '未配置'}
+            {!connection.hasCredential && connection.hasManagedCredential ? '（使用受管认证）' : ''}
           </span>
           {connection.hasCredential && (
             <label className="settings-check">
@@ -193,6 +194,29 @@ export function ConnectionDetail({
             </label>
           )}
         </div>
+        {connection.callableReason && !connection.callable && (
+          <small className="settings-hint">{connection.callableReason}</small>
+        )}
+      </section>
+
+      <section className="detail-section" aria-label="附加请求头">
+        <h3>附加请求头</h3>
+        <p className="settings-hint">
+          仅允许组织/项目归属与 Anthropic beta 等非敏感头；认证头由服务端管理，不能在此覆盖。
+          已保存的敏感值不会回显。
+        </p>
+        {connection.extraHeaderNames.length > 0 && (
+          <p className="settings-hint">已配置：{connection.extraHeaderNames.join('、')}</p>
+        )}
+        <label>
+          每行“名称: 值”
+          <textarea
+            rows={2}
+            value={draft.extraHeadersText}
+            onChange={(e) => onDraftChange({ ...draft, extraHeadersText: e.target.value })}
+            placeholder={'X-Title: 智启课源\nOpenAI-Organization: org_xxx'}
+          />
+        </label>
       </section>
 
       <AuthPanel connection={connection} onChanged={() => undefined} />
@@ -241,8 +265,8 @@ export function ConnectionDetail({
                   <button
                     className="icon-button"
                     aria-label={`连接测试 ${profile.displayName}`}
-                    title={connection.hasCredential ? '发送一次少量文本的真实请求' : '该连接未配置凭证'}
-                    disabled={!connection.hasCredential || tests[profile.id]?.running}
+                    title={connection.callable ? '发送一次少量文本的真实请求' : connection.callableReason ?? '当前不可调用'}
+                    disabled={!connection.callable || tests[profile.id]?.running}
                     onClick={() => onTestModel(profile, false)}
                   >
                     {tests[profile.id]?.running ? <Loader2 size={14} className="spin" /> : <Zap size={14} />}
@@ -250,8 +274,8 @@ export function ConnectionDetail({
                   <button
                     className="icon-button"
                     aria-label={`流式测试 ${profile.displayName}`}
-                    title={connection.hasCredential ? '测试流式输出' : '该连接未配置凭证'}
-                    disabled={!connection.hasCredential || tests[profile.id]?.running}
+                    title={connection.callable ? '测试流式输出' : connection.callableReason ?? '当前不可调用'}
+                    disabled={!connection.callable || tests[profile.id]?.running}
                     onClick={() => onTestModel(profile, true)}
                   >
                     <Waves size={14} />

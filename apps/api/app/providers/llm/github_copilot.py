@@ -20,6 +20,7 @@ from app.providers.llm.base import ProviderError
 from app.providers.llm.openai_chat import OpenAIChatProvider
 from app.providers.llm.registry import find_provider
 from app.schemas.model_config import ModelProtocol
+from app.core.secrets import legacy_scoped_key, scoped_key
 
 COPILOT_EXCHANGE_URL = "https://api.github.com/copilot_internal/v2/token"
 COPILOT_DEFAULT_BASE = "https://api.githubcopilot.com"
@@ -47,7 +48,17 @@ class GitHubCopilotProvider(OpenAIChatProvider):
             return config.apiKey
         if self._secrets is None or not config.connectionId:
             return None
-        return self._secrets.resolve(f"copilot-token:{config.connectionId}")
+        managed = self._secrets.resolve(scoped_key("copilot-token", config.connectionId))
+        if managed:
+            return managed
+        # 兼容历史冒号键
+        return self._secrets.resolve(legacy_scoped_key("copilot-token", config.connectionId))
+
+    def managed_key(self, connection_id: str) -> str:
+        return scoped_key("copilot-token", connection_id)
+
+    def access_key(self, connection_id: str) -> str:
+        return scoped_key("copilot-access", connection_id)
 
     def _ensure_access_token(self, config) -> str:  # noqa: ANN001
         if self._access_token and time.time() < self._expires_at - EXPIRY_SKEW_SECONDS:
@@ -63,7 +74,7 @@ class GitHubCopilotProvider(OpenAIChatProvider):
         self._access_token = access_token
         self._expires_at = expires_at
         if self._secrets is not None and config.connectionId:
-            self._secrets.put(f"copilot-access:{config.connectionId}", access_token)
+            self._secrets.put(self.access_key(config.connectionId), access_token)
         return access_token
 
     def _exchange(self, github_token: str) -> tuple[str, float]:

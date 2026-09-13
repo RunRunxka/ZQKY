@@ -24,6 +24,8 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Any
 
+from app.core.secrets import legacy_scoped_key, scoped_key
+
 AUTH_ISSUER = os.environ.get("ZQKY_CODEX_AUTH_ISSUER", "https://auth.openai.com")
 CODEX_DEFAULT_MODEL = "gpt-5.6-sol"
 DEFAULT_CALLBACK_PORTS = (1455, 1457)
@@ -141,6 +143,8 @@ class CodexOAuthService:
         self._secrets = secret_store
         self._operations: dict[str, CodexLoginOperation] = {}
         self._lock = asyncio.Lock()
+        # 每连接的操作世代：取消/退出/重开/删除会自增，使在途换票结果失效（MR-09）
+        self._generation: dict[str, int] = {}
 
     # --- 能力探测 -------------------------------------------------------
     @property
@@ -153,10 +157,13 @@ class CodexOAuthService:
         return None
 
     def _tokens_key(self, connection_id: str) -> str:
-        return f"codex-tokens:{connection_id}"
+        return scoped_key("codex-tokens", connection_id)
 
     def load_tokens(self, connection_id: str) -> CodexTokens | None:
         raw = self._secrets.resolve(self._tokens_key(connection_id))
+        if raw is None:
+            # 兼容历史冒号键（MR-03 前写入的凭证）
+            raw = self._secrets.resolve(legacy_scoped_key("codex-tokens", connection_id))
         return CodexTokens.from_json(raw) if raw else None
 
     def store_tokens(self, connection_id: str, tokens: CodexTokens) -> None:
@@ -164,6 +171,63 @@ class CodexOAuthService:
 
     def clear_tokens(self, connection_id: str) -> None:
         self._secrets.delete(self._tokens_key(connection_id))
+        # 同时清掉历史键，避免旧凭证残留
+        self._secrets.delete(legacy_scoped_key("codex-tokens", connection_id))
+
+    def _token_valid(self, tokens: CodexTokens | None) -> bool:
+        """令牌未过期（留 300s 余量）才视为可用（MR-11）。"""
+        if tokens is None or not tokens.access_token:
+            return False
+        if not tokens.expires_at:
+            return True
+        return time.time() < tokens.expires_at - TOKEN_REFRESH_SKEW_SECONDS
+
+    async def refresh_tokens(self, connection_id: str) -> CodexTokens | None:
+        """用 refresh_token 续期；无 refresh_token 或失败返回 None（MR-11）。"""
+        tokens = self.load_tokens(connection_id)
+        if tokens is None or not tokens.refresh_token:
+            return None
+        generation = self._generation.get(connection_id, 0)
+        refreshed = await asyncio.to_thread(self._post_refresh, tokens.refresh_token)
+        if not refreshed or not refreshed.get("access_token"):
+            return None
+        # 续期期间若发生登出/重开/删除，结果作废（MR-09）
+        if self._generation.get(connection_id, 0) != generation:
+            return None
+        updated = CodexTokens(
+            access_token=str(refreshed["access_token"]),
+            refresh_token=refreshed.get("refresh_token") or tokens.refresh_token,
+            account_id=refreshed.get("account_id") or tokens.account_id,
+            expires_at=time.time() + float(refreshed.get("expires_in") or 3600),
+        )
+        self.store_tokens(connection_id, updated)
+        return updated
+
+    def _post_refresh(self, refresh_token: str) -> dict[str, Any] | None:
+        payload = urllib.parse.urlencode(
+            {
+                "grant_type": "refresh_token",
+                "client_id": _client_id() or "",
+                "refresh_token": refresh_token,
+            }
+        ).encode("ascii")
+        return self._post_token(payload)
+
+    async def get_access_token(self, connection_id: str) -> str | None:
+        """返回可用 access token；过期则尝试刷新一次（MR-11）。"""
+        tokens = self.load_tokens(connection_id)
+        if self._token_valid(tokens):
+            return tokens.access_token if tokens else None
+        if tokens is None:
+            return None
+        refreshed = await self.refresh_tokens(connection_id)
+        if refreshed is not None and refreshed.access_token:
+            return refreshed.access_token
+        return None
+
+    def invalidate(self, connection_id: str) -> None:
+        """使该连接所有在途操作与续期结果失效（MR-09：取消/退出/删除/重开）。"""
+        self._generation[connection_id] = self._generation.get(connection_id, 0) + 1
 
     # --- 状态 -----------------------------------------------------------
     def status(self, connection_id: str) -> dict[str, Any]:
@@ -177,12 +241,17 @@ class CodexOAuthService:
                 operation.operation_state = OP_CANCELLED
                 operation.error_code = "login_cancelled"
         connected = bool(tokens and tokens.access_token)
+        expired = bool(tokens and tokens.access_token and not self._token_valid(tokens))
         operation_state = operation.operation_state if operation else None
-        if operation_state is None and connected:
+        if operation_state is None and connected and not expired:
             operation_state = OP_COMPLETED
 
         if operation_state == OP_WAITING:
             connection_state = "authorizing"
+        elif expired:
+            # 令牌过期且未续期：如实报告需要重新登录，不继续显示 connected（MR-11）
+            connection_state = "error"
+            operation_state = operation_state or OP_EXPIRED
         elif connected:
             connection_state = "connected"
         elif operation_state in (OP_FAILED, OP_EXPIRED, OP_CANCELLED):
@@ -195,6 +264,8 @@ class CodexOAuthService:
             "authMode": "oauth",
             "provider": "openai_codex",
         }
+        if expired:
+            payload["errorCode"] = "AUTH_EXPIRED"
         if operation is not None:
             payload.update(
                 {
@@ -317,6 +388,7 @@ class CodexOAuthService:
 
     async def _await_callback(self, operation: CodexLoginOperation) -> None:
         # 等待回调状态机到达终态或超时，然后交换令牌
+        generation = self._generation.get(operation.connection_id, 0)
         try:
             deadline = operation.started_at + LOGIN_TIMEOUT_SECONDS
             while time.time() < deadline:
@@ -339,6 +411,11 @@ class CodexOAuthService:
                 operation.error_code = "state_mismatch"
                 return
             tokens = await self._exchange_code(operation, code)
+            # 换票 await 之后必须重新校验世代：取消/退出/重开/删除都会作废本次结果（MR-09）
+            if self._generation.get(operation.connection_id, 0) != generation or operation.cancelled:
+                return
+            if self._operations.get(operation.connection_id) is not operation:
+                return
             if tokens is None:
                 operation.operation_state = OP_FAILED
                 operation.error_code = "token_exchange_failed"
@@ -384,19 +461,26 @@ class CodexOAuthService:
         operation = self._operations.get(connection_id)
         if operation is None:
             return {"ok": False, "errorCode": "login_not_active", "message": "当前没有进行中的授权。"}
+        # 取消即使在已换票阶段也要作废在途结果（MR-09）
+        self.invalidate(connection_id)
+        operation.cancelled = True
         if operation.operation_state == OP_WAITING:
-            operation.cancelled = True
             operation.operation_state = OP_CANCELLED
             operation.error_code = "login_cancelled"
         await self._close_server(operation)
         return {"ok": True, "status": self.status(connection_id)}
 
     async def logout(self, connection_id: str) -> dict[str, Any]:
+        # 先使在途操作与续期失效，再清凭证；迟到的换票/刷新不得复活登录（MR-09）
+        self.invalidate(connection_id)
         operation = self._operations.get(connection_id)
-        if operation is not None and operation.operation_state == OP_WAITING:
+        if operation is not None:
             operation.cancelled = True
-            operation.operation_state = OP_CANCELLED
+            if operation.operation_state == OP_WAITING:
+                operation.operation_state = OP_CANCELLED
+                operation.error_code = "login_cancelled"
             await self._close_server(operation)
+            self._operations.pop(connection_id, None)
         tokens = self.load_tokens(connection_id)
         self.clear_tokens(connection_id)
         if tokens and tokens.access_token:
