@@ -68,6 +68,33 @@ describe('chat store', () => {
     expect(store.getState().messages[0]).toMatchObject({ content: '历史问题' });
   });
 
+  it('R-10 deactivate：只清当前会话，不创建、不保存、不删除任何会话', async () => {
+    const repository = createMemoryChatRepository();
+    await repository.save({
+      id: 'keep-1',
+      title: '保留下来的会话',
+      messages: [{ id: 'm1', role: 'user', content: '历史问题', status: 'done' }],
+      createdAt: '2026-09-08T09:00:00.000Z',
+      updatedAt: '2026-09-08T09:00:00.000Z',
+    });
+    const { stream } = makeStreamScript([]);
+    const store = createChatStore({ repository, stream });
+    await store.getState().init();
+    expect(store.getState().activeId).toBe('keep-1');
+    const before = await repository.list();
+
+    store.getState().deactivate();
+
+    // 当前会话被清空（失效深链的空态），但没有任何持久化副作用
+    expect(store.getState().activeId).toBeNull();
+    expect(store.getState().messages).toEqual([]);
+    // 学习记录仍列出原有会话；仓库未新增也未删除
+    expect(store.getState().conversations.map((c) => c.id)).toEqual(['keep-1']);
+    const after = await repository.list();
+    expect(after.map((c) => c.id)).toEqual(before.map((c) => c.id));
+    expect(await repository.load('keep-1')).not.toBeNull();
+  });
+
   it('初始化未完成时发送会等待完成而不是静默丢弃', async () => {    const repository = createMemoryChatRepository();
     const gate = deferred<void>();
     const slowRepo = {
