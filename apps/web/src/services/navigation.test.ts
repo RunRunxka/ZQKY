@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { groupMainNavigation, navigation } from './navigation';
+import {
+  HOME_LABEL,
+  HOME_PATH,
+  groupMainNavigation,
+  navigation,
+  resolveCurrentNavigationId,
+} from './navigation';
 
 describe('导航注册表', () => {
   it('每项都有唯一 id、唯一路径、合法路径与图标', () => {
@@ -86,5 +92,51 @@ describe('导航注册表', () => {
     expect(navigation.filter((item) => item.position === 'bottom').map((item) => item.id)).toEqual([
       'settings',
     ]);
+  });
+});
+
+describe('唯一主页与当前菜单解析（R-02/R-04）', () => {
+  it('有且仅有一个主页条目，且为 /chat', () => {
+    const homes = navigation.filter((item) => item.home);
+    expect(homes).toHaveLength(1);
+    expect(HOME_PATH).toBe('/chat');
+    expect(HOME_LABEL).toBe('学习问答');
+  });
+
+  it('每个已实现路由最多解析出一个当前项，隐藏直达页回退到可见父菜单', () => {
+    const desktopCases: [string, string | null][] = [
+      ['/chat', 'chat'],
+      ['/lesson-plans', 'lesson-plan'],
+      ['/reading/materials', 'reading'],
+      ['/space/questions', 'space'],
+      ['/books/x/pages/y', 'books'],
+      ['/settings', 'settings'],
+      // 隐藏直达页在桌面侧栏标记可见父菜单
+      ['/whisper', 'co-writer'],
+      ['/notebooks/x', 'space'],
+      ['/courses/x', 'books'],
+      // 404 没有对应条目
+      ['/definitely-missing', null],
+    ];
+    for (const [pathname, expected] of desktopCases) {
+      expect(resolveCurrentNavigationId(pathname, { includeHidden: false }), pathname).toBe(expected);
+    }
+  });
+
+  it('手机抽屉对隐藏直达页标记自身', () => {
+    expect(resolveCurrentNavigationId('/whisper', { includeHidden: true })).toBe('whisper');
+    expect(resolveCurrentNavigationId('/notebooks/x', { includeHidden: true })).toBe('notebooks');
+    expect(resolveCurrentNavigationId('/courses/x', { includeHidden: true })).toBe('courses');
+    // 非隐藏页两种模式一致
+    expect(resolveCurrentNavigationId('/books', { includeHidden: true })).toBe('books');
+    expect(resolveCurrentNavigationId('/books', { includeHidden: false })).toBe('books');
+  });
+
+  it('每个隐藏直达页都登记了可见父菜单且父菜单存在', () => {
+    for (const item of navigation) {
+      if (!item.hidden) continue;
+      expect(item.parentPath, `${item.id} 缺少 parentPath`).toBeTruthy();
+      expect(navigation.some((candidate) => candidate.path === item.parentPath && !candidate.hidden)).toBe(true);
+    }
   });
 });

@@ -1,5 +1,5 @@
-import Link from 'next/link';
 import type { PlannedNavigationItem } from '@/contracts/navigation';
+import { HomeReturnLink } from './HomeReturnLink';
 
 /**
  * 共用的“规划中”状态页：模块名称、规划中徽标、用途简介、以后接入的能力
@@ -22,9 +22,7 @@ export function PlannedModulePage({ item }: { item: PlannedNavigationItem }) {
       <p className="planned-note">
         该模块尚未开始开发。目前可以使用教案工作台完成教案编辑、规则填充、草稿与导出。
       </p>
-      <Link className="button primary" href="/lesson-plans">
-        返回教案工作台
-      </Link>
+      <HomeReturnLink />
     </main>
   );
 }

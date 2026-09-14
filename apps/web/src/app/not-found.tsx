@@ -1,11 +1,15 @@
-import Link from 'next/link';
+import type { Metadata } from 'next';
+import { StatusShell } from '@/components/layout/ShellScope';
+import { HomeReturnLink } from '@/components/layout/HomeReturnLink';
+
+export const metadata: Metadata = { title: '智启课源 · 页面不存在' };
+
 export default function NotFound() {
   return (
-    <main className="status-page">
+    <StatusShell pageTitle="页面不存在">
       <h1>页面不存在</h1>
-      <Link className="button primary" href="/lesson-plans">
-        返回教案工作台
-      </Link>
-    </main>
+      <p>这个地址没有对应的页面，可能是链接已过期或输入有误。</p>
+      <HomeReturnLink />
+    </StatusShell>
   );
 }

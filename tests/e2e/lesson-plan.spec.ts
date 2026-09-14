@@ -43,7 +43,11 @@ test('路由切换立即保存，返回恢复；其他页面不继承教案打�
   await expect(page.locator('.chat-page')).toBeVisible();
   expect(await page.locator('body').evaluate((e) => getComputedStyle(e).page)).toBe('auto');
   await page.emulateMedia({ media: 'screen' });
-  await page.getByRole('button', { name: '返回教案工作台' }).click();
+  // R-02：品牌按钮现在统一回唯一主页 /chat；回到教案工作台改走侧栏菜单，
+  // 并顺带断言品牌入口不再指向教案页。
+  await expect(page.locator('.sidebar-brand')).toHaveAttribute('aria-label', '返回学习问答');
+  await page.getByRole('button', { name: '教案工作台', exact: true }).click();
+  await expect(page).toHaveURL(/\/lesson-plans$/);
   await expect(title).toHaveValue('最后一笔编辑');
 });
 test('规则确认、撤销重做、环节排序及增删', async ({ page }) => {

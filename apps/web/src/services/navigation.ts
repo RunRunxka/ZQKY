@@ -34,6 +34,8 @@ export const navigation: NavigationItem[] = [
     status: 'ready',
     position: 'main',
     group: '教学工作台',
+    // 全站唯一主页：品牌按钮、404/错误页返回入口与默认标题都从这一条派生
+    home: true,
     icon: MessageSquare,
     sidebarIcon: House,
   },
@@ -82,6 +84,8 @@ export const navigation: NavigationItem[] = [
     status: 'ready',
     position: 'main',
     hidden: true,
+    // 与协同写作同属双席位房间（STATUS：写作/Whisper）；桌面侧栏标记父菜单
+    parentPath: '/co-writer',
     group: '教学工作台',
     icon: MessagesSquare,
   },
@@ -112,6 +116,8 @@ export const navigation: NavigationItem[] = [
     status: 'ready',
     position: 'main',
     hidden: true,
+    // /space 仪表盘有“笔记本”磁贴直达（SpaceDashboard），因此可见父菜单为学习空间
+    parentPath: '/space',
     group: '教学工作台',
     icon: NotebookPen,
   },
@@ -142,6 +148,8 @@ export const navigation: NavigationItem[] = [
     status: 'ready',
     position: 'main',
     hidden: true,
+    // 与书籍同属“书籍/课程”内容阅读；桌面侧栏标记书籍为父菜单
+    parentPath: '/books',
     group: '教学资源',
     icon: GraduationCap,
   },
@@ -200,6 +208,12 @@ export interface NavigationGroup {
   items: NavigationItem[];
 }
 
+/** 全站唯一主页与标签：从登记表派生，任何地方都不得再硬编码主页路径。 */
+const homeItem = navigation.find((item) => item.home === true);
+if (!homeItem) throw new Error('navigation 登记表必须且只能有一个 home 条目');
+export const HOME_PATH = homeItem.path;
+export const HOME_LABEL = homeItem.label;
+
 /** 主功能按登记顺序分组；顺序变化时分组随之更新 */
 export function groupMainNavigation(): NavigationGroup[] {
   const groups: NavigationGroup[] = [];
@@ -211,4 +225,29 @@ export function groupMainNavigation(): NavigationGroup[] {
     else groups.push({ label, items: [item] });
   }
   return groups;
+}
+
+function longestPathMatch(pathname: string, items: NavigationItem[]): NavigationItem | undefined {
+  // 最长前缀优先：`/space` 与 `/space/mcp` 之类不会同时命中，最多一条为当前。
+  return items
+    .filter((item) => pathname === item.path || pathname.startsWith(`${item.path}/`))
+    .sort((a, b) => b.path.length - a.path.length)[0];
+}
+
+/**
+ * 单一当前菜单解析：桌面侧栏与手机抽屉共用同一函数，任一界面最多一个当前项。
+ *
+ * - `includeHidden=false`（桌面侧栏）：命中隐藏直达页时回退到它的可见父菜单 `parentPath`；
+ * - `includeHidden=true`（手机抽屉）：直接标记隐藏项本身，便于焦点圈定。
+ */
+export function resolveCurrentNavigationId(
+  pathname: string | null,
+  { includeHidden }: { includeHidden: boolean },
+): string | null {
+  if (!pathname) return null;
+  const direct = longestPathMatch(pathname, navigation);
+  if (!direct) return null;
+  if (!direct.hidden || includeHidden) return direct.id;
+  if (!direct.parentPath) return null;
+  return longestPathMatch(direct.parentPath, navigation)?.id ?? null;
 }

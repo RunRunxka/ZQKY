@@ -2,7 +2,13 @@
 import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { BookOpen, ChevronRight, Menu, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
-import { groupMainNavigation, navigation } from '@/services/navigation';
+import {
+  HOME_LABEL,
+  HOME_PATH,
+  groupMainNavigation,
+  navigation,
+  resolveCurrentNavigationId,
+} from '@/services/navigation';
 import type { NavigationItem } from '@/contracts/navigation';
 import { useNavigationPreference } from './NavigationPreference';
 
@@ -107,14 +113,17 @@ export function WorkspaceShell({
   }
 
   function renderGroupItems(items: NavigationItem[], fromMenu: boolean) {
+    // 手机抽屉渲染隐藏直达项本身，桌面侧栏过滤掉；两者的“当前项”都由同一解析函数给出，
+    // 因此任一界面最多一个 aria-current（R-04）。
+    const resolved = resolveCurrentNavigationId(pathname, { includeHidden: fromMenu });
     return items
-      .filter((item) => !item.hidden)
+      .filter((item) => fromMenu || !item.hidden)
       .map((item) => (
         <NavButton
           key={item.id}
           item={item}
           sidebarLayout={sidebarLayout}
-          current={pathname === item.path || pathname.startsWith(`${item.path}/`)}
+          current={item.id === resolved}
           onNavigate={fromMenu ? () => navigateFromMenu(item.path) : () => void navigate(item.path)}
         />
       ));
@@ -138,8 +147,8 @@ export function WorkspaceShell({
         </button>
         <button
           className="brand"
-          aria-label="返回教案工作台"
-          onClick={() => void navigate('/lesson-plans')}
+          aria-label={`返回${HOME_LABEL}`}
+          onClick={() => void navigate(HOME_PATH)}
         >
           <span className="brand-mark">
             <BookOpen size={21} />
@@ -158,8 +167,8 @@ export function WorkspaceShell({
         {sidebarLayout && (
           <button
             className="sidebar-brand"
-            aria-label="返回教案工作台"
-            onClick={() => void navigate('/lesson-plans')}
+            aria-label={`返回${HOME_LABEL}`}
+            onClick={() => void navigate(HOME_PATH)}
           >
             <BookOpen size={22} strokeWidth={1.65} />
             <strong>智启课源</strong>

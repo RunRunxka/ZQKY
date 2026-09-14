@@ -18,7 +18,8 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { planned } = await params;
   const item = getPlannedItem(planned);
-  return { title: item ? `智启课源 · ${item.label}（规划中）` : '智启课源' };
+  // 未登记的路径会走 notFound()，标题必须与 404 页一致，不能再退回旧主页名（R-02）。
+  return { title: item ? `智启课源 · ${item.label}（规划中）` : '智启课源 · 页面不存在' };
 }
 
 export default async function PlannedPage({ params }: { params: Promise<{ planned: string }> }) {
