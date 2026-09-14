@@ -10,10 +10,10 @@
 
 | id | 参考路由 | 目标路由 | 状态 | 范围摘要与证据 |
 | --- | --- | --- | --- | --- |
-| P-root | `/` | `/` | 已验收 | 默认跳转 /chat（用户指定）；e2e `lesson-plan.spec.ts` 首页断言 |
+| P-root | `/` | `/` | 已验收 | 默认跳转 /chat；单一主页来源 HOME_PATH 派生，e2e `shell-home-nav.spec.ts` 断言标题与品牌入口 |
 | P-chat | `/chat` | `/chat` | 部分实现 | 当前全站视觉基准：220/56px 导航、独立236px学习记录列、912px内容上限、输入区图标/字体/思考球与模型弹层。普通真实聊天及本地历史已有；运行时模拟服务与切换入口已删除，生产 mock 残留见 STATUS R-03，复杂能力真实通道未接。历史主页和 H0 侧栏回归不代表全产品或真实供应商通过。 |
 | P-chat-[sessionId] | `/chat/[sessionId]` | `/chat/[sessionId]` | 实现待验收 | 与当前主页共用外观，真实会话深链/恢复/无效id处理已有；旧mode参数不恢复模拟。完整消息交互、历史数据与跨页来源待核验；侧栏父菜单高亮由 WorkspaceShell 统一。 |
-| P-settings | `/settings` | `/settings` | 实现待验收 | 分类导航/锚点/搜索、模型真实管理、扩展模拟管理已有。2026-09-13 MODEL-EXEC v3 完成模型区域重做：供应商卡片→详情弹窗→模型列表，保留蓝色与真实目录；独立审查 needs_revision 的前端项（MR-07/08/12/13/14/16）本批已修复。e2e `tests/e2e/model-settings.spec.ts` 8 项覆盖 1440/1920/390 与减少动画，真实联调 5 项经隔离后端 8001 通过。其他 S6 设置整合仍待实现；独立验收者复核前不升级为已验收 |
+| P-settings | `/settings` | `/settings` | 实现待验收 | 分类导航/锚点/搜索、模型真实管理、扩展模拟管理已有。2026-09-13 MODEL-EXEC v3 完成模型区域重做（供应商卡片→详情→模型列表，保留蓝色与真实目录，独立审查 MR-07/08/12/13/14/16 已修，e2e `model-settings.spec.ts` 8 项 + 真实联调 5 项）。B-H0R-SHELL 批已收口其公共壳与当前菜单（唯一主页/唯一当前项/统一 404 壳）。其他 S6 设置整合仍待实现 |
 | P-lesson-plans | —（目标自有） | `/lesson-plans` | 已验收 | 目标项目既有教案工作台，保留独立地址与导航入口；首页现为 /chat；e2e `lesson-plan.spec.ts` 回归 |
 | P-space | `/space` | `/space` | 实现待验收 | 学习空间仪表盘（S5-A）：3 组磁贴+实时计数（会话/题库/笔记/角色/CLI/技能/MCP）；whisper 磁贴按参考行为隐藏（树外插件能力本地不存在）；e2e `space-pages.spec.ts` |
 | P-space-chat-history | `/space/chat-history` | `/space/chat-history` | 实现待验收 | 会话历史目录（S5-A）：真实仓储搜索/归档筛选、内联重命名、删除确认、归档恢复、重开；2026-09-09 移除模拟筛选与库读取，旧模拟数据留存不清理；e2e 同上 |
@@ -78,7 +78,7 @@
 | 基准页 | `P-chat` | 蓝色主题、Chat Geist/Lora、220/56px 导航、236px 学习记录中栏、912px 对话列、模型弹层和思考球是全站来源 |
 | 部分验收 | `P-chat-[sessionId]` | 2026-09-12 Flash测试预算8192的真实长答：465汉字、27处公式，三视口无页面级溢出、推理折叠和刷新恢复通过；默认预算两模型和Pro8192长答失败。完整消息交互、历史数据和跨页来源仍待核验 |
 | 部分验收 | `P-knowledge-bases-[kbName]` | 1920/390下就绪、失败、解析中显式模拟样本可读，系统减少动画下可到达就绪；完整内容风格、全部分区/弹窗与进度动画时序仍待验 |
-| 未通过 | `P-settings`、`P-lesson-plans`、`P-space`、`P-knowledge-bases`、`P-notebooks`、`P-books`、`P-courses`、`P-reading`、`P-co-writer`、`P-whisper` | 本次三视口巡检确认内容字体/标题/卡片体系未按chat统一；courses/notebooks/whisper还缺当前菜单，手机打开焦点落在关闭按钮。蓝色、共享侧栏、无页面级溢出为局部通过，不能抵消R-04/R-05 |
+| 未通过（收窄） | `P-settings`、`P-lesson-plans`、`P-space`、`P-knowledge-bases`、`P-notebooks`、`P-books`、`P-courses`、`P-reading`、`P-co-writer`、`P-whisper` | 三视口巡检确认内容字体/标题/卡片体系仍**未按 chat 统一**（R-05，视觉统一另批处理）。**R-04 的当前菜单问题已由 B-H0R-SHELL v1 修复并关闭**：courses/notebooks/whisper 现标记可见父菜单、抽屉焦点落在当前项；因此不再以“缺当前菜单”作为这些页面的未通过理由。 |
 | 待验收 | `P-space-chat-history`、`P-space-questions`、`P-space-personas`、`P-space-cli-apps`、`P-notebooks-[notebookId]`、`P-books-[bookId]`、`P-books-pages-[pageId]`、`P-courses-[courseId]`、`P-reading-materials`、`P-reading-[workspaceId]`、`P-reading-sessions`、`P-reading-sessions-[sessionId]`、`P-co-writer-[docId]` | 既有e2e覆盖部分功能；本次未逐页完成全部状态的视觉对照，保留待验收 |
 | 待实现 | `P-papers`、`P-question-bank`、`P-templates`、`P-partners*`、`P-agents`、`P-mastery*`、`P-memory*`、`P-login`、`P-register`、`P-profile`、`P-admin-users` | 规划状态页不是最终业务视觉验收；正式页面实现时直接按学习问答基准建设 |
 | 无独立页面 | `P-root`、`P-space-mcp`、`P-space-skills`、`P-mcp`、`P-skills` | 仅重定向；验收目标是去向、历史、焦点和最终页面当前菜单 |
