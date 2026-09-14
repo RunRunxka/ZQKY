@@ -14,6 +14,9 @@ import {
   deleteCourse,
   detachCourseResource,
   listResourceCandidates,
+  readResourceDirectories,
+  snapshotError,
+  subscribeResourceDirectories,
   parseSyllabusText,
   readCourses,
   setCourseArchived,
@@ -24,6 +27,7 @@ import {
   updateCourse,
   type CourseColor,
   type CourseResourceKind,
+  type ResourceDirectorySnapshot,
   type StudyCourse,
 } from '@/services/courses-store';
 import '@/features/space/styles/space.css';
@@ -39,6 +43,8 @@ export function CourseDetail() {
   const [editingSyllabus, setEditingSyllabus] = useState(false);
   const [syllabusText, setSyllabusText] = useState('');
   const [addingResource, setAddingResource] = useState(false);
+  // R-11：资源目录在 effect 中集中读取为一致快照（渲染期不再读目录），失败可重试
+  const [directories, setDirectories] = useState<ResourceDirectorySnapshot | null>(null);
 
   const refresh = useCallback(() => {
     try {
@@ -48,10 +54,21 @@ export function CourseDetail() {
     }
   }, []);
 
+  /** 集中读取资源目录快照；再次调用即"重试"（数据修复后无需清空浏览器数据）。 */
+  const refreshDirectories = useCallback(() => {
+    setDirectories(readResourceDirectories());
+  }, []);
+
   useEffect(() => {
     refresh();
+    // 资源目录变化（知识库/笔记本/书籍）时失效快照并重算，不再依赖手动刷新
     return subscribeCourses(refresh);
   }, [refresh]);
+
+  useEffect(() => {
+    refreshDirectories();
+    return subscribeResourceDirectories(refreshDirectories);
+  }, [refreshDirectories]);
 
   const course = useMemo(
     () => courses?.find((item) => item.id === courseId) ?? null,
@@ -84,7 +101,12 @@ export function CourseDetail() {
   }
 
   const summary = syllabusSummary(course);
-  const resources = courseResourceStates(course);
+  // 快照尚未就绪时先按空快照渲染（不触发目录读取）；就绪后由 effect 重算
+  const resources = courseResourceStates(
+    course,
+    directories ?? { knowledge: [], knowledgeError: null, notebooks: [], notebooksError: null, books: [], booksError: null },
+  );
+  const directoryError = directories ? snapshotError(directories) : null;
 
   return (
     <div className="space-page">
@@ -259,6 +281,16 @@ export function CourseDetail() {
               </button>
             </div>
           </div>
+          {directoryError && (
+            <div className="space-banner error" role="alert">
+              <div className="space-banner-row">
+                <span>资源目录读取失败：{directoryError}</span>
+                <button className="space-button" onClick={refreshDirectories}>
+                  重试
+                </button>
+              </div>
+            </div>
+          )}
           {resources.length === 0 ? (
             <div className="space-empty">
               <strong>还没有附加资料</strong>
@@ -266,14 +298,19 @@ export function CourseDetail() {
             </div>
           ) : (
             <ul className="space-session-list">
-              {resources.map(({ resource, available, href }) => (
+              {resources.map(({ resource, availability, href }) => (
                 <li className="space-session-card" key={resource.id}>
                   <div className="space-session-top">
                     <span className="space-chip">{COURSE_KIND_LABEL[resource.kind]}</span>
-                    {available && href ? (
+                    {availability === 'available' && href ? (
                       <Link className="space-session-title" href={href}>
                         {resource.label}
                       </Link>
+                    ) : availability === 'unknown' ? (
+                      // R-11：目录读取失败不能断言目标已删除，明确说明无法确认
+                      <span className="space-session-title" style={{ opacity: 0.6 }}>
+                        {resource.label}（目录读取失败，暂无法确认）
+                      </span>
                     ) : (
                       <span className="space-session-title" style={{ opacity: 0.6 }}>
                         {resource.label}（不可用：目标已删除或未载入）
@@ -330,6 +367,8 @@ export function CourseDetail() {
       {addingResource && (
         <AddResourceForm
           course={course}
+          directories={directories}
+          onRetryDirectories={refreshDirectories}
           onClose={() => setAddingResource(false)}
           onAdded={(label) => {
             setAddingResource(false);
@@ -437,20 +476,37 @@ const KIND_ICON: Record<CourseResourceKind, typeof Library> = {
 
 function AddResourceForm({
   course,
+  directories,
+  onRetryDirectories,
   onClose,
   onAdded,
 }: {
   course: StudyCourse;
+  /** R-11：来自父层的目录快照；弹窗不再自行读取目录（避免渲染期读取与无法重试） */
+  directories: ResourceDirectorySnapshot | null;
+  onRetryDirectories: () => void;
   onClose: () => void;
   onAdded: (label: string) => void;
 }) {
   const [error, setError] = useState<string | null>(null);
-  const candidates = useMemo(() => listResourceCandidates(), []);
+  const directoryError = directories ? snapshotError(directories) : null;
+  const candidates = useMemo(() => listResourceCandidates(directories ?? undefined), [directories]);
   const attachedKeys = new Set(course.resources.map((item) => `${item.kind}:${item.refId}`));
   const groups: CourseResourceKind[] = ['knowledge_base', 'notebook', 'book'];
   return (
     <Modal title="附加课程资料" onClose={onClose}>
-      {candidates.length === 0 ? (
+      {/* R-11：某个目录读取失败只提示该目录，不阻断其他目录的候选 */}
+      {directoryError && (
+        <div className="space-banner error" role="alert">
+          <div className="space-banner-row">
+            <span>部分资源目录读取失败：{directoryError}</span>
+            <button className="space-button" onClick={onRetryDirectories}>
+              重试
+            </button>
+          </div>
+        </div>
+      )}
+      {candidates.length === 0 && !directoryError ? (
         <div className="space-empty">
           <strong>本地目录为空</strong>
           <span>先到教材资料库 / 笔记本 / 书籍创建或载入演示数据，再回来附加。</span>

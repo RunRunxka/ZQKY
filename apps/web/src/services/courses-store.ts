@@ -5,9 +5,9 @@
  * 引用消失时显示"不可用"）、颜色标记。课程学习会话依赖 session.preferences.course_id，
  * 聊天侧尚未携带课程标记——如实标注未接入（见 docs/replica/HANDOFF 有意差异）。
  */
-import { readKnowledge } from './knowledge-catalog';
-import { listNotebooks } from './notebook-store';
-import { readBooks } from './books-store';
+import { readKnowledge, subscribeKnowledge, type KnowledgeEntry } from './knowledge-catalog';
+import { listNotebooks, subscribeNotebooks, type Notebook } from './notebook-store';
+import { readBooks, subscribeBooks, type ReplicaBook } from './books-store';
 import { readStrictList, writeStrictList } from './local-collection';
 
 export type CourseResourceKind = 'knowledge_base' | 'notebook' | 'book';
@@ -244,16 +244,79 @@ export interface ResourceCandidate {
   label: string;
 }
 
-/** 候选来自本地目录：知识库 + 笔记本 + 书籍（真实跨页联动） */
-export function listResourceCandidates(): ResourceCandidate[] {
+/**
+ * 资源目录一致快照（R-11）。
+ *
+ * 三个外部目录**各自独立**读取：某一个失败（JSON 损坏 / 结构非法 / 存储读取失败）
+ * 只把该目录标为 `null` 并记录错误，**不影响**其他目录与课程自身。
+ * 读取集中在一次调用里完成并作为快照向下传递，渲染期间不再反复读取目录。
+ */
+export interface ResourceDirectorySnapshot {
+  knowledge: KnowledgeEntry[] | null;
+  knowledgeError: string | null;
+  notebooks: Notebook[] | null;
+  notebooksError: string | null;
+  books: ReplicaBook[] | null;
+  booksError: string | null;
+}
+
+function readDirectory<T>(read: () => T[]): { value: T[] | null; error: string | null } {
+  try {
+    return { value: read(), error: null };
+  } catch (cause) {
+    return {
+      value: null,
+      error: cause instanceof Error ? cause.message : '本地目录无法读取，原数据未修改。',
+    };
+  }
+}
+
+/** 集中读取三个资源目录，形成一次一致快照（失败目录为 null，不阻断其他目录）。 */
+export function readResourceDirectories(): ResourceDirectorySnapshot {
+  const knowledge = readDirectory(() => readKnowledge());
+  const notebooks = readDirectory(() => listNotebooks());
+  const books = readDirectory(() => readBooks());
+  return {
+    knowledge: knowledge.value,
+    knowledgeError: knowledge.error,
+    notebooks: notebooks.value,
+    notebooksError: notebooks.error,
+    books: books.value,
+    booksError: books.error,
+  };
+}
+
+/** 目录快照是否全成功（供界面决定是否显示"目录读取失败"与重试入口）。 */
+export function snapshotError(snapshot: ResourceDirectorySnapshot): string | null {
+  return snapshot.knowledgeError ?? snapshot.notebooksError ?? snapshot.booksError ?? null;
+}
+
+/** 资源目录变化（knowledge/notebooks/books）时通知课程页失效快照并重算。 */
+export function subscribeResourceDirectories(listener: () => void): () => void {
+  const offKnowledge = subscribeKnowledge(listener);
+  const offNotebooks = subscribeNotebooks(listener);
+  const offBooks = subscribeBooks(listener);
+  return () => {
+    offKnowledge();
+    offNotebooks();
+    offBooks();
+  };
+}
+
+/**
+ * 候选来自本地目录：知识库 + 笔记本 + 书籍（真实跨页联动）。
+ * 传入快照时只看成功读取的目录；读取失败的目录不假装为空，也不阻断其他来源。
+ */
+export function listResourceCandidates(snapshot?: ResourceDirectorySnapshot): ResourceCandidate[] {
+  const dirs = snapshot ?? readResourceDirectories();
   const candidates: ResourceCandidate[] = [];
-  for (const kb of readKnowledge()) {
+  for (const kb of dirs.knowledge ?? []) {
     candidates.push({ kind: 'knowledge_base', refId: kb.id, label: kb.name });
   }
-  for (const notebook of listNotebooks()) {
+  for (const notebook of dirs.notebooks ?? []) {
     candidates.push({ kind: 'notebook', refId: notebook.id, label: notebook.name });
   }
-  for (const book of readBooks()) {
+  for (const book of dirs.books ?? []) {
     if (book.status === 'archived') continue;
     candidates.push({ kind: 'book', refId: book.id, label: book.title });
   }
@@ -300,28 +363,72 @@ export function detachCourseResource(courseId: string, resourceId: string): Stud
 
 export interface CourseResourceState {
   resource: CourseResource;
-  /** 引用目标是否仍存在于本地目录 */
+  /** 引用目标是否仍存在于本地目录（仅当目录读取成功且命中时为 true） */
   available: boolean;
+  /**
+   * 三态可用性（R-11）：
+   * - `available` 目标命中；
+   * - `missing`   目录读取成功但目标不存在（原“目标已删除或未载入”）；
+   * - `unknown`   目录读取失败，无法确认（显示错误与重试，**不**断言目标已删除）。
+   */
+  availability: 'available' | 'missing' | 'unknown';
   /** 可用时的跳转地址 */
   href: string | null;
+  /** availability=unknown 时该目录的读取错误说明 */
+  error: string | null;
 }
 
-function resourceHref(kind: CourseResourceKind, refId: string): string | null {
-  if (kind === 'knowledge_base') {
-    const kb = readKnowledge().find((entry) => entry.id === refId);
-    return kb ? `/knowledge-bases/${encodeURIComponent(kb.name)}` : null;
+/** 单条资源的解析：目录失败记为 unknown，绝不把“读取失败”当成“目标已删除”。 */
+function resolveResource(
+  resource: CourseResource,
+  snapshot: ResourceDirectorySnapshot,
+): CourseResourceState {
+  if (resource.kind === 'knowledge_base') {
+    if (snapshot.knowledge === null) {
+      return { resource, available: false, availability: 'unknown', href: null, error: snapshot.knowledgeError };
+    }
+    const kb = snapshot.knowledge.find((entry) => entry.id === resource.refId);
+    return {
+      resource,
+      available: kb !== undefined,
+      availability: kb ? 'available' : 'missing',
+      href: kb ? `/knowledge-bases/${encodeURIComponent(kb.name)}` : null,
+      error: null,
+    };
   }
-  if (kind === 'notebook') {
-    return listNotebooks().some((notebook) => notebook.id === refId) ? `/notebooks/${refId}` : null;
+  if (resource.kind === 'notebook') {
+    if (snapshot.notebooks === null) {
+      return { resource, available: false, availability: 'unknown', href: null, error: snapshot.notebooksError };
+    }
+    const found = snapshot.notebooks.some((notebook) => notebook.id === resource.refId);
+    return {
+      resource,
+      available: found,
+      availability: found ? 'available' : 'missing',
+      href: found ? `/notebooks/${resource.refId}` : null,
+      error: null,
+    };
   }
-  return readBooks().some((book) => book.id === refId && book.status !== 'archived') ? `/books/${refId}` : null;
+  if (snapshot.books === null) {
+    return { resource, available: false, availability: 'unknown', href: null, error: snapshot.booksError };
+  }
+  const found = snapshot.books.some((book) => book.id === resource.refId && book.status !== 'archived');
+  return {
+    resource,
+    available: found,
+    availability: found ? 'available' : 'missing',
+    href: found ? `/books/${resource.refId}` : null,
+    error: null,
+  };
 }
 
-export function courseResourceStates(course: StudyCourse): CourseResourceState[] {
-  return course.resources.map((resource) => {
-    const href = resourceHref(resource.kind, resource.refId);
-    return { resource, available: href !== null, href };
-  });
+/** 计算资源状态；传入快照时不再重复读取目录（渲染路径不得触发目录读取）。 */
+export function courseResourceStates(
+  course: StudyCourse,
+  snapshot?: ResourceDirectorySnapshot,
+): CourseResourceState[] {
+  const dirs = snapshot ?? readResourceDirectories();
+  return course.resources.map((resource) => resolveResource(resource, dirs));
 }
 
 // ===== 演示数据 =====

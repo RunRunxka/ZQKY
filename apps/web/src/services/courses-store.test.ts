@@ -8,6 +8,8 @@ import {
   detachCourseResource,
   listResourceCandidates,
   loadDemoCourses,
+  readResourceDirectories,
+  snapshotError,
   parseSyllabusText,
   readCourses,
   setCourseArchived,
@@ -115,5 +117,110 @@ describe('courses-store', () => {
     expect(courseResourceStates(active)[0]?.available).toBe(true);
     const archived = courses.find((course) => course.id === 'demo-course-archived')!;
     expect(archived.status).toBe('archived');
+  });
+});
+
+describe('R-11 资源目录故障容错', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  const KB_KEY = 'zqky.replica.knowledge.v1';
+
+  it('知识目录 JSON 损坏：快照标记该目录失败，不抛出、不冒充空目录', () => {
+    window.localStorage.setItem(KB_KEY, '{not json');
+    const snapshot = readResourceDirectories();
+    expect(snapshot.knowledge).toBeNull();
+    expect(snapshot.knowledgeError).toBeTruthy();
+    // 其他目录仍成功读取，不因知识目录失败而连带失败
+    expect(snapshot.notebooks).not.toBeNull();
+    expect(snapshot.books).not.toBeNull();
+    expect(snapshotError(snapshot)).toBeTruthy();
+    // 候选列表不得把失败目录当成空
+    expect(() => listResourceCandidates(snapshot)).not.toThrow();
+  });
+
+  it('结构非法（合法 JSON 非数组）：同样标记失败而不抛', () => {
+    window.localStorage.setItem(KB_KEY, JSON.stringify({ not: 'array' }));
+    const snapshot = readResourceDirectories();
+    expect(snapshot.knowledge).toBeNull();
+    expect(snapshot.knowledgeError).toBeTruthy();
+  });
+
+  it('存储读取被拒：标记失败且不抛（保护原数据）', () => {
+    const real = Storage.prototype.getItem;
+    Storage.prototype.getItem = function (key: string) {
+      if (String(key).includes('knowledge')) throw new Error('injected');
+      return real.call(this, key);
+    };
+    try {
+      const snapshot = readResourceDirectories();
+      expect(snapshot.knowledge).toBeNull();
+      expect(snapshot.knowledgeError).toBeTruthy();
+    } finally {
+      Storage.prototype.getItem = real;
+    }
+  });
+
+  it('三态区分：目录失败=unknown、目标缺失=missing、命中=available', () => {
+    createCourse('容错课程', '');
+    const courseId = readCourses().find((c) => c.name === '容错课程')!.id;
+    const attached = attachCourseResource(courseId, 'knowledge_base', 'kb-x', '目标知识库');
+    const course = attached!;
+
+    // 1) 目录读取失败 → unknown（不断言目标已删除）
+    window.localStorage.setItem(KB_KEY, '{broken');
+    const failed = courseResourceStates(course, readResourceDirectories())[0]!;
+    expect(failed.availability).toBe('unknown');
+    expect(failed.available).toBe(false);
+    expect(failed.error).toBeTruthy();
+
+    // 2) 目录成功但目标不存在 → missing（保持原"不可用"语义）
+    window.localStorage.setItem(KB_KEY, JSON.stringify([]));
+    const missing = courseResourceStates(course, readResourceDirectories())[0]!;
+    expect(missing.availability).toBe('missing');
+    expect(missing.available).toBe(false);
+
+    // 3) 目标命中 → available 且有跳转地址
+    window.localStorage.setItem(
+      KB_KEY,
+      JSON.stringify([{ id: 'kb-x', name: '目标知识库', description: 'd' }]),
+    );
+    const hit = courseResourceStates(course, readResourceDirectories())[0]!;
+    expect(hit.availability).toBe('available');
+    expect(hit.available).toBe(true);
+    expect(hit.href).toBe('/knowledge-bases/' + encodeURIComponent('目标知识库'));
+  });
+
+  it('故障与重试不修改课程存储，也不删除失效引用', () => {
+    createCourse('数据保护课程', '');
+    const courseId = readCourses().find((c) => c.name === '数据保护课程')!.id;
+    attachCourseResource(courseId, 'knowledge_base', 'kb-keep', '保留引用');
+    const before = window.localStorage.getItem('zhiqikeyuan:courses')!;
+
+    window.localStorage.setItem(KB_KEY, '{broken');
+    const snapshot = readResourceDirectories();
+    const course = readCourses().find((c) => c.id === courseId)!;
+    courseResourceStates(course, snapshot);
+
+    // 引用仍在、存储逐字节未变
+    expect(course.resources.map((r) => r.refId)).toEqual(['kb-keep']);
+    expect(window.localStorage.getItem('zhiqikeyuan:courses')).toBe(before);
+
+    // 修复数据后重试恢复可用，无需清空浏览器数据
+    window.localStorage.setItem(KB_KEY, JSON.stringify([{ id: 'kb-keep', name: '保留引用', description: 'd' }]));
+    const recovered = courseResourceStates(course, readResourceDirectories())[0]!;
+    expect(recovered.availability).toBe('available');
+    expect(window.localStorage.getItem('zhiqikeyuan:courses')).toBe(before);
+  });
+
+  it('知识目录失败不阻断其他目录的候选（笔记本/书籍仍可用）', () => {
+    loadDemoBooks();
+    window.localStorage.setItem(KB_KEY, '{broken');
+    const snapshot = readResourceDirectories();
+    const candidates = listResourceCandidates(snapshot);
+    // 书籍候选仍出现；不含任何知识库候选（失败目录未冒充空）
+    expect(candidates.some((c) => c.kind === 'book')).toBe(true);
+    expect(candidates.some((c) => c.kind === 'knowledge_base')).toBe(false);
   });
 });

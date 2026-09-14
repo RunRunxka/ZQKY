@@ -31,7 +31,7 @@
 | P-books | `/books` | `/books` | 部分实现 | 统计/目录/演示无损载入/新建模拟提案/状态徽标/进度/删除已有。生成目前为同步模拟；compiling/paused/error和流式生成、暂停恢复仍缺，见 STATUS H1。历史用例 books-courses.spec.ts 覆盖已有切片。 |
 | P-books-[bookId] | `/books/[bookId]` | `/books/[bookId]` | 部分实现 | 提案确认→大纲确认→阅读器状态分流、无效id、续读定位、重建确认、Markdown导出已有。流水线状态和 BookChatPanel 待补；不再把14类分发与作答保存列作从零开发。 |
 | P-books-pages-[pageId] | `/books/[bookId]/pages/[pageId]` | 同 | 部分实现 | BookBlockType/PageReader 已有14类分发、练习保存恢复、页内笔记、翻页/书签/已读进度。interactive/animation/concept_graph/figure等仅显式模拟形态，须逐类核参考交互；渲染类型数量不等于完整验收。 |
-| P-courses | `/courses` | `/courses` | 实现待验收 | 课程目录（S5-C）：进行中/已归档折叠区、演示载入（幂等）、新建（颜色标记）；主导航入口按参考隐藏（hidden ready，路由可达）；e2e 同上 |
+| P-courses | `/courses` | `/courses` | 实现待验收 | 课程目录（S5-C）：进行中/已归档折叠区、演示载入（幂等）、新建（颜色标记）；主导航入口按参考隐藏（hidden ready，路由可达）；**资源目录故障容错已修（R-11，2026-09-14）**：知识/笔记本/书籍目录读取失败时课程正文与大纲保留、显示错误与重试、不冒充空、不丢引用；e2e `course-resource-faults.spec.ts` |
 | P-courses-[courseId] | `/courses/[courseId]` | `/courses/[courseId]` | 部分实现 | 已有大纲逐行编辑、覆盖标记、下一单元提示、资料附加/移除、失效资源提示、约定与归档恢复；课程学习会话及聊天 course_id 关联尚未实现，须补齐并验收。e2e `books-courses.spec.ts` 仅覆盖已有切片。 |
 | P-reading | `/reading` | `/reading` | 实现待验收 | 集合卡片、新建/删除、按稳定id无损合并演示已有，R26–R31有历史修复和回归。完整阅读交付仍待验收；不再沿用R26未修结论。见 reading-store 与阅读 review。 |
 | P-reading-materials | `/reading/materials` | `/reading/materials` | 实现待验收 | text/pdf/epub/webpage/video/audio类型、显式模拟解析的queued/processing/ready/failed与取消重试、分配/删除已有；真实解析和媒体原视图未完成。见 MaterialLibrary、companion-service 与阅读 review。 |
