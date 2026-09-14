@@ -118,7 +118,8 @@ export function Message({
   const sources = collectSources(message);
   if (message.role === 'user')
     return (
-      <div className="chat-row user">
+      // data-message-id：来源深链按 id 在本会话内定位该条消息（R-10）
+      <div className="chat-row user" data-message-id={message.id}>
         <div className="chat-bubble user">{message.content}</div>
         {/* S3 消息操作（对照参考 ChatMessageList 悬停操作）：复制 / 复用到输入框 */}
         <div className="chat-msg-actions">
@@ -132,7 +133,8 @@ export function Message({
       </div>
     );
   return (
-    <article className="chat-row assistant">
+    // data-message-id：来源深链按 id 在本会话内定位该条消息（R-10）
+    <article className="chat-row assistant" data-message-id={message.id}>
       <div className="chat-bubble assistant">
         <ReasoningDisclosure
           text={message.reasoning}

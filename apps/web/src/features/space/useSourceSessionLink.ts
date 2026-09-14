@@ -15,8 +15,14 @@ export type SourceLinkState =
  * 只有条目带**可靠 sessionId** 时才去校验；会话不存在时给出 `unavailable`
  * （保留原内容、提示来源不可用），绝不猜测绑定或创建假会话。
  * 未提供 sessionId 或为空 → `missing`，业务页据此不显示链接。
+ *
+ * 可选 messageId 只用于会话内定位：它随链接一起带上，聊天页在自己的会话里查找，
+ * 不跨会话搜索。messageId 缺失/失效不影响会话回链本身。
  */
-export function useSourceSessionLink(sessionId: string | undefined | null): SourceLinkState {
+export function useSourceSessionLink(
+  sessionId: string | undefined | null,
+  messageId?: string | null,
+): SourceLinkState {
   const [state, setState] = useState<SourceLinkState>(
     sessionId ? { status: 'loading' } : { status: 'missing' },
   );
@@ -34,7 +40,7 @@ export function useSourceSessionLink(sessionId: string | undefined | null): Sour
         if (cancelled) return;
         setState(
           conversation
-            ? { status: 'ready', href: conversationSourceHref(conversation.id) }
+            ? { status: 'ready', href: conversationSourceHref(conversation.id, messageId) }
             : { status: 'unavailable' },
         );
       } catch {
@@ -45,6 +51,6 @@ export function useSourceSessionLink(sessionId: string | undefined | null): Sour
     return () => {
       cancelled = true;
     };
-  }, [sessionId]);
+  }, [sessionId, messageId]);
   return state;
 }

@@ -93,9 +93,10 @@ test.describe('R-10 题库 → 会话回链', () => {
 
     const link = page.getByRole('link', { name: '查看出处会话' });
     await expect(link).toBeVisible();
-    await expect(link).toHaveAttribute('href', '/chat/sess-a');
+    // R-10：链接同时带真实 sessionId 与 messageId（题库 messageId = `${id}-msg`）
+    await expect(link).toHaveAttribute('href', '/chat/sess-a?message=qa-msg');
     await link.click();
-    await expect(page).toHaveURL(/\/chat\/sess-a$/);
+    await expect(page).toHaveURL(/\/chat\/sess-a\?message=qa-msg$/);
     await expect(page.locator('.chat-bubble.user', { hasText: '问题-sess-a' })).toBeVisible();
   });
 
@@ -130,23 +131,32 @@ test.describe('R-10 题库 → 会话回链', () => {
     const links = page.getByRole('link', { name: '查看出处会话' });
     await expect(links).toHaveCount(2);
     const hrefs = await links.evaluateAll((nodes) => nodes.map((n) => n.getAttribute('href')));
-    expect(hrefs.sort()).toEqual(['/chat/sess-a', '/chat/sess-b']);
+    expect(hrefs.sort()).toEqual([
+      '/chat/sess-a?message=dup1-msg',
+      '/chat/sess-b?message=dup2-msg',
+    ]);
   });
 
   test('刷新后仍按真实会话回链', async ({ page }) => {
     await seedConversations(page, [conversation('sess-a', '甲会话', '2026-09-08T01:00:00.000Z')]);
     await seedQuiz(page, [quizEntry('qa', { sessionId: 'sess-a' })]);
     await page.goto('/space/questions');
-    await expect(page.getByRole('link', { name: '查看出处会话' })).toHaveAttribute('href', '/chat/sess-a');
+    await expect(page.getByRole('link', { name: '查看出处会话' })).toHaveAttribute(
+      'href',
+      '/chat/sess-a?message=qa-msg',
+    );
     await page.reload();
-    await expect(page.getByRole('link', { name: '查看出处会话' })).toHaveAttribute('href', '/chat/sess-a');
+    await expect(page.getByRole('link', { name: '查看出处会话' })).toHaveAttribute(
+      'href',
+      '/chat/sess-a?message=qa-msg',
+    );
   });
 
   test('旧链接（/chat/<messageId>?mode=mock）：不静默落到最近会话，明确提示不存在', async ({ page }) => {
     await seedConversations(page, [conversation('sess-a', '甲会话', '2026-09-08T01:00:00.000Z')]);
     // 模拟历史错误链接：messageId 被当成 sessionId，并带过期 mode 参数
     await page.goto('/chat/qa-msg?mode=mock');
-    await expect(page.getByText(/链接指向的会话不存在/)).toBeVisible();
+    await expect(page.getByText(/来源会话已不存在/)).toBeVisible();
     // 不出现模拟回答
     await expect(page.getByText('【模拟回复】')).toHaveCount(0);
   });
@@ -156,11 +166,11 @@ test.describe('R-10 题库 → 会话回链', () => {
     await seedQuiz(page, [quizEntry('qa', { sessionId: 'sess-a' })]);
     await page.goto('/space/questions');
     await page.getByRole('link', { name: '查看出处会话' }).click();
-    await expect(page).toHaveURL(/\/chat\/sess-a$/);
+    await expect(page).toHaveURL(/\/chat\/sess-a\?message=qa-msg$/);
     await page.goBack();
     await expect(page).toHaveURL(/\/space\/questions$/);
     await page.goForward();
-    await expect(page).toHaveURL(/\/chat\/sess-a$/);
+    await expect(page).toHaveURL(/\/chat\/sess-a\?message=qa-msg$/);
   });
 });
 

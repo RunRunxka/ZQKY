@@ -17,7 +17,7 @@
 | P-lesson-plans | —（目标自有） | `/lesson-plans` | 已验收 | 目标项目既有教案工作台，保留独立地址与导航入口；首页现为 /chat；e2e `lesson-plan.spec.ts` 回归 |
 | P-space | `/space` | `/space` | 实现待验收 | 学习空间仪表盘（S5-A）：3 组磁贴+实时计数（会话/题库/笔记/角色/CLI/技能/MCP）；whisper 磁贴按参考行为隐藏（树外插件能力本地不存在）；e2e `space-pages.spec.ts` |
 | P-space-chat-history | `/space/chat-history` | `/space/chat-history` | 实现待验收 | 会话历史目录（S5-A）：真实仓储搜索/归档筛选、内联重命名、删除确认、归档恢复、重开；2026-09-09 移除模拟筛选与库读取，旧模拟数据留存不清理；e2e 同上 |
-| P-space-questions | `/space/questions` | `/space/questions` | 实现待验收 | 题库（S5-A）：范围栏（全部/答错/未掌握/书签/未分类/分类）+计数、250ms 防抖搜索、排序、书签/已掌握/归类/删除、批量操作、分类管理、演示题目显式载入；数据与聊天"保存到题库"同仓储。**来源回链已修（R-10，2026-09-14）**：以真实 sessionId 定位会话，messageId 仅会话内定位；无身份不显示、会话删除提示不可用；e2e `chat-source-links.spec.ts` |
+| P-space-questions | `/space/questions` | `/space/questions` | 实现待验收 | 题库（S5-A）：范围栏（全部/答错/未掌握/书签/未分类/分类）+计数、250ms 防抖搜索、排序、书签/已掌握/归类/删除、批量操作、分类管理、演示题目显式载入；数据与聊天"保存到题库"同仓储。**来源回链已修（R-10，2026-09-14）**：以真实 sessionId 定位会话，messageId 仅会话内定位；无身份不显示、会话删除提示不可用；**消息定位（2026-09-14）**：以 messageId 在会话内定位（messageId 仅会话内使用）；e2e `chat-message-locate.spec.ts` |
 | P-space-personas | `/space/personas` | `/space/personas` | 实现待验收 | 角色目录（S5-A）：卡片网格、查看/新建/编辑/删除（弹层+重名校验）、演示角色显式载入；与聊天输入区"人设"共用 persona-catalog |
 | P-space-cli-apps | `/space/cli-apps` | `/space/cli-apps` | 实现待验收 | CLI 应用（S5-A）：已安装/目录双页签、本地登记安装（显式"模拟安装"标识）、启停/卸载、信任徽标；本地演示无执行能力 |
 | P-space-mcp | `/space/mcp` | `/space/mcp`（跳设置#mcp） | 实现待验收 | 旧入口迁移跳转（S5-A）；参考为独立管理页，按既定决策重定向设置（有意差异）；e2e 断言锚点 |
@@ -26,7 +26,7 @@
 | P-skills | `/skills` | `/skills`（跳设置#skills） | 已验收 | 同上 |
 | P-knowledge-bases | `/knowledge-bases` | `/knowledge-bases` | 实现待验收 | 教材资料库列表（S5-B/H1）：知识库/检索引擎双页签、演示载入幂等、新建重名拒绝、KB 级流水线状态徽标（空/待处理/处理中/已就绪/有失败，对照参考 KbStatusBadge）。2026-09-11 H1：登记/解析/索引为显式模拟，未接真实服务；e2e `knowledge-notebooks.spec.ts` |
 | P-knowledge-bases-[kbName] | `/knowledge-bases/[kbName]` | 同 | 实现待验收 | 库详情（S5-B/H1）：文档/登记/来源/索引/设置分区；改名同步 URL、设默认库、删除确认；2026-09-11 补文档导入→解析→索引显式模拟：逐文档状态徽标（registered/parsing/indexing/ready/error）、进度条、取消/重试、全量解析、索引版本列表与重建（版本按 (docCount,chunkCount) 去重）、刷新恢复、旧数据兼容、损坏读取如实报错不覆盖。真实解析/向量检索未接；e2e 同上。出处 `_work/kb-h1/CONTRACT.md` |
-| P-notebooks | `/notebooks` | `/notebooks` | 实现待验收 | 笔记本列表（S5-B）：默认笔记本虚拟项、记录展开/编辑/移动复制/导出/删除；**来源回链已修（R-10，2026-09-14）**：仅当记录带真实 sessionId 且会话存在时显示「打开原会话」，链接不带 `?mode=mock`；会话删除提示来源不可用；e2e `chat-source-links.spec.ts` |
+| P-notebooks | `/notebooks` | `/notebooks` | 实现待验收 | 笔记本列表（S5-B）：默认笔记本虚拟项、记录展开/编辑/移动复制/导出/删除；**来源回链已修（R-10，2026-09-14）**：仅当记录带真实 sessionId 且会话存在时显示「打开原会话」，链接不带 `?mode=mock`；会话删除提示来源不可用；**消息定位（2026-09-14）**：链接带可选 messageId，会话内定位并提示「已定位到来源消息」，消息删除提示「原消息已不存在」；e2e `chat-source-links.spec.ts`、`chat-message-locate.spec.ts` |
 | P-notebooks-[notebookId] | `/notebooks/[notebookId]` | 同 | 实现待验收 | 笔记本详情（S5-B）：深链选中、无效 id 报错、搜索；S5-D 起"发到笔记本"写入此目录；e2e 同上 |
 | P-books | `/books` | `/books` | 部分实现 | 统计/目录/演示无损载入/新建模拟提案/状态徽标/进度/删除已有。生成目前为同步模拟；compiling/paused/error和流式生成、暂停恢复仍缺，见 STATUS H1。历史用例 books-courses.spec.ts 覆盖已有切片。 |
 | P-books-[bookId] | `/books/[bookId]` | `/books/[bookId]` | 部分实现 | 提案确认→大纲确认→阅读器状态分流、无效id、续读定位、重建确认、Markdown导出已有。流水线状态和 BookChatPanel 待补；不再把14类分发与作答保存列作从零开发。 |

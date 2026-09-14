@@ -53,6 +53,11 @@ export interface ChatState {
   selectConversation(id: string): Promise<void>;
   renameConversation(id: string, title: string): Promise<void>;
   removeConversation(id: string): Promise<void>;
+  /**
+   * 深链指向已不存在的会话时的明确空态（R-10）：清空当前会话且**不创建、不保存、不自动
+   * 落到最近会话**。学习记录列表与“返回学习问答”等主动操作保持不变。
+   */
+  deactivate(): void;
   send(
     text: string,
     profile: ChatProfileSelection | null,
@@ -862,6 +867,12 @@ export function createChatStore(deps: ChatDeps = {}) {
         } catch {
           set({ storageWarning: '无法读取该会话，当前内容已保留。' });
         }
+      },
+      /** 见 ChatState.deactivate：只清当前会话，不动任何持久化数据。 */
+      deactivate() {
+        stop();
+        set({ activeId: null });
+        publish();
       },
       async renameConversation(id, title) {
         change(id, (c) => ({ ...c, title: title.trim() || c.title }));

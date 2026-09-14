@@ -450,7 +450,8 @@ function RecordRow({
   onDelete: () => void;
   onMove: () => void;
 }) {
-  const sourceLink = useSourceSessionLink(record.metadata?.sessionId);
+  // sessionId 定位会话，messageId（若有）仅用于会话内定位消息
+  const sourceLink = useSourceSessionLink(record.metadata?.sessionId, record.metadata?.messageId);
   return (
     <li className="space-session-card">
       <div className="space-session-top">

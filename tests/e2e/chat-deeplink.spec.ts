@@ -43,14 +43,27 @@ test('深链定位到指定会话并显示历史', async ({ page }) => {
   await expect(page.getByRole('status').filter({ hasText: '会话不存在' })).toHaveCount(0);
 });
 
-test('无效会话 id 显示明确的不存在状态', async ({ page }) => {
+test('无效会话 id 显示明确的不可用状态，且不自动打开最近会话', async ({ page }) => {
+  // 预置一个会话，确认失效深链不会把它当作“最近会话”展示
+  await page.addInitScript((seed) => {
+    const request = indexedDB.open('zhiqikeyuan-chat', 1);
+    request.onupgradeneeded = (event) => {
+      (event.target as IDBOpenDBRequest).result.createObjectStore('conversations', { keyPath: 'id' });
+    };
+    request.onsuccess = () => {
+      const db = request.result;
+      db.transaction('conversations', 'readwrite').objectStore('conversations').put(seed);
+    };
+  }, SEED_CONVERSATION);
   await page.goto('/chat/does-not-exist');
   const textarea = page.getByRole('textbox', { name: '输入问题' });
   await textarea.waitFor({ state: 'visible', timeout: 15000 });
-  await expect(page.getByText('链接指向的会话不存在', { exact: false })).toBeVisible({
-    timeout: 15000,
-  });
+  await expect(page.getByText('来源会话已不存在', { exact: false })).toBeVisible({ timeout: 15000 });
   await expect(page.getByRole('link', { name: '返回学习问答' })).toBeVisible();
+  // 不自动落到最近会话到聊天区（学习记录侧栏按“保留学习记录”要求仍可列出该会话）
+  await expect(page.locator('.chat-message-column')).not.toContainText('深链核验会话');
+  await expect(page.locator('.chat-bubble.assistant')).toHaveCount(0);
+  await expect(page.getByText('从一个问题，开始理解。')).toBeVisible();
 });
 
 /** R17 迁移：深链进入后，用户新建/切换会话不被 URL 强行回跳 */
@@ -179,5 +192,5 @@ test('新建对话后地址指向新会话，刷新不回跳且无不存在提�
   await page.reload();
   await expect(page.getByRole('textbox', { name: '输入问题' })).toBeVisible({ timeout: 15000 });
   await expect(page.locator('.chat-bubble.assistant')).toHaveCount(0); // 仍是空的新会话
-  await expect(page.getByText('链接指向的会话不存在', { exact: false })).toHaveCount(0);
+  await expect(page.getByText('来源会话已不存在', { exact: false })).toHaveCount(0);
 });

@@ -16,6 +16,7 @@
 | M-settings-nav | 设置分类悬停与定位 | 160ms 背景、滚动定位 | 部分实现 | 基础行为已有 |
 | M-model-management | 供应商/模型卡片、详情与参数折叠 | 固定DeepTutor ModelCards.tsx：background-color/border-color/transform 150ms、active scale .995，箭头150ms位移反馈 | 实现待验收 | 2026-09-13 MODEL-EXEC v3 实装：卡片 `transition: border-color/background-color/transform 150ms`、`:active scale(0.995)`、箭头 hover translateX(2px)；`@media (prefers-reduced-motion: reduce)` 关闭卡片/箭头/选项过渡与 spin 动画。e2e `model-settings.spec.ts` 覆盖三视口与减少动画可打开详情，真实联调亦覆盖减少动画；本批新增「关闭未保存更改先确认」的行为断言（非曲线）。未录制曲线采样、未做快速关闭重开与焦点返回，故不升为已验收 |
 | M-shell-404 | 404/错误页壳与当前菜单切换 | 复用公共壳侧栏 200ms 折叠与抽屉原生 transition；无新增动画 | 实现待验收 | 2026-09-13 B-H0R-SHELL：404/错误页现有一层公共壳；减少动画下仍可用、三视口无溢出。仅静态截图与类名断言，未逐帧采样壳内切换曲线，故不升为已验收 |
+| M-chat-locate | 来源消息定位与高亮 | 目标自有：`scrollIntoView({block:'center'})`，减少动画时 behavior=auto；高亮为临时描边 | 实现待验收 | 2026-09-14 B-CHAT-SOURCE-FINISH：`smooth` 仅在非减少动画时使用，reduced 下改为瞬时定位并仍给出「已定位」提示（e2e 覆盖）；未逐帧采样曲线，故不升为已验收 |
 | M-reduced | 减少动画 | prefers-reduced-motion + 本地覆盖 | 已验收 | 2026-09-09 补 Canvas 本地偏好监听；浏览器像素采样验证普通状态持续变化、系统/本地 reduced 均静止；原 CSS 全局机制保留 |
 | M-sidebar-panel | 侧栏/右面板宽度 | 学习问答左栏 200ms，右栏/聊天避让 220ms ease-out | 部分实现 | 2026-09-10 H0 候选：220/56px和200ms统一在公共壳；1440/1920的软导航逐帧、菜单几何与字体比较、折叠状态/历史返回回归；390抽屉遮罩/焦点/关闭/字体比较。隐藏直达页当前菜单和其他模块专属面板仍待验收。 |
 | M-first-send | 欢迎区→首次发送 | 学习问答固定 912px 输入内容列；textarea height 150ms ease-out | 已验收 | 2026-09-09 主页候选：固定内容列、textarea过渡、同一发送/停止按钮与三视口通过；范围限学习问答。 |

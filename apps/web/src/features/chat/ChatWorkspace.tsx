@@ -50,6 +50,7 @@ import {
 } from '@/services/doc-attachments';
 
 import { conversationProjection } from './model/context-budget';
+import { createIdbChatRepository } from '@/services/chat-repository';
 import { Message } from './Message';
 import { SessionPanel } from './SessionPanel';
 import { InfoPanel } from './InfoPanel';
@@ -73,14 +74,27 @@ const EMPTY_PENDING: SessionPending = {
   attachments: [],
 };
 
-export function ChatWorkspace({ initialSessionId }: { initialSessionId?: string }) {
+export function ChatWorkspace({
+  initialSessionId,
+  initialMessageId,
+}: {
+  initialSessionId?: string;
+  /** R-10：来源深链的可选消息定位目标（仅在该会话内查找，不跨会话） */
+  initialMessageId?: string;
+}) {
   return (
     <ChatProvider>
-      <ChatPage initialSessionId={initialSessionId} />
+      <ChatPage initialSessionId={initialSessionId} initialMessageId={initialMessageId} />
     </ChatProvider>
   );
 }
-function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
+function ChatPage({
+  initialSessionId,
+  initialMessageId,
+}: {
+  initialSessionId?: string;
+  initialMessageId?: string;
+}) {
   const store = useChatStore();
   const chatSession = useChatSession();
   const [isMobile, setIsMobile] = useState(false);
@@ -170,8 +184,13 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
   // 会话深链（/chat/[sessionId]）：R17——一次性定位，仅首次就绪时执行；
   // 用户随后的新建/切换/删除不被 URL 强行改写；刷新/前进后退（重新挂载）重新定位
   const [deepLinkHandled, setDeepLinkHandled] = useState(false);
-  // 深链目标不存在时的明确提示状态
-  const [missingSession, setMissingSession] = useState(false);
+  // R-10 消息定位：目标会话载入后在该会话内查找消息；找不到时明确提示"原消息已不存在"
+  const [locatedMessageId, setLocatedMessageId] = useState<string | null>(null);
+  const [messageMissing, setMessageMissing] = useState(false);
+  // R-10：来源会话失效时不自动打开最近会话，改为此空态（保留学习记录与主动返回）
+  const [sessionUnavailable, setSessionUnavailable] = useState(false);
+  // R-10：当前要在会话内定位的消息 id（初值来自 URL，前进/后退可更新；切换会话时清空）
+  const [targetMessageId, setTargetMessageId] = useState<string | undefined>(initialMessageId);
   const [dialog, setDialog] = useState<{
       kind: 'rename' | 'remove';
       id: string;
@@ -227,17 +246,77 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
     if (!store.ready) return;
     setDeepLinkHandled(true);
     void (async () => {
-      const known = store.conversations.some((c) => c.id === initialSessionId);
-      if (known) {
-        setMissingSession(false);
-        if (store.activeId !== initialSessionId) await store.selectConversation(initialSessionId);
+      const target = activeStore.getState();
+      // 用仓储直读判定会话存在（含已归档会话），与来源链接的校验口径一致
+      const conversation = await createIdbChatRepository('zhiqikeyuan-chat').load(initialSessionId);
+      if (conversation) {
+        setSessionUnavailable(false);
+        if (target.activeId !== initialSessionId) await activeStore.getState().selectConversation(initialSessionId);
       } else {
-        setMissingSession(true);
+        // R-10：来源会话已不存在——给明确不可用态，不自动展示最近会话，也不新建/保存
+        setSessionUnavailable(true);
+        activeStore.getState().deactivate();
       }
     })();
     // deepLinkHandled 翻转后守卫恒为真，store 变化不会再次触发定位
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deepLinkHandled, initialSessionId, store.ready]);
+  useEffect(() => {
+    // R-10 消息定位：会话载入完成后，在**该会话内**按 data-message-id 查找目标消息。
+    // 只查当前会话的 DOM，不跨会话搜索同名内容；找不到就明确提示"原消息已不存在"。
+    if (!targetMessageId || !initialSessionId) return;
+    if (!deepLinkHandled) return;
+    if (sessionUnavailable) return;
+    if (store.activeId !== initialSessionId) return; // 等待目标会话真正成为当前会话
+    const scrollerEl = scroller.current;
+    if (!scrollerEl) return;
+
+    let cancelled = false;
+    const highlightId = `msg-target-${Date.now()}`;
+    const locate = () => {
+      if (cancelled) return false;
+      const node = scrollerEl.querySelector<HTMLElement>(
+        `[data-message-id="${CSS.escape(targetMessageId)}"]`,
+      );
+      if (!node) return false;
+      // 定位本身是一次主动跳转：先把"跟随最新"关掉，避免随后的消息变化把视口拉回底部
+      setFollowing(false);
+      const reduced =
+        document.documentElement.dataset.motion === 'reduced' ||
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      node.scrollIntoView({ block: 'center', behavior: reduced ? 'auto' : 'smooth' });
+      setLocatedMessageId(targetMessageId);
+      setMessageMissing(false);
+      // 可识别提示：短暂高亮该消息（减少动画时不加过渡类，仅静态描边）
+      node.dataset.located = highlightId;
+      // CSS 侧无 located 样式时用内联描边兜底，保证任何主题下都可见
+      node.style.outline = '2px solid var(--blue)';
+      node.style.outlineOffset = '2px';
+      node.style.borderRadius = '12px';
+      window.setTimeout(() => {
+        node.style.outline = '';
+        node.style.outlineOffset = '';
+        node.style.borderRadius = '';
+        delete node.dataset.located;
+      }, 2600);
+      return true;
+    };
+    // 会话刚切过来时消息可能还未提交渲染：下一帧起有限次重试，避免竞态
+    let tries = 0;
+    const tick = () => {
+      if (cancelled) return;
+      if (locate()) return;
+      tries += 1;
+      if (tries < 20) window.setTimeout(tick, 60);
+      else setMessageMissing(true); // 会话内没有这条消息（已删除/旧数据）
+    };
+    tick();
+    return () => {
+      cancelled = true;
+    };
+    // 依赖 messageId 与目标会话，避免切到别的会话后旧请求把视口定位到错误消息
+  }, [targetMessageId, initialSessionId, deepLinkHandled, sessionUnavailable, store.activeId]);
+
   /**
    * 深链契约（交付复核补充）：地址与当前会话同步。
    * - 用户主动选择/新建/删除/切换模式时经 history push/replace 更新地址（pushState
@@ -255,19 +334,24 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
         target,
       );
     }
-    setMissingSession(false);
   }
   useEffect(() => {
     function onPopState() {
       const match = /^\/chat\/([^/]+)$/.exec(window.location.pathname);
       if (!match) return; // /chat 或导航离开聊天页：保持当前活动会话
       const id = decodeURIComponent(match[1]);
+      // R-10：前进/后退到带 message 的来源链接时，重新在该会话内定位该消息
+      const message = new URLSearchParams(window.location.search).get('message') ?? undefined;
+      setTargetMessageId(message);
+      setMessageMissing(false);
       const state = activeStore.getState();
       if (state.conversations.some((c) => c.id === id)) {
-        setMissingSession(false);
+        setSessionUnavailable(false);
         if (state.activeId !== id) void state.selectConversation(id);
       } else if (state.ready) {
-        setMissingSession(true); // 指向已删除或其他模式的会话：明确提示
+        // R-10：指向前进/后退到的已失效会话——同样给明确不可用态，不自动落到最近会话
+        setSessionUnavailable(true);
+        state.deactivate();
       }
     }
     window.addEventListener('popstate', onPopState);
@@ -565,6 +649,9 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
     void store.send(text, selection!);
   }
   async function fresh() {
+    setTargetMessageId(undefined);
+    setMessageMissing(false);
+    setLocatedMessageId(null);
     store.stop();
     if (await store.flush()) {
       store.newConversation();
@@ -602,6 +689,10 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
         activeId={store.activeId}
         onNew={() => void fresh()}
         onSelect={(id) => {
+          // 用户主动切换会话：先前深链的消息目标不再适用，避免在别的会话里误定位或残留提示
+          setTargetMessageId(undefined);
+          setMessageMissing(false);
+          setLocatedMessageId(null);
           void store.selectConversation(id).then(() => {
             // 选择成功且未被更新的操作顶替时，地址跟随当前会话（刷新/前进后退可恢复）
             if (activeStore.getState().activeId === id) syncSessionUrl(id, 'push');
@@ -693,10 +784,22 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
               <PanelRight size={17} />
             </button>
           </header>
-          {missingSession && (
+          {sessionUnavailable && (
             <div className="chat-banner warn" role="status">
-              链接指向的会话不存在或尚未在本模式产生，已打开最近会话。
+              来源会话已不存在或已被删除，无法打开。
               <Link href="/chat">返回学习问答</Link>
+            </div>
+          )}
+          {locatedMessageId && !messageMissing && (
+            <div className="chat-banner" role="status">
+              已定位到来源消息。
+              <button onClick={() => setLocatedMessageId(null)}>知道了</button>
+            </div>
+          )}
+          {messageMissing && (
+            <div className="chat-banner warn" role="status">
+              原消息已不存在，已打开所属会话。
+              <button onClick={() => setMessageMissing(false)}>知道了</button>
             </div>
           )}
 

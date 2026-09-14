@@ -59,7 +59,12 @@ function matchesScope(entry: QuizBankEntry, scope: BankScope): boolean {
  * 演示条目（source='demo'）没有真实来源，直接不渲染。
  */
 function SourceSessionLink({ entry }: { entry: QuizBankEntry }) {
-  const sourceLink = useSourceSessionLink(entry.source === 'demo' ? null : entry.sessionId);
+  // messageId 只用于会话内定位；demo 条目没有真实来源，两者都不传
+  const isDemo = entry.source === 'demo';
+  const sourceLink = useSourceSessionLink(
+    isDemo ? null : entry.sessionId,
+    isDemo ? null : entry.messageId,
+  );
   if (sourceLink.status === 'ready') {
     return (
       <Link className="space-button" href={sourceLink.href}>
