@@ -15,6 +15,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
+import { useSourceSessionLink } from './useSourceSessionLink';
 import { SpaceMain } from './SpaceMain';
 import {
   addQuizCategory,
@@ -49,6 +50,27 @@ function matchesScope(entry: QuizBankEntry, scope: BankScope): boolean {
   if (scope.kind === 'unresolved') return !entry.resolved;
   if (scope.kind === 'bookmarked') return !!entry.bookmarked;
   return !entry.categoryId; // uncategorized
+}
+
+
+/**
+ * 来源会话链接（R-10）：只有条目带可靠 sessionId 且该会话仍存在时才渲染真实深链。
+ * 缺 sessionId → 不渲染；会话已删除 → 提示来源不可用并保留原内容（不猜测绑定）。
+ * 演示条目（source='demo'）没有真实来源，直接不渲染。
+ */
+function SourceSessionLink({ entry }: { entry: QuizBankEntry }) {
+  const sourceLink = useSourceSessionLink(entry.source === 'demo' ? null : entry.sessionId);
+  if (sourceLink.status === 'ready') {
+    return (
+      <Link className="space-button" href={sourceLink.href}>
+        查看出处会话
+      </Link>
+    );
+  }
+  if (sourceLink.status === 'unavailable') {
+    return <span className="space-chip">来源会话已不存在</span>;
+  }
+  return null;
 }
 
 export function QuestionBankSection() {
@@ -362,7 +384,6 @@ export function QuestionBankSection() {
                 const busy = busyIds.has(entry.id);
                 const userAnswer = entry.lastAnswer?.answer;
                 const userWrong = entry.lastAnswer?.correct === false;
-                const hasSourceSession = entry.source !== 'demo' && entry.messageId;
                 const category = categories.find((c) => c.id === entry.categoryId);
                 return (
                   <article
@@ -446,11 +467,7 @@ export function QuestionBankSection() {
                           </option>
                         ))}
                       </select>
-                      {hasSourceSession && (
-                        <Link className="space-button" href={`/chat/${entry.messageId}?mode=mock`}>
-                          查看出处会话
-                        </Link>
-                      )}
+                      <SourceSessionLink entry={entry} />
                       <button
                         className="space-button danger"
                         onClick={() => void handleDelete([entry.id])}

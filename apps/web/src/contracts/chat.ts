@@ -10,7 +10,13 @@ export interface ChatMessageError {
   retryable?: boolean;
 }
 
-/** 聊天服务类型：real 为真实模型 SSE；mock 为明确标识的本地模拟（与真实会话隔离） */
+/**
+ * 会话/服务的运行模式。
+ *
+ * 主聊天生产路径只有 `real`（真实模型 SSE）；`mock` 仅用于**读取历史**（旧本地模拟
+ * 会话记录里可能仍带该值，只读展示用）与**测试替身注入**，不存在运行时模拟分支。
+ * 其他模块（阅读/写作/知识库/whisper）的显式模拟使用各自独立的字面量类型，不经此契约。
+ */
 export type ChatServiceKind = 'real' | 'mock';
 
 /** 本轮扩展快照：发送时从模拟扩展目录冻结的独立数据（重试沿用，不引用可变目录对象） */export interface TurnExtensionSnapshot {
@@ -184,7 +190,7 @@ export interface Conversation {
   revision?: number;
   draft?: string;
   modelProfileId?: string | null;
-  /** 会话归属的服务模式：real（真实问答）或 mock（本地模拟），二者存储与列表相互隔离 */
+  /** 会话归属模式：生产恒为 real；旧模拟会话记录读取时可能为 mock（仅只读展示） */
   mode?: ChatServiceKind;
   /** S5-A：学习空间归档位——聊天侧边栏隐藏已归档会话，/space/chat-history 可归档/恢复 */
   archived?: boolean;

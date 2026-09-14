@@ -34,6 +34,8 @@ function downloadName(artifact: ChatArtifact): string {
 export interface ArtifactPanelItem {
   key: string;
   artifact: ChatArtifact;
+  /** 产物所属会话 id：保存到笔记/题库时随条目落库，供业务页按真实会话回链（R-10） */
+  sessionId: string | null;
 }
 
 /* 工作区宽度（对照参考 SessionViewerPanel：400–960px、默认 620、拖动 rAF 合帧、
@@ -276,12 +278,14 @@ export function WorkspacePanel({
                   <QuizArtifactView
                     artifact={active.artifact}
                     messageId={messageIdOf(active.key)}
+                    sessionId={active.sessionId}
                   />
                 )}
                 {active.artifact.kind === 'report' && (
                   <ReportArtifactView
                     artifact={active.artifact}
                     messageId={messageIdOf(active.key)}
+                    sessionId={active.sessionId}
                   />
                 )}
                 {active.artifact.kind === 'chart' && <ChartPreview artifact={active.artifact} />}

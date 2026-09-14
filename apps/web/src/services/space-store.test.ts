@@ -149,3 +149,47 @@ describe('S5-A 题库标记、分类与演示数据', () => {
     expect(bank.some((e) => e.bookmarked)).toBe(true);
   });
 });
+
+describe('R-10 题库来源会话身份', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('保存带 sessionId 的题目可读回', () => {
+    saveQuizEntries([
+      {
+        id: 'm1:q1',
+        messageId: 'm1',
+        sessionId: 'sess-1',
+        questionId: 'q1',
+        topic: 't',
+        question: 'q',
+        questionType: 'choice',
+        correctAnswer: 'A',
+        explanation: 'e',
+        difficulty: 'easy',
+      },
+    ]);
+    expect(listQuizBank().find((e) => e.id === 'm1:q1')?.sessionId).toBe('sess-1');
+  });
+
+  it('旧数据无 sessionId：保持 undefined，不猜测绑定', () => {
+    window.localStorage.setItem(
+      'zhiqikeyuan:quiz-bank',
+      JSON.stringify([
+        { id: 'old:q', messageId: 'old', questionId: 'q', topic: 't', question: 'q', questionType: 'choice', correctAnswer: 'A', explanation: 'e', difficulty: 'easy', savedAt: '2026-01-01T00:00:00Z' },
+      ]),
+    );
+    expect(listQuizBank().find((e) => e.id === 'old:q')?.sessionId).toBeUndefined();
+  });
+
+  it('脏 sessionId（空串）不作为可靠身份', () => {
+    window.localStorage.setItem(
+      'zhiqikeyuan:quiz-bank',
+      JSON.stringify([
+        { id: 'bad:q', messageId: 'bad', sessionId: '  ', questionId: 'q', topic: 't', question: 'q', questionType: 'choice', correctAnswer: 'A', explanation: 'e', difficulty: 'easy', savedAt: '2026-01-01T00:00:00Z' },
+      ]),
+    );
+    expect(listQuizBank().find((e) => e.id === 'bad:q')?.sessionId).toBeUndefined();
+  });
+});

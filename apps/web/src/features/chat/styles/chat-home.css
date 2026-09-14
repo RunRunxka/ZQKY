@@ -100,9 +100,6 @@
   font-weight: 600;
   color: var(--ink);
 }
-.chat-home-shell .chat-mode-switch {
-  flex-shrink: 0;
-}
 .chat-home-shell .chat-toolbar .icon-button svg {
   width: 16px;
   height: 16px;
@@ -215,9 +212,6 @@
 .chat-home-shell .chat-ext-unavailable {
   font-size: 10px;
   max-width: 115px;
-}
-.chat-home-shell .chat-mode-chip {
-  font-size: 10px;
 }
 .chat-home-shell .model-select-trigger {
   background: transparent;
@@ -562,10 +556,6 @@ body[data-chat-resizing='true'] .chat-home-shell .chat-main {
     right: 24px;
     bottom: 140px;
     width: auto;
-  }
-  .chat-home-shell .chat-mode-chip {
-    flex-basis: 100%;
-    order: 5;
   }
 }
 

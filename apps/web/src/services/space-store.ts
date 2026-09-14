@@ -25,6 +25,11 @@ export interface QuizBankEntry {
   /** 复合身份：`${messageId}:${questionId}`——同轮同 id 不重复，跨轮互不串位 */
   id: string;
   messageId: string;
+  /**
+   * 来源会话 id（R-10）。聊天出题时由产物所属会话写入；旧数据没有该字段，
+   * 业务页据"有无可靠 sessionId"决定是否提供回链，不猜测、不建假会话。
+   */
+  sessionId?: string;
   questionId: string;
   topic: string;
   question: string;
@@ -58,6 +63,8 @@ export interface NotebookEntry {
   /** 复合身份：`${messageId}:${artifactId}` */
   id: string;
   messageId: string;
+  /** 来源会话 id（R-10）：同 QuizBankEntry，旧数据缺省。 */
+  sessionId?: string;
   artifactId: string;
   title: string;
   /** 条目类型：research_report 等（S5 业务页按类型筛选） */
@@ -76,8 +83,16 @@ function writeList<T>(key: string, list: T[]): void {
 
 // ===== 题库 =====
 
+/** 读取时只接受字符串且非空的 sessionId，其余一律视为缺失（不猜测绑定）。 */
+function normalizeSessionId(raw: Record<string, unknown>): string | undefined {
+  const value = raw.sessionId;
+  return typeof value === 'string' && value.trim() ? value : undefined;
+}
+
 export function listQuizBank(): QuizBankEntry[] {
-  return readList<QuizBankEntry>(QUIZ_BANK_KEY);
+  return readList<Record<string, unknown>>(QUIZ_BANK_KEY)
+    .filter((raw) => raw && typeof raw.id === 'string')
+    .map((raw) => ({ ...(raw as unknown as QuizBankEntry), sessionId: normalizeSessionId(raw) }));
 }
 
 /** 保存一组题目（同 id 幂等：已存在的不覆盖，保留其作答记录与书签等标记） */

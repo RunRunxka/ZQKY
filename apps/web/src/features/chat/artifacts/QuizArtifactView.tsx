@@ -38,9 +38,12 @@ const CHOICE_KEYS = ['A', 'B', 'C', 'D', 'E', 'F'] as const;
 export function QuizArtifactView({
   artifact,
   messageId,
+  sessionId,
 }: {
   artifact: ChatArtifact;
   messageId: string;
+  /** 产物所属会话 id（R-10）：随条目落库，供 /space/questions 按真实会话回链 */
+  sessionId?: string | null;
 }) {
   const parsed = useMemo(() => parseData(artifact), [artifact]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -80,6 +83,7 @@ export function QuizArtifactView({
     const entries: Omit<QuizBankEntry, 'savedAt'>[] = parsed.questions.map((q) => ({
       id: `${messageId}:${q.question_id}`,
       messageId,
+      ...(sessionId ? { sessionId } : {}),
       questionId: q.question_id,
       topic: parsed.topic,
       question: q.question,

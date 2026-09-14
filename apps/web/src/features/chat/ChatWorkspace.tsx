@@ -24,11 +24,6 @@ import { CapabilityMenu } from './CapabilityMenu';
 import { ContextRefTree } from './ComposerSpaceMenu';
 import { useModelCatalog } from '@/features/model-settings/useModelCatalog';
 import { ModelSelector } from '@/features/model-settings/ModelSelector';
-import {
-  readExtensions,
-  subscribeExtensions,
-  type ExtensionEntry,
-} from '@/services/extension-catalog';
 import { readPersonas, subscribePersonas, type PersonaEntry } from '@/services/persona-catalog';
 import {
   readKnowledge,
@@ -88,7 +83,6 @@ export function ChatWorkspace({ initialSessionId }: { initialSessionId?: string 
 function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
   const store = useChatStore();
   const chatSession = useChatSession();
-  const mode = 'real';
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const media = window.matchMedia('(max-width: 760px)');
@@ -122,10 +116,6 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
     [copyState, setCopyState] = useState<string | null>(null),
     [following, setFollowing] = useState(true);
   const [blockedNotice, setBlockedNotice] = useState<string | null>(null);
-  // 模拟模式扩展选择：目录变化时同步，失效选择明确提示并移除（不静默替换）
-  const [extEntries, setExtEntries] = useState<ExtensionEntry[]>([]);
-  const [selectedExtensions, setSelectedExtensions] = useState<string[]>([]);
-  const [staleNotice, setStaleNotice] = useState<string | null>(null);
   // S2 输入区：业务能力（默认“对话”）+ 各能力配置表单 + 确认状态
   const [capabilityValue, setCapabilityValue] = useState('');
   const [capForms] = useState<CapabilityFormState>(createDefaultCapabilityForms);
@@ -134,7 +124,7 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
   // ref 保存同步真值（供串行接纳队列等异步逻辑即时读取），bump 触发渲染。
   const [, bumpPending] = useState(0);
   const pendingRef = useRef<Record<string, SessionPending>>({});
-  const pendingKey = `${mode}:${store.activeId ?? '__pending__'}`;
+  const pendingKey = store.activeId ?? '__pending__';
   const pending = pendingRef.current[pendingKey] ?? EMPTY_PENDING;
   const selectedPersonaId = pending.personaId;
   const selectedKnowledgeIds = pending.knowledgeIds;
@@ -153,22 +143,22 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
   // 避免发送触发 create() 时把已选人设/知识丢失
   useEffect(() => {
     if (!store.activeId) return;
-    const fromKey = `${mode}:__pending__`;
+    const fromKey = '__pending__';
     const carried = pendingRef.current[fromKey];
     if (!carried) return;
     const next = { ...pendingRef.current };
     delete next[fromKey];
-    const toKey = `${mode}:${store.activeId}`;
+    const toKey = store.activeId;
     if (!next[toKey]) next[toKey] = carried;
     pendingRef.current = next;
     bumpPending((n) => n + 1);
-  }, [store.activeId, mode]);
+  }, [store.activeId]);
   // S3：产物标签归属会话——切换会话/模式后回到活动主页并恢复全部标签
   // （同参考"会话变化清空标签"；关闭态是会话内视图状态，随会话重置）
   useEffect(() => {
     setArtifactKey(null);
     setClosedTabs(new Set());
-  }, [store.activeId, mode]);
+  }, [store.activeId]);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const attachmentErrorTimer = useRef<number | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -202,18 +192,6 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
     }
   }, [store.draft]);
   useEffect(() => {
-    // 订阅模拟扩展目录（单一来源）；禁用/删除只影响后续发送
-    const update = () => {
-      try {
-        setExtEntries(readExtensions());
-      } catch {
-        /* 目录格式异常时保持现有列表，设置页会提示 */
-      }
-    };
-    update();
-    return subscribeExtensions(update);
-  }, []);
-  useEffect(() => {
     // 订阅角色/知识来源演示目录（S2）：显式载入演示数据，不自动写入用户存储
     const updatePersonas = () => {
       try {
@@ -239,14 +217,6 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
     };
   }, []);
   useEffect(() => {
-    const valid = new Set(extEntries.filter((item) => item.enabled).map((item) => item.id));
-    const invalid = selectedExtensions.filter((id) => !valid.has(id));
-    if (!invalid.length) return;
-    const names = invalid.map((id) => extEntries.find((item) => item.id === id)?.name ?? id);
-    setSelectedExtensions((prev) => prev.filter((id) => valid.has(id)));
-    setStaleNotice(`已移除失效的扩展选择：${names.join('、')}。`);
-  }, [extEntries, selectedExtensions]);
-  useEffect(() => {
     if (following && scroller.current) scroller.current.scrollTop = scroller.current.scrollHeight;
   }, [store.messages, following]);
   useEffect(() => {
@@ -265,10 +235,9 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
         setMissingSession(true);
       }
     })();
-    // deepLinkHandled 翻转后守卫恒为真，store 变化不会再次触发定位；
-    // mode 依赖用于 ?mode= 切换后在新 store 上完成定位
+    // deepLinkHandled 翻转后守卫恒为真，store 变化不会再次触发定位
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deepLinkHandled, initialSessionId, store.ready, mode]);
+  }, [deepLinkHandled, initialSessionId, store.ready]);
   /**
    * 深链契约（交付复核补充）：地址与当前会话同步。
    * - 用户主动选择/新建/删除/切换模式时经 history push/replace 更新地址（pushState
@@ -278,13 +247,12 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
    */
   function syncSessionUrl(id: string | null, method: 'push' | 'replace') {
     const target = id ? `/chat/${id}` : '/chat';
-    const withMode = target;
-    if (window.location.pathname + window.location.search !== withMode) {
+    if (window.location.pathname !== target) {
       (method === 'push' ? window.history.pushState : window.history.replaceState).call(
         window.history,
         null,
         '',
-        withMode,
+        target,
       );
     }
     setMissingSession(false);
@@ -330,9 +298,14 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
   const conversationArtifacts: ArtifactPanelItem[] = useMemo(
     () =>
       store.messages.flatMap((m) =>
-        (m.artifacts ?? []).map((artifact) => ({ key: `${m.id}:${artifact.id}`, artifact })),
+        (m.artifacts ?? []).map((artifact) => ({
+          key: `${m.id}:${artifact.id}`,
+          artifact,
+          // R-10：把真实会话 id 一并带下去，保存到笔记/题库时落库，业务页才能正确回链
+          sessionId: store.activeId,
+        })),
       ),
-    [store.messages],
+    [store.messages, store.activeId],
   );
   // 标签列表 = 全量产物剔除已关闭标签（产物本体保留，恢复后可再开）
   const openArtifacts: ArtifactPanelItem[] = useMemo(
@@ -564,7 +537,7 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
     if (!capabilityAvailableInReal(capabilityValue)) {
       // 防御路径：真实模式不允许非对话能力发起（菜单已禁用），仍到达时明确说明
       setBlockedNotice(
-        `「${activeCap.label}」暂无真实服务，已保留选择；请切回“对话”能力或使用模拟模式。`,
+        `「${activeCap.label}」暂无真实服务，已保留选择；请切回“对话”能力。`,
       );
       return;
     }
@@ -572,7 +545,7 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
       // R20：真实服务无文件解析/上传通道——不静默剥离附件转纯文字请求；
       // 保留输入与附件，用户明确移除附件后才能继续纯文字请求
       setBlockedNotice(
-        '当前真实服务不支持附件发送（未接入文件解析服务）：已保留输入与附件，请移除附件后再发送，或切换到模拟模式体验附件流程。',
+        '当前真实服务不支持附件发送（未接入文件解析服务）：已保留输入与附件，请移除附件后再发送。',
       );
       return;
     }
@@ -987,11 +960,6 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
                 }
                 <span className="chat-flex-spacer" />
                 <ComposerContextChips
-                  mock={false}
-                  personas={personas}
-                  personaId={selectedPersonaId}
-                  onPersona={(id) => patchPending(pendingKey, () => ({ personaId: id }))}
-                  disabled={store.sending}
                   contextTokens={profile?.contextTokens}
                   contentChars={
                     store.messages.reduce(
@@ -1094,11 +1062,6 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
                 })()}
               </div>
             </div>
-            {staleNotice && (
-              <p role="status" className="chat-composer-note chat-stale-notice">
-                {staleNotice}
-              </p>
-            )}
             {blockedNotice && true && (
               <p role="alert" className="chat-composer-note chat-blocked-notice">
                 {blockedNotice}
@@ -1153,8 +1116,7 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
                 <>
                   <InfoPanel
                     profile={profile}
-                    mock={false}
-                    conversations={store.conversations}
+                      conversations={store.conversations}
                     activeId={store.activeId}
                     messageCount={store.messages.length}
                   />
@@ -1176,7 +1138,6 @@ function ChatPage({ initialSessionId }: { initialSessionId?: string }) {
               <>
                 <InfoPanel
                   profile={profile}
-                  mock={false}
                   conversations={store.conversations}
                   activeId={store.activeId}
                   messageCount={store.messages.length}

@@ -14,9 +14,12 @@ import { AnswerMarkdown } from '../AnswerMarkdown';
 export function ReportArtifactView({
   artifact,
   messageId,
+  sessionId,
 }: {
   artifact: ChatArtifact;
   messageId: string;
+  /** 产物所属会话 id（R-10）：写入笔记记录 metadata，供 /notebooks 按真实会话回链 */
+  sessionId?: string | null;
 }) {
   const data = useMemo<ReportArtifactData | null>(() => {
     if (!artifact.data || typeof artifact.data !== 'object') return null;
@@ -34,6 +37,7 @@ export function ReportArtifactView({
     const result = saveNotebookEntry({
       id: `${messageId}:${artifact.id}`,
       messageId,
+      ...(sessionId ? { sessionId } : {}),
       artifactId: artifact.id,
       title: artifact.title,
       kind: 'research_report',

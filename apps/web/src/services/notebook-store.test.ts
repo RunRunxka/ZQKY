@@ -123,3 +123,56 @@ describe('S5-B notebook-store', () => {
     expect(exportNotebookMarkdown('nope')).toBeNull();
   });
 });
+
+describe('R-10 来源会话身份兼容', () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  it('保存时带 sessionId 可读回；用于业务页回链', () => {
+    saveNotebookEntry({
+      id: 'm1:report-9',
+      messageId: 'm1',
+      sessionId: 'sess-9',
+      artifactId: 'report-9',
+      title: '带来源的报告',
+      kind: 'research_report',
+      content: '正文',
+    });
+    const record = listRecords().find((r) => r.id === 'm1:report-9');
+    expect(record?.metadata?.sessionId).toBe('sess-9');
+  });
+
+  it('旧数据缺 sessionId：不猜测身份，解析为 undefined', () => {
+    window.localStorage.setItem(
+      'zhiqikeyuan:notebook-entries',
+      JSON.stringify([
+        { id: 'old:1', messageId: 'old', artifactId: '1', title: '旧记录', type: 'research_report', content: 'x' },
+      ]),
+    );
+    const record = listRecords().find((r) => r.id === 'old:1');
+    expect(record?.metadata?.sessionId).toBeUndefined();
+    // 其余身份仍保留，供会话内定位
+    expect(record?.metadata?.messageId).toBe('old');
+  });
+
+  it('脏身份（空串/非字符串）不作为可靠身份', () => {
+    window.localStorage.setItem(
+      'zhiqikeyuan:notebook-entries',
+      JSON.stringify([
+        { id: 'bad:1', metadata: { sessionId: '   ', messageId: 42 }, title: '脏', type: 'chat', content: 'x' },
+      ]),
+    );
+    const record = listRecords().find((r) => r.id === 'bad:1');
+    expect(record?.metadata?.sessionId).toBeUndefined();
+    expect(record?.metadata?.messageId).toBeUndefined();
+  });
+
+  it('顶层扁平 sessionId（未来回填形态）也能被读取', () => {
+    window.localStorage.setItem(
+      'zhiqikeyuan:notebook-entries',
+      JSON.stringify([{ id: 'flat:1', sessionId: 'sess-flat', messageId: 'm', title: '扁平', type: 'chat', content: 'x' }]),
+    );
+    expect(listRecords().find((r) => r.id === 'flat:1')?.metadata?.sessionId).toBe('sess-flat');
+  });
+});

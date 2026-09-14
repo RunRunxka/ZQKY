@@ -712,45 +712,6 @@
   margin-top: 4px;
 }
 
-/* 对话模式切换（真实 / 模拟）与模拟模式提示 */
-.chat-mode-switch {
-  display: inline-flex;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  overflow: hidden;
-}
-.chat-mode-switch button {
-  font-size: 11px;
-  padding: 5px 12px;
-  color: var(--muted);
-  background: #fff;
-}
-.chat-mode-switch button + button {
-  border-left: 1px solid var(--line);
-}
-.chat-mode-switch button[aria-pressed='true'] {
-  background: var(--blue-soft);
-  color: var(--blue);
-  font-weight: 600;
-}
-.chat-mode-switch button:disabled {
-  opacity: 0.5;
-}
-.chat-banner.mock {
-  background: var(--blue-soft);
-  border: 1px solid #cddcf6;
-  align-items: center;
-}
-.chat-mode-chip {
-  font-size: 11px;
-  color: var(--blue);
-  background: var(--blue-soft);
-  border: 1px solid #cddcf6;
-  border-radius: 999px;
-  padding: 3px 10px;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
 .chat-process-note {
   font-size: 11px;
   color: var(--muted);
@@ -1107,9 +1068,6 @@
   border-radius: 999px;
   padding: 3px 9px;
   white-space: nowrap;
-}
-.chat-stale-notice {
-  color: #8a6d1d;
 }
 
 /* ===== 消息内追问卡（对照原版 AskUserOptions：圆角卡、选项说明、提交/跳过语义） =====

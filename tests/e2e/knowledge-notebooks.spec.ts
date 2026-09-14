@@ -129,6 +129,39 @@ async function seedKnowledge(page: Page, entries: KbSeed[]) {
   }, entries);
 }
 
+/** 预置真实聊天会话（IndexedDB），供 /notebooks 来源回链按真实 sessionId 校验（R-10）。 */
+async function seedConversation(page: Page, conversation: Record<string, unknown>) {
+  await page.addInitScript(
+    ({ dbName, value }) => {
+      const request = indexedDB.open(dbName, 1);
+      request.onupgradeneeded = (event) => {
+        (event.target as IDBOpenDBRequest).result.createObjectStore('conversations', { keyPath: 'id' });
+      };
+      request.onsuccess = () => {
+        const db = request.result;
+        db.transaction('conversations', 'readwrite').objectStore('conversations').put(value);
+      };
+    },
+    { dbName: 'zhiqikeyuan-chat', value: conversation },
+  );
+}
+
+const SEED_CONVERSATION = {
+  id: 'seed-session-1',
+  title: '种子会话',
+  messages: [
+    { id: 'seed-msg-u', role: 'user', content: '什么是分数？', status: 'done' },
+    { id: 'seed-msg-a', role: 'assistant', content: '分数表示整体的一部分。', status: 'done' },
+  ],
+  createdAt: '2026-09-08T01:00:00.000Z',
+  updatedAt: '2026-09-08T01:05:00.000Z',
+  schemaVersion: 1,
+  revision: 1,
+  draft: '',
+  modelProfileId: null,
+  mode: 'real',
+};
+
 async function seedNotebookData(page: Page, notebooks: typeof NOTEBOOKS_SEED, records: typeof RECORDS_SEED) {
   await page.addInitScript(({ notebooks, records }) => {
     window.localStorage.setItem('zhiqikeyuan:notebooks', JSON.stringify(notebooks));
@@ -387,6 +420,8 @@ test('知识库详情：目录数据损坏时如实报错且不覆盖原数据',
 
 test('笔记本：默认笔记本、记录展开/编辑/移动复制、新建/导出/删除回退', async ({ page }) => {
   await seedNotebookData(page, NOTEBOOKS_SEED, RECORDS_SEED);
+  // 预置来源会话，使 rec-1 的回链能按真实 sessionId 通过存在性校验
+  await seedConversation(page, SEED_CONVERSATION);
   await page.goto('/notebooks');
   await expect(page.getByRole('heading', { name: '笔记本', exact: true })).toBeVisible();
   await expect(page.getByText('选择一个笔记本')).toBeVisible();
@@ -405,9 +440,10 @@ test('笔记本：默认笔记本、记录展开/编辑/移动复制、新建/�
   await row.getByRole('button', { name: '展开记录 演示研究报告' }).click();
   await expect(row).toContainText('# 报告正文');
   await expect(row).toContainText('演示摘要');
+  // R-10：回链必须用真实 sessionId 且不带过期的 ?mode=mock；仅当该会话确实存在时才渲染
   await expect(row.getByRole('link', { name: '打开原会话' })).toHaveAttribute(
     'href',
-    '/chat/seed-session-1?mode=mock',
+    '/chat/seed-session-1',
   );
 
   // 编辑记录

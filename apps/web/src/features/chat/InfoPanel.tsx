@@ -6,13 +6,11 @@ import type { ConversationMeta } from '@/contracts/chat';
 
 export function InfoPanel({
   profile,
-  mock,
   conversations,
   activeId,
   messageCount,
 }: {
   profile: ModelProfileView | null;
-  mock?: boolean;
   conversations: ConversationMeta[];
   activeId: string | null;
   messageCount: number;
@@ -21,13 +19,7 @@ export function InfoPanel({
     <div className="chat-info-inner">
       <section>
         <h3>当前模型</h3>
-        {mock ? (
-          <ul className="chat-info-list">
-            <li>模拟模型 · 本地脚本</li>
-            <li className="chat-info-muted">不访问真实模型、MCP 或外部工具</li>
-            <li className="chat-info-muted">回复带【模拟回复】标识，仅用于体验对话流程</li>
-          </ul>
-        ) : profile ? (
+        {profile ? (
           <ul className="chat-info-list">
             <li>{profile.displayName}</li>
             <li className="chat-info-muted">模型 ID：{profile.modelId}</li>
@@ -63,9 +55,7 @@ export function InfoPanel({
           )}
         </ul>
         <p className="chat-info-muted">
-          {mock
-            ? '模拟会话保存在当前浏览器的独立存储，与真实问答相互隔离。'
-            : '历史保存在当前浏览器；发送时会将选定上下文传给所选模型服务。清理数据前请备份重要内容。'}
+          历史保存在当前浏览器；发送时会将选定上下文传给所选模型服务。清理数据前请备份重要内容。
         </p>
       </section>
       <p className="chat-info-muted">

@@ -10,7 +10,7 @@
 
 **同行独立审查（候选 1805397）结论为 needs_revision**，复现 16 项缺陷（MR-01~MR-16），已被修复并经两名独立验收者复验通过（见 6.3/6.4 节）。**B-MODEL-ACCEPT v1（起点 3dfc2fa）完成浏览器验收、真实链路核查与文档收口**：模型批的浏览器全链路、嵌套交互、R-13 真实复验均已执行。
 
-**R-01 已正式关闭**（跨 .env/JSON 凭证一致性；独立复验覆盖并发回滚、删除孤儿、迁移备份三向，见 6.4）。**B-H0R-SHELL v1 关闭 R-02/R-04/R-06**（唯一主页 `/chat`、每个已实现路由唯一当前菜单、404/错误页统一壳且不重复嵌套；独立验收者在候选 e7fb2a4 上亲自浏览器复验，见 6.6）。当前唯一阻断只剩 **R-13**（以及未排期的 R-03/R-10/R-09/R-11）。**R-13 仍未关闭**：默认预算下推理吃满导致零正文，关推理后默认预算正文出现但 `finishReason=length` 截断，受控 8192 才 `stop`；浏览器侧受控档首可见中文 1172ms、KaTeX 12 处 0 错误、停止/重试/刷新均通过。**整体仍未完成**：其他模块、其余供应商真实覆盖仍待后续批次。
+**R-01 已正式关闭**（跨 .env/JSON 凭证一致性；独立复验覆盖并发回滚、删除孤儿、迁移备份三向，见 6.4）。**B-H0R-SHELL v1 关闭 R-02/R-04/R-06**（唯一主页 `/chat`、每个已实现路由唯一当前菜单、404/错误页统一壳且不重复嵌套；独立验收者在候选 e7fb2a4 上亲自浏览器复验，见 6.6）。当前**唯一验收阻断**是 **R-13**（其余为未排期缺陷：R-03/R-10/已被本批修复，R-09/R-11 待复现）。**R-13 仍未关闭**：默认预算下推理吃满导致零正文，关推理后默认预算正文出现但 `finishReason=length` 截断，受控 8192 才 `stop`；浏览器侧受控档首可见中文 1172ms、KaTeX 12 处 0 错误、停止/重试/刷新均通过。**整体仍未完成**：其他模块、其余供应商真实覆盖仍待后续批次。
 
 - 本批起点：`57d111d`（产品代码起点 `af9cb78`）；contract-v1 首轮候选 `1805397`，本批修复候选以最新 `git log -1` 为准。
 - 审查基线仍是 `21d9898`；本次不改变其结论，只在其后新增 contract-v1 实现与修复批。
@@ -52,14 +52,14 @@ R-12 capabilities 文案改为与 `.env` 实际一致。R-13 仍为验收阻断�
 | --- | --- | --- |
 | R-01 / P1 **已于 2026-09-13 关闭** | `model_connections.py:60-83` 在仓储事务中先写 Key，配置 JSON 随后失败时 Key 已变化；删除先删配置再删 Key，后一步失败会留下孤儿凭证。独立审查又复现并发回滚与删除孤儿（MR-04/MR-05）。 | 已建立服务层原子写与补偿：更新/删除在仓储同一临界区完成 revision 校验、文档变更与凭证写入，配置失败回滚凭证，删除时凭证清理失败整体不删可重试。独立复验覆盖三向（`_work/accept-560ac76/backend/ACCEPTANCE.md`、`RECHECK-4ef803b.md`）。**关闭依据：独立复验 pass。** |
 | R-02 / P1 **已于 2026-09-13 关闭**（B-H0R-SHELL v1） | 根路由进 `/chat`，但 `WorkspaceShell.tsx:140-162` 的品牌按钮和 `not-found.tsx:6` 仍回 `/lesson-plans`，metadata 也仍称教案工作台 | 已建立单一主页来源（`navigation` 的 `home` 标记派生 `HOME_PATH`/`HOME_LABEL`），品牌按钮、404/规划页返回入口、默认标题与可访问名称全部由它派生；桌面/手机导航与 404 已回归（`tests/e2e/shell-home-nav.spec.ts`）。**关闭依据：独立验收 pass（6.5/6.6）。** |
-| R-03 / P1 | 主聊天真实/模拟切换入口虽已移除，`contracts/chat.ts:13-14,187-188`、`ChatWorkspace.tsx:564-575`、部分组件与 CSS 仍保留 mock 分支并提示用户切换到不存在的模拟模式 | 只清理主聊天运行时/会话契约、不可达分支、无效文案和专用样式；阅读、写作等已批准的显式模拟继续保留并标注，必要时把共享服务类型拆成中性契约；测试替身只留 `tests/fixtures`，旧浏览器库不读写也不清除 |
+| R-03 / P1 **已于 2026-09-14 关闭**（B-H0R-CHAT-LINKS v1） | 主聊天真实/模拟切换入口虽已移除，`contracts/chat.ts:13-14,187-188`、`ChatWorkspace.tsx:564-575`、部分组件与 CSS 仍保留 mock 分支并提示用户切换到不存在的模拟模式 | 只清理主聊天运行时/会话契约、不可达分支、无效文案和专用样式；阅读、写作等已批准的显式模拟继续保留并标注，必要时把共享服务类型拆成中性契约；测试替身只留 `tests/fixtures`，旧浏览器库不读写也不清除 |
 | R-04 / P1 **已于 2026-09-13 关闭**（B-H0R-SHELL v1） | `navigation.ts` 将 `/whisper`、`/notebooks`、`/courses` 隐藏；`WorkspaceShell.tsx:80,111` 过滤后没有 `aria-current`，手机抽屉也无法聚焦当前菜单 | 隐藏直达页登记 `parentPath`，桌面侧栏标记可见父菜单、手机抽屉标记隐藏项自身；新增单一解析器 `resolveCurrentNavigationId`（最长前缀，任一界面最多一个当前项），并遍历已实现/隐藏/详情/404 路由回归。**关闭依据：独立验收 pass。** |
 | R-05 / P1 | `chat-home.css` 的字体与内容骨架只作用于聊天；公共导航仍用 Arial/微软雅黑，设置、教案和其他模块保留各自旧壳 | 提取学习问答视觉 token 与内容骨架，按模块迁移；每批功能完成门槛同时包含视觉验收 |
 | R-06 / P1 **已于 2026-09-13 关闭**（B-H0R-SHELL v1） | `not-found.tsx` 以及白名单遗漏或页面自包壳的错误场景可能离开统一 WorkspaceShell；根 `error.tsx` 本身不能证明所有错误都缺壳 | 新增 `ShellScope` 声明“是否已有公共壳”，`StatusShell` 仅在缺壳时补一层，404/错误页在任意路径都恰好一层壳、不重复嵌套；错误页保留可用恢复操作（reset）与返回主页入口。**关闭依据：独立验收 pass。** |
 | R-07 / P2 | 后端可解析 reasoning/thinking，但模型设置仅允许数值参数，无法表达需要显式开启推理的供应商配置 | 按协议增加受控、强校验字段；不开放任意 JSON，真实供应商逐协议验证 |
 | R-08 / P2 | 编辑连接时空 Key 表示“保持”，没有独立清除凭证动作 | 增加明确的移除凭证语义、确认与回归，不让空字符串兼任两个含义 |
 | R-09 / P2 待复核 | 静态审查发现 `ReadingWorkspace.tsx:1191,1211,1288` 直接强制回底并使用 `replaceState` 切会话；本轮未在浏览器复现为缺陷 | 先验证手动上滚、前进后退、刷新、切会话和卸载；如复现再修复，过期任务不得写入新上下文 |
-| R-10 / P1 | `NotebooksSection.tsx:504` 仍生成 `?mode=mock`；`QuestionBankSection.tsx:450` 用 messageId 作为聊天会话路径 | 用真实 sessionId/messageId 关系修复并兼容旧数据，不恢复模拟运行 |
+| R-10 / P1 **已于 2026-09-14 关闭**（B-H0R-CHAT-LINKS v1） | `NotebooksSection.tsx:504` 仍生成 `?mode=mock`；`QuestionBankSection.tsx:450` 用 messageId 作为聊天会话路径 | 用真实 sessionId/messageId 关系修复并兼容旧数据，不恢复模拟运行 |
 | R-11 / P1 | `courses-store.ts:250,311` 在渲染路径直接读取知识目录且无损坏兜底 | 损坏知识目录时课程页保持可用并显示资源错误，不能当空数据覆盖 |
 | R-12 / P2 | `capabilities.py:23` 仍宣称凭证只存进程，和 `.env` 实际实现不符 | 改为真实作用域说明并跑后端契约回归 |
 | R-13 / P1 验收阻断 | 真实DeepSeek长回答样本：两模型未设输出上限时使用后端默认2048，均只有推理并报 `EMPTY_RESPONSE/length`；隔离副本改8192后Flash成功，Pro仍只有推理 | 按模型验证推理配置、预算与供应商行为；不能一律靠增加上限宣称修复。用户正式配置未改，纳入 B-H0R-MODEL/T1 |
@@ -306,7 +306,7 @@ API 三档（临时副本改 profile，不改正式配置；仅 DeepSeek）：
 | --- | --- | --- |
 | R-02 唯一主页 `/chat` | **pass / 已关闭** | `navigation` 仅一条 `home: true`；`HOME_PATH`/`HOME_LABEL` 从它派生，运行时断言必须存在。品牌按钮（头部+侧栏）、404 与规划页返回入口、默认标题、可访问名称全部改由它派生。grep 确认无残留把 `/lesson-plans` 当主页（仅教案模块自身引用与 `/api/v1/lesson-plans/fill` 端点）。 |
 | R-04 唯一当前菜单 | **pass / 已关闭** | 新增单一解析器 `resolveCurrentNavigationId`（最长前缀），桌面侧栏与手机抽屉共用；隐藏直达页登记 `parentPath`：桌面标父菜单、抽屉标自身。独立验收者亲验命中表：/whisper→协同写作、/notebooks→学习空间、/courses→书籍，其余已实现路由各自命中，404 无当前项，每个路由 `[aria-current="page"]` 恰好 1 个。 |
-| R-06 统一壳的 404/错误页 | **pass / 已关闭** | 新增 `ShellScope`（声明是否已有公共壳）+ `StatusShell`（仅在缺壳时补一层）。未知路径与独立模块深层 404 实测都恰好一层 `.app-shell` 且保留侧栏；错误页保留 reset 与返回主页入口。 |
+| R-06 统一壳的 404/错误页 | **pass / 已关闭（含区分）** | 新增 `ShellScope`（声明是否已有公共壳）+ `StatusShell`（仅在缺壳时补一层）。**404 已实测**：未知路径与独立模块深层 404 都恰好一层 `.app-shell` 且保留侧栏（e2e `shell-home-nav.spec.ts`）。**错误页 reset 的运行时触发未验**：生产构建下无法在不改产品代码的前提下注入客户端错误，仅以源码与构建产物确认 `重新尝试`（reset）与 `返回主页` 两个恢复入口存在；reset 的实际恢复行为记为未执行。 |
 
 #### 验证与边界
 
@@ -318,13 +318,54 @@ API 三档（临时副本改 profile，不改正式配置；仅 DeepSeek）：
 | `npm run build` | 通过，23 静态页 |
 | 浏览器 e2e | **119/119**（新增 `tests/e2e/shell-home-nav.spec.ts` 27 项；并更新 `lesson-plan.spec.ts` 断言品牌入口改回 /chat） |
 | 三视口视觉 | 1440×900 / 1920×1080 / 390×844 逐路由无横向溢出；实际查看 404（桌面/手机）、whisper 父菜单高亮、chat 1920 截图；减少动画下壳可用（`docs/qa/shell-accept-20260913/`） |
-| 折叠/手机抽屉 | 折叠偏好跨页保持（含 404 与独立模块）；抽屉焦点落当前项、Escape 关闭并返回触发按钮；学习记录 236px 中栏仍仅聊天 |
+| 折叠/手机抽屉 | 折叠偏好跨页保持（含 404 与独立模块）；抽屉焦点落当前项、Escape 关闭并返回触发按钮；**Tab/Shift+Tab 焦点圈定已有既有用例** `tests/e2e/sidebar-chat-fixes.spec.ts:76-79`（Shift+Tab 从关闭按钮回绕到「设置」、Tab 再回到关闭按钮），本批未重复新增；学习记录 236px 中栏仍仅聊天 |
 
 未运行：错误页 `reset` 的运行时触发（生产构建无法在不改代码下注入客户端错误；已用源码与构建产物确认恢复入口存在）；动画曲线逐帧采样（仅静态截图与类名断言，标 partial）。
 
 #### 独立验收（候选 e7fb2a4）
 
 diff 散列 `b262f98c84a885158ddef691e5f79312…`。独立验收者结论 **pass**：四套件通过数与实现者一致（e2e 119 / unit 278 / api 181）；自己 grep 确认 R-02 无残留、读源码判断 R-04 解析器不可能多项命中、R-06 补壳方向安全；**亲自在 1440/1920/390 遍历 14 个路由 + 404 + 抽屉**，给出命中表与 11 张截图；范围仅公共壳/导航/状态页/测试/证据，未触碰模型协议与凭证。其未运行项：错误页运行时触发、动画曲线。
+
+### 6.7 B-H0R-CHAT-LINKS v1 结果（2026-09-14，起点 957730d）
+
+目标：处理 R-03（主聊天生产模拟残留）与 R-10（笔记/题库到聊天的错误来源链接）。**不改模型协议/凭证/推理预算，不扩展其他模块。**
+
+#### R-03 主聊天生产仅真实
+
+| 项 | 结论 | 证据 |
+| --- | --- | --- |
+| 不可达 mock 分支与残留参数 | **pass** | 移除 `ChatWorkspace` 的 `const mode='real'` 与所有 `mode` 依赖、`mock={false}` 参数（InfoPanel/ComposerContextChips）、`withMode` 变量；`InfoPanel` 的"模拟模型"整块与 `ComposerContextChips` 的 `mock &&` 人设胶囊（无入口的死状态机，人设改由空间菜单直达）一并删除。 |
+| 误导文案 | **pass** | 两处"请切回…或使用模拟模式"改为不再指向已删功能（能力不可用→"请切回对话能力"；附件不支持→"请移除附件后再发送"）。 |
+| 专用 CSS 死规则 | **pass** | 删除 `.chat-mode-switch*`、`.chat-banner.mock`、`.chat-mode-chip`、`.chat-stale-notice`（TSX 零写入者，已 grep 核实）；确认 reading 复用 `chat.css` 的其他规则未受影响。 |
+| 契约注释 | **pass** | `ChatServiceKind`/`Conversation.mode` 保留但注明：生产恒为 `real`，`mock` 仅用于**读取历史**与测试替身注入，不存在运行时模拟分支。 |
+| 真实失败不回退模拟 | **pass（隔离验收）** | 隔离后端 8001 上把默认问答 profile 指向不存在的 `modelId`：浏览器显示 `生成失败 1s` + `上游返回错误（HTTP 400）(UPSTREAM_ERROR)` + 「重试」，原问题保留，**无【模拟回复】**。见 `_work/chat-links-v1/`。 |
+| 旧模拟库不读不写不清空 | **pass** | 全仓无 `zhiqikeyuan-chat-mock` 引用；未新增任何清库逻辑。 |
+| 他模块显式模拟保留 | **pass** | reading/writing/knowledge/whisper 的显式模拟与标识未改；其 `kind:'mock'` 为各自独立字面量，仅 reading 共享 `ChatServiceEvent`（未改形）。 |
+| 测试替身仅测试路径 | **pass** | `tests/fixtures/scripted-chat-store.ts` 等仅被 `*.test.ts(x)` 引用，生产 bundle 零引用。 |
+
+#### R-10 来源回链按真实 sessionId
+
+| 项 | 结论 | 证据 |
+| --- | --- | --- |
+| 保存链路补记 sessionId | **pass** | `ChatWorkspace` 构建产物条目时带 `store.activeId`；经 `ArtifactPanelItem.sessionId` 传到 `QuizArtifactView`/`ReportArtifactView`，随 `saveQuizEntries`/`saveNotebookEntry` 落库（`QuizBankEntry.sessionId?` / `NotebookEntry.sessionId?`）。 |
+| 题库链接修正 | **pass** | 原 `href=/chat/${messageId}?mode=mock`（把 messageId 当 sessionId 且带死参数）改为 `SourceSessionLink`：仅当条目带可靠 `sessionId` 且会话存在时渲染真实深链。 |
+| 笔记链接修正 | **pass** | 去掉 `?mode=mock`；改用 `useSourceSessionLink(metadata.sessionId)` 做异步存在性校验。 |
+| 旧数据兼容 | **pass** | 无 `sessionId` → 不显示链接、保留内容、不报错；会话已删除 → 显示"来源会话已不存在"并保留内容，**不猜测绑定、不建假会话**；空串/非字符串身份视为缺失；顶层扁平 `sessionId`（未来回填）也能读取。单测：`notebook-store.test.ts`/`space-store.test.ts` 新增 7 项。 |
+| 单一拼装点 | **pass** | 新增 `services/chat-source.ts` 的 `conversationSourceHref()`，业务页不得各自拼 URL；`useSourceSessionLink` 复用仓储 `load()` 校验存在性。 |
+
+#### 验收覆盖与边界
+
+| 检查 | 结果 |
+| --- | --- |
+| `npm run typecheck` / `lint` | 通过（0 warning） |
+| `npm run test:unit` | **285/285**（新增 R-10 兼容单测 7 项） |
+| `npm run test:api` | **181/181**（本批未改后端） |
+| `npm run build` | 通过 |
+| 浏览器 e2e | **128/128**（新增 `tests/e2e/chat-source-links.spec.ts` 9 项：正确会话/旧链接/会话删除/缺失身份/重名内容/刷新/前进后退/笔记两态） |
+| R-03 隔离验收 | 2/2 通过（真实失败路径截图 `_work/chat-links-v1/shots/r03-error-path.png`） |
+| 真实供应商 | 本批为前端契约/链接与文案清理，未新增真实供应商断言；沿用模型批 DeepSeek 结果，其余 `not_run` |
+
+未执行：错误页 `reset` 的运行时触发（见 6.6 说明）；动画曲线逐帧采样（沿用既有 partial）。旧链接（`/chat/<messageId>?mode=mock`）在 e2e 中确认**不静默落到最近会话**，而是显示"链接指向的会话不存在"。
 
 ### 原需求与验收任务卡（技术要求保留，负责人按6.1）
 

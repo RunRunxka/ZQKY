@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 // 复用 space 设计语言的样式；直达路由也需要加载（不能只依赖 SpaceMain 的引入）
 import '@/features/space/styles/space.css';
+import { useSourceSessionLink } from '@/features/space/useSourceSessionLink';
 import {
   ArrowLeft,
   ChevronRight,
@@ -449,7 +450,7 @@ function RecordRow({
   onDelete: () => void;
   onMove: () => void;
 }) {
-  const sessionId = record.metadata?.sessionId;
+  const sourceLink = useSourceSessionLink(record.metadata?.sessionId);
   return (
     <li className="space-session-card">
       <div className="space-session-top">
@@ -499,11 +500,16 @@ function RecordRow({
             </p>
           )}
           {record.content || '（无正文）'}
-          {sessionId && (
+          {sourceLink.status === 'ready' && (
             <p style={{ marginTop: 10 }}>
-              <Link className="space-button" href={`/chat/${sessionId}?mode=mock`}>
+              <Link className="space-button" href={sourceLink.href}>
                 打开原会话
               </Link>
+            </p>
+          )}
+          {sourceLink.status === 'unavailable' && (
+            <p className="space-meta-row" role="status">
+              来源会话已不存在，原内容仍保留。
             </p>
           )}
         </div>

@@ -163,6 +163,11 @@ export function deleteNotebook(id: string): boolean {
 // ===== 记录 =====
 
 /** 记录标准化：补 notebookId/type/updatedAt 缺省（兼容聊天侧旧保存） */
+/** 只接受非空字符串身份字段；其余一律 undefined（旧数据/脏数据不猜测绑定，R-10）。 */
+function identityString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value : undefined;
+}
+
 function normalizeRecord(raw: Record<string, unknown>): NotebookRecord {
   const createdAt =
     typeof raw.createdAt === 'string' && raw.createdAt
@@ -170,13 +175,14 @@ function normalizeRecord(raw: Record<string, unknown>): NotebookRecord {
       : typeof raw.savedAt === 'string' && raw.savedAt
         ? raw.savedAt
         : new Date().toISOString();
-  const metadata =
-    raw.metadata && typeof raw.metadata === 'object'
-      ? (raw.metadata as NotebookRecord['metadata'])
-      : {
-          messageId: typeof raw.messageId === 'string' ? raw.messageId : undefined,
-          artifactId: typeof raw.artifactId === 'string' ? raw.artifactId : undefined,
-        };
+  // 身份字段可由嵌套 metadata 或旧版扁平字段提供；逐字段取，缺一个不影响其余。
+  // sessionId 仅在字符串非空时成立——旧数据从未写入该字段，缺省即"来源不可用"。
+  const nested = (raw.metadata ?? {}) as Record<string, unknown>;
+  const metadata = {
+    sessionId: identityString(nested.sessionId) ?? identityString(raw.sessionId),
+    messageId: identityString(nested.messageId) ?? identityString(raw.messageId),
+    artifactId: identityString(nested.artifactId) ?? identityString(raw.artifactId),
+  };
   return {
     id: String(raw.id),
     notebookId:
