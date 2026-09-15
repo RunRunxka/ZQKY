@@ -1,6 +1,6 @@
 # 页面复刻矩阵（功能与视觉分开验收）
 
-更新：2026-09-12。全站视觉以当前学习问答为准；模块信息结构/功能/动画对照固定 DeepTutor。下表“状态”是**功能状态**；页面内容是否按学习问答完成视觉验收在文末单列，二者不得互相替代。根级 NavigationPreference 已统一侧栏几何和折叠状态，但不代表各页面内容视觉已统一。
+更新：2026-09-15。全站视觉以当前学习问答为准；模块信息结构/功能/动画对照固定 DeepTutor。下表“状态”是**功能状态**；页面内容是否按学习问答完成视觉验收在文末单列，二者不得互相替代。根级 NavigationPreference 已统一侧栏几何和折叠状态，但不代表各页面内容视觉已统一。
 
 历史主页/侧栏批次记录已合入 [交付历史](../archive/DELIVERY_HISTORY.md#snapshot-status-20260910)。主聊天运行时模拟服务和切换入口已删除，但主聊天会话契约、文案和样式仍有 mock 残留；旧模拟测试仅是历史证据。阅读、写作等模块已批准的显式模拟继续单独标注。当前代码审查问题见 [STATUS §3](../STATUS.md)。
 
@@ -35,9 +35,9 @@
 | P-courses-[courseId] | `/courses/[courseId]` | `/courses/[courseId]` | 部分实现 | 已有大纲逐行编辑、覆盖标记、下一单元提示、资料附加/移除、失效资源提示、约定与归档恢复；课程学习会话及聊天 course_id 关联尚未实现，须补齐并验收。e2e `books-courses.spec.ts` 仅覆盖已有切片。 |
 | P-reading | `/reading` | `/reading` | 实现待验收 | 集合卡片、新建/删除、按稳定id无损合并演示已有，R26–R31有历史修复和回归。完整阅读交付仍待验收；不再沿用R26未修结论。见 reading-store 与阅读 review。 |
 | P-reading-materials | `/reading/materials` | `/reading/materials` | 实现待验收 | text/pdf/epub/webpage/video/audio类型、显式模拟解析的queued/processing/ready/failed与取消重试、分配/删除已有；真实解析和媒体原视图未完成。见 MaterialLibrary、companion-service 与阅读 review。 |
-| P-reading-[workspaceId] | `/reading/[workspaceId]` | `/reading/[workspaceId]` | 实现待验收 | 三栏阅读、segments批注定位、选区工具、书签/进度、事件驱动伴生模拟（流式/取消/失败重试）、按会话保存草稿与手机面板已有。消息过程/来源完整性、增量强制回底、媒体原视图待核验；历史R32补齐仅覆盖当时切片。 |
-| P-reading-sessions | `/reading/[workspaceId]/sessions` | `/reading/[workspaceId]/sessions` | 实现待验收 | 工作区会话入口及最近会话选择已有；会话切换仍有replaceState，须复核前进后退与异步归属。见 ReadingWorkspace 和 STATUS H-R1。 |
-| P-reading-sessions-[sessionId] | `/reading/[workspaceId]/sessions/[sessionId]` | 同 | 实现待验收 | 按routeSessionId恢复、无效会话提示与草稿归属已有；不得用历史局部用例替代会话切换/浏览器历史/旧任务隔离完整验收。 |
+| P-reading-[workspaceId] | `/reading/[workspaceId]` | `/reading/[workspaceId]` | 实现待验收 | 三栏阅读、segments批注定位、选区工具、书签/进度、事件驱动伴生模拟（流式/取消/失败重试）、按会话保存草稿与手机面板已有。**R-09 已修（2026-09-15）**：滚动跟随由用户控制、轮次按会话归属、迟到终态不跨会话；见 STATUS 6.10。消息过程/来源完整性、媒体原视图待核验。 |
+| P-reading-sessions | `/reading/[workspaceId]/sessions` | `/reading/[workspaceId]/sessions` | 实现待验收 | 工作区会话入口及最近会话选择已有；**R-09 已修**：切会话改 `pushState`、`popstate` 按 URL 同步空间/会话/草稿，后退到无会话地址回落默认会话。见 ReadingWorkspace 与 STATUS 6.10。 |
+| P-reading-sessions-[sessionId] | `/reading/[workspaceId]/sessions/[sessionId]` | 同 | 实现待验收 | 按routeSessionId恢复、无效会话提示与草稿归属已有；**R-09 已修**：前进/后退同步会话与草稿，过期轮次的事件与收尾回调按 `sessionId+turnId` 丢弃。正式回归见 `tests/e2e/reading.spec.ts` R-09 五例。 |
 | P-co-writer | `/co-writer` | `/co-writer` | 实现待验收 | 文档列表（S5-E）：新建空白/模板、删除确认、更新时间与字数；DOCX 导入未接入为显式说明；AI 修改为统一事件模型显式模拟；e2e `writing.spec.ts` |
 | P-co-writer-[docId] | `/co-writer/[docId]` | `/co-writer/[docId]` | 实现待验收 | 编辑器（S5-E）：即时自动保存与保存状态、选区改写/润色/扩写与全文生成（流式预览/应用/放弃/取消/失败重试，应用前自动快照）、撤销栈、版本历史与恢复；e2e 同上 |
 | P-whisper | `/whisper` | `/whisper` | 实现待验收 | Whisper 密室（S5-E，用途以固定源码为准）：双席位（访客/学员）分席会话、房间创建/结束态、危机表述系统引导卡（援助热线）；回复为显式模拟流式；能力未接入保留可演示前端路径；e2e 同上 |

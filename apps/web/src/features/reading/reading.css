@@ -125,9 +125,16 @@
   box-shadow: -8px 0 24px rgba(0, 0, 0, 0.18);
 }
 
-.reading-drawer .reading-pane,
+.reading-drawer .reading-pane {
+  max-height: none;
+}
+
+/* R-09：抽屉内伴生栏填满抽屉高度，消息区自行滚动（与桌面一致），
+   标题与输入框保持可见；用户上滚后新增增量不再把视口拉回底部。 */
 .reading-drawer .reading-companion {
   max-height: none;
+  height: 100%;
+  min-height: 0;
 }
 
 .reading-selection-bar {

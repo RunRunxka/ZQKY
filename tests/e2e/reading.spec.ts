@@ -403,3 +403,179 @@ test('R32 移动端：小屏导航/伴生抽屉面板', async ({ page }, testInf
   await expect(navDrawer.getByRole('tab', { name: /大纲/ })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('mobile-nav-drawer.png') });
 });
+
+// ===== R-09 阅读伴随聊天：滚动跟随 / 会话导航 / 迟到事件归属（2026-09-15）=====
+
+const companionPane = (page: import('@playwright/test').Page) =>
+  page.getByRole('complementary', { name: '伴生助手（模拟）' });
+const companionBody = (page: import('@playwright/test').Page) => page.locator('.reading-companion-body');
+
+/** 指定会话的助手消息内容（读真实持久化数据，不依赖渲染时机） */
+async function assistantReplies(page: import('@playwright/test').Page, sessionId: string) {
+  return page.evaluate((id) => {
+    const list = JSON.parse(localStorage.getItem('zhiqikeyuan:reading-sessions') ?? '[]') as {
+      id: string;
+      messages: { role: string; content: string }[];
+    }[];
+    const session = list.find((item) => item.id === id);
+    return session ? session.messages.filter((m) => m.role === 'assistant').map((m) => m.content) : [];
+  }, sessionId);
+}
+
+test('R-09 滚动跟随：流式中用户上滚不被拉回，「回到最新」为显式动作且只作用于伴生容器', async ({ page }, testInfo) => {
+  await gotoDemoWorkspace(page);
+  const companion = companionPane(page);
+  const body = companionBody(page);
+  await companion.getByLabel('向伴生助手提问').fill('滚动跟随测试');
+  await companion.getByLabel('发送提问').click();
+
+  // 事件驱动：等容器真的产生可滚动内容后，用户才“上滚”（否则 scrollTop=0 不代表用户动作）
+  await expect.poll(() => body.evaluate((el) => el.scrollHeight - el.clientHeight)).toBeGreaterThan(80);
+  await body.hover();
+  await page.mouse.wheel(0, -600);
+  expect(await body.evaluate((el) => el.scrollTop)).toBeLessThan(60);
+
+  // 流式增量继续到达：容器位置保持，不被强制拉回底部
+  await expect.poll(() => body.evaluate((el) => el.scrollHeight - el.clientHeight)).toBeGreaterThan(150);
+  await expect.poll(() => body.evaluate((el) => el.scrollTop)).toBeLessThan(60);
+  await expect
+    .poll(() => body.evaluate((el) => el.scrollHeight - el.scrollTop - el.clientHeight))
+    .toBeGreaterThan(90);
+  await page.screenshot({ path: testInfo.outputPath('r09-user-scroll-held.png') });
+
+  // 「回到最新」由用户触发，且只滚动伴生消息容器：正文与整页位置不变
+  const reader = reviewReader(page);
+  await reader.evaluate((el) => {
+    el.scrollTop = Math.min(120, el.scrollHeight - el.clientHeight);
+  });
+  const readerBefore = await reader.evaluate((el) => el.scrollTop);
+  const pageBefore = await page.evaluate(() => window.scrollY);
+  const backToLatest = companion.getByRole('button', { name: '回到最新' });
+  await expect(backToLatest).toBeVisible();
+  await backToLatest.click();
+  await expect.poll(() => body.evaluate((el) => el.scrollHeight - el.scrollTop - el.clientHeight)).toBeLessThan(2);
+  expect(await reader.evaluate((el) => el.scrollTop), '正文容器位置不应被改动').toBe(readerBefore);
+  expect(await page.evaluate(() => window.scrollY), '整页不应被滚动').toBe(pageBefore);
+  await expect(backToLatest).toHaveCount(0);
+});
+
+test('R-09 会话导航：主动切换产生前进后退历史，popstate 同步会话与草稿', async ({ page }) => {
+  await gotoDemoWorkspace(page);
+  const companion = companionPane(page);
+  const picker = companion.getByRole('combobox', { name: '阅读会话选择' });
+  await expect(picker).toHaveValue('demo-reading-ss-1');
+  // 会话 A 留下草稿，作为后退时“草稿同步”的证据
+  await companion.getByLabel('向伴生助手提问').fill('演示会话草稿');
+
+  // 新建会话 B → push 一条历史
+  await companion.getByRole('button', { name: '新建阅读会话' }).click();
+  await expect(page).toHaveURL(/\/reading\/demo-reading-ws\/sessions\/rss-/);
+  const sessionBUrl = page.url();
+  await expect(picker).not.toHaveValue('demo-reading-ss-1');
+  await expect(companion.getByLabel('向伴生助手提问')).toHaveValue('');
+
+  // 主动切回会话 A → push 另一条历史（不是 replace）
+  await picker.selectOption('demo-reading-ss-1');
+  await expect(page).toHaveURL(/\/reading\/demo-reading-ws\/sessions\/demo-reading-ss-1$/);
+  await expect(companion.getByLabel('向伴生助手提问')).toHaveValue('演示会话草稿');
+
+  // 后退 → 回到会话 B（而不是离开阅读板块），会话与草稿同步
+  await page.goBack();
+  await expect(page).toHaveURL(sessionBUrl);
+  await expect(picker).not.toHaveValue('demo-reading-ss-1');
+  await expect(companion.getByLabel('向伴生助手提问')).toHaveValue('');
+
+  // 前进 → 回到会话 A，草稿恢复
+  await page.goForward();
+  await expect(page).toHaveURL(/\/reading\/demo-reading-ws\/sessions\/demo-reading-ss-1$/);
+  await expect(companion.getByLabel('向伴生助手提问')).toHaveValue('演示会话草稿');
+});
+
+test('R-09 迟到事件：生成中切会话，旧轮只落旧会话，新会话立即干净可用', async ({ page }) => {
+  await gotoDemoWorkspace(page);
+  const companion = companionPane(page);
+  const messages = companion.locator('.reading-msg');
+  await companion.getByLabel('向伴生助手提问').fill('旧轮次问题');
+  await companion.getByLabel('发送提问').click();
+  await expect(companion.getByTestId('companion-turn')).toBeVisible();
+
+  // 生成中切到新会话：新会话不得显示旧会话的“生成中”块或旧内容
+  await companion.getByRole('button', { name: '新建阅读会话' }).click();
+  await expect(page).toHaveURL(/\/sessions\/rss-/);
+  await expect(companion.getByTestId('companion-turn')).toHaveCount(0);
+  await expect(messages.filter({ hasText: '旧轮次问题' })).toHaveCount(0);
+  await expect(companion.getByText(/伴生助手为本地模拟/)).toBeVisible();
+
+  // 旧轮次的迟到 end 到达后：回复落回**旧会话**，新会话仍无痕
+  await expect.poll(() => assistantReplies(page, 'demo-reading-ss-1')).toHaveLength(2);
+  await expect(messages.filter({ hasText: '旧轮次问题' })).toHaveCount(0);
+  await expect(companion.getByTestId('companion-turn')).toHaveCount(0);
+  expect((await assistantReplies(page, 'demo-reading-ss-1')).at(-1)).toContain('【模拟回复】');
+
+  // 切回旧会话：用户消息 + 完整模拟回复按会话恢复
+  await companion.getByRole('combobox', { name: '阅读会话选择' }).selectOption('demo-reading-ss-1');
+  await expect(messages.filter({ hasText: '旧轮次问题' })).toHaveCount(1);
+  await expect(messages.filter({ hasText: '【模拟回复】' })).toHaveCount(2);
+});
+
+test('R-09 取消收尾：取消保留已生成内容，迟到的收尾回调不改动新会话', async ({ page }) => {
+  await gotoDemoWorkspace(page);
+  const companion = companionPane(page);
+  const messages = companion.locator('.reading-msg');
+  await companion.getByLabel('向伴生助手提问').fill('取消测试问题');
+  await companion.getByLabel('发送提问').click();
+  // 等已有流式正文再取消，确保“保留已生成部分”有可验证内容
+  await expect(companion.getByTestId('companion-turn')).toBeVisible();
+  await expect.poll(() => companion.getByTestId('companion-turn').innerText()).toMatch(/【模拟回复】/);
+  await companion.getByRole('button', { name: '停止生成' }).click();
+
+  // 取消后立刻切新会话：新会话不得出现取消内容或轮次块
+  await companion.getByRole('button', { name: '新建阅读会话' }).click();
+  await expect(page).toHaveURL(/\/sessions\/rss-/);
+  await expect(companion.getByTestId('companion-turn')).toHaveCount(0);
+  await expect(messages.filter({ hasText: '取消测试问题' })).toHaveCount(0);
+
+  // 已生成内容按既有约定保留在**原会话**并标注取消
+  await expect
+    .poll(async () => (await assistantReplies(page, 'demo-reading-ss-1')).at(-1) ?? '')
+    .toContain('（已取消）');
+  await companion.getByRole('combobox', { name: '阅读会话选择' }).selectOption('demo-reading-ss-1');
+  await expect(messages.filter({ hasText: /（已取消）/ })).toHaveCount(1);
+  await expect(messages.filter({ hasText: '取消测试问题' })).toHaveCount(1);
+});
+
+test('R-09 移动端抽屉（减少动画）：上滚保持、「回到最新」可用、切换会话有历史', async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await gotoDemoWorkspace(page);
+  await page.getByRole('button', { name: '打开伴生助手面板' }).click();
+  const drawer = page.getByRole('dialog', { name: '伴生助手（模拟）' });
+  await expect(drawer).toBeVisible();
+
+  // 抽屉内消息区需积累足够内容才可能"上滚阅读历史"（先完成一轮，再在第二轮流式中上滚）
+  await drawer.getByLabel('向伴生助手提问').fill('移动端滚动测试');
+  await drawer.getByLabel('发送提问').click();
+  await expect.poll(() => assistantReplies(page, 'demo-reading-ss-1')).toHaveLength(2);
+  await drawer.getByLabel('向伴生助手提问').fill('移动端滚动测试第二轮');
+  await drawer.getByLabel('发送提问').click();
+  const body = companionBody(page);
+  await expect.poll(() => body.evaluate((el) => el.scrollHeight - el.clientHeight)).toBeGreaterThan(80);
+  await body.hover();
+  await page.mouse.wheel(0, -600);
+  await expect.poll(() => body.evaluate((el) => el.scrollHeight - el.clientHeight)).toBeGreaterThan(150);
+  await expect.poll(() => body.evaluate((el) => el.scrollTop)).toBeLessThan(60);
+  await page.screenshot({ path: testInfo.outputPath('r09-mobile-user-scroll.png') });
+
+  await drawer.getByRole('button', { name: '回到最新' }).click();
+  await expect.poll(() => body.evaluate((el) => el.scrollHeight - el.scrollTop - el.clientHeight)).toBeLessThan(2);
+
+  // 移动端抽屉内切换会话同样产生历史，并可后退/前进
+  await drawer.getByRole('button', { name: '新建阅读会话' }).click();
+  await expect(page).toHaveURL(/\/sessions\/rss-/);
+  const createdUrl = page.url();
+  await page.goBack();
+  // 后退回到进入工作区时的空间地址（该地址是稳定入口，不是被 replace 掉的临时态）
+  await expect(page).toHaveURL(/\/reading\/demo-reading-ws$/);
+  await page.goForward();
+  await expect(page).toHaveURL(createdUrl);
+});

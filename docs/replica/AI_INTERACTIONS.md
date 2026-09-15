@@ -1,6 +1,6 @@
 # AI 交互映射与验收边界
 
-更新：2026-09-12。主聊天运行时只走真实 SSE；模拟残留见 STATUS R-03，复杂能力/工具/扩展执行未接。补验候选99aea55：DeepSeek两个模型普通/流式连接通过，Flash在隔离8192预算下的真实长答、正文公式、推理折叠和恢复通过；默认预算两模型以及Pro8192长答失败。其他协议无供应商连接，不标全协议通过。知识库及阅读/写作的显式模拟单独记录，80项e2e的fixtures不能替代供应商验收。完整证据见 [STATUS](../STATUS.md) 与 [结果JSON](../qa/acceptance-20260912/summary.json)。
+更新：2026-09-15。主聊天运行时只走真实 SSE；模拟残留见 STATUS R-03，复杂能力/工具/扩展执行未接。补验候选99aea55：DeepSeek两个模型普通/流式连接通过，Flash在隔离8192预算下的真实长答、正文公式、推理折叠和恢复通过；默认预算两模型以及Pro8192长答失败。其他协议无供应商连接，不标全协议通过。知识库及阅读/写作的显式模拟单独记录，80项e2e的fixtures不能替代供应商验收。完整证据见 [STATUS](../STATUS.md) 与 [结果JSON](../qa/acceptance-20260912/summary.json)。
 
 状态包含待实现、部分实现、实现待验收、已验收、实现待修复、真实服务未接入、已移除。下表“组件保留”不等于运行通道已接通；阅读/写作等模块的显式模拟与主聊天分开。
 
@@ -31,7 +31,7 @@
 | A-persona | 角色/persona | ChatComposer persona | 实现待验收 | /space/personas 与聊天共用目录，选择与会话归属已有回归；后续跨业务输入区仍需共享同源目录。 |
 | A-attachments | 附件/文件 | ComposerInput | 部分实现 | 选取/拖入/粘贴/配额及异步身份代码已有；主聊天拒绝实际附件发送并保留编辑内容，真实解析未接。当前提示指向不存在的模拟模式，必须随 R-03 删除，不恢复模拟服务。 |
 | A-voice | 语音输入 | ChatComposer 录音入口 | 实现待验收 | 无 STT 服务：明确“未接入”说明+带标识演示转写，不采集音频；真实权限/设备拒绝状态待真实服务接入；e2e chat-composer.spec.ts |
-| A-reading-companion | 沉浸阅读伴生 AI | reading/workspace/ReadingCompanion、ReadingComposer | 部分实现 | companion-service 已使用统一 ChatService 事件模型，支持显式模拟流式/取消/失败重试/草稿归属；并非旧同步模板。过程/追问/产物/来源完整性、滚动与会话历史、媒体视图仍需补验，见 STATUS H2。 |
+| A-reading-companion | 沉浸阅读伴生 AI | reading/workspace/ReadingCompanion、ReadingComposer | 部分实现 | companion-service 已使用统一 ChatService 事件模型，支持显式模拟流式/取消/失败重试/草稿归属；并非旧同步模板。**R-09 已修（2026-09-15）**：滚动跟随由用户控制（上滚不被强拉回、"回到最新"显式触发且只滚伴生容器）、轮次按会话归属且终态不跨会话、会话切换有前进/后退历史。过程/追问/产物/来源完整性、媒体视图仍需补验，见 STATUS 6.10。 |
 | A-kb-ingest | 知识库导入→解析→索引 | 参考 `lib/knowledge-helpers.ts`（resolveKbStatus/kbHasLiveProgress/IndexVersion）、`components/knowledge/KbStatusBadge`、`KbIndexVersionsSection` | 显式模拟（前端闭环已验收） | 2026-09-11 B-H1-KB：`services/knowledge-ingest.ts` 复刻 registered→parsing→indexing→ready、进度、取消、失败重试、刷新恢复、全部就绪追加索引版本；产物为本地结构化样例并全程标注。真实文件解析/向量检索未接入，与真实服务验收分开记录；参考另有 WS/SSE 进度与 KB 级状态（target 以逐文档状态 + KB 汇总呈现），接入真实服务时按参考协议重对齐。e2e `knowledge-notebooks.spec.ts` |
 
 本次知识库相关既有e2e 10/10通过，1920/390的已就绪、失败、解析中和系统减少动画状态样本补验通过；仍无真实文件解析/索引/检索调用。所有结果仅更新文档，未修改生产模型配置或能力标记。

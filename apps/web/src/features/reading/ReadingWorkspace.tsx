@@ -1055,6 +1055,8 @@ function ReaderPane({
 // ===== 右栏：伴生助手（统一 ChatService 事件模型 + 本地确定性模拟） =====
 
 interface CompanionTurnState {
+  /** R-09：该轮次所属会话——终态与增量只在归属会话内生效，避免串会话 */
+  sessionId: string;
   turnId: string;
   text: string;
   process: string[];
@@ -1080,13 +1082,17 @@ function CompanionPane({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [pendingQuote, setPendingQuote] = useState<string | null>(null);
-  const [turn, setTurn] = useState<CompanionTurnState | null>(null);
+  // R-09：轮次按会话归属存放。切走后旧会话的生成继续进行并只写回自身，新会话立即可用；
+  // 迟到事件与收尾回调按 sessionId + turnId 校验，不污染当前会话。
+  const [turns, setTurns] = useState<Record<string, CompanionTurnState>>({});
+  // R-09：是否跟随最新。用户手动上滚即关闭；点"回到最新"恢复。
+  const [followBottom, setFollowBottom] = useState(true);
   const bodyRef = useRef<HTMLDivElement>(null);
   const routeSessionRef = useRef<string | null>(null);
+  const activeIdRef = useRef<string | null>(null);
   const serviceRef = useRef<CompanionService | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
-  const turnTextRef = useRef('');
-  const lastSendRef = useRef<{ sessionId: string; text: string; quote?: string } | null>(null);
+  const abortsRef = useRef<Map<string, AbortController>>(new Map());
+  const lastSendRef = useRef<Map<string, { text: string; quote?: string }>>(new Map());
   /** 草稿归属：记录草稿状态对应的会话，切会话/卸载时按会话保存，不串写 */
   const draftOwnerRef = useRef<{ sessionId: string | null; draft: string; quote: string | null }>({
     sessionId: null,
@@ -1183,18 +1189,31 @@ function CompanionPane({
 
   const active = sessions.find((item) => item.id === activeId) ?? null;
   const messageCount = active?.messages.length ?? 0;
+  // 当前会话的轮次：其他会话的轮次只写回各自会话，不在此渲染
+  const turn = activeId ? turns[activeId] ?? null : null;
   const turnActive = turn !== null && turn.error === null;
-
-  // 新消息与流式增量自动滚到底部
   useEffect(() => {
+    activeIdRef.current = activeId;
+  }, [activeId]);
+
+  // R-09：切换会话时恢复"跟随最新"（每个会话从最新处开始看），
+  // 避免在 A 会话上滚后切到 B 会话却不跟随的串用。
+  useEffect(() => {
+    setFollowBottom(true);
+  }, [activeId]);
+
+  // R-09：仅在"跟随最新"时自动滚到底部；用户上滚后不再强制拉回（只作用于伴生消息容器）
+  useEffect(() => {
+    if (!followBottom) return;
     const el = bodyRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [activeId, messageCount, turn?.text, turn?.process.length]);
+  }, [followBottom, activeId, messageCount, turn?.text, turn?.process.length]);
 
   // 卸载时中止进行中的轮次（保留已生成部分并落盘）
   useEffect(
     () => () => {
-      abortRef.current?.abort();
+      abortsRef.current.forEach((controller) => controller.abort());
+      abortsRef.current.clear();
     },
     [],
   );
@@ -1204,11 +1223,62 @@ function CompanionPane({
     if (owner.sessionId) saveSessionDraft(owner.sessionId, owner.draft, owner.quote);
   }
 
+  /**
+   * R-09 会话地址同步（对照主聊天 syncSessionUrl 契约）：
+   * - 用户主动切换/新建会话走 pushState，形成可前进/后退的历史；
+   * - 地址已一致时不写历史，避免初始化/重复切换制造重复条目；
+   * - 只有"用户动作"与"浏览器导航（popstate）"两个来源会改地址。
+   */
+  function syncSessionUrl(sessionId: string, method: 'push' | 'replace') {
+    const target = `/reading/${encodeURIComponent(workspaceId)}/sessions/${sessionId}`;
+    if (window.location.pathname === target) return;
+    (method === 'push' ? window.history.pushState : window.history.replaceState).call(
+      window.history,
+      null,
+      '',
+      target,
+    );
+  }
+
+  // R-09：浏览器前进/后退时按 URL 重新定位空间与会话，草稿先按归属落盘再切换
+  useEffect(() => {
+    function onPopState() {
+      const match = /^\/reading\/([^/]+)(?:\/sessions(?:\/([^/?#]+))?)?\/?$/.exec(window.location.pathname);
+      if (!match) return; // 离开阅读板块：交由路由处理
+      if (decodeURIComponent(match[1]!) !== workspaceId) return; // 其他空间：由路由参数变化重新挂载同步
+      const sessionId = match[2] ? decodeURIComponent(match[2]) : null;
+      let list: ReadingSession[];
+      try {
+        list = readSessions(workspaceId);
+      } catch {
+        return; // 读取失败由订阅刷新的错误提示呈现
+      }
+      if (sessionId) {
+        if (!list.some((item) => item.id === sessionId)) {
+          onSessionError('链接指向的会话不存在，已切换到最近会话。');
+          return;
+        }
+        if (sessionId !== activeIdRef.current) flushDraft();
+        setActiveId(sessionId);
+        onSessionError(null);
+        return;
+      }
+      // 后退到无会话地址（/reading/<ws> 或 /reading/<ws>/sessions）：回到该空间默认会话
+      const fallback = list[0]?.id ?? null;
+      if (fallback !== activeIdRef.current) flushDraft();
+      setActiveId(fallback);
+      onSessionError(null);
+    }
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceId]);
+
   function focusSession(sessionId: string) {
     if (sessionId !== activeId) flushDraft();
     setActiveId(sessionId);
     onSessionError(null);
-    window.history.replaceState(null, '', `/reading/${encodeURIComponent(workspaceId)}/sessions/${sessionId}`);
+    syncSessionUrl(sessionId, 'push');
   }
 
   function newSession() {
@@ -1216,22 +1286,36 @@ function CompanionPane({
     focusSession(session.id);
   }
 
-  function finalizeTurn(sessionId: string, content: string, cancelled = false) {
-    abortRef.current = null;
+  function finalizeTurn(sessionId: string, turnId: string, controller: AbortController, content: string, cancelled = false) {
+    // 只释放本轮自己的控制器：旧轮次收尾不得夺走新轮次的取消能力
+    if (abortsRef.current.get(sessionId) === controller) abortsRef.current.delete(sessionId);
+    // R-09：内容始终落到**所属会话**（不丢已生成内容）
     if (content.trim()) {
       appendMessage(sessionId, { role: 'assistant', content });
     }
-    setTurn(null);
-    if (!cancelled) lastSendRef.current = null;
+    // 只清理属于该会话、该轮的轮次块：切到别的会话或已开新轮后，旧轮收尾不得清掉新状态
+    setTurns((current) => {
+      if (current[sessionId]?.turnId !== turnId) return current;
+      const next = { ...current };
+      delete next[sessionId];
+      return next;
+    });
+    if (!cancelled) lastSendRef.current.delete(sessionId);
   }
 
   function startTurn(sessionId: string, userText: string, quote?: string) {
-    lastSendRef.current = { sessionId, text: userText, quote };
+    lastSendRef.current.set(sessionId, { text: userText, quote });
+    // 同一会话不并发：新轮开始前中止该会话的上一轮（跨会话互不影响）
+    abortsRef.current.get(sessionId)?.abort();
     const controller = new AbortController();
-    abortRef.current = controller;
-    turnTextRef.current = '';
+    abortsRef.current.set(sessionId, controller);
     const turnId = `rturn-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-    setTurn({ turnId, text: '', process: [], stage: null, error: null, retryable: false });
+    // 本轮文本只存在本地闭包，避免切会话/新轮次后串用上一轮的内容
+    let text = '';
+    setTurns((current) => ({
+      ...current,
+      [sessionId]: { sessionId, turnId, text: '', process: [], stage: null, error: null, retryable: false },
+    }));
     void serviceRef.current!.run(
       {
         sessionId,
@@ -1242,26 +1326,33 @@ function CompanionPane({
         signal: controller.signal,
       },
       (event) => {
-        // 轮次守卫：丢弃迟到/串会话事件（对齐主聊天 turnId/sessionId 校验）
-        if (event.type !== 'end' && event.type !== 'error' && (event.turnId !== turnId || event.sessionId !== sessionId)) return;
+        // R-09 轮次守卫：**所有**事件（含 end/error 终态）都必须属于本轮与所属会话，
+        // 否则丢弃——切会话/新轮次后迟到的终态不得改动新会话状态。
+        if (event.turnId !== turnId || event.sessionId !== sessionId) return;
+        const update = (mutate: (entry: CompanionTurnState) => CompanionTurnState) =>
+          setTurns((current) => {
+            const entry = current[sessionId];
+            if (!entry || entry.turnId !== turnId) return current;
+            return { ...current, [sessionId]: mutate(entry) };
+          });
         switch (event.type) {
           case 'turn-start':
             break;
           case 'process':
-            setTurn((current) => (current && current.turnId === turnId ? { ...current, process: [...current.process, event.delta] } : current));
+            update((entry) => ({ ...entry, process: [...entry.process, event.delta] }));
             break;
           case 'stage':
-            setTurn((current) => (current && current.turnId === turnId ? { ...current, stage: event.phase === 'start' ? event.label : null } : current));
+            update((entry) => ({ ...entry, stage: event.phase === 'start' ? event.label : null }));
             break;
           case 'text':
-            turnTextRef.current += event.delta;
-            setTurn((current) => (current && current.turnId === turnId ? { ...current, text: turnTextRef.current } : current));
+            text += event.delta;
+            update((entry) => ({ ...entry, text }));
             break;
           case 'error':
-            setTurn((current) => (current && current.turnId === turnId ? { ...current, error: event.error.message, retryable: event.error.retryable ?? false } : current));
+            update((entry) => ({ ...entry, error: event.error.message, retryable: event.error.retryable ?? false }));
             break;
           case 'end':
-            finalizeTurn(sessionId, turnTextRef.current);
+            finalizeTurn(sessionId, turnId, controller, text);
             break;
           default:
             break;
@@ -1270,10 +1361,21 @@ function CompanionPane({
     ).catch((cause: unknown) => {
       if (cause instanceof DOMException && cause.name === 'AbortError') {
         // 取消：保留已生成部分并显式标注
-        finalizeTurn(sessionId, turnTextRef.current ? `${turnTextRef.current}\n\n（已取消）` : '', true);
+        finalizeTurn(sessionId, turnId, controller, text ? `${text}\n\n（已取消）` : '', true);
         return;
       }
-      setTurn((current) => (current ? { ...current, error: cause instanceof Error ? cause.message : '伴生回复失败，请重试。', retryable: true } : current));
+      setTurns((current) => {
+        const entry = current[sessionId];
+        if (!entry || entry.turnId !== turnId) return current;
+        return {
+          ...current,
+          [sessionId]: {
+            ...entry,
+            error: cause instanceof Error ? cause.message : '伴生回复失败，请重试。',
+            retryable: true,
+          },
+        };
+      });
     });
   }
 
@@ -1285,7 +1387,7 @@ function CompanionPane({
       const session = createSession(workspaceId, activeMaterial?.id ?? null);
       sessionId = session.id;
       loadedSessionRef.current = sessionId;
-      window.history.replaceState(null, '', `/reading/${encodeURIComponent(workspaceId)}/sessions/${sessionId}`);
+      syncSessionUrl(sessionId, 'push');
     } else {
       setActiveId(sessionId);
     }
@@ -1299,14 +1401,15 @@ function CompanionPane({
   }
 
   function cancelTurn() {
-    abortRef.current?.abort();
+    if (activeId) abortsRef.current.get(activeId)?.abort();
   }
 
   function retryTurn() {
-    const last = lastSendRef.current;
-    if (!last || turn) return;
+    const sessionId = activeId;
+    const last = sessionId ? lastSendRef.current.get(sessionId) : null;
+    if (!sessionId || !last || turn) return;
     onSessionError(null);
-    startTurn(last.sessionId, last.text, last.quote);
+    startTurn(sessionId, last.text, last.quote);
   }
 
   return (
@@ -1343,7 +1446,16 @@ function CompanionPane({
           {sessionError}
         </div>
       )}
-      <div className="reading-companion-body" ref={bodyRef}>
+      <div
+        className="reading-companion-body"
+        ref={bodyRef}
+        onScroll={() => {
+          const el = bodyRef.current;
+          if (!el) return;
+          // R-09：距底 >90px 视为用户上滚阅读历史，关闭自动跟随
+          setFollowBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 90);
+        }}
+      >
         {!active || (active.messages.length === 0 && !turn) ? (
           <p className="space-footnote" style={{ margin: 0 }}>
             伴生助手为本地模拟（未接入模型）：提问、或选中正文「问 AI」。回复为显式模拟事件流（流式/过程/取消/重试）并标注【模拟回复】。
@@ -1378,6 +1490,21 @@ function CompanionPane({
           </>
         )}
       </div>
+      {/* R-09：「回到最新」由用户显式触发，且只滚动伴生消息容器，不碰阅读正文与整页 */}
+      {!followBottom && (
+        <button
+          type="button"
+          className="space-button"
+          style={{ alignSelf: 'center', margin: '6px 0 0' }}
+          onClick={() => {
+            setFollowBottom(true);
+            const el = bodyRef.current;
+            if (el) el.scrollTop = el.scrollHeight;
+          }}
+        >
+          回到最新
+        </button>
+      )}
       <div className="reading-composer">
         <textarea
           value={draft}
