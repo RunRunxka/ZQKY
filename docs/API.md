@@ -41,9 +41,9 @@
 `AUTH_REQUIRED`、`AUTH_EXPIRED`、`OAUTH_APP_NOT_CONFIGURED`、`AUTH_PENDING`、`AUTH_CANCELLED`、
 `CONFIG_BACKUP_FAILED`（迁移前备份失败，写入被取消，MR-06）。
 
-**跨存储一致性（R-01，未关闭）**：连接的更新/删除在仓储同一临界区内完成 revision 校验、文档变更与
+**跨存储一致性（R-01）**：连接的更新/删除在仓储同一临界区内完成 revision 校验、文档变更与
 凭证写入（`ModelConfigRepository.run_atomic`）；配置落盘失败按快照回滚凭证，删除时凭证清理失败则整体不删，
-可安全重试。已自检通过，仍需独立复验确认。
+可安全重试。修复及独立验收候选统一见 [STATUS问题台账](STATUS.md#3-问题台账与验收限制)，本文件只维护当前接口语义。
 
 ## 后端凭证文件
 
@@ -51,7 +51,7 @@
 - 设置页原创建/编辑连接 API 不变，非空 `apiKey` 写入 `.env` 的 `ZQKY_API_KEY_<连接ID>`；空值仍表示保持原凭证。每个连接独立映射，模型共用所属连接的 Key。写入采用临时文件、flush/fsync、原子替换，保留其他行；删除连接会移除对应文件项。
 - 可手动编辑该变量（原样字符串、单引号或 JSON 双引号字符串均支持；不进行 shell 展开或变量插值），然后重启 API。进程环境变量在启动时覆盖同名文件项；Windows 环境变量名大小写不影响小写连接 ID 匹配。
 - 连接响应仍不回显密钥，新增非敏感 `credentialEnvName`，`credentialScope` 为 `env-file`（正式持久化存储）或 `process`（注入的内存存储）。`.env`、临时 `.env.*.tmp` 均由既有 `.gitignore` 排除；仅无密钥 `.env.example` 入库。
-- 文件读写失败返回 `CREDENTIAL_STORAGE_ERROR`，不回显凭证/底层异常。更新先校验 revision 与字段，凭证写失败不提交本次连接配置变更。跨文件补偿已按 contract-v1 落地（R-01）：更新时先快照凭证、配置保存失败则回滚凭证；删除时配置删除后清理凭证，清理失败明确报错而非静默留孤儿；`credentialAction:"clear"` 提供独立清除动作（R-08）。相关回归见 `apps/api/tests/test_model_contract_v1_api.py`。没有数据库或第二套业务后端。
+- 文件读写失败返回 `CREDENTIAL_STORAGE_ERROR`，不回显凭证/底层异常。更新先校验 revision 与字段，凭证写失败不提交本次连接配置变更。跨文件补偿按 contract-v1 实现（R-01）：更新在同一临界区快照凭证，配置保存失败则回滚；删除在配置落盘前清理凭证，清理失败整体不删除，配置落盘失败恢复凭证；`credentialAction:"clear"` 提供独立清除动作（R-08）。相关回归见 `apps/api/tests/test_model_contract_v1_api.py` 与 `apps/api/tests/test_review_regressions.py`。没有数据库或第二套业务后端。
 - 主聊天仅实例化真实服务、真实 IndexedDB 会话库；移除模拟生成与免密伪模型。SSE 事件名与三协议适配保持原契约。
 
 ## 模型目录与会话约定

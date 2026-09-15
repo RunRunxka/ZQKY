@@ -2,7 +2,7 @@
 
 更新：2026-09-15。全站视觉以当前学习问答为准；模块信息结构/功能/动画对照固定 DeepTutor。下表“状态”是**功能状态**；页面内容是否按学习问答完成视觉验收在文末单列，二者不得互相替代。根级 NavigationPreference 已统一侧栏几何和折叠状态，但不代表各页面内容视觉已统一。
 
-历史主页/侧栏批次记录已合入 [交付历史](../archive/DELIVERY_HISTORY.md#snapshot-status-20260910)。主聊天运行时模拟服务和切换入口已删除，但主聊天会话契约、文案和样式仍有 mock 残留；旧模拟测试仅是历史证据。阅读、写作等模块已批准的显式模拟继续单独标注。当前代码审查问题见 [STATUS §3](../STATUS.md)。
+历史主页/侧栏批次记录已合入 [交付历史](../archive/DELIVERY_HISTORY.md#snapshot-status-20260910)。主聊天运行时模拟服务、切换入口及不可达文案/样式已由R-03清理；旧兼容类型和模拟测试仅是历史/测试用途，旧模拟库不读写。阅读、写作等模块已批准的显式模拟继续单独标注。当前代码审查问题见 [STATUS §3](../STATUS.md)。
 
 基线提交：42fab3cf429a1fbf36b257ab8d116a3814964202（固定版本源码核对）。状态词汇：`待实现` / `部分实现` / `实现待验收` / `已验收` / `实现待修复` / `真实服务未接入`。条目 id 稳定规则：`P-<路由段>`，动态段用 `[x]` 占位。
 
@@ -11,9 +11,9 @@
 | id | 参考路由 | 目标路由 | 状态 | 范围摘要与证据 |
 | --- | --- | --- | --- | --- |
 | P-root | `/` | `/` | 已验收 | 默认跳转 /chat；单一主页来源 HOME_PATH 派生，e2e `shell-home-nav.spec.ts` 断言标题与品牌入口 |
-| P-chat | `/chat` | `/chat` | 部分实现 | 当前全站视觉基准：220/56px 导航、独立236px学习记录列、912px内容上限、输入区图标/字体/思考球与模型弹层。普通真实聊天及本地历史已有；运行时模拟服务与切换入口已删除，生产 mock 残留见 STATUS R-03，复杂能力真实通道未接。历史主页和 H0 侧栏回归不代表全产品或真实供应商通过。 |
+| P-chat | `/chat` | `/chat` | 部分实现 | 当前全站视觉基准：220/56px 导航、独立236px学习记录列、912px内容上限、输入区图标/字体/思考球与模型弹层。普通真实聊天及本地历史已有；运行时模拟服务与切换入口已删除，R-03生产mock残留已清理，复杂能力真实通道未接。历史主页和 H0 侧栏回归不代表全产品或真实供应商通过。 |
 | P-chat-[sessionId] | `/chat/[sessionId]` | `/chat/[sessionId]` | 实现待验收 | 与当前主页共用外观，真实会话深链/恢复/无效id处理已有；旧mode参数不恢复模拟。完整消息交互、历史数据与跨页来源待核验；侧栏父菜单高亮由 WorkspaceShell 统一。 |
-| P-settings | `/settings` | `/settings` | 实现待验收 | 分类导航/锚点/搜索、模型真实管理、扩展模拟管理已有。2026-09-13 MODEL-EXEC v3 完成模型区域重做（供应商卡片→详情→模型列表，保留蓝色与真实目录，独立审查 MR-07/08/12/13/14/16 已修，e2e `model-settings.spec.ts` 8 项 + 真实联调 5 项）。B-H0R-SHELL 批已收口其公共壳与当前菜单（唯一主页/唯一当前项/统一 404 壳）。其他 S6 设置整合仍待实现 |
+| P-settings | `/settings` | `/settings` | 实现待验收 | 分类导航/锚点/搜索、模型真实管理、扩展模拟管理已有。2026-09-13 MODEL-EXEC v3 完成模型区域重做（供应商卡片→详情→模型列表，保留蓝色与真实目录，独立审查 MR-07/08/12/13/14/16 已修且后续独立复验；9965592补嵌套/草稿/焦点，设置全页与全部动画仍未整体通过）。B-H0R-SHELL 批已收口其公共壳与当前菜单（唯一主页/唯一当前项/统一 404 壳）。其他 S6 设置整合仍待实现 |
 | P-lesson-plans | —（目标自有） | `/lesson-plans` | 已验收 | 目标项目既有教案工作台，保留独立地址与导航入口；首页现为 /chat；e2e `lesson-plan.spec.ts` 回归 |
 | P-space | `/space` | `/space` | 实现待验收 | 学习空间仪表盘（S5-A）：3 组磁贴+实时计数（会话/题库/笔记/角色/CLI/技能/MCP）；whisper 磁贴按参考行为隐藏（树外插件能力本地不存在）；e2e `space-pages.spec.ts` |
 | P-space-chat-history | `/space/chat-history` | `/space/chat-history` | 实现待验收 | 会话历史目录（S5-A）：真实仓储搜索/归档筛选、内联重命名、删除确认、归档恢复、重开；2026-09-09 移除模拟筛选与库读取，旧模拟数据留存不清理；e2e 同上 |
@@ -35,9 +35,9 @@
 | P-courses-[courseId] | `/courses/[courseId]` | `/courses/[courseId]` | 部分实现 | 已有大纲逐行编辑、覆盖标记、下一单元提示、资料附加/移除、失效资源提示、约定与归档恢复；课程学习会话及聊天 course_id 关联尚未实现，须补齐并验收。e2e `books-courses.spec.ts` 仅覆盖已有切片。 |
 | P-reading | `/reading` | `/reading` | 实现待验收 | 集合卡片、新建/删除、按稳定id无损合并演示已有，R26–R31有历史修复和回归。完整阅读交付仍待验收；不再沿用R26未修结论。见 reading-store 与阅读 review。 |
 | P-reading-materials | `/reading/materials` | `/reading/materials` | 实现待验收 | text/pdf/epub/webpage/video/audio类型、显式模拟解析的queued/processing/ready/failed与取消重试、分配/删除已有；真实解析和媒体原视图未完成。见 MaterialLibrary、companion-service 与阅读 review。 |
-| P-reading-[workspaceId] | `/reading/[workspaceId]` | `/reading/[workspaceId]` | 实现待验收 | 三栏阅读、segments批注定位、选区工具、书签/进度、事件驱动伴生模拟（流式/取消/失败重试）、按会话保存草稿与手机面板已有。**R-09 已修（2026-09-15）**：滚动跟随由用户控制、轮次按会话归属、迟到终态不跨会话；见 STATUS 6.10。消息过程/来源完整性、媒体原视图待核验。 |
-| P-reading-sessions | `/reading/[workspaceId]/sessions` | `/reading/[workspaceId]/sessions` | 实现待验收 | 工作区会话入口及最近会话选择已有；**R-09 已修**：切会话改 `pushState`、`popstate` 按 URL 同步空间/会话/草稿，后退到无会话地址回落默认会话。见 ReadingWorkspace 与 STATUS 6.10。 |
-| P-reading-sessions-[sessionId] | `/reading/[workspaceId]/sessions/[sessionId]` | 同 | 实现待验收 | 按routeSessionId恢复、无效会话提示与草稿归属已有；**R-09 已修**：前进/后退同步会话与草稿，过期轮次的事件与收尾回调按 `sessionId+turnId` 丢弃。正式回归见 `tests/e2e/reading.spec.ts` R-09 五例。 |
+| P-reading-[workspaceId] | `/reading/[workspaceId]` | `/reading/[workspaceId]` | 实现待验收 | 三栏阅读、segments批注定位、选区工具、书签/进度、事件驱动伴生模拟（流式/取消；失败按钮另有待补测项）、按会话保存草稿与手机面板已有。**R-09 已修（2026-09-15）**：滚动跟随由用户控制、已测轮次按会话归属；重复/失效终态持久化另见STATUS READ-END；见 [STATUS阅读批索引](../STATUS.md#4-已完成批次与证据索引)。消息过程/来源完整性、媒体原视图待核验。 |
+| P-reading-sessions | `/reading/[workspaceId]/sessions` | `/reading/[workspaceId]/sessions` | 实现待验收 | 工作区会话入口及最近会话选择已有；**R-09 已修**：切会话改 `pushState`、`popstate` 按 URL 同步空间/会话/草稿，后退到无会话地址回落默认会话。见 ReadingWorkspace 与 [STATUS阅读批索引](../STATUS.md#4-已完成批次与证据索引)。 |
+| P-reading-sessions-[sessionId] | `/reading/[workspaceId]/sessions/[sessionId]` | 同 | 实现待验收 | 按routeSessionId恢复、无效会话提示与草稿归属已有；**R-09 已修**：前进/后退同步会话与草稿，已测跨会话事件归属受 `sessionId+turnId` 约束；重复/失效终态持久化另见STATUS的READ-END补测。正式回归见 `tests/e2e/reading.spec.ts` R-09 五例。 |
 | P-co-writer | `/co-writer` | `/co-writer` | 实现待验收 | 文档列表（S5-E）：新建空白/模板、删除确认、更新时间与字数；DOCX 导入未接入为显式说明；AI 修改为统一事件模型显式模拟；e2e `writing.spec.ts` |
 | P-co-writer-[docId] | `/co-writer/[docId]` | `/co-writer/[docId]` | 实现待验收 | 编辑器（S5-E）：即时自动保存与保存状态、选区改写/润色/扩写与全文生成（流式预览/应用/放弃/取消/失败重试，应用前自动快照）、撤销栈、版本历史与恢复；e2e 同上 |
 | P-whisper | `/whisper` | `/whisper` | 实现待验收 | Whisper 密室（S5-E，用途以固定源码为准）：双席位（访客/学员）分席会话、房间创建/结束态、危机表述系统引导卡（援助热线）；回复为显式模拟流式；能力未接入保留可演示前端路径；e2e 同上 |
@@ -65,7 +65,7 @@
 | P-admin-users | `/admin/users` | `/admin/users` | 待实现 | 管理视图（S5-I），按原版权限表达 |
 | P-avatar-preview | `/avatar-preview` | — | 内部调试 | 只登记；不纳入必需完成项，不暴露主导航 |
 
-必需完成功能分母：除 P-avatar-preview 外共53项（参考产品页50 + 自有教案1 + 额外兼容别名2）。2026-09-12按实际行复核：**已验收4 / 实现待验收21 / 部分实现6 / 待实现22**。本次80项既有e2e通过，并补知识库1920/390状态样本；这些检查未覆盖所有条目完整规格，功能标签不因样本通过整体升级。功能与视觉状态分别记录。
+必需完成功能分母：除 P-avatar-preview 外共53项（参考产品页50 + 自有教案1 + 额外兼容别名2）。2026-09-12按实际行复核：**已验收4 / 实现待验收21 / 部分实现6 / 待实现22**。2026-09-12当时80项既有e2e通过，并补知识库1920/390状态样本；这些检查未覆盖所有条目完整规格，功能标签不因样本通过整体升级。功能与视觉状态分别记录。
 
 标签不是完整产品验收百分比：路由 ready、自动用例通过、视觉/动画验收与真实后端验证分开记录。改变状态或条目时重算本段，禁止保留第二份旧统计。
 
@@ -76,7 +76,7 @@
 | 状态 | 页面范围 | 当前证据与缺口 |
 | --- | --- | --- |
 | 基准页 | `P-chat` | 蓝色主题、Chat Geist/Lora、220/56px 导航、236px 学习记录中栏、912px 对话列、模型弹层和思考球是全站来源 |
-| 部分验收 | `P-chat-[sessionId]` | 2026-09-12 Flash测试预算8192的真实长答：465汉字、27处公式，三视口无页面级溢出、推理折叠和刷新恢复通过；默认预算两模型和Pro8192长答失败。完整消息交互、历史数据和跨页来源仍待核验 |
+| 部分验收 | `P-chat-[sessionId]` | 2026-09-12 Flash测试预算8192的真实长答：465汉字、27处公式，三视口无页面级溢出、推理折叠和刷新恢复通过；默认预算两模型和Pro8192长答失败。后续R-10会话回链/消息定位已有独立功能证据；全消息视觉和真实交互仍待完整验收 |
 | 部分验收 | `P-knowledge-bases-[kbName]` | 1920/390下就绪、失败、解析中显式模拟样本可读，系统减少动画下可到达就绪；完整内容风格、全部分区/弹窗与进度动画时序仍待验 |
 | 未通过（收窄） | `P-settings`、`P-lesson-plans`、`P-space`、`P-knowledge-bases`、`P-notebooks`、`P-books`、`P-courses`、`P-reading`、`P-co-writer`、`P-whisper` | 三视口巡检确认内容字体/标题/卡片体系仍**未按 chat 统一**（R-05，视觉统一另批处理）。**R-04 的当前菜单问题已由 B-H0R-SHELL v1 修复并关闭**：courses/notebooks/whisper 现标记可见父菜单、抽屉焦点落在当前项；因此不再以“缺当前菜单”作为这些页面的未通过理由。 |
 | 待验收 | `P-space-chat-history`、`P-space-questions`、`P-space-personas`、`P-space-cli-apps`、`P-notebooks-[notebookId]`、`P-books-[bookId]`、`P-books-pages-[pageId]`、`P-courses-[courseId]`、`P-reading-materials`、`P-reading-[workspaceId]`、`P-reading-sessions`、`P-reading-sessions-[sessionId]`、`P-co-writer-[docId]` | 既有e2e覆盖部分功能；本次未逐页完成全部状态的视觉对照，保留待验收 |
@@ -85,6 +85,8 @@
 
 每个页面升级视觉状态时必须提供 1440×900、1920×1080、390×844、键盘/焦点、长文/空态/错误和减少动画证据；业务功能状态保持独立。
 
-H0 公共壳是横向证据：现有页面已共用 220/56px 侧栏、折叠偏好和选定响应式行为，但这不为任何页面内容区授予“部分验收”。隐藏直达页的当前菜单/抽屉焦点和部分错误场景的统一壳仍待修复。
+H0 公共壳是横向证据：现有页面已共用 220/56px 侧栏、折叠偏好和选定响应式行为，但这不为任何页面内容区授予“部分验收”。隐藏直达页当前菜单/抽屉焦点和404壳已由e7fb2a4修复；错误页reset运行时仍未验，模块内容视觉尚未整体统一。
 
-额外错误场景 `/acceptance-404`：三视口均无公共壳，恢复入口仍回教案，判定未通过（R-02/R-06）；这是错误态证据，不增加53项分母。本次未做固定DeepTutor像素差分或全部主题/详情/弹窗覆盖。
+历史额外错误场景 `/acceptance-404` 在2026-09-12无壳且返回教案，首败保留；R-02/R-06已于e7fb2a4修复并有404浏览器复验，不继续列作当前缺陷。错误态不增加53项分母；全主题/详情/弹窗及错误reset运行时仍未全部覆盖。
+
+当前视觉任务对应 `P-space`：公共基础与首页迁移已规划、尚未实施；完成前不升级功能或视觉状态。详细范围只见 [STATUS当前任务](../STATUS.md#5-当前任务b-r05-space-visual-v1)。

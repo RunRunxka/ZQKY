@@ -1,6 +1,6 @@
 # 项目目标与工程说明
 
-更新：2026-09-13。取代旧 ARCHITECTURE、DECISIONS、BASELINE 的现行说明；历史原文见 [项目历史](archive/PROJECT_HISTORY.md)。当前进度、代码审查、完整阶段计划与下一动作只维护在 [STATUS](STATUS.md)。
+更新：2026-09-15。取代旧 ARCHITECTURE、DECISIONS、BASELINE 的现行说明；历史原文见 [项目历史](archive/PROJECT_HISTORY.md)。当前进度、代码审查、完整阶段计划与下一动作只维护在 [STATUS](STATUS.md)。
 
 ## 1. 唯一目标
 
@@ -84,16 +84,13 @@ _work/ test-results/      本机日志、截图、trace、备份（Git 忽略）
 
 ## 4. 数据与联动
 
-### 回退后实施授权与draft-2裁决（2026-09-13）
+### 实施授权与模型稳定决定
 
-用户明确要求外部Agent完成代码落地，本Codex只做交付审查。回退Git不会撤销这条用户授权。外部队长担任本批临时实施总控，可以定稿完整contract-v1、编写共享契约及全部模型相关前后端代码、组织测试、更新权威文档和本地提交；不再等待本Codex冻结合同或应用补丁。仍需内部单一写入者，合同定稿是团队内部步骤。实际资源交接与当前进度见STATUS第6.1节；本文不宣称合同或功能已经完成。
+用户要求外部Agent队长完成当前任务的产品代码、集成、验收组织、权威文档及本地提交；Codex负责交付审查，用户另外要求的文档整理可由Codex执行。具体可写范围只由STATUS当前任务确定，不能从旧模型权限推导为所有模块无限授权。共享文件和运行资源仍需单一负责人，不等待Codex定稿或代写常规契约。
 
-**执行结果（2026-09-13）**：contract-v1 已定稿并落地（散列见 `_work/model-providers-v1/contract-v1.md`），
-D1–D16 逐项实现位置见该文件第 2 节。模型管理信息结构（连接可复用、供应商卡片开详情、
-打开编辑不等于切换当前模型）与本文第 3 节"模型管理与供应商决定"一致；供应商实现以注册表 38 条为唯一真值，
-实测与真实边界见 STATUS 第 4 节。本文下方 D1–D16 表仍是裁决依据，实施细节以代码与合同记录为准。
+下面保留2026-09-13模型批D1–D16稳定决定，供维护与兼容使用，不是重新执行P0的任务。模型实现与验收候选、未验范围统一见 [STATUS](STATUS.md)。当时合同原始散列在 `_work/model-providers-v1/contract-v1.md`；即使本机产物缺失，也可从本表、版本源码及API核对，不将不可迁移的_work作为唯一交接依据。
 
-| 项 | draft-2实施决定 |
+| 项 | 模型稳定决定（原draft-2裁决） |
 | --- | --- |
 | D1 | providerId落库；旧连接缺字段时按原protocol映射custom，不猜供应商、不改URL、ID和默认引用。别名仅来自显式别名表，keywords是匹配词，二者分开。 |
 | D2 | apiFormat连接级，profile覆盖不纳入本批；非法新请求组合报明确错误，不静默换协议。旧配置规范化与新请求校验分开。 |
@@ -135,9 +132,9 @@ D1–D16 逐项实现位置见该文件第 2 节。模型管理信息结构（�
 
 ## 6. Git 与恢复
 
-基线 `b8cf71f`，标签 `checkpoint/pre-reading-review-20260908`；分支 `codex/replica-review-20260908`。这是带已知缺陷的审查前快照。当前用户已授权本地版本控制，每批小提交，不自动推送/部署，不全局修改 Git 身份。
+基线 `b8cf71f`，标签 `checkpoint/pre-reading-review-20260908`；分支 `codex/replica-review-20260908`。这是带已知缺陷的审查前快照。当前用户已授权本地版本控制，每批小提交，不自动推送/部署，不全局修改 Git 身份。历史基线仅供只读追溯，不能当新任务起点或自动恢复目标。
 
-流程：status/diff → 确定本批 → 实现/验证 → 显式暂存 → diff --cached --check 与产物/凭证检查 → 提交 → 更新唯一 STATUS。WIP 可以保存但不得标已验收。不覆盖用户或其他人的未提交修改。
+流程：status/diff → 确定本批 → 实现/验证 → 更新唯一STATUS及对应矩阵 → 显式暂存 → diff --cached --check 与产物/凭证检查 → 本地提交。最终SHA在结果卡报告，后续接手现场读取Git。WIP 可以保存但不得标已验收。不覆盖用户或其他人的未提交修改。
 
 ```powershell
 git log --oneline --decorate -8
@@ -154,3 +151,5 @@ git show checkpoint/pre-reading-review-20260908:README.md
 README 做入口，PROJECT_GUIDE 管目标/架构/决定，STATUS 管进度/代码审查/完整计划/下一动作，NEXT_SESSION_START 仅提供接手步骤。API、ROUTES 管现行契约，三矩阵管条目证据，独立 review 保留首败与修复依据。MULTI_AGENT_COLLABORATION_PROPOSAL 保留可复用任务卡、结果卡和团队启动/角色提示词，详细任务引用STATUS，不保存当前 HEAD、进度或断点。不再维护多份 TASKS/HANDOFF/FINAL 提示词。
 
 19 份旧文档已合并为 [项目历史](archive/PROJECT_HISTORY.md)、[交付历史](archive/DELIVERY_HISTORY.md)、[审查历史](archive/REVIEW_HISTORY.md)、[提示词历史](archive/PROMPT_HISTORY.md)。2026-09-10 将旧 STATUS、旧 NEXT_SESSION_START、GAP_AUDIT 原文继续合入后三份归档，撤销 GAP_AUDIT 的独立状态维护入口。修复记录仍追加原 review，当前任务只更新 STATUS。清单保留原路径、原始与规范化 SHA256；旧相对链接以原文件目录解释，完整文件可从来源 Git 读取。原始规划/参考图/Word 保留。
+
+2026-09-15再次整理：旧STATUS和模型专用启动文本原文追加到既有交付/提示词归档并登记散列；现行STATUS只维护目标下的模块现状、问题、批次索引、当前任务及后续路线。禁止以“唯一模型阻断”为由隐藏全站视觉和未实现业务。

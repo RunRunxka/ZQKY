@@ -2,7 +2,7 @@
 
 批次：B-READING-NAV-SCROLL v1 ｜ 起点 e7cd87f ｜ 隔离端口 5174 / 构建目录 .next-test 与 .next
 
-## 首败（修复前，隔离浏览器 + 应用自带演示数据 + 真实伴生服务）
+## 首败（修复前，隔离浏览器 + 应用自带演示数据 + 生产代码中的显式模拟 companion-service（非真实供应商调用））
 
 | 文件 | 说明 |
 | --- | --- |
@@ -34,3 +34,5 @@
 - accept-r09-blackbox.spec.ts：验收者自写用例留档（原在 gitignore 的 _work/accept-r09/）
 - 结果：8/8 通过；日志见提交说明。
 - 说明：该文件为第三方验收证据副本，不影响 tests/ 正式测试发现范围。
+
+后续2026-09-15方向审查补充：Node26.2使用README已有参数 `--no-experimental-webstorage` 可通过292项单测。R-09已测滚动/跨会话/导航结论保持；错误态按钮重试和重复/失效终态的受控补测见STATUS READ-RETRY/READ-END，不宣称默认服务自然复现新回归。

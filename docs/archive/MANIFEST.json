@@ -181,5 +181,35 @@
       }
     ],
     "baseline": "6e3f642"
+  },
+  "consolidation20260915": {
+    "baseline": "6d987181d5729dbd32a1c82314380d1138d41bfe",
+    "purpose": "目标中心整理；旧批次全文保留，现行入口只维护目标、当前状态、任务和证据索引",
+    "files": [
+      {
+        "source": "docs/STATUS.md",
+        "destination": "docs/archive/DELIVERY_HISTORY.md",
+        "anchor": "snapshot-status-20260915",
+        "sha256": "0dc142b99f68a3bc82ff3fe94debfc47ce47d45096a2200573cdccc178d94c12",
+        "bytes": 87580,
+        "normalizedSha256": "0dc142b99f68a3bc82ff3fe94debfc47ce47d45096a2200573cdccc178d94c12"
+      },
+      {
+        "source": "docs/MULTI_AGENT_COLLABORATION_PROPOSAL.md",
+        "destination": "docs/archive/PROMPT_HISTORY.md",
+        "anchor": "snapshot-collaboration-20260915",
+        "sha256": "848aed87b60fde0665476dba2373e0579465b5f254b226a94b6d7fc7bbbb1812",
+        "bytes": 10959,
+        "normalizedSha256": "848aed87b60fde0665476dba2373e0579465b5f254b226a94b6d7fc7bbbb1812"
+      },
+      {
+        "source": "docs/replica/NEXT_SESSION_START.md",
+        "destination": "docs/archive/PROMPT_HISTORY.md",
+        "anchor": "snapshot-next-session-20260915",
+        "sha256": "33af60b12ff19dd310173e0f53d48cfb35a383fb7cfa7bb421d86f3ec99f2ac9",
+        "bytes": 2568,
+        "normalizedSha256": "33af60b12ff19dd310173e0f53d48cfb35a383fb7cfa7bb421d86f3ec99f2ac9"
+      }
+    ]
   }
 }
