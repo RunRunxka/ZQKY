@@ -503,7 +503,7 @@ e2e 在浏览器内**点击产物视图的真实保存按钮**（走生产 `save
 | `test:unit` | **292/292**（Node 26 下需 `--localstorage-file`；见下方环境说明） |
 | `test:api` | **181/181**（本批未改后端） |
 | `build` | 通过 |
-| 浏览器 e2e | **154/154**（新增 `reading.spec.ts` R-09 五例；既有 17 项阅读用例全通过） |
+| 浏览器 e2e | **154/154**（新增 `reading.spec.ts` R-09 五例；既有 17 项阅读用例全通过）——实现者自检；独立验收者另用自写黑盒 8/8 与 reading.spec 17/17 复验 |
 | 首败三例复跑 | A/B/C 全部转为通过（同一 `_work/reading-r09` 脚本） |
 | 桌面/手机/减少动画 | 1440 与 390 均覆盖；移动端用例在 `reducedMotion: reduce` 下执行 |
 | 数据保护 | 全程隔离上下文与演示数据；未触碰用户 5173、官方 `.env`/`.local-data`、真实草稿 |
@@ -512,9 +512,18 @@ e2e 在浏览器内**点击产物视图的真实保存按钮**（走生产 `save
 
 未执行：动画曲线逐帧采样、真实供应商、媒体原视图与阅读视觉验收——沿用既有未验状态，不扩大通过范围。
 
-#### 独立验收
+#### 独立验收（候选 a1fa16e，diff 散列 a21c4e9d…）
 
-独立验收者对稳定候选只读复验；结论与证据见下方结果卡与 `docs/qa/reading-r09-20260915/`。
+独立验收者对 `a1fa16e` 只读复验，结论 **pass**：
+
+- 核对候选与范围：改动 12 文件（ReadingWorkspace.tsx / reading.css / reading.spec.ts / 三份文档 / docs/qa 证据）；`app/schemas`、后端、锁文件、其他模块**零改动**。验收期间 HEAD 前移至 `33ecd58`（纯文档），已用 `git diff a1fa16e 33ecd58 -- apps/ tests/ scripts/ package.json` 确认为 0 行，不影响源码结论。
+- 静态复核：`end/error` 与增量同受 `sessionId+turnId` 守卫；`turns` 按会话存放且文本用本地闭包；`syncSessionUrl` 地址一致即返回、用户动作走 push；`popstate` 切换前 `flushDraft`；**`scrollIntoView`/`saveReadingPosition`/`handleScroll` 均不在 diff**（正文滚动未被本批改动）。
+- **自写黑盒 8 例全通过**（非实现者用例）：A 真实滚轮上滚后位置保持 + 正文/整页不动 + 「回到最新」只滚伴生容器；A2 底部正常跟随；B 生成中切会话新会话立即干净、迟到 end 落旧会话、切回完整；B2 取消收尾；C 历史+重复切换不加历史+popstate 同步会话与草稿；C2 深链/reload 零额外 push 且无效会话沿用既有提示；F 刷新按会话恢复、不重放生成；G 390+reduce 抽屉一致。
+- 实现者回归复验：`reading.spec.ts` **17/17**（含 R-09 五例）。
+- 数据保护：`docs/qa/reading-r09-20260915/` 5 张截图逐一目检无密钥；5173 全程无监听。
+- 脱敏与范围通过。
+
+其 `not_run`：全量 e2e 154 例（仅复验 reading.spec 17 + 自写 8）、硬件级触摸、动画逐帧、无凭证真实供应商、`test:unit` 在本机 Node v26 的全绿收口（见上方环境说明）。
 
 ### 原需求与验收任务卡（技术要求保留，负责人按6.1）
 
