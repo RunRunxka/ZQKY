@@ -33,7 +33,7 @@
 | `/reading` | 沉浸阅读集合列表 | 入口 ready，完整交付待验收 |
 | `/reading/materials` | 阅读材料库；多格式模拟解析与新建/分配/删除 | 入口 ready，完整交付待验收 |
 | `/reading/[workspaceId]` | 三栏工作区与事件驱动伴生模拟 AI | 入口 ready，完整交付待验收 |
-| `/reading/[workspaceId]/sessions(/[sessionId])` | 阅读会话深链；会话切换仍有 replaceState，历史/滚动见 STATUS H-R1 | 入口 ready，完整交付待验收 |
+| `/reading/[workspaceId]/sessions(/[sessionId])` | 阅读会话深链；会话切换经 pushState 产生前进/后退历史并由 popstate 同步空间/会话/草稿（R-09 已修，见 STATUS 6.10） | 入口 ready，完整交付待验收 |
 | `/agents` | Agent 任务 | 规划状态页 |
 | `/mcp` | MCP | 重定向 `/settings#mcp`；本地模拟管理 |
 | `/skills` | Skills | 重定向 `/settings#skills`；本地模拟管理 |
