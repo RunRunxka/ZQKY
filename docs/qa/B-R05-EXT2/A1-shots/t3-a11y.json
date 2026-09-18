@@ -1,0 +1,165 @@
+[
+  {
+    "test": "books tab sequence",
+    "booksTab": [
+      {
+        "tag": "BUTTON",
+        "name": "新建书籍",
+        "cls": "space-button primary",
+        "ring": true,
+        "visible": true
+      },
+      {
+        "tag": "INPUT",
+        "name": "搜索书籍",
+        "cls": "space-search",
+        "ring": true,
+        "visible": true
+      },
+      {
+        "tag": "A",
+        "name": "打开书籍 修辞手法小册（演示草稿）",
+        "cls": "space-card-link",
+        "ring": true,
+        "visible": true
+      },
+      {
+        "tag": "BUTTON",
+        "name": "继续创建",
+        "cls": "space-button",
+        "ring": true,
+        "visible": true
+      },
+      {
+        "tag": "BUTTON",
+        "name": "删除",
+        "cls": "space-button danger",
+        "ring": true,
+        "visible": true
+      },
+      {
+        "tag": "A",
+        "name": "打开书籍 分数入门（演示书籍）",
+        "cls": "space-card-link",
+        "ring": true,
+        "visible": true
+      },
+      {
+        "tag": "BUTTON",
+        "name": "继续阅读",
+        "cls": "space-button",
+        "ring": true,
+        "visible": true
+      },
+      {
+        "tag": "BUTTON",
+        "name": "删除",
+        "cls": "space-button danger",
+        "ring": true,
+        "visible": true
+      },
+      {
+        "tag": "body"
+      },
+      {
+        "tag": "BUTTON",
+        "name": "返回学习问答",
+        "cls": "sidebar-brand",
+        "ring": true,
+        "visible": true
+      }
+    ]
+  },
+  {
+    "test": "nav aria-label 章节目录",
+    "navRail": {
+      "exists": true,
+      "linkCount": 4,
+      "firstHref": "/books/demo-book-fractions/pages/demo-book-fractions-p0"
+    }
+  },
+  {
+    "test": "aria-current page",
+    "current": {
+      "href": "/books/demo-book-fractions/pages/demo-book-fractions-p0",
+      "cls": "space-scope-item current"
+    }
+  },
+  {
+    "test": "course-detail aria premises",
+    "checks": {
+      "bannerNote": true,
+      "syllabusHeading": "大纲（1/2 已完成，下一单元：一元一次方程）",
+      "checkboxLabel": "标记「分数与比例」为已完成",
+      "removeLabel": "移除资料 课程标准库",
+      "backLink": true,
+      "suffixText": "（不可用：目标已删除或未载入）",
+      "progressbar": {
+        "now": "50",
+        "min": "0",
+        "max": "100"
+      }
+    }
+  },
+  {
+    "test": "course tab sequence",
+    "courseTab": [
+      {
+        "tag": "BUTTON",
+        "name": "返回学习问答",
+        "cls": "sidebar-brand",
+        "ring": true,
+        "visible": true
+      },
+      {
+        "tag": "BUTTON",
+        "name": "收起项目导航",
+        "cls": "nav-toggle",
+        "ring": true,
+        "visible": true
+      },
+      {
+        "tag": "BUTTON",
+        "name": "学习问答",
+        "cls": "global-nav-item ",
+        "ring": true,
+        "visible": true
+      },
+      {
+        "tag": "BUTTON",
+        "name": "教案工作台",
+        "cls": "global-nav-item ",
+        "ring": true,
+        "visible": true
+      },
+      {
+        "tag": "BUTTON",
+        "name": "智能组卷（规划中）",
+        "cls": "global-nav-item ",
+        "ring": true,
+        "visible": true
+      },
+      {
+        "tag": "BUTTON",
+        "name": "协同写作",
+        "cls": "global-nav-item ",
+        "ring": true,
+        "visible": true
+      },
+      {
+        "tag": "BUTTON",
+        "name": "沉浸阅读",
+        "cls": "global-nav-item ",
+        "ring": true,
+        "visible": true
+      },
+      {
+        "tag": "BUTTON",
+        "name": "学习空间",
+        "cls": "global-nav-item ",
+        "ring": true,
+        "visible": true
+      }
+    ]
+  }
+]

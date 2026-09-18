@@ -1,0 +1,88 @@
+[
+  {
+    "test": "course detail content focusables",
+    "seq": [
+      {
+        "tag": "BUTTON",
+        "name": "编辑大纲",
+        "cls": "space-button"
+      },
+      {
+        "tag": "INPUT",
+        "name": "标记「分数与比例」为已完成",
+        "cls": ""
+      },
+      {
+        "tag": "INPUT",
+        "name": "标记「一元一次方程」为已完成",
+        "cls": ""
+      },
+      {
+        "tag": "BUTTON",
+        "name": "附加资料",
+        "cls": "space-button"
+      },
+      {
+        "tag": "BUTTON",
+        "name": "移除资料 课程标准库",
+        "cls": "icon-button courses-resource-remove"
+      },
+      {
+        "tag": "A",
+        "name": "教材资料库",
+        "cls": ""
+      },
+      {
+        "tag": "A",
+        "name": "笔记本",
+        "cls": ""
+      },
+      {
+        "tag": "A",
+        "name": "书籍",
+        "cls": ""
+      }
+    ]
+  },
+  {
+    "test": "course detail tab walk",
+    "walked": [
+      {
+        "name": "归档",
+        "cls": "space-button",
+        "ring": true
+      },
+      {
+        "name": "删除",
+        "cls": "space-button danger",
+        "ring": true
+      },
+      {
+        "name": "编辑大纲",
+        "cls": "space-button",
+        "ring": true
+      },
+      {
+        "name": "标记「分数与比例」为已完成",
+        "cls": "",
+        "ring": true
+      },
+      {
+        "name": "标记「一元一次方程」为已完成",
+        "cls": "",
+        "ring": true
+      },
+      {
+        "name": "附加资料",
+        "cls": "space-button",
+        "ring": true
+      }
+    ]
+  },
+  {
+    "test": "remove btn keyboard focus visibility",
+    "rmVisible": {
+      "opacityAfterFocus": "0"
+    }
+  }
+]

@@ -1,0 +1,98 @@
+[
+  {
+    "item": "viewport 1440x900 books",
+    "scrollWidth": 1440,
+    "innerWidth": 1440,
+    "overflowCount": 0,
+    "overflowSample": [],
+    "railPosition": null
+  },
+  {
+    "item": "viewport 1440x900 book-detail",
+    "scrollWidth": 1440,
+    "innerWidth": 1440,
+    "overflowCount": 0,
+    "overflowSample": [],
+    "railPosition": "sticky"
+  },
+  {
+    "item": "viewport 1440x900 courses",
+    "scrollWidth": 1440,
+    "innerWidth": 1440,
+    "overflowCount": 0,
+    "overflowSample": [],
+    "railPosition": null
+  },
+  {
+    "item": "viewport 1440x900 course-detail",
+    "scrollWidth": 1440,
+    "innerWidth": 1440,
+    "overflowCount": 0,
+    "overflowSample": [],
+    "railPosition": null
+  },
+  {
+    "item": "viewport 1920x1080 books",
+    "scrollWidth": 1920,
+    "innerWidth": 1920,
+    "overflowCount": 0,
+    "overflowSample": [],
+    "railPosition": null
+  },
+  {
+    "item": "viewport 1920x1080 book-detail",
+    "scrollWidth": 1920,
+    "innerWidth": 1920,
+    "overflowCount": 0,
+    "overflowSample": [],
+    "railPosition": "sticky"
+  },
+  {
+    "item": "viewport 1920x1080 courses",
+    "scrollWidth": 1920,
+    "innerWidth": 1920,
+    "overflowCount": 0,
+    "overflowSample": [],
+    "railPosition": null
+  },
+  {
+    "item": "viewport 1920x1080 course-detail",
+    "scrollWidth": 1920,
+    "innerWidth": 1920,
+    "overflowCount": 0,
+    "overflowSample": [],
+    "railPosition": null
+  },
+  {
+    "item": "viewport 390x844 books",
+    "scrollWidth": 390,
+    "innerWidth": 390,
+    "overflowCount": 0,
+    "overflowSample": [],
+    "railPosition": null
+  },
+  {
+    "item": "viewport 390x844 book-detail",
+    "scrollWidth": 390,
+    "innerWidth": 390,
+    "overflowCount": 0,
+    "overflowSample": [],
+    "railPosition": "static"
+  },
+  {
+    "item": "viewport 390x844 courses",
+    "scrollWidth": 390,
+    "innerWidth": 390,
+    "overflowCount": 0,
+    "overflowSample": [],
+    "railPosition": null
+  },
+  {
+    "item": "viewport 390x844 course-detail",
+    "scrollWidth": 390,
+    "innerWidth": 390,
+    "overflowCount": 0,
+    "overflowSample": [],
+    "railPosition": null
+  }
+]

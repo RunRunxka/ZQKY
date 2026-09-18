@@ -1,0 +1,75 @@
+[
+  {
+    "test": "390 rail static+flows",
+    "before": {
+      "pos": "static",
+      "maxH": "none",
+      "railTop": 247.5,
+      "scrollY": 0,
+      "readerRight": 370,
+      "railBottom": 478.5
+    },
+    "after": {
+      "railTop": 247.5,
+      "scrollY": 0,
+      "pos": "static"
+    }
+  },
+  {
+    "test": "390 rail/reader geometry",
+    "noOverlap": {
+      "railBottom": 478.5,
+      "readerTop": 496.5,
+      "railLeft": 20,
+      "railRight": 370,
+      "readerLeft": 20,
+      "readerRight": 370
+    }
+  },
+  {
+    "test": "1440 rail sticky",
+    "s1": {
+      "pos": "sticky",
+      "top": "16px",
+      "railTop": 143,
+      "scrollY": 0
+    },
+    "s2": {
+      "pos": "sticky",
+      "railTop": 143,
+      "scrollY": 0
+    }
+  },
+  {
+    "test": "390 course card long name truncate",
+    "cardCheck": {
+      "found": true,
+      "ellipsis": "ellipsis",
+      "overflowX": "hidden",
+      "whiteSpace": "nowrap",
+      "clientW": 275,
+      "scrollW": 711,
+      "right": 330
+    }
+  },
+  {
+    "test": "390 course detail long unit/resource truncate",
+    "detailCheck": {
+      "unit": {
+        "ellipsis": "ellipsis",
+        "clientW": 199,
+        "scrollW": 583
+      },
+      "res": {
+        "ellipsis": "ellipsis",
+        "clientW": 64,
+        "scrollW": 543
+      },
+      "suffix": {
+        "right": 320,
+        "text": "（不可用：目标已删除或未载入）"
+      },
+      "rowRight": 359
+    }
+  }
+]
