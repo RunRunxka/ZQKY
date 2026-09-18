@@ -6,9 +6,9 @@
 
 **以智启课源品牌完成固定 DeepTutor 的产品前端、AI 交互与原有动画；全站以当前学习问答 `/chat` 为视觉基准，保留蓝色主题及原业务功能。整体尚未完成。**
 
-当前主线是 **R-05 内容视觉统一**。首批 **B-R05-SPACE-VISUAL v1 已交付（2026-09-18）**：公共变量层（字体/圆角/阴影/间距单一来源，字体资源一份）+ `/space` 首页按 `/chat` 基准迁移，前后对照与全回归见 [批次证据](qa/space-r05-20260918/README.md)；同批关闭阅读 READ-RETRY/READ-END 两项（`a9ebcaa`）。下一批是 R-05 推广（设置/教案/知识库/笔记/书籍/课程/阅读/写作）。
+当前主线是 **R-05 内容视觉统一**。首批 **B-R05-SPACE-VISUAL v1 已交付（2026-09-18）**：公共变量层（字体/圆角/阴影/间距单一来源，字体资源一份）+ `/space` 首页按 `/chat` 基准迁移，前后对照与全回归见 [批次证据](qa/space-r05-20260918/README.md)；同批关闭阅读 READ-RETRY/READ-END 两项（`a9ebcaa`）。**第二批（R-05 推广首批）B-R05-EXTEND v1 已交付（2026-09-18）**：知识库与笔记本四个页面按同一变量层推广（信息结构 + 交互状态 + 参考有来源的动画），独立验收 A1 首轮 needs_revision（2 项 390 窄视口缺陷）、修复后复验 **pass 14/14**，见 [批次证据](qa/B-R05-EXTEND/README.md)。剩余推广对象（设置/教案/书籍/课程/阅读/写作/`/space` 其余子页）仍待后续批。
 
-- 最近产品提交：视觉批（见 §4 批次表最终 SHA）；阅读补测修复 `a9ebcaa`。新接手者必须重新核对 `git status --short`、`git log -5 --oneline`，不能把文档提交当产品验收候选。
+- 最近产品提交：视觉两批（见 §4 批次表最终 SHA）；阅读补测修复 `a9ebcaa`。新接手者必须重新核对 `git status --short`、`git log -5 --oneline`，不能把文档提交当产品验收候选。
 - 工作树中 `.zcode/agents/*.md` 是用户自己的改动，批次全程不触碰、不纳入提交。
 - **R-13 是模型真实长答未关闭项，不是整个项目唯一剩余问题。** R-05 推广、未实现模块、真实复杂能力和未验动画仍属于最终交付范围。
 - 主聊天仅真实 FastAPI；阅读、知识库和写作等批准的显式模拟仍保留。执行模拟不能省略交互状态，模拟通过不能标为真实供应商通过。
@@ -39,7 +39,7 @@
 | R-01 | 已关闭 | 跨.env/JSON并发、删除失败补偿及备份；模型审查修复后独立复验。关闭不证明所有供应商真实可用 |
 | R-02 / R-04 | 已关闭 | 唯一主页、唯一当前菜单及手机焦点；`e7fb2a4`公共壳批 |
 | R-03 | 已关闭 | 主聊天不可达模拟分支/文案/CSS清理；`a5bb39c`。历史类型与测试替身不构成生产模拟 |
-| R-05 | **未关闭，当前主线** | 全站内容字体/标题/卡片等未统一；本批只覆盖公共基础与/space，不能整项关闭 |
+| R-05 | **未关闭，当前主线** | 全站内容字体/标题/卡片等未统一；已交付公共基础 + `/space` 首页 + 知识库/笔记本四页（B-R05-EXTEND）；设置/教案/书籍/课程/阅读/写作/`/space` 其余子页仍待推广，不能整项关闭 |
 | R-06 | 壳缺失修复已关闭；恢复另有未验项 | 404壳及返回主页已有浏览器证据；错误页reset只有代码/构建证据，运行时仍not_run |
 | R-07 / R-08 / R-12 | 模型批实现并有相关回归 | 受控推理字段、独立清除凭证、作用域文案已修；R-07字段支持不等于全协议真实推理验收 |
 | R-09 | 已关闭已复现的A/B/C | `a1fa16e`：上滚不被拉回、已测跨会话轮次显示/收尾、push/pop导航。正文媒体与全部异常终态合同不因本批升级 |
@@ -68,6 +68,7 @@
 | B-READING-NAV-SCROLL | `a1fa16e` / `33ecd58`、`6d98718` | 实施者e2e154、API181；独立黑盒8/8+reading17/17，未独立重跑154全量 | [README与黑盒用例](qa/reading-r09-20260915/README.md) |
 | B-R05-READ-BOUNDED | `a9ebcaa`（阅读切片） | 首败5用例（重试无效、重复/迟到end双份落库）后修复；阅读目录9/9、全量unit297、eslint 0警告 | [首败与修复摘要](qa/space-r05-20260918/read-first-failure-excerpt.txt)、`ReadingWorkspaceCompanion.test.tsx` |
 | B-R05-SPACE-VISUAL | 见本批最终提交 | typecheck/lint/unit297/build/e2e154 全过；三视口前后截图+焦点+reduce；`P-space` 升部分验收、M-space-tile 实装 | [qa README](qa/space-r05-20260918/README.md)；api 未重跑（零后端改动，基线181同日现场复跑过） |
+| B-R05-EXTEND（R-05 推广首批） | `82871fa` → `19b514c`（修复版） | 知识库/笔记本四页视觉推广；typecheck/lint/unit297/build/e2e154 全过；E1 差距清单 90+ 条；独立验收 A1 首轮 **needs_revision**（390 窄视口：rail 溢出、记录标题 0 宽），修复后复验 **pass 14/14**；三视口前后 48 张+焦点图 | [批次证据](qa/B-R05-EXTEND/README.md)、[E1 清单](qa/B-R05-EXTEND/E1-GAP-LIST.md)、[A1 报告](qa/B-R05-EXTEND/A1-REPORT.md)；api 未重跑（零后端改动，基线181） |
 | 2026-09-15方向审查 | `6d98718`只读产品审查 | Node26.2.0 + `--no-experimental-webstorage`：42文件292/292，exit0；未重跑浏览器/API/build | 最近Codex审查结果；临时报告_work/review-direction-6d98718/REVIEW.md，本表保留关键结论 |
 
 ### 4.1 真实服务与数据事件
@@ -90,28 +91,32 @@ npm.cmd run test:unit
 
 本次 **DOC-FOCUS v1** 只整理现行文档、归档、链接与任务；不修改产品、测试实现、依赖、凭证或浏览器数据。已验证3份完整归档原文/散列、现行文档链接、矩阵ID与数量、D1–D16及R-01～13和后续路线完整性，`git diff --check`通过；[机器检查结果](qa/docs-focus-20260915/verification.json)随Git保存。独立只读内容复核通过，提出的两处阅读矩阵措辞已收窄并改成现行索引；另对照源码订正API旧删除顺序描述。产品测试本轮未重跑（纯文档变更），上面的292项为先前同日只读产品审查结果。
 
-## 5. 当前任务：B-R05-SPACE-VISUAL v1（已交付，2026-09-18）
+## 5. 当前任务：B-R05-EXTEND v1（已交付，2026-09-18）
 
-**状态：已交付（实施+回归完成，检查点见批次表）。负责人：外部Agent队长（实施总控，子代理不可用时按协作规则降级为队长串行实施+自查留证）。Codex负责交付审查。**
+**状态：已交付（实施+独立验收 pass 完成，检查点见批次表）。负责人：外部Agent队长（实施总控）。Codex负责交付审查。**
 
 ### 5.1 交付结果
 
-1. **公共视觉基础**：globals.css 建立单一变量层——`--font-ui/--font-display`（Chat Geist/Lora @font-face 从 chat-home.css 上移，字体资源一份）、`--radius-sm/md/lg/pill`、`--shadow-card/pop`、`--space-1…6`；`--chat-serif` 改指 `--font-display`，色板沿用既有蓝主题。教案 `--serif` 保持原回退链，密集表单不强制 Lora。
-2. **/space 首页迁移**：标题/分组标签用 Lora；磁贴对照参考 DashboardCard（40px 蓝底图标块+大数字计数+单位+ArrowUpRight+计数脉冲骨架+hover 上浮阴影）；仪表盘不显示自指返回链接（对照参考 isDashboard）。真实计数逻辑、全部磁贴跳转、演示标识（CLI 应用）保留；`.space-tile/.space-group` 类名不变，e2e 零断言改动通过。
-3. **阅读有界补测**（检查点 `a9ebcaa`）：READ-RETRY 受控首败（错误态点重试 run 仍 1 次）后修复——错误态放行、流式防重入保留；READ-END 首败（重复/迟到 end 落库 2 份）后修复——finalizeTurn 按 turnId 幂等，R-09 会话归属语义未变；测试控制接口未进生产路径。
-4. **证据**：三视口前后截图+焦点图+reduce 动画、首败/修复摘要、检查记录见 [qa README](qa/space-r05-20260918/README.md)；`P-space` 升部分验收（PAGE_MATRIX），M-space-tile 实装（MOTION_MATRIX），A-reading-companion 更新（AI_INTERACTIONS）。
+1. **范围（用户锁定的一组有限页面）**：`P-knowledge-bases`（`/knowledge-bases`）、`P-knowledge-bases-[kbName]`、`P-notebooks`、`P-notebooks-[notebookId]` 四个页面条目。队长的更小组决策依据：四页共用一套 `space-*` 设计语言、同属 S5-B，改动面收敛在两个模块目录内；`/space` 其余子页与书籍/课程/阅读/写作/设置/教案**不在本批**。
+2. **共享层边界（队长定稿）**：`globals.css`（变量层）与 `space.css`（被 13 个模块 import）本批**只读**；新增 `features/knowledge/styles/knowledge.css` 与 `features/notebooks/styles/notebooks.css`，全部选择器以 `.kb-page`/`.kb-detail`/`.nb-page` 起头，只消费既有变量，不构成第二套设计系统，作用面严格限于这四页。
+3. **知识库两页**：下划线指示器页签（图标 + 计数徽标 + `aria-controls`/`tabpanel`）、卡片状态圆点（处理中蓝 + 脉冲）与悬停 ChevronRight、hover 描边与焦点环、描述 `line-clamp-2`、空态图标块 + 主行动按钮、搜索框内嵌图标与 focus 态、引擎分组图标与说明、错误条重试/关闭；详情页头部图标块 + 带图标状态徽标、分区导航改下划线页签（五个 exact 文本与 `nav` aria-label 未变）、文档行操作悬停显隐 + 行内二段移除确认、批量操作进行中禁用防重入、索引版本状态图标章。
+4. **笔记本两页**：左栏 168→250px（仅本页）、激活项左侧 2.5px 指示条（200ms）、描述行、四类多色类型徽章（保留 `space-chip` 以满足既有断言）、时间戳常驻行头、行 hover、操作钮 150ms 过渡与 active 缩放、展开区 `pop-in`（对照参考 `dt-pop-in` 200ms cubic-bezier(0.22,1,0.36,1)）、ConsoleNotice 空/错态、深链错误独占呈现、删除后 URL 规范化、`popstate` 同步选中。
+5. **动画来源**：只实装参考有明确参数者的动画；无来源不添加；减少动画复用 `motion.css` 全局机制，新增 CSS 无 `!important`。
+6. **证据**：[qa README](qa/B-R05-EXTEND/README.md)（任务卡含队长裁定、E1 差距清单 90+ 条、三视口前后 48 张 + 焦点图、A1 报告含 v1 needs_revision 与 v2 pass）。
 
 ### 5.2 验证与边界
 
-- typecheck/lint/`--no-experimental-webstorage` unit 297（基线292+阅读5）/build/e2e 154 全过；api 未重跑（零后端改动，基线 181 同日现场复跑通过）。
-- 本批仅关闭 R-05 的 `/space` 首页+公共变量层切片与 READ-RETRY/READ-END 两项；**不关闭 R-05 全站**、不升级 `/space` 功能级完整验收。
-- 磁贴动画未逐帧采样曲线/中断（M-space-tile 保持实现待验收）；触摸真机、真实供应商不在本批范围。
+- typecheck/lint/`--no-experimental-webstorage` unit 297（与基线一致）/build/e2e 154 全过；api 未重跑（零后端改动，基线 181）。
+- **独立验收两轮**：A1 首轮对候选 `82871fa` 判 **needs_revision**（2 项 390×844 缺陷：rail 长名项溢出被裁、记录标题被行头时间戳挤成 0 宽）；修复提交 `19b514c` 后复验 **pass 14/14**（含 390/1440 全页溢出扫描 0、宽视口零回归、深链单 alert、既有 e2e 定位前提保持）。
+- 集成期三处修复（队长执行并记录）：`notebooks.css` 注释提前闭合导致构建失败；深链双 `role="alert"` 触发 e2e strict 冲突（收敛为仅 ConsoleNotice，未改任何测试断言）；≤760px 下主列被内容撑到 628px 溢出（起点既有、落在本批页面内，改为 `align-items:stretch`）。
+- 按队长裁定（任务卡 §7）**不纳入**本批：Markdown 渲染器、文件树预览、行内连续文档编辑器、dirty 丢弃确认、toast 系统、新建入口迁移、记录操作合并菜单、标题字号改动。三项「参考结构改动会触碰既有 e2e 断言」的事项一律选择保留现状而非改断言。
+- 本批只关闭 R-05 中这四个页面切片；**不关闭 R-05 全站**，不升级 `/space` 功能级验收。动画未逐帧采样曲线/中断（MOTION_MATRIX 相应条目保持「实现待验收」）；触摸真机、真实供应商、真实 RAG/解析服务不在本批范围。
 
 ## 6. 后续路线与推进规则
 
 | 顺序/轨道 | 交付中心 | 出口 |
 | --- | --- | --- |
-| R-05推广 + H1/H2（下一批） | 将同一规范推广到知识库/笔记、书籍/课程、设置/教案及其他既有页；结合模块业务补齐，不仅换色 | 每批有限页面，逐状态视觉与数据/错误/取消/恢复同步验收 |
+| R-05推广 + H1/H2（下一批） | 将同一规范推广到书籍/课程、设置/教案、阅读/写作与 `/space` 其余子页；结合模块业务补齐，不仅换色 | 每批有限页面，逐状态视觉与数据/错误/取消/恢复同步验收 |
 | H1书籍课程闭环 | compiling/paused/error、流式生成、暂停恢复、书籍聊天、课程学习会话，复用既有14类block | 状态链、保存/刷新、资源/产物引用与三视口 |
 | H2既有模块闭环 | 阅读媒体原视图与完整伴生过程、写作/Whisper、学习空间及产物消费 | 原功能/数据不丢、来源正确、完整参考交互 |
 | H3伙伴/智能体 | 列表/创建/详情/群组/渠道、任务过程/工具/产物/历史 | 创建→执行→结果→恢复，等待/失败/取消/重试齐全 |

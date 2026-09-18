@@ -24,10 +24,10 @@
 | P-space-skills | `/space/skills` | `/space/skills`（跳设置#skills） | 实现待验收 | 同上（S5-A） |
 | P-mcp | `/mcp` | `/mcp`（跳设置#mcp） | 已验收 | e2e `replica-settings.spec.ts` 覆盖重定向 |
 | P-skills | `/skills` | `/skills`（跳设置#skills） | 已验收 | 同上 |
-| P-knowledge-bases | `/knowledge-bases` | `/knowledge-bases` | 实现待验收 | 教材资料库列表（S5-B/H1）：知识库/检索引擎双页签、演示载入幂等、新建重名拒绝、KB 级流水线状态徽标（空/待处理/处理中/已就绪/有失败，对照参考 KbStatusBadge）。2026-09-11 H1：登记/解析/索引为显式模拟，未接真实服务；e2e `knowledge-notebooks.spec.ts` |
-| P-knowledge-bases-[kbName] | `/knowledge-bases/[kbName]` | 同 | 实现待验收 | 库详情（S5-B/H1）：文档/登记/来源/索引/设置分区；改名同步 URL、设默认库、删除确认；2026-09-11 补文档导入→解析→索引显式模拟：逐文档状态徽标（registered/parsing/indexing/ready/error）、进度条、取消/重试、全量解析、索引版本列表与重建（版本按 (docCount,chunkCount) 去重）、刷新恢复、旧数据兼容、损坏读取如实报错不覆盖。真实解析/向量检索未接；e2e 同上。出处 `_work/kb-h1/CONTRACT.md` |
-| P-notebooks | `/notebooks` | `/notebooks` | 实现待验收 | 笔记本列表（S5-B）：默认笔记本虚拟项、记录展开/编辑/移动复制/导出/删除；**来源回链已修（R-10，2026-09-14）**：仅当记录带真实 sessionId 且会话存在时显示「打开原会话」，链接不带 `?mode=mock`；会话删除提示来源不可用；**消息定位（2026-09-14）**：链接带可选 messageId，会话内定位并提示「已定位到来源消息」，消息删除提示「原消息已不存在」；e2e `chat-source-links.spec.ts`、`chat-message-locate.spec.ts` |
-| P-notebooks-[notebookId] | `/notebooks/[notebookId]` | 同 | 实现待验收 | 笔记本详情（S5-B）：深链选中、无效 id 报错、搜索；S5-D 起"发到笔记本"写入此目录；e2e 同上 |
+| P-knowledge-bases | `/knowledge-bases` | `/knowledge-bases` | 实现待验收 | 教材资料库列表（S5-B/H1）：知识库/检索引擎双页签、演示载入幂等、新建重名拒绝、KB 级流水线状态徽标（空/待处理/处理中/已就绪/有失败，对照参考 KbStatusBadge）。2026-09-11 H1：登记/解析/索引为显式模拟，未接真实服务；e2e `knowledge-notebooks.spec.ts`。**B-R05-EXTEND v1（2026-09-18）视觉推广**：下划线指示器页签（图标+计数徽标+aria-controls/tabpanel）、卡片状态圆点（处理中脉冲）与悬停 ChevronRight、hover 描边与焦点环、描述 line-clamp-2、空态图标块+主行动、搜索框内嵌图标、引擎分组图标+说明、错误条重试/关闭；三视口前后截图见 [批次证据](../qa/B-R05-EXTEND/README.md) |
+| P-knowledge-bases-[kbName] | `/knowledge-bases/[kbName]` | 同 | 实现待验收 | 库详情（S5-B/H1）：文档/登记/来源/索引/设置分区；改名同步 URL、设默认库、删除确认；2026-09-11 补文档导入→解析→索引显式模拟：逐文档状态徽标（registered/parsing/indexing/ready/error）、进度条、取消/重试、全量解析、索引版本列表与重建（版本按 (docCount,chunkCount) 去重）、刷新恢复、旧数据兼容、损坏读取如实报错不覆盖。真实解析/向量检索未接；e2e 同上。出处 `_work/kb-h1/CONTRACT.md`。**B-R05-EXTEND v1（2026-09-18）视觉推广**：头部图标块+带图标状态徽标（Clock/Check/AlertTriangle）、分区导航改下划线页签（五个 exact 文本与 `nav[aria-label="知识库分区"]` 未变）、文档行操作悬停显隐+行内二段移除确认、批量操作进行中禁用防重入、索引区头部与版本行状态图标章 |
+| P-notebooks | `/notebooks` | `/notebooks` | 实现待验收 | 笔记本列表（S5-B）：默认笔记本虚拟项、记录展开/编辑/移动复制/导出/删除；**来源回链已修（R-10，2026-09-14）**：仅当记录带真实 sessionId 且会话存在时显示「打开原会话」，链接不带 `?mode=mock`；会话删除提示来源不可用；**消息定位（2026-09-14）**：链接带可选 messageId，会话内定位并提示「已定位到来源消息」，消息删除提示「原消息已不存在」；e2e `chat-source-links.spec.ts`、`chat-message-locate.spec.ts`。**B-R05-EXTEND v1（2026-09-18）视觉推广**：左栏 168→250px（仅本页）、激活项 2.5px 指示条（200ms）、描述行、四类多色类型徽章（保留 `space-chip`）、时间戳常驻行头、行 hover、操作钮 150ms 过渡与 active 缩放、展开区 pop-in、ConsoleNotice 空/错态、删除后 URL 规范化、popstate 同步选中；A1 复验 pass 14/14，见 [批次证据](../qa/B-R05-EXTEND/A1-REPORT.md) |
+| P-notebooks-[notebookId] | `/notebooks/[notebookId]` | 同 | 实现待验收 | 笔记本详情（S5-B）：深链选中、无效 id 报错、搜索；S5-D 起"发到笔记本"写入此目录；e2e 同上。**B-R05-EXTEND v1（2026-09-18）**：深链无效时错误独占呈现（不再与空态并列）、`popstate` 前进后退同步选中、删除后 URL 规范化；390 窄视口行头换行 + 时间戳第二行（A1 F2 修复） |
 | P-books | `/books` | `/books` | 部分实现 | 统计/目录/演示无损载入/新建模拟提案/状态徽标/进度/删除已有。生成目前为同步模拟；compiling/paused/error和流式生成、暂停恢复仍缺，见 STATUS H1。历史用例 books-courses.spec.ts 覆盖已有切片。 |
 | P-books-[bookId] | `/books/[bookId]` | `/books/[bookId]` | 部分实现 | 提案确认→大纲确认→阅读器状态分流、无效id、续读定位、重建确认、Markdown导出已有。流水线状态和 BookChatPanel 待补；不再把14类分发与作答保存列作从零开发。 |
 | P-books-pages-[pageId] | `/books/[bookId]/pages/[pageId]` | 同 | 部分实现 | BookBlockType/PageReader 已有14类分发、练习保存恢复、页内笔记、翻页/书签/已读进度。interactive/animation/concept_graph/figure等仅显式模拟形态，须逐类核参考交互；渲染类型数量不等于完整验收。 |
@@ -77,9 +77,11 @@
 | --- | --- | --- |
 | 基准页 | `P-chat` | 蓝色主题、Chat Geist/Lora、220/56px 导航、236px 学习记录中栏、912px 对话列、模型弹层和思考球是全站来源 |
 | 部分验收 | `P-chat-[sessionId]` | 2026-09-12 Flash测试预算8192的真实长答：465汉字、27处公式，三视口无页面级溢出、推理折叠和刷新恢复通过；默认预算两模型和Pro8192长答失败。后续R-10会话回链/消息定位已有独立功能证据；全消息视觉和真实交互仍待完整验收 |
-| 部分验收 | `P-knowledge-bases-[kbName]` | 1920/390下就绪、失败、解析中显式模拟样本可读，系统减少动画下可到达就绪；完整内容风格、全部分区/弹窗与进度动画时序仍待验 |
+| 部分验收 | `P-knowledge-bases-[kbName]` | 1920/390下就绪、失败、解析中显式模拟样本可读，系统减少动画下可到达就绪；完整内容风格、全部分区/弹窗与进度动画时序仍待验。**B-R05-EXTEND v1（2026-09-18）增补**：下划线页签、图标块头部、行悬停操作、二段确认与进行中禁用经 A1 独立验收 pass（三视口/焦点/reduce/溢出实测）；A1 明细见 [报告](../qa/B-R05-EXTEND/A1-REPORT.md) |
+| 部分验收 | `P-knowledge-bases` | **B-R05-EXTEND v1（2026-09-18）**：下划线指示器页签+计数徽标、卡片状态圆点+悬停 ChevronRight、空态图标+主行动、搜索内嵌图标、引擎分组；三视口前后截图与 A1 独立验收见 [批次证据](../qa/B-R05-EXTEND/README.md)。全部分区/弹窗逐状态验收与其余模块推广仍待后续批 |
+| 部分验收 | `P-notebooks`、`P-notebooks-[notebookId]` | **B-R05-EXTEND v1（2026-09-18）**：左栏 250px+指示条、描述行、多色类型徽章、时间戳行头、pop-in、ConsoleNotice、深链/URL 语义；A1 首轮 needs_revision（390 窄视口两处缺陷）→ 修复候选复验 **pass 14/14**。记录编辑器形态、Markdown 渲染与 toast 系统按队长裁定未纳入，仍待后续批 |
 | 部分验收 | `P-space` | **B-R05-SPACE-VISUAL v1（2026-09-18）**：标题/分组标签迁 Chat Lora（--font-display）、磁贴对照参考 DashboardCard 迁移（40px 图标块+大数字计数+单位+ArrowUpRight+脉冲骨架+hover 上浮阴影）、仪表盘不显示自指返回链接；真实计数/全部跳转/演示标识保留。三视口前后截图+焦点+reduce 动画证据 [docs/qa/space-r05-20260918](../qa/space-r05-20260918/README.md)；unit297/e2e154 通过。功能级完整验收（弹窗/错误/长文案逐状态）与全站推广仍待后续批 |
-| 待验收 | `P-space-chat-history`、`P-space-questions`、`P-space-personas`、`P-space-cli-apps`、`P-notebooks-[notebookId]`、`P-books-[bookId]`、`P-books-pages-[pageId]`、`P-courses-[courseId]`、`P-reading-materials`、`P-reading-[workspaceId]`、`P-reading-sessions`、`P-reading-sessions-[sessionId]`、`P-co-writer-[docId]` | 既有e2e覆盖部分功能；本次未逐页完成全部状态的视觉对照，保留待验收 |
+| 待验收 | `P-space-chat-history`、`P-space-questions`、`P-space-personas`、`P-space-cli-apps`、`P-books-[bookId]`、`P-books-pages-[pageId]`、`P-courses-[courseId]`、`P-reading-materials`、`P-reading-[workspaceId]`、`P-reading-sessions`、`P-reading-sessions-[sessionId]`、`P-co-writer-[docId]` | 既有e2e覆盖部分功能；本次未逐页完成全部状态的视觉对照，保留待验收 |
 | 待实现 | `P-papers`、`P-question-bank`、`P-templates`、`P-partners*`、`P-agents`、`P-mastery*`、`P-memory*`、`P-login`、`P-register`、`P-profile`、`P-admin-users` | 规划状态页不是最终业务视觉验收；正式页面实现时直接按学习问答基准建设 |
 | 无独立页面 | `P-root`、`P-space-mcp`、`P-space-skills`、`P-mcp`、`P-skills` | 仅重定向；验收目标是去向、历史、焦点和最终页面当前菜单 |
 
@@ -89,4 +91,4 @@ H0 公共壳是横向证据：现有页面已共用 220/56px 侧栏、折叠偏�
 
 历史额外错误场景 `/acceptance-404` 在2026-09-12无壳且返回教案，首败保留；R-02/R-06已于e7fb2a4修复并有404浏览器复验，不继续列作当前缺陷。错误态不增加53项分母；全主题/详情/弹窗及错误reset运行时仍未全部覆盖。
 
-当前视觉任务对应 `P-space`：B-R05-SPACE-VISUAL v1 已于 2026-09-18 交付（见上表部分验收），R-05 全站推广（settings/教案/知识库/笔记/书籍/课程/阅读/写作）仍为后续批。详细范围只见 [STATUS当前任务](../STATUS.md#5-当前任务b-r05-space-visual-v1)。
+当前视觉任务：B-R05-SPACE-VISUAL v1（公共变量层 + `/space` 首页）与 B-R05-EXTEND v1（知识库/笔记本四页）已于 2026-09-18 交付，见上表部分验收。R-05 全站推广（settings/教案/书籍/课程/阅读/写作与 `/space` 其余子页）仍为后续批。详细范围只见 [STATUS当前任务](../STATUS.md#5-当前任务b-r05-extend-v1已交付2026-09-18)。
