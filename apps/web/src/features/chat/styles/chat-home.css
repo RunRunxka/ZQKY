@@ -1,23 +1,10 @@
 /* 本次参考：deeptutor-page/src/style.css（2026-09-09 本地快照）。
-   全部限定在学习问答壳内；保留智启课源蓝色和既有业务组件。 */
-@font-face {
-  font-family: 'Chat Geist';
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url('/fonts/chat/22a5144ee8d83bca-s.p.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Chat Lora';
-  font-style: normal;
-  font-weight: 400 700;
-  font-display: swap;
-  src: url('/fonts/chat/5c0c2bcbaa4149ca-s.p.woff2') format('woff2');
-}
+   全部限定在学习问答壳内；保留智启课源蓝色和既有业务组件。
+   字体 @font-face 已上移至 globals.css（R-05 公共视觉基础，资源同源一份）。 */
 .app-shell.chat-home-shell:not(.lesson-workspace) {
-  --chat-serif: 'Chat Lora', 'Songti SC', STSong, 'Noto Serif SC', SimSun, Georgia, serif;
+  --chat-serif: var(--font-display);
   grid-template-rows: minmax(0, 1fr);
-  font-family: 'Chat Geist', Arial, 'Microsoft YaHei', sans-serif;
+  font-family: var(--font-ui);
 }
 .chat-home-shell > .app-header {
   display: none;

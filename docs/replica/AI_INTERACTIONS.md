@@ -31,7 +31,7 @@
 | A-persona | 角色/persona | ChatComposer persona | 实现待验收 | /space/personas 与聊天共用目录，选择与会话归属已有回归；后续跨业务输入区仍需共享同源目录。 |
 | A-attachments | 附件/文件 | ComposerInput | 部分实现 | 选取/拖入/粘贴/配额及异步身份代码已有；主聊天拒绝实际附件发送并保留编辑内容，真实解析未接。R-03已删除指向不存在模拟模式的提示，真实附件服务仍未接，不恢复模拟服务。 |
 | A-voice | 语音输入 | ChatComposer 录音入口 | 实现待验收 | 无 STT 服务：明确“未接入”说明+带标识演示转写，不采集音频；真实权限/设备拒绝状态待真实服务接入；e2e chat-composer.spec.ts |
-| A-reading-companion | 沉浸阅读伴生 AI | reading/workspace/ReadingCompanion、ReadingComposer | 部分实现 | companion-service 已使用统一 ChatService 事件模型，已有显式模拟流式/取消/草稿归属，失败重试按钮另有静态缺口待受控补测；并非旧同步模板。**R-09 已修（2026-09-15）**：滚动跟随由用户控制（上滚不被强拉回、"回到最新"显式触发且只滚伴生容器）、已测轮次按会话归属；重复/失效终态持久化另有READ-END待补测、会话切换有前进/后退历史。过程/追问/产物/来源完整性、媒体视图仍需补验，见 [STATUS问题与批次索引](../STATUS.md#3-问题台账与验收限制)。 |
+| A-reading-companion | 沉浸阅读伴生 AI | reading/workspace/ReadingCompanion、ReadingComposer | 部分实现 | companion-service 已使用统一 ChatService 事件模型，已有显式模拟流式/取消/草稿归属；并非旧同步模板。**R-09 已修（2026-09-15）**：滚动跟随由用户控制（上滚不被强拉回、"回到最新"显式触发且只滚伴生容器）、已测轮次按会话归属、会话切换有前进/后退历史。**READ-RETRY/READ-END 已修（2026-09-18，a9ebcaa）**：错误态重试放行（受控首败后修复）、finalizeTurn 按 turnId 幂等（重复/迟到 end 不重复落库），组件级替身 5 场景回归；显式模拟性质不变。过程/追问/产物/来源完整性、媒体视图仍需补验，见 [STATUS问题与批次索引](../STATUS.md#3-问题台账与验收限制)。 |
 | A-kb-ingest | 知识库导入→解析→索引 | 参考 `lib/knowledge-helpers.ts`（resolveKbStatus/kbHasLiveProgress/IndexVersion）、`components/knowledge/KbStatusBadge`、`KbIndexVersionsSection` | 显式模拟（前端闭环已验收） | 2026-09-11 B-H1-KB：`services/knowledge-ingest.ts` 复刻 registered→parsing→indexing→ready、进度、取消、失败重试、刷新恢复、全部就绪追加索引版本；产物为本地结构化样例并全程标注。真实文件解析/向量检索未接入，与真实服务验收分开记录；参考另有 WS/SSE 进度与 KB 级状态（target 以逐文档状态 + KB 汇总呈现），接入真实服务时按参考协议重对齐。e2e `knowledge-notebooks.spec.ts` |
 
 本次知识库相关既有e2e 10/10通过，1920/390的已就绪、失败、解析中和系统减少动画状态样本补验通过；仍无真实文件解析/索引/检索调用。所有结果仅更新文档，未修改生产模型配置或能力标记。

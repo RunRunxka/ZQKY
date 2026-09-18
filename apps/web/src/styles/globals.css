@@ -1,11 +1,30 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ===== R-05 公共视觉基础：字体资源一份（与 /chat 同源），全站单一变量层 =====
+   Chat Geist（正文/UI）/ Chat Lora（标题展示）与学习问答共用同一份 woff2；
+   教案密集编辑区不强制 Lora，--font-serif 保持原 SimSun 回退链兼容。 */
+@font-face {
+  font-family: 'Chat Geist';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('/fonts/chat/22a5144ee8d83bca-s.p.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Chat Lora';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/fonts/chat/5c0c2bcbaa4149ca-s.p.woff2') format('woff2');
+}
+
 :root {
-  font-family: 'Segoe UI', 'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif;
-  color: #0d0d0d;
-  background: #fff;
-  font-synthesis: none;
+  /* 字体角色（单一来源；chat-home.css 的 --chat-serif 保持同名引用） */
+  --font-ui: 'Chat Geist', Arial, 'Microsoft YaHei', sans-serif;
+  --font-display: 'Chat Lora', 'Songti SC', STSong, 'Noto Serif SC', SimSun, Georgia, serif;
+  /* 色板（沿用既有蓝色主题，变量即唯一来源） */
   --bg: #fff;
   --surface: #f7f7f7;
   --ink: #0d0d0d;
@@ -13,10 +32,28 @@
   --line: #e5e5e5;
   --blue: #2563eb;
   --blue-soft: #eff5ff;
+  --blue-deep: #1d4ed8;
   --green: #33876b;
   --danger: #d92d20;
   --preview: #eceef1;
   --serif: 'SimSun', 'Songti SC', serif;
+  /* 圆角 / 阴影 / 间距（提取自学习问答：磁贴 12、弹层 14、控件 8） */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+  --shadow-card: 0 6px 20px -12px rgba(0, 0, 0, 0.25);
+  --shadow-pop: 0 10px 28px rgba(0, 0, 0, 0.09);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  font-family: var(--font-ui);
+  color: #0d0d0d;
+  background: #fff;
+  font-synthesis: none;
   font-size: 14px;
 }
 * {

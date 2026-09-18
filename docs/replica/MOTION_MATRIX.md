@@ -1,6 +1,6 @@
 # 动画清单与验收边界
 
-更新：2026-09-15。全站视觉基准为当前学习问答；模块专属动画对照固定 DeepTutor，原版没有则不添加。下表“已验收”均绑定具体日期、候选和范围；旧模拟生成动画不能据此视为当前可发起能力。历史65项、teardown首败及后续修复见 [交付历史](../archive/DELIVERY_HISTORY.md#snapshot-status-20260910)，当前计划与验证边界见 [STATUS](../STATUS.md)。
+更新：2026-09-18。全站视觉基准为当前学习问答；模块专属动画对照固定 DeepTutor，原版没有则不添加。下表“已验收”均绑定具体日期、候选和范围；旧模拟生成动画不能据此视为当前可发起能力。历史65项、teardown首败及后续修复见 [交付历史](../archive/DELIVERY_HISTORY.md#snapshot-status-20260910)，当前计划与验证边界见 [STATUS](../STATUS.md)。
 
 状态词汇：待实现、部分实现、实现待验收、已验收；逐项记录开始/过渡/结束、快速中断、减少动画与焦点。
 
@@ -26,7 +26,8 @@
 | M-ask-states | 追问卡状态切换（预览→可答→提交→摘要） | AskUserOptions 实际过渡 | 待实现 | 原版无装饰进场；状态切换动画待逐项核对（S7） |
 | M-reading-layout | 阅读导航/伴生面板/选区浮条 | ReadingWorkspace/ReadingCompanion 原版逐组件参数 | 部分实现 | R31布局/拖拽和R32手机面板有历史实现记录；本次未跑阅读专属动画验收，仍需按参考逐个核参数/中断/退出，不能将原视图缺项视为允许缩减。 |
 | M-kb-progress | 知识库文档处理进度条/徽标切换 | 参考 KbStatusBadge/进度条：`transition-all duration-300`、`animate-spin`；徽标/banner 无进出场动画 | 实现待验收 | 2026-09-12补查1920/390×正常/系统reduce共4个解析中样本，35%与取消入口可读，均能到就绪；系统reduce使公共壳transition 0.2s→1e-05s。采样未观察到活动CSS/Web Animations，未证明进度内条300ms曲线或完整中断，故不升为已验收；[探针](../qa/acceptance-20260912/visual-probes.json) |
+| M-space-tile | /space 磁贴悬停与计数骨架 | 参考 SpaceDashboard DashboardCard：`transition-all duration-150`、`hover:-translate-y-0.5` + hover 阴影、`animate-pulse` 计数骨架；ArrowUpRight 仅 transition-colors | 实现待验收 | 2026-09-18 B-R05-SPACE-VISUAL v1 实装：磁贴 `transform/border-color/box-shadow 150ms` + hover translateY(-2px)/--shadow-card、骨架 space-pulse 1.4s（对照 animate-pulse）、箭头 transition-colors 150ms；无参考外新增动画；reduce 下截图无异常（[qa README](../qa/space-r05-20260918/README.md)）。未逐帧采样曲线/中断，不升为已验收 |
 
 动画证据边界：历史截图/录像和首败不删；已验收只覆盖表中日期与候选。H1–H5 随功能批同步验收模块动画，H6 再集中补漏；不以存在 animationName 或截图文件作为整段已播放证据。
 
-当前R-05首批只规划公共视觉与/space首页；其涉及动画先核参考再实现/验收。阅读R-09上滚、显式回到底部和手机reduce行为已测，未证明全部阅读曲线；原动画状态不因文档整理升级。
+当前R-05首批（B-R05-SPACE-VISUAL v1，2026-09-18）已交付公共变量层与/space首页，磁贴动画见 M-space-tile；R-05 推广批的动画仍先核参考再实现/验收。阅读R-09上滚、显式回到底部和手机reduce行为已测，未证明全部阅读曲线；原动画状态不因文档整理升级。

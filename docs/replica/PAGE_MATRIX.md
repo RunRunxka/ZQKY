@@ -15,7 +15,7 @@
 | P-chat-[sessionId] | `/chat/[sessionId]` | `/chat/[sessionId]` | 实现待验收 | 与当前主页共用外观，真实会话深链/恢复/无效id处理已有；旧mode参数不恢复模拟。完整消息交互、历史数据与跨页来源待核验；侧栏父菜单高亮由 WorkspaceShell 统一。 |
 | P-settings | `/settings` | `/settings` | 实现待验收 | 分类导航/锚点/搜索、模型真实管理、扩展模拟管理已有。2026-09-13 MODEL-EXEC v3 完成模型区域重做（供应商卡片→详情→模型列表，保留蓝色与真实目录，独立审查 MR-07/08/12/13/14/16 已修且后续独立复验；9965592补嵌套/草稿/焦点，设置全页与全部动画仍未整体通过）。B-H0R-SHELL 批已收口其公共壳与当前菜单（唯一主页/唯一当前项/统一 404 壳）。其他 S6 设置整合仍待实现 |
 | P-lesson-plans | —（目标自有） | `/lesson-plans` | 已验收 | 目标项目既有教案工作台，保留独立地址与导航入口；首页现为 /chat；e2e `lesson-plan.spec.ts` 回归 |
-| P-space | `/space` | `/space` | 实现待验收 | 学习空间仪表盘（S5-A）：3 组磁贴+实时计数（会话/题库/笔记/角色/CLI/技能/MCP）；whisper 磁贴按参考行为隐藏（树外插件能力本地不存在）；e2e `space-pages.spec.ts` |
+| P-space | `/space` | `/space` | 部分验收 | 学习空间仪表盘（S5-A）：3 组磁贴+实时计数（会话/题库/笔记/角色/CLI/技能/MCP）；whisper 磁贴按参考行为隐藏（树外插件能力本地不存在）；e2e `space-pages.spec.ts`。**B-R05-SPACE-VISUAL v1（2026-09-18）视觉迁移**：Lora 标题、图标块+计数+单位+ArrowUpRight 磁贴、脉冲骨架；三视口前后截图见 [qa README](../qa/space-r05-20260918/README.md)；功能全状态仍待验收 |
 | P-space-chat-history | `/space/chat-history` | `/space/chat-history` | 实现待验收 | 会话历史目录（S5-A）：真实仓储搜索/归档筛选、内联重命名、删除确认、归档恢复、重开；2026-09-09 移除模拟筛选与库读取，旧模拟数据留存不清理；e2e 同上 |
 | P-space-questions | `/space/questions` | `/space/questions` | 实现待验收 | 题库（S5-A）：范围栏（全部/答错/未掌握/书签/未分类/分类）+计数、250ms 防抖搜索、排序、书签/已掌握/归类/删除、批量操作、分类管理、演示题目显式载入；数据与聊天"保存到题库"同仓储。**来源回链已修（R-10，2026-09-14）**：以真实 sessionId 定位会话，messageId 仅会话内定位；无身份不显示、会话删除提示不可用；**消息定位（2026-09-14）**：以 messageId 在会话内定位（messageId 仅会话内使用）；e2e `chat-message-locate.spec.ts` |
 | P-space-personas | `/space/personas` | `/space/personas` | 实现待验收 | 角色目录（S5-A）：卡片网格、查看/新建/编辑/删除（弹层+重名校验）、演示角色显式载入；与聊天输入区"人设"共用 persona-catalog |
@@ -78,7 +78,7 @@
 | 基准页 | `P-chat` | 蓝色主题、Chat Geist/Lora、220/56px 导航、236px 学习记录中栏、912px 对话列、模型弹层和思考球是全站来源 |
 | 部分验收 | `P-chat-[sessionId]` | 2026-09-12 Flash测试预算8192的真实长答：465汉字、27处公式，三视口无页面级溢出、推理折叠和刷新恢复通过；默认预算两模型和Pro8192长答失败。后续R-10会话回链/消息定位已有独立功能证据；全消息视觉和真实交互仍待完整验收 |
 | 部分验收 | `P-knowledge-bases-[kbName]` | 1920/390下就绪、失败、解析中显式模拟样本可读，系统减少动画下可到达就绪；完整内容风格、全部分区/弹窗与进度动画时序仍待验 |
-| 未通过（收窄） | `P-settings`、`P-lesson-plans`、`P-space`、`P-knowledge-bases`、`P-notebooks`、`P-books`、`P-courses`、`P-reading`、`P-co-writer`、`P-whisper` | 三视口巡检确认内容字体/标题/卡片体系仍**未按 chat 统一**（R-05，视觉统一另批处理）。**R-04 的当前菜单问题已由 B-H0R-SHELL v1 修复并关闭**：courses/notebooks/whisper 现标记可见父菜单、抽屉焦点落在当前项；因此不再以“缺当前菜单”作为这些页面的未通过理由。 |
+| 部分验收 | `P-space` | **B-R05-SPACE-VISUAL v1（2026-09-18）**：标题/分组标签迁 Chat Lora（--font-display）、磁贴对照参考 DashboardCard 迁移（40px 图标块+大数字计数+单位+ArrowUpRight+脉冲骨架+hover 上浮阴影）、仪表盘不显示自指返回链接；真实计数/全部跳转/演示标识保留。三视口前后截图+焦点+reduce 动画证据 [docs/qa/space-r05-20260918](../qa/space-r05-20260918/README.md)；unit297/e2e154 通过。功能级完整验收（弹窗/错误/长文案逐状态）与全站推广仍待后续批 |
 | 待验收 | `P-space-chat-history`、`P-space-questions`、`P-space-personas`、`P-space-cli-apps`、`P-notebooks-[notebookId]`、`P-books-[bookId]`、`P-books-pages-[pageId]`、`P-courses-[courseId]`、`P-reading-materials`、`P-reading-[workspaceId]`、`P-reading-sessions`、`P-reading-sessions-[sessionId]`、`P-co-writer-[docId]` | 既有e2e覆盖部分功能；本次未逐页完成全部状态的视觉对照，保留待验收 |
 | 待实现 | `P-papers`、`P-question-bank`、`P-templates`、`P-partners*`、`P-agents`、`P-mastery*`、`P-memory*`、`P-login`、`P-register`、`P-profile`、`P-admin-users` | 规划状态页不是最终业务视觉验收；正式页面实现时直接按学习问答基准建设 |
 | 无独立页面 | `P-root`、`P-space-mcp`、`P-space-skills`、`P-mcp`、`P-skills` | 仅重定向；验收目标是去向、历史、焦点和最终页面当前菜单 |
@@ -89,4 +89,4 @@ H0 公共壳是横向证据：现有页面已共用 220/56px 侧栏、折叠偏�
 
 历史额外错误场景 `/acceptance-404` 在2026-09-12无壳且返回教案，首败保留；R-02/R-06已于e7fb2a4修复并有404浏览器复验，不继续列作当前缺陷。错误态不增加53项分母；全主题/详情/弹窗及错误reset运行时仍未全部覆盖。
 
-当前视觉任务对应 `P-space`：公共基础与首页迁移已规划、尚未实施；完成前不升级功能或视觉状态。详细范围只见 [STATUS当前任务](../STATUS.md#5-当前任务b-r05-space-visual-v1)。
+当前视觉任务对应 `P-space`：B-R05-SPACE-VISUAL v1 已于 2026-09-18 交付（见上表部分验收），R-05 全站推广（settings/教案/知识库/笔记/书籍/课程/阅读/写作）仍为后续批。详细范围只见 [STATUS当前任务](../STATUS.md#5-当前任务b-r05-space-visual-v1)。

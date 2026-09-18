@@ -1,16 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import {
-  FileQuestion,
-  MessagesSquare,
-  NotebookPen,
-  Plug,
-  TerminalSquare,
-  UserRoundCog,
-  Blocks,
-  type LucideIcon,
-} from 'lucide-react';
+import { ArrowUpRight, FileQuestion, MessagesSquare, NotebookPen, Plug, TerminalSquare, UserRoundCog, Blocks, type LucideIcon } from 'lucide-react';
 import { SpaceMain } from './SpaceMain';
 import { createIdbChatRepository } from '@/services/chat-repository';
 import { listCliApps } from '@/services/cli-apps-store';
@@ -24,6 +15,8 @@ interface DashboardTile {
   icon: LucideIcon;
   title: string;
   blurb: string;
+  /** 计数单位（对照参考 unit：跟随实时数字展示，如"段对话"） */
+  unit?: string;
   load: () => Promise<number> | number;
 }
 
@@ -41,6 +34,7 @@ const DASHBOARD_GROUPS: { label: string; tiles: DashboardTile[] }[] = [
         icon: MessagesSquare,
         title: '会话历史',
         blurb: '全部学习问答会话，可搜索、归档与重开。',
+        unit: '段对话',
         load: async () => {
           const real = createIdbChatRepository('zhiqikeyuan-chat');
           return (await real.list()).length;
@@ -52,6 +46,7 @@ const DASHBOARD_GROUPS: { label: string; tiles: DashboardTile[] }[] = [
         icon: NotebookPen,
         title: '笔记本',
         blurb: '保存研究报告与学习笔记，支持查看与编辑。',
+        unit: '个笔记本',
         load: () => listNotebookEntries().length,
       },
       {
@@ -60,6 +55,7 @@ const DASHBOARD_GROUPS: { label: string; tiles: DashboardTile[] }[] = [
         icon: FileQuestion,
         title: '题库',
         blurb: '出题产物沉淀于此，可筛选、标记与归类。',
+        unit: '道题',
         load: () => listQuizBank().length,
       },
     ],
@@ -73,6 +69,7 @@ const DASHBOARD_GROUPS: { label: string; tiles: DashboardTile[] }[] = [
         icon: UserRoundCog,
         title: '角色目录',
         blurb: '为问答选择讲解人设，可新建与编辑。',
+        unit: '个预设',
         load: () => {
           try {
             return readPersonas().length;
@@ -87,6 +84,7 @@ const DASHBOARD_GROUPS: { label: string; tiles: DashboardTile[] }[] = [
         icon: TerminalSquare,
         title: 'CLI 应用',
         blurb: '教学小工具目录与本地安装记录（演示）。',
+        unit: '个应用',
         load: () => listCliApps().length,
       },
       {
@@ -95,6 +93,7 @@ const DASHBOARD_GROUPS: { label: string; tiles: DashboardTile[] }[] = [
         icon: Blocks,
         title: '技能',
         blurb: '技能统一在设置中管理，聊天内选择使用。',
+        unit: '个技能',
         load: () => {
           try {
             return readExtensions().filter((e) => e.kind === 'skill').length;
@@ -109,6 +108,7 @@ const DASHBOARD_GROUPS: { label: string; tiles: DashboardTile[] }[] = [
         icon: Plug,
         title: 'MCP 服务',
         blurb: 'MCP 服务器统一在设置中管理。',
+        unit: '个服务',
         load: () => {
           try {
             return readExtensions().filter((e) => e.kind === 'mcp').length;
@@ -155,15 +155,30 @@ export function SpaceDashboard() {
             {group.tiles.map((tile) => {
               const Icon = tile.icon;
               const count = counts[tile.key];
+              const loaded = count !== undefined;
               return (
                 <Link className="space-tile" href={tile.href} key={tile.key}>
-                  <span className="space-tile-top">
-                    <Icon size={20} aria-hidden />
-                    <span className="space-tile-count">
-                      {count === undefined ? '…' : count}
+                  <span className="space-tile-head">
+                    <span className="space-tile-icon" aria-hidden>
+                      <Icon size={18} strokeWidth={1.7} />
                     </span>
+                    <span className="space-tile-heading">
+                      <span className="space-tile-title">{tile.title}</span>
+                      {tile.unit && (
+                        <span className="space-tile-count">
+                          {loaded ? (
+                            <>
+                              <strong className="space-tile-number">{(count as number).toLocaleString()}</strong>
+                              <span className="space-tile-unit">{tile.unit}</span>
+                            </>
+                          ) : (
+                            <span className="space-tile-skeleton" aria-label="计数加载中" />
+                          )}
+                        </span>
+                      )}
+                    </span>
+                    <ArrowUpRight size={16} className="space-tile-arrow" aria-hidden />
                   </span>
-                  <span className="space-tile-title">{tile.title}</span>
                   <span className="space-tile-blurb">{tile.blurb}</span>
                 </Link>
               );
