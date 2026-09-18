@@ -12,6 +12,10 @@
    + focus-visible:ring-2 ring-[var(--primary)]/40） */
 .nb-page .space-scope-item {
   position: relative;
+  /* 窄视口（≤760px，rail 变 row+wrap）下允许 item 收缩到容器宽度以下，
+     nowrap 名称才能走省略号而不是把 item 撑到 min-content 宽度溢出视口（A1 F1） */
+  min-width: 0;
+  max-width: 100%;
   transition:
     background-color 150ms,
     color 150ms,
@@ -126,6 +130,36 @@
 
 .nb-page .space-session-card:hover {
   background: var(--surface);
+}
+
+/* ===== C2 行头时间戳：宽视口常驻行头右侧；窄视口换到第二行（A1 F2） ===== */
+
+/* 宽视口：不参与行头收缩竞争（flexShrink 语义由类承担，替代原内联样式） */
+.nb-page .nb-row-time {
+  flex-shrink: 0;
+}
+
+/* 窄视口（与 space.css 的 760px 断点一致）：时间戳整行换到行头第二行，
+   让标题（flex:1）与徽章不再被时间戳+操作钮挤压成 0 宽/竖排 */
+@media (max-width: 760px) {
+  /* 仅本页窄视口允许行头换行（space-session-top 默认单行；wrap 后时间戳可落到第二行） */
+  .nb-page .space-session-top {
+    flex-wrap: wrap;
+  }
+
+  .nb-page .nb-row-time {
+    flex-basis: 100%;
+    order: 10;
+    /* 换行后时间戳作为独立第二行左侧对齐 */
+    width: 100%;
+  }
+
+  /* 窄视口下 space.css 把本布局改为纵向后仍保留 align-items:flex-start，
+     主列会按内容宽度撑开（实测 628px）超出视口，操作钮被裁切。
+     本页改为 stretch，让主列与 rail 都收在容器宽度内（仅 ≤760px 生效）。 */
+  .nb-page .space-bank-layout {
+    align-items: stretch;
+  }
 }
 
 /* ===== C4 操作钮：参考 transition-[background-color,color,transform] 150ms + active 0.97 ===== */

@@ -563,8 +563,9 @@ function RecordRow({
         <span className={typeBadgeClass(record.type)}>
           {TYPE_LABEL[record.type] ?? record.type}
         </span>
-        {/* 时间戳常驻行头右侧（参考注释：避免 hover 交换时行高抖动），格式保持中文可读 */}
-        <span className="space-meta-row" style={{ flexShrink: 0 }}>
+        {/* 时间戳常驻行头右侧（参考注释：避免 hover 交换时行高抖动），格式保持中文可读；
+            窄视口下经 nb-row-time 换到第二行，避免挤压标题（A1 F2） */}
+        <span className="space-meta-row nb-row-time">
           更新于 {new Date(record.updatedAt).toLocaleString('zh-CN')}
         </span>
         <span className="space-session-actions">
