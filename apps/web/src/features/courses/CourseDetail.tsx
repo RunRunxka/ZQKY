@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, BookMarked, FolderOpen, Library, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, BookMarked, FolderOpen, Info, Library, Loader2, Plus, Trash2 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import {
   COURSE_COLOR_DOT,
@@ -31,6 +31,7 @@ import {
   type StudyCourse,
 } from '@/services/courses-store';
 import '@/features/space/styles/space.css';
+import '@/features/courses/courses.css';
 
 export function CourseDetail() {
   const params = useParams<{ courseId: string }>();
@@ -43,6 +44,8 @@ export function CourseDetail() {
   const [editingSyllabus, setEditingSyllabus] = useState(false);
   const [syllabusText, setSyllabusText] = useState('');
   const [addingResource, setAddingResource] = useState(false);
+  // 异步操作 busy 态（§7.1 #5）：本地存储同步写入，busy 用于提交期间防重复点击
+  const [busyAction, setBusyAction] = useState<'archive' | 'syllabus' | null>(null);
   // R-11：资源目录在 effect 中集中读取为一致快照（渲染期不再读目录），失败可重试
   const [directories, setDirectories] = useState<ResourceDirectorySnapshot | null>(null);
 
@@ -77,7 +80,7 @@ export function CourseDetail() {
 
   if (courses !== null && !course) {
     return (
-      <div className="space-page">
+      <div className="space-page courses-page">
         <div className="space-empty" style={{ marginTop: 80 }}>
           <strong>课程不存在或已被删除</strong>
           <span>它可能已被删除，或链接有误。</span>
@@ -92,7 +95,7 @@ export function CourseDetail() {
 
   if (!course) {
     return (
-      <div className="space-page">
+      <div className="space-page courses-page">
         <div className="space-banner" style={{ marginTop: 80 }}>
           正在读取课程…
         </div>
@@ -109,7 +112,7 @@ export function CourseDetail() {
   const directoryError = directories ? snapshotError(directories) : null;
 
   return (
-    <div className="space-page">
+    <div className="space-page courses-page">
       <header className="space-header">
         <div className="space-header-row">
           <Link className="space-back" href="/courses">
@@ -122,12 +125,19 @@ export function CourseDetail() {
             </button>
             <button
               className="space-button"
+              disabled={busyAction === 'archive'}
               onClick={() => {
                 const archived = course.status === 'active';
-                setCourseArchived(course.id, archived);
-                setNotice(archived ? '已归档课程（列表折叠区可见）。' : '已恢复课程。');
+                setBusyAction('archive');
+                try {
+                  setCourseArchived(course.id, archived);
+                  setNotice(archived ? '已归档课程（列表折叠区可见）。' : '已恢复课程。');
+                } finally {
+                  setBusyAction(null);
+                }
               }}
             >
+              {busyAction === 'archive' ? <Loader2 size={14} className="space-spin" aria-hidden /> : null}
               {course.status === 'active' ? '归档' : '恢复'}
             </button>
             <button
@@ -166,9 +176,12 @@ export function CourseDetail() {
         <p className="space-description">{course.description || '（无简介）'}</p>
       </header>
       <main className="space-content">
-        <div className="space-banner info" role="note">
-          课程学习会话未接入：参考以 session.preferences.course_id 过滤课程会话，目标项目聊天会话尚未携带课程标记；
-          大纲与资料为本地目录，聚合进度（掌握/题库/阅读）未接入。
+        <div className="space-banner info courses-note-banner" role="note">
+          <Info size={14} aria-hidden />
+          <span>
+            课程学习会话未接入：参考以 session.preferences.course_id 过滤课程会话，目标项目聊天会话尚未携带课程标记；
+            大纲与资料为本地目录，聚合进度（掌握/题库/阅读）未接入。
+          </span>
         </div>
         {notice && (
           <div className="space-banner info" role="status">
@@ -204,6 +217,21 @@ export function CourseDetail() {
               </button>
             </div>
           </div>
+          {summary.total > 0 && (
+            <div
+              className="courses-progress"
+              role="progressbar"
+              aria-label="大纲完成进度"
+              aria-valuenow={Math.round((summary.covered / summary.total) * 100)}
+              aria-valuemin={0}
+              aria-valuemax={100}
+            >
+              <div
+                className="courses-progress-fill"
+                style={{ width: `${Math.round((summary.covered / summary.total) * 100)}%` }}
+              />
+            </div>
+          )}
           {editingSyllabus && (
             <div className="space-category-manager" style={{ marginBottom: 10 }}>
               <p className="space-footnote" style={{ marginTop: 0 }}>
@@ -219,12 +247,19 @@ export function CourseDetail() {
               <div className="space-card-actions">
                 <button
                   className="space-button primary"
+                  disabled={busyAction === 'syllabus'}
                   onClick={() => {
-                    setCourseSyllabus(course.id, parseSyllabusText(syllabusText));
-                    setEditingSyllabus(false);
-                    setNotice('已保存大纲（covered 已重置，由学员重新勾选）。');
+                    setBusyAction('syllabus');
+                    try {
+                      setCourseSyllabus(course.id, parseSyllabusText(syllabusText));
+                      setEditingSyllabus(false);
+                      setNotice('已保存大纲（covered 已重置，由学员重新勾选）。');
+                    } finally {
+                      setBusyAction(null);
+                    }
                   }}
                 >
+                  {busyAction === 'syllabus' ? <Loader2 size={14} className="space-spin" aria-hidden /> : null}
                   保存大纲
                 </button>
                 <button className="space-button" onClick={() => setEditingSyllabus(false)}>
@@ -241,29 +276,31 @@ export function CourseDetail() {
           ) : (
             <ul className="space-session-list">
               {course.syllabus.map((unit) => (
-                <li className="space-session-card" key={unit.id}>
-                  <div className="space-session-top">
+                <li
+                  className={`space-session-card courses-unit${unit.covered ? ' is-covered' : ''}${
+                    summary.next?.id === unit.id ? ' is-next' : ''
+                  }`}
+                  key={unit.id}
+                >
+                  <div className="courses-unit-row">
+                    <span className="courses-unit-position" aria-hidden>
+                      {unit.position + 1}.
+                    </span>
                     <input
                       type="checkbox"
                       checked={unit.covered}
                       onChange={() => toggleUnitCovered(course.id, unit.id)}
                       aria-label={`标记「${unit.title}」为已完成`}
                     />
-                    <span className="space-session-title" style={unit.covered ? { opacity: 0.7 } : undefined}>
-                      {unit.title}
+                    <span className="courses-unit-main">
+                      <span className="courses-unit-title">{unit.title}</span>
+                      {unit.topics.length > 0 && (
+                        <span className="courses-unit-topics">{unit.topics.join(' · ')}</span>
+                      )}
                     </span>
                     {summary.next?.id === unit.id && <span className="space-chip blue">下一单元</span>}
                     {unit.covered && <span className="space-chip green">已完成</span>}
                   </div>
-                  {unit.topics.length > 0 && (
-                    <div className="space-meta-row">
-                      {unit.topics.map((topic) => (
-                        <span className="space-chip" key={topic}>
-                          {topic}
-                        </span>
-                      ))}
-                    </div>
-                  )}
                 </li>
               ))}
             </ul>
@@ -298,39 +335,47 @@ export function CourseDetail() {
             </div>
           ) : (
             <ul className="space-session-list">
-              {resources.map(({ resource, availability, href }) => (
-                <li className="space-session-card" key={resource.id}>
-                  <div className="space-session-top">
-                    <span className="space-chip">{COURSE_KIND_LABEL[resource.kind]}</span>
-                    {availability === 'available' && href ? (
-                      <Link className="space-session-title" href={href}>
-                        {resource.label}
-                      </Link>
-                    ) : availability === 'unknown' ? (
-                      // R-11：目录读取失败不能断言目标已删除，明确说明无法确认
-                      <span className="space-session-title" style={{ opacity: 0.6 }}>
-                        {resource.label}（目录读取失败，暂无法确认）
+              {resources.map(({ resource, availability, href }) => {
+                const Icon = KIND_ICON[resource.kind];
+                const suffix =
+                  availability === 'unknown' ? '（目录读取失败，暂无法确认）' : '（不可用：目标已删除或未载入）';
+                return (
+                  <li
+                    className={`space-session-card courses-resource${availability !== 'available' ? ' is-unavailable' : ''}`}
+                    key={resource.id}
+                  >
+                    <div className="courses-resource-row">
+                      <span className="courses-resource-kind">
+                        <Icon size={14} strokeWidth={1.7} aria-hidden />
+                        <span className="courses-resource-kind-name">{COURSE_KIND_LABEL[resource.kind]}</span>
                       </span>
-                    ) : (
-                      <span className="space-session-title" style={{ opacity: 0.6 }}>
-                        {resource.label}（不可用：目标已删除或未载入）
+                      {availability === 'available' && href ? (
+                        <Link className="courses-resource-label" href={href}>
+                          {resource.label}
+                        </Link>
+                      ) : (
+                        // R-11：目录读取失败不能断言目标已删除，明确说明无法确认；后缀独立不截断
+                        <span className="courses-resource-label">
+                          <span className="courses-resource-text">{resource.label}</span>
+                          <span className="courses-resource-suffix">{suffix}</span>
+                        </span>
+                      )}
+                      <span className="space-session-actions">
+                        <button
+                          className="icon-button courses-resource-remove"
+                          aria-label={`移除资料 ${resource.label}`}
+                          onClick={() => {
+                            detachCourseResource(course.id, resource.id);
+                            setNotice(`已移除资料「${resource.label}」。`);
+                          }}
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </span>
-                    )}
-                    <span className="space-session-actions">
-                      <button
-                        className="icon-button"
-                        aria-label={`移除资料 ${resource.label}`}
-                        onClick={() => {
-                          detachCourseResource(course.id, resource.id);
-                          setNotice(`已移除资料「${resource.label}」。`);
-                        }}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </span>
-                  </div>
-                </li>
-              ))}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
           <p className="space-footnote">
@@ -344,7 +389,9 @@ export function CourseDetail() {
         <section className="space-group">
           <h2 className="space-group-label">学习约定</h2>
           {course.instructions ? (
-            <p style={{ whiteSpace: 'pre-wrap', margin: 0 }}>{course.instructions}</p>
+            <p className="courses-conventions" style={{ whiteSpace: 'pre-wrap', margin: 0 }}>
+              {course.instructions}
+            </p>
           ) : (
             <p className="space-footnote" style={{ margin: 0 }}>
               暂无约定；通过「编辑」填写（参考为每次对话注入的课程 instructions）。
@@ -394,12 +441,15 @@ function EditCourseForm({
   const [color, setColor] = useState<CourseColor>(course.color);
   const [instructions, setInstructions] = useState(course.instructions);
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   return (
     <Modal title={`编辑课程 · ${course.name}`} onClose={onClose}>
       <form
         className="space-form"
         onSubmit={(event) => {
           event.preventDefault();
+          if (saving) return;
+          setSaving(true);
           try {
             const updated = updateCourse(course.id, { name, description, color, instructions });
             onSaved(updated.name);
@@ -407,6 +457,8 @@ function EditCourseForm({
             setError(
               cause instanceof CourseValidationError ? cause.message : '保存失败，请检查输入后重试。',
             );
+          } finally {
+            setSaving(false);
           }
         }}
       >
@@ -459,7 +511,8 @@ function EditCourseForm({
           <button type="button" className="space-button" onClick={onClose}>
             取消
           </button>
-          <button type="submit" className="space-button primary">
+          <button type="submit" className="space-button primary" disabled={saving}>
+            {saving ? <Loader2 size={14} className="space-spin" aria-hidden /> : null}
             保存
           </button>
         </div>

@@ -2,7 +2,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, BookMarked, Sparkles } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  BookMarked,
+  Bookmark,
+  Clock,
+  FileText,
+  Layers,
+  Loader2,
+  RotateCcw,
+  Search,
+  Sparkles,
+} from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import {
   BookValidationError,
@@ -51,6 +63,7 @@ function BookLibrary() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   const refresh = useCallback(() => {
     try {
@@ -78,7 +91,7 @@ function BookLibrary() {
   const chapterTotal = books.reduce((sum, book) => sum + book.chapters.length, 0);
 
   return (
-    <div className="space-page">
+    <div className="space-page books-page">
       <header className="space-header">
         <div className="space-header-row">
           <h1>书籍</h1>
@@ -134,8 +147,11 @@ function BookLibrary() {
           </div>
         ) : (
           <>
-            {books.length > 6 && (
-              <div className="space-toolbar">
+            <div className="space-toolbar">
+              <div className="books-search-wrap">
+                <span className="books-search-icon" aria-hidden>
+                  <Search size={13} />
+                </span>
                 <input
                   className="space-search"
                   type="search"
@@ -145,11 +161,21 @@ function BookLibrary() {
                   onChange={(event) => setQuery(event.target.value)}
                 />
               </div>
-            )}
+              <span className="books-search-count" aria-live="polite">
+                {query.trim() ? (
+                  <>
+                    {filtered.length}/{books.length} · 匹配「{query.trim()}」
+                  </>
+                ) : (
+                  <span className="space-chip">我的书架 · 共 {books.length} 本</span>
+                )}
+              </span>
+            </div>
             <div className="space-card-grid">
               {filtered.map((book) => {
                 const pages = book.status === 'ready' ? book.chapters.reduce((sum, chapter) => sum + chapter.pageIds.length, 0) : 0;
                 const percent = readingPercent(book);
+                const pendingDelete = pendingDeleteId === book.id;
                 const cta =
                   book.status === 'draft'
                     ? '继续创建'
@@ -166,19 +192,31 @@ function BookLibrary() {
                       <div className="space-card-title">
                         <BookMarked size={15} aria-hidden />
                         {book.title}
+                        <ArrowRight size={14} className="books-card-arrow" aria-hidden />
                       </div>
                       <p className="space-card-body">{book.description || '（无简介）'}</p>
                       <div className="space-meta-row">
                         <span className={`space-chip ${STATUS_TONE[book.status]}`}>{STATUS_LABEL[book.status]}</span>
-                        <span className="space-chip">{book.chapters.length} 章</span>
-                        {book.status === 'ready' && <span className="space-chip">{pages} 页</span>}
+                        <span className="books-meta-item">
+                          <Layers size={11} aria-hidden />
+                          {book.chapters.length} 章
+                        </span>
+                        {book.status === 'ready' && (
+                          <span className="books-meta-item">
+                            <FileText size={11} aria-hidden />
+                            {pages} 页
+                          </span>
+                        )}
                       </div>
                       {book.status === 'ready' && (
                         <div className="space-reading-bar" aria-label={`阅读进度 ${percent}%`}>
                           <div className="space-reading-bar-fill" style={{ width: `${percent}%` }} />
                         </div>
                       )}
-                      <span className="space-footnote">更新于 {new Date(book.updatedAt).toLocaleString('zh-CN')}</span>
+                      <span className="space-footnote">
+                        <Clock size={11} aria-hidden style={{ marginRight: 4, verticalAlign: -1 }} />
+                        更新于 {new Date(book.updatedAt).toLocaleString('zh-CN')}
+                      </span>
                     </Link>
                     <div className="space-card-actions" style={{ marginTop: 8 }}>
                       <button
@@ -187,22 +225,32 @@ function BookLibrary() {
                       >
                         {cta}
                       </button>
-                      <button
-                        className="space-button danger"
-                        onClick={() => {
-                          if (window.confirm(`删除书籍「${book.title}」？本地阅读进度将一并移除。`)) {
-                            deleteBook(book.id);
-                          }
-                        }}
-                      >
-                        删除
-                      </button>
+                      {pendingDelete ? (
+                        <>
+                          <button
+                            className="space-button danger"
+                            onClick={() => {
+                              deleteBook(book.id);
+                              setPendingDeleteId(null);
+                            }}
+                          >
+                            确认删除
+                          </button>
+                          <button className="space-button" onClick={() => setPendingDeleteId(null)}>
+                            取消
+                          </button>
+                        </>
+                      ) : (
+                        <button className="space-button danger" onClick={() => setPendingDeleteId(book.id)}>
+                          删除
+                        </button>
+                      )}
                     </div>
                   </article>
                 );
               })}
             </div>
-            {books.length > 6 && filtered.length === 0 && (
+            {filtered.length === 0 && (
               <div className="space-empty">
                 <strong>没有匹配的书籍</strong>
                 <span>换个搜索词再试。</span>
@@ -229,20 +277,26 @@ function CreateBookForm({ onClose, onCreated }: { onClose: () => void; onCreated
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   return (
     <Modal title="新建书籍" onClose={onClose}>
       <form
         className="space-form"
         onSubmit={(event) => {
           event.preventDefault();
-          try {
-            const book = createBook(title, description);
-            onCreated(book.id);
-          } catch (cause) {
-            setError(
-              cause instanceof BookValidationError ? cause.message : '创建失败，请检查输入后重试。',
-            );
-          }
+          setSubmitting(true);
+          // 本地同步模拟创建：短促 busy 呈现（Loader2 旋转）后落库，操作语义不变
+          window.setTimeout(() => {
+            try {
+              const book = createBook(title, description);
+              onCreated(book.id);
+            } catch (cause) {
+              setError(
+                cause instanceof BookValidationError ? cause.message : '创建失败，请检查输入后重试。',
+              );
+              setSubmitting(false);
+            }
+          }, 350);
         }}
       >
         <p className="space-footnote" style={{ marginTop: 0 }}>
@@ -275,7 +329,8 @@ function CreateBookForm({ onClose, onCreated }: { onClose: () => void; onCreated
           <button type="button" className="space-button" onClick={onClose}>
             取消
           </button>
-          <button type="submit" className="space-button primary">
+          <button type="submit" className="space-button primary" disabled={submitting}>
+            {submitting && <Loader2 size={13} className="space-spin" aria-hidden />}
             创建（生成模拟提案）
           </button>
         </div>
@@ -315,7 +370,7 @@ function BookWorkspace({ bookId, pageId }: { bookId: string; pageId?: string }) 
 
   if (books !== null && !book) {
     return (
-      <div className="space-page">
+      <div className="space-page books-page">
         <div className="space-empty" style={{ marginTop: 80 }}>
           <strong>书籍「{bookId}」不存在</strong>
           <span>它可能已被删除，或链接有误。</span>
@@ -330,8 +385,9 @@ function BookWorkspace({ bookId, pageId }: { bookId: string; pageId?: string }) 
 
   if (!book) {
     return (
-      <div className="space-page">
-        <div className="space-banner" style={{ marginTop: 80 }}>
+      <div className="space-page books-page">
+        <div className="books-loading" style={{ marginTop: 80 }} role="status">
+          <Loader2 size={14} className="space-spin" aria-hidden />
           正在读取书籍…
         </div>
       </div>
@@ -389,9 +445,10 @@ function ProposalView({
   onNotice: (value: string | null) => void;
   notice: string | null;
 }) {
+  const [confirming, setConfirming] = useState(false);
   const proposal = book.proposal;
   return (
-    <div className="space-page">
+    <div className="space-page books-page">
       <header className="space-header">
         <div className="space-header-row">
           <Link className="space-back" href="/books">
@@ -434,11 +491,18 @@ function ProposalView({
         <div className="space-card-actions">
           <button
             className="space-button primary"
+            disabled={confirming}
             onClick={() => {
-              const updated = confirmProposal(book.id);
-              onNotice(updated ? '已确认提案，进入大纲确认。' : '确认失败：书籍状态已变化。');
+              setConfirming(true);
+              // 本地同步模拟编译：短促 busy 呈现（Loader2 旋转）后落库，操作语义不变
+              window.setTimeout(() => {
+                const updated = confirmProposal(book.id);
+                onNotice(updated ? '已确认提案，进入大纲确认。' : '确认失败：书籍状态已变化。');
+                setConfirming(false);
+              }, 350);
             }}
           >
+            {confirming && <Loader2 size={13} className="space-spin" aria-hidden />}
             确认提案（进入大纲）
           </button>
         </div>
@@ -456,8 +520,9 @@ function SpineView({
   onNotice: (value: string | null) => void;
   notice: string | null;
 }) {
+  const [confirming, setConfirming] = useState(false);
   return (
-    <div className="space-page">
+    <div className="space-page books-page">
       <header className="space-header">
         <div className="space-header-row">
           <Link className="space-back" href="/books">
@@ -475,6 +540,12 @@ function SpineView({
         {notice && (
           <div className="space-banner info" role="status">
             {notice}
+          </div>
+        )}
+        {confirming && (
+          <div className="books-loading" role="status">
+            <Loader2 size={14} className="space-spin" aria-hidden />
+            正在生成章节页面（模拟编译）…
           </div>
         )}
         <section className="space-group">
@@ -498,11 +569,19 @@ function SpineView({
         <div className="space-card-actions">
           <button
             className="space-button primary"
+            disabled={confirming}
             onClick={() => {
-              const updated = confirmSpine(book.id);
-              onNotice(updated ? '模拟编译完成，书籍已可阅读。' : '编译失败：书籍状态已变化。');
+              setConfirming(true);
+              // 本地同步模拟编译：补「Loading spine…」式过渡态（参考参 BooksRoute 1150-1154），
+              // 延迟落库以便 busy/加载提示可见；操作语义与文案不变
+              window.setTimeout(() => {
+                const updated = confirmSpine(book.id);
+                onNotice(updated ? '模拟编译完成，书籍已可阅读。' : '编译失败：书籍状态已变化。');
+                setConfirming(false);
+              }, 350);
             }}
           >
+            {confirming && <Loader2 size={13} className="space-spin" aria-hidden />}
             确认大纲并编译（模拟）
           </button>
         </div>
@@ -522,6 +601,7 @@ function ReaderLayout({
   onNotice: (value: string | null) => void;
   notice: string | null;
 }) {
+  const [exporting, setExporting] = useState(false);
   const pages = book.chapters.flatMap((chapter) => chapter.pageIds);
   const index = pageId ? pages.indexOf(pageId) : -1;
   const page = pageId ? pages[index] ?? null : null;
@@ -529,7 +609,7 @@ function ReaderLayout({
   if (!pageId || !page) {
     // 深链页码无效：提示并回有效页
     return (
-      <div className="space-page">
+      <div className="space-page books-page">
         <div className="space-empty" style={{ marginTop: 80 }}>
           <strong>章节页不存在或已被重建</strong>
           <span>书籍可能已重新编译，旧页码失效。</span>
@@ -542,7 +622,7 @@ function ReaderLayout({
   }
 
   return (
-    <div className="space-page">
+    <div className="space-page books-page">
       <header className="space-header">
         <div className="space-header-row">
           <Link className="space-back" href="/books">
@@ -552,9 +632,14 @@ function ReaderLayout({
           <div className="space-card-actions">
             <button
               className="space-button"
+              disabled={exporting}
               onClick={() => {
+                setExporting(true);
                 const result = exportBookMarkdown(book.id);
-                if (!result) return;
+                if (!result) {
+                  setExporting(false);
+                  return;
+                }
                 const blob = new Blob([result.content], { type: 'text/markdown;charset=utf-8' });
                 const url = URL.createObjectURL(blob);
                 const anchor = document.createElement('a');
@@ -563,12 +648,15 @@ function ReaderLayout({
                 anchor.click();
                 URL.revokeObjectURL(url);
                 onNotice(`已导出「${result.name}」。`);
+                setExporting(false);
               }}
             >
+              {exporting && <Loader2 size={13} className="space-spin" aria-hidden />}
               导出 Markdown
             </button>
             <button
               className="space-button danger"
+              disabled={exporting}
               onClick={() => {
                 if (window.confirm(`重建书籍「${book.title}」？将重新模拟编译并清空阅读进度。`)) {
                   rebuildBook(book.id);
@@ -576,6 +664,7 @@ function ReaderLayout({
                 }
               }}
             >
+              <RotateCcw size={13} aria-hidden />
               重建书籍
             </button>
           </div>
@@ -624,6 +713,7 @@ function BookSidebar({ book, currentPageId }: { book: ReplicaBook; currentPageId
                 aria-current={pageId === currentPageId ? 'page' : undefined}
                 href={`/books/${book.id}/pages/${pageId}`}
                 style={visited ? undefined : { opacity: 0.75 }}
+                title={`${chapter.title}（${offset + 1}/2）${visited ? ' · 已读' : ' · 未读'}`}
               >
                 <span
                   aria-hidden
@@ -632,15 +722,17 @@ function BookSidebar({ book, currentPageId }: { book: ReplicaBook; currentPageId
                     height: 8,
                     borderRadius: 999,
                     flexShrink: 0,
-                    background: visited ? 'var(--ink, #222)' : 'transparent',
-                    border: '1px solid var(--ink, #222)',
+                    background: visited ? 'var(--blue)' : 'transparent',
+                    border: '1px solid var(--blue)',
+                    opacity: visited ? 1 : 0.45,
                   }}
                 />
-                <span style={{ flex: 1, textAlign: 'left' }}>
+                <span className="books-rail-title">
                   {chapter.title}（{offset + 1}/2）
                 </span>
                 {bookmarked && (
-                  <span className="space-chip amber" aria-label="已加书签">
+                  <span className="books-bookmark-mark" aria-label="已加书签" title="已加书签">
+                    <Bookmark size={10} aria-hidden />
                     签
                   </span>
                 )}
