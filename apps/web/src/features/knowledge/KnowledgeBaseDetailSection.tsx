@@ -4,16 +4,27 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 // 复用 space 设计语言的样式；直达路由也需要加载（不能只依赖 SpaceMain 的引入）
 import '@/features/space/styles/space.css';
+// 知识库两页专属样式（B-R05-EXTEND-I1）：在 space.css 之后引入保证覆盖顺序
+import '@/features/knowledge/styles/knowledge.css';
 import {
+  AlertTriangle,
   ArrowLeft,
+  Check,
+  Clock3,
+  Database,
+  FileText,
   FileUp,
   Github,
   Globe,
+  Layers,
+  Loader2,
   RefreshCw,
   Square,
   Star,
   Trash2,
   TriangleAlert,
+  X,
+  type LucideIcon,
 } from 'lucide-react';
 import {
   addKbDocument,
@@ -41,12 +52,13 @@ import {
 
 type DetailSection = 'files' | 'add' | 'sources' | 'versions' | 'settings';
 
-const SECTIONS: { id: DetailSection; label: string }[] = [
-  { id: 'files', label: '文档' },
-  { id: 'add', label: '登记文档' },
-  { id: 'sources', label: '外部来源' },
-  { id: 'versions', label: '索引' },
-  { id: 'settings', label: '设置' },
+/** 分区页签（图标 + 标签；exact 文本「文档」等被 e2e gotoSection 依赖，不得改动） */
+const SECTIONS: { id: DetailSection; label: string; icon: LucideIcon }[] = [
+  { id: 'files', label: '文档', icon: FileText },
+  { id: 'add', label: '登记文档', icon: FileUp },
+  { id: 'sources', label: '外部来源', icon: Globe },
+  { id: 'versions', label: '索引', icon: Layers },
+  { id: 'settings', label: '设置', icon: Database },
 ];
 
 const KB_PIPELINE_LABEL: Record<KbPipelineSummary['status'], string> = {
@@ -64,6 +76,15 @@ const KB_PIPELINE_TONE: Record<KbPipelineSummary['status'], string> = {
   processing: 'blue',
   ready: 'green',
   error: 'amber',
+};
+
+/** 状态徽标图标（对照参考 KbStatusBadge：处理中=Clock3、已就绪=CheckCircle2、其余=AlertTriangle） */
+const KB_STATUS_ICON: Record<KbPipelineSummary['status'], LucideIcon> = {
+  empty: AlertTriangle,
+  registered: AlertTriangle,
+  processing: Clock3,
+  ready: Check,
+  error: AlertTriangle,
 };
 
 const DOC_STATUS_LABEL: Record<KbDocStatus, string> = {
@@ -121,7 +142,7 @@ export function KnowledgeBaseDetailSection() {
 
   if (kbs !== null && !kb) {
     return (
-      <div className="space-page">
+      <div className="space-page kb-page kb-detail">
         <div className="space-empty" style={{ marginTop: 80 }}>
           <strong>知识库「{kbName}」不存在</strong>
           <span>它可能已被删除，或链接有误。</span>
@@ -137,7 +158,7 @@ export function KnowledgeBaseDetailSection() {
   if (!kb) {
     // kbs 仍为 null 时可能是读取中，也可能是读取失败：失败必须如实提示，不能停在“读取中”
     return (
-      <div className="space-page">
+      <div className="space-page kb-page kb-detail">
         {error ? (
           <div className="space-banner error" role="alert" style={{ marginTop: 80 }}>
             {error}
@@ -152,15 +173,33 @@ export function KnowledgeBaseDetailSection() {
   }
 
   const summary = kbPipelineSummary(kb);
+  const StatusIcon = KB_STATUS_ICON[summary.status];
 
   return (
-    <div className="space-page">
+    <div className="space-page kb-page kb-detail">
       <header className="space-header">
         <div className="space-header-row">
-          <Link className="space-back" href="/knowledge-bases">
-            <ArrowLeft size={16} />
-            返回资料库
-          </Link>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0 }}>
+            <span className="kb-head-icon" aria-hidden>
+              <Database size={22} />
+            </span>
+            <div style={{ minWidth: 0 }}>
+              <Link className="space-back" href="/knowledge-bases" style={{ marginBottom: 6 }}>
+                <ArrowLeft size={14} />
+                返回资料库
+              </Link>
+              <h1 style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                {kb.name}
+                {kb.isDefault && <span className="space-chip amber">默认库</span>}
+              </h1>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+                <span className={`kb-status-badge ${KB_PIPELINE_TONE[summary.status]}`}>
+                  <StatusIcon size={12} aria-hidden />
+                  知识库状态：{KB_PIPELINE_LABEL[summary.status]}
+                </span>
+              </div>
+            </div>
+          </div>
           <div className="space-card-actions">
             {!kb.isDefault && (
               <button
@@ -176,13 +215,6 @@ export function KnowledgeBaseDetailSection() {
             )}
           </div>
         </div>
-        <h1>
-          {kb.name}
-          {kb.isDefault && <span className="space-chip amber" style={{ marginLeft: 10 }}>默认库</span>}
-          <span className={`space-chip ${KB_PIPELINE_TONE[summary.status]}`} style={{ marginLeft: 8 }}>
-            知识库状态：{KB_PIPELINE_LABEL[summary.status]}
-          </span>
-        </h1>
         <p className="space-description">{kb.description || '（无简介）'}</p>
       </header>
       <main className="space-content">
@@ -202,16 +234,20 @@ export function KnowledgeBaseDetailSection() {
         )}
 
         <nav className="space-segment" aria-label="知识库分区" style={{ marginBottom: 16 }}>
-          {SECTIONS.map((item) => (
-            <button
-              key={item.id}
-              className={section === item.id ? 'current' : ''}
-              aria-pressed={section === item.id}
-              onClick={() => setSection(item.id)}
-            >
-              {item.label}
-            </button>
-          ))}
+          {SECTIONS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                className={section === item.id ? 'current' : ''}
+                aria-pressed={section === item.id}
+                onClick={() => setSection(item.id)}
+              >
+                <Icon size={13} aria-hidden />
+                {item.label}
+              </button>
+            );
+          })}
         </nav>
 
         {section === 'files' && <DocList kb={kb} onNotice={setNotice} onError={setError} />}
@@ -238,6 +274,8 @@ function DocList({
   const docs = kb.docs ?? [];
   const summary = kbPipelineSummary(kb);
   const errorDocs = docs.filter((doc) => (doc.status ?? 'registered') === 'error');
+  // 行内二段确认状态：待确认删除的文档 id
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
 
   if (docs.length === 0) {
     return (
@@ -248,6 +286,9 @@ function DocList({
     );
   }
 
+  // 进行中防重入：任一文档处于 parsing/indexing 时禁用批量操作（对照参考 disabled={submitting || isReindexingHere}）
+  const busy = summary.active > 0;
+
   return (
     <div className="space-category-manager">
       <div className="space-toolbar">
@@ -256,23 +297,25 @@ function DocList({
         </span>
         <button
           className="space-button"
+          disabled={busy}
           onClick={() => {
             simulateKbIngestAll(kb.id);
             onNotice('已启动全部文档的模拟解析（本地结构化样例，非真实解析）。');
           }}
         >
-          <RefreshCw size={12} />
+          {busy ? <Loader2 size={12} className="space-spin" aria-hidden /> : <RefreshCw size={12} />}
           全部解析并索引
         </button>
         {summary.error > 0 && (
           <button
             className="space-button"
+            disabled={busy}
             onClick={() => {
               for (const doc of errorDocs) simulateKbDocIngest(kb.id, doc.id);
               onNotice(`已重试 ${errorDocs.length} 个失败文档的模拟解析。`);
             }}
           >
-            <RefreshCw size={12} />
+            {busy ? <Loader2 size={12} className="space-spin" aria-hidden /> : <RefreshCw size={12} />}
             重试失败项
           </button>
         )}
@@ -282,11 +325,13 @@ function DocList({
           const status = doc.status ?? 'registered';
           const active = status === 'parsing' || status === 'indexing';
           const percent = doc.progress?.percent ?? 0;
+          const confirming = confirmRemoveId === doc.id;
           return (
             <li className="space-session-card" key={doc.id}>
               <div className="space-session-top">
                 <span className="space-session-title">{doc.name}</span>
                 <span className={`space-chip ${DOC_STATUS_TONE[status]}`}>
+                  {active && <Loader2 size={12} className="space-spin" aria-hidden />}
                   {DOC_STATUS_LABEL[status]}
                 </span>
                 {status === 'ready' && doc.chunks != null && (
@@ -318,16 +363,35 @@ function DocList({
                     重试解析
                   </button>
                 )}
-                <button
-                  className="icon-button"
-                  aria-label={`移除文档 ${doc.name}`}
-                  onClick={() => {
-                    if (removeKbDocument(kb.id, doc.id)) onNotice(`已移除登记：${doc.name}。`);
-                    else onError('移除失败：文档不存在或已被删除。');
-                  }}
-                >
-                  <Trash2 size={14} />
-                </button>
+                {confirming ? (
+                  <span className="kb-confirm-actions">
+                    <span className="kb-confirm-label">确认移除？</span>
+                    <button
+                      className="icon-button"
+                      aria-label={`确认移除文档 ${doc.name}`}
+                      onClick={() => {
+                        if (removeKbDocument(kb.id, doc.id)) onNotice(`已移除登记：${doc.name}。`);
+                        else onError('移除失败：文档不存在或已被删除。');
+                        setConfirmRemoveId(null);
+                      }}
+                    >
+                      <Check size={14} />
+                    </button>
+                    <button className="icon-button" aria-label={`取消移除文档 ${doc.name}`} onClick={() => setConfirmRemoveId(null)}>
+                      <X size={14} />
+                    </button>
+                  </span>
+                ) : (
+                  <span className="kb-row-actions">
+                    <button
+                      className="icon-button"
+                      aria-label={`移除文档 ${doc.name}`}
+                      onClick={() => setConfirmRemoveId(doc.id)}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </span>
+                )}
               </div>
               {active && (
                 <div className="space-meta-row">
@@ -380,6 +444,9 @@ function IndexVersions({
 }) {
   const versions = [...(kb.indexVersions ?? [])].sort((a, b) => b.version - a.version);
   const docs = kb.docs ?? [];
+  const summary = kbPipelineSummary(kb);
+  // 重建进行中（任一文档解析/索引中）防重入，对照参考 disabled={submitting || isReindexingHere}
+  const rebuilding = summary.active > 0;
   return (
     <div className="space-category-manager">
       <div className="space-toolbar">
@@ -388,7 +455,7 @@ function IndexVersions({
         </span>
         <button
           className="space-button"
-          disabled={docs.length === 0}
+          disabled={docs.length === 0 || rebuilding}
           onClick={() => {
             for (const doc of docs) {
               updateKbDocument(kb.id, doc.id, { status: 'registered', statusNote: null, progress: null });
@@ -397,9 +464,16 @@ function IndexVersions({
             onNotice('已重跑全部文档的模拟索引流水线（本地样例，非真实索引）。');
           }}
         >
-          <RefreshCw size={12} />
+          {rebuilding ? <Loader2 size={12} className="space-spin" aria-hidden /> : <RefreshCw size={12} />}
           重建索引
         </button>
+      </div>
+      <div className="kb-index-head">
+        <Layers size={14} aria-hidden />
+        <span className="kb-index-title">索引版本</span>
+        <span className="kb-index-count" aria-hidden>
+          {versions.length}
+        </span>
       </div>
       {versions.length === 0 ? (
         <div className="space-empty">
@@ -413,15 +487,26 @@ function IndexVersions({
           {versions.map((version) => (
             <li className="space-session-card" key={version.id}>
               <div className="space-session-top">
+                <span
+                  className={`kb-version-badge ${version.ready ? 'ready' : 'pending'}`}
+                  aria-hidden
+                  title={version.ready ? '就绪版本' : '未就绪版本'}
+                >
+                  {version.ready ? (
+                    <Check size={14} />
+                  ) : (
+                    <Loader2 size={14} className="space-spin" />
+                  )}
+                </span>
                 <span className="space-session-title">版本 {version.version}</span>
                 <span className={`space-chip ${version.ready ? 'green' : ''}`}>
                   {version.ready ? '就绪' : '未就绪'}
                 </span>
-                <span className="space-chip">{version.docCount} 文档</span>
-                <span className="space-chip">{version.chunkCount} 块</span>
               </div>
               <div className="space-meta-row">
                 <span>{version.provider}</span>
+                <span>{version.docCount} 文档</span>
+                <span>{version.chunkCount} 块</span>
                 <span>{new Date(version.createdAt).toLocaleString('zh-CN')}</span>
               </div>
             </li>
