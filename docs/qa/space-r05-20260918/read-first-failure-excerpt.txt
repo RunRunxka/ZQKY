@@ -1,0 +1,16 @@
+   × READ-RETRY：错误态重试 > 错误态点击重试发起第二轮回合（未修复代码上首败） 1105ms
+     → expected 1 to be 2 // Object.is equality
+   × READ-END：终态幂等与旧轮收尾 > a) 同一 turnId 重复 end 只落库一次 1057ms
+     → expected [ { role: 'assistant', …(3) }, …(1) ] to have a length of 1 but got 2
+   × READ-END：终态幂等与旧轮收尾 > b) 已取消收尾后迟到的 end 不重复落库 43ms
+     → expected [ { role: 'assistant', …(3) }, …(1) ] to have a length of 1 but got 2
+   × READ-END：终态幂等与旧轮收尾 > c) 新轮已开始后旧轮 end 不清新轮、不夺取消能力，内容归旧会话 63ms
+     → expected [ { role: 'assistant', …(3) }, …(1) ] to have a length of 1 but got 2
+   × READ-END：终态幂等与旧轮收尾 > d) error 后 lastSend 保留：修复后重试以同文本开新轮 1047ms
+     → expected 1 to be 2 // Object.is equality
+AssertionError: expected 1 to be 2 // Object.is equality
+    138|     // 期望：发起第二轮（run 第二次调用）；修复前 turn 非空守卫挡住，仍是 1 次 → 首败
+AssertionError: expected [ { role: 'assistant', …(3) }, …(1) ] to have a length of 1 but got 2
+AssertionError: expected [ { role: 'assistant', …(3) }, …(1) ] to have a length of 1 but got 2
+AssertionError: expected [ { role: 'assistant', …(3) }, …(1) ] to have a length of 1 but got 2
+AssertionError: expected 1 to be 2 // Object.is equality

@@ -1093,6 +1093,8 @@ function CompanionPane({
   const serviceRef = useRef<CompanionService | null>(null);
   const abortsRef = useRef<Map<string, AbortController>>(new Map());
   const lastSendRef = useRef<Map<string, { text: string; quote?: string }>>(new Map());
+  // READ-END：已收尾的轮次 id（重复/迟到终态只收尾一次，落库幂等）
+  const finalizedTurnsRef = useRef<Set<string>>(new Set());
   /** 草稿归属：记录草稿状态对应的会话，切会话/卸载时按会话保存，不串写 */
   const draftOwnerRef = useRef<{ sessionId: string | null; draft: string; quote: string | null }>({
     sessionId: null,
@@ -1287,6 +1289,10 @@ function CompanionPane({
   }
 
   function finalizeTurn(sessionId: string, turnId: string, controller: AbortController, content: string, cancelled = false) {
+    // READ-END 幂等：同一轮次的重复/迟到终态（取消收尾后再到 end、重复 end）只收尾一次，
+    // 防止内容重复落库或复活已取消标注；新轮次有新 turnId，不受影响。
+    if (finalizedTurnsRef.current.has(turnId)) return;
+    finalizedTurnsRef.current.add(turnId);
     // 只释放本轮自己的控制器：旧轮次收尾不得夺走新轮次的取消能力
     if (abortsRef.current.get(sessionId) === controller) abortsRef.current.delete(sessionId);
     // R-09：内容始终落到**所属会话**（不丢已生成内容）
@@ -1407,7 +1413,9 @@ function CompanionPane({
   function retryTurn() {
     const sessionId = activeId;
     const last = sessionId ? lastSendRef.current.get(sessionId) : null;
-    if (!sessionId || !last || turn) return;
+    // READ-RETRY：错误态（turn 保留但带 error）允许重试；流式进行中仍禁止重入。
+    const errored = turn !== null && turn.error !== null;
+    if (!sessionId || !last || (turn && !errored)) return;
     onSessionError(null);
     startTurn(sessionId, last.text, last.quote);
   }
