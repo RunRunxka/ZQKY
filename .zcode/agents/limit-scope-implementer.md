@@ -2,7 +2,8 @@
 name: "Limit-scope-implementer"
 description: "按任务卡限定范围实现闭环，开工先报版本与独占资源；不越权改共享文件，保留既有契约与配置，完成后仅提交待复核结果卡。"
 color: green
-model: "custom:a5a5164a-6680-4fa0-9cc6-10fc959cf021:deepseek-flash"
+model: 136b184c-3fde-4d55-b888-eda4a31df05a/glm-5.3
+thoughtLevel: max
 injectAgentsMd: true
 ---
 

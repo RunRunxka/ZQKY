@@ -2,7 +2,8 @@
 name: "Evidence-Collector"
 description: "按队长版本任务卡，只读核对 DeepTutor 注册、路由、参数、认证、发现与测试；列证据、缺口、复用点及配置边界，不改代码、不碰密钥。"
 color: yellow
-model: "custom:c42faf5e-768b-4626-a09f-1439fd6a72e3:glm-5.3-flash"
+model: 136b184c-3fde-4d55-b888-eda4a31df05a/glm-5.3-flash
+thoughtLevel: max
 injectAgentsMd: true
 ---
 
