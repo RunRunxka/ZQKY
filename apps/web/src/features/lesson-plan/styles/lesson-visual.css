@@ -1,0 +1,249 @@
+/* R-05 教案视觉统一增量（B-R05-EXT4-I2）。
+   消费 globals.css 单一变量层（R-05）。
+   只增屏幕样式：不触碰 print.css、不新开 @media print、不改 lesson-plan.css 既有规则。
+   零 !important；注释内不出现星号斜杠序列；动画仅用既有档位 150/160/180/200ms。 */
+
+/* ---------- C4 导航分段与章节项（增强既有 393-420 行基础态，不改原规则） ---------- */
+.lesson-page .segmented button {
+  transition:
+    color 150ms,
+    background 150ms,
+    box-shadow 150ms;
+}
+.lesson-page .segmented button:hover:not(.selected) {
+  color: var(--ink);
+}
+.lesson-page .section-nav-item {
+  transition:
+    background 160ms,
+    border-color 160ms,
+    color 160ms,
+    box-shadow 160ms;
+}
+.lesson-page .section-nav-item:hover {
+  background: var(--surface);
+  border-color: var(--line);
+}
+.lesson-page .section-nav-item.active {
+  background: var(--blue-soft);
+}
+.lesson-page .completion-check {
+  transition: color 160ms;
+}
+
+/* ---------- C1 表单分区 / 字段 / type-chip / 模板缩略卡 ---------- */
+/* 分区标题：图标容器对齐 /chat 徽章语言（蓝底白字改成蓝软底蓝字，视觉更轻） */
+.lesson-page .form-section-heading .section-icon {
+  transition:
+    background 150ms,
+    color 150ms,
+    box-shadow 150ms;
+}
+.lesson-page .type-chip {
+  transition:
+    border-color 150ms,
+    background 150ms,
+    color 150ms,
+    box-shadow 150ms;
+}
+.lesson-page .type-chip:hover {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+}
+.lesson-page .type-chip.checked {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 1px var(--blue-soft);
+}
+.lesson-page .chip-checkbox {
+  transition:
+    background 150ms,
+    border-color 150ms,
+    color 150ms;
+}
+/* 模板缩略卡：hover 微亮，仍保持 rotate 的静态外观 */
+.lesson-page .template-card {
+  transition:
+    border-color 150ms,
+    box-shadow 150ms;
+}
+.lesson-page .template-card:hover {
+  border-color: var(--blue);
+  box-shadow: var(--shadow-card);
+}
+/* 添加环节虚线按钮：hover 边框随主题色 */
+.lesson-page .add-stage {
+  transition:
+    background 150ms,
+    border-color 150ms,
+    color 150ms;
+}
+.lesson-page .add-stage:hover:not(:disabled) {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+.lesson-page .import-link {
+  transition: color 150ms;
+}
+/* 输入框 focus：既有规则用 #83abfa/#2563eb0b 硬编码，此处仅增强 hover 边框提示 */
+.lesson-page input:not([type='checkbox']):not([type='file']):not([type='range']):not(:focus):hover,
+.lesson-page textarea:not(:focus):hover,
+.lesson-page select:not(:focus):hover {
+  border-color: #c6cdd8;
+}
+
+/* ---------- C2 预览工具栏图标按钮 hover/disabled 统一 ---------- */
+.lesson-page .preview-controls .icon-button,
+.lesson-page .preview-bottom .icon-button,
+.lesson-page .page-switch .icon-button {
+  transition:
+    background 150ms,
+    color 150ms,
+    box-shadow 150ms;
+  border-radius: var(--radius-sm);
+}
+.lesson-page .preview-controls .icon-button:hover:not(:disabled),
+.lesson-page .preview-bottom .icon-button:hover:not(:disabled),
+.lesson-page .page-switch .icon-button:hover:not(:disabled) {
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+.lesson-page .zoom-label {
+  transition:
+    color 150ms,
+    background 150ms;
+  border-radius: var(--radius-sm);
+}
+.lesson-page .zoom-label:hover {
+  color: var(--blue);
+  background: var(--blue-soft);
+}
+/* 禁用态：沿用全局 opacity 0.35，补背景静止，避免禁用按钮出现 hover 底色 */
+.lesson-page .preview-controls .icon-button:disabled,
+.lesson-page .preview-bottom .icon-button:disabled,
+.lesson-page .page-switch .icon-button:disabled {
+  background: transparent;
+}
+.lesson-page .toolbar-divider {
+  background: var(--line);
+}
+
+/* ---------- C3 toast / storage-alert ---------- */
+/* toast：对齐 /chat 弹层阴影与圆角语言，入场 180ms 档位（与 chat-home-popup 同档） */
+.lesson-page .toast {
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-pop);
+  animation: lesson-toast-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes lesson-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+/* storage-alert：对齐 /chat chat-banner 警示语言（暖底暖字、蓝色操作入口），
+   仅视觉，不改文案与 role；既有 #fff1dc 底保留，字色与边线对齐基准。 */
+.lesson-page .storage-alert {
+  color: #8a4b0d;
+  border-top: 1px solid #e8dfc9;
+  box-shadow: 0 -4px 18px rgba(23, 34, 51, 0.06);
+}
+.lesson-page .storage-alert button {
+  color: var(--blue);
+  transition: opacity 150ms;
+}
+.lesson-page .storage-alert button:hover {
+  opacity: 0.7;
+}
+
+/* ---------- C5 导出菜单轻量进出场（可选项：实装，对齐 /chat 基准） ---------- */
+/* 参数对齐 chat-home.css:233 chat-home-popup 180ms cubic-bezier(0.16,1,0.3,1)；定位保持现状（right:0 top:45px），仅透明度与位移。 */
+.lesson-page .export-menu {
+  animation: lesson-menu-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top right;
+}
+@keyframes lesson-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.lesson-page .export-menu button {
+  transition:
+    background 150ms,
+    color 150ms;
+}
+.lesson-page .export-menu hr {
+  margin: 5px 8px;
+  border-top-color: var(--line);
+}
+/* save-status 状态点错误态着色（既有 .error-text 只改文字色） */
+.lesson-page .save-status .status-dot {
+  background: var(--green);
+}
+.lesson-page .save-status.error-text .status-dot {
+  background: var(--danger);
+}
+
+/* ---------- 图标按钮统一（编辑面板历史操作 / 环节行操作 / 弹窗关闭） ---------- */
+.lesson-page .editor-tabs .icon-button,
+.lesson-page .process-row-actions .icon-button,
+.lesson-page .modal-heading .icon-button,
+.lesson-page .outline-heading .icon-button,
+.lesson-page .editor-heading .icon-button {
+  border-radius: var(--radius-sm);
+  transition:
+    background 150ms,
+    color 150ms,
+    box-shadow 150ms;
+}
+.lesson-page .editor-tabs .icon-button:hover:not(:disabled),
+.lesson-page .process-row-actions .icon-button:hover:not(:disabled),
+.lesson-page .modal-heading .icon-button:hover:not(:disabled),
+.lesson-page .outline-heading .icon-button:hover:not(:disabled),
+.lesson-page .editor-heading .icon-button:hover:not(:disabled) {
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+.lesson-page .process-row-actions .icon-button:disabled,
+.lesson-page .editor-tabs .icon-button:disabled {
+  background: transparent;
+}
+
+/* ---------- 编辑器页签切换：底部指示条平滑（hover 微亮，active 指示条加过渡） ---------- */
+.lesson-page .editor-tabs > button {
+  transition: color 150ms;
+}
+.lesson-page .editor-tabs > button:hover:not(.active) {
+  color: var(--ink);
+}
+.lesson-page .editor-tabs > button.active:after {
+  transition: background 150ms;
+}
+
+/* ---------- 移动端 tabs：点击反馈微调（不改布局） ---------- */
+.lesson-page .mobile-tabs button {
+  transition:
+    color 150ms,
+    background 150ms;
+}
+
+/* ---------- modal 弹窗：对齐 /chat 弹层阴影语言（视觉壳，无结构改动） ---------- */
+.lesson-page .modal {
+  box-shadow: var(--shadow-pop);
+}
+
+@media (max-width: 767px) {
+  /* 窄视口：所有新增 hover 底色规则保持不变；确认无固定宽度新增。
+     storage-alert 触摸屏不用 hover；toast 已在 767 断点由既有规则上移 bottom:70px。 */
+  .lesson-page .storage-alert {
+    padding: 12px 14px;
+  }
+}
