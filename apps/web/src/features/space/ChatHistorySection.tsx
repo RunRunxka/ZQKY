@@ -11,6 +11,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { SpaceMain } from './SpaceMain';
+import './styles/space-sections.css';
 import { createIdbChatRepository } from '@/services/chat-repository';
 import type { ChatServiceKind } from '@/contracts/chat';
 
@@ -163,16 +164,22 @@ export function ChatHistorySection() {
   const activeCount = entries.length - archivedCount;
 
   return (
-    <SpaceMain
-      title="会话历史"
-      description="学习问答的全部会话；重开、重命名、归档或删除。"
-      actions={
-        <button className="space-button" onClick={() => void load()} disabled={busy || loading}>
-          <RefreshCw size={14} />
-          刷新
-        </button>
-      }
-    >
+    /* B-R05-EXT5-I2：space-sections-page 为本批四子页视觉作用域修饰类；
+       页面根 space-page 由 SpaceMain 提供（v1 已交付，不动）。 */
+    <div className="space-sections-page">
+      <SpaceMain
+        title="会话历史"
+        description="学习问答的全部会话；重开、重命名、归档或删除。"
+        actions={
+          <>
+            <span className="space-chip space-sections-count">{entries.length} 个会话</span>
+            <button className="space-button" onClick={() => void load()} disabled={busy || loading}>
+              <RefreshCw size={14} className={loading ? 'space-spin' : ''} />
+              刷新
+            </button>
+          </>
+        }
+      >
       <div className="space-toolbar">
         <input
           className="space-search"
@@ -308,6 +315,7 @@ export function ChatHistorySection() {
       <p className="space-footnote">
         <ArchiveX size={12} aria-hidden /> 已归档会话不再出现在聊天侧栏，可在此恢复。
       </p>
-    </SpaceMain>
+      </SpaceMain>
+    </div>
   );
 }

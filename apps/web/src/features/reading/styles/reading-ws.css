@@ -1,0 +1,191 @@
+/* B-R05-EXT5-I1 阅读工作区（/reading/[workspaceId]）模块视觉样式 v1
+   依据：docs/qa/B-R05-EXT5/TASK-CARD.md §8.1 #1-#5、§8.3、E5-GAP-LIST 清单 1/2。
+   消费 globals.css 单一变量层（R-05）；只引用既有变量，零 !important。
+   作用域：所有选择器以 .reading-ws-page（页面根修饰类，组件挂在 .space-page 之后）起头，
+   不触碰 space.css / reading.css 的既有类定义（reading.css 本批零改动）。
+   共用提醒：.reading-companion/.reading-msg/.reading-composer 被 WhisperRoom 与
+   WritingEditor 隐式共用，本文件对它们只做 .reading-ws-page 后代收窄覆盖，
+   不改它们的 flex/overflow/max-height 布局语义（R-09 滚动行为依赖）。
+   动画口径：仅 transition/feedback（hover/active/opacity），参数沿用既有档位
+   （150/160/200ms）；不新增进出场动画；reduce 兜底依赖 globals.css 全局层，
+   本文件不写 prefers-reduced-motion。 */
+
+/* ===== B1 按钮反馈过渡（对照参考 ReadingCompanion.tsx:331,351,370,383） =====
+   仅视觉：transition 三属性 + active 缩放 0.97；onClick 逻辑不动。
+   作用域收窄到本页的 space-button 与 icon-button，不影响其他页面。 */
+.reading-ws-page .space-button,
+.reading-ws-page .icon-button {
+  transition:
+    background-color 150ms,
+    color 150ms,
+    border-color 150ms,
+    transform 150ms;
+}
+
+.reading-ws-page .space-button:active {
+  transform: scale(0.97);
+}
+
+.reading-ws-page .icon-button:active {
+  transform: scale(0.9);
+}
+
+/* tab 条按钮（role=tab 与「添加材料」「材料库…」）：按压反馈沿用同档 */
+.reading-ws-page .space-tabs button:active {
+  transform: scale(0.97);
+}
+
+.reading-ws-page .space-tabs button {
+  transition:
+    background-color 150ms,
+    color 150ms,
+    transform 150ms;
+}
+
+/* ===== B2 材料 tab 长标题截断（N1，窄视口最高风险；对照参考 :395-397） =====
+   只做视觉截断，不改 tab 的 role/aria-selected/onClick/aria-label 结构。
+   .reading-ws-tab 是本文件新增的挂载类；按钮自身 min-width:0 允许收缩，
+   标题 span 设 max-width + ellipsis，图标不收缩。 */
+.reading-ws-page .reading-ws-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 220px;
+}
+
+.reading-ws-page .reading-ws-tab .reading-ws-tab-label {
+  display: inline-block;
+  max-width: 168px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 窄视口（390px 档）：tab 条整体可横向滚动兜底，标题收缩到 120px，
+   「移除材料 X」的 X 图标仍保留在 tab 内（aria 锚点不动）。 */
+@media (max-width: 1279px) {
+  .reading-ws-page .reading-ws-tab {
+    max-width: 176px;
+  }
+
+  .reading-ws-page .reading-ws-tab .reading-ws-tab-label {
+    max-width: 120px;
+  }
+}
+
+/* ===== B3 tab busy 指示（对照参考 :390-394 Loader2 spin） =====
+   材料 queued/processing 时 tab 内显示旋转图标；复用 space.css 的
+   .space-spin（space-rotate 0.9s linear infinite），不改变 tab 可点击性。 */
+.reading-ws-page .reading-ws-tab .reading-ws-tab-spin {
+  flex-shrink: 0;
+}
+
+/* ===== B4 错误横幅可关闭（对照参考 ReaderPane.tsx:849-866 X dismiss） =====
+   新增关闭按钮的可访问名称用未占用名（「关闭伴生错误提示」/「关闭会话错误提示」），
+   不与题库「关闭提示」或伴生「重试伴生回复」重名；关闭只隐藏视觉，不改 error
+   状态数据（重试仍可用）。横幅行内布局：文本收缩、按钮不换行。 */
+.reading-ws-page .reading-ws-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.reading-ws-page .reading-ws-banner > span {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.reading-ws-page .reading-ws-banner .icon-button {
+  flex-shrink: 0;
+  padding: 2px;
+  line-height: 0;
+  color: inherit;
+}
+
+.reading-ws-page .reading-ws-banner .icon-button:hover {
+  background: rgba(217, 45, 32, 0.08);
+}
+
+/* ===== B5 伴生栏头部形态增强（对照参考 ReadingCompanion.tsx:303-360） =====
+   仅排版与间距统一：标题行 chip 化、选择区与操作区对齐；不新增重命名/删除
+   会话、保存笔记本、下载 Markdown 等新能力（§8.2 #1）。
+   会话 select 视觉与 space-button 同族；头部结构（aside aria-label、
+   select aria-label「阅读会话选择」、按钮「新建阅读会话」）不动。 */
+.reading-ws-page .reading-ws-companion-head {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.reading-ws-page .reading-ws-companion-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.reading-ws-page .reading-ws-companion-title strong {
+  font-size: 14px;
+}
+
+.reading-ws-page .reading-ws-companion-session-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* 会话 select：占满剩余宽度，长会话名自身省略（原生 option 弹层不受影响） */
+.reading-ws-page .reading-ws-companion-session-row select {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+  transition: border-color 150ms;
+}
+
+.reading-ws-page .reading-ws-companion-session-row select:hover {
+  border-color: var(--muted);
+}
+
+.reading-ws-page .reading-ws-companion-session-row .space-button {
+  flex-shrink: 0;
+}
+
+/* 伴生主体头部行（ReaderPane 标题 + chips）：允许收缩换行，窄视口不溢出 */
+.reading-ws-page .reading-ws-reader-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.reading-ws-page .reading-ws-reader-head strong {
+  font-size: 15px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ===== 页头操作区（桌面/移动按钮组）与 tab 条间距统一 ===== */
+.reading-ws-page .reading-ws-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* 窄视口：页头操作按钮组换行兜底（按钮文字完整保留，aria-label 依赖按钮存在） */
+@media (max-width: 1279px) {
+  .reading-ws-page .reading-ws-toolbar {
+    gap: 6px;
+  }
+}

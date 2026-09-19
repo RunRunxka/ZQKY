@@ -432,8 +432,11 @@ test('R-09 滚动跟随：流式中用户上滚不被拉回，「回到最新」
   // 事件驱动：等容器真的产生可滚动内容后，用户才“上滚”（否则 scrollTop=0 不代表用户动作）
   await expect.poll(() => body.evaluate((el) => el.scrollHeight - el.clientHeight)).toBeGreaterThan(80);
   await body.hover();
+  // B-R05-EXT5-I3：mouse.wheel 的 CDP 派发、wheel 事件到达主线程、默认滚动执行
+  // 三者与下一条 evaluate 之间均存在时序竞争（直接读取会抢到上滚前的贴底位置 179）。
+  // 用事件驱动轮询等待「上滚已生效」本身，阈值与语义不变（仍是 wheel 生效后的 scrollTop<60）。
   await page.mouse.wheel(0, -600);
-  expect(await body.evaluate((el) => el.scrollTop)).toBeLessThan(60);
+  await expect.poll(() => body.evaluate((el) => el.scrollTop)).toBeLessThan(60);
 
   // 流式增量继续到达：容器位置保持，不被强制拉回底部
   await expect.poll(() => body.evaluate((el) => el.scrollHeight - el.clientHeight)).toBeGreaterThan(150);

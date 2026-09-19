@@ -7,6 +7,7 @@ import {
   Bookmark,
   Highlighter,
   ListTree,
+  Loader2,
   NotebookPen,
   Pencil,
   Plus,
@@ -55,6 +56,7 @@ import {
 import '@/features/space/styles/space.css';
 import '@/features/chat/styles/chat.css';
 import '@/features/reading/reading.css';
+import '@/features/reading/styles/reading-ws.css';
 
 /** 会话 id 提取（对照参考 readingSessionIdFromPath） */
 export function readingSessionIdFromPath(pathname: string): string | null {
@@ -196,7 +198,7 @@ function WorkspaceView({ workspaceId, routeSessionId }: { workspaceId: string; r
 
   if (workspaces !== null && !workspace) {
     return (
-      <div className="space-page">
+      <div className="space-page reading-ws-page">
         <div className="space-empty" style={{ marginTop: 80 }}>
           <strong>阅读集合不存在或已被删除</strong>
           <span>它可能已被删除，或链接有误。</span>
@@ -210,7 +212,7 @@ function WorkspaceView({ workspaceId, routeSessionId }: { workspaceId: string; r
   }
   if (!workspace) {
     return (
-      <div className="space-page">
+      <div className="space-page reading-ws-page">
         <div className="space-banner" style={{ marginTop: 80 }}>
           正在读取阅读集合…
         </div>
@@ -228,14 +230,14 @@ function WorkspaceView({ workspaceId, routeSessionId }: { workspaceId: string; r
   }
 
   return (
-    <div className="space-page">
+    <div className="space-page reading-ws-page">
       <header className="space-header">
         <div className="space-header-row">
           <Link className="space-back" href="/reading">
             <ArrowLeft size={16} />
             返回沉浸阅读
           </Link>
-          <div className="space-card-actions">
+          <div className="space-card-actions reading-ws-toolbar">
             {isDesktopWide ? (
               <button className="space-button" onClick={() => setNavOpen((current) => !current)}>
                 <ListTree size={14} />
@@ -311,10 +313,13 @@ function WorkspaceView({ workspaceId, routeSessionId }: { workspaceId: string; r
               key={material.id}
               role="tab"
               aria-selected={activeMaterial?.id === material.id}
-              className={activeMaterial?.id === material.id ? 'current' : ''}
+              className={activeMaterial?.id === material.id ? 'current reading-ws-tab' : 'reading-ws-tab'}
               onClick={() => switchMaterial(material.id)}
             >
-              {material.title}
+              {(material.status === 'queued' || material.status === 'processing') && (
+                <Loader2 size={11} aria-hidden className="reading-ws-tab-spin space-spin" />
+              )}
+              <span className="reading-ws-tab-label">{material.title}</span>
               <X
                 size={11}
                 aria-label={`移除材料 ${material.title}`}
@@ -946,8 +951,8 @@ function ReaderPane({
       onScroll={handleScroll}
       onMouseUp={handleMouseUp}
     >
-      <header style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
-        <strong style={{ fontSize: 15 }}>{material.title}</strong>
+      <header className="reading-ws-reader-head">
+        <strong>{material.title}</strong>
         <span className="space-chip">{material.charCount} 字</span>
         <span className="space-chip">读到 {material.positionPct}%</span>
         {material.sourceKind !== 'text' && (
@@ -1087,7 +1092,22 @@ function CompanionPane({
   const [turns, setTurns] = useState<Record<string, CompanionTurnState>>({});
   // R-09：是否跟随最新。用户手动上滚即关闭；点"回到最新"恢复。
   const [followBottom, setFollowBottom] = useState(true);
+  // §8.1 #4 错误横幅可关闭：只记录"已关闭的错误文本"用于隐藏视觉；
+  // 不改 turn/sessionError 数据本身（重试与新错误重新显示仍走既有状态）。
+  const [dismissedTurnError, setDismissedTurnError] = useState<string | null>(null);
+  const [dismissedSessionError, setDismissedSessionError] = useState<string | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
+  // R-09：记录一次「程序化拉底」的目标 scrollTop（跟随 effect/回到最新触发）。
+  // 拉底引发的 scroll 事件属于滚动副作用，不代表用户意图，不得回写 followBottom ——
+  // 否则流式拉底与用户上滚同帧竞争时会把刚关闭的跟随重置为 true，吞掉上滚
+  // （EXT5-I3 现场证据：scroll[0,179] → 拉回[179,42] → dist<90 重开跟随）。
+  // 存目标值而非布尔：窗口内若 scrollTop 明显小于目标，说明是用户上滚，仍需正常处理
+  // （避免把紧随拉底的用户滚动也跳过）。null 表示无程序化滚动窗口。
+  const programmaticScrollRef = useRef<number | null>(null);
+  // R-09：用户「已明确上滚离开底部」的同步标记。setState 提交存在延迟窗口，
+  // 流式跟随 effect 可能在 followBottom=false 提交前读到旧值 true 而拉底；
+  // ref 在事件内同步写入，effect 拉底前检查即可关闭该窗口。
+  const userScrolledAwayRef = useRef(false);
   const routeSessionRef = useRef<string | null>(null);
   const activeIdRef = useRef<string | null>(null);
   const serviceRef = useRef<CompanionService | null>(null);
@@ -1201,14 +1221,24 @@ function CompanionPane({
   // R-09：切换会话时恢复"跟随最新"（每个会话从最新处开始看），
   // 避免在 A 会话上滚后切到 B 会话却不跟随的串用。
   useEffect(() => {
+    userScrolledAwayRef.current = false;
     setFollowBottom(true);
   }, [activeId]);
 
   // R-09：仅在"跟随最新"时自动滚到底部；用户上滚后不再强制拉回（只作用于伴生消息容器）
   useEffect(() => {
-    if (!followBottom) return;
+    // 用户已明确上滚（setState 可能尚未提交）：不拉底，尊重用户意图
+    if (!followBottom || userScrolledAwayRef.current) return;
     const el = bodyRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    if (!el) return;
+    // 程序化拉底：记录到达后的实际 scrollTop，onScroll 据此区分副作用与用户滚动（见 ref 注释）
+    el.scrollTop = el.scrollHeight;
+    programmaticScrollRef.current = el.scrollTop;
+    // 拉底后的 scroll 事件在当前任务结束后派发；下一帧窗口失效，
+    // 既覆盖 scroll 事件派发窗口，又不影响后续用户滚动判定
+    requestAnimationFrame(() => {
+      programmaticScrollRef.current = null;
+    });
   }, [followBottom, activeId, messageCount, turn?.text, turn?.process.length]);
 
   // 卸载时中止进行中的轮次（保留已生成部分并落盘）
@@ -1422,16 +1452,16 @@ function CompanionPane({
 
   return (
     <aside className="reading-companion" aria-label="伴生助手（模拟）">
-      <header style={{ padding: '10px 12px', borderBottom: '1px solid rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <strong style={{ fontSize: 14 }}>伴生助手</strong>
+      <header className="reading-ws-companion-head">
+        <div className="reading-ws-companion-title">
+          <strong>伴生助手</strong>
           <span className="space-chip">模拟回复</span>
+          <span className="space-chip">{sessions.length} 个会话</span>
         </div>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div className="reading-ws-companion-session-row">
           <select
             aria-label="阅读会话选择"
             value={activeId ?? ''}
-            style={{ flex: 1, fontSize: 13 }}
             onChange={(event) => {
               if (event.target.value) focusSession(event.target.value);
             }}
@@ -1449,9 +1479,17 @@ function CompanionPane({
           </button>
         </div>
       </header>
-      {sessionError && (
-        <div className="space-banner error" role="alert" style={{ margin: '8px 12px 0' }}>
-          {sessionError}
+      {sessionError && sessionError !== dismissedSessionError && (
+        <div className="space-banner error reading-ws-banner" role="alert" style={{ margin: '8px 12px 0' }}>
+          <span>{sessionError}</span>
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="关闭会话错误提示"
+            onClick={() => setDismissedSessionError(sessionError)}
+          >
+            <X size={12} />
+          </button>
         </div>
       )}
       <div
@@ -1460,8 +1498,16 @@ function CompanionPane({
         onScroll={() => {
           const el = bodyRef.current;
           if (!el) return;
-          // R-09：距底 >90px 视为用户上滚阅读历史，关闭自动跟随
-          setFollowBottom(el.scrollHeight - el.scrollTop - el.clientHeight < 90);
+          // R-09：程序化拉底窗口内，top 已到达/超过目标位置的 scroll 是拉底副作用，
+          // 不回写跟随状态；top 明显小于目标则是用户上滚，继续正常判定
+          // （防止流式拉底竞争时把用户刚关闭的跟随重置为 true）
+          const target = programmaticScrollRef.current;
+          if (target !== null && el.scrollTop >= target - 1) return;
+          // R-09：距底 >90px 视为用户上滚阅读历史，关闭自动跟随；
+          // 同步记录用户意图，供流式跟随 effect 在 setState 提交前判定不拉底
+          const away = el.scrollHeight - el.scrollTop - el.clientHeight >= 90;
+          userScrolledAwayRef.current = away;
+          setFollowBottom(!away);
         }}
       >
         {!active || (active.messages.length === 0 && !turn) ? (
@@ -1485,14 +1531,22 @@ function CompanionPane({
                 {turn.text && <AnswerMarkdown text={turn.text} />}
               </div>
             )}
-            {turn?.error && (
-              <div className="space-banner error" role="alert" style={{ margin: 0 }}>
-                {turn.error}
+            {turn?.error && turn.error !== dismissedTurnError && (
+              <div className="space-banner error reading-ws-banner" role="alert" style={{ margin: 0 }}>
+                <span>{turn.error}</span>
                 {turn.retryable && (
                   <button className="space-button" style={{ marginLeft: 8 }} onClick={retryTurn} aria-label="重试伴生回复">
                     重试
                   </button>
                 )}
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label="关闭伴生错误提示"
+                  onClick={() => setDismissedTurnError(turn.error)}
+                >
+                  <X size={12} />
+                </button>
               </div>
             )}
           </>
@@ -1506,8 +1560,17 @@ function CompanionPane({
           style={{ alignSelf: 'center', margin: '6px 0 0' }}
           onClick={() => {
             setFollowBottom(true);
+            // 显式恢复跟随：清除用户上滚意图标记（拉底由本回调直接执行，不走 effect）
+            userScrolledAwayRef.current = false;
             const el = bodyRef.current;
-            if (el) el.scrollTop = el.scrollHeight;
+            if (el) {
+              // 程序化拉底：记录实际到达位置（与跟随 effect 同一约定）
+              el.scrollTop = el.scrollHeight;
+              programmaticScrollRef.current = el.scrollTop;
+              requestAnimationFrame(() => {
+                programmaticScrollRef.current = null;
+              });
+            }
           }}
         >
           回到最新

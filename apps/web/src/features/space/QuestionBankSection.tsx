@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { useSourceSessionLink } from './useSourceSessionLink';
 import { SpaceMain } from './SpaceMain';
+import './styles/space-sections.css';
 import {
   addQuizCategory,
   listQuizBank,
@@ -239,16 +240,22 @@ export function QuestionBankSection() {
   const allVisibleSelected = visible.length > 0 && visible.every((e) => selection.has(e.id));
 
   return (
-    <SpaceMain
-      title="题库"
-      description="聊天「智能出题」保存的题目与演示样例集中在这里，可标记、归类与回顾。"
-      actions={
-        <button className="space-button" onClick={() => void load(true)} disabled={loading}>
-          <RefreshCw size={14} className={refreshing ? 'space-spin' : ''} />
-          刷新
-        </button>
-      }
-    >
+    /* B-R05-EXT5-I2：space-sections-page 为本批四子页视觉作用域修饰类；
+       页面根 space-page 由 SpaceMain 提供（v1 已交付，不动）。 */
+    <div className="space-sections-page">
+      <SpaceMain
+        title="题库"
+        description="聊天「智能出题」保存的题目与演示样例集中在这里，可标记、归类与回顾。"
+        actions={
+          <>
+            <span className="space-chip space-sections-count">{stats.total} 道题</span>
+            <button className="space-button" onClick={() => void load(true)} disabled={loading}>
+              <RefreshCw size={14} className={refreshing ? 'space-spin' : ''} />
+              刷新
+            </button>
+          </>
+        }
+      >
       {notice && (
         <div className="space-banner info" role="status">
           <div className="space-banner-row">
@@ -384,7 +391,9 @@ export function QuestionBankSection() {
               <span>换个范围或清空搜索词再试。</span>
             </div>
           ) : (
-            <>
+            <div
+              className={`space-sections-bank-list ${refreshing ? 'space-sections-refreshing' : ''}`}
+            >
               {visible.map((entry) => {
                 const busy = busyIds.has(entry.id);
                 const userAnswer = entry.lastAnswer?.answer;
@@ -487,7 +496,7 @@ export function QuestionBankSection() {
               <p className="space-footnote">
                 共 {stats.total} 题，当前视图 {visible.length} 题。
               </p>
-            </>
+            </div>
           )}
 
           {visible.length > 0 && (
@@ -551,6 +560,7 @@ export function QuestionBankSection() {
           )}
         </div>
       </div>
-    </SpaceMain>
+      </SpaceMain>
+    </div>
   );
 }

@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Eye, Pencil, Sparkles, Trash2, UserPlus } from 'lucide-react';
 import { SpaceMain } from './SpaceMain';
+import './styles/space-sections.css';
 import { Modal } from '@/components/ui/Modal';
 import {
   createPersona,
@@ -57,25 +58,28 @@ export function PersonasSection() {
   }
 
   return (
-    <SpaceMain
-      title="角色目录"
-      description="问答的人设来源；聊天输入区「人设」选择与此共享同一份本地目录。"
-      actions={
-        <>
-          <button className="space-button" onClick={handleLoadDemo}>
-            <Sparkles size={14} />
-            载入演示角色
-          </button>
-          <button
-            className="space-button primary"
-            onClick={() => setDialog({ kind: 'edit', persona: null })}
-          >
-            <UserPlus size={14} />
-            新建角色
-          </button>
-        </>
-      }
-    >
+    /* B-R05-EXT5-I2：space-sections-page 为本批四子页视觉作用域修饰类；
+       页面根 space-page 由 SpaceMain 提供（v1 已交付，不动）。 */
+    <div className="space-sections-page">
+      <SpaceMain
+        title="角色目录"
+        description="问答的人设来源；聊天输入区「人设」选择与此共享同一份本地目录。"
+        actions={
+          <>
+            <button className="space-button" onClick={handleLoadDemo}>
+              <Sparkles size={14} />
+              载入演示角色
+            </button>
+            <button
+              className="space-button primary"
+              onClick={() => setDialog({ kind: 'edit', persona: null })}
+            >
+              <UserPlus size={14} />
+              新建角色
+            </button>
+          </>
+        }
+      >
       {notice && (
         <div className="space-banner info" role="status">
           {notice}
@@ -189,7 +193,8 @@ export function PersonasSection() {
           }}
         />
       )}
-    </SpaceMain>
+      </SpaceMain>
+    </div>
   );
 }
 
