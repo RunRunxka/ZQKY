@@ -1,0 +1,230 @@
+/* 消费 globals.css 单一变量层（R-05）
+   写作两页（/co-writer 列表、/co-writer/[docId] 编辑器）的模块级补充层：
+   只在 .writing-page 作用域内做覆盖，不改任何 space 既有类名与全局变量；
+   依据 B-R05-EXT3 §7.1（悬浮语言、空态增强、按钮动效、窄视口 wrap）与
+   §7.3（只做 hover、focus、active 过渡，时长 150ms，不新增进出场动画）。 */
+
+/* ===== 列表卡片悬浮语言（§7.1 #4：transition + hover + focus-visible 焦点环） ===== */
+
+.writing-page .space-session-card {
+  transition:
+    border-color 150ms,
+    background-color 150ms,
+    box-shadow 150ms;
+}
+
+.writing-page .space-session-card:hover {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+  box-shadow: var(--shadow-card);
+}
+
+.writing-page .space-session-card:focus-within {
+  border-color: var(--blue);
+}
+
+.writing-page .space-session-title:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ===== 窄视口（E3 清单首行）：行头在 390px 下 chip 不缩会挤压标题 =====
+   本页作用域内允许换行：标题占满首行、chip 组与操作换到次行；长标题 ellipsis 生效。 */
+
+.writing-page .space-session-top {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+.writing-page .space-session-title {
+  flex: 1 1 160px;
+}
+
+.writing-page .space-session-actions {
+  margin-left: auto;
+}
+
+.writing-page .space-chip {
+  transition:
+    border-color 150ms,
+    background-color 150ms,
+    color 150ms;
+}
+
+.writing-page .space-session-card:hover .space-chip {
+  border-color: #c3d7fd;
+  background: var(--bg);
+}
+
+/* ===== 按钮动效（§7.1 #6：主按钮透明度过渡 + 按压缩放，参考 duration-150） ===== */
+
+.writing-page .space-button {
+  transition:
+    opacity 150ms,
+    transform 150ms,
+    border-color 150ms,
+    background-color 150ms,
+    color 150ms;
+}
+
+.writing-page .space-button:active {
+  transform: scale(0.97);
+}
+
+.writing-page .space-button.primary {
+  transition:
+    opacity 150ms,
+    transform 150ms,
+    background-color 150ms;
+}
+
+.writing-page .space-button.primary:hover {
+  opacity: 0.9;
+}
+
+.writing-page .space-button.primary:active {
+  transform: scale(0.97);
+}
+
+/* ===== 空态增强（§7.1 #5）：图标块 + 主行动（strong 原文案逐字保留，见 tsx） ===== */
+
+.writing-empty-icon {
+  height: 30px;
+  width: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+/* ===== 编辑器正文区（原内联样式迁移）：更大行距、圆角、边框与 focus 环 ===== */
+
+.writing-body {
+  display: block;
+  min-height: 420px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.9;
+  resize: vertical;
+  transition:
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.writing-body:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-soft);
+}
+
+.writing-body:focus-visible {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px var(--blue-soft);
+}
+
+.writing-body::placeholder {
+  color: var(--muted);
+}
+
+/* ===== 保存状态 chip 视觉化（三态文案逐字保留，见 tsx）：色彩区分 ===== */
+
+.writing-save-chip {
+  transition:
+    border-color 150ms,
+    background-color 150ms,
+    color 150ms;
+}
+
+.writing-save-chip.saved {
+  border-color: #bfe0d4;
+  background: #ecf7f2;
+  color: var(--green);
+}
+
+.writing-save-chip.saving {
+  border-color: #c3d7fd;
+  background: var(--blue-soft);
+  color: #1d4ed8;
+}
+
+.writing-save-chip.error {
+  border-color: #f4b6ae;
+  background: #fef3f2;
+  color: var(--danger);
+}
+
+/* ===== 标题与重命名钮排布（aria-label「重命名文稿」保持，见 tsx） ===== */
+
+.writing-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.writing-title-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.writing-rename-button {
+  flex-shrink: 0;
+  color: var(--muted);
+  transition:
+    color 150ms,
+    background-color 150ms,
+    transform 150ms;
+}
+
+.writing-rename-button:hover {
+  color: var(--blue);
+}
+
+.writing-rename-button:active {
+  transform: scale(0.97);
+}
+
+.writing-rename-button:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ===== 版本历史行（§7.2 保留系统）：hover 过渡与层级 ===== */
+
+.writing-page .space-session-card .space-session-actions {
+  margin-left: 0;
+}
+
+.writing-version-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  transition:
+    border-color 150ms,
+    background-color 150ms;
+}
+
+.writing-version-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  flex: 1 1 160px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
