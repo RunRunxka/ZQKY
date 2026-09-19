@@ -1,0 +1,182 @@
+[
+  {
+    "step": "I-editor-390-longtitle",
+    "scrollWidth": 390,
+    "horiz": false,
+    "overCount": 0,
+    "title": {
+      "right": 335,
+      "overflowX": "hidden",
+      "textOverflow": "ellipsis",
+      "whiteSpace": "nowrap",
+      "clientW": 315,
+      "scrollW": 1189,
+      "ellipsized": true
+    },
+    "btns": {
+      "max": 370,
+      "over": []
+    },
+    "textarea": {
+      "right": 370,
+      "visible": true
+    }
+  },
+  {
+    "step": "I-list-390-longtitle",
+    "scrollWidth": 390,
+    "horiz": false,
+    "overCount": 0,
+    "title": {
+      "right": 227.1,
+      "textOverflow": "ellipsis",
+      "whiteSpace": "nowrap",
+      "ellipsized": true
+    }
+  },
+  {
+    "step": "I-keyboard-focus-list",
+    "seq": [
+      {
+        "tag": "BUTTON",
+        "label": "打开功能导航",
+        "outline": "solid 2px rgb(37, 99, 235)",
+        "shadow": false,
+        "right": 46
+      },
+      {
+        "tag": "BUTTON",
+        "label": "返回学习问答",
+        "outline": "solid 2px rgb(37, 99, 235)",
+        "shadow": false,
+        "right": 183
+      },
+      {
+        "tag": "BUTTON",
+        "label": "新建文稿",
+        "outline": "solid 2px rgb(37, 99, 235)",
+        "shadow": false,
+        "right": 370
+      },
+      {
+        "tag": "A",
+        "label": "打开文稿 A1超长标题验收文稿用于验证列表卡片与编辑器标题行的省略号处理逻辑是否生效不产生横向溢出共四十五字以上",
+        "outline": "solid 2px rgb(37, 99, 235)",
+        "shadow": false,
+        "right": 227
+      },
+      {
+        "tag": "BUTTON",
+        "label": "删除文稿 A1超长标题验收文稿用于验证列表卡片与编辑器标题行的省略号处理逻辑是否生效不产生横向溢出共四十五字以上",
+        "outline": "solid 2px rgb(37, 99, 235)",
+        "shadow": false,
+        "right": 66
+      },
+      {
+        "tag": "BUTTON",
+        "label": "打开功能导航",
+        "outline": "solid 2px rgb(37, 99, 235)",
+        "shadow": false,
+        "right": 46
+      },
+      {
+        "tag": "BUTTON",
+        "label": "返回学习问答",
+        "outline": "solid 2px rgb(37, 99, 235)",
+        "shadow": false,
+        "right": 183
+      },
+      {
+        "tag": "BUTTON",
+        "label": "新建文稿",
+        "outline": "solid 2px rgb(37, 99, 235)",
+        "shadow": false,
+        "right": 370
+      }
+    ],
+    "focusWithRing": 8
+  },
+  {
+    "step": "J-no-doc-link",
+    "note": "context has no docs, skipping editor detour"
+  },
+  {
+    "step": "J-reduce-motion-computed",
+    "card": {
+      "transitionDuration": "1e-05s",
+      "animationDuration": "1e-05s"
+    },
+    "primaryBtn": {
+      "transitionDuration": "1e-05s"
+    },
+    "hoverBeforeVsAfter": {
+      "t1": "none|1e-05s",
+      "t2": "none|1e-05s"
+    },
+    "transformChangedOnHover": false
+  },
+  {
+    "step": "J-reduce-motion-reading",
+    "cardTransition": null,
+    "hoverTransformBefore": null,
+    "hoverTransformAfter": null,
+    "changed": false
+  },
+  {
+    "step": "J-keyboard-focus-editor",
+    "seq": [
+      {
+        "tag": "A",
+        "label": "返回协同写作",
+        "ring": true
+      },
+      {
+        "tag": "BUTTON",
+        "label": "版本历史",
+        "ring": true
+      },
+      {
+        "tag": "BUTTON",
+        "label": "AI 生成全文",
+        "ring": true
+      },
+      {
+        "tag": "BUTTON",
+        "label": "重命名文稿",
+        "ring": true
+      },
+      {
+        "tag": "TEXTAREA",
+        "label": "文稿正文编辑区",
+        "ring": true
+      },
+      {
+        "tag": "BUTTON",
+        "label": "选区改写",
+        "ring": true
+      },
+      {
+        "tag": "BUTTON",
+        "label": "选区润色",
+        "ring": true
+      },
+      {
+        "tag": "BUTTON",
+        "label": "选区扩写",
+        "ring": true
+      },
+      {
+        "tag": "BUTTON",
+        "label": "保存版本",
+        "ring": true
+      }
+    ],
+    "allRing": true
+  },
+  {
+    "step": "J-textarea-focus",
+    "isFocused": true,
+    "borderColor": "rgb(37, 99, 235)",
+    "shadow": "rgb(239, 245, 255) 0px 0px 0px 3px"
+  }
+]

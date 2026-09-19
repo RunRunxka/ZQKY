@@ -1,0 +1,61 @@
+[
+  {
+    "step": "X-reading-empty-state",
+    "emptyText": 1,
+    "emptyBtn": 1
+  },
+  {
+    "step": "B-created",
+    "url": "http://127.0.0.1:5174/co-writer/doc-mu7zv9wo-c5zyze"
+  },
+  {
+    "step": "B-editor-asserts",
+    "savedChip": 1,
+    "undoBtn": 1,
+    "versionsBtn": 1,
+    "aiGenBtn": 1,
+    "bodyArea": 1,
+    "descText": 1,
+    "heading": 1
+  },
+  {
+    "step": "B-autosave",
+    "savedAfter": 1
+  },
+  {
+    "step": "B-ai-preview",
+    "hasSimTag": true,
+    "len": 54
+  },
+  {
+    "step": "B-ai-apply",
+    "applied": true
+  },
+  {
+    "step": "B-undo",
+    "undoneOk": true,
+    "keptOriginal": true
+  },
+  {
+    "step": "B-versions",
+    "snapLabel": 1,
+    "restoreBtns": 1
+  },
+  {
+    "step": "B-restore",
+    "savedAfterRestore": 1
+  },
+  {
+    "step": "B-rename",
+    "renamedHeading": 1
+  },
+  {
+    "step": "C-list-cards",
+    "cards": 1
+  },
+  {
+    "step": "C-delete-card",
+    "cardsAfter": 0,
+    "emptyW": 1
+  }
+]
