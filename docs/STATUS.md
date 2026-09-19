@@ -6,9 +6,9 @@
 
 **以智启课源品牌完成固定 DeepTutor 的产品前端、AI 交互与原有动画；全站以当前学习问答 `/chat` 为视觉基准，保留蓝色主题及原业务功能。整体尚未完成。**
 
-当前主线是 **R-05 内容视觉统一**。首批 **B-R05-SPACE-VISUAL v1 已交付（2026-09-18）**：公共变量层（字体/圆角/阴影/间距单一来源，字体资源一份）+ `/space` 首页按 `/chat` 基准迁移，前后对照与全回归见 [批次证据](qa/space-r05-20260918/README.md)；同批关闭阅读 READ-RETRY/READ-END 两项（`a9ebcaa`）。**第二批 B-R05-EXTEND v1 已交付**（知识库/笔记本四页，A1 首轮 needs_revision → 修复后复验 pass 14/14）。**第三批 B-R05-EXTEND v2 已交付**（书籍/课程四页，A1 一次通过 pass 0 fail）。**第四批 B-R05-EXTEND v3 已交付**（写作/阅读库四页，A1 pass 0 fail 31 项）。**第五批 B-R05-EXTEND v4 已交付（2026-09-19）**：全站最后两个既有模块页——设置与教案——按同一变量层推广，独立验收 A1 **pass（33 pass / 0 fail / 4 not_run）**，含**模型区 mock 成功态全链路**与**教案导出（verifyDocx 全项）/草稿/损坏草稿不覆盖**复核，见 [批次证据](qa/B-R05-EXT4/A1-REPORT.md)。**R-05 至此仅剩「阅读工作区三栏 + `/space` 其余子页」**，可规划 v5 作为收尾批。
+当前主线是 **R-05 内容视觉统一**。**第六批（B-R05-EXTEND v5，2026-09-19）为 R-05 收尾批**：阅读工作区（`/reading/[workspaceId]` 含 sessions 子页）与 `/space` 四子页完成推广，并同批受控诊断并修复了 R-09 滚动跟随的真实缺陷（详见 §3 R-09-FLAKY）。独立验收 A1 **pass 0 fail**（R-09 五例 5/5、压测 10/10、55 项浏览器实测）。**至此 R-05 的既有模块页视觉统一已全部覆盖，可关闭 R-05**（关闭依据与边界见 §5.3）。
 
-- 最近产品提交：视觉五批（见 §4 批次表最终 SHA）；阅读补测修复 `a9ebcaa`。新接手者必须重新核对 `git status --short`、`git log -5 --oneline`，不能把文档提交当产品验收候选。
+- 最近产品提交：视觉六批（见 §4 批次表最终 SHA）；阅读补测修复 `a9ebcaa`。新接手者必须重新核对 `git status --short`、`git log -5 --oneline`，不能把文档提交当产品验收候选。
 - 工作树中 `.zcode/agents/*.md` 是用户自己的改动，批次全程不触碰、不纳入提交。
 - **R-13 是模型真实长答未关闭项，不是整个项目唯一剩余问题。** R-05 推广、未实现模块、真实复杂能力和未验动画仍属于最终交付范围。
 - 主聊天仅真实 FastAPI；阅读、知识库和写作等批准的显式模拟仍保留。执行模拟不能省略交互状态，模拟通过不能标为真实供应商通过。
@@ -39,7 +39,7 @@
 | R-01 | 已关闭 | 跨.env/JSON并发、删除失败补偿及备份；模型审查修复后独立复验。关闭不证明所有供应商真实可用 |
 | R-02 / R-04 | 已关闭 | 唯一主页、唯一当前菜单及手机焦点；`e7fb2a4`公共壳批 |
 | R-03 | 已关闭 | 主聊天不可达模拟分支/文案/CSS清理；`a5bb39c`。历史类型与测试替身不构成生产模拟 |
-| R-05 | **未关闭，当前主线** | 全站内容字体/标题/卡片等未统一；已交付公共基础 + `/space` 首页 + 知识库/笔记本四页 + 书籍/课程四页 + 写作/阅读库四页 + 设置/教案两页（B-R05-EXTEND v1~v4）；**仅剩阅读工作区三栏与 `/space` 其余子页**，可规划 v5 收尾，不能整项关闭 |
+| R-05 | **可关闭（2026-09-19，依据见 §5.3）** | 全站**既有模块页**内容视觉已统一：公共变量层 + `/space` 首页与四子页 + 知识库/笔记本四页 + 书籍/课程四页 + 写作/阅读库四页 + 设置/教案两页 + 阅读工作区三栏（B-R05-SPACE-VISUAL v1 与 B-R05-EXTEND v1~v5）。**边界**：`待实现` 模块（partners/agents/mastery/memory/账户/管理视图）不属于 R-05 范围，实现时按基准直接建设；动画精度（逐帧曲线/中断）随 H6 总验收补齐 |
 | R-06 | 壳缺失修复已关闭；恢复另有未验项 | 404壳及返回主页已有浏览器证据；错误页reset只有代码/构建证据，运行时仍not_run |
 | R-07 / R-08 / R-12 | 模型批实现并有相关回归 | 受控推理字段、独立清除凭证、作用域文案已修；R-07字段支持不等于全协议真实推理验收 |
 | R-09 | 已关闭已复现的A/B/C | `a1fa16e`：上滚不被拉回、已测跨会话轮次显示/收尾、push/pop导航。正文媒体与全部异常终态合同不因本批升级 |
@@ -48,7 +48,7 @@
 | R-13 | **未关闭，真实服务轨道** | 默认2048+推理样本零正文；off/2048有正文但length截断；off/8192指定样本stop。不能自动关推理、无界加预算或断言正式384000配置必然成功 |
 | READ-RETRY | 已关闭（2026-09-18） | 受控首败证明错误态"重试"被 turn 非空挡住（run 仍 1 次），`a9ebcaa` 放行错误态重试、保留流式防重入；组件级替身回归+全量单测 |
 | READ-END | 已关闭（2026-09-18） | 首败证明重复/迟到 end 落库 2 份；`a9ebcaa` finalizeTurn 按 turnId 幂等（finalizedTurnsRef），旧轮迟到 end 不重复落库/不复活取消标注/不清新轮；R-09 会话归属语义未变 |
-| R-09-FLAKY | **观察中（2026-09-19 新记，未关闭）** | `tests/e2e/reading.spec.ts:425`「R-09 滚动跟随」用例有低频 flaky。B-R05-EXT4 v1 实测量化：全量 e2e 首跑 **153/154**（仅此例失败，报 `expect(await body.evaluate((el) => el.scrollTop)).toBeLessThan(60)` 超时）；单独复跑通过（1.1s）；`--repeat-each=6` 复现 **2/6**；撤回测试改动后全量复跑 **154/154 通过**。**失败点在"用户上滚"断言**：`expect.poll` 等到容器可滚动后执行 `mouse.wheel(0, -600)`，但该例在复现轮中轮询同样无法使 `scrollTop < 60`（10s 超时），说明不是单纯读取时序问题——可能是自动跟随在等待期间把容器拉到底部、或 wheel 未命中容器。**队长试加 `expect.poll` 韧性无效，已撤回（不保留无效改动掩盖失败）**。本批对阅读模块零改动（`reading.css`/`ReadingWorkspace.tsx`/`reading-store` 均无 diff），故该 flaky 与本批候选无关，判定为既有时序竞争。**处置**：保持观察、不改断言语义、不改产品逻辑；如后续批要修，需单独立卡做受控稳定性诊断（含是否需调整用例的滚动触发方式而非改断言）。 |
+| R-09-FLAKY | **已关闭（2026-09-19，含产品修复）** | 受控诊断确证**双层机制**：(a) CDP 层——`mouse.wheel` 派发与 `evaluate` 读值竞争（24 次决定性实验、wheel 到达延迟实测 20-30ms）；(b) **产品层真实缺陷**——流式拉底产生的 `scroll` 事件因 `dist<90` 把 `followBottom` 重置回 true，用户上滚被永久吞掉（现场探针抓到完整序列：上滚成功 top=0 → 5ms 后拉回 179 → 最终贴底 212）。修复（`a9c28ea`）：`userScrolledAwayRef` 同步记录用户意图、堵住 `setState` 提交延迟窗口；`programmaticScrollRef` 区分程序化拉底副作用与用户滚动；spec 侧仅一处 `expect`→`expect.poll`（**阈值 `<60` 与语义未变**）。验证：R-09 五例 5/5、`--repeat-each=10` 队长复测 **10/10**（修复前同环境 3/10 失败）、A1 独立复现 **10/10**、阅读 spec 17/17、全量 154/154。**队长注意**：v4 批曾试过"仅加 poll"并失败撤回——那次失败正是因为 poll 只吸收 CDP 层、会暴露产品层的 212 贴底值，此结论已归档 |
 
 阅读两项（READ-RETRY/READ-END）已于 2026-09-18 受控补测并有界修复关闭。2026-09-15方向审查的事实已整理于本表；完整临时报告 `_work/review-direction-6d98718/REVIEW.md` 仅是补充，交接不依赖其存在。
 
@@ -73,6 +73,7 @@
 | B-R05-EXTEND v2（R-05 推广第二批） | `1ca673c` | 书籍/课程四页视觉推广；E2 差距清单 97 条 + 队长裁定 §7（13 处 e2e 冲突全部选择保留现状、零断言改动）；typecheck/lint(0警告)/unit297/build/e2e154 全过；**独立验收 A1 一次通过 pass 0 fail**（三视口 12 组合 0 溢出、390 rail 解除吸顶实测、reduce 压制实测、R-11 三态含重试链路与损坏数据逐字节未变）；三视口前后 48 张+焦点图 | [批次证据](qa/B-R05-EXT2/)、[E2 清单](qa/B-R05-EXT2/E2-GAP-LIST.md)、[A1 报告](qa/B-R05-EXT2/A1-REPORT.md)；api 未重跑（零后端改动，基线181） |
 | B-R05-EXTEND v3（R-05 推广第三批） | `fc005d0` | 写作/阅读库四页视觉推广；E3 差距清单 64 条 + 队长裁定 §7（10 处 e2e 冲突保留现状、动画口径修正）；`reading.css` 与 `ReadingWorkspace.tsx` 禁区零改动；typecheck/lint(0警告)/unit297/build/e2e154 全过（首次 build 遇 Turbopack 间歇崩溃 0xC0000409，复跑两次成功）；**独立验收 A1 一次通过 pass 0 fail（31 项）**（三视口 0 溢出、材料库行头窄视口修复实测、重名按钮复核、模拟标注 9 条逐字、R-09 工作区不回退） | [批次证据](qa/B-R05-EXT3/)、[E3 清单](qa/B-R05-EXT3/E3-GAP-LIST.md)、[A1 报告](qa/B-R05-EXT3/A1-REPORT.md)；api 未重跑（零后端改动，基线181） |
 | B-R05-EXTEND v4（R-05 推广第四批） | `d54bd93` | 设置/教案两页视觉推广（全站最后两个既有模块页）；E4 差距清单 34 条 + **双风险清单各 10 条** + 队长裁定 §8；**模型区 contract-v1 与教案导出/草稿链路双禁区零改动**（`model-settings/**`、`chat/**`、`print.css`、`services/pagination.ts`、`model/*`、`assets/` diff 全空）；增量全进新建 `settings-extend.css`/`lesson-visual.css`；typecheck/lint(0警告)/unit297/build/e2e154 全过；**独立验收 A1 pass（33 pass / 0 fail / 4 not_run）**——模型区 mock 成功态全链路 + 教案 `verifyDocx` 导出产物 + 损坏草稿不覆盖，390 页面级溢出实测归零 | [批次证据](qa/B-R05-EXT4/)、[E4 清单](qa/B-R05-EXT4/E4-GAP-LIST.md)、[A1 报告](qa/B-R05-EXT4/A1-REPORT.md)；api 未重跑（零后端改动，基线181）；**R-09-FLAKY 观察中**见 §3 |
+| B-R05-EXTEND v5（R-05 收尾批） | `a9c28ea` | 阅读工作区三栏（`/reading/[workspaceId]` + sessions 子页）与 `/space` 四子页（chat-history/questions/personas/cli-apps）视觉推广；E5 差距清单 44 条 + **交互保护区 19 条机制** + **reading.css 影响面 14 类** + 队长裁定 §8；增量全进新建 `reading-ws.css`/`space-sections.css`（`reading.css`、`space.css` 零改动）；**同批受控诊断并修复 R-09 滚动跟随真实缺陷**（follow-bottom 竞争，见 §3 R-09-FLAKY）；typecheck/lint(0警告)/unit297/build（队长重建 BUILD_ID `eYs-YyFDf0XQJugH8zZcO`）/e2e154 全过；**独立验收 A1 pass 0 fail**（R-09 五例 5/5、压测 `--repeat-each=10` 10/10、55 项浏览器实测、R-10 回链 21/21+12/12、space-pages 8/8） | [批次证据](qa/B-R05-EXT5/)、[E5 清单](qa/B-R05-EXT5/E5-GAP-LIST.md)、[A1 报告](qa/B-R05-EXT5/A1-REPORT.md)；api 未重跑（零后端改动，基线181） |
 | 2026-09-15方向审查 | `6d98718`只读产品审查 | Node26.2.0 + `--no-experimental-webstorage`：42文件292/292，exit0；未重跑浏览器/API/build | 最近Codex审查结果；临时报告_work/review-direction-6d98718/REVIEW.md，本表保留关键结论 |
 
 ### 4.1 真实服务与数据事件
@@ -95,38 +96,56 @@ npm.cmd run test:unit
 
 本次 **DOC-FOCUS v1** 只整理现行文档、归档、链接与任务；不修改产品、测试实现、依赖、凭证或浏览器数据。已验证3份完整归档原文/散列、现行文档链接、矩阵ID与数量、D1–D16及R-01～13和后续路线完整性，`git diff --check`通过；[机器检查结果](qa/docs-focus-20260915/verification.json)随Git保存。独立只读内容复核通过，提出的两处阅读矩阵措辞已收窄并改成现行索引；另对照源码订正API旧删除顺序描述。产品测试本轮未重跑（纯文档变更），上面的292项为先前同日只读产品审查结果。
 
-## 5. 当前任务：B-R05-EXTEND v4（已交付，2026-09-19）
+## 5. 当前任务：B-R05-EXTEND v5（R-05 收尾批，已交付 2026-09-19）
 
-**状态：已交付（实施 + 独立验收 pass 完成，检查点 `d54bd93` 见批次表）。负责人：外部Agent队长（实施总控）。Codex负责交付审查。**
+**状态：已交付（实施 + 独立验收 pass 完成，检查点 `a9c28ea` 见批次表）。负责人：外部Agent队长（实施总控）。Codex负责交付审查。**
 
 ### 5.1 交付结果
 
-1. **范围（用户锁定）**：`P-settings`（`/settings`）与 `P-lesson-plans`（`/lesson-plans`）——**全站最后两个既有模块页**。**阅读工作区三栏与 `/space` 其余子页不在本批**。本批后 R-05 仅剩这两类，可规划 v5 作为收尾批。
-2. **双禁区（本批最高风险，均零改动）**：
-   - **设置页模型区 = contract-v1 禁区**：`features/model-settings/**` 与 `features/chat/**` diff 全空；38 条注册/6 backend/专用适配/受管认证/发现来源/推理控制/迁移逻辑未触碰；模型区 DOM 结构未动（5 处高危可访问名称锚点原样）。
-   - **教案页 = 导出与草稿禁区**：`print.css`、`@page lesson-plan`、Word 映射与模板校验、`DraftRepository`/600ms 防抖/flush、`schemaVersion=1` 与本地键、`FillProvider`、`services/pagination.ts`、`--serif` 回退链（密集编辑区不强制 Lora）全部未动；未新开 `@media print`。
-3. **共享层边界**：`globals.css`/`space.css`/`motion.css` 只读；`settings.css` 与 `lesson-plan.css` 既有规则**零修改**，全部增量进新建 `settings-extend.css`（`.settings-*`）与 `lesson-visual.css`（`.lesson-*`），只消费既有变量、零 `!important`、注释无提前闭合序列。
-4. **关键实施约束（E4 风险清单落地）**：I1 未使用会穿透命中模型区内层同名类的 `.settings-workspace` 后代选择器（`.settings-form` 等在两文件双定义），也未改 `SettingsWorkspace` 的 import 顺序（避免翻转 `model-settings.css` 层叠改变模型区表单布局）。
-5. **设置页**：索引导航加图标 + hover/current 双态 + 焦点环（保留 `aria-current="location"` 与 160ms 既有参数）、搜索框 focus 态 + 清除按钮（新名称「清除搜索」，全仓唯一）+ 无结果空态、ExtensionManager 卡片/开关视觉、外观与关于分区排版与 Toggle 轨道。
-6. **教案页**：表单分区/type-chip/模板缩略卡视觉、预览工具栏 hover/disabled 态、toast 与 storage-alert 视觉（**文案与 role 未动**）、导航分段微调、导出菜单进场 `lesson-menu-in 180ms`（对齐 /chat `chat-home-popup` 基准）。
-7. **顺带修复**：390 视口设置页起点既有的 2 处页面级 `<a>` 溢出（索引条带内预期横向滚动），在候选下实测归零。
-8. **证据**：[qa B-R05-EXT4](qa/B-R05-EXT4/)（任务卡含队长裁定 §8、E4 差距清单 34 条 + 双风险清单各 10 条、三视口前后 36 张 + 焦点图、A1 报告 35 项与 26 个独立证据文件）。
+1. **范围（用户锁定）**：组 A 阅读工作区（`P-reading-[workspaceId]`、`P-reading-sessions`、`P-reading-sessions-[sessionId]`）；组 B `/space` 四子页（`P-space-chat-history`、`P-space-questions`、`P-space-personas`、`P-space-cli-apps`）。
+2. **组 A 铁律执行「视觉层可改、交互逻辑区不动」**：**交互保护区 19 条机制零语义改动**——follow-bottom effect、onScroll `<90` 阈值、回到最新、会话切换恢复跟随、`syncSessionUrl`/popstate、turnId-sessionId 守卫、`finalizedTurnsRef` 幂等、READ-RETRY 放行、`abortsRef` 归属、`draftOwnerRef` 草稿、`handleScroll` 300ms 节流、拖拽轨/抽屉键盘可达；`reading.css` 与 `reading-store` 零改动；改动仅 className/修饰类/新增关闭钮/本地 dismissed 状态。
+3. **组 B 铁律执行**：真实计数/筛选/搜索/批量/演示载入/来源回链（R-10）全部保留；`space.css` 只读；既有断言锚点（`搜索会话历史`/`会话名称`/`关闭提示`/`新分类名称`/`移动到分类`/`查看出处会话`/`已启用`/`已停用` 等）原样。
+4. **共享层边界**：`globals.css`/`space.css`/`motion.css` 只读；增量全进新建 `features/reading/styles/reading-ws.css`（`.reading-ws-page` 作用域）与 `features/space/styles/space-sections.css`（`.space-sections-page` 作用域），只消费既有变量、零 `!important`、无 `@media print`、无 `prefers-reduced-motion` 覆盖（依赖全局层）。
+5. **组 A 实装**：按钮反馈过渡（150ms + active scale，对照参考 `ReadingCompanion.tsx:331,351,370,383`）、材料 tab 长标题截断（修 E5 标为最高风险的 N1）+ 解析中 tab 旋转指示、错误横幅可关闭（`关闭伴生错误提示`/`关闭会话错误提示`，只隐藏视觉不改 error 数据、重试仍可用、新错误自动重显）、伴生栏与阅读头部形态 chip 化。
+6. **组 B 实装**：卡片/列表/工具条视觉统一、会话与题库计数 chip + 刷新 spinner 态、题库 refreshing 变暗（对照参考 `transition-opacity + opacity-60`）、CLI 状态徽标、行头窄视口 wrap。
+7. **R-09 真实缺陷修复**（本批最重要产出）：受控诊断确证双层机制并修复，详见 §3 R-09-FLAKY 与 [诊断证据](qa/B-R05-EXT5/A1-REPORT.md)。
+8. **证据**：[qa B-R05-EXT5](qa/B-R05-EXT5/)（任务卡含队长裁定 §8、E5 差距清单 44 条 + 交互保护区 19 条 + `reading.css` 影响面 14 类、三视口前后 60 张 + 焦点图、A1 报告 25 张独立证据）。
 
 ### 5.2 验证与边界
 
-- typecheck/lint（0 警告）/`--no-experimental-webstorage` unit 297（与基线一致）/build/e2e 154 全过；api 未重跑（零后端改动，基线 181）。
-- **独立验收 pass（33 pass / 0 fail / 4 not_run）**：A1 对候选 `d54bd93` 判 pass——与 `after/` 六组截图逐像素 0 差异、**模型区 mock 成功态全链路**（5 高危锚点、`用于问答` 仅触发 1 次默认写入）、**教案 Word 导出产物通过 `verifyDocx` 全项**、**损坏草稿不覆盖**、草稿恢复与跨页返回、两新 CSS 剥离注释后 `!important` 与 `@media print` 均为 0、390 页面级溢出归零。
-- **A1 未执行项（如实记录）**：真实供应商模型调用（无凭证，**mock 通过不等于真实供应商通过**）、真实后端下模型区、打印实际调起（按任务卡）、build/e2e 全量（归队长，已跑）。
-- **A1 备查观察（非缺陷）**：导出菜单不响应 Escape 关闭，属既有行为（`ExportMenu.tsx` 本批零改动），backdrop 关闭正常。
-- **队长裁定（任务卡 §8）**：`§8.2` 明确保留现状的 10 类项——参考式导航分组折叠、页级草稿工具栏、页级加载/错误横幅、Overview 状态条/就绪面板/语言开关/Tour（含静态占位，避免展示不存在的状态）、导航失败红点、窄视口分组下拉、模型区任何结构与 CSS 选择器改动、共享 `Modal`/`modal.css` 弹层动效、教案硬编码色替换、教案预览缩放过渡、`M-settings-nav` 参数改动。
-- **R-09-FLAKY 观察（顺手项结论）**：全量首跑 153/154（仅阅读 R-09 滚动用例失败），单独复跑通过、`--repeat-each=6` 复现 2/6、撤回测试改动后全量 154/154。队长试加 `expect.poll` 韧性**无效并已撤回**（不保留无效改动掩盖失败）；失败点在「用户上滚」断言且轮询同样无法使其满足，疑为自动跟随回拉或 wheel 未命中容器。**本批对阅读模块零改动，判为既有时序竞争**，保持观察、不改断言与产品逻辑，详见 §3 R-09-FLAKY 行。
-- 本批只关闭 R-05 中这两个页面切片；**不关闭 R-05 全站**（尚余阅读工作区三栏 + `/space` 其余子页）。动画未逐帧采样曲线/中断（MOTION_MATRIX 条目保持「实现待验收」）；触摸真机、真实供应商不在本批范围。
+- typecheck/lint（0 警告）/`--no-experimental-webstorage` unit 297（与基线一致）/build（**队长在候选上重建，BUILD_ID `eYs-YyFDf0XQJugH8zZcO`**）/e2e **154/154** 全过；api 未重跑（零后端改动，基线 181）。
+- **独立验收 A1 判 pass 0 fail**：**R-09 五例 5/5**、**「R-09 滚动跟随」`--repeat-each=10` → 10/10**（队长另跑同参数 10/10；修复前同环境为 3/10 失败）、阅读 spec 17/17、`space-pages` 8/8、R-10 相关 `chat-source-links` 21/21 与 `chat-message-locate` 12/12、独立浏览器脚本 **55/55**（滚动保持/回到最新只滚伴生容器/会话历史与草稿/错误横幅关闭后新错误重显/tab ellipsis/焦点环/reduce 压制 1e-05s/390 双抽屉/space 四子页全交互/R-10 href 形态）。
+- **A1 未执行项（如实记录）**：turn error 横幅的浏览器实测 not_run（本地模拟无法在 UI 稳定构造失败轮次；源码审查确认与 sessionError 横幅同一 dismiss 模式）；无凭证供应商真实调用 not_run（本批纯前端）。
+- **队长裁定（任务卡 §8）**：`§8.2` 保留现状 11 类——参考伴生栏的完整聊天复用（等价于接入真实聊天服务）、滚动语义对齐参考 80px（当前 90px 双向已被 R-09 锁定）、会话 URL 历史降级（当前 push/popstate 超出参考且已验收）、角色卡 hover 显隐、CLI 搜索/详情/分页（依赖远程 catalog）、persona `read_only`、选区浮条改底部条、`dt-reader-flash` 跳转脉冲（登记后续可选）、`space.css` 断点调整、`reading.css` 中 4 个共用类的既有规则改动（`.reading-companion`/`.reading-msg`/`.reading-composer` 被 Whisper/Writing 隐式共用）。
+- **过程教训（已记入）**：I2 曾用 `git stash` 量测改动前基线，6 秒窗口被队长巡检撞见并触发误报排查；已明确禁止在共享工作区用 stash 做基线对比（改用 `_work/` 备份副本或既有 before 截图）。
+- 动画未逐帧采样曲线/中断（MOTION_MATRIX 条目保持「实现待验收」）；触摸真机、真实供应商不在本批范围。
+
+### 5.3 R-05 可否关闭：**可关闭**（依据如下）
+
+**判断依据（既有模块页视觉统一清单，逐项有独立验收证据）**：
+
+| 范围 | 批次 | 状态 |
+| --- | --- | --- |
+| 公共变量层（字体/圆角/阴影/间距单一来源） | B-R05-SPACE-VISUAL v1 | 已交付 |
+| `/space` 首页 + `/space` 四子页（chat-history/questions/personas/cli-apps） | v1 + v5 | 已交付（v5 有 A1 pass） |
+| 知识库列表/详情、笔记本列表/详情 | B-R05-EXTEND v1 | 已交付（A1 复验 pass 14/14） |
+| 书籍列表/详情、课程列表/详情 | B-R05-EXTEND v2 | 已交付（A1 pass 0 fail） |
+| 写作列表/编辑器、阅读库/材料库 | B-R05-EXTEND v3 | 已交付（A1 pass 0 fail 31 项） |
+| 设置、教案工作台 | B-R05-EXTEND v4 | 已交付（A1 pass 33/0/4） |
+| 阅读工作区三栏（含 sessions 子页） | B-R05-EXTEND v5 | 已交付（A1 pass 0 fail，R-09 五例 5/5 + 压测 10/10） |
+| `/chat` 基准页与其他次要页（404/错误页壳） | 既有各批 | 基准页与壳验收已交付 |
+
+**边界声明（关闭 R-05 不等于已完成全站）**：
+1. `待实现` 模块（partners/agents/mastery/memory/账户/管理视图，共 22 项）**不属于 R-05 范围**——它们是尚未实现的新页面，实现时直接按 `/chat` 基准建设，不回溯计入 R-05。
+2. 视觉状态为「部分验收」的页面（如 `P-chat-[sessionId]`、`P-knowledge-bases-[kbName]`）其**功能级全状态验收**仍属各自模块后续批，不由 R-05 关闭覆盖。
+3. **动画精度**（逐帧曲线/中断/退出参数）不在 R-05 范围，由 H6 总验收统一补齐（MOTION_MATRIX 条目多为「实现待验收」）。
+4. 三矩阵中 `P-` 条目的**功能状态与真实服务状态不受 R-05 关闭影响**。
 
 ## 6. 后续路线与推进规则
 
 | 顺序/轨道 | 交付中心 | 出口 |
 | --- | --- | --- |
-| R-05收尾 v5 + H1（下一批） | **R-05 仅剩「阅读工作区三栏（`/reading/[workspaceId]` 及 sessions 子页）+ `/space` 其余子页」**——阅读工作区有 R-09 五例与 READ-RETRY/READ-END 已验收交互，需单独任务卡；或转入 H1 书籍课程业务闭环（compiling/paused/error、流式生成、暂停恢复、书籍聊天、课程学习会话） | 每批有限页面，逐状态视觉与数据/错误/取消/恢复同步验收 |
+| **R-05 已关闭（2026-09-19）**，下一批转 H1/H2 | **既有模块页视觉统一已完成**（依据见 §5.3）。建议转入业务闭环轨道：H1 书籍课程（compiling/paused/error、流式生成、暂停恢复、书籍聊天、课程学习会话）或 H2 既有模块闭环（阅读媒体原视图与完整伴生过程、写作/Whisper、产物消费） | 每批有限页面，逐状态视觉与数据/错误/取消/恢复同步验收 |
 | H1书籍课程闭环 | compiling/paused/error、流式生成、暂停恢复、书籍聊天、课程学习会话，复用既有14类block | 状态链、保存/刷新、资源/产物引用与三视口 |
 | H2既有模块闭环 | 阅读媒体原视图与完整伴生过程、写作/Whisper、学习空间及产物消费 | 原功能/数据不丢、来源正确、完整参考交互 |
 | H3伙伴/智能体 | 列表/创建/详情/群组/渠道、任务过程/工具/产物/历史 | 创建→执行→结果→恢复，等待/失败/取消/重试齐全 |
