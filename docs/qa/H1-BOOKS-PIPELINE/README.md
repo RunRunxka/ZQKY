@@ -1,7 +1,7 @@
 # H1-BOOKS-PIPELINE v2 批次证据（书籍生成流水线与增量阅读闭环）
 
 - 起点候选：`bf460ab5ee53810679752c5104f7e2a777221d08`（分支 `codex/replica-review-20260908`）。
-- 本批提交：见 `docs/STATUS.md` §4 批次表（提交后回填 SHA）；提交前候选差异标识见 [FROZEN-CANDIDATE.json](FROZEN-CANDIDATE.json)。
+- 本批提交：`f31d39f`（父提交 `bf460ab`；提交信息 `feat(books-pipeline): H1-BOOKS-PIPELINE v2——书籍生成流水线与增量阅读闭环`）。冻结候选的差异标识与三轮修订见 [FROZEN-CANDIDATE.json](FROZEN-CANDIDATE.json)。
 - 范围与冻结契约：[TASK-CARD.md](TASK-CARD.md)；固定参考逐字规格：[REFERENCE-SPEC.md](REFERENCE-SPEC.md)。
 - 首败与修复台账（含总控裁定 A1–A7 与本轮新发现的 N1–N8）：[DEFECT-LEDGER.md](DEFECT-LEDGER.md)。
 - 独立验收：`A1-REPORT.md`（只读独立验收者产出，逐项 pass/fail/not_run）。
