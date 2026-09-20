@@ -505,3 +505,87 @@
 :root[data-glass='on'][data-glass-scheme='dark'] [data-glass-backdrop][data-media='video']::after {
   background: rgb(24 24 27 / var(--glass-video-dim, 0.25));
 }
+
+/* ============================================================================
+ * 指针效果（DSH spotlight/press 的平移）：
+ * 参与面板 = .app-header / .global-nav / .chat-composer（无 fixed 子元素，
+ * 不会被 transform 重锚）。光斑用面板自身的 ::after（isolation 收进栈上下文，
+ * z-index:-1 → 在内容之后、玻璃底之上），JS 只写 --glass-mx/--glass-my 与
+ * data-glass-spot-on 标记；微倾由 JS 写 inline transform，离开即清除。
+ * ========================================================================== */
+
+:root[data-glass='on'] {
+  --glass-spot-color: rgba(91, 141, 239, 0.14);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] {
+  --glass-spot-color: rgba(110, 155, 245, 0.18);
+}
+
+[data-glass='on'][data-glass-spot='on'] .app-header,
+[data-glass='on'][data-glass-spot='on'] .global-nav,
+[data-glass='on'][data-glass-spot='on'] .chat-composer {
+  position: relative;
+  isolation: isolate;
+}
+[data-glass='on'][data-glass-spot='on'] .app-header::after,
+[data-glass='on'][data-glass-spot='on'] .global-nav::after,
+[data-glass='on'][data-glass-spot='on'] .chat-composer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  background: radial-gradient(
+    170px circle at var(--glass-mx, 50%) var(--glass-my, 50%),
+    var(--glass-spot-color),
+    transparent 72%
+  );
+}
+[data-glass='on'][data-glass-spot='on'] .app-header[data-glass-spot-on]::after,
+[data-glass='on'][data-glass-spot='on'] .global-nav[data-glass-spot-on]::after,
+[data-glass='on'][data-glass-spot='on'] .chat-composer[data-glass-spot-on]::after {
+  opacity: 1;
+}
+
+[data-glass='on'][data-glass-press='on'] .app-header,
+[data-glass='on'][data-glass-press='on'] .global-nav,
+[data-glass='on'][data-glass-press='on'] .chat-composer {
+  transition: transform 0.1s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-glass='on'][data-glass-press='on'] .app-header,
+  [data-glass='on'][data-glass-press='on'] .global-nav,
+  [data-glass='on'][data-glass-press='on'] .chat-composer {
+    transition: none;
+  }
+}
+
+/* ============================================================================
+ * 页面边缘渐隐（DSH page fades 的平移）：视口上下 13px 模糊带，
+ * 在滚动内容之上、玻璃面板之下；只声明标准 mask-image（lightningcss 铁律）。
+ * ========================================================================== */
+
+[data-glass-fades='on'] [data-glass-fade] {
+  position: fixed;
+  left: 0;
+  right: 0;
+  height: 13px;
+  z-index: 6;
+  pointer-events: none;
+  backdrop-filter: blur(5px);
+  background: rgba(255, 255, 255, 0.2);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] [data-glass-fade] {
+  background: rgba(0, 0, 0, 0.15);
+}
+[data-glass-fades='on'] [data-glass-fade='top'] {
+  top: 0;
+  mask-image: linear-gradient(180deg, black 0%, transparent 100%);
+}
+[data-glass-fades='on'] [data-glass-fade='bottom'] {
+  bottom: 0;
+  mask-image: linear-gradient(0deg, black 0%, transparent 100%);
+}

@@ -21,6 +21,9 @@ export function SettingsWorkspace() {
   const [blur, setBlur] = useState(16);
   const [frost, setFrost] = useState(60);
   const [scheme, setScheme] = useState<'light' | 'dark'>('light');
+  const [spotOn, setSpotOn] = useState(true);
+  const [pressOn, setPressOn] = useState(true);
+  const [fadesOn, setFadesOn] = useState(true);
   const [bgSource, setBgSource] = useState<'ambient' | 'wallpaper'>('ambient');
   const [wallpaper, setWallpaper] = useState('');
   const [wpBlur, setWpBlur] = useState(0);
@@ -36,6 +39,13 @@ export function SettingsWorkspace() {
       setBlur(Number(window.localStorage.getItem('zqky.glass-blur')) || 16);
       setFrost(Number(window.localStorage.getItem('zqky.glass-frost')) || 60);
       setScheme(window.localStorage.getItem('zqky.glass-scheme') === 'dark' ? 'dark' : 'light');
+      const flag = (key: string): boolean => {
+        const raw = window.localStorage.getItem(key);
+        return raw === null ? true : raw === 'true';
+      };
+      setSpotOn(flag('zqky.glass-spotlight'));
+      setPressOn(flag('zqky.glass-press'));
+      setFadesOn(flag('zqky.glass-fades'));
       setBgSource(window.localStorage.getItem('zqky.glass-bg') === 'wallpaper' ? 'wallpaper' : 'ambient');
       setWallpaper(window.localStorage.getItem('zqky.glass-wallpaper') ?? '');
       setWpBlur(Number(window.localStorage.getItem('zqky.glass-wallpaper-blur')) || 0);
@@ -88,7 +98,10 @@ export function SettingsWorkspace() {
       | 'wallpaper'
       | 'wpBlur'
       | 'wpFrost'
-      | 'videoBrightness',
+      | 'videoBrightness'
+      | 'spotlight'
+      | 'press'
+      | 'fades',
     value: number | boolean | 'light' | 'dark' | 'ambient' | 'wallpaper' | string,
   ) => {
     try {
@@ -140,6 +153,24 @@ export function SettingsWorkspace() {
         case 'videoBrightness': {
           window.localStorage.setItem('zqky.glass-video-brightness', String(value));
           document.documentElement.style.setProperty('--glass-video-dim', String(((100 - (value as number)) / 100) * 0.65));
+          break;
+        }
+        case 'spotlight': {
+          const next = value ? 'on' : 'off';
+          window.localStorage.setItem('zqky.glass-spotlight', String(value));
+          document.documentElement.dataset.glassSpot = next;
+          break;
+        }
+        case 'press': {
+          const next = value ? 'on' : 'off';
+          window.localStorage.setItem('zqky.glass-press', String(value));
+          document.documentElement.dataset.glassPress = next;
+          break;
+        }
+        case 'fades': {
+          const next = value ? 'on' : 'off';
+          window.localStorage.setItem('zqky.glass-fades', String(value));
+          document.documentElement.dataset.glassFades = next;
           break;
         }
       }
@@ -386,6 +417,41 @@ export function SettingsWorkspace() {
                     ) : null}
                   </>
                 )}
+                <div className="settings-scheme" role="group" aria-label="指针效果">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={spotOn}
+                      onChange={(e) => {
+                        setSpotOn(e.target.checked);
+                        saveGlass('spotlight', e.target.checked);
+                      }}
+                    />
+                    聚光辉光
+                  </label>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={pressOn}
+                      onChange={(e) => {
+                        setPressOn(e.target.checked);
+                        saveGlass('press', e.target.checked);
+                      }}
+                    />
+                    悬浮微倾
+                  </label>
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={fadesOn}
+                      onChange={(e) => {
+                        setFadesOn(e.target.checked);
+                        saveGlass('fades', e.target.checked);
+                      }}
+                    />
+                    边缘渐隐
+                  </label>
+                </div>
                 <label className="settings-slider">
                   <span>
                     模糊度 <em>{blur}px</em>

@@ -7,6 +7,7 @@ import '@/components/layout/workspace-shell.css';
 import { MotionPreference } from '@/components/layout/MotionPreference';
 import { GlassThemePreference } from '@/components/layout/GlassThemePreference';
 import { GlassBackdrop } from '@/components/layout/GlassBackdrop';
+import { GlassEffects } from '@/components/layout/GlassEffects';
 import { HOME_LABEL } from '@/services/navigation';
 import { ModuleWorkspaceShell } from '@/components/layout/ModuleWorkspaceShell';
 import { NavigationPreference } from '@/components/layout/NavigationPreference';
@@ -22,6 +23,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <MotionPreference />
         <GlassThemePreference />
         <GlassBackdrop />
+        <GlassEffects />
         <NavigationPreference>
           <ModuleWorkspaceShell>{children}</ModuleWorkspaceShell>
         </NavigationPreference>
