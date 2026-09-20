@@ -2,8 +2,11 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import '@/styles/globals.css';
 import '@/styles/motion.css';
+import '@/styles/glass.css';
 import '@/components/layout/workspace-shell.css';
 import { MotionPreference } from '@/components/layout/MotionPreference';
+import { GlassThemePreference } from '@/components/layout/GlassThemePreference';
+import { GlassBackdrop } from '@/components/layout/GlassBackdrop';
 import { HOME_LABEL } from '@/services/navigation';
 import { ModuleWorkspaceShell } from '@/components/layout/ModuleWorkspaceShell';
 import { NavigationPreference } from '@/components/layout/NavigationPreference';
@@ -17,6 +20,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="zh-CN">
       <body>
         <MotionPreference />
+        <GlassThemePreference />
+        <GlassBackdrop />
         <NavigationPreference>
           <ModuleWorkspaceShell>{children}</ModuleWorkspaceShell>
         </NavigationPreference>

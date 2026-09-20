@@ -1,0 +1,507 @@
+/* ============================================================================
+ * 玻璃质感主题（核心 MVP）：仅在 <html data-glass="on"> 时生效。
+ * 关闭开关即回到原生界面，无残留、无需刷新。
+ *
+ * 技术平移自 DSH-Transparent-UI-Plugin 的磨砂配方
+ * （backdrop-filter + 半透明填充 + 固定流体背景层），但选择器全部替换为
+ * ZQKY 自有类名（.app-header / .global-nav / .export-menu / .workspace-modal…），
+ * 不依赖 DeepSeek Harness 运行时。这是"兼容模式"思路：保持布局不变，只换材质。
+ *
+ * 旋钮（由 GlassThemePreference 从 localStorage 写入 <html>）：
+ *   --glass-blur  : 磨砂半径(px)
+ *   --glass-alpha : 玻璃填充不透明度(0-1)
+ * ========================================================================== */
+
+/* 固定流体背景层（z-index:-1，内容滚动时背景不动）。 */
+[data-glass='on'] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(900px 520px at 10% -10%, rgba(150, 190, 245, 0.34), transparent 60%),
+    radial-gradient(820px 480px at 94% 2%, rgba(120, 168, 235, 0.24), transparent 62%),
+    linear-gradient(180deg, #eef4fc 0%, #e6edfb 100%);
+}
+
+/* 顶栏：磨砂玻璃片。 */
+[data-glass='on'] .app-header {
+  background: rgba(255, 255, 255, var(--glass-alpha, 0.6));
+  backdrop-filter: blur(var(--glass-blur, 16px));
+  border-bottom: 1px solid rgba(19, 45, 83, 0.1);
+}
+
+/* 侧边栏（unified-shell 与 module-workspace-shell 两种外壳）。 */
+[data-glass='on'] .global-nav,
+[data-glass='on'] .unified-shell .global-nav {
+  background: rgba(255, 255, 255, var(--glass-alpha, 0.6));
+  backdrop-filter: blur(var(--glass-blur, 16px));
+  border-right: 1px solid rgba(19, 45, 83, 0.1);
+}
+
+/* 二级导航选中项：保留蓝色高亮，弱化实底。 */
+[data-glass='on'] .global-nav-item.current {
+  background: rgba(37, 99, 235, 0.12);
+}
+
+/* 移动端抽屉。 */
+[data-glass='on'] .mobile-nav-panel {
+  background: rgba(255, 255, 255, var(--glass-alpha, 0.72));
+  backdrop-filter: blur(var(--glass-blur, 16px));
+}
+
+/* 下拉菜单 / 导出菜单。 */
+[data-glass='on'] .export-menu {
+  background: rgba(255, 255, 255, var(--glass-alpha, 0.7));
+  backdrop-filter: blur(var(--glass-blur, 16px));
+  border: 1px solid rgba(19, 45, 83, 0.12);
+}
+
+/* 模态框：磨砂更深一档，背景遮罩也轻微模糊。 */
+[data-glass='on'] .workspace-modal {
+  background: rgba(255, 255, 255, var(--glass-alpha, 0.78));
+  backdrop-filter: blur(calc(var(--glass-blur, 16px) + 8px));
+}
+[data-glass='on'] .workspace-modal::backdrop {
+  background: rgba(21, 35, 56, 0.32);
+  backdrop-filter: blur(6px);
+}
+
+/* 次级按钮 / 图标按钮：悬浮时磨砂。 */
+[data-glass='on'] .button.subtle,
+[data-glass='on'] .icon-button {
+  background: rgba(255, 255, 255, calc(var(--glass-alpha, 0.6) * 0.8));
+  backdrop-filter: blur(calc(var(--glass-blur, 16px) * 0.6));
+}
+[data-glass='on'] .button.subtle:hover,
+[data-glass='on'] .icon-button:hover {
+  background: rgba(255, 255, 255, var(--glass-alpha, 0.6));
+}
+
+/* 设置页左栏。 */
+[data-glass='on'] .settings-index {
+  background: rgba(255, 255, 255, calc(var(--glass-alpha, 0.6) * 0.7));
+  backdrop-filter: blur(var(--glass-blur, 16px));
+}
+
+/* 减少动画时保留静态外观，去掉过渡。 */
+@media (prefers-reduced-motion: reduce) {
+  [data-glass='on'] .app-header,
+  [data-glass='on'] .global-nav,
+  [data-glass='on'] .export-menu,
+  [data-glass='on'] .workspace-modal {
+    transition: none;
+  }
+}
+
+/* ============================================================================
+ * 深色玻璃变体：<html data-glass="on" data-glass-scheme="dark"> 时生效。
+ * 配色：炭黑中性底（GitHub / ChatGPT / Linear 一路的 Zinc 系，拒绝绿蓝偏色）
+ *   底 #18181B / 面层 #232328 / 玻璃 rgb(38,38,43) / 边线 rgba(255,255,255,·1)
+ *   墨色 #FAFAFA / 次级 #A1A1AA / 品牌蓝提亮 #5B8DEF（强调一律降饱和）
+ * 层级：bg < surface < 浮层，浅色主题里的近白微差色统一归入对应角色。
+ * 功能页 CSS 大量硬编码浅底（聊天页约 40 处），在此按选择器定点覆盖；
+ * 走变量的部分随 :root 令牌自动翻转。
+ * ========================================================================== */
+
+:root[data-glass='on'][data-glass-scheme='dark'] {
+  color-scheme: dark;
+  --bg: #18181b;
+  --surface: #232328;
+  --ink: #fafafa;
+  --muted: #a1a1aa;
+  --line: rgba(255, 255, 255, 0.1);
+  --blue: #5b8def;
+  --blue-soft: #252e42;
+  --blue-deep: #82aaff;
+  --preview: #26262b;
+  --green: #3ecf8e;
+  --danger: #f97066;
+  color: var(--ink);
+  background: #18181b;
+}
+
+/* 深色底只落在 :root（画布层）。绝不能给 body 设不透明背景——
+   body 是文档流元素，其背景会盖住 z-index:-1 的壁纸层与环境光层。 */
+:root[data-glass='on'][data-glass-scheme='dark'] body::before {
+  background:
+    radial-gradient(900px 520px at 50% -10%, rgba(120, 140, 255, 0.08), transparent 65%),
+    radial-gradient(800px 460px at 90% 105%, rgba(100, 125, 255, 0.05), transparent 60%);
+}
+
+/* 顶栏 / 侧边栏：深色玻璃。 */
+:root[data-glass='on'][data-glass-scheme='dark'] .app-header {
+  background: rgba(38, 38, 43, var(--glass-alpha, 0.6));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 8px 30px rgba(0, 0, 0, 0.35);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .global-nav,
+:root[data-glass='on'][data-glass-scheme='dark'] .unified-shell .global-nav {
+  background: rgba(38, 38, 43, var(--glass-alpha, 0.6));
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* 导航项与文字。 */
+:root[data-glass='on'][data-glass-scheme='dark'] .global-nav-item {
+  color: #d4d4d8;
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .global-nav-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .global-nav-item.current,
+:root[data-glass='on'][data-glass-scheme='dark'] .unified-shell .global-nav-item.current {
+  background: rgba(91, 141, 239, 0.16);
+  color: #82aaff;
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .nav-toggle,
+:root[data-glass='on'][data-glass-scheme='dark'] .nav-group-label,
+:root[data-glass='on'][data-glass-scheme='dark'] .nav-expanded .global-nav-item small {
+  color: #8e8e96;
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .avatar {
+  background: #2c2c31;
+  color: #a1a1aa;
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .breadcrumb {
+  color: #8e8e96;
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .breadcrumb span {
+  color: #d4d4d8;
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .status-page .small-badge {
+  background: rgba(255, 255, 255, 0.08);
+  color: #a1a1aa;
+}
+
+/* 按钮。 */
+:root[data-glass='on'][data-glass-scheme='dark'] .button.subtle,
+:root[data-glass='on'][data-glass-scheme='dark'] .icon-button {
+  background: rgba(44, 44, 50, calc(var(--glass-alpha, 0.6) * 0.85));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .button.subtle:hover,
+:root[data-glass='on'][data-glass-scheme='dark'] .icon-button:hover {
+  background: rgba(56, 56, 63, 0.9);
+  color: var(--ink);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .button.primary:hover {
+  background: #4a80e8;
+}
+
+/* 菜单 / 弹窗。 */
+:root[data-glass='on'][data-glass-scheme='dark'] .export-menu {
+  background: rgba(30, 30, 34, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .workspace-modal {
+  background: rgba(28, 28, 32, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .workspace-modal::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .workspace-modal-body input:not([type='checkbox']),
+:root[data-glass='on'][data-glass-scheme='dark'] .workspace-modal-body select,
+:root[data-glass='on'][data-glass-scheme='dark'] .workspace-modal-body textarea {
+  background: rgba(38, 38, 43, 0.9);
+  color: var(--ink);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+/* 输入类控件：globals 未给显式 color（浏览器默认黑），深色下必须翻转。
+   注意两点：1) 填充用半透明玻璃而非实底，壁纸/环境光才能透出；
+   2) 前缀刻意不带 :root（特异性 0,3,1），让 chat.css 等组件里
+   「设计为透明」的输入声明有机会赢回（配合下方聊天页定点覆盖）。 */
+[data-glass-scheme='dark'] input:not([type='checkbox']):not([type='range']),
+[data-glass-scheme='dark'] textarea,
+[data-glass-scheme='dark'] select {
+  color: var(--ink);
+  background: rgba(38, 38, 43, 0.85);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+/* 移动端抽屉。 */
+:root[data-glass='on'][data-glass-scheme='dark'] .mobile-nav-panel {
+  background: rgba(28, 28, 32, 0.94);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .mobile-nav-backdrop,
+:root[data-glass='on'][data-glass-scheme='dark'] .unified-shell .mobile-nav-panel::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* 设置页：工作区底色让位给壁纸/环境光（左栏与面板已有玻璃/实底）。 */
+:root[data-glass='on'][data-glass-scheme='dark'] .settings-workspace {
+  background: transparent;
+}
+
+/* 设置左栏。 */
+:root[data-glass='on'][data-glass-scheme='dark'] .settings-index {
+  background: rgba(38, 38, 43, calc(var(--glass-alpha, 0.6) * 0.7));
+}
+
+/* 滚动条 / 选区。 */
+:root[data-glass='on'][data-glass-scheme='dark'] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] ::selection {
+  background: rgba(91, 141, 239, 0.35);
+}
+
+/* ============================================================================
+ * 聊天页全深色：chat.css / chat-home.css 里约 40 处硬编码浅底与浅色边框、
+ * 状态色的定点覆盖。浅色主题不受影响（全部门控在深色方案内）。
+ * ========================================================================== */
+
+/* 主区与 会话列表。 */
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-main {
+  background: transparent;
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-toolbar {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-session-list li:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-session-list li.current {
+  background: rgba(91, 141, 239, 0.16);
+}
+
+/* 会话搜索框：与「新对话」按钮同款玻璃药丸。chat.css 里这个 input
+   本设计为透明裸框（background: transparent），会被通用深色输入规则
+   压成实底、在壁纸下突兀；这里把整行包成药丸、内部 input 恢复透明。
+   两条覆盖与通用规则同为 (0,3,1)，靠源序靠后取胜。 */
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-session-search {
+  background: rgba(44, 44, 50, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 1px 10px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-session-search input {
+  background: transparent;
+  border: 0;
+}
+/* composer 的 textarea 同为「透明裸框」设计，恢复透明让玻璃容器出材质。 */
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-composer textarea {
+  background: transparent;
+  border: 0;
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-new-button {
+  background: rgba(44, 44, 50, 0.85);
+}
+
+/* 气泡 / 空态 / 提示条。 */
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-bubble.user {
+  background: rgba(255, 255, 255, 0.07);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-assistant-mark,
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-empty-mark {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-banner {
+  background: rgba(251, 191, 36, 0.08);
+  border-color: rgba(251, 191, 36, 0.3);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-error,
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-ask-error,
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-cap-config-errors {
+  background: rgba(249, 112, 102, 0.08);
+  border-color: rgba(249, 112, 102, 0.3);
+  color: #f97066;
+}
+
+/* 输入区。 */
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-composer {
+  background: rgba(38, 38, 43, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-composer:focus-within {
+  border-color: rgba(91, 141, 239, 0.65);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-send-button:disabled {
+  background: #2c2c31;
+  color: #71717a;
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-composer-note {
+  color: #8e8e96;
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-fade-top {
+  background: linear-gradient(to bottom, rgba(24, 24, 27, 0), rgba(24, 24, 27, 0.72));
+}
+
+/* 回答区：代码 / 推理链。 */
+:root[data-glass='on'][data-glass-scheme='dark'] .answer-markdown code {
+  background: #242429;
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .answer-code {
+  background: #1b1b1f;
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .answer-code > button {
+  background: #2a2a30;
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-reasoning {
+  background: rgba(255, 255, 255, 0.04);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-reasoning.streaming {
+  border-color: rgba(91, 141, 239, 0.4);
+}
+
+/* 代码高亮（浅色主题的深色文字在炭黑底上不可读）。 */
+:root[data-glass='on'][data-glass-scheme='dark'] .hljs-selector-tag {
+  color: #b39df3;
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .hljs-attr {
+  color: #3ecf8e;
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .hljs-literal {
+  color: #f5a86b;
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .hljs-comment {
+  color: #7f7f88;
+}
+
+/* 工具卡片。 */
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-tool-card {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-tool-card.running {
+  background: rgba(91, 141, 239, 0.07);
+  border-color: rgba(91, 141, 239, 0.4);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-tool-card.error {
+  background: rgba(249, 112, 102, 0.07);
+  border-color: rgba(249, 112, 102, 0.35);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-tool-kind {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-tool-card.done .chat-tool-icon,
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-tool-status.done {
+  color: #3ecf8e;
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-tool-card.error .chat-tool-icon,
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-tool-status.error {
+  color: #f97066;
+}
+
+/* 弹层 / 面板族：浮层统一比底色亮一档。 */
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-ext-panel,
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-cap-flyout,
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-voice-panel,
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-cap-config,
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-home-shell .chat-model-popover,
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-home-shell .chat-info,
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-home-shell .chat-chip-popover {
+  background: rgba(30, 30, 34, 0.92);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-ext-chip {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-ext-chip button:hover {
+  background: rgba(91, 141, 239, 0.16);
+}
+
+/* 提问卡 / 能力配置。 */
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-ask-card {
+  background: rgba(255, 255, 255, 0.04);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-ask-card.active {
+  background: rgba(91, 141, 239, 0.08);
+  border-color: rgba(91, 141, 239, 0.4);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-ask-card.interrupted {
+  background: rgba(255, 255, 255, 0.03);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-ask-options button:hover:not(:disabled) {
+  border-color: rgba(91, 141, 239, 0.55);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-ask-options button[aria-pressed='true'],
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-ask-question textarea:focus {
+  border-color: #5b8def;
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-cap-config footer {
+  background: rgba(255, 255, 255, 0.03);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-cap-item-text strong small {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+}
+
+/* 引用树 / 附件 / 产物。 */
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-ref-tree {
+  background: #1d1d21;
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-ref-row {
+  background: transparent;
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-attach-thumb,
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-attach-doc {
+  background: #232328;
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-field-row input[readonly] {
+  background: rgba(38, 38, 43, 0.85);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-artifact-chips button {
+  background: rgba(44, 44, 50, 0.85);
+}
+
+/* 悬停描边族（浅蓝 → 品牌蓝半透明）。 */
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-suggestions button:hover:not(:disabled),
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-ext-trigger:hover:not(:disabled),
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-cap-trigger.open,
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-attach-doc:hover,
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-field-button:hover,
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-artifact-chips button:hover,
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-artifact-preview-head button:hover {
+  border-color: rgba(91, 141, 239, 0.55);
+}
+
+/* ============================================================================
+ * 自定义壁纸背景层（DSH "Free backdrop" 的平移）：
+ * GlassBackdrop 渲染独立的 fixed 层（image 用 data URL，video 用浏览器原生
+ * <video> 直连元素——backdrop-filter 才能对其采样磨砂）。壁纸激活时隐藏
+ * 流体环境光；磨砂/暗化旋钮由 GlassThemePreference 写入 <html>。
+ * ========================================================================== */
+
+[data-glass-bg='wallpaper'] body::before {
+  display: none;
+}
+[data-glass-backdrop] {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+[data-glass-backdrop] img,
+[data-glass-backdrop] video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(var(--glass-wallpaper-blur, 0px));
+}
+/* 图片：磨砂度旋钮 = 白纱（浅色）/ 炭黑纱（深色）。 */
+[data-glass-backdrop]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: rgb(255 255 255 / var(--glass-wallpaper-frost, 0));
+}
+/* 视频：亮度旋钮驱动暗化遮罩（视频保持动感、文字保持可读）。 */
+[data-glass-backdrop][data-media='video']::after {
+  background: rgb(24 24 27 / var(--glass-video-dim, 0.25));
+}
+:root[data-glass='on'][data-glass-scheme='dark'] [data-glass-backdrop]::after {
+  background: rgb(24 24 27 / var(--glass-wallpaper-frost, 0));
+}
+:root[data-glass='on'][data-glass-scheme='dark'] [data-glass-backdrop][data-media='video']::after {
+  background: rgb(24 24 27 / var(--glass-video-dim, 0.25));
+}
