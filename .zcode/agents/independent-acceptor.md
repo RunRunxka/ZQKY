@@ -2,7 +2,7 @@
 name: "Independent-Acceptor"
 description: "固定候选后独立验收，逐项给出命令、退出码与证据；只读不修复，真实与模拟分开，失败提交最小复现及首败证据。"
 color: green
-model: 136b184c-3fde-4d55-b888-eda4a31df05a/glm-5.3-flash
+model: "136b184c-3fde-4d55-b888-eda4a31df05a/cn:glm-5.3-flash"
 thoughtLevel: max
 injectAgentsMd: true
 ---

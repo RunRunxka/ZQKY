@@ -26,3 +26,8 @@ __pycache__/
 # Local agent memory/state, review outputs and recovery bundles are not source.
 .workbuddy/
 *.bundle
+.zcode/agents/evidence-collector.md
+.zcode/agents/independent-acceptor.md
+.zcodeignore
+.zcode/agents/limit-scope-implementer.md
+apps/web/src/components/layout/workspace-shell.css
