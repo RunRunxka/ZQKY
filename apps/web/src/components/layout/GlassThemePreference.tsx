@@ -37,19 +37,21 @@ export function GlassThemePreference() {
           const source = window.localStorage.getItem('zqky.glass-bg');
           const wallpaperOn = source === 'wallpaper' && wallpaper !== '';
           root.dataset.glassBg = wallpaperOn ? 'wallpaper' : 'ambient';
-          // 指针效果与边缘渐隐开关（缺省开，与插件一致）。
-          const flag = (key: string): boolean => {
+          // 指针效果与边缘渐隐开关。悬浮微倾（3D 倾斜）按用户偏好默认关闭。
+          const flag = (key: string, dflt = true): boolean => {
             const raw = window.localStorage.getItem(key);
-            return raw === null ? true : raw === 'true';
+            return raw === null ? dflt : raw === 'true';
           };
           root.dataset.glassSpot = flag('zqky.glass-spotlight') ? 'on' : 'off';
-          root.dataset.glassPress = flag('zqky.glass-press') ? 'on' : 'off';
+          root.dataset.glassPress = flag('zqky.glass-press', false) ? 'on' : 'off';
           root.dataset.glassFades = flag('zqky.glass-fades') ? 'on' : 'off';
+          root.dataset.glassFluid = flag('zqky.glass-fluid') ? 'on' : 'off';
         } else {
           root.dataset.glassBg = 'ambient';
           root.dataset.glassSpot = 'off';
           root.dataset.glassPress = 'off';
           root.dataset.glassFades = 'off';
+          root.dataset.glassFluid = 'off';
         }
       } catch {
         /* 保留默认外观 */

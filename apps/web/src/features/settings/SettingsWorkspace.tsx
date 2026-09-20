@@ -22,8 +22,11 @@ export function SettingsWorkspace() {
   const [frost, setFrost] = useState(60);
   const [scheme, setScheme] = useState<'light' | 'dark'>('light');
   const [spotOn, setSpotOn] = useState(true);
-  const [pressOn, setPressOn] = useState(true);
+  const [pressOn, setPressOn] = useState(false);
   const [fadesOn, setFadesOn] = useState(true);
+  const [fluidOn, setFluidOn] = useState(true);
+  const [fluidHue, setFluidHue] = useState(0);
+  const [fluidDepth, setFluidDepth] = useState(25);
   const [bgSource, setBgSource] = useState<'ambient' | 'wallpaper'>('ambient');
   const [wallpaper, setWallpaper] = useState('');
   const [wpBlur, setWpBlur] = useState(0);
@@ -39,13 +42,16 @@ export function SettingsWorkspace() {
       setBlur(Number(window.localStorage.getItem('zqky.glass-blur')) || 16);
       setFrost(Number(window.localStorage.getItem('zqky.glass-frost')) || 60);
       setScheme(window.localStorage.getItem('zqky.glass-scheme') === 'dark' ? 'dark' : 'light');
-      const flag = (key: string): boolean => {
+      const flag = (key: string, dflt = true): boolean => {
         const raw = window.localStorage.getItem(key);
-        return raw === null ? true : raw === 'true';
+        return raw === null ? dflt : raw === 'true';
       };
       setSpotOn(flag('zqky.glass-spotlight'));
-      setPressOn(flag('zqky.glass-press'));
+      setPressOn(flag('zqky.glass-press', false));
       setFadesOn(flag('zqky.glass-fades'));
+      setFluidOn(flag('zqky.glass-fluid'));
+      setFluidHue(Number(window.localStorage.getItem('zqky.glass-fluid-hue')) || 0);
+      setFluidDepth(Number(window.localStorage.getItem('zqky.glass-fluid-depth')) || 25);
       setBgSource(window.localStorage.getItem('zqky.glass-bg') === 'wallpaper' ? 'wallpaper' : 'ambient');
       setWallpaper(window.localStorage.getItem('zqky.glass-wallpaper') ?? '');
       setWpBlur(Number(window.localStorage.getItem('zqky.glass-wallpaper-blur')) || 0);
@@ -101,7 +107,10 @@ export function SettingsWorkspace() {
       | 'videoBrightness'
       | 'spotlight'
       | 'press'
-      | 'fades',
+      | 'fades'
+      | 'fluid'
+      | 'fluidHue'
+      | 'fluidDepth',
     value: number | boolean | 'light' | 'dark' | 'ambient' | 'wallpaper' | string,
   ) => {
     try {
@@ -171,6 +180,20 @@ export function SettingsWorkspace() {
           const next = value ? 'on' : 'off';
           window.localStorage.setItem('zqky.glass-fades', String(value));
           document.documentElement.dataset.glassFades = next;
+          break;
+        }
+        case 'fluid': {
+          const next = value ? 'on' : 'off';
+          window.localStorage.setItem('zqky.glass-fluid', String(value));
+          document.documentElement.dataset.glassFluid = next;
+          break;
+        }
+        case 'fluidHue': {
+          window.localStorage.setItem('zqky.glass-fluid-hue', String(value));
+          break;
+        }
+        case 'fluidDepth': {
+          window.localStorage.setItem('zqky.glass-fluid-depth', String(value));
           break;
         }
       }
@@ -338,6 +361,57 @@ export function SettingsWorkspace() {
                     壁纸
                   </label>
                 </div>
+                {bgSource === 'ambient' && (
+                  <>
+                    <label className="settings-toggle">
+                      <input
+                        type="checkbox"
+                        checked={fluidOn}
+                        onChange={(e) => {
+                          setFluidOn(e.target.checked);
+                          saveGlass('fluid', e.target.checked);
+                        }}
+                      />
+                      WebGL 流体背景
+                    </label>
+                    {fluidOn && (
+                      <>
+                        <label className="settings-slider">
+                          <span>
+                            色调 <em>{fluidHue}°</em>
+                          </span>
+                          <input
+                            type="range"
+                            min={0}
+                            max={360}
+                            value={fluidHue}
+                            onChange={(e) => {
+                              const v = Number(e.target.value);
+                              setFluidHue(v);
+                              saveGlass('fluidHue', v);
+                            }}
+                          />
+                        </label>
+                        <label className="settings-slider">
+                          <span>
+                            深浅 <em>{fluidDepth}%</em>
+                          </span>
+                          <input
+                            type="range"
+                            min={0}
+                            max={100}
+                            value={fluidDepth}
+                            onChange={(e) => {
+                              const v = Number(e.target.value);
+                              setFluidDepth(v);
+                              saveGlass('fluidDepth', v);
+                            }}
+                          />
+                        </label>
+                      </>
+                    )}
+                  </>
+                )}
                 {bgSource === 'wallpaper' && (
                   <>
                     <div className="settings-toolbar">

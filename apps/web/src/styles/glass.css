@@ -589,3 +589,27 @@
   bottom: 0;
   mask-image: linear-gradient(0deg, black 0%, transparent 100%);
 }
+
+/* ============================================================================
+ * WebGL 流体背景层（DSH fluid-shader 的挂载形态）：fixed 全屏画布，
+ * 绘制由 fluid-shader.ts 负责；GPU 失败时 GlassBackdrop 移除画布层并标记
+ * data-glass-fluid-ok='off'，body::before 的 CSS 环境光自动顶上。
+ * ========================================================================== */
+
+[data-glass-ambient] {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+[data-glass-ambient] canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+/* 流体画布不透明，接管环境光后隐藏 CSS 渐变，避免双重绘制。 */
+[data-glass-fluid-ok='on'] body::before {
+  display: none;
+}

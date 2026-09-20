@@ -1,54 +1,80 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { getBlob } from './wallpaper-store';
+import { attachFluidShader, SITE_FLUID_PARAMS, type FluidParams, type FluidShaderHandle } from './fluid-shader';
+import { fluidToneColors } from './fluid-tones';
 
 type BackdropView = { kind: 'none' | 'image' | 'video'; src: string };
 
+const clamp = (value: number, lo: number, hi: number): number =>
+  Math.min(hi, Math.max(lo, value));
+
 /**
- * 玻璃主题的自定义壁纸层（DSH "Free backdrop" 的平移）：
- * 独立的 fixed 元素（z-index:-1），picked 的图片/视频一律存 IndexedDB
- * （`idb:<id>` 引用，blob.type 自动区分 image/video），video 为浏览器原生
- * <video>（loop + muted 保证自动播放；直连元素而非 iframe，backdrop-filter
- * 才能对其采样磨砂）。兼容旧数据：data:image / data:video 的直存值仍可渲染。
- * 开启条件：玻璃开 + 背景来源=壁纸 + 有壁纸引用。
- * 同页变更经 `zqky:glass-change` 自定义事件同步，跨页签走 storage 事件。
+ * 玻璃主题背景层（DSH "Free backdrop" + 流体板的平移），三形态互斥：
+ * - ambient + 流体开：WebGL 流体画布（fluid-shader.ts，GPU 失败自动回落
+ *   到 body::before 的 CSS 环境光，见 data-glass-fluid-ok）；
+ * - ambient + 流体关：仅 CSS 环境光；
+ * - wallpaper：图片/视频层（IndexedDB 引用，blob.type 自动区分）。
+ * 旋钮经 `zqky:glass-change` 事件即时同步；跨页签走 storage 事件。
  */
 export function GlassBackdrop() {
-  const [view, setView] = useState<BackdropView>({ kind: 'none', src: '' });
+  const [wall, setWall] = useState<BackdropView>({ kind: 'none', src: '' });
+  const [fluidActive, setFluidActive] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const handleRef = useRef<FluidShaderHandle | undefined>(undefined);
 
   useEffect(() => {
     let cancelled = false;
     let objectUrl: string | undefined;
+
+    /** 从 localStorage 组装当前流体参数（深浅/色调/明暗方案）。 */
+    const fluidParams = (): FluidParams => {
+      const dark = document.documentElement.dataset.glassScheme === 'dark';
+      const hue = clamp(Number(window.localStorage.getItem('zqky.glass-fluid-hue')) || 0, 0, 360);
+      const depth = clamp(Number(window.localStorage.getItem('zqky.glass-fluid-depth')) || 25, 0, 100);
+      return { ...SITE_FLUID_PARAMS, ...fluidToneColors(dark, hue, depth) };
+    };
 
     const apply = async () => {
       try {
         const on = window.localStorage.getItem('zqky.glass') === 'on';
         const source = window.localStorage.getItem('zqky.glass-bg');
         const wallpaper = window.localStorage.getItem('zqky.glass-wallpaper') ?? '';
+        const fluidOn =
+          window.localStorage.getItem('zqky.glass-fluid') === null ||
+          window.localStorage.getItem('zqky.glass-fluid') === 'true';
+
+        // 壁纸形态
         if (!on || source !== 'wallpaper' || wallpaper === '') {
-          setView({ kind: 'none', src: '' });
-          return;
-        }
-        if (wallpaper.startsWith('idb:')) {
+          setWall({ kind: 'none', src: '' });
+        } else if (wallpaper.startsWith('idb:')) {
           const blob = await getBlob(wallpaper.slice(4));
           if (cancelled) return;
           if (!blob) {
-            setView({ kind: 'none', src: '' });
-            return;
+            setWall({ kind: 'none', src: '' });
+          } else {
+            if (objectUrl !== undefined) URL.revokeObjectURL(objectUrl);
+            const url = URL.createObjectURL(blob);
+            objectUrl = url;
+            setWall({ kind: blob.type.startsWith('video/') ? 'video' : 'image', src: url });
           }
-          if (objectUrl !== undefined) URL.revokeObjectURL(objectUrl);
-          const url = URL.createObjectURL(blob);
-          objectUrl = url;
-          setView({ kind: blob.type.startsWith('video/') ? 'video' : 'image', src: url });
         } else if (wallpaper.startsWith('data:video/')) {
-          setView({ kind: 'video', src: wallpaper });
+          setWall({ kind: 'video', src: wallpaper });
         } else if (wallpaper.startsWith('data:image/')) {
-          setView({ kind: 'image', src: wallpaper });
+          setWall({ kind: 'image', src: wallpaper });
         } else {
-          setView({ kind: 'none', src: '' });
+          setWall({ kind: 'none', src: '' });
+        }
+
+        // 流体形态：仅 环境光来源 + 玻璃开 + 流体开
+        const nextFluid = on && source !== 'wallpaper' && fluidOn;
+        setFluidActive(nextFluid);
+        // 已挂载的句柄热更新参数（色调/深浅/明暗即时生效）
+        if (handleRef.current !== undefined) {
+          handleRef.current.setParams(fluidParams());
         }
       } catch {
-        setView({ kind: 'none', src: '' });
+        setWall({ kind: 'none', src: '' });
       }
     };
 
@@ -64,18 +90,66 @@ export function GlassBackdrop() {
     };
   }, []);
 
-  if (view.kind === 'none') return null;
-  return (
-    <div data-glass-backdrop data-media={view.kind} aria-hidden="true">
-      {view.kind === 'image' ? (
-        // 壁纸是用户本机选择的文件（objectURL/data URL），全屏 cover 且需被
-        // backdrop-filter 采样，next/image 的优化与懒加载在此不适用
-        // （与 DSH 插件的直连元素做法一致）。
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={view.src} alt="" />
-      ) : (
-        <video src={view.src} autoPlay loop muted playsInline />
-      )}
-    </div>
-  );
+  // 挂载/卸载 WebGL 流体（fluidActive 变化时；含 GPU 失败降级标记）
+  useEffect(() => {
+    if (!fluidActive) {
+      handleRef.current?.dispose();
+      handleRef.current = undefined;
+      delete document.documentElement.dataset.glassFluidOk;
+      return;
+    }
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    // WebGL 可用性预检：禁用/不支持时直接回落 CSS 环境光，不留空白画布。
+    if (canvas.getContext('webgl2') === null) {
+      document.documentElement.dataset.glassFluidOk = 'off';
+      setFluidActive(false);
+      return;
+    }
+    try {
+      const dark = document.documentElement.dataset.glassScheme === 'dark';
+      const hue = clamp(Number(window.localStorage.getItem('zqky.glass-fluid-hue')) || 0, 0, 360);
+      const depth = clamp(Number(window.localStorage.getItem('zqky.glass-fluid-depth')) || 25, 0, 100);
+      const params: FluidParams = {
+        ...SITE_FLUID_PARAMS,
+        ...fluidToneColors(dark, hue, depth),
+      };
+      const handle = attachFluidShader(canvas, params);
+      handleRef.current = handle;
+      document.documentElement.dataset.glassFluidOk = 'on';
+    } catch {
+      // GPU/驱动失败绝不能拖垮主题：回落 CSS 环境光（移除画布层）。
+      document.documentElement.dataset.glassFluidOk = 'off';
+      setFluidActive(false);
+    }
+    return () => {
+      handleRef.current?.dispose();
+      handleRef.current = undefined;
+      delete document.documentElement.dataset.glassFluidOk;
+    };
+  }, [fluidActive]);
+
+  if (wall.kind !== 'none') {
+    return (
+      <div data-glass-backdrop data-media={wall.kind} aria-hidden="true">
+        {wall.kind === 'image' ? (
+          // 壁纸是用户本机选择的文件（objectURL/data URL），全屏 cover 且需被
+          // backdrop-filter 采样，next/image 的优化与懒加载在此不适用
+          // （与 DSH 插件的直连元素做法一致）。
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={wall.src} alt="" />
+        ) : (
+          <video src={wall.src} autoPlay loop muted playsInline />
+        )}
+      </div>
+    );
+  }
+  if (fluidActive) {
+    return (
+      <div data-glass-ambient aria-hidden="true">
+        <canvas ref={canvasRef} data-glass-fluid-canvas />
+      </div>
+    );
+  }
+  return null;
 }
