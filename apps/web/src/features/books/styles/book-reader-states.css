@@ -1,0 +1,166 @@
+/* 阅读器流水线状态样式（H1-BOOKS-PIPELINE I3）。
+   作用域：.book-reader-*；仅消费 globals.css 既有变量；零 !important；无 @media print。
+   reduced-motion 由全局层统一接管（globals.css prefers-reduced-motion 覆盖 animation）。 */
+
+.book-reader-activity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13.5px;
+}
+
+/* 排队页提示（对照参考 queued 分支：说明 + 现在开始的入口） */
+.book-reader-queued {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0 0 16px;
+  padding: 16px 18px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13.5px;
+}
+
+.book-reader-queued p {
+  margin: 0;
+}
+
+/* 块生成中占位（对照参考 BlockRenderer pending/generating：虚线 + 旋转图标） */
+.book-reader-block-generating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 16px;
+  padding: 10px 14px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-md);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* 块失败卡（对照参考 BlockRenderer error 分支：rose 容器 + AlertTriangle） */
+.book-reader-block-failure {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid #f4b6ae;
+  border-radius: var(--radius-md);
+  background: #fef3f2;
+  color: #7a1f1a;
+  font-size: 13px;
+}
+
+.book-reader-block-failure-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.book-reader-block-failure-meta {
+  margin-top: 4px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.book-reader-block-failure-message {
+  margin-top: 4px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.book-reader-block-failure .space-button {
+  margin-top: 8px;
+}
+
+/* 页失败面板（对照参考 PageReader hasFailedBlocks 分支：amber 容器 + 计数 + 最多 5 条） */
+.book-reader-page-failures {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid #f2d9a4;
+  border-radius: var(--radius-md);
+  background: #fdf6e7;
+  color: #92610c;
+  font-size: 13px;
+}
+
+.book-reader-page-failures-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.book-reader-page-failures-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+.book-reader-page-failures-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.book-reader-page-failures-item code {
+  padding: 1px 6px;
+  border: 1px solid rgba(146, 97, 12, 0.35);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.55);
+  font-size: 11px;
+}
+
+/* 整页失败变体：标题为「页面生成失败」，颜色沿用面板语义 */
+.book-reader-page-error {
+  border-color: #f4b6ae;
+  background: #fef3f2;
+  color: #7a1f1a;
+}
+
+/* 笔记写入失败（本地存储写入失败：页内如实提示） */
+.book-reader-storage-error {
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  border: 1px solid #f4b6ae;
+  border-radius: var(--radius-sm);
+  background: #fef3f2;
+  color: var(--danger);
+  font-size: 12.5px;
+}
+
+/* 练习版本不匹配提示（旧版题目的作答记录，如实说明而非伪装） */
+.book-reader-quiz-stale {
+  margin: 6px 0;
+  padding: 8px 10px;
+  border: 1px solid #f2d9a4;
+  border-radius: var(--radius-sm);
+  background: #fdf6e7;
+  color: #92610c;
+  font-size: 12.5px;
+}
+
+/* 归档只读说明（生成/重试入口禁用时的同一解释，避免"按钮可点但无反应"） */
+.book-reader-readonly-note {
+  margin: 0 0 14px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12.5px;
+}

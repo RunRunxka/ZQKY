@@ -1,12 +1,14 @@
 # 当前状态与实施主线
 
-更新：2026-09-20（文档接手整理；产品验收沿用下列指定候选的记录）。本文件是唯一进度、问题、任务和后续计划入口。长期目标与稳定决定见 [PROJECT_GUIDE](PROJECT_GUIDE.md)，逐项范围见三矩阵，历史首败与批次全文见 [整理前完整快照](archive/DELIVERY_HISTORY.md#snapshot-status-20260915)。
+更新：2026-09-20（启动 H1-BOOKS-PIPELINE v2 当前任务；产品验收沿用下列指定候选的记录）。本文件是唯一进度、问题、任务和后续计划入口。长期目标与稳定决定见 [PROJECT_GUIDE](PROJECT_GUIDE.md)，逐项范围见三矩阵，历史首败与批次全文见 [整理前完整快照](archive/DELIVERY_HISTORY.md#snapshot-status-20260915)。
 
 ## 1. 目标与当前结论
 
 **以智启课源品牌完成固定 DeepTutor 的产品前端、AI 交互与原有动画；全站以当前学习问答 `/chat` 为视觉基准，保留蓝色主题及原业务功能。整体尚未完成。**
 
-最近交付的是 **R-05 内容视觉统一收尾批**。**第六批（B-R05-EXTEND v5，2026-09-19）**覆盖阅读工作区（`/reading/[workspaceId]` 含 sessions 子页）与 `/space` 四子页，并同批受控诊断、修复 R-09 滚动跟随的真实缺陷（详见 §3 R-09-FLAKY）。独立验收记录为 A1 **pass 0 fail**（R-09 五例 5/5、压测 10/10、55 项浏览器实测）。**沿用外部总控收口记录，R-05 在 §5.3 登记的既有页面视觉推广范围内关闭**，不扩大为全站逐状态视觉或功能完成。下一实施批尚未指定，H1/H2 是建议路线，见 [当前批次与下一动作](#current-task)。
+**当前实施批是 H1-BOOKS-PIPELINE v2（书籍生成流水线与增量阅读闭环，2026-09-20 完成本地实现与验收，任务卡见 §5 与 [qa 任务卡](qa/H1-BOOKS-PIPELINE/TASK-CARD.md)）**，即 R-05 之后转业务闭环轨道的第一步；范围、结果与语义变化以本文件 §5.0 为准。**本批全部为本地模拟执行器与本地显式注入，不接真实 LLM/解析：通过不代表真实供应商能力，也不代表书籍模块或全站完成。**
+
+上一个已交付批次是 **R-05 内容视觉统一收尾批**。**第六批（B-R05-EXTEND v5，2026-09-19）**覆盖阅读工作区（`/reading/[workspaceId]` 含 sessions 子页）与 `/space` 四子页，并同批受控诊断、修复 R-09 滚动跟随的真实缺陷（详见 §3 R-09-FLAKY）。独立验收记录为 A1 **pass 0 fail**（R-09 五例 5/5、压测 10/10、55 项浏览器实测）。**沿用外部总控收口记录，R-05 在 §5.3 登记的既有页面视觉推广范围内关闭**，不扩大为全站逐状态视觉或功能完成。下一实施批尚未指定，H1/H2 是建议路线，见 [当前批次与下一动作](#current-task)。
 
 - 最近产品提交：视觉六批（见 §4 批次表最终 SHA）；阅读补测修复 `a9ebcaa`。新接手者必须重新核对 `git status --short`、`git log -5 --oneline`，不能把文档提交当产品验收候选。
 - 工作树中 `.zcode/agents/*.md` 是用户自己的改动，批次全程不触碰、不纳入提交。
@@ -23,7 +25,7 @@
 | 模型与供应商 | contract-v1、38条注册（36现行+2 legacy）、6 backend、专用适配/受管认证、发现来源、推理控制、v1→v2迁移与凭证补偿；卡片/详情/发现/参数/默认选择闭环 | 真实仅DeepSeek指定场景有证据，其余37条注册项无独立真实通过；Codex真实登录条件仍需核实具备；R-13未关闭；模型动画partial |
 | 学习空间/笔记/题库 | 会话历史、角色、题库、笔记编辑、跨页保存；真实sessionId回链+可选messageId定位，旧数据缺身份不猜测；`/space` 首页、四子页与笔记本列表/详情已列入视觉推广批 | `/space` 功能级完整验收（弹窗/错误/长文案逐状态）待补；笔记编辑器等参考差距按矩阵保留；CLI只本地登记，无真实执行 |
 | 知识库 | 登记→解析→索引显式模拟，进度/取消/重试/恢复；局部状态与数据保护已有证据；R-05 v1 列表/详情视觉有界验收 | 不读真实文件、不做向量检索/RAG；全部分区/弹窗逐状态视觉及进度动画仍未完整验收 |
-| 书籍/课程 | 14类block、练习保存、笔记、大纲、资源、进度/导出；课程目录读取失败三态及隔离已修 | compiling/paused/error、流式生成/暂停恢复、书籍聊天和课程学习会话缺口；部分block仅模拟形态 |
+| 书籍/课程 | 14类block、练习保存、笔记、大纲、资源、进度/导出；课程目录读取失败三态及隔离已修；**H1-BOOKS-PIPELINE v2 起书籍生成可观察/可暂停/可中断/可重试**（七态状态机 + 本地模拟执行器 + 活动条/展开详情/暂停横幅/块页重试/增量阅读/未完成导出标注） | 书籍生成仍为本地模拟（无真实 LLM/解析与真实供应商证据）；BookChatPanel、课程学习会话缺口；部分block仅模拟形态；逐帧动画与硬件触摸未验 |
 | 阅读 | 材料/集合、批注/书签/进度、显式模拟伴生；R-09滚动/会话历史/已测跨会话归属已修；READ-RETRY/READ-END 已修（2026-09-18） | 媒体原视图、完整过程/来源仍待补验 |
 | 写作/Whisper | 自动保存、显式模拟AI预览/应用/取消/重试、撤销/版本、双席位房间；写作列表/编辑器已有 R-05 v3 视觉证据 | DOCX导入、完整参考差距、逐状态视觉与动画；写作批不代替 Whisper 独立验收 |
 | 伙伴/智能体 | `/agents`规划入口 | 列表/创建/详情/群组、任务过程与执行闭环待实现 |
@@ -75,6 +77,7 @@
 | B-R05-EXTEND v4（R-05 推广第四批） | `d54bd93` | 设置/教案两页视觉推广（全站最后两个既有模块页）；E4 差距清单 34 条 + **双风险清单各 10 条** + 队长裁定 §8；**模型区 contract-v1 与教案导出/草稿链路双禁区零改动**（`model-settings/**`、`chat/**`、`print.css`、`services/pagination.ts`、`model/*`、`assets/` diff 全空）；增量全进新建 `settings-extend.css`/`lesson-visual.css`；typecheck/lint(0警告)/unit297/build/e2e154 全过；**独立验收 A1 pass（33 pass / 0 fail / 4 not_run）**——模型区 mock 成功态全链路 + 教案 `verifyDocx` 导出产物 + 损坏草稿不覆盖，390 页面级溢出实测归零 | [批次证据](qa/B-R05-EXT4/)、[E4 清单](qa/B-R05-EXT4/E4-GAP-LIST.md)、[A1 报告](qa/B-R05-EXT4/A1-REPORT.md)；api 未重跑（零后端改动，基线181）；**R-09-FLAKY 观察中**见 §3 |
 | B-R05-EXTEND v5（R-05 收尾批） | `a9c28ea` | 阅读工作区三栏（`/reading/[workspaceId]` + sessions 子页）与 `/space` 四子页（chat-history/questions/personas/cli-apps）视觉推广；E5 差距清单 44 条 + **交互保护区 19 条机制** + **reading.css 影响面 14 类** + 队长裁定 §8；增量全进新建 `reading-ws.css`/`space-sections.css`（`reading.css`、`space.css` 零改动）；**同批受控诊断并修复 R-09 滚动跟随真实缺陷**（follow-bottom 竞争，见 §3 R-09-FLAKY）；typecheck/lint(0警告)/unit297/build（队长重建 BUILD_ID `eYs-YyFDf0XQJugH8zZcO`）/e2e154 全过；**独立验收 A1 pass 0 fail**（R-09 五例 5/5、压测 `--repeat-each=10` 10/10、55 项浏览器实测、R-10 回链 21/21+12/12、space-pages 8/8） | [批次证据](qa/B-R05-EXT5/)、[E5 清单](qa/B-R05-EXT5/E5-GAP-LIST.md)、[A1 报告](qa/B-R05-EXT5/A1-REPORT.md)；api 未重跑（零后端改动，基线181） |
 | 2026-09-15方向审查 | `6d98718`只读产品审查 | Node26.2.0 + `--no-experimental-webstorage`：42文件292/292，exit0；未重跑浏览器/API/build | 最近Codex审查结果；临时报告_work/review-direction-6d98718/REVIEW.md，本表保留关键结论 |
+| H1-BOOKS-PIPELINE v2（书籍生成流水线与增量阅读闭环） | 见提交信息 `feat(books-pipeline): H1-BOOKS-PIPELINE v2——书籍生成流水线与增量阅读闭环`（父提交 `bf460ab`，本批产品提交） | typecheck/lint(0警告)/unit 46文件353/build(BUILD_ID `TPMei2ra-L9r31dqKSPpl`)/e2e 168（既有154+新增14）全过；**独立验收 A1 pass 32 / fail 0 / not_run 0**（含 4 项挑刺：无 run 记录书的整页重生成、笔记写入失败不谎报、provider 开关单独开启真暂停、interrupted 恢复入口；并检出 `contentVersion` 生产路径从不写入，修复后复验）；视觉/动画三视口+焦点+reduce+快速开关+中断实测（浮层 180ms、呼吸 1.8s、reduce 压制 1e-05s） | [批次证据](qa/H1-BOOKS-PIPELINE/README.md)、[首败台账](qa/H1-BOOKS-PIPELINE/DEFECT-LEDGER.md)、[A1 报告](qa/H1-BOOKS-PIPELINE/A1-REPORT.md)；**全部为本地模拟执行器，不含真实 LLM/解析**；api 未重跑（零后端改动，基线181） |
 
 ### 4.1 真实服务与数据事件
 
@@ -102,9 +105,55 @@ npm.cmd run test:unit
 
 ## 5. 当前批次与下一动作
 
-**最近实施批：B-R05-EXTEND v5（R-05 收尾批），已于2026-09-19交付。实施 + 独立验收 pass，产品候选 `a9c28ea`，文档收口 `a27dd69`。负责人：外部Agent队长（实施总控）。Codex负责交付审查。**
+### 5.0 当前实施批：H1-BOOKS-PIPELINE v2（书籍生成流水线与增量阅读闭环）
 
-**下一实施任务尚未指定。** 用户当前要求是整理项目文档与新会话协作提示词。新Agent先接手现状；用户给出新任务时按其范围实施，否则依据 [后续路线](#roadmap) 提出一个有界批次的需求、实现方式、文件归属和验收条件，不重新执行本节已交付内容，也不自动展开整个 H1/H2。以下保留最近批次的结果与限制。
+**状态：本批实现与本地验收完成，待交付审查（2026-09-20）。** 负责人：实施总控（本会话接手上任未收口工作）；独立验收 A1 只读。起点候选 `bf460ab`（接手前工作区改动快照见 §5.0.5，本批不提交、不还原）。完整任务卡、冻结契约（状态枚举/字段/仓储 API/执行器 API）、队长裁定、锚点与禁区清单在 [docs/qa/H1-BOOKS-PIPELINE/TASK-CARD.md](qa/H1-BOOKS-PIPELINE/TASK-CARD.md)，本节登记范围与边界，结果与语义变化见 §5.0.7–§5.0.9。
+
+1. **需求（用户锁定）**：① 补齐 `draft/spine_ready/compiling/paused/ready/error/archived` 七态与页面/块的等待·生成中·完成·部分失败·失败状态，明确生产者、转移条件、持久化字段与恢复操作，区分局部块失败/页面失败/整轮失败/本地存储失败；② 可观察生成：新建→提案→确认大纲→逐章逐块生成，增量落库、阅读器可见已完成与未完成，活动条/阶段文案/章数/计时/展开详情/暂停横幅/正文提示对照固定参考，进度来自真实任务状态；③ 暂停与中断：用户暂停与**模拟**供应商连续失败暂停两类，均只在明确恢复后继续，刷新/选页不绕过暂停，对照参考 `maybe_resume_on_open` 仅对"compiling 且无活跃执行器"自动续跑；④ 失败与重试：单块重试、页面失败恢复、整页重生成，不暗中重建整本，部分失败如实显示；修复初次读取失败停在加载态；⑤ 数据与并发：旧数据兼容读取、损坏不覆盖、增量合并保护生成期间新增笔记/书签/进度、块身份稳定、作答版本关系、整书重建语义不变、事件绑定 bookId+runId+序号且重复/迟到不重复落库、同书单一执行者（双标签页不互相覆盖）、存储失败停止推进且不谎报已保存、生成进度与阅读进度分开、导出不伪装完整、课程 R-11 三态不回退。
+2. **实现方式**：`books-store.ts` 扩状态机与持久化（唯一写入口 `applyRunEvent`）；新建 `services/book-generation.ts` 作为**可替换的显式模拟执行器**（增量事件 + AbortSignal + 确定性失败场景 + 每书租约），正常路径由事件逐块推进，不预先同步生成整本；`BooksRoute.tsx` 承载活动条/展开详情/暂停横幅/自动续跑/模拟场景设置；`PageReader.tsx` 承载块与页状态、失败重试、整页重生成、作答版本关系。不接真实 LLM，不新增第二套业务后端。
+3. **文件归属**：I1＝`services/books-store.ts` + 新建 `services/book-generation.ts` + 两处单测；I2＝`features/books/BooksRoute.tsx` + 新建活动条/暂停横幅组件 + 新建 `features/books/styles/book-pipeline.css` + 组件测试；I3＝`features/books/PageReader.tsx` + 新建块失败组件 + 新建 `features/books/styles/book-reader-states.css` + `PageReader.test.tsx`；总控＝STATUS/三矩阵/必要决定、`tests/e2e/books-pipeline.spec.ts`（新建）、`books-courses.spec.ts` 异步语义改造、构建与 Git；A1＝只读独立验收。同一文件同一时段单一写入者。
+4. **验收条件**：见任务卡 §7（正常链路、四类失败、暂停/恢复/中断/重试、数据兼容与并发、三视口与减少动画、模拟边界），必须运行 typecheck / lint(0 警告) / unit / build（队长重建记 BUILD_ID）/ e2e（既有 154 + 新增）。**不包含**：BookChatPanel、课程学习会话、真实 LLM/解析、真实 HealthBanner 数据、侧栏折叠、多用户权限、R-13、R-06 补测、14 类 block 全面重做、导航字体收口——这些范围不因本批通过而关闭。
+5. **接手现场（§5.0.5）**：起点 HEAD `bf460ab`；`.zcode/agents/*.md`(3)、`apps/web/next-env.d.ts`、`apps/web/src/components/layout/workspace-shell.css` 为接手前改动，本批不提交、不还原、不清理；快照与校验值在 `_work/h1-books/handoff-snapshot/`（构建改写生成文件时按此恢复）。
+6. **旧合同失效声明**：`books-store.test.ts`「确认提案→确认大纲完成模拟编译」与 e2e `books-courses.spec.ts` 第 2 例锁定"确认大纲即同步 ready"，本批以异步流水线取代，改为更强的异步状态断言，逐项在结果卡说明理由；不删测试、不放宽既有阈值、不保留第二条同步捷径。
+
+<a id="h1-books-results"></a>
+
+### 5.0.7 本批结果（实跑）
+
+- 工程检查：`npm run typecheck` 通过；`npm run lint`（`--max-warnings=0`）**0 警告**；`NODE_OPTIONS=--no-experimental-webstorage npm run test:unit` → **46 文件 / 353 例通过**（基线 47 文件/344 中删去零断言探针 `zz-debug.test.ts`，本批净增 10 条）；`npm run build`（总控自跑）通过，`BUILD_ID = TPMei2ra-L9r31dqKSPpl`（迭代：r1 `hrsgX9VjAM3HhtDYpjgPj` → r2 `tqqP-RbOtTrgBVOXkRUET` → r3 修浮层裁切，见 §5.0.10）；`npm run test:e2e` → **168 例通过 / 0 失败**（既有 154 + 新增 `books-pipeline.spec.ts` 14 例，构建产物来自本批源码）。
+- 独立验收 A1（只读，冻结指纹见 §5.0.10）：r1 **pass 32 / fail 0 / not_run 0**（含 4 项挑刺：无 run 记录书的整页重生成、笔记写入失败不谎报、provider 开关单独开启真暂停、interrupted 态恢复入口，全部成立）；A1 挑出的 `contentVersion` 生产路径从不写入已按建议修复 → r2 定向复验 **pass**（真实存储实测「作答 `blockVersion` == 块 `contentVersion`」）；r3（修活动条展开浮层被 46px 条裁切，台账 N10）定向复验记录见其报告。
+- 视觉与动画（真实浏览器 msedge，三视口 1440×900 / 1920×1080 / 390×844）：浮层进场 `180ms cubic-bezier(0.16,1,0.3,1)`、呼吸文字 `1.8s`、reduce 下两项均被压制（`1e-05s`）、快速开关 0→1→0、展开中暂停后浮层仍可收起、活动条按钮焦点环 2px、390 页面级溢出 0。截图与量化证据见 [qa visual](qa/H1-BOOKS-PIPELINE/visual/evidence.json)。
+- 证据索引：[批次 README](qa/H1-BOOKS-PIPELINE/README.md)、[首败与修复台账](qa/H1-BOOKS-PIPELINE/DEFECT-LEDGER.md)、[A1 报告](qa/H1-BOOKS-PIPELINE/A1-REPORT.md)、[冻结指纹](qa/H1-BOOKS-PIPELINE/FROZEN-CANDIDATE.json)。
+- 未执行：`apps/api` 测试（本批零后端改动）、真实供应商链路、移动端硬件触摸、逐帧动画曲线（属 H6 总验收范围）。
+
+### 5.0.8 语义变化（与旧实现不同的行为，接手者必须知道）
+
+1. **「确认大纲」不再同步 ready**：`confirmSpine` 建骨架并写 run 检查点进入 `compiling`，由本地模拟执行器逐章逐块异步推进到 `ready`（旧同步断言已替换为更强的异步断言）。
+2. **失败不再假完成**：仍有未完成页 → 书籍保持 `compiling`（无执行器即“已中断”，活动条显示「继续生成」）；本地写入失败 → `error` 并给「重试生成」。部分失败（partial 页）计入完成但卡片与导出如实标注。
+3. **自动续跑时机收窄**：只在“打开/刷新书籍”或“他标签页租约失效”时自动接管一次；同一挂载内跑过执行器后不再自动重启——否则一次页失败后的“已中断”会被下一次轮询立刻自动接管，用户看不到中断态、失败原因与恢复入口。
+4. **注入场景一次性**：块失败、整页失败、本地写入失败都是“首次失败、重试即成功”，不会在同一触发点无限失败；整页失败以页自身 `attempts` 为判据，刷新/续跑后不重复注入。
+5. **UI 开关必须真的命中**：`'*first'` 通配在场景解析期展开为全书第一个块；「模拟供应商连续失败暂停」自身产生连续页失败直至阈值（此前单独开启时无任何效果）。
+6. **归档书只读**：生成/重试/重新生成入口禁用并给出同一说明（不再出现“按钮可点但什么都没发生”）。
+7. **块占位分两态**：`正在生成 X 块…`（真的在写，带旋转图标）与 `X 块等待生成…`（排队或当前没有执行器）。
+8. **`contentVersion` 真实写入**：执行器按生成内容的确定性哈希写入块版本；作答版本关系由“永不触发”变为“内容变化则旧作答如实标记为旧版记录”（内容相同的重生成不误判为过期）。
+9. **就绪书卡片状态徽标保持渲染**：视觉推广期曾改为“仅非 ready 渲染”，本批恢复为全状态渲染（既有 e2e 以卡片上的「可阅读」锁定就绪态，按“保留既有断言”处理；与参考的差异如实记录）。
+
+### 5.0.9 数据兼容、恢复与边界
+
+- 兼容：旧四态数据照常可读；缺 `status` 的页面/块按 `ready` 读取期派生、不写回；`run` 缺失表示无历史运行（演示书/旧就绪书的页/块修复会补一个只作写入容器的检查点，不改书籍状态与阅读进度）；损坏/结构非法/写拒仍走 `local-collection` 抛错路径，不当作空库、不覆盖、不谎报已保存。
+- 恢复：`paused` 只能由用户显式恢复（刷新不自动续跑）；`compiling` 无执行器时按页状态续跑（不重复生成已完成页）；`error` 可续跑；双标签页靠租约保证单执行者。
+- 边界：全部为本地模拟执行器与本地显式注入，**不接真实 LLM/解析**；本批通过不代表真实供应商能力、不代表书籍模块或全站完成。不包含：BookChatPanel、课程学习会话、真实 HealthBanner 数据（kb_drift/log_health）、侧栏折叠、多用户权限、R-13、R-06 补测、14 类 block 全面重做、导航字体收口。
+- 保留风险（记录备查，非本批缺陷）：暂停/恢复/重试按钮忙态为固定 600ms 复位；活动条 UI 由 500ms 轮询刷新（事件落库与界面更新最大约 0.5s 延迟）；“缺 status 即 ready”是长期兼容约定，缺 status 但实际未完成的页会被按完成读取。
+
+### 5.0.10 冻结候选
+
+本批候选为工作树（未提交），父提交 `bf460ab`；15 个产品/测试文件的 SHA256 与 `BUILD_ID` 记于 [FROZEN-CANDIDATE.json](qa/H1-BOOKS-PIPELINE/FROZEN-CANDIDATE.json)（`revision` 字段记录 r1→r2→r3 三次冻结：r1 首轮 A1 pass 32/0/0；r2 采纳 A1 挑刺补 `contentVersion` 生产写入并复验通过；r3 修视觉取证发现的展开浮层裁切并复验）。每次冻结的验收结束后都复校指纹一致；验收后未再改动产品代码。
+
+以下 §5.1–5.3 保留 B-R05-EXTEND v5 / R-05 收口的原始交付与边界记录，不因本批启动而改动。
+
+### 5.9 上一实施批：B-R05-EXTEND v5（R-05 收尾批）
+
+已于2026-09-19交付。实施 + 独立验收 pass，产品候选 `a9c28ea`，文档收口 `a27dd69`。负责人：外部Agent队长（实施总控）。Codex负责交付审查。
 
 ### 5.1 交付结果
 

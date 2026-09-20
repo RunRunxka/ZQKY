@@ -1,0 +1,76 @@
+{
+  "base": "http://127.0.0.1:5175",
+  "generatedAt": "2026-09-20T11:51:26.848Z",
+  "animation": {
+    "blockFailureCard": "小节 块生成失败 | 内容生成失败（本地模拟） | 模拟块生成失败（本地注入：首次失败，重试即成功；非模型产出）。 | 重试",
+    "pageFailurePanel": "1 个块失败\n重新生成本页\nsection\n内容生成失败（本地模拟）：模拟块生成失败（本地注入：首次失败，重试即成功；非模型产出）。\n重试块",
+    "interruptedStrip": "生成已中断（无执行器在跑）\n3/4 章\n00:14\n继续生成\n已生成内容",
+    "interruptedContinueButton": "继续生成",
+    "continueAfterInterrupt": true,
+    "errorBanner": "生成失败（本地模拟）：本地保存失败（写入本地数据（zhiqikeyuan:books）失败（存储可能已满）；本次修改已回滚，原数据保留。）已停止生成，原数据保留。 | 重试生成 | 从断点续跑（已完成页不重复生成）；也可用「重建书籍」整本重新模拟编译。",
+    "retryStarted": true,
+    "focus": {
+      "tag": "A",
+      "text": "比喻是什么（2/2）排队",
+      "ariaLabel": null,
+      "outlineWidth": "2px",
+      "outlineStyle": "solid",
+      "outlineColor": "rgb(37, 99, 235)",
+      "boxShadow": "none"
+    },
+    "breathing": {
+      "name": "book-pipeline-breathing",
+      "duration": "1.8s"
+    },
+    "detail": {
+      "name": "book-pipeline-detail-in",
+      "duration": "0.18s",
+      "timing": "cubic-bezier(0.16, 1, 0.3, 1)"
+    },
+    "quickToggleDetailCount": 1,
+    "pausedStripStage": "生成已暂停",
+    "detailCountWhilePaused": 0,
+    "archivedNote": "已归档（只读）：生成、重试与重新生成入口已禁用以保持归档内容不被改写；如需继续编辑，请先在书籍列表取消归档。",
+    "archivedRegenerateDisabled": true,
+    "archivedBookmarkEnabled": true,
+    "focusOnStrip": {
+      "text": "暂停生成",
+      "outlineWidth": "2px",
+      "outlineStyle": "solid",
+      "outlineColor": "rgb(37, 99, 235)"
+    },
+    "quickToggle": {
+      "startOpen": 0,
+      "afterOneClick": 1,
+      "afterTwoClicks": 0,
+      "afterFourClicks": 0,
+      "ariaExpanded": "false"
+    },
+    "interrupt": {
+      "detailCountWhilePaused": 1,
+      "pausedStage": "生成已暂停",
+      "pausedButtons": [
+        "恢复生成",
+        "已生成内容"
+      ],
+      "detailCountAfterClose": 0
+    },
+    "resumeFromBanner": true,
+    "completedAfterResume": true
+  },
+  "reduce": {
+    "mediaMatches": true,
+    "breathing": {
+      "name": "none",
+      "duration": "1e-05s"
+    },
+    "detail": {
+      "name": "none",
+      "duration": "1e-05s"
+    },
+    "buttonTransition": {
+      "name": "none",
+      "duration": "1e-05s"
+    }
+  }
+}

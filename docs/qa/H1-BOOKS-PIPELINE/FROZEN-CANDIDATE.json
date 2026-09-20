@@ -1,0 +1,38 @@
+{
+  "task": "H1-BOOKS-PIPELINE v2",
+  "revision": "r3（总控视觉取证发现活动条展开浮层被 46px 单行条裁切 → 按参考结构修复；相对 r2 仅 BookGenerationStrip.tsx、BookGenerationStrip.test.tsx、book-pipeline.css、tests/e2e/books-pipeline.spec.ts 四个文件变化）",
+  "revisionHistory": {
+    "r1": "首个冻结候选；A1 首轮 pass 32 / fail 0 / not_run 0（BUILD_ID hrsgX9VjAM3HhtDYpjgPj）",
+    "r2": "采纳 A1 挑刺补 contentVersion 生产写入；A1 定向复验 pass（BUILD_ID tqqP-RbOtTrgBVOXkRUET）",
+    "r3": "修展开浮层裁切（台账 N10）；A1 定向复验记录见 A1-REPORT.md 末节（BUILD_ID TPMei2ra-L9r31dqKSPpl）"
+  },
+  "frozenAt": "2026-09-20T20:03:35+08:00",
+  "parentCommit": "bf460ab5ee53810679752c5104f7e2a777221d08",
+  "branch": "codex/replica-review-20260908",
+  "buildId": "TPMei2ra-L9r31dqKSPpl",
+  "verifiedRuns": {
+    "typecheck": "pass",
+    "lint": "pass(0 warnings)",
+    "unit": "46 files / 353 tests pass",
+    "e2e": "168 passed / 0 failed",
+    "build": "pass"
+  },
+  "note": "候选=工作树（未提交）。A1 复验必须在该指纹上执行并在结束时复校一致；若任一文件改动须重新冻结并复验。",
+  "fileSha256": {
+    "services/books-store.ts": "c25c09efcce5e387641886cfaf4b9708076a695270b4d9a7ae8f924580a37b86",
+    "services/book-generation.ts": "f0ed5f891500b1a38e21bbbacf2fffdba276ec528015fda2afa3eea7b23e7ce4",
+    "features/books/BooksRoute.tsx": "55c9bfc415a77a218302cfc171133f44235f6c3e76c6a131a4d33de2c4b6a46e",
+    "features/books/PageReader.tsx": "3e4e3f01f0f6c5ea3681eba1dc2b9a0c1c488ef33d4161859ee60a173bf093a4",
+    "features/books/BookGenerationStrip.tsx": "3d0267eb81276601aade5ed7f9d1116f6c06bffbe0646c6da10a6821474e1802",
+    "features/books/BookPausedBanner.tsx": "0ee4d76c8ac2567bd91599db15bea2712ad0736d5e6b7a3edcfc26693410d536",
+    "features/books/BookBlockFailure.tsx": "970b45f08cd26e25d73e6e98484011492e1e09a2c17c10acf587ab122673f152",
+    "services/books-store.test.ts": "cc778caa00f16224d729d4157f84285be821b6a9b40619a6b5aaedc6573388aa",
+    "services/book-generation.test.ts": "9b5458b925b7bff6e3a9fac125bfa0c0754c82eec05e08db6551dcc5c1ee42d6",
+    "features/books/PageReader.test.tsx": "61c001cf2476c4f8aa86719921694a225934f38a460d6647c819d61d96777ced",
+    "features/books/BookGenerationStrip.test.tsx": "64eec28d68b834191f4e0e01c499292a9e0e32d67a5cde0b71cfc2724717960b",
+    "tests/e2e/books-pipeline.spec.ts": "2dad42df19a6d17879e9b1e143be6d3c7ba6eec2b309f859dc03e71ffd07f10d",
+    "tests/e2e/books-courses.spec.ts": "c1fc357ec196d6e7ebdd1bdb0a6f30d3d441411e58b5eee3038b760695d8889a",
+    "features/books/styles/book-pipeline.css": "a0976848bc64e4ea57caaab2654a7c600c742e0a1594e66d326363828c2b227d",
+    "features/books/styles/book-reader-states.css": "b090ce037c0eb0945be522904d02b3063d5c01b3edd1a6f8d9386c235de37d9e"
+  }
+}

@@ -1,0 +1,444 @@
+/* H1-BOOKS-PIPELINE I2 书籍生成流水线样式 v1（活动条 / 展开浮层 / 暂停横幅 / 状态标记）
+   依据：docs/qa/H1-BOOKS-PIPELINE/TASK-CARD.md §5.2-§5.3、§6.6 与 REFERENCE-SPEC.md §2-§4、§7。
+   消费 globals.css 单一变量层（--blue/--surface/--ink/--muted/--line/--font-ui/--radius-… 与 --shadow-card）；
+   零 !important、无 @media print、不写 prefers-reduced-motion（reduce 兜底依赖 globals.css 全局层）。
+   作用域：所有选择器以 .book-pipeline-* 起头；只消费 space.css / books.css 的既有类（.space-button 等），
+   不改它们的定义。
+   动画口径（对照参考 globals.css 的 dt-detail-in / dt-breathing，仅此两类进出场）：
+   - 浮层进场 180ms cubic-bezier(0.16, 1, 0.3, 1)（opacity 0→1 + translateY(-2px)→0）
+   - 呼吸文字 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite（opacity 0.45↔1），仅未 settled 时挂类 */
+
+/* ===== 活动条（对照参考 BookGenerationActivity：固定 46px 单行，every view every phase） ===== */
+
+.book-pipeline-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 46px;
+  padding: 0 14px;
+  border: 1px solid #c3d7fd;
+  border-radius: var(--radius-md);
+  background: var(--blue-soft);
+  font-size: 13px;
+  color: var(--ink);
+  overflow: hidden;
+}
+
+.book-pipeline-strip-status {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* 呼吸文字（未 settled 时由组件挂 .breathing；reduce 依赖全局层冻结） */
+.book-pipeline-strip-status.breathing {
+  animation: book-pipeline-breathing 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes book-pipeline-breathing {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.book-pipeline-strip-chapters,
+.book-pipeline-strip-timer {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.6;
+  color: var(--ink);
+}
+
+/* 右侧控制区：收窄到本模块的按钮 hover 语言（对照参考 transition-colors hover:bg muted） */
+.book-pipeline-strip .book-pipeline-strip-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.book-pipeline-strip .book-pipeline-strip-controls .space-button {
+  background: var(--bg);
+  transition: background 150ms, border-color 150ms, color 150ms;
+}
+
+.book-pipeline-strip .book-pipeline-strip-controls .space-button:hover {
+  background: var(--surface);
+}
+
+/* 展开开关（chevron 旋向指示） */
+.book-pipeline-strip-toggle {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: background 150ms, color 150ms;
+}
+
+.book-pipeline-strip-toggle:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.book-pipeline-strip-toggle-chevron {
+  transition: transform 150ms;
+}
+
+.book-pipeline-strip-toggle[data-open='true'] .book-pipeline-strip-toggle-chevron {
+  transform: rotate(180deg);
+}
+
+/* ===== 展开浮层（对照参考 dt-detail-in + role=dialog） ===== */
+
+/* 外壳：锚定浮层。浮层不能挂在 46px 单行条内部——那条是 overflow:hidden 的 flex 行，
+   作为其子节点会被裁成一条 46px 的线（只在 DOM 里"可见"，用户看不到内容）。 */
+.book-pipeline-strip-shell {
+  position: relative;
+}
+
+.book-pipeline-detail-layer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  padding: 0 14px;
+}
+
+.book-pipeline-detail {
+  margin-top: 4px;
+  width: 100%;
+  max-width: 32rem;
+  max-height: min(60vh, 460px);
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  box-shadow: var(--shadow-card);
+  animation: book-pipeline-detail-in 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes book-pipeline-detail-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.book-pipeline-detail-body {
+  max-height: min(60vh, 460px);
+  max-width: 32rem;
+  overflow-y: auto;
+  padding: 12px 14px;
+}
+
+.book-pipeline-detail-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin: 0 0 8px;
+}
+
+/* 章行（对照参考章标题 01 · Title 与 StatusDot 前置） */
+.book-pipeline-detail-chapter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.book-pipeline-detail-chapter:last-child {
+  border-bottom: 0;
+}
+
+.book-pipeline-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--line);
+  border: 1px solid var(--muted);
+  opacity: 0.6;
+}
+
+.book-pipeline-dot.running {
+  background: var(--blue);
+  border-color: var(--blue);
+  opacity: 1;
+  animation: book-pipeline-dot-pulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.book-pipeline-dot.done {
+  background: var(--green);
+  border-color: var(--green);
+  opacity: 1;
+}
+
+.book-pipeline-dot.error {
+  background: var(--danger);
+  border-color: var(--danger);
+  opacity: 1;
+}
+
+@keyframes book-pipeline-dot-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.book-pipeline-detail-chapter-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.book-pipeline-detail-chapter-state {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.book-pipeline-detail-chapter-state.error {
+  color: var(--danger);
+}
+
+/* ===== 暂停横幅（对照参考 BookPausedBanner：描边按钮 border border-current） ===== */
+
+.book-pipeline-paused {
+  border: 1px solid #f2d9a4;
+  border-radius: var(--radius-md);
+  background: #fdf6e7;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.book-pipeline-paused-title {
+  font-family: var(--font-display);
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #92610c;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.book-pipeline-paused-text {
+  margin: 0;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.book-pipeline-paused-reason {
+  margin: 0;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--line);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.book-pipeline-paused-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ===== 列表状态胶囊（compiling 圆点脉冲；对照参考 animate-pulse） ===== */
+
+.book-pipeline-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.book-pipeline-status-chip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-pill);
+  background: currentColor;
+  flex: 0 0 auto;
+}
+
+.book-pipeline-status-chip-dot.pulsing {
+  animation: book-pipeline-dot-pulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* 生成进度（n/m 章，tabular-nums 对齐） */
+.book-pipeline-progress {
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== 侧栏页状态标记（对照参考 STATUS_LABEL / PAGE_MARK：title 提示 + 圆点） ===== */
+
+.book-pipeline-page-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--muted);
+  background: transparent;
+  opacity: 0.45;
+}
+
+.book-pipeline-page-dot.queued {
+  background: transparent;
+  border-color: var(--muted);
+  opacity: 0.45;
+}
+
+.book-pipeline-page-dot.running {
+  background: var(--blue);
+  border-color: var(--blue);
+  opacity: 1;
+  animation: book-pipeline-dot-pulse 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.book-pipeline-page-dot.done {
+  background: var(--green);
+  border-color: var(--green);
+  opacity: 1;
+}
+
+.book-pipeline-page-dot.accent {
+  background: var(--blue);
+  border-color: var(--blue);
+  opacity: 1;
+}
+
+.book-pipeline-page-dot.error {
+  background: var(--danger);
+  border-color: var(--danger);
+  opacity: 1;
+}
+
+/* 生成中侧栏页标记小字（状态词只在 title 提示，不占版面） */
+.book-pipeline-page-mark {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* ===== 模拟执行器设置（仅本地模拟；可折叠） ===== */
+
+.book-pipeline-scenario {
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.book-pipeline-scenario-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12.5px;
+  padding: 2px 4px;
+  align-self: flex-start;
+  border-radius: var(--radius-sm);
+  transition: color 150ms;
+}
+
+.book-pipeline-scenario-toggle:hover {
+  color: var(--ink);
+}
+
+.book-pipeline-scenario-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.book-pipeline-scenario-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--ink);
+  flex-wrap: wrap;
+}
+
+.book-pipeline-scenario-row input[type='number'] {
+  width: 72px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  font-size: 12.5px;
+}
+
+.book-pipeline-scenario-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* 窄视口（390px 档）：活动条单行收纳，文案区允许截断，控制按钮不换行溢出 */
+@media (max-width: 639px) {
+  .book-pipeline-strip {
+    gap: 8px;
+    padding: 0 10px;
+  }
+
+  .book-pipeline-strip-controls .space-button {
+    padding: 5px 10px;
+  }
+}
+
+/* ===== 整轮失败（error）横幅：原因 + 「重试生成」（对照参考 can_resume 含 ERROR） ===== */
+
+.book-pipeline-error-text {
+  display: block;
+}
+
+.book-pipeline-error-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
