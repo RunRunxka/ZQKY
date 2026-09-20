@@ -1,7 +1,7 @@
 /**
- * 壁纸存储：小图走 localStorage（data URL），大视频走 IndexedDB blob。
- * 平移自 DSH-Transparent-UI-Plugin 的 wallpaper-store 思路——
- * localStorage 配额约 5MB，视频以 `idb:<id>` 标记存 IndexedDB，用时转 objectURL。
+ * 壁纸存储：picked 的图片/视频一律存 IndexedDB blob（配额以百 MB 计，
+ * 避免 localStorage 5MB 上限导致的"大图存不进"），localStorage 只存
+ * `idb:<id>` 引用。兼容旧数据：历史上以 data URL 直存的壁纸仍可渲染。
  */
 
 const DB_NAME = 'zqky-glass';
@@ -20,8 +20,8 @@ function openDb(): Promise<IDBDatabase> {
   });
 }
 
-/** 存入视频 blob，返回 `idb:<id>` 引用。 */
-export async function putVideoBlob(blob: Blob): Promise<string> {
+/** 存入壁纸 blob（图片/视频通用），返回 `idb:<id>` 引用。 */
+export async function putBlob(blob: Blob): Promise<string> {
   const db = await openDb();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE, 'readwrite');
@@ -38,8 +38,8 @@ export async function putVideoBlob(blob: Blob): Promise<string> {
   });
 }
 
-/** 读取视频 blob（不存在返回 null）。 */
-export async function getVideoBlob(id: string): Promise<Blob | null> {
+/** 读取壁纸 blob（不存在返回 null）。 */
+export async function getBlob(id: string): Promise<Blob | null> {
   const db = await openDb();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE, 'readonly');
@@ -55,8 +55,8 @@ export async function getVideoBlob(id: string): Promise<Blob | null> {
   });
 }
 
-/** 删除视频 blob（配额回收）。 */
-export async function deleteVideoBlob(id: string): Promise<void> {
+/** 删除壁纸 blob（配额回收）。 */
+export async function deleteBlob(id: string): Promise<void> {
   const db = await openDb();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE, 'readwrite');

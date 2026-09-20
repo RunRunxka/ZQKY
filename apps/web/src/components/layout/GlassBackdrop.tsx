@@ -1,14 +1,16 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { getVideoBlob } from './wallpaper-store';
+import { getBlob } from './wallpaper-store';
 
 type BackdropView = { kind: 'none' | 'image' | 'video'; src: string };
 
 /**
  * 玻璃主题的自定义壁纸层（DSH "Free backdrop" 的平移）：
- * 独立的 fixed 元素（z-index:-1），image 直接 data URL，video 为浏览器原生
+ * 独立的 fixed 元素（z-index:-1），picked 的图片/视频一律存 IndexedDB
+ * （`idb:<id>` 引用，blob.type 自动区分 image/video），video 为浏览器原生
  * <video>（loop + muted 保证自动播放；直连元素而非 iframe，backdrop-filter
- * 才能对其采样磨砂）。开启条件：玻璃开 + 背景来源=壁纸 + 有壁纸数据。
+ * 才能对其采样磨砂）。兼容旧数据：data:image / data:video 的直存值仍可渲染。
+ * 开启条件：玻璃开 + 背景来源=壁纸 + 有壁纸引用。
  * 同页变更经 `zqky:glass-change` 自定义事件同步，跨页签走 storage 事件。
  */
 export function GlassBackdrop() {
@@ -28,7 +30,7 @@ export function GlassBackdrop() {
           return;
         }
         if (wallpaper.startsWith('idb:')) {
-          const blob = await getVideoBlob(wallpaper.slice(4));
+          const blob = await getBlob(wallpaper.slice(4));
           if (cancelled) return;
           if (!blob) {
             setView({ kind: 'none', src: '' });
@@ -37,11 +39,13 @@ export function GlassBackdrop() {
           if (objectUrl !== undefined) URL.revokeObjectURL(objectUrl);
           const url = URL.createObjectURL(blob);
           objectUrl = url;
-          setView({ kind: 'video', src: url });
+          setView({ kind: blob.type.startsWith('video/') ? 'video' : 'image', src: url });
         } else if (wallpaper.startsWith('data:video/')) {
           setView({ kind: 'video', src: wallpaper });
-        } else {
+        } else if (wallpaper.startsWith('data:image/')) {
           setView({ kind: 'image', src: wallpaper });
+        } else {
+          setView({ kind: 'none', src: '' });
         }
       } catch {
         setView({ kind: 'none', src: '' });
@@ -64,8 +68,9 @@ export function GlassBackdrop() {
   return (
     <div data-glass-backdrop data-media={view.kind} aria-hidden="true">
       {view.kind === 'image' ? (
-        // 壁纸是用户本机选择的 data URL，全屏 cover 且需被 backdrop-filter 采样，
-        // next/image 的优化与懒加载在此不适用（与 DSH 插件的直连元素做法一致）。
+        // 壁纸是用户本机选择的文件（objectURL/data URL），全屏 cover 且需被
+        // backdrop-filter 采样，next/image 的优化与懒加载在此不适用
+        // （与 DSH 插件的直连元素做法一致）。
         // eslint-disable-next-line @next/next/no-img-element
         <img src={view.src} alt="" />
       ) : (

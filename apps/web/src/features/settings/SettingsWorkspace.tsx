@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { WorkspaceShell } from '@/components/layout/WorkspaceShell';
 import { ModelSettingsPanel } from '@/features/model-settings/ModelSettingsPanel';
-import { deleteVideoBlob, putVideoBlob } from '@/components/layout/wallpaper-store';
+import { deleteBlob, putBlob } from '@/components/layout/wallpaper-store';
 import { ExtensionManager } from './ExtensionManager';
 import './settings.css';
 const sections = [
@@ -123,7 +123,7 @@ export function SettingsWorkspace() {
           const previous = window.localStorage.getItem('zqky.glass-wallpaper') ?? '';
           window.localStorage.setItem('zqky.glass-wallpaper', String(value));
           if (previous.startsWith('idb:') && value !== previous) {
-            void deleteVideoBlob(previous.slice(4));
+            void deleteBlob(previous.slice(4));
           }
           break;
         }
@@ -152,22 +152,26 @@ export function SettingsWorkspace() {
   };
   const pickImage = (file: File | undefined) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = String(reader.result);
-      setWallpaper(dataUrl);
-      saveGlass('wallpaper', dataUrl);
-    };
-    reader.readAsDataURL(file);
+    void (async () => {
+      try {
+        // 图片也走 IndexedDB blob：不受 localStorage 5MB 配额限制，
+        // 也避免多 MB data URL 的写入/读取卡顿。
+        const ref = await putBlob(file);
+        setWallpaper(ref);
+        saveGlass('wallpaper', ref);
+      } catch {
+        setNotice('壁纸保存失败，请重试。');
+      }
+    })();
   };
   const pickVideo = async (file: File | undefined) => {
     if (!file) return;
     try {
-      const ref = await putVideoBlob(file);
+      const ref = await putBlob(file);
       setWallpaper(ref);
       saveGlass('wallpaper', ref);
     } catch {
-      setNotice('视频保存失败。');
+      setNotice('视频保存失败，请重试。');
     }
   };
   const removeWallpaper = () => {
