@@ -1,6 +1,6 @@
 # 页面复刻矩阵（功能与视觉分开验收）
 
-更新：2026-09-15。全站视觉以当前学习问答为准；模块信息结构/功能/动画对照固定 DeepTutor。下表“状态”是**功能状态**；页面内容是否按学习问答完成视觉验收在文末单列，二者不得互相替代。根级 NavigationPreference 已统一侧栏几何和折叠状态，但不代表各页面内容视觉已统一。
+更新：2026-09-20（整理摘要与统计，不升级条目验收状态）。全站视觉以当前学习问答为准；模块信息结构/功能/动画对照固定 DeepTutor。下表“状态”是**功能状态**；页面内容是否按学习问答完成视觉验收在文末单列，二者不得互相替代。根级 NavigationPreference 的公共壳证据不代替各页面内容证据。
 
 历史主页/侧栏批次记录已合入 [交付历史](../archive/DELIVERY_HISTORY.md#snapshot-status-20260910)。主聊天运行时模拟服务、切换入口及不可达文案/样式已由R-03清理；旧兼容类型和模拟测试仅是历史/测试用途，旧模拟库不读写。阅读、写作等模块已批准的显式模拟继续单独标注。当前代码审查问题见 [STATUS §3](../STATUS.md)。
 
@@ -35,7 +35,7 @@
 | P-courses-[courseId] | `/courses/[courseId]` | `/courses/[courseId]` | 部分实现 | 已有大纲逐行编辑、覆盖标记、下一单元提示、资料附加/移除、失效资源提示、约定与归档恢复；课程学习会话及聊天 course_id 关联尚未实现，须补齐并验收。e2e `books-courses.spec.ts` 仅覆盖已有切片。**B-R05-EXTEND v2（2026-09-18）**：大纲进度条（progressbar + 300ms 宽度过渡）、单元编号/covered 删除线/下一单元高亮/topics 截断；资料行 kind 图标 + 不可用后缀独立 shrink-0 + 移除钮 hover/focus 显隐；保存与归档 busy；R-11 三态经 A1 独立回归（含重试链路与损坏数据逐字节未变）。聚合磁贴/Mode-Persona 字段按裁定属 H1 |
 | P-reading | `/reading` | `/reading` | 实现待验收 | 集合卡片、新建/删除、按稳定id无损合并演示已有，R26–R31有历史修复和回归。完整阅读交付仍待验收；不再沿用R26未修结论。见 reading-store 与阅读 review。**B-R05-EXTEND v3（2026-09-19）视觉推广**：集合卡片 hover 抬升与焦点环、计数 chip 图标化、空态图标+主行动；A1 独立验收 pass 0 fail 见 [报告](../qa/B-R05-EXT3/A1-REPORT.md) |
 | P-reading-materials | `/reading/materials` | `/reading/materials` | 实现待验收 | text/pdf/epub/webpage/video/audio类型、显式模拟解析的queued/processing/ready/failed与取消重试、分配/删除已有；真实解析和媒体原视图未完成。见 MaterialLibrary、companion-service 与阅读 review。**B-R05-EXTEND v3（2026-09-19）**：筛选 2→4 tab（补解析中/失败，真实计数）、状态色点、行头窄视口 wrap 修复（390 超界 0）、空态增强；模拟标注逐字保留；A1 pass 0 fail |
-| P-reading-[workspaceId] | `/reading/[workspaceId]` | `/reading/[workspaceId]` | 实现待验收 | 三栏阅读、segments批注定位、选区工具、书签/进度、事件驱动伴生模拟（流式/取消；失败按钮另有待补测项）、按会话保存草稿与手机面板已有。**R-09 已修（2026-09-15）**：滚动跟随由用户控制、已测轮次按会话归属；重复/失效终态持久化另见STATUS READ-END；见 [STATUS阅读批索引](../STATUS.md#4-已完成批次与证据索引)。消息过程/来源完整性、媒体原视图待核验。**B-R05-EXTEND v5（2026-09-19）视觉推广 + R-09 增强修复**：按钮反馈过渡、材料 tab 截断（窄视口 N1）与解析中旋转指示、错误横幅可关闭、头部形态 chip 化；**同批受控诊断并修复 R-09 滚动跟随真实缺陷**（流式拉底 scroll 重置 followBottom，见 [STATUS §3](../STATUS.md)）；**交互保护区 19 条机制零语义改动**，A1 独立验收 R-09 五例 5/5 + 压测 10/10 pass 0 fail |
+| P-reading-[workspaceId] | `/reading/[workspaceId]` | `/reading/[workspaceId]` | 实现待验收 | 三栏阅读、segments批注定位、选区工具、书签/进度、事件驱动伴生模拟、按会话保存草稿与手机面板已有。**R-09 已修（2026-09-15）**：滚动跟随由用户控制、已测轮次按会话归属；错误态重试与重复/迟到end已于2026-09-18受控补测修复（STATUS READ-RETRY/READ-END），见 [STATUS阅读批索引](../STATUS.md#4-已完成批次与证据索引)。消息过程/来源完整性、媒体原视图待核验。**B-R05-EXTEND v5（2026-09-19）视觉推广 + R-09 增强修复**：按钮反馈过渡、材料 tab 截断（窄视口 N1）与解析中旋转指示、错误横幅可关闭、头部形态 chip 化；**同批受控诊断并修复 R-09 滚动跟随真实缺陷**（流式拉底 scroll 重置 followBottom，见 [STATUS §3](../STATUS.md)）；视觉分工保护原交互，R-09 产品修复另列，整批并非交互零改动。A1 独立验收 R-09 五例 5/5 + 压测 10/10 pass 0 fail |
 | P-reading-sessions | `/reading/[workspaceId]/sessions` | `/reading/[workspaceId]/sessions` | 实现待验收 | 工作区会话入口及最近会话选择已有；**R-09 已修**：切会话改 `pushState`、`popstate` 按 URL 同步空间/会话/草稿，后退到无会话地址回落默认会话。见 ReadingWorkspace 与 [STATUS阅读批索引](../STATUS.md#4-已完成批次与证据索引)。**B-R05-EXTEND v5（2026-09-19）**：URL/历史语义未动（超出参考的目标自有增强，按裁定保留） |
 | P-reading-sessions-[sessionId] | `/reading/[workspaceId]/sessions/[sessionId]` | 同 | 实现待验收 | 按routeSessionId恢复、无效会话提示与草稿归属已有；**R-09 已修**：前进/后退同步会话与草稿，已测跨会话事件归属受 `sessionId+turnId` 约束；重复/失效终态持久化另见STATUS的READ-END补测。正式回归见 `tests/e2e/reading.spec.ts` R-09 五例。**B-R05-EXTEND v5（2026-09-19）**：草稿归属与迟到事件守卫未动；A1 复核通过 |
 | P-co-writer | `/co-writer` | `/co-writer` | 实现待验收 | 文档列表（S5-E）：新建空白/模板、删除确认、更新时间与字数；DOCX 导入未接入为显式说明；AI 修改为统一事件模型显式模拟；e2e `writing.spec.ts`。**B-R05-EXTEND v3（2026-09-19）视觉推广**：卡片 hover 过渡与焦点环、空态图标+主行动（按钮与页头区分命名，修复 strict 冲突）、按钮 opacity/scale 动效；模拟标注逐字保留 |
@@ -65,7 +65,7 @@
 | P-admin-users | `/admin/users` | `/admin/users` | 待实现 | 管理视图（S5-I），按原版权限表达 |
 | P-avatar-preview | `/avatar-preview` | — | 内部调试 | 只登记；不纳入必需完成项，不暴露主导航 |
 
-必需完成功能分母：除 P-avatar-preview 外共53项（参考产品页50 + 自有教案1 + 额外兼容别名2）。2026-09-12按实际行复核：**已验收4 / 实现待验收21 / 部分实现6 / 待实现22**。2026-09-12当时80项既有e2e通过，并补知识库1920/390状态样本；这些检查未覆盖所有条目完整规格，功能标签不因样本通过整体升级。功能与视觉状态分别记录。
+必需完成功能分母：除 P-avatar-preview 外共53项（参考产品页50 + 自有教案1 + 额外兼容别名2）。2026-09-20按现有行标签重算：**已验收4 / 实现待验收21 / 部分实现5 / 部分验收1 / 待实现22**；仅订正统计，未改任何行的功能状态。`P-space` 在既有批次被标为“部分验收”，仍保留全状态功能未验边界，不能与“已验收”合并。2026-09-12的80项e2e及知识库状态样本是历史证据，后续批次见STATUS；功能与视觉状态分别记录。
 
 标签不是完整产品验收百分比：路由 ready、自动用例通过、视觉/动画验收与真实后端验证分开记录。改变状态或条目时重算本段，禁止保留第二份旧统计。
 
@@ -78,7 +78,7 @@
 | 基准页 | `P-chat` | 蓝色主题、Chat Geist/Lora、220/56px 导航、236px 学习记录中栏、912px 对话列、模型弹层和思考球是全站来源 |
 | 部分验收 | `P-chat-[sessionId]` | 2026-09-12 Flash测试预算8192的真实长答：465汉字、27处公式，三视口无页面级溢出、推理折叠和刷新恢复通过；默认预算两模型和Pro8192长答失败。后续R-10会话回链/消息定位已有独立功能证据；全消息视觉和真实交互仍待完整验收 |
 | 部分验收 | `P-knowledge-bases-[kbName]` | 1920/390下就绪、失败、解析中显式模拟样本可读，系统减少动画下可到达就绪；完整内容风格、全部分区/弹窗与进度动画时序仍待验。**B-R05-EXTEND v1（2026-09-18）增补**：下划线页签、图标块头部、行悬停操作、二段确认与进行中禁用经 A1 独立验收 pass（三视口/焦点/reduce/溢出实测）；A1 明细见 [报告](../qa/B-R05-EXTEND/A1-REPORT.md) |
-| 部分验收 | `P-knowledge-bases` | **B-R05-EXTEND v1（2026-09-18）**：下划线指示器页签+计数徽标、卡片状态圆点+悬停 ChevronRight、空态图标+主行动、搜索内嵌图标、引擎分组；三视口前后截图与 A1 独立验收见 [批次证据](../qa/B-R05-EXTEND/README.md)。全部分区/弹窗逐状态验收与其余模块推广仍待后续批 |
+| 部分验收 | `P-knowledge-bases` | **B-R05-EXTEND v1（2026-09-18）**：下划线指示器页签+计数徽标、卡片状态圆点+悬停 ChevronRight、空态图标+主行动、搜索内嵌图标、引擎分组；三视口前后截图与 A1 独立验收见 [批次证据](../qa/B-R05-EXTEND/README.md)。全部分区/弹窗逐状态验收仍待后续批 |
 | 部分验收 | `P-notebooks`、`P-notebooks-[notebookId]` | **B-R05-EXTEND v1（2026-09-18）**：左栏 250px+指示条、描述行、多色类型徽章、时间戳行头、pop-in、ConsoleNotice、深链/URL 语义；A1 首轮 needs_revision（390 窄视口两处缺陷）→ 修复候选复验 **pass 14/14**。记录编辑器形态、Markdown 渲染与 toast 系统按队长裁定未纳入，仍待后续批 |
 | 部分验收 | `P-books`、`P-books-[bookId]` | **B-R05-EXTEND v2（2026-09-18）**：卡片悬浮语言/搜索常驻与匹配计数/两击删除/busy 态、详情确认 busy 与模拟编译加载提示、窄视口侧栏解除吸顶（390 实测随文档流、1440 恢复 sticky）。A1 独立验收 **pass 0 fail**（三视口 12 组合 0 溢出、长文案截断、reduce 压制）见 [报告](../qa/B-R05-EXT2/A1-REPORT.md)。compiling/paused/error、流式生成、BookChatPanel、侧栏折叠按裁定属 H1，仍待后续批 |
 | 部分验收 | `P-courses`、`P-courses-[courseId]` | **B-R05-EXTEND v2（2026-09-18）**：卡片悬浮语言/页脚资料数/归档折叠头、大纲进度条与单元视觉、资料行显隐与不可用后缀、保存与归档 busy；R-11 三态与重试链路经 A1 独立回归（损坏数据逐字节未变）。A1 **pass 0 fail** 见 [报告](../qa/B-R05-EXT2/A1-REPORT.md)。课程学习会话、聚合磁贴、Mode/Persona 按裁定属 H1 |
@@ -86,17 +86,17 @@
 | 部分验收 | `P-reading`、`P-reading-materials` | **B-R05-EXTEND v3（2026-09-19）**：集合卡片 hover/焦点环与计数图标、材料库筛选 4 tab（真实计数）+ 状态色点 + 行头窄视口 wrap 修复（390 超界 0）+ 空态增强。A1 **pass 0 fail**（含 R-09 工作区不回退实测、模拟标注 9 条逐字命中）见 [报告](../qa/B-R05-EXT3/A1-REPORT.md)。LibraryShell 双 tab 化、网格化、搜索框、真实解析按裁定属后续批；`P-reading-[workspaceId]` 三栏工作区**不在本批** |
 | 部分验收 | `P-settings` | **B-R05-EXTEND v4（2026-09-19）**：索引导航图标+双态+焦点环、搜索 focus/清除按钮/无结果空态、ExtensionManager 卡片与开关视觉、外观/关于分区排版。A1 独立验收 **pass（33/0/4）**，含模型区 mock 成功态全链路与 390 溢出归零，见 [报告](../qa/B-R05-EXT4/A1-REPORT.md)。模型区 contract-v1 结构与其动画按裁定保留现状；Overview 状态条/就绪面板/页级草稿工具栏/共享 Modal 动效属后续批 |
 | 部分验收 | `P-lesson-plans` | **B-R05-EXTEND v4（2026-09-19）**：表单分区/type-chip/模板卡、预览工具栏 hover/disabled、toast/storage-alert 视觉、导出菜单进场 180ms。A1 **pass**（`verifyDocx` 导出全项、损坏草稿不覆盖、草稿恢复、跨页返回）；导出与草稿链路零改动见 [报告](../qa/B-R05-EXT4/A1-REPORT.md)。教案密集编辑区不强制 Lora（`--serif` 回退链保留）；硬编码色未替换、预览缩放过渡未加（按裁定保留） |
-| 部分验收 | `P-reading-[workspaceId]`、`P-reading-sessions`、`P-reading-sessions-[sessionId]` | **B-R05-EXTEND v5（2026-09-19）**：三栏工作区视觉统一（按钮过渡/tab 截断与 busy 指示/错误横幅可关闭/头部 chip 化）；**同批受控诊断并修复 R-09 滚动跟随真实缺陷**（follow-bottom 竞争），交互保护区 19 条机制零语义改动。A1 独立验收 **pass 0 fail**：R-09 五例 5/5、压测 `--repeat-each=10` 10/10、55 项浏览器实测，见 [报告](../qa/B-R05-EXT5/A1-REPORT.md)。媒体原视图与完整过程/来源仍待后续批 |
+| 部分验收 | `P-reading-[workspaceId]`、`P-reading-sessions`、`P-reading-sessions-[sessionId]` | **B-R05-EXTEND v5（2026-09-19）**：三栏工作区视觉统一（按钮过渡/tab 截断与 busy 指示/错误横幅可关闭/头部 chip 化）；**同批受控诊断并修复 R-09 滚动跟随真实缺陷**（follow-bottom 竞争）。视觉分工保护原交互；该产品修复另列，不称整批零语义改动。A1 独立验收 **pass 0 fail**：R-09 五例 5/5、压测 `--repeat-each=10` 10/10、55 项浏览器实测，见 [报告](../qa/B-R05-EXT5/A1-REPORT.md)。媒体原视图与完整过程/来源仍待后续批 |
 | 部分验收 | `P-space-chat-history`、`P-space-questions`、`P-space-personas`、`P-space-cli-apps` | **B-R05-EXTEND v5（2026-09-19）**：四页卡片/列表/工具条视觉统一、计数 chip + 刷新 spinner、题库 refreshing 变暗、CLI 状态徽标、行头窄视口 wrap。真实计数/筛选/搜索/批量/演示载入/来源回链（R-10）保留；`space.css` 只读。A1 pass（`space-pages` 8/8、`chat-source-links` 21/21、`chat-message-locate` 12/12）见 [报告](../qa/B-R05-EXT5/A1-REPORT.md)。CLI 搜索/详情/分页与角色卡 hover 显隐按裁定不做 |
-| 部分验收 | `P-space` | **B-R05-SPACE-VISUAL v1（2026-09-18）**：标题/分组标签迁 Chat Lora（--font-display）、磁贴对照参考 DashboardCard 迁移（40px 图标块+大数字计数+单位+ArrowUpRight+脉冲骨架+hover 上浮阴影）、仪表盘不显示自指返回链接；真实计数/全部跳转/演示标识保留。三视口前后截图+焦点+reduce 动画证据 [docs/qa/space-r05-20260918](../qa/space-r05-20260918/README.md)；unit297/e2e154 通过。功能级完整验收（弹窗/错误/长文案逐状态）与全站推广仍待后续批 |
+| 部分验收 | `P-space` | **B-R05-SPACE-VISUAL v1（2026-09-18）**：标题/分组标签迁 Chat Lora（--font-display）、磁贴对照参考 DashboardCard 迁移（40px 图标块+大数字计数+单位+ArrowUpRight+脉冲骨架+hover 上浮阴影）、仪表盘不显示自指返回链接；真实计数/全部跳转/演示标识保留。三视口前后截图+焦点+reduce 动画证据 [docs/qa/space-r05-20260918](../qa/space-r05-20260918/README.md)；unit297/e2e154 通过。功能级完整验收（弹窗/错误/长文案逐状态）仍待后续批 |
 | 待验收 | `P-books-pages-[pageId]` | 既有e2e覆盖部分功能；本次未逐页完成全部状态的视觉对照，保留待验收。其余条目已由 B-R05-EXTEND v1~v5 移入部分验收（知识库/笔记本/书籍/课程/写作/阅读库/设置/教案/阅读工作区/space 子页） |
 | 待实现 | `P-papers`、`P-question-bank`、`P-templates`、`P-partners*`、`P-agents`、`P-mastery*`、`P-memory*`、`P-login`、`P-register`、`P-profile`、`P-admin-users` | 规划状态页不是最终业务视觉验收；正式页面实现时直接按学习问答基准建设 |
 | 无独立页面 | `P-root`、`P-space-mcp`、`P-space-skills`、`P-mcp`、`P-skills` | 仅重定向；验收目标是去向、历史、焦点和最终页面当前菜单 |
 
 每个页面升级视觉状态时必须提供 1440×900、1920×1080、390×844、键盘/焦点、长文/空态/错误和减少动画证据；业务功能状态保持独立。
 
-H0 公共壳是横向证据：现有页面已共用 220/56px 侧栏、折叠偏好和选定响应式行为，但这不为任何页面内容区授予“部分验收”。隐藏直达页当前菜单/抽屉焦点和404壳已由e7fb2a4修复；错误页reset运行时仍未验，模块内容视觉尚未整体统一。
+H0 公共壳是横向证据：现有页面已共用 220/56px 侧栏、折叠偏好和选定响应式行为，但这不为任何页面内容区授予“部分验收”。隐藏直达页当前菜单/抽屉焦点和404壳已由e7fb2a4修复；错误页reset运行时仍未验。各模块后续视觉证据与缺口按上表分别保留。
 
 历史额外错误场景 `/acceptance-404` 在2026-09-12无壳且返回教案，首败保留；R-02/R-06已于e7fb2a4修复并有404浏览器复验，不继续列作当前缺陷。错误态不增加53项分母；全主题/详情/弹窗及错误reset运行时仍未全部覆盖。
 
-当前视觉任务：**R-05 已关闭（2026-09-19）**——B-R05-SPACE-VISUAL v1 与 B-R05-EXTEND v1~v5 已完成全部既有模块页的内容视觉统一（依据与边界见 [STATUS §5.3](../STATUS.md)）。`待实现` 模块（partners/agents/mastery/memory/账户等）不属于 R-05 范围，实现时直接按 `/chat` 基准建设；动画精度随 H6 总验收补齐。详细范围只见 [STATUS 当前任务](../STATUS.md#5-当前任务b-r05-extend-v5r-05-收尾批已交付-2026-09-19)。
+R-05 在登记的既有页面推广范围内已收口（沿用2026-09-19记录），依据与边界见 [STATUS 当前批次](../STATUS.md#current-task)。这不升级上表“部分验收/待验收”标签，`P-books-pages-[pageId]` 等未验项保留。`待实现` 模块按 `/chat` 基准建设，动画精度随 H6 总验收补齐；新任务以用户指令与STATUS为准，不重复执行已交付批次。

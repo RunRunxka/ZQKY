@@ -1,6 +1,6 @@
 # 动画清单与验收边界
 
-更新：2026-09-18。全站视觉基准为当前学习问答；模块专属动画对照固定 DeepTutor，原版没有则不添加。下表“已验收”均绑定具体日期、候选和范围；旧模拟生成动画不能据此视为当前可发起能力。历史65项、teardown首败及后续修复见 [交付历史](../archive/DELIVERY_HISTORY.md#snapshot-status-20260910)，当前计划与验证边界见 [STATUS](../STATUS.md)。
+更新：2026-09-20（整理R-05范围说明，不升级动画验收）。全站视觉基准为当前学习问答；模块专属动画对照固定 DeepTutor，原版没有则不添加。下表“已验收”均绑定具体日期、候选和范围；旧模拟生成动画不能据此视为当前可发起能力。历史65项、teardown首败及后续修复见 [交付历史](../archive/DELIVERY_HISTORY.md#snapshot-status-20260910)，当前计划与验证边界见 [STATUS](../STATUS.md)。
 
 状态词汇：待实现、部分实现、实现待验收、已验收；逐项记录开始/过渡/结束、快速中断、减少动画与焦点。
 
@@ -44,4 +44,4 @@
 
 动画证据边界：历史截图/录像和首败不删；已验收只覆盖表中日期与候选。H1–H5 随功能批同步验收模块动画，H6 再集中补漏；不以存在 animationName 或截图文件作为整段已播放证据。
 
-当前 **R-05 已关闭（2026-09-19）**：六批（B-R05-SPACE-VISUAL v1 + B-R05-EXTEND v1~v5）完成全部既有模块页内容视觉统一，动画条目见 M-space-tile、M-kb-tabs/M-kb-actions/M-nb-indicator/M-nb-pop/M-nb-mobile-wrap、M-books-card/M-books-actions/M-courses-card、M-writing-ui/M-reading-lib、M-settings-page/M-lesson-visual、M-reading-ws/M-space-sections。**动画精度（逐帧曲线/中断/退出）仍属 H6 总验收范围**，表中条目多为「实现待验收」不因 R-05 关闭而升级。`M-settings-nav`(160ms) 与 `M-model-management`(150ms/scale .995) 参数未改（模型区按裁定只读）。阅读 R-09 上滚、显式回到底部与手机 reduce 行为已测；**R-09 滚动跟随的 flaky 已定位为产品层 followBottom 竞争并修复（2026-09-19 `a9c28ea`，压测 10/10）**，详见 [STATUS §3](../STATUS.md)。
+R-05 在登记的既有页面推广范围内已收口（沿用2026-09-19记录，范围见 [STATUS 当前批次](../STATUS.md#current-task)）。六批（B-R05-SPACE-VISUAL v1 + B-R05-EXTEND v1~v5）的动画条目见 M-space-tile、M-kb-tabs/M-kb-actions/M-nb-indicator/M-nb-pop/M-nb-mobile-wrap、M-books-card/M-books-actions/M-courses-card、M-writing-ui/M-reading-lib、M-settings-page/M-lesson-visual、M-reading-ws/M-space-sections。**动画精度（逐帧曲线/中断/退出）仍属 H6 总验收范围**，表中条目多为「实现待验收」不因 R-05 收口而升级。`M-settings-nav`(160ms) 与 `M-model-management`(150ms/scale .995) 参数未改（模型区按裁定只读）。阅读 R-09 上滚、显式回到底部与手机 reduce 行为已测；**R-09 滚动跟随的 flaky 已定位为产品层 followBottom 竞争并修复（2026-09-19 `a9c28ea`，压测 10/10）**，详见 [STATUS §3](../STATUS.md)。
