@@ -134,7 +134,9 @@ _work/ test-results/      本机日志、截图、trace、备份（Git 忽略）
 
 基线 `b8cf71f`，标签 `checkpoint/pre-reading-review-20260908`；分支 `codex/replica-review-20260908`。这是带已知缺陷的审查前快照。当前用户已授权本地版本控制，每批小提交，不自动推送/部署，不全局修改 Git 身份。历史基线仅供只读追溯，不能当新任务起点或自动恢复目标。
 
-**分支与远程改名（2026-09-21，用户决定）**：工作分支由 `codex/replica-review-20260908` 改名为 **`main`**——仅 `git branch -m` 加一次普通推送，**提交 SHA 未变、历史未改写**（改名时点 `17e3a09`）；远程默认分支已切为 `main`，旧名分支已删除，`feat/glass-theme` 不受影响。仓库地址改为 `https://github.com/RunRunxka/ZQKY.git`（GitHub 提示仓库已更名），本地 `origin` 的 fetch/push 已指向新地址，`origin/HEAD` 随 `main` 更新。本段以上及 `docs/qa/**`、`docs/archive/**` 中其余旧分支名是**当时批次的历史记录**，按证据原则保持原样，不代表当前分支。此后提到"当前分支"一律指 `main`。
+**分支与远程改名（2026-09-21，用户决定）**：工作分支由 `codex/replica-review-20260908` 改名为 **`main`**——仅 `git branch -m` 加一次普通推送，**提交 SHA 未变、历史未改写**（改名时点 `17e3a09`）；当时远程默认分支一度切为 `main`，旧名分支已删除，`feat/glass-theme` 不受影响。仓库地址改为 `https://github.com/RunRunxka/ZQKY.git`（GitHub 提示仓库已更名），本地 `origin` 的 fetch/push 已指向新地址。本段以上及 `docs/qa/**`、`docs/archive/**` 中其余旧分支名是**当时批次的历史记录**，按证据原则保持原样，不代表当前分支。
+
+**分支分工（2026-09-21 用户裁定，以此为准）**：**默认（集成）分支 = `feat/glass-theme`**——它已完整包含 `main` 的历史（`git merge main` → `191c1ad`），并承载主题四提交与根目录 Word 原件恢复（`cb0bfd8`）；GitHub 默认分支按此设置，本地 `origin/HEAD` 已同步为 `origin/feat/glass-theme`。**`main` 是用户个人分支**，只承接本线小提交（分支改名记录 `b4604d7`、在 `main` 补回 Word 原件 `c7df565`；`main` 上 `npm run template:verify` 曾因该文件缺失而退出码 1，`c7df565` 后恢复为 `{"original": true, "source": true}`）。主题与整合工作以 `feat/glass-theme` 为准，不要把 `main` 当作另一条主线。
 
 流程：status/diff → 确定本批 → 实现/验证 → 更新唯一STATUS及对应矩阵 → 显式暂存 → diff --cached --check 与产物/凭证检查 → 本地提交。最终SHA在结果卡报告，后续接手现场读取Git。WIP 可以保存但不得标已验收。不覆盖用户或其他人的未提交修改。
 
