@@ -61,10 +61,14 @@ test('书籍状态机：确认提案→确认大纲→模拟编译进入阅读�
   await expect(page.getByText('1. 比喻是什么')).toBeVisible();
 
   await page.getByRole('button', { name: '确认大纲并编译（模拟）' }).click();
-  // 编译后自动续读跳转（notice 随视图重挂载不保留，以 URL 与页码为准）
-  await expect(page).toHaveURL(/\/books\/demo-book-draft\/pages\//);
+  // 合同变更（H1-BOOKS-PIPELINE v2）：编译改由本地模拟执行器异步逐章逐块推进，不再是"确认即 ready"。
+  // 旧同步断言替换为更强的异步状态断言：先出现活动条与生成中态，再等生成结束、内容可读。
+  await expect(page).toHaveURL(/\/books\/demo-book-draft\/pages\//, { timeout: 15000 });
   await expect(page.getByText('第 1/8 页')).toBeVisible();
+  await expect(page.locator('.book-pipeline-strip')).toContainText('正在逐章编译（本地模拟，不调用模型）…');
   await expect(page.getByRole('note').filter({ hasText: '本地模拟编译产物' })).toBeVisible();
+  await expect(page.locator('.book-pipeline-strip')).toHaveCount(0, { timeout: 40000 });
+  await expect(page.getByText(/这一页的主要目标是/)).toBeVisible({ timeout: 15000 });
 });
 
 test('就绪书阅读器：续读定位、书签、键盘翻页、无效页码与重建', async ({ page }) => {
@@ -88,12 +92,14 @@ test('就绪书阅读器：续读定位、书签、键盘翻页、无效页码�
   await page.getByRole('link', { name: '返回书籍首页' }).click();
   await expect(page).toHaveURL(/\/pages\/demo-book-fractions-p1$/);
 
-  // 重建
+  // 重建：重新模拟编译（异步流水线），旧页码立即失效
   page.once('dialog', (dialog) => void dialog.accept());
   await page.getByRole('button', { name: '重建书籍' }).click();
   await expect(page.getByText('章节页不存在或已被重建')).toBeVisible();
   await page.getByRole('link', { name: '返回书籍首页' }).click();
   await expect(page).toHaveURL(/\/pages\//);
+  // 未生成页打开不登记已读（合同 §5.7）：等首章内容就绪后再断言已读登记
+  await expect(page.getByText(/这一页的主要目标是/)).toBeVisible({ timeout: 40000 });
   await expect(page.getByText('已读 1/4 页')).toBeVisible();
 
   // 导出 Markdown：接住真实下载并保存到产物目录（避免悬挂下载对象拖垮浏览器）

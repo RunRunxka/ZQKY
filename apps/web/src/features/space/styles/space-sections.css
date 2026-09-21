@@ -1,0 +1,191 @@
+/* B-R05-EXT5-I2 /space 四子页（chat-history / questions / personas / cli-apps）模块样式。
+   消费 globals.css 单一变量层与 motion.css 的缓动变量（R-05）；只引用既有变量，
+   不重复定义色板/字体/关键帧（space-spin 等沿用 space.css 既有定义）。
+   作用域：所有选择器以 .space-sections-page（四子页根节点修饰类）后代起头；
+   space.css 为全站公共层（本批只读），此处只做本批四页收窄的视觉增量，
+   不覆盖 space.css 的既有布局语义（flex 方向、sticky、grid 列数均不动）。 */
+
+/* ===== 1. 卡片与列表视觉统一（四页通用） =====
+   参考 ChatHistorySection / PersonasSection / CliAppsSection 的卡片语言：
+   transition-all（150ms）+ hover:border + hover:shadow-md；本地对齐为
+   border-color / background-color / box-shadow 150ms（space 系既有档位）。 */
+
+.space-sections-page .space-session-card,
+.space-sections-page .space-question-card,
+.space-sections-page .space-persona-card,
+.space-sections-page .space-cli-card {
+  transition:
+    border-color 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1)),
+    background-color 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1)),
+    box-shadow 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1));
+}
+
+.space-sections-page .space-session-card:hover,
+.space-sections-page .space-question-card:hover,
+.space-sections-page .space-persona-card:hover,
+.space-sections-page .space-cli-card:hover {
+  border-color: rgba(13, 13, 13, 0.2);
+  box-shadow: var(--shadow-card);
+}
+
+/* 卡片内操作控件的焦点环：globals.css 全局 outline 之上补卡片边框呼应，
+   焦点落在卡片内按钮时卡片本体轻微高亮（对照参考 focus-visible:ring 在卡内的视觉归拢） */
+.space-sections-page .space-session-card:focus-within,
+.space-sections-page .space-question-card:focus-within,
+.space-sections-page .space-persona-card:focus-within,
+.space-sections-page .space-cli-card:focus-within {
+  border-color: rgba(13, 13, 13, 0.2);
+}
+
+/* 弹窗内的行不做抬升（弹窗保持静态列表语义，对照 reading-library 同款约束；
+   模态为原生 dialog，选择器仅命中理论上的嵌套弹层，属防御性规则） */
+.space-sections-page [role='dialog'] .space-session-card,
+.space-sections-page [role='dialog'] .space-question-card,
+.space-sections-page [role='dialog'] .space-persona-card,
+.space-sections-page [role='dialog'] .space-cli-card {
+  transition: none;
+}
+
+.space-sections-page [role='dialog'] .space-session-card:hover,
+.space-sections-page [role='dialog'] .space-question-card:hover,
+.space-sections-page [role='dialog'] .space-persona-card:hover,
+.space-sections-page [role='dialog'] .space-cli-card:hover {
+  border-color: var(--line);
+  box-shadow: none;
+}
+
+/* ===== 2. 按钮反馈过渡（对照参考 transition-colors + active 反馈；150ms 档） =====
+   space-button / icon-button 全局无 transition（space.css / globals.css 均未定义），
+   在本批作用域内补齐；disabled 时不做按压位移。 */
+
+.space-sections-page .space-button {
+  transition:
+    opacity 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1)),
+    border-color 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1)),
+    background-color 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1)),
+    color 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1)),
+    transform 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1));
+}
+
+.space-sections-page .space-button.primary:hover {
+  opacity: 0.9;
+}
+
+.space-sections-page .space-button:active {
+  transform: scale(0.97);
+}
+
+.space-sections-page .space-button:disabled:active {
+  transform: none;
+}
+
+.space-sections-page .icon-button {
+  transition:
+    background 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1)),
+    color 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1)),
+    transform 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1));
+}
+
+.space-sections-page .icon-button:active {
+  transform: scale(0.97);
+}
+
+.space-sections-page .icon-button:disabled:active {
+  transform: none;
+}
+
+/* ===== 3. 工具条与筛选控件视觉（focus 态统一，只增不覆盖既有规则） ===== */
+
+.space-sections-page .space-search,
+.space-sections-page .space-select,
+.space-sections-page .space-session-rename {
+  transition:
+    border-color 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1)),
+    box-shadow 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1));
+}
+
+.space-sections-page .space-search:focus-visible,
+.space-sections-page .space-select:focus-visible,
+.space-sections-page .space-session-rename:focus-visible {
+  border-color: var(--blue);
+}
+
+/* 范围栏（题库 scope rail / 会话筛选 segment）：切换过渡 + 计数排版 */
+.space-sections-page .space-scope-item,
+.space-sections-page .space-segment button,
+.space-sections-page .space-tabs button {
+  transition:
+    background-color 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1)),
+    border-color 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1)),
+    color 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1));
+}
+
+/* ===== 4. 头部计数 chip（对照参考 SpaceSectionHeader meta：N conversations） =====
+   复用既有 .space-chip 形态（圆角胶囊 + 边框），补计数专用排版（等宽数字）。 */
+
+.space-sections-page .space-sections-count {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===== 5. 题库刷新中视觉（对照参考 transition-opacity + opacity-60） =====
+   列表容器整体变暗：由 QuestionBankSection 用既有 refreshing state 挂
+   .space-sections-refreshing（不新增数据请求）；150ms 过渡。 */
+
+.space-sections-page .space-sections-bank-list {
+  transition: opacity 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1));
+}
+
+.space-sections-page .space-sections-bank-list.space-sections-refreshing {
+  opacity: 0.6;
+}
+
+/* ===== 6. CLI 启停状态徽标色（对照参考 Toggle on/off 语义色） =====
+   按钮文案与 role 不变（e2e 依赖「已启用/已停用」按钮名），仅以
+   chip 色表达状态：启用绿系（既有 --green 变量）、停用灰系（muted）。 */
+
+.space-sections-page .space-sections-state-on {
+  border-color: #bfe0d4;
+  background: #ecf7f2;
+  color: var(--green);
+}
+
+.space-sections-page .space-sections-state-off {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--muted);
+}
+
+/* ===== 7. 窄视口（N3）：会话历史行头可换行 =====
+   space.css 的 .space-session-top 无 flex-wrap，390px 下
+   「真实/已归档」chip + 3~4 个图标钮会挤压标题。在本批作用域内允许换行：
+   - 标题/重命名输入框保底 150px 可读宽度（超长仍 ellipsis，space.css 已提供）；
+   - chip 不收缩（整枚换行，不截断文字）；
+   - 操作组可收缩换行，图标钮本身不缩到 0。
+   宽屏（一行放得下）行为与修复前一致。 */
+
+.space-sections-page .space-session-top {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+.space-sections-page .space-session-top .space-session-title,
+.space-sections-page .space-session-top .space-session-rename {
+  flex: 1 1 150px;
+  min-width: 150px;
+}
+
+.space-sections-page .space-session-top .space-chip {
+  flex-shrink: 0;
+}
+
+.space-sections-page .space-session-top .space-session-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
+.space-sections-page .space-session-top .space-session-actions .icon-button {
+  flex-shrink: 0;
+}

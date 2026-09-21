@@ -1,16 +1,18 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { Boxes, Info, Palette, Plug, Sparkles, X } from 'lucide-react';
 import { WorkspaceShell } from '@/components/layout/WorkspaceShell';
 import { ModelSettingsPanel } from '@/features/model-settings/ModelSettingsPanel';
 import { deleteBlob, putBlob } from '@/components/layout/wallpaper-store';
 import { ExtensionManager } from './ExtensionManager';
 import './settings.css';
+import './styles/settings-extend.css';
 const sections = [
-  { id: 'appearance', title: '外观', description: '显示与减少动画' },
-  { id: 'models', title: '模型与连接', description: '连接、模型目录与默认模型' },
-  { id: 'mcp', title: 'MCP', description: '扩展能力 · 服务管理' },
-  { id: 'skills', title: 'Skills', description: '扩展能力 · 技能管理' },
-  { id: 'about', title: '关于', description: '实现状态与版本' },
+  { id: 'appearance', title: '外观', description: '显示与减少动画', icon: Palette },
+  { id: 'models', title: '模型与连接', description: '连接、模型目录与默认模型', icon: Plug },
+  { id: 'mcp', title: 'MCP', description: '扩展能力 · 服务管理', icon: Boxes },
+  { id: 'skills', title: 'Skills', description: '扩展能力 · 技能管理', icon: Sparkles },
+  { id: 'about', title: '关于', description: '实现状态与版本', icon: Info },
 ];
 export function SettingsWorkspace() {
   const [query, setQuery] = useState('');
@@ -35,6 +37,10 @@ export function SettingsWorkspace() {
   const imageInput = useRef<HTMLInputElement>(null);
   const videoInput = useRef<HTMLInputElement>(null);
   const container = useRef<HTMLDivElement>(null);
+  const searchInput = useRef<HTMLInputElement>(null);
+  const filteredSections = sections.filter((section) =>
+    `${section.title}${section.description}`.toLowerCase().includes(query.toLowerCase()),
+  ).length;
   useEffect(() => {
     try {
       setReduced(window.localStorage.getItem('zqky.motion') === 'reduced');
@@ -234,46 +240,70 @@ export function SettingsWorkspace() {
   };
   return (
     <WorkspaceShell pageTitle="设置">
-      <div className="settings-workspace">
+      <div className="settings-workspace settings-page">
         <nav className="settings-index" aria-label="设置分类">
           <h1>设置</h1>
-          <input
-            aria-label="搜索设置"
-            placeholder="搜索设置…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
+          <div className="settings-search">
+            <input
+              ref={searchInput}
+              aria-label="搜索设置"
+              placeholder="搜索设置…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+            {query && (
+              <button
+                type="button"
+                aria-label="清除搜索"
+                onClick={() => {
+                  setQuery('');
+                  searchInput.current?.focus();
+                }}
+              >
+                <X aria-hidden="true" />
+              </button>
+            )}
+          </div>
           {sections
             .filter((section) =>
               `${section.title}${section.description}`.toLowerCase().includes(query.toLowerCase()),
             )
-            .map((section) => (
-              <a
-                key={section.id}
-                href={`#${section.id}`}
-                aria-current={active === section.id ? 'location' : undefined}
-                onClick={(event) => {
-                  event.preventDefault();
-                  history.pushState(null, '', `#${section.id}`);
-                  setActive(section.id);
-                  document
-                    .getElementById(section.id)
-                    ?.scrollIntoView({
-                      behavior:
-                        reduced || matchMedia('(prefers-reduced-motion: reduce)').matches
-                          ? 'instant'
-                          : 'smooth',
-                      block: 'start',
-                    });
-                }}
-              >
-                {section.title}
-                <small>{section.description}</small>
-              </a>
-            ))}
+            .map((section) => {
+              const Icon = section.icon;
+              return (
+                <a
+                  key={section.id}
+                  href={`#${section.id}`}
+                  aria-current={active === section.id ? 'location' : undefined}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    history.pushState(null, '', `#${section.id}`);
+                    setActive(section.id);
+                    document
+                      .getElementById(section.id)
+                      ?.scrollIntoView({
+                        behavior:
+                          reduced || matchMedia('(prefers-reduced-motion: reduce)').matches
+                            ? 'instant'
+                            : 'smooth',
+                        block: 'start',
+                      });
+                  }}
+                >
+                  <Icon className="settings-nav-icon" aria-hidden="true" />
+                  <span className="settings-nav-text">
+                    {section.title}
+                    <small>{section.description}</small>
+                  </span>
+                </a>
+              );
+            })}
+          {filteredSections === 0 && (
+            <p className="settings-search-empty">没有匹配的设置项</p>
+          )}
         </nav>
         <div className="settings-document" ref={container}>
-          <section id="appearance">
+          <section id="appearance" className="settings-panel">
             <h2>外观</h2>
             <p>控制工作台的动态效果。</p>
             <label className="settings-toggle">
@@ -292,6 +322,9 @@ export function SettingsWorkspace() {
                   }
                 }}
               />
+              <span className="settings-toggle-track" aria-hidden="true">
+                <span className="settings-toggle-thumb" />
+              </span>
               减少动画
             </label>
             <label className="settings-toggle">
@@ -560,21 +593,23 @@ export function SettingsWorkspace() {
                 </label>
               </div>
             )}
-            <p role="status">{notice}</p>
+            <p role="status" className="settings-notice">
+              {notice}
+            </p>
           </section>
           <section id="models">
             <h2>模型与连接</h2>
             <ModelSettingsPanel />
           </section>
-          <section id="mcp">
+          <section id="mcp" className="settings-panel">
             <h2>MCP</h2>
             <ExtensionManager kind="mcp" />
           </section>
-          <section id="skills">
+          <section id="skills" className="settings-panel">
             <h2>Skills</h2>
             <ExtensionManager kind="skill" />
           </section>
-          <section id="about">
+          <section id="about" className="settings-panel">
             <h2>关于智启课源</h2>
             <p>
               界面参考 DeepTutor v1.6.5。模型管理保留现有真实服务；MCP 与 Skills

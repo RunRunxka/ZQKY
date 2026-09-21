@@ -125,9 +125,11 @@
     height: 24px;
   }
 
+  /* R-05 收尾（2026-09-19）：公共导航随全站基准迁移到 Chat Geist（--font-ui），
+     与页面壳/控件一致；原 Arial/微软雅黑硬编码为 R-05 关闭前遗留缺口。 */
   .unified-shell .global-nav,
   .unified-shell .mobile-nav-panel {
-    font-family: Arial, 'Microsoft YaHei', sans-serif;
+    font-family: var(--font-ui);
   }
   .unified-shell .global-nav .nav-toggle {
     margin-left: 0;

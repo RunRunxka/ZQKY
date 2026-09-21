@@ -1,0 +1,69 @@
+[
+  {
+    "step": "card hover",
+    "tBefore": {
+      "transform": "none",
+      "shadow": false
+    },
+    "tAfter": {
+      "transform": "matrix(1, 0, 0, 1, 0, -2)",
+      "shadow": true
+    }
+  },
+  {
+    "step": "archive expand",
+    "archivedCount": 1,
+    "beforeOpen": 1,
+    "afterOpen": 1
+  },
+  {
+    "step": "course created url",
+    "url": "http://127.0.0.1:5174/courses/cs-mu6yzc2v-dvq5zq"
+  },
+  {
+    "step": "syllabus toggle",
+    "pb1": "50",
+    "heading1": "大纲（1/2 已完成，下一单元：一元一次方程）",
+    "pb2": "100",
+    "heading2": "大纲（2/2 已完成，全部完成）"
+  },
+  {
+    "step": "unit visuals",
+    "unitVis": [
+      {
+        "num": "1.",
+        "title": "分数与比例",
+        "covered": true,
+        "isNext": false,
+        "coveredDecor": "line-through",
+        "nextBg": null
+      },
+      {
+        "num": "2.",
+        "title": "一元一次方程",
+        "covered": false,
+        "isNext": true,
+        "coveredDecor": null,
+        "nextBg": "rgb(239, 245, 255)"
+      }
+    ]
+  },
+  {
+    "step": "add-resource modal",
+    "modalTitle": 3,
+    "candidates": 1
+  },
+  {
+    "step": "attached notice",
+    "notice1": [
+      "已附加资料「学习笔记」。"
+    ]
+  },
+  {
+    "step": "detached notice",
+    "removeBtns": 2,
+    "notice2": [
+      "已移除资料「课程标准库」。"
+    ]
+  }
+]

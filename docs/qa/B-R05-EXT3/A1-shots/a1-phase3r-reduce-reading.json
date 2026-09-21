@@ -1,0 +1,24 @@
+[
+  {
+    "step": "J3R-reading-reduce-hover",
+    "rdur": {
+      "transitionDuration": "1e-05s",
+      "animationDuration": "1e-05s"
+    },
+    "before": "none",
+    "after": "matrix(1, 0, 0, 1, 0, -2)",
+    "changed": true
+  },
+  {
+    "step": "J3R-materials-reduce-hover",
+    "before": "none|1e-05s",
+    "after": "matrix(1, 0, 0, 1, 0, -2)|1e-05s",
+    "transformChanged": true
+  },
+  {
+    "step": "J3R-reading-normal-hover-contrast",
+    "before": "none|0.15s, 0.15s, 0.15s",
+    "after": "matrix(1, 0, 0, 1, 0, -2)|0.15s, 0.15s, 0.15s",
+    "transformChanged": true
+  }
+]

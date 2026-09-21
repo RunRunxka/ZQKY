@@ -1,0 +1,313 @@
+/* 笔记本（/notebooks、/notebooks/[notebookId]）：消费 globals.css 单一变量层（R-05）。
+   只用既有变量（--font-display、--radius-* 系列、--shadow-* 系列、--space-* 系列、--blue*、--ink/muted/line/surface/bg/danger/green），
+   不新定义色板/字体；所有选择器以 .nb-page 起头，严格限定本页，不改 space.css 共享类。 */
+
+/* ===== B1 左栏：本页 rail 宽度提到参考的 250px（题库页仍用 space.css 的 168px） ===== */
+
+.nb-page .space-scope-rail {
+  flex-basis: 250px;
+}
+
+/* rail 项：150ms background/color 过渡 + 键盘焦点环（参考 transition-[background-color,color] duration-150
+   + focus-visible:ring-2 ring-[var(--primary)]/40） */
+.nb-page .space-scope-item {
+  position: relative;
+  /* 窄视口（≤760px，rail 变 row+wrap）下允许 item 收缩到容器宽度以下，
+     nowrap 名称才能走省略号而不是把 item 撑到 min-content 宽度溢出视口（A1 F1） */
+  min-width: 0;
+  max-width: 100%;
+  transition:
+    background-color 150ms,
+    color 150ms,
+    border-color 150ms;
+}
+
+.nb-page .space-scope-item:focus-visible {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 2px var(--blue-soft), 0 0 0 4px rgba(37, 99, 235, 0.4);
+}
+
+/* 激活项左侧 2.5px 圆角竖条（参考 h-[62%]、transition-all duration-200；
+   高度/透明度随激活切换，200ms 过渡；reduced-motion 由全局 motion.css 置 0.01ms 兜底） */
+.nb-page .space-scope-item.current::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 2.5px;
+  height: 62%;
+  border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
+  background: var(--blue);
+  transform: translateY(-50%);
+  opacity: 1;
+  transition:
+    height 200ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* rail 名称/描述两行结构（仅本页：space-scope-item-main 包住名称行 + 描述行） */
+.nb-page .space-scope-item-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  text-align: left;
+}
+
+.nb-page .space-scope-item-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 描述行：单行截断、11px、muted（参考 truncate text-[11px] text-muted） */
+.nb-page .space-scope-item-desc {
+  font-size: 11px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== C1 记录类型徽章：参考式多色（新增 .nb-badge-*，不改 .space-chip 通用类） ===== */
+
+.nb-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+
+/* 研究报告 = 翠绿系（参考 emerald-100/emerald-700） */
+.nb-badge-research_report {
+  border-color: #bfe0d4;
+  background: #ecf7f2;
+  color: var(--green);
+}
+
+/* 对话 = 天蓝系（参考 sky-100/sky-700） */
+.nb-badge-chat {
+  border-color: #c3d7fd;
+  background: var(--blue-soft);
+  color: #1d4ed8;
+}
+
+/* 协同写作 = 琥珀系（参考 amber-100/amber-700，与 space-chip.amber 同源） */
+.nb-badge-co_writer {
+  border-color: #f2d9a4;
+  background: #fdf6e7;
+  color: #92610c;
+}
+
+/* 视频学习 = 红系（参考 red-100/red-700） */
+.nb-badge-video_learning {
+  border-color: #f4b6ae;
+  background: #fef3f2;
+  color: var(--danger);
+}
+
+/* 未知类型兜底（参考 slate 中性） */
+.nb-badge-unknown {
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--muted);
+}
+
+/* ===== C3 记录行 hover：浅底 + 150ms 过渡（参考 hover:bg-[var(--muted)]/40） ===== */
+
+.nb-page .space-session-card {
+  transition:
+    background-color 150ms,
+    border-color 150ms;
+}
+
+.nb-page .space-session-card:hover {
+  background: var(--surface);
+}
+
+/* ===== C2 行头时间戳：宽视口常驻行头右侧；窄视口换到第二行（A1 F2） ===== */
+
+/* 宽视口：不参与行头收缩竞争（flexShrink 语义由类承担，替代原内联样式） */
+.nb-page .nb-row-time {
+  flex-shrink: 0;
+}
+
+/* 窄视口（与 space.css 的 760px 断点一致）：时间戳整行换到行头第二行，
+   让标题（flex:1）与徽章不再被时间戳+操作钮挤压成 0 宽/竖排 */
+@media (max-width: 760px) {
+  /* 仅本页窄视口允许行头换行（space-session-top 默认单行；wrap 后时间戳可落到第二行） */
+  .nb-page .space-session-top {
+    flex-wrap: wrap;
+  }
+
+  .nb-page .nb-row-time {
+    flex-basis: 100%;
+    order: 10;
+    /* 换行后时间戳作为独立第二行左侧对齐 */
+    width: 100%;
+  }
+
+  /* 窄视口下 space.css 把本布局改为纵向后仍保留 align-items:flex-start，
+     主列会按内容宽度撑开（实测 628px）超出视口，操作钮被裁切。
+     本页改为 stretch，让主列与 rail 都收在容器宽度内（仅 ≤760px 生效）。 */
+  .nb-page .space-bank-layout {
+    align-items: stretch;
+  }
+}
+
+/* ===== C4 操作钮：参考 transition-[background-color,color,transform] 150ms + active 0.97 ===== */
+
+.nb-page .icon-button {
+  transition:
+    background-color 150ms,
+    color 150ms,
+    transform 150ms;
+}
+
+.nb-page .icon-button:active {
+  transform: scale(0.97);
+}
+
+.nb-page .icon-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.4);
+}
+
+/* ===== C5 展开区进场：参考 dt-pop-in（200ms cubic-bezier(0.22,1,0.36,1)） ===== */
+
+@keyframes nb-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.nb-pop-in {
+  animation: nb-pop-in 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: top left;
+}
+
+/* ===== C6 「打开原会话」：参考 hover 边框/文字变主色 + active 0.98 ===== */
+
+.nb-page .nb-open-session {
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    color 150ms,
+    transform 150ms;
+}
+
+.nb-page .nb-open-session:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+.nb-page .nb-open-session:active {
+  transform: scale(0.98);
+}
+
+/* ===== D1 错误/空态面板（ConsoleNotice 形态） ===== */
+
+.nb-notice {
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-md);
+  padding: 40px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+}
+
+.nb-notice-icon {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.nb-notice-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.nb-notice-detail {
+  max-width: 420px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.nb-notice.is-error .nb-notice-icon {
+  background: #fef3f2;
+  color: var(--danger);
+}
+
+.nb-notice-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ===== D5 顶部错误 banner 关闭钮 ===== */
+
+.nb-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.nb-banner > span:first-child {
+  flex: 1;
+}
+
+.nb-banner-close {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  transition:
+    background-color 150ms,
+    color 150ms;
+}
+
+.nb-banner-close:hover {
+  background: rgba(217, 45, 32, 0.1);
+}
+
+/* ===== E 返回箭头 hover 左移（参考 group-hover:-translate-x-0.5） ===== */
+
+.nb-page .space-back {
+  transition:
+    color 150ms,
+    border-color 150ms,
+    background-color 150ms;
+}
+
+.nb-page .space-back > svg {
+  transition: transform 150ms;
+}
+
+.nb-page .space-back:hover > svg {
+  transform: translateX(-2px);
+}

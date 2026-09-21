@@ -1,0 +1,278 @@
+/* 课程模块补充样式（B-R05-EXT2-I2）。
+   消费 globals.css 单一变量层（R-05）——字体（--font-display）、圆角（--radius 系列）、
+   阴影（--shadow 系列）、间距（--space 系列）与色板（--blue、--ink 等）均只引用不重定义。
+   作用域：仅 /courses 与 /courses/[courseId] 两个页面（根节点 .space-page.courses-page），
+   import 顺序在 space.css 之后，全部规则以 .courses-page 或 .courses- 前缀收窄，
+   不改写 space.css 既有 space- 类；动画参数均有参考来源（DeepTutor 42fab3c），
+   不使用 important 覆盖，reduce-motion 由 globals.css 全局机制接管。 */
+
+/* ===== 课程卡片（/courses）：悬浮语言（参考 CoursesShelf.tsx:143、154-157） ===== */
+
+.courses-page .space-persona-card {
+  transition:
+    transform 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.courses-page .space-persona-card:hover {
+  border-color: rgba(13, 13, 13, 0.2);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-2px);
+}
+
+.courses-page .space-card-link:focus-visible {
+  border-radius: var(--radius-sm);
+}
+
+/* 卡片头部：色点 + 名称 + 尾部箭头（箭头 hover 位移，参考 group-hover:translate-x-0.5） */
+.courses-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.courses-card-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.courses-card-arrow {
+  flex-shrink: 0;
+  color: var(--muted);
+  opacity: 0.45;
+  transition: transform 150ms;
+}
+
+.courses-page .space-persona-card:hover .courses-card-arrow,
+.courses-card-link:focus-visible .courses-card-arrow {
+  opacity: 1;
+  transform: translateX(2px);
+}
+
+/* 卡片页脚信息（§7.1 #8）：资料数带图标 + 无资料直述；不显示会话数冒充（未接入） */
+.courses-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 10.5px;
+}
+
+.courses-card-footer .courses-card-materials {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.courses-card-empty {
+  color: var(--muted);
+  opacity: 0.75;
+}
+
+/* ===== 归档折叠区（§7.2 保留现状结构）：仅折叠头视觉过渡 ===== */
+
+.courses-page .space-group summary.space-group-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  transition: color 150ms;
+}
+
+.courses-page .space-group summary.space-group-label:hover {
+  color: var(--ink);
+}
+
+/* 学习约定：只读段落样式（保留现有编辑弹窗路径，仅视觉增强） */
+.courses-conventions {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--ink);
+  border-left: 3px solid var(--line);
+  padding: 2px 0 2px 12px;
+}
+
+/* ===== 课程详情（/courses/[courseId]） ===== */
+
+/* 未接入 banner：排版微调（图标 + 文案），role 与文案不变 */
+.courses-page .space-banner.info.courses-note-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.courses-note-banner > svg {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+/* 大纲进度条（参考 CourseSyllabus.tsx:142-155：progressbar role + width 300ms 过渡） */
+.courses-progress {
+  height: 4px;
+  overflow: hidden;
+  border-radius: var(--radius-pill);
+  background: var(--line);
+  margin-top: 10px;
+}
+
+.courses-progress-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--blue);
+  transition: width 300ms ease;
+}
+
+/* 单元行（参考 CourseSyllabus.tsx:186-245）：位置编号 + covered 删除线 + 下一单元底色 */
+.courses-unit-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.courses-page .space-session-card.courses-unit {
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  transition: background-color 150ms;
+}
+
+.courses-page .space-session-card.courses-unit:hover {
+  background: var(--surface);
+}
+
+.courses-page .space-session-card.courses-unit.is-next {
+  background: var(--blue-soft);
+}
+
+.courses-unit-position {
+  flex-shrink: 0;
+  min-width: 20px;
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.courses-unit-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.courses-unit-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.courses-unit.is-covered .courses-unit-title {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+/* topics 单行截断（参考 truncate + 「 · 」join） */
+.courses-unit-topics {
+  font-size: 11px;
+  color: var(--muted);
+  opacity: 0.8;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 资料行（参考 CourseResources.tsx:190-235）：kind 图标 + label 截断 + 行 hover 浅底 */
+.courses-page .space-session-card.courses-resource {
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  transition: background-color 150ms;
+}
+
+.courses-resource-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.courses-page .space-session-card.courses-resource:hover {
+  background: var(--surface);
+}
+
+.courses-resource-kind {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.courses-resource-kind .courses-resource-kind-name {
+  font-size: 10.5px;
+  opacity: 0.7;
+}
+
+.courses-resource-label {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* label 主体单独截断，长标题以省略号收缩，不把后缀挤出视口 */
+.courses-resource-text {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.courses-resource.is-unavailable .courses-resource-label {
+  opacity: 0.6;
+}
+
+/* 不可用后缀独立 shrink-0（参考 :203-220），长标题只截断 label 本身 */
+.courses-resource-suffix {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+/* 移除钮 hover 与 focus-visible 显隐（参考 :228，transition-opacity） */
+.courses-resource-remove {
+  opacity: 0;
+  transition: opacity 150ms;
+}
+
+.courses-resource:hover .courses-resource-remove,
+.courses-resource-remove:focus-visible {
+  opacity: 1;
+}
+
+@media (max-width: 760px) {
+  /* 触屏无 hover：移除钮常显，避免不可达 */
+  .courses-resource-remove {
+    opacity: 1;
+  }
+}

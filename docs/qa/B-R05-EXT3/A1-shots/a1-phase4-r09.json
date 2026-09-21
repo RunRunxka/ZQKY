@@ -1,0 +1,55 @@
+[
+  {
+    "step": "K1-workspace-structure",
+    "navHeading": 0,
+    "complementary": 1,
+    "layout": {
+      "display": "grid",
+      "gridCols": 4
+    },
+    "pageClass": "space-content",
+    "marks": 1
+  },
+  {
+    "step": "K2-scroll-follow",
+    "scrollAfterUp": {
+      "scrollTop": 0,
+      "scrollable": 254
+    },
+    "scrollLater": {
+      "scrollTop": 0,
+      "scrollable": 254
+    },
+    "notPulledBack": true
+  },
+  {
+    "step": "K3-back-to-latest",
+    "backVisible": 1,
+    "bottomGapAfter": 0,
+    "pageScrollUnchanged": true,
+    "readerTopUnchanged": true
+  },
+  {
+    "step": "K4-drawer-buttons",
+    "navDrawer": 1,
+    "companionDrawer": 1
+  },
+  {
+    "step": "K4-nav-drawer-open",
+    "dialog": 1
+  },
+  {
+    "step": "K4-companion-drawer-open",
+    "dialog": 1
+  },
+  {
+    "step": "K4b-companion-drawer-closed",
+    "dialogAfter": 0
+  },
+  {
+    "step": "K5-workspace-390",
+    "scrollWidth": 390,
+    "horiz": false,
+    "overCount": 0
+  }
+]

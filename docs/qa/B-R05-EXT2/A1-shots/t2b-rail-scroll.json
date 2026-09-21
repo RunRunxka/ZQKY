@@ -1,0 +1,41 @@
+[
+  {
+    "test": "390 scroller",
+    "scroller390": {
+      "tag": "DIV",
+      "cls": "module-workspace-content",
+      "clientH": 785,
+      "scrollH": 1254
+    }
+  },
+  {
+    "test": "390 rail flows with document",
+    "railFlow": {
+      "before": {
+        "railTop": 247.5,
+        "scrollTop": 0
+      },
+      "after": {
+        "railTop": -152.5,
+        "scrollTop": 400,
+        "pos": "static"
+      }
+    }
+  },
+  {
+    "test": "1440 rail sticky",
+    "railSticky": {
+      "before": {
+        "railTop": 143,
+        "scrollTop": 0,
+        "pos": "sticky",
+        "top": "16px"
+      },
+      "after": {
+        "railTop": 143,
+        "scrollTop": 0,
+        "pos": "sticky"
+      }
+    }
+  }
+]

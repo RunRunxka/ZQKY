@@ -1,0 +1,135 @@
+[
+  {
+    "step": "D0-asserts",
+    "heading": 1,
+    "flex": "flex",
+    "personaCards": 0
+  },
+  {
+    "step": "D1-create-ws",
+    "url": "http://127.0.0.1:5174/reading/rws-mu7zweqr-x7r86x"
+  },
+  {
+    "step": "D2-card-visible",
+    "count": 1
+  },
+  {
+    "step": "D2-card-hover",
+    "before": {
+      "transform": "none",
+      "shadow": "none",
+      "border": "rgb(229, 229, 229)"
+    },
+    "after": {
+      "transform": "matrix(1, 0, 0, 1, 0, -2)",
+      "shadow": "rgba(0, 0, 0, 0.25) 0px 6px 20px -12px",
+      "border": "rgba(13, 13, 13, 0.2)"
+    },
+    "changed": true
+  },
+  {
+    "step": "D3-delete-ws",
+    "remaining": 0
+  },
+  {
+    "step": "D4-empty-action",
+    "dlg": 1
+  },
+  {
+    "step": "E1-tabs",
+    "count": 4,
+    "tabData": [
+      "全部（0）",
+      "未分配集合（0）",
+      "解析中（0）",
+      "解析失败（0）"
+    ]
+  },
+  {
+    "step": "E2-form",
+    "footNote": 1,
+    "simKinds": [
+      "文本（粘贴录入）",
+      "PDF（模拟解析）",
+      "EPUB（模拟解析）",
+      "网页（模拟抓取）",
+      "视频（模拟转录）",
+      "音频（模拟转录）"
+    ]
+  },
+  {
+    "step": "E3-created-text",
+    "row": 1,
+    "focusParam": "http://127.0.0.1:5174/reading/materials?focus=mat-mu7zwi7a-c33vay"
+  },
+  {
+    "step": "E4-kind-pdf",
+    "filenameLabel": 1,
+    "failCheck": 1
+  },
+  {
+    "step": "E5-fail-state",
+    "failedChip": 2,
+    "pdfSimChip": 1,
+    "note": [
+      "【模拟】解析失败：解析器不可用（演示失败路径，可重试）。"
+    ],
+    "retryBtn": 1
+  },
+  {
+    "step": "F-materials-390-failrow",
+    "scrollWidth": 390,
+    "horiz": false,
+    "overCount": 0,
+    "over": [],
+    "btnMaxRight": 369,
+    "btnOver": []
+  },
+  {
+    "step": "F-tab-filter",
+    "cards": 1,
+    "url": "http://127.0.0.1:5174/reading/materials?focus=mat-mu7zwjcm-0ug9wy",
+    "processingCards": 0,
+    "unassignedCards": 2
+  },
+  {
+    "step": "G-retry-cancel",
+    "cancelVisible": true,
+    "afterCancel": [
+      "0 字",
+      "PDF · 模拟解析",
+      "解析失败",
+      "未分配"
+    ]
+  },
+  {
+    "step": "G2-retry-to-ready",
+    "chips": [
+      "182 字",
+      "PDF · 模拟解析",
+      "就绪",
+      "未分配"
+    ]
+  },
+  {
+    "step": "G3-assign-btn",
+    "visible": 1
+  },
+  {
+    "step": "G3-no-workspaces",
+    "emptyInDialog": 1
+  },
+  {
+    "step": "G3-assign-dialog",
+    "wsRows": 1
+  },
+  {
+    "step": "G4-assign-done",
+    "status": 1,
+    "chip": 1
+  },
+  {
+    "step": "H-delete-material",
+    "remaining": 0
+  }
+]

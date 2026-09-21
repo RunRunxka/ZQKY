@@ -1,0 +1,143 @@
+{
+  "results": [
+    {
+      "step": "seed-writing",
+      "newBtnCount": 1,
+      "inputs": 2,
+      "bodyAfterClick": "智启课源\n学习问答\n教案工作台\n智能组卷\n规划中\n协同写作\n沉浸阅读\n学习空间\n教材资料库\n书籍\n题库\n规划中\n模板中心\n规划中\nAgent 任务\n规划中\n设置\n教\n协同写作\n新建文稿\n\n文稿、版本与草稿本地保存；AI 改写/润色/扩写为显式模拟（统一事件模型流式输出，可取消/重试）。DOCX 导入未接入，不伪装上传成功。\n\n还没有文稿\n新建空白文稿或使用教学设计模板开始写作。\n新建第一篇文稿\n新",
+      "fillErr": "locator.fill: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('input[type=\"text\"]').first()\u001b[22m\n",
+      "createBtnCount": 1,
+      "afterUrl": "http://127.0.0.1:5174/co-writer/doc-mu7zohbc-gv8f8y",
+      "cardCount": 2,
+      "hasEmptyText": 0
+    },
+    {
+      "step": "seed-reading",
+      "demoCount": 1,
+      "afterText": "智启课源\n学习问答\n教案工作台\n智能组卷\n规划中\n协同写作\n沉浸阅读\n学习空间\n教材资料库\n书籍\n题库\n规划中\n模板中心\n规划中\nAgent 任务\n规划中\n设置\n教\n沉浸阅读\n载入演示数据\n新建阅读集合\n\n以集合组织阅读材料与伴生会话；材料"
+    },
+    {
+      "step": "viewport-cowriter-list-1440x900",
+      "path": "/co-writer",
+      "vw": 1440,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "horizOverflow": false,
+      "overCount": 0,
+      "over": []
+    },
+    {
+      "step": "viewport-reading-list-1440x900",
+      "path": "/reading",
+      "vw": 1440,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "horizOverflow": false,
+      "overCount": 0,
+      "over": []
+    },
+    {
+      "step": "viewport-reading-materials-1440x900",
+      "path": "/reading/materials",
+      "vw": 1440,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "horizOverflow": false,
+      "overCount": 0,
+      "over": []
+    },
+    {
+      "step": "viewport-cowriter-editor-1440x900",
+      "path": "/co-writer/doc-mu7zohbc-gv8f8y",
+      "vw": 1440,
+      "scrollWidth": 1440,
+      "clientWidth": 1440,
+      "horizOverflow": false,
+      "overCount": 0,
+      "over": []
+    },
+    {
+      "step": "viewport-cowriter-list-1920x1080",
+      "path": "/co-writer",
+      "vw": 1920,
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "horizOverflow": false,
+      "overCount": 0,
+      "over": []
+    },
+    {
+      "step": "viewport-reading-list-1920x1080",
+      "path": "/reading",
+      "vw": 1920,
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "horizOverflow": false,
+      "overCount": 0,
+      "over": []
+    },
+    {
+      "step": "viewport-reading-materials-1920x1080",
+      "path": "/reading/materials",
+      "vw": 1920,
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "horizOverflow": false,
+      "overCount": 0,
+      "over": []
+    },
+    {
+      "step": "viewport-cowriter-editor-1920x1080",
+      "path": "/co-writer/doc-mu7zohbc-gv8f8y",
+      "vw": 1920,
+      "scrollWidth": 1920,
+      "clientWidth": 1920,
+      "horizOverflow": false,
+      "overCount": 0,
+      "over": []
+    },
+    {
+      "step": "viewport-cowriter-list-390x844",
+      "path": "/co-writer",
+      "vw": 390,
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "horizOverflow": false,
+      "overCount": 0,
+      "over": []
+    },
+    {
+      "step": "viewport-reading-list-390x844",
+      "path": "/reading",
+      "vw": 390,
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "horizOverflow": false,
+      "overCount": 0,
+      "over": []
+    },
+    {
+      "step": "viewport-reading-materials-390x844",
+      "path": "/reading/materials",
+      "vw": 390,
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "horizOverflow": false,
+      "overCount": 0,
+      "over": []
+    },
+    {
+      "step": "viewport-cowriter-editor-390x844",
+      "path": "/co-writer/doc-mu7zohbc-gv8f8y",
+      "vw": 390,
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "horizOverflow": false,
+      "overCount": 0,
+      "over": []
+    }
+  ],
+  "errors": [
+    "console: Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ]
+}

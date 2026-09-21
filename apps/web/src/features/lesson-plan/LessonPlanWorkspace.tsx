@@ -9,6 +9,7 @@ import { EditorOverlays } from './components/EditorOverlays';
 import { MobileTabs } from './components/MobileTabs';
 import { PreviewPane } from './components/PreviewPane';
 import './styles/lesson-plan.css';
+import './styles/lesson-visual.css';
 import './styles/print.css';
 export function LessonPlanWorkspace({ services }: { services?: LessonPlanServices }) {
   return (
@@ -33,7 +34,7 @@ function LessonWorkspaceContent() {
   return (
     <WorkspaceShell
       pageTitle="教案工作台"
-      className={`lesson-workspace ${collapsed ? 'outline-hidden' : ''} ${focusMode ? 'focus-mode' : ''} mobile-${mobileView}`}
+      className={`lesson-workspace lesson-page ${collapsed ? 'outline-hidden' : ''} ${focusMode ? 'focus-mode' : ''} mobile-${mobileView}`}
       beforeNavigate={flushDraft}
       onNavigationError={notice}
       headerActions={ready ? <ExportMenu /> : null}

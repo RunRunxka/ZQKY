@@ -1,4 +1,5 @@
 'use client';
+/* 消费 globals.css 单一变量层（R-05）：extension-notice 样式归 settings-extend.css */
 import { useEffect, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import {
@@ -75,7 +76,7 @@ export function ExtensionManager({ kind }: { kind: ExtensionKind }) {
         )
         .map((item) => (
           <article className="extension-card" key={item.id}>
-            <div>
+            <div className="extension-card-body">
               <strong>{item.name}</strong>
               <p>{item.description || '暂无描述'}</p>
             </div>
@@ -102,7 +103,9 @@ export function ExtensionManager({ kind }: { kind: ExtensionKind }) {
             </div>
           </article>
         ))}
-      <p role="status">{notice}</p>
+      <p role="status" className="extension-notice">
+        {notice}
+      </p>
       {editor && (
         <Modal title={`${label} 配置（模拟）`} onClose={() => setEditor(null)}>
           <form
@@ -138,7 +141,9 @@ export function ExtensionManager({ kind }: { kind: ExtensionKind }) {
               />
             </label>
             <button type="submit">保存模拟配置</button>
-            <p role="status">{notice}</p>
+            <p role="status" className="extension-notice">
+              {notice}
+            </p>
           </form>
         </Modal>
       )}

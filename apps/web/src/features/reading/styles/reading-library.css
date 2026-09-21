@@ -1,0 +1,243 @@
+/* B-R05-EXT3-I2 阅读库级两页（/reading、/reading/materials）模块样式
+   消费 globals.css 单一变量层（R-05）；仅引用既有变量，不重复定义色板/字体。
+   作用域：所有选择器以 .reading-lib-page（页面根修饰类）起头，
+   不触碰 space.css / reading.css 的既有类定义，只做本页收窄覆盖。
+   禁区提醒：reading.css 归 ReadingWorkspace.tsx（R-09 已验收），本文件与其零重叠。 */
+
+/* ===== 窄视口修复（E3 最高风险行）：行头允许换行 =====
+   space.css 的 .space-session-top 是 display:flex 且无 wrap，
+   材料行在「解析失败 + 未分配」态会同时出现 5 个 chip 与最多 4 个操作按钮，
+   390px 必然溢出。这里在本页作用域内改为可换行，并让标题/chip/操作组各自可收缩：
+   - 标题保持 ellipsis（min-width:0 + flex:1 已由 space.css 提供，此处补窄屏基准）；
+   - chip 组不强制同行，放不下即换行；
+   - 操作组不缩到 0（按钮文字完整保留，aria-label 依赖按钮存在）。 */
+.reading-lib-page .space-session-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+.reading-lib-page .space-session-top .space-chip {
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.reading-lib-page .space-session-top .space-session-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.reading-lib-page .space-session-top .space-session-actions .space-button {
+  flex-shrink: 0;
+}
+
+.reading-lib-page .space-session-top .space-session-actions .icon-button {
+  flex-shrink: 0;
+}
+
+/* 行头主信息（图标 + 标题）优先占满首行，chip 与操作组自然换行到后续行 */
+.reading-lib-page .reading-lib-row-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1 1 100%;
+}
+
+@media (min-width: 640px) {
+  /* 宽屏恢复「标题弹性伸展、chip/操作跟随」的单行形态，行为与修复前一致 */
+  .reading-lib-page .reading-lib-row-head {
+    flex: 1 1 0%;
+  }
+}
+
+/* ===== 卡片悬浮语言（参考 CollectionRow/卡片 transition，150ms 级） ===== */
+/* 阅读集合卡片（.space-persona-card）与材料行卡片（.space-session-card）：
+   hover 边框变色 + 轻抬升 + 阴影；卡片内链接的 :focus-visible 焦点环由
+   globals.css 全局 outline 提供，这里补边框呼应避免焦点只落在 outline 上。 */
+.reading-lib-page .space-persona-card,
+.reading-lib-page .space-session-card {
+  transition:
+    border-color 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1)),
+    box-shadow 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1)),
+    transform 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1));
+}
+
+.reading-lib-page .space-persona-card:hover,
+.reading-lib-page .space-session-card:hover {
+  border-color: rgba(13, 13, 13, 0.2);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-2px);
+}
+
+/* 弹窗（分配材料/新建）内部的集合行不做抬升，保持弹窗内静态列表语义 */
+.reading-lib-page [role='dialog'] .space-session-card,
+.reading-lib-page [role='dialog'] .space-session-card:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* 卡片整块可点链接的焦点呈现（键盘 Tab 进入时边框高亮，配合全局 outline） */
+.reading-lib-page .space-card-link:focus-visible {
+  outline-offset: 4px;
+  border-radius: var(--radius-md);
+}
+
+/* ===== chip 图标与状态色点 ===== */
+/* 材料/会话计数 chip、状态 chip 内的小图标与色点：统一 12px，不改变 chip 尺寸节奏 */
+.reading-lib-page .reading-lib-chip-icon {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+/* 状态色点（排队中/解析中/解析失败/就绪）：8px 圆点 + 呼吸动画（解析中） */
+.reading-lib-page .reading-lib-dot {
+  flex-shrink: 0;
+  height: 6px;
+  width: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--muted);
+}
+
+.reading-lib-page .reading-lib-dot.is-ready {
+  background: var(--green);
+}
+
+.reading-lib-page .reading-lib-dot.is-busy {
+  background: var(--blue);
+  animation: reading-lib-pulse 1.4s ease-in-out infinite;
+}
+
+.reading-lib-page .reading-lib-dot.is-failed {
+  background: var(--danger);
+}
+
+@keyframes reading-lib-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* 状态 chip 的语义色（不改文案，仅边框/字色区分；失败态偏 danger，就绪偏 green） */
+.reading-lib-page .space-chip.reading-lib-status-failed {
+  border-color: #f4b6ae;
+  background: #fef3f2;
+  color: var(--danger);
+}
+
+.reading-lib-page .space-chip.reading-lib-status-ready {
+  border-color: #bfe0d4;
+  background: #ecf7f2;
+  color: var(--green);
+}
+
+.reading-lib-page .space-chip.reading-lib-status-busy {
+  border-color: #c3d7fd;
+  background: var(--blue-soft);
+  color: #1d4ed8;
+}
+
+/* ===== 空态增强：图标块 + 主行动按钮 ===== */
+/* 结构：space-empty 内新增 .reading-lib-empty-icon（40px 圆角图标块，对照 space-tile-icon）
+   与 .reading-lib-empty-actions（主行动按钮组）；strong 原文案由组件层逐字保留。 */
+.reading-lib-page .reading-lib-empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px;
+  width: 40px;
+  border-radius: var(--radius-md);
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.reading-lib-page .reading-lib-empty-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ===== 按钮动效（参考 LibraryShell 主按钮 transition + hover:opacity-90；工具钮 active:scale） ===== */
+/* 只补过渡与按压反馈，不改配色（配色沿用 space-button 既有定义） */
+.reading-lib-page .space-button {
+  transition:
+    opacity 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1)),
+    border-color 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1)),
+    background 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1)),
+    transform 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1));
+}
+
+.reading-lib-page .space-button.primary:hover {
+  opacity: 0.9;
+}
+
+.reading-lib-page .space-button:active {
+  transform: scale(0.97);
+}
+
+/* 弹窗内按钮同样获得过渡（分配「X」的加入按钮、表单创建按钮）；
+   disabled 时禁用按压位移，避免禁用态视觉抖动 */
+.reading-lib-page .space-button:disabled:active {
+  transform: none;
+}
+
+/* 行内删除图标按钮（icon-button）：补 hover/active 过渡（全局 icon-button 无 transition） */
+.reading-lib-page .icon-button {
+  transition:
+    background 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1)),
+    color 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1)),
+    transform 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1));
+}
+
+.reading-lib-page .icon-button:active {
+  transform: scale(0.97);
+}
+
+/* ===== 筛选 chips（材料库）：tab 过渡 + 计数数字 ===== */
+/* 参考FilterChip transition；tab 形态保留（space-tabs），补切换过渡与计数排版 */
+.reading-lib-page .space-tabs button {
+  transition:
+    background 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1)),
+    color 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1));
+}
+
+.reading-lib-page .space-tabs {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+/* 窄屏：4 个筛选 tab 允许换行，避免 390px 横向溢出 */
+@media (max-width: 480px) {
+  .reading-lib-page .space-tabs {
+    display: flex;
+    width: 100%;
+  }
+
+  .reading-lib-page .space-tabs button {
+    flex: 1 1 auto;
+    white-space: nowrap;
+  }
+}
+
+.reading-lib-page .reading-lib-count {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+  margin-left: 2px;
+}
+
+/* ===== meta 行过渡（材料行更新时间） ===== */
+.reading-lib-page .space-meta-row {
+  transition: color 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1));
+}

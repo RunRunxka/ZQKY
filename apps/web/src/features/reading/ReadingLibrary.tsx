@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { BookOpen, Plus, Sparkles, Trash2 } from 'lucide-react';
+import { BookOpen, FileText, Library, MessagesSquare, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import {
   ReadingValidationError,
@@ -19,6 +19,7 @@ import {
 } from '@/services/reading-store';
 import '@/features/space/styles/space.css';
 import '@/features/reading/reading.css';
+import '@/features/reading/styles/reading-library.css';
 
 /** /reading 入口：阅读集合列表（对照参考 ReadingLibrary；材料解析/转录为本地模拟） */
 export function ReadingLibrary() {
@@ -50,7 +51,7 @@ export function ReadingLibrary() {
   }, [refresh]);
 
   return (
-    <div className="space-page">
+    <div className="space-page reading-lib-page">
       <header className="space-header">
         <div className="space-header-row">
           <h1>沉浸阅读</h1>
@@ -96,8 +97,22 @@ export function ReadingLibrary() {
           </div>
         ) : workspaces.length === 0 ? (
           <div className="space-empty">
+            <span className="reading-lib-empty-icon" aria-hidden>
+              <Library size={18} />
+            </span>
             <strong>还没有阅读集合</strong>
             <span>新建集合并加入文本材料开始阅读，或载入演示数据。</span>
+            <div className="reading-lib-empty-actions">
+              {/* 空态主行动：aria-label 与页头「新建阅读集合」区分，避免同名按钮歧义（对齐 I1 修复口径） */}
+              <button
+                className="space-button primary"
+                aria-label="新建第一篇阅读集合"
+                onClick={() => setCreating(true)}
+              >
+                <Plus size={14} />
+                新建阅读集合
+              </button>
+            </div>
           </div>
         ) : (
           <div className="space-card-grid">
@@ -117,8 +132,14 @@ export function ReadingLibrary() {
                     </div>
                     <p className="space-card-body">{workspace.description || '（无简介）'}</p>
                     <div className="space-meta-row">
-                      <span className="space-chip">材料 {materialsOf.length}</span>
-                      <span className="space-chip">会话 {sessionsOf.length}</span>
+                      <span className="space-chip">
+                        <FileText size={12} className="reading-lib-chip-icon" aria-hidden />
+                        材料 {materialsOf.length}
+                      </span>
+                      <span className="space-chip">
+                        <MessagesSquare size={12} className="reading-lib-chip-icon" aria-hidden />
+                        会话 {sessionsOf.length}
+                      </span>
                       <span className="space-chip">本地目录</span>
                     </div>
                   </Link>

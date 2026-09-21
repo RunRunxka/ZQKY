@@ -1,0 +1,22 @@
+[
+  {
+    "scrollers": [
+      {
+        "cls": "module-workspace-content",
+        "clientH": 900,
+        "scrollH": 900
+      }
+    ],
+    "docScroll": {
+      "scrollH": 900,
+      "clientH": 900,
+      "scEl": "HTML"
+    }
+  },
+  {
+    "railTop": 143,
+    "pos": "sticky",
+    "contentScrollTop": 0,
+    "winScrollY": 0
+  }
+]

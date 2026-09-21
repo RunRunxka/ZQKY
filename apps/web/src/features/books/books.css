@@ -1,4 +1,8 @@
-/* 书籍模块补充样式（基于 space 设计语言变量；仅作用域内类名） */
+/* 书籍模块补充样式（基于 space 设计语言变量；仅作用域内类名）
+   消费 globals.css 单一变量层（R-05）：字体（--font-display 等）、圆角（--radius-sm 等五档）、
+   阴影（--shadow-card 等）、间距（--space-1 到 --space-6）、色板（--blue 系列、--ink、--muted、
+   --line、--surface、--bg、--danger、--green）全部来自全局变量层，本文件不重复定义常量。 */
+
 .books-layout {
   display: grid;
   grid-template-columns: 240px minmax(0, 1fr);
@@ -6,17 +10,25 @@
   align-items: start;
 }
 
-@media (max-width: 900px) {
-  .books-layout {
-    grid-template-columns: 1fr;
-  }
-}
-
 .books-rail {
   position: sticky;
   top: 16px;
   max-height: calc(100vh - 120px);
   overflow-y: auto;
+}
+
+@media (max-width: 900px) {
+  .books-layout {
+    grid-template-columns: 1fr;
+  }
+
+  /* 窄视口解除吸顶：单列布局下侧栏随文档流滚动（对照 space-scope-rail 的处理），
+     避免侧栏悬浮占满视口高度并挤压阅读正文。 */
+  .books-rail {
+    position: static;
+    max-height: none;
+    overflow: visible;
+  }
 }
 
 .space-card-link {
@@ -27,7 +39,7 @@
 
 .space-reading-bar {
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgba(0, 0, 0, 0.08);
   overflow: hidden;
   margin: 8px 0 4px;
@@ -35,15 +47,134 @@
 
 .space-reading-bar-fill {
   height: 100%;
-  border-radius: 999px;
-  background: var(--accent, #2563eb);
+  border-radius: var(--radius-pill);
+  background: var(--blue);
   transition: width 0.2s ease;
 }
 
+/* ===== 列表卡片悬浮语言（对照参考 BookLibrary 卡片 transition-all duration-150） ===== */
+
+.books-page .space-persona-card {
+  transition:
+    transform 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.books-page .space-persona-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(37, 99, 235, 0.4);
+  box-shadow: var(--shadow-card);
+}
+
+/* 键盘焦点环（对照参考 focus-visible:ring-2；叠加既有全局 outline 之外的卡片级反馈） */
+.books-page .space-persona-card:focus-within {
+  border-color: rgba(37, 99, 235, 0.4);
+  box-shadow: var(--shadow-card);
+}
+
+/* 卡片尾部箭头：hover 时右移（对照参考 group-hover:translate-x-0.5） */
+.books-card-arrow {
+  flex-shrink: 0;
+  color: var(--muted);
+  transition: transform 150ms, color 150ms;
+}
+
+.books-page .space-persona-card:hover .books-card-arrow,
+.books-page .space-persona-card:focus-within .books-card-arrow {
+  transform: translateX(2px);
+  color: var(--blue);
+}
+
+/* ===== 搜索行（对照参考 ≥640px 常驻 + 匹配计数） ===== */
+
+.books-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1 1 220px;
+  min-width: 180px;
+  max-width: 340px;
+}
+
+.books-search-icon {
+  position: absolute;
+  left: 10px;
+  display: inline-flex;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.books-page .space-search {
+  padding-left: 30px;
+  transition: border-color 150ms;
+}
+
+/* focus 描边增强（对照参考 focus:border 变色）；不抑制全局 :focus-visible 焦点环 */
+.books-page .space-search:focus {
+  border-color: rgba(37, 99, 235, 0.4);
+}
+
+.books-search-count {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* 窄视口隐藏搜索（对照参考 hidden sm:flex：<640px 不显示） */
+@media (max-width: 639px) {
+  .books-search-wrap {
+    display: none;
+  }
+}
+
+/* ===== 卡片信息行（章/页带图标；对照参考 Layers、FileText 小图标） ===== */
+
+.books-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* ===== 阅读器页头与侧栏（对照参考 ReaderLayout 操作按钮过渡） ===== */
+
+.books-page .space-scope-item {
+  transition:
+    background 150ms,
+    border-color 150ms,
+    color 150ms;
+}
+
+/* 长章节名截断（窄视口尤其） */
+.books-rail-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 书签点（对照参考 1.5px 圆点 title=Bookmarked；保留可读性用图标 chip） */
+.books-bookmark-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  border: 1px solid #f2d9a4;
+  background: #fdf6e7;
+  color: #92610c;
+  font-size: 11px;
+}
+
+/* ===== 阅读器区块（既有结构，统一接变量层） ===== */
+
 .books-reader {
-  background: var(--bg, #fff);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 14px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
   padding: 20px 22px;
 }
 
@@ -52,9 +183,9 @@
 }
 
 .books-block-callout {
-  border-left: 3px solid var(--accent, #2563eb);
-  background: rgba(37, 99, 235, 0.06);
-  border-radius: 8px;
+  border-left: 3px solid var(--blue);
+  background: var(--blue-soft);
+  border-radius: var(--radius-sm);
   padding: 10px 12px;
 }
 
@@ -64,10 +195,13 @@
   text-align: left;
   margin: 6px 0;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid rgba(0, 0, 0, 0.14);
   background: transparent;
   cursor: pointer;
+  transition:
+    border-color 150ms,
+    background 150ms;
 }
 
 .books-quiz-option.correct {
@@ -87,5 +221,17 @@
   gap: 10px;
   margin-top: 22px;
   padding-top: 14px;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  border-top: 1px solid var(--line);
+}
+
+/* ===== 加载提示（对照参考 Loader2 spin + 文案；复用 space-spin） ===== */
+
+.books-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 13px;
+  padding: 20px 0;
 }

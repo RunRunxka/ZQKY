@@ -1,9 +1,11 @@
 'use client';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 // 复用 space 设计语言的样式；直达路由也需要加载（不能只依赖 SpaceMain 的引入）
 import '@/features/space/styles/space.css';
+// 笔记本页专属样式（R-05 视觉推广：消费 globals.css 单一变量层，选择器以 .nb-page 收窄）
+import '@/features/notebooks/styles/notebooks.css';
 import { useSourceSessionLink } from '@/features/space/useSourceSessionLink';
 import {
   ArrowLeft,
@@ -11,11 +13,13 @@ import {
   Copy,
   Download,
   FolderInput,
+  NotebookPen,
   Pencil,
   Plus,
   RefreshCw,
   Trash2,
   TriangleAlert,
+  X,
 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import {
@@ -50,8 +54,26 @@ const TYPE_LABEL: Record<string, string> = {
   video_learning: '视频学习',
 };
 
+/** 类型徽章配色（参考 BADGES 多色系；不改 .space-chip 通用类，走 .nb-badge-*）。
+ *  保留 space-chip 类以兼容 e2e 对 chip 的定位（spec L437），视觉由后加载的 nb-badge-* 覆盖。 */
+function typeBadgeClass(type: string): string {
+  switch (type) {
+    case 'research_report':
+      return 'space-chip nb-badge nb-badge-research_report';
+    case 'chat':
+      return 'space-chip nb-badge nb-badge-chat';
+    case 'co_writer':
+      return 'space-chip nb-badge nb-badge-co_writer';
+    case 'video_learning':
+      return 'space-chip nb-badge nb-badge-video_learning';
+    default:
+      return 'space-chip nb-badge nb-badge-unknown';
+  }
+}
+
 export function NotebooksSection() {
   const params = useParams<{ notebookId?: string }>();
+  const router = useRouter();
   const routeNotebookId = params?.notebookId;
   const [notebooks, setNotebooks] = useState<Notebook[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(routeNotebookId ?? null);
@@ -68,6 +90,11 @@ export function NotebooksSection() {
   const [editingRecord, setEditingRecord] = useState<NotebookRecord | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [movingRecord, setMovingRecord] = useState<NotebookRecord | null>(null);
+  // 深链 id 在笔记本列表读出后仍无效时置 true：此时主区只显示错误面板（不再与空态并列）
+  const [deepLinkMissing, setDeepLinkMissing] = useState(false);
+  // popstate 也会调 setSelectedId：用 ref 记住「本实例自己写入 URL」的同步信号，
+  // 避免 pushState 路径与 URL 驱动 useEffect 互相覆盖（与 ChatWorkspace 的做法同源）。
+  const suppressUrlSync = useRef(false);
 
   const refresh = useCallback(() => {
     try {
@@ -87,24 +114,53 @@ export function NotebooksSection() {
     return subscribeNotebooks(refresh);
   }, [refresh]);
 
-  // URL 驱动选中（/notebooks/[notebookId] 深链）
+  // URL 驱动选中（/notebooks/[notebookId] 深链与 popstate 后退/前进）
   useEffect(() => {
-    if (routeNotebookId) setSelectedId(routeNotebookId);
+    if (!routeNotebookId) return;
+    // 自己 pushState 的选择变化已同步过状态，跳过一次，避免覆盖 popstate 回落结果
+    if (suppressUrlSync.current) {
+      suppressUrlSync.current = false;
+      return;
+    }
+    setSelectedId(routeNotebookId);
+    setDeepLinkMissing(false);
   }, [routeNotebookId]);
 
-  // 深链指向不存在的笔记本：明确提示
+  // 浏览器后退/前进：按地址栏 notebookId 同步选中态（无会话段时回落到无选中）
+  useEffect(() => {
+    function onPopState() {
+      const match = /^\/notebooks\/([^/]+)$/.exec(window.location.pathname);
+      const id = match ? decodeURIComponent(match[1]) : null;
+      setSelectedId(id);
+      setError(null);
+      setDeepLinkMissing(false);
+    }
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  // 深链指向不存在的笔记本：明确提示（列表加载完成且仍找不到时判定为无效深链）
   const selected = useMemo(
     () => notebooks.find((n) => n.id === selectedId) ?? null,
     [notebooks, selectedId],
   );
   useEffect(() => {
-    if (!loading && routeNotebookId && !selected)
-      setError('链接指向的笔记本不存在，可能已被删除。');
+    // 只置深链标记：错误提示由下方 ConsoleNotice 单独呈现，
+    // 避免与顶部 banner 同时渲染两个 role="alert"（同一错误重复播报）。
+    if (!loading && routeNotebookId && !selected) {
+      setDeepLinkMissing(true);
+    }
   }, [loading, routeNotebookId, selected]);
 
   const filteredNotebooks = useMemo(() => {
     const q = notebookQuery.trim().toLowerCase();
-    return q ? notebooks.filter((n) => n.name.toLowerCase().includes(q)) : notebooks;
+    return q
+      ? notebooks.filter(
+          (n) =>
+            n.name.toLowerCase().includes(q) ||
+            (n.description ?? '').toLowerCase().includes(q),
+        )
+      : notebooks;
   }, [notebooks, notebookQuery]);
 
   const selectedRecords = useMemo(
@@ -125,8 +181,11 @@ export function NotebooksSection() {
   function selectNotebook(id: string) {
     setSelectedId(id);
     setError(null);
+    setDeepLinkMissing(false);
     const target = `/notebooks/${id}`;
     if (window.location.pathname !== target) {
+      // 自己写 URL：标记一次，让随后的 useParams 触发跳过重复同步
+      suppressUrlSync.current = true;
       window.history.pushState(null, '', target);
     }
   }
@@ -158,13 +217,18 @@ export function NotebooksSection() {
         setError('删除失败：默认笔记本不能删除。');
         return;
       }
-      if (selectedId === notebook.id) setSelectedId(null);
+      if (selectedId === notebook.id) {
+        setSelectedId(null);
+        setDeepLinkMissing(false);
+        // 地址栏规范化回 /notebooks（参考 router.replace；避免停留在已删除 id 的旧深链）
+        router.replace('/notebooks');
+      }
       setNotice(`已删除「${notebook.name}」，其中记录已移回默认笔记本。`);
     }
   }
 
   return (
-    <div className="space-page">
+    <div className="space-page nb-page">
       <header className="space-header">
         <div className="space-header-row">
           <Link className="space-back" href="/space">
@@ -226,7 +290,12 @@ export function NotebooksSection() {
                     flexShrink: 0,
                   }}
                 />
-                <span style={{ flex: 1, textAlign: 'left' }}>{notebook.name}</span>
+                <span className="space-scope-item-main">
+                  <span className="space-scope-item-name">{notebook.name}</span>
+                  {notebook.description && (
+                    <span className="space-scope-item-desc">{notebook.description}</span>
+                  )}
+                </span>
                 <span className="count">{listRecords().filter((r) => r.notebookId === notebook.id).length}</span>
               </button>
             ))}
@@ -242,8 +311,16 @@ export function NotebooksSection() {
               </div>
             )}
             {error && (
-              <div className="space-banner error" role="alert">
-                {error}
+              <div className="space-banner error nb-banner" role="alert">
+                <span>{error}</span>
+                <button
+                  type="button"
+                  className="nb-banner-close"
+                  aria-label="关闭错误提示"
+                  onClick={() => setError(null)}
+                >
+                  <X size={13} />
+                </button>
               </div>
             )}
 
@@ -251,11 +328,24 @@ export function NotebooksSection() {
               <div aria-hidden>
                 <div className="space-skeleton" style={{ height: 120 }} />
               </div>
+            ) : deepLinkMissing ? (
+              // 无效深链：只显示错误面板，不与空态并列；提供返回列表入口
+              <ConsoleNotice
+                tone="error"
+                title="无法打开这个笔记本"
+                detail="链接指向的笔记本不存在，可能已被删除。"
+                action={
+                  <Link className="space-button" href="/notebooks">
+                    返回笔记本列表
+                  </Link>
+                }
+              />
             ) : !selected ? (
-              <div className="space-empty">
-                <strong>选择一个笔记本</strong>
-                <span>左侧选择笔记本查看其中的记录；新建后即可开始整理。</span>
-              </div>
+              <ConsoleNotice
+                tone="empty"
+                title="选择一个笔记本"
+                detail="左侧选择笔记本查看其中的记录；新建后即可开始整理。"
+              />
             ) : (
               <>
                 <div className="space-session-top" style={{ marginBottom: 12 }}>
@@ -465,12 +555,19 @@ function RecordRow({
             size={14}
             style={{
               transform: expanded ? 'rotate(90deg)' : 'none',
-              transition: 'transform 0.15s',
+              transition: 'transform 0.2s',
             }}
           />
         </button>
         <span className="space-session-title">{record.title}</span>
-        <span className="space-chip blue">{TYPE_LABEL[record.type] ?? record.type}</span>
+        <span className={typeBadgeClass(record.type)}>
+          {TYPE_LABEL[record.type] ?? record.type}
+        </span>
+        {/* 时间戳常驻行头右侧（参考注释：避免 hover 交换时行高抖动），格式保持中文可读；
+            窄视口下经 nb-row-time 换到第二行，避免挤压标题（A1 F2） */}
+        <span className="space-meta-row nb-row-time">
+          更新于 {new Date(record.updatedAt).toLocaleString('zh-CN')}
+        </span>
         <span className="space-session-actions">
           <button className="icon-button" aria-label={`编辑记录 ${record.title}`} onClick={onEdit}>
             <Pencil size={14} />
@@ -483,11 +580,8 @@ function RecordRow({
           </button>
         </span>
       </div>
-      <div className="space-meta-row">
-        <span>更新于 {new Date(record.updatedAt).toLocaleString('zh-CN')}</span>
-      </div>
       {expanded && (
-        <div className="space-explanation" style={{ whiteSpace: 'pre-wrap' }}>
+        <div className="space-explanation nb-pop-in" style={{ whiteSpace: 'pre-wrap' }}>
           {record.summary && (
             <p>
               <strong>摘要：</strong>
@@ -503,7 +597,7 @@ function RecordRow({
           {record.content || '（无正文）'}
           {sourceLink.status === 'ready' && (
             <p style={{ marginTop: 10 }}>
-              <Link className="space-button" href={sourceLink.href}>
+              <Link className="space-button nb-open-session" href={sourceLink.href}>
                 打开原会话
               </Link>
             </p>
@@ -516,6 +610,31 @@ function RecordRow({
         </div>
       )}
     </li>
+  );
+}
+
+/** 错误/空态面板（参考 ConsoleNotice：图标块 + 标题 + 详情 + 可选行动；错误态 role=alert） */
+function ConsoleNotice({
+  tone,
+  title,
+  detail,
+  action,
+}: {
+  tone: 'error' | 'empty';
+  title: string;
+  detail: string;
+  action?: ReactNode;
+}) {
+  const Icon = tone === 'error' ? TriangleAlert : NotebookPen;
+  return (
+    <div className={`nb-notice ${tone === 'error' ? 'is-error' : ''}`} role={tone === 'error' ? 'alert' : undefined}>
+      <span className="nb-notice-icon" aria-hidden>
+        <Icon size={16} />
+      </span>
+      <p className="nb-notice-title">{title}</p>
+      <p className="nb-notice-detail">{detail}</p>
+      {action && <div className="nb-notice-actions">{action}</div>}
+    </div>
   );
 }
 

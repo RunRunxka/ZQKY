@@ -1,0 +1,49 @@
+[
+  {
+    "step": "draft proposal view",
+    "hasProposal": 1
+  },
+  {
+    "step": "confirm proposal busy",
+    "busy1": {
+      "disabled": true,
+      "hasSpin": true,
+      "text": "确认提案（进入大纲）"
+    }
+  },
+  {
+    "step": "after proposal -> spine",
+    "spineShown": 1,
+    "url": "http://127.0.0.1:5174/books/demo-book-draft"
+  },
+  {
+    "step": "spine confirm busy + loading",
+    "busy2": {
+      "disabled": true,
+      "hasSpin": true,
+      "loadingText": "正在生成章节页面（模拟编译）…"
+    }
+  },
+  {
+    "step": "spine done notice",
+    "notice": [],
+    "url": "http://127.0.0.1:5174/books/demo-book-draft/pages/pg-mu6yyn4m-gx424l"
+  },
+  {
+    "step": "ready book resume url",
+    "url1": "http://127.0.0.1:5174/books/demo-book-fractions/pages/demo-book-fractions-p0"
+  },
+  {
+    "step": "sidebar current",
+    "cur": "/books/demo-book-fractions/pages/demo-book-fractions-p0"
+  },
+  {
+    "step": "arrow right page",
+    "url2": "http://127.0.0.1:5174/books/demo-book-fractions/pages/demo-book-fractions-p1"
+  },
+  {
+    "step": "bookmark toggle",
+    "removed": 1,
+    "signCount": 2
+  }
+]

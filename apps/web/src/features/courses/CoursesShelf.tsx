@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Plus, Sparkles } from 'lucide-react';
+import { Archive, ArrowRight, Layers, Loader2, Plus, Sparkles } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import {
   COURSE_COLOR_DOT,
@@ -17,6 +17,7 @@ import {
   type StudyCourse,
 } from '@/services/courses-store';
 import '@/features/space/styles/space.css';
+import '@/features/courses/courses.css';
 
 export function CoursesShelf() {
   const router = useRouter();
@@ -55,7 +56,7 @@ export function CoursesShelf() {
   );
 
   return (
-    <div className="space-page">
+    <div className="space-page courses-page">
       <header className="space-header">
         <div className="space-header-row">
           <h1>课程</h1>
@@ -113,7 +114,8 @@ export function CoursesShelf() {
 
         {archived.length > 0 && (
           <details className="space-group" style={{ marginTop: 18 }}>
-            <summary className="space-group-label" style={{ cursor: 'pointer' }}>
+            <summary className="space-group-label" style={{ cursor: 'pointer', marginBottom: 0 }}>
+              <Archive size={13} strokeWidth={1.7} aria-hidden />
               已归档课程（{archived.length}）
             </summary>
             <div className="space-card-grid" style={{ marginTop: 10 }}>
@@ -151,21 +153,30 @@ function CourseCard({ course, onOpen }: { course: StudyCourse; onOpen: () => voi
           onOpen();
         }}
       >
-        <div className="space-card-title">
+        <div className="space-card-title courses-card-head">
           <span
             aria-hidden
             style={{ width: 10, height: 10, borderRadius: 999, background: COURSE_COLOR_DOT[course.color] }}
           />
-          {course.name}
+          <span className="courses-card-name">{course.name}</span>
           {course.status === 'archived' && <span className="space-chip">已归档</span>}
+          <ArrowRight size={15} className="courses-card-arrow" aria-hidden />
         </div>
         <p className="space-card-body">{course.description || '（无简介）'}</p>
         <div className="space-meta-row">
           <span className="space-chip">
             大纲 {summary.covered}/{summary.total}
           </span>
-          <span className="space-chip">资料 {course.resources.length}</span>
-          <span className="space-chip">本地目录</span>
+        </div>
+        <div className="courses-card-footer">
+          {course.resources.length > 0 ? (
+            <span className="courses-card-materials" title="课程资料">
+              <Layers size={11} strokeWidth={1.8} aria-hidden />
+              {course.resources.length} 份资料
+            </span>
+          ) : (
+            <span className="courses-card-empty">尚未附加资料</span>
+          )}
         </div>
       </Link>
     </article>
@@ -177,12 +188,15 @@ function CreateCourseForm({ onClose, onCreated }: { onClose: () => void; onCreat
   const [description, setDescription] = useState('');
   const [color, setColor] = useState<CourseColor>('blue');
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   return (
     <Modal title="新建课程" onClose={onClose}>
       <form
         className="space-form"
         onSubmit={(event) => {
           event.preventDefault();
+          if (saving) return;
+          setSaving(true);
           try {
             const course = createCourse(name, description, color);
             onCreated(course.id);
@@ -190,6 +204,8 @@ function CreateCourseForm({ onClose, onCreated }: { onClose: () => void; onCreat
             setError(
               cause instanceof CourseValidationError ? cause.message : '创建失败，请检查输入后重试。',
             );
+          } finally {
+            setSaving(false);
           }
         }}
       >
@@ -244,7 +260,8 @@ function CreateCourseForm({ onClose, onCreated }: { onClose: () => void; onCreat
           <button type="button" className="space-button" onClick={onClose}>
             取消
           </button>
-          <button type="submit" className="space-button primary">
+          <button type="submit" className="space-button primary" disabled={saving}>
+            {saving ? <Loader2 size={14} className="space-spin" aria-hidden /> : null}
             创建
           </button>
         </div>

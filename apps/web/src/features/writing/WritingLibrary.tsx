@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { FileText, Plus, Trash2 } from 'lucide-react';
+import { FileText, PenLine, Plus, Trash2 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import {
   WritingValidationError,
@@ -13,6 +13,7 @@ import {
   type WritingDocument,
 } from '@/services/writing-store';
 import '@/features/space/styles/space.css';
+import '@/features/writing/styles/writing.css';
 
 /** /co-writer 列表（对照参考 CoWriterHomePage：新建空白/模板、删除；导入 DOCX 未接入为显式说明） */
 export function WritingLibrary() {
@@ -36,7 +37,7 @@ export function WritingLibrary() {
   }, [refresh]);
 
   return (
-    <div className="space-page">
+    <div className="space-page writing-page">
       <header className="space-header">
         <div className="space-header-row">
           <h1>协同写作</h1>
@@ -63,8 +64,17 @@ export function WritingLibrary() {
           </div>
         ) : docs.length === 0 ? (
           <div className="space-empty">
+            <span className="writing-empty-icon" aria-hidden>
+              <PenLine size={30} strokeWidth={1.5} />
+            </span>
             <strong>还没有文稿</strong>
             <span>新建空白文稿或使用教学设计模板开始写作。</span>
+            <div className="space-card-actions">
+              <button className="space-button primary" onClick={() => setCreating(true)}>
+                <Plus size={14} />
+                新建第一篇文稿
+              </button>
+            </div>
           </div>
         ) : (
           <ul className="space-session-list">

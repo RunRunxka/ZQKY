@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, History, RotateCcw, Sparkles, Undo2 } from 'lucide-react';
+import { ArrowLeft, History, Pencil, Sparkles, Undo2 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import {
   getDocument,
@@ -15,6 +15,7 @@ import {
 import { createWritingAiService, writingAiModeLabel, type WritingAiMode } from '@/features/writing/writing-ai';
 import { AnswerMarkdown } from '@/features/chat/AnswerMarkdown';
 import '@/features/space/styles/space.css';
+import '@/features/writing/styles/writing.css';
 
 interface AiPreview {
   mode: WritingAiMode;
@@ -87,7 +88,7 @@ export function WritingEditor({ docId }: { docId: string }) {
 
   if (loadError) {
     return (
-      <div className="space-page">
+      <div className="space-page writing-page">
         <div className="space-empty" style={{ marginTop: 80 }}>
           <strong>无法打开文稿</strong>
           <span>{loadError}</span>
@@ -101,7 +102,7 @@ export function WritingEditor({ docId }: { docId: string }) {
   }
   if (!doc) {
     return (
-      <div className="space-page">
+      <div className="space-page writing-page">
         <div className="space-banner" style={{ marginTop: 80 }}>
           正在读取文稿…
         </div>
@@ -190,7 +191,7 @@ export function WritingEditor({ docId }: { docId: string }) {
   }
 
   return (
-    <div className="space-page">
+    <div className="space-page writing-page">
       <header className="space-header">
         <div className="space-header-row">
           <Link className="space-back" href="/co-writer">
@@ -213,13 +214,20 @@ export function WritingEditor({ docId }: { docId: string }) {
           </div>
         </div>
         <h1>
-          {doc.title}
-          <button className="icon-button" aria-label="重命名文稿" style={{ marginLeft: 8, verticalAlign: 'middle' }} onClick={() => setRenaming(true)}>
-            <RotateCcw size={12} style={{ transform: 'rotate(90deg)' }} />
-          </button>
+          <span className="writing-title-row">
+            <span className="writing-title-text">{doc.title}</span>
+            <button className="icon-button writing-rename-button" aria-label="重命名文稿" onClick={() => setRenaming(true)}>
+              <Pencil size={12} />
+            </button>
+          </span>
         </h1>
         <p className="space-description">
-          <span className="space-chip" role="status">
+          <span
+            className={`space-chip writing-save-chip ${
+              saveState === 'saving' ? 'saving' : saveState === 'error' ? 'error' : 'saved'
+            }`}
+            role="status"
+          >
             {saveState === 'saving' ? '保存中…' : saveState === 'error' ? '保存失败，将重试' : dirty ? '有未保存修改' : '已保存'}
           </span>
           <span className="space-chip">{content.length} 字</span>
@@ -229,10 +237,10 @@ export function WritingEditor({ docId }: { docId: string }) {
       <main className="space-content">
         <textarea
           ref={textareaRef}
+          className="writing-body"
           aria-label="文稿正文编辑区"
           value={content}
           onChange={(event) => updateContent(event.target.value)}
-          style={{ minHeight: 420, width: '100%', fontFamily: 'inherit', lineHeight: 1.7, resize: 'vertical' }}
           placeholder="开始写作…（支持 Markdown）"
         />
         <div className="space-card-actions" style={{ marginTop: 10 }}>
@@ -380,9 +388,9 @@ function VersionsForm({ docId, onClose }: { docId: string; onClose: () => void }
       ) : (
         <ul className="space-session-list">
           {[...doc.versions].reverse().map((version) => (
-            <li className="space-session-card" key={version.versionId}>
-              <div className="space-session-top">
-                <span className="space-session-title">{version.label}</span>
+            <li className="space-session-card writing-version-row" key={version.versionId}>
+              <div className="space-session-top writing-version-row">
+                <span className="writing-version-label">{version.label}</span>
                 <span className="space-chip">{version.content.length} 字</span>
                 <button
                   className="space-button"

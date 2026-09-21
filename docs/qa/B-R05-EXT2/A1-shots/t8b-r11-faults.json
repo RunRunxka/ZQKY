@@ -1,0 +1,21 @@
+[
+  {
+    "case": "missing-target",
+    "unavailableSuffix": 1,
+    "errorBanner": 0,
+    "syllabusVisible": 1
+  },
+  {
+    "case": "dir-read-fail",
+    "unknownSuffix": 1,
+    "errorBanner": 1,
+    "retryBtn": 1,
+    "syllabusVisible": 1,
+    "bannerText": "资源目录读取失败：知识来源目录格式不兼容，原数据已保留。\n重试"
+  },
+  {
+    "case": "available-target",
+    "linkLabel": 1,
+    "unavailableSuffix": 0
+  }
+]

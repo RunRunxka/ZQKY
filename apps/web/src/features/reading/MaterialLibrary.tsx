@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, Plus, RefreshCw, Sparkles, Square, Trash2 } from 'lucide-react';
+import { FileText, FolderPlus, Inbox, Plus, RefreshCw, Sparkles, Square, Trash2 } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { cancelMaterialIngest, simulateMaterialIngest } from '@/services/reading-ingest';
 import {
@@ -20,6 +20,7 @@ import {
 } from '@/services/reading-store';
 import '@/features/space/styles/space.css';
 import '@/features/reading/reading.css';
+import '@/features/reading/styles/reading-library.css';
 
 const SIMULATED_KINDS: Array<{ value: Exclude<ReadingSourceKind, 'text'>; label: string }> = [
   { value: 'pdf', label: 'PDF（模拟解析）' },
@@ -34,7 +35,7 @@ export function MaterialLibrary() {
   const router = useRouter();
   const [materials, setMaterials] = useState<ReadingMaterial[]>([]);
   const [workspaces, setWorkspaces] = useState<ReadingWorkspace[]>([]);
-  const [filter, setFilter] = useState<'all' | 'unassigned'>('all');
+  const [filter, setFilter] = useState<'all' | 'unassigned' | 'processing' | 'failed'>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -57,13 +58,28 @@ export function MaterialLibrary() {
     return subscribeReading(refresh);
   }, [refresh]);
 
-  const filtered = useMemo(
-    () => (filter === 'unassigned' ? materials.filter((item) => item.workspaceIds.length === 0) : materials),
-    [materials, filter],
+  const filtered = useMemo(() => {
+    if (filter === 'unassigned') return materials.filter((item) => item.workspaceIds.length === 0);
+    if (filter === 'processing') {
+      return materials.filter((item) => item.status === 'processing' || item.status === 'queued');
+    }
+    if (filter === 'failed') return materials.filter((item) => item.status === 'failed');
+    return materials;
+  }, [materials, filter]);
+
+  // 筛选计数：与参考 tally 同口径，从真实材料数组推导（无服务端计数可兜底）
+  const counts = useMemo(
+    () => ({
+      all: materials.length,
+      unassigned: materials.filter((item) => item.workspaceIds.length === 0).length,
+      processing: materials.filter((item) => item.status === 'processing' || item.status === 'queued').length,
+      failed: materials.filter((item) => item.status === 'failed').length,
+    }),
+    [materials],
   );
 
   return (
-    <div className="space-page">
+    <div className="space-page reading-lib-page">
       <header className="space-header">
         <div className="space-header-row">
           <h1>阅读材料库</h1>
@@ -95,7 +111,8 @@ export function MaterialLibrary() {
       <main className="space-content">
         <div className="space-tabs" role="tablist" aria-label="材料筛选">
           <button role="tab" aria-selected={filter === 'all'} className={filter === 'all' ? 'current' : ''} onClick={() => setFilter('all')}>
-            全部（{materials.length}）
+            全部
+            <span className="reading-lib-count">（{counts.all}）</span>
           </button>
           <button
             role="tab"
@@ -103,7 +120,26 @@ export function MaterialLibrary() {
             className={filter === 'unassigned' ? 'current' : ''}
             onClick={() => setFilter('unassigned')}
           >
-            未分配集合（{materials.filter((item) => item.workspaceIds.length === 0).length}）
+            未分配集合
+            <span className="reading-lib-count">（{counts.unassigned}）</span>
+          </button>
+          <button
+            role="tab"
+            aria-selected={filter === 'processing'}
+            className={filter === 'processing' ? 'current' : ''}
+            onClick={() => setFilter('processing')}
+          >
+            解析中
+            <span className="reading-lib-count">（{counts.processing}）</span>
+          </button>
+          <button
+            role="tab"
+            aria-selected={filter === 'failed'}
+            className={filter === 'failed' ? 'current' : ''}
+            onClick={() => setFilter('failed')}
+          >
+            解析失败
+            <span className="reading-lib-count">（{counts.failed}）</span>
           </button>
         </div>
         {notice && (
@@ -122,8 +158,30 @@ export function MaterialLibrary() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="space-empty">
-            <strong>{filter === 'all' ? '还没有材料' : '没有未分配的材料'}</strong>
+            <span className="reading-lib-empty-icon" aria-hidden>
+              <Inbox size={18} />
+            </span>
+            <strong>
+              {filter === 'all'
+                ? '还没有材料'
+                : filter === 'unassigned'
+                  ? '没有未分配的材料'
+                  : filter === 'processing'
+                    ? '没有解析中的材料'
+                    : '没有解析失败的材料'}
+            </strong>
             <span>新建文本材料或载入演示数据。</span>
+            <div className="reading-lib-empty-actions">
+              {/* 空态主行动：aria-label 与页头「新建材料」区分，避免同名按钮歧义（对齐 I1 修复口径） */}
+              <button
+                className="space-button primary"
+                aria-label="新建第一份材料"
+                onClick={() => setCreating(true)}
+              >
+                <Plus size={14} />
+                新建材料
+              </button>
+            </div>
           </div>
         ) : (
           <ul className="space-session-list">
@@ -132,11 +190,27 @@ export function MaterialLibrary() {
               return (
                 <li className="space-session-card" key={material.id}>
                   <div className="space-session-top">
-                    <FileText size={14} aria-hidden />
-                    <span className="space-session-title">{material.title}</span>
+                    <span className="reading-lib-row-head">
+                      <FileText size={14} aria-hidden />
+                      <span className="space-session-title">{material.title}</span>
+                    </span>
                     <span className="space-chip">{material.charCount} 字</span>
                     <span className="space-chip">{material.sourceKind === 'text' ? '文本' : `${material.sourceKind.toUpperCase()} · 模拟解析`}</span>
-                    <span className="space-chip">
+                    <span
+                      className={`space-chip ${
+                        status === 'failed'
+                          ? 'reading-lib-status-failed'
+                          : status === 'ready'
+                            ? 'reading-lib-status-ready'
+                            : 'reading-lib-status-busy'
+                      }`}
+                    >
+                      <span
+                        className={`reading-lib-dot ${
+                          status === 'failed' ? 'is-failed' : status === 'ready' ? 'is-ready' : 'is-busy'
+                        }`}
+                        aria-hidden
+                      />
                       {status === 'ready' && '就绪'}
                       {status === 'queued' && '排队中'}
                       {status === 'processing' && '解析中'}
@@ -224,6 +298,7 @@ function AssignButton({
   return (
     <>
       <button className="space-button" aria-label={`分配材料 ${material.title}`} onClick={() => setOpen(true)}>
+        <FolderPlus size={12} aria-hidden />
         分配到集合
       </button>
       {open && (

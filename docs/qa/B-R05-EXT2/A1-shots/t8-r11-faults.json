@@ -1,0 +1,20 @@
+[
+  {
+    "case": "missing-target",
+    "unavailableSuffix": 1,
+    "errorBanner": 0,
+    "syllabusVisible": 1
+  },
+  {
+    "case": "dir-read-fail",
+    "unknownSuffix": 0,
+    "errorBanner": 0,
+    "retryBtn": 0,
+    "syllabusVisible": 1
+  },
+  {
+    "case": "available-target",
+    "linkLabel": 0,
+    "unavailableSuffix": 1
+  }
+]

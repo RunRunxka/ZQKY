@@ -10,6 +10,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { SpaceMain } from './SpaceMain';
+import './styles/space-sections.css';
 import {
   CLI_CATALOG,
   installCliApp,
@@ -64,10 +65,13 @@ export function CliAppsSection() {
   const installedIds = new Set(apps.map((app) => app.id));
 
   return (
-    <SpaceMain
-      title="CLI 应用"
-      description="教学小工具的目录与本地安装记录（本地演示，不连接远程部署服务）。"
-    >
+    /* B-R05-EXT5-I2：space-sections-page 为本批四子页视觉作用域修饰类；
+       页面根 space-page 由 SpaceMain 提供（v1 已交付，不动）。 */
+    <div className="space-sections-page">
+      <SpaceMain
+        title="CLI 应用"
+        description="教学小工具的目录与本地安装记录（本地演示，不连接远程部署服务）。"
+      >
       <div className="space-tabs" role="tablist" aria-label="CLI 应用视图">
         <button
           role="tab"
@@ -140,8 +144,10 @@ export function CliAppsSection() {
                   <span>安装于 {new Date(app.installedAt).toLocaleDateString('zh-CN')}</span>
                 </div>
                 <div className="space-card-actions">
+                  {/* 启停状态徽标色：按钮名「已启用/已停用」为 e2e 锚点，仅补
+                      space-sections-state-on/off 状态色（绿系/灰系），不改形态 */}
                   <button
-                    className="space-button"
+                    className={`space-button ${app.enabled ? 'space-sections-state-on' : 'space-sections-state-off'}`}
                     aria-pressed={app.enabled}
                     onClick={() => setCliAppEnabled(app.id, !app.enabled)}
                   >
@@ -209,6 +215,7 @@ export function CliAppsSection() {
       <p className="space-footnote">
         参考产品的 CLI 安装为服务器部署流程；此处为本地演示形态，记录真实存在但不含执行能力。
       </p>
-    </SpaceMain>
+      </SpaceMain>
+    </div>
   );
 }

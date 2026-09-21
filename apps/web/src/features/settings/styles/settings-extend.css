@@ -1,0 +1,328 @@
+/* 消费 globals.css 单一变量层（R-05）
+   设置页（/settings）的视觉增量层：只在 .settings-page / .settings-index /
+   .extension-manager / 新 .settings-* 前缀类作用域内生效。
+   边界（B-R05-EXT4 任务卡 §8.3）：
+   - 不写 .settings-workspace 后代同名类规则（.settings-form 等在 settings.css 与
+     model-settings.css 双定义，模型区内层表单同在此容器内，宽作用域会波及模型区）；
+   - 只引用既有变量，零 !important；动画只用 150/160ms 既有档位，只做
+     hover / focus / active 过渡，不新增进出场动画；
+   - 减少动画走 motion.css 全局机制（html[data-motion] 与系统偏好）。 */
+
+/* ===== 索引导航行（E4 S1 / §8.1 #1）：图标 + 标题 + 描述小字、hover / current 双态 ===== */
+
+.settings-page .settings-index a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+}
+
+.settings-page .settings-nav-icon {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.settings-page .settings-nav-text {
+  min-width: 0;
+  display: block;
+}
+
+/* hover 浅底（参考 Row hover accent 一半强度 → 用 surface 档） */
+.settings-page .settings-index a:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+/* current 主色浅底 + 图标全显（aria-current 属性语义不动，仅视觉区分） */
+.settings-page .settings-index a[aria-current] {
+  background: var(--blue-soft);
+  color: var(--blue-deep);
+  font-weight: 600;
+}
+
+.settings-page .settings-index a[aria-current] .settings-nav-icon,
+.settings-page .settings-index a:hover .settings-nav-icon {
+  opacity: 1;
+}
+
+.settings-page .settings-index a[aria-current] small {
+  color: var(--blue-deep);
+  opacity: 0.75;
+}
+
+/* 焦点环收窄到圆角内（globals.css 已有全局 focus-visible 蓝环基线） */
+.settings-page .settings-index a:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 1px;
+}
+
+.settings-page .settings-index h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* ===== 搜索框（E4 I1 / §8.1 #2）：focus 态 + 清除按钮 ===== */
+
+.settings-search {
+  position: relative;
+  margin-bottom: 18px;
+}
+
+.settings-search input {
+  width: 100%;
+  padding-right: 30px;
+  transition:
+    border-color 160ms,
+    background-color 160ms,
+    box-shadow 160ms;
+}
+
+.settings-search input:focus,
+.settings-search input:focus-visible {
+  border-color: var(--blue);
+  background: var(--bg);
+  box-shadow: 0 0 0 3px var(--blue-soft);
+  outline: none;
+}
+
+.settings-search > button {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  transition:
+    color 150ms,
+    background-color 150ms;
+}
+
+.settings-search > button:hover {
+  color: var(--ink);
+  background: var(--surface);
+}
+
+.settings-search > button svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* 搜索无结果空态（E4 S3 / §8.1 #3）：新类名 + 新文案，不复用 .settings-empty */
+.settings-search-empty {
+  padding: 14px 12px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--muted);
+  background: var(--surface);
+  border-radius: var(--radius-md);
+}
+
+/* ===== 分区标题与段落（E4 S7 可做部分 / §8.1 #5）：层级排版 ===== */
+
+.settings-page .settings-panel h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.settings-page .settings-panel > p {
+  max-width: 68ch;
+  font-size: 14px;
+}
+
+/* ===== 外观开关行（§8.1 #5）：参考 Toggle 的轨道视觉，checkbox 本体仍可聚焦 */
+
+.settings-page .settings-toggle {
+  gap: 12px;
+}
+
+.settings-page .settings-toggle-track {
+  position: relative;
+  width: 34px;
+  height: 18px;
+  flex-shrink: 0;
+  border-radius: var(--radius-pill);
+  background: var(--line);
+  transition: background-color 160ms;
+}
+
+.settings-page .settings-toggle-thumb {
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 160ms;
+}
+
+.settings-page .settings-toggle input:checked + .settings-toggle-track {
+  background: var(--green);
+}
+
+.settings-page .settings-toggle input:checked + .settings-toggle-track .settings-toggle-thumb {
+  transform: translateX(16px);
+}
+
+.settings-page .settings-toggle input:focus-visible + .settings-toggle-track {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+/* 保存提示行 */
+.settings-page .settings-notice {
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+.settings-page .settings-notice:empty {
+  display: none;
+}
+
+/* ===== 扩展管理器（E4 摘要 4 / §8.1 #4）：卡片 / 按钮 / 角色开关视觉 =====
+   仅 .extension-manager 后代作用域，不触模型区同名类。 */
+
+.extension-manager .extension-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  background: var(--bg);
+  transition:
+    border-color 160ms,
+    box-shadow 160ms;
+}
+
+.extension-manager .extension-card:hover {
+  border-color: var(--blue);
+  box-shadow: var(--shadow-card);
+}
+
+.extension-manager .extension-card > .extension-card-body {
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+.extension-manager .extension-card strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 15px;
+}
+
+.extension-manager .extension-card p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.extension-manager .settings-toolbar {
+  flex-wrap: wrap;
+}
+
+.extension-manager button {
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    color 150ms,
+    box-shadow 150ms;
+}
+
+.extension-manager button:hover:not(:disabled) {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+}
+
+.extension-manager button:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.extension-manager button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* 角色开关（role=switch 视觉增强：aria-checked 由组件维护，这里只做状态色） */
+.extension-manager button[role='switch'] {
+  border-radius: var(--radius-pill);
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.extension-manager button[role='switch'][aria-checked='true'] {
+  border-color: var(--green);
+  color: var(--green);
+  background: color-mix(in srgb, var(--green) 8%, var(--bg));
+}
+
+.extension-manager button[role='switch'][aria-checked='true']:hover {
+  background: color-mix(in srgb, var(--green) 14%, var(--bg));
+  border-color: var(--green);
+  color: var(--green);
+}
+
+.extension-manager .settings-hint {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--blue);
+  background: var(--blue-soft);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+}
+
+.extension-manager .settings-empty {
+  border: 1px dashed var(--line);
+}
+
+/* 操作反馈行（role=status 语义不动，仅排版） */
+.extension-manager .extension-notice {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.extension-manager .extension-notice:empty {
+  display: none;
+}
+
+/* ===== 窄视口（390 高发区，E4 N1）：不改条带尺寸与 nowrap，只调新增元素 ===== */
+
+@media (max-width: 767px) {
+  .settings-page .settings-index {
+    align-items: center;
+  }
+
+  .settings-search {
+    margin-bottom: 0;
+  }
+
+  /* 条带内图标在窄视口隐藏，保持条带紧凑（small 与 h1 已被既有规则隐藏） */
+  .settings-page .settings-index a .settings-nav-icon {
+    display: none;
+  }
+
+  .settings-search-empty {
+    flex-shrink: 0;
+    padding: 8px 10px;
+  }
+
+  .settings-page .settings-toggle {
+    align-items: flex-start;
+  }
+
+  .extension-manager .extension-card {
+    flex-direction: column;
+  }
+}

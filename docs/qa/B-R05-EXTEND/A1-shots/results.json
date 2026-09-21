@@ -1,0 +1,27 @@
+[
+  {
+    "name": "reduced: kb-pulse suppressed",
+    "ok": false,
+    "detail": "{\"animationName\":\"none\",\"animationDuration\":\"1e-05s\",\"animationIterationCount\":\"1\"}"
+  },
+  {
+    "name": "reduced: card transition suppressed",
+    "ok": false,
+    "detail": "{\"transitionDuration\":\"1e-05s\"}"
+  },
+  {
+    "name": "reduced: nb-pop-in suppressed",
+    "ok": false,
+    "detail": "null"
+  },
+  {
+    "name": "normal: kb-pulse active (control)",
+    "ok": true,
+    "detail": "{\"animationName\":\"kb-pulse\",\"animationDuration\":\"1.4s\"}"
+  },
+  {
+    "name": "normal: nb-pop-in active (control)",
+    "ok": false,
+    "detail": "null"
+  }
+]

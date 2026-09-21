@@ -1,0 +1,13 @@
+[
+  {
+    "step": "fail + retry-fail",
+    "fail1": 1,
+    "fail2": 1,
+    "rawPreserved": true
+  },
+  {
+    "step": "fix + retry-recover",
+    "okAfterFix": 1,
+    "errAfterFix": 0
+  }
+]
