@@ -11,6 +11,7 @@ import {
   type ConversationMeta,
   type ToolCallRecord,
   type TraceStageRecord,
+  type TurnCourseSnapshot,
   type TurnExtensionSnapshot,
 } from '@/contracts/chat';
 import { createIdbChatRepository, type ChatRepository, toMeta } from '@/services/chat-repository';
@@ -23,6 +24,11 @@ import {
   type ChatToolCall,
 } from './chat-service';
 import { selectMessagesForRequest } from './context-budget';
+import {
+  buildNewConversation,
+  courseContextMessage,
+  resolveCourseSnapshot,
+} from '@/services/course-session';
 
 export interface ChatProfileSelection {
   id: string;
@@ -41,6 +47,12 @@ export interface ChatState {
   ready: boolean;
   loadError: string | null;
   storageWarning: string | null;
+  /** 课程上下文不可用时的如实提示（H1-COURSE-SESSIONS v1）；null = 无提示 */
+  courseContextWarning: string | null;
+  /** 当前会话的课程归属（稳定 courseId；缺失 = 未归属）；供聊天页展示与"返回课程" */
+  activeCourseId: string | null;
+  /** 关闭"课程上下文不可用"提示（只清提示，不改变会话归属与历史） */
+  dismissCourseContextWarning(): void;
   mode: ChatServiceKind;
   conversations: ConversationMeta[];
   activeId: string | null;
@@ -49,7 +61,11 @@ export interface ChatState {
   draft: string;
   modelProfileId: string | null;
   init(): Promise<void>;
-  newConversation(): void;
+  /**
+   * 新建会话。`options.courseId` 只在课程页创建时传入（稳定归属，不因页面停留自动绑定）；
+   * 不带参数即普通未归属会话。
+   */
+  newConversation(options?: { courseId?: string; title?: string }): void;
   selectConversation(id: string): Promise<void>;
   renameConversation(id: string, title: string): Promise<void>;
   removeConversation(id: string): Promise<void>;
@@ -374,6 +390,7 @@ export function createChatStore(deps: ChatDeps = {}) {
         messages: active?.messages ?? [],
         draft: active?.draft ?? '',
         modelProfileId: active?.modelProfileId ?? null,
+        activeCourseId: active?.courseId ?? null,
         conversations: [...docs.values()]
           .filter((c) => !c.archived)
           .map(toMeta)
@@ -451,22 +468,20 @@ export function createChatStore(deps: ChatDeps = {}) {
       set({ sending: false });
       void flush();
     }
-    function create() {
+    function create(options?: { courseId?: string; title?: string }) {
       stop();
       selectionEpoch++;
       const id = uid();
-      docs.set(id, {
+      // 会话形状由 services/course-session.buildNewConversation 统一给出（课程页新建也用它，不建第二套形状）
+      docs.set(
         id,
-        title: '新的对话',
-        messages: [],
-        createdAt: now(),
-        updatedAt: now(),
-        schemaVersion: 1,
-        revision: 0,
-        draft: '',
-        modelProfileId: null,
-        mode: 'real',
-      });
+        buildNewConversation({
+          id,
+          ...(options?.courseId ? { courseId: options.courseId } : {}),
+          ...(options?.title ? { title: options.title } : {}),
+          now: now(),
+        }),
+      );
       set({ activeId: id });
       change(id, (conversation) => conversation);
     }
@@ -622,6 +637,7 @@ export function createChatStore(deps: ChatDeps = {}) {
       profile: ChatProfileSelection,
       replyToId: string,
       extensions?: TurnExtensionSnapshot,
+      courseSnapshot?: TurnCourseSnapshot,
     ) {
       const id = get().activeId!;
       const conversation = docs.get(id)!;
@@ -641,6 +657,12 @@ export function createChatStore(deps: ChatDeps = {}) {
         conversation.messages.filter((m) => !m.superseded && m.status !== 'error'),
         contextBudgetChars(profile.contextTokens, profile.maxOutputTokens),
       );
+      // 课程上下文（H1-COURSE-SESSIONS v1）：**如实进入既有真实请求链路**——
+      // 渲染为一条 system 消息插在请求 messages 最前（不新增请求字段、不改后端协议）。
+      // 预算裁剪在上一步完成，这里只追加已受 1200/2400 字符上限约束的课程块。
+      const requestMessages = courseSnapshot
+        ? [{ role: 'system' as const, content: courseContextMessage(courseSnapshot) }, ...history]
+        : history;
       change(id, (c) => ({
         ...c,
         messages: [
@@ -656,6 +678,8 @@ export function createChatStore(deps: ChatDeps = {}) {
             modelProfileId: profile.id,
             // 快照随消息冻结并持久化：重试沿用，目录后续变化不影响本轮与历史展示
             ...(extensions ? { extensions: structuredClone(extensions) } : {}),
+            // 课程快照同样随本轮冻结：课程改名/改约定只影响**新轮**，重试沿用原快照
+            ...(courseSnapshot ? { courseContext: structuredClone(courseSnapshot) } : {}),
           },
         ],
       }));
@@ -665,7 +689,7 @@ export function createChatStore(deps: ChatDeps = {}) {
           {
             sessionId: id,
             turnId,
-            messages: history,
+            messages: requestMessages,
             modelProfileId: profile.id,
             maxOutputTokens: profile.maxOutputTokens ?? undefined,
             ...(extensions ? { extensions: structuredClone(extensions) } : {}),
@@ -841,6 +865,8 @@ export function createChatStore(deps: ChatDeps = {}) {
       ready: false,
       loadError: null,
       storageWarning: null,
+      courseContextWarning: null,
+      activeCourseId: null,
       mode: 'real',
       conversations: [],
       activeId: null,
@@ -851,7 +877,8 @@ export function createChatStore(deps: ChatDeps = {}) {
       waitingInteractionId: null,
       submittingReply: false,
       init: runInit,
-      newConversation: create,
+      newConversation: (options?: { courseId?: string; title?: string }) => create(options),
+      dismissCourseContextWarning: () => set({ courseContextWarning: null }),
       async selectConversation(id) {
         stop();
         const epoch = ++selectionEpoch;
@@ -907,6 +934,23 @@ export function createChatStore(deps: ChatDeps = {}) {
         const effectiveProfile = resolveProfile(profile);
         if (!effectiveProfile) return; // 真实模式下缺少模型档案：由界面提示原因，不静默发送
         if (!get().activeId) create();
+        // 课程上下文：**发送时**按当前会话归属现读课程并冻结快照（新轮用新快照）
+        const activeCourseId = docs.get(get().activeId!)?.courseId;
+        const courseResolution = resolveCourseSnapshot(activeCourseId);
+        if (courseResolution.state === 'ok') {
+          set({ courseContextWarning: null });
+        } else if (courseResolution.state === 'missing') {
+          set({
+            courseContextWarning:
+              '所属课程已删除或不可用：本轮未附带课程上下文，已按普通问答发送（历史会话与消息保留）。',
+          });
+        } else if (courseResolution.state === 'unavailable') {
+          set({
+            courseContextWarning: `课程目录读取失败（${courseResolution.error}）：本轮未附带课程上下文，已按普通问答发送。`,
+          });
+        } else {
+          set({ courseContextWarning: null });
+        }
         const userId = uid();
         // 发送即冻结：深拷贝为独立数据，与扩展目录后续变化解耦
         const snapshot = extensions ? structuredClone(extensions) : undefined;
@@ -927,7 +971,12 @@ export function createChatStore(deps: ChatDeps = {}) {
         // R20：此刻轮次已被接纳（用户消息已入库）——同步通知调用方清理本次消耗的一次性选择；
         // 上方任何拒绝路径都会提前返回，不会误触发清理
         onAccepted?.();
-        await run(effectiveProfile, userId, snapshot);
+        await run(
+          effectiveProfile,
+          userId,
+          snapshot,
+          courseResolution.state === 'ok' ? courseResolution.snapshot : undefined,
+        );
       },
       stop,
       setAskDraft(interactionId, questionId, draft) {
@@ -996,8 +1045,8 @@ export function createChatStore(deps: ChatDeps = {}) {
             )
             .map((m) => (m.id === id ? { ...m, superseded: true } : m)),
         }));
-        // 重试沿用原请求快照，不读取最新目录替换旧配置；想采用新配置需重新发送
-        await run(effectiveProfile, user.id, last.extensions);
+        // 重试沿用原请求快照（含课程快照），不读取最新目录替换旧配置；想采用新配置需重新发送
+        await run(effectiveProfile, user.id, last.extensions, last.courseContext);
       },
       async retryLast(profile) {
         const last = get().messages.at(-1);

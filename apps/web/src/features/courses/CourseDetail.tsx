@@ -32,6 +32,7 @@ import {
 } from '@/services/courses-store';
 import '@/features/space/styles/space.css';
 import '@/features/courses/courses.css';
+import { CourseSessions } from './CourseSessions';
 
 export function CourseDetail() {
   const params = useParams<{ courseId: string }>();
@@ -179,10 +180,11 @@ export function CourseDetail() {
         <div className="space-banner info courses-note-banner" role="note">
           <Info size={14} aria-hidden />
           <span>
-            课程学习会话未接入：参考以 session.preferences.course_id 过滤课程会话，目标项目聊天会话尚未携带课程标记；
-            大纲与资料为本地目录，聚合进度（掌握/题库/阅读）未接入。
+            学习会话按课程 id 归属（旧会话未归属时保持未归属、不改写）；掌握度/题库/阅读聚合进度未接入，
+            以下大纲进度为学员手判。
           </span>
         </div>
+        <CourseSessions course={course} />
         {notice && (
           <div className="space-banner info" role="status">
             {notice}

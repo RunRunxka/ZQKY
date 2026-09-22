@@ -51,6 +51,8 @@ import {
 
 import { conversationProjection } from './model/context-budget';
 import { createIdbChatRepository } from '@/services/chat-repository';
+import { resolveCourse, courseAvailabilityLabel } from '@/services/course-session';
+import { subscribeCourses } from '@/services/courses-store';
 import { Message } from './Message';
 import { SessionPanel } from './SessionPanel';
 import { InfoPanel } from './InfoPanel';
@@ -189,6 +191,14 @@ function ChatPage({
   const [messageMissing, setMessageMissing] = useState(false);
   // R-10：来源会话失效时不自动打开最近会话，改为此空态（保留学习记录与主动返回）
   const [sessionUnavailable, setSessionUnavailable] = useState(false);
+  // 当前会话的课程归属（H1-COURSE-SESSIONS v1）：随 activeCourseId 与课程目录变化重算；
+  // 只按稳定 courseId 解析，不按标题/最近访问猜测，课程不可用时如实标注且不回落其他课程。
+  const [courseTick, bumpCourseTick] = useState(0);
+  useEffect(() => subscribeCourses(() => bumpCourseTick((value) => value + 1)), []);
+  const activeCourse = useMemo(() => {
+    void courseTick; // 课程目录变化时重算（改名/删除/读取失败）
+    return store.activeCourseId ? resolveCourse(store.activeCourseId) : null;
+  }, [store.activeCourseId, courseTick]);
   // R-10：当前要在会话内定位的消息 id（初值来自 URL，前进/后退可更新；切换会话时清空）
   const [targetMessageId, setTargetMessageId] = useState<string | undefined>(initialMessageId);
   const [dialog, setDialog] = useState<{
@@ -784,6 +794,32 @@ function ChatPage({
               <PanelRight size={17} />
             </button>
           </header>
+          {store.activeCourseId && activeCourse && (
+            <div className="chat-banner course" role="status" data-course-id={store.activeCourseId}>
+              {activeCourse.state === 'ok' ? (
+                <>
+                  <span>
+                    所属课程：<strong>{activeCourse.course.name}</strong>
+                  </span>
+                  <Link href={`/courses/${store.activeCourseId}`}>返回课程</Link>
+                </>
+              ) : (
+                <>
+                  <span>{courseAvailabilityLabel(activeCourse)}</span>
+                  {activeCourse.state === 'unavailable' && (
+                    <button onClick={() => bumpCourseTick((value) => value + 1)}>重试读取课程</button>
+                  )}
+                  <Link href="/courses">课程列表</Link>
+                </>
+              )}
+            </div>
+          )}
+          {store.courseContextWarning && (
+            <div className="chat-banner warn" role="alert">
+              {store.courseContextWarning}
+              <button onClick={() => store.dismissCourseContextWarning()}>知道了</button>
+            </div>
+          )}
           {sessionUnavailable && (
             <div className="chat-banner warn" role="status">
               来源会话已不存在或已被删除，无法打开。

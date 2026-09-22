@@ -106,6 +106,48 @@ class TestChatStreamEndpoint:
         assert events[3][1]["outputTokens"] == 4
         assert events[4][1]["finishReason"] == "stop"
 
+    def test_system_course_context_is_forwarded_to_provider(self, api_client, monkeypatch):
+        """课程上下文（system 消息）确实经本端点转发给供应商适配器的请求体。
+
+        宿主侧 H1-COURSE-SESSIONS v1 把课程名与约定渲染为一条 system 消息放在 messages 最前；
+        这里断言该消息逐条映射进 provider 请求体（roles 顺序一致），证明"浏览器 → FastAPI →
+        供应商适配器"三段中后两段真实有效（浏览器段由宿主 e2e 断言请求体覆盖）。
+        """
+        profile_id = setup_profile(api_client)
+        captured: dict[str, object] = {}
+
+        async def capture_stream(config, url, headers, body, transport=None):
+            captured["body"] = body
+            from types import SimpleNamespace
+
+            async def sse() -> AsyncIterator[tuple[str | None, str]]:
+                yield None, '{"choices":[{"delta":{"content":"收到"}}]}'
+                yield None, '{"choices":[{"delta":{},"finish_reason":"stop"}]}'
+                yield None, "[DONE]"
+
+            yield SimpleNamespace(status_code=200), sse()
+
+        patch_open_stream(monkeypatch, capture_stream)
+
+        response = api_client.post(
+            "/api/v1/chat/stream",
+            json={
+                "requestId": "req-course-0001",
+                "modelProfileId": profile_id,
+                "messages": [
+                    {"role": "system", "content": "课程名称：七年级数学（课程约定：先复习错题。）"},
+                    {"role": "user", "content": "什么是分数？"},
+                ],
+            },
+        )
+        assert response.status_code == 200, response.text
+        body = captured["body"]
+        assert isinstance(body, dict)
+        messages = body["messages"]
+        assert [item["role"] for item in messages] == ["system", "user"]
+        assert messages[0]["content"].startswith("课程名称：七年级数学")
+        assert messages[1]["content"] == "什么是分数？"
+
     def test_without_credential_is_http_error_before_stream(self, api_client):
         connection = api_client.post(
             "/api/v1/model-connections", json={**CONNECTION_PAYLOAD, "apiKey": None}

@@ -151,6 +151,25 @@ export interface TraceStageRecord {
   endedAt?: string;
 }
 
+/**
+ * 轮次课程快照（H1-COURSE-SESSIONS v1）：发送时从课程记录**冻结**的独立数据。
+ *
+ * - 随助手占位消息持久化：重试沿用原快照，不读取最新课程替换旧轮配置；课程修改只影响**新轮**。
+ * - `resources` 只承载"登记引用"信息（kind/label/可用性），**不代表内容已解析、已检索或已传给模型**。
+ * - 真实请求链路：快照渲染为一条 `system` 消息插在请求 messages 最前（见 chat-service/chat-stream）。
+ */
+export interface TurnCourseSnapshot {
+  courseId: string;
+  name: string;
+  /** 课程约定（course.instructions），按上限截断 */
+  conventions: string;
+  /** 大纲摘要（covered 为学员手判，不推断掌握度） */
+  syllabus: { total: number; covered: number; nextTitle: string | null };
+  /** 仅登记引用：不代表资源内容已解析/已检索/已传给模型 */
+  resources: { kind: string; label: string; availability: 'available' | 'missing' | 'unknown' }[];
+  frozenAt: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: ChatRole;
@@ -177,6 +196,8 @@ export interface ChatMessage {
   asks?: AskUserInteraction[];
   /** 本轮产物（artifact 事件按 id 幂等更新；随会话持久化，刷新只恢复不重放） */
   artifacts?: ChatArtifact[];
+  /** 本轮冻结的课程快照（发送时生成，重试沿用；未归属会话/课程不可用时缺省） */
+  courseContext?: TurnCourseSnapshot;
   /** 轮级计时（S3）：开始=助手占位创建；结束=end/error/取消收尾（完成后冻结时长显示） */
   startedAt?: string;
   finishedAt?: string;
@@ -194,6 +215,11 @@ export interface Conversation {
   mode?: ChatServiceKind;
   /** S5-A：学习空间归档位——聊天侧边栏隐藏已归档会话，/space/chat-history 可归档/恢复 */
   archived?: boolean;
+  /**
+   * 课程归属（H1-COURSE-SESSIONS v1）：稳定 courseId；缺失/空串 = 未归属（旧会话保持未归属，
+   * 不按标题、最近访问或 URL 猜测，也不因出现在某课程页而被改写）。
+   */
+  courseId?: string;
   id: string;
   title: string;
   messages: ChatMessage[];
@@ -207,6 +233,8 @@ export interface ConversationMeta {
   messageCount: number;
   createdAt: string;
   updatedAt: string;
+  /** 课程归属（缺失 = 未归属）：课程页按此过滤本课程会话 */
+  courseId?: string;
 }
 
 /** 对话上下文预算：1 token ≈ 2 个字符的保守估算（中文） */

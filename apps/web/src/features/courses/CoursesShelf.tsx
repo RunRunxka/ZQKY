@@ -65,7 +65,7 @@ export function CoursesShelf() {
               className="space-button"
               onClick={() => {
                 loadDemoCourses();
-                setNotice('已载入演示课程（重复载入不产生重复条目）。课程学习会话未接入（见页内说明）。');
+                setNotice('已载入演示课程（重复载入不产生重复条目）。可在课程详情创建学习会话并进入真实问答。');
               }}
             >
               <Sparkles size={14} />

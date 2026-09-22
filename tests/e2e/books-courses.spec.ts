@@ -135,7 +135,9 @@ test('课程：演示载入、大纲勾选与编辑重置、资源附加与不�
 
   await page.getByRole('link', { name: '打开课程 七年级数学（演示课程）' }).click();
   await expect(page).toHaveURL(/\/courses\/demo-course-math$/);
-  await expect(page.getByRole('note').filter({ hasText: '课程学习会话未接入' })).toBeVisible();
+  // H1-COURSE-SESSIONS v1：本页已有真实学习会话区（不再是"课程学习会话未接入"占位），本课程此时尚无会话
+  await expect(page.getByRole('heading', { name: '学习会话' })).toBeVisible();
+  await expect(page.getByText('本课程还没有学习会话')).toBeVisible();
   // 大纲：1/2 已完成，下一单元
   await expect(page.getByText(/大纲（1\/2 已完成，下一单元：一元一次方程）/)).toBeVisible();
   // 演示资源引用的知识库未载入 → 不可用态
