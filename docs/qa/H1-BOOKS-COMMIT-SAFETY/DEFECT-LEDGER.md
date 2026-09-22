@@ -34,6 +34,6 @@
 3. **前置条件失败是提交层结果**：重名、状态机不允许、重复/迟到事件、非 `user_note` 块都不再"返回原值假装成功"，而是 `skipped`/`missing` + 原因文案。
 4. **`storageFailureOnFinish` 注入保持不变**（最终完成写入失败 → `kind storage` 失败 + 「重试生成」不假完成）；本批把"最终完成写入失败"的判定从"抛错"扩展到"事务未提交"。
 5. **可恢复性**：`conflict` 不改变任何数据；UI 保留输入并可重试；重试在同一表单/同一条目上完成。
-6. **不宣称强原子性（Web Locks 之外的路径）**：jsdom 回退锁是"取号 + settle + 读回校验 + 写后校验"的启发式互斥，不是硬件级事务；生产浏览器走原生 Web Locks。真实"同一毫秒并发"由写后校验兜底（发现即 `conflict`，不静默丢失）。
+6. **不宣称强原子性（口径已订正）**：生产路径为原生 Web Locks；jsdom 路径为测试注入的 in-process 互斥——本批当时的 `localStorage` 回退锁已在 BOOKS-CS-FOLLOWUP v1 整体删除（无互斥即 `unsupported`，不降级写）。写后校验能发现窗口内的并发改写并如实报 `conflict`（不静默丢失），但不得声称「写后读回必然发现所有绕过协议的写入」：恰落在「校验之后、写入之前」的旁路写入不在保证范围内（BOOKS-CS-FOLLOWUP v1 任务卡 §6 订正口径；CS README §5.2 处置记录）。
 7. **F4（A1 低危，登记口径）**：`transactBook` 类路径返回的 `value` 是内存对象，其 `updatedAt` 可能与落库对象不同（集合写入路径有数据级写后读回）；已核所有消费者只读 `status`/`id`/`run.runId`，无人读 `updatedAt`、无人回写，故为契约措辞精度问题，非数据缺陷。
 8. **修约窗口内不改动**：`local-collection.ts`、集合键名与数据形态、R-11 三态、14 类 block、七态状态机、`paused` 不自动恢复、归档只读、旧数据（缺 status 按 ready 派生）全部保持。

@@ -31,11 +31,23 @@
 | 类型 | `npm run typecheck` | 通过 |
 | 静态检查 | `npm run lint`（`--max-warnings=0`） | 通过，0 警告 |
 | 单元测试 | `NODE_OPTIONS=--no-experimental-webstorage npm run test:unit` | **49 文件 / 403 例通过**（上一批 48/389） |
-| 构建 | `npm run build`（总控自跑） | 通过，`BUILD_ID = kuKTXV4Pi5WG0pN37WJCr`（迭代见 §4） |
+| 构建 | `npm run build`（总控自跑） | 通过，**本候选最终 `BUILD_ID = YhmHpWDKx-EgSf1pGHkZh`**（迭代见 §4；候选指纹见 §3.1） |
 | 书籍 e2e | `npx playwright test tests/e2e/books-commit-safety.spec.ts tests/e2e/books-pipeline.spec.ts tests/e2e/books-courses.spec.ts` | **26 例通过**（6 commit-safety + 14 pipeline + 6 courses） |
 | 后端 | 未运行 | `apps/api` 零改动 |
 
 未执行：全量前端 e2e（与课程批集成后由队长跑一次）、真实浏览器进程级并发（e2e 为同 context 双标签页）、CSS/视觉/动画（本批无样式改动）。
+
+### 3.1 候选与指纹（A1 复验与交付卡口用，2026-09-22）
+
+| 项 | 值 |
+| --- | --- |
+| 候选提交 | `a45b0116be1a143bfc9c7efb9d3b836fa5f7e575`（父 `d2638f27e2970dc60218ec9e9aed8f517bf6e437`，分支 `main`） |
+| 树 / diff 散列 | tree `d1db11b3ed364707714ee4613e21a380e55028c3`；`d2638f2..a45b011` diff `d84fb7af29c73b8f489fbff8a37ed226db5dc820` |
+| 构建 | `BUILD_ID = YhmHpWDKx-EgSf1pGHkZh`（mtime `2026-09-22 18:27:35`，晚于候选全部产品源文件；产物内含「当前浏览器不支持写入所需的互斥」「长时间被其他标签页占用」等候选专属字符串，可自证 e2e 跑的就是本候选产物） |
+| 差异范围 | 14 文件，+1204/−330；无 `apps/api`、`features/courses/**`、`features/chat/**`、`services/chat-*.ts`、`contracts/**`、`*.css`、`.env*`、`.local-data`、构建产物；`local-collection.ts` 与 `next-env.d.ts` 不在提交 |
+| 逐文件 sha256（前 16 位） | `BooksRoute.test.tsx 6be4b885b7f04260`、`BooksRoute.tsx bd575c4d40f41e09`、`PageReader.test.tsx d530a67f28b66fbf`、`book-generation.test.ts b5222a76addca568`、`book-generation.ts d669b7a74817940c`、`books-store.harden.test.ts 424e852f4b144f67`、`books-store.test.ts 829c10c96c243a71`、`books-store.ts 9c773d76b701c7a1`、`collection-lock.test.ts 58f634961a6c0483`、`collection-lock.ts f3e8740974ffa843`、`courses-store.test.ts 5ee52d8bbc005918`、`docs/qa/.../README.md 7d8ec94a19b9ffa6`、`TASK-CARD.md 57f5b3352a173773`、`tests/e2e/books-commit-safety.spec.ts 5bc106ed248c8d11` |
+
+独立验收（A1，只读）结论见 [A1-REPORT.md](A1-REPORT.md)：代码与测试层面可交付；其 W1/W2 文档卡口已在本文件与 CS 批次文档中关闭（见 §4.1）。
 
 ## 4. 迭代与首败（如实记录）
 
@@ -43,11 +55,17 @@
 - 队长集成首败：
   1. 背压缺失导致"持锁暂停"e2e 在第二段失败（执行器在锁被占期间跑到收尾并以存储失败终止）→ 引入背压 + 预算后通过；
   2. 同一条 e2e 另有**测试自身缺陷**：`getByText('生成已暂停')` 命中 3 个元素（横幅标题、横幅正文、活动条阶段）触发 strict mode violation → 断言改为限定容器（`.book-pipeline-paused` 与活动条）；该失败经页面快照确认"暂停其实已成功"，属测试写法问题而非产品缺陷。
-- 构建迭代：`z5Qhnq8sK9Tm4rGTgWEtQ`（首轮）→ `kuKTXV4Pi5WG0pN37WJCr`（背压修复后）→ `YhmHpWDKx-EgSf1pGHkZh`（有界最尽力写盘后）→ 最终候选见 FROZEN 记录。
+- 构建迭代：`z5Qhnq8sK9Tm4rGTgWEtQ`（首轮）→ `kuKTXV4Pi5WG0pN37WJCr`（背压修复后）→ `YhmHpWDKx-EgSf1pGHkZh`（有界最尽力写盘后）= **本批候选**：本地提交 `a45b011`（树 `d1db11b3ed364707714ee4613e21a380e55028c3`，`d2638f2..a45b011` diff `d84fb7af29c73b8f489fbff8a37ed226db5dc820`）；逐文件哈希见 §3.1。
+
+### 4.1 A1 交付卡口关闭（W1/W2，仅文档，2026-09-22）
+
+- **W1**：CS 批次文档对已删除回退锁的描述已在 [H1-BOOKS-COMMIT-SAFETY/README.md](../H1-BOOKS-COMMIT-SAFETY/README.md)（§3 第 1 条、「测试路径说明」、§5）与 [DEFECT-LEDGER.md](../H1-BOOKS-COMMIT-SAFETY/DEFECT-LEDGER.md)（「语义变化」第 6 条）共 4 处就地加注现状口径，并新增 CS README §5.2 处置记录；原始表述保留在 git 历史（`b8136dd`）中，原始测试数字与结论未被改写。**同时按任务卡 §6 明确「写后读回不必然发现所有绕过协议的写入」。**
+- **W2**：本文件构建号更正为 `YhmHpWDKx-EgSf1pGHkZh`，删去不存在的「FROZEN 记录」引用，改为候选提交 `a45b011` + tree/diff/逐文件哈希（见 §3.1），满足任务卡 §7.4 的候选/指纹落盘要求。
+- 两项均**只改文档**：产品与测试文件零改动，`a45b011` 的代码指纹与全部测试证据（49/403、26 例 e2e）继续成立，无需重新冻结或重跑。
 
 ## 5. 边界与已知行为
 
 - 无原生 Web Locks 的浏览器上书籍**写**功能不可用（读取/草稿/导出不受影响）——这是本补丁的明确取舍；如产品需支持旧浏览器，正解是引入真实 CAS 或服务端，而不是恢复启发式回退锁。
 - 锁被长时间占用（>20s 连续冲突）时整轮按 storage 失败收尾；若此刻失败原因也写不进存储，书籍停留在 `compiling`（界面显示"已中断 + 继续生成"，不假报完成），释放后可从断点恢复。
-- 仍不宣称强原子性：写后校验能发现写入窗口内的常见并发改写并如实报 `conflict`，但等价于同时写入的亚毫秒窗口无法证明；口径已在文档中订正（不得声称"必然发现所有绕过协议的写入"）。
+- 仍不宣称强原子性：写后校验能发现写入窗口内的常见并发改写并如实报 `conflict`，但等价于同时写入的亚毫秒窗口无法证明；口径已在本批订正——CS 批次 [README](../H1-BOOKS-COMMIT-SAFETY/README.md)（§3/§5 就地加注 + §5.2 处置记录）与 [DEFECT-LEDGER](../H1-BOOKS-COMMIT-SAFETY/DEFECT-LEDGER.md)「语义变化」第 6 条改为现状口径，不再声称「写后读回必然发现所有绕过协议的写入」。
 - 未覆盖：真实两浏览器进程/两 profile 并发、>1.5s 空档长临界区的真实 Web Locks 实测、移动端与逐帧动画。

@@ -29,7 +29,7 @@
 
 ## 3. 关键实现
 
-1. **`services/collection-lock.ts`（新建）**：集合写锁。生产路径 = 原生 Web Locks（`navigator.locks`，exclusive，锁随上下文销毁释放，无悬挂锁；等待预算由 `AbortSignal` 控制）；回退路径（jsdom）= `localStorage` 锁记录 `{owner,nonce,ticket,acquiredAt}` + 取号后 settle + 读回校验 + 退避重试；同标签页请求经模块级队列串行，临界区内嵌套请求入队延后（不重入、不死锁）。
+1. **`services/collection-lock.ts`（新建）**：集合写锁。生产路径 = 原生 Web Locks（`navigator.locks`，exclusive，锁随上下文销毁释放，无悬挂锁；等待预算由 `AbortSignal` 控制）；**本批 jsdom 路径曾用 `localStorage` 回退锁（`{owner,nonce,ticket,acquiredAt}` + 取号 settle + 读回校验），该路径已在 BOOKS-CS-FOLLOWUP v1 整体删除**：无原生 Web Locks 即 `unavailable`（`unsupported`，不降级写），jsdom 单测改经 `__setCollectionLockProviderForTests` 注入 in-process 互斥；同标签页请求经模块级队列串行，临界区内嵌套请求入队延后（不重入、不死锁）。
 2. **`services/books-store.ts`**：`CommitResult`/`CommitStatus` 契约与 `transactCollection` 事务核心——锁内读快照 → 应用变更 → 写修订号 → **校验修订号仍属本事务** → 写数据 → **写后读回校验**；校验不过则在最新快照上整事务重做（≤3 次，收敛），预算耗尽返回 `conflict`。全部写函数改为异步返回 `CommitResult`；幂等操作（已读状态已满足、演示书已齐、已有检查点）不写盘。
 3. **`services/book-generation.ts`**：落库闸门 `applyStored` 返回 `applied/dropped/failed` 并等待事务；`flush` 串到 `state.flushChain` 保证顺序；`startRun`/`resumeRun`/`stopRun`/`handle.pause|stop` 改为等待"状态与事件真正落库"；修复入口同步返回 Promise（保持"同目标复用同一 Promise"），运行身份异步填充但**在任何块写入前完成**；复位写入校验 `committed` 后才进入逐块补生成。
 4. **UI 迁移**：`BooksRoute`（载入演示/删除/创建/确认提案/确认大纲/重建/暂停/恢复/重试）与 `PageReader`（已读登记/书签/笔记/作答）全部按提交结果决定提示与跳转；失败保留输入/草稿并给出可重试入口；新增"阅读进度未保存""作答未保存"两条如实提示。
@@ -44,12 +44,12 @@
 
 E2E：既有 174 例 + 新增 `tests/e2e/books-commit-safety.spec.ts` **4 例**（真实双标签页）：① 另一标签页持有写锁时创建如实失败并保留输入、释放后重试成功；② 双标签页并发写不同书两边内容都保留且**无悬挂锁**（`navigator.locks.query()` 无 held/pending、localStorage 无锁记录）；③ 生成与人工编辑并发（另一标签页写笔记，生成完成后笔记仍在且书籍达到可阅读）；④ 持锁时删除不假成功、释放后可删除。
 
-**测试路径说明**：真实浏览器走原生 Web Locks（e2e 证据）；jsdom 单测走 localStorage 回退锁（单测证据），单测通过测试钩子缩短 settle 窗口（不影响被测语义）。两条路径的证据分别记录，不互相冒充。
+**测试路径说明**：真实浏览器走原生 Web Locks（e2e 证据）；jsdom 单测走**测试注入的 in-process 互斥**（`__setCollectionLockProviderForTests(createInMemoryCollectionLockProvider())`，单测证据）。本批当时的“jsdom 回退锁 + 缩短 settle 窗口”路径已在 BOOKS-CS-FOLLOWUP v1 整体删除（无互斥即 `unsupported`），见该批 README §2.1 与本文 §5.2 处置记录。两条路径的证据分别记录，不互相冒充。
 
 ## 5. 设计选择与如实边界
 
 - **为什么不是"再多重试/再加一次读回"**：原缺陷 2 的窗口在"检测之后、写入之前"，任何写前检测都挡不住；必须让写入本身进入互斥临界区。本批因此引入锁 + 事务，而不是加参数。
-- **不宣称强原子性**：回退锁是启发式的（无 CAS）；生产浏览器路径为原生 Web Locks。极端窗口内绕过协议的第三方直写会被写后校验发现并如实报 `conflict`（不静默丢失）。
+- **不宣称强原子性**：生产路径为原生 Web Locks；单测路径为测试注入的 in-process 互斥（本批当时的 `localStorage` 回退锁已在 BOOKS-CS-FOLLOWUP v1 删除）。写后读回校验能发现窗口内常见的并发改写并如实报 `conflict`（不静默丢失），但**不得声称“写后读回必然发现所有绕过协议的写入”**——绕过本协议、恰落在“校验之后、写入之前”的写入不在保证范围内。该口径按 BOOKS-CS-FOLLOWUP v1 任务卡 §6 就地订正，处置记录见 §5.2。
 - **接口异步化**：全部写 API 改为 `Promise<CommitResult<…>>`，调用方逐个迁移；参数校验（空名/超长）仍以 `BookValidationError` 拒绝，前置条件（重名、状态机不允许、重复迟到事件）为 `skipped`。
 - **不改动**：集合键名与数据形态、`local-collection.ts` 语义（其他模块存储不受影响）、R-11 三态、14 类 block、七态状态机、`paused` 不自动恢复、归档只读、旧数据（缺 status 按 ready 派生）、显式模拟标注。
 
@@ -58,6 +58,10 @@ E2E：既有 174 例 + 新增 `tests/e2e/books-commit-safety.spec.ts` **4 例**�
 A1 判 **可交付（条件通过）**：CS-01/CS-02 的修复在源码级、单测与真实双标签页浏览器三层独立成立；`48/389`、`178/0/0`、`BUILD_ID`、探针 `2/2 失败`、`lint 0 警告`、`tsc --noEmit` 均由其本机复现，12 指纹首/中/尾三次一致。全文见 [A1-REPORT.md](A1-REPORT.md)。
 
 - **交付前已处置（不触及产品/测试文件，12 指纹不变）**：F1 更正单测基线为"上一批 48/381 → 本批 48/389（+8 例、无新文件）"；F2 提交前还原 `apps/web/next-env.d.ts`（构建生成文件）；F3 更正探针 2 的具名失败原因（首个失败在 `expect(injected).toBe(true)`，而非 `peerReadBack`）；F9 `frozenAt` 标注为名义冻结时刻。
+
+### 5.2 BOOKS-CS-FOLLOWUP v1 之后的处置记录（r2，2026-09-22）
+
+前置补丁 BOOKS-CS-FOLLOWUP v1 整体删除了本批的 `localStorage` 回退锁，并新增 `unsupported` 提交状态；据此，本文件原先描述回退锁的三处（§3 第 1 条、§3「测试路径说明」、§5「不宣称强原子性」）与 `DEFECT-LEDGER.md`「语义变化」第 6 条已**就地加注现状口径**（原始表述保留在 git 历史中可查：本批交付提交 `b8136dd`；处置不改写原始测试数字与结论）。同时按 FOLLOWUP v1 任务卡 §6 明确：**不得声称“写后读回必然发现所有绕过协议的写入”**——写后校验的保证范围只覆盖落在校验窗口内的并发改写，旁路写入不在保证内。本订正只涉及文档，不触及产品与测试文件，本批候选指纹与全部测试证据不变。
 - **登记为已知边界、留待下一批（改动会触及产品文件，需重新冻结与复验）**：
   1. **F5（低，无数据风险）**：`handle.pause()/resume()` 不检查 `pauseBookRun/resumeBookRun` 的提交结果（`book-generation.ts` 对应行）——持锁时点击暂停会出现"提示已暂停但存储仍为 compiling"，可恢复、无假成功；建议按提交结果分支并如实提示。
   2. **F6（低，死分支）**：`book-generation.ts` 中 `if (!applied) continue;` 恒不成立（`applyStored` 返回 `applied/dropped/failed` 非空字符串）；无行为后果，属误导性分支，建议删除。
