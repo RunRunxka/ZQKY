@@ -679,10 +679,15 @@ function BookWorkspace({ bookId, pageId }: { bookId: string; pageId?: string }) 
     setRunUi((current) => ({ ...current, pausing: true }));
     void (async () => {
       try {
-        // 等待"写盘 + 暂停状态提交"完成再解除忙态（不再用固定 600ms 掩盖结果）
-        await handle.pause();
+        // 等待"写盘 + 暂停状态提交"的**真实结果**：只有提交成功才算已暂停（F5）
+        const result = await handle.pause();
+        if (!result.paused) {
+          // 未提交：执行器仍在继续，如实提示失败原因，用户可重试（不显示"已暂停"）
+          setNotice(`暂停未保存：${result.message ?? '本地存储暂不可写，请稍后重试。'}`);
+          return;
+        }
       } catch {
-        setNotice('暂停时本地保存失败：已停止生成，可稍后重试。');
+        setNotice('暂停未保存：本地保存失败，生成仍在继续，可稍后重试。');
       } finally {
         setRunUi((current) => ({ ...current, pausing: false }));
       }
@@ -701,6 +706,8 @@ function BookWorkspace({ bookId, pageId }: { bookId: string; pageId?: string }) 
             '无法继续生成：本书当前不是可恢复状态，或已有其他标签页在执行，或本地存储暂不可写（可稍后重试）。',
           );
         }
+      } catch {
+        setNotice('恢复未保存：本地存储暂不可写，本书仍是暂停状态，可稍后重试。');
       } finally {
         setRunUi((current) => ({ ...current, resuming: false }));
       }
@@ -718,6 +725,8 @@ function BookWorkspace({ bookId, pageId }: { bookId: string; pageId?: string }) 
             '无法重试生成：本书缺少可恢复的运行记录，或已有其他标签页在执行，或本地存储暂不可写（可稍后重试）。',
           );
         }
+      } catch {
+        setNotice('重试生成失败：本地存储暂不可写，本书仍保持失败状态，可稍后重试。');
       } finally {
         setRunUi((current) => ({ ...current, retrying: false }));
       }

@@ -291,8 +291,12 @@ function writeWriteStamp(collectionKey: string, stamp: WriteStamp): void {
 // ===== 提交结果契约与事务入口（H1-BOOKS-COMMIT-SAFETY v1） =====
 
 /**
- * 提交状态：**必须区分**"已提交/冲突/记录不存在/变更不适用/读取失败/写入失败"。
+ * 提交状态：**必须区分**"已提交/冲突/记录不存在/变更不适用/读取失败/写入失败/环境不支持互斥"。
  * 任何非 committed 状态的 `value` 都是 null——绝不返回内存候选值冒充保存结果。
+ *
+ * `unsupported`（BOOKS-CS-FOLLOWUP v1）：当前浏览器没有写入所需的互斥设施（原生 Web Locks），
+ * 本次修改**未保存**；界面内容保留、读取与草稿不受影响，可在支持的浏览器重试。
+ * 该状态不得被折叠成"已保存"或"稍后自动重试"——宁可不写，也不做无法保证互斥的写入。
  */
 export type CommitStatus =
   | 'committed'
@@ -300,7 +304,8 @@ export type CommitStatus =
   | 'missing'
   | 'skipped'
   | 'read-failed'
-  | 'write-failed';
+  | 'write-failed'
+  | 'unsupported';
 
 export interface CommitResult<T = undefined> {
   status: CommitStatus;
@@ -329,6 +334,8 @@ export function commitStatusMessage(status: CommitStatus): string {
       return '本地数据读取失败（或已损坏），为保护原数据未做任何写入。';
     case 'write-failed':
       return '本地保存失败（存储可能已满）；本次修改已回滚，原数据保留。';
+    case 'unsupported':
+      return '当前浏览器不支持写入所需的互斥（Web Locks），本次修改未保存；界面内容保留，可在支持的浏览器重试。';
   }
 }
 
@@ -366,10 +373,13 @@ interface BookMutateOutcome<V> {
 /**
  * 集合事务：在互斥临界区内完成"读快照 → 变更 → 写修订号 → 写数据 → 写后校验"。
  *
- * 与 H1-BOOKS-HARDEN v1 的写标记方案的关键差别：**互斥由集合锁提供**（Web Locks / 回退锁），
+ * 与 H1-BOOKS-HARDEN v1 的写标记方案的关键差别：**互斥由集合锁提供**（生产：原生 Web Locks），
  * "检测之后、写入之前"的并发窗口不再是裸露的；修订号与写后读回只作为"事务未被外部写入者破坏"
  * 的校验。校验不通过 → 在**最新快照**上整事务重做（因此收敛），预算耗尽 → conflict，
  * **任何非 committed 结果都不返回候选值**。
+ *
+ * 无原生 Web Locks 时不得静默降级：`withCollectionLock` 返回 `unavailable`，这里映射为
+ * `unsupported`（不写、不报成功）；读取路径不取锁，因此读取与草稿不受影响。
  */
 const COMMIT_ATTEMPTS = 3;
 
@@ -436,8 +446,9 @@ async function transactCollection<T, V>(
       return { kind: 'committed' as const, value: outcome.value as V, wrote: true as const };
     });
     if (!locked.ok) {
-      // 未取得锁（预算内未收敛）：保留输入、可重试；绝不返回候选值
-      return failed<V>('conflict');
+      // 未取得锁：预算内未收敛 → conflict（可重试）；环境无可用互斥 → unsupported（如实说明未保存）。
+      // 两者都不返回候选值、都不写盘；读取与草稿不受影响。
+      return locked.reason === 'unavailable' ? failed<V>('unsupported') : failed<V>('conflict');
     }
     const outcome = locked.value;
     if (outcome.kind === 'committed') {

@@ -34,8 +34,10 @@ import {
   type ReplicaBook,
 } from './books-store';
 import {
+  __getCollectionLockProviderKindForTests,
   __resetCollectionLockQueuesForTests,
-  __setCollectionLockOptionsForTests,
+  __setCollectionLockProviderForTests,
+  createInMemoryCollectionLockProvider,
 } from './collection-lock';
 
 // ===== 提交包装（仅测试）：等待事务，非 committed 直接判失败，返回落库后的真实值 =====
@@ -50,8 +52,10 @@ async function saved<T>(pending: Promise<CommitResult<T>>): Promise<T> {
 beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
-  // 仅测试：缩短回退锁的 settle 窗口（不影响被测语义，只加快用例；真实浏览器走 Web Locks）
-  __setCollectionLockOptionsForTests({ waitMs: 200, settleMs: 4, staleMs: 1500 });
+  // jsdom 没有原生 Web Locks：显式注入 in-process 互斥 provider（生产路径只认原生 Web Locks，
+  // 无互斥时写会返回 unsupported）。注入是否生效由返回值 + 当前 kind 断言 —— 注入失败即测试失败。
+  expect(__setCollectionLockProviderForTests(createInMemoryCollectionLockProvider())).toBe(true);
+  expect(__getCollectionLockProviderKindForTests()).toBe('in-memory');
 });
 
 afterEach(() => {

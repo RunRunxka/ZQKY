@@ -32,12 +32,18 @@ vi.mock('@/services/book-generation', () => ({
 
 import { BooksRoute } from './BooksRoute';
 import { createBook } from '@/services/books-store';
+import {
+  __setCollectionLockProviderForTests,
+  createInMemoryCollectionLockProvider,
+} from '@/services/collection-lock';
 
 const BOOKS_KEY = 'zhiqikeyuan:books';
 
 beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
+  // 仅测试：注入 in-process 互斥 provider（jsdom 无 Web Locks，不注入时写会返回 unsupported）
+  expect(__setCollectionLockProviderForTests(createInMemoryCollectionLockProvider())).toBe(true);
   paramsMock.value = {};
   vi.stubGlobal(
     'matchMedia',

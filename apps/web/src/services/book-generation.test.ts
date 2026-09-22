@@ -28,10 +28,68 @@ import {
   stopRun,
 } from './book-generation';
 import {
+  __getCollectionLockProviderKindForTests,
   __resetCollectionLockQueuesForTests,
-  __setCollectionLockOptionsForTests,
+  __setCollectionLockProviderForTests,
+  collectionLockName,
+  createInMemoryCollectionLockProvider,
+  type CollectionLockProvider,
 } from './collection-lock';
 import { quizAttemptMatches } from './books-store';
+
+/**
+ * 受控注入（F7 回归）：包装仓储导出，让"复位提交成功之后"的第二次 `readBooks()` 抛错——
+ * 第一次是 runRepair 的 read0（readBookForRun 自带 catch，不会逃逸），第二次正是 `planPage` 的
+ * **裸读**，也就是旧实现里异常逃出 IIFE、修复 Promise 永不 settle 的位置。
+ *
+ * 只在用例显式 `enableOnce()` 后、且复位提交成功的那一次触发（`used` 一次性）；
+ * `disable()` 撤除后不再武装——避免污染其它用例的读取（afterEach 先撤除再清理）。
+ */
+const planReadInjection = vi.hoisted(() => {
+  const inner = { enabled: false, used: false, calls: 0 };
+  return {
+    /** 允许本次用例触发一次注入（复位提交成功时武装） */
+    enableOnce(): void {
+      inner.enabled = true;
+      inner.used = false;
+      inner.calls = 0;
+    },
+    /** 撤除注入：不再武装，读取恢复正常 */
+    disable(): void {
+      inner.enabled = false;
+      inner.used = false;
+      inner.calls = 0;
+    },
+    armOnResetCommitted(): void {
+      if (inner.enabled && !inner.used) {
+        inner.used = true;
+        inner.calls = 0;
+      }
+    },
+    shouldThrow(): boolean {
+      if (!inner.used) return false;
+      inner.calls += 1;
+      return inner.calls >= 2;
+    },
+  };
+});
+
+vi.mock('./books-store', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./books-store')>();
+  return {
+    ...actual,
+    readBooks: () => {
+      if (planReadInjection.shouldThrow()) throw new Error('plan read denied（受控注入）');
+      return actual.readBooks();
+    },
+    regeneratePage: async (bookId: string, pageId: string) => {
+      const result = await actual.regeneratePage(bookId, pageId);
+      // 复位**提交成功**后才武装（复位失败/冲突时注入不触发；每次用例最多触发一次）
+      if (result.status === 'committed') planReadInjection.armOnResetCommitted();
+      return result;
+    },
+  };
+});
 
 /** 提交包装（仅测试）：等待事务，非 committed 直接判失败，返回落库后的真实值 */
 async function saved<T>(pending: Promise<CommitResult<T>>): Promise<T> {
@@ -42,14 +100,60 @@ async function saved<T>(pending: Promise<CommitResult<T>>): Promise<T> {
   return result.value;
 }
 
+/**
+ * jsdom 没有原生 Web Locks（生产路径只认它，缺失即 `unavailable`）：按任务卡显式注入
+ * in-process 互斥 provider。注入是否生效必须可见（返回值 + 当前 kind 断言），
+ * 否则写路径会返回 `unsupported`——测试应失败，而不是静默放行。
+ */
+function installInMemoryLockProvider(): void {
+  expect(__setCollectionLockProviderForTests(createInMemoryCollectionLockProvider())).toBe(true);
+  expect(__getCollectionLockProviderKindForTests()).toBe('in-memory');
+}
+
+/**
+ * 可挂起的 provider：held 期间 acquire 立即返回 null（等同"另一写入者一直持锁"），
+ * 释放后恢复真实 in-process 互斥。用于构造"锁被占 → 提交不成功"的确定性场景。
+ */
+function installGatedLockProvider(): { hold: () => void; release: () => void } {
+  const inner = createInMemoryCollectionLockProvider();
+  let held = false;
+  const provider: CollectionLockProvider = {
+    kind: 'in-memory',
+    acquire: (name, waitMs) => (held ? Promise.resolve(null) : inner.acquire(name, waitMs)),
+  };
+  expect(__setCollectionLockProviderForTests(provider)).toBe(true);
+  return {
+    hold: () => {
+      held = true;
+    },
+    release: () => {
+      held = false;
+    },
+  };
+}
+
+/** 限定时间内必须 settle（悬挂的 Promise 在这里以超时报错暴露，而不是永久挂起用例） */
+function withTimeout<T>(pending: Promise<T>, timeoutMs: number): Promise<T> {
+  return Promise.race([
+    pending,
+    new Promise<T>((_resolve, reject) => {
+      setTimeout(
+        () => reject(new Error(`Promise 未在 ${timeoutMs}ms 内 settle（悬挂）`)),
+        timeoutMs,
+      );
+    }),
+  ]);
+}
+
 beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
-  // 仅测试：缩短回退锁 settle（不改变被测语义；真实浏览器走 Web Locks，e2e 覆盖）
-  __setCollectionLockOptionsForTests({ waitMs: 200, settleMs: 4, staleMs: 1500 });
+  installInMemoryLockProvider();
 });
 
 afterEach(async () => {
+  // 先撤除读取注入，再清理执行器（否则 afterEach 自身的读取也会被注入抛错打断，污染后续用例）
+  planReadInjection.disable();
   // 清理执行器与定时器，避免用例间串扰（stopRun 会等待落库后停止）
   for (const book of readBooks()) {
     await stopRun(book.id, 'test-cleanup');
@@ -144,7 +248,8 @@ describe('book-generation 执行器', () => {
 
     // 等第一页完成
     await waitFor(() => (getBookPages(compiling.id)[0]?.status ?? 'pending') === 'ready');
-    await handle.pause();
+    const pauseResult = await handle.pause();
+    expect(pauseResult).toEqual({ paused: true }); // 只有提交成功才报"已暂停"
     const paused = readBooks().find((item) => item.id === compiling.id)!;
     expect(paused.status).toBe('paused');
     expect(paused.run?.pauseKind).toBe('user');
@@ -827,4 +932,145 @@ describe('H1-BOOKS-HARDEN v1 缺陷回归（原探针断言反转）', () => {
     const stored = getBookPage(book.id, page.id)!;
     expect(stored.blocks.some((block) => block.status === 'ready')).toBe(false);
   }, 25000);
+});
+
+/**
+ * BOOKS-CS-FOLLOWUP v1 回归（A1 挑刺 F5/F7/F8）。
+ * 三条都由"先写出可复现断言、在未修复源码上失败"的方式建立：失败证据见结果卡。
+ */
+describe('BOOKS-CS-FOLLOWUP v1 回归（控制操作分支、修复收尾、启动去重）', () => {
+  it('F5 持锁时暂停：返回未暂停、执行器仍在、存储仍 compiling；释放锁后再暂停成功', async () => {
+    const compiling = await setupCompiling('暂停提交分支书');
+    const runId = compiling.run!.runId;
+    const gate = installGatedLockProvider();
+    const handle = (await startRun(compiling.id, { scenario: { stageDelayMs: 5, blockDelayMs: 400 } }))!;
+    expect(handle).not.toBeNull();
+
+    // 锁被占（等同"另一个标签页正在写"）：暂停状态提交不成功
+    gate.hold();
+    const denied = await handle.pause();
+    expect(denied.paused).toBe(false);
+    expect(denied.message).toBeTruthy();
+    // 未提交 → 执行器继续跑（不改成 paused、不释放租约）
+    expect(getRun(compiling.id)).not.toBeNull();
+    expect(handle.status).toBe('running');
+    const still = readBooks().find((item) => item.id === compiling.id)!;
+    expect(still.status).toBe('compiling');
+    expect(still.run?.pauseKind).toBeUndefined();
+    expect(getLease(compiling.id)).not.toBeNull();
+
+    // 释放锁 → 同一句柄再暂停：这次真的提交并收尾
+    gate.release();
+    const accepted = await handle.pause();
+    expect(accepted).toEqual({ paused: true });
+    const paused = readBooks().find((item) => item.id === compiling.id)!;
+    expect(paused.status).toBe('paused');
+    expect(paused.run?.pauseKind).toBe('user');
+    expect(paused.run?.runId).toBe(runId);
+    expect(getRun(compiling.id)).toBeNull();
+    expect(getLease(compiling.id)).toBeNull();
+  }, 20000);
+
+  it('F7 复位提交成功后计划读取被拒：修复 Promise 在限定时间内以 failed 收尾、注册项清理且可再次发起', async () => {
+    const book = await setupCompiling('计划读取失败书');
+    await startRun(book.id, { scenario: FAST });
+    await waitFor(() => readBooks().find((item) => item.id === book.id)!.status === 'ready');
+    const pageId = getBookPages(book.id)[1]!.id;
+
+    // 复位（仓储）提交成功 → 注入武装 → 复位后的 planPage 裸读抛错
+    planReadInjection.enableOnce();
+    const pending = regeneratePageExec(book.id, pageId);
+    const result = await withTimeout(pending, 4000); // 旧实现：异常逃出 IIFE → 永不 settle → 这里超时
+    expect(result.status).toBe('failed');
+    expect(result.error).toContain('plan read denied');
+    expect(getRepair(book.id, pageId)).toBeNull(); // 注册项已清：界面忙态退出、同页可再发起
+
+    // 撤除注入后同页再发起：可以正常完成（不会复用永不 settle 的 Promise）
+    planReadInjection.disable();
+    const again = regeneratePageExec(book.id, pageId);
+    expect(again).not.toBe(pending);
+    const recovered = await withTimeout(again, 15000);
+    expect(recovered.status).toBe('completed');
+    expect(getBookPage(book.id, pageId)!.blocks.every((block) => block.status === 'ready')).toBe(true);
+  }, 25000);
+
+  it('F8 并发两次 startRun：启动中占位去重，只有一个执行器、租约只获取一次', async () => {
+    const compiling = await setupCompiling('并发启动书');
+    const leaseKey = `zhiqikeyuan:book-lease:${compiling.id}`;
+    const originalSet = Storage.prototype.setItem;
+    let leaseWrites = 0;
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (
+      this: Storage,
+      name: string,
+      value: string,
+    ) {
+      if (name === leaseKey) leaseWrites += 1;
+      return originalSet.call(this, name, value);
+    });
+
+    // 长准备段：两次启动在同一窗口内并发（第二次必须被"启动中占位"接住）
+    const scenario = { stageDelayMs: 5000, blockDelayMs: 5000 };
+    const [h1, h2] = await Promise.all([
+      startRun(compiling.id, { scenario }),
+      startRun(compiling.id, { scenario }),
+    ]);
+    spy.mockRestore();
+
+    expect(h1).not.toBeNull();
+    expect(h2).toBe(h1); // 同一次启动过程 → 同一句柄，不产生第二个执行器
+    expect(leaseWrites).toBe(1); // 租约只写一次（无第二个执行器覆盖/接管）
+    expect(getRun(compiling.id)).not.toBeNull();
+    expect(getLease(compiling.id)!.runId).toBe(compiling.run!.runId);
+  }, 20000);
+});
+
+describe('写冲突预算重试（集成决策，BOOKS-CS-FOLLOWUP v1）', () => {
+  const BOOKS_KEY = 'zhiqikeyuan:books';
+
+  it('其他标签页短暂持锁：flush 在预算内重试，生成最终完成而不是被判存储失败', async () => {
+    const book = await setupCompiling('冲突吸收书');
+    const provider = createInMemoryCollectionLockProvider();
+    expect(__setCollectionLockProviderForTests(provider)).toBe(true);
+    await startRun(book.id, { scenario: { ...FAST, blockDelayMs: 40 } });
+
+    // 模拟"另一标签页"直接持有集合锁（绕过同标签页队列）约 1.2s：引擎的 flush 会连续拿到 conflict
+    const release = await provider.acquire(collectionLockName(BOOKS_KEY), 500);
+    expect(release).not.toBeNull();
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    release!();
+
+    // 冲突被预算重试吸收：整轮照常跑完，退出原因不是 failed
+    await waitFor(() => readBooks().find((item) => item.id === book.id)!.status === 'ready', 20000);
+    expect(getRunExit(book.id)?.reason).toBe('finished');
+    expect(getBookPages(book.id).every((page) => page.status === 'ready')).toBe(true);
+  }, 30000);
+
+  it('持锁耗尽预算：如实终止（不静默成功、不无限等待），不留句柄与租约，释放后可恢复完成', async () => {
+    const book = await setupCompiling('冲突耗尽书');
+    // 全程取不到锁（等同"另一写入者长时间占着集合"）：任何事务都拿不到写权限
+    const alwaysBusy: CollectionLockProvider = {
+      kind: 'in-memory',
+      acquire: () => Promise.resolve(null),
+    };
+    expect(__setCollectionLockProviderForTests(alwaysBusy)).toBe(true);
+
+    const handle = await startRun(book.id, { scenario: { ...FAST, blockDelayMs: 20 } });
+    // 首个事件（run-start）就写不进去：预算耗尽后如实返回 null（不报"已启动"）
+    expect(handle).toBeNull();
+    expect(getRunExit(book.id)?.reason).toBe('failed');
+    // 失败原因必须如实点名"另一个标签页在写"（可能是 flush 预算耗尽，也可能是完成状态写入被占）
+    expect(getRunExit(book.id)?.message ?? '').toMatch(/写入冲突|另一个标签页写入/);
+    expect(getRun(book.id)).toBeNull(); // 不留悬挂句柄
+    expect(getLease(book.id)).toBeNull(); // 租约已释放
+    const stored = readBooks().find((item) => item.id === book.id)!;
+    // 所有写入都被占时无法落库失败原因：如实停在 compiling（界面显示"已中断 + 继续生成"），绝不假报完成
+    expect(stored.status).toBe('compiling');
+    expect(stored.run?.status).not.toBe('finished');
+
+    // 恢复入口真实可用：释放占用后从断点跑完
+    expect(__setCollectionLockProviderForTests(createInMemoryCollectionLockProvider())).toBe(true);
+    expect(await resumeRun(book.id)).not.toBeNull();
+    await waitFor(() => readBooks().find((item) => item.id === book.id)!.status === 'ready', 25000);
+    expect(getBookPages(book.id).every((page) => page.status === 'ready')).toBe(true);
+  }, 60000);
 });

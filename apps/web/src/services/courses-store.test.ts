@@ -20,9 +20,15 @@ import {
 } from './courses-store';
 import { loadDemoKnowledge } from './knowledge-catalog';
 import { loadDemoBooks } from './books-store';
+import {
+  __setCollectionLockProviderForTests,
+  createInMemoryCollectionLockProvider,
+} from './collection-lock';
 
 beforeEach(() => {
   window.localStorage.clear();
+  // 仅测试：注入 in-process 互斥 provider（jsdom 无 Web Locks，不注入时写会返回 unsupported）
+  expect(__setCollectionLockProviderForTests(createInMemoryCollectionLockProvider())).toBe(true);
 });
 
 describe('courses-store', () => {

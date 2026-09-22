@@ -1,30 +1,37 @@
 /**
- * 集合写锁（H1-BOOKS-COMMIT-SAFETY v1）。
+ * 集合写锁（H1-BOOKS-COMMIT-SAFETY v1；BOOKS-CS-FOLLOWUP v1 收敛）。
  *
  * 解决的问题：`localStorage` 没有 CAS，"读整表 → 改 → 写整表"在另一个标签页同时写入时
  * 会用旧快照覆盖对方已保存的内容；仅靠"写前检测 + 有界重试"覆盖不到
- * "检测之后、写入之前"的并发窗口（H1-BOOKS-HARDEN v1 的写标记协议即止步于此）。
+ * "检测之后、写入之前"的并发窗口。
  *
  * 方案：按集合键串行化的**互斥临界区**——
- * 1. 主路径用浏览器原生 Web Locks（`navigator.locks`，exclusive）：真正的跨标签页互斥，
+ * 1. **生产路径只认浏览器原生 Web Locks**（`navigator.locks`，exclusive）：真正的跨标签页互斥，
  *    锁随持有上下文销毁自动释放，不存在悬挂锁；
- * 2. 回退路径（jsdom/无 Web Locks 环境）用 `localStorage` 锁记录 {owner, nonce, ticket, acquiredAt}：
- *    取号写入 → 等一个 settle 窗口 → 读回校验；未通过即视为未取得（后写者胜，先写者在下一次
- *    校验发现自己被取代），退避重试直到等待预算耗尽；
- * 3. 同一标签页内所有请求经模块级队列串行化；临界区内的嵌套请求**入队延后**，不重入、不死锁；
- * 4. 调用方在临界区内完成"读快照 → 变更 → 写修订号 → 写数据 → 写后校验"（见 books-store 事务）。
+ * 2. 没有原生 Web Locks 时**不静默降级**：`withCollectionLock` 返回 `{ok:false, reason:'unavailable'}`，
+ *    仓储据此如实返回 `unsupported`（"本次修改未保存"），读取与草稿不受影响。
+ *    H1 批次的 `localStorage` 回退锁是启发式（取号 + settle + 读回校验，存在双入场窗口），
+ *    已整体删除：宁可不写，也不留一条无法保证互斥的写入路径。
+ * 3. 互斥由**可注入 provider**（`CollectionLockProvider`）提供：生产默认 Web Locks；
+ *    单元测试经 `__setCollectionLockProviderForTests` 注入 in-process 互斥（同一 JS 环境内真实互斥，
+ *    不产生第二套跨标签页协议），注入是否生效由返回值与 `__getCollectionLockProviderKindForTests` 可见。
+ * 4. 同一标签页内所有请求经模块级队列串行化；临界区内的嵌套请求**入队延后**，不重入、不死锁；
+ * 5. 调用方在临界区内完成"读快照 → 变更 → 写修订号 → 写数据 → 写后校验"（见 books-store 事务）。
  *
- * 如实边界：回退路径不是硬件级互斥（无 CAS），它把竞争窗口压到一个 settle 窗口并在写后校验；
- * 未通过校验者绝不报告成功。配合写后读回校验，本模块保证"报告成功的写入不会被协议内旧快照覆盖"。
+ * 如实边界：`withCollectionLock` 只保证"取得互斥后进入临界区"，不宣称强原子性——
+ * 绕过本协议的写入者仍可能落在校验与写入之间的亚毫秒窗口，写后校验发现即报 conflict，不静默成功。
  */
 
-export interface CollectionLockOptions {
-  /** 取得锁的等待预算（毫秒）；耗尽即视为 conflict */
-  waitMs?: number;
-  /** 回退路径：锁记录被视为失效的时长（毫秒） */
-  staleMs?: number;
-  /** 回退路径：取号后等待多久再读回校验（毫秒） */
-  settleMs?: number;
+export type CollectionLockKind = 'web-locks' | 'in-memory' | 'unavailable';
+
+/**
+ * 互斥 provider：`acquire` 在 `waitMs` 预算内取得锁则返回释放函数，未取得返回 null。
+ * `kind === 'unavailable'` 表示当前环境**没有任何**可用的互斥设施（生产：无原生 Web Locks）——
+ * 调用方必须按"不可写"处理，不得降级为无锁写入。
+ */
+export interface CollectionLockProvider {
+  readonly kind: CollectionLockKind;
+  acquire(lockName: string, waitMs: number): Promise<(() => void) | null>;
 }
 
 export type LockFailureReason = 'conflict' | 'unavailable';
@@ -32,86 +39,139 @@ export type LockFailureReason = 'conflict' | 'unavailable';
 export type LockOutcome<T> = { ok: true; value: T } | { ok: false; reason: LockFailureReason };
 
 const DEFAULT_WAIT_MS = 1500;
-const DEFAULT_STALE_MS = 4000;
-const DEFAULT_SETTLE_MS = 24;
-const BACKOFF_START_MS = 6;
-const BACKOFF_CAP_MS = 80;
 
-interface LockRecord {
-  owner: string;
-  nonce: string;
-  ticket: number;
-  acquiredAt: number;
+/** 锁名（跨标签页协议：仅原生 Web Locks 使用；e2e 按同名查询 held/pending） */
+export function collectionLockName(collectionKey: string): string {
+  return `zqky-collection:${collectionKey}`;
 }
 
-function tabOwnerId(): string {
-  if (typeof window === 'undefined') return 'server';
-  try {
-    const existing = window.sessionStorage.getItem('zhiqikeyuan:lock-owner');
-    if (existing) return existing;
-    const created = `lock-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-    window.sessionStorage.setItem('zhiqikeyuan:lock-owner', created);
-    return created;
-  } catch {
-    return 'no-session';
-  }
+// ===== 原生 Web Locks（生产默认 provider） =====
+
+interface WebLockManagerLike {
+  request(name: string, options: { mode: 'exclusive'; signal?: AbortSignal }, callback: () => unknown): Promise<unknown>;
 }
 
-function lockRecordKey(collectionKey: string): string {
-  return `${collectionKey}-lock`;
+function webLocks(): WebLockManagerLike | null {
+  if (typeof navigator === 'undefined') return null;
+  const candidate = (navigator as unknown as { locks?: WebLockManagerLike }).locks;
+  return candidate && typeof candidate.request === 'function' ? candidate : null;
 }
 
-function readLockRecord(collectionKey: string): LockRecord | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = window.localStorage.getItem(lockRecordKey(collectionKey));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<LockRecord>;
-    if (
-      typeof parsed.owner !== 'string' ||
-      typeof parsed.nonce !== 'string' ||
-      typeof parsed.ticket !== 'number' ||
-      typeof parsed.acquiredAt !== 'number'
-    ) {
-      return null;
-    }
-    return {
-      owner: parsed.owner,
-      nonce: parsed.nonce,
-      ticket: parsed.ticket,
-      acquiredAt: parsed.acquiredAt,
+/**
+ * 用原生 Web Locks 实现 acquire/release。预算耗尽时 abort 挂起的请求并按"未取得"返回；
+ * 若恰好已被授予（W3C 规范：授予后 abort 被忽略），**立即释放**——宁可报告未取得，
+ * 也绝不留下悬挂锁（临界区由调用方在 finally 中释放）。
+ */
+function acquireWebLock(lockName: string, waitMs: number): Promise<(() => void) | null> {
+  const locks = webLocks();
+  if (!locks) return Promise.resolve(null);
+  return new Promise<(() => void) | null>((resolve) => {
+    const controller = typeof AbortController === 'function' ? new AbortController() : null;
+    let settled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const finish = (release: (() => void) | null): void => {
+      if (settled) return;
+      settled = true;
+      if (timer !== null) clearTimeout(timer);
+      resolve(release);
     };
-  } catch {
-    return null;
-  }
-}
-
-function writeLockRecord(collectionKey: string, record: LockRecord): boolean {
-  if (typeof window === 'undefined') return false;
-  try {
-    window.localStorage.setItem(lockRecordKey(collectionKey), JSON.stringify(record));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/** 只清自己的锁记录；别人的记录保持原样（避免释放他人的临界区） */
-function removeLockRecord(collectionKey: string, owner: string, nonce: string): void {
-  if (typeof window === 'undefined') return;
-  const current = readLockRecord(collectionKey);
-  if (current && (current.owner !== owner || current.nonce !== nonce)) return;
-  try {
-    window.localStorage.removeItem(lockRecordKey(collectionKey));
-  } catch {
-    // 忽略清理失败
-  }
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
+    timer = setTimeout(() => {
+      controller?.abort(); // 取消挂起的等待；已授予时被忽略
+      finish(null);
+    }, waitMs);
+    void locks
+      .request(
+        lockName,
+        controller ? { mode: 'exclusive', signal: controller.signal } : { mode: 'exclusive' },
+        () =>
+          new Promise<void>((releaseOwn) => {
+            if (settled) {
+              // 已对外报"未取得"：立即释放，绝不悬挂
+              releaseOwn();
+              return;
+            }
+            finish(() => releaseOwn());
+          }),
+      )
+      .catch(() => finish(null)); // abort / 底层拒绝：按未取得处理，不留未处理拒绝
   });
+}
+
+/** 生产默认 provider：只认原生 Web Locks，缺失即 unavailable */
+const webLocksProvider: CollectionLockProvider = {
+  get kind(): CollectionLockKind {
+    return webLocks() ? 'web-locks' : 'unavailable';
+  },
+  acquire: (lockName, waitMs) => acquireWebLock(lockName, waitMs),
+};
+
+// ===== in-process 互斥（单元测试注入用；同一 JS 环境内真实互斥） =====
+
+/**
+ * 进程内 FIFO 互斥 provider：按锁名排队，`waitMs` 预算内未轮到则返回 null。
+ * 供 jsdom 单测注入（`__setCollectionLockProviderForTests`），**不是**生产路径：
+ * 它只覆盖同一 JS 环境，不声称跨标签页互斥。
+ */
+export function createInMemoryCollectionLockProvider(): CollectionLockProvider {
+  const queues = new Map<string, Promise<void>>();
+  return {
+    kind: 'in-memory',
+    acquire(lockName, waitMs) {
+      return new Promise<(() => void) | null>((resolve) => {
+        const previous = queues.get(lockName) ?? Promise.resolve();
+        let releaseNext: () => void = () => {};
+        const slot = new Promise<void>((next) => {
+          releaseNext = next;
+        });
+        // 同步登记：后续请求排在本请求之后（不依赖微任务顺序，避免"同时取得"）
+        queues.set(lockName, slot);
+        void slot.then(() => {
+          if (queues.get(lockName) === slot) queues.delete(lockName);
+        });
+        let done = false;
+        const timer = setTimeout(() => {
+          if (done) return;
+          done = true;
+          resolve(null); // 预算耗尽：未取得（槽位由下面让出，不堵住队列）
+        }, waitMs);
+        void previous.then(() => {
+          if (done) {
+            releaseNext();
+            return;
+          }
+          done = true;
+          clearTimeout(timer);
+          resolve(() => releaseNext());
+        });
+      });
+    },
+  };
+}
+
+// ===== provider 注入（测试） =====
+
+let providerOverride: CollectionLockProvider | null = null;
+
+/**
+ * 测试注入 provider。返回**是否真的生效**（false 表示参数不合法、注入被忽略）——
+ * 调用方必须检查它，注入失败时测试应失败而不是静默放行。
+ */
+export function __setCollectionLockProviderForTests(provider: CollectionLockProvider | null): boolean {
+  if (provider === null) {
+    providerOverride = null;
+    return true;
+  }
+  const valid =
+    (provider.kind === 'web-locks' || provider.kind === 'in-memory' || provider.kind === 'unavailable') &&
+    typeof provider.acquire === 'function';
+  if (!valid) return false;
+  providerOverride = provider;
+  return providerOverride === provider;
+}
+
+/** 当前实际生效的 provider 类型（测试断言"注入未生效"用） */
+export function __getCollectionLockProviderKindForTests(): CollectionLockKind {
+  return (providerOverride ?? webLocksProvider).kind;
 }
 
 // ===== 同标签页串行队列（避免重入与死锁） =====
@@ -128,144 +188,43 @@ function enqueue<T>(collectionKey: string, run: () => Promise<T>): Promise<T> {
   return next;
 }
 
-/** 仅测试使用：清空同标签页队列状态（不触碰其它标签页的锁记录） */
+/** 仅测试使用：清空同标签页队列状态并撤销 provider 注入（不触碰任何持久化数据） */
 export function __resetCollectionLockQueuesForTests(): void {
   tabQueues.clear();
-  if (optionsOverride !== null) optionsOverride = null;
-}
-
-/** 仅测试使用：缩短等待预算/settle，便于确定性地构造"锁被占"与"锁释放后可写" */
-export function __setCollectionLockOptionsForTests(
-  options: CollectionLockOptions | null,
-): void {
-  optionsOverride = options;
-}
-
-let optionsOverride: CollectionLockOptions | null = null;
-
-/** 仅测试/诊断使用：读当前锁记录（不修改） */
-export function peekCollectionLock(
-  collectionKey: string,
-): { owner: string; ticket: number; ageMs: number } | null {
-  const record = readLockRecord(collectionKey);
-  if (!record) return null;
-  return { owner: record.owner, ticket: record.ticket, ageMs: Date.now() - record.acquiredAt };
-}
-
-// ===== Web Locks 主路径 =====
-
-interface WebLockManagerLike {
-  request(name: string, options: { mode: 'exclusive'; signal?: AbortSignal }, callback: () => unknown): Promise<unknown>;
-}
-
-function webLocks(): WebLockManagerLike | null {
-  if (typeof navigator === 'undefined') return null;
-  const candidate = (navigator as unknown as { locks?: WebLockManagerLike }).locks;
-  return candidate && typeof candidate.request === 'function' ? candidate : null;
-}
-
-/**
- * 在原生 Web Locks 下执行临界区：等待预算由 AbortSignal 控制，超时视为 conflict。
- * `run` 自身抛出的异常照常抛出（例如参数校验错误），不会被误报为冲突。
- */
-async function runWithWebLock<T>(
-  collectionKey: string,
-  run: () => Promise<T>,
-  waitMs: number,
-): Promise<LockOutcome<T> | { ok: 'run-error'; cause: unknown }> {
-  const locks = webLocks();
-  if (!locks) return { ok: false, reason: 'unavailable' };
-  const hasAbort = typeof AbortController === 'function';
-  const controller = hasAbort ? new AbortController() : null;
-  const timer = controller ? setTimeout(() => controller.abort(), waitMs) : null;
-  try {
-    const outcome = (await locks.request(
-      `zqky-collection:${collectionKey}`,
-      controller ? { mode: 'exclusive', signal: controller.signal } : { mode: 'exclusive' },
-      async () => {
-        try {
-          return { ok: true as const, value: await run() };
-        } catch (cause) {
-          return { ok: false as const, cause };
-        }
-      },
-    )) as { ok: true; value: T } | { ok: false; cause: unknown };
-    if (outcome.ok) return { ok: true, value: outcome.value };
-    return { ok: 'run-error', cause: outcome.cause };
-  } catch {
-    // 预算耗尽（abort）或底层拒绝：按冲突处理
-    return { ok: false, reason: 'conflict' };
-  } finally {
-    if (timer !== null) clearTimeout(timer);
-  }
-}
-
-// ===== localStorage 回退路径 =====
-
-async function tryAcquireFallbackLock(
-  collectionKey: string,
-  settleMs: number,
-  staleMs: number,
-): Promise<(() => void) | null> {
-  const owner = tabOwnerId();
-  const nonce = `n-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-  const current = readLockRecord(collectionKey);
-  const now = Date.now();
-  if (current && current.owner !== owner && now - current.acquiredAt < staleMs) return null;
-  const ticket = (current?.ticket ?? 0) + 1;
-  if (!writeLockRecord(collectionKey, { owner, nonce, ticket, acquiredAt: Date.now() })) return null;
-  // settle：让可能同时在取号的另一标签页把记录写出来，再读回确认自己仍是持有者
-  await sleep(settleMs);
-  const back = readLockRecord(collectionKey);
-  if (!back || back.owner !== owner || back.nonce !== nonce || back.ticket !== ticket) return null;
-  return () => removeLockRecord(collectionKey, owner, nonce);
-}
-
-async function runWithFallbackLock<T>(
-  collectionKey: string,
-  run: () => Promise<T>,
-  waitMs: number,
-  settleMs: number,
-  staleMs: number,
-): Promise<LockOutcome<T>> {
-  const deadline = Date.now() + waitMs;
-  let backoff = BACKOFF_START_MS;
-  for (;;) {
-    const release = await tryAcquireFallbackLock(collectionKey, settleMs, staleMs);
-    if (release) {
-      try {
-        return { ok: true, value: await run() };
-      } finally {
-        release();
-      }
-    }
-    if (Date.now() >= deadline) return { ok: false, reason: 'conflict' };
-    await sleep(backoff + Math.random() * backoff);
-    backoff = Math.min(backoff * 2, BACKOFF_CAP_MS);
-  }
+  providerOverride = null;
 }
 
 // ===== 对外入口 =====
 
 /**
- * 在集合互斥临界区内执行 `run`。同标签页请求自动串行；跨标签页由 Web Locks/回退锁互斥。
- * 未取得锁（预算内未收敛）返回 `{ok:false, reason}`，调用方必须按冲突处理（不得当作成功）。
- * `run` 自身抛出的异常原样抛出（参数校验等语义不因加锁改变）。
+ * 在集合互斥临界区内执行 `run`。同标签页请求自动串行；跨标签页由原生 Web Locks 互斥。
+ * - 未取得锁（预算内未收敛）返回 `{ok:false, reason:'conflict'}`；
+ * - 当前环境无可用互斥（无原生 Web Locks 且无测试注入）返回 `{ok:false, reason:'unavailable'}`，
+ *   调用方必须按"不可写"处理（**绝不**降级为无锁写入）；
+ * - `run` 自身抛出的异常原样抛出（参数校验等语义不因加锁改变），锁在 finally 中释放。
  */
 export function withCollectionLock<T>(
   collectionKey: string,
   run: () => Promise<T> | T,
-  options?: CollectionLockOptions,
 ): Promise<LockOutcome<T>> {
-  const effective = { ...optionsOverride, ...options };
-  const waitMs = effective.waitMs ?? DEFAULT_WAIT_MS;
-  const settleMs = effective.settleMs ?? DEFAULT_SETTLE_MS;
-  const staleMs = effective.staleMs ?? DEFAULT_STALE_MS;
+  const provider = providerOverride ?? webLocksProvider;
+  if (provider.kind === 'unavailable') {
+    // 无互斥保障：不进入临界区、不写任何数据（对调用方是明确的"本次修改未保存"）
+    return Promise.resolve({ ok: false, reason: 'unavailable' } satisfies LockOutcome<T>);
+  }
   return enqueue(collectionKey, async () => {
-    const primary = await runWithWebLock(collectionKey, () => Promise.resolve(run()), waitMs);
-    if (primary.ok === true) return primary;
-    if (primary.ok === 'run-error') throw primary.cause;
-    if (primary.reason === 'conflict') return primary; // 原生锁超时：不再叠加长等待
-    return runWithFallbackLock(collectionKey, () => Promise.resolve(run()), waitMs, settleMs, staleMs);
+    let release: (() => void) | null;
+    try {
+      release = await provider.acquire(collectionLockName(collectionKey), DEFAULT_WAIT_MS);
+    } catch {
+      // 取锁设施自身异常：按冲突处理（保守，不静默放行）
+      return { ok: false, reason: 'conflict' } satisfies LockOutcome<T>;
+    }
+    if (!release) return { ok: false, reason: 'conflict' } satisfies LockOutcome<T>;
+    try {
+      return { ok: true, value: await run() } satisfies LockOutcome<T>;
+    } finally {
+      release();
+    }
   });
 }

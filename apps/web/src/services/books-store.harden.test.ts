@@ -14,9 +14,11 @@ import {
   type ReplicaBook,
 } from './books-store';
 import {
+  __getCollectionLockProviderKindForTests,
   __resetCollectionLockQueuesForTests,
-  __setCollectionLockOptionsForTests,
-  peekCollectionLock,
+  __setCollectionLockProviderForTests,
+  createInMemoryCollectionLockProvider,
+  type CollectionLockProvider,
 } from './collection-lock';
 
 /**
@@ -25,9 +27,13 @@ import {
  * 背景：H1-BOOKS-HARDEN v1 的"写标记 + 有界重放"只能检测冲突，防不住"检测之后、写入之前"的
  * 并发写入（见 `_work/harden-gate-20260922/probe.test.ts` 的两个缺陷探针）。本批改为
  * **集合互斥锁内的读改写事务**（`services/collection-lock.ts`），仓储返回区分状态的
- * `CommitResult`：冲突预算耗尽一律 `conflict` 且 `value === null`，绝不返回内存候选值。
+ * `CommitResult`：未取得锁一律 `conflict`（无可用互斥设施则 `unsupported`）且 `value === null`，
+ * 绝不返回内存候选值。
  *
- * 路径说明：本文件在 jsdom 下运行 → 走**回退锁路径**（localStorage 取号 + settle + 读回校验）；
+ * 路径说明（BOOKS-CS-FOLLOWUP v1 订正）：生产路径**只认原生 Web Locks**，没有原生锁时
+ * `withCollectionLock` 返回 `unavailable`（仓储映射为 `unsupported`），不存在 localStorage 回退锁。
+ * 本文件在 jsdom 下运行，因此 beforeEach **显式注入** in-process 互斥 provider
+ * （`__setCollectionLockProviderForTests`，注入生效由返回值 + kind 断言可见）；
  * 真实浏览器的原生 Web Locks 路径由 `tests/e2e/books-commit-safety.spec.ts` 的双标签页场景覆盖。
  * 两条证据分别记录，不互相冒充。
  */
@@ -39,8 +45,8 @@ beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
   __resetCollectionLockQueuesForTests();
-  // 缩短等待预算/settle，让"锁被占 → conflict"与"锁释放 → 可写"在单测里快速且确定
-  __setCollectionLockOptionsForTests({ waitMs: 60, settleMs: 4, staleMs: 1500 });
+  expect(__setCollectionLockProviderForTests(createInMemoryCollectionLockProvider())).toBe(true);
+  expect(__getCollectionLockProviderKindForTests()).toBe('in-memory');
 });
 
 afterEach(() => {
@@ -49,16 +55,26 @@ afterEach(() => {
   window.localStorage.clear();
 });
 
-/** 占住集合锁（模拟另一个标签页正在写） */
-function holdForeignLock(): void {
-  window.localStorage.setItem(
-    LOCK_KEY,
-    JSON.stringify({ owner: 'peer-tab', nonce: 'peer-nonce', ticket: 1, acquiredAt: Date.now() }),
-  );
-}
-
-function releaseForeignLock(): void {
-  window.localStorage.removeItem(LOCK_KEY);
+/**
+ * 可挂起的 provider：held 期间 acquire 立即返回 null（等同"另一个标签页一直持着集合锁"），
+ * 释放后恢复真实 in-process 互斥。代替旧批次用 localStorage 锁记录伪造的"外部持锁"。
+ */
+function installGatedLockProvider(): { hold: () => void; release: () => void } {
+  const inner = createInMemoryCollectionLockProvider();
+  let held = false;
+  const provider: CollectionLockProvider = {
+    kind: 'in-memory',
+    acquire: (name, waitMs) => (held ? Promise.resolve(null) : inner.acquire(name, waitMs)),
+  };
+  expect(__setCollectionLockProviderForTests(provider)).toBe(true);
+  return {
+    hold: () => {
+      held = true;
+    },
+    release: () => {
+      held = false;
+    },
+  };
 }
 
 function committedOrThrow<T>(result: CommitResult<T>): T {
@@ -67,13 +83,14 @@ function committedOrThrow<T>(result: CommitResult<T>): T {
 }
 
 describe('提交结果契约：不返回候选值', () => {
-  it('冲突预算耗尽 → conflict 且 value 为 null，存储未变、重试可成功', async () => {
+  it('锁被占（未取得）→ conflict 且 value 为 null，存储未变、释放后重试成功', async () => {
     const existing = committedOrThrow(await createBook('已存在的书', ''));
     const before = window.localStorage.getItem(KEY);
 
-    holdForeignLock();
+    const gate = installGatedLockProvider();
+    gate.hold();
     const result = await createBook('冲突中的新书', '用户输入');
-    releaseForeignLock();
+    gate.release();
 
     expect(result.status).toBe('conflict');
     expect(result.value).toBeNull();
@@ -91,10 +108,11 @@ describe('提交结果契约：不返回候选值', () => {
     const book = committedOrThrow(await createBook('并发书', '旧简介'));
     const before = window.localStorage.getItem(KEY);
 
-    holdForeignLock();
+    const gate = installGatedLockProvider();
+    gate.hold();
     const edited = await updateBook(book.id, { description: '新简介' });
     const removed = await deleteBook(book.id);
-    releaseForeignLock();
+    gate.release();
 
     expect([edited.status, removed.status]).toEqual(['conflict', 'conflict']);
     expect(edited.value).toBeNull();
@@ -242,17 +260,22 @@ describe('幂等与锁卫生', () => {
     expect(window.localStorage.getItem(`${KEY}-write`)).toBe(stamp);
   });
 
-  it('事务结束后不残留锁记录（成功与冲突都不悬挂）', async () => {
+  it('事务结束后不残留锁痕迹（成功与冲突都不悬挂）', async () => {
     const book = committedOrThrow(await createBook('锁卫生书', ''));
     await updateBook(book.id, { description: '写一次' });
-    expect(peekCollectionLock(KEY)).toBeNull();
+    // 生产路径不再使用任何 localStorage 锁记录；成功路径也不留锁痕迹
+    expect(window.localStorage.getItem(LOCK_KEY)).toBeNull();
 
-    holdForeignLock();
+    const gate = installGatedLockProvider();
+    gate.hold();
     const conflicted = await updateBook(book.id, { description: '写不进去' });
+    gate.release();
     expect(conflicted.status).toBe('conflict');
-    releaseForeignLock();
-    // 冲突者不夺锁、也不留下自己的锁记录
-    expect(peekCollectionLock(KEY)).toBeNull();
+    // 冲突者不夺锁、也不留下自己的锁记录；释放后同一 provider 仍可正常取得
+    expect(window.localStorage.getItem(LOCK_KEY)).toBeNull();
+    const recovered = await updateBook(book.id, { description: '释放后写入' });
+    expect(recovered.status).toBe('committed');
+    expect(window.localStorage.getItem(LOCK_KEY)).toBeNull();
   });
 
   it('幂等载入演示书：重复载入不写盘（noop → committed 0）', async () => {
@@ -264,6 +287,54 @@ describe('幂等与锁卫生', () => {
     expect(again.status).toBe('committed');
     expect(again.value).toBe(0);
     expect(window.localStorage.getItem(`${KEY}-write`)).toBe(stamp);
+  });
+});
+
+describe('缺原生 Web Locks 时不静默降级（F3）', () => {
+  it('provider=unavailable：写返回 unsupported、存储逐字节未变、读取与草稿不受影响', async () => {
+    const book = committedOrThrow(await createBook('已有书', '原始内容'));
+    const before = window.localStorage.getItem(KEY);
+
+    // 模拟"当前浏览器没有原生 Web Locks"（生产默认 provider 此时 kind 即为 unavailable）
+    expect(
+      __setCollectionLockProviderForTests({ kind: 'unavailable', acquire: () => Promise.resolve(null) }),
+    ).toBe(true);
+    expect(__getCollectionLockProviderKindForTests()).toBe('unavailable');
+
+    const created = await createBook('不该被创建的书', '');
+    const edited = await updateBook(book.id, { description: '不该写入' });
+    const removed = await deleteBook(book.id);
+
+    for (const result of [created, edited, removed]) {
+      expect(result.status).toBe('unsupported');
+      expect(result.value).toBeNull();
+      // 原因如实说明"未保存 + 需要 Web Locks + 可在支持的浏览器重试"，不谎报成功
+      expect(result.message).toContain('Web Locks');
+      expect(result.message).toContain('未保存');
+    }
+    // 没有幻影写入、没有半写：存储逐字节未变
+    expect(window.localStorage.getItem(KEY)).toBe(before);
+    // 读取与草稿不受影响（读取路径不取锁）
+    const stored = readBooks();
+    expect(stored).toHaveLength(1);
+    expect(stored[0]!.description).toBe('原始内容');
+    expect(stored[0]!.status).toBe('draft');
+    expect(stored[0]!.proposal?.chapters.length).toBeGreaterThan(0);
+  });
+
+  it('provider 恢复为 in-process 互斥后，同一本书的写入照常提交（不残留不可写状态）', async () => {
+    const book = committedOrThrow(await createBook('恢复书', ''));
+    expect(
+      __setCollectionLockProviderForTests({ kind: 'unavailable', acquire: () => Promise.resolve(null) }),
+    ).toBe(true);
+    expect((await updateBook(book.id, { description: 'x' })).status).toBe('unsupported');
+
+    expect(__setCollectionLockProviderForTests(createInMemoryCollectionLockProvider())).toBe(true);
+    const recovered = await updateBook(book.id, { description: '恢复后写入' });
+    expect(recovered.status).toBe('committed');
+    expect(readBooks().find((item) => item.id === book.id)!.description).toBe('恢复后写入');
+    // 仍然没有任何 localStorage 锁记录（回退锁已删除）
+    expect(window.localStorage.getItem(LOCK_KEY)).toBeNull();
   });
 });
 

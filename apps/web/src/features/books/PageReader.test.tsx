@@ -33,7 +33,8 @@ vi.mock('next/navigation', () => ({
 import { PageReader } from './PageReader';
 import {
   __resetCollectionLockQueuesForTests,
-  __setCollectionLockOptionsForTests,
+  __setCollectionLockProviderForTests,
+  createInMemoryCollectionLockProvider,
 } from '@/services/collection-lock';
 import type { ReplicaBook } from '@/services/books-store';
 
@@ -179,7 +180,7 @@ beforeEach(() => {
   );
   window.localStorage.clear();
   // 仅测试：缩短回退锁 settle（不改变被测语义；真实浏览器走 Web Locks）
-  __setCollectionLockOptionsForTests({ waitMs: 200, settleMs: 4, staleMs: 1500 });
+  expect(__setCollectionLockProviderForTests(createInMemoryCollectionLockProvider())).toBe(true);
   // HARDEN v1：修复入口返回真实异步结果（Promise<RepairResult>），启动返回执行器句柄
   generationMock.retryBlock.mockImplementation((_bookId: string, _pageId: string, blockId: string) =>
     Promise.resolve(completedRepair([blockId])),

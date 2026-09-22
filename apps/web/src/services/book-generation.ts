@@ -81,12 +81,28 @@ export const DEFAULT_RUN_SCENARIO: BookRunScenario = {
 export interface BookRunHandle {
   bookId: string;
   runId: string;
-  /** 暂停：等待本批事件与暂停状态真正落库后收尾 */
-  pause(): Promise<void>;
-  resume(): Promise<void>;
+  /**
+   * 暂停（F5）：等待本批事件与暂停状态**真正落库**后收尾。
+   * 只有提交成功（`paused: true`）才停止执行器；未提交时执行器继续运行并返回失败原因，
+   * 调用方据此提示"暂停未保存"，不得显示"已暂停"。
+   */
+  pause(): Promise<PauseRunResult>;
+  /** 恢复：仅当暂停状态可提交且执行器成功启动时报告成功 */
+  resume(): Promise<ResumeRunResult>;
   /** 中止：先等待落库再停（保留断点） */
   stop(): Promise<void>;
   readonly status: 'running' | 'paused' | 'stopped' | 'finished' | 'failed';
+}
+
+/** 控制操作结果：未提交一律 `false` + 原因（界面按结果分支，不显示假成功） */
+export interface PauseRunResult {
+  paused: boolean;
+  message?: string;
+}
+
+export interface ResumeRunResult {
+  resumed: boolean;
+  message?: string;
 }
 
 export interface BookLeaseInfo {
@@ -121,6 +137,8 @@ interface RunState {
   pending: BookRunEvent[];
   /** 落库串行链：同一执行器的所有 flush 依次提交（互斥锁下不并发写），await 它即等待落库 */
   flushChain: Promise<void>;
+  /** 连续写冲突（锁被其他标签页占用）的起点时间戳；null = 当前无冲突。- 预算内自动重试 */
+  conflictSince: number | null;
   mergeTimer: ReturnType<typeof setTimeout> | null;
   heartbeatTimer: ReturnType<typeof setInterval> | null;
   pagehideHandler: (() => void) | null;
@@ -132,6 +150,9 @@ interface RunState {
 
 /** 模块级单例：同一书同一时刻最多一个执行器 */
 const registry = new Map<string, RunState>();
+
+/** 启动中占位（F8）：同一书的启动过程只允许一个，第二次调用复用它而不是另起一个执行器 */
+const startingRuns = new Map<string, Promise<BookRunHandle | null>>();
 
 // ===== 运行收尾（所有非运行出口的唯一路径） =====
 
@@ -165,6 +186,7 @@ function teardownRun(state: RunState, reason: RunExitReason, message?: string): 
   if (state.cancelled) return;
   state.cancelled = true;
   state.pending = [];
+  state.conflictSince = null;
   stopTimers(state);
   state.status =
     reason === 'finished'
@@ -442,32 +464,64 @@ function queueFlush(state: RunState): Promise<void> {
       clearTimeout(state.mergeTimer);
       state.mergeTimer = null;
     }
-    if (state.pending.length === 0) return;
-    const batch = state.pending;
-    state.pending = [];
-    const inject = shouldInjectStorageFailure(state);
-    if (inject) armStorageFailOnce();
-    try {
-      for (const event of batch) {
-        const applied = await applyStored(state.bookId, state.runId, event);
-        if (!applied) {
-          // 归属/状态拒绝（删除、换轮次、状态不再接受事件）：不作为失败处理，但也不写
-          continue;
+    // 背压：本批没落地（写冲突）就等待后重试，直到落库或预算耗尽——
+    // 调用方 `await queueFlush` 因此等价于"等到真正落库"，驱动循环不会在写不进去时抢先推进页/块。
+    let guard = 0;
+    while (!state.cancelled && state.pending.length > 0) {
+      guard += 1;
+      if (guard > 200) break; // 安全阀（异常情况下不无限循环；预算检查会更早触发）
+      const batch = state.pending;
+      state.pending = [];
+      const inject = shouldInjectStorageFailure(state);
+      if (inject) armStorageFailOnce();
+      let conflicted = false;
+      try {
+        for (let index = 0; index < batch.length; index += 1) {
+          const event = batch[index]!;
+          const applied = await applyStored(state.bookId, state.runId, event);
+          if (applied === 'applied') continue;
+          if (applied === 'dropped') {
+            // 归属/状态拒绝（删除、换轮次、状态不再接受事件）：不写、不报失败，也不计入成功
+            continue;
+          }
+          if (applied === 'conflict') {
+            // 其他标签页正持锁：数据未变、事件未落库——剩余事件放回队首，稍后整体重试
+            state.pending = [...batch.slice(index), ...state.pending];
+            const since = state.conflictSince ?? Date.now();
+            state.conflictSince = since;
+            if (Date.now() - since > FLUSH_CONFLICT_BUDGET_MS) {
+              throw new Error(
+                '本地数据长时间被其他标签页占用（写入冲突），本次生成已停止；已完成内容保留，可重试生成。',
+              );
+            }
+            conflicted = true;
+            break;
+          }
+          // `failed`：读取/写入被拒（applyStored 已把"读不到最新记录"与"事务拒绝"区分开）。
+          // 必须抛出交由失败路径（failTheRun → kind storage），不得被静默忽略。
+          throw new Error('本地存储读取或写入被拒绝：事件未落库。');
         }
+      } catch (cause) {
+        // 仓储事务抛错（读拒/写满回滚后抛）或冲突预算耗尽：整轮失败，kind storage
+        releaseStorageFailOnce();
+        await failTheRun(state, {
+          kind: 'storage',
+          message:
+            cause instanceof Error
+              ? `本地保存失败（${cause.message}）已停止生成，原数据保留。`
+              : '本地保存失败，已停止生成，原数据保留。',
+        });
+        return;
       }
-    } catch (cause) {
-      // 仓储事务抛错（读拒/写满回滚后抛）：整轮失败，kind storage
-      releaseStorageFailOnce();
-      await failTheRun(state, {
-        kind: 'storage',
-        message:
-          cause instanceof Error
-            ? `本地保存失败（${cause.message}）已停止生成，原数据保留。`
-            : '本地保存失败，已停止生成，原数据保留。',
-      });
+      if (conflicted) {
+        if (inject) releaseStorageFailOnce();
+        await delay(FLUSH_CONFLICT_RETRY_DELAY_MS);
+        continue;
+      }
+      if (inject) releaseStorageFailOnce();
+      state.conflictSince = null; // 本批全部落库：清除冲突起点
       return;
     }
-    if (inject) releaseStorageFailOnce();
   };
   const chained = state.flushChain.then(run, run);
   state.flushChain = chained.catch(() => undefined);
@@ -502,7 +556,17 @@ function readRunSeqFromBook(book: ReplicaBook): number {
  * - `dropped`：书籍不存在或 runId 不匹配（删除/换 run 后的迟到事件）——调用方计入"丢弃写入"；
  * - `failed`：读取/写入失败（含冲突耗尽）——调用方走 storage 失败路径，绝不谎报成功。
  */
-type ApplyOutcome = 'applied' | 'dropped' | 'failed';
+type ApplyOutcome = 'applied' | 'dropped' | 'failed' | 'conflict';
+
+/**
+ * 写冲突的**预算内重试**（集成决策，BOOKS-CS-FOLLOWUP v1）：
+ * 另一个标签页持锁期间，本执行器的一次 flush 会拿到 `conflict`（数据没变、只是没抢到写权限）。
+ * 把它当成"存储坏了"会立刻终止整轮生成——用户只是被占了一下锁却看到"生成失败"。
+ * 因此：事件放回队首、按固定间隔重试，直到**连续冲突预算**（20s）耗尽才按失败收尾并给出真实原因。
+ * 预算保证"不会被无限占锁永久卡住"，间隔保证"正常的一次锁竞争（秒级）自动吸收"。
+ */
+const FLUSH_CONFLICT_RETRY_DELAY_MS = 300;
+const FLUSH_CONFLICT_BUDGET_MS = 20000;
 
 async function applyStored(
   bookId: string,
@@ -520,6 +584,10 @@ async function applyStored(
   if (result.status === 'committed' || result.status === 'skipped' || result.status === 'missing') {
     // skipped：重复/迟到事件被仓储忽略（不是失败）；missing：书已被删除（调用方另行判定）
     return result.status === 'missing' ? 'dropped' : 'applied';
+  }
+  if (result.status === 'conflict') {
+    // 未取得写权限（其他标签页在写）：数据未变、可重试——由 flush 有界重试，不算存储故障
+    return 'conflict';
   }
   throw new Error(result.message || '本地保存失败');
 }
@@ -822,15 +890,39 @@ function pageFailureInjectCount(scenario: BookRunScenario): number {
 }
 
 /**
- * 启动（或接管）一书的模拟执行器。仅当书籍 compiling 且租约可用时成功；
- * 他标签页持活租约、书籍非 compiling 时返回 null；本标签已有活跃执行器时返回现有句柄（不重复启动）。
+ * 启动入口（F8）：**启动中占位去重**。
+ *
+ * `runStart` 在 `await setRunScenario` 之后才 `registry.set`，两次并发调用会各自读到"无执行器"，
+ * 于是各自取租约、各自启动执行器（后写者覆盖租约 → 先启动者被判失权、多一次失权收尾）。
+ * 这里在**第一个 await 之前**登记"启动中占位"：第二次调用直接复用同一次启动过程
+ * （返回同一句柄或同一个 null），不产生第二个执行器、不重复获取租约。
  */
+export async function startRun(
+  bookId: string,
+  options?: StartRunOptions,
+): Promise<BookRunHandle | null> {
+  const existing = registry.get(bookId);
+  if (existing && (existing.status === 'running' || existing.status === 'paused')) {
+    return handleFor(existing);
+  }
+  const inFlight = startingRuns.get(bookId);
+  if (inFlight) return inFlight; // 启动中：复用同一次启动过程（不启动第二个执行器）
+  const pending = runStart(bookId, options);
+  startingRuns.set(bookId, pending); // 同步登记（此刻尚未 await，第二次调用一定看得到）
+  try {
+    return await pending;
+  } finally {
+    if (startingRuns.get(bookId) === pending) startingRuns.delete(bookId);
+  }
+}
+
 /**
  * 启动（或接管）一书的模拟执行器。返回句柄前等待 **run-start 事件真正落库**；
  * 未取得租约、书籍不可启动、或首个事件未提交（冲突/写入失败）一律返回 null，
  * 调用方据此提示“无法开始/稍后重试”，不会出现“看着已开始但什么都没写入”。
+ * 只能经 `startRun` 调用（启动中占位由外层维护）。
  */
-export async function startRun(
+async function runStart(
   bookId: string,
   options?: StartRunOptions,
 ): Promise<BookRunHandle | null> {
@@ -873,6 +965,7 @@ export async function startRun(
     cancelled: false,
     pending: [],
     flushChain: Promise.resolve(),
+    conflictSince: null,
     mergeTimer: null,
     heartbeatTimer: null,
     pagehideHandler: null,
@@ -1166,6 +1259,14 @@ async function stepOnce(
   return true;
 }
 
+/**
+ * 有界的最尽力写盘等待：正常情况等到本批落库；锁被其他标签页占住时不无限等
+ * （控制操作与停止流程不得被写盘阻塞——它们随后各自处理"提交失败/保留断点"的情形）。
+ */
+async function flushBestEffort(state: RunState, budgetMs = 1000): Promise<void> {
+  await Promise.race([queueFlush(state), delay(budgetMs)]);
+}
+
 function handleFor(state: RunState): BookRunHandle {
   return {
     bookId: state.bookId,
@@ -1173,22 +1274,59 @@ function handleFor(state: RunState): BookRunHandle {
     get status() {
       return state.status;
     },
-    async pause(): Promise<void> {
-      if (state.status !== 'running' || state.cancelled) return;
-      await queueFlush(state); // 暂停前等待落库（经仓储的真实结果）
-      if (state.cancelled) return; // flush 期间可能已因 storage 失败收尾
-      await pauseBookRun(state.bookId, 'user', 'Paused by user.');
+    async pause(): Promise<PauseRunResult> {
+      if (state.status !== 'running' || state.cancelled) {
+        return { paused: false, message: '执行器已不在运行，无需暂停。' };
+      }
+      // 暂停前尽力写盘（有界）：被其他标签页占锁时不在这里干等，直接尝试提交暂停状态
+      await flushBestEffort(state, 1000);
+      if (state.cancelled) {
+        return { paused: false, message: '执行器已收尾（失败或停止），无需暂停。' };
+      }
+      let result: CommitResult<ReplicaBook>;
+      try {
+        result = await pauseBookRun(state.bookId, 'user', 'Paused by user.');
+      } catch (cause) {
+        // 暂停提交自身抛出：执行器继续运行，如实返回失败原因（绝不按"已暂停"收尾）
+        return {
+          paused: false,
+          message: cause instanceof Error ? cause.message : '暂停状态写入失败。',
+        };
+      }
+      if (result.status !== 'committed') {
+        // 未提交（冲突/读拒/写拒/环境不支持互斥）：**不**停止执行器、不释放租约，返回失败原因
+        return { paused: false, message: result.message || '暂停状态未保存。' };
+      }
       // 用户暂停：本执行器停止；恢复由用户显式触发（paused 不自动续跑）
       teardownRun(state, 'paused', '已暂停（用户暂停）：未完成内容只在你恢复后继续。');
+      return { paused: true };
     },
-    async resume(): Promise<void> {
-      if (state.status !== 'paused') return;
-      await resumeBookRun(state.bookId, state.runId);
-      await startRun(state.bookId, { source: 'user' });
+    async resume(): Promise<ResumeRunResult> {
+      if (state.status !== 'paused') return { resumed: false, message: '执行器不在暂停态，无需恢复。' };
+      let result: CommitResult<ReplicaBook>;
+      try {
+        result = await resumeBookRun(state.bookId, state.runId);
+      } catch (cause) {
+        return {
+          resumed: false,
+          message: cause instanceof Error ? cause.message : '恢复状态写入失败。',
+        };
+      }
+      if (result.status !== 'committed') {
+        return { resumed: false, message: result.message || '恢复状态未保存。' };
+      }
+      const handle = await startRun(state.bookId, { source: 'user' });
+      if (!handle) {
+        return {
+          resumed: false,
+          message: '恢复状态已保存，但执行器未能启动（可能已有其他标签页在执行，或本地存储暂不可写）。',
+        };
+      }
+      return { resumed: true };
     },
     async stop(): Promise<void> {
       if (state.cancelled) return;
-      await queueFlush(state); // 中止保留断点：先等待落库再停
+      await flushBestEffort(state, 1000); // 中止保留断点：尽力写盘（有界）后再停
       teardownRun(state, 'stopped', '生成已停止（已完成内容与断点保留）。');
     },
   };
@@ -1229,7 +1367,7 @@ export async function resumeRun(bookId: string): Promise<BookRunHandle | null> {
 export async function stopRun(bookId: string, reason: string): Promise<void> {
   const state = registry.get(bookId);
   if (state && !state.cancelled) {
-    await queueFlush(state);
+    await flushBestEffort(state, 1000);
     if (!state.cancelled) {
       teardownRun(state, 'stopped', `生成已停止（${reason}）：已完成内容与断点保留。`);
     }
@@ -1403,7 +1541,7 @@ function startRepair(
   const read = readBookForRun(bookId);
   if (read.kind !== 'ok') {
     return Promise.resolve(
-      skippedRepair(
+      earlyRepair(
         bookId,
         pageId,
         null,
@@ -1415,7 +1553,7 @@ function startRepair(
   const book = read.book;
   if (!repairWritable(book)) {
     return Promise.resolve(
-      skippedRepair(
+      earlyRepair(
         bookId,
         pageId,
         null,
@@ -1425,7 +1563,19 @@ function startRepair(
     );
   }
   // 目标块：单块重试按请求块，整页重生成按页面计划（冻结启动时的计划，避免半途换目标）
-  const plan = planPage(bookId, pageId);
+  let plan: PagePlan | null = null;
+  let planReadError: string | null = null;
+  try {
+    plan = planPage(bookId, pageId);
+  } catch (cause) {
+    // 计划读取是裸读（不经 readBookForRun）：这里必须自己收口，否则异常会逃出调用方同步栈
+    planReadError = cause instanceof Error && cause.message ? cause.message : '本地存储读取失败';
+  }
+  if (planReadError !== null) {
+    return Promise.resolve(
+      earlyRepair(bookId, pageId, null, onlyBlockIds, `本地存储读取失败：${planReadError}`, 'failed'),
+    );
+  }
   const blockIds = onlyBlockIds ?? (plan?.blocks.map((block) => block.blockId) ?? []);
   const key = repairKey(bookId, pageId);
   const existing = repairs.get(key);
@@ -1452,28 +1602,32 @@ function startRepair(
     settle = resolve;
   });
   repairs.set(key, { state, promise });
+  let settled = false;
   const finish = (status: RepairResult['status'], error?: string): RepairResult => {
     const result = repairResult(state, status, error);
+    if (settled) return result; // 幂等收尾：重复调用不再 settle、不再动注册表
+    settled = true;
     const current = repairs.get(key);
     if (current?.state === state) repairs.delete(key);
     settle(result);
     return result;
   };
+  /**
+   * 内部异步任务整体 try/catch/finally（F7）：`runRepair` 之外还有裸读（`planPage`、复位后的
+   * 计划读取）可能抛出，旧实现让 IIFE 裸奔 → Promise 永不 settle、注册项永不清理（界面永久忙态）。
+   * 现在任何抛出都以 `finish('failed'|'cancelled', 原因)` 收尾，finally 再兜底一次，
+   * 保证"每个返回的 Promise 都会 settle、repairs 注册项在 settle 时删除"。
+   */
   void (async () => {
-    let runId: string | null;
+    let failureReason: string | null = null;
     try {
       const resolved = await writableRunId(book);
-      runId = resolved.runId;
+      const runId = resolved.runId;
       if (!runId) {
         finish('skipped', resolved.message ?? '本书缺少可用的运行记录。');
         return;
       }
-    } catch (cause) {
-      finish('failed', cause instanceof Error ? cause.message : '无法建立写入检查点。');
-      return;
-    }
-    state.runId = runId;
-    try {
+      state.runId = runId;
       // 仓储复位（块 → pending / 整页 → pending；user_note 内容与块身份保留）。
       // 必须检查真实提交结果：未提交时不得按"已复位"继续逐块写入。
       const reset = await resetInStore();
@@ -1481,24 +1635,40 @@ function startRepair(
         finish('failed', reset.message || '仓储复位未提交：本次修复未开始。');
         return;
       }
+      await runRepair(state, finish, onlyBlockIds);
     } catch (cause) {
-      finish('failed', cause instanceof Error ? cause.message : '本地存储写入失败：本次修复未开始。');
-      return;
+      failureReason =
+        cause instanceof Error && cause.message
+          ? cause.message
+          : '本地存储写入失败：本次修复未完成。';
+      finish('failed', failureReason);
+    } finally {
+      if (!settled) {
+        // 兜底：未结算出口按"取消/取代"或"异常失败"如实收尾（不谎报 completed）
+        finish(
+          state.cancelled ? (state.supersededByNewOp ? 'superseded' : 'cancelled') : 'failed',
+          failureReason ?? state.cancelReason ?? '修复任务异常收尾：本次修复未完成，可重试。',
+        );
+      }
     }
-    await runRepair(state, finish, onlyBlockIds);
   })();
   return promise;
 }
 
-function skippedRepair(
+/**
+ * 未进入异步任务就结束的修复结果（读记录失败 / 状态不可写 / 计划读取失败）；
+ * 立即 settle，不注册互斥位。
+ */
+function earlyRepair(
   bookId: string,
   pageId: string,
   runId: string | null,
   blockIds: string[] | null,
   error: string,
+  status: Extract<RepairResult['status'], 'skipped' | 'failed'> = 'skipped',
 ): RepairResult {
   return {
-    status: 'skipped',
+    status,
     operationId: uid('rep'),
     bookId,
     pageId,
