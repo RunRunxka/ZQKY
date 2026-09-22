@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Bookmark, ChevronLeft, ChevronRight, Copy, Loader2, RefreshCcw } from 'lucide-react';
@@ -19,9 +19,12 @@ import {
 } from '@/services/books-store';
 import { BookBlockFailure, bookFailureKindLabel } from './BookBlockFailure';
 import {
+  getRepair,
   regeneratePage as regeneratePageRun,
   retryBlock as retryBlockRun,
   startRun as startRunRun,
+  type BookRunHandle,
+  type RepairResult,
 } from '@/services/book-generation';
 import '@/features/books/books.css';
 import '@/features/books/styles/book-reader-states.css';
@@ -62,15 +65,19 @@ function readerStatusLabel(
 }
 
 // ===== I1 执行器接入（§4.4 冻结 API）：收敛为一个对象，按“能力可用”判定按钮可用性 =====
+// HARDEN v1：页/块修复返回 Promise<RepairResult>（真实异步结果 + 操作身份 + 取消语义）
 
-type BlockRetryResult = unknown;
 interface GenerationApi {
-  retryBlock?: (bookId: string, pageId: string, blockId: string) => BlockRetryResult;
-  regeneratePage?: (bookId: string, pageId: string) => BlockRetryResult;
+  retryBlock?: (bookId: string, pageId: string, blockId: string) => Promise<RepairResult>;
+  regeneratePage?: (bookId: string, pageId: string) => Promise<RepairResult>;
   startRun?: (
     bookId: string,
     options?: { scenario?: object; source?: 'user' | 'auto-open' | 'retry' },
-  ) => BlockRetryResult;
+  ) => BookRunHandle | null;
+  getRepair?: (
+    bookId: string,
+    pageId: string,
+  ) => { operationId: string; runId: string; blockIds: string[]; writtenBlockIds: string[] } | null;
 }
 type QuizAttemptView = Pick<BookQuizAttempt, 'choice' | 'blockVersion'>;
 
@@ -78,10 +85,44 @@ const generationModule: GenerationApi = {
   retryBlock: (bookId, pageId, blockId) => retryBlockRun(bookId, pageId, blockId),
   regeneratePage: (bookId, pageId) => regeneratePageRun(bookId, pageId),
   startRun: (bookId, options) => startRunRun(bookId, { source: options?.source }),
+  getRepair: (bookId, pageId) => getRepair(bookId, pageId),
 };
 
 function loadGenerationApi(): GenerationApi | null {
   return generationModule;
+}
+
+/**
+ * 兼容服务替身：真实实现返回 Promise<RepairResult>；测试替身可能返回非 Promise（旧形状）。
+ * 非 Promise 结果视为"无结果"，只结束忙态，不据此虚构成功/失败。
+ */
+async function awaitRepairResult(result: unknown): Promise<RepairResult | null> {
+  if (result && typeof (result as { then?: unknown }).then === 'function') {
+    return (await result) as RepairResult;
+  }
+  return null;
+}
+
+/**
+ * 全局翻页键是否应当忽略本次按键（M22-06）。
+ * 排除：输入框/文本域/下拉/可编辑元素（含 contenteditable 后代）、组合输入（IME）、
+ * 带修饰键的快捷键（Ctrl/Meta/Alt/Shift）与已被其他处理器消费的事件。
+ */
+function shouldIgnorePageKey(event: KeyboardEvent): boolean {
+  if (event.defaultPrevented) return true;
+  if (event.isComposing) return true; // 组合输入进行中（中文输入法的 ←/→ 选字）
+  if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return true;
+  const target = event.target as (HTMLElement & { tagName?: string }) | null;
+  if (!target || typeof target.tagName !== 'string') return false;
+  const tag = target.tagName.toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
+  if (target.isContentEditable === true) return true;
+  const editable =
+    typeof target.closest === 'function' ? target.closest('[contenteditable]') : null;
+  if (editable instanceof HTMLElement) {
+    return editable.getAttribute('contenteditable') !== 'false';
+  }
+  return false;
 }
 
 function readPageFromBook(book: ReplicaBook, pageId: string): PipelinePage | undefined {
@@ -119,7 +160,18 @@ export function PageReader({ book, pageId }: { book: ReplicaBook; pageId: string
     typeof window === 'undefined' ? null : loadGenerationApi(),
   );
   const [busyBlockId, setBusyBlockId] = useState<string | null>(null);
-  const [pageBusy, setPageBusy] = useState(false);
+  // 挂载时若本页已有在途修复（模块级操作不随组件卸载取消），忙态如实恢复
+  const [pageBusy, setPageBusy] = useState<boolean>(() =>
+    typeof window === 'undefined'
+      ? false
+      : Boolean(loadGenerationApi()?.getRepair?.(book.id, pageId)),
+  );
+  /** 页/块修复的失败或"未生效"原因（M22-02：不再静默无操作） */
+  const [repairError, setRepairError] = useState<string | null>(null);
+  /** 排队页「生成本章」无法启动时的原因 */
+  const [startError, setStartError] = useState<string | null>(null);
+  /** 本组件发起的修复请求序号：只有最新一次点击能改动忙态与提示（旧请求被取代后不得清除新忙态） */
+  const repairRequestRef = useRef(0);
 
   // 书签真实状态读取自存储（组件接收的 book 是渲染时快照；
   // toggleBookmark 落库后经订阅刷新由上层重渲染，本地以存储为准避免旧快照回显）
@@ -150,9 +202,10 @@ export function PageReader({ book, pageId }: { book: ReplicaBook; pageId: string
     }
   }, [book.id, pageId, pageStatus]);
 
-  // 键盘翻章（对照参考 ←/→）
+  // 键盘翻章（对照参考 ←/→）。HARDEN v1：在笔记编辑、组合输入与修饰键场景下不得触发全局翻页。
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
+      if (shouldIgnorePageKey(event)) return;
       if (event.key === 'ArrowLeft' && index > 0) {
         router.push(`/books/${book.id}/pages/${pages[index - 1]!}`);
       } else if (event.key === 'ArrowRight' && index < pages.length - 1) {
@@ -175,68 +228,66 @@ export function PageReader({ book, pageId }: { book: ReplicaBook; pageId: string
   const hydrating = !writing && !queued && blocks.length === 0;
   const statusLine = readerStatusLabel(pageStatus, hydrating);
 
-  /** 强制重新生成（整页）：regeneratePage 保留 user_note 与块身份（§4.3），只复位非 user_note 块 */
-  const onRegeneratePage = () => {
-    if (!generationApi?.regeneratePage || pageBusy) return;
-    setPageBusy(true);
-    let result: BlockRetryResult;
-    try {
-      result = generationApi.regeneratePage(book.id, pageId);
-    } catch {
+  /**
+   * 修复结果落地：只有最新一次点击能改动忙态与提示。
+   * - completed → 清除提示；
+   * - failed / skipped / superseded / cancelled → 如实显示原因（不再"按钮可点但什么都没发生"）。
+   */
+  const settleRepair = useCallback(
+    (requestId: number, result: RepairResult | null, fallbackError?: string) => {
+      if (requestId !== repairRequestRef.current) return; // 已被更新的一次点击取代
+      const failed = result ? result.status !== 'completed' : Boolean(fallbackError);
+      setRepairError(failed ? (result?.error ?? fallbackError ?? '本次操作未生效。') : null);
       setPageBusy(false);
-      return;
-    }
-    if (result && typeof (result as { then?: unknown }).then === 'function') {
-      void (result as Promise<unknown>).then(
-        () => setPageBusy(false),
-        () => setPageBusy(false),
-      );
-    } else {
-      setPageBusy(false);
-    }
-  };
+      setBusyBlockId(null);
+    },
+    [],
+  );
 
-  /** 排队页“生成本章”：startRun（source 'user'）——按执行器语义启动整轮运行（含本章），见结果卡说明 */
+  const runRepairAction = useCallback(
+    (action: 'page' | 'block', blockId?: string) => {
+      const invoke =
+        action === 'page'
+          ? generationApi?.regeneratePage
+          : generationApi?.retryBlock && blockId !== undefined
+            ? (id: string, page: string) => generationApi.retryBlock!(id, page, blockId)
+            : undefined;
+      if (!invoke) return;
+      if (action === 'block' ? busyBlockId !== null : pageBusy) return;
+      const requestId = (repairRequestRef.current += 1);
+      setRepairError(null);
+      if (action === 'page') setPageBusy(true);
+      else setBusyBlockId(blockId ?? null);
+      void (async () => {
+        try {
+          const result = await awaitRepairResult(invoke(book.id, pageId));
+          settleRepair(requestId, result);
+        } catch (cause) {
+          settleRepair(requestId, null, cause instanceof Error ? cause.message : '重新生成失败。');
+        }
+      })();
+    },
+    [book.id, busyBlockId, generationApi, pageBusy, pageId, settleRepair],
+  );
+
+  /** 强制重新生成（整页）：regeneratePage 保留 user_note 与块身份（§4.3），只复位非 user_note 块 */
+  const onRegeneratePage = () => runRepairAction('page');
+
+  /** 排队页“生成本章”：startRun（source 'user'）——按执行器语义启动整轮运行（含本章） */
   const onStartChapter = () => {
     if (!generationApi?.startRun || pageBusy) return;
-    setPageBusy(true);
-    let result: BlockRetryResult;
-    try {
-      result = generationApi.startRun(book.id, { source: 'user' });
-    } catch {
-      setPageBusy(false);
+    setStartError(null);
+    const handle = generationApi.startRun(book.id, { source: 'user' });
+    // 启动失败（他标签页持租约/状态变化/存储读取失败）如实说明，不静默无操作
+    if (!handle) {
+      setStartError('无法开始生成：本书当前不可启动（可能已被其他标签页接管、状态已变化，或本地存储不可读）。');
       return;
     }
-    if (result && typeof (result as { then?: unknown }).then === 'function') {
-      void (result as Promise<unknown>).then(
-        () => setPageBusy(false),
-        () => setPageBusy(false),
-      );
-    } else {
-      setPageBusy(false);
-    }
+    setPageBusy(false);
   };
 
   /** 单块重试（§4.3 retryBlock：pending + 清 failure；页 partial→generating） */
-  const onRetryBlock = (blockId: string) => {
-    if (!generationApi?.retryBlock || busyBlockId !== null) return;
-    setBusyBlockId(blockId);
-    let result: BlockRetryResult;
-    try {
-      result = generationApi.retryBlock(book.id, pageId, blockId);
-    } catch {
-      setBusyBlockId(null);
-      return;
-    }
-    if (result && typeof (result as { then?: unknown }).then === 'function') {
-      void (result as Promise<unknown>).then(
-        () => setBusyBlockId(null),
-        () => setBusyBlockId(null),
-      );
-    } else {
-      setBusyBlockId(null);
-    }
-  };
+  const onRetryBlock = (targetBlockId: string) => runRepairAction('block', targetBlockId);
 
   const regenerateAvailable = Boolean(generationApi?.regeneratePage);
   // 归档书是只读的（books-store.runWritable 拒绝 archived 写入，对照参考 can_resume 不含归档）：
@@ -285,6 +336,17 @@ export function PageReader({ book, pageId }: { book: ReplicaBook; pageId: string
       {archived && (
         <p className="book-reader-readonly-note" role="note">
           {archivedNote}
+        </p>
+      )}
+      {/* 修复/启动未生效的原因（M22-02：失败、被取代、不可写都如实说明，不静默无操作） */}
+      {repairError && (
+        <p className="book-reader-storage-error" role="alert">
+          重新生成未完成：{repairError}
+        </p>
+      )}
+      {startError && (
+        <p className="book-reader-storage-error" role="alert">
+          {startError}
         </p>
       )}
       <h2 style={{ marginTop: 0 }}>

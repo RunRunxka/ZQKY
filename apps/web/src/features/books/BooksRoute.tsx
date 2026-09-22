@@ -32,10 +32,12 @@ import {
   type ReplicaBook,
 } from '@/services/books-store';
 import {
-  getRun,
   getLease,
+  getRun,
+  getRunExit,
   resumeRun,
   startRun,
+  stopRun,
   type BookRunScenario,
 } from '@/services/book-generation';
 import '@/features/space/styles/space.css';
@@ -345,6 +347,8 @@ function BookLibrary() {
                           <button
                             className="space-button danger"
                             onClick={() => {
+                              // 删除入口先停执行器与在途修复，再删记录（M22-01：不留心跳/监听/租约与幽灵任务）
+                              stopRun(book.id, 'delete');
                               deleteBook(book.id);
                               setPendingDeleteId(null);
                             }}
@@ -469,6 +473,8 @@ function BookWorkspace({ bookId, pageId }: { bookId: string; pageId?: string }) 
   const refresh = useCallback(() => {
     try {
       setBooks(readBooks());
+      // 读取成功即清除旧错误：上一次失败的原因不再残留在界面上（M22-04）
+      setError(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '书籍目录无法读取，原数据未修改。');
     }
@@ -515,7 +521,8 @@ function BookWorkspace({ bookId, pageId }: { bookId: string; pageId?: string }) 
     });
     if (handle) {
       autoRunRef.current.add(book.id);
-      setNotice('已从断点继续（本地模拟执行器）。');
+      // 同步失败（首个写入即被存储拒绝）的句柄 status 已是 failed：此时不得提示"已从断点继续"
+      if (handle.status !== 'failed') setNotice('已从断点继续（本地模拟执行器）。');
     }
   }, [book, tick]);
 
@@ -530,6 +537,50 @@ function BookWorkspace({ bookId, pageId }: { bookId: string; pageId?: string }) 
       book.reading.currentPageId ?? book.chapters.flatMap((chapter) => chapter.pageIds)[0] ?? null;
     if (firstPageId) router.replace(`/books/${bookId}/pages/${firstPageId}`);
   }, [book, bookId, pageId, router]);
+
+  // 执行器异常收尾的如实提示：读失败/失权不是"静默停止"（M22-01/M22-03）。
+  // 只在退出原因变化时提示一次，不因 500ms 轮询反复弹出。
+  const exitNoticeRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!activeBookId) return;
+    const exit = getRunExit(activeBookId);
+    if (!exit || exit.reason === 'finished') return;
+    const stamp = `${exit.reason}@${exit.at}`;
+    if (exitNoticeRef.current === stamp) return;
+    exitNoticeRef.current = stamp;
+    if (exit.reason === 'read-denied' || exit.reason === 'lease-lost') {
+      setNotice(exit.message ?? '本次生成已停止。');
+    }
+  }, [activeBookId, tick]);
+
+  // 首次读取失败：显示错误与重试入口，而不是被"正在读取书籍…"的加载分支永久掩盖（M22-04）。
+  // 读取失败时书籍数据保持 null（不做任何写入），因此这里必须与"尚未读到数据"区分开。
+  if (books === null && error) {
+    return (
+      <div className="space-page books-page">
+        <div className="space-content" style={{ marginTop: 80 }}>
+          <div className="space-banner error" role="alert">
+            <div className="space-banner-row">
+              <span>书籍目录读取失败：{error}</span>
+              <button className="space-button" onClick={refresh}>
+                <RefreshCcw size={14} />
+                重试读取
+              </button>
+            </div>
+          </div>
+          <p className="space-footnote" style={{ marginTop: 0 }}>
+            读取失败时不会写入或清空任何本地数据；修复存储或稍后可重试读取。
+          </p>
+          <div className="space-card-actions">
+            <Link className="space-button" href="/books">
+              <ArrowLeft size={14} />
+              返回书籍列表
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (books !== null && !book) {
     return (
@@ -770,6 +821,7 @@ function ScenarioSettings({
   const [failPages, setFailPages] = useState(false);
   const [providerPause, setProviderPause] = useState(false);
   const [storageFailure, setStorageFailure] = useState(false);
+  const [storageFailureOnFinish, setStorageFailureOnFinish] = useState(false);
   const [failPagesCount, setFailPagesCount] = useState(1);
   const [providerPauseCount, setProviderPauseCount] = useState(2);
   const [storagePageIndex, setStoragePageIndex] = useState(0);
@@ -782,8 +834,9 @@ function ScenarioSettings({
       ...(failPages ? { failPages: failPagesCount } : {}),
       ...(providerPause ? { providerPauseAfterPages: providerPauseCount } : {}),
       ...(storageFailure ? { storageFailureAt: { pageIndex: storagePageIndex } } : {}),
+      ...(storageFailureOnFinish ? { storageFailureOnFinish: true } : {}),
     };
-  }, [bookId, scenarioRef, scenarioBookRef, failBlocks, failPages, failPagesCount, providerPause, providerPauseCount, storageFailure, storagePageIndex]);
+  }, [bookId, scenarioRef, scenarioBookRef, failBlocks, failPages, failPagesCount, providerPause, providerPauseCount, storageFailure, storagePageIndex, storageFailureOnFinish]);
 
   return (
     <div className="book-pipeline-scenario">
@@ -855,6 +908,14 @@ function ScenarioSettings({
               aria-label="存储失败页序"
             />
             页写入失败）
+          </label>
+          <label className="space-toggle">
+            <input
+              type="checkbox"
+              checked={storageFailureOnFinish}
+              onChange={(event) => setStorageFailureOnFinish(event.target.checked)}
+            />
+            模拟最终完成写入失败（全部页生成完后，完成状态落库失败；一次性）
           </label>
           <p className="book-pipeline-scenario-note">
             以上均为本地模拟场景注入，用于验证失败与恢复链路；不调用模型，不代表真实供应商或存储故障。设置在确认大纲开始生成时生效。

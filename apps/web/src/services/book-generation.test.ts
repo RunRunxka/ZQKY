@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  archiveBook,
   confirmProposal,
   confirmSpine,
   createBook,
@@ -8,14 +9,16 @@ import {
   getBookPages,
   readBooks,
   type ReplicaBook,
-} from './books-store';
-import {
+} from './books-store';import {
   CONSECUTIVE_PAGE_FAILURE_LIMIT,
   DEFAULT_RUN_SCENARIO,
   RUN_LEASE_STALE_MS,
+  cancelRepairs,
   expandRunScenario,
   getLease,
+  getRepair,
   getRun,
+  getRunExit,
   regeneratePage as regeneratePageExec,
   resumeRun,
   retryBlock as retryBlockExec,
@@ -269,7 +272,7 @@ describe('book-generation 执行器', () => {
     expect(readBooks().some((item) => item.id === compiling.id)).toBe(false);
   }, 15000);
 
-  it('租约：运行中 live 且 mine；心跳推进；停止后清空；他标签页持活租约不得启动', async () => {
+  it('租约：运行中 live 且 mine；心跳推进；结束后释放；不同书可并行各自执行', async () => {
     const compiling = setupCompiling('租约书');
     startRun(compiling.id, { scenario: { ...FAST, blockDelayMs: 40 } });
 
@@ -283,19 +286,69 @@ describe('book-generation 执行器', () => {
     const lease2 = getLease(compiling.id);
     expect(lease2!.live).toBe(true);
 
-    // 他标签页持活租约：清掉本标签 ownerId 模拟另一标签，startRun 应拒绝
-    window.sessionStorage.setItem('zhiqikeyuan:book-lease-owner', 'other-tab-owner');
-    const other = getLease(compiling.id);
-    expect(other!.mine).toBe(false);
     const book2 = setupCompiling('第二本书'); // 不同书不受影响
-    startRun(book2.id, { scenario: FAST });
-    // 同书：已运行中不重复启动（返回现有句柄或 null，不产生第二个执行器）
+    expect(startRun(book2.id, { scenario: FAST })).not.toBeNull();
+    // 同书：已运行中不重复启动（返回现有句柄，不产生第二个执行器）
     const again = startRun(compiling.id, { scenario: FAST });
-    expect(again === null || again.runId === compiling.run!.runId).toBe(true);
+    expect(again!.runId).toBe(compiling.run!.runId);
 
     await waitFor(() => readBooks().find((item) => item.id === compiling.id)!.status === 'ready');
+    await waitFor(() => readBooks().find((item) => item.id === book2.id)!.status === 'ready');
     expect(getLease(compiling.id)).toBeNull(); // 结束释放
+    expect(getLease(book2.id)).toBeNull();
   }, 15000);
+
+  it('他标签页持活租约：本标签不启动第二个执行器（真实租约记录，不改本标签身份）', () => {
+    const compiling = setupCompiling('占用租约书');
+    // 直接写入"另一个标签页"的活租约（owner 不同、心跳新鲜）
+    window.localStorage.setItem(
+      `zhiqikeyuan:book-lease:${compiling.id}`,
+      JSON.stringify({
+        owner: 'other-tab-owner',
+        runId: compiling.run!.runId,
+        heartbeatAt: Date.now(),
+        nonce: 'other-tab-lease',
+      }),
+    );
+    expect(getLease(compiling.id)!.mine).toBe(false);
+    expect(startRun(compiling.id, { scenario: FAST })).toBeNull();
+    expect(getRun(compiling.id)).toBeNull();
+    // 别人的租约不被本标签页清掉
+    expect(getLease(compiling.id)!.owner).toBe('other-tab-owner');
+  });
+
+  it('失去所有权：执行器立即收尾、停止续租，且不动别人的租约记录，之后可恢复', async () => {
+    const compiling = setupCompiling('失权书');
+    startRun(compiling.id, { scenario: { stageDelayMs: 10, blockDelayMs: 120 } });
+    expect(getRun(compiling.id)).not.toBeNull();
+
+    // 另一个标签页接管租约（写入自己的 owner+nonce，心跳新鲜）
+    const foreign = {
+      owner: 'other-tab-owner',
+      runId: compiling.run!.runId,
+      heartbeatAt: Date.now(),
+      nonce: 'other-tab-lease',
+    };
+    window.localStorage.setItem(`zhiqikeyuan:book-lease:${compiling.id}`, JSON.stringify(foreign));
+
+    // 下一次驱动步/心跳的归属校验发现失权 → 立即收尾
+    await waitFor(() => getRun(compiling.id) === null);
+    expect(getRunExit(compiling.id)?.reason).toBe('lease-lost');
+    // 不再续租：跨过一个心跳周期后租约仍是接管方的记录
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    const lease = getLease(compiling.id);
+    expect(lease?.owner).toBe('other-tab-owner');
+    // 书籍保持可恢复的 compiling（失权不是"已完成"，也不是"已失败"）
+    const interrupted = readBooks().find((item) => item.id === compiling.id)!;
+    expect(interrupted.status).toBe('compiling');
+    expect(interrupted.run?.status).not.toBe('finished');
+
+    // 接管方释放后，本标签页可显式恢复并完成
+    window.localStorage.removeItem(`zhiqikeyuan:book-lease:${compiling.id}`);
+    expect(resumeRun(compiling.id)).not.toBeNull();
+    await waitFor(() => readBooks().find((item) => item.id === compiling.id)!.status === 'ready', 12000);
+    expect(getBookPages(compiling.id).every((page) => page.status === 'ready')).toBe(true);
+  }, 20000);
 
   it('regeneratePage 执行器路径：重建整页并保留 user_note 内容与块身份', async () => {
     const compiling = setupCompiling('整页重生成书');
@@ -513,4 +566,251 @@ describe('book-generation 注入语义修复（H1 v2 总控裁定 A1/A2/A4）', 
     expect(afterRegenerate.contentVersion).toBe(quiz.contentVersion);
     expect(quizAttemptMatches(afterRegenerate, { blockVersion: quiz.contentVersion })).toBe(true);
   }, 20000);
+});
+
+/**
+ * H1-BOOKS-HARDEN v1（M22-01～03/05）回归。
+ * 前三条由 main 审查的隔离探针改造而来：**原探针断言缺陷存在，这里断言修复后的正确行为**。
+ * 原探针保留在 docs/qa/main-review-20260922/book-probe.test.ts，修复后已不再复现缺陷。
+ */
+describe('H1-BOOKS-HARDEN v1 缺陷回归（原探针断言反转）', () => {
+  const BOOKS_KEY = 'zhiqikeyuan:books';
+
+  it('M22-01 删除运行中的书：执行器、心跳、监听与租约统一收尾（不残留 running/续租）', async () => {
+    const book = setupCompiling('删除收尾书');
+    startRun(book.id, { scenario: { stageDelayMs: 5, blockDelayMs: 300 } });
+    expect(getRun(book.id)).not.toBeNull();
+    expect(getLease(book.id)?.live).toBe(true);
+
+    deleteBook(book.id);
+
+    // 下一次驱动步发现书籍已删除 → 立即收尾（而不是继续 running 并续租）
+    await waitFor(() => getRun(book.id) === null);
+    expect(getRunExit(book.id)?.reason).toBe('deleted');
+    expect(getLease(book.id)).toBeNull();
+    // 跨过一个心跳周期：租约不被续期（无心跳残留）
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    expect(getLease(book.id)).toBeNull();
+    expect(readBooks()).toEqual([]);
+  }, 20000);
+
+  it('M22-01 存储读取被拒：执行器收尾（不残留 running/心跳/租约），恢复后可从断点继续生成', async () => {
+    const book = setupCompiling('读失败收尾书');
+    startRun(book.id, { scenario: { stageDelayMs: 5, blockDelayMs: 20 } });
+    await waitFor(() => getRun(book.id) !== null);
+
+    const original = Storage.prototype.getItem;
+    const spy = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(function (
+      this: Storage,
+      name: string,
+    ) {
+      if (name === BOOKS_KEY) throw new Error('harden: read denied');
+      return original.call(this, name);
+    });
+    await waitFor(() => getRun(book.id) === null);
+    spy.mockRestore();
+
+    // 收尾原因区分"读取失败"与"删除"；不残留租约与心跳
+    expect(getRunExit(book.id)?.reason).toBe('read-denied');
+    expect(getLease(book.id)).toBeNull();
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    expect(getLease(book.id)).toBeNull();
+
+    // 读取被拒期间没有写入任何生成结果，也没有假报完成
+    const stored = readBooks().find((item) => item.id === book.id)!;
+    expect(stored.status).toBe('compiling');
+    expect(stored.run?.status).not.toBe('finished');
+    expect(getBookPages(book.id).every((page) => page.status === 'pending')).toBe(true);
+
+    // 存储恢复后可恢复：从断点续跑到 ready
+    expect(resumeRun(book.id)).not.toBeNull();
+    await waitFor(
+      () => readBooks().find((item) => item.id === book.id)!.status === 'ready',
+      15000,
+    );
+    expect(getBookPages(book.id).every((page) => page.status === 'ready')).toBe(true);
+  }, 25000);
+
+  it('M22-02 修复返回真实异步结果，且旧任务不得借用新 runId 写入（冻结身份）', async () => {
+    const book = setupCompiling('迟到写入书');
+    const pageId = getBookPages(book.id)[0]!.id;
+    const frozenRunId = book.run!.runId;
+
+    const promise = regeneratePageExec(book.id, pageId);
+    expect(typeof promise.then).toBe('function'); // 不再是 fire-and-forget 的 void
+
+    // 启动后换 run（模拟重建/换轮次）：旧操作的写入必须全部被拒
+    const raw = JSON.parse(window.localStorage.getItem(BOOKS_KEY)!) as Array<{
+      id: string;
+      run?: { runId: string };
+      pages?: Array<{ id: string; blocks: Array<{ id: string; status?: string }> }>;
+    }>;
+    raw.find((item) => item.id === book.id)!.run!.runId = 'replacement-run';
+    window.localStorage.setItem(BOOKS_KEY, JSON.stringify(raw));
+
+    const result = await promise;
+    expect(result.status).toBe('superseded');
+    expect(result.droppedWrites).toBeGreaterThan(0);
+    // 冻结的是启动时的运行身份，不是"最新的 runId"
+    expect(result.runId).toBe(frozenRunId);
+    expect(result.runId).not.toBe('replacement-run');
+
+    const current = readBooks().find((item) => item.id === book.id)!;
+    expect(current.run!.runId).toBe('replacement-run');
+    // 迟到写入被拒：旧任务没有把任何块写成 ready
+    const storedPage = getBookPage(book.id, pageId)!;
+    expect(storedPage.blocks.some((block) => block.status === 'ready')).toBe(false);
+  }, 20000);
+
+  it('M22-02 单块重试：结果为 completed 且列出真实写入的块；同页重复请求复用同一 Promise', async () => {
+    const book = setupCompiling('修复结果书');
+    const page = getBookPages(book.id)[0]!;
+    const target = page.blocks[0]!;
+    startRun(book.id, { scenario: { ...FAST, failBlockIds: [target.id] } });
+    await waitFor(() => getBookPage(book.id, page.id)?.status === 'partial');
+    await waitFor(() => readBooks().find((item) => item.id === book.id)!.status === 'ready');
+
+    const runId = readBooks().find((item) => item.id === book.id)!.run!.runId;
+    const first = retryBlockExec(book.id, page.id, target.id);
+    const second = retryBlockExec(book.id, page.id, target.id);
+    expect(second).toBe(first); // 互斥：重复请求不产生第二遍生成
+
+    const [r1, r2] = await Promise.all([first, second]);
+    expect(r1.status).toBe('completed');
+    expect(r2).toBe(r1);
+    expect(r1.runId).toBe(runId);
+    expect(r1.writtenBlockIds).toEqual([target.id]);
+    expect(r1.droppedWrites).toBe(0);
+    expect(getRepair(book.id, page.id)).toBeNull(); // 结束后不再占用互斥位
+    expect(getBookPage(book.id, page.id)!.blocks.find((b) => b.id === target.id)!.status).toBe('ready');
+  }, 25000);
+
+  it('M22-02 整页重生成中重试单块：在途整页操作覆盖该块，复用同一 Promise（不留半生成页）', async () => {
+    const book = setupCompiling('覆盖复用书');
+    startRun(book.id, { scenario: FAST });
+    await waitFor(() => readBooks().find((item) => item.id === book.id)!.status === 'ready');
+    const page = getBookPages(book.id)[1]!;
+
+    const pageOp = regeneratePageExec(book.id, page.id);
+    const blockOp = retryBlockExec(book.id, page.id, page.blocks[0]!.id);
+    expect(blockOp).toBe(pageOp); // 整页目标覆盖单块目标
+
+    const [pageResult, blockResult] = await Promise.all([pageOp, blockOp]);
+    expect(pageResult.status).toBe('completed');
+    expect(blockResult).toBe(pageResult);
+    expect(getBookPage(book.id, page.id)!.blocks.every((b) => b.status === 'ready')).toBe(true);
+  }, 25000);
+
+  it('M22-02 整页请求取代单块在途操作：旧操作终态 superseded，页最终完整 ready', async () => {
+    const book = setupCompiling('取代操作书');
+    startRun(book.id, { scenario: FAST });
+    await waitFor(() => readBooks().find((item) => item.id === book.id)!.status === 'ready');
+    const page = getBookPages(book.id)[1]!;
+
+    const blockOp = retryBlockExec(book.id, page.id, page.blocks[0]!.id);
+    const pageOp = regeneratePageExec(book.id, page.id);
+    expect(pageOp).not.toBe(blockOp); // 整页请求未被单块在途操作覆盖 → 取代
+
+    const [blockResult, pageResult] = await Promise.all([blockOp, pageOp]);
+    expect(blockResult.status).toBe('superseded');
+    expect(pageResult.status).toBe('completed');
+    expect(getBookPage(book.id, page.id)!.blocks.every((b) => b.status === 'ready')).toBe(true);
+  }, 25000);
+
+  it('M22-02 取消：cancelRepairs 让在途修复以 cancelled 收尾，剩余写入丢弃', async () => {
+    const book = setupCompiling('取消修复书');
+    const pageId = getBookPages(book.id)[0]!.id;
+    const promise = regeneratePageExec(book.id, pageId);
+    expect(cancelRepairs(book.id, 'test-cancel')).toBe(1);
+
+    const result = await promise;
+    expect(result.status).toBe('cancelled');
+    expect(result.writtenBlockIds).toEqual([]);
+    expect(getRepair(book.id, pageId)).toBeNull();
+  }, 20000);
+
+  it('M22-02 存储写失败：修复以 failed 如实解析（不 reject、不谎报成功）', async () => {
+    const book = setupCompiling('修复写失败书');
+    const pageId = getBookPages(book.id)[0]!.id;
+    // 复位通过仓储写入：注入一次真实写失败 → 修复在开始前就如实失败
+    const original = Storage.prototype.setItem;
+    const spy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (
+      this: Storage,
+      name: string,
+      value: string,
+    ) {
+      if (name === BOOKS_KEY) throw new DOMException('quota', 'QuotaExceededError');
+      return original.call(this, name, value);
+    });
+    const result = await regeneratePageExec(book.id, pageId);
+    spy.mockRestore();
+
+    expect(result.status).toBe('failed');
+    expect(result.error).toBeTruthy();
+    expect(result.writtenBlockIds).toEqual([]);
+    // 复位失败后不残留互斥占用
+    expect(getRepair(book.id, pageId)).toBeNull();
+  }, 20000);
+
+  it('M22-05 最终完成写入失败：不假报完成，落 kind storage 失败并可重试完成（一次性注入）', async () => {
+    const book = setupCompiling('完成写失败书');
+    startRun(book.id, { scenario: { ...FAST, storageFailureOnFinish: true } });
+
+    await waitFor(
+      () => readBooks().find((item) => item.id === book.id)!.status === 'error',
+      20000,
+    );
+    const failed = readBooks().find((item) => item.id === book.id)!;
+    expect(failed.status).toBe('error'); // 绝不因"内存里跑完了"而写成 ready
+    expect(failed.run?.failure?.kind).toBe('storage');
+    expect(failed.run?.failure?.message).toContain('最终完成状态写入失败');
+    expect(failed.run?.status).toBe('failed');
+    expect(getRunExit(book.id)?.reason).toBe('failed');
+    // 资源释放：句柄与租约都不残留
+    expect(getRun(book.id)).toBeNull();
+    expect(getLease(book.id)).toBeNull();
+
+    // 恢复入口：重试生成（一次性注入不再触发）→ 真正完成
+    expect(resumeRun(book.id)).not.toBeNull();
+    await waitFor(
+      () => readBooks().find((item) => item.id === book.id)!.status === 'ready',
+      20000,
+    );
+    expect(getBookPages(book.id).every((page) => page.status === 'ready')).toBe(true);
+    // 注入未污染真实存储
+    window.localStorage.setItem('zhiqikeyuan:harden-probe', 'ok');
+    expect(window.localStorage.getItem('zhiqikeyuan:harden-probe')).toBe('ok');
+  }, 30000);
+
+  it('stopRun 也取消在途修复（删除/停止入口不留幽灵任务）', async () => {
+    const book = setupCompiling('停止取消修复书');
+    const pageId = getBookPages(book.id)[0]!.id;
+    const promise = regeneratePageExec(book.id, pageId);
+    expect(getRepair(book.id, pageId)).not.toBeNull();
+    stopRun(book.id, 'delete');
+    const result = await promise;
+    expect(result.status).toBe('cancelled');
+    expect(getRepair(book.id, pageId)).toBeNull();
+  }, 20000);
+
+  it('A1 挑刺：修复期间书籍变为不可写（归档）→ 不得报 completed，块不计入写入结果', async () => {
+    const book = setupCompiling('修复期间归档书');
+    startRun(book.id, { scenario: FAST });
+    await waitFor(() => readBooks().find((item) => item.id === book.id)!.status === 'ready');
+    const page = getBookPages(book.id)[1]!;
+
+    const promise = regeneratePageExec(book.id, page.id);
+    // 复位已写入（页回 pending），趁块延时窗口把书归档：此后 runWritable 一律拒绝生成事件
+    expect(archiveBook(book.id, true)?.status).toBe('archived');
+
+    const result = await promise;
+    expect(result.status).toBe('failed'); // 写入被仓储静默拒绝：绝不谎报 completed
+    expect(result.writtenBlockIds).toEqual([]);
+    expect(result.droppedWrites).toBeGreaterThan(0);
+    expect(result.error).toMatch(/不接受生成|未生效/);
+    expect(getRepair(book.id, page.id)).toBeNull();
+    // 归档内容不被生成事件改写（块仍是复位后的 pending，不是 ready）
+    const stored = getBookPage(book.id, page.id)!;
+    expect(stored.blocks.some((block) => block.status === 'ready')).toBe(false);
+  }, 25000);
 });

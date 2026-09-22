@@ -110,6 +110,8 @@ export interface BookRunScenario {
   failPages?: number;
   providerPauseAfterPages?: number;
   storageFailureAt?: { pageIndex: number } | null;
+  /** 模拟"最终完成状态写入失败"（一次性：已因 storage 失败过的运行不再注入） */
+  storageFailureOnFinish?: boolean;
 }
 
 /** 运行检查点（对照参考 GenerationOverview/engine 的本地形态；随书籍记录持久化） */
@@ -188,11 +190,6 @@ function readList(): ReplicaBook[] {
   );
 }
 
-function writeList(list: ReplicaBook[]): void {
-  writeStrictList(KEY, list);
-  notify();
-}
-
 function notify(): void {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new Event(EVENT));
@@ -218,13 +215,111 @@ function findBook(id: string): ReplicaBook | undefined {
   return readList().find((book) => book.id === id);
 }
 
+/**
+ * 共享集合的有界收敛写入。
+ *
+ * 背景：书籍列表是**所有标签页共用的一个存储键**，直接"读过就写"会在"本标签页决策期间
+ * 别的标签页写了集合"时用过期整表把别人的更新覆盖掉（改其他书时最危险）。
+ * localStorage 没有 CAS，因此用**写标记（sidecar 键）**做冲突检测：
+ * 1. 先读标记 → 读快照 → 计算变更；
+ * 2. 写前再读标记：若标记变化（其他标签页在本标签页决策期间写过共享集合），丢弃本次结果，
+ *    在新快照上重放变更（有界，最多 3 次）；
+ * 3. 写入后再读回：目标书内容确实落地才算成功，否则重放。
+ *
+ * 如实边界：标记与列表是两个键，写入不是原子的；本协议消除的是"决策期间被并发写入"这一类
+ * 丢失更新（窗口从整个变更计算缩短到两次读标记之间），不宣称强原子性。标记读写失败时降级为
+ * 单标签页语义（不因标记故障阻断业务写入）。
+ *
+ * `mutate` 返回 null 表示本次变更不适用（调用方据此走原语义）。
+ */
+const WRITE_CONVERGE_ATTEMPTS = 3;
+
+/** 写标记键由集合键派生（每个共享集合各有一个标记，互不干扰） */
+function writeStampKey(key: string): string {
+  return `${key}-write`;
+}
+
+interface WriteStamp {
+  seq: number;
+  writer: string;
+}
+
+/** 本标签页身份（与生成租约 owner 同源约定：存 sessionStorage，仅用于区分写入者） */
+function tabWriterId(): string {
+  if (typeof window === 'undefined') return 'server';
+  try {
+    const existing = window.sessionStorage.getItem('zhiqikeyuan:books-tab');
+    if (existing) return existing;
+    const created = `tab-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    window.sessionStorage.setItem('zhiqikeyuan:books-tab', created);
+    return created;
+  } catch {
+    return 'no-session';
+  }
+}
+
+/** 读写标记：缺失（首次写入）归一化为 {seq:0, writer:''}，这样"首次写入期间被并发写"也能检出 */
+function readWriteStamp(collectionKey: string): WriteStamp {
+  if (typeof window === 'undefined') return { seq: 0, writer: '' };
+  try {
+    const raw = window.localStorage.getItem(writeStampKey(collectionKey));
+    if (!raw) return { seq: 0, writer: '' };
+    const parsed = JSON.parse(raw) as Partial<WriteStamp>;
+    if (typeof parsed.seq !== 'number' || typeof parsed.writer !== 'string') {
+      return { seq: 0, writer: '' };
+    }
+    return { seq: parsed.seq, writer: parsed.writer };
+  } catch {
+    return { seq: 0, writer: '' };
+  }
+}
+
+function writeWriteStamp(collectionKey: string, stamp: WriteStamp): void {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(writeStampKey(collectionKey), JSON.stringify(stamp));
+  } catch {
+    // 标记写入失败：冲突检测降级，业务写入不受影响
+  }
+}
+
+function writeListConverged<T>(
+  key: string,
+  mutate: (list: T[]) => T[] | null,
+): T[] | null {
+  let last: T[] | null = null;
+  for (let attempt = 0; attempt < WRITE_CONVERGE_ATTEMPTS; attempt += 1) {
+    const stampBefore = readWriteStamp(key);
+    const list = readStrictList<T>(key);
+    const next = mutate(list);
+    if (next === null) return null;
+    last = next;
+    const stampNow = readWriteStamp(key);
+    // 决策期间有其他标签页写过共享集合：本次结果基于过期快照，重放而不是覆盖
+    if (stampNow.seq !== stampBefore.seq || stampNow.writer !== stampBefore.writer) {
+      continue;
+    }
+    writeWriteStamp(key, { seq: stampNow.seq + 1, writer: tabWriterId() });
+    writeStrictList(key, next);
+    notify();
+    if (JSON.stringify(readStrictList<T>(key)) === JSON.stringify(next)) return next;
+    // 写后被并发覆盖（或写入未落地）：下一轮在新快照上重放本次变更
+  }
+  return last;
+}
+
 function mutateBook(id: string, mutate: (book: ReplicaBook) => ReplicaBook): ReplicaBook | null {
-  const list = readList();
-  const idx = list.findIndex((book) => book.id === id);
-  if (idx === -1) return null;
-  list[idx] = { ...mutate(list[idx]!), updatedAt: new Date().toISOString() };
-  writeList(list);
-  return list[idx]!;
+  let mutated: ReplicaBook | null = null;
+  const result = writeListConverged<ReplicaBook>(KEY, (list) => {
+    const idx = list.findIndex((book) => book.id === id);
+    if (idx === -1) return null;
+    const next: ReplicaBook = { ...mutate(list[idx]!), updatedAt: new Date().toISOString() };
+    mutated = next;
+    const out = [...list];
+    out[idx] = next;
+    return out;
+  });
+  return result === null ? null : mutated;
 }
 
 /**
@@ -264,8 +359,8 @@ export function recordQuizAttempt(input: {
     ...(input.blockVersion !== undefined ? { blockVersion: input.blockVersion } : {}),
   };
   if (typeof window !== 'undefined') {
-    writeStrictList(QUIZ_KEY, [...readQuizList(), attempt]);
-    notify();
+    // 收敛写入：并发追加不会互相覆盖（作答历史是共享集合，两个标签页同时作答不能只留一份）
+    writeListConverged<BookQuizAttempt>(QUIZ_KEY, (list) => [...list, attempt]);
   }
   return attempt;
 }
@@ -297,18 +392,53 @@ export function latestQuizAttempt(bookId: string, pageId: string, blockId: strin
 
 /** 保存 user_note block 的用户笔记（写回书籍记录内的 block 内容） */
 export function setUserNote(bookId: string, pageId: string, blockId: string, text: string): boolean {
-  const book = readInternal().find((item) => item.id === bookId);
-  if (!book?.pages) return false;
-  const page = book.pages.find((item) => item.id === pageId);
-  if (!page) return false;
-  const block = page.blocks.find((item) => item.id === blockId);
-  if (!block || block.type !== 'user_note') return false;
-  block.content = text;
-  const idx = readInternal().findIndex((item) => item.id === bookId);
-  if (idx === -1) return false;
-  writeList(readInternal().map((item) => (item.id === bookId ? book : item)));
-  notify();
-  return true;
+  let saved = false;
+  // 收敛写入：在最新快照上定位并改写（其他标签页同时写别的书/同一书的其他块都不被整表覆盖）
+  const result = writeListConverged<ReplicaBook>(KEY, (list) => {
+    const idx = list.findIndex((item) => item.id === bookId);
+    if (idx === -1) return null;
+    const book = list[idx] as ReplicaBookInternal;
+    if (!book.pages) return null;
+    const page = book.pages.find((item) => item.id === pageId);
+    if (!page) return null;
+    const block = page.blocks.find((item) => item.id === blockId);
+    if (!block || block.type !== 'user_note') return null;
+    const nextBook: ReplicaBookInternal = {
+      ...book,
+      pages: book.pages.map((item) =>
+        item.id !== pageId
+          ? item
+          : {
+              ...item,
+              blocks: item.blocks.map((candidate) =>
+                candidate.id === blockId ? { ...candidate, content: text } : candidate,
+              ),
+            },
+      ),
+      updatedAt: new Date().toISOString(),
+    };
+    saved = true;
+    const out = [...list];
+    out[idx] = nextBook;
+    return out;
+  });
+  if (result === null || !saved) return false;
+  // 写后读回校验（独立验收 A1 挑刺）：只有笔记真的落到存储才算保存成功，
+  // 不拿"回调里置过 saved"当已保存（收敛重放耗尽时写入可能并未落地）。
+  return readStoredNote(bookId, pageId, blockId) === text;
+}
+
+/** 读取存储中的 user_note 内容（写后校验用；读取失败返回 null） */
+function readStoredNote(bookId: string, pageId: string, blockId: string): string | null {
+  try {
+    const book = readList().find((item) => item.id === bookId) as ReplicaBookInternal | undefined;
+    const block = book?.pages
+      ?.find((page) => page.id === pageId)
+      ?.blocks.find((candidate) => candidate.id === blockId);
+    return block?.content ?? null;
+  } catch {
+    return null;
+  }
 }
 
 // ===== 模拟生成（确定性模板，显式标注） =====
@@ -425,10 +555,6 @@ interface ReplicaBookInternal extends ReplicaBook {
   pages?: BookPage[];
 }
 
-function readInternal(): ReplicaBookInternal[] {
-  return readList() as ReplicaBookInternal[];
-}
-
 /** 构建一页的 pending 块骨架：块 id/类型/quiz 结构在规划期确定，内容暂空，由执行器经 block-ready 填充 */
 function planPageBlocks(chapterTitle: string, pageTitle: string): BookBlock[] {
   return simulateBlocks(chapterTitle, pageTitle).map((block) => ({
@@ -526,7 +652,12 @@ export function createBook(title: string, description: string): ReplicaBook {
     createdAt: now,
     updatedAt: now,
   };
-  writeList([...list, book]);
+  // 收敛写入：其他标签页在本次创建期间新增的书不得被整表回写覆盖；重名在同一快照上复检
+  const written = writeListConverged<ReplicaBook>(KEY, (current) => {
+    if (current.some((item) => item.title === trimmed && item.status !== 'archived')) return null;
+    return [...current, book];
+  });
+  if (written === null) throw new BookValidationError('已存在同名书籍，请换一个书名。');
   return book;
 }
 
@@ -622,34 +753,47 @@ export function archiveBook(bookId: string, archived: boolean): ReplicaBook | nu
 }
 
 export function deleteBook(bookId: string): boolean {
-  const list = readList();
-  const kept = list.filter((book) => book.id !== bookId);
-  if (kept.length === list.length) return false;
-  writeList(kept);
-  return true;
+  let deleted = false;
+  // 收敛写入：删除一本书不得连带回写覆盖其他标签页刚写入的其他书
+  writeListConverged<ReplicaBook>(KEY, (list) => {
+    const kept = list.filter((book) => book.id !== bookId);
+    if (kept.length === list.length) return null;
+    deleted = true;
+    return kept;
+  });
+  return deleted;
 }
 
 export function updateBook(
   bookId: string,
   patch: { title?: string; description?: string },
 ): ReplicaBook {
-  const list = readList();
-  const idx = list.findIndex((book) => book.id === bookId);
-  if (idx === -1) throw new BookValidationError('书籍不存在或已被删除。');
-  if (patch.title !== undefined) {
-    const trimmed = patch.title.trim();
-    if (!trimmed) throw new BookValidationError('书名不能为空。');
-    if (list.some((book) => book.id !== bookId && book.title === trimmed && book.status !== 'archived'))
-      throw new BookValidationError('已存在同名书籍，请换一个书名。');
-  }
-  list[idx] = {
-    ...list[idx]!,
-    ...(patch.title !== undefined ? { title: patch.title.trim() } : {}),
-    ...(patch.description !== undefined ? { description: patch.description.trim() } : {}),
-    updatedAt: new Date().toISOString(),
-  };
-  writeList(list);
-  return list[idx]!;
+  let updated: ReplicaBook | null = null;
+  const result = writeListConverged<ReplicaBook>(KEY, (list) => {
+    const idx = list.findIndex((book) => book.id === bookId);
+    if (idx === -1) throw new BookValidationError('书籍不存在或已被删除。');
+    if (patch.title !== undefined) {
+      const trimmed = patch.title.trim();
+      if (!trimmed) throw new BookValidationError('书名不能为空。');
+      if (
+        list.some(
+          (book) => book.id !== bookId && book.title === trimmed && book.status !== 'archived',
+        )
+      )
+        throw new BookValidationError('已存在同名书籍，请换一个书名。');
+    }
+    updated = {
+      ...list[idx]!,
+      ...(patch.title !== undefined ? { title: patch.title.trim() } : {}),
+      ...(patch.description !== undefined ? { description: patch.description.trim() } : {}),
+      updatedAt: new Date().toISOString(),
+    };
+    const out = [...list];
+    out[idx] = updated;
+    return out;
+  });
+  if (result === null || !updated) throw new BookValidationError('书籍不存在或已被删除。');
+  return updated;
 }
 
 // ===== 生成流水线仓储（H1-BOOKS-PIPELINE v2；唯一写入口 applyRunEvent） =====
@@ -1239,11 +1383,13 @@ function buildDemoReadyBook(base: ReplicaBookInternal): ReplicaBookInternal {
 
 /** 显式载入演示书籍（幂等）；就绪书含预置阅读进度（1 已读 + 1 书签） */
 export function loadDemoBooks(): void {
-  const existing = readInternal();
-  const merged = [...existing];
-  for (const demo of DEMO_BOOKS) {
-    if (merged.some((item) => item.id === demo.id)) continue;
-    merged.push(demo.status === 'ready' ? buildDemoReadyBook(demo) : demo);
-  }
-  writeList(merged as ReplicaBook[]);
+  // 收敛写入：并入演示书时不得覆盖其他标签页同时写入的其他书
+  writeListConverged<ReplicaBook>(KEY, (existing) => {
+    const merged = [...existing];
+    for (const demo of DEMO_BOOKS) {
+      if (merged.some((item) => item.id === demo.id)) continue;
+      merged.push(demo.status === 'ready' ? buildDemoReadyBook(demo) : demo);
+    }
+    return merged;
+  });
 }
