@@ -163,6 +163,7 @@ const QUIZ_KEY = 'zhiqikeyuan:book-quiz-attempts';
 const EVENT = 'zqky:books';
 
 import { readStrictList, writeStrictList } from './local-collection';
+import { withCollectionLock } from './collection-lock';
 
 export class BookValidationError extends Error {}
 
@@ -232,9 +233,13 @@ function findBook(id: string): ReplicaBook | undefined {
  *
  * `mutate` 返回 null 表示本次变更不适用（调用方据此走原语义）。
  */
-const WRITE_CONVERGE_ATTEMPTS = 3;
-
-/** 写标记键由集合键派生（每个共享集合各有一个标记，互不干扰） */
+/**
+ * 共享集合写入的历史演进（接手者必读）：
+ * - H1-BOOKS-PIPELINE v2 / HARDEN v1：写标记（sidecar 键）+ 有界重放——只能**检测**到
+ *   "决策期间被并发写入"，检测发生在写入之前，"检测之后、写入之前"的窗口挡不住（本批缺陷 2）。
+ * - H1-BOOKS-COMMIT-SAFETY v1：改为**集合互斥锁内的读改写事务**（见 transactCollection），
+ *   写标记降级为事务内的修订号（写后校验用），继续保留键名以兼容既有数据与文档。
+ */
 function writeStampKey(key: string): string {
   return `${key}-write`;
 }
@@ -283,43 +288,235 @@ function writeWriteStamp(collectionKey: string, stamp: WriteStamp): void {
   }
 }
 
-function writeListConverged<T>(
-  key: string,
-  mutate: (list: T[]) => T[] | null,
-): T[] | null {
-  let last: T[] | null = null;
-  for (let attempt = 0; attempt < WRITE_CONVERGE_ATTEMPTS; attempt += 1) {
-    const stampBefore = readWriteStamp(key);
-    const list = readStrictList<T>(key);
-    const next = mutate(list);
-    if (next === null) return null;
-    last = next;
-    const stampNow = readWriteStamp(key);
-    // 决策期间有其他标签页写过共享集合：本次结果基于过期快照，重放而不是覆盖
-    if (stampNow.seq !== stampBefore.seq || stampNow.writer !== stampBefore.writer) {
-      continue;
-    }
-    writeWriteStamp(key, { seq: stampNow.seq + 1, writer: tabWriterId() });
-    writeStrictList(key, next);
-    notify();
-    if (JSON.stringify(readStrictList<T>(key)) === JSON.stringify(next)) return next;
-    // 写后被并发覆盖（或写入未落地）：下一轮在新快照上重放本次变更
-  }
-  return last;
+// ===== 提交结果契约与事务入口（H1-BOOKS-COMMIT-SAFETY v1） =====
+
+/**
+ * 提交状态：**必须区分**"已提交/冲突/记录不存在/变更不适用/读取失败/写入失败"。
+ * 任何非 committed 状态的 `value` 都是 null——绝不返回内存候选值冒充保存结果。
+ */
+export type CommitStatus =
+  | 'committed'
+  | 'conflict'
+  | 'missing'
+  | 'skipped'
+  | 'read-failed'
+  | 'write-failed';
+
+export interface CommitResult<T = undefined> {
+  status: CommitStatus;
+  /** 仅 committed 时非 null，且来自写后读回（不是内存候选） */
+  value: T | null;
+  /** 统一中文原因（成功为空串） */
+  message: string;
 }
 
-function mutateBook(id: string, mutate: (book: ReplicaBook) => ReplicaBook): ReplicaBook | null {
-  let mutated: ReplicaBook | null = null;
-  const result = writeListConverged<ReplicaBook>(KEY, (list) => {
-    const idx = list.findIndex((book) => book.id === id);
-    if (idx === -1) return null;
-    const next: ReplicaBook = { ...mutate(list[idx]!), updatedAt: new Date().toISOString() };
-    mutated = next;
+/** 兼容旧名：`skipped` 之外的非提交状态都算失败 */
+export function isCommitted<T>(result: CommitResult<T>): boolean {
+  return result.status === 'committed';
+}
+
+export function commitStatusMessage(status: CommitStatus): string {
+  switch (status) {
+    case 'committed':
+      return '';
+    case 'conflict':
+      return '本地数据正被另一个标签页写入，本次修改未保存；请重试。';
+    case 'missing':
+      return '目标记录不存在（可能已被删除）。';
+    case 'skipped':
+      return '当前状态不允许这次修改，未做任何写入。';
+    case 'read-failed':
+      return '本地数据读取失败（或已损坏），为保护原数据未做任何写入。';
+    case 'write-failed':
+      return '本地保存失败（存储可能已满）；本次修改已回滚，原数据保留。';
+  }
+}
+
+function committed<T>(value: T): CommitResult<T> {
+  return { status: 'committed', value, message: '' };
+}
+
+function failed<T = undefined>(status: Exclude<CommitStatus, 'committed'>, message?: string): CommitResult<T> {
+  return { status, value: null, message: message ?? commitStatusMessage(status) };
+}
+
+/**
+ * 集合事务里 mutate 的返回值：
+ * - `write`：写 `next`（**整表**新内容），提交后把 `value` 返回给调用方；
+ * - `noop`：记录已处于目标状态，不写盘，但请求确实已满足（幂等操作）；
+ * - `skip`：本次变更不适用（`missing`=记录不存在 / `skipped`=前置条件不满足），不写、不报成功。
+ */
+interface MutateOutcome<T, V> {
+  kind: 'write' | 'noop' | 'skip';
+  next?: T[];
+  value?: V;
+  status?: Extract<CommitStatus, 'missing' | 'skipped'>;
+  message?: string;
+}
+
+/** 单书事务里 mutate 的返回值：`book` 为变更后的书籍，`value` 为返回给调用方的值 */
+interface BookMutateOutcome<V> {
+  kind: 'write' | 'noop' | 'skip';
+  book?: ReplicaBook;
+  value?: V;
+  status?: Extract<CommitStatus, 'missing' | 'skipped'>;
+  message?: string;
+}
+
+/**
+ * 集合事务：在互斥临界区内完成"读快照 → 变更 → 写修订号 → 写数据 → 写后校验"。
+ *
+ * 与 H1-BOOKS-HARDEN v1 的写标记方案的关键差别：**互斥由集合锁提供**（Web Locks / 回退锁），
+ * "检测之后、写入之前"的并发窗口不再是裸露的；修订号与写后读回只作为"事务未被外部写入者破坏"
+ * 的校验。校验不通过 → 在**最新快照**上整事务重做（因此收敛），预算耗尽 → conflict，
+ * **任何非 committed 结果都不返回候选值**。
+ */
+const COMMIT_ATTEMPTS = 3;
+
+async function transactCollection<T, V>(
+  key: string,
+  mutate: (list: T[]) => MutateOutcome<T, V>,
+): Promise<CommitResult<V>> {
+  for (let attempt = 0; attempt < COMMIT_ATTEMPTS; attempt += 1) {
+    const locked = await withCollectionLock(key, () => {
+      let list: T[];
+      try {
+        // 锁内读快照："读"与"写"之间没有其他协议内写入者
+        list = readStrictList<T>(key);
+      } catch (cause) {
+        return {
+          kind: 'io-error' as const,
+          status: 'read-failed' as const,
+          message: cause instanceof Error && cause.message ? cause.message : undefined,
+        };
+      }
+      const stampBefore = readWriteStamp(key);
+      const outcome = mutate(list);
+      if (outcome.kind === 'skip') {
+        return {
+          kind: 'skip' as const,
+          status: outcome.status ?? ('skipped' as const),
+          message: outcome.message,
+        };
+      }
+      if (outcome.kind === 'noop') {
+        // 幂等操作：目标状态已满足，无需写入
+        return { kind: 'committed' as const, value: outcome.value as V, wrote: false as const };
+      }
+      const nextList = outcome.next as T[];
+      try {
+        // 取号（写修订号）后立刻校验快照仍是当前内容：任何在"读快照 → 取号"期间落地的
+        // 外部写入（含绕过锁的非协议写入）都会在这里被发现，丢弃本次结果重做，
+        // 绝不用旧快照覆盖别人已保存的内容。
+        writeWriteStamp(key, { seq: stampBefore.seq + 1, writer: tabWriterId() });
+        if (JSON.stringify(readStrictList<T>(key)) !== JSON.stringify(list)) {
+          return { kind: 'retry' as const };
+        }
+        writeStrictList(key, nextList);
+      } catch (cause) {
+        return {
+          kind: 'io-error' as const,
+          status: 'write-failed' as const,
+          message: cause instanceof Error && cause.message ? cause.message : undefined,
+        };
+      }
+      try {
+        // 写后校验 1：修订号仍属本事务（未被其他写入者取代）
+        const stampAfter = readWriteStamp(key);
+        if (stampAfter.seq !== stampBefore.seq + 1 || stampAfter.writer !== tabWriterId()) {
+          return { kind: 'retry' as const };
+        }
+        // 写后校验 2：数据读回与本次写入一致（未被外部写入者覆盖）
+        if (JSON.stringify(readStrictList<T>(key)) !== JSON.stringify(nextList)) {
+          return { kind: 'retry' as const };
+        }
+      } catch {
+        return { kind: 'retry' as const };
+      }
+      return { kind: 'committed' as const, value: outcome.value as V, wrote: true as const };
+    });
+    if (!locked.ok) {
+      // 未取得锁（预算内未收敛）：保留输入、可重试；绝不返回候选值
+      return failed<V>('conflict');
+    }
+    const outcome = locked.value;
+    if (outcome.kind === 'committed') {
+      // noop（幂等已满足）不需要通知订阅者
+      if (outcome.wrote) notify();
+      return committed(outcome.value);
+    }
+    if (outcome.kind === 'skip') return failed<V>(outcome.status, outcome.message);
+    if (outcome.kind === 'io-error') {
+      return failed<V>(outcome.status, outcome.message);
+    }
+    // retry：在最新快照上重做整事务（下一次循环会重新取锁并重读）
+  }
+  return failed<V>('conflict');
+}
+
+/** 单书事务里 mutate 的返回值：`book` 为变更后的书籍，`value` 为返回给调用方的值 */
+interface BookMutateOutcome<V> {
+  kind: 'write' | 'noop' | 'skip';
+  book?: ReplicaBook;
+  value?: V;
+  status?: Extract<CommitStatus, 'missing' | 'skipped'>;
+  message?: string;
+}
+
+/** 单书事务（可指定返回给调用方的值类型）：目标书必须存在，否则 missing */
+async function transactBookValue<V>(
+  id: string,
+  mutate: (book: ReplicaBook, list: ReplicaBook[]) => BookMutateOutcome<V>,
+): Promise<CommitResult<V>> {
+  return transactCollection<ReplicaBook, V>(KEY, (list) => {
+    const idx = list.findIndex((item) => item.id === id);
+    if (idx === -1) return { kind: 'skip', status: 'missing' };
+    const current = list[idx]!;
+    const outcome = mutate(current, list);
+    // skip / noop 原样上抛：noop 表示状态已满足，不需要也不应该写盘
+    if (outcome.kind === 'skip') {
+      return { kind: 'skip', status: outcome.status ?? 'skipped', message: outcome.message };
+    }
+    if (outcome.kind === 'noop') return { kind: 'noop', value: outcome.value };
+    const changed: ReplicaBook = {
+      ...(outcome.book as ReplicaBook),
+      updatedAt: new Date().toISOString(),
+    };
     const out = [...list];
-    out[idx] = next;
-    return out;
+    out[idx] = changed;
+    return { kind: 'write', next: out, value: outcome.value };
   });
-  return result === null ? null : mutated;
+}
+
+/** 单书事务（返回更新后的书籍本体） */
+function transactBook(
+  id: string,
+  mutate: (book: ReplicaBook, list: ReplicaBook[]) => BookMutateOutcome<ReplicaBook>,
+): Promise<CommitResult<ReplicaBook>> {
+  return transactBookValue<ReplicaBook>(id, mutate);
+}
+
+/**
+ * patch 形式：返回 null 表示"当前状态不需要/不允许该修改"（不写、不报成功）；
+ * 也可返回 `{status, message}` 给出更具体的原因（missing=记录不存在 / skipped=前置条件不满足）。
+ */
+type BookPatchResult =
+  | ReplicaBook
+  | null
+  | { kind: 'skip'; status: Extract<CommitStatus, 'missing' | 'skipped'>; message?: string };
+
+async function transactBookPatch(
+  id: string,
+  patch: (book: ReplicaBook) => BookPatchResult,
+): Promise<CommitResult<ReplicaBook>> {
+  return transactBook(id, (book): BookMutateOutcome<ReplicaBook> => {
+    const next = patch(book);
+    if (next === null) return { kind: 'skip', status: 'skipped' };
+    if (typeof next === 'object' && 'kind' in next && next.kind === 'skip') {
+      return { kind: 'skip', status: next.status, message: next.message };
+    }
+    return { kind: 'write', book: next as ReplicaBook, value: next as ReplicaBook };
+  });
 }
 
 /**
@@ -329,8 +526,8 @@ function mutateBook(id: string, mutate: (book: ReplicaBook) => ReplicaBook): Rep
 export function setRunScenario(
   bookId: string,
   scenario: BookRunScenario | null,
-): ReplicaBook | null {
-  return mutateBook(bookId, (book) => ({ ...book, runScenario: scenario }));
+): Promise<CommitResult<ReplicaBook>> {
+  return transactBookPatch(bookId, (book) => ({ ...book, runScenario: scenario }));
 }
 
 // ===== 练习作答与用户笔记（跨会话持久化；修复“作答不持久化”差距） =====
@@ -339,7 +536,10 @@ function readQuizList(): BookQuizAttempt[] {
   return readStrictList<BookQuizAttempt>(QUIZ_KEY);
 }
 
-/** 记录一次作答（保留历史；渲染取每个 block 的最新一条；blockVersion 记录作答时内容版本） */
+/**
+ * 记录一次作答（保留历史；渲染取每个 block 的最新一条；blockVersion 记录作答时内容版本）。
+ * 作答历史是共享集合：并发追加经同一事务入口，不会只留一份。
+ */
 export function recordQuizAttempt(input: {
   bookId: string;
   pageId: string;
@@ -347,7 +547,7 @@ export function recordQuizAttempt(input: {
   choice: string;
   correct: boolean;
   blockVersion?: string;
-}): BookQuizAttempt {
+}): Promise<CommitResult<BookQuizAttempt>> {
   const attempt: BookQuizAttempt = {
     attemptId: uid('att'),
     bookId: input.bookId,
@@ -358,11 +558,11 @@ export function recordQuizAttempt(input: {
     attemptedAt: new Date().toISOString(),
     ...(input.blockVersion !== undefined ? { blockVersion: input.blockVersion } : {}),
   };
-  if (typeof window !== 'undefined') {
-    // 收敛写入：并发追加不会互相覆盖（作答历史是共享集合，两个标签页同时作答不能只留一份）
-    writeListConverged<BookQuizAttempt>(QUIZ_KEY, (list) => [...list, attempt]);
-  }
-  return attempt;
+  return transactCollection<BookQuizAttempt, BookQuizAttempt>(QUIZ_KEY, (list) => ({
+    kind: 'write',
+    next: [...list, attempt],
+    value: attempt,
+  }));
 }
 
 /** 作答与块当前内容的版本关系：block 重新生成（contentVersion 变化）后旧作答视为过期 */
@@ -390,22 +590,26 @@ export function latestQuizAttempt(bookId: string, pageId: string, blockId: strin
   return list.length > 0 ? list[list.length - 1]! : null;
 }
 
-/** 保存 user_note block 的用户笔记（写回书籍记录内的 block 内容） */
-export function setUserNote(bookId: string, pageId: string, blockId: string, text: string): boolean {
-  let saved = false;
-  // 收敛写入：在最新快照上定位并改写（其他标签页同时写别的书/同一书的其他块都不被整表覆盖）
-  const result = writeListConverged<ReplicaBook>(KEY, (list) => {
-    const idx = list.findIndex((item) => item.id === bookId);
-    if (idx === -1) return null;
-    const book = list[idx] as ReplicaBookInternal;
-    if (!book.pages) return null;
-    const page = book.pages.find((item) => item.id === pageId);
-    if (!page) return null;
+/**
+ * 保存 user_note block 的用户笔记（写回书籍记录内的 block 内容）。
+ * 提交结果以事务的写后读回为准：`committed` 且 value===true 才算已保存。
+ */
+export function setUserNote(
+  bookId: string,
+  pageId: string,
+  blockId: string,
+  text: string,
+): Promise<CommitResult<boolean>> {
+  return transactBookValue<boolean>(bookId, (book) => {
+    const internal = book as ReplicaBookInternal;
+    if (!internal.pages) return { kind: 'skip', status: 'skipped' };
+    const page = internal.pages.find((item) => item.id === pageId);
+    if (!page) return { kind: 'skip', status: 'skipped' };
     const block = page.blocks.find((item) => item.id === blockId);
-    if (!block || block.type !== 'user_note') return null;
+    if (!block || block.type !== 'user_note') return { kind: 'skip', status: 'skipped' };
     const nextBook: ReplicaBookInternal = {
-      ...book,
-      pages: book.pages.map((item) =>
+      ...internal,
+      pages: internal.pages.map((item) =>
         item.id !== pageId
           ? item
           : {
@@ -415,31 +619,11 @@ export function setUserNote(bookId: string, pageId: string, blockId: string, tex
               ),
             },
       ),
-      updatedAt: new Date().toISOString(),
     };
-    saved = true;
-    const out = [...list];
-    out[idx] = nextBook;
-    return out;
+    return { kind: 'write', book: nextBook, value: true };
   });
-  if (result === null || !saved) return false;
-  // 写后读回校验（独立验收 A1 挑刺）：只有笔记真的落到存储才算保存成功，
-  // 不拿"回调里置过 saved"当已保存（收敛重放耗尽时写入可能并未落地）。
-  return readStoredNote(bookId, pageId, blockId) === text;
 }
 
-/** 读取存储中的 user_note 内容（写后校验用；读取失败返回 null） */
-function readStoredNote(bookId: string, pageId: string, blockId: string): string | null {
-  try {
-    const book = readList().find((item) => item.id === bookId) as ReplicaBookInternal | undefined;
-    const block = book?.pages
-      ?.find((page) => page.id === pageId)
-      ?.blocks.find((candidate) => candidate.id === blockId);
-    return block?.content ?? null;
-  } catch {
-    return null;
-  }
-}
 
 // ===== 模拟生成（确定性模板，显式标注） =====
 
@@ -633,13 +817,16 @@ function derivePageStatus(page: BookPage, fallback: PageStatus): PageStatus {
 
 // ===== 业务操作 =====
 
-export function createBook(title: string, description: string): ReplicaBook {
+/**
+ * 新建书籍（草稿 + 模拟提案）。
+ * - 输入非法抛 `BookValidationError`（参数校验，不是提交结果）；
+ * - 重名在同一事务快照上复检；
+ * - **只有 `committed` 才返回带 id 的书籍**：冲突/写入失败时 value 为 null，调用方须保留输入。
+ */
+export function createBook(title: string, description: string): Promise<CommitResult<ReplicaBook>> {
   const trimmed = title.trim();
-  if (!trimmed) throw new BookValidationError('书名不能为空。');
-  if (trimmed.length > 80) throw new BookValidationError('书名过长（不超过 80 字）。');
-  const list = readList();
-  if (list.some((book) => book.title === trimmed && book.status !== 'archived'))
-    throw new BookValidationError('已存在同名书籍，请换一个书名。');
+  if (!trimmed) return Promise.reject(new BookValidationError('书名不能为空。'));
+  if (trimmed.length > 80) return Promise.reject(new BookValidationError('书名过长（不超过 80 字）。'));
   const now = new Date().toISOString();
   const book: ReplicaBookInternal = {
     id: uid('bk'),
@@ -652,19 +839,18 @@ export function createBook(title: string, description: string): ReplicaBook {
     createdAt: now,
     updatedAt: now,
   };
-  // 收敛写入：其他标签页在本次创建期间新增的书不得被整表回写覆盖；重名在同一快照上复检
-  const written = writeListConverged<ReplicaBook>(KEY, (current) => {
-    if (current.some((item) => item.title === trimmed && item.status !== 'archived')) return null;
-    return [...current, book];
+  return transactCollection<ReplicaBook, ReplicaBook>(KEY, (current) => {
+    if (current.some((item) => item.title === trimmed && item.status !== 'archived')) {
+      return { kind: 'skip', status: 'skipped', message: '已存在同名书籍，请换一个书名。' };
+    }
+    return { kind: 'write', next: [...current, book], value: book };
   });
-  if (written === null) throw new BookValidationError('已存在同名书籍，请换一个书名。');
-  return book;
 }
 
 /** 确认提案（draft → spine_ready）：大纲按提案章节登记，尚未编译页面 */
-export function confirmProposal(bookId: string): ReplicaBook | null {
-  return mutateBook(bookId, (book) => {
-    if (book.status !== 'draft' || !book.proposal) return book;
+export function confirmProposal(bookId: string): Promise<CommitResult<ReplicaBook>> {
+  return transactBookPatch(bookId, (book) => {
+    if (book.status !== 'draft' || !book.proposal) return null;
     return {
       ...book,
       status: 'spine_ready',
@@ -682,9 +868,9 @@ export function confirmProposal(bookId: string): ReplicaBook | null {
  * 确认大纲（spine_ready → compiling）：建章节+页面骨架（页/块 pending），写 run 检查点，
  * 清阅读进度（语义同旧版）。实际内容生成由执行器（book-generation.ts startRun）经事件推进。
  */
-export function confirmSpine(bookId: string): ReplicaBook | null {
-  return mutateBook(bookId, (book) => {
-    if (book.status !== 'spine_ready') return book;
+export function confirmSpine(bookId: string): Promise<CommitResult<ReplicaBook>> {
+  return transactBookPatch(bookId, (book) => {
+    if (book.status !== 'spine_ready') return null;
     const { chapters, pages } = buildBookSkeleton(book);
     const firstPageId = pages[0]?.id ?? null;
     const now = Date.now();
@@ -712,15 +898,15 @@ export function confirmSpine(bookId: string): ReplicaBook | null {
  * 重建（模拟重新编译）：清空阅读进度后重建页面骨架并重新进入 compiling。
  * 允许从 ready/archived（旧语义）以及中断残留的 paused/error 重建。
  */
-export function rebuildBook(bookId: string): ReplicaBook | null {
-  return mutateBook(bookId, (book) => {
+export function rebuildBook(bookId: string): Promise<CommitResult<ReplicaBook>> {
+  return transactBookPatch(bookId, (book) => {
     if (
       book.status !== 'ready' &&
       book.status !== 'archived' &&
       book.status !== 'paused' &&
       book.status !== 'error'
     ) {
-      return book;
+      return null;
     }
     const { chapters, pages } = buildBookSkeleton(book);
     const firstPageId = pages[0]?.id ?? null;
@@ -744,56 +930,54 @@ export function rebuildBook(bookId: string): ReplicaBook | null {
   });
 }
 
-export function archiveBook(bookId: string, archived: boolean): ReplicaBook | null {
-  return mutateBook(bookId, (book) => {
+export function archiveBook(bookId: string, archived: boolean): Promise<CommitResult<ReplicaBook>> {
+  return transactBookPatch(bookId, (book) => {
     // 仅就绪/归档态可切换；草稿、大纲、编译中、暂停、失败态不被归档覆盖
-    if (book.status !== 'ready' && book.status !== 'archived') return book;
+    if (book.status !== 'ready' && book.status !== 'archived') return null;
     return { ...book, status: archived ? 'archived' : 'ready' };
   });
 }
 
-export function deleteBook(bookId: string): boolean {
-  let deleted = false;
-  // 收敛写入：删除一本书不得连带回写覆盖其他标签页刚写入的其他书
-  writeListConverged<ReplicaBook>(KEY, (list) => {
+/** 删除书籍：只有事务提交成功（且确实删掉了一条）才算删除 */
+export function deleteBook(bookId: string): Promise<CommitResult<boolean>> {
+  return transactCollection<ReplicaBook, boolean>(KEY, (list) => {
     const kept = list.filter((book) => book.id !== bookId);
-    if (kept.length === list.length) return null;
-    deleted = true;
-    return kept;
+    if (kept.length === list.length) return { kind: 'skip', status: 'missing' };
+    return { kind: 'write', next: kept, value: true };
   });
-  return deleted;
 }
 
 export function updateBook(
   bookId: string,
   patch: { title?: string; description?: string },
-): ReplicaBook {
-  let updated: ReplicaBook | null = null;
-  const result = writeListConverged<ReplicaBook>(KEY, (list) => {
+): Promise<CommitResult<ReplicaBook>> {
+  return transactCollection<ReplicaBook, ReplicaBook>(KEY, (list) => {
     const idx = list.findIndex((book) => book.id === bookId);
-    if (idx === -1) throw new BookValidationError('书籍不存在或已被删除。');
+    if (idx === -1) return { kind: 'skip', status: 'missing', message: '书籍不存在或已被删除。' };
+    let trimmedTitle: string | null = null;
     if (patch.title !== undefined) {
-      const trimmed = patch.title.trim();
-      if (!trimmed) throw new BookValidationError('书名不能为空。');
+      trimmedTitle = patch.title.trim();
+      if (!trimmedTitle) {
+        throw new BookValidationError('书名不能为空。');
+      }
       if (
         list.some(
-          (book) => book.id !== bookId && book.title === trimmed && book.status !== 'archived',
+          (book) => book.id !== bookId && book.title === trimmedTitle && book.status !== 'archived',
         )
-      )
+      ) {
         throw new BookValidationError('已存在同名书籍，请换一个书名。');
+      }
     }
-    updated = {
+    const next: ReplicaBook = {
       ...list[idx]!,
-      ...(patch.title !== undefined ? { title: patch.title.trim() } : {}),
+      ...(trimmedTitle !== null ? { title: trimmedTitle } : {}),
       ...(patch.description !== undefined ? { description: patch.description.trim() } : {}),
       updatedAt: new Date().toISOString(),
     };
     const out = [...list];
-    out[idx] = updated;
-    return out;
+    out[idx] = next;
+    return { kind: 'write', next: out, value: next };
   });
-  if (result === null || !updated) throw new BookValidationError('书籍不存在或已被删除。');
-  return updated;
 }
 
 // ===== 生成流水线仓储（H1-BOOKS-PIPELINE v2；唯一写入口 applyRunEvent） =====
@@ -848,24 +1032,29 @@ function runWritable(book: ReplicaBookInternal, runId: string): boolean {
 }
 
 /**
- * 唯一写入口：校验 bookId + runId + seq（重复/迟到事件忽略并返回当前记录）。
- * 所有写入遵循"读取最新 → 局部改 → 写回"，生成期间新增的笔记/书签/阅读进度不动。
+ * 唯一写入口：校验 bookId + runId + seq（重复/迟到事件忽略并返回 skipped）。
+ * 所有写入遵循"锁内读最新 → 局部改 → 写回 + 写后校验"，生成期间新增的笔记/书签/阅读进度不动。
  */
 export function applyRunEvent(
   bookId: string,
   runId: string,
   event: BookRunEvent,
   seq = 0,
-): ReplicaBook | null {
-  return mutateBook(bookId, (rawBook) => {
+): Promise<CommitResult<ReplicaBook>> {
+  return transactBook(bookId, (rawBook) => {
     const book = rawBook as ReplicaBookInternal;
-    if (!runWritable(book, runId)) return book;
-    if (seq > 0 && seq <= readRunSeq(book)) return book; // 重复/迟到：忽略
+    // 归属/状态校验在**锁内快照**上进行：旧执行器的迟到事件在这里被拒（不写、不报成功）
+    if (!runWritable(book, runId)) {
+      return { kind: 'skip', status: 'skipped', message: '运行身份不匹配或当前状态不接受生成事件。' };
+    }
+    if (seq > 0 && seq <= readRunSeq(book)) {
+      return { kind: 'skip', status: 'skipped', message: '重复/迟到事件已忽略。' };
+    }
     const next = applyEventToBook(book, runId, event);
     if (seq > 0) {
       (next.run as unknown as RunSeqMemo)[RUN_SEQ_FIELD] = seq;
     }
-    return next;
+    return { kind: 'write', book: next, value: next };
   });
 }
 
@@ -882,13 +1071,16 @@ function touchRun(run: BookRunCheckpoint, extra?: Partial<BookRunCheckpoint>): B
  * 书本身是否还在生成由 `status` 决定，检查点只反映"这本书是否已经跑过一轮"。
  * 不改变书籍状态、阅读进度、页面/块内容；compiling 书补 'running'，其余补 'finished'（已完成一轮）。
  */
-export function ensureBookRun(bookId: string): ReplicaBook | null {
-  return mutateBook(bookId, (rawBook) => {
+export function ensureBookRun(bookId: string): Promise<CommitResult<ReplicaBook>> {
+  return transactBook(bookId, (rawBook) => {
     const book = rawBook as ReplicaBookInternal;
-    if (book.run?.runId) return book;
+    if (book.run?.runId) {
+      // 已有检查点：不改动任何内容（调用方按"记录已存在"处理；不写、不报成功写）
+      return { kind: 'skip', status: 'skipped', message: '已有运行检查点，无需补建。' };
+    }
     const now = Date.now();
     const compiling = book.status === 'compiling';
-    return {
+    const next: ReplicaBookInternal = {
       ...book,
       run: {
         runId: uid('run'),
@@ -899,7 +1091,8 @@ export function ensureBookRun(bookId: string): ReplicaBook | null {
         updatedAt: now,
         ...(compiling ? {} : { finishedAt: now }),
       },
-    } satisfies ReplicaBookInternal;
+    };
+    return { kind: 'write', book: next, value: next };
   });
 }
 
@@ -1051,10 +1244,12 @@ export function pauseBookRun(
   bookId: string,
   kind: RunPauseKind,
   reason: string,
-): ReplicaBook | null {
-  return mutateBook(bookId, (rawBook) => {
+): Promise<CommitResult<ReplicaBook>> {
+  return transactBook(bookId, (rawBook) => {
     const book = rawBook as ReplicaBookInternal;
-    if (book.status !== 'compiling') return book;
+    if (book.status !== 'compiling') {
+      return { kind: 'skip', status: 'skipped', message: '仅生成中的书籍可暂停。' };
+    }
     const pages = (book.pages ?? []).map((page) => {
       if (page.status === 'planning' || page.status === 'generating') {
         return {
@@ -1075,16 +1270,20 @@ export function pauseBookRun(
         pauseReason: reason,
       });
     }
-    return next;
+    return { kind: 'write', book: next, value: next };
   });
 }
 
 /** 恢复：paused / error(可恢复·storage)→compiling，清除暂停标注，从检查点续跑 */
-export function resumeBookRun(bookId: string, runId: string): ReplicaBook | null {
-  return mutateBook(bookId, (rawBook) => {
+export function resumeBookRun(bookId: string, runId: string): Promise<CommitResult<ReplicaBook>> {
+  return transactBook(bookId, (rawBook) => {
     const book = rawBook as ReplicaBookInternal;
-    if (book.run?.runId !== runId) return book;
-    if (book.status !== 'paused' && book.status !== 'error' && book.status !== 'compiling') return book;
+    if (book.run?.runId !== runId) {
+      return { kind: 'skip', status: 'skipped', message: '运行身份不匹配。' };
+    }
+    if (book.status !== 'paused' && book.status !== 'error' && book.status !== 'compiling') {
+      return { kind: 'skip', status: 'skipped', message: '当前状态不可恢复。' };
+    }
     const next: ReplicaBookInternal = { ...book, status: 'compiling' };
     if (book.run) {
       next.run = touchRun(book.run, {
@@ -1093,7 +1292,7 @@ export function resumeBookRun(bookId: string, runId: string): ReplicaBook | null
         pauseReason: undefined,
       });
     }
-    return next;
+    return { kind: 'write', book: next, value: next };
   });
 }
 
@@ -1102,11 +1301,15 @@ export function failBookRun(
   bookId: string,
   runId: string,
   failure: { kind: BookFailureKind; message: string },
-): ReplicaBook | null {
-  return mutateBook(bookId, (rawBook) => {
+): Promise<CommitResult<ReplicaBook>> {
+  return transactBook(bookId, (rawBook) => {
     const book = rawBook as ReplicaBookInternal;
-    if (book.run?.runId !== runId) return book;
-    if (book.status !== 'compiling' && book.status !== 'paused' && book.status !== 'error') return book;
+    if (book.run?.runId !== runId) {
+      return { kind: 'skip', status: 'skipped', message: '运行身份不匹配。' };
+    }
+    if (book.status !== 'compiling' && book.status !== 'paused' && book.status !== 'error') {
+      return { kind: 'skip', status: 'skipped', message: '当前状态不可标记失败。' };
+    }
     const next: ReplicaBookInternal = { ...book, status: 'error' };
     if (book.run) {
       next.run = touchRun(book.run, {
@@ -1115,16 +1318,20 @@ export function failBookRun(
         finishedAt: Date.now(),
       });
     }
-    return next;
+    return { kind: 'write', book: next, value: next };
   });
 }
 
 /** 运行结束：全部页就绪（ready/partial；partial 刻意计入完成，对照 engine.py:110-118）→ready；仍有未完成页→保持 compiling（无执行器即"已中断"） */
-export function finishBookRun(bookId: string, runId: string): ReplicaBook | null {
-  return mutateBook(bookId, (rawBook) => {
+export function finishBookRun(bookId: string, runId: string): Promise<CommitResult<ReplicaBook>> {
+  return transactBook(bookId, (rawBook) => {
     const book = rawBook as ReplicaBookInternal;
-    if (book.run?.runId !== runId) return book;
-    if (book.status !== 'compiling') return book;
+    if (book.run?.runId !== runId) {
+      return { kind: 'skip', status: 'skipped', message: '运行身份不匹配。' };
+    }
+    if (book.status !== 'compiling') {
+      return { kind: 'skip', status: 'skipped', message: '仅生成中的书籍可收尾。' };
+    }
     const pages = book.pages ?? [];
     const hasUnfinished = pages.some((page) => {
       const status = page.status ?? 'ready';
@@ -1137,23 +1344,32 @@ export function finishBookRun(bookId: string, runId: string): ReplicaBook | null
         finishedAt: Date.now(),
       });
     }
-    return next;
+    return { kind: 'write', book: next, value: next };
   });
 }
 
 /** 单块重试：pending + 清 failure；所在页进入 generating（仅作用于该块，不动其它块与用户内容） */
-export function retryBlock(bookId: string, pageId: string, blockId: string): ReplicaBook | null {
-  return mutateBook(bookId, (rawBook) => {
+export function retryBlock(
+  bookId: string,
+  pageId: string,
+  blockId: string,
+): Promise<CommitResult<ReplicaBook>> {
+  return transactBook(bookId, (rawBook) => {
     const book = rawBook as ReplicaBookInternal;
     const found = book.pages ? findPage(book, pageId) : null;
-    if (!found) return book;
+    if (!found) return { kind: 'skip', status: 'missing', message: '页面不存在。' };
     const pages = [...book.pages!];
     const blocks = [...found.page.blocks];
     const blockIndex = blocks.findIndex((block) => block.id === blockId);
-    if (blockIndex === -1) return book;
+    if (blockIndex === -1) return { kind: 'skip', status: 'missing', message: '块不存在。' };
     blocks[blockIndex] = { ...blocks[blockIndex]!, status: 'pending', failure: undefined };
     pages[found.pageIndex] = { ...found.page, blocks, status: 'generating' };
-    return { ...book, pages, ...(book.run ? { run: touchRun(book.run) } : {}) } as ReplicaBookInternal;
+    const next = {
+      ...book,
+      pages,
+      ...(book.run ? { run: touchRun(book.run) } : {}),
+    } as ReplicaBookInternal;
+    return { kind: 'write', book: next, value: next };
   });
 }
 
@@ -1161,11 +1377,14 @@ export function retryBlock(bookId: string, pageId: string, blockId: string): Rep
  * 整页重生成：全部块复位 pending 并清 failure，**保留 user_note 内容与块 id 身份**；页→pending。
  * 由执行器（book-generation.retryBlock/regeneratePage）接管后续逐块生成。
  */
-export function regeneratePage(bookId: string, pageId: string): ReplicaBook | null {
-  return mutateBook(bookId, (rawBook) => {
+export function regeneratePage(
+  bookId: string,
+  pageId: string,
+): Promise<CommitResult<ReplicaBook>> {
+  return transactBook(bookId, (rawBook) => {
     const book = rawBook as ReplicaBookInternal;
     const found = book.pages ? findPage(book, pageId) : null;
-    if (!found) return book;
+    if (!found) return { kind: 'skip', status: 'missing', message: '页面不存在。' };
     const pages = [...book.pages!];
     pages[found.pageIndex] = {
       ...found.page,
@@ -1177,7 +1396,12 @@ export function regeneratePage(bookId: string, pageId: string): ReplicaBook | nu
         failure: undefined,
       })),
     };
-    return { ...book, pages, ...(book.run ? { run: touchRun(book.run) } : {}) } as ReplicaBookInternal;
+    const next = {
+      ...book,
+      pages,
+      ...(book.run ? { run: touchRun(book.run) } : {}),
+    } as ReplicaBookInternal;
+    return { kind: 'write', book: next, value: next };
   });
 }
 
@@ -1194,41 +1418,49 @@ export function getBookPage(bookId: string, pageId: string): BookPage | null {
 /**
  * 打开章节：currentPageId 始终更新；仅当该页已有内容（ready/partial，或旧数据缺 status）时登记 visited。
  * 未生成页打开只记录"当前在哪页"，不算已读（生成进度与阅读进度分离，任务卡 §5.7）。
+ *
+ * 幂等语义：如果记录已处于目标状态（当前页已是该页、且已读集合无需变化），不再写入并直接
+ * 报告 `committed`——请求的最终状态已经满足，这不是"假成功"；只有真正需要改动时才走事务。
  */
-export function markVisited(bookId: string, pageId: string): void {
-  mutateBook(bookId, (rawBook) => {
+export function markVisited(bookId: string, pageId: string): Promise<CommitResult<ReplicaBook>> {
+  return transactBook(bookId, (rawBook) => {
     const book = rawBook as ReplicaBookInternal;
     const page = book.pages?.find((item) => item.id === pageId);
-    const pageReady = !page || page.status === undefined || page.status === 'ready' || page.status === 'partial';
-    const visited = pageReady && !book.reading.visitedPageIds.includes(pageId)
-      ? [...book.reading.visitedPageIds, pageId]
-      : book.reading.visitedPageIds;
-    if (
-      book.reading.currentPageId === pageId &&
-      visited === book.reading.visitedPageIds
-    ) {
-      return book; // 无变化不写
-    }
-    return {
+    const pageReady =
+      !page || page.status === undefined || page.status === 'ready' || page.status === 'partial';
+    const visited =
+      pageReady && !book.reading.visitedPageIds.includes(pageId)
+        ? [...book.reading.visitedPageIds, pageId]
+        : book.reading.visitedPageIds;
+    const unchanged =
+      book.reading.currentPageId === pageId && visited === book.reading.visitedPageIds;
+    const next = {
       ...book,
       reading: { ...book.reading, currentPageId: pageId, visitedPageIds: visited },
     };
+    // 状态已满足：不写盘，但请求确实已满足（幂等）
+    return unchanged ? { kind: 'noop', value: next } : { kind: 'write', book: next, value: next };
   });
 }
 
-export function toggleBookmark(bookId: string, pageId: string): void {
-  mutateBook(bookId, (book) => {
-    const marked = book.reading.bookmarkedPageIds.includes(pageId);
-    return {
-      ...book,
+export function toggleBookmark(
+  bookId: string,
+  pageId: string,
+): Promise<CommitResult<boolean>> {
+  return transactBookValue<boolean>(bookId, (book) => {
+    const internal = book as ReplicaBookInternal;
+    const marked = internal.reading.bookmarkedPageIds.includes(pageId);
+    const next: ReplicaBookInternal = {
+      ...internal,
       reading: {
-        ...book.reading,
+        ...internal.reading,
         currentPageId: pageId,
         bookmarkedPageIds: marked
-          ? book.reading.bookmarkedPageIds.filter((id) => id !== pageId)
-          : [...book.reading.bookmarkedPageIds, pageId],
+          ? internal.reading.bookmarkedPageIds.filter((id) => id !== pageId)
+          : [...internal.reading.bookmarkedPageIds, pageId],
       },
     };
+    return { kind: 'write', book: next, value: !marked };
   });
 }
 
@@ -1382,14 +1614,16 @@ function buildDemoReadyBook(base: ReplicaBookInternal): ReplicaBookInternal {
 }
 
 /** 显式载入演示书籍（幂等）；就绪书含预置阅读进度（1 已读 + 1 书签） */
-export function loadDemoBooks(): void {
-  // 收敛写入：并入演示书时不得覆盖其他标签页同时写入的其他书
-  writeListConverged<ReplicaBook>(KEY, (existing) => {
+export function loadDemoBooks(): Promise<CommitResult<number>> {
+  return transactCollection<ReplicaBook, number>(KEY, (existing) => {
     const merged = [...existing];
+    let added = 0;
     for (const demo of DEMO_BOOKS) {
       if (merged.some((item) => item.id === demo.id)) continue;
       merged.push(demo.status === 'ready' ? buildDemoReadyBook(demo) : demo);
+      added += 1;
     }
-    return merged;
+    // 演示书已全部存在：状态已满足，不写盘（幂等）
+    return added === 0 ? { kind: 'noop', value: 0 } : { kind: 'write', next: merged, value: added };
   });
 }

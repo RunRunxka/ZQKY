@@ -67,9 +67,9 @@ describe('courses-store', () => {
     expect(syllabusSummary(readCourses()[0]!).covered).toBe(0);
   });
 
-  it('资源：候选来自知识库/笔记本/书籍目录；附加去重；目标消失显示不可用', () => {
+  it('资源：候选来自知识库/笔记本/书籍目录；附加去重；目标消失显示不可用', async () => {
     loadDemoKnowledge();
-    loadDemoBooks();
+    await loadDemoBooks();
     const candidates = listResourceCandidates();
     expect(candidates.some((item) => item.kind === 'knowledge_base' && item.label === '课程标准库')).toBe(true);
     expect(candidates.some((item) => item.kind === 'notebook' && item.refId === 'notebook-main')).toBe(true);
@@ -214,8 +214,8 @@ describe('R-11 资源目录故障容错', () => {
     expect(window.localStorage.getItem('zhiqikeyuan:courses')).toBe(before);
   });
 
-  it('知识目录失败不阻断其他目录的候选（笔记本/书籍仍可用）', () => {
-    loadDemoBooks();
+  it('知识目录失败不阻断其他目录的候选（笔记本/书籍仍可用）', async () => {
+    await loadDemoBooks();
     window.localStorage.setItem(KB_KEY, '{broken');
     const snapshot = readResourceDirectories();
     const candidates = listResourceCandidates(snapshot);

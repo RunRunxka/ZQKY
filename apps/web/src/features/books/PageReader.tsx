@@ -73,7 +73,7 @@ interface GenerationApi {
   startRun?: (
     bookId: string,
     options?: { scenario?: object; source?: 'user' | 'auto-open' | 'retry' },
-  ) => BookRunHandle | null;
+  ) => Promise<BookRunHandle | null>;
   getRepair?: (
     bookId: string,
     pageId: string,
@@ -172,6 +172,9 @@ export function PageReader({ book, pageId }: { book: ReplicaBook; pageId: string
   const [startError, setStartError] = useState<string | null>(null);
   /** 本组件发起的修复请求序号：只有最新一次点击能改动忙态与提示（旧请求被取代后不得清除新忙态） */
   const repairRequestRef = useRef(0);
+  /** 阅读进度/书签的提交失败提示（提交结果来自仓储事务） */
+  const [readError, setReadError] = useState<string | null>(null);
+
 
   // 书签真实状态读取自存储（组件接收的 book 是渲染时快照；
   // toggleBookmark 落库后经订阅刷新由上层重渲染，本地以存储为准避免旧快照回显）
@@ -197,9 +200,19 @@ export function PageReader({ book, pageId }: { book: ReplicaBook; pageId: string
   // 该规则由 books-store.markVisited 自身保证；此处仅在有内容（ready/partial）时调用，
   // 未生成页（pending/planning/generating/error）打开不登记已读。
   useEffect(() => {
-    if (pageStatus === 'ready' || pageStatus === 'partial') {
-      markVisited(book.id, pageId);
-    }
+    if (pageStatus !== 'ready' && pageStatus !== 'partial') return;
+    let cancelled = false;
+    void (async () => {
+      const result = await markVisited(book.id, pageId);
+      if (!cancelled && result.status !== 'committed') {
+        setReadError(result.message || '已读进度未能保存到本地。');
+      } else if (!cancelled) {
+        setReadError(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [book.id, pageId, pageStatus]);
 
   // 键盘翻章（对照参考 ←/→）。HARDEN v1：在笔记编辑、组合输入与修饰键场景下不得触发全局翻页。
@@ -277,13 +290,20 @@ export function PageReader({ book, pageId }: { book: ReplicaBook; pageId: string
   const onStartChapter = () => {
     if (!generationApi?.startRun || pageBusy) return;
     setStartError(null);
-    const handle = generationApi.startRun(book.id, { source: 'user' });
-    // 启动失败（他标签页持租约/状态变化/存储读取失败）如实说明，不静默无操作
-    if (!handle) {
-      setStartError('无法开始生成：本书当前不可启动（可能已被其他标签页接管、状态已变化，或本地存储不可读）。');
-      return;
-    }
-    setPageBusy(false);
+    setPageBusy(true);
+    void (async () => {
+      try {
+        const handle = await generationApi.startRun!(book.id, { source: 'user' });
+        // 启动失败（他标签页持租约/状态变化/首个事件未提交）：如实说明，不静默无操作
+        if (!handle) {
+          setStartError(
+            '无法开始生成：本书当前不可启动（可能已被其他标签页接管、状态已变化，或本地存储暂不可写）。',
+          );
+        }
+      } finally {
+        setPageBusy(false);
+      }
+    })();
   };
 
   /** 单块重试（§4.3 retryBlock：pending + 清 failure；页 partial→generating） */
@@ -308,8 +328,16 @@ export function PageReader({ book, pageId }: { book: ReplicaBook; pageId: string
             aria-pressed={bookmarked}
             aria-label={bookmarked ? '移除书签' : '添加书签'}
             onClick={() => {
-              toggleBookmark(book.id, pageId);
-              forceBookmarkRefresh((value) => value + 1);
+              void (async () => {
+                const result = await toggleBookmark(book.id, pageId);
+                if (result.status === 'committed') {
+                  setReadError(null);
+                } else {
+                  setReadError(result.message || '书签未保存到本地。');
+                }
+                // 以存储为准重读书签状态（失败时不应显示成已切换）
+                forceBookmarkRefresh((value) => value + 1);
+              })();
             }}
           >
             <Bookmark size={13} fill={bookmarked ? 'currentColor' : 'none'} />
@@ -347,6 +375,12 @@ export function PageReader({ book, pageId }: { book: ReplicaBook; pageId: string
       {startError && (
         <p className="book-reader-storage-error" role="alert">
           {startError}
+        </p>
+      )}
+      {/* 阅读进度/书签的提交失败提示（M22/本批：提交结果来自仓储事务，失败不静默） */}
+      {readError && (
+        <p className="book-reader-storage-error" role="alert">
+          阅读进度未保存：{readError}
         </p>
       )}
       <h2 style={{ marginTop: 0 }}>
@@ -519,6 +553,8 @@ function BookBlockView({
   const [flipped, setFlipped] = useState<Record<number, boolean>>({});
   const [copied, setCopied] = useState(false);
   const [noteError, setNoteError] = useState(false);
+  /** 作答未保存提示（本轮判定仍按本地答案显示，但如实说明未落库） */
+  const [attemptError, setAttemptError] = useState<string | null>(null);
 
   // 进入页面恢复最近一次作答（练习答案本地持久化）。
   // 作答版本关系（§4.3 quizAttemptMatches）：版本不匹配时不把旧作答显示为新题答案，
@@ -667,13 +703,15 @@ function BookBlockView({
             setNoteError(false);
           }}
           onBlur={() => {
-            // 本地存储写入失败：页内如实提示（不伪装已保存，不归因供应商）
-            try {
-              const saved = setUserNote(bookId, pageId, block.id, note);
-              setNoteError(!saved);
-            } catch {
-              setNoteError(true);
-            }
+            // 提交结果来自仓储事务：只有 committed 才算已保存（不伪装成功，不归因供应商）
+            void (async () => {
+              try {
+                const result = await setUserNote(bookId, pageId, block.id, note);
+                setNoteError(result.status !== 'committed');
+              } catch {
+                setNoteError(true);
+              }
+            })();
           }}
         />
         {noteError && (
@@ -739,14 +777,21 @@ function BookBlockView({
               onClick={() => {
                 setAnswer(key);
                 // 作答记录携带块内容版本（§4.3 blockVersion），重生成后旧作答不再算新题答案
-                recordQuizAttempt({
-                  bookId,
-                  pageId,
-                  blockId: block.id,
-                  choice: key,
-                  correct: key === block.quiz!.correct,
-                  ...(block.contentVersion !== undefined ? { blockVersion: block.contentVersion } : {}),
-                });
+                void (async () => {
+                  const result = await recordQuizAttempt({
+                    bookId,
+                    pageId,
+                    blockId: block.id,
+                    choice: key,
+                    correct: key === block.quiz!.correct,
+                    ...(block.contentVersion !== undefined ? { blockVersion: block.contentVersion } : {}),
+                  });
+                  if (result.status !== 'committed') {
+                    setAttemptError(result.message || '作答未保存到本地。');
+                  } else {
+                    setAttemptError(null);
+                  }
+                })();
               }}
             >
               {key}. {value}
@@ -757,6 +802,11 @@ function BookBlockView({
           <p className={answer === block.quiz.correct ? 'space-chip green' : 'space-chip'} role="status">
             {answer === block.quiz.correct ? '回答正确。' : `回答错误，正确答案 ${block.quiz.correct}。`}
             {block.quiz.explanation ? ` ${block.quiz.explanation}` : ''}
+          </p>
+        )}
+        {attemptError && (
+          <p className="book-reader-storage-error" role="alert">
+            {attemptError}
           </p>
         )}
       </div>

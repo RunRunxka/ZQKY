@@ -54,6 +54,7 @@ import {
   regeneratePage as regeneratePageInStore,
   retryBlock as retryBlockInStore,
   type BookBlock,
+  type CommitResult,
   type BookFailureKind,
   type BookRunCheckpoint,
   type BookRunEvent,
@@ -80,9 +81,11 @@ export const DEFAULT_RUN_SCENARIO: BookRunScenario = {
 export interface BookRunHandle {
   bookId: string;
   runId: string;
-  pause(): void;
-  resume(): void;
-  stop(): void;
+  /** 暂停：等待本批事件与暂停状态真正落库后收尾 */
+  pause(): Promise<void>;
+  resume(): Promise<void>;
+  /** 中止：先等待落库再停（保留断点） */
+  stop(): Promise<void>;
   readonly status: 'running' | 'paused' | 'stopped' | 'finished' | 'failed';
 }
 
@@ -116,6 +119,8 @@ interface RunState {
   cancelled: boolean;
   /** 待合并写盘的事件队列（block 级 200ms 合并；关键事件立即 flush）。seq 在落库时按最新记录现取 */
   pending: BookRunEvent[];
+  /** 落库串行链：同一执行器的所有 flush 依次提交（互斥锁下不并发写），await 它即等待落库 */
+  flushChain: Promise<void>;
   mergeTimer: ReturnType<typeof setTimeout> | null;
   heartbeatTimer: ReturnType<typeof setInterval> | null;
   pagehideHandler: (() => void) | null;
@@ -425,19 +430,61 @@ function releaseStorageFailOnce(): void {
   }
 }
 
-// ===== 事件提交（经仓储唯一写入口 applyRunEvent） =====
+// ===== 事件提交（经仓储唯一写入口 applyRunEvent，异步事务 + 串行链） =====
+
+/**
+ * 立即写盘（返回本次链上的 Promise）：调用方在"必须先落库再继续"的位置 await 它。
+ * 所有 flush 都串到 `state.flushChain` 上，保证同一执行器的事件按顺序落库（不并发提交）。
+ */
+function queueFlush(state: RunState): Promise<void> {
+  const run = async () => {
+    if (state.mergeTimer !== null) {
+      clearTimeout(state.mergeTimer);
+      state.mergeTimer = null;
+    }
+    if (state.pending.length === 0) return;
+    const batch = state.pending;
+    state.pending = [];
+    const inject = shouldInjectStorageFailure(state);
+    if (inject) armStorageFailOnce();
+    try {
+      for (const event of batch) {
+        const applied = await applyStored(state.bookId, state.runId, event);
+        if (!applied) {
+          // 归属/状态拒绝（删除、换轮次、状态不再接受事件）：不作为失败处理，但也不写
+          continue;
+        }
+      }
+    } catch (cause) {
+      // 仓储事务抛错（读拒/写满回滚后抛）：整轮失败，kind storage
+      releaseStorageFailOnce();
+      await failTheRun(state, {
+        kind: 'storage',
+        message:
+          cause instanceof Error
+            ? `本地保存失败（${cause.message}）已停止生成，原数据保留。`
+            : '本地保存失败，已停止生成，原数据保留。',
+      });
+      return;
+    }
+    if (inject) releaseStorageFailOnce();
+  };
+  const chained = state.flushChain.then(run, run);
+  state.flushChain = chained.catch(() => undefined);
+  return chained;
+}
 
 function emit(state: RunState, event: BookRunEvent, immediate = false): void {
   if (state.cancelled) return;
   state.pending.push(event);
   if (immediate) {
-    flush(state);
+    void queueFlush(state);
     return;
   }
   if (state.mergeTimer === null) {
     state.mergeTimer = setTimeout(() => {
       state.mergeTimer = null;
-      flush(state);
+      void queueFlush(state);
     }, BLOCK_WRITE_MERGE_MS);
   }
 }
@@ -449,19 +496,32 @@ function readRunSeqFromBook(book: ReplicaBook): number {
 }
 
 /**
- * 逐条落库：每条事件前重读最新记录，seq = 已见序号 + 1。
- * 队列写盘与即时重试/重生成路径共用同一单调序号空间——各自维护本地计数器时，
- * 两条路径交错会让落后的一方被仓储当作"重复/迟到事件"静默丢弃，
- * 表现为块永远停在 pending、或页已生成完而书籍仍停在 compiling。
- * 书籍不存在或 runId 不匹配（删除/换 run 后的迟到事件）静默跳过并返回 false：
- * 调用方据此统计"因归属校验被丢弃的写入"，而不是把它当成写成功。
- * 仓储抛错（读被拒/写满）不在此吞掉，由调用方走 storage 失败路径。
+ * 逐条落库（异步事务）：每条事件前重读最新记录，seq = 已见序号 + 1。
+ * 返回值区分三种结果：
+ * - `applied`：事务提交（含仓库侧拒绝重复/迟到事件 → 事件被忽略但不算写失败）；
+ * - `dropped`：书籍不存在或 runId 不匹配（删除/换 run 后的迟到事件）——调用方计入"丢弃写入"；
+ * - `failed`：读取/写入失败（含冲突耗尽）——调用方走 storage 失败路径，绝不谎报成功。
  */
-function applyStored(bookId: string, runId: string, event: BookRunEvent): boolean {
-  const latest = readBooks().find((item) => item.id === bookId);
-  if (!latest || latest.run?.runId !== runId) return false;
-  applyRunEvent(bookId, runId, event, readRunSeqFromBook(latest) + 1);
-  return true;
+type ApplyOutcome = 'applied' | 'dropped' | 'failed';
+
+async function applyStored(
+  bookId: string,
+  runId: string,
+  event: BookRunEvent,
+): Promise<ApplyOutcome> {
+  let latest: ReplicaBook | undefined;
+  try {
+    latest = readBooks().find((item) => item.id === bookId);
+  } catch {
+    return 'failed';
+  }
+  if (!latest || latest.run?.runId !== runId) return 'dropped';
+  const result = await applyRunEvent(bookId, runId, event, readRunSeqFromBook(latest) + 1);
+  if (result.status === 'committed' || result.status === 'skipped' || result.status === 'missing') {
+    // skipped：重复/迟到事件被仓储忽略（不是失败）；missing：书已被删除（调用方另行判定）
+    return result.status === 'missing' ? 'dropped' : 'applied';
+  }
+  throw new Error(result.message || '本地保存失败');
 }
 
 /** flush 前置守卫：storageFailureAt 注入条件（在写盘前判定，独立于 applyRunEvent 是否抛错） */
@@ -477,46 +537,17 @@ function shouldInjectStorageFailure(state: RunState): boolean {
   return done === state.scenario.storageFailureAt.pageIndex;
 }
 
-/**
- * 写盘：逐条经 applyRunEvent 落库。storageFailureAt 命中时注入真实写失败，
- * local-collection 抛 CollectionStorageError → failBookRun(kind storage)，绝不谎报"已保存"。
- */
-function flush(state: RunState): void {
-  if (state.mergeTimer !== null) {
-    clearTimeout(state.mergeTimer);
-    state.mergeTimer = null;
-  }
-  if (state.pending.length === 0) return;
-  const batch = state.pending;
-  state.pending = [];
-  const inject = shouldInjectStorageFailure(state);
-  if (inject) armStorageFailOnce();
-  try {
-    for (const event of batch) {
-      applyStored(state.bookId, state.runId, event);
-    }
-  } catch (cause) {
-    // local-collection 真实抛错（读拒/写满回滚后抛）：整轮失败，kind storage
-    releaseStorageFailOnce();
-    failTheRun(state, {
-      kind: 'storage',
-      message:
-        cause instanceof Error
-          ? `本地保存失败（${cause.message}）已停止生成，原数据保留。`
-          : '本地保存失败，已停止生成，原数据保留。',
-    });
-    return;
-  }
-  if (inject) releaseStorageFailOnce();
-}
-
 /** 整轮失败：先落库失败原因（尽力），再统一收尾——避免"内存 failed 而资源未释放" */
-function failTheRun(state: RunState, failure: { kind: BookFailureKind; message: string }): void {
+async function failTheRun(
+  state: RunState,
+  failure: { kind: BookFailureKind; message: string },
+): Promise<void> {
   if (state.cancelled) return;
   state.pending = [];
   releaseStorageFailOnce();
   try {
-    failBookRun(state.bookId, state.runId, failure);
+    // 等待真实提交结果：只有 committed 才算"失败原因已落库"
+    await failBookRun(state.bookId, state.runId, failure);
   } catch {
     // 失败路径自身写库被拒（存储已坏）：状态留在内存，UI 由读取错误路径呈现
   }
@@ -528,11 +559,11 @@ function failTheRun(state: RunState, failure: { kind: BookFailureKind; message: 
  * 待写事件的 seq 需从最新记录现取，读不到就不能再落库，因此立即丢弃队列并收尾；
  * 尽力把失败原因写进 run 检查点（给出显式「重试生成」入口）；写也被拒则只保留内存记录与收尾原因。
  */
-function handleRunReadDenied(state: RunState, error: string): void {
+async function handleRunReadDenied(state: RunState, error: string): Promise<void> {
   if (state.cancelled) return;
   state.pending = [];
   try {
-    failBookRun(state.bookId, state.runId, {
+    await failBookRun(state.bookId, state.runId, {
       kind: 'storage',
       message: `本地存储读取失败（${error}）：本次生成已停止，原数据未修改，可重试生成。`,
     });
@@ -794,10 +825,15 @@ function pageFailureInjectCount(scenario: BookRunScenario): number {
  * 启动（或接管）一书的模拟执行器。仅当书籍 compiling 且租约可用时成功；
  * 他标签页持活租约、书籍非 compiling 时返回 null；本标签已有活跃执行器时返回现有句柄（不重复启动）。
  */
-export function startRun(
+/**
+ * 启动（或接管）一书的模拟执行器。返回句柄前等待 **run-start 事件真正落库**；
+ * 未取得租约、书籍不可启动、或首个事件未提交（冲突/写入失败）一律返回 null，
+ * 调用方据此提示“无法开始/稍后重试”，不会出现“看着已开始但什么都没写入”。
+ */
+export async function startRun(
   bookId: string,
   options?: StartRunOptions,
-): BookRunHandle | null {
+): Promise<BookRunHandle | null> {
   const existing = registry.get(bookId);
   if (existing && (existing.status === 'running' || existing.status === 'paused')) {
     return handleFor(existing);
@@ -817,10 +853,11 @@ export function startRun(
   };
   if (options?.scenario) {
     // 持久化本次生效的模拟设置：续跑/重试沿用同一节奏与注入场景（否则静默回落到默认值）
+    // 写入失败不阻断本轮（场景已在内存生效），但等待事务真正结果、不留悬空 Promise
     try {
-      setRunScenario(bookId, scenario);
+      await setRunScenario(bookId, scenario);
     } catch {
-      // 存储写入失败：按当前设置继续运行，落库错误由事件路径如实呈现
+      // 参数/存储异常：按当前设置继续运行
     }
   }
   const runId = checkpoint?.runId ?? uid('run');
@@ -835,6 +872,7 @@ export function startRun(
     status: 'running',
     cancelled: false,
     pending: [],
+    flushChain: Promise.resolve(),
     mergeTimer: null,
     heartbeatTimer: null,
     pagehideHandler: null,
@@ -853,11 +891,16 @@ export function startRun(
     writeLease(bookId, { owner: ownerId(), runId, heartbeatAt: Date.now(), nonce: leaseNonce });
   }, LEASE_HEARTBEAT_MS);
   if (typeof window !== 'undefined') {
-    state.pagehideHandler = () => flush(state);
+    // pagehide 无法等待 Promise：排队写盘并尽力完成（断点模型容忍部分未落库）
+    state.pagehideHandler = () => {
+      void queueFlush(state);
+    };
     window.addEventListener('pagehide', state.pagehideHandler);
   }
   void options?.source;
   emit(state, { type: 'run-start' }, true);
+  await queueFlush(state);
+  if (state.cancelled) return null; // run-start 未提交（存储失败/冲突）：收尾已发生，不报“已启动”
   void drive(state);
   return handleFor(state);
 }
@@ -912,7 +955,7 @@ function blockStatusOf(
   return pages.find((page) => page.id === pageId)?.blocks.find((block) => block.id === blockId)?.status;
 }
 
-function freshBook(state: RunState): ReplicaBook | null {
+async function freshBook(state: RunState): Promise<ReplicaBook | null> {
   const read = readBookForRun(state.bookId);
   if (read.kind === 'missing') {
     // 删除分支（M22-01）：静默收尾，不写任何事件、不复活记录
@@ -920,7 +963,7 @@ function freshBook(state: RunState): ReplicaBook | null {
     return null;
   }
   if (read.kind === 'denied') {
-    handleRunReadDenied(state, read.error);
+    await handleRunReadDenied(state, read.error);
     return null;
   }
   if (read.book.status !== 'compiling') {
@@ -952,7 +995,7 @@ async function stepOnce(
     teardownRun(state, 'lease-lost');
     return false;
   }
-  const book = freshBook(state);
+  const book = await freshBook(state);
   if (!book) return false; // 已收尾（删除/读取失败/书籍状态已变化）
   const pages = pageListOf(book);
   // 前进到下一个未完成页；缺 status 的旧页按 ready 处理（§4.2 兼容规则，不因兼容数据重复生成）
@@ -967,18 +1010,19 @@ async function stepOnce(
     // 因此不存在"内容已生成但书籍停在 compiling"的窗口；是否 ready 由 finishBookRun 按
     // "是否仍有未完成页"判定（§4.3：仍有 error/pending/generating 页 → 保持 compiling = 已中断）。
     emit(state, { type: 'run-finished' }, true);
+    await queueFlush(state); // 等待本批事件真正提交后再判定收尾
     if (state.cancelled) return false; // flush 期间失败（storage）：错误路径已接管，不再覆盖状态
     // 最终完成落库（M22-05）：失败绝不假报成功——不设 finished、不只清句柄，而是按 storage 失败
     // 落库并给出「重试生成」入口。注入一次性：本运行已因 storage 失败过就不再注入（否则重试必再败）。
     const injectFinishFailure =
       state.scenario.storageFailureOnFinish === true && book.run?.failure?.kind !== 'storage';
     if (injectFinishFailure) armStorageFailOnce();
-    let settled: ReplicaBook | null;
+    let settled: CommitResult<ReplicaBook> | null = null;
     try {
-      settled = finishBookRun(state.bookId, state.runId);
+      settled = await finishBookRun(state.bookId, state.runId);
     } catch (cause) {
       releaseStorageFailOnce();
-      failTheRun(state, {
+      await failTheRun(state, {
         kind: 'storage',
         message: `最终完成状态写入失败（${
           cause instanceof Error ? cause.message : '本地存储拒绝写入'
@@ -987,11 +1031,21 @@ async function stepOnce(
       return false;
     }
     releaseStorageFailOnce();
-    if (!settled) {
+    if (settled.status === 'skipped' || settled.status === 'missing') {
       teardownRun(state, 'stopped', '完成状态未写入：书籍已被删除或运行身份已变化。');
       return false;
     }
-    teardownRun(state, settled.status === 'ready' ? 'finished' : 'interrupted');
+    if (settled.status !== 'committed' || settled.value === null) {
+      // 分派失败/冲突：不假报完成，落库失败原因并给重试入口
+      await failTheRun(state, {
+        kind: 'storage',
+        message: `最终完成状态写入失败（${
+          settled.message || '本地存储拒绝写入'
+        }）：本次生成未标记为完成，可重试生成。`,
+      });
+      return false;
+    }
+    teardownRun(state, settled.value.status === 'ready' ? 'finished' : 'interrupted');
     return false;
   }
   const pageId = pages[ctx.pageSeq]!;
@@ -1006,6 +1060,7 @@ async function stepOnce(
     ctx.currentPlan = plan;
     emit(state, { type: 'page-start', chapterIndex: plan.chapterIndex, pageIndex: plan.pageIndex }, true);
     emit(state, { type: 'page-planned', pageId, blockIds: plan.blocks.map((b) => b.blockId) }, true);
+    await queueFlush(state); // 页级事件先落库，后续步骤按真实状态推进
     // 整页失败注入是一次性的（对照 failBlockIds 的"首次失败、重试即成功"语义）：
     // 以页自身持久化的 attempts 为判据——同一页失败过一次后，重试/恢复/刷新续跑都不再注入，
     // 否则恢复后会在同一触发点无限失败，用户永远出不来。
@@ -1030,10 +1085,12 @@ async function stepOnce(
           },
           true,
         );
+        await queueFlush(state); // 确保暂停标记真正落库后再收尾
         state.status = 'paused';
         teardownRun(state, 'paused', '模拟供应商连续失败（本地注入场景，非真实上游故障）。');
         return false;
       }
+      await queueFlush(state); // 页失败事件先落库
       ctx.currentPageId = null; // 下一轮处理下一页
       ctx.pageSeq += 1;
       return true;
@@ -1060,6 +1117,7 @@ async function stepOnce(
   if (ctx.blockIndex >= plan.blocks.length) {
     // 本页完成
     emit(state, { type: 'page-ready', pageId }, true);
+    await queueFlush(state); // 页完成事件先落库（后续页按真实状态判定）
     state.consecutivePageFailures = 0; // 页不失败时清零（engine.py:1471-1475）
     ctx.pageSeq += 1;
     ctx.currentPageId = null;
@@ -1074,7 +1132,7 @@ async function stepOnce(
     teardownRun(state, 'lease-lost');
     return false;
   }
-  const current = freshBook(state);
+  const current = await freshBook(state);
   if (!current) return false;
   // 注入失败只发生一次：内存标记 + 落库后的块状态共同判定
   // （块已带 failure/error 即表示注入已经发生过，刷新续跑不再重复失败）
@@ -1103,6 +1161,7 @@ async function stepOnce(
       block: plannedToBlockPayload(planned),
     });
   }
+  await queueFlush(state); // 块事件先落库：下一步的“已 ready 跳过”判定按真实状态
   ctx.blockIndex += 1;
   return true;
 }
@@ -1114,21 +1173,22 @@ function handleFor(state: RunState): BookRunHandle {
     get status() {
       return state.status;
     },
-    pause() {
+    async pause(): Promise<void> {
       if (state.status !== 'running' || state.cancelled) return;
-      flush(state); // 暂停前立即写盘
-      pauseBookRun(state.bookId, 'user', 'Paused by user.');
+      await queueFlush(state); // 暂停前等待落库（经仓储的真实结果）
+      if (state.cancelled) return; // flush 期间可能已因 storage 失败收尾
+      await pauseBookRun(state.bookId, 'user', 'Paused by user.');
       // 用户暂停：本执行器停止；恢复由用户显式触发（paused 不自动续跑）
       teardownRun(state, 'paused', '已暂停（用户暂停）：未完成内容只在你恢复后继续。');
     },
-    resume() {
+    async resume(): Promise<void> {
       if (state.status !== 'paused') return;
-      resumeBookRun(state.bookId, state.runId);
-      void startRun(state.bookId, { source: 'user' });
+      await resumeBookRun(state.bookId, state.runId);
+      await startRun(state.bookId, { source: 'user' });
     },
-    stop() {
+    async stop(): Promise<void> {
       if (state.cancelled) return;
-      flush(state); // 中止保留断点：先写盘再停（不改动书籍状态，检查点已随事件更新）
+      await queueFlush(state); // 中止保留断点：先等待落库再停
       teardownRun(state, 'stopped', '生成已停止（已完成内容与断点保留）。');
     },
   };
@@ -1146,14 +1206,14 @@ export function getRun(bookId: string): BookRunHandle | null {
  * compiling 无执行器（已中断）时可由自动续跑调用。他标签页持活租约时不启动。
  * 读取被拒时不启动（不伪造"正在生成"）。
  */
-export function resumeRun(bookId: string): BookRunHandle | null {
+export async function resumeRun(bookId: string): Promise<BookRunHandle | null> {
   const read = readBookForRun(bookId);
   if (read.kind !== 'ok') return null;
   const book = read.book;
   if (book.status === 'paused' || book.status === 'error') {
     const runId = book.run?.runId ?? '';
-    const resumed = resumeBookRun(bookId, runId);
-    if (!resumed || resumed.status !== 'compiling') return null;
+    const resumed = await resumeBookRun(bookId, runId);
+    if (resumed.status !== 'committed' || resumed.value?.status !== 'compiling') return null;
     return startRun(bookId, { source: 'user' });
   }
   if (book.status === 'compiling') {
@@ -1166,11 +1226,13 @@ export function resumeRun(bookId: string): BookRunHandle | null {
  * 中止（卸载/删除）：保留断点（flush 后停止，不改动书籍状态）。
  * 同时取消本书在途的页/块修复——没有长执行器时它们仍在写盘，删除入口必须先停它们（M22-01）。
  */
-export function stopRun(bookId: string, reason: string): void {
+export async function stopRun(bookId: string, reason: string): Promise<void> {
   const state = registry.get(bookId);
   if (state && !state.cancelled) {
-    flush(state);
-    teardownRun(state, 'stopped', `生成已停止（${reason}）：已完成内容与断点保留。`);
+    await queueFlush(state);
+    if (!state.cancelled) {
+      teardownRun(state, 'stopped', `生成已停止（${reason}）：已完成内容与断点保留。`);
+    }
   }
   cancelRepairs(bookId, `已停止（${reason}）`);
 }
@@ -1197,9 +1259,20 @@ function repairWritable(book: ReplicaBook): boolean {
  * 页/块级修复经 applyRunEvent 落库并以 runId 校验归属，缺 run 会让整个入口静默无操作。
  * 返回的 runId 会被**冻结**为本次操作的身份：此后每一步都按它校验，绝不改成最新的 runId。
  */
-function writableRunId(book: ReplicaBook): string | null {
-  const ensured = book.run?.runId ? book : (ensureBookRun(book.id) ?? book);
-  return ensured.run?.runId ?? null;
+async function writableRunId(book: ReplicaBook): Promise<{ runId: string | null; message?: string }> {
+  if (book.run?.runId) return { runId: book.run.runId };
+  // 无检查点（演示书/旧四态就绪书）：补建一个仅作写入容器的检查点。
+  // 必须等待事务真正提交：失败/冲突时不得继续按“接近 runId”写入。
+  const ensured = await ensureBookRun(book.id);
+  if (ensured.status === 'committed' && ensured.value?.run?.runId) {
+    return { runId: ensured.value.run.runId };
+  }
+  if (ensured.status === 'skipped') {
+    // 并发情况：另一个写入者已经补建，重读一次取其 runId
+    const again = readBookForRun(book.id);
+    if (again.kind === 'ok' && again.book.run?.runId) return { runId: again.book.run.runId };
+  }
+  return { runId: null, message: ensured.message || '无法建立写入容器。' };
 }
 
 /** 页/块修复的真实异步结果（M22-02：不再是 fire-and-forget 的 void） */
@@ -1314,34 +1387,42 @@ export function regeneratePage(bookId: string, pageId: string): Promise<RepairRe
  * 修复入口统一编排：读记录 → 判定可写 → **冻结运行身份** → 复位（仓储）→ 逐块异步补齐。
  * 复位与后续写入都绑定启动时冻结的 runId；运行身份变化时丢弃写入并如实报告。
  */
+/**
+ * 修复入口统一编排（**同步返回 Promise**，保证"同目标复用同一 Promise"的身份语义）：
+ * 读记录 → 判定可写 → 计算目标块 → 占位/取代 → 冻结运行身份与复位 → 交给 runRepair 逐块补生成。
+ *
+ * 运行身份（runId）需要异步建立（ensureBookRun 是一次事务），因此先同步占位、再在内部异步任务里
+ * 填充；在填充完成前不会有任何块写入，调用方拿到的 Promise 身份不受影响。
+ */
 function startRepair(
   bookId: string,
   pageId: string,
   onlyBlockIds: string[] | null,
-  resetInStore: () => void,
+  resetInStore: () => Promise<CommitResult<ReplicaBook>>,
 ): Promise<RepairResult> {
   const read = readBookForRun(bookId);
   if (read.kind !== 'ok') {
     return Promise.resolve(
-      skippedRepair(bookId, pageId, null, onlyBlockIds, read.kind === 'missing' ? '书籍不存在或已被删除。' : read.error),
+      skippedRepair(
+        bookId,
+        pageId,
+        null,
+        onlyBlockIds,
+        read.kind === 'missing' ? '书籍不存在或已被删除。' : read.error,
+      ),
     );
   }
   const book = read.book;
   if (!repairWritable(book)) {
     return Promise.resolve(
-      skippedRepair(bookId, pageId, null, onlyBlockIds, `书籍当前状态（${book.status}）不接受页/块修复。`),
+      skippedRepair(
+        bookId,
+        pageId,
+        null,
+        onlyBlockIds,
+        `书籍当前状态（${book.status}）不接受页/块修复。`,
+      ),
     );
-  }
-  let runId: string | null;
-  try {
-    runId = writableRunId(book);
-  } catch (cause) {
-    return Promise.resolve(
-      skippedRepair(bookId, pageId, null, onlyBlockIds, cause instanceof Error ? cause.message : '无法建立写入检查点。'),
-    );
-  }
-  if (!runId) {
-    return Promise.resolve(skippedRepair(bookId, pageId, null, onlyBlockIds, '本书缺少可用的运行记录。'));
   }
   // 目标块：单块重试按请求块，整页重生成按页面计划（冻结启动时的计划，避免半途换目标）
   const plan = planPage(bookId, pageId);
@@ -1360,7 +1441,7 @@ function startRepair(
     operationId: uid('rep'),
     bookId,
     pageId,
-    runId,
+    runId: '', // 由内部异步任务在写入任何块之前填充
     blockIds,
     cancelled: false,
     writtenBlockIds: [],
@@ -1378,14 +1459,34 @@ function startRepair(
     settle(result);
     return result;
   };
-  try {
-    resetInStore(); // 仓储复位（块 → pending / 整页 → pending；user_note 内容与块身份保留）
-  } catch (cause) {
-    return Promise.resolve(
-      finish('failed', cause instanceof Error ? cause.message : '本地存储写入失败：本次修复未开始。'),
-    );
-  }
-  void runRepair(state, finish, onlyBlockIds);
+  void (async () => {
+    let runId: string | null;
+    try {
+      const resolved = await writableRunId(book);
+      runId = resolved.runId;
+      if (!runId) {
+        finish('skipped', resolved.message ?? '本书缺少可用的运行记录。');
+        return;
+      }
+    } catch (cause) {
+      finish('failed', cause instanceof Error ? cause.message : '无法建立写入检查点。');
+      return;
+    }
+    state.runId = runId;
+    try {
+      // 仓储复位（块 → pending / 整页 → pending；user_note 内容与块身份保留）。
+      // 必须检查真实提交结果：未提交时不得按"已复位"继续逐块写入。
+      const reset = await resetInStore();
+      if (reset.status !== 'committed') {
+        finish('failed', reset.message || '仓储复位未提交：本次修复未开始。');
+        return;
+      }
+    } catch (cause) {
+      finish('failed', cause instanceof Error ? cause.message : '本地存储写入失败：本次修复未开始。');
+      return;
+    }
+    await runRepair(state, finish, onlyBlockIds);
+  })();
   return promise;
 }
 
@@ -1472,18 +1573,18 @@ async function runRepair(
     }
     if (blockStatusOf(read.book, state.pageId, planned.blockId) === 'ready') continue; // 已由他处完成，不重复写
     try {
-      const appliedStart = applyStored(state.bookId, state.runId, {
+      const appliedStart = await applyStored(state.bookId, state.runId, {
         type: 'block-start',
         pageId: state.pageId,
         blockId: planned.blockId,
       });
-      const appliedReady = applyStored(state.bookId, state.runId, {
+      const appliedReady = await applyStored(state.bookId, state.runId, {
         type: 'block-ready',
         pageId: state.pageId,
         blockId: planned.blockId,
         block: plannedToBlockPayload(planned),
       });
-      if (!appliedStart || !appliedReady) {
+      if (appliedStart !== 'applied' || appliedReady !== 'applied') {
         state.droppedWrites += 1;
         finish('superseded', '写入时归属校验失败（运行身份已变化），本次修复写入已丢弃。');
         return;
@@ -1526,7 +1627,11 @@ async function runRepair(
   }
   try {
     // 页复核：仍有失败块则 partial（page-ready 事件内的派生逻辑负责），否则 ready
-    if (!applyStored(state.bookId, state.runId, { type: 'page-ready', pageId: state.pageId })) {
+    const pageOutcome = await applyStored(state.bookId, state.runId, {
+      type: 'page-ready',
+      pageId: state.pageId,
+    });
+    if (pageOutcome !== 'applied') {
       state.droppedWrites += 1;
       finish('superseded', '写入时归属校验失败（运行身份已变化），页状态未复核。');
       return;

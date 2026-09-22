@@ -62,7 +62,7 @@ afterEach(() => {
 
 describe('书籍详情首次读取失败（M22-04 缺陷回归）', () => {
   it('错误可见且有重试入口，不被「正在读取书籍…」加载分支掩盖；成功后清除旧错误', async () => {
-    const book = createBook('读取成功后的书', '');
+    const book = (await createBook('读取成功后的书', '')).value!;
     paramsMock.value = { bookId: book.id };
 
     let denyReads = true;

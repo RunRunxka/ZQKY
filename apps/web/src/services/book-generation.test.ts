@@ -8,8 +8,10 @@ import {
   getBookPage,
   getBookPages,
   readBooks,
+  type CommitResult,
   type ReplicaBook,
-} from './books-store';import {
+} from './books-store';
+import {
   CONSECUTIVE_PAGE_FAILURE_LIMIT,
   DEFAULT_RUN_SCENARIO,
   RUN_LEASE_STALE_MS,
@@ -25,28 +27,43 @@ import {
   startRun,
   stopRun,
 } from './book-generation';
+import {
+  __resetCollectionLockQueuesForTests,
+  __setCollectionLockOptionsForTests,
+} from './collection-lock';
 import { quizAttemptMatches } from './books-store';
+
+/** 提交包装（仅测试）：等待事务，非 committed 直接判失败，返回落库后的真实值 */
+async function saved<T>(pending: Promise<CommitResult<T>>): Promise<T> {
+  const result = await pending;
+  if (result.status !== 'committed' || result.value === null) {
+    throw new Error(`expected committed, got ${result.status}: ${result.message}`);
+  }
+  return result.value;
+}
 
 beforeEach(() => {
   window.localStorage.clear();
   window.sessionStorage.clear();
+  // 仅测试：缩短回退锁 settle（不改变被测语义；真实浏览器走 Web Locks，e2e 覆盖）
+  __setCollectionLockOptionsForTests({ waitMs: 200, settleMs: 4, staleMs: 1500 });
 });
 
-afterEach(() => {
-  // 清理执行器与定时器，避免用例间串扰
+afterEach(async () => {
+  // 清理执行器与定时器，避免用例间串扰（stopRun 会等待落库后停止）
   for (const book of readBooks()) {
-    stopRun(book.id, 'test-cleanup');
+    await stopRun(book.id, 'test-cleanup');
   }
+  __resetCollectionLockQueuesForTests();
   vi.restoreAllMocks();
   vi.useRealTimers();
 });
 
 /** 建立一本 compiling 书并返回其记录 */
-function setupCompiling(title: string): ReplicaBook {
-  const book = createBook(title, '');
-  confirmProposal(book.id);
-  const compiling = confirmSpine(book.id);
-  if (!compiling) throw new Error('confirmSpine failed');
+async function setupCompiling(title: string): Promise<ReplicaBook> {
+  const book = await saved(createBook(title, ''));
+  await saved(confirmProposal(book.id));
+  const compiling = await saved(confirmSpine(book.id));
   return compiling;
 }
 
@@ -66,10 +83,10 @@ const FAST = { stageDelayMs: 5, blockDelayMs: 5 };
 
 describe('book-generation 执行器', () => {
   it('正常路径：逐页逐块事件推进到 ready；进度非同步一次性完成', async () => {
-    const compiling = setupCompiling('执行器正常书');
+    const compiling = await setupCompiling('执行器正常书');
     expect(readBooks().find((item) => item.id === compiling.id)!.status).toBe('compiling');
 
-    const handle = startRun(compiling.id, { scenario: FAST });
+    const handle = await startRun(compiling.id, { scenario: FAST });
     expect(handle).not.toBeNull();
     expect(handle!.status).toBe('running');
     expect(handle!.runId).toBe(compiling.run!.runId); // 沿用检查点 runId
@@ -106,28 +123,28 @@ describe('book-generation 执行器', () => {
   });
 
   it('getRun 同书返回同一执行器（不重复启动）；非 compiling 返回 null', async () => {
-    const compiling = setupCompiling('单执行器书');
-    const h1 = startRun(compiling.id, { scenario: FAST });
-    const h2 = startRun(compiling.id, { scenario: FAST });
+    const compiling = await setupCompiling('单执行器书');
+    const h1 = await startRun(compiling.id, { scenario: FAST });
+    const h2 = await startRun(compiling.id, { scenario: FAST });
     expect(h2).not.toBeNull();
     expect(h2!.runId).toBe(h1!.runId);
     await waitFor(() => readBooks().find((item) => item.id === compiling.id)!.status === 'ready');
 
     // 已完成书再启动 → null
-    expect(startRun(compiling.id)).toBeNull();
+    expect(await startRun(compiling.id)).toBeNull();
     // draft 书 → null
-    const draft = createBook('草稿不启动', '');
-    expect(startRun(draft.id)).toBeNull();
+    const draft = await saved(createBook('草稿不启动', ''));
+    expect(await startRun(draft.id)).toBeNull();
   }, 15000);
 
   it('用户暂停：页/块复位 pending，执行器停止；恢复后从断点续跑', async () => {
-    const compiling = setupCompiling('暂停书');
+    const compiling = await setupCompiling('暂停书');
     const runId = compiling.run!.runId;
-    const handle = startRun(compiling.id, { scenario: { ...FAST, blockDelayMs: 30 } })!;
+    const handle = (await startRun(compiling.id, { scenario: { ...FAST, blockDelayMs: 30 } }))!;
 
     // 等第一页完成
     await waitFor(() => (getBookPages(compiling.id)[0]?.status ?? 'pending') === 'ready');
-    handle.pause();
+    await handle.pause();
     const paused = readBooks().find((item) => item.id === compiling.id)!;
     expect(paused.status).toBe('paused');
     expect(paused.run?.pauseKind).toBe('user');
@@ -135,10 +152,10 @@ describe('book-generation 执行器', () => {
     // 执行器已停止（getRun null），租约释放
     expect(getRun(compiling.id)).toBeNull();
 
-    // paused 不自动续跑：startRun(paused 书) 不接管（仅 resumeRun 显式恢复）
-    expect(startRun(compiling.id)).toBeNull();
+    // paused 不自动续跑：await startRun(paused 书) 不接管（仅 resumeRun 显式恢复）
+    expect(await startRun(compiling.id)).toBeNull();
 
-    const resumedHandle = resumeRun(compiling.id);
+    const resumedHandle = await resumeRun(compiling.id);
     expect(resumedHandle).not.toBeNull();
     await waitFor(() => readBooks().find((item) => item.id === compiling.id)!.status === 'ready');
     // 断点续跑：第一页内容保留（不重新生成、块 id 不变）
@@ -148,13 +165,13 @@ describe('book-generation 执行器', () => {
   }, 15000);
 
   it('刷新中断续跑：stopRun 保留断点；模块重建后从检查点续跑（已完成页不重复生成）', async () => {
-    const compiling = setupCompiling('刷新书');
+    const compiling = await setupCompiling('刷新书');
     const firstPageId = getBookPages(compiling.id)[0]!.id;
-    startRun(compiling.id, { scenario: FAST });
+    await startRun(compiling.id, { scenario: FAST });
     // 第一页完成后模拟刷新：模块状态丢失（stopRun 保留断点）
     await waitFor(() => getBookPage(compiling.id, firstPageId)?.status === 'ready');
     const firstPageBefore = getBookPage(compiling.id, firstPageId)!;
-    stopRun(compiling.id, 'reload');
+    await stopRun(compiling.id, 'reload');
     expect(getRun(compiling.id)).toBeNull();
 
     // 书籍仍 compiling（无执行器 = "已中断"）
@@ -162,7 +179,7 @@ describe('book-generation 执行器', () => {
     expect(interrupted.status).toBe('compiling');
 
     // "重载后"：新执行器从检查点续跑（auto-open 语义）
-    const resumed = resumeRun(compiling.id);
+    const resumed = await resumeRun(compiling.id);
     expect(resumed).not.toBeNull();
     await waitFor(() => readBooks().find((item) => item.id === compiling.id)!.status === 'ready');
 
@@ -175,12 +192,12 @@ describe('book-generation 执行器', () => {
   }, 15000);
 
   it('块失败一次后重试即成功（failBlockIds）', async () => {
-    const compiling = setupCompiling('块失败书');
+    const compiling = await setupCompiling('块失败书');
     // 预先指定第一页第一个块为注入失败块
     const firstPage = getBookPages(compiling.id)[0]!;
     const target = firstPage.blocks[0]!;
     const scenario = { ...FAST, failBlockIds: [target.id] };
-    startRun(compiling.id, { scenario });
+    await startRun(compiling.id, { scenario });
 
     await waitFor(() => {
       const page = getBookPage(compiling.id, firstPage.id);
@@ -198,20 +215,17 @@ describe('book-generation 执行器', () => {
     // 整书完成（partial 计入完成）
     await waitFor(() => readBooks().find((item) => item.id === compiling.id)!.status === 'ready');
 
-    // 重试该块：重试即成功（不再注入失败）
-    retryBlockExec(compiling.id, firstPage.id, target.id);
-    await waitFor(() => {
-      const page = getBookPage(compiling.id, firstPage.id);
-      return page?.blocks.find((block) => block.id === target.id)?.status === 'ready';
-    });
+    // 重试该块：重试即成功（不再注入失败）；等待修复真正完成（含页复核写入）
+    const repair = await retryBlockExec(compiling.id, firstPage.id, target.id);
+    expect(repair.status).toBe('completed');
     const recovered = getBookPage(compiling.id, firstPage.id)!;
     expect(recovered.status).toBe('ready');
     expect(recovered.blocks.every((block) => block.status === 'ready')).toBe(true);
   }, 20000);
 
   it('连续 2 页失败触发 provider 暂停（显式模拟标注，不宣称真实上游）', async () => {
-    const compiling = setupCompiling('供应商暂停书');
-    startRun(compiling.id, { scenario: { ...FAST, failPages: 2, providerPauseAfterPages: 2 } });
+    const compiling = await setupCompiling('供应商暂停书');
+    await startRun(compiling.id, { scenario: { ...FAST, failPages: 2, providerPauseAfterPages: 2 } });
 
     await waitFor(() => {
       const book = readBooks().find((item) => item.id === compiling.id)!;
@@ -227,13 +241,13 @@ describe('book-generation 执行器', () => {
     // 执行器停止
     expect(getRun(compiling.id)).toBeNull();
     // paused 不自动续跑
-    expect(startRun(compiling.id)).toBeNull();
+    expect(await startRun(compiling.id)).toBeNull();
   }, 15000);
 
   it('storageFailureAt：写入失败走真实抛错路径并落 error（kind storage），不谎报已保存', async () => {
-    const compiling = setupCompiling('存储失败书');
+    const compiling = await setupCompiling('存储失败书');
     // 第 1 页完成后（done=1）触发写失败
-    startRun(compiling.id, { scenario: { ...FAST, storageFailureAt: { pageIndex: 1 } } });
+    await startRun(compiling.id, { scenario: { ...FAST, storageFailureAt: { pageIndex: 1 } } });
 
     await waitFor(() => {
       const book = readBooks().find((item) => item.id === compiling.id)!;
@@ -247,7 +261,7 @@ describe('book-generation 执行器', () => {
     expect(getRun(compiling.id)).toBeNull();
 
     // storage error 可恢复 → 续跑
-    const resumed = resumeRun(compiling.id);
+    const resumed = await resumeRun(compiling.id);
     expect(resumed).not.toBeNull();
     await waitFor(() => readBooks().find((item) => item.id === compiling.id)!.status === 'ready');
     // localStorage.setItem 已复原（未残留 mock）
@@ -256,13 +270,13 @@ describe('book-generation 执行器', () => {
   }, 20000);
 
   it('stop 后迟到回调被丢弃（删除书籍后不复活记录）', async () => {
-    const compiling = setupCompiling('删除书');
-    startRun(compiling.id, { scenario: { ...FAST, blockDelayMs: 60 } });
+    const compiling = await setupCompiling('删除书');
+    await startRun(compiling.id, { scenario: { ...FAST, blockDelayMs: 60 } });
     const firstPageId = getBookPages(compiling.id)[0]!.id;
     await waitFor(() => (getBookPage(compiling.id, firstPageId)?.blocks[0]?.status ?? 'pending') === 'ready');
 
-    stopRun(compiling.id, 'delete');
-    deleteBook(compiling.id);
+    await stopRun(compiling.id, 'delete');
+    await saved(deleteBook(compiling.id));
     // 等待潜在迟到回调窗口过去
     await new Promise((resolve) => setTimeout(resolve, 150));
 
@@ -273,8 +287,8 @@ describe('book-generation 执行器', () => {
   }, 15000);
 
   it('租约：运行中 live 且 mine；心跳推进；结束后释放；不同书可并行各自执行', async () => {
-    const compiling = setupCompiling('租约书');
-    startRun(compiling.id, { scenario: { ...FAST, blockDelayMs: 40 } });
+    const compiling = await setupCompiling('租约书');
+    await startRun(compiling.id, { scenario: { ...FAST, blockDelayMs: 40 } });
 
     const lease = getLease(compiling.id);
     expect(lease).not.toBeNull();
@@ -286,10 +300,10 @@ describe('book-generation 执行器', () => {
     const lease2 = getLease(compiling.id);
     expect(lease2!.live).toBe(true);
 
-    const book2 = setupCompiling('第二本书'); // 不同书不受影响
-    expect(startRun(book2.id, { scenario: FAST })).not.toBeNull();
+    const book2 = await setupCompiling('第二本书'); // 不同书不受影响
+    expect(await startRun(book2.id, { scenario: FAST })).not.toBeNull();
     // 同书：已运行中不重复启动（返回现有句柄，不产生第二个执行器）
-    const again = startRun(compiling.id, { scenario: FAST });
+    const again = await startRun(compiling.id, { scenario: FAST });
     expect(again!.runId).toBe(compiling.run!.runId);
 
     await waitFor(() => readBooks().find((item) => item.id === compiling.id)!.status === 'ready');
@@ -298,8 +312,8 @@ describe('book-generation 执行器', () => {
     expect(getLease(book2.id)).toBeNull();
   }, 15000);
 
-  it('他标签页持活租约：本标签不启动第二个执行器（真实租约记录，不改本标签身份）', () => {
-    const compiling = setupCompiling('占用租约书');
+  it('他标签页持活租约：本标签不启动第二个执行器（真实租约记录，不改本标签身份）', async () => {
+    const compiling = await setupCompiling('占用租约书');
     // 直接写入"另一个标签页"的活租约（owner 不同、心跳新鲜）
     window.localStorage.setItem(
       `zhiqikeyuan:book-lease:${compiling.id}`,
@@ -311,15 +325,15 @@ describe('book-generation 执行器', () => {
       }),
     );
     expect(getLease(compiling.id)!.mine).toBe(false);
-    expect(startRun(compiling.id, { scenario: FAST })).toBeNull();
+    expect(await startRun(compiling.id, { scenario: FAST })).toBeNull();
     expect(getRun(compiling.id)).toBeNull();
     // 别人的租约不被本标签页清掉
     expect(getLease(compiling.id)!.owner).toBe('other-tab-owner');
   });
 
   it('失去所有权：执行器立即收尾、停止续租，且不动别人的租约记录，之后可恢复', async () => {
-    const compiling = setupCompiling('失权书');
-    startRun(compiling.id, { scenario: { stageDelayMs: 10, blockDelayMs: 120 } });
+    const compiling = await setupCompiling('失权书');
+    await startRun(compiling.id, { scenario: { stageDelayMs: 10, blockDelayMs: 120 } });
     expect(getRun(compiling.id)).not.toBeNull();
 
     // 另一个标签页接管租约（写入自己的 owner+nonce，心跳新鲜）
@@ -345,14 +359,14 @@ describe('book-generation 执行器', () => {
 
     // 接管方释放后，本标签页可显式恢复并完成
     window.localStorage.removeItem(`zhiqikeyuan:book-lease:${compiling.id}`);
-    expect(resumeRun(compiling.id)).not.toBeNull();
+    expect(await resumeRun(compiling.id)).not.toBeNull();
     await waitFor(() => readBooks().find((item) => item.id === compiling.id)!.status === 'ready', 12000);
     expect(getBookPages(compiling.id).every((page) => page.status === 'ready')).toBe(true);
   }, 20000);
 
   it('regeneratePage 执行器路径：重建整页并保留 user_note 内容与块身份', async () => {
-    const compiling = setupCompiling('整页重生成书');
-    startRun(compiling.id, { scenario: FAST });
+    const compiling = await setupCompiling('整页重生成书');
+    await startRun(compiling.id, { scenario: FAST });
     await waitFor(() => readBooks().find((item) => item.id === compiling.id)!.status === 'ready');
 
     const pages = getBookPages(compiling.id);
@@ -398,14 +412,14 @@ describe('book-generation 执行器', () => {
       ]),
     );
     // ready 书不启动执行器
-    expect(startRun('demo-book-fractions')).toBeNull();
+    expect(await startRun('demo-book-fractions')).toBeNull();
     expect(getRun('demo-book-fractions')).toBeNull();
   });
 });
 
 describe('book-generation 注入语义修复（H1 v2 总控裁定 A1/A2/A4）', () => {
   it("通配注入展开：'*first' 真的命中全书第一个块（UI 开关不是静默无操作）", async () => {
-    const compiling = setupCompiling('通配注入书');
+    const compiling = await setupCompiling('通配注入书');
     const firstPage = getBookPages(compiling.id)[0]!;
     const firstBlockId = firstPage.blocks[0]!.id;
 
@@ -416,7 +430,7 @@ describe('book-generation 注入语义修复（H1 v2 总控裁定 A1/A2/A4）', 
     );
     expect(expanded.failBlockIds).toEqual([firstBlockId]);
 
-    startRun(compiling.id, { scenario: { ...FAST, failBlockIds: ['*first'] } });
+    await startRun(compiling.id, { scenario: { ...FAST, failBlockIds: ['*first'] } });
     await waitFor(() => getBookPage(compiling.id, firstPage.id)?.status === 'partial');
     const page = getBookPage(compiling.id, firstPage.id)!;
     const failed = page.blocks.filter((block) => block.status === 'error');
@@ -431,8 +445,8 @@ describe('book-generation 注入语义修复（H1 v2 总控裁定 A1/A2/A4）', 
   }, 15000);
 
   it('只开启"模拟供应商连续失败暂停"（未开整页失败）也会真的暂停（开关不是静默无操作）', async () => {
-    const compiling = setupCompiling('供应商开关书');
-    startRun(compiling.id, { scenario: { ...FAST, providerPauseAfterPages: 2 } });
+    const compiling = await setupCompiling('供应商开关书');
+    await startRun(compiling.id, { scenario: { ...FAST, providerPauseAfterPages: 2 } });
 
     await waitFor(() => readBooks().find((item) => item.id === compiling.id)!.status === 'paused');
     const paused = readBooks().find((item) => item.id === compiling.id)!;
@@ -442,15 +456,15 @@ describe('book-generation 注入语义修复（H1 v2 总控裁定 A1/A2/A4）', 
     expect(getBookPages(compiling.id).filter((page) => page.status === 'error')).toHaveLength(2);
 
     // 恢复后同一批页不再注入失败（一次性），续跑到 ready
-    expect(resumeRun(compiling.id)).not.toBeNull();
+    expect(await resumeRun(compiling.id)).not.toBeNull();
     await waitFor(() => readBooks().find((item) => item.id === compiling.id)!.status === 'ready', 12000);
     expect(getBookPages(compiling.id).every((page) => page.status === 'ready')).toBe(true);
   }, 25000);
 
   it('整页失败注入是一次性：首轮失败后保持中断（compiling），恢复即成功且不重复注入', async () => {
-    const compiling = setupCompiling('页失败一次性书');
+    const compiling = await setupCompiling('页失败一次性书');
     const pages = getBookPages(compiling.id);
-    startRun(compiling.id, { scenario: { ...FAST, failPages: 1 } });
+    await startRun(compiling.id, { scenario: { ...FAST, failPages: 1 } });
 
     // 首轮：第 1 页失败，其余页完成；无执行器后保持 compiling（已中断），不谎报 ready
     await waitFor(
@@ -467,7 +481,7 @@ describe('book-generation 注入语义修复（H1 v2 总控裁定 A1/A2/A4）', 
     expect(failedPage.error).toContain('模拟页面失败');
 
     // 恢复：不再注入（attempts>0），续跑到 ready
-    expect(resumeRun(compiling.id)).not.toBeNull();
+    expect(await resumeRun(compiling.id)).not.toBeNull();
     await waitFor(() => readBooks().find((item) => item.id === compiling.id)!.status === 'ready', 12000);
     const recovered = getBookPage(compiling.id, pages[0]!.id)!;
     expect(recovered.status).toBe('ready');
@@ -536,8 +550,8 @@ describe('book-generation 注入语义修复（H1 v2 总控裁定 A1/A2/A4）', 
   }, 20000);
 
   it('块内容版本真实写入：作答版本关系不是死代码（同内容同版本，异版本不匹配）', async () => {
-    const compiling = setupCompiling('内容版本书');
-    startRun(compiling.id, { scenario: FAST });
+    const compiling = await setupCompiling('内容版本书');
+    await startRun(compiling.id, { scenario: FAST });
     await waitFor(() => readBooks().find((item) => item.id === compiling.id)!.status === 'ready');
 
     const [page] = getBookPages(compiling.id);
@@ -577,12 +591,12 @@ describe('H1-BOOKS-HARDEN v1 缺陷回归（原探针断言反转）', () => {
   const BOOKS_KEY = 'zhiqikeyuan:books';
 
   it('M22-01 删除运行中的书：执行器、心跳、监听与租约统一收尾（不残留 running/续租）', async () => {
-    const book = setupCompiling('删除收尾书');
-    startRun(book.id, { scenario: { stageDelayMs: 5, blockDelayMs: 300 } });
+    const book = await setupCompiling('删除收尾书');
+    await startRun(book.id, { scenario: { stageDelayMs: 5, blockDelayMs: 300 } });
     expect(getRun(book.id)).not.toBeNull();
     expect(getLease(book.id)?.live).toBe(true);
 
-    deleteBook(book.id);
+    await saved(deleteBook(book.id));
 
     // 下一次驱动步发现书籍已删除 → 立即收尾（而不是继续 running 并续租）
     await waitFor(() => getRun(book.id) === null);
@@ -595,8 +609,8 @@ describe('H1-BOOKS-HARDEN v1 缺陷回归（原探针断言反转）', () => {
   }, 20000);
 
   it('M22-01 存储读取被拒：执行器收尾（不残留 running/心跳/租约），恢复后可从断点继续生成', async () => {
-    const book = setupCompiling('读失败收尾书');
-    startRun(book.id, { scenario: { stageDelayMs: 5, blockDelayMs: 20 } });
+    const book = await setupCompiling('读失败收尾书');
+    await startRun(book.id, { scenario: { stageDelayMs: 5, blockDelayMs: 20 } });
     await waitFor(() => getRun(book.id) !== null);
 
     const original = Storage.prototype.getItem;
@@ -623,7 +637,7 @@ describe('H1-BOOKS-HARDEN v1 缺陷回归（原探针断言反转）', () => {
     expect(getBookPages(book.id).every((page) => page.status === 'pending')).toBe(true);
 
     // 存储恢复后可恢复：从断点续跑到 ready
-    expect(resumeRun(book.id)).not.toBeNull();
+    expect(await resumeRun(book.id)).not.toBeNull();
     await waitFor(
       () => readBooks().find((item) => item.id === book.id)!.status === 'ready',
       15000,
@@ -632,7 +646,7 @@ describe('H1-BOOKS-HARDEN v1 缺陷回归（原探针断言反转）', () => {
   }, 25000);
 
   it('M22-02 修复返回真实异步结果，且旧任务不得借用新 runId 写入（冻结身份）', async () => {
-    const book = setupCompiling('迟到写入书');
+    const book = await setupCompiling('迟到写入书');
     const pageId = getBookPages(book.id)[0]!.id;
     const frozenRunId = book.run!.runId;
 
@@ -663,10 +677,10 @@ describe('H1-BOOKS-HARDEN v1 缺陷回归（原探针断言反转）', () => {
   }, 20000);
 
   it('M22-02 单块重试：结果为 completed 且列出真实写入的块；同页重复请求复用同一 Promise', async () => {
-    const book = setupCompiling('修复结果书');
+    const book = await setupCompiling('修复结果书');
     const page = getBookPages(book.id)[0]!;
     const target = page.blocks[0]!;
-    startRun(book.id, { scenario: { ...FAST, failBlockIds: [target.id] } });
+    await startRun(book.id, { scenario: { ...FAST, failBlockIds: [target.id] } });
     await waitFor(() => getBookPage(book.id, page.id)?.status === 'partial');
     await waitFor(() => readBooks().find((item) => item.id === book.id)!.status === 'ready');
 
@@ -686,8 +700,8 @@ describe('H1-BOOKS-HARDEN v1 缺陷回归（原探针断言反转）', () => {
   }, 25000);
 
   it('M22-02 整页重生成中重试单块：在途整页操作覆盖该块，复用同一 Promise（不留半生成页）', async () => {
-    const book = setupCompiling('覆盖复用书');
-    startRun(book.id, { scenario: FAST });
+    const book = await setupCompiling('覆盖复用书');
+    await startRun(book.id, { scenario: FAST });
     await waitFor(() => readBooks().find((item) => item.id === book.id)!.status === 'ready');
     const page = getBookPages(book.id)[1]!;
 
@@ -702,8 +716,8 @@ describe('H1-BOOKS-HARDEN v1 缺陷回归（原探针断言反转）', () => {
   }, 25000);
 
   it('M22-02 整页请求取代单块在途操作：旧操作终态 superseded，页最终完整 ready', async () => {
-    const book = setupCompiling('取代操作书');
-    startRun(book.id, { scenario: FAST });
+    const book = await setupCompiling('取代操作书');
+    await startRun(book.id, { scenario: FAST });
     await waitFor(() => readBooks().find((item) => item.id === book.id)!.status === 'ready');
     const page = getBookPages(book.id)[1]!;
 
@@ -718,7 +732,7 @@ describe('H1-BOOKS-HARDEN v1 缺陷回归（原探针断言反转）', () => {
   }, 25000);
 
   it('M22-02 取消：cancelRepairs 让在途修复以 cancelled 收尾，剩余写入丢弃', async () => {
-    const book = setupCompiling('取消修复书');
+    const book = await setupCompiling('取消修复书');
     const pageId = getBookPages(book.id)[0]!.id;
     const promise = regeneratePageExec(book.id, pageId);
     expect(cancelRepairs(book.id, 'test-cancel')).toBe(1);
@@ -730,7 +744,7 @@ describe('H1-BOOKS-HARDEN v1 缺陷回归（原探针断言反转）', () => {
   }, 20000);
 
   it('M22-02 存储写失败：修复以 failed 如实解析（不 reject、不谎报成功）', async () => {
-    const book = setupCompiling('修复写失败书');
+    const book = await setupCompiling('修复写失败书');
     const pageId = getBookPages(book.id)[0]!.id;
     // 复位通过仓储写入：注入一次真实写失败 → 修复在开始前就如实失败
     const original = Storage.prototype.setItem;
@@ -753,8 +767,8 @@ describe('H1-BOOKS-HARDEN v1 缺陷回归（原探针断言反转）', () => {
   }, 20000);
 
   it('M22-05 最终完成写入失败：不假报完成，落 kind storage 失败并可重试完成（一次性注入）', async () => {
-    const book = setupCompiling('完成写失败书');
-    startRun(book.id, { scenario: { ...FAST, storageFailureOnFinish: true } });
+    const book = await setupCompiling('完成写失败书');
+    await startRun(book.id, { scenario: { ...FAST, storageFailureOnFinish: true } });
 
     await waitFor(
       () => readBooks().find((item) => item.id === book.id)!.status === 'error',
@@ -771,7 +785,7 @@ describe('H1-BOOKS-HARDEN v1 缺陷回归（原探针断言反转）', () => {
     expect(getLease(book.id)).toBeNull();
 
     // 恢复入口：重试生成（一次性注入不再触发）→ 真正完成
-    expect(resumeRun(book.id)).not.toBeNull();
+    expect(await resumeRun(book.id)).not.toBeNull();
     await waitFor(
       () => readBooks().find((item) => item.id === book.id)!.status === 'ready',
       20000,
@@ -783,25 +797,25 @@ describe('H1-BOOKS-HARDEN v1 缺陷回归（原探针断言反转）', () => {
   }, 30000);
 
   it('stopRun 也取消在途修复（删除/停止入口不留幽灵任务）', async () => {
-    const book = setupCompiling('停止取消修复书');
+    const book = await setupCompiling('停止取消修复书');
     const pageId = getBookPages(book.id)[0]!.id;
     const promise = regeneratePageExec(book.id, pageId);
     expect(getRepair(book.id, pageId)).not.toBeNull();
-    stopRun(book.id, 'delete');
+    await stopRun(book.id, 'delete');
     const result = await promise;
     expect(result.status).toBe('cancelled');
     expect(getRepair(book.id, pageId)).toBeNull();
   }, 20000);
 
   it('A1 挑刺：修复期间书籍变为不可写（归档）→ 不得报 completed，块不计入写入结果', async () => {
-    const book = setupCompiling('修复期间归档书');
-    startRun(book.id, { scenario: FAST });
+    const book = await setupCompiling('修复期间归档书');
+    await startRun(book.id, { scenario: FAST });
     await waitFor(() => readBooks().find((item) => item.id === book.id)!.status === 'ready');
     const page = getBookPages(book.id)[1]!;
 
     const promise = regeneratePageExec(book.id, page.id);
     // 复位已写入（页回 pending），趁块延时窗口把书归档：此后 runWritable 一律拒绝生成事件
-    expect(archiveBook(book.id, true)?.status).toBe('archived');
+    expect((await saved(archiveBook(book.id, true)))?.status).toBe('archived');
 
     const result = await promise;
     expect(result.status).toBe('failed'); // 写入被仓储静默拒绝：绝不谎报 completed

@@ -31,6 +31,10 @@ vi.mock('next/navigation', () => ({
 }));
 
 import { PageReader } from './PageReader';
+import {
+  __resetCollectionLockQueuesForTests,
+  __setCollectionLockOptionsForTests,
+} from '@/services/collection-lock';
 import type { ReplicaBook } from '@/services/books-store';
 
 const BOOK_KEY = 'zhiqikeyuan:books';
@@ -174,6 +178,8 @@ beforeEach(() => {
     })),
   );
   window.localStorage.clear();
+  // 仅测试：缩短回退锁 settle（不改变被测语义；真实浏览器走 Web Locks）
+  __setCollectionLockOptionsForTests({ waitMs: 200, settleMs: 4, staleMs: 1500 });
   // HARDEN v1：修复入口返回真实异步结果（Promise<RepairResult>），启动返回执行器句柄
   generationMock.retryBlock.mockImplementation((_bookId: string, _pageId: string, blockId: string) =>
     Promise.resolve(completedRepair([blockId])),
@@ -184,6 +190,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  __resetCollectionLockQueuesForTests();
   cleanup();
   vi.unstubAllGlobals();
   vi.clearAllMocks();
@@ -466,7 +473,7 @@ describe('页失败面板', () => {
 });
 
 describe('阅读器工具栏与已读登记', () => {
-  it('保留「第 N/M 页」与书签按钮锚点；新增「强制重新生成」调用 regeneratePage', () => {
+  it('保留「第 N/M 页」与书签按钮锚点；新增「强制重新生成」调用 regeneratePage', async () => {
     const book = buildBook({
       pages: [
         { id: 'p1', bookId: 'test-book', chapterId: 'ch1', title: '第一章（1/2）', order: 0, status: 'ready', blocks: [textBlock('b1', '内容')] },
@@ -479,7 +486,8 @@ describe('阅读器工具栏与已读登记', () => {
     expect(screen.getByText('第 1/2 页')).toBeVisible();
     expect(screen.getByRole('button', { name: '添加书签' })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: '添加书签' }));
-    expect(screen.getByRole('button', { name: '移除书签' })).toBeVisible();
+    // 书签提交是事务：等待真正落库后界面才切换状态
+    await screen.findByRole('button', { name: '移除书签' });
     expect(readBook().reading.bookmarkedPageIds).toEqual(['p1']);
 
     fireEvent.click(screen.getByRole('button', { name: '强制重新生成' }));
@@ -524,7 +532,7 @@ describe('阅读器工具栏与已读登记', () => {
 });
 
 describe('作答版本关系', () => {
-  it('版本不匹配：不把旧作答显示为新题答案，如实提示并允许重新作答；历史保留', () => {
+  it('版本不匹配：不把旧作答显示为新题答案，如实提示并允许重新作答；历史保留', async () => {
     const book = buildBook({
       pages: [
         {
@@ -554,8 +562,13 @@ describe('作答版本关系', () => {
     // 重新作答：正常判定并新增历史
     fireEvent.click(screen.getByRole('button', { name: 'A. 理解本页概念并能举例' }));
     expect(screen.getByRole('status', { name: '' })).toHaveTextContent('回答正确。');
-    const attempts = JSON.parse(window.localStorage.getItem(QUIZ_KEY) ?? '[]') as { blockId: string; choice: string }[];
-    expect(attempts.filter((item) => item.blockId === 'q1')).toHaveLength(2);
+    await waitFor(() => {
+      const attempts = JSON.parse(window.localStorage.getItem(QUIZ_KEY) ?? '[]') as {
+        blockId: string;
+        choice: string;
+      }[];
+      expect(attempts.filter((item) => item.blockId === 'q1')).toHaveLength(2);
+    });
   });
 
   it('版本匹配：恢复最近一次作答为当前题答案', () => {
@@ -842,7 +855,7 @@ describe('HARDEN v1：修复入口的真实异步结果（M22-02 原缺陷回归
     expect(generationMock.getRepair).toHaveBeenCalledWith('test-book', 'p1');
   });
 
-  it('「生成本章」返回空句柄时给出显式原因（不静默无操作）', () => {
+  it('「生成本章」返回空句柄时给出显式原因（不静默无操作）', async () => {
     const book = buildBook({
       pages: [
         { id: 'p1', bookId: 'test-book', chapterId: 'ch1', title: '第一章（1/1）', order: 0, status: 'pending', blocks: [] },
@@ -854,6 +867,7 @@ describe('HARDEN v1：修复入口的真实异步结果（M22-02 原缺陷回归
 
     fireEvent.click(screen.getByRole('button', { name: '生成本章' }));
     expect(generationMock.startRun).toHaveBeenCalledWith('test-book', { source: 'user' });
-    expect(screen.getByText(/无法开始生成/)).toBeVisible();
+    // 启动结果是异步的：等待失败原因真正渲染
+    expect(await screen.findByText(/无法开始生成/)).toBeVisible();
   });
 });
