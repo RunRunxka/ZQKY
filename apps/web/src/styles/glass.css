@@ -299,6 +299,15 @@
 :root[data-glass='on'][data-glass-scheme='dark'] .chat-bubble.user {
   background: rgba(255, 255, 255, 0.07);
 }
+/* 正文：chat-home.css 给衬线答案正文硬编码 #333（浅色设计），深色下翻转成墨色；
+   思考过程正文的次级灰（.chat-reasoning-body 内，源序靠后的 muted 规则）
+   被上一条同特异性覆盖提亮了，这里靠源序恢复成 --muted。 */
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-home-shell .answer-markdown {
+  color: var(--ink);
+}
+:root[data-glass='on'][data-glass-scheme='dark'] .chat-reasoning-body .answer-markdown {
+  color: var(--muted);
+}
 :root[data-glass='on'][data-glass-scheme='dark'] .chat-assistant-mark,
 :root[data-glass='on'][data-glass-scheme='dark'] .chat-empty-mark {
   border-color: rgba(255, 255, 255, 0.12);
