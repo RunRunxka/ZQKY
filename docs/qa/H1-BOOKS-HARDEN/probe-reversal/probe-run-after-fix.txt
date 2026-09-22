@@ -1,0 +1,71 @@
+npm notice run zhiqikeyuan@0.2.0 npx
+npm notice run vitest run --config docs/qa/main-review-20260922/book-probe.config.ts
+
+[1m[46m RUN [49m[22m [36mv3.2.4 [39m[90mH:/备份xuexi/智启课源[39m
+
+ [31m❯[39m docs/qa/main-review-20260922/book-probe.test.ts [2m([22m[2m3 tests[22m[2m | [22m[31m3 failed[39m[2m)[22m[32m 13[2mms[22m[39m
+[31m   [31m×[31m reproduces: deleting a running book leaves a registered runner and renewing lease[39m[32m 7[2mms[22m[39m
+[31m     → Cannot read properties of null (reading 'heartbeatAt')[39m
+[31m   [31m×[31m reproduces: transient storage read denial ends the loop but retains running state[39m[32m 4[2mms[22m[39m
+[31m     → expected undefined to be 'running' // Object.is equality[39m
+[31m   [31m×[31m reproduces: repair returns void and an old task writes under a replacement run ID[39m[32m 2[2mms[22m[39m
+[31m     → expected Promise{…} to be undefined[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 3 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m docs/qa/main-review-20260922/book-probe.test.ts[2m > [22mreproduces: deleting a running book leaves a registered runner and renewing lease
+[31m[1mTypeError[22m: Cannot read properties of null (reading 'heartbeatAt')[39m
+[36m [2m❯[22m docs/qa/main-review-20260922/book-probe.test.ts:[2m35:35[22m[39m
+    [90m 33| [39m  [34mdeleteBook[39m(book[33m.[39mid)[33m;[39m
+    [90m 34| [39m  [35mawait[39m vi[33m.[39m[34madvanceTimersByTimeAsync[39m([34m10[39m)[33m;[39m
+    [90m 35| [39m  [35mconst[39m initial [33m=[39m [34mgetLease[39m(book[33m.[39mid)[33m![39m[33m.[39mheartbeatAt[33m;[39m
+    [90m   | [39m                                  [31m^[39m
+    [90m 36| [39m  [35mawait[39m vi[33m.[39m[34madvanceTimersByTimeAsync[39m([34m1100[39m)[33m;[39m
+    [90m 37| [39m  [34mexpect[39m([34mreadBooks[39m())[33m.[39m[34mtoEqual[39m([])[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m docs/qa/main-review-20260922/book-probe.test.ts[2m > [22mreproduces: transient storage read denial ends the loop but retains running state
+[31m[1mAssertionError[22m: expected undefined to be 'running' // Object.is equality[39m
+
+[32m- Expected:[39m 
+"running"
+
+[31m+ Received:[39m 
+undefined
+
+[36m [2m❯[22m docs/qa/main-review-20260922/book-probe.test.ts:[2m53:35[22m[39m
+    [90m 51| [39m  spy[33m.[39m[34mmockRestore[39m()[33m;[39m
+    [90m 52| [39m  [35mawait[39m vi[33m.[39m[34madvanceTimersByTimeAsync[39m([34m1100[39m)[33m;[39m
+    [90m 53| [39m  [34mexpect[39m([34mgetRun[39m(book[33m.[39mid)[33m?.[39mstatus)[33m.[39m[34mtoBe[39m([32m'running'[39m)[33m;[39m
+    [90m   | [39m                                  [31m^[39m
+    [90m 54| [39m  expect(readBooks()[0]!.pages.every(page => page.status === 'pending'…
+    [90m 55| [39m  [34mexpect[39m([34mgetLease[39m(book[33m.[39mid)[33m?.[39mlive)[33m.[39m[34mtoBe[39m([35mtrue[39m)[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m docs/qa/main-review-20260922/book-probe.test.ts[2m > [22mreproduces: repair returns void and an old task writes under a replacement run ID
+[31m[1mAssertionError[22m: expected Promise{…} to be undefined[39m
+
+[32m- Expected:[39m 
+undefined
+
+[31m+ Received:[39m 
+Promise {}
+
+[36m [2m❯[22m docs/qa/main-review-20260922/book-probe.test.ts:[2m62:18[22m[39m
+    [90m 60| [39m  [35mconst[39m pageId [33m=[39m book[33m.[39mchapters[[34m0[39m][33m![39m[33m.[39mpageIds[[34m0[39m][33m![39m[33m;[39m
+    [90m 61| [39m  [35mconst[39m result [33m=[39m [34mregeneratePage[39m(book[33m.[39mid[33m,[39m pageId)[33m;[39m
+    [90m 62| [39m  [34mexpect[39m(result)[33m.[39m[34mtoBeUndefined[39m()[33m;[39m
+    [90m   | [39m                 [31m^[39m
+    [90m 63| [39m  const stored = JSON.parse(localStorage.getItem(key)!) as typeof book…
+    [90m 64| [39m  stored[[34m0[39m][33m![39m[33m.[39mrun[33m![39m[33m.[39mrunId [33m=[39m [32m'replacement-run'[39m[33m;[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[90m (1)[39m
+[2m      Tests [22m [1m[31m3 failed[39m[22m[90m (3)[39m
+[2m   Start at [22m 14:14:55
+[2m   Duration [22m 844ms[2m (transform 58ms, setup 0ms, collect 75ms, tests 13ms, environment 252ms, prepare 48ms)[22m
+
