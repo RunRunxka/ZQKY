@@ -1,0 +1,50 @@
+{
+  "batch": "H1-COURSE-SESSIONS v1",
+  "frozenAt": "2026-09-22",
+  "branch": "main",
+  "candidateCommit": "8104654",
+  "candidateFullSha": "8104654",
+  "candidateParent": "a45b0116be1a143bfc9c7efb9d3b836fa5f7e575",
+  "candidateTree": "d55e1442fdb0cb04d3d3c2df1147b6c3ff41eb8f",
+  "diffStat": "14 files changed, 1333 insertions(+), 23 deletions(-)",
+  "buildId": "2Rz23h6qbByqaJTSJY4x1",
+  "firstBuildIdBeforeFix": "KvvCBGKxFYVt6TGLyuGw8",
+  "checks": {
+    "typecheck": "pass (npm run typecheck: next typegen && tsc --noEmit)",
+    "lint": "pass, 0 warnings (eslint apps/web/src tests scripts --max-warnings=0)",
+    "unit": "51 files / 415 tests passed (NODE_OPTIONS=--no-experimental-webstorage npm run test:unit)",
+    "build": "pass (npm run build)",
+    "e2eTargeted": "9/9 passed (npx playwright test tests/e2e/course-sessions.spec.ts)",
+    "e2eFull": "189 passed / 0 failed / 0 flaky (npx playwright test, 6.3m)",
+    "api": "9 passed (npm run test:api -- tests/test_chat_stream_api.py)",
+    "realProvider": "not_run (no credentials)"
+  },
+  "fingerprintsSha256_16": {
+    "apps/web/src/contracts/chat.ts": "fe2123cdfd53ea23",
+    "apps/web/src/features/chat/model/store.ts": "fcd2739c588cf80d",
+    "apps/web/src/features/chat/ChatWorkspace.tsx": "2dae2b9442227c84",
+    "apps/web/src/features/chat/model/course-context.test.ts": "65c44ba3bc215068",
+    "apps/web/src/features/courses/CourseSessions.tsx": "2678f9cf7b890a5e",
+    "apps/web/src/features/courses/CourseDetail.tsx": "cdc47981a9488861",
+    "apps/web/src/features/courses/CoursesShelf.tsx": "170943ad56090571",
+    "apps/web/src/services/course-session.ts": "8398b35142da339e",
+    "apps/web/src/services/course-session.test.ts": "b780044d608471c7",
+    "apps/web/src/services/chat-repository.ts": "eeca62d80aa5b02f",
+    "apps/web/src/services/chat-repository.test.ts": "e2a731a66e1ea063",
+    "tests/e2e/course-sessions.spec.ts": "dfbf821fcb6b1cdf",
+    "tests/e2e/books-courses.spec.ts": "1f5153530658b5fb",
+    "apps/api/tests/test_chat_stream_api.py": "86ca2645767a67ec"
+  },
+  "scopeExclusions": [
+    "apps/api product code (only a test was added)",
+    "*.css (no style change)",
+    ".env* / .local-data",
+    "build artifacts (apps/web/.next) and next-env.d.ts"
+  ],
+  "knownLimitations": [
+    "real provider calls not_run (no credentials)",
+    "resource entries are registration-only: not parsed, not retrieved, not sent (RAG not integrated)",
+    "no manual session re-binding / organizing actions (reference has OrganizedSessionList)",
+    "cross-profile concurrency not exercised (per-tab local IndexedDB)"
+  ]
+}

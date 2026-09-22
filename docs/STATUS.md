@@ -1,14 +1,14 @@
 # 当前状态与实施主线
 
-更新：2026-09-22（H1-BOOKS-COMMIT-SAFETY v1 本地实施与限定范围验收；RAG 接入仍未启动）。本文件是唯一进度、问题、任务和后续计划入口。长期目标与稳定决定见 [PROJECT_GUIDE](PROJECT_GUIDE.md)，逐项范围见三矩阵，历史首败与批次全文见 [整理前完整快照](archive/DELIVERY_HISTORY.md#snapshot-status-20260915)。
+更新：2026-09-22（H1-COURSE-SESSIONS v1 + 前置补丁 BOOKS-CS-FOLLOWUP v1 本地实施与限定范围验收；RAG 接入仍未启动）。本文件是唯一进度、问题、任务和后续计划入口。长期目标与稳定决定见 [PROJECT_GUIDE](PROJECT_GUIDE.md)，逐项范围见三矩阵，历史首败与批次全文见 [整理前完整快照](archive/DELIVERY_HISTORY.md#snapshot-status-20260915)。
 
 ## 1. 目标与当前结论
 
 **以智启课源品牌完成固定 DeepTutor 的产品前端、AI 交互与原有动画；全站以当前学习问答 `/chat` 为视觉基准，保留蓝色主题及原业务功能。整体尚未完成。**
 
-**当前工作：H1-BOOKS-COMMIT-SAFETY v1 已本地实施并完成限定范围验收（2026-09-22），待交付审查。** 本批收口**书籍保存一致性**：仓储写路径改为集合互斥锁内的读改写事务，提交结果明确区分已提交/冲突/记录不存在/不适用/读取失败/写入失败，重试耗尽绝不返回候选值（消除"幻影保存"）；全部写入口与调用方遵守同一协议并在成功后关闭表单/跳转/显示成功。缺陷依据与证据见 §3.1（M22-03 补充修复）、§5.A 与 [qa 批次证据](qa/H1-BOOKS-COMMIT-SAFETY/README.md)。上一批 H1-BOOKS-HARDEN v1（M22-01～06）已交付，记录保留在 §5.B。**书籍仍为本地模拟执行器，不接真实 LLM/解析，不代表书籍模块或全站完成。**
+**当前工作：H1-COURSE-SESSIONS v1（课程学习会话闭环）与有界前置补丁 BOOKS-CS-FOLLOWUP v1 已本地实施并完成限定范围验收（2026-09-22），待交付审查。** 课程侧完成「课程 → 创建学习会话 → 真实问答 → 返回课程 → 恢复原会话」闭环：会话归属按稳定 `courseId`（旧会话保持未归属，不按标题/最近访问/URL 猜测），课程页可新建/打开/恢复本课程会话，聊天页显示归属与「返回课程」入口，发送时把课程名/约定/大纲/资源登记冻结为轮次快照，并以一条 `system` 上下文进入既有真实请求链路（重试沿用原快照，课程修改只影响新轮）；课程删除/归档不改写历史会话与归属。书籍侧补丁收口上一批 A1 的 F3/F5–F8（缺 Web Locks 不静默降级、控制操作按提交结果分支、修复任务全生命周期收尾、启动重入去重）。证据见 §3.1、§5.A/§5.B 与 [课程批次证据](qa/H1-COURSE-SESSIONS/README.md)、[补丁批次证据](qa/BOOKS-CS-FOLLOWUP/README.md)。上一批 H1-BOOKS-HARDEN v1（M22-01～06）记录保留在 §5.C。**书籍仍为本地模拟执行器；课程问答只走真实 FastAPI，无可用凭证的真实供应商场景记 not_run；两者均不代表模块或全站完成。**
 
-R-05 内容视觉统一是 H1 之前已交付的批次。第六批 B-R05-EXTEND v5（2026-09-19）覆盖阅读工作区和 `/space` 四子页，并修复 R-09 滚动竞争。历史独立验收 A1 pass 0 fail 保留，R-05 只在 §5.3 登记范围内关闭，不扩大为全站逐状态完成。H1-BOOKS-HARDEN v1 已于 2026-09-22 交付（见 §5.A）；下一步推进课程学习会话与 RAG 接入，见 [当前批次与下一动作](#current-task)。
+R-05 内容视觉统一是 H1 之前已交付的批次。第六批 B-R05-EXTEND v5（2026-09-19）覆盖阅读工作区和 `/space` 四子页，并修复 R-09 滚动竞争。历史独立验收 A1 pass 0 fail 保留，R-05 只在 §5.3 登记范围内关闭，不扩大为全站逐状态完成。H1-BOOKS-HARDEN v1 已于 2026-09-22 交付（见 §5.C）；RAG 接入仍未启动，见 [当前批次与下一动作](#current-task)。
 
 - 本次审查代码基准：`main@7a394ef`，开始工作区干净；最近主要业务实现为 `f31d39f`，之后产品差异为公共导航字体。本批（H1-BOOKS-HARDEN v1）起点为 `40491be`，现场核对分支/HEAD 后开工，未切换或合并 `feat/glass-theme`。`main` 是个人分支，默认集成分支是 `feat/glass-theme`，本报告不计入后者的主题工作。
 - `.zcode/` 已退出 Git 跟踪；本机配置继续保留、不触碰。
@@ -21,11 +21,11 @@ R-05 内容视觉统一是 H1 之前已交付的批次。第六批 B-R05-EXTEND 
 | --- | --- | --- |
 | 公共壳 | `/chat` 单一主页；220/56px侧栏、跨页折叠；隐藏页父菜单；手机模态抽屉；404一层壳；聊天独立学习记录中栏 | R-05 收口范围见 §5.3；错误页reset运行时未验；部分过渡曲线未验 |
 | 教案 | 本地规则填充、编辑、草稿恢复、Word/PDF导出；R-05 v4 有界视觉推广及导出/草稿回归 | 不是AI生成；逐状态视觉与动画按矩阵保留未验项；冻结旧版及原Word不改 |
-| 学习问答 | 三协议SSE、推理/正文及公式、本地会话、模型选择；生产mock残留已清；来源消息定位与失效会话空态已修 | ask_user、工具、附件解析及复杂业务真实执行通道未接；不能以存量组件当可发起功能 |
+| 学习问答 | 三协议SSE、推理/正文及公式、本地会话、模型选择；生产mock残留已清；来源消息定位与失效会话空态已修；**课程会话归属、聊天页课程上下文与轮次课程快照进入真实请求（H1-COURSE-SESSIONS v1）** | ask_user、工具、附件解析及复杂业务真实执行通道未接；不能以存量组件当可发起功能；真实供应商证据范围不因本批扩大 |
 | 模型与供应商 | contract-v1、38条注册（36现行+2 legacy）、6 backend、专用适配/受管认证、发现来源、推理控制、v1→v2迁移与凭证补偿；卡片/详情/发现/参数/默认选择闭环 | 真实仅DeepSeek指定场景有证据，其余37条注册项无独立真实通过；Codex真实登录条件仍需核实具备；R-13未关闭；模型动画partial |
 | 学习空间/笔记/题库 | 会话历史、角色、题库、笔记编辑、跨页保存；真实sessionId回链+可选messageId定位，旧数据缺身份不猜测；`/space` 首页、四子页与笔记本列表/详情已列入视觉推广批 | `/space` 功能级完整验收（弹窗/错误/长文案逐状态）待补；笔记编辑器等参考差距按矩阵保留；CLI只本地登记，无真实执行 |
 | 知识库 | 登记→解析→索引显式模拟，进度/取消/重试/恢复；局部状态与数据保护已有证据；R-05 v1 列表/详情视觉有界验收 | 不读真实文件、不做向量检索/RAG；全部分区/弹窗逐状态视觉及进度动画仍未完整验收 |
-| 书籍/课程 | 14类block、练习保存、笔记、大纲、资源、进度/导出；课程目录读取失败三态及隔离已修；**H1-BOOKS-PIPELINE v2 起书籍生成可观察/可暂停/可中断/可重试**（七态状态机 + 本地模拟执行器 + 活动条/展开详情/暂停横幅/块页重试/增量阅读/未完成导出标注） | 书籍生成仍为本地模拟（无真实 LLM/解析与真实供应商证据）；BookChatPanel、课程学习会话缺口；部分block仅模拟形态；逐帧动画与硬件触摸未验 |
+| 书籍/课程 | 14类block、练习保存、笔记、大纲、资源、进度/导出；课程目录读取失败三态及隔离已修；**H1-BOOKS-PIPELINE v2 起书籍生成可观察/可暂停/可中断/可重试**（七态状态机 + 本地模拟执行器 + 活动条/展开详情/暂停横幅/块页重试/增量阅读/未完成导出标注）；集合写经互斥事务与提交结果契约（COMMIT-SAFETY v1 + FOLLOWUP v1 前置补丁）；**H1-COURSE-SESSIONS v1 起课程学习会话闭环可用**（课程页会话区 + 聊天页归属/返回课程 + 轮次课程快照） | 书籍生成仍为本地模拟（无真实 LLM/解析与真实供应商证据）；BookChatPanel、课程学习智能体工具与自动学习规划缺口；部分block仅模拟形态；逐帧动画与硬件触摸未验 |
 | 阅读 | 材料/集合、批注/书签/进度、显式模拟伴生；R-09滚动/会话历史/已测跨会话归属已修；READ-RETRY/READ-END 已修（2026-09-18） | 媒体原视图、完整过程/来源仍待补验 |
 | 写作/Whisper | 自动保存、显式模拟AI预览/应用/取消/重试、撤销/版本、双席位房间；写作列表/编辑器已有 R-05 v3 视觉证据 | DOCX导入、完整参考差距、逐状态视觉与动画；写作批不代替 Whisper 独立验收 |
 | 伙伴/智能体 | `/agents`规划入口 | 列表/创建/详情/群组、任务过程与执行闭环待实现 |
@@ -71,7 +71,7 @@ R-05 内容视觉统一是 H1 之前已交付的批次。第六批 B-R05-EXTEND 
 | M22-05 | 最终完成落库异常被吞掉，内存仍 finished | 已修（落 kind storage 失败 + 「重试生成」，绝不假报完成；一次性注入开关） | 单测（状态 error、重试后 ready）+ 真实浏览器（卡片非「可阅读」→重试完成） |
 | M22-06 | 编辑笔记时左右方向键触发全局翻页 | 已修（输入框/可编辑/组合输入/修饰键全部排除） | 组件测试（输入框、contenteditable、isComposing、修饰键、已消费事件）+ 真实浏览器两组键盘 |
 
-**M22-03 的补充修复（H1-BOOKS-COMMIT-SAFETY v1，2026-09-22）**：本批用脱敏探针复现确认，HARDEN v1 采用的"写标记 + 有界重放"只能**写前检测**冲突——另一写入者在"检测之后、写入之前"提交时，其已保存内容仍会被旧整表覆盖（丢失更新，可控交错即可复现，不依赖"同一毫秒"）；同时确认冲突预算耗尽后会返回内存候选值，使 `createBook` 返回幻影书籍。修复：集合写改为**互斥锁内的事务读改写**（生产走原生 Web Locks，jsdom 走取号+settle+读回校验的回退锁），并引入 `CommitResult` 提交结果契约（非 `committed` 一律不返回值）。证据见 [CS 批次台账](qa/H1-BOOKS-COMMIT-SAFETY/DEFECT-LEDGER.md)、[真实双标签页 e2e](qa/H1-BOOKS-COMMIT-SAFETY/README.md)。**HARDEN v1 的租约归属/失权停止/读取三态/统一收尾语义全部保留**；“不宣称强原子性”的边界同样保留（回退锁是启发式互斥，真实浏览器路径为原生 Web Locks）。
+**M22-03 的补充修复（H1-BOOKS-COMMIT-SAFETY v1，2026-09-22）**：本批用脱敏探针复现确认，HARDEN v1 采用的"写标记 + 有界重放"只能**写前检测**冲突——另一写入者在"检测之后、写入之前"提交时，其已保存内容仍会被旧整表覆盖（丢失更新，可控交错即可复现，不依赖"同一毫秒"）；同时确认冲突预算耗尽后会返回内存候选值，使 `createBook` 返回幻影书籍。修复：集合写改为**互斥锁内的事务读改写**（生产走原生 Web Locks；jsdom 单测走测试注入的 in-process 互斥——本批当时的 localStorage 回退锁已在 BOOKS-CS-FOLLOWUP v1 整体删除，无互斥即 `unsupported`、不降级写），并引入 `CommitResult` 提交结果契约（非 `committed` 一律不返回值）。证据见 [CS 批次台账](qa/H1-BOOKS-COMMIT-SAFETY/DEFECT-LEDGER.md)、[真实双标签页 e2e](qa/H1-BOOKS-COMMIT-SAFETY/README.md)。**HARDEN v1 的租约归属/失权停止/读取三态/统一收尾语义全部保留**；“不宣称强原子性”的边界同样保留（口径已按 BOOKS-CS-FOLLOWUP v1 任务卡 §6 订正：写后读回**不**必然发现所有绕过协议的写入，详见 §5.B）。
 
 边界：修复均为本地模拟执行器范围内的行为纠正；真实供应商、真实 LLM/解析、RAG 接入与动画精度不因本批改变。M22-03 的"同一毫秒并发写入"窗口无法用测试确定性构造，实现为写后读回 + 有界重放并如实标注（见 [批次 README §6](qa/H1-BOOKS-HARDEN/README.md)）。
 
@@ -101,6 +101,8 @@ R-05 内容视觉统一是 H1 之前已交付的批次。第六批 B-R05-EXTEND 
 | H1-BOOKS-PIPELINE v2（书籍生成流水线与增量阅读闭环） | `f31d39f`（父提交 `bf460ab`；提交信息 `feat(books-pipeline): H1-BOOKS-PIPELINE v2——书籍生成流水线与增量阅读闭环`） | typecheck/lint(0警告)/unit 46文件353/build(BUILD_ID `TPMei2ra-L9r31dqKSPpl`)/e2e 168（既有154+新增14）全过；**独立验收 A1 pass 32 / fail 0 / not_run 0**（含 4 项挑刺：无 run 记录书的整页重生成、笔记写入失败不谎报、provider 开关单独开启真暂停、interrupted 恢复入口；并检出 `contentVersion` 生产路径从不写入，修复后复验）；视觉/动画三视口+焦点+reduce+快速开关+中断实测（浮层 180ms、呼吸 1.8s、reduce 压制 1e-05s） | [批次证据](qa/H1-BOOKS-PIPELINE/README.md)、[首败台账](qa/H1-BOOKS-PIPELINE/DEFECT-LEDGER.md)、[A1 报告](qa/H1-BOOKS-PIPELINE/A1-REPORT.md)；**全部为本地模拟执行器，不含真实 LLM/解析**；api 未重跑（零后端改动，基线181） |
 | H1-BOOKS-HARDEN v1（main 审查 M22-01～06 修复） | `40491be` → 本批提交（见批次 README） | typecheck/lint(0警告)/unit 48文件381例/build(BUILD_ID `cTTq7b-No7rnD-HNmoyQc`)/e2e **174 通过 0 失败**全过；3 个审查探针未修改、修复后 3/3 按预期失败（断言反转证据）；独立验收 A1 只读复验见批次报告 | [批次证据](qa/H1-BOOKS-HARDEN/README.md)、[首败台账](qa/H1-BOOKS-HARDEN/DEFECT-LEDGER.md)、[探针反转](qa/H1-BOOKS-HARDEN/probe-reversal/README.md)；**全部为本地模拟执行器与本地注入，不含真实 LLM/解析**；api 未重跑（零后端改动，基线181） |
 | H1-BOOKS-COMMIT-SAFETY v1（书籍保存一致性） | `fedfa09` → 本批提交（见批次 README） | typecheck/lint(0警告)/unit **48 文件 389 例**（上一批 48/381，+8 例）/**build `AtxBYXEc_99FFQ8cGCtvu`**/e2e **178 通过 0 失败 0 flaky**（既有 174 + 新增 4 例真实双标签页）全过；原缺陷探针 2/2 按预期失败（缺陷假设不再成立）；独立验收 A1 r1 **可交付（条件通过）**，交付前项已处置、F5–F8 登记为已知边界 | [批次证据](qa/H1-BOOKS-COMMIT-SAFETY/README.md)、[首败与写入口盘点](qa/H1-BOOKS-COMMIT-SAFETY/DEFECT-LEDGER.md)、[脱敏探针](qa/H1-BOOKS-COMMIT-SAFETY/probe-reversal/README.md)、[A1 报告](qa/H1-BOOKS-COMMIT-SAFETY/A1-REPORT.md)；**全部为本地模拟执行器与本地存储，不含真实 LLM/解析**；api 未重跑（零后端改动，基线 181） |
+| H1-COURSE-SESSIONS v1（课程学习会话闭环） | `d2638f2` → **`8104654`**（tree `d55e1442…`） | typecheck/lint(0警告)/unit **51 文件 415 例**/build **`2Rz23h6qbByqaJTSJY4x1`**/e2e 全量回归 **189 passed / 0 failed / 0 flaky**（新增 `tests/e2e/course-sessions.spec.ts` 9 例：含两课程互不串位、报文断言、写入失败可重试、流式中切换不污染、三视口/键盘/减少动画）；后端 `npm run test:api -- tests/test_chat_stream_api.py` **9 passed**（含新增 system 转发用例，证明课程上下文经 FastAPI 逐条转发给 provider） | [批次证据](qa/H1-COURSE-SESSIONS/README.md)、[任务卡](qa/H1-COURSE-SESSIONS/TASK-CARD.md)；**无可用凭证，真实供应商调用 not_run**；零后端产品代码改动 |
+| BOOKS-CS-FOLLOWUP v1（书籍前置补丁，单独提交/单独验收） | `d2638f2` → `a45b011` | typecheck/lint(0警告)/unit **49 文件 403 例**/build **`YhmHpWDKx-EgSf1pGHkZh`**/书籍 e2e **26 例通过**；F3/F5–F8 逐条处置并补回归（缺 Web Locks 不降级、控制操作按提交结果分支、修复任务收尾、启动重入去重、冲突预算重试） | [批次证据](qa/BOOKS-CS-FOLLOWUP/README.md)、[A1 报告](qa/BOOKS-CS-FOLLOWUP/A1-REPORT.md)（独立验收：代码与测试可交付，W1/W2 文档卡口已关闭）；**全部为本地模拟执行器与本地存储** |
 
 ### 4.1 真实服务与数据事件
 
@@ -130,7 +132,19 @@ npm.cmd run test:unit
 
 <a id="commit-safety-results"></a>
 
-### 5.A 本批实施：H1-BOOKS-COMMIT-SAFETY v1（2026-09-22 本地实施与限定范围验收，待交付审查）
+### 5.A 本批实施：H1-COURSE-SESSIONS v1（课程学习会话闭环，2026-09-22 本地实施与限定范围验收，待交付审查）
+
+**目标（用户锁定）**：完成「课程 → 创建学习会话 → 真实问答 → 返回课程 → 恢复原会话」闭环，并同时交付有界前置补丁 BOOKS-CS-FOLLOWUP v1（见 §5.B）。冻结契约见 [任务卡](qa/H1-COURSE-SESSIONS/TASK-CARD.md)，实跑与首败见 [批次证据](qa/H1-COURSE-SESSIONS/README.md)。
+
+1. **归属与数据**：`Conversation.courseId`（可选，稳定课程 id）+ `ConversationMeta.courseId` 贯通列表元数据；缺失/空串 = 未归属，**不按标题/最近访问/URL 猜测**、旧会话不被改写；`schemaVersion` 保持 1。课程删除/归档**不修改会话与消息、不自动换绑**（与参考「删除即清空归属」有意不同，理由：历史与归属可追溯）。
+2. **课程页会话区**：本课程会话列表（只按稳定 id 过滤、按更新时间倒序）、空态/加载/读取失败重试；「新建学习会话」**保存成功后才跳转**（同一 tick 连点由同步 ref 去重、写入失败保留页面并给「重试新建」）；归档课程只读。
+3. **聊天页课程上下文**：显示「所属课程：…」与「返回课程」；课程删除/目录读取失败时如实标注且**不回落其他课程**；切换会话不残留课程上下文。
+4. **课程上下文进入真实请求（关键）**：发送时把课程名、约定（≤1200 字符）、大纲摘要与资源**登记**清单冻结为 `TurnCourseSnapshot`，渲染成一条 `system` 消息插在请求 `messages` 最前，经既有 `POST /api/v1/chat/stream` 送达供应商适配器（后端 `ChatMessageIn.role` 已支持 system，**未新增请求字段、未改后端产品代码**）；快照随助手消息持久化——**重试沿用原快照，课程修改只影响新轮**。
+5. **如实边界**：资源仅登记引用（R-11 available/missing/unknown），**登记 ≠ 已解析 ≠ 已检索 ≠ 已随请求发送**；RAG 未接入；大纲 covered 为学员手判，不推断掌握度、不伪造学习规划。
+6. **取证分层**：真实供应商调用**无凭证 not_run**；「浏览器 → 现有 FastAPI → 供应商适配器」三段分别取证（e2e 断言发往 `/api/v1/chat/stream` 的报文含 system 课程上下文；后端新增用例证明逐条转发给 provider 请求体；供应商适配器的 system 透传由既有 `test_providers.py` 覆盖）。
+7. **不包含**：BookChatPanel、课程学习智能体工具、自动学习规划、精通/记忆、RAG 正式接入、真实书籍生成、全站动画重做，以及任何模拟聊天捷径。
+
+### 5.B 上一实施批（历史）：BOOKS-CS-FOLLOWUP v1（书籍前置补丁）与 H1-BOOKS-COMMIT-SAFETY v1（书籍保存一致性）
 
 **目标**：收口书籍本地仓储的**提交一致性**——写入口单一协议、互斥/事务读改写、提交结果可判定，调用方只在落库成功后展示成功。冻结契约与范围见 [任务卡](qa/H1-BOOKS-COMMIT-SAFETY/TASK-CARD.md)。
 
@@ -139,11 +153,11 @@ npm.cmd run test:unit
 3. **写入口与调用方**：书籍集合的创建/编辑/删除/笔记/作答/已读/书签/生成事件/页块修复/检查点/演示载入/场景设置全部走同一协议；`BooksRoute`、`PageReader`、执行器（`applyStored`/`flush`/`pause`/`stop`/收尾/修复复位）逐个迁移为等待提交结果；失败保留输入与草稿并可重试（真实浏览器验证了"持锁时创建失败保留输入、释放后重试成功"）。
 4. **与租约的关系**：租约继续保证"单书只有一个执行器"，集合锁保证"整表读改写互斥"；引擎每批事件在锁内重读、`runWritable` 基于锁内快照，旧执行器迟到写入仍被 `runId` 拒绝（HARDEN v1 语义不变）。
 5. **实跑结果**：`npm run typecheck` 通过；`npm run lint` 0 警告；`NODE_OPTIONS=--no-experimental-webstorage npm run test:unit` **48 文件 / 389 例通过**；`npm run build` 通过（`BUILD_ID = AtxBYXEc_99FFQ8cGCtvu`）；`npx playwright test` **178 例通过 / 0 失败**（既有 174 + 新增 `books-commit-safety.spec.ts` 4 例真实双标签页场景）；原缺陷探针 2/2 按预期失败（假设不再成立，见 [probe-reversal](qa/H1-BOOKS-COMMIT-SAFETY/probe-reversal/README.md)）；独立验收 A1 只读复验见 [A1-REPORT.md](qa/H1-BOOKS-COMMIT-SAFETY/A1-REPORT.md)。未执行：`apps/api` 测试（零后端改动，沿用基线 181）、真实供应商、硬件触摸、逐帧动画。
-6. **边界**：生产路径用原生 Web Locks（真实互斥）；jsdom 回退锁是启发式（取号+settle+读回校验+写后校验），**不宣称强原子性**；绕过协议的第三方直写会被写后校验发现并如实报 `conflict`，不静默丢失。旧数据、损坏/读取被拒保护、R-11 三态、14 类 block、七态状态机、`paused` 不自动恢复、归档只读全部保留。不包含：课程学习会话、BookChatPanel、主题重做、`feat/glass-theme` 合并、推送/部署。
+6. **边界**：生产路径用原生 Web Locks（真实互斥）；jsdom 单测走测试注入的 in-process 互斥（本批当时的 localStorage 回退锁已在 BOOKS-CS-FOLLOWUP v1 整体删除，无互斥即 `unsupported`、不降级写）。**不宣称强原子性**：写后校验能发现窗口内的并发改写并如实报 `conflict`（不静默丢失），但**不得声称「写后读回必然发现所有绕过协议的写入」**（BOOKS-CS-FOLLOWUP v1 任务卡 §6 订正口径，见 §5.B）。旧数据、损坏/读取被拒保护、R-11 三态、14 类 block、七态状态机、`paused` 不自动恢复、归档只读全部保留。不包含：课程学习会话、BookChatPanel、主题重做、`feat/glass-theme` 合并、推送/部署。
 7. **独立验收 A1（r1 条件通过）**：修复在源码级、单测与真实双标签页浏览器三层独立成立，聚合数字与指纹由其本机复现；交付前已处置 4 条文档/卫生项（单测基线改记"上一批 48/381 → 本批 48/389（+8 例、无新文件）"、`next-env.d.ts` 提交前还原、探针失败原因按实测更正、`frozenAt` 标注为名义时刻）。**登记为已知边界、留待下一批**（改动会触及产品文件需重新冻结）：暂停/恢复未按提交结果分支（持锁时"提示已暂停但存储仍 compiling"，可恢复不丢数据）、`applyStored` 一处死分支、修复入口在读被拒极端时序下 Promise 可能不 settle、自动续跑罕见双入口（租约自愈，仅提示噪声）。全文见 [A1-REPORT.md](qa/H1-BOOKS-COMMIT-SAFETY/A1-REPORT.md)。
 8. **下一业务批**：**H1-COURSE-SESSIONS v1**（课程内创建/恢复真实聊天、明确课程归属、课程与聊天往返、旧会话兼容及失效资源处理）——见 §6 路线；本批不顺手实施。
 
-### 5.B 上一实施批（历史）：H1-BOOKS-HARDEN v1（2026-09-22 本地实施与限定范围验收，待交付审查）
+### 5.C 更早实施批（历史）：H1-BOOKS-HARDEN v1（2026-09-22 本地实施与限定范围验收，待交付审查）
 
 <a id="harden-results"></a>
 
@@ -259,7 +273,8 @@ npm.cmd run test:unit
 | 顺序/轨道 | 交付中心 | 出口 |
 | --- | --- | --- |
 | **H1-BOOKS-COMMIT-SAFETY v1（2026-09-22 已交付）** | 书籍保存一致性收口：集合写互斥事务 + 提交结果契约 + 全写入口/调用方迁移；见 §5.A | 已完成（限定范围，A1 条件通过并处置交付前项） |
-| **H1-COURSE-SESSIONS v1（下一业务批，未启动）** | 课程内创建/恢复真实聊天、明确课程归属、课程与聊天往返、旧会话兼容及失效资源处理；复用既有七态流水线与 14 类 block，不重复实施 | 状态链、保存/刷新、资源/产物引用与三视口；不顺手实施课程以外模块 |
+| **H1-COURSE-SESSIONS v1（2026-09-22 已交付）** | 课程内创建/恢复真实聊天、课程归属、课程与聊天往返、旧会话兼容与失效处理；见 §5.A | 已完成（限定范围）；真实供应商调用 not_run；BookChatPanel 与课程学习智能体工具仍属后续 |
+| H1 课程闭环后续（未启动） | 课程学习会话的工具与产物、课程聚合进度、BookChatPanel；复用已交付的会话归属与轮次快照契约 | 真实执行通道按授权接入；不重复实施本次已交付的归属/快照/非破坏删除语义 |
 | H1-BOOKS-PIPELINE v2 / H1-BOOKS-HARDEN v1（历史已交付） | 七态流水线与增量阅读闭环（§5.0）、M22-01～06 修复（§5.B） | 已完成（各自限定范围）；证据见对应 qa 目录 |
 | H2既有模块闭环 | 阅读媒体原视图与完整伴生过程、写作/Whisper、学习空间及产物消费 | 原功能/数据不丢、来源正确、完整参考交互 |
 | H3伙伴/智能体 | 列表/创建/详情/群组/渠道、任务过程/工具/产物/历史 | 创建→执行→结果→恢复，等待/失败/取消/重试齐全 |
