@@ -139,6 +139,21 @@ _work/ test-results/      本机日志、截图、trace、备份（Git 忽略）
 9. **界面落点**：/chat 显式教材定位/追问入口，普通聊天不强制检索；原文与定位作为结构化引用/来源面板，追问卡承载知识点确认和纠偏，可展示摘要，不把全部证据只拼进 prompt 文本。真实本地、模拟、缓存状态分别呈现；AskUserCard 的“本地模拟”改为来源驱动，历史模拟卡标记必须保留。仅端到端真实闭环验收后启用相关 capability。
 10. **质量与上线分开**：原文可核验、零云端、接口可用属于工程出口；段级定位与讲解质量另按冻结金标、分科指标和人工审核验收。真实本地可运行不等于教学正确，历史节级 Hit@5 不等于答案准确率。未过质量门槛只允许明确边界的技术预览。
 
+### 4.2 接入准备核对清单（2026-09-22 只读核对 `F:\ZQKY_RAG`，事实与缺口）
+
+以下为**只读核对**得到的事实（未修改 RAG 仓库、未运行其测试/评测、未加载模型、未启动服务），供 I0 决策使用；事实若与 RAG 侧文档不符，以现场为准并去更新本表。
+
+| 项目 | 现场事实 | 缺口 / 待办 |
+| --- | --- | --- |
+| 可恢复版本 | **未发现可恢复版本交付物**：无 tag、无 remote、无 bundle/zip/pack；`git tag -l` 空、`count-objects -v` 显示 `in-pack: 0`。唯一提交基线 `3b132df` 只覆盖到 P4-LOCAL；`git status --porcelain -uall` 为 74 条（18 modified + 56 untracked），暂存区为空——`src/service.py`、`src/config.py`、`src/llm/`、`src/retrieval/{evidence,rerank,execution_policy}.py`、`src/locate_cli.py` 等**尚未跟踪** | 宿主 R0 的进入条件要求"可恢复提交或受控版本包"：需由 RAG 侧先产出（本批不代做、不提交其工作区） |
+| 依赖指纹 | 直接依赖 pinned（`numpy==2.5.3`/`httpx==0.28.1`/`jieba`/`rank_bm25`/`PyYAML`/`pytest`；本地重排另有 `transformers/tokenizers/…`）；**无 `--require-hashes`**，主环境无全量 freeze；本地重排 venv 依赖基础解释器的 `--system-site-packages` 提供 torch | 与宿主锁定环境的重装与导入验证属 I0；不接受未记录的个人 site-packages |
+| 模型/索引指纹 | 有：reranker 权重逐文件 sha256 + 固定 revision（`P5-LOCAL-RUNTIME/weights_manifest.json`）、Ollama `bge-m3` blob digest、索引 `chunks_fingerprint`；但索引建于 2026-09-19 时**未记录权重 digest**（该次构建身份为历史未知，等价性靠重嵌位级一致支撑）。这些指纹文件位于被 gitignore 的 `data/derived/`，**不在任何提交里** | 冻结包需携带指纹清单；索引/权重/缓存不入 Git，加载失败必须明确不可用 |
+| 服务输入输出 | 入口是**同步纯函数**：`locate_and_explain(question, *, deps=ServiceDeps(...), subject/book/file, top_k, pool, alpha, rerank='off') -> LocateResult`；无 HTTP 框架/端口/凭证依赖，全部 I/O 经 `ServiceDeps` 注入；`SERVICE_CONTRACT_VERSION = "p8a-v1(evidence:v1,schema:p7-v2)"`；`rerank != "off"` 直接 `ValueError` | 宿主侧仍需在 `apps/api` 内做"同步检索不阻塞 async 路由"的有界执行与取消适配（I0/I1） |
+| 引用坐标 | `EvidenceSpan{citation_id,file,book,path,source_sha256,char_span,line_span,text,chunk_ids,method,selection_score,score_kind,expansions}`；`char_span` 是**归一化 str 的 Unicode 码点** `[start,end)`（非字节偏移、非前端 UTF-16 下标），`source_sha256` 是**原始文件字节**散列，`line_span` 1 起闭区间；`citation_id` 只在单结果内唯一 | 前端展示/定位需由后端返回核验后片段；宿主须绑定 resultId/sessionId/turnId |
+| 错误状态 | `LocateResult.status ∈ {ok, partial, uncertain, generation_failed, model_unavailable, invalid_citation}`（`contracts.py` 冻结 6 值）；服务层映射含证据为空→uncertain、预算不足→partial、模型/查询向量化不可用→model_unavailable、有解释但引用全失败→invalid_citation，另有 `failure_stage ∈ {context_budget, embed_query, retrieval, evidence}` | 宿主 capability/错误信封映射与前端呈现需在 I0/I1 落地；当前 `capabilities.py` 的 `rag` 仍为 planned |
+| 资源与取消边界 | 配置了超时（embedding 120/60s、rerank worker 600s、云端 rerank 60s+重试、生成 300s）与生成预算（`num_ctx/num_predict/safety_margin`、发送前拒绝并 `refused=true`）；生成器支持 `cancel_token`（请求前/返回后/身份核验后各检一次），rerank worker 单请求在飞、OOM 降级且**绝不回落云端**；台账含取消后计次规则 | **未发现并发/队列上限实现**（无 Semaphore/max_workers/队列深度限制），也无"实际停止能力"测量证据；宿主 §4.1 第 3 条要求的队列上限与停止能力测量需在 I0/I1 补齐并测量 |
+| 质量口径 | RAG 侧 STATUS 记录 **P8A 十项（4 P1 + 6 P2）已修复并独立复验为 fixed（14/14）**；段级质量与讲解支持性**人工评审 not_run**（88 题全 pending、金标 0、`human_reviewer: null`），性能属 P8C 未评估 | 质量门槛未过只能进受限技术预览；宿主不得把"节级 Hit@5"当解释正确率 |
+
 ## 5. 验收定义
 
 页面矩阵分开记录功能状态与学习问答视觉状态；AI 矩阵区分前端组件、显式模拟、真实通道和供应商验收；动画矩阵记录参数、中断、退出与减少动画。每条按适用范围补参考源码、目标组件、入口、保存/恢复、错误/取消、实际检查和证据。53 个现有非调试页面条目（50 参考产品页、1 自有教案、2 额外别名）是清单计数，不能当百分比；改分母须说明参考扫描依据。
