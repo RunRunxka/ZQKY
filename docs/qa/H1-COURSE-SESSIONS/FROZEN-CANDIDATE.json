@@ -3,8 +3,8 @@
   "frozenAt": "2026-09-22",
   "branch": "main",
   "candidateCommit": "701d391",
-  "candidateFullSha": "8104654",
-  "candidateParent": "a45b0116be1a143bfc9c7efb9d3b836fa5f7e575",
+  "candidateFullSha": "701d391bde0d1b2a3e3a97e81b2248182378b3d9",
+  "candidateParent": "9d966c3",
   "candidateTree": "d600f77c01ab3ce721775bdf954e5ebb602a8e5d",
   "diffStat": "r1 提交 8104654: 14 files +1333/-23；r2 提交 701d391: 8 files +304/-33（产品修复 + 测试补齐 + A1 r1 报告归档）",
   "buildId": "93TKwQeZ9Av2qkSOC_8aR",
@@ -44,11 +44,11 @@
     "build artifacts (apps/web/.next) and next-env.d.ts"
   ],
   "knownLimitations": [
-    "real provider calls not_run (no credentials)",
+    "real provider calls: none issued in this batch, credential validity not verified (a .env key name and .local-data/model-config.json connection exist, structure-level check only)",
     "resource entries are registration-only: not parsed, not retrieved, not sent (RAG not integrated)",
     "no manual session re-binding / organizing actions (reference has OrganizedSessionList)",
     "cross-profile concurrency not exercised (per-tab local IndexedDB)",
-    "course context block is appended after the context-budget trim (may exceed the budget for small-window models; upstream error, never fake success)"
+    "course context block is appended after the context-budget trim; the 2400-char bound applies to the variable parts — an over-long syllabus unit title (no maxLength in the UI) can push that turn's system text over the limit (upstream error, never fake success)"
   ],
   "revision": "r2（关闭 A1 r1 的 F1/F2 后重新冻结）",
   "supersededCandidates": {
@@ -58,5 +58,6 @@
       "buildId": "2Rz23h6qbByqaJTSJY4x1",
       "verdict": "A1 r1 需修订（F1 重复会话窗口 / F2 警告残留）"
     }
-  }
+  },
+  "commitChain": "a45b011（书籍补丁）→ 8104654（r1 课程代码）→ 68af6a0 / 9d966c3（纯文档）→ 701d391（r2 修复）→ a3e050a（纯文档）→ 交付后仅注释/文档订正（无行为变化，未重新构建）"
 }

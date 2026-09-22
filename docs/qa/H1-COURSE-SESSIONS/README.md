@@ -9,7 +9,7 @@
 | --- | --- |
 | 起点 | `main@d2638f2`（现场核对了 HEAD/分支/工作区；未切分支、未合并、未推送、未部署） |
 | 参考 | `F:\DeepTutor`（只读，`42fab3cf429a1fbf36b257ab8d116a3814964202`） |
-| 本批候选（代码，**r2 = 当前交付候选**） | **`701d391`**（父 `8104654`，分支 `main`），tree `d600f77c01ab3ce721775bdf954e5ebb602a8e5d`；构建 **`BUILD_ID = 93TKwQeZ9Av2qkSOC_8aR`**。历史候选：r1 `8104654`（tree `d55e1442…`，构建 `2Rz23h6qbByqaJTSJY4x1`，A1 r1 判「需修订」）、r0 `KvvCBGKxFYVt6TGLyuGw8`（首个全量回归暴露过期断言）——候选演化与处置见 §6、[A1 r1 报告](A1-REPORT-01.md) |
+| 本批候选（代码，**r2 = 当前交付候选**） | **`701d391`**（直接父 `9d966c3`；`9d966c3`/`68af6a0` 为纯文档提交，再往前是 r1 候选 `8104654`），tree `d600f77c01ab3ce721775bdf954e5ebb602a8e5d`；构建 **`BUILD_ID = 93TKwQeZ9Av2qkSOC_8aR`**。历史候选：r1 `8104654`（tree `d55e1442…`，构建 `2Rz23h6qbByqaJTSJY4x1`，A1 r1 判「需修订」）、r0 `KvvCBGKxFYVt6TGLyuGw8`（首个全量回归暴露过期断言）——候选演化与处置见 §6、[A1 r1 报告](A1-REPORT-01.md) |
 | 目标闭环 | 课程页新建/恢复本课程会话 → 跳聊天 → 真实 `POST /api/v1/chat/stream` 问答（带课程上下文）→ 返回课程 → 会话仍在、归属不变 |
 | 不在范围 | BookChatPanel、课程学习智能体工具、自动学习规划、精通/记忆、RAG 正式接入、真实书籍生成、全站动画重做、任何模拟聊天捷径 |
 
@@ -47,7 +47,7 @@
 2. **单一会话库**：课程页与聊天页共用既有 `ChatRepository`（IndexedDB `zhiqikeyuan-chat`）与既有聊天 store，**没有第二套课程聊天数据库、没有模拟问答实现**。
 3. **课程页会话区**（`features/courses/CourseSessions.tsx`，挂在 `CourseDetail`）：本课程会话列表（按更新时间倒序）、空态/加载/读取失败 + 重试；「新建学习会话」**先保存成功再 `router.push('/chat/<id>')`**；同一 tick 连点由同步 `creatingRef` 去重；写入失败保留页面状态并给「重试新建」；归档课程只读（新建禁用，既有会话仍可打开）。
 4. **聊天页课程上下文**（`features/chat/ChatWorkspace.tsx`）：`所属课程：<name>` + 「返回课程」；课程已删除或目录读取失败时显示 `courseAvailabilityLabel` 与「重试读取课程 / 课程列表」，**不回落其他课程**；`courseContextWarning` 以可关闭提示说明"本轮未携带课程上下文"；切换到普通会话或其他课程会话时，归属条与警告都随 `activeCourseId` 重算，不残留。
-5. **课程上下文进入真实请求**（`features/chat/model/store.ts` + `services/course-session.ts`）：`send` 时 `resolveCourseSnapshot` → `buildCourseSnapshot`（课程名、约定 ≤1200 字符、大纲摘要、资源**登记**清单、`frozenAt`）→ `courseContextMessage` 渲染为一条 `system` 消息（整体 ≤2400 字符；超限时**在预算内收缩**：先压缩单条资源标签 → 再减少列出的资源条目并标注「…等共 N 项」→ 最后压缩约定，**资源行的「仅登记引用」免责句是固定前缀、不会被砍尾**）→ 插到 `requestMessages` 最前 → 既有 `ChatService.run` → `POST /api/v1/chat/stream`。快照**随助手消息持久化**（`courseContext`），`retry` 传 `last.courseContext`，因此**重试沿用原轮快照，课程修改只影响新轮**。
+5. **课程上下文进入真实请求**（`features/chat/model/store.ts` + `services/course-session.ts`）：`send` 时 `resolveCourseSnapshot` → `buildCourseSnapshot`（课程名、约定 ≤1200 字符、大纲摘要、资源**登记**清单、`frozenAt`）→ `courseContextMessage` 渲染为一条 `system` 消息（**可变部分**在 2400 字符预算内收缩：先压缩单条资源标签 → 再减少列出的资源条目并标注「…等共 N 项」→ 最后压缩约定；**资源行的「仅登记引用」免责句是固定前缀、不会被砍尾**。固定行本身超预算时函数原样返回：课程名有 60 字校验上限，但**大纲单元标题没有长度上限**，粘贴超长标题可使该轮 system 文本超过 2400 —— 仅影响请求预算，表现为上游报错而非假成功，见 §10 第 7 条）→ 插到 `requestMessages` 最前 → 既有 `ChatService.run` → `POST /api/v1/chat/stream`。快照**随助手消息持久化**（`courseContext`），`retry` 传 `last.courseContext`，因此**重试沿用原轮快照，课程修改只影响新轮**。
 6. **删除/归档/读取失败**：课程删除/归档不改写任何会话与消息（**有意差异**：参考在 `DELETE /courses/{course_id}` 里把命中会话的 `preferences.course_id` 清空，本项目按用户要求保留历史与归属，只在显示层如实提示并保留"重试读取课程 / 课程列表"入口）。资源继续遵守 R-11 三态；界面如实写明"资源仅登记引用，内容未解析、未检索、未随本请求发送"。
 7. **不伪造**：不生成 AI 掌握度、不自动改大纲 covered、不做学习规划；`RAG 尚未接入`的既有边界原样保留。
 
@@ -104,6 +104,7 @@
 | 8 | **A1 r1 F2：`courseContextWarning` 跨会话残留**（课程已删除的警告切到普通会话后仍显示） | A1 探针（`[P4] 切换后警告元素数=1`）+ `store.ts` 切换路径未清除 | **已修**：`create`/`selectConversation`/`deactivate`/`removeConversation` 四处切换点清除该字段；课程删除用例追加「切到普通新会话后警告消失」断言 |
 | 9 | A1 r1 F3：测试有效性缺口（读取失败无自动化证据、归档用例标题超出断言、整体截断未测、`继续最近会话` 未测） | A1 报告 §3 F3 表 | **已补**：新增 e2e「会话列表读取失败 → 错误+重试 → 恢复（且不冒充空态）」；归档用例预置既有会话并**实际打开验证历史**；单测新增整体预算收缩用例（断言免责句存活、`等共 40 项`、末条不出现）；课程列表断言 `继续最近会话` 的 `href`；删除一行无断言的遗留调用（A1 F11） |
 | 10 | A1 r1 F4：文档夸大（称"按条目截断并在文案里说明"，实为整段砍尾） | A1 报告 §3 F4 | **改实现而非只改词**：`courseContextMessage` 改为预算内收缩（压缩标签 → 减少条目并标注总项数 → 压缩约定），**「仅登记引用」免责句作为固定前缀不被砍尾**；README 同步为真实行为 |
+| 12 | **A1 r2 复验**（候选 `701d391` / 构建 `93TKwQeZ9Av2qkSOC_8aR`） | A1 独立探针（gap 0–150ms + **合成 click 绕过 disabled** 验证 ref 守卫、读取失败独立注入点、F4 边界探针）+ 全量复跑 | **判「可交付」**：F1/F2 确认修复且未回退；要求 4/5/6/7 重跑通过（1/2/3/8/9 抽查通过）；遗留仅文档/元数据/注释类。全文见 [A1 r2 报告](A1-REPORT-02.md)；其 §3.1–§3.4 残留已由队长订正（见该报告 §9） |
 | 11 | A1 r1 F5–F8：过期文案/文档（`ROUTES.md` 课程详情"学习会话未接入"、`PAGE_MATRIX` 段落自相矛盾、`STATUS §5.B` 第 2 条仍以现在时写回退路径、阅读页 chip 与 `courses.css` 注释） | A1 报告 §2.3 表 | **已清扫**：四处就地订正（阅读页 chip 改为"阅读会话未带课程归属"以区别于聊天会话；`courses.css` 注释改为课程详情信息提示条）。F9（课程块在预算裁剪后追加、最多 +2400 字符）已登记进 §10 第 7 条 |
 
 **本批没有出现"测试数通过但产品行为错"的静默通过**：新增 e2e 全部是真实浏览器行为断言（含报文捕获、IndexedDB 注入失败、流式中切换会话），不依赖单测数量。
@@ -130,7 +131,7 @@
 
 | 项 | 原因 |
 | --- | --- |
-| 真实供应商问答（DeepSeek/Anthropic/OpenAI 等） | 本机无可用凭证；不伪造通过。真实链路证据止于 FastAPI→adapter 替身 |
+| 真实供应商问答（DeepSeek/Anthropic/OpenAI 等） | **本轮未发起任何真实外呼、未验证凭证有效性**（不对凭证可用性作结论）。A1 r2 复核订正：本机确实存在 `.env` 键名与 `.local-data/model-config.json` 的连接配置（结构层面），故原因应记为“未外呼/未验证”而不是“无凭证”。真实链路证据止于 FastAPI→adapter 替身 |
 | 真实两浏览器进程/两 profile 并发下的课程会话 | 本批 e2e 为同 context 多页面；课程会话是每标签页本地 IndexedDB，未构造跨 profile 场景 |
 | 逐状态视觉/动画人工验收（三视口像素级、motion 矩阵） | 归入视觉批次；本批无新增主题与关键帧动画 |
 | 移动端硬件触摸（真实设备手势） | 既有 not_run 项，本批未改变 |
@@ -146,7 +147,7 @@
 5. **`course_conventions` 文案长度**：约定 1200 字符、整体 2400 字符为本地限制，超出即截断并在消息里说明截断，避免静默丢失。
 6. **手动改绑/组织会话未实现**：参考在课程页提供 `OrganizedSessionList`（重命名、归档、设置/清空会话的 `course_id`），本项目本批只做"新建即归属"，不含把既有会话改绑到课程或清空归属的入口——属后续课程闭环范围，不在本批交付内。
 
-7. **课程上下文的预算位置**：课程块在 `selectMessagesForRequest`（`contextBudgetChars`）裁剪**之后**追加，最多再增加 2400 字符；小窗口模型（`maxOutputTokens` 较大而 `contextTokens` 较小时）可能因此超出请求预算，表现为**上游报错而非假成功**（代码注释已说明）。后续若需要严格约束，应把课程块纳入裁剪预算统一计算。
+7. **课程上下文的预算位置与上限性质**：课程块在 `selectMessagesForRequest`（`contextBudgetChars`）裁剪**之后**追加，小窗口模型（`maxOutputTokens` 较大而 `contextTokens` 较小时）可能因此超出请求预算，表现为**上游报错而非假成功**（代码注释已说明）。2400 字符是对**可变部分**（约定、资源条目/标签）的收缩保证；固定行不可压缩，其中**大纲单元标题无长度上限**（课程名有 60 字校验上限），粘贴超长标题时该轮 system 文本可超过 2400（仅影响预算，无数据风险，不是假成功）。后续若需全称成立：给 `snapshot.name`/`syllabus.nextTitle` 加长度上限，或把课程块纳入裁剪预算统一计算（属后续批次，需重新冻结候选）。
 
 ## 11. 资源释放
 

@@ -2,8 +2,8 @@
  * 课程本地仓储（S5-C）。
  * 参考 StudyCourse 走后端 API + CourseState 聚合；目标项目为本地目录：
  * 大纲（covered 学员手判，不自动推断）、资源（引用本地知识库/笔记本/书籍目录，
- * 引用消失时显示"不可用"）、颜色标记。课程学习会话依赖 session.preferences.course_id，
- * 聊天侧尚未携带课程标记——如实标注未接入（见 docs/replica/HANDOFF 有意差异）。
+ * 引用消失时显示"不可用"）、颜色标记。参考的课程会话归属是 session.preferences.course_id（服务端会话形态）；
+ * 本宿主的课程学习会话由 H1-COURSE-SESSIONS v1 落地：归属为 `Conversation.courseId`（本地会话库，见 services/course-session.ts）。
  */
 import { readKnowledge, subscribeKnowledge, type KnowledgeEntry } from './knowledge-catalog';
 import { listNotebooks, subscribeNotebooks, type Notebook } from './notebook-store';
