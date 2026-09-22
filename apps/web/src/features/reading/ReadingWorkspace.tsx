@@ -185,7 +185,7 @@ function WorkspaceView({ workspaceId, routeSessionId }: { workspaceId: string; r
     }
   }
 
-  // ?course= 作用域标记（参考经 useCourseScope 贯通；目标仅展示作用域，会话课程标记未接入）
+  // ?course= 作用域标记（参考经 useCourseScope 贯通；目标只展示作用域——阅读会话本身不带课程归属）
   useEffect(() => {
     const course = new URLSearchParams(window.location.search).get('course');
     setCourseScope(course);
@@ -286,7 +286,7 @@ function WorkspaceView({ workspaceId, routeSessionId }: { workspaceId: string; r
           {workspace.description || '三栏阅读工作区：导航（大纲/书签/批注）· 正文 · 伴生助手（模拟）。'}
           {courseScope && (
             <span className="space-chip" style={{ marginLeft: 8 }}>
-              课程作用域 {courseScope}（会话课程标记未接入）
+              课程作用域 {courseScope}（阅读会话未带课程归属）
             </span>
           )}
         </p>

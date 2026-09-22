@@ -482,7 +482,8 @@ export function createChatStore(deps: ChatDeps = {}) {
           now: now(),
         }),
       );
-      set({ activeId: id });
+      // 新建会话：课程上下文警告属于上一轮/上一会话，随切换清除（A1 r1 F2）
+      set({ activeId: id, courseContextWarning: null });
       change(id, (conversation) => conversation);
     }
     /**
@@ -888,7 +889,8 @@ export function createChatStore(deps: ChatDeps = {}) {
           if (c && epoch === selectionEpoch) {
             // R5：再次载入历史走同一套恢复语义，不复活无人执行的 streaming/running
             docs.set(id, normalizeLoaded(c));
-            set({ activeId: id });
+            // 切换会话：清掉上一会话遗留的课程上下文警告（警告与该轮绑定，不跨会话保留）
+            set({ activeId: id, courseContextWarning: null });
             publish();
           }
         } catch {
@@ -898,7 +900,7 @@ export function createChatStore(deps: ChatDeps = {}) {
       /** 见 ChatState.deactivate：只清当前会话，不动任何持久化数据。 */
       deactivate() {
         stop();
-        set({ activeId: null });
+        set({ activeId: null, courseContextWarning: null });
         publish();
       },
       async renameConversation(id, title) {
@@ -912,7 +914,7 @@ export function createChatStore(deps: ChatDeps = {}) {
         try {
           await repo.remove(id, doc?.revision ?? 0);
           docs.delete(id);
-          if (get().activeId === id) set({ activeId: null });
+          if (get().activeId === id) set({ activeId: null, courseContextWarning: null });
           publish();
         } catch (error) {
           set({ storageWarning: error instanceof Error ? error.message : '删除失败。' });

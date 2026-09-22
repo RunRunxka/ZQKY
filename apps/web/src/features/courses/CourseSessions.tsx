@@ -57,24 +57,28 @@ export function CourseSessions({ course }: { course: StudyCourse }) {
     setCreating(true);
     setSaveError(null);
     void (async () => {
+      let conversation: ReturnType<typeof buildNewConversation>;
       try {
-        const conversation = buildNewConversation({
+        conversation = buildNewConversation({
           id: crypto.randomUUID(),
           courseId: course.id,
         });
         // 保存成功后才跳转（失败不跳转、不留半成品，用户可重试）
         await repository.save(conversation);
-        router.push(`/chat/${conversation.id}`);
       } catch (cause) {
+        // 保存失败：释放守卫、保留本页状态，用户可重试
+        creatingRef.current = false;
+        setCreating(false);
         setSaveError(
           cause instanceof Error
             ? `新建学习会话失败：${cause.message}`
             : '新建学习会话失败：本地保存未成功，请重试。',
         );
-      } finally {
-        creatingRef.current = false;
-        setCreating(false);
+        return;
       }
+      // 保存成功：**守卫保持到本页卸载**。`router.push` 之后到路由卸载之间仍有窗口，
+      // 这段时间内再次点击不能进入第二条创建（A1 r1 复现：间隔 10–25ms 会创建重复会话）。
+      router.push(`/chat/${conversation.id}`);
     })();
   };
 

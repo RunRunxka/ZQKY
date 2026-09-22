@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   COURSE_CONVENTIONS_LIMIT,
+  COURSE_CONTEXT_MESSAGE_LIMIT,
   buildCourseSnapshot,
   buildNewConversation,
   courseAvailabilityLabel,
@@ -115,6 +116,29 @@ describe('轮次课程快照', () => {
     // 如实边界：资源只是登记引用
     expect(text).toMatch(/未解析|未检索/);
     expect(text).not.toMatch(/已检索到|已解析教材|RAG 已接入|已向量检索/);
+  });
+
+  it('整体超长时在预算内收缩：保留免责句与课程名，资源条目按上限列出并标注总项数', () => {
+    const many: StudyCourse = {
+      ...course,
+      instructions: '先复习上一单元错题。'.repeat(120),
+      resources: Array.from({ length: 40 }, (_, index) => ({
+        id: `r${index}`,
+        kind: 'knowledge_base' as const,
+        refId: `missing-${index}`,
+        label: `课程资料${index}·${'长'.repeat(60)}`,
+        position: index,
+        addedAt: '2026-09-01T00:00:00.000Z',
+      })),
+    };
+    const text = courseContextMessage(buildCourseSnapshot(many, '2026-09-22T12:00:00.000Z'));
+    expect(text.length).toBeLessThanOrEqual(COURSE_CONTEXT_MESSAGE_LIMIT);
+    // 固定信息与免责句必须存活（不得被"砍尾"截掉）
+    expect(text).toContain('课程名称：七年级数学');
+    expect(text).toContain('课程资源（仅登记引用：内容未解析、未检索、未随本请求发送）：');
+    // 条目受限并如实标注总数
+    expect(text).toContain('等共 40 项');
+    expect(text).not.toContain('课程资料39');
   });
 
   it('resolveCourseSnapshot：未归属不发上下文；课程不存在与目录失败区分', () => {

@@ -18,6 +18,13 @@ import {
 /** 快照里课程约定与整体的字符上限（对照参考 `_COURSE_CONVENTIONS_LIMIT = 1200`） */
 export const COURSE_CONVENTIONS_LIMIT = 1200;
 export const COURSE_CONTEXT_MESSAGE_LIMIT = 2400;
+/** 资源清单最多列出多少条（其余以「…等共 N 项」说明） */
+export const COURSE_CONTEXT_RESOURCE_ITEM_LIMIT = 12;
+/** 单条资源标签的字符上限（避免超长标签挤掉上下文） */
+export const COURSE_RESOURCE_LABEL_LIMIT = 80;
+/** 资源行的固定前缀：**保证不被截断**的免责说明 */
+const RESOURCE_DISCLAIMER =
+  '课程资源（仅登记引用：内容未解析、未检索、未随本请求发送）：';
 
 /** 课程解析结果：`unavailable` = 目录读取失败（不得当成"课程已被删除"，也不得沿用其他课程） */
 export type CourseResolution =
@@ -108,27 +115,47 @@ export function resolveCourseSnapshot(
  * 如实表述边界：资源只是登记引用；不声称已解析、已检索或来自 RAG。
  */
 export function courseContextMessage(snapshot: TurnCourseSnapshot): string {
-  const lines = [
-    '本节对话属于一门课程，以下是课程上下文（本地登记信息，供你组织回答；不是用户消息）：',
-    `课程名称：${snapshot.name}`,
-  ];
-  if (snapshot.conventions) {
-    lines.push(`课程约定（学员填写，请遵守）：\n<<<\n${snapshot.conventions}\n>>>`);
+  const header =
+    '本节对话属于一门课程，以下是课程上下文（本地登记信息，供你组织回答；不是用户消息）：';
+  const nameLine = `课程名称：${snapshot.name}`;
+  const syllabusLine =
+    snapshot.syllabus.total > 0
+      ? `大纲进度：共 ${snapshot.syllabus.total} 个单元，已完成 ${snapshot.syllabus.covered} 个（学员手判）${
+          snapshot.syllabus.nextTitle ? `；下一个未完成单元：${snapshot.syllabus.nextTitle}` : ''
+        }`
+      : null;
+
+  let conventions = truncate(snapshot.conventions, COURSE_CONVENTIONS_LIMIT);
+  let itemCount = Math.min(snapshot.resources.length, COURSE_CONTEXT_RESOURCE_ITEM_LIMIT);
+  let labelLimit = COURSE_RESOURCE_LABEL_LIMIT;
+
+  const build = (): string => {
+    const lines = [header, nameLine];
+    if (conventions) {
+      lines.push(`课程约定（学员填写，请遵守）：\n<<<\n${conventions}\n>>>`);
+    }
+    if (syllabusLine) lines.push(syllabusLine);
+    if (snapshot.resources.length > 0) {
+      const shown = snapshot.resources
+        .slice(0, itemCount)
+        .map((resource) => `${truncate(resource.label, labelLimit)}（${resource.kind}·${resource.availability}）`);
+      const omitted = snapshot.resources.length - shown.length;
+      // 免责句是固定前缀：收缩条目/约定而不是砍尾，避免把「仅登记引用」截掉
+      lines.push(`${RESOURCE_DISCLAIMER}${shown.join('、')}${omitted > 0 ? `…等共 ${snapshot.resources.length} 项` : ''}`);
+    }
+    return lines.join('\n');
+  };
+
+  // 预算内收缩顺序：先压缩标签 → 再逐条减少条目（保留免责句）→ 最后压缩约定
+  let text = build();
+  for (let step = 0; step < 96 && text.length > COURSE_CONTEXT_MESSAGE_LIMIT; step += 1) {
+    if (labelLimit > 24) labelLimit = 24;
+    else if (itemCount > 0) itemCount -= 1;
+    else if (conventions) conventions = truncate(conventions, Math.max(0, conventions.length - 160));
+    else break;
+    text = build();
   }
-  if (snapshot.syllabus.total > 0) {
-    lines.push(
-      `大纲进度：共 ${snapshot.syllabus.total} 个单元，已完成 ${snapshot.syllabus.covered} 个（学员手判）${
-        snapshot.syllabus.nextTitle ? `；下一个未完成单元：${snapshot.syllabus.nextTitle}` : ''
-      }`,
-    );
-  }
-  if (snapshot.resources.length > 0) {
-    const items = snapshot.resources
-      .map((resource) => `${resource.label}（${resource.kind}·${resource.availability}）`)
-      .join('、');
-    lines.push(`课程资源（仅登记引用：内容未解析、未检索、未随本请求发送）：${items}`);
-  }
-  return truncate(lines.join('\n'), COURSE_CONTEXT_MESSAGE_LIMIT);
+  return text;
 }
 
 /** 新建会话对象（课程页与聊天页共用同一形状；不建第二套会话库） */

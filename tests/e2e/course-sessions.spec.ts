@@ -154,6 +154,11 @@ test.describe('课程学习会话闭环', () => {
     // 会话出现在本课程列表
     await expect(page.locator('.courses-sessions')).toContainText('学习会话（1）');
     await expect(page.locator('.courses-sessions').getByText('课程A的问题')).toBeVisible();
+    // 「继续最近会话」指向最近更新的本课程会话
+    await expect(page.getByRole('link', { name: /继续最近会话/ })).toHaveAttribute(
+      'href',
+      `/chat/${sessionA}`,
+    );
 
     // 课程 B：新建课程并创建会话
     await page.goto('/courses');
@@ -323,7 +328,6 @@ test.describe('课程学习会话闭环', () => {
     await expect(page.getByRole('heading', { name: '七年级数学（改名后）' })).toBeVisible({ timeout: 15000 });
 
     // 旧轮重试：仍用冻结时的旧快照
-    await page.getByRole('link', { name: '返回课程' }).count(); // 页面已是课程页；用会话列表回到会话
     await page.locator('.courses-sessions').getByRole('link', { name: /打开会话/ }).click();
     await expect(page).toHaveURL(/\/chat\/[0-9a-f-]{36}$/);
     await page.getByRole('button', { name: '重试' }).first().click();
@@ -363,6 +367,10 @@ test.describe('课程学习会话闭环', () => {
     expect(calls[1]!.messages.some((message) => message.role === 'system')).toBe(false);
     const rows = await readConversations(page);
     expect(rows.find((row) => row.id === sessionId)?.courseId).toBe('demo-course-math');
+
+    // 切到普通新会话：课程上下文警告不跨会话残留（A1 r1 F2）
+    await page.getByRole('button', { name: '新对话' }).click();
+    await expect(page.getByRole('alert').filter({ hasText: '所属课程已删除或不可用' })).toHaveCount(0);
   });
 
   test('归档课程：会话区只读（新建禁用），既有会话仍可打开且历史保留', async ({ page }) => {
@@ -373,6 +381,47 @@ test.describe('课程学习会话闭环', () => {
     await page.goto('/courses/demo-course-archived');
     await expect(page.getByRole('button', { name: '新建学习会话' })).toBeDisabled();
     await expect(page.locator('.courses-sessions')).toContainText('已归档课程：学习会话为只读');
+
+    // 预置一条属于该归档课程的既有会话（含历史消息）
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve, reject) => {
+          const open = indexedDB.open('zhiqikeyuan-chat', 1);
+          open.onupgradeneeded = () => open.result.createObjectStore('conversations', { keyPath: 'id' });
+          open.onerror = () => reject(open.error);
+          open.onsuccess = () => {
+            const tx = open.result.transaction('conversations', 'readwrite');
+            tx.objectStore('conversations').put({
+              id: 'archived-session-1',
+              title: '归档前的复习',
+              courseId: 'demo-course-archived',
+              messages: [
+                {
+                  id: 'archived-m1',
+                  role: 'user',
+                  content: '归档前的提问',
+                  createdAt: '2026-08-20T10:00:00.000Z',
+                },
+              ],
+              createdAt: '2026-08-20T10:00:00.000Z',
+              updatedAt: '2026-08-20T10:00:00.000Z',
+              schemaVersion: 1,
+              revision: 0,
+              draft: '',
+              modelProfileId: null,
+            });
+            tx.oncomplete = () => resolve();
+            tx.onabort = tx.onerror = () => reject(tx.error);
+          };
+        }),
+    );
+    await page.reload();
+    await expect(
+      page.locator('.courses-sessions').getByRole('link', { name: '打开会话 归档前的复习' }),
+    ).toBeVisible();
+    await page.locator('.courses-sessions').getByRole('link', { name: /打开会话/ }).click();
+    await expect(page).toHaveURL(/\/chat\/archived-session-1$/);
+    await expect(page.locator('.chat-bubble.user').first()).toContainText('归档前的提问');
   });
 
   test('流式中切换会话：目标会话不被污染，迟到回答被丢弃', async ({ page }) => {
@@ -421,6 +470,51 @@ test.describe('课程学习会话闭环', () => {
     const rows = await readConversations(page);
     const courseRow = rows.find((row) => row.id === courseSession);
     expect(courseRow?.courseId).toBe('demo-course-math');
+  });
+
+  test('跨任务二次点击（保存已提交、导航卸载前）不会创建第二条课程会话', async ({ page }) => {
+    await stubUpstream(page, []);
+    await openCourse(page, '七年级数学（演示课程）', '/courses/demo-course-math');
+    await page.getByRole('button', { name: '新建学习会话' }).click();
+    // A1 r1 复现窗口：save 已完成、router.push 已发起、本页尚未卸载（实测 10–25ms 可命中）
+    await page.waitForTimeout(20);
+    await page.evaluate(() => {
+      const target = Array.from(document.querySelectorAll('button')).find((button) =>
+        button.textContent?.includes('新建学习会话'),
+      );
+      // 仍在页面上就直接触发点击（旧实现此时守卫已释放 → 会创建第二条）
+      target?.click();
+    });
+    await expect(page).toHaveURL(/\/chat\/[0-9a-f-]{36}$/, { timeout: 20000 });
+    await expect
+      .poll(async () => (await readConversations(page)).filter((row) => row.courseId === 'demo-course-math').length)
+      .toBe(1);
+  });
+
+  test('会话列表读取失败：显示错误与重试（不显示空态），重试成功后恢复', async ({ page }) => {
+    await page.addInitScript(() => {
+      const original = IDBObjectStore.prototype.getAll;
+      (window as unknown as { __zqkyFailList?: boolean }).__zqkyFailList = true;
+      IDBObjectStore.prototype.getAll = function (this: IDBObjectStore, ...args: unknown[]) {
+        if ((window as unknown as { __zqkyFailList?: boolean }).__zqkyFailList) {
+          throw new DOMException('注入的读取失败（测试）', 'UnknownError');
+        }
+        return (original as unknown as (...rest: unknown[]) => IDBRequest).apply(this, args);
+      };
+    });
+    await stubUpstream(page, []);
+    await openCourse(page, '七年级数学（演示课程）', '/courses/demo-course-math');
+    const section = page.locator('.courses-sessions');
+    await expect(section).toContainText('学习会话读取失败', { timeout: 15000 });
+    await expect(section.getByRole('button', { name: '重试' })).toBeVisible();
+    // 读取失败 ≠ 没有会话：不得冒充空态
+    await expect(section.getByText('本课程还没有学习会话')).toHaveCount(0);
+
+    await page.evaluate(() => {
+      (window as unknown as { __zqkyFailList?: boolean }).__zqkyFailList = false;
+    });
+    await section.getByRole('button', { name: '重试' }).click();
+    await expect(section.getByText('本课程还没有学习会话')).toBeVisible({ timeout: 15000 });
   });
 
   test('三视口无横向溢出、键盘可创建会话、减少动画下仍可用', async ({ page }) => {
