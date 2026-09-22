@@ -9,19 +9,20 @@
 | --- | --- |
 | 起点 | `main@d2638f2`（现场核对了 HEAD/分支/工作区；未切分支、未合并、未推送、未部署） |
 | 参考 | `F:\DeepTutor`（只读，`42fab3cf429a1fbf36b257ab8d116a3814964202`） |
-| 本批候选（代码） | **`8104654`**（父 `a45b011`，分支 `main`），tree `d55e1442fdb0cb04d3d3c2df1147b6c3ff41eb8f`；14 文件 +1333/−23；构建 **`BUILD_ID = 2Rz23h6qbByqaJTSJY4x1`**（首轮缺陷修复前为 `KvvCBGKxFYVt6TGLyuGw8`） |
+| 本批候选（代码，**r2 = 当前交付候选**） | **`701d391`**（父 `8104654`，分支 `main`），tree `d600f77c01ab3ce721775bdf954e5ebb602a8e5d`；构建 **`BUILD_ID = 93TKwQeZ9Av2qkSOC_8aR`**。历史候选：r1 `8104654`（tree `d55e1442…`，构建 `2Rz23h6qbByqaJTSJY4x1`，A1 r1 判「需修订」）、r0 `KvvCBGKxFYVt6TGLyuGw8`（首个全量回归暴露过期断言）——候选演化与处置见 §6、[A1 r1 报告](A1-REPORT-01.md) |
 | 目标闭环 | 课程页新建/恢复本课程会话 → 跳聊天 → 真实 `POST /api/v1/chat/stream` 问答（带课程上下文）→ 返回课程 → 会话仍在、归属不变 |
 | 不在范围 | BookChatPanel、课程学习智能体工具、自动学习规划、精通/记忆、RAG 正式接入、真实书籍生成、全站动画重做、任何模拟聊天捷径 |
 
-### 1.1 候选指纹（A1 复验用，`git show 8104654:<file>` 的 sha256 前 16 位）
+### 1.1 候选指纹（A1 复验用，`git show 701d391:<file>` 的 sha256 前 16 位；r2 变更的文件已右列更新）
 
 | 文件 | sha256(16) | 文件 | sha256(16) |
 | --- | --- | --- | --- |
-| `apps/web/src/contracts/chat.ts` | `fe2123cdfd53ea23` | `apps/web/src/services/course-session.ts` | `8398b35142da339e` |
-| `apps/web/src/features/chat/model/store.ts` | `fcd2739c588cf80d` | `apps/web/src/services/chat-repository.ts` | `eeca62d80aa5b02f` |
-| `apps/web/src/features/chat/ChatWorkspace.tsx` | `2dae2b9442227c84` | `apps/web/src/services/course-session.test.ts` | `b780044d608471c7` |
+| `apps/web/src/contracts/chat.ts` | `fe2123cdfd53ea23` | `apps/web/src/services/course-session.ts` | `78562a746d455ccb` |
+| `apps/web/src/features/chat/model/store.ts` | `fa76948f8fee29a6` | `apps/web/src/services/chat-repository.ts` | `eeca62d80aa5b02f` |
+| `apps/web/src/features/chat/ChatWorkspace.tsx` | `2dae2b9442227c84` | `apps/web/src/services/course-session.test.ts` | `465ae07d097eef1e` |
 | `apps/web/src/features/chat/model/course-context.test.ts` | `65c44ba3bc215068` | `apps/web/src/services/chat-repository.test.ts` | `e2a731a66e1ea063` |
-| `apps/web/src/features/courses/CourseSessions.tsx` | `2678f9cf7b890a5e` | `tests/e2e/course-sessions.spec.ts` | `dfbf821fcb6b1cdf` |
+| `apps/web/src/features/courses/CourseSessions.tsx` | `243253ff8669d4db` | `tests/e2e/course-sessions.spec.ts` | `05f9c00dc662f189` |
+| `apps/web/src/features/courses/courses.css`（仅注释） | `80cb0d3593cbeab6` | `apps/web/src/features/reading/ReadingWorkspace.tsx`（仅文案/注释） | `b3b40e97c8b3960b` |
 | `apps/web/src/features/courses/CourseDetail.tsx` | `cdc47981a9488861` | `tests/e2e/books-courses.spec.ts` | `1f5153530658b5fb` |
 | `apps/web/src/features/courses/CoursesShelf.tsx` | `170943ad56090571` | `apps/api/tests/test_chat_stream_api.py` | `86ca2645767a67ec` |
 
@@ -46,7 +47,7 @@
 2. **单一会话库**：课程页与聊天页共用既有 `ChatRepository`（IndexedDB `zhiqikeyuan-chat`）与既有聊天 store，**没有第二套课程聊天数据库、没有模拟问答实现**。
 3. **课程页会话区**（`features/courses/CourseSessions.tsx`，挂在 `CourseDetail`）：本课程会话列表（按更新时间倒序）、空态/加载/读取失败 + 重试；「新建学习会话」**先保存成功再 `router.push('/chat/<id>')`**；同一 tick 连点由同步 `creatingRef` 去重；写入失败保留页面状态并给「重试新建」；归档课程只读（新建禁用，既有会话仍可打开）。
 4. **聊天页课程上下文**（`features/chat/ChatWorkspace.tsx`）：`所属课程：<name>` + 「返回课程」；课程已删除或目录读取失败时显示 `courseAvailabilityLabel` 与「重试读取课程 / 课程列表」，**不回落其他课程**；`courseContextWarning` 以可关闭提示说明"本轮未携带课程上下文"；切换到普通会话或其他课程会话时，归属条与警告都随 `activeCourseId` 重算，不残留。
-5. **课程上下文进入真实请求**（`features/chat/model/store.ts` + `services/course-session.ts`）：`send` 时 `resolveCourseSnapshot` → `buildCourseSnapshot`（课程名、约定 ≤1200 字符、大纲摘要、资源**登记**清单、`frozenAt`）→ `courseContextMessage` 渲染为一条 `system` 消息（整体 ≤2400 字符，超出按条目截断并在文案里说明）→ 插到 `requestMessages` 最前 → 既有 `ChatService.run` → `POST /api/v1/chat/stream`。快照**随助手消息持久化**（`courseContext`），`retry` 传 `last.courseContext`，因此**重试沿用原轮快照，课程修改只影响新轮**。
+5. **课程上下文进入真实请求**（`features/chat/model/store.ts` + `services/course-session.ts`）：`send` 时 `resolveCourseSnapshot` → `buildCourseSnapshot`（课程名、约定 ≤1200 字符、大纲摘要、资源**登记**清单、`frozenAt`）→ `courseContextMessage` 渲染为一条 `system` 消息（整体 ≤2400 字符；超限时**在预算内收缩**：先压缩单条资源标签 → 再减少列出的资源条目并标注「…等共 N 项」→ 最后压缩约定，**资源行的「仅登记引用」免责句是固定前缀、不会被砍尾**）→ 插到 `requestMessages` 最前 → 既有 `ChatService.run` → `POST /api/v1/chat/stream`。快照**随助手消息持久化**（`courseContext`），`retry` 传 `last.courseContext`，因此**重试沿用原轮快照，课程修改只影响新轮**。
 6. **删除/归档/读取失败**：课程删除/归档不改写任何会话与消息（**有意差异**：参考在 `DELETE /courses/{course_id}` 里把命中会话的 `preferences.course_id` 清空，本项目按用户要求保留历史与归属，只在显示层如实提示并保留"重试读取课程 / 课程列表"入口）。资源继续遵守 R-11 三态；界面如实写明"资源仅登记引用，内容未解析、未检索、未随本请求发送"。
 7. **不伪造**：不生成 AI 掌握度、不自动改大纲 covered、不做学习规划；`RAG 尚未接入`的既有边界原样保留。
 
@@ -64,12 +65,12 @@
 
 | 维度 | 命令 | 结果 |
 | --- | --- | --- |
-| 类型 | `npm run typecheck`（`next typegen && tsc --noEmit`） | 通过（Types generated successfully） |
+| 类型 | `npm run typecheck`（`next typegen && tsc --noEmit`） | 通过（Types generated successfully）；r2 候选复跑 |
 | 静态检查 | `npm run lint`（`eslint apps/web/src tests scripts --max-warnings=0`） | 通过，0 警告 |
-| 单元测试 | `NODE_OPTIONS=--no-experimental-webstorage npm run test:unit` | **51 文件 / 415 例通过**（上一批 49/403；本批 +2 文件 / +12 例） |
-| 构建 | `npm run build`（总控自跑） | 通过，**冻结候选构建 `BUILD_ID = 2Rz23h6qbByqaJTSJY4x1`**（首轮构建为 `KvvCBGKxFYVt6TGLyuGw8`，见 §6 第 4 条） |
-| 课程 e2e（新增） | `npx playwright test tests/e2e/course-sessions.spec.ts` | **9/9 通过（14.8s）**；其中核心 8 例首跑即绿，第 9 例（三视口/键盘/减少动画）首跑即绿 |
-| 全量前端 e2e | `npx playwright test` | **189 passed / 0 failed / 0 flaky（6.3m）** —— 全绿记录见 §5.1 |
+| 单元测试 | `NODE_OPTIONS=--no-experimental-webstorage npm run test:unit` | **51 文件 / 416 例通过**（上一批 49/403；本批 +2 文件 / +13 例，含 r2 新增的整体预算收缩用例） |
+| 构建 | `npm run build`（总控自跑） | 通过，**r2 交付候选构建 `BUILD_ID = 93TKwQeZ9Av2qkSOC_8aR`**（r1 为 `2Rz23h6qbByqaJTSJY4x1`，r0 为 `KvvCBGKxFYVt6TGLyuGw8`；见 §6） |
+| 课程 e2e（新增） | `npx playwright test tests/e2e/course-sessions.spec.ts` | **11/11 通过**（r1 的 9 例 + r2 新增 F1/F3 两例）；与 `books-courses.spec.ts` 合并定向跑 **17/17 通过（36.8s）** |
+| 全量前端 e2e | `npx playwright test` | **191 passed / 0 failed / 0 flaky（6.4m）**（r2 候选；r1 为 189/0/0）—— 见 §5.1 |
 | 后端 API 测试 | `npm run test:api -- tests/test_chat_stream_api.py` | **9 passed, 1 warning（0.47s）**（含本批新增 system 转发用例） |
 | 真实供应商 | — | **not_run（无可用凭证）**；本批所有问答断言均在上游替身/后端 provider 替身上完成，未冒充真实调用 |
 | UI 三视口/键盘/减少动画 | `tests/e2e/course-sessions.spec.ts` 第 9 例 | **已执行并通过**（1440×900 / 1920×1080 / 390×844 无横向溢出；聚焦后回车可新建并跳转；`prefers-reduced-motion: reduce` 下会话区完整可用） |
@@ -77,12 +78,13 @@
 ### 5.1 全量回归（冻结候选）
 
 - 首轮全量回归（构建 `KvvCBGKxFYVt6TGLyuGw8`）：**188 例中 187 通过 / 1 失败** —— 失败为 `books-courses.spec.ts:138` 的**过期断言**（仍期望已被本批替换的"课程学习会话未接入"占位）。处置见 §6 第 4 条。
-- 处置后全量回归（冻结候选构建 `2Rz23h6qbByqaJTSJY4x1`，含新增 UI 例）：**189 passed / 0 failed / 0 flaky（6.3m）**。
-- 计数口径：上一批次基线 180 例（CS 批次全量 178 + FOLLOWUP 补丁新增 2 例双标签页并发）+ 本批新增 9 例 = 189。
+- 处置后全量回归（r1 构建 `2Rz23h6qbByqaJTSJY4x1`，含 UI 例）：**189 passed / 0 failed / 0 flaky（6.3m）**。
+- A1 r1 判「需修订」后的修复批全量回归（**r2 交付候选构建 `93TKwQeZ9Av2qkSOC_8aR`**）：**191 passed / 0 failed / 0 flaky（6.4m）**。
+- 计数口径：上一批次基线 180 例（CS 批次全量 178 + FOLLOWUP 补丁新增 2 例双标签页并发）+ 本批新增 11 例 = 191。
 
 ### 5.2 UI 验证范围（如实）
 
-- 本批**没有新增主题、没有改动任何 CSS 文件**（`git status` 中 `.css` 改动数为 0）：会话区与课程归属条复用既有 `/chat` 的 `.chat-banner` 基类（`features/chat/styles/chat.css:239`）与课程页既有版式，归属条以 `.chat-banner.course` 语义修饰类标注（该修饰类本身无独立规则，只作选择器/测试锚点），未引入新调色板。
+- 本批**没有新增主题、没有改动任何样式规则**：唯一的 `.css` 改动是 `courses.css` 顶部一句注释（“未接入 banner” → “课程详情页信息提示条”，r2 随 A1 F8 清扫），无选择器/属性/数值变化。会话区与课程归属条复用既有 `/chat` 的 `.chat-banner` 基类（`features/chat/styles/chat.css:239`）与课程页既有版式；归属条以 `.chat-banner.course` 语义修饰类标注（该修饰类本身无独立规则，只作选择器/测试锚点），未引入新调色板。
 - **三视口（1440×900 / 1920×1080 / 390×844）已实测**：`document.scrollWidth - clientWidth ≤ 1`（无横向溢出），会话区标题与新建入口均可见（e2e 第 9 例）。
 - **键盘已实测**：`新建学习会话` 可聚焦（`toBeFocused`）并用 `Enter` 创建会话后跳转 `/chat/<uuid>`；既有可见焦点环沿用（未新增 `:focus-visible` 规则）。
 - **减少动画已实测**：`emulateMedia({ reducedMotion: 'reduce' })` 下课程页与会话区完整可用（不依赖过渡完成）；本批未新增关键帧动画。
@@ -98,6 +100,11 @@
 | 4 | **全量前端 e2e 首次回归：187 通过 / 1 失败** —— `tests/e2e/books-courses.spec.ts:138` 断言 `课程学习会话未接入` | 该断言描述的是本批**被替换掉的旧占位横幅**（课程详情页现在是真实会话区）；同时 `CoursesShelf.tsx:68` 载入演示数据的提示文案仍写"课程学习会话未接入"，属**过期的用户可见文案**（本批漏改） | 断言改为断言新行为（`学习会话` 标题 + `本课程还没有学习会话` 空态），提示文案改为"可在课程详情创建学习会话并进入真实问答"；重跑受影响两文件 **14/14 通过**，随后全量回归见 §5.1。**未删除任何断言**，转换后的断言描述当前正确行为 |
 | 5 | 课程 e2e 首跑（核心 8 例） | — | **无失败**：8/8 一次通过（未出现选择器或行为失败） |
 | 6 | 新增 UI 例（三视口/键盘/减少动画） | — | **无失败**：首跑即绿（14.8s 内含全部 9 例） |
+| 7 | **A1 r1 独立验收 F1：跨任务二次点击创建重复会话**（`await save` → `router.push` → 本页卸载之间，守卫在原 `finally` 里被提前释放；A1 探针 gap=10/25ms → 2 条会话） | A1 只读探针（`%TEMP%\a1-h1cs\probe-p1.log`）+ 源码 `CourseSessions.tsx` 原 `finally` 分支 | **已修**：保存成功后**守卫保持到本页卸载**（只在失败分支释放）；新增 e2e「跨任务二次点击…」用同一探针手法断言本课程会话恰好 1 条。**未删除任何既有断言** |
+| 8 | **A1 r1 F2：`courseContextWarning` 跨会话残留**（课程已删除的警告切到普通会话后仍显示） | A1 探针（`[P4] 切换后警告元素数=1`）+ `store.ts` 切换路径未清除 | **已修**：`create`/`selectConversation`/`deactivate`/`removeConversation` 四处切换点清除该字段；课程删除用例追加「切到普通新会话后警告消失」断言 |
+| 9 | A1 r1 F3：测试有效性缺口（读取失败无自动化证据、归档用例标题超出断言、整体截断未测、`继续最近会话` 未测） | A1 报告 §3 F3 表 | **已补**：新增 e2e「会话列表读取失败 → 错误+重试 → 恢复（且不冒充空态）」；归档用例预置既有会话并**实际打开验证历史**；单测新增整体预算收缩用例（断言免责句存活、`等共 40 项`、末条不出现）；课程列表断言 `继续最近会话` 的 `href`；删除一行无断言的遗留调用（A1 F11） |
+| 10 | A1 r1 F4：文档夸大（称"按条目截断并在文案里说明"，实为整段砍尾） | A1 报告 §3 F4 | **改实现而非只改词**：`courseContextMessage` 改为预算内收缩（压缩标签 → 减少条目并标注总项数 → 压缩约定），**「仅登记引用」免责句作为固定前缀不被砍尾**；README 同步为真实行为 |
+| 11 | A1 r1 F5–F8：过期文案/文档（`ROUTES.md` 课程详情"学习会话未接入"、`PAGE_MATRIX` 段落自相矛盾、`STATUS §5.B` 第 2 条仍以现在时写回退路径、阅读页 chip 与 `courses.css` 注释） | A1 报告 §2.3 表 | **已清扫**：四处就地订正（阅读页 chip 改为"阅读会话未带课程归属"以区别于聊天会话；`courses.css` 注释改为课程详情信息提示条）。F9（课程块在预算裁剪后追加、最多 +2400 字符）已登记进 §10 第 7 条 |
 
 **本批没有出现"测试数通过但产品行为错"的静默通过**：新增 e2e 全部是真实浏览器行为断言（含报文捕获、IndexedDB 注入失败、流式中切换会话），不依赖单测数量。
 
@@ -105,11 +112,11 @@
 
 | 文件 | 用例 | 覆盖 |
 | --- | --- | --- |
-| `apps/web/src/services/course-session.test.ts`（新） | 6 | 快照构建与渲染（含截断与"仅登记"文案）、资源三态、`buildNewConversation`、`resolveCourse` 三态、`listCourseSessions` 只按 courseId 过滤 |
+| `apps/web/src/services/course-session.test.ts`（新） | 7 | 快照构建与渲染（含截断与"仅登记"文案）、资源三态、`buildNewConversation`、`resolveCourse` 三态、`listCourseSessions` 只按 courseId 过滤 |
 | `apps/web/src/features/chat/model/course-context.test.ts`（新） | 5 | `system` 消息进入请求 messages；新轮用新快照 / 重试沿用旧快照；未归属会话不带课程上下文；课程删除后不回落；读取失败时按 unavailable 处理并给警告 |
 | `apps/web/src/services/chat-repository.test.ts`（改） | +1 | `courseId` 往返与旧记录（无 `courseId`）保持未归属 |
 | `apps/api/tests/test_chat_stream_api.py`（改） | +1（共 9） | `system` 课程上下文逐条转发给 provider 请求体 |
-| `tests/e2e/course-sessions.spec.ts`（新） | 9 | 两课程互不串位（含报文断言）；旧会话兼容；同 tick 连点 + 写入失败保留并可重试；刷新/前进后退/往返；课程修改后新轮新快照 vs 旧轮重试旧快照；课程删除后历史保留且如实提示；归档课程只读；流式中切换会话不污染目标；三视口无横向溢出 + 键盘新建 + 减少动画可用 |
+| `tests/e2e/course-sessions.spec.ts`（新） | 11 | 两课程互不串位（含报文断言 + 「继续最近会话」href）；旧会话兼容；同 tick 连点 + 写入失败保留并可重试；刷新/前进后退/往返；课程修改后新轮新快照 vs 旧轮重试旧快照；课程删除后历史保留且如实提示（r2 追加切到普通会话后警告消失）；归档课程只读且**实际打开既有会话验证历史**（r2 补）；流式中切换会话不污染目标；**跨任务二次点击不产生第二条会话**（r2 新增，A1 F1 回归）；**会话列表读取失败 → 错误 + 重试 → 恢复**（r2 新增，A1 F3）；三视口无横向溢出 + 键盘新建 + 减少动画可用 |
 
 ## 8. 提交清单（本地，不推送）
 
@@ -138,6 +145,8 @@
 4. **课程删除后的历史会话**：保留归属，界面显示"课程不可用"，发送时按普通问答（与参考一致的线上行为 + 更明确的提示）。若后续要求"迁移到别的课程"，属新任务。
 5. **`course_conventions` 文案长度**：约定 1200 字符、整体 2400 字符为本地限制，超出即截断并在消息里说明截断，避免静默丢失。
 6. **手动改绑/组织会话未实现**：参考在课程页提供 `OrganizedSessionList`（重命名、归档、设置/清空会话的 `course_id`），本项目本批只做"新建即归属"，不含把既有会话改绑到课程或清空归属的入口——属后续课程闭环范围，不在本批交付内。
+
+7. **课程上下文的预算位置**：课程块在 `selectMessagesForRequest`（`contextBudgetChars`）裁剪**之后**追加，最多再增加 2400 字符；小窗口模型（`maxOutputTokens` 较大而 `contextTokens` 较小时）可能因此超出请求预算，表现为**上游报错而非假成功**（代码注释已说明）。后续若需要严格约束，应把课程块纳入裁剪预算统一计算。
 
 ## 11. 资源释放
 
