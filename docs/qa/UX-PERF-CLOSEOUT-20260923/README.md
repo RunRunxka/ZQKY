@@ -15,6 +15,11 @@
 （Chrome DevTools Protocol `Performance` 域取主线程脚本/布局/样式重算累计时长，rAF 采样帧间隔，
 `PerformanceObserver` 取长任务与 Event Timing，IDB `put` 打点统计写盘次数与字节，`MutationObserver`
 统计推理容器 DOM 更新次数；隔离浏览器上下文 + 独立 IndexedDB，不读写用户草稿）。
+**Performance trace 已保存**：`_work/perf-20260923/trace-50k.json`（CDP Tracing `devtools.timeline`、10 kHz 采样、
+136 MB，可在 DevTools Performance 面板 Load profile 打开；主线程关键事件子集 `trace-50k-mainthread.json` 51 MB）。
+用 trace 独立复核布局/样式重算时长与 CDP 指标一致（trace：layout 2.02 s / style 215 ms；CDP：layout 2.30 s / style 209 ms），
+说明 CDP 口径可信。**未直接测量 React commit 次数**（以推理容器 DOM 更新次数 10 455→383 与主线程脚本时长作为等价证据）；
+`longtask` 观察器在本机 msedge 无输出（已如实记录，未据此下结论）。
 
 **首败（真实数据，50k 字推理 / 30.9s 流）**：帧间隔 p95 **166.7 ms**（约 6 fps）、最大 316.7 ms，
 **215 帧超过 50 ms、112 帧超过 100 ms**；主线程脚本 **28.3 s**；推理容器 DOM 更新 10 455 次；
