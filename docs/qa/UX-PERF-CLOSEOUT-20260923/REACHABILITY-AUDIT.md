@@ -71,9 +71,14 @@
 
 - 旧会话消息里的 `extensions.capability`（`{ value, label, config? }`）是**轮次冻结快照**，
   类型与存储未改动，仍按原样读取、不迁移、不回填、不清库。
+- **明确降级展示（r4 补齐）**：消息「来源与上下文」现在按轮次快照渲染 `extensions.capability`——
+  已移除的模式显示「模式 · 深度求解」＋「该模式入口已停用（随「更多能力」一并移除），此处仅按历史轮次
+  快照如实展示，历史记录保持可读。」；仍存在但真实模式不可用的显示「该模式当前未接入，仅按轮次快照
+  如实展示，不代表现在可以发起。」（单测 `message-duration.test.tsx` 覆盖两种分支）。
 - 全仓 `getCapability()` 的调用点只有实时选择（`CapabilityMenu` 的 `value` 与 `ChatWorkspace`
-  的 `capabilityValue`），**没有任何渲染路径**用存储的能力值反查目录；因此历史值不会被错标成
-  「对话」。快照中的 `label`（例如「深度求解」）是当时写入的字符串，历史消息照常可读。
+  的 `capabilityValue`）与上述展示路径的**目录存在性判断**（用 `find` 而非回退到「对话」），
+  因此历史值既不会被错标成「对话」，也不会被静默丢弃。快照中的 `label`（例如「深度求解」）是当时
+  写入的字符串，历史消息照常可读。
 - `tests/e2e/chat-message-locate.spec.ts` 中一处 **report 产物数据的 `data.mode` 字段**
   （`'deep_research'`）属于产物 JSON 内容、不是能力路由，保留不动（避免改测试数据语义）。
 
