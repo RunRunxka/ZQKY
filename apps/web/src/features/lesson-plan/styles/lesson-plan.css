@@ -79,13 +79,16 @@
 .app-shell:where(.lesson-workspace) {
   height: 100dvh;
   display: grid;
-  grid-template-columns: 60px 218px 400px minmax(0, 1fr);
-  grid-template-rows: 66px minmax(0, 1fr);
+  /* 列：1 公共导航 / 2 编辑区 400px / 3 教案配置 218px / 4 教案预览
+     行：1 顶栏 / 2 页面标题 / 3 面板 / 4 手机底部分段（仅手机） */
+  grid-template-columns: 60px 400px 218px minmax(0, 1fr);
+  grid-template-rows: 66px auto minmax(0, 1fr);
   overflow: hidden;
   min-height: 450px;
 }
 :where(.lesson-workspace) .app-header {
   grid-column: 1/-1;
+  grid-row: 1;
   display: flex;
   align-items: center;
   padding: 0 24px 0 18px;
@@ -119,21 +122,86 @@
   border-left: 1px solid var(--line);
   margin-left: 17px;
 }
-:where(.lesson-workspace) .breadcrumb {
+/* 教案页不再表达「备课空间 > 教案工作台」两级层级：本页隐藏壳内面包屑（其它页面不受影响），
+   由 .lesson-page-head 提供与协同写作/学习空间同级的直接标题；壳内 .app-header 保留，导出菜单仍可使用。 */
+.app-shell:where(.lesson-workspace) .breadcrumb {
+  display: none;
+}
+/* 页面标题行：与 /co-writer、/reading 的 .space-header h1 同级（同一字体变量与排版值，不另造数值） */
+:where(.lesson-workspace) .lesson-page-head {
+  grid-column: 2/-1;
+  grid-row: 2;
   display: flex;
   align-items: center;
-  gap: 10px;
-  color: #8b8d91;
-  font-size: 12px;
+  min-width: 0;
+  padding: 16px 27px 8px;
+  background: #fff;
 }
-:where(.lesson-workspace) .breadcrumb span {
-  color: #3f4349;
+:where(.lesson-workspace) .lesson-page-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-align: left;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 :where(.lesson-workspace) .header-actions {
   margin-left: auto;
   display: flex;
   align-items: center;
   gap: 18px;
+}
+/*
+  教案工作台列宽的单一来源。公共壳（components/layout/workspace-shell.css）内另有
+  .app-shell.unified-shell.lesson-workspace 的同名列定义（旧顺序：配置/编辑/预览），
+  这里追加 .lesson-page 提高特异性覆盖它，避免两处各维护一套列宽；断点值与旧壳保持一致。
+*/
+@media (min-width: 768px) {
+  .app-shell.unified-shell.lesson-workspace.lesson-page {
+    grid-template-columns: var(--navigation-width, 60px) 400px 218px minmax(0, 1fr);
+  }
+  .app-shell.unified-shell.lesson-workspace.lesson-page.outline-hidden {
+    grid-template-columns: var(--navigation-width, 60px) 400px 0 minmax(0, 1fr);
+  }
+}
+@media (min-width: 768px) and (max-width: 1279px) {
+  /* 该区间展开教案配置后预览列可能只剩 ~236px：工具栏与底栏允许换行，避免控件被裁切。
+     收起态下宽度足够、不会换行，观感与原先一致（用 .lesson-page 提高特异性压过下面的固定高度）。 */
+  .lesson-page .preview-toolbar {
+    height: auto;
+    min-height: 53px;
+    flex-wrap: wrap;
+  }
+  .lesson-page .preview-bottom {
+    height: auto;
+    min-height: 43px;
+    flex-wrap: wrap;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+  .lesson-page .page-switch {
+    white-space: nowrap;
+  }
+  .app-shell.unified-shell.lesson-workspace.lesson-page {
+    grid-template-columns: var(--navigation-width, 60px) 370px 218px minmax(0, 1fr);
+  }
+  .app-shell.unified-shell.lesson-workspace.lesson-page.nav-expanded {
+    grid-template-columns: var(--navigation-width, 220px) 350px 218px minmax(0, 1fr);
+  }
+  .app-shell.unified-shell.lesson-workspace.lesson-page.outline-hidden {
+    grid-template-columns: var(--navigation-width, 60px) 370px 0 minmax(0, 1fr);
+  }
+}
+@media (min-width: 1600px) {
+  .app-shell.unified-shell.lesson-workspace.lesson-page {
+    grid-template-columns: var(--navigation-width, 60px) 432px 234px minmax(0, 1fr);
+  }
+  .app-shell.unified-shell.lesson-workspace.lesson-page.outline-hidden {
+    grid-template-columns: var(--navigation-width, 60px) 432px 0 minmax(0, 1fr);
+  }
 }
 :where(.lesson-workspace) .save-status {
   display: flex;
@@ -307,7 +375,7 @@
   margin-top: 9px;
 }
 :where(.lesson-workspace).nav-expanded {
-  grid-template-columns: 220px 218px 400px minmax(0, 1fr);
+  grid-template-columns: 220px 400px 218px minmax(0, 1fr);
 }
 :where(.lesson-workspace).nav-expanded .global-nav-item {
   width: calc(100% - 24px);
@@ -330,13 +398,14 @@
   margin-left: 20px;
 }
 :where(.lesson-workspace) .outline-panel {
-  grid-column: 2;
-  grid-row: 2;
+  grid-column: 3;
+  grid-row: 3;
   background: #fafafa;
   border-right: 1px solid var(--line);
   padding: 18px 15px 15px;
   display: flex;
   flex-direction: column;
+  min-width: 0;
   overflow: auto;
 }
 :where(.lesson-workspace) .outline-heading {
@@ -420,9 +489,7 @@
   color: var(--blue);
 }
 :where(.lesson-workspace) .section-index {
-  font:
-    10px Consolas,
-    monospace;
+  font: 10px var(--font-mono);
   color: #b2b6bd;
 }
 :where(.lesson-workspace) .outline-note {
@@ -467,7 +534,7 @@
   background: #fff;
   box-shadow: 0 2px 6px #0d1f4012;
   transform: rotate(-3deg);
-  font-family: var(--serif);
+  font-family: var(--font-document);
 }
 :where(.lesson-workspace) .mini-title {
   text-align: center;
@@ -567,17 +634,17 @@
   margin-top: 3px;
 }
 :where(.lesson-workspace).outline-hidden {
-  grid-template-columns: 60px 0 400px minmax(0, 1fr);
+  grid-template-columns: 60px 400px 0 minmax(0, 1fr);
 }
 :where(.lesson-workspace).outline-hidden .outline-panel {
   display: none;
 }
 :where(.lesson-workspace).outline-hidden.nav-expanded {
-  grid-template-columns: 220px 0 400px minmax(0, 1fr);
+  grid-template-columns: 220px 400px 0 minmax(0, 1fr);
 }
 :where(.lesson-workspace) .editor-panel {
-  grid-column: 3;
-  grid-row: 2;
+  grid-column: 2;
+  grid-row: 3;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -592,9 +659,7 @@
   align-items: center;
 }
 :where(.lesson-workspace) .eyebrow {
-  font:
-    9px 'Segoe UI',
-    sans-serif;
+  font: 9px var(--font-ui);
   letter-spacing: 2px;
   color: #9ba3b1;
   margin-bottom: 8px;
@@ -910,7 +975,7 @@
 }
 :where(.lesson-workspace) .preview-pane {
   grid-column: 4;
-  grid-row: 2;
+  grid-row: 3;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -993,14 +1058,14 @@
   top: 0;
   left: 0;
   color: #21252b;
-  font-family: var(--serif);
+  font-family: var(--font-document);
   line-height: 1.8;
   overflow: visible;
 }
 :where(.lesson-workspace) .paper-eyebrow {
   display: flex;
   justify-content: space-between;
-  font-family: 'Microsoft YaHei', sans-serif;
+  font-family: var(--font-document);
   font-size: 9px;
   letter-spacing: 2px;
   color: #aaaeb5;
@@ -1155,9 +1220,7 @@
   display: flex;
   justify-content: space-between;
   color: #b1b5bd;
-  font:
-    9px 'Microsoft YaHei',
-    sans-serif;
+  font: 9px var(--font-document);
   letter-spacing: 0.3px;
 }
 :where(.lesson-workspace) .preview-bottom {
@@ -1404,13 +1467,16 @@
 }
 @media (min-width: 1600px) {
   .app-shell:where(.lesson-workspace) {
-    grid-template-columns: 60px 234px 432px minmax(0, 1fr);
+    grid-template-columns: 60px 432px 234px minmax(0, 1fr);
   }
   .app-shell:where(.lesson-workspace).outline-hidden {
-    grid-template-columns: 60px 0 432px minmax(0, 1fr);
+    grid-template-columns: 60px 432px 0 minmax(0, 1fr);
   }
   .app-shell:where(.lesson-workspace).nav-expanded {
-    grid-template-columns: 220px 234px 432px minmax(0, 1fr);
+    grid-template-columns: 220px 432px 234px minmax(0, 1fr);
+  }
+  :where(.lesson-workspace) .lesson-page-head {
+    padding: 18px 32px 10px;
   }
   :where(.lesson-workspace) .editor-heading {
     padding: 31px 32px 26px;
@@ -1450,16 +1516,18 @@
 }
 @media (max-width: 1279px) {
   .app-shell:where(.lesson-workspace) {
-    grid-template-columns: 60px 0 370px minmax(0, 1fr);
+    grid-template-columns: 60px 370px 0 minmax(0, 1fr);
   }
-  :where(.lesson-workspace) .outline-panel {
-    display: none;
-  }
+  /* 768–1279px（平板/窄桌面）可在编辑区顶部按钮里展开教案配置（列宽见上方覆盖块），
+     更窄宽度回落到单列布局；这里不再无条件隐藏配置面板。 */
   .app-shell:where(.lesson-workspace).nav-expanded {
-    grid-template-columns: 180px 0 350px minmax(0, 1fr);
+    grid-template-columns: 180px 350px 218px minmax(0, 1fr);
   }
   .app-shell:where(.lesson-workspace).outline-hidden {
-    grid-template-columns: 60px 0 370px minmax(0, 1fr);
+    grid-template-columns: 60px 370px 0 minmax(0, 1fr);
+  }
+  :where(.lesson-workspace) .lesson-page-head {
+    padding: 14px 23px 8px;
   }
   :where(.lesson-workspace) .preview-toolbar {
     padding: 0 15px;
@@ -1480,9 +1548,6 @@
   :where(.lesson-workspace) .header-actions {
     gap: 10px;
   }
-  :where(.lesson-workspace) .breadcrumb {
-    font-size: 11px;
-  }
   :where(.lesson-workspace) .paper-stack {
     padding: 23px;
   }
@@ -1498,11 +1563,21 @@
   .app-shell:where(.lesson-workspace).nav-expanded,
   .app-shell:where(.lesson-workspace).outline-hidden {
     grid-template-columns: 1fr;
-    grid-template-rows: 59px minmax(0, 1fr) 54px;
+    grid-template-rows: 59px auto minmax(0, 1fr) 54px;
     height: 100dvh;
   }
   :where(.lesson-workspace) .global-nav,
   :where(.lesson-workspace) .outline-panel {
+    display: none;
+  }
+  :where(.lesson-workspace) .lesson-page-head {
+    grid-column: 1/-1;
+    grid-row: 2;
+    padding: 13px 23px 5px;
+  }
+  /* 手机没有能并排容纳教案配置的位置：面板保持隐藏，折叠按钮一并隐藏，
+     避免出现点了没有反馈的死控件（既有能力不变，仍可在 ≥768px 使用）。 */
+  :where(.lesson-workspace) .config-toggle {
     display: none;
   }
   :where(.lesson-workspace) .app-header {
@@ -1542,7 +1617,7 @@
   :where(.lesson-workspace) .preview-pane,
   :where(.lesson-workspace).focus-mode .preview-pane {
     grid-column: 1;
-    grid-row: 2;
+    grid-row: 3;
   }
   :where(.lesson-workspace).mobile-edit .preview-pane {
     display: none;
@@ -1584,7 +1659,7 @@
   }
   :where(.lesson-workspace) .mobile-tabs {
     grid-column: 1;
-    grid-row: 3;
+    grid-row: 4;
     display: flex;
     align-items: stretch;
     border-top: 1px solid var(--line);

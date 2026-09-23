@@ -1,5 +1,5 @@
 'use client';
-import { FilePenLine, Undo2, Redo2, PanelLeftOpen, Sparkles } from 'lucide-react';
+import { FilePenLine, Undo2, Redo2, PanelLeftClose, PanelLeftOpen, Sparkles } from 'lucide-react';
 import { useLessonEditor } from '../model/EditorContext';
 import { FormPanel } from './FormPanel';
 import { NlFillPanel } from './NlFillPanel';
@@ -23,15 +23,19 @@ export function EditorPanel() {
             <div className="eyebrow">LESSON PLANNER</div>
             <h1>把教学思路，写进课堂。</h1>
           </div>
-          {collapsed && (
-            <button
-              className="icon-button"
-              aria-label="展开教案配置"
-              onClick={() => setCollapsed(false)}
-            >
-              <PanelLeftOpen size={18} />
-            </button>
-          )}
+          {/*
+            教案配置的唯一折叠控件：位于始终可见的编辑区顶部，双向切换，
+            按钮自身不随状态卸载，因此连续点击不会丢焦点。
+          */}
+          <button
+            className="icon-button config-toggle"
+            aria-label={collapsed ? '展开教案配置' : '收起教案配置'}
+            aria-expanded={!collapsed}
+            aria-controls="lesson-config-panel"
+            onClick={() => setCollapsed(!collapsed)}
+          >
+            {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+          </button>
         </div>
         <div className="editor-tabs">
           <button
