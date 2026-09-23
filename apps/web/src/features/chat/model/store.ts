@@ -131,7 +131,22 @@ export function createChatStore(deps: ChatDeps = {}) {
   /** 当前进行中的追问提交（R11：结果只归属发起时的身份，不持久化） */
   let activeSubmissionId: string | null = null;
   /** 当前等待回答的追问（运行上下文，不持久化） */
-
+  /**
+   * 流式文本的 UI 提交合并（UX-PERF-CLOSEOUT v1，长推理流卡顿）。
+   *
+   * 每个增量都单独提交会让浏览器对**整段增长中的推理文本**重做一次换行布局：
+   * 实测 50k 字推理轮 2000 次提交 → 布局 11.7s、脚本 2.2s。这里按「前缘立即 +
+   * 尾部合并」节流：首个增量立即可见（首个可见增量延迟不变差），其后最多每
+   * `STREAM_COMMIT_INTERVAL_MS` 提交一次，**可见更新时延上限就是该值**。
+   * 缓冲按顺序保存每一段（推理/正文），提交时按原顺序折叠，事件顺序与原文不丢；
+   * 任何非文本事件、终止/停止/切换会话/落盘前都先 flush，保证不吞增量。
+   */
+  let pendingStream: {
+    apply: (update: (m: ChatMessage) => ChatMessage) => void;
+    segments: { text?: string; reasoning?: string }[];
+  } | null = null;
+  let streamCommitTimer: ReturnType<typeof setTimeout> | null = null;
+  let lastStreamCommitAt = -Infinity;
   return createStore<ChatState>()((set, get) => {
     const TOOL_TERMINAL: ToolCallRecord['status'][] = ['done', 'error', 'cancelled'];
     /** 工具事件按 callId 去重更新；已终态（done/error/cancelled）的卡片不接受重开或改写 */
@@ -388,6 +403,50 @@ export function createChatStore(deps: ChatDeps = {}) {
         }
       }
     }
+    /**
+     * 把合并缓冲里的文本按原顺序折叠进消息（一次 change = 一次 UI 提交）。
+     * 只在消息仍为 streaming 时写入；轮次已终态时丢弃（迟到增量本来就该丢）。
+     */
+    function flushStreamText() {
+      if (streamCommitTimer) {
+        clearTimeout(streamCommitTimer);
+        streamCommitTimer = null;
+      }
+      const pending = pendingStream;
+      pendingStream = null;
+      if (!pending || pending.segments.length === 0) return;
+      const { apply, segments } = pending;
+      lastStreamCommitAt = Date.now();
+      apply((m) => {
+        if (m.status !== 'streaming') return m;
+        let next = m;
+        for (const segment of segments) {
+          if (segment.reasoning)
+            next = { ...next, reasoning: (next.reasoning ?? '') + segment.reasoning };
+          else if (segment.text) next = appendTurnText(next, segment.text);
+        }
+        return next;
+      });
+    }
+    /** 入队一个文本增量：前缘立即提交，其后按 STREAM_COMMIT_INTERVAL_MS 合并 */
+    const STREAM_COMMIT_INTERVAL_MS = 80;
+    function queueStreamSegment(
+      apply: (update: (m: ChatMessage) => ChatMessage) => void,
+      segment: { text?: string; reasoning?: string },
+    ) {
+      if (!pendingStream) pendingStream = { apply, segments: [] };
+      pendingStream.segments.push(segment);
+      const elapsed = Date.now() - lastStreamCommitAt;
+      if (elapsed >= STREAM_COMMIT_INTERVAL_MS) {
+        flushStreamText();
+        return;
+      }
+      if (!streamCommitTimer)
+        streamCommitTimer = setTimeout(() => {
+          streamCommitTimer = null;
+          flushStreamText();
+        }, STREAM_COMMIT_INTERVAL_MS - elapsed);
+    }
     function publish() {
       // 本 store 的 docs 只包含自己模式的数据（R2），无需再按模式过滤。
       // S5-A：已归档会话不出现在聊天侧边栏（/space/chat-history 管理），仍可经深链打开
@@ -416,6 +475,7 @@ export function createChatStore(deps: ChatDeps = {}) {
         }, 400);
     }
     async function flush(): Promise<boolean> {
+      flushStreamText(); // 落库前先提交未进 UI 的增量，保证刷新/离开时不丢内容
       if (timer) {
         clearTimeout(timer);
         timer = null;
@@ -424,25 +484,35 @@ export function createChatStore(deps: ChatDeps = {}) {
       // 旧实现"保存中直接返回在途 Promise"会取消挂起的防抖 timer，
       // 导致保存期间到达的变更无人重排（点击面板/下载触发的 blur→flush 即可复现，
       // 刷新后数据丢失）。改为链式排队：后到的 flush 在前一个完成后处理剩余脏数据。
+      //
+      // UX-PERF-CLOSEOUT v1（长推理流卡顿）：每轮只保存"进入时脏快照"。
+      // 旧实现的 `while (dirty.size)` 会在持续增量下把新脏数据不断接进同一轮循环，
+      // 实测一次 50k 字推理轮写了 184 次 / 4.10MB（约每 170ms 一次整表结构化克隆）。
+      // 改为快照按轮保存后退出：保存期间新增的脏数据仍留在 dirty 中，且 change() 在
+      // timer 已清空时会重新安排 400ms 落盘，终态（end/error/停止/断流）与
+      // 切会话/离开页面路径上的 flush 都以 generation===null 进入循环到清空，
+      // 因此"显式 flush 落全部"的契约在需要它的时机不变。
       const tail = saving ?? Promise.resolve(true);
       const next = tail.then(async () => {
-        while (dirty.size) {
-          const id = dirty.values().next().value!;
-          const snapshot = docs.get(id)!;
-          dirty.delete(id);
-          try {
-            const revision = await repo.save(snapshot, snapshot.revision ?? 0);
-            const latest = docs.get(id);
-            if (latest) docs.set(id, { ...latest, revision });
-          } catch (error) {
-            dirty.add(id);
-            set({
-              storageWarning:
-                error instanceof Error ? error.message : '保存失败，当前内容仍保留在页面中。',
-            });
-            return false;
+        do {
+          for (const id of [...dirty]) {
+            const snapshot = docs.get(id);
+            dirty.delete(id);
+            if (!snapshot) continue;
+            try {
+              const revision = await repo.save(snapshot, snapshot.revision ?? 0);
+              const latest = docs.get(id);
+              if (latest) docs.set(id, { ...latest, revision });
+            } catch (error) {
+              dirty.add(id);
+              set({
+                storageWarning:
+                  error instanceof Error ? error.message : '保存失败，当前内容仍保留在页面中。',
+              });
+              return false;
+            }
           }
-        }
+        } while (dirty.size && generation === null);
         set({ storageWarning: null });
         return true;
       });
@@ -456,6 +526,7 @@ export function createChatStore(deps: ChatDeps = {}) {
     function stop() {
       const active = generation;
       if (!active) return;
+      flushStreamText(); // 停止前提交尚未进入 UI 的增量，避免丢最后一段
       generation = null;
       active.terminal = true; // R3：取消即终态，此后迟到事件不再修改消息
       active.endReason = 'stop';
@@ -516,18 +587,16 @@ export function createChatStore(deps: ChatDeps = {}) {
             ...c,
             messages: c.messages.map((m) => (m.id === token.assistantId ? update(m) : m)),
           }));
+        // 文本增量按顺序进合并缓冲；其他事件（阶段/工具/追问/产物/终态）先提交缓冲区，
+        // 保证"事件顺序严格不变"与"不吞增量"
+        const isStreamText = event.type === 'text' || event.type === 'reasoning';
+        if (!isStreamText) flushStreamText();
         switch (event.type) {
           case 'text':
-            if (event.delta)
-              patch((m) => (m.status === 'streaming' ? appendTurnText(m, event.delta) : m));
+            if (event.delta) queueStreamSegment(patch, { text: event.delta });
             break;
           case 'reasoning':
-            if (event.delta)
-              patch((m) =>
-                m.status === 'streaming'
-                  ? { ...m, reasoning: (m.reasoning ?? '') + event.delta }
-                  : m,
-              );
+            if (event.delta) queueStreamSegment(patch, { reasoning: event.delta });
             break;
           case 'process':
             // 过程增量：最新一条展示为状态行；完整过程工作区在后续阶段接入
@@ -736,6 +805,7 @@ export function createChatStore(deps: ChatDeps = {}) {
       // 终态只进入一次（交付复核 P2）：end/error 已给出明确终态时，
       // 通用断流兜底不得覆盖 endReason（否则合法同步续答的迟到确认会被误拒为断流）
       if (token.terminal || token.endReason) return;
+      flushStreamText(); // 断流也要把已收到的增量提交进 UI
       token.terminal = true; // 流已结束（含未收到 end 的断流）：本轮终态
       token.endReason = reason === 'client-stop' ? 'stop' : 'disconnect';
       change(id, (c) => ({
@@ -766,6 +836,7 @@ export function createChatStore(deps: ChatDeps = {}) {
       if (generation !== token) return;
       // 终态只进入一次：end/stop 已给出明确终态时，异常收尾不得改判（幂等进入条件）
       if (token.terminal || token.endReason) return;
+      flushStreamText(); // 异常收尾也要把已收到的增量提交进 UI
       token.terminal = true; // 异常收尾：本轮终态
       token.endReason = 'error';
       change(id, (c) => ({
@@ -886,7 +957,7 @@ export function createChatStore(deps: ChatDeps = {}) {
       dismissCourseContextWarning: () => set({ courseContextWarning: null }),
       dismissBudgetNotice: () => set({ budgetNotice: null }),
       async selectConversation(id) {
-        stop();
+        stop(); // 内部先提交缓冲
         const epoch = ++selectionEpoch;
         if (!(await flush())) return;
         try {

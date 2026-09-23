@@ -139,6 +139,7 @@ export function Message({
         <ReasoningDisclosure
           text={message.reasoning}
           working={message.status === 'streaming' && !message.content?.trim()}
+          streaming={message.status === 'streaming'}
         >
           <span className="chat-assistant-mark">
             <ThinkingOrb
