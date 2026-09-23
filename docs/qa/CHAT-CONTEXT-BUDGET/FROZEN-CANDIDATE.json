@@ -2,11 +2,11 @@
   "batch": "CHAT-CONTEXT-BUDGET v1",
   "frozenAt": "2026-09-23",
   "branch": "main",
-  "candidateCommit": "3303f7f",
-  "candidateFullSha": "3303f7f78c54a1cc18fdbba775829605506eb0bd",
-  "candidateParent": "9fcab13",
-  "candidateTree": "c6350d8728c6c3bede8d0ff10e89a368dcb21652",
-  "buildId": "jWdzmxYFOf6RtLUVbtOkL",
+  "candidateCommit": "a5be128",
+  "candidateFullSha": "a5be12863d56f265cdb1c9e31de01b4def1c5eb9",
+  "candidateParent": "c0a7641",
+  "candidateTree": "3062d9641696830e2645b8f8860c90ba3fc029be",
+  "buildId": "dm5NJM2F0N_z9lp13FK0s",
   "defectsReversed": [
     "D1: UI-compatible long syllabus title produced a 32088-char course system message (over both the 2400 local cap and the backend MAX_MESSAGE_CHARS=32000); now 208 chars with all dynamic fields capped",
     "D2: course block was appended after contextBudgetChars trimming (2040 > budget 2000); now built inside one budget with backend limits 200/32000/120000"
@@ -14,25 +14,25 @@
   "checks": {
     "typecheck": "pass (npm run typecheck)",
     "lint": "pass, 0 warnings",
-    "unit": "52 files / 435 tests passed",
+    "unit": "52 files / 436 tests passed",
     "build": "pass (npm run build) -> BUILD_ID jWdzmxYFOf6RtLUVbtOkL",
-    "e2eTargeted": "15/15 passed (chat-context-budget 4 + course-sessions 11) on build jWdzmxYFOf6RtLUVbtOkL",
-    "e2eFull": "195 passed / 0 failed / 0 flaky (6.4m) on build jWdzmxYFOf6RtLUVbtOkL",
+    "e2eTargeted": "15/15 passed on build dm5NJM2F0N_z9lp13FK0s",
+    "e2eFull": "195/0/0 on r1 and r2 builds (three runs); 194/1 on the r3 build — the single failure is the cross-batch intermittent test registered as STATUS R-14 (books-commit-safety.spec.ts:238), outside this batch diff surface; targeted suites for this batch are green",
     "api": "217 passed (npm run test:api; includes 35 RAG adapter contract tests from the sibling batch)",
     "probeReversal": "original probe copy: 2/2 fail as expected after fix; product-path probe 3/3 pass",
     "realProvider": "not_run (no outbound call; credential validity unverified)",
     "visual": "not_run (no .css change in this batch)",
-    "hardening": "corrupted legacy snapshot (resources:[null]) no longer throws on the retry path; non-object entries dropped, missing fields fall back to unknown, no fabricated content; covered by a new unit test"
+    "hardening": "corrupted legacy snapshots (null / non-object / array / non-string fields) never throw on the send or retry path; non-informative resource entries are dropped; no [object Object] noise; two new unit tests"
   },
   "fingerprintsSha256_16": {
     "apps/web/src/contracts/chat.ts": "eb04f89dddf0441c",
-    "apps/web/src/features/chat/model/request-budget.ts": "f564d236fdd865ce",
+    "apps/web/src/features/chat/model/request-budget.ts": "1fe5896eb331d946",
     "apps/web/src/features/chat/model/context-budget.ts": "1cc2154fcd925c47",
     "apps/web/src/features/chat/model/store.ts": "c1f3f3df2bfbb8ab",
     "apps/web/src/features/chat/ChatWorkspace.tsx": "4df74bb603fb38a1",
     "apps/web/src/services/course-session.ts": "20d745bde02f10a0",
     "tests/e2e/chat-context-budget.spec.ts": "cdc53f3234a330ee",
-    "apps/web/src/features/chat/model/request-budget.test.ts": "cae2573a8fa721d3"
+    "apps/web/src/features/chat/model/request-budget.test.ts": "9ec18c573105c810"
   },
   "scopeExclusions": [
     "apps/api product code (backend untouched)",
@@ -43,15 +43,22 @@
     "all numbers are character estimates (1 token ~= 2 chars); no exact-token guarantee and no guarantee against a model's own context ceiling",
     "selectMessagesForRequest kept as a compatibility entry point (not on the product path)",
     "requestBudget records send-time facts only; it never rewrites course data or history text",
-    "real provider calls not_run"
+    "real provider calls not_run",
+    "full-suite aggregate is affected by cross-batch intermittent test R-14 (not caused by this batch)"
   ],
-  "revision": "r2（A1 r1 低危项：脏历史快照加固后重新冻结）",
+  "revision": "r3（A1 r2 的 F2/F3/F4 处置后重新冻结；r3 未再单独跑全绿全量——见 checks.e2eFull 说明）",
   "supersededCandidates": {
     "r1": {
       "commit": "a9968cd",
       "tree": "60d64f33ae65b684c36b6696a86f2e8df0854491",
       "buildId": "JvWSAvqG7aThtH-p1KhOw",
       "verdict": "A1 r1 可交付（附一条低危健壮性缺口，本批内关闭）"
+    },
+    "r2": {
+      "commit": "3303f7f",
+      "tree": "c6350d8728c6c3bede8d0ff10e89a368dcb21652",
+      "buildId": "jWdzmxYFOf6RtLUVbtOkL",
+      "verdict": "A1 r2 可交付（附 F1 跨批间歇 + F2/F3/F4 残留，本批内关闭 F2/F3/F4）"
     }
   }
 }
