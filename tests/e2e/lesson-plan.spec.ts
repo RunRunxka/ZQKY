@@ -310,3 +310,58 @@ test('无面包屑直接标题、编辑→配置→预览顺序与唯一折叠�
   await expect(page.locator('.editor-heading .config-toggle')).toBeHidden();
   await expect(page.getByRole('heading', { level: 1, name: '教案工作台', exact: true })).toBeVisible();
 });
+
+test('教案标题与导出菜单同一顶栏，四视口不重叠不溢出（UX-REGRESSION-FIX v1）', async ({
+  page,
+}) => {
+  for (const viewport of [
+    { width: 1920, height: 1080 },
+    { width: 1440, height: 900 },
+    { width: 1024, height: 800 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(viewport);
+    await page.goto('/lesson-plans');
+    await expect(page.getByRole('textbox', { name: '课题', exact: true })).toBeVisible();
+
+    // 1) 标题就在公共顶栏内，且与导出菜单同一行（不再有顶栏下方多出的一栏）
+    const heading = page.getByRole('heading', { level: 1, name: '教案工作台', exact: true });
+    await expect(heading).toBeVisible();
+    expect(await page.locator('.lesson-page-head').count()).toBe(0);
+    const geometry = await page.evaluate(() => {
+      const header = document.querySelector('.app-header') as HTMLElement;
+      const title = document.querySelector('.lesson-page-title') as HTMLElement;
+      const exportBtn = [...document.querySelectorAll('button')].find((b) =>
+        (b.textContent ?? '').includes('导出教案'),
+      ) as HTMLElement | undefined;
+      const editor = document.querySelector('.editor-panel') as HTMLElement;
+      const r = (el?: HTMLElement | null) => (el ? el.getBoundingClientRect() : null);
+      const hb = r(header);
+      const tb = r(title);
+      const eb = r(exportBtn);
+      return {
+        titleInsideHeader: !!header && !!title && header.contains(title),
+        exportInsideHeader: !!header && !!exportBtn && header.contains(exportBtn),
+        sameRow: !!(hb && tb && eb) && Math.abs(tb!.top + tb!.height / 2 - (eb!.top + eb!.height / 2)) < 2,
+        verticallyInsideHeader: !!(hb && tb) && tb!.top >= hb!.top - 1 && tb!.bottom <= hb!.bottom + 1,
+        noOverlap: !!(tb && eb) && tb!.right <= eb!.left,
+        editorTop: editor ? Math.round(editor.getBoundingClientRect().top) : null,
+        headerBottom: hb ? Math.round(hb.bottom) : null,
+        pageOverflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      };
+    });
+    expect(geometry.titleInsideHeader, `标题应在顶栏内 @${viewport.width}`).toBe(true);
+    expect(geometry.exportInsideHeader, `导出菜单应在顶栏内 @${viewport.width}`).toBe(true);
+    expect(geometry.sameRow, `标题与导出应同一行 @${viewport.width}`).toBe(true);
+    expect(geometry.verticallyInsideHeader).toBe(true);
+    expect(geometry.noOverlap, `标题不得与导出重叠 @${viewport.width}`).toBe(true);
+    expect(geometry.pageOverflowX, `不得横向溢出 @${viewport.width}`).toBeLessThanOrEqual(1);
+    // 2) 内容区紧接顶栏，没有多出的一行标题空间
+    expect(geometry.editorTop).toBe(geometry.headerBottom);
+
+    // 3) 顶栏内不出现标题换行/截断导致的按钮挤压：导出菜单仍可打开
+    await page.getByRole('button', { name: /导出教案/ }).click();
+    await expect(page.getByRole('button', { name: /Word|导出 Word/ }).first()).toBeVisible();
+    await page.keyboard.press('Escape');
+  }
+});

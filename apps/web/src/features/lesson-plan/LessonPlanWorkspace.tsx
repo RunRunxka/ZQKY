@@ -46,14 +46,18 @@ function LessonWorkspaceContent() {
       className={`lesson-workspace lesson-page ${collapsed ? 'outline-hidden' : ''} ${focusMode ? 'focus-mode' : ''} mobile-${mobileView}`}
       beforeNavigate={flushDraft}
       onNavigationError={notice}
-      headerActions={ready ? <ExportMenu /> : null}
+      headerActions={
+        <>
+          {/* UX-REGRESSION-FIX v1：教案标题进入公共顶栏，与导出菜单**同一行**；
+              不再在顶栏下方多出一栏标题（壳内面包屑在教案页仍隐藏，其他页面不受影响）。
+              字体/字号与协同写作、沉浸阅读同级（同一 --font-display 与排版值）。 */}
+          <h1 className="lesson-page-title">教案工作台</h1>
+          {ready ? <ExportMenu /> : null}
+        </>
+      }
     >
       {ready ? (
         <>
-          {/* 页面标题行：壳内面包屑在教案页被隐藏（lesson-plan.css），此标题与协同写作/学习空间同级 */}
-          <header className="lesson-page-head">
-            <h1 className="lesson-page-title">教案工作台</h1>
-          </header>
           {/* DOM 阅读顺序 = 视觉顺序：始终可见的编辑区 → 可折叠的教案配置 → 教案预览 */}
           <EditorPanel />
           <OutlinePanel />

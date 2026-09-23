@@ -22,7 +22,6 @@
   }
   :where(.lesson-workspace) .app-header,
   :where(.lesson-workspace) .global-nav,
-  :where(.lesson-workspace) .lesson-page-head,
   :where(.lesson-workspace) .outline-panel,
   :where(.lesson-workspace) .editor-panel,
   :where(.lesson-workspace) .preview-toolbar,
