@@ -12,8 +12,8 @@ function openMenu() {
   return screen.getByRole('dialog', { name: '选择业务能力' });
 }
 
-describe('能力选择菜单', () => {
-  it('展示常用能力与“更多能力”飞出层入口，当前能力带勾选态', () => {
+describe('模式选择菜单', () => {
+  it('单层列表展示全部模式，当前能力带勾选态；不再有“更多能力”飞出层入口', () => {
     render(<CapabilityMenu value="" onSelect={vi.fn()} />);
     const dialog = openMenu();
     expect(dialog).toBeInTheDocument();
@@ -22,24 +22,30 @@ describe('能力选择菜单', () => {
       'true',
     );
     expect(within(dialog).getByRole('button', { name: /^智能出题/ })).toBeInTheDocument();
-    expect(within(dialog).getByRole('button', { name: /^更多能力/ })).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: /^可视化/ })).toBeInTheDocument();
+    // RAG 模式取代原“更多能力”的位置：同级一行，不再是二级菜单入口
+    expect(within(dialog).getByRole('button', { name: /^RAG 模式/ })).toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: /^更多能力/ })).toBeNull();
+    expect(dialog.querySelector('.chat-cap-more')).toBeNull();
+    expect(dialog.querySelector('.chat-cap-flyout')).toBeNull();
+    // 已移除的三项能力不得回流
+    expect(within(dialog).queryByRole('button', { name: /^深度求解/ })).toBeNull();
+    expect(within(dialog).queryByRole('button', { name: /^深度研究/ })).toBeNull();
+    expect(within(dialog).queryByRole('button', { name: /^沉浸观看/ })).toBeNull();
   });
 
-  it('真实模式：非对话能力置灰并标注“真实服务未接入”，不可选择（不静默转模拟）', () => {
-    const unavailable = new Set([
-      'ask_questions',
-      'deep_question',
-      'visualize',
-      'deep_solve',
-      'deep_research',
-      'immersive_watching',
-    ]);
+  it('真实模式：非对话能力置灰并标注原因，不可选择（不静默转模拟）', () => {
+    const unavailable = new Set(['ask_questions', 'deep_question', 'visualize', 'rag']);
     render(<CapabilityMenu value="" onSelect={vi.fn()} unavailable={unavailable} />);
     const dialog = openMenu();
     const quiz = within(dialog).getByRole('button', { name: /^智能出题/ });
     expect(quiz).toBeDisabled();
     expect(within(dialog).getAllByText('真实服务未接入').length).toBeGreaterThan(0);
     expect(within(dialog).getByRole('button', { name: /^对话/ })).toBeEnabled();
+    // RAG 模式的原因必须行内可见，而不是只在 title 里
+    const rag = within(dialog).getByRole('button', { name: /^RAG 模式/ });
+    expect(rag).toBeDisabled();
+    expect(rag).toHaveTextContent('未接入 · 规划中');
   });
 
   it('选择能力回调并关闭菜单', () => {
@@ -96,5 +102,21 @@ describe('能力配置卡', () => {
     expect(screen.getByLabelText('出题主题')).toBeInTheDocument();
     expect(screen.getByRole('group', { name: '出题模式' })).toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: '选择题' }).length).toBeGreaterThan(0);
+  });
+
+  it('已移除的研究配置不再渲染（随“更多能力”一并删除）', () => {
+    render(
+      <CapabilityConfigCard
+        capability="deep_research"
+        forms={createDefaultCapabilityForms()}
+        confirmed={false}
+        errors={[]}
+        onConfirm={vi.fn()}
+        onChange={vi.fn()}
+      />,
+    );
+    expect(screen.queryByText('研究设置')).toBeNull();
+    expect(screen.queryByText('产出类型')).toBeNull();
+    expect(screen.queryByText('研究深度')).toBeNull();
   });
 });

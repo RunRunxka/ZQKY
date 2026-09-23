@@ -2,20 +2,23 @@
  * 业务能力目录（S2 输入区）。
  *
  * 目录内容对照参考仓库 v1.6.5 `web/features/capabilities/presentation.tsx`
- * 的 CHAT_CAPABILITIES / VISIBLE_CHAT_CAPABILITIES：首页能力菜单展示全部
- * 非隐藏能力，主列表为常用能力，次要能力收进“更多能力”飞出层；
- * `mastery_path` 为精通之路工作区自有能力、`course_study` 为课程绑定能力，
- * 都不出现在首页菜单（legacy 规则同参考）。
+ * 的 CHAT_CAPABILITIES / VISIBLE_CHAT_CAPABILITIES。**UX-PERF-CLOSEOUT v1 起移除
+ * 参考的“更多能力”二级飞出层**：原先收在飞出层的三项（deep_solve / deep_research /
+ * immersive_watching）在真实模式下本就不可选，属不可达产品代码，已按批次要求整体
+ * 删除（目录项、飞出层、专属配置表单与样式）；`mastery_path` 为精通之路工作区自有
+ * 能力、`course_study` 为课程绑定能力，都不出现在首页菜单（legacy 规则同参考）。
  *
  * 需要显式配置的能力对照 `CapabilityConfigCard` 的 ConfigurableCapability
- * （deep_question / visualize / deep_research；math_animator 是 visualize 的
- * 渲染模式，不属于独立能力）。配置字段与默认值对照参考：
+ * （deep_question / visualize；math_animator 是 visualize 的渲染模式，不属于独立能力）。
+ * 配置字段与默认值对照参考：
  * - lib/quiz-types.ts（DEFAULT_QUIZ_CONFIG）
  * - lib/visualize-types.ts（DEFAULT_VISUALIZE_CONFIG）
- * - lib/research-types.ts（createEmptyResearchConfig + mode/depth 必选）
  *
- * 服务模式边界：真实后端当前仅支持普通对话（chat）；
- * 其余能力在真实模式为“真实服务未接入”的不可用状态，不静默转模拟。
+ * 服务模式边界：真实后端当前仅支持普通对话（chat）；其余能力（含 `rag`）在真实模式
+ * 为**不可选**状态，并在菜单内直接标注原因，不静默转模拟、不把请求发到普通聊天冒充成功。
+ * `rag` 是 UX-PERF-CLOSEOUT v1 新增的入口占位：宿主内部 adapter 契约已就绪，但
+ * `get_rag_adapter()` 恒定不可用、capability 仍为 planned，因此该模式不发请求、
+ * 不返回任何检索结果。
  */
 
 export type CapabilityConfigValue = Record<string, unknown>;
@@ -25,10 +28,13 @@ export interface CapabilityDef {
   value: string;
   label: string;
   description: string;
-  /** 次要能力：收进“更多能力”飞出层（同参考 secondary） */
-  secondary?: boolean;
   /** 发送前需在能力配置卡中显式确认（同参考 ConfigurableCapability）；缺省=false */
   needsConfig?: boolean;
+  /**
+   * 真实模式不可用时的行内说明。缺省「真实服务未接入」；
+   * 仅当原因与「服务未接入」不同（例如规划中的 RAG 模式）时才显式给出。
+   */
+  unavailableNote?: string;
 }
 
 /** 首页能力菜单（顺序对照参考 catalogOrder；中文文案为智启课源表述） */
@@ -56,23 +62,11 @@ export const CHAT_CAPABILITIES: CapabilityDef[] = [
     needsConfig: true,
   },
   {
-    value: 'deep_solve',
-    label: '深度求解',
-    description: '多步推理与解题',
-    secondary: true,
-  },
-  {
-    value: 'deep_research',
-    label: '深度研究',
-    description: '多智能体综合研究',
-    secondary: true,
-    needsConfig: true,
-  },
-  {
-    value: 'immersive_watching',
-    label: '沉浸观看',
-    description: '基于视频时间点的辅导学习',
-    secondary: true,
+    // 取代原“更多能力”飞出层的位置：同一列表、同一行样式、同一选中语义，无二级菜单。
+    value: 'rag',
+    label: 'RAG 模式',
+    description: '基于教材资料库的定位与讲解',
+    unavailableNote: '未接入 · 规划中',
   },
 ];
 
@@ -141,43 +135,17 @@ export const DEFAULT_VISUALIZE_CONFIG: VisualizeFormConfig = {
   style_hint: '',
 };
 
-/** 深度研究：mode/depth 必选；depth=manual 时需要手动子题数与迭代上限 */
-export interface ResearchFormConfig {
-  mode: '' | 'notes' | 'report' | 'comparison' | 'learning_path';
-  depth: '' | 'quick' | 'standard' | 'deep' | 'manual';
-  manual_subtopics: number;
-  manual_max_iterations: number;
-}
-
-export const RESEARCH_MODE_LABELS: { value: string; label: string }[] = [
-  { value: 'notes', label: '学习笔记' },
-  { value: 'report', label: '研究报告' },
-  { value: 'comparison', label: '对比分析' },
-  { value: 'learning_path', label: '学习路径' },
-];
-
-export const RESEARCH_DEPTH_LABELS: { value: string; label: string }[] = [
-  { value: 'quick', label: '快速' },
-  { value: 'standard', label: '标准' },
-  { value: 'deep', label: '深入' },
-  { value: 'manual', label: '手动' },
-];
-
-export function createEmptyResearchConfig(): ResearchFormConfig {
-  return { mode: '', depth: '', manual_subtopics: 4, manual_max_iterations: 3 };
-}
+/** 深度研究表单已随“更多能力”飞出层一并移除（UX-PERF-CLOSEOUT v1） */
 
 export interface CapabilityFormState {
   deep_question: QuizFormConfig;
   visualize: VisualizeFormConfig;
-  deep_research: ResearchFormConfig;
 }
 
 export function createDefaultCapabilityForms(): CapabilityFormState {
   return {
     deep_question: { ...DEFAULT_QUIZ_CONFIG },
     visualize: { ...DEFAULT_VISUALIZE_CONFIG },
-    deep_research: createEmptyResearchConfig(),
   };
 }
 
@@ -202,13 +170,6 @@ export function capabilityValidationErrors(
       // 数学动画路由的说明在 S4 展开；配置本身无需必填
     }
   }
-  if (value === 'deep_research') {
-    const research = forms.deep_research;
-    if (!research.mode) errors.push('请选择研究产出类型。');
-    if (!research.depth) errors.push('请选择研究深度。');
-    if (research.depth === 'manual' && research.manual_subtopics < 2)
-      errors.push('手动模式下子问题至少 2 个。');
-  }
   return errors;
 }
 
@@ -231,16 +192,6 @@ export function capabilityConfigSnapshot(
   if (value === 'visualize') {
     const v = forms.visualize;
     return { render_mode: v.render_mode, quality: v.quality, style_hint: v.style_hint.trim() };
-  }
-  if (value === 'deep_research') {
-    const r = forms.deep_research;
-    return {
-      mode: r.mode,
-      depth: r.depth,
-      ...(r.depth === 'manual'
-        ? { manual_subtopics: r.manual_subtopics, manual_max_iterations: r.manual_max_iterations }
-        : {}),
-    };
   }
   return undefined;
 }
@@ -276,14 +227,6 @@ export function summarizeCapabilityConfig(
   if (value === 'visualize') {
     const render = str('render_mode') || 'auto';
     return `渲染模式=${VISUALIZE_RENDER_LABELS.find((x) => x.value === render)?.label ?? render}、质量=${str('quality') || 'medium'}、风格提示=${str('style_hint') || '无'}`;
-  }
-  if (value === 'deep_research') {
-    const mode = str('mode');
-    const depth = str('depth');
-    const base = `产出=${RESEARCH_MODE_LABELS.find((x) => x.value === mode)?.label ?? (mode || '（未选择）')}、深度=${RESEARCH_DEPTH_LABELS.find((x) => x.value === depth)?.label ?? (depth || '（未选择）')}`;
-    return depth === 'manual'
-      ? `${base}、子问题=${num('manual_subtopics') || '（未设置）'}、迭代上限=${num('manual_max_iterations') || '（未设置）'}`
-      : base;
   }
   return '';
 }

@@ -4,8 +4,8 @@
  * 对照参考 v1.6.5 的数据结构（字段名逐项对齐，便于复刻核对）：
  * - 题目：`web/lib/quiz-types.ts` 的 QuizQuestion
  * （question_id/question/question_type/options/correct_answer/explanation/difficulty）
- * - 研究：报告 markdown（`# 标题` + `## n. 章节`，引用标识 CIT-x-x，
- *   见 `web/lib/deep-research-report.ts`）+ 子问题（OutlineItem 语义）
+ * - 研究：报告 markdown（`# 标题` + `## n. 章节`，引用标识 CIT-x-x）保留为**渲染兼容类型**
+ *   （旧会话已保存的 report 产物仍可展示）；生成器随“更多能力”一并移除
  * - 可视化：render_mode 分支（chartjs/svg/mermaid/html/geogebra/manim），
  *   审查结果对照 MathAnimatorResult.render.visual_review 的形态
  *
@@ -129,50 +129,5 @@ export function quizQuestionsToMarkdown(
     lines.push(`**参考答案**：${q.correct_answer}`, '', `**解析**：${q.explanation}`, '');
   });
   lines.push('> 本产物为本地模拟生成，题干与解析均为演示内容，不用于真实测评。');
-  return lines.join('\n');
-}
-
-/** 研究子问题（确定性；manual 深度用配置数量） */
-export function makeResearchSubtopics(question: string, count: number): string[] {
-  const subject = question.trim() || '演示研究主题';
-  const angles = ['是什么（定义与边界）', '为什么（成因与机制）', '怎么样（现状与案例）', '怎么做（方法与路径）', '谁相关（主体与影响面）', '有何风险（局限与反驳）'];
-  return Array.from({ length: count }, (_, i) => `子问题 ${i + 1}：${subject}——${angles[i % angles.length]!}`);
-}
-
-/** 研究引用（本地演示资料；CIT-x-x 对照参考 citation_id 格式） */
-export function makeResearchCitations(subtopics: string[]): ResearchCitation[] {
-  return subtopics.map((topic, i) => ({
-    citation_id: `CIT-${i + 1}-1`,
-    title: `演示资料 ${i + 1}：${topic.slice(0, 18)}…`,
-    snippet: `【演示资料】关于「${topic}」的本地演示摘录。不访问真实网络与检索服务，仅用于引用定位与报告结构演示。`,
-  }));
-}
-
-/** 研究报告 markdown（对照参考结构：标题 + 编号章节 + 结论 + 引用列表） */
-export function researchReportToMarkdown(
-  question: string,
-  modeLabel: string,
-  subtopics: string[],
-  citations: ResearchCitation[],
-): string {
-  const subject = question.trim() || '演示研究主题';
-  const lines: string[] = [
-    `# 研究报告（模拟）：${subject}`,
-    '',
-    `产出类型：${modeLabel}（本地模拟，资料为演示内容）`,
-    '',
-    '## 1. 引言',
-    '',
-    `本报告围绕「${subject}」展开。以下分析基于本地演示资料，不捏造真实检索结果。`,
-    '',
-  ];
-  subtopics.forEach((topic, i) => {
-    const cit = citations[i];
-    lines.push(`## ${i + 2}. ${topic}`, '', `【演示分析】围绕该子问题的结构与要点展开（本地演示内容）。${cit ? `（${cit.citation_id}）` : ''}`, '');
-  });
-  lines.push(`## ${subtopics.length + 2}. 结论`, '', '【演示结论】综合上述子问题，形成对主题的阶段认识（演示占位）。', '');
-  if (citations.length) {
-    lines.push('## 引用与资料', '', ...citations.map((c) => `- ${c.citation_id} ${c.title}：${c.snippet}`), '');
-  }
   return lines.join('\n');
 }

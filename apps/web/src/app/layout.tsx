@@ -11,6 +11,9 @@ import { NavigationPreference } from '@/components/layout/NavigationPreference';
 export const metadata: Metadata = {
   title: `智启课源 · ${HOME_LABEL}`,
   description: '中文学习与备课工作台',
+  // 品牌图标（T4b）：app/icon.svg 的文件约定与 metadata.icons 实测不产生重复 link
+  // （写了 metadata.icons 时只输出这一条，且 href 稳定）；SVG 用 sizes="any" 供浏览器标签页选用。
+  icons: { icon: [{ url: '/icon.svg', type: 'image/svg+xml', sizes: 'any' }] },
 };
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (

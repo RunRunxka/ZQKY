@@ -6,7 +6,6 @@ import {
   ArrowUp,
   BookOpen,
   Download,
-  List,
   Paperclip,
   Mic,
   PanelRight,
@@ -108,8 +107,6 @@ function ChatPage({
     return () => media.removeEventListener('change', update);
   }, []);
   const { catalog, loading, error, refresh } = useModelCatalog();
-  const [sessionsOpen, setSessionsOpen] = useState(false),
-    [sessionsCollapsed, setSessionsCollapsed] = useState(false);
   // R22/S3：右面板 = 结果工作区（标签页形态：活动主页 + 产物标签）。
   // null=关闭；'workspace'=打开（活动标签或某个产物标签由 artifactKey 决定）
   const [panelView, setPanelViewState] = useState<'workspace' | null>(null);
@@ -647,9 +644,12 @@ function ChatPage({
     }
 
     if (!capabilityAvailableInReal(capabilityValue)) {
-      // 防御路径：真实模式不允许非对话能力发起（菜单已禁用），仍到达时明确说明
+      // 防御路径：真实模式不允许非对话能力发起（菜单已禁用，含 RAG 模式），
+      // 仍到达时明确说明并保留输入——绝不把请求发到普通聊天冒充该模式成功。
       setBlockedNotice(
-        `「${activeCap.label}」暂无真实服务，已保留选择；请切回“对话”能力。`,
+        capabilityValue === 'rag'
+          ? '「RAG 模式」尚未接入（规划中）：本轮未发送任何检索请求，输入已保留；请切回“对话”能力。'
+          : `「${activeCap.label}」暂无真实服务，已保留选择；请切回“对话”能力。`,
       );
       return;
     }
@@ -685,7 +685,6 @@ function ChatPage({
       store.newConversation();
       // 新建后地址指向新会话（replace：创建不是一次页面浏览，回退应回到之前的会话）
       syncSessionUrl(activeStore.getState().activeId, 'replace');
-      setSessionsOpen(false);
       setFollowing(true);
       textarea.current?.focus();
     }
@@ -699,8 +698,13 @@ function ChatPage({
     link.click();
     URL.revokeObjectURL(url);
   }
-  const sessions = (
-    <>
+  /** 学习记录（UX-PERF-CLOSEOUT v1）：并入全站左侧导航的可滚动区域，不再是聊天区
+   *  与导航之间的独立中栏；手机上随同一个全站导航抽屉呈现，不另开弹窗。 */
+  const learningRecords = (
+    <section className="chat-sessions-panel" aria-label="学习记录">
+      <div className="chat-session-head">
+        <span>学习记录</span>
+      </div>
       <div className="chat-session-search">
         <Search size={14} />
         <input
@@ -725,7 +729,6 @@ function ChatPage({
             // 选择成功且未被更新的操作顶替时，地址跟随当前会话（刷新/前进后退可恢复）
             if (activeStore.getState().activeId === id) syncSessionUrl(id, 'push');
           });
-          setSessionsOpen(false);
           setFollowing(true);
         }}
         onRename={(id) => {
@@ -741,50 +744,24 @@ function ChatPage({
           })
         }
       />
-    </>
+      <p className="chat-local-note">会话保存在当前浏览器</p>
+    </section>
   );
   return (
     <WorkspaceShell
       pageTitle="学习问答"
       className="chat-home-shell"
       sidebarLayout
+      sidebarContent={learningRecords}
       beforeNavigate={async () => {
         stores.real.getState().stop();
         const results = await Promise.all([stores.real.getState().flush()]);
         if (!results.every(Boolean)) throw new Error('unsaved');
       }}
     >
-      <div
-        className={`chat-page ${sessionsCollapsed ? 'sessions-collapsed' : ''} ${
-          panelView !== null ? 'info-open' : ''
-        }`}
-      >
-        <aside className={`chat-sessions ${sessionsCollapsed ? 'history-hidden' : ''}`}>
-          <div className="chat-session-head">
-            <span>学习记录</span>
-            <button
-              className="icon-button"
-              aria-label="收起会话列表"
-              onClick={() => setSessionsCollapsed(true)}
-            >
-              <List size={16} />
-            </button>
-          </div>
-          {sessions}
-          <p className="chat-local-note">会话保存在当前浏览器</p>
-        </aside>
+      <div className={`chat-page ${panelView !== null ? 'info-open' : ''}`}>
         <section className={`chat-main ${hasMessages ? '' : 'chat-welcome'}`}>
           <header className="chat-toolbar">
-            <button
-              className="icon-button"
-              aria-label="打开会话列表"
-              onClick={() => {
-                if (window.innerWidth < 768) setSessionsOpen(true);
-                else setSessionsCollapsed(!sessionsCollapsed);
-              }}
-            >
-              <List size={17} />
-            </button>
             <span className="chat-title">{activeTitle}</span>
 
             <span className="chat-flex-spacer" />
@@ -1333,11 +1310,6 @@ function ChatPage({
           <p style={{ fontSize: 12, color: '#8c929c', marginTop: 8 }}>
             {attachments[previewIndex]!.filename} · {formatBytes(attachments[previewIndex]!.size)}
           </p>
-        </Modal>
-      )}
-      {sessionsOpen && (
-        <Modal title="学习记录" onClose={() => setSessionsOpen(false)}>
-          {sessions}
         </Modal>
       )}
       {dialog && (

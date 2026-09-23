@@ -83,7 +83,9 @@ export function WorkspaceShell({
     dialog.showModal();
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    dialog.querySelector<HTMLButtonElement>('[aria-current="page"]')?.focus();
+    // 打开后聚焦当前菜单；没有当前项时退回到明确的关闭入口（不把焦点留在 body）
+    const current = dialog.querySelector<HTMLButtonElement>('[aria-current="page"]');
+    (current ?? dialog.querySelector<HTMLButtonElement>('[aria-label="关闭功能导航"]'))?.focus();
     const desktop = window.matchMedia('(min-width: 768px)');
     const closeOnDesktop = () => {
       if (desktop.matches) setMobileNavOpen(false);
@@ -221,11 +223,15 @@ export function WorkspaceShell({
             }}
             onKeyDown={(event) => {
               if (event.key !== 'Tab') return;
-              const buttons = Array.from(
-                event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'),
-              );
-              const first = buttons[0],
-                last = buttons[buttons.length - 1];
+              // 圈定范围包含输入框/链接：抽屉里现在也有会话搜索框与滚动区域，
+              // 只用 button 会让它们被 Tab 跳过（不可达）。
+              const focusables = Array.from(
+                event.currentTarget.querySelectorAll<HTMLElement>(
+                  'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
+                ),
+              ).filter((node) => node.offsetParent !== null || node === document.activeElement);
+              const first = focusables[0],
+                last = focusables[focusables.length - 1];
               if (event.shiftKey && document.activeElement === first) {
                 event.preventDefault();
                 last?.focus();
@@ -251,6 +257,9 @@ export function WorkspaceShell({
                 {renderGroupItems(group.items, true)}
               </div>
             ))}
+            {/* 侧栏内容（学习问答的“学习记录”）在手机上也走这个抽屉，
+                不另开一套弹窗；抽屉本身已有遮罩、关闭入口与焦点圈定 */}
+            {sidebarContent && <div className="mobile-nav-sessions">{sidebarContent}</div>}
             <div className="mobile-nav-group">{renderGroupItems(bottomItems, true)}</div>
             <div className="mobile-nav-footnote">未实现模块均处于规划中</div>
           </dialog>

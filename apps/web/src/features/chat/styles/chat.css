@@ -2,30 +2,14 @@
   grid-column: 2/-1;
   grid-row: 2;
   display: grid;
-  grid-template-columns: 236px minmax(0, 1fr);
+  /* 学习记录已并入全站导航（UX-PERF-CLOSEOUT v1）：单一内容列 */
+  grid-template-columns: minmax(0, 1fr);
   min-height: 0;
   overflow: hidden;
 }
-.chat-page.sessions-collapsed {
-  grid-template-columns: minmax(0, 1fr);
-}
 .chat-page.info-open {
   /* S3 工作区宽度：拖动可调（400–960px，JS 钳制 + 持久化），默认 620 */
-  grid-template-columns: 236px minmax(0, 1fr) var(--viewer-width, 620px);
-}
-.chat-page.sessions-collapsed.info-open {
-  grid-template-columns: minmax(0, 1fr) 260px;
-}
-.chat-sessions {
-  background: var(--surface);
-  border-right: 1px solid var(--line);
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: auto;
-}
-.sessions-collapsed .chat-sessions {
-  display: none;
+  grid-template-columns: minmax(0, 1fr) var(--viewer-width, 620px);
 }
 .chat-session-head {
   display: flex;
@@ -520,7 +504,7 @@
   text-decoration: underline;
 }
 .answer-markdown code {
-  font-family: Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.85em;
   background: #f3f4f6;
   border-radius: 4px;
@@ -600,7 +584,7 @@
     grid-template-columns: 205px minmax(0, 1fr);
   }
   .chat-page.info-open {
-    grid-template-columns: 205px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
   }
   .chat-info {
     position: absolute;
@@ -611,17 +595,11 @@
     z-index: 30;
     box-shadow: -10px 0 30px #14244211;
   }
-  .chat-page.sessions-collapsed.info-open {
-    grid-template-columns: 1fr;
-  }
 }
 @media (max-width: 767px) {
   .chat-page,
   .chat-page.info-open {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .chat-sessions {
-    display: none;
   }
   .chat-toolbar {
     padding: 9px 12px;
@@ -1289,7 +1267,8 @@
   z-index: 5;
 }
 
-/* 能力选择菜单：复用 chat-ext-panel 弹层骨架，主列表 + “更多能力”飞出层 */
+/* 模式选择菜单（UX-PERF-CLOSEOUT v1）：复用 chat-ext-panel 弹层骨架的**单层列表**，
+   无二级菜单/飞出层。行内徽标允许换行，避免窄面板下把面板撑出横向滚动。 */
 .chat-cap-trigger {
   font-size: 12px;
   font-weight: 500;
@@ -1315,7 +1294,6 @@
   gap: 2px;
 }
 .chat-cap-item,
-.chat-cap-more > button,
 .chat-add-action {
   display: flex;
   align-items: center;
@@ -1327,7 +1305,6 @@
   font-size: 12px;
 }
 .chat-cap-item:hover:not(:disabled),
-.chat-cap-more > button:hover,
 .chat-add-action:hover:not(:disabled) {
   background: var(--surface);
 }
@@ -1358,7 +1335,10 @@
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 6px;
+  /* 窄面板下徽标换行到下一行，不以省略或裁切隐藏“未接入”原因 */
+  flex-wrap: wrap;
+  gap: 2px 6px;
+  min-width: 0;
 }
 .chat-cap-item-text strong small {
   font-size: 9px;
@@ -1367,6 +1347,7 @@
   background: #fef3c7;
   border-radius: 999px;
   padding: 1px 6px;
+  white-space: nowrap;
 }
 .chat-cap-item-text small {
   font-size: 11px;
@@ -1378,41 +1359,6 @@
 .chat-cap-item-check {
   flex-shrink: 0;
 }
-.chat-cap-more {
-  position: relative;
-  margin-top: 4px;
-  border-top: 1px solid var(--line);
-  padding-top: 4px;
-}
-.chat-cap-more > button {
-  color: var(--foreground);
-}
-.chat-cap-more svg {
-  flex-shrink: 0;
-  color: var(--muted);
-}
-.chat-cap-flyout {
-  position: absolute;
-  left: calc(100% + 6px);
-  bottom: 0;
-  width: 240px;
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  box-shadow: 0 10px 32px #1424421c;
-  padding: 6px;
-  opacity: 0;
-  visibility: hidden;
-  transform: translateX(-4px);
-  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
-  z-index: 50;
-}
-.chat-cap-flyout.open {
-  opacity: 1;
-  visibility: visible;
-  transform: translateX(0);
-}
-
 /* “添加内容”菜单（+） */
 .chat-add-picker {
   position: relative;
@@ -1855,13 +1801,6 @@
   }
   .chat-field-label {
     width: 74px;
-  }
-  .chat-cap-flyout {
-    position: fixed;
-    left: 12px;
-    right: 12px;
-    bottom: auto;
-    width: auto;
   }
 }
 

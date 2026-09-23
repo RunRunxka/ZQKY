@@ -676,7 +676,8 @@
 .space-form textarea {
   min-height: 180px;
   resize: vertical;
-  font-family: var(--serif);
+  /* UX-PERF-CLOSEOUT v1：表单属于界面正文，使用黑体体系（原为文档宋体族） */
+  font-family: var(--font-ui);
 }
 
 .space-form-error {

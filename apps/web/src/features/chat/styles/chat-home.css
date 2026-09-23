@@ -1,10 +1,13 @@
 /* 本次参考：deeptutor-page/src/style.css（2026-09-09 本地快照）。
    全部限定在学习问答壳内；保留智启课源蓝色和既有业务组件。
-   字体 @font-face 已上移至 globals.css（R-05 公共视觉基础，资源同源一份）。 */
+   字体 @font-face 已上移至 globals.css（R-05 公共视觉基础，资源同源一份）。
+   UX-PERF-CLOSEOUT v1：学习记录并入全站左侧导航的可滚动区域（`sidebarContent`），
+   聊天区不再保留 236px 独立中栏；会话区随全站导航折叠而隐藏（收起态只有图标栏）。
+   字体：学习问答的全部界面文字（消息/输入/模式菜单/学习记录/按钮/提示）统一使用
+   界面衬线 token；代码与公式保留各自专用字形（局部例外）。 */
 .app-shell.chat-home-shell:not(.lesson-workspace) {
-  --chat-serif: var(--font-display);
   grid-template-rows: minmax(0, 1fr);
-  font-family: var(--font-ui);
+  font-family: var(--font-ui-serif);
 }
 .chat-home-shell > .app-header {
   display: none;
@@ -16,14 +19,6 @@
   margin-top: 12px;
 }
 .chat-home-shell:not(.nav-expanded) .sidebar-content {
-  display: none;
-}
-.chat-home-shell .chat-sessions {
-  border: 0;
-  background: transparent;
-  overflow: visible;
-}
-.chat-home-shell .chat-sessions.history-hidden {
   display: none;
 }
 .chat-home-shell .chat-session-head {
@@ -55,12 +50,12 @@
   font-size: 10px;
 }
 .chat-home-shell .chat-page,
-.chat-home-shell .chat-page.sessions-collapsed,
 .chat-home-shell .chat-page.info-open {
   grid-row: 1;
   grid-column: 2;
   display: grid;
-  grid-template-columns: 236px minmax(0, 1fr);
+  /* 学习记录已并入全站导航：聊天区只有一列，不保留空的中栏 */
+  grid-template-columns: minmax(0, 1fr);
   position: relative;
 }
 .chat-home-shell .chat-main {
@@ -82,7 +77,7 @@
   gap: 8px;
 }
 .chat-home-shell .chat-title {
-  font-family: var(--chat-serif);
+  font-family: var(--font-display);
   font-size: 18px;
   font-weight: 600;
   color: var(--ink);
@@ -135,7 +130,7 @@
   margin-left: 0;
 }
 .chat-home-shell .answer-markdown {
-  font-family: var(--chat-serif);
+  font-family: var(--font-display);
   font-size: 17px;
   line-height: 1.9;
   color: #333;
@@ -198,7 +193,9 @@
 }
 .chat-home-shell .chat-ext-unavailable {
   font-size: 10px;
-  max-width: 115px;
+  /* 界面文字改为衬线后中文略宽：不再用 max-width 裁切 nowrap 标签，
+     让虚线胶囊按内容宽度自适应（原 115px 会挤出边框 2px） */
+  max-width: none;
 }
 .chat-home-shell .model-select-trigger {
   background: transparent;
@@ -546,29 +543,15 @@ body[data-chat-resizing='true'] .chat-home-shell .chat-main {
   }
 }
 
-/* 学习记录是独立的中间列，不随全局导航折叠。 */
-.chat-home-shell .chat-page.sessions-collapsed {
-  grid-template-columns: minmax(0, 1fr);
-}
-.chat-home-shell .chat-page > .chat-sessions {
-  overflow: auto;
-  border-right: 1px solid var(--line);
-  padding: 16px 10px;
-}
-.chat-home-shell .chat-page > .chat-sessions.history-hidden {
-  display: none;
+/* 学习记录并入全站侧栏后的容器：占满导航的剩余高度并可独立滚动，
+   底部导航（设置/头像）仍固定可见。 */
+.chat-home-shell .chat-sessions-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 .chat-home-shell .chat-main {
   min-width: 0;
-}
-@media (max-width: 767px) {
-  .chat-home-shell .chat-page,
-  .chat-home-shell .chat-page.info-open {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .chat-home-shell .chat-page > .chat-sessions {
-    display: none;
-  }
 }
 .chat-activity-toggle {
   width: 100%;
@@ -608,6 +591,16 @@ body[data-chat-resizing='true'] .chat-home-shell .chat-main {
 .chat-reasoning-body .answer-markdown {
   color: var(--muted);
   font-size: 13px;
+}
+/* 活跃流/折叠期轻量呈现（UX-PERF-CLOSEOUT v1）：等宽换行的纯文本，字号/行高/颜色
+   与展开后的 Markdown 正文一致，避免展开时出现排版跳变 */
+.chat-reasoning-body .chat-reasoning-raw {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 .answer-markdown .katex-display {
   overflow-x: auto;
