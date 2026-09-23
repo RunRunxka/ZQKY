@@ -1,6 +1,6 @@
 # 项目目标与工程说明
 
-更新：2026-09-20。取代旧 ARCHITECTURE、DECISIONS、BASELINE 的现行说明；历史原文见 [项目历史](archive/PROJECT_HISTORY.md)。当前进度、代码审查、完整阶段计划与下一动作只维护在 [STATUS](STATUS.md)。
+更新：2026-09-23。取代旧 ARCHITECTURE、DECISIONS、BASELINE 的现行说明；历史原文见 [项目历史](archive/PROJECT_HISTORY.md)。当前进度、代码审查、完整阶段计划与下一动作只维护在 [STATUS](STATUS.md)。
 
 ## 1. 唯一目标
 

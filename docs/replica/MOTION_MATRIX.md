@@ -1,6 +1,6 @@
 # 动画清单与验收边界
 
-更新：2026-09-20（H1-BOOKS-PIPELINE v2 新增 M-books-strip / M-books-paused 两条量化条目，其余整理 R-05 范围说明，不升级既有动画验收）。全站视觉基准为当前学习问答；模块专属动画对照固定 DeepTutor，原版没有则不添加。下表“已验收”均绑定具体日期、候选和范围；旧模拟生成动画不能据此视为当前可发起能力。历史65项、teardown首败及后续修复见 [交付历史](../archive/DELIVERY_HISTORY.md#snapshot-status-20260910)，当前计划与验证边界见 [STATUS](../STATUS.md)。
+更新：2026-09-23（UX-PERF-CLOSEOUT v1 新增 M-reasoning-fold：本批未改折叠动画参数与减少动画压制，只改推理正文渲染方式；2026-09-20 曾新增 M-books-strip / M-books-paused。均不升级既有动画验收）。全站视觉基准为当前学习问答；模块专属动画对照固定 DeepTutor，原版没有则不添加。下表“已验收”均绑定具体日期、候选和范围；旧模拟生成动画不能据此视为当前可发起能力。历史65项、teardown首败及后续修复见 [交付历史](../archive/DELIVERY_HISTORY.md#snapshot-status-20260910)，当前计划与验证边界见 [STATUS](../STATUS.md)。
 
 状态词汇：待实现、部分实现、实现待验收、已验收；逐项记录开始/过渡/结束、快速中断、减少动画与焦点。
 
