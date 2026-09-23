@@ -127,48 +127,38 @@ describe('S4 能力模拟闭环：阶段序列与结构化产物', () => {
     store.getState().dispose();
   });
 
-  it('deep_research 成功轮：大纲确认后产出 report 产物（子问题+引用）', async () => {
+  it('两阶段：能力轮 + 追问确认 → 同轮续答 → 产出产物（S3 组合流，通用管线覆盖）', async () => {
+    // 原 deep_research 用例随“更多能力”一并移除；这里用保留的“可视化”能力 +
+    // S3 组合流（armAskUser）保住同一条通用管线：同 sessionId/turnId 挂起→回答→继续→产物。
+    const service = createMockChatService({ chunkDelayMs: 0 });
     const store = createChatStore({
       mode: 'mock',
       repository: createMemoryChatRepository(),
-      services: { mock: createMockChatService({ chunkDelayMs: 0 }) },
+      services: { mock: service },
     });
+    service.armAskUser();
     await store.getState().init();
-    const run = store.getState().send('研究光合作用', null, {
+    const run = store.getState().send('画一张演示图', null, {
       mcps: [],
       skills: [],
       capability: {
-        value: 'deep_research',
-        label: '深度研究',
-        config: { mode: 'report', depth: 'standard' },
+        value: 'visualize',
+        label: '可视化',
+        config: { render_mode: 'chartjs', quality: 'medium', style_hint: '' },
       },
     });
-    // 两段式：等大纲确认卡 → 确认 → 检索/撰写继续
+    // 两段式：先挂起追问卡，确认后在同一轮内继续
     await vi.waitFor(() => expect(store.getState().waitingInteractionId).toBeTruthy());
     const ok = await store.getState().submitReply([
-      { questionId: 'q-outline', labels: ['确认大纲，按此执行'], freeText: '' },
+      { questionId: 'q-focus', labels: ['侧重示例'], freeText: '' },
     ]);
     expect(ok).toBe(true);
     await run;
     const message = store.getState().messages[1]!;
-    expect(message.stages?.map((s) => s.stageId)).toEqual([
-      'rephrasing',
-      'decomposing',
-      'researching',
-      'reporting',
-    ]);
-    const artifacts = message.artifacts ?? [];
-    expect(artifacts).toHaveLength(1);
-    expect(artifacts[0]!.kind).toBe('report');
-    expect(artifacts[0]!.title).toBe('研究报告（模拟）');
-    const data = artifacts[0]!.data as {
-      subtopics: string[];
-      citations: { citation_id: string }[];
-    };
-    expect(data.subtopics.length).toBeGreaterThanOrEqual(3);
-    expect(data.citations[0]!.citation_id).toMatch(/^CIT-\d+-\d+$/);
-    expect(artifacts[0]!.content).toContain('模拟');
-    expect(artifacts[0]!.content).toContain('CIT-');
+    // 追问卡之后的正文按既有语义进入最近一张卡的续写（不重复并入 content）
+    expect(message.asks?.at(-1)?.followUp ?? '').toContain('已记录产出侧重');
+    // 同轮继续后仍按冻结配置产出产物（能力轮未被追问截断）
+    expect(message.artifacts?.[0]?.title).toBe('可视化结果（模拟）');
     store.getState().dispose();
   });
 
@@ -232,25 +222,6 @@ describe('S4 能力模拟闭环：阶段序列与结构化产物', () => {
     expect(artifacts[0]!.title).toBe('数学动画（模拟）');
     expect(artifacts[0]!.content).toContain('未真实执行');
     expect(artifacts[0]!.content).toContain('不生成真实视频文件');
-    store.getState().dispose();
-  });
-
-  it('deep_solve 成功轮：planning→reasoning→writing 且推理过程独立呈现', async () => {
-    const store = createChatStore({
-      mode: 'mock',
-      repository: createMemoryChatRepository(),
-      services: { mock: createMockChatService({ chunkDelayMs: 0 }) },
-    });
-    await store.getState().init();
-    await store.getState().send('解一道题', null, {
-      mcps: [],
-      skills: [],
-      capability: { value: 'deep_solve', label: '深度求解' },
-    });
-    const message = store.getState().messages[1]!;
-    expect(message.stages?.map((s) => s.stageId)).toEqual(['planning', 'reasoning', 'writing']);
-    expect(message.reasoning).toContain('模拟推理');
-    expect(message.content).toContain('深度求解（本地演示）');
     store.getState().dispose();
   });
 
