@@ -1,12 +1,16 @@
 {
   "batch": "UX-PERF-CLOSEOUT v1",
-  "revision": "r4（A1 needs_revision 采纳：rAF 内复检跟随状态 + 历史旧能力值降级展示 + 文档口径订正）",
-  "frozenAt": "2026-09-23T21:10:00+08:00",
-  "hashSource": "git blob（LF 归一化）：sha256(git show <headCommit>:<path>)；不是工作树字节（Windows 工作树为 CRLF，按工作树复算会全部不符）",
+  "revision": "r5（A1 r1 needs_revision → r4 处置 → A1 r2 pass；本记录对齐最终 tip 并纳入两轮验收报告）",
+  "frozenAt": "2026-09-23T21:35:00+08:00",
+  "hashSource": "git blob（LF 归一化）：sha256(git show <headCommit>:<path>)；不是工作树字节（Windows 工作树为 CRLF）",
   "normalization": "LF",
   "baseCommit": "3dcace8851445ba35db8e3a4a5119bdcd45f2ddf",
-  "headCommit": "84c0e98619ced0246bf420d5fbc62e5767fdd88a",
+  "headCommit": "71f7bec4465021227ff58bf068d78105de0c0af9",
+  "coverageNote": "files 的哈希取自 headCommit 71f7bec（即本记录文件自身提交之前的 tip）。本记录文件不含在 files 中（自引用哈希必然过时），其唯一后续提交只改本文件。代码/测试指纹请以 codeFiles 为准（其在本批全部提交上稳定）。",
   "commits": [
+    "71f7bec docs(qa): 归档 A1 r2（pass）报告并收尾其点名的 5 项文档/证据项",
+    "522daec docs(qa): 归档独立验收 A1 r1 报告，并在 STATUS 记录 r4 逐项处置与断言反转证据",
+    "b64f723 docs(qa): FROZEN r4——写死哈希口径（git blob/LF）、排除自身、代码指纹子集与实跑数字",
     "84c0e98 docs(qa): 按独立验收 A1 订正口径——长任务数据、布局变差表述、堆单次采样、溢出条目名",
     "d1ba15d fix(chat): 独立验收 A1 采纳——rAF 内复检跟随状态 + 历史旧能力值明确降级展示",
     "d65c9ca docs(qa): 补记 Performance trace 产物与 trace 对 CDP 指标的独立复核，并如实标注未直接测量的项",
@@ -19,18 +23,20 @@
     "2b4370e perf(chat): 长推理流性能收口——活跃流轻量呈现、增量合并与写盘快照",
     "5a70f78 feat(chat): 学习记录并入全站导航、模式菜单单层化与 RAG 模式入口、界面字体 token"
   ],
-  "selfExcludedNote": "本记录文件自身不含在 files 中（自引用哈希必然过时）",
   "builds": {
-    "ui": "7UEyDMWKt_mozNYtuwJuH（.next，含 r4 修复；受影响 e2e 44 例通过）",
-    "perf": "hrwcN9OyO8by2EqtkSRn_（.next-test，受控上游 origin；性能与 19/19 回归在此构建）"
+    "ui": "7UEyDMWKt_mozNYtuwJuH（.next，含 r4 修复；受影响 7 spec 44 例通过）",
+    "perf": "oNm41Sz_SmvxGHKX_M9vi（.next-test，受控上游 origin；19/19 回归与 50k 性能在此构建）",
+    "perfReversal": "ZrHj7mKmbjFQXKXS3MZCi（仅用于断言反转实验的临时构建，未保留源码改动）"
   },
   "checks": {
     "typecheck": "pass",
     "lint": "0 warnings",
-    "unit": "441 tests / 52 files",
-    "e2e": "r3 全量 199 passed / 1 failed(R-14，已复现定性)；r4 受影响 7 spec 44 例通过",
+    "unit": "52 files / 441 tests",
+    "e2e_full_r3": "199 passed / 1 failed (R-14，已独立复现并定性)",
+    "e2e_affected_r4": "44 passed (7 specs)",
     "api": "217 passed",
-    "streamRegression": "r4 19/19（含断言反转）"
+    "streamRegression": "19/19（含确定性跟随断言；反转实验 18/19）",
+    "a1": "r1 needs_revision → r2 pass"
   },
   "files": {
     "README.md": "d278426356d31cbcbe35735c124d6aff122a1bca1d492df98f8812ced062226a",
@@ -65,9 +71,11 @@
     "apps/web/src/styles/globals.css": "6753c5bcf5451c9cde6b8ba1ccd977c27ac617bb868fc961040bf8c279e5c797",
     "docs/MULTI_AGENT_COLLABORATION_PROPOSAL.md": "f304f2314f24614b68494f3b83852570b0aa4483478e710f7788e00763f4ddb4",
     "docs/PROJECT_GUIDE.md": "9007f3f573e329982c41d5d0a227aeb5de894dc250f83cab4ab6f81354088e6d",
-    "docs/STATUS.md": "f6be47e140bb39be4d9567dfc7abe81fdacef53c8ee0ac23f3c2cc5dbfd376aa",
+    "docs/STATUS.md": "f64068ae462d6654df2b931c2b31b3f798357eaa838aea69b022d1fab9e744e4",
+    "docs/qa/UX-PERF-CLOSEOUT-20260923/A1-REPORT-01.md": "3537955b2e1fdf0d9d51980ec83e733607dc0f51680f1cbacfc936d5ab791d04",
+    "docs/qa/UX-PERF-CLOSEOUT-20260923/A1-REPORT-02.md": "1df4347ba3825ee59d6d900e141835d59a2e55a2a3f69af12bea1d4837773a4b",
     "docs/qa/UX-PERF-CLOSEOUT-20260923/REACHABILITY-AUDIT.md": "bdc62246c92572c5dd11a2fdcee2473d78ce3312a6cc2397f5f84fd822810108",
-    "docs/qa/UX-PERF-CLOSEOUT-20260923/README.md": "3b2a476db25dbd877324bb25850eede054c6f4d7cd012fa7f1fcaa62299215c8",
+    "docs/qa/UX-PERF-CLOSEOUT-20260923/README.md": "0bc3bc805fd1521e2fa23ad3253c34adabad88c388209056b7607d33018dc641",
     "docs/qa/UX-PERF-CLOSEOUT-20260923/TASK-CARD.md": "130ae0e4b156cfb292982428ecd355bea5bb20acb7c504674d3ab60394caecd7",
     "docs/qa/UX-PERF-CLOSEOUT-20260923/r14/REPRO-EVIDENCE.md": "6750a8f8d5a607f3d2ba8fadec13b67c1e11a2c10562f5431d03d14974bf8beb",
     "docs/replica/AI_INTERACTIONS.md": "ab763003ba2036589d2dae38476ab23bced4f9deae9b52975dc60a8f39ced196",
@@ -122,6 +130,6 @@
     "tests/e2e/sidebar-transition.spec.ts": "72fd3e9ab3c74539ca463384bcfda807964cdb5e0ae57490f2aa0cdde75fad55",
     "tests/fixtures/scripted-chat-service.ts": "1228da94b1c8ac823e3d0c5aade8434a1a2978584c5c64cf654ff1e5defac1ec"
   },
-  "fileCount": 49,
+  "fileCount": 51,
   "codeFileCount": 37
 }
