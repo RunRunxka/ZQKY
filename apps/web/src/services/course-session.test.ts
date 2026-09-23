@@ -118,6 +118,29 @@ describe('轮次课程快照', () => {
     expect(text).not.toMatch(/已检索到|已解析教材|RAG 已接入|已向量检索/);
   });
 
+  it('渲染期字段上限（CHAT-CONTEXT-BUDGET v1）：超长课程名 ≤80、超长大纲标题 ≤120，且免责句保留', () => {
+    const huge: StudyCourse = {
+      ...course,
+      name: '课'.repeat(500),
+      syllabus: [{ id: 'u1', position: 0, title: '单'.repeat(32001), topics: [], covered: false }],
+    };
+    const text = courseContextMessage(buildCourseSnapshot(huge, '2026-09-22T12:00:00.000Z'));
+    // 既有 truncate 约定：截到上限并追加省略号 → 值长为「上限 + 1」，不整段进入报文
+    const nameLine = text.split('\n').find((line) => line.startsWith('课程名称：'))!;
+    expect(nameLine.length).toBeLessThanOrEqual('课程名称：'.length + 80 + 1);
+    const syllabusLine = text.split('\n').find((line) => line.includes('下一个未完成单元：'))!;
+    expect(syllabusLine.length - (syllabusLine.indexOf('单元：') + '单元：'.length)).toBeLessThanOrEqual(
+      120 + 1,
+    );
+    // 固定信息与免责句必须存活；整体仍在既有 2400 上限内、且不超后端单条上限 32000
+    expect(text).toContain('课程资源（仅登记引用：内容未解析、未检索、未随本请求发送）：');
+    expect(text.length).toBeLessThanOrEqual(COURSE_CONTEXT_MESSAGE_LIMIT);
+    expect(text.length).toBeLessThanOrEqual(32000);
+    // 渲染期防御裁剪不回写课程原始数据/快照字段
+    expect(huge.name).toBe('课'.repeat(500));
+    expect(huge.syllabus[0]!.title).toBe('单'.repeat(32001));
+  });
+
   it('整体超长时在预算内收缩：保留免责句与课程名，资源条目按上限列出并标注总项数', () => {
     const many: StudyCourse = {
       ...course,

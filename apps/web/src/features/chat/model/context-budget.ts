@@ -1,4 +1,4 @@
-import type { ChatMessage } from '@/contracts/chat';
+import type { ChatMessage, ChatRole } from '@/contracts/chat';
 
 /**
  * 消息的对话投影（R12）：正文 + 已确认追问交流 + 逐卡续写，按时间顺序。
@@ -30,41 +30,77 @@ export function conversationProjection(m: ChatMessage): string {
   return parts.join('\n');
 }
 
+/** 请求消息形状（与后端 LLMMessage 对齐） */
+export interface RequestMessage {
+  role: ChatRole;
+  content: string;
+}
+
 /**
- * 上下文预算（可解释的截断规则）：
- * - 预算按 1 token ≈ 2 个字符估算（中文偏保守），并预留输出上限对应的输入空间；
- * - 从最新消息向前保留，超预算的更早消息丢弃；
- * - 始终保留最后一条用户消息（即使超预算）；
- * - 助手消息按对话投影计入（含已确认追问交流与续答，R12）。
+ * 对话历史 → 可发送的整条消息：统一走对话投影（R12），无正文的空占位
+ * （失败/流式中的助手占位）与 system 空行不发送。
+ */
+export function projectRequestHistory(messages: ChatMessage[]): RequestMessage[] {
+  const projected: RequestMessage[] = [];
+  for (const message of messages) {
+    const content = message.asks?.length ? conversationProjection(message) : message.content;
+    if (!content.trim()) continue;
+    projected.push({ role: message.role, content });
+  }
+  return projected;
+}
+
+/** 历史裁剪容量：字符、条数、后端单条上限（三者都是硬约束） */
+export interface HistoryCapacity {
+  /** 课程块与当前问题之外剩余的字符容量 */
+  chars: number;
+  /** 还能容纳的历史条数（已为课程块与当前问题留位） */
+  count: number;
+  /** 后端单条消息字符上限：超过该值的整条消息无法发送 */
+  maxChars: number;
+}
+
+/**
+ * 从最新向前保留**整条**历史消息（绝不拼接半条消息）：
+ * - 某一条放不下（字符、条数或单条上限任一不满足）即停止，其后更旧的消息一并丢弃，
+ *   保证发送的是连续的近期上下文，而不是带空洞的历史；
+ * - 返回值中的 `dropped` 是**因预算被丢弃**的历史条数（调用方保证其中不含当前问题）。
+ */
+export function takeNewestMessages(
+  entries: RequestMessage[],
+  capacity: HistoryCapacity,
+): { messages: RequestMessage[]; dropped: number } {
+  if (entries.length === 0) return { messages: [], dropped: 0 };
+  const selected: RequestMessage[] = [];
+  let total = 0;
+  for (let index = entries.length - 1; index >= 0; index -= 1) {
+    const entry = entries[index]!;
+    const fits =
+      entry.content.length <= capacity.maxChars &&
+      selected.length < capacity.count &&
+      total + entry.content.length <= capacity.chars;
+    if (!fits) return { messages: selected, dropped: index + 1 };
+    total += entry.content.length;
+    selected.unshift(entry);
+  }
+  return { messages: selected, dropped: 0 };
+}
+
+/**
+ * 旧预算入口（R12 投影的兼容包装，供历史行为断言/旧调用方读取）。
+ *
+ * **不是产品路径**：真实请求统一由 `buildChatRequest`（课程块 + 历史 + 当前问题的
+ * 同一预算与后端限制）构建。本函数**不保证当前问题可容纳**，也不做后端限制自检——
+ * 当前问题放不下必须由 `buildChatRequest` 明确失败（ok:false），不得静默丢弃。
+ * 新代码不要使用本函数。
  */
 export function selectMessagesForRequest(
   messages: ChatMessage[],
   budgetChars: number,
-): { role: 'user' | 'assistant' | 'system'; content: string }[] {
-  const eligible = messages
-    .map((message) =>
-      message.asks?.length ? { ...message, content: conversationProjection(message) } : message,
-    )
-    .filter((message) => {
-      if (message.role === 'user') return message.content.trim().length > 0;
-      if (message.role === 'assistant') return message.content.trim().length > 0;
-      return true; // system
-    });
-  if (eligible.length === 0) return [];
-
-  const selected: ChatMessage[] = [];
-  let total = 0;
-  for (let index = eligible.length - 1; index >= 0; index -= 1) {
-    const message = eligible[index];
-    const isLastUser = index === eligible.length - 1 && message.role === 'user';
-    if (!isLastUser && total + message.content.length > budgetChars) {
-      break;
-    }
-    total += message.content.length;
-    selected.unshift(message);
-  }
-  return selected.map((message) => ({
-    role: message.role as 'user' | 'assistant' | 'system',
-    content: message.content,
-  }));
+): RequestMessage[] {
+  return takeNewestMessages(projectRequestHistory(messages), {
+    chars: budgetChars,
+    count: Number.POSITIVE_INFINITY,
+    maxChars: Number.POSITIVE_INFINITY,
+  }).messages;
 }

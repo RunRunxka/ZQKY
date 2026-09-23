@@ -1,0 +1,171 @@
+CHAT-CONTEXT-BUDGET v1 —— 探针反转运行记录（修复后，含队长裁定的 course-session 最小补丁）
+生成时间：2026-09-23（本地 Git Bash，仓库 H:/备份xuexi/智启课源）
+起点：main@b16a825（工作区含 I-CHAT 本批改动；未提交、未 build；生产构建与权威 e2e 由队长执行）
+
+本目录内容：
+  probe.test.ts            —— 原探针逐字节副本（md5 18122b3c1953eb3ef2ca53dfe92d7ccc，未做任何改动）
+  probe.config.ts          —— 原探针配置逐字节副本（md5 eec826816341c648129fa0c795456158）
+  probe-copy.config.ts     —— 仅把副本的相对导入 alias 回真实源码（内容不改，否则副本因路径失效无法运行）
+  product-path-probe.test.ts / .config.ts —— 反转探针：同缺陷场景改从**产品路径**断言（修复前会失败）
+  probe-run-after-fix.txt  —— 本文件（实测输出；ANSI 颜色码已剥离，其余逐字）
+
+=== A. 冻结探针（_work 原路径，修复后运行）===
+$ NODE_OPTIONS=--no-experimental-webstorage npx vitest run --config _work/course-gate-20260922/probe.config.ts
+
+npm notice run zhiqikeyuan@0.2.0 npx
+npm notice run vitest run --config _work/course-gate-20260922/probe.config.ts
+
+ RUN  v3.2.4 H:/备份xuexi/智启课源
+
+ ✓ apps/web/src/services/course-session.test.ts (8 tests) 11ms
+stdout | _work/course-gate-20260922/probe.test.ts > defect: a UI-compatible long syllabus title exceeds course and API message limits
+{"kind":"course-message","chars":208,"courseLimit":2400,"apiSingleMessageLimit":32000}
+
+stdout | _work/course-gate-20260922/probe.test.ts > defect: normal course metadata is appended outside the selected total request budget
+{"kind":"request-budget","chars":1990,"budget":2000}
+
+ ❯ _work/course-gate-20260922/probe.test.ts (2 tests | 2 failed) 10ms
+   × defect: a UI-compatible long syllabus title exceeds course and API message limits 5ms
+     → expected 208 to be greater than 32000
+   × defect: normal course metadata is appended outside the selected total request budget 5ms
+     → expected 'user' to be 'system' // Object.is equality
+ ✓ apps/web/src/features/chat/model/course-context.test.ts (5 tests) 15ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  _work/course-gate-20260922/probe.test.ts > defect: a UI-compatible long syllabus title exceeds course and API message limits
+AssertionError: expected 208 to be greater than 32000
+ ❯ _work/course-gate-20260922/probe.test.ts:16:23
+     14|   const text = courseContextMessage(buildCourseSnapshot(readCourses().…
+     15|   console.info(JSON.stringify({kind:'course-message',chars:text.length…
+     16|   expect(text.length).toBeGreaterThan(32000);
+       |                       ^
+     17| });
+     18| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  _work/course-gate-20260922/probe.test.ts > defect: normal course metadata is appended outside the selected total request budget
+AssertionError: expected 'user' to be 'system' // Object.is equality
+
+Expected: "system"
+Received: "user"
+
+ ❯ _work/course-gate-20260922/probe.test.ts:33:42
+     31|   const budget = contextBudgetChars(profile.contextTokens,profile.maxO…
+     32|   console.info(JSON.stringify({kind:'request-budget',chars:total,budge…
+     33|   expect(requests[0]!.messages[0]!.role).toBe('system');
+       |                                          ^
+     34|   expect(total).toBeGreaterThan(budget);
+     35| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed | 2 passed (3)
+      Tests  2 failed | 13 passed (15)
+   Start at  14:31:52
+   Duration  1.06s (transform 150ms, setup 0ms, collect 423ms, tests 36ms, environment 784ms, prepare 164ms)
+
+
+=== B. 冻结探针副本（docs 路径，逐字节同一文件，仅补导入 alias）===
+$ NODE_OPTIONS=--no-experimental-webstorage npx vitest run --config docs/qa/CHAT-CONTEXT-BUDGET/probe-reversal/probe-copy.config.ts
+
+npm notice run zhiqikeyuan@0.2.0 npx
+npm notice run vitest run --config docs/qa/CHAT-CONTEXT-BUDGET/probe-reversal/probe-copy.config.ts
+
+ RUN  v3.2.4 H:/备份xuexi/智启课源
+
+stdout | docs/qa/CHAT-CONTEXT-BUDGET/probe-reversal/probe.test.ts > defect: a UI-compatible long syllabus title exceeds course and API message limits
+{"kind":"course-message","chars":208,"courseLimit":2400,"apiSingleMessageLimit":32000}
+
+stdout | docs/qa/CHAT-CONTEXT-BUDGET/probe-reversal/probe.test.ts > defect: normal course metadata is appended outside the selected total request budget
+{"kind":"request-budget","chars":1990,"budget":2000}
+
+ ❯ docs/qa/CHAT-CONTEXT-BUDGET/probe-reversal/probe.test.ts (2 tests | 2 failed) 10ms
+   × defect: a UI-compatible long syllabus title exceeds course and API message limits 5ms
+     → expected 208 to be greater than 32000
+   × defect: normal course metadata is appended outside the selected total request budget 5ms
+     → expected 'user' to be 'system' // Object.is equality
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  docs/qa/CHAT-CONTEXT-BUDGET/probe-reversal/probe.test.ts > defect: a UI-compatible long syllabus title exceeds course and API message limits
+AssertionError: expected 208 to be greater than 32000
+ ❯ docs/qa/CHAT-CONTEXT-BUDGET/probe-reversal/probe.test.ts:16:23
+     14|   const text = courseContextMessage(buildCourseSnapshot(readCourses().…
+     15|   console.info(JSON.stringify({kind:'course-message',chars:text.length…
+     16|   expect(text.length).toBeGreaterThan(32000);
+       |                       ^
+     17| });
+     18| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  docs/qa/CHAT-CONTEXT-BUDGET/probe-reversal/probe.test.ts > defect: normal course metadata is appended outside the selected total request budget
+AssertionError: expected 'user' to be 'system' // Object.is equality
+
+Expected: "system"
+Received: "user"
+
+ ❯ docs/qa/CHAT-CONTEXT-BUDGET/probe-reversal/probe.test.ts:33:42
+     31|   const budget = contextBudgetChars(profile.contextTokens,profile.maxO…
+     32|   console.info(JSON.stringify({kind:'request-budget',chars:total,budge…
+     33|   expect(requests[0]!.messages[0]!.role).toBe('system');
+       |                                          ^
+     34|   expect(total).toBeGreaterThan(budget);
+     35| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  2 failed (2)
+   Start at  14:31:54
+   Duration  1.01s (transform 99ms, setup 0ms, collect 147ms, tests 10ms, environment 250ms, prepare 51ms)
+
+
+=== C. 反转探针（产品路径断言，修复后运行）===
+$ NODE_OPTIONS=--no-experimental-webstorage npx vitest run --config docs/qa/CHAT-CONTEXT-BUDGET/probe-reversal/product-path-probe.config.ts
+
+npm notice run zhiqikeyuan@0.2.0 npx
+npm notice run vitest run --config docs/qa/CHAT-CONTEXT-BUDGET/probe-reversal/product-path-probe.config.ts
+
+ RUN  v3.2.4 H:/备份xuexi/智启课源
+
+stdout | docs/qa/CHAT-CONTEXT-BUDGET/probe-reversal/product-path-probe.test.ts > reversal D1: UI 可输入的超长大纲标题在真实请求中不再超课程/后端上限
+{"kind":"course-message","chars":243,"courseLimit":2400,"apiSingleMessageLimit":32000}
+
+stdout | docs/qa/CHAT-CONTEXT-BUDGET/probe-reversal/product-path-probe.test.ts > reversal D2: 课程块在选中总预算之内（不再追加到预算之外）
+{"kind":"request-budget","chars":1990,"budget":2000}
+
+stdout | docs/qa/CHAT-CONTEXT-BUDGET/probe-reversal/product-path-probe.test.ts > reversal: 课程块存在时位于最前、免责句在，且整条历史不拼接半条
+{"kind":"second-turn-shape","roles":["system","user","user"],"chars":[86,3,3]}
+
+ ✓ docs/qa/CHAT-CONTEXT-BUDGET/probe-reversal/product-path-probe.test.ts (3 tests) 8ms
+
+ Test Files  1 passed (1)
+      Tests  3 passed (3)
+   Start at  14:31:56
+   Duration  992ms (transform 103ms, setup 0ms, collect 152ms, tests 8ms, environment 256ms, prepare 51ms)
+
+
+=== D. 结论：D1 与 D2 两条缺陷假设均已不成立 ===
+1. D1 已反转：原探针第 1 条（courseContextMessage 产出 32088 字 system 消息）修复后**按预期失败**——
+   同一 32001 字大纲单元标题下实测 208 字符（≤ 本地 2400 承诺，且 ≤ 后端 32000 单条上限）。
+   修复位置（队长 2026-09-23 授权的最小补丁）：apps/web/src/services/course-session.ts 的
+   courseContextMessage 新增「课程名 ≤80、下一个未完成单元标题 ≤120」（复用既有 truncate；
+   只影响输出，不改快照字段、不回写课程原始数据、不改归属/过滤/解析语义）；
+   产品路径另由 features/chat/model/request-budget.ts 的 §4 受限渲染阶梯负责。
+   路径 A（_work 原路径）与路径 B（docs 逐字节副本）结果一致：均 208 字符、两条断言均失败。
+2. D2 已反转：原探针第 2 条（总字符 2040 > 预算 2000）修复后**按预期失败**——课程块无法与 1990 字
+   问题同处预算内，故整体丢弃（请求最前不再是 system，先在此断言处失败），实测总字符 1990 ≤ 2000；
+   课程块可容纳时则计入**同一预算**（见 C 组、单测与浏览器用例）。缺陷期同场景为 2040 > 2000。
+3. 副本完整性：docs 副本 probe.test.ts 运行前后 md5 均为 18122b3c1953eb3ef2ca53dfe92d7ccc，与
+   _work 原件逐字节一致，**未改动、未另存 adapted 版本**。副本能就地运行只靠 probe-copy.config.ts
+   的导入 alias（把副本中按原位置写死的相对导入映回真实源码），探针断言一个字未改。
+4. 修复后的正向证据（口径：**字符估算**，不是精确 token，也不保证不超模型自身上下文上限）：
+   反转探针 3/3 通过；单测 request-budget 15/15、context-budget 6/6、course-session 8/8、
+   course-context 5/5；静态门 lint 0 警告、tsc --noEmit 通过；浏览器用例（隔离 dev server，
+   生产构建与权威 e2e 由队长复跑）chat-context-budget 4/4、course-sessions 11/11。
+

@@ -1,6 +1,5 @@
 import { createStore } from 'zustand/vanilla';
 import {
-  contextBudgetChars,
   type AskUserAnswer,
   type AskUserCardStatus,
   type AskUserDraft,
@@ -23,12 +22,12 @@ import {
   type ChatServiceEvent,
   type ChatToolCall,
 } from './chat-service';
-import { selectMessagesForRequest } from './context-budget';
 import {
-  buildNewConversation,
-  courseContextMessage,
-  resolveCourseSnapshot,
-} from '@/services/course-session';
+  buildChatRequest,
+  requestHistory,
+  type BuildRequestResult,
+} from './request-budget';
+import { buildNewConversation, resolveCourseSnapshot } from '@/services/course-session';
 
 export interface ChatProfileSelection {
   id: string;
@@ -49,6 +48,13 @@ export interface ChatState {
   storageWarning: string | null;
   /** 课程上下文不可用时的如实提示（H1-COURSE-SESSIONS v1）；null = 无提示 */
   courseContextWarning: string | null;
+  /**
+   * 请求构建失败时的可读提示（CHAT-CONTEXT-BUDGET v1）：当前问题超出本轮可用预算，
+   * **未发送任何请求**，草稿与历史保持原样，可修改后重发；null = 无提示。
+   */
+  budgetNotice: string | null;
+  /** 关闭预算提示（只清提示，不改动草稿、历史与会话归属） */
+  dismissBudgetNotice(): void;
   /** 当前会话的课程归属（稳定 courseId；缺失 = 未归属）；供聊天页展示与"返回课程" */
   activeCourseId: string | null;
   /** 关闭"课程上下文不可用"提示（只清提示，不改变会话归属与历史） */
@@ -483,7 +489,7 @@ export function createChatStore(deps: ChatDeps = {}) {
         }),
       );
       // 新建会话：课程上下文警告属于上一轮/上一会话，随切换清除（A1 r1 F2）
-      set({ activeId: id, courseContextWarning: null });
+      set({ activeId: id, courseContextWarning: null, budgetNotice: null });
       change(id, (conversation) => conversation);
     }
     /**
@@ -634,14 +640,15 @@ export function createChatStore(deps: ChatDeps = {}) {
         }
       };
     }
-    async function run(
-      profile: ChatProfileSelection,
-      replyToId: string,
-      extensions?: TurnExtensionSnapshot,
-      courseSnapshot?: TurnCourseSnapshot,
-    ) {
+    /** 本轮已构建好的请求（由 buildChatRequest 产出；request.messages 与实际发送逐条一致） */
+    interface PreparedTurn {
+      request: Extract<BuildRequestResult, { ok: true }>;
+      extensions?: TurnExtensionSnapshot;
+      courseSnapshot?: TurnCourseSnapshot;
+    }
+    async function run(profile: ChatProfileSelection, replyToId: string, prepared: PreparedTurn) {
+      const { extensions, courseSnapshot } = prepared;
       const id = get().activeId!;
-      const conversation = docs.get(id)!;
       const assistantId = uid();
       const turnId = uid();
       const token = {
@@ -654,16 +661,10 @@ export function createChatStore(deps: ChatDeps = {}) {
       };
       generation = token;
       set({ sending: true });
-      const history = selectMessagesForRequest(
-        conversation.messages.filter((m) => !m.superseded && m.status !== 'error'),
-        contextBudgetChars(profile.contextTokens, profile.maxOutputTokens),
-      );
-      // 课程上下文（H1-COURSE-SESSIONS v1）：**如实进入既有真实请求链路**——
-      // 渲染为一条 system 消息插在请求 messages 最前（不新增请求字段、不改后端协议）。
-      // 预算裁剪在上一步完成，这里只追加已受 1200/2400 字符上限约束的课程块。
-      const requestMessages = courseSnapshot
-        ? [{ role: 'system' as const, content: courseContextMessage(courseSnapshot) }, ...history]
-        : history;
+      // CHAT-CONTEXT-BUDGET v1：请求体在**发送前**已由 buildChatRequest 统一构建
+      // （课程块 + 历史 + 当前问题同一预算），这里只做透传，绝不二次裁剪，
+      // 保证 requestBudget 账目与实际发送内容逐字段可核。
+      const requestMessages = prepared.request.messages;
       change(id, (c) => ({
         ...c,
         messages: [
@@ -681,6 +682,8 @@ export function createChatStore(deps: ChatDeps = {}) {
             ...(extensions ? { extensions: structuredClone(extensions) } : {}),
             // 课程快照同样随本轮冻结：课程改名/改约定只影响**新轮**，重试沿用原快照
             ...(courseSnapshot ? { courseContext: structuredClone(courseSnapshot) } : {}),
+            // 本次请求的字符账目（字符估算）：随消息持久化，刷新可核
+            requestBudget: structuredClone(prepared.request.record),
           },
         ],
       }));
@@ -867,6 +870,7 @@ export function createChatStore(deps: ChatDeps = {}) {
       loadError: null,
       storageWarning: null,
       courseContextWarning: null,
+      budgetNotice: null,
       activeCourseId: null,
       mode: 'real',
       conversations: [],
@@ -880,6 +884,7 @@ export function createChatStore(deps: ChatDeps = {}) {
       init: runInit,
       newConversation: (options?: { courseId?: string; title?: string }) => create(options),
       dismissCourseContextWarning: () => set({ courseContextWarning: null }),
+      dismissBudgetNotice: () => set({ budgetNotice: null }),
       async selectConversation(id) {
         stop();
         const epoch = ++selectionEpoch;
@@ -890,7 +895,7 @@ export function createChatStore(deps: ChatDeps = {}) {
             // R5：再次载入历史走同一套恢复语义，不复活无人执行的 streaming/running
             docs.set(id, normalizeLoaded(c));
             // 切换会话：清掉上一会话遗留的课程上下文警告（警告与该轮绑定，不跨会话保留）
-            set({ activeId: id, courseContextWarning: null });
+            set({ activeId: id, courseContextWarning: null, budgetNotice: null });
             publish();
           }
         } catch {
@@ -900,7 +905,7 @@ export function createChatStore(deps: ChatDeps = {}) {
       /** 见 ChatState.deactivate：只清当前会话，不动任何持久化数据。 */
       deactivate() {
         stop();
-        set({ activeId: null, courseContextWarning: null });
+        set({ activeId: null, courseContextWarning: null, budgetNotice: null });
         publish();
       },
       async renameConversation(id, title) {
@@ -961,6 +966,22 @@ export function createChatStore(deps: ChatDeps = {}) {
           ? `[附件] ${extensions.attachments.map((item) => item.filename).join('、')}`
           : `[引用会话] ${(extensions?.historyRefs ?? []).map((item) => item.title).join('、')}`;
         const userLabel = text.trim() || fallbackLabel;
+        const courseSnapshot = courseResolution.state === 'ok' ? courseResolution.snapshot : undefined;
+        // CHAT-CONTEXT-BUDGET v1：**先预检构建**再动任何状态——用候选问题 + 现有历史 +
+        // 本轮课程快照走同一构建器。失败（当前问题放不下）时只给可读提示：
+        // 不清草稿、不入库用户消息、不建助手占位、不置 sending，用户改短后可重发。
+        const built = buildChatRequest({
+          history: requestHistory(docs.get(get().activeId!)?.messages ?? []),
+          question: userLabel,
+          courseSnapshot,
+          contextTokens: effectiveProfile.contextTokens,
+          maxOutputTokens: effectiveProfile.maxOutputTokens,
+        });
+        if (!built.ok) {
+          set({ budgetNotice: built.message });
+          return;
+        }
+        set({ budgetNotice: null });
         change(get().activeId!, (c) => ({
           ...c,
           draft: '',
@@ -973,12 +994,11 @@ export function createChatStore(deps: ChatDeps = {}) {
         // R20：此刻轮次已被接纳（用户消息已入库）——同步通知调用方清理本次消耗的一次性选择；
         // 上方任何拒绝路径都会提前返回，不会误触发清理
         onAccepted?.();
-        await run(
-          effectiveProfile,
-          userId,
-          snapshot,
-          courseResolution.state === 'ok' ? courseResolution.snapshot : undefined,
-        );
+        await run(effectiveProfile, userId, {
+          request: built,
+          ...(snapshot ? { extensions: snapshot } : {}),
+          ...(courseSnapshot ? { courseSnapshot } : {}),
+        });
       },
       stop,
       setAskDraft(interactionId, questionId, draft) {
@@ -1034,21 +1054,39 @@ export function createChatStore(deps: ChatDeps = {}) {
           return;
         const user = [...messages].reverse().find((m) => m.role === 'user');
         if (!user) return;
-        change(get().activeId!, (c) => ({
-          ...c,
-          // 失败占位默认移除；带过程记录或追问交流的失败尝试必须保留（R12：可能没有正文）
-          messages: c.messages
-            .filter(
-              (m) =>
-                m.id !== id ||
-                m.content !== '' ||
-                (m.toolCalls?.length ?? 0) > 0 ||
-                (m.asks?.length ?? 0) > 0,
-            )
-            .map((m) => (m.id === id ? { ...m, superseded: true } : m)),
-        }));
+        // 失败占位默认移除；带过程记录或追问交流的失败尝试必须保留（R12：可能没有正文）
+        const settled = messages
+          .filter(
+            (m) =>
+              m.id !== id ||
+              m.content !== '' ||
+              (m.toolCalls?.length ?? 0) > 0 ||
+              (m.asks?.length ?? 0) > 0,
+          )
+          .map((m) => (m.id === id ? { ...m, superseded: true } : m));
+        // CHAT-CONTEXT-BUDGET v1：重试同样**先预检**，并用旧轮冻结的课程快照
+        // （旧轮的超长快照也经同一构建器安全渲染；不要求清库）。
+        // 构建失败：保留失败态与重试入口，只给可读提示，不改动任何消息。
+        const built = buildChatRequest({
+          history: requestHistory(settled),
+          question: user.content,
+          courseSnapshot: last.courseContext,
+          contextTokens: effectiveProfile.contextTokens,
+          maxOutputTokens: effectiveProfile.maxOutputTokens,
+        });
+        if (!built.ok) {
+          set({ budgetNotice: built.message });
+          return;
+        }
+        set({ budgetNotice: null });
+        // 落库的正是构建请求时所用的那一份消息（同一变换只算一次，账目与历史可逐条核对）
+        change(get().activeId!, (c) => ({ ...c, messages: settled }));
         // 重试沿用原请求快照（含课程快照），不读取最新目录替换旧配置；想采用新配置需重新发送
-        await run(effectiveProfile, user.id, last.extensions, last.courseContext);
+        await run(effectiveProfile, user.id, {
+          request: built,
+          ...(last.extensions ? { extensions: last.extensions } : {}),
+          ...(last.courseContext ? { courseSnapshot: last.courseContext } : {}),
+        });
       },
       async retryLast(profile) {
         const last = get().messages.at(-1);

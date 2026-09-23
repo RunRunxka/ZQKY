@@ -25,6 +25,13 @@ export const COURSE_RESOURCE_LABEL_LIMIT = 80;
 /** 资源行的固定前缀：**保证不被截断**的免责说明 */
 const RESOURCE_DISCLAIMER =
   '课程资源（仅登记引用：内容未解析、未检索、未随本请求发送）：';
+/**
+ * 渲染期字段上限（CHAT-CONTEXT-BUDGET v1 §4，对**旧快照**同样生效）：
+ * 课程名 ≤80、下一个未完成单元标题 ≤120。与
+ * `features/chat/model/request-budget.ts` 的同名上限保持同一数值（同一文案契约）。
+ */
+const COURSE_NAME_LIMIT = 80;
+const COURSE_NEXT_TITLE_LIMIT = 120;
 
 /** 课程解析结果：`unavailable` = 目录读取失败（不得当成"课程已被删除"，也不得沿用其他课程） */
 export type CourseResolution =
@@ -117,11 +124,17 @@ export function resolveCourseSnapshot(
 export function courseContextMessage(snapshot: TurnCourseSnapshot): string {
   const header =
     '本节对话属于一门课程，以下是课程上下文（本地登记信息，供你组织回答；不是用户消息）：';
-  const nameLine = `课程名称：${snapshot.name}`;
+  // 字段上限（只影响本函数输出，不改快照字段、不回写课程原始数据）；
+  // 超长值沿用既有 truncate 约定：截到上限并追加省略号。
+  const name = truncate(snapshot.name, COURSE_NAME_LIMIT);
+  const nextTitle = snapshot.syllabus.nextTitle
+    ? truncate(snapshot.syllabus.nextTitle, COURSE_NEXT_TITLE_LIMIT)
+    : null;
+  const nameLine = `课程名称：${name}`;
   const syllabusLine =
     snapshot.syllabus.total > 0
       ? `大纲进度：共 ${snapshot.syllabus.total} 个单元，已完成 ${snapshot.syllabus.covered} 个（学员手判）${
-          snapshot.syllabus.nextTitle ? `；下一个未完成单元：${snapshot.syllabus.nextTitle}` : ''
+          nextTitle ? `；下一个未完成单元：${nextTitle}` : ''
         }`
       : null;
 

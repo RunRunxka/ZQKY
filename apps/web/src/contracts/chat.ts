@@ -198,12 +198,42 @@ export interface ChatMessage {
   artifacts?: ChatArtifact[];
   /** 本轮冻结的课程快照（发送时生成，重试沿用；未归属会话/课程不可用时缺省） */
   courseContext?: TurnCourseSnapshot;
+  /**
+   * 本轮请求的预算账目（CHAT-CONTEXT-BUDGET v1）：如实记录**实际发送时**的裁剪行为。
+   * 全部为**字符估算**（1 token ≈ 2 字符的保守估计），不是精确 token 计数；历史原文不受影响。
+   */
+  requestBudget?: RequestBudgetRecord;
   /** 轮级计时（S3）：开始=助手占位创建；结束=end/error/取消收尾（完成后冻结时长显示） */
   startedAt?: string;
   finishedAt?: string;
   finishReason?: string;
   usage?: { inputTokens?: number | null; outputTokens?: number | null };
   error?: ChatMessageError;
+}
+
+/**
+ * 本轮请求的预算账目（CHAT-CONTEXT-BUDGET v1；随助手消息持久化，刷新可核）。
+ *
+ * 语义边界：
+ * - `inputBudgetChars` 由模型档案的 `contextTokens/maxOutputTokens` 估算而来，并受后端总长度上限约束；
+ * - 裁剪顺序为「课程动态字段 → 旧历史 → 课程块整体丢弃」，当前问题与单条消息完整性不在裁剪范围内；
+ * - 账目只记录**发送时**的事实，不反向改写课程数据、不改写历史消息正文。
+ */
+export interface RequestBudgetRecord {
+  /** 实际发送的字符总数（课程块 + 历史 + 当前问题） */
+  totalChars: number;
+  /** 本轮采用的输入预算（字符） */
+  inputBudgetChars: number;
+  /** 后端单条消息字符上限（apps/api/app/schemas/chat.py: MAX_MESSAGE_CHARS） */
+  maxMessageChars: number;
+  /** 后端消息总长度字符上限（同文件：MAX_TOTAL_CHARS） */
+  maxTotalChars: number;
+  /** 因预算被丢弃的旧历史消息条数（不包含当前问题） */
+  historyDroppedMessages: number;
+  /** 课程块被裁剪的动态字段（如 name/conventions/syllabus/resourceLabels/resourceItems） */
+  courseTrimmedFields: string[];
+  /** 课程块整体无法容纳而被丢弃：本轮**未携带**课程上下文（如实标注，不伪造完整上下文） */
+  courseDropped: boolean;
 }
 
 export interface Conversation {

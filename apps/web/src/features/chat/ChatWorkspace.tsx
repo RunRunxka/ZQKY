@@ -387,6 +387,24 @@ function ChatPage({
   }, [profile, error]);
   const activeTitle = store.conversations.find((c) => c.id === store.activeId)?.title ?? '新的对话';
   const hasMessages = store.messages.length > 0;
+  // CHAT-CONTEXT-BUDGET v1：最近一轮**实际发送时**的字符账目（随助手消息持久化，刷新可核）。
+  // 只如实转述裁剪事实，不声称精确 token，也不把估算说成模型上限保证。
+  const lastTurnBudget = useMemo(
+    () => [...store.messages].reverse().find((m) => m.role === 'assistant')?.requestBudget ?? null,
+    [store.messages],
+  );
+  const budgetRecordNotice = useMemo(() => {
+    if (!lastTurnBudget) return null;
+    const parts: string[] = [];
+    if (lastTurnBudget.courseDropped)
+      parts.push('课程上下文整体超出本轮输入预算，本轮未携带课程上下文（如实丢弃，未发送残缺内容）');
+    else if (lastTurnBudget.courseTrimmedFields.length)
+      parts.push(`课程动态字段已按上限受限（${lastTurnBudget.courseTrimmedFields.join('、')}）`);
+    if (lastTurnBudget.historyDroppedMessages > 0)
+      parts.push(`已整条丢弃最旧的 ${lastTurnBudget.historyDroppedMessages} 条历史消息`);
+    if (!parts.length) return null;
+    return `本轮请求按字符估算裁剪：${parts.join('；')}。历史消息与课程数据未被改写。`;
+  }, [lastTurnBudget]);
   // S3/R24：当前会话的全部产物，复合身份 key = `${messageId}:${artifactId}`——
   // 不同轮同 id 产物在列表、tab、复制、下载中互不串位；旧历史（无 turnId）同样兼容
   const conversationArtifacts: ArtifactPanelItem[] = useMemo(
@@ -812,6 +830,17 @@ function ChatPage({
                   <Link href="/courses">课程列表</Link>
                 </>
               )}
+            </div>
+          )}
+          {store.budgetNotice && (
+            <div className="chat-banner warn chat-budget-notice" role="alert">
+              {store.budgetNotice}
+              <button onClick={() => store.dismissBudgetNotice()}>知道了</button>
+            </div>
+          )}
+          {budgetRecordNotice && (
+            <div className="chat-banner warn" role="status" data-budget-record>
+              {budgetRecordNotice}
             </div>
           )}
           {store.courseContextWarning && (
