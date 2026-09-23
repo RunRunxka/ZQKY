@@ -71,6 +71,21 @@ null（画布全空白却标记 `data-glass-fluid-ok='on'`，而该标记会 `di
 
 即：流体确实在绘制（非纯色、非空白）、CSS 环境光被正确让位、减少动画下只画一帧。
 
+### 2.5 历史残留（**已知悉，决定保留**）
+
+上面的移除只清理了**当前树**。AGPL 版本仍留在提交历史里：
+
+- 引入它的提交是 `bba132a`（`feat(theme): WebGL 流体背景（DSH fluid-shader 移植）…`）；
+- `bba132a` 仍是 `feat/glass-theme` 的祖先，`git show bba132a:apps/web/src/components/layout/fluid-shader.ts` **仍能取到 AGPL 版本**；
+- 该提交之后的 **28 个提交**，每一棵树里都带着同一个 blob（`bba132a..HEAD` 共 28 个提交，全分支约 33 个）；
+- `origin/main` 本身不含这两个文件；`W-sp-git/ZQKY` 那个 fork 已不存在。
+
+> **2026-09-23 用户决定：保留历史，不改写。**
+> 因此**本仓库一旦公开，上述 blob 会被任何人检出**——这是**知情选择，不是遗漏**。
+> 若日后改变决定，两条路：公开前**从干净历史重建**（当前树作新的初始提交或发布导出，成本≈0）；
+> 或 `git filter-repo` 抹掉该路径 + force-push（协作者需 `reset --hard` 或重新克隆，本机未装 filter-repo）。
+> **一旦仓库已公开并被 fork、被搜索引擎或缓存收录，事后清理的成本会显著上升。**
+
 ## 3. `glass.css` 的磨砂配方为什么可以分发
 
 **事实**：该文件此前头部注释自述"技术平移自 DSH-Transparent-UI-Plugin 的磨砂配方"，
@@ -89,7 +104,7 @@ null（画布全空白却标记 `data-glass-fluid-ok='on'`，而该标记会 `di
 
 ## 4. 复核方法
 
-想确认现状，做这三件事即可：
+想确认现状，做这四件事即可：
 
 1. **全仓搜索**这三个词：`AGPL`、`DSH-Transparent`、`WYH66666666`。
    预期只剩两类命中：`fluid-shader.ts` / `fluid-tones.ts` 头部"本文件此前是…已替换"的
@@ -104,6 +119,14 @@ null（画布全空白却标记 `data-glass-fluid-ok='on'`，而该标记会 `di
 
    预期：常态 `fluidOk: "on"` 且 `changedBetweenFrames: true`；
    `data-motion=reduced` 时 `changedBetweenFrames: false`。
+4. **确认历史残留状态**（当前为"已知悉保留"，见 §2.5）：
+
+   ```bash
+   git show bba132a:apps/web/src/components/layout/fluid-shader.ts | head -3   # 仍会输出 AGPL 版头注释
+   git rev-list --count bba132a..HEAD                                         # 受影响提交数（当前 28）
+   ```
+
+   若这一步的输出与 §2.5 不符（例如已改为空），说明有人做过历史改写，需同步更新本节。
 
 > 注意：本机 shell 的 `grep` 搜中文会静默返回空，`rg` 未安装。全仓搜索请用编辑器/IDE 的
 > 搜索功能，这些词都是 ASCII，用任何带全仓索引的工具都可以。
