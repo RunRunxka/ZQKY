@@ -72,7 +72,9 @@ for (const viewport of [
       true,
     );
     const mainWidth = (await page.locator('.chat-main').boundingBox())!.width;
-    expect(mainWidth).toBe(viewport.width >= 768 ? viewport.width - 220 - 236 : viewport.width);
+    // 学习记录已并入全站导航（UX-PERF-CLOSEOUT v1）：桌面聊天主区只减去侧栏宽度，
+    // 不再有 236px 的独立会话中栏；手机仍为整宽。
+    expect(mainWidth).toBe(viewport.width >= 768 ? viewport.width - 220 : viewport.width);
     if (viewport.width >= 768) {
       expect((await page.locator('.global-nav').boundingBox())?.width).toBe(220);
       expect((await page.locator('.chat-composer').boundingBox())?.width).toBe(Math.min(912, mainWidth - 48));
@@ -99,12 +101,24 @@ for (const viewport of [
     await page.screenshot({ path: testInfo.outputPath(`home-panel-${viewport.width}.png`) });
     await page.getByRole('button', { name: '关闭结果工作区' }).click();
     await expect(page.locator('.chat-workspace')).toHaveCount(0);
-    await page.getByRole('button', { name: '打开会话列表' }).click();
+    // 学习记录并入全站导航（UX-PERF-CLOSEOUT v1）：桌面在左侧导航内，
+    // 手机在同一个功能导航抽屉内——不再有独立的会话列表按钮或第二套弹窗。
     if (viewport.width >= 768) {
-      await expect(page.getByRole('textbox', { name: '搜索会话' })).not.toBeVisible();
-      await page.getByRole('button', { name: '打开会话列表' }).click();
+      await expect(page.getByRole('textbox', { name: '搜索会话' })).toBeVisible();
+      expect(await page.locator('.chat-page > .chat-sessions').count()).toBe(0);
+      await page.getByRole('button', { name: '收起项目导航' }).click();
+      await expect(page.getByRole('textbox', { name: '搜索会话' })).toBeHidden();
+      await page.getByRole('button', { name: '展开项目导航' }).click();
+      await expect(page.getByRole('textbox', { name: '搜索会话' })).toBeVisible();
+    } else {
+      await page.getByRole('button', { name: '打开功能导航' }).click();
+      const drawer = page.getByRole('dialog', { name: '功能导航' });
+      await expect(drawer.getByRole('textbox', { name: '搜索会话' })).toBeVisible();
+      // 不再有第二套“学习记录”弹窗
+      await expect(page.getByRole('dialog', { name: '学习记录' })).toHaveCount(0);
+      await drawer.getByRole('button', { name: '关闭功能导航' }).click();
+      await expect(drawer).toHaveCount(0);
     }
-    await expect(page.getByRole('textbox', { name: '搜索会话' })).toBeVisible();
   });
 }
 

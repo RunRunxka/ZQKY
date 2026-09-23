@@ -193,12 +193,21 @@ test('课程新建与导航显示：书籍可见、课程按参考隐藏', async
   await expect(page.getByRole('heading', { name: /测试课程甲/ })).toBeVisible();
   await expect(page.getByText('还没有大纲')).toBeVisible();
 
-  // 导航：书籍入口可见；课程入口按参考隐藏（路由可达）
+  // 导航（UX-PERF-CLOSEOUT v1）：书籍已并入「教材资料库」，桌面侧栏不再有
+  // 书籍顶级项；书籍与课程仍可经教材资料库页入口与手机抽屉到达，路由不变。
   // 项目导航根级默认展开（NavigationPreference）；仅在收起偏好下先展开，兼容两种状态
   await page.goto('/papers');
   await expect(page.locator('.app-shell')).toBeVisible();
   const expandNav = page.getByRole('button', { name: '展开项目导航' });
   if (await expandNav.isVisible()) await expandNav.click();
-  await expect(page.getByRole('button', { name: '书籍', exact: true })).toHaveCount(1);
+  await expect(page.getByRole('button', { name: '书籍', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '课程', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '教材资料库', exact: true })).toHaveCount(1);
+  await page.goto('/books');
+  await expect(
+    page.getByRole('navigation', { name: '项目功能导航' }).getByRole('button', {
+      name: '教材资料库',
+      exact: true,
+    }),
+  ).toHaveAttribute('aria-current', 'page');
 });

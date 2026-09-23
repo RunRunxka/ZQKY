@@ -59,7 +59,8 @@ test.describe('R-04 每个已实现路由都有唯一当前菜单', () => {
     ['/space/chat-history', '学习空间'],
     ['/space/personas', '学习空间'],
     ['/knowledge-bases', '教材资料库'],
-    ['/books', '书籍'],
+    // T4：书籍并入教材资料库（书籍自身为隐藏直达页），桌面侧栏高亮教材资料库
+    ['/books', '教材资料库'],
     ['/settings', '设置'],
     ['/papers', '智能组卷'],
     ['/question-bank', '题库'],
@@ -77,7 +78,8 @@ test.describe('R-04 每个已实现路由都有唯一当前菜单', () => {
   const hiddenWithParent = [
     ['/whisper', '协同写作'],
     ['/notebooks', '学习空间'],
-    ['/courses', '书籍'],
+    // T4：课程与书籍同级上溯，父菜单同为教材资料库
+    ['/courses', '教材资料库'],
   ] as const;
 
   for (const [route, parent] of hiddenWithParent) {
@@ -87,6 +89,24 @@ test.describe('R-04 每个已实现路由都有唯一当前菜单', () => {
       await expect(item).toHaveAttribute('aria-label', new RegExp(`^${parent}`));
     });
   }
+
+  test('书籍并入教材资料库：桌面侧栏无书籍顶级项，书籍/课程深层路由仍唯一高亮', async ({ page }) => {
+    const nav = page.locator(MAIN_NAV);
+    for (const route of [
+      '/books',
+      '/books/demo-book/pages/demo-page',
+      '/courses',
+      '/courses/demo-course',
+    ]) {
+      await page.goto(route);
+      const item = await currentItem(page);
+      await expect(item, route).toHaveAttribute('aria-label', /^教材资料库/);
+      // 桌面侧栏（过滤隐藏项）不再出现书籍/课程独立顶级项
+      await expect(nav.getByRole('button', { name: '书籍', exact: true })).toHaveCount(0);
+      await expect(nav.getByRole('button', { name: '课程', exact: true })).toHaveCount(0);
+      await expect(nav.getByRole('button', { name: '教材资料库', exact: true })).toHaveCount(1);
+    }
+  });
 
   test('详情页保持父级当前菜单（唯一）', async ({ page }) => {
     await page.goto('/space/questions');
@@ -105,6 +125,21 @@ test.describe('R-04 每个已实现路由都有唯一当前菜单', () => {
       'aria-current',
       'page',
     );
+  });
+
+  test('手机抽屉仍有书籍与课程入口，/books 时高亮书籍自身', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/books');
+    await page.getByRole('button', { name: '打开功能导航' }).click();
+    const panel = page.getByRole('dialog', { name: '功能导航' });
+    const booksEntry = panel.getByRole('button', { name: '书籍', exact: true });
+    const coursesEntry = panel.getByRole('button', { name: '课程', exact: true });
+    await expect(booksEntry).toBeVisible();
+    await expect(coursesEntry).toBeVisible();
+    await expect(booksEntry).toHaveAttribute('aria-current', 'page');
+    await expect(panel.locator('[aria-current="page"]')).toHaveCount(1);
+    await coursesEntry.click();
+    await expect(page).toHaveURL(/\/courses$/);
   });
 });
 

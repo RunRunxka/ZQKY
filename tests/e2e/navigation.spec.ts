@@ -99,3 +99,36 @@ test('未知路径仍显示404而不是伪业务页面', async ({ page }) => {
   await page.goto('/definitely-missing');
   await expect(page.getByRole('heading', { name: '页面不存在' })).toBeVisible();
 });
+
+test('教材资料库页提供书籍与课程直达入口（T4：桌面侧栏不再有书籍顶级项）', async ({ page }) => {
+  await page.goto('/knowledge-bases');
+  const entry = page.locator('.kb-library-links');
+  await expect(entry).toBeVisible();
+  const booksLink = entry.locator('a[href="/books"]');
+  const coursesLink = entry.locator('a[href="/courses"]');
+  await expect(booksLink).toContainText('书籍');
+  await expect(coursesLink).toContainText('课程');
+  await booksLink.click();
+  await expect(page).toHaveURL(/\/books$/);
+  await expect(page.getByRole('heading', { name: '书籍' })).toBeVisible();
+  await page.goto('/knowledge-bases');
+  await page.locator('.kb-library-links a[href="/courses"]').click();
+  await expect(page).toHaveURL(/\/courses$/);
+  await expect(page.getByRole('heading', { name: '课程' })).toBeVisible();
+});
+
+test('教材资料库页入口在三种视口下不产生横向溢出', async ({ page }) => {
+  for (const size of [
+    { width: 1440, height: 900 },
+    { width: 1024, height: 768 },
+    { width: 390, height: 844 },
+  ]) {
+    await page.setViewportSize(size);
+    await page.goto('/knowledge-bases');
+    await expect(page.locator('.kb-library-links')).toBeVisible();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+      `${size.width} 横向溢出`,
+    ).toBe(true);
+  }
+});

@@ -193,3 +193,120 @@ test('损坏草稿不会被自动覆盖', async ({ page, context }) => {
   await page.waitForTimeout(800);
   expect(await page.evaluate((key) => localStorage.getItem(key), key)).toBe('invalid-json');
 });
+test('无面包屑直接标题、编辑→配置→预览顺序与唯一折叠按钮', async ({ page }) => {
+  await page.goto('/lesson-plans');
+  await expect(page.getByRole('textbox', { name: '课题', exact: true })).toBeVisible();
+
+  // 1) 教案页不再显示壳内「备课空间 > 教案工作台」面包屑，改由页面自渲染同级直接标题
+  await expect(page.locator('.app-header .breadcrumb')).toBeHidden();
+  const heading = page.getByRole('heading', { level: 1, name: '教案工作台', exact: true });
+  await expect(heading).toBeVisible();
+  const displayFont = await page.evaluate(() =>
+    getComputedStyle(document.documentElement)
+      .getPropertyValue('--font-display')
+      .split(',')[0]
+      .replace(/["']/g, '')
+      .trim(),
+  );
+  const titleStyle = await heading.evaluate((el) => {
+    const style = getComputedStyle(el);
+    return {
+      fontFamily: style.fontFamily,
+      fontSize: style.fontSize,
+      fontWeight: style.fontWeight,
+      lineHeight: style.lineHeight,
+      textAlign: style.textAlign,
+    };
+  });
+  // 与 /co-writer、/reading 的 .space-header h1 同级：同一 --font-display 变量与同一套排版值
+  expect(titleStyle.fontFamily).toContain(displayFont);
+  expect(titleStyle.fontSize).toBe('24px');
+  expect(titleStyle.fontWeight).toBe('600');
+  expect(titleStyle.lineHeight).toBe('30px');
+  expect(titleStyle.textAlign).toBe('left');
+
+  // 2) DOM 阅读顺序与视觉顺序一致：编辑区 → 教案配置 → 教案预览
+  const domOrder = await page
+    .locator('.editor-panel, .outline-panel, .preview-pane')
+    .evaluateAll((nodes) =>
+      nodes.map((node) =>
+        node.classList.contains('editor-panel')
+          ? 'editor'
+          : node.classList.contains('outline-panel')
+            ? 'config'
+            : 'preview',
+      ),
+    );
+  expect(domOrder).toEqual(['editor', 'config', 'preview']);
+  const editorBox = await page.locator('.editor-panel').boundingBox();
+  const configBox = await page.locator('.outline-panel').boundingBox();
+  const previewBox = await page.locator('.preview-pane').boundingBox();
+  expect(editorBox && configBox && previewBox).toBeTruthy();
+  expect(editorBox!.x).toBeLessThan(configBox!.x);
+  expect(configBox!.x).toBeLessThan(previewBox!.x);
+  expect(configBox!.width).toBeGreaterThan(0);
+
+  // 3) 折叠控件唯一存在于编辑区顶部，aria 与状态一致
+  await expect(page.locator('.outline-panel .icon-button')).toHaveCount(0);
+  const toggle = page.locator('.editor-heading .config-toggle');
+  await expect(toggle).toHaveCount(1);
+  await expect(toggle).toHaveAttribute('aria-controls', 'lesson-config-panel');
+  await expect(page.locator('#lesson-config-panel')).toBeVisible();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(toggle).toHaveAccessibleName('收起教案配置');
+
+  // 4) 收起后配置面板只隐藏不卸载，展开回来表单值仍在，按钮自身焦点不丢
+  await page.getByRole('button', { name: '版式', exact: true }).click();
+  const slider = page.getByRole('slider', { name: '预览字号' });
+  await slider.fill('16');
+  await page.locator('#lesson-config-panel').evaluate((el) => el.setAttribute('data-probe', 'kept'));
+  await toggle.press('Enter');
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(toggle).toHaveAccessibleName('展开教案配置');
+  await expect(page.locator('#lesson-config-panel')).toBeAttached();
+  await expect(page.locator('#lesson-config-panel[data-probe="kept"]')).toBeHidden();
+  await expect(page.locator('.editor-panel')).toBeVisible();
+  await expect(toggle).toBeFocused();
+  await toggle.press('Enter');
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.locator('#lesson-config-panel[data-probe="kept"]')).toBeVisible();
+  await expect(slider).toHaveValue('16');
+
+  // 5) 连续快速点击只按奇偶切换，按钮始终存在且保持焦点
+  for (let i = 0; i < 3; i += 1) await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.locator('.editor-panel')).toBeVisible();
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.locator('#lesson-config-panel')).toBeVisible();
+  await expect(toggle).toBeFocused();
+
+  // 6) 减少动画时过渡被压制，切换仍然可用（观测：常规 0.2s → 减少动画后 0.01ms）
+  const motionDuration = await page
+    .locator('.app-shell')
+    .evaluate((el) => getComputedStyle(el).transitionDuration);
+  expect(Number.parseFloat(motionDuration)).toBeGreaterThan(0);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const reducedDuration = await page
+    .locator('.app-shell')
+    .evaluate((el) => getComputedStyle(el).transitionDuration);
+  expect(Number.parseFloat(reducedDuration)).toBeLessThan(0.001);
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+
+  // 7) 平板（1024×800）折叠按钮双向可用；手机（390×844）不出现点了没反馈的控制
+  await page.setViewportSize({ width: 1024, height: 800 });
+  await page.reload();
+  const tabletToggle = page.locator('.editor-heading .config-toggle');
+  await expect(tabletToggle).toBeVisible();
+  if ((await tabletToggle.getAttribute('aria-expanded')) === 'false') await tabletToggle.click();
+  await expect(page.locator('#lesson-config-panel')).toBeVisible();
+  await expect((await page.locator('.outline-panel').boundingBox())!.width).toBeGreaterThan(0);
+  await tabletToggle.click();
+  await expect(tabletToggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.locator('#lesson-config-panel')).toBeHidden();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator('.editor-heading .config-toggle')).toBeHidden();
+  await expect(page.getByRole('heading', { level: 1, name: '教案工作台', exact: true })).toBeVisible();
+});
