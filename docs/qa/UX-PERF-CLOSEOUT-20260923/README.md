@@ -2,6 +2,7 @@
 
 本批覆盖用户 2026-09-23 八节指令：长推理流性能收口、学习问答模式菜单、学习记录与导航与图标、
 教案工作台布局、全站双语字体与排版、文档整理、组织与交付门槛。
+独立验收见 [A1 r1（needs_revision）](A1-REPORT-01.md) → [A1 r2（pass）](A1-REPORT-02.md)；
 任务卡与文件归属见 [TASK-CARD.md](TASK-CARD.md)；「更多能力」移除的可达性清单见
 [REACHABILITY-AUDIT.md](REACHABILITY-AUDIT.md)。
 
@@ -18,8 +19,9 @@
 **Performance trace 已保存**：`_work/perf-20260923/trace-50k.json`（CDP Tracing `devtools.timeline`、10 kHz 采样、
 136 MB，可在 DevTools Performance 面板 Load profile 打开；主线程关键事件子集 `trace-50k-mainthread.json` 51 MB）。
 用 trace 独立复核布局/样式重算时长与 CDP 指标一致（trace：layout 2.02 s / style 215 ms；CDP：layout 2.30 s / style 209 ms），
-说明 CDP 口径可信。**未直接测量 React commit 次数**（以推理容器 DOM 更新次数 10 455→383 与主线程脚本时长作为等价证据）；
-`longtask` 观察器在本机 msedge 无输出（已如实记录，未据此下结论）。
+说明 CDP 口径可信。**未直接测量 React commit 次数**（以推理容器 DOM 更新次数 10 455→383 与主线程脚本时长作为等价证据）。
+长任务观察器有效（见 §3.1 与 §10 的订正：首版探针用 `{type:'longtask',buffered:true}` 时静默无输出，
+改用 `entryTypes` 后取到 210 条 → 0 条）。
 
 **首败（真实数据，50k 字推理 / 30.9s 流）**：帧间隔 p95 **166.7 ms**（约 6 fps）、最大 316.7 ms，
 **215 帧超过 50 ms、112 帧超过 100 ms**；主线程脚本 **28.3 s**；推理容器 DOM 更新 10 455 次；
@@ -67,7 +69,7 @@
 | 推理容器 DOM 更新 | 10 455 | 383 | −96.3% |
 | IndexedDB 写 | 99 次 / 1.75 MB | 64 次 / 1.68 MB | −35% / −4% |
 | 首个可见增量 | 69 ms | **43 ms** | −38% |
-| JS 堆（CDP `JSHeapUsedSize` **单次采样**，非真峰值） | 102.4 MB | **11.4 MB** | −89%（绝对值随 GC 时点波动：A1 复测得 18.8～24.3 MB，方向一致） |
+| JS 堆（字段 = CDP `Performance.getMetrics().JSHeapUsedSize`，**测量窗末单次采样**，非真峰值） | 102.4 MiB | **11.4 MiB** | −89%（同场景 r4 复测 11.6 MiB；A1 独立复测 18.8～24.3 MiB —— 随 GC 时点波动，方向一致） |
 | 空闲窗（终态后 3 s）脚本 | 134 ms | 126 ms | 持平（ThinkingOrb 未变） |
 
 **变差项之一是布局总量**（426 ms → 2 302 ms）：轻量呈现是单个文本节点，每次提交都要为整段文本
@@ -79,7 +81,9 @@
 上滚会被拉回（A1 实测首次上滚 `0 → 4052`；本机探针原先用「随机时刻置 0 + 延迟 1.2 s 读回」的写法
 只是没命中窗口）。修法：**在 rAF 回调内再次确认仍在跟随**。验证用确定性触发（在一次推理提交刚落地的
 MutationObserver 微任务里立刻把滚动置 0）——**断言反转**：移除复检行时 4/4 尝试被拉回
-（窗口内最大值 1936/2596/3164/4143），恢复复检后 4/4 尝试恒为 0。故此差异**已关闭**，
+（窗口内最大值 1936/2596/3164/4143），恢复复检后 4/4 尝试恒为 0。原始日志已留档：
+`_work/perf-20260923/stream-regression-reversal.log`（18/19，构建 `ZrHj7mKmbjFQXKXS3MZCi`）与
+`_work/perf-20260923/stream-regression-fixed.log`（19/19，构建 `oNm41Sz_SmvxGHKX_M9vi`）。故此差异**已关闭**，
 `§3` 的量化指标不受影响。
 
 ### 3.2 20k 字推理 + 长历史（桌面，含 4 轮长消息历史）
@@ -91,7 +95,7 @@ MutationObserver 微任务里立刻把滚动置 0）——**断言反转**：移
 | 主线程脚本 | 10 777 ms | **703 ms** |
 | 推理容器 DOM 更新 | 3 998 | 155 |
 | 流式期间按键最慢处理 | **71.7 ms** | **2.0 ms** |
-| JS 堆峰值 | 73.0 MB | 18.3 MB |
+| JS 堆（CDP 单次采样，测量窗末） | 73.0 MiB | 18.3 MiB |
 
 ### 3.3 其余场景（探针 v2 文本）
 
