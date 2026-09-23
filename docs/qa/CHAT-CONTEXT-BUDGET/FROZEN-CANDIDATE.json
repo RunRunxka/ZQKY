@@ -15,7 +15,7 @@
     "typecheck": "pass (npm run typecheck)",
     "lint": "pass, 0 warnings",
     "unit": "52 files / 435 tests passed",
-    "build": "pass (npm run build) -> BUILD_ID JvWSAvqG7aThtH-p1KhOw",
+    "build": "pass (npm run build) -> BUILD_ID jWdzmxYFOf6RtLUVbtOkL",
     "e2eTargeted": "15/15 passed (chat-context-budget 4 + course-sessions 11) on build jWdzmxYFOf6RtLUVbtOkL",
     "e2eFull": "195 passed / 0 failed / 0 flaky (6.4m) on build jWdzmxYFOf6RtLUVbtOkL",
     "api": "217 passed (npm run test:api; includes 35 RAG adapter contract tests from the sibling batch)",

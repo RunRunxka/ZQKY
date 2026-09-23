@@ -36,10 +36,10 @@
 | --- | --- | --- |
 | 类型 | `npm run typecheck` | 通过 |
 | 静态检查 | `npm run lint` | 0 警告 |
-| 单元 | `NODE_OPTIONS=--no-experimental-webstorage npm run test:unit` | **52 文件 / 435 例通过**（上一批 51/416；含 A1 r1 加固新增的脏快照用例） |
-| 构建 | `npm run build` | 通过，**r2 交付候选构建 `BUILD_ID = jWdzmxYFOf6RtLUVbtOkL`**（r1 为 `JvWSAvqG7aThtH-p1KhOw`） |
+| 单元 | `NODE_OPTIONS=--no-experimental-webstorage npm run test:unit` | **52 文件 / 436 例通过**（上一批 51/416；含 r2/r3 加固新增的脏快照用例） |
+| 构建 | `npm run build` | 通过，**r3 交付候选构建 `BUILD_ID = dm5NJM2F0N_z9lp13FK0s`**（r1 `JvWSAvqG7aThtH-p1KhOw` → r2 `jWdzmxYFOf6RtLUVbtOkL`） |
 | 定向 e2e | `npx playwright test tests/e2e/chat-context-budget.spec.ts tests/e2e/course-sessions.spec.ts` | **15/15 通过（17.6s）**（新增 4 + 课程闭环 11） |
-| 全量 e2e | `npx playwright test` | **195 passed / 0 failed / 0 flaky**（r1 与 r2 两次构建均一致，见 §4） |
+| 全量 e2e | `npx playwright test` | **195 passed / 0 failed / 0 flaky**（r1/r2 三次全量）；r3 一次 **194/1**，失败为**跨批既有间歇用例**（见 §4 与 STATUS 台账 **R-14**，与本批改动面无交集） |
 | 后端 | `npm run test:api` | **217 passed**（含本批 RAG adapter 契约 35 例） |
 | 真实供应商 | — | **未发起真实外呼、未验证凭证有效性**（not_run） |
 | 视觉 | — | **不宣称视觉通过**（本批无 `.css` 改动） |
@@ -65,6 +65,10 @@
 | 2 | `context-budget.test.ts` 首败：旧规则「最后一条用户消息即使超预算也保留」与新语义冲突 | 语义变更（当前问题放不下改为显式失败） | 该例按新语义重写，其余 3 例未动；**写入本表的目的是说明这不是"放宽断言"而是契约变更**（见 [TASK-CARD](TASK-CARD.md) §0/§3） |
 | 3 | 测试自身错误：重试用例把课程约定写进了 `createCourse` 的 `description` 参数 | 测试夹具 | 改用 `updateCourse(id,{instructions})` |
 | 4 | 孤立渲染函数 `courseContextMessage` 仍无限幅（探针 D1 仍命中） | 授权最小补丁（见 §2 表末行） | 新增 `name ≤80`/`nextTitle ≤120`，并只新增 1 例断言；既有 7 例断言未改 |
+| 6 | **A1 r1 第 1 条**：脏历史快照 `resources=[null]` → `retry()` 抛 `TypeError`、无可读提示 | A1 最小复现（`request-budget.ts:193`） | **本批内关闭**：`safeResources()` 防御读（非对象条目丢弃、缺失字段以 `unknown` 兜底） |
+| 7 | **A1 r2 F4（同类残留）**：非字符串字段（`name=123`/`conventions=5`/`nextTitle=42`/`label=123`）仍抛 `.trim is not a function` | A1 r2 探针（同 r1 路径同影响） | **本批内关闭**：新增 `asText/asKind/asAvailability` 安全降级；对象/数组等非原始值按缺失处理（**不产出 `[object Object]` 噪音**）；不承载任何信息的条目整条丢弃；新增 1 例单测（含 `[object Object]`、`等共` 反向断言） |
+| 8 | **A1 r2 F2/F3（文档/注释）** | A1 r2 | F2 已订正 FROZEN 的 `checks.build` 为当前构建；F3 已把 `safeResources` 注释改为「『…等共 N 项』只计存活条目」以匹配实现 |
+| 9 | **A1 r2 F1（跨批间歇用例）** | A1 复现（repeat-each 2/3 失败）+ 队长复现（1/3 失败；另一次全量 194/1） | **登记为 STATUS 台账 R-14，本批不修**：`books-commit-safety.spec.ts:238`「双标签页并发写不同书」在两标签同时生成时集合写锁竞争，等待「生成活动条消失」可超时；捕获到的快照显示书处于**既有如实状态**「生成已中断（无执行器在跑）+ 继续生成」，内容与笔记未丢。与本批 diff 面无交集（`git diff b16a825 HEAD -- tests/e2e/books-*` 为空），待书籍批次定性 |
 
 | 5 | **A1 r1 独立验收（低危）**：脏历史快照的资源项未防御（`courseContext.resources=[null]`，仅外部损坏可产生）→ 重试路径抛 `TypeError` 且无可读提示 | A1 最小复现（`request-budget.ts:193`） | **本批内关闭**：新增 `safeResources()` 防御读（非对象条目丢弃、缺失字段以 `unknown` 兜底、总数如实计数不伪造内容），覆盖 `renderCourseBlock` 与 `renderCourseContextBlock` 两处；新增单测「脏历史快照…不抛错」。理由：任务卡要求「失败不得留下无法重试的状态或未处理 Promise」，而该路径正是重试按钮上的重复抛错 |
 

@@ -605,4 +605,41 @@ describe('store：预检失败无副作用、账目随轮次持久化、旧轮�
     expect(built.messages[0]!.content).not.toContain('null');
     expect(built.messages[0]!.content).not.toContain('不可用');
   });
+
+  it('脏历史快照的非字符串字段（数字/对象/布尔）同样不抛错：安全降级为文本，不伪造内容', () => {
+    const corrupt = {
+      courseId: 'cs-legacy-2',
+      name: 123,
+      conventions: 5,
+      syllabus: { total: 2, covered: 1, nextTitle: 42 },
+      resources: [
+        { kind: null, label: 123, availability: null },
+        { kind: {}, label: {}, availability: true },
+        [],
+      ],
+      frozenAt: '2026-01-01T00:00:00.000Z',
+    } as unknown as TurnCourseSnapshot;
+
+    const block = renderCourseContextBlock(corrupt);
+    expect(block).not.toBeNull();
+    expect(block!.text).toContain(COURSE_CONTEXT_DISCLAIMER);
+    // 不产出噪音文本；不承载信息的条目被丢弃（只剩 label=123 那一条）
+    expect(block!.text).not.toContain('[object Object]');
+    expect(block!.text).toContain('123（unknown·unknown）');
+    expect(block!.text).not.toContain('等共');
+
+    const built = buildChatRequest({
+      history: [],
+      question: '继续讲这一节。',
+      courseSnapshot: corrupt,
+      contextTokens: 8000,
+      maxOutputTokens: 512,
+    });
+    expect(built.ok).toBe(true);
+    if (!built.ok) return;
+    expect(built.messages[0]!.content).toContain('课程名称：123');
+    expect(built.record.totalChars).toBe(
+      built.messages.reduce((total, message) => total + message.content.length, 0),
+    );
+  });
 });

@@ -118,26 +118,55 @@ const FULL_COURSE_PLAN: CourseBlockPlan = {
  * 免责句与固定行（课程名/大纲行/资源行）在任何收缩路径下都保留，只压缩动态内容。
  */
 /**
+ * 防御性取文本（§4）：历史或外部损坏的快照可能带非字符串字段（数字/布尔/对象）——
+ * 一律按文本安全降级，绝不在发送/重试路径抛 `.trim is not a function`。
+ * 空值 → 空串（渲染层据此省略该字段，不伪造内容）。
+ */
+function asText(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  return ''; // 对象/数组/符号等一律按缺失处理，不产出 [object Object] 之类的噪音
+}
+
+const RESOURCE_AVAILABILITY = new Set(['available', 'missing', 'unknown']);
+
+/** 只接受字符串 kind，其余（数字/对象/缺失）一律 unknown，避免把脏值当标签展示 */
+function asKind(value: unknown): string {
+  return typeof value === 'string' && value.trim() ? value : 'unknown';
+}
+
+function asAvailability(value: unknown): string {
+  return typeof value === 'string' && RESOURCE_AVAILABILITY.has(value) ? value : 'unknown';
+}
+
+/**
  * 防御性读取快照资源（§4）：历史或外部损坏的快照可能含 `null`/非对象条目或缺失字段——
  * 这些都**不是**类型系统与本应用写入器能产出的形态，但发送/重试路径不得因此抛错
- * （失败必须仍然可重试）。非对象条目一律丢弃并计入"等共 N 项"的总数，不伪造内容。
+ * （失败必须仍然可重试）。非对象条目一律丢弃；「…等共 N 项」只计**存活条目**（丢弃项不是资源，
+ * 计入会让总数失真），不伪造内容。
  */
 function safeResources(snapshot: TurnCourseSnapshot): TurnCourseSnapshot['resources'] {
   const raw = Array.isArray(snapshot.resources) ? snapshot.resources : [];
-  return raw.filter(
-    (resource): resource is TurnCourseSnapshot['resources'][number] =>
-      resource !== null && typeof resource === 'object',
-  );
+  return raw.filter((resource): resource is TurnCourseSnapshot['resources'][number] => {
+    if (resource === null || typeof resource !== 'object' || Array.isArray(resource)) return false;
+    const candidate = resource as { label?: unknown; kind?: unknown; availability?: unknown };
+    // 既无可读标签、也没有可识别的 kind/可用性 —— 该条目不承载任何信息，丢弃而不是渲染噪音
+    return (
+      asText(candidate.label).trim().length > 0 ||
+      typeof candidate.kind === 'string' ||
+      (typeof candidate.availability === 'string' && RESOURCE_AVAILABILITY.has(candidate.availability))
+    );
+  });
 }
 
 function renderCourseBlock(snapshot: TurnCourseSnapshot, plan: CourseBlockPlan): string {
-  const name = ellipsize(snapshot.name ?? '', plan.nameLimit);
+  const name = ellipsize(asText(snapshot.name), plan.nameLimit);
   const lines = [COURSE_HEADER, `课程名称：${name}`];
-  const conventions = ellipsize(snapshot.conventions ?? '', plan.conventionsLimit);
+  const conventions = ellipsize(asText(snapshot.conventions), plan.conventionsLimit);
   if (conventions) lines.push(`${COURSE_CONVENTIONS_HEADING}\n<<<\n${conventions}\n>>>`);
   const total = snapshot.syllabus?.total ?? 0;
   const covered = snapshot.syllabus?.covered ?? 0;
-  const nextTitle = ellipsize(snapshot.syllabus?.nextTitle ?? '', plan.nextTitleLimit);
+  const nextTitle = ellipsize(asText(snapshot.syllabus?.nextTitle), plan.nextTitleLimit);
   if (total > 0)
     lines.push(
       `大纲进度：共 ${total} 个单元，已完成 ${covered} 个（学员手判）${
@@ -150,8 +179,8 @@ function renderCourseBlock(snapshot: TurnCourseSnapshot, plan: CourseBlockPlan):
       .slice(0, Math.max(0, plan.itemLimit))
       .map(
         (resource) =>
-          `${ellipsize(resource.label ?? '', plan.labelLimit)}（${String(resource.kind ?? 'unknown')}·${String(
-            resource.availability ?? 'unknown',
+          `${ellipsize(asText(resource.label), plan.labelLimit)}（${asKind(resource.kind)}·${asAvailability(
+            resource.availability,
           )}）`,
       );
     const omitted = resources.length - shown.length;
@@ -202,13 +231,13 @@ export function renderCourseContextBlock(
   const cap = Math.min(COURSE_CONTEXT_MESSAGE_LIMIT, Math.max(0, limits.maxMessageChars - 1));
   if (cap <= 0) return null;
   const trimmed = new Set<string>();
-  if ((snapshot.name ?? '').trim().length > COURSE_BLOCK_FIELD_LIMITS.nameChars) trimmed.add('name');
-  if ((snapshot.conventions ?? '').trim().length > COURSE_CONVENTIONS_LIMIT)
+  if (asText(snapshot.name).trim().length > COURSE_BLOCK_FIELD_LIMITS.nameChars) trimmed.add('name');
+  if (asText(snapshot.conventions).trim().length > COURSE_CONVENTIONS_LIMIT)
     trimmed.add('conventions');
-  if ((snapshot.syllabus?.nextTitle ?? '').trim().length > COURSE_BLOCK_FIELD_LIMITS.nextTitleChars)
+  if (asText(snapshot.syllabus?.nextTitle).trim().length > COURSE_BLOCK_FIELD_LIMITS.nextTitleChars)
     trimmed.add('syllabus');
   const resources = safeResources(snapshot);
-  if (resources.some((resource) => (resource.label ?? '').trim().length > COURSE_RESOURCE_LABEL_LIMIT))
+  if (resources.some((resource) => asText(resource.label).trim().length > COURSE_RESOURCE_LABEL_LIMIT))
     trimmed.add('resourceLabels');
   if (resources.length > COURSE_CONTEXT_RESOURCE_ITEM_LIMIT) trimmed.add('resourceItems');
 
