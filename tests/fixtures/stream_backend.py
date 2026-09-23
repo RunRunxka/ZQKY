@@ -18,6 +18,7 @@ from app.schemas.model_config import ModelConnection,ModelProfile,now_utc
 
 gate = threading.Event()
 answer_gate = threading.Event()
+reasoning_gate = threading.Event()
 stats = {'first':None,'last':None,'cancelled':False}
 ANSWER = '''## 从现象理解概念
 
@@ -47,6 +48,7 @@ class Upstream(BaseHTTPRequestHandler):
     def log_message(self,*args): pass
     def do_GET(self):
         if self.path.startswith('/answer'): answer_gate.set(); body={'ok':True}
+        elif self.path.startswith('/reasoning'): reasoning_gate.set(); body={'ok':True}
         elif self.path.startswith('/release'): gate.set(); body={'ok':True}
         elif self.path.startswith('/stats'): body=stats
         else: body={'data':[{'id':'teaching-alpha'},{'id':'teaching-beta'},{'id':'teaching-beta'}]}
@@ -68,10 +70,30 @@ class Upstream(BaseHTTPRequestHandler):
             else: emit('content_block_delta',{'delta':{'type':'text_delta','text':value}})
         try:
             if '推理验收' in json.dumps(body, ensure_ascii=False):
-                reasoning = r'先分析公式 \(a^2+b^2=c^2\)，再给出结论。'
-                if kind == 'chat': emit('', {'choices': [{'delta': {'reasoning_content': reasoning}}]})
-                elif kind == 'responses': emit('response.reasoning_summary_text.delta', {'delta': reasoning})
-                else: emit('content_block_delta', {'delta': {'type': 'thinking_delta', 'thinking': reasoning}})
+                # UX-REGRESSION-FIX v1：分片推理流，覆盖流式期间的公式呈现——
+                # ① 已闭合块（反斜杠行内公式）② 块级公式（$$ 与 \[\]）③ 代码里的美元符号
+                # ④ 未闭合尾段（原文呈现）→ 由 /reasoning 释放后再补齐（转为公式）。
+                def reasoning_delta(value):
+                    if kind == 'chat': emit('', {'choices': [{'delta': {'reasoning_content': value}}]})
+                    elif kind == 'responses': emit('response.reasoning_summary_text.delta', {'delta': value})
+                    else: emit('content_block_delta', {'delta': {'type': 'thinking_delta', 'thinking': value}})
+                chunks = [
+                    r'先分析公式 \(a^2+b^2=c^2\)，再给出结论。' + '\n\n',
+                    '块级公式：\n\n$$\nE = mc^2\n$$\n\n',
+                    '反斜杠块级：\n\n\\[\\sum_{i=1}^{n} i\\]\n\n',
+                    '代码里的美元符号保持原文：\n\n```sh\necho "$HOME 与 $((1+2))"\n```\n\n',
+                    '未闭合的尾段 $x + y',
+                ]
+                for chunk_value in chunks:
+                    reasoning_delta(chunk_value)
+                    self.wfile.flush()
+                    time.sleep(.02)
+                reasoning_gate.clear()
+                deadline = time.monotonic() + 25
+                while not reasoning_gate.wait(.1) and time.monotonic() < deadline:
+                    self.wfile.write(b': heartbeat\n\n'); self.wfile.flush()
+                # 补齐未闭合尾段的定界符：应转为公式
+                reasoning_delta(' = z$ 补齐。\n\n')
                 deadline = time.monotonic() + 25
                 while not answer_gate.wait(.1) and time.monotonic() < deadline:
                     self.wfile.write(b': heartbeat\n\n'); self.wfile.flush()

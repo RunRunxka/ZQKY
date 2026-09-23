@@ -12,8 +12,22 @@ for (const model of ['教学问答模型', 'Responses 模型', 'Anthropic 模型
     await expect(page.getByRole('region', { name: '推理内容' })).toContainText('先分析公式');
       await expect(page.locator('.chat-reasoning-body .katex')).toBeVisible();
       await expect(page.locator('.chat-reasoning-fold')).toHaveCSS('opacity', '1');
+    // UX-REGRESSION-FIX v1：公式在**流式过程中**就要显示，而不是只在结束后渲染。
+    // 已闭合的块：反斜杠行内 1 处 + 两个块级公式（$$ 与 \[\]）各 1 处。
+    await expect(page.locator('.chat-reasoning-body .katex')).toHaveCount(3);
+    await expect(page.locator('.chat-reasoning-body .katex-display')).toHaveCount(2);
+    // 代码里的美元符号保持原文，不解析成公式
+    await expect(page.getByRole('region', { name: '推理内容' })).toContainText('$HOME 与 $((1+2))');
+    // 未闭合的尾段暂以原文显示
+    await expect(page.locator('.chat-reasoning-body .chat-reasoning-raw')).toContainText('$x + y');
+    await expect(page.locator('.chat-reasoning-body .katex-error')).toHaveCount(0);
     expect((await (await request.get('http://127.0.0.1:8002/stats')).json()).first).toBeNull();
     await page.screenshot({ path: info.outputPath('reasoning-streaming.png') });
+    // 补齐未闭合尾段的定界符 → 转为公式
+    await request.get('http://127.0.0.1:8002/reasoning');
+    await expect(page.locator('.chat-reasoning-body .katex')).toHaveCount(4);
+    await expect(page.locator('.chat-reasoning-body .chat-reasoning-raw')).toHaveCount(0);
+    await expect(page.locator('.chat-reasoning-body .katex-error')).toHaveCount(0);
     await request.get('http://127.0.0.1:8002/answer');
     await expect(page.getByText('第一段中文已经到达。', { exact: true })).toBeVisible();
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
