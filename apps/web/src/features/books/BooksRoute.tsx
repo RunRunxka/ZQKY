@@ -193,6 +193,14 @@ function BookLibrary() {
   return (
     <div className="space-page books-page">
       <header className="space-header">
+        {/* UX-REGRESSION-FIX v1：书籍已并入教材资料库，列表页提供固定指向 /knowledge-bases
+            的返回入口（不依赖 history.back，直接深链打开也能返回） */}
+        <div className="space-header-row">
+          <Link className="space-back" href="/knowledge-bases">
+            <ArrowLeft size={16} />
+            返回教材资料库
+          </Link>
+        </div>
         <div className="space-header-row">
           <h1>书籍</h1>
           <div className="space-card-actions">

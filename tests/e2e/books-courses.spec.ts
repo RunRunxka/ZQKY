@@ -211,3 +211,65 @@ test('课程新建与导航显示：书籍可见、课程按参考隐藏', async
     }),
   ).toHaveAttribute('aria-current', 'page');
 });
+
+test('教材资料库 ↔ 书籍/课程：完整往返路径、返回入口与唯一当前项（UX-REGRESSION-FIX v1）', async ({
+  page,
+}) => {
+  const currentNav = page.locator('.global-nav [aria-current="page"]');
+  const backToKb = page.getByRole('link', { name: '返回教材资料库' });
+
+  // ===== 教材资料库 → 书籍列表 → 书籍详情 → 书籍列表 → 教材资料库 =====
+  await page.goto('/knowledge-bases');
+  await page.locator('.kb-library-links a[href="/books"]').click();
+  await expect(page).toHaveURL(/\/books$/);
+  await expect(backToKb).toBeVisible();
+  await expect(currentNav).toHaveCount(1);
+  await expect(currentNav).toHaveText(/教材资料库/);
+
+  // 空列表也能看到返回入口
+  await expect(page.getByRole('heading', { name: '书籍', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '载入演示数据' }).click();
+  const bookCard = page.locator('a[href^="/books/"]').first();
+  await expect(bookCard).toBeVisible();
+  await bookCard.click();
+  await expect(page).toHaveURL(/\/books\/[^/]+$/);
+  await expect(currentNav).toHaveText(/教材资料库/);
+  await page.getByRole('link', { name: '返回书籍列表' }).click();
+  await expect(page).toHaveURL(/\/books$/);
+  await expect(backToKb).toBeVisible();
+  await backToKb.click();
+  await expect(page).toHaveURL(/\/knowledge-bases$/);
+  await expect(currentNav).toHaveText(/教材资料库/);
+
+  // 直接深链打开列表页同样能返回（不依赖 history.back）
+  await page.goto('/books');
+  await expect(backToKb).toBeVisible();
+  await backToKb.click();
+  await expect(page).toHaveURL(/\/knowledge-bases$/);
+
+  // ===== 教材资料库 → 课程列表 → 课程详情 → 课程列表 → 教材资料库 =====
+  await page.locator('.kb-library-links a[href="/courses"]').click();
+  await expect(page).toHaveURL(/\/courses$/);
+  await expect(backToKb).toBeVisible();
+  await expect(currentNav).toHaveCount(1);
+  await expect(currentNav).toHaveText(/教材资料库/);
+  await page.getByRole('button', { name: '载入演示数据' }).click();
+  const courseCard = page.locator('a[href^="/courses/"]').first();
+  await expect(courseCard).toBeVisible();
+  await courseCard.click();
+  await expect(page).toHaveURL(/\/courses\/[^/]+$/);
+  await expect(currentNav).toHaveText(/教材资料库/);
+  await page.getByRole('link', { name: '返回课程列表' }).click();
+  await expect(page).toHaveURL(/\/courses$/);
+  await backToKb.click();
+  await expect(page).toHaveURL(/\/knowledge-bases$/);
+  await expect(currentNav).toHaveText(/教材资料库/);
+
+  // 手机视口：返回入口仍可见且不横向溢出
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/books');
+  await expect(backToKb).toBeVisible();
+  await page.goto('/courses');
+  await expect(backToKb).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
+});
