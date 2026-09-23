@@ -79,7 +79,7 @@
 - 未改动：模型输出预算默认值、推理开关、R-13、RAG 内容、模拟聊天、`.css`、后端产品代码。
 - 边界：`selectMessagesForRequest` 作为兼容入口仍在（非产品路径）；`requestBudget` 账目只记发送时事实，不改写历史正文与课程原始数据。
 - **技术债（登记，未在本批合并）**：`services/course-session.ts` 的 `courseContextMessage` 已不在产品路径（仅测试引用），对畸形快照仍直接解引用 `syllabus/resources`，与主路径 `renderCourseContextBlock` 形成两套渲染口径；建议后续小批合并或显式标注废弃（合并会触及课程闭环既有断言，故本批不做）。
-- 独立验收：[A1 r1 报告与总控处置](A1-REPORT-01.md)（**可交付**，第 4 节低危项已在本批内关闭）；r2 复验结论见 `A1-REPORT-02.md`（冻结后补）。
+- 独立验收（三轮，全部只读）：[r1](A1-REPORT-01.md) **可交付**（附 1 条低危健壮性缺口，已在本批内关闭）→ [r2](A1-REPORT-02.md) **可交付**（附跨批间歇 R-14 与 F2/F3/F4 残留，F2/F3/F4/F5 已关闭）→ [r3](A1-REPORT-03.md) **可交付**（窄复验：残留关闭、突变对照证明新增用例因果绑定）。r3 另记一条**已知边界**（不在本批修）：标签不可读但 kind/availability 可读的条目仍会渲染空标签，仅契约外/损坏数据可达；与 `courseContextMessage` 双渲染口径技术债同批处理。
 
 ## 8. 提交
 
