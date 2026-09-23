@@ -572,4 +572,37 @@ describe('store：预检失败无副作用、账目随轮次持久化、旧轮�
     expect(built.messages[0]!.content).toContain(COURSE_CONTEXT_DISCLAIMER);
     expect(built.record.courseDropped).toBe(false);
   });
+
+  it('脏历史快照（类型系统之外的 null 资源条目/缺失字段）不抛错：失败仍可重试，且不伪造内容', () => {
+    const corrupt = {
+      courseId: 'cs-legacy',
+      name: undefined,
+      conventions: null,
+      syllabus: null,
+      resources: [null, { kind: null, label: null, availability: null }, 'broken'],
+      frozenAt: '2026-01-01T00:00:00.000Z',
+    } as unknown as TurnCourseSnapshot;
+
+    // 渲染层：不得抛错；非对象条目被丢弃，剩余项以 unknown 兜底，免责句仍在
+    const block = renderCourseContextBlock(corrupt);
+    expect(block).not.toBeNull();
+    expect(block!.text).toContain(COURSE_CONTEXT_DISCLAIMER);
+
+    // 构建层：ok:true（不因脏数据阻断发送），账目与实际一致，且不含任何编造的资源名
+    const built = buildChatRequest({
+      history: [],
+      question: '这一题怎么解？',
+      courseSnapshot: corrupt,
+      contextTokens: 8000,
+      maxOutputTokens: 512,
+    });
+    expect(built.ok).toBe(true);
+    if (!built.ok) return;
+    expect(built.record.totalChars).toBe(
+      built.messages.reduce((total, message) => total + message.content.length, 0),
+    );
+    expect(built.messages[0]!.content).toContain(COURSE_CONTEXT_DISCLAIMER);
+    expect(built.messages[0]!.content).not.toContain('null');
+    expect(built.messages[0]!.content).not.toContain('不可用');
+  });
 });

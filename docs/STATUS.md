@@ -1,6 +1,6 @@
 # 当前状态与实施主线
 
-更新：2026-09-22（H1-COURSE-SESSIONS v1 + 前置补丁 BOOKS-CS-FOLLOWUP v1 本地实施与限定范围验收；RAG 接入仍未启动）。本文件是唯一进度、问题、任务和后续计划入口。长期目标与稳定决定见 [PROJECT_GUIDE](PROJECT_GUIDE.md)，逐项范围见三矩阵，历史首败与批次全文见 [整理前完整快照](archive/DELIVERY_HISTORY.md#snapshot-status-20260915)。
+更新：2026-09-23（CHAT-CONTEXT-BUDGET v1 + RAG-I0-PREP v1 本地实施与限定范围验收；RAG 仅完成宿主侧契约准备，真实接入未启动）。本文件是唯一进度、问题、任务和后续计划入口。长期目标与稳定决定见 [PROJECT_GUIDE](PROJECT_GUIDE.md)，逐项范围见三矩阵，历史首败与批次全文见 [整理前完整快照](archive/DELIVERY_HISTORY.md#snapshot-status-20260915)。
 
 ## 1. 目标与当前结论
 

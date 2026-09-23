@@ -3,7 +3,7 @@
   "frozenAt": "2026-09-23",
   "branch": "main",
   "candidateCommit": "13a93ae",
-  "candidateFullSha": "13a93ae",
+  "candidateFullSha": "13a93aecb07ca7fe88c1bdaadf62e738027cc6a1",
   "candidateParent": "a9968cd",
   "candidateTree": "a067b4870d01edab24588cd17b011942c9c41eef",
   "externalProject": {
@@ -17,7 +17,8 @@
     "freezePackageIntegrity": "manifest.json (144 archived members + 93 fingerprints) and receipt.json parse; receipt sha256 matches candidate.zip and manifest.json; candidate.zip members vs manifest: 0 mismatches; freeze_snapshot.py --verify (read-only, confirmed by line-by-line reading) exits 1 with 18 source-drift items only — it does NOT compare manifest git_head/porcelain",
     "activeConfigComparison": "20/20 frozen config rows match configs/** and single definition points; no config drift found",
     "performanceBoundary": "hot pure-retrieval p95 210 ms (subject) / 369 ms (all) within the <=500 ms criterion; end-to-end without generation cache P95 NOT met (22,675 ms vs <=15 s)",
-    "qualityBoundary": "evidence sufficiency / refusal quality, segment-level quality, explanation support, threshold selection all not_run (0 human reviewers, 0 gold labels)"
+    "qualityBoundary": "evidence sufficiency / refusal quality, segment-level quality, explanation support, threshold selection all not_run (0 human reviewers, 0 gold labels)",
+    "performanceBoundarySource": "上游自身记录（docs/EVAL.md P8C 登记与结果 / docs/STATUS.md §4.5，2026-09-22），非本批实测；本批未运行任何上游评测"
   },
   "hostDeliverables": {
     "contractModule": "apps/api/app/contracts/rag_adapter.py (contract + pure functions only; no retrieval, no model calls, no network, no route)",

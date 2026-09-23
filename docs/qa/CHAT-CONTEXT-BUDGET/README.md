@@ -36,17 +36,17 @@
 | --- | --- | --- |
 | 类型 | `npm run typecheck` | 通过 |
 | 静态检查 | `npm run lint` | 0 警告 |
-| 单元 | `NODE_OPTIONS=--no-experimental-webstorage npm run test:unit` | **52 文件 / 434 例通过**（上一批 51/416） |
-| 构建 | `npm run build` | 通过，**`BUILD_ID = JvWSAvqG7aThtH-p1KhOw`** |
+| 单元 | `NODE_OPTIONS=--no-experimental-webstorage npm run test:unit` | **52 文件 / 435 例通过**（上一批 51/416；含 A1 r1 加固新增的脏快照用例） |
+| 构建 | `npm run build` | 通过，**r2 交付候选构建 `BUILD_ID = jWdzmxYFOf6RtLUVbtOkL`**（r1 为 `JvWSAvqG7aThtH-p1KhOw`） |
 | 定向 e2e | `npx playwright test tests/e2e/chat-context-budget.spec.ts tests/e2e/course-sessions.spec.ts` | **15/15 通过（17.6s）**（新增 4 + 课程闭环 11） |
-| 全量 e2e | `npx playwright test` | 见 §4 |
+| 全量 e2e | `npx playwright test` | **195 passed / 0 failed / 0 flaky**（r1 与 r2 两次构建均一致，见 §4） |
 | 后端 | `npm run test:api` | **217 passed**（含本批 RAG adapter 契约 35 例） |
 | 真实供应商 | — | **未发起真实外呼、未验证凭证有效性**（not_run） |
 | 视觉 | — | **不宣称视觉通过**（本批无 `.css` 改动） |
 
 ## 4. 全量前端 e2e（生产构建）
 
-- **195 passed / 0 failed / 0 flaky（6.4m）**（生产构建 `BUILD_ID = JvWSAvqG7aThtH-p1KhOw`；上一批 191 例 + 本批新增 4 例）。
+- **195 passed / 0 failed / 0 flaky（6.4m）**（r1 构建 `JvWSAvqG7aThtH-p1KhOw` 与 r2 构建 `jWdzmxYFOf6RtLUVbtOkL` 两次均通过；上一批 191 例 + 本批新增 4 例）。
 - 计数口径：基线 191（含课程闭环 11 例）+ 新增 `chat-context-budget.spec.ts` 4 例 = 195。
 - A1 独立验收者在冻结候选上另行复跑（记录见 `A1-REPORT.md`）。
 
@@ -66,12 +66,16 @@
 | 3 | 测试自身错误：重试用例把课程约定写进了 `createCourse` 的 `description` 参数 | 测试夹具 | 改用 `updateCourse(id,{instructions})` |
 | 4 | 孤立渲染函数 `courseContextMessage` 仍无限幅（探针 D1 仍命中） | 授权最小补丁（见 §2 表末行） | 新增 `name ≤80`/`nextTitle ≤120`，并只新增 1 例断言；既有 7 例断言未改 |
 
+| 5 | **A1 r1 独立验收（低危）**：脏历史快照的资源项未防御（`courseContext.resources=[null]`，仅外部损坏可产生）→ 重试路径抛 `TypeError` 且无可读提示 | A1 最小复现（`request-budget.ts:193`） | **本批内关闭**：新增 `safeResources()` 防御读（非对象条目丢弃、缺失字段以 `unknown` 兜底、总数如实计数不伪造内容），覆盖 `renderCourseBlock` 与 `renderCourseContextBlock` 两处；新增单测「脏历史快照…不抛错」。理由：任务卡要求「失败不得留下无法重试的状态或未处理 Promise」，而该路径正是重试按钮上的重复抛错 |
+
 ## 7. not_run / 边界
 
 - 真实供应商调用：**未外呼、未验证凭证有效性**；本批全部断言在上游替身（路由级 stub）与真实浏览器报文上完成。
 - 精确 token：**不做**。全部数字为字符估算（1 token ≈ 2 字符），不保证不超模型自身上下文上限，只保证不超本轮输入预算与后端硬限制。
 - 未改动：模型输出预算默认值、推理开关、R-13、RAG 内容、模拟聊天、`.css`、后端产品代码。
 - 边界：`selectMessagesForRequest` 作为兼容入口仍在（非产品路径）；`requestBudget` 账目只记发送时事实，不改写历史正文与课程原始数据。
+- **技术债（登记，未在本批合并）**：`services/course-session.ts` 的 `courseContextMessage` 已不在产品路径（仅测试引用），对畸形快照仍直接解引用 `syllabus/resources`，与主路径 `renderCourseContextBlock` 形成两套渲染口径；建议后续小批合并或显式标注废弃（合并会触及课程闭环既有断言，故本批不做）。
+- 独立验收：[A1 r1 报告与总控处置](A1-REPORT-01.md)（**可交付**，第 4 节低危项已在本批内关闭）；r2 复验结论见 `A1-REPORT-02.md`（冻结后补）。
 
 ## 8. 提交
 

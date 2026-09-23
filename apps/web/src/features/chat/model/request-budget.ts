@@ -117,6 +117,19 @@ const FULL_COURSE_PLAN: CourseBlockPlan = {
  * 生成全新字符串，绝不修改入参对象。
  * 免责句与固定行（课程名/大纲行/资源行）在任何收缩路径下都保留，只压缩动态内容。
  */
+/**
+ * 防御性读取快照资源（§4）：历史或外部损坏的快照可能含 `null`/非对象条目或缺失字段——
+ * 这些都**不是**类型系统与本应用写入器能产出的形态，但发送/重试路径不得因此抛错
+ * （失败必须仍然可重试）。非对象条目一律丢弃并计入"等共 N 项"的总数，不伪造内容。
+ */
+function safeResources(snapshot: TurnCourseSnapshot): TurnCourseSnapshot['resources'] {
+  const raw = Array.isArray(snapshot.resources) ? snapshot.resources : [];
+  return raw.filter(
+    (resource): resource is TurnCourseSnapshot['resources'][number] =>
+      resource !== null && typeof resource === 'object',
+  );
+}
+
 function renderCourseBlock(snapshot: TurnCourseSnapshot, plan: CourseBlockPlan): string {
   const name = ellipsize(snapshot.name ?? '', plan.nameLimit);
   const lines = [COURSE_HEADER, `课程名称：${name}`];
@@ -131,11 +144,16 @@ function renderCourseBlock(snapshot: TurnCourseSnapshot, plan: CourseBlockPlan):
         nextTitle ? `；下一个未完成单元：${nextTitle}` : ''
       }`,
     );
-  const resources = snapshot.resources ?? [];
+  const resources = safeResources(snapshot);
   if (resources.length > 0) {
     const shown = resources
       .slice(0, Math.max(0, plan.itemLimit))
-      .map((resource) => `${ellipsize(resource.label ?? '', plan.labelLimit)}（${resource.kind}·${resource.availability}）`);
+      .map(
+        (resource) =>
+          `${ellipsize(resource.label ?? '', plan.labelLimit)}（${String(resource.kind ?? 'unknown')}·${String(
+            resource.availability ?? 'unknown',
+          )}）`,
+      );
     const omitted = resources.length - shown.length;
     // 条目减少时以「…等共 N 项」如实说明总量，不假装列全
     lines.push(
@@ -189,7 +207,7 @@ export function renderCourseContextBlock(
     trimmed.add('conventions');
   if ((snapshot.syllabus?.nextTitle ?? '').trim().length > COURSE_BLOCK_FIELD_LIMITS.nextTitleChars)
     trimmed.add('syllabus');
-  const resources = snapshot.resources ?? [];
+  const resources = safeResources(snapshot);
   if (resources.some((resource) => (resource.label ?? '').trim().length > COURSE_RESOURCE_LABEL_LIMIT))
     trimmed.add('resourceLabels');
   if (resources.length > COURSE_CONTEXT_RESOURCE_ITEM_LIMIT) trimmed.add('resourceItems');
