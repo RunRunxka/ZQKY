@@ -1,12 +1,14 @@
 # 当前状态与实施主线
 
-更新：2026-09-23（启动 AGPL-OUT v1 当前任务：移除 AGPL-3.0 流体背景并替换为自研实现；产品验收沿用下列指定候选的记录）。本文件是唯一进度、问题、任务和后续计划入口。长期目标与稳定决定见 [PROJECT_GUIDE](PROJECT_GUIDE.md)，逐项范围见三矩阵，历史首败与批次全文见 [整理前完整快照](archive/DELIVERY_HISTORY.md#snapshot-status-20260915)。
+更新：2026-09-23（启动 GLASS-POLISH v1 当前任务：浅色流体加深、浅色覆盖聊天区、流动增强）。本文件是唯一进度、问题、任务和后续计划入口。长期目标与稳定决定见 [PROJECT_GUIDE](PROJECT_GUIDE.md)，逐项范围见三矩阵，历史首败与批次全文见 [整理前完整快照](archive/DELIVERY_HISTORY.md#snapshot-status-20260915)。
 
 ## 1. 目标与当前结论
 
 **以智启课源品牌完成固定 DeepTutor 的产品前端、AI 交互与原有动画；全站以当前学习问答 `/chat` 为视觉基准，保留蓝色主题及原业务功能。整体尚未完成。**
 
-**当前实施批是 AGPL-OUT v1（移除 AGPL-3.0 流体背景并替换为自研实现，2026-09-23）**，因用户明确"项目后面可能公开使用，带 AGPL-3.0 有麻烦"；范围、结果与边界见 §5.0，合规台账见 [玻璃主题来源与许可](licenses/glass-theme/README.md)。**本批只做这一条许可风险的处置与等价替换，不是全站许可审计，也不含视觉逐像素对齐验收。**
+**当前实施批是 GLASS-POLISH v1（玻璃主题三处调整：浅色流体加深、浅色覆盖聊天区、流动增强，2026-09-23）**，范围与实测数据见 §5.0，证据与前后截屏见 [qa/GLASS-POLISH](qa/GLASS-POLISH/README.md)。**本批只调玻璃主题的观感与浅色显隐，不含新增功能，也不是全站视觉验收。**
+
+上一实施批是 **AGPL-OUT v1**（移除 AGPL-3.0 流体背景并替换为自研实现，2026-09-23，已推送，记录见 §5.6）。**该批的历史残留为知情保留，见 [玻璃主题许可台账](licenses/glass-theme/README.md) §2.5。**
 
 上一实施批是 **SKILL-INJECT v1**（Skill 注入通道与三个内置教学技能，2026-09-23，已推送 `origin/feat/glass-theme`，记录见 §5.7）。**该批只做提示词级技能上下文与本地目录，不含 MCP 连接/工具调用，也不含真实教材检索。**
 
@@ -109,23 +111,46 @@ npm.cmd run test:unit
 
 ## 5. 当前批次与下一动作
 
-### 5.0 当前实施批：AGPL-OUT v1（移除 AGPL-3.0 流体背景，替换为自研实现）
+### 5.0 当前实施批：GLASS-POLISH v1（浅色流体加深、浅色覆盖聊天区、流动增强）
+
+**状态：本批实现与浏览器验收完成（2026-09-23）**；证据与前后截屏见 [qa/GLASS-POLISH](qa/GLASS-POLISH/README.md)。
+
+1. **需求（用户指定）**：① 浅色主题流动颜色太浅，加深一点；② 浅色要与深色一样能"覆盖"（透到）右侧聊天输入界面；③ 流动效果不明显，稍微增强。
+2. **实测根因（不是凭感觉改的）**：① 浅色 palette 底色取 `hsl(h, 0.25, 0.955)` 近白，而流体是 `lighter` **加法**叠加——底色越白越快饱和成纯白，改前画布平均亮度 **246.4**、平均 RGB (243,247,250)；② `chat.css` 硬编码 `.chat-main` / `.chat-composer` 为 `background: white`，深色方案在 `glass.css:261` 起显式置了透明/玻璃，**浅色这一路从来没补齐**；③ 光斑漂移幅度偏小。
+3. **实现**：`fluid-tones.ts` **只改浅色分支**（底色降到 `ramp(0.855, 0.9, 0.95)` 给加法留余量；bloom/mid 同步加深加饱和）；`fluid-shader.ts` 漂移幅度 ax/ay **×1.4**、叠加不透明度 0.38→0.42（位置与周期不变）；`glass.css` 新增浅色「主区/输入区让位」块（`.chat-main` 透明、`.chat-composer` 玻璃 + `blur`、焦点描边、6px 渐隐条改半透明以免留白边）。
+4. **文件归属**：`components/layout/fluid-tones.ts`、`fluid-tones.test.ts`、`fluid-shader.ts`、`styles/glass.css`；证据 `qa/GLASS-POLISH/`。**未改深色分支**。
+
+#### 5.0.1 本批结果（实跑）
+
+- 前后对比（1440×900、玻璃开、色调 0°/深浅 25）：浅色画布平均亮度 **246.38 → 223.88**、平均 RGB **(243,247,250) → (212,226,243)**、亮度标准差 **4.56 → 5.71（+25%）**、色调数 **130 → 198（+52%）**；深色分支数值不变（亮度 11.13 → 11.28，属相位差）。`.chat-main` 由 `rgb(255,255,255)` 变为 `rgba(0,0,0,0)`，`.chat-composer` 由实白变为 `rgba(255,255,255,0.6)` + `blur(16px)`；深色两值未变。
+- 流动强度（同页采样 2.5s）：浅色平均像素变化 2.13/255、变化 >2 的像素占比 35.9%；深色 3.14 / 38.1%。即持续运动。
+- 补充验证：浅色渐隐条命中新规则（深色仍是自己的深色渐变）；1440 与 390 均无横向溢出。
+- 工程检查：typecheck 通过；lint **0 警告**；unit **49 文件 / 382 例**（新增 3 例锁定浅色调色板不再回退到近白）；build 通过。
+
+#### 5.0.2 语义变化与边界
+
+1. **浅色"深浅"滑块现在也影响底色**：浅色 `color3` 由固定 0.955 改为 `ramp(0.855, 0.9, 0.95)`，滑块 0 = 最深、100 = 最浅（与深色同义）。
+2. **深色调色板一字未动**，仅因共用的漂移幅度/不透明度提升而"动得略多一点"。
+3. **玻璃主题仍无自动化测试覆盖**：全仓确认没有测试开启 `data-glass`，三处观感问题（含此前的预检 bug）正因此长期存在。要让视觉不回退需要单补一组玻璃主题的浏览器基线。
+4. **未做**：会话态（有消息）整页截屏（本机后端未启动，起不了真实会话；渐隐条规则以临时插入同名元素验证命中）；改动前的运动基线采样（需回退构建两次，故"增强前 vs 后"的运动差值无实测数字）；中栏"学习记录"列仍是实底（与深色一致，用户本次只要求右侧）；未同步 `glass-chat-scaffold` 技能（其模板含同名三文件且基线图与该调色板绑定，同步需连带重出 9 张基线并更新 manifest，属独立一次操作）。
+
+### 5.6 上一实施批：AGPL-OUT v1（移除 AGPL-3.0 流体背景，替换为自研实现）
 
 **状态：本批实现与浏览器验收完成（2026-09-23）**；证据见 [qa/AGPL-OUT](qa/AGPL-OUT/)。合规结论与复核方法见 [玻璃主题来源与许可](../docs/licenses/glass-theme/README.md)。
 
 1. **需求（用户指定）**：用户指出"项目后面可能公开使用，使用这个带 AGPL-3.0 有麻烦"，要求把已经写在 `glass-chat-scaffold` 里的原创流体实现搬回本项目替换掉 AGPL 版本。
 2. **起点问题（两层）**：原 `fluid-shader.ts`（491 行）/ `fluid-tones.ts`（70 行）是 DSH-Transparent-UI-Plugin（AGPL-3.0）的**逐行移植**，且 `fluid-shader.ts` 自述 GLSL 源码 "verbatim from the site bundle"——字面量抄自 deepseek.com 线上包，**没有任何许可**。两个文件是静态 import（关开关也照样进 bundle），流体层在 `GlassBackdrop` 中默认开启，且此前只为"将来公开分发时注意"留了注释，**没有任何处置动作**。
 3. **实现方式**：两个文件整份替换为自研实现（低分辨率 Canvas 2D + 正弦叠加驱动的软光斑 + 放大柔化 + `lighter` 叠加），对外接口（`FluidParams` / `SITE_FLUID_PARAMS` / `FluidShaderHandle` / `attachFluidShader` / `fluidToneColors` / `HUE_BASE`）保持完全一致。改写不采用——改写仍属演绎作品，不消除传染。
-4. **同步改动**：`GlassBackdrop.tsx` 的上下文预检由 `webgl2` 改为 `2d`（**必须改**，机制见 §5.0.2）；`glass.css` 两处注释与设置页开关文案（"WebGL 流体背景"→"流体背景"）去掉 WebGL 表述；新增两份单测；新建玻璃主题许可台账。
+4. **同步改动**：`GlassBackdrop.tsx` 的上下文预检由 `webgl2` 改为 `2d`（**必须改**，机制见 §5.6.2）；`glass.css` 两处注释与设置页开关文案（"WebGL 流体背景"→"流体背景"）去掉 WebGL 表述；新增两份单测；新建玻璃主题许可台账。
 5. **文件归属**：`components/layout/fluid-shader.ts`、`fluid-tones.ts`、`GlassBackdrop.tsx`、新建 `fluid-shader.test.ts`、`fluid-tones.test.ts`；`styles/glass.css`（仅注释）；`features/settings/SettingsWorkspace.tsx`（仅开关文案）；文档 `README.md` / `PROJECT_GUIDE` / 本文件 / 新建 `docs/licenses/glass-theme/README.md` / `docs/licenses/deeptutor-chat/README.md`（加指引）。
 
-#### 5.0.1 本批结果（实跑）
+#### 5.6.1 本批结果（实跑）
 
 - 工程检查：`npm run typecheck` 通过；`npm run lint`（`--max-warnings=0`）**0 警告**；`npm run test:unit` → **49 文件 / 379 例通过**（上一批 47/367，净增 2 文件 12 例）；`npm run build` 通过，`BUILD_ID = hkta-oovvflBHWmLYCGdh`。
 - **真实浏览器验证**（1440×900、深色玻璃、流体开，`qa/AGPL-OUT/fluid-browser-check.cjs`）：常态 `data-glass-fluid-ok='on'`、画布 144×90、平均亮度 11.13（近黑）、亮度标准差 5.5、色调数 264、`changedBetweenFrames=true`（真的在动）；`data-motion=reduced` 时同样成帧但 `changedBetweenFrames=false`（只画一帧，不循环）。两场景 `ambientHidden=true`（CSS 环境光正确让位，无双重绘制）。
 - 首败机制证据（headless Chromium 实测）：`先取 webgl2 再取 2d → null（槽位被占用）`；`先取 2d 再取 2d → 同一个对象`。这解释了为什么"换成 Canvas 2D 却不改预检"会导致全空白画布并把 CSS 环境光一起顶掉。
 
-#### 5.0.2 语义变化（接手者必须知道）
+#### 5.6.2 语义变化（接手者必须知道）
 
 1. **流体实现换了一整套**：WebGL2 流体求解 → Canvas 2D 低分辨率软光斑。视觉是"接近但非逐像素等同"；`FluidParams` 中 `decay / distortBoost / noiseBoost / swirlBoost / distortion / swirl / swirlIterations / shapeScale / rotation / proportion` 仅为接口兼容保留，**新实现不读取**（参数仍会被设置页写入 localStorage，但不再影响画面）。
 2. **上下文预检必须是 `2d`**：一个 canvas 只能持有一种上下文。任何"WebGL → Canvas 2D"的替换都必须同步改 `GlassBackdrop` 的预检，否则 WebGL2 可用机型上槽位被占、拿不到 2D 上下文，画布全空白却标记 `data-glass-fluid-ok='on'`，把 CSS 环境光一起 `display:none` 掉——背景彻底空白且不报错。
@@ -133,7 +158,7 @@ npm.cmd run test:unit
 4. **粗指针设备不注册指针视差**：与替换前的指针策略保持一致。
 5. **设置页文案**：流体开关由"WebGL 流体背景"改为"流体背景"（实现已不是 WebGL，文案不能继续暗示）。
 
-#### 5.0.3 边界与未做
+#### 5.6.3 边界与未做
 
 - 不做视觉逐像素对齐验收：原实现已删除，无法与 AGPL 版做同机对比；本批只验证"确实在绘制、确实尊重减少动画"。
 - 未做像素级基线比对新旧实现（`glass-chat-scaffold` 里的 MAD 4.55 是另一套环境下的历史数字，不作为本批证据）。
@@ -180,7 +205,7 @@ npm.cmd run test:unit
 
 ### 5.8 上一实施批：H1-BOOKS-PIPELINE v2（书籍生成流水线与增量阅读闭环）
 
-**状态：本批实现与本地验收完成，待交付审查（2026-09-20）。** 负责人：实施总控（本会话接手上任未收口工作）；独立验收 A1 只读。起点候选 `bf460ab`（接手前工作区改动快照见 §5.0.5，本批不提交、不还原）。完整任务卡、冻结契约（状态枚举/字段/仓储 API/执行器 API）、队长裁定、锚点与禁区清单在 [docs/qa/H1-BOOKS-PIPELINE/TASK-CARD.md](qa/H1-BOOKS-PIPELINE/TASK-CARD.md)，本节登记范围与边界，结果与语义变化见 §5.8.7–§5.8.9。
+**状态：本批实现与本地验收完成，待交付审查（2026-09-20）。** 负责人：实施总控（本会话接手上任未收口工作）；独立验收 A1 只读。起点候选 `bf460ab`（接手前工作区改动快照见 §5.8.5，本批不提交、不还原）。完整任务卡、冻结契约（状态枚举/字段/仓储 API/执行器 API）、队长裁定、锚点与禁区清单在 [docs/qa/H1-BOOKS-PIPELINE/TASK-CARD.md](qa/H1-BOOKS-PIPELINE/TASK-CARD.md)，本节登记范围与边界，结果与语义变化见 §5.8.7–§5.8.9。
 
 1. **需求（用户锁定）**：① 补齐 `draft/spine_ready/compiling/paused/ready/error/archived` 七态与页面/块的等待·生成中·完成·部分失败·失败状态，明确生产者、转移条件、持久化字段与恢复操作，区分局部块失败/页面失败/整轮失败/本地存储失败；② 可观察生成：新建→提案→确认大纲→逐章逐块生成，增量落库、阅读器可见已完成与未完成，活动条/阶段文案/章数/计时/展开详情/暂停横幅/正文提示对照固定参考，进度来自真实任务状态；③ 暂停与中断：用户暂停与**模拟**供应商连续失败暂停两类，均只在明确恢复后继续，刷新/选页不绕过暂停，对照参考 `maybe_resume_on_open` 仅对"compiling 且无活跃执行器"自动续跑；④ 失败与重试：单块重试、页面失败恢复、整页重生成，不暗中重建整本，部分失败如实显示；修复初次读取失败停在加载态；⑤ 数据与并发：旧数据兼容读取、损坏不覆盖、增量合并保护生成期间新增笔记/书签/进度、块身份稳定、作答版本关系、整书重建语义不变、事件绑定 bookId+runId+序号且重复/迟到不重复落库、同书单一执行者（双标签页不互相覆盖）、存储失败停止推进且不谎报已保存、生成进度与阅读进度分开、导出不伪装完整、课程 R-11 三态不回退。
 2. **实现方式**：`books-store.ts` 扩状态机与持久化（唯一写入口 `applyRunEvent`）；新建 `services/book-generation.ts` 作为**可替换的显式模拟执行器**（增量事件 + AbortSignal + 确定性失败场景 + 每书租约），正常路径由事件逐块推进，不预先同步生成整本；`BooksRoute.tsx` 承载活动条/展开详情/暂停横幅/自动续跑/模拟场景设置；`PageReader.tsx` 承载块与页状态、失败重试、整页重生成、作答版本关系。不接真实 LLM，不新增第二套业务后端。
@@ -193,8 +218,8 @@ npm.cmd run test:unit
 
 ### 5.8.7 本批结果（实跑）
 
-- 工程检查：`npm run typecheck` 通过；`npm run lint`（`--max-warnings=0`）**0 警告**；`NODE_OPTIONS=--no-experimental-webstorage npm run test:unit` → **46 文件 / 353 例通过**（基线 47 文件/344 中删去零断言探针 `zz-debug.test.ts`，本批净增 10 条）；`npm run build`（总控自跑）通过，`BUILD_ID = TPMei2ra-L9r31dqKSPpl`（迭代：r1 `hrsgX9VjAM3HhtDYpjgPj` → r2 `tqqP-RbOtTrgBVOXkRUET` → r3 修浮层裁切，见 §5.0.10）；`npm run test:e2e` → **168 例通过 / 0 失败**（既有 154 + 新增 `books-pipeline.spec.ts` 14 例，构建产物来自本批源码）。
-- 独立验收 A1（只读，冻结指纹见 §5.0.10）：r1 **pass 32 / fail 0 / not_run 0**（含 4 项挑刺：无 run 记录书的整页重生成、笔记写入失败不谎报、provider 开关单独开启真暂停、interrupted 态恢复入口，全部成立）；A1 挑出的 `contentVersion` 生产路径从不写入已按建议修复 → r2 定向复验 **pass**（真实存储实测「作答 `blockVersion` == 块 `contentVersion`」）；r3（修活动条展开浮层被 46px 条裁切，台账 N10）定向复验记录见其报告。
+- 工程检查：`npm run typecheck` 通过；`npm run lint`（`--max-warnings=0`）**0 警告**；`NODE_OPTIONS=--no-experimental-webstorage npm run test:unit` → **46 文件 / 353 例通过**（基线 47 文件/344 中删去零断言探针 `zz-debug.test.ts`，本批净增 10 条）；`npm run build`（总控自跑）通过，`BUILD_ID = TPMei2ra-L9r31dqKSPpl`（迭代：r1 `hrsgX9VjAM3HhtDYpjgPj` → r2 `tqqP-RbOtTrgBVOXkRUET` → r3 修浮层裁切，见 §5.8.10）；`npm run test:e2e` → **168 例通过 / 0 失败**（既有 154 + 新增 `books-pipeline.spec.ts` 14 例，构建产物来自本批源码）。
+- 独立验收 A1（只读，冻结指纹见 §5.8.10）：r1 **pass 32 / fail 0 / not_run 0**（含 4 项挑刺：无 run 记录书的整页重生成、笔记写入失败不谎报、provider 开关单独开启真暂停、interrupted 态恢复入口，全部成立）；A1 挑出的 `contentVersion` 生产路径从不写入已按建议修复 → r2 定向复验 **pass**（真实存储实测「作答 `blockVersion` == 块 `contentVersion`」）；r3（修活动条展开浮层被 46px 条裁切，台账 N10）定向复验记录见其报告。
 - 视觉与动画（真实浏览器 msedge，三视口 1440×900 / 1920×1080 / 390×844）：浮层进场 `180ms cubic-bezier(0.16,1,0.3,1)`、呼吸文字 `1.8s`、reduce 下两项均被压制（`1e-05s`）、快速开关 0→1→0、展开中暂停后浮层仍可收起、活动条按钮焦点环 2px、390 页面级溢出 0。截图与量化证据见 [qa visual](qa/H1-BOOKS-PIPELINE/visual/evidence.json)。
 - 证据索引：[批次 README](qa/H1-BOOKS-PIPELINE/README.md)、[首败与修复台账](qa/H1-BOOKS-PIPELINE/DEFECT-LEDGER.md)、[A1 报告](qa/H1-BOOKS-PIPELINE/A1-REPORT.md)、[冻结指纹](qa/H1-BOOKS-PIPELINE/FROZEN-CANDIDATE.json)。
 - 未执行：`apps/api` 测试（本批零后端改动）、真实供应商链路、移动端硬件触摸、逐帧动画曲线（属 H6 总验收范围）。
@@ -276,7 +301,7 @@ npm.cmd run test:unit
 
 | 顺序/轨道 | 交付中心 | 出口 |
 | --- | --- | --- |
-| R-05 推广范围内已收口；**AGPL-OUT v1 为当前批（§5.0）**；H1/H2 仍是建议路线 | 登记页面的视觉推广已交付（范围与未验项见 §5.3）。建议路线仍是业务闭环：H1 书籍课程（compiling/paused/error、流式生成、暂停恢复、书籍聊天、课程学习会话）或 H2 既有模块闭环（阅读媒体原视图与完整伴生过程、写作/Whisper、产物消费） | 先明确一个有界批次；逐状态视觉与数据/错误/取消/恢复同步验收 |
+| R-05 推广范围内已收口；**GLASS-POLISH v1 为当前批（§5.0）**；H1/H2 仍是建议路线 | 登记页面的视觉推广已交付（范围与未验项见 §5.3）。建议路线仍是业务闭环：H1 书籍课程（compiling/paused/error、流式生成、暂停恢复、书籍聊天、课程学习会话）或 H2 既有模块闭环（阅读媒体原视图与完整伴生过程、写作/Whisper、产物消费） | 先明确一个有界批次；逐状态视觉与数据/错误/取消/恢复同步验收 |
 | T3 MCP 执行通道（本批之外，未授权） | 设置里 MCP 条目的真实语义：服务端连接管理（凭证走 SecretStore）、工具清单发现、tool 调用循环与流式 `tool` 事件、失败与取消 | 需要独立批次与任务卡；不得在只有本地登记时声称已连接或已执行 |
 | H1书籍课程闭环 | compiling/paused/error、流式生成、暂停恢复、书籍聊天、课程学习会话，复用既有14类block | 状态链、保存/刷新、资源/产物引用与三视口 |
 | H2既有模块闭环 | 阅读媒体原视图与完整伴生过程、写作/Whisper、学习空间及产物消费 | 原功能/数据不丢、来源正确、完整参考交互 |

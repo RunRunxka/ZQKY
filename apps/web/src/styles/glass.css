@@ -85,6 +85,27 @@
   backdrop-filter: blur(var(--glass-blur, 16px));
 }
 
+/* 聊天主区与输入区：浅色同样让位给背景层（环境光 / 流体 / 壁纸）。
+   chat.css 给 .chat-main 与 .chat-composer 硬编码了 background: white，
+   不清掉的话右侧聊天区与输入框都是实心白，背景透不过来——深色方案
+   （见下方 data-glass-scheme='dark' 段）早已置透明，这里补齐浅色一路。
+   选择器与深色规则同为 (0,4,0)，靠 data-glass-scheme 判别，互不覆盖。 */
+:root[data-glass='on']:not([data-glass-scheme='dark']) .chat-main {
+  background: transparent;
+}
+:root[data-glass='on']:not([data-glass-scheme='dark']) .chat-composer {
+  background: rgba(255, 255, 255, calc(0.3 + var(--glass-alpha, 0.6) * 0.5));
+  backdrop-filter: blur(var(--glass-blur, 16px));
+  border-color: rgba(19, 45, 83, 0.12);
+}
+:root[data-glass='on']:not([data-glass-scheme='dark']) .chat-composer:focus-within {
+  border-color: rgba(37, 99, 235, 0.55);
+}
+/* 会话态输入区顶部的 6px 白渐变在透明主区上会留一道白边，改为随背景淡出。 */
+:root[data-glass='on']:not([data-glass-scheme='dark']) .chat-fade-top {
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.35));
+}
+
 /* 减少动画时保留静态外观，去掉过渡。 */
 @media (prefers-reduced-motion: reduce) {
   [data-glass='on'] .app-header,

@@ -7,6 +7,11 @@ const hex = (value: string): [number, number, number] => {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 };
 
+const luminance = (value: string): number => {
+  const [r, g, b] = hex(value);
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+
 describe('流体色调表（自研实现）', () => {
   it('三档都输出合法 #rrggbb', () => {
     for (const dark of [true, false]) {
@@ -33,15 +38,30 @@ describe('流体色调表（自研实现）', () => {
   });
 
   it('深浅单调：越深亮度越低', () => {
-    const luminance = (value: string): number => {
-      const [r, g, b] = hex(value);
-      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    };
     const deep = luminance(fluidToneColors(true, 0, 0).color1);
     const mid = luminance(fluidToneColors(true, 0, 50).color1);
     const pale = luminance(fluidToneColors(true, 0, 100).color1);
     expect(deep).toBeLessThan(mid);
     expect(mid).toBeLessThan(pale);
+  });
+
+  it('浅色底色留出加法余量：不再近白，但仍是浅色主题', () => {
+    // 流体用 lighter 叠加，底色越白越快饱和成纯白（曾出现平均亮度 246 的"发白"画面）
+    const base = luminance(fluidToneColors(false, 0, 25).color3);
+    expect(base).toBeLessThan(238);
+    expect(base).toBeGreaterThan(200);
+  });
+
+  it('浅色 bloom 明显比底色深，加法后才落得下颜色', () => {
+    const tones = fluidToneColors(false, 0, 25);
+    expect(luminance(tones.color1)).toBeLessThan(luminance(tones.color3) - 40);
+    expect(luminance(tones.color2)).toBeLessThan(luminance(tones.color3));
+  });
+
+  it('浅色底色亮度随"深浅"单调：0 最深、100 最浅', () => {
+    const deep = luminance(fluidToneColors(false, 0, 0).color3);
+    const pale = luminance(fluidToneColors(false, 0, 100).color3);
+    expect(deep).toBeLessThan(pale);
   });
 
   it('同输入同输出（确定性，无随机）', () => {

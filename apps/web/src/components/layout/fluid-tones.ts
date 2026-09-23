@@ -63,6 +63,11 @@ function hsl(h: number, s: number, l: number): string {
 /**
  * 按色相与深浅给出三档颜色。
  * 深浅 0 = 最深端（深色模式近黑 / 浅色模式为鲜艳深色），100 = 最浅端。
+ *
+ * 浅色端正向说明（2026-09-23 调整）：流体用 `lighter`（加法）叠加，底色越白，
+ * 加法越快饱和到纯白 —— 原来 color3 取 0.955（近白）时整块画布算出来是
+ * 平均亮度 246 / 平均 RGB (243,247,250)，看起来"流动几乎不存在"。
+ * 因此浅色这一档的三档亮度整体下调：底色留出余量，bloom 才落得下蓝色。
  */
 export function fluidToneColors(dark: boolean, hue: number, depth: number): FluidToneColors {
   const h = (((hue + HUE_BASE) % 360) + 360) % 360;
@@ -79,8 +84,11 @@ export function fluidToneColors(dark: boolean, hue: number, depth: number): Flui
     };
   }
   return {
-    color1: hsl(h, 0.95, ramp(0.3, 0.52, 0.9)),
-    color2: hsl(h, 0.55, 0.86),
-    color3: hsl(h, 0.25, 0.955),
+    /** 亮部 / 辉光：比原来深一档，饱和度顶到 0.95，保证加法后仍偏蓝而非发白。 */
+    color1: hsl(h, 0.95, ramp(0.26, 0.46, 0.8)),
+    /** 中间过渡色：由 0.55/0.86 压到 0.78 饱和度并加一条亮度斜坡。 */
+    color2: hsl(h, 0.78, ramp(0.44, 0.62, 0.84)),
+    /** 底色：由近白 0.955 降到 0.855–0.95，给加法留余量。 */
+    color3: hsl(h, 0.42, ramp(0.855, 0.9, 0.95)),
   };
 }

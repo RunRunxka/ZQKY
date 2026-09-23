@@ -112,12 +112,15 @@ interface Blob {
 /**
  * 光斑布局：两块主辉光（左下 / 上右）+ 中部铺底 + 一个高光点。
  * 位置由实测标定：深色下流体最亮处集中在左侧会话列与主区右上。
+ *
+ * 2026-09-23 调整（用户反馈"流动效果不明显"）：只加漂移幅度 ax/ay（约 ×1.4），
+ * 光斑位置与周期不变——位移变大而节奏不变，观感更"流动"但不会变躁。
  */
 const BLOBS: Blob[] = [
-  { bx: 0.24, by: 0.7, r: 0.86, w: 1.0, px: 34, py: 41, phx: 0.0, phy: 1.7, ax: 0.14, ay: 0.08, tone: 0 },
-  { bx: 0.74, by: 0.05, r: 0.82, w: 1.0, px: 47, py: 29, phx: 2.1, phy: 0.4, ax: 0.14, ay: 0.07, tone: 0 },
-  { bx: 0.55, by: 0.42, r: 0.74, w: 0.44, px: 53, py: 37, phx: 4.3, phy: 3.1, ax: 0.12, ay: 0.1, tone: 1 },
-  { bx: 0.62, by: 0.2, r: 0.3, w: 0.34, px: 23, py: 19, phx: 1.2, phy: 5.6, ax: 0.09, ay: 0.05, tone: 3 },
+  { bx: 0.24, by: 0.7, r: 0.86, w: 1.0, px: 34, py: 41, phx: 0.0, phy: 1.7, ax: 0.2, ay: 0.11, tone: 0 },
+  { bx: 0.74, by: 0.05, r: 0.82, w: 1.0, px: 47, py: 29, phx: 2.1, phy: 0.4, ax: 0.2, ay: 0.1, tone: 0 },
+  { bx: 0.55, by: 0.42, r: 0.74, w: 0.44, px: 53, py: 37, phx: 4.3, phy: 3.1, ax: 0.17, ay: 0.14, tone: 1 },
+  { bx: 0.62, by: 0.2, r: 0.3, w: 0.34, px: 23, py: 19, phx: 1.2, phy: 5.6, ax: 0.13, ay: 0.07, tone: 3 },
 ];
 
 /** #rrggbb → [r,g,b]；解析失败时回退到中性灰。 */
@@ -238,7 +241,9 @@ export function attachFluidShader(
         lowH;
       const rr = Math.max(4, blob.r * scaleRef);
       const color = palette[Math.min(3, blob.tone)] ?? palette[0]!;
-      const alpha = 0.38 * blob.w;
+      // 0.38 → 0.42（2026-09-23）：整体再明显一档。浅色端的底色已同步加深，
+      // 因此这里提高不透明度不会重新把画面推回"发白"。
+      const alpha = 0.42 * blob.w;
 
       const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rr);
       const rgb = `${color[0]},${color[1]},${color[2]}`;
