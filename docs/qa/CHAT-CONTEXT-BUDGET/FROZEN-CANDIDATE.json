@@ -2,11 +2,11 @@
   "batch": "CHAT-CONTEXT-BUDGET v1",
   "frozenAt": "2026-09-23",
   "branch": "main",
-  "candidateCommit": "a9968cd",
-  "candidateFullSha": "a9968cd3c1f7451a9c13c82217e547a977c19423",
-  "candidateParent": "b16a825",
-  "candidateTree": "60d64f33ae65b684c36b6696a86f2e8df0854491",
-  "buildId": "JvWSAvqG7aThtH-p1KhOw",
+  "candidateCommit": "3303f7f",
+  "candidateFullSha": "3303f7f78c54a1cc18fdbba775829605506eb0bd",
+  "candidateParent": "9fcab13",
+  "candidateTree": "c6350d8728c6c3bede8d0ff10e89a368dcb21652",
+  "buildId": "jWdzmxYFOf6RtLUVbtOkL",
   "defectsReversed": [
     "D1: UI-compatible long syllabus title produced a 32088-char course system message (over both the 2400 local cap and the backend MAX_MESSAGE_CHARS=32000); now 208 chars with all dynamic fields capped",
     "D2: course block was appended after contextBudgetChars trimming (2040 > budget 2000); now built inside one budget with backend limits 200/32000/120000"
@@ -14,23 +14,25 @@
   "checks": {
     "typecheck": "pass (npm run typecheck)",
     "lint": "pass, 0 warnings",
-    "unit": "52 files / 434 tests passed",
+    "unit": "52 files / 435 tests passed",
     "build": "pass (npm run build) -> BUILD_ID JvWSAvqG7aThtH-p1KhOw",
-    "e2eTargeted": "15/15 passed (chat-context-budget 4 + course-sessions 11)",
-    "e2eFull": "195 passed / 0 failed / 0 flaky (6.4m)",
+    "e2eTargeted": "15/15 passed (chat-context-budget 4 + course-sessions 11) on build jWdzmxYFOf6RtLUVbtOkL",
+    "e2eFull": "195 passed / 0 failed / 0 flaky (6.4m) on build jWdzmxYFOf6RtLUVbtOkL",
     "api": "217 passed (npm run test:api; includes 35 RAG adapter contract tests from the sibling batch)",
     "probeReversal": "original probe copy: 2/2 fail as expected after fix; product-path probe 3/3 pass",
     "realProvider": "not_run (no outbound call; credential validity unverified)",
-    "visual": "not_run (no .css change in this batch)"
+    "visual": "not_run (no .css change in this batch)",
+    "hardening": "corrupted legacy snapshot (resources:[null]) no longer throws on the retry path; non-object entries dropped, missing fields fall back to unknown, no fabricated content; covered by a new unit test"
   },
   "fingerprintsSha256_16": {
     "apps/web/src/contracts/chat.ts": "eb04f89dddf0441c",
-    "apps/web/src/features/chat/model/request-budget.ts": "284a48786e21765c",
+    "apps/web/src/features/chat/model/request-budget.ts": "f564d236fdd865ce",
     "apps/web/src/features/chat/model/context-budget.ts": "1cc2154fcd925c47",
     "apps/web/src/features/chat/model/store.ts": "c1f3f3df2bfbb8ab",
     "apps/web/src/features/chat/ChatWorkspace.tsx": "4df74bb603fb38a1",
     "apps/web/src/services/course-session.ts": "20d745bde02f10a0",
-    "tests/e2e/chat-context-budget.spec.ts": "cdc53f3234a330ee"
+    "tests/e2e/chat-context-budget.spec.ts": "cdc53f3234a330ee",
+    "apps/web/src/features/chat/model/request-budget.test.ts": "cae2573a8fa721d3"
   },
   "scopeExclusions": [
     "apps/api product code (backend untouched)",
@@ -42,5 +44,14 @@
     "selectMessagesForRequest kept as a compatibility entry point (not on the product path)",
     "requestBudget records send-time facts only; it never rewrites course data or history text",
     "real provider calls not_run"
-  ]
+  ],
+  "revision": "r2（A1 r1 低危项：脏历史快照加固后重新冻结）",
+  "supersededCandidates": {
+    "r1": {
+      "commit": "a9968cd",
+      "tree": "60d64f33ae65b684c36b6696a86f2e8df0854491",
+      "buildId": "JvWSAvqG7aThtH-p1KhOw",
+      "verdict": "A1 r1 可交付（附一条低危健壮性缺口，本批内关闭）"
+    }
+  }
 }
