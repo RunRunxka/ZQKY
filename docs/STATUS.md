@@ -6,9 +6,9 @@
 
 **以智启课源品牌完成固定 DeepTutor 的产品前端、AI 交互与原有动画；全站以当前学习问答 `/chat` 为视觉基准，保留蓝色主题及原业务功能。整体尚未完成。**
 
-**当前工作：H1-COURSE-SESSIONS v1（课程学习会话闭环）与有界前置补丁 BOOKS-CS-FOLLOWUP v1 已本地实施并完成限定范围验收（2026-09-22），待交付审查。** 课程侧完成「课程 → 创建学习会话 → 真实问答 → 返回课程 → 恢复原会话」闭环：会话归属按稳定 `courseId`（旧会话保持未归属，不按标题/最近访问/URL 猜测），课程页可新建/打开/恢复本课程会话，聊天页显示归属与「返回课程」入口，发送时把课程名/约定/大纲/资源登记冻结为轮次快照，并以一条 `system` 上下文进入既有真实请求链路（重试沿用原快照，课程修改只影响新轮）；课程删除/归档不改写历史会话与归属。书籍侧补丁收口上一批 A1 的 F3/F5–F8（缺 Web Locks 不静默降级、控制操作按提交结果分支、修复任务全生命周期收尾、启动重入去重）。证据见 §3.1、§5.A/§5.B 与 [课程批次证据](qa/H1-COURSE-SESSIONS/README.md)、[补丁批次证据](qa/BOOKS-CS-FOLLOWUP/README.md)。上一批 H1-BOOKS-HARDEN v1（M22-01～06）记录保留在 §5.C。**书籍仍为本地模拟执行器；课程问答只走真实 FastAPI，无可用凭证的真实供应商场景记 not_run；两者均不代表模块或全站完成。**
+**当前工作：CHAT-CONTEXT-BUDGET v1（请求统一预算）与 RAG-I0-PREP v1（RAG 只读准备）已本地实施并完成限定范围验收（2026-09-23），待交付审查。** 预算侧把「课程上下文 + 历史 + 当前问题」放进**同一预算**并与后端硬限制（200 条 / 32000 单条 / 120000 总长）对齐：课程块所有动态字段限幅且保留「仅登记、未解析未检索」说明，裁剪阶梯为「课程字段 → 整条丢最旧历史 → 整体丢课程块」，当前问题逐字不裁剪、放不下时**发送前**明确提示并保留输入；本轮账目（字符估算）随助手消息持久化，轮次快照冻结语义不变。RAG 侧未启动任何推理：只读核对了上游提交/冻结包/现役配置与性能质量边界，并在宿主 `apps/api` 定义 adapter 契约（`get_rag_adapter()` 恒定不可用、无假实现、无路由、capability 仍 planned）。证据见 §5.A 与 [预算批次](qa/CHAT-CONTEXT-BUDGET/README.md)、[RAG-I0 报告](qa/RAG-I0-PREP/README.md)。上一批 H1-COURSE-SESSIONS v1 记录保留在 §5.B。**书籍仍为本地模拟执行器；RAG 未接入；真实供应商未外呼、未验证凭证有效性；均不代表模块或全站完成。**
 
-R-05 内容视觉统一是 H1 之前已交付的批次。第六批 B-R05-EXTEND v5（2026-09-19）覆盖阅读工作区和 `/space` 四子页，并修复 R-09 滚动竞争。历史独立验收 A1 pass 0 fail 保留，R-05 只在 §5.3 登记范围内关闭，不扩大为全站逐状态完成。H1-BOOKS-HARDEN v1 已于 2026-09-22 交付（见 §5.C）；RAG 接入仍未启动，见 [当前批次与下一动作](#current-task)。
+R-05 内容视觉统一是 H1 之前已交付的批次。第六批 B-R05-EXTEND v5（2026-09-19）覆盖阅读工作区和 `/space` 四子页，并修复 R-09 滚动竞争。历史独立验收 A1 pass 0 fail 保留，R-05 只在 §5.3 登记范围内关闭，不扩大为全站逐状态完成。H1-BOOKS-HARDEN v1 已于 2026-09-22 交付（见 §5.D）；RAG 接入只完成宿主侧契约准备（见 §5.A、§6.1），见 [当前批次与下一动作](#current-task)。
 
 - 本次审查代码基准：`main@7a394ef`，开始工作区干净；最近主要业务实现为 `f31d39f`，之后产品差异为公共导航字体。本批（H1-BOOKS-HARDEN v1）起点为 `40491be`，现场核对分支/HEAD 后开工，未切换或合并 `feat/glass-theme`。`main` 是个人分支，默认集成分支是 `feat/glass-theme`，本报告不计入后者的主题工作。
 - `.zcode/` 已退出 Git 跟踪；本机配置继续保留、不触碰。
@@ -21,7 +21,7 @@ R-05 内容视觉统一是 H1 之前已交付的批次。第六批 B-R05-EXTEND 
 | --- | --- | --- |
 | 公共壳 | `/chat` 单一主页；220/56px侧栏、跨页折叠；隐藏页父菜单；手机模态抽屉；404一层壳；聊天独立学习记录中栏 | R-05 收口范围见 §5.3；错误页reset运行时未验；部分过渡曲线未验 |
 | 教案 | 本地规则填充、编辑、草稿恢复、Word/PDF导出；R-05 v4 有界视觉推广及导出/草稿回归 | 不是AI生成；逐状态视觉与动画按矩阵保留未验项；冻结旧版及原Word不改 |
-| 学习问答 | 三协议SSE、推理/正文及公式、本地会话、模型选择；生产mock残留已清；来源消息定位与失效会话空态已修；**课程会话归属、聊天页课程上下文与轮次课程快照进入真实请求（H1-COURSE-SESSIONS v1）** | ask_user、工具、附件解析及复杂业务真实执行通道未接；不能以存量组件当可发起功能；真实供应商证据范围不因本批扩大 |
+| 学习问答 | 三协议SSE、推理/正文及公式、本地会话、模型选择；生产mock残留已清；来源消息定位与失效会话空态已修；**课程会话归属、聊天页课程上下文与轮次课程快照进入真实请求（H1-COURSE-SESSIONS v1）**；**请求统一预算与课程字段限幅、构建失败如实提示（CHAT-CONTEXT-BUDGET v1）** | ask_user、工具、附件解析及复杂业务真实执行通道未接；不能以存量组件当可发起功能；真实供应商证据范围不因本批扩大；课程资源仍为登记引用（RAG 未接入） |
 | 模型与供应商 | contract-v1、38条注册（36现行+2 legacy）、6 backend、专用适配/受管认证、发现来源、推理控制、v1→v2迁移与凭证补偿；卡片/详情/发现/参数/默认选择闭环 | 真实仅DeepSeek指定场景有证据，其余37条注册项无独立真实通过；Codex真实登录条件仍需核实具备；R-13未关闭；模型动画partial |
 | 学习空间/笔记/题库 | 会话历史、角色、题库、笔记编辑、跨页保存；真实sessionId回链+可选messageId定位，旧数据缺身份不猜测；`/space` 首页、四子页与笔记本列表/详情已列入视觉推广批 | `/space` 功能级完整验收（弹窗/错误/长文案逐状态）待补；笔记编辑器等参考差距按矩阵保留；CLI只本地登记，无真实执行 |
 | 知识库 | 登记→解析→索引显式模拟，进度/取消/重试/恢复；局部状态与数据保护已有证据；R-05 v1 列表/详情视觉有界验收 | 不读真实文件、不做向量检索/RAG；全部分区/弹窗逐状态视觉及进度动画仍未完整验收 |
@@ -60,7 +60,7 @@ R-05 内容视觉统一是 H1 之前已交付的批次。第六批 B-R05-EXTEND 
 
 候选 `7a394ef`；[源码依据、隔离复现与命令](qa/main-review-20260922/README.md)。常规检查：typecheck/lint 通过，unit **353/353**，API **181/181**（1 条第三方弃用警告）。另外 3 个探针均复现缺陷，**不计为产品通过**。本轮 build/e2e/视觉/真实供应商/RAG 模型与质量评测 not_run；原 168 项 e2e 只作历史证据。
 
-**六项已于 H1-BOOKS-HARDEN v1（2026-09-22）修复**，修复内容、首败证据与断言反转回归见 [批次台账](qa/H1-BOOKS-HARDEN/DEFECT-LEDGER.md) 与 [§5.A](#harden-results)：
+**六项已于 H1-BOOKS-HARDEN v1（2026-09-22）修复**，修复内容、首败证据与断言反转回归见 [批次台账](qa/H1-BOOKS-HARDEN/DEFECT-LEDGER.md) 与 [§5.D](#harden-results)：
 
 | ID | 原未修复项 | 修复后状态 | 证据层级 |
 | --- | --- | --- | --- |
@@ -71,7 +71,7 @@ R-05 内容视觉统一是 H1 之前已交付的批次。第六批 B-R05-EXTEND 
 | M22-05 | 最终完成落库异常被吞掉，内存仍 finished | 已修（落 kind storage 失败 + 「重试生成」，绝不假报完成；一次性注入开关） | 单测（状态 error、重试后 ready）+ 真实浏览器（卡片非「可阅读」→重试完成） |
 | M22-06 | 编辑笔记时左右方向键触发全局翻页 | 已修（输入框/可编辑/组合输入/修饰键全部排除） | 组件测试（输入框、contenteditable、isComposing、修饰键、已消费事件）+ 真实浏览器两组键盘 |
 
-**M22-03 的补充修复（H1-BOOKS-COMMIT-SAFETY v1，2026-09-22）**：本批用脱敏探针复现确认，HARDEN v1 采用的"写标记 + 有界重放"只能**写前检测**冲突——另一写入者在"检测之后、写入之前"提交时，其已保存内容仍会被旧整表覆盖（丢失更新，可控交错即可复现，不依赖"同一毫秒"）；同时确认冲突预算耗尽后会返回内存候选值，使 `createBook` 返回幻影书籍。修复：集合写改为**互斥锁内的事务读改写**（生产走原生 Web Locks；jsdom 单测走测试注入的 in-process 互斥——本批当时的 localStorage 回退锁已在 BOOKS-CS-FOLLOWUP v1 整体删除，无互斥即 `unsupported`、不降级写），并引入 `CommitResult` 提交结果契约（非 `committed` 一律不返回值）。证据见 [CS 批次台账](qa/H1-BOOKS-COMMIT-SAFETY/DEFECT-LEDGER.md)、[真实双标签页 e2e](qa/H1-BOOKS-COMMIT-SAFETY/README.md)。**HARDEN v1 的租约归属/失权停止/读取三态/统一收尾语义全部保留**；“不宣称强原子性”的边界同样保留（口径已按 BOOKS-CS-FOLLOWUP v1 任务卡 §6 订正：写后读回**不**必然发现所有绕过协议的写入，详见 §5.B）。
+**M22-03 的补充修复（H1-BOOKS-COMMIT-SAFETY v1，2026-09-22）**：本批用脱敏探针复现确认，HARDEN v1 采用的"写标记 + 有界重放"只能**写前检测**冲突——另一写入者在"检测之后、写入之前"提交时，其已保存内容仍会被旧整表覆盖（丢失更新，可控交错即可复现，不依赖"同一毫秒"）；同时确认冲突预算耗尽后会返回内存候选值，使 `createBook` 返回幻影书籍。修复：集合写改为**互斥锁内的事务读改写**（生产走原生 Web Locks；jsdom 单测走测试注入的 in-process 互斥——本批当时的 localStorage 回退锁已在 BOOKS-CS-FOLLOWUP v1 整体删除，无互斥即 `unsupported`、不降级写），并引入 `CommitResult` 提交结果契约（非 `committed` 一律不返回值）。证据见 [CS 批次台账](qa/H1-BOOKS-COMMIT-SAFETY/DEFECT-LEDGER.md)、[真实双标签页 e2e](qa/H1-BOOKS-COMMIT-SAFETY/README.md)。**HARDEN v1 的租约归属/失权停止/读取三态/统一收尾语义全部保留**；“不宣称强原子性”的边界同样保留（口径已按 BOOKS-CS-FOLLOWUP v1 任务卡 §6 订正：写后读回**不**必然发现所有绕过协议的写入，详见 §5.C）。
 
 边界：修复均为本地模拟执行器范围内的行为纠正；真实供应商、真实 LLM/解析、RAG 接入与动画精度不因本批改变。M22-03 的"同一毫秒并发写入"窗口无法用测试确定性构造，实现为写后读回 + 有界重放并如实标注（见 [批次 README §6](qa/H1-BOOKS-HARDEN/README.md)）。
 
@@ -102,6 +102,8 @@ R-05 内容视觉统一是 H1 之前已交付的批次。第六批 B-R05-EXTEND 
 | H1-BOOKS-HARDEN v1（main 审查 M22-01～06 修复） | `40491be` → 本批提交（见批次 README） | typecheck/lint(0警告)/unit 48文件381例/build(BUILD_ID `cTTq7b-No7rnD-HNmoyQc`)/e2e **174 通过 0 失败**全过；3 个审查探针未修改、修复后 3/3 按预期失败（断言反转证据）；独立验收 A1 只读复验见批次报告 | [批次证据](qa/H1-BOOKS-HARDEN/README.md)、[首败台账](qa/H1-BOOKS-HARDEN/DEFECT-LEDGER.md)、[探针反转](qa/H1-BOOKS-HARDEN/probe-reversal/README.md)；**全部为本地模拟执行器与本地注入，不含真实 LLM/解析**；api 未重跑（零后端改动，基线181） |
 | H1-BOOKS-COMMIT-SAFETY v1（书籍保存一致性） | `fedfa09` → 本批提交（见批次 README） | typecheck/lint(0警告)/unit **48 文件 389 例**（上一批 48/381，+8 例）/**build `AtxBYXEc_99FFQ8cGCtvu`**/e2e **178 通过 0 失败 0 flaky**（既有 174 + 新增 4 例真实双标签页）全过；原缺陷探针 2/2 按预期失败（缺陷假设不再成立）；独立验收 A1 r1 **可交付（条件通过）**，交付前项已处置、F5–F8 登记为已知边界 | [批次证据](qa/H1-BOOKS-COMMIT-SAFETY/README.md)、[首败与写入口盘点](qa/H1-BOOKS-COMMIT-SAFETY/DEFECT-LEDGER.md)、[脱敏探针](qa/H1-BOOKS-COMMIT-SAFETY/probe-reversal/README.md)、[A1 报告](qa/H1-BOOKS-COMMIT-SAFETY/A1-REPORT.md)；**全部为本地模拟执行器与本地存储，不含真实 LLM/解析**；api 未重跑（零后端改动，基线 181） |
 | H1-COURSE-SESSIONS v1（课程学习会话闭环） | `d2638f2` → **`701d391`**（r2 交付候选，tree `d600f77c…`；r1 `8104654` 经 A1 r1 判需修订后关闭 F1/F2） | typecheck/lint(0警告)/unit **51 文件 416 例**/build **`93TKwQeZ9Av2qkSOC_8aR`**/e2e 全量回归 **191 passed / 0 failed / 0 flaky**（`course-sessions.spec.ts` 11 例：两课程互不串位、报文断言、写入失败可重试、跨任务二次点击不重复、列表读取失败可重试、流式中切换不污染、三视口/键盘/减少动画）；后端 `npm run test:api -- tests/test_chat_stream_api.py` **9 passed**（system 课程上下文经 FastAPI 逐条转发给 provider） | [批次证据](qa/H1-COURSE-SESSIONS/README.md)、[任务卡](qa/H1-COURSE-SESSIONS/TASK-CARD.md)、独立验收 [A1 r1 需修订](qa/H1-COURSE-SESSIONS/A1-REPORT-01.md) → [A1 r2 可交付](qa/H1-COURSE-SESSIONS/A1-REPORT-02.md)；**本轮未发起真实外呼、未验证凭证有效性**（not_run）；零后端产品代码改动 |
+| CHAT-CONTEXT-BUDGET v1（请求统一预算） | `b16a825` → **`a9968cd`**（tree `60d64f33…`） | typecheck/lint(0警告)/unit **52 文件 434 例**/build **`JvWSAvqG7aThtH-p1KhOw`**/定向 e2e **15/15**、全量 e2e **195 passed / 0 failed / 0 flaky**；冻结探针反转入 Git（原探针 2/2 按预期失败：D1 208 字、D2 1990≤2000；产品路径反转探针 3/3 通过） | [批次证据](qa/CHAT-CONTEXT-BUDGET/README.md)、[FROZEN](qa/CHAT-CONTEXT-BUDGET/FROZEN-CANDIDATE.json)；**数字均为字符估算，不宣称精确 token**；真实供应商未外呼（not_run） |
+| RAG-I0-PREP v1（宿主侧契约 + 只读核对） | `a9968cd` → **`13a93ae`**（tree `a067b487…`） | 宿主 API 全量 **217 passed**（含新增 35 例合成数据契约测试）；RAG 仓库全程只读、HEAD/工作区前后对照留证 | [RAG-I0 报告](qa/RAG-I0-PREP/README.md)、[FROZEN](qa/RAG-I0-PREP/FROZEN-CANDIDATE.json)；**上游未启动模型/未重建索引/未跑评测；质量结论 not_run；结论=宿主侧准备完成、上游存在具体缺口（G1–G12）** |
 | BOOKS-CS-FOLLOWUP v1（书籍前置补丁，单独提交/单独验收） | `d2638f2` → `a45b011` | typecheck/lint(0警告)/unit **49 文件 403 例**/build **`YhmHpWDKx-EgSf1pGHkZh`**/书籍 e2e **26 例通过**；F3/F5–F8 逐条处置并补回归（缺 Web Locks 不降级、控制操作按提交结果分支、修复任务收尾、启动重入去重、冲突预算重试） | [批次证据](qa/BOOKS-CS-FOLLOWUP/README.md)、[A1 报告](qa/BOOKS-CS-FOLLOWUP/A1-REPORT.md)（独立验收：代码与测试可交付，W1/W2 文档卡口已关闭）；**全部为本地模拟执行器与本地存储** |
 
 ### 4.1 真实服务与数据事件
@@ -132,9 +134,21 @@ npm.cmd run test:unit
 
 <a id="commit-safety-results"></a>
 
-### 5.A 本批实施：H1-COURSE-SESSIONS v1（课程学习会话闭环，2026-09-22 本地实施与限定范围验收，待交付审查）
+<a id="chat-budget-results"></a>
+### 5.A 本批实施：CHAT-CONTEXT-BUDGET v1（请求统一预算）+ RAG-I0-PREP v1（RAG 只读准备），2026-09-23 本地实施与限定范围验收，待交付审查
 
-**目标（用户锁定）**：完成「课程 → 创建学习会话 → 真实问答 → 返回课程 → 恢复原会话」闭环，并同时交付有界前置补丁 BOOKS-CS-FOLLOWUP v1（见 §5.B）。冻结契约见 [任务卡](qa/H1-COURSE-SESSIONS/TASK-CARD.md)，实跑与首败见 [批次证据](qa/H1-COURSE-SESSIONS/README.md)。
+**目标（用户锁定）**：① 为最终请求建立统一预算——课程上下文、历史消息、当前问题共同参与计算，预留输出预算，分别遵守后端单条/总长度限制，且**不把字符估算夸大为精确 token**；② 课程上下文所有动态字段受限，保留「资源仅登记，未解析未检索」说明，字段裁剪只影响发送内容、**不反向改写课程原始数据**；③ 优先缩减可省略的课程摘要与旧历史，**不静默丢掉当前问题、不拼接半条消息、不伪造完整上下文**，必要输入仍超限时在发请求前明确提示并保留输入可修改；④ 课程快照仍按轮次冻结（旧轮重试不读最新课程、新轮用新快照），**旧超长快照同样经安全构建、不要求清库**，如实记录发送时的裁剪行为且历史原文不变；⑤ 预算/构建失败不得留下 `sending=true`、空助手占位、无法重试状态或未处理 Promise；⑥ RAG 侧只做只读核对与宿主侧契约准备，**不启动模型、不重建索引、不填人工 verdict、不解封 held-out、不改 RAG 仓库**。同批不改变模型输出预算默认值、不自动关推理、不顺手处理 R-13、不引入 RAG 内容或模拟聊天。
+
+1. **复现的缺陷（探针纳入 Git）**：D1「UI 可输入的超长大纲标题（32001 字）使课程 system 消息达 **32088 字**，同时越过 2400 承诺与后端 `MAX_MESSAGE_CHARS=32000`」；D2「课程块在 `contextBudgetChars` 裁剪**之后**追加，实测 2040 > 预算 2000」。探针原件与副本见 [probe-reversal](qa/CHAT-CONTEXT-BUDGET/probe-reversal/)（副本 md5 `18122b3c…` 与 `_work` 原件逐字节一致，未改断言）。
+2. **修复**：新增 `features/chat/model/request-budget.ts`（唯一构建入口 `buildChatRequest()`；`BACKEND_REQUEST_LIMITS` 为 200/32000/120000 的单一事实来源；裁剪阶梯 ①课程字段 → ②整条丢最旧历史 → ③整体丢课程块；当前问题逐字不裁剪、放不下即**发送前** `ok:false`）；`store.send()` 预检（失败不清草稿、不入库用户消息、不建占位、不置 `sending`）；`requestBudget` 账目随助手消息持久化（刷新可核，只记发送时事实）；`retry()` 用同一构建器 + 旧轮冻结快照；`courseContextMessage` 渲染期限幅 `name≤80`/`nextTitle≤120`（授权最小补丁，归属与过滤语义未动）。
+3. **实跑（冻结候选 `a9968cd`，构建 `JvWSAvqG7aThtH-p1KhOw`）**：`typecheck` 通过；`lint` 0 警告；unit **52 文件 / 434 例**；定向 e2e **15/15**（新增 4 + 课程闭环 11）；**全量 e2e 195 passed / 0 failed / 0 flaky（6.4m）**；探针反转：原探针 2/2 **按预期失败**（D1 现 208 字、D2 现 1990≤2000），产品路径反转探针 3/3 通过。证据见 [批次证据](qa/CHAT-CONTEXT-BUDGET/README.md) 与 [FROZEN 记录](qa/CHAT-CONTEXT-BUDGET/FROZEN-CANDIDATE.json)。
+4. **RAG-I0-PREP v1（宿主侧契约 + 只读核对，候选 `13a93ae`）**：上游实际 HEAD `a0f9ade`（分支 `master`，父 `8ed22b8`），工作区 7→13 项漂移且**未确认停止写入**；冻结 `P8-FREEZE-20260922-190500` 的包/manifest/receipt 完好、`--verify` 退出码 1（失败仅为「当前树 vs 快照」漂移 18 项、脚本不比对 HEAD/porcelain）；现役配置 20/20 与 `configs/**` 一致；性能边界：热态检索 p95 210/369 ms 达标、**端到端 P95 22.7 s 未达标**；质量三类（证据充分性/段级/讲解）仍 `not_run`（评审者 0 人）。宿主侧交付 `apps/api/app/contracts/rag_adapter.py`（输入输出/引用坐标/状态与错误契约 + UTF-16↔码点转换纯函数）+ **35 例**合成数据契约测试，`get_rag_adapter()` 恒定抛 `RagAdapterUnavailable`（**无假实现、未注册路由**，capability 仍 `planned`）；宿主 API 全量 **217 passed**；12 项缺口 G1–G12 见 [报告](qa/RAG-I0-PREP/README.md) 与 [FROZEN 记录](qa/RAG-I0-PREP/FROZEN-CANDIDATE.json)。**结论：宿主侧契约/准备已完成，上游存在具体缺口；不标记 RAG 已接入。**
+5. **边界与未执行**：全部预算数字为**字符估算**（1 token ≈ 2 字符），不保证不超模型自身上下文上限，只保证不超本轮输入预算与后端硬限制；`selectMessagesForRequest` 保留为兼容入口（非产品路径）；真实供应商**未发起真实外呼、未验证凭证有效性**（not_run）；上游 pytest/评测/模型加载/索引重建/held-out 解封/OS 级断网均 not_run；本批不宣称视觉通过（无样式规则改动）。
+6. **不包含**：RAG 内容进入宿主、追问执行、教材上传、真实检索、第二套业务后端、全站动画重做。**I1 需用户明确解除冻结范围并确认上游停止写入后启动。**
+
+### 5.B 上一实施批（历史）：H1-COURSE-SESSIONS v1（课程学习会话闭环，2026-09-22 本地实施与限定范围验收）
+
+**目标（用户锁定）**：完成「课程 → 创建学习会话 → 真实问答 → 返回课程 → 恢复原会话」闭环，并同时交付有界前置补丁 BOOKS-CS-FOLLOWUP v1（见 §5.C）。冻结契约见 [任务卡](qa/H1-COURSE-SESSIONS/TASK-CARD.md)，实跑与首败见 [批次证据](qa/H1-COURSE-SESSIONS/README.md)。
 
 1. **归属与数据**：`Conversation.courseId`（可选，稳定课程 id）+ `ConversationMeta.courseId` 贯通列表元数据；缺失/空串 = 未归属，**不按标题/最近访问/URL 猜测**、旧会话不被改写；`schemaVersion` 保持 1。课程删除/归档**不修改会话与消息、不自动换绑**（与参考「删除即清空归属」有意不同，理由：历史与归属可追溯）。
 2. **课程页会话区**：本课程会话列表（只按稳定 id 过滤、按更新时间倒序）、空态/加载/读取失败重试；「新建学习会话」**保存成功后才跳转**（同一 tick 连点由同步 ref 去重、写入失败保留页面并给「重试新建」）；归档课程只读。
@@ -145,7 +159,7 @@ npm.cmd run test:unit
 7. **不包含**：BookChatPanel、课程学习智能体工具、自动学习规划、精通/记忆、RAG 正式接入、真实书籍生成、全站动画重做，以及任何模拟聊天捷径。
 8. **独立验收（两轮）**：A1 r1 判「需修订（有界）」——F1「保存已提交、导航卸载再次点击会创建第二条课程会话」（探针 gap=10/25ms）、F2「课程上下文警告跨会话残留」，另列 F3–F11（测试有效性/文档口径/结构）；修复批 `701d391`（守卫保持到卸载、四处切换点清除警告、预算内收缩保留免责句、补 2 例 e2e + 1 例单测、文档清扫）重新冻结后，A1 r2 判 **可交付**（F1/F2 经其独立探针确认修复、要求 4/5/6/7 重跑无回退、191 例全量 e2e 与 416 例单测由其本机重现）。报告：[r1](qa/H1-COURSE-SESSIONS/A1-REPORT-01.md)、[r2](qa/H1-COURSE-SESSIONS/A1-REPORT-02.md)。
 
-### 5.B 上一实施批（历史）：BOOKS-CS-FOLLOWUP v1（书籍前置补丁）与 H1-BOOKS-COMMIT-SAFETY v1（书籍保存一致性）
+### 5.C 更早实施批（历史）：BOOKS-CS-FOLLOWUP v1（书籍前置补丁）与 H1-BOOKS-COMMIT-SAFETY v1（书籍保存一致性）
 
 **目标**：收口书籍本地仓储的**提交一致性**——写入口单一协议、互斥/事务读改写、提交结果可判定，调用方只在落库成功后展示成功。冻结契约与范围见 [任务卡](qa/H1-BOOKS-COMMIT-SAFETY/TASK-CARD.md)。
 
@@ -154,11 +168,11 @@ npm.cmd run test:unit
 3. **写入口与调用方**：书籍集合的创建/编辑/删除/笔记/作答/已读/书签/生成事件/页块修复/检查点/演示载入/场景设置全部走同一协议；`BooksRoute`、`PageReader`、执行器（`applyStored`/`flush`/`pause`/`stop`/收尾/修复复位）逐个迁移为等待提交结果；失败保留输入与草稿并可重试（真实浏览器验证了"持锁时创建失败保留输入、释放后重试成功"）。
 4. **与租约的关系**：租约继续保证"单书只有一个执行器"，集合锁保证"整表读改写互斥"；引擎每批事件在锁内重读、`runWritable` 基于锁内快照，旧执行器迟到写入仍被 `runId` 拒绝（HARDEN v1 语义不变）。
 5. **实跑结果**：`npm run typecheck` 通过；`npm run lint` 0 警告；`NODE_OPTIONS=--no-experimental-webstorage npm run test:unit` **48 文件 / 389 例通过**；`npm run build` 通过（`BUILD_ID = AtxBYXEc_99FFQ8cGCtvu`）；`npx playwright test` **178 例通过 / 0 失败**（既有 174 + 新增 `books-commit-safety.spec.ts` 4 例真实双标签页场景）；原缺陷探针 2/2 按预期失败（假设不再成立，见 [probe-reversal](qa/H1-BOOKS-COMMIT-SAFETY/probe-reversal/README.md)）；独立验收 A1 只读复验见 [A1-REPORT.md](qa/H1-BOOKS-COMMIT-SAFETY/A1-REPORT.md)。未执行：`apps/api` 测试（零后端改动，沿用基线 181）、真实供应商、硬件触摸、逐帧动画。
-6. **边界**：生产路径用原生 Web Locks（真实互斥）；jsdom 单测走测试注入的 in-process 互斥（本批当时的 localStorage 回退锁已在 BOOKS-CS-FOLLOWUP v1 整体删除，无互斥即 `unsupported`、不降级写）。**不宣称强原子性**：写后校验能发现窗口内的并发改写并如实报 `conflict`（不静默丢失），但**不得声称「写后读回必然发现所有绕过协议的写入」**（BOOKS-CS-FOLLOWUP v1 任务卡 §6 订正口径，见 §5.B）。旧数据、损坏/读取被拒保护、R-11 三态、14 类 block、七态状态机、`paused` 不自动恢复、归档只读全部保留。不包含：课程学习会话、BookChatPanel、主题重做、`feat/glass-theme` 合并、推送/部署。
+6. **边界**：生产路径用原生 Web Locks（真实互斥）；jsdom 单测走测试注入的 in-process 互斥（本批当时的 localStorage 回退锁已在 BOOKS-CS-FOLLOWUP v1 整体删除，无互斥即 `unsupported`、不降级写）。**不宣称强原子性**：写后校验能发现窗口内的并发改写并如实报 `conflict`（不静默丢失），但**不得声称「写后读回必然发现所有绕过协议的写入」**（BOOKS-CS-FOLLOWUP v1 任务卡 §6 订正口径，见 §5.C）。旧数据、损坏/读取被拒保护、R-11 三态、14 类 block、七态状态机、`paused` 不自动恢复、归档只读全部保留。不包含：课程学习会话、BookChatPanel、主题重做、`feat/glass-theme` 合并、推送/部署。
 7. **独立验收 A1（r1 条件通过）**：修复在源码级、单测与真实双标签页浏览器三层独立成立，聚合数字与指纹由其本机复现；交付前已处置 4 条文档/卫生项（单测基线改记"上一批 48/381 → 本批 48/389（+8 例、无新文件）"、`next-env.d.ts` 提交前还原、探针失败原因按实测更正、`frozenAt` 标注为名义时刻）。**登记为已知边界、留待下一批**（改动会触及产品文件需重新冻结）：暂停/恢复未按提交结果分支（持锁时"提示已暂停但存储仍 compiling"，可恢复不丢数据）、`applyStored` 一处死分支、修复入口在读被拒极端时序下 Promise 可能不 settle、自动续跑罕见双入口（租约自愈，仅提示噪声）。全文见 [A1-REPORT.md](qa/H1-BOOKS-COMMIT-SAFETY/A1-REPORT.md)。
 8. **下一业务批**：**H1-COURSE-SESSIONS v1**（课程内创建/恢复真实聊天、明确课程归属、课程与聊天往返、旧会话兼容及失效资源处理）——见 §6 路线；本批不顺手实施。
 
-### 5.C 更早实施批（历史）：H1-BOOKS-HARDEN v1（2026-09-22 本地实施与限定范围验收，待交付审查）
+### 5.D 更早实施批（历史）：H1-BOOKS-HARDEN v1（2026-09-22 本地实施与限定范围验收）
 
 <a id="harden-results"></a>
 
@@ -167,7 +181,7 @@ npm.cmd run test:unit
 1. **范围与文件归属**：引擎 = `services/book-generation.ts`、`services/books-store.ts` 及其单测；UI = `features/books/BooksRoute.tsx`、`features/books/PageReader.tsx` 及其测试；总控（本会话）独占文档、共享契约、e2e（新建 `tests/e2e/books-harden.spec.ts`）、构建与 Git。先冻结契约（[TASK-CARD.md](qa/H1-BOOKS-HARDEN/TASK-CARD.md)：统一收尾/读取三态、`RepairResult` 与冻结 runId、租约归属、共享集合写协议、界面契约），再实施。
 2. **六项结果**（逐项首败与修复证据见 [DEFECT-LEDGER.md](qa/H1-BOOKS-HARDEN/DEFECT-LEDGER.md)）：M22-01 统一收尾并把"删除/读取被拒/失权"分开处理（删除入口先停任务；读失败收尾后可从断点恢复）；M22-02 修复入口返回 `Promise<RepairResult>`、启动冻结 runId、每次写入核对归属、同页互斥与可取消；M22-03 租约写后读回校验 + 每步/心跳归属校验 + 失权即停 + 共享集合写标记冲突检测与有界重放；M22-04 首次读取失败显示错误与「重试读取」并在成功后清除旧错误；M22-05 最终完成写入失败落 `kind storage` 失败并给「重试生成」，绝不假报完成；M22-06 输入框/文本域/contenteditable/组合输入/修饰键不再触发全局翻页。
 3. **探针反转**：三个审查探针**未修改**，修复后运行 3/3 按预期失败（不再复现缺陷），输出留档 [probe-reversal](qa/H1-BOOKS-HARDEN/probe-reversal/README.md)；正式回归断言的是正确行为。
-4. **验证**：typecheck、lint（0 警告）、unit、build、相关 e2e、全量 e2e 与独立验收的实跑结果见 [批次 README §2](qa/H1-BOOKS-HARDEN/README.md) 与 §5.A.10；`apps/api` 零改动，API 测试未重跑（沿用本轮基线 181）。
+4. **验证**：typecheck、lint（0 警告）、unit、build、相关 e2e、全量 e2e 与独立验收的实跑结果见 [批次 README §2](qa/H1-BOOKS-HARDEN/README.md) 与 §5.D.10；`apps/api` 零改动，API 测试未重跑（沿用本轮基线 181）。
 5. **视觉/设计**：本批只新增"读取失败面板 + 重试"、"修复未完成提示"与模拟设置里的一个复选项，全部复用既有控件与变量（`space-banner`/`space-banner-row`/`space-button`/`space-toggle`/`book-reader-storage-error`），未改主题、未新增参考外动画；390×844 页面级横向滚动差 ≤1px 有 e2e 断言。按 `web-design-guidelines` 清单自查新增 UI（异步错误用 `role="alert"`、错误文案含下一步、无 `transition: all`、无布局读取），未发现需要修改项；未做全站改造。
 6. **边界与未执行项**：真实 LLM/解析与真实供应商仍不接；RAG 未接入（`F:\ZQKY_RAG` 保持只读，仍需先完成 P8A 与可恢复版本交付）；未运行后端测试、移动端硬件触摸、逐帧动画曲线（属 H6）；"同一毫秒并发写共享键"窗口无法确定性构造，实现为写后读回 + 有界重放并如实标注，**不宣称强原子性**。不包含：课程学习会话、BookChatPanel、主题重做、`feat/glass-theme` 合并、推送/部署。
 7. **独立验收 A1 结论与采纳（r1 → r2 两轮只读复验）**：r1 上核心 6 项与全部聚合数字独立成立（A1 自跑全量 e2e 得 174/0 复现），提出 2 条文档对账 fail 与 7 条挑刺；已采纳并修复 3 条（修复期间书籍变为不可写不得报 `completed`、笔记写入落地校验、失权文案不再单方面断言他人接管）并补 2 条回归，文档计数与口径 5 条按 A1 结论修正，1 条（`writeListConverged` 有界重放耗尽后仍返回最后计算值）如实登记为已知边界。r2 定向复验判 **可交付**（`48 文件 / 381 例`、`174 通过 / 0 失败 / 0 flaky`、探针 3/3 按预期失败、lint 0 警告、12 文件指纹与 BUILD_ID 均由 A1 本机独立复现）；其 r2 新发现的 2 条低危项（读回窗口终态归因、`finishBookRun` 读回）不构成假成功，已登记为已知边界并列入后续批次待办。全文与 not_run 清单见 [A1-REPORT.md](qa/H1-BOOKS-HARDEN/A1-REPORT.md)。
@@ -273,10 +287,12 @@ npm.cmd run test:unit
 
 | 顺序/轨道 | 交付中心 | 出口 |
 | --- | --- | --- |
-| **H1-BOOKS-COMMIT-SAFETY v1（2026-09-22 已交付）** | 书籍保存一致性收口：集合写互斥事务 + 提交结果契约 + 全写入口/调用方迁移；见 §5.A | 已完成（限定范围，A1 条件通过并处置交付前项） |
-| **H1-COURSE-SESSIONS v1（2026-09-22 已交付）** | 课程内创建/恢复真实聊天、课程归属、课程与聊天往返、旧会话兼容与失效处理；见 §5.A | 已完成（限定范围）；真实供应商调用 not_run；BookChatPanel 与课程学习智能体工具仍属后续 |
+| **H1-BOOKS-COMMIT-SAFETY v1（2026-09-22 已交付）** | 书籍保存一致性收口：集合写互斥事务 + 提交结果契约 + 全写入口/调用方迁移；见 §5.C | 已完成（限定范围，A1 条件通过并处置交付前项） |
+| **H1-COURSE-SESSIONS v1（2026-09-22 已交付）** | 课程内创建/恢复真实聊天、课程归属、课程与聊天往返、旧会话兼容与失效处理；见 §5.B | 已完成（限定范围）；真实供应商调用 not_run；BookChatPanel 与课程学习智能体工具仍属后续 |
+| **CHAT-CONTEXT-BUDGET v1（2026-09-23 已交付）** | 请求统一预算（课程块+历史+当前问题）+ 课程字段限幅 + 构建失败如实提示；见 §5.A | 已完成（限定范围）；真实供应商 not_run；精确 token 计数不在承诺内 |
+| **RAG-I0-PREP v1（2026-09-23 已交付，宿主侧契约/准备）** | adapter 输入输出/引用坐标/状态错误契约 + 35 例合成测试；见 §5.A、§6.1 | 宿主侧完成；上游缺口 G1–G12 未清；**I1 需用户明确解除冻结并确认上游停止写入** |
 | H1 课程闭环后续（未启动） | 课程学习会话的工具与产物、课程聚合进度、BookChatPanel；复用已交付的会话归属与轮次快照契约 | 真实执行通道按授权接入；不重复实施本次已交付的归属/快照/非破坏删除语义 |
-| H1-BOOKS-PIPELINE v2 / H1-BOOKS-HARDEN v1（历史已交付） | 七态流水线与增量阅读闭环（§5.0）、M22-01～06 修复（§5.B） | 已完成（各自限定范围）；证据见对应 qa 目录 |
+| H1-BOOKS-PIPELINE v2 / H1-BOOKS-HARDEN v1（历史已交付） | 七态流水线与增量阅读闭环（§5.0）、M22-01～06 修复（§5.D） | 已完成（各自限定范围）；证据见对应 qa 目录 |
 | H2既有模块闭环 | 阅读媒体原视图与完整伴生过程、写作/Whisper、学习空间及产物消费 | 原功能/数据不丢、来源正确、完整参考交互 |
 | H3伙伴/智能体 | 列表/创建/详情/群组/渠道、任务过程/工具/产物/历史 | 创建→执行→结果→恢复，等待/失败/取消/重试齐全 |
 | H4精通/记忆 | 路径/节点/反馈/阶段；记忆总览/冲突/图谱/L1-L3 | 精通新轮区别于普通ask_user，数据与跨页联动完整 |
@@ -287,19 +303,32 @@ npm.cmd run test:unit
 
 当前批之外的路线是后续计划，不是一次性授权实现全部模块。遇到实际数据丢失、凭证不一致、错误会话归属或假成功先修；普通审计补证不应无限取代可见产品交付。
 
-### 6.1 RAG 接入阶段计划（设计完成，实施未启动）
+### 6.1 RAG 接入阶段计划（宿主侧契约/准备已完成；真实接入未启动）
 
-用户原路径 `F:\ZQKY\_RAG` 不存在，实际核对项目为 `F:\ZQKY_RAG`（其 AGENTS 明确指向本宿主）。HEAD `3b132df`，但主要 P5–P8B 实现仍在未提交工作树（74 条脏文件、暂存为空），不能仅交付这个 SHA。**2026-09-22 只读核对订正**：其 STATUS 已记录 **P8A 十项（4 P1 + 6 P2）修复完成并独立复验 fixed 14/14**（含 4 项关联边界），**不再沿用"P8A 待修"的旧结论**；段级质量与讲解支持性**人工评审仍 not_run**（88 题全部 pending、金标 0、无评审者），性能属 P8C 未启动；**未发现可恢复版本交付物**（无 tag/remote/bundle/zip，指纹文件均在 gitignore 的 `data/derived/` 下、不在提交里）。历史本地检索 Hit@5 75.8% 为节级结果，重排未达门槛，默认 off。架构设计见 PROJECT_GUIDE §4.1，**接入准备核对清单（六项：可恢复版本、依赖/模型/索引指纹、服务输入输出、引用坐标、错误状态、资源与取消边界）见 PROJECT_GUIDE §4.2**。本轮未重跑其测试或评测。
+**2026-09-23 只读复核（RAG-I0-PREP v1）**——以下为现场实测，替代旧记录的相应结论（旧文保留在本节末尾）：
+
+- **上游提交与工作区**：`F:\ZQKY_RAG` 实际 HEAD = `a0f9ade`（父 `8ed22b8`，分支 **`master`**）；开工时工作区 **7 项不干净**（`M docs/{EVAL,SCHEMA,START_PROMPT,STATUS}.md`、`M docs/qa/P8B-REVIEW-PROTOCOL.md`、`?? docs/START_PROMPT_P8B_HUMAN_REVIEW_V2.md`、`?? docs/qa/P8B-ROUND12-RULES-v2.md`——P8B 12 题裁定与真人复核入口材料**尚未提交**）。核对期间该数目升至 **13**：另一写入者新增 `src/evaluation/{annotation_v2,segment_metrics_v2,claim_review_v2,fullset_manifest,quality_report_v2}.py` 与 `tools/p8b_v2_packet.py`（mtime 14:14–14:20，伴随 CPython 3.14 的 `.pyc`）。**结论：未取得"上游已停止写入"的确认，任何"冻结/一致"只是时点观测。**
+- **候选冻结**：`P8-FREEZE-20260922-190500`（用户 2026-09-22 明确"暂不安排，先冻结候选"）。冻结包 `data/derived/qa/P8-FREEZE-20260922-190500/` **完好**：`manifest.json`（144 归档成员 + 93 项指纹）与 `receipt.json` 可解析，receipt 对 `candidate.zip`/`manifest.json` 的 sha256 **逐一匹配**，`candidate.zip` 144 成员与 manifest **0 处不符**、`testzip()` 无错；`chunks.jsonl`/`questions.jsonl` 指纹与上游登记一致。`freeze_snapshot.py --verify` 经逐行判定为只读后运行：**退出码 1**，失败全部为"当前树 vs 快照"的源文件漂移（18 项），归档成员/归档内容/receipt 三类失败均为 **0**（快照自证一致）。**该脚本不比对 `manifest.git_head`/`git_status_porcelain`**（manifest 记 `3b132df` + 103 行 porcelain，与现状不符）——"与 HEAD/暂存一致"不是脚本结论。
+- **现役配置**：冻结表 **20/20 与 `configs/**` 一致**；`configs` 未承载的项下钻到单一定义点核对一致（`hybrid_weighted`/`top_k=50`/`rerank=off`/`bounded_window`/`answer_policy=baseline`），**未发现配置漂移**。
+- **性能边界（P8C 重新测量，不沿用历史 PASS）**：热态纯检索 p95 **210 ms(subject)/369 ms(all)**（判据 ≤500 ms，**通过**）；**无生成缓存端到端 P95 未达标**（实测 **22,675 ms**，判据 ≤15 s；首因为生成侧输出截断触发修复轮，同批检索 p95 146 ms）。P8C-GEN-1 主实验计数为 estimate、修复后 12 行子集为 exact，**不得合并宣布输入完整性全部通过**。
+- **质量边界（不变）**：证据充分性/拒答质量、段级质量/讲解支持性、阈值选择全部 **`not_run`**（评审者 0 人、可用金标 0 条）；冻结文件明令不得用编码 agent 或同模型自评冒充人工评审。
+- **本批交付的宿主侧准备（不启动上游）**：内部 RAG adapter 的**输入输出契约**（`apps/api/app/contracts/rag_adapter.py`：`RagQuery/ScopeRef/EvidenceItem/Citation/RagAnswer` + `RagAdapter` 端口 + `RagAdapterUnavailable`）、引用契约（半开字符区间、1 基闭行号、文件指纹、**Python 码点 vs 前端 UTF-16 不可混用**且提供双向转换纯函数）、错误/状态契约（`ok|no_evidence|stale_source|out_of_range|unavailable`，非 ok 时不得夹带载荷）、执行边界的**设计描述**（有界队列/超时分层/**取消等待 ≠ 停止底层推理**/迟到结果丢弃/模型不可用如实报错——**均未实测**）；合成数据契约测试 **35 例通过**；`get_rag_adapter()` 恒定抛 `RagAdapterUnavailable`，**无任何假实现、未注册路由**，capability 仍 `planned`。完整核对与 12 项缺口见 [RAG-I0-PREP 报告](qa/RAG-I0-PREP/README.md)。
+- **仍未满足 / 未实测**：G1 无 tag/remote/bundle 的**受控可恢复版本包**（冻结包位于被 gitignore 的 `data/derived/`，不在任何提交里）；G2 上游并发写入者未停止；宿主锁定环境 vs 上游依赖/Python 兼容性未验证（宿主无 numpy/jieba/rank_bm25/PyYAML/httpx；3.12.14 vs 3.14.6）；未见并发/队列上限实现证据；"停止底层推理"能力未测量；held-out 解封未做；OS 级断网未执行（零云端为进程级证据 + 台账）。
+- **I1 不得据本批自动启动**：需用户明确解除冻结范围（并确认停止上游写入）后，在报告 §4.4 的候选 A（独立进程边界，不动宿主锁文件）/ 候选 B（独立命名 wheel，需单独授权改依赖与锁文件）之间选择接入形态。
+
+以下为 2026-09-22 的旧记录（保留历史，勿再据此判断现状）：用户原路径 `F:\ZQKY\_RAG` 不存在，实际核对项目为 `F:\ZQKY_RAG`（其 AGENTS 明确指向本宿主）。HEAD `3b132df`，但主要 P5–P8B 实现仍在未提交工作树（74 条脏文件、暂存为空），不能仅交付这个 SHA。**2026-09-22 只读核对订正**：其 STATUS 已记录 **P8A 十项（4 P1 + 6 P2）修复完成并独立复验 fixed 14/14**（含 4 项关联边界），**不再沿用"P8A 待修"的旧结论**；段级质量与讲解支持性**人工评审仍 not_run**（88 题全部 pending、金标 0、无评审者），性能属 P8C 未启动；**未发现可恢复版本交付物**（无 tag/remote/bundle/zip，指纹文件均在 gitignore 的 `data/derived/` 下、不在提交里）。历史本地检索 Hit@5 75.8% 为节级结果，重排未达门槛，默认 off。架构设计见 PROJECT_GUIDE §4.1，**接入准备核对清单（六项：可恢复版本、依赖/模型/索引指纹、服务输入输出、引用坐标、错误状态、资源与取消边界）见 PROJECT_GUIDE §4.2**。本轮未重跑其测试或评测。
 
 | 阶段 / 负责仓库 | 实施内容 | 进入下一阶段的条件 |
 | --- | --- | --- |
-| R0：RAG 项目准备（可与宿主加固并行） | P8A 十项修复**已完成并独立复验 fixed 14/14**；P8B 材料已交付但**人工评审 not_run**；**仍缺：可恢复提交/受控版本包、P8C 性能评估、并发与队列上限及停止能力测量** | 交付**可恢复提交或受控版本包**（当前只有 `3b132df` 这一 P4 基线提交，P5–P8B 全在工作树）；零云端规则有效。人工质量未通过只能进入受限技术预览，不能宣布教学质量完成 |
-| I0：宿主合同与兼容验证 | 冻结输入范围、LocateResult/证据、错误与 capability、追问等待/提交/续流/恢复的身份合同；检查宿主 uv/Python 与 numpy/httpx/本地运行时兼容，选定包命名和依赖注入方式 | 可重复安装与导入；同步检索不阻塞 FastAPI；等待恢复的数据保存策略与既有隐私规则一致；无任意文件读取入口 |
+| R0：RAG 项目准备（**2026-09-23 更新**） | P8A/P8B/P8C/P8C-GEN-1 均已交付并登记（P8A 复验 fixed 14/14；P8C 热态检索 p95 210/369 ms 达标、**端到端 P95 22.7 s 未达标**）；候选冻结 `P8-FREEZE-20260922-190500` 完好；**仍缺：受控可恢复版本包（无 tag/remote，冻结包在被 gitignore 的 `data/derived/` 内）、上游停止写入确认、并发/队列上限与停止能力测量、人工质量评审（评审者 0 人）** | 需上游给出**受控版本包**并确认停止写入（G1/G2）；人工质量未过只能进受限技术预览，不能宣布教学质量完成 |
+| I0：宿主合同与兼容验证（**2026-09-23 完成宿主侧契约/准备**） | 已交付：adapter 输入输出契约 + 引用坐标契约 + 状态/错误契约 + **未实测**的执行边界描述 + 35 例合成数据契约测试（`apps/api/app/contracts/rag_adapter.py`、`apps/api/tests/test_rag_adapter_contract.py`）；capability 仍 `planned`，`get_rag_adapter()` 恒定抛 `RagAdapterUnavailable`（**无假实现、无路由**） | 剩余：宿主 Python/uv 与上游依赖兼容**未验证**（G5）、并发/队列上限与停止能力**未测量**（G6/G7）、接入形态候选 A/B 待用户授权选择；同步检索不阻塞 FastAPI 的适配属 I1 |
 | I1：只读教材定位接入 | 现有 FastAPI 内增加受控 RAG adapter，加载既有受信索引，返回引用和原文；按 book/file 范围在检索前过滤；可取消、有队列上限/超时，模型不可用明确失败 | 源码合同测试 + 真实本地新题 + 越界/失效索引/文件变化/取消/并发验收；原聊天仍可独立运行。仅支持既有教材，不能标成通用上传解析完成 |
 | I2：/chat 真实追问闭环 | 用户显式选择教材定位/追问，连接 `wait-user`→回答确认→续答；证据独立结构化保存；引用点击原文定位；刷新/断线恢复、幂等、超时、取消与换会话归属 | 普通聊天回归；重复提交不重复生成、过期卡不复活、跨会话不串；后端重启时恢复或明确中断；三视口/焦点/公式与真实本地链路验收后才启用 capability |
 | I3：质量与模块推广 | 完成预登记的分科段级/讲解人工审核和性能验收；再逐批复用到阅读、书内聊天、课程资源、题库/笔记来源 | 技术正确性与教学质量分别过门槛；可回滚、数据引用可恢复；不把节级 Hit@5 当解释正确率 |
 
-实施次序建议：立即宿主加固 + RAG P8A；随后 I0/I1 提供真实可见价值，I2 打通追问；课程会话可在独立文件内推进，不需等待22个页面全部完成才接 RAG。R-13、动画、其他供应商继续独立登记。
+实施次序（**2026-09-23 更新**）：宿主加固已完成；RAG 侧 P8A/P8C 已交付并进入**候选冻结**，宿主侧 I0 契约已完成。**当前不得启动** P8A 返工、模型实验、索引重建或 I1 真实接入——需用户明确解除冻结范围并确认上游停止写入后再定接入形态。R-13、动画、其他供应商继续独立登记。
+
+（2026-09-22 原文，已过期，保留为历史：实施次序建议：立即宿主加固 + RAG P8A；随后 I0/I1 提供真实可见价值，I2 打通追问；课程会话可在独立文件内推进。不得据该旧建议自动启动 P8A 或任何模型实验。）
 
 发布前的总验收仍包含原 H1–H7 范围；RAG 不替代缺失页面、动画或一般附件解析。主题/最终整合按用户既定 `feat/glass-theme` 分工进行；本次只在 main 记录审查和方案，合并操作另按用户指令执行。
 

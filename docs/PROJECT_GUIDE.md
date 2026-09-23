@@ -141,6 +141,8 @@ _work/ test-results/      本机日志、截图、trace、备份（Git 忽略）
 
 ### 4.2 接入准备核对清单（2026-09-22 只读核对 `F:\ZQKY_RAG`，事实与缺口）
 
+**2026-09-23 更新（RAG-I0-PREP v1）**：上游实际 HEAD `a0f9ade`（父 `8ed22b8`，分支 `master`），工作区 7→13 项漂移（含 P8B 12 题裁定材料未提交；核对期间另一写入者新增 `src/evaluation/*_v2.py` 等），**未确认停止写入**；候选冻结 `P8-FREEZE-20260922-190500` 的包/manifest/receipt 完好（144 成员、receipt sha256 逐一匹配），`freeze_snapshot.py --verify` 退出码 1 且失败仅为“当前树 vs 快照”漂移 18 项、**不比对 HEAD/porcelain**；冻结配置表 20/20 与 `configs/**` 一致；性能：热态检索 p95 210/369 ms 达标、**端到端 P95 22.7 s 未达标**；质量三类结论仍 `not_run`（评审者 0）。宿主侧 I0 已完成：内部 adapter 契约（`apps/api/app/contracts/rag_adapter.py`：输入输出/引用坐标/状态与错误 + 双向 UTF-16↔码点转换）、**35 例**合成数据契约测试、`get_rag_adapter()` 恒定不可用且无路由；**执行边界（有界队列/超时/取消等待≠停止推理/迟到结果/模型不可用）仅为设计描述、全部未实测**。以下表格为 2026-09-22 的现场记录（保留为历史）：
+
 以下为**只读核对**得到的事实（未修改 RAG 仓库、未运行其测试/评测、未加载模型、未启动服务），供 I0 决策使用；事实若与 RAG 侧文档不符，以现场为准并去更新本表。
 
 | 项目 | 现场事实 | 缺口 / 待办 |
@@ -164,6 +166,33 @@ _work/ test-results/      本机日志、截图、trace、备份（Git 忽略）
 4. **课程删除/归档不修改会话**（有意差异）：不级联删除、不清空 `courseId`、不自动换绑；展示层如实标注"所属课程已删除或不可用"并**不回落其他课程**（参考在删除时把命中会话的 `course_id` 清空）。归档课程会话区只读（新建禁用），既有会话仍可打开。
 5. **能力边界如实**：课程资源只是登记引用（R-11 三态 available/missing/unknown；目录读取失败不得当成"目标已删除"），**登记不等于已解析、已检索或已随请求发送**；RAG 未接入；大纲 `covered` 为学员手判，**不推断掌握度**（参考同样明令 covered 由学习者决定）。
 6. **不变量**：主聊天仅真实服务（无 `?mode=mock` 捷径）；R-10 来源回链、深链失效不回落最近会话、turnId/sessionId 事件守卫、归档会话不入侧栏等既有语义不受本批影响。
+
+### 4.4 学习问答请求的统一预算（CHAT-CONTEXT-BUDGET v1，2026-09-23 稳定决定）
+
+一次真实请求到底发送什么，由 `features/chat/model/request-budget.ts` 的 `buildChatRequest()` **唯一构建**；`features/chat/model/store.ts` 只透传，不再二次裁剪。稳定口径：
+
+1. **预算口径**：`inputBudgetChars = min(contextBudgetChars(contextTokens, maxOutputTokens), maxTotalChars)`，其中 `contextBudgetChars = max(2000, contextTokens*2 - maxOutputTokens*3)`（1 token ≈ 2 字符的**保守字符估算**）。后端硬限制的单一事实来源是同模块的 `BACKEND_REQUEST_LIMITS`，对应 `apps/api/app/schemas/chat.py` 的 `MAX_MESSAGES=200` / `MAX_MESSAGE_CHARS=32000` / `MAX_TOTAL_CHARS=120000`。**不得把字符估算表述为精确 token 计数，也不承诺不超模型自身上下文上限——只承诺不超本轮输入预算与后端硬限制。**
+2. **裁剪阶梯（固定顺序）**：① 课程块动态字段限幅 → ② 整条丢弃最旧的旧历史 → ③ 整体丢弃课程块（`courseDropped=true`，本轮**不携带**课程上下文，界面如实提示）。**绝不拼接半条消息、绝不静默截断历史正文**；课程块被丢弃时不得发送残缺上下文冒充完整。
+3. **当前问题不可裁剪**：`question` 逐字发送；若超过 `min(inputBudget, maxMessageChars)` 则**发送前**返回 `ok:false`，store 只设置可读提示（`budgetNotice`），**不清草稿、不入库用户消息、不创建助手占位、不置 `sending`**，用户改短后可重发。失败路径不得留下 `sending=true`、空助手占位、不可重试状态或未处理 Promise。
+4. **课程块字段上限**：`name ≤ 80`、`nextTitle ≤ 120`、`conventions ≤ 1200`、资源 ≤ 12 条且单条标签 ≤ 80、整体 ≤ `min(2400, maxMessageChars-1)`；「内容未解析、未检索、未随本请求发送」免责句是**固定前缀，不被砍尾**。限幅只作用于发送内容，**不回写课程原始数据（`StudyCourse`）与历史消息正文**。
+5. **轮次冻结不变**：新轮用新快照、旧轮重试用**冻结在助手消息上的原快照**（`ChatMessage.courseContext`）；历史遗留的超长快照同样经同一构建器安全渲染（限幅/整体丢弃），**不要求清库**。
+6. **账目可核**：`ChatMessage.requestBudget`（`RequestBudgetRecord`）随助手消息持久化，记录 `totalChars/inputBudgetChars/maxMessageChars/maxTotalChars/historyDroppedMessages/courseTrimmedFields/courseDropped`，只反映**发送时**事实；历史原文不变。
+7. **不改动**：模型输出预算默认值、推理开关、R-13 处理范围、供应商选择；不引入 RAG 内容或模拟聊天。
+
+---
+
+### 4.5 内部 RAG adapter 契约（RAG-I0-PREP v1，2026-09-23 宿主侧稳定决定）
+
+宿主侧契约落在 `apps/api/app/contracts/rag_adapter.py`（**仅契约与纯函数**），稳定口径：
+
+1. **能力可用性**：`get_rag_adapter()` **恒定抛 `RagAdapterUnavailable`**；不注册路由、不在任何现有端点调用，capability 状态保持 `planned`。**禁止给任何"返回演示成功"的生产入口**；未接入期间宿主不得声称已检索教材。
+2. **输入输出**：`RagQuery{question, courseScope, maxEvidence}` → `RagAnswer{status, answer, evidence, citations, warnings}`；契约 `extra="forbid"` + `frozen`，指纹只收 64 位小写 hexdigest。
+3. **状态**：`ok | no_evidence | stale_source | out_of_range | unavailable`；**非 `ok` 一律 `answer=None`、`evidence=[]`、`citations=[]` 且 `warnings` 非空**。`unavailable` 不得降级成 `no_evidence` 冒充"没有内容"。
+4. **引用坐标**：字符区间半开 `[charStart, charEnd)`、行号 1 基闭区间 `[lineStart, lineEnd]`；RAG 侧与宿主后端是 Python **码点**下标，前端是 **UTF-16 码元**下标，**不得直接混用**，换算必须走 `codepoint_to_utf16_offset` / `utf16_offset_to_codepoint`；`fileFingerprint` 是**原始文件字节**的 SHA-256，与字符下标是两套语义。
+5. **越界不裁剪**：区间倒置、引用超出证据区间、指纹格式非法、引用悬空、状态夹带载荷一律抛错；`validate_answer_payload()` 只校验、不归一化、不做 I/O。
+6. **执行边界（设计约束，均未实测）**：有界队列（不得无界排队）、超时分层（总超时 vs 子超时）、**取消只保证"取消等待"，不声明能中断底层推理**、迟到结果按 `requestId/turnId` 丢弃、模型不可用时如实报错。未实测的能力**不得写成已支持**。
+
+---
 
 ## 5. 验收定义
 
