@@ -1,12 +1,14 @@
 # 当前状态与实施主线
 
-更新：2026-09-20（启动 H1-BOOKS-PIPELINE v2 当前任务；产品验收沿用下列指定候选的记录）。本文件是唯一进度、问题、任务和后续计划入口。长期目标与稳定决定见 [PROJECT_GUIDE](PROJECT_GUIDE.md)，逐项范围见三矩阵，历史首败与批次全文见 [整理前完整快照](archive/DELIVERY_HISTORY.md#snapshot-status-20260915)。
+更新：2026-09-23（启动 SKILL-INJECT v1 当前任务：Skill 注入通道与内置教学技能；产品验收沿用下列指定候选的记录）。本文件是唯一进度、问题、任务和后续计划入口。长期目标与稳定决定见 [PROJECT_GUIDE](PROJECT_GUIDE.md)，逐项范围见三矩阵，历史首败与批次全文见 [整理前完整快照](archive/DELIVERY_HISTORY.md#snapshot-status-20260915)。
 
 ## 1. 目标与当前结论
 
 **以智启课源品牌完成固定 DeepTutor 的产品前端、AI 交互与原有动画；全站以当前学习问答 `/chat` 为视觉基准，保留蓝色主题及原业务功能。整体尚未完成。**
 
-**当前实施批是 H1-BOOKS-PIPELINE v2（书籍生成流水线与增量阅读闭环，2026-09-20 完成本地实现与验收，任务卡见 §5 与 [qa 任务卡](qa/H1-BOOKS-PIPELINE/TASK-CARD.md)）**，即 R-05 之后转业务闭环轨道的第一步；范围、结果与语义变化以本文件 §5.0 为准。**本批全部为本地模拟执行器与本地显式注入，不接真实 LLM/解析：通过不代表真实供应商能力，也不代表书籍模块或全站完成。**
+**当前实施批是 SKILL-INJECT v1（Skill 注入通道与三个内置教学技能，2026-09-23）**，用户明确要求"设置里的 MCP/Skills 必须真的有内容"，先完成技能提示词通道并预置内置教学技能；范围、结果与边界见 §5.0。**本批只做提示词级技能上下文与本地目录，不含 MCP 连接/工具调用，也不含真实教材检索：通过不代表 MCP 或 MCP 类业务能力已实现。**
+
+上一实施批是 **H1-BOOKS-PIPELINE v2**（书籍生成流水线与增量阅读闭环，2026-09-20 完成本地实现与验收，记录见 §5.8 与 [qa 任务卡](qa/H1-BOOKS-PIPELINE/TASK-CARD.md)）。**该批全部为本地模拟执行器与本地显式注入，不接真实 LLM/解析：通过不代表真实供应商能力，也不代表书籍模块或全站完成。**
 
 上一个已交付批次是 **R-05 内容视觉统一收尾批**。**第六批（B-R05-EXTEND v5，2026-09-19）**覆盖阅读工作区（`/reading/[workspaceId]` 含 sessions 子页）与 `/space` 四子页，并同批受控诊断、修复 R-09 滚动跟随的真实缺陷（详见 §3 R-09-FLAKY）。独立验收记录为 A1 **pass 0 fail**（R-09 五例 5/5、压测 10/10、55 项浏览器实测）。**沿用外部总控收口记录，R-05 在 §5.3 登记的既有页面视觉推广范围内关闭**，不扩大为全站逐状态视觉或功能完成。下一实施批尚未指定，H1/H2 是建议路线，见 [当前批次与下一动作](#current-task)。
 
@@ -105,7 +107,43 @@ npm.cmd run test:unit
 
 ## 5. 当前批次与下一动作
 
-### 5.0 当前实施批：H1-BOOKS-PIPELINE v2（书籍生成流水线与增量阅读闭环）
+### 5.0 当前实施批：SKILL-INJECT v1（Skill 注入通道与三个内置教学技能）
+
+**状态：本批实现与本地验收完成（2026-09-23）**，未提交、未推送。负责人：本会话实施；未做独立第三方验收（A1）。完整证据见 [qa/SKILL-INJECT](qa/SKILL-INJECT/README.md)（含真实服务原始输出）。
+
+1. **需求（用户指定）**：用户指出"设置里有 Skill 和 MCP 服务，但是没有任何内容"，要求按评估结论实施——先做技能注入通道，并预置三个 P0 教学技能。**本批不做 MCP**。
+2. **起点事实**：本批前技能完全不生效——`extensions-snapshot.test.ts` 明确断言真实服务不转发 extensions，`ChatStreamRequest` 无 skills 字段，`ChatWorkspace` 发送时从不构造扩展快照。设置里的 Skill/MCP 是纯标签。
+3. **实现方式**：技能说明作为**提示词级系统上下文**注入。前端把"已启用 + 正文非空"的技能随轮次快照冻结下发；系统消息的唯一拼装点在 `apps/api/app/services/skill_context.py`，由 `apps/api/app/api/v1/chat.py` 在既有 `LLMRequest` 收口处前置。发送即冻结、重试沿用原快照；无有效技能时不携带 `skills`，保持旧请求形态。
+4. **文件归属**：契约 `contracts/chat.ts`（skills 项加可选 `content`）；目录 `services/extension-catalog.ts`（内置技能预置、`seedBuiltinSkills`、`buildTurnExtensionSnapshot`、`skillTakesEffect`）；通道 `services/chat-stream.ts` + `features/chat/model/chat-service.ts` + `ChatWorkspace.tsx`；后端 `app/schemas/chat.py` + 新建 `app/services/skill_context.py` + `app/api/v1/chat.py` + `capabilities.py`；界面文案 `features/settings/ExtensionManager.tsx`、`SettingsWorkspace.tsx`、`features/chat/Message.tsx`、`ExtensionPicker.tsx` 与其测试；样式增量 `features/settings/styles/settings-extend.css`；文档 `API.md` / `PROJECT_GUIDE` / `ROUTES` / 本文件。
+
+<a id="skill-inject-results"></a>
+
+#### 5.0.1 本批结果（实跑）
+
+- 工程检查：`npm run typecheck` 通过；`npm run lint`（`--max-warnings=0`）**0 警告**；`npm run test:unit` → **47 文件 / 367 例通过**（基线 46/353，净增 14）；`npm run build` 通过，`BUILD_ID = cnodHanXs1xNpzQww6yCO`；`apps/api` pytest → **191 例通过**（基线 181，净增 10）。
+- 浏览器回归：`settings.spec.ts` + `replica-settings.spec.ts` **2 passed**；聊天组 8 个 spec **44 passed**。合计 46 例通过，**全量 168 未跑**（只跑与本批改动相关的 spec）。首轮 `replica-settings` 曾 1 failed——旧断言锁定了"保存模拟配置"按钮文案，本批按文案变更同步该断言并加注，另补内置技能载入的浏览器断言。
+- **真实服务验证（DeepSeek Flash，本机 8000）**：A 决定性探针——同一问题下，不带技能无标记、带探针技能首行出现规定标记；B 产品级对比——同一提问下，不启用「教案规范」时缺 `核心素养目标 / 教学设计 / 练习与作业`，启用后九个栏目齐备并遵循"环节名称 · 时长""时长合计与总课时一致""教学反思待补充"。原始输出在 [real-service-output.txt](qa/SKILL-INJECT/real-service-output.txt)。
+- 重建能力口径：`capabilities.skills` 由 `planned` 改为 `ready`（detail 写明仅提示词级、不执行工具）；`mcp` 保持 `planned` 并写明"不连接、不检测、不执行"。设置页 Skill 与 MCP 分区文案分别改为真实生效 / 未实现。
+
+#### 5.0.2 语义变化（接手者必须知道）
+
+1. **Skill 真的生效了**：此前设置里的技能只是本地标签；现在"已启用 + 说明正文非空"的技能会作为系统上下文随每轮问答发送。空说明的技能不发送，卡片上如实提示"本轮不会生效"。
+2. **技能是提示词级，不是执行级**：不产生 `tool` 事件、不访问外部服务。`Message` 的技能/ MCP 来源说明已按此改写（MCP 那条改为"未实现：本轮没有任何工具调用或连接"）。
+3. **自动生效，无逐轮选择器**：`ExtensionPicker` 仍未挂载到输入区，本批未新增任何输入区控件，`/chat` 视觉基准与既有断言不变。
+4. **不扩 `ExtensionEntry` 结构**：技能注入只需既有 `name`/`content`；原评估中"第一批就扩学科/MCP 字段"的建议按最小必要收窄，不做预留字段。
+5. **旧快照兼容**：缺 `content` 的旧轮次快照按原样读取，不迁移、不重置、不注入。
+
+#### 5.0.3 边界与未做
+
+- **不含 MCP**：无连接、无检测、无工具循环（后端 provider 层没有 tool 调用实现）；设置里的 MCP 条目只是本地登记。
+- **不含 DeepTutor 式逐轮扩展选择器**；不含技能与 `deep_question` 等业务能力的绑定（能力层 `capabilityAvailableInReal` 仍只放行普通对话）。
+- **内置技能内容未经教研评审**，是产品口径初稿（教案栏目对齐 `assets/templates/source/teacher-standard.docx`），需老师试用后迭代。
+- 同一批观察：以 3000 tokens 请求教案时命中既有 **R-13**（推理耗尽预算、零正文 `EMPTY_RESPONSE`），提高到 16000 后正常；R-13 仍未关闭，不因本批改动。
+- 未跑全量 e2e/动画矩阵、未在移动真机验证、未做独立 A1 验收。
+
+<a id="h1-books-pipeline"></a>
+
+### 5.8 上一实施批：H1-BOOKS-PIPELINE v2（书籍生成流水线与增量阅读闭环）
 
 **状态：本批实现与本地验收完成，待交付审查（2026-09-20）。** 负责人：实施总控（本会话接手上任未收口工作）；独立验收 A1 只读。起点候选 `bf460ab`（接手前工作区改动快照见 §5.0.5，本批不提交、不还原）。完整任务卡、冻结契约（状态枚举/字段/仓储 API/执行器 API）、队长裁定、锚点与禁区清单在 [docs/qa/H1-BOOKS-PIPELINE/TASK-CARD.md](qa/H1-BOOKS-PIPELINE/TASK-CARD.md)，本节登记范围与边界，结果与语义变化见 §5.0.7–§5.0.9。
 
@@ -203,7 +241,8 @@ npm.cmd run test:unit
 
 | 顺序/轨道 | 交付中心 | 出口 |
 | --- | --- | --- |
-| R-05 推广范围内已收口；**H1/H2为下一批建议，尚未指定实施任务** | 登记页面的视觉推广已交付（范围与未验项见 §5.3）。建议转入业务闭环：H1 书籍课程（compiling/paused/error、流式生成、暂停恢复、书籍聊天、课程学习会话）或 H2 既有模块闭环（阅读媒体原视图与完整伴生过程、写作/Whisper、产物消费） | 先明确一个有界批次；逐状态视觉与数据/错误/取消/恢复同步验收 |
+| R-05 推广范围内已收口；**SKILL-INJECT v1 为当前批（§5.0）**；H1/H2 仍是建议路线 | 登记页面的视觉推广已交付（范围与未验项见 §5.3）。建议路线仍是业务闭环：H1 书籍课程（compiling/paused/error、流式生成、暂停恢复、书籍聊天、课程学习会话）或 H2 既有模块闭环（阅读媒体原视图与完整伴生过程、写作/Whisper、产物消费） | 先明确一个有界批次；逐状态视觉与数据/错误/取消/恢复同步验收 |
+| T3 MCP 执行通道（本批之外，未授权） | 设置里 MCP 条目的真实语义：服务端连接管理（凭证走 SecretStore）、工具清单发现、tool 调用循环与流式 `tool` 事件、失败与取消 | 需要独立批次与任务卡；不得在只有本地登记时声称已连接或已执行 |
 | H1书籍课程闭环 | compiling/paused/error、流式生成、暂停恢复、书籍聊天、课程学习会话，复用既有14类block | 状态链、保存/刷新、资源/产物引用与三视口 |
 | H2既有模块闭环 | 阅读媒体原视图与完整伴生过程、写作/Whisper、学习空间及产物消费 | 原功能/数据不丢、来源正确、完整参考交互 |
 | H3伙伴/智能体 | 列表/创建/详情/群组/渠道、任务过程/工具/产物/历史 | 创建→执行→结果→恢复，等待/失败/取消/重试齐全 |

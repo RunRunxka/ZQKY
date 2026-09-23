@@ -84,7 +84,7 @@ describe('聊天扩展选择器', () => {
   it('没有已启用扩展时给出空态说明', () => {
     render(<ExtensionPicker entries={[]} selected={[]} onToggle={vi.fn()} />);
     openPanel();
-    expect(screen.getByText('还没有已启用的扩展。可在设置中添加并启用模拟扩展。')).toBeVisible();
+    expect(screen.getByText('还没有已启用的扩展。可在设置中添加并启用。')).toBeVisible();
   });
 
   it('R10：菜单打开时内部点击不关闭，外部点击关闭且不抢焦点', () => {

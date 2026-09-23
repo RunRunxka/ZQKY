@@ -7,12 +7,20 @@ import { API_BASE_PATH, ApiError } from './api-client';
 import { createSseParser } from './chat-sse';
 import type { ChatRole } from '@/contracts/chat';
 
+/** 本轮启用的技能：只传名称与说明正文；凭证与其他字段不进入请求 */
+export interface ChatStreamSkill {
+  name: string;
+  content: string;
+}
+
 export interface ChatStreamInput {
   requestId: string;
   modelProfileId: string;
   messages: { role: ChatRole; content: string }[];
   maxOutputTokens?: number;
   params?: Record<string, unknown>;
+  /** 技能上下文由后端拼装为系统消息；缺省或空数组时不携带该字段 */
+  skills?: ChatStreamSkill[];
   signal?: AbortSignal;
 }
 
@@ -41,6 +49,7 @@ export async function streamChat(
         messages: input.messages,
         ...(input.maxOutputTokens ? { maxOutputTokens: input.maxOutputTokens } : {}),
         ...(input.params ? { params: input.params } : {}),
+        ...(input.skills?.length ? { skills: input.skills } : {}),
       }),
       signal: input.signal,
     });

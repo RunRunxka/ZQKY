@@ -19,9 +19,14 @@ export interface ChatMessageError {
  */
 export type ChatServiceKind = 'real' | 'mock';
 
-/** 本轮扩展快照：发送时从模拟扩展目录冻结的独立数据（重试沿用，不引用可变目录对象） */export interface TurnExtensionSnapshot {
+/** 本轮扩展快照：发送时从扩展目录冻结的独立数据（重试沿用，不引用可变目录对象） */
+export interface TurnExtensionSnapshot {
   mcps: { id: string; name: string; description: string }[];
-  skills: { id: string; name: string; description: string }[];
+  /**
+   * 技能上下文。`content` 是发送时冻结的技能说明正文，真实问答据此拼装系统上下文；
+   * 缺 `content` 的旧快照按原样读取（不注入、不迁移、不重置），只保留来源展示语义。
+   */
+  skills: { id: string; name: string; description: string; content?: string }[];
   /**
    * S2 输入区：本轮业务能力与配置（chat 能力不携带）。
    * 全部字段可选——旧快照（仅 mcps/skills）按原样读取，不迁移不重置。

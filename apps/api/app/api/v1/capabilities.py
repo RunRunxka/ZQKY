@@ -78,13 +78,19 @@ CAPABILITIES: tuple[Capability, ...] = (
         feature="mcp",
         label="MCP",
         status=CapabilityStatus.planned,
-        detail="外部 MCP 连接管理未实现。",
+        detail=(
+            "外部 MCP 连接与工具调用未实现：设置中的 MCP 条目只是本地登记，"
+            "不会被连接、检测或执行，也不会进入问答请求。"
+        ),
     ),
     Capability(
         feature="skills",
         label="Skills",
-        status=CapabilityStatus.planned,
-        detail="技能定义与执行未实现。",
+        status=CapabilityStatus.ready,
+        detail=(
+            "已启用的技能说明由服务端拼装为本轮系统上下文（设置 → Skills 唯一管理）。"
+            "范围只到提示词级：技能不执行工具、不访问外部数据、不产生工具调用事件。"
+        ),
     ),
 )
 

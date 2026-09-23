@@ -19,6 +19,7 @@ from app.providers.llm.base import LLMRequest, LLMMessage, LLMStreamEvent
 from app.schemas.chat import ChatStreamRequest, validate_chat_request
 from app.services.model_readiness import callable_state
 from app.services.model_runtime import build_llm_config, build_provider
+from app.services.skill_context import build_skill_system_message
 
 router = APIRouter(tags=["chat"])
 
@@ -66,8 +67,13 @@ async def chat_stream(request: Request, body: ChatStreamRequest) -> StreamingRes
     effective_max = body.maxOutputTokens or profile.maxOutputTokens or DEFAULT_CHAT_MAX_OUTPUT_TOKENS
     if profile.maxOutputTokens:
         effective_max = min(effective_max, profile.maxOutputTokens)
+    # 技能上下文前置为系统消息：调用方不下发 system 正文，拼装只在此处发生（单一收口）
+    skill_message = build_skill_system_message(body.skills)
     llm_request = LLMRequest(
-        messages=[LLMMessage(role=m.role, content=m.content) for m in body.messages],
+        messages=[
+            *([LLMMessage(role="system", content=skill_message)] if skill_message else []),
+            *[LLMMessage(role=m.role, content=m.content) for m in body.messages],
+        ],
         maxOutputTokens=effective_max,
         params={**profile.params, **(body.params or {})},
     )

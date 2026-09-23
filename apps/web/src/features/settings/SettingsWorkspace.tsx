@@ -612,8 +612,8 @@ export function SettingsWorkspace() {
           <section id="about" className="settings-panel">
             <h2>关于智启课源</h2>
             <p>
-              界面参考 DeepTutor v1.6.5。模型管理保留现有真实服务；MCP 与 Skills
-              当前为本地模拟管理。其余复刻能力正在实施。
+              界面参考 DeepTutor v1.6.5。模型管理保留现有真实服务；Skills 已启用提示词级
+              技能上下文（不执行工具），MCP 连接与工具调用仍未实现。其余复刻能力正在实施。
             </p>
           </section>
         </div>

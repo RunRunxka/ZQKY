@@ -111,7 +111,11 @@ FastAPI 服务位于 apps/api，仅监听 127.0.0.1:8000；浏览器经 Next 同
 
 ### POST /api/v1/chat/stream 事件协议（D04 已实现）
 
-请求体：`{requestId, modelProfileId, messages: [{role, content}], maxOutputTokens?, params?}`。流开始前的失败（模型不存在 404、未保存凭证 400 `MODEL_NOT_CONFIGURED`、参数未声明 422 `UNSUPPORTED_PARAMETER`、总长超限 413 `CONTEXT_TOO_LARGE`）返回 HTTP 错误信封；流开始后按 `text/event-stream` 逐条下发：
+请求体：`{requestId, modelProfileId, messages: [{role, content}], maxOutputTokens?, params?, skills?}`。
+
+`skills` 为可选数组（最多 8 条，单项正文 ≤8000 字符、合计 ≤16000 字符），元素为 `{name, content}`：本轮启用的技能说明。服务端把它拼装成**一条前置 `system` 消息**（`app/services/skill_context.py`），因此客户端不需要也不应自行下发该系统消息。技能只到提示词级，不执行工具、不访问外部数据。超限返回 413 `SKILL_CONTEXT_TOO_LARGE`；字段不合法（如正文为空）返回 422 `INVALID_REQUEST`。
+
+流开始前的失败（模型不存在 404、未保存凭证 400 `MODEL_NOT_CONFIGURED`、参数未声明 422 `UNSUPPORTED_PARAMETER`、总长超限 413 `CONTEXT_TOO_LARGE`，`CONTEXT_TOO_LARGE` 的计量含技能说明）返回 HTTP 错误信封；流开始后按 `text/event-stream` 逐条下发：
 
 | 事件 | data 字段 |
 | --- | --- |

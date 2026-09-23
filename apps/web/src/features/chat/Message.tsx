@@ -53,14 +53,16 @@ function collectSources(message: ChatMessage): MessageSourceItem[] {
     items.push({
       key: `mcp:${entry.id}`,
       label: `MCP · ${entry.name}`,
-      detail: entry.description || '本轮载入的扩展（模拟执行，明确标识）。',
+      detail: entry.description || 'MCP 未实现：本轮没有任何工具调用或连接。',
     }),
   );
   (ext.skills ?? []).forEach((entry) =>
     items.push({
       key: `skill:${entry.id}`,
       label: `Skill · ${entry.name}`,
-      detail: entry.description || '技能上下文已加载（非远程工具调用）。',
+      detail: entry.content
+        ? entry.description || '技能说明已作为系统上下文随本轮发送给模型（不执行工具）。'
+        : entry.description || '技能说明为空，本轮未发送；只保留来源记录。',
     }),
   );
   return items;

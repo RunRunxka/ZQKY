@@ -68,6 +68,23 @@ describe('扩展快照与重试', () => {
     expect(message.extensions?.skills).toHaveLength(1);
   });
 
+  it('技能说明正文随快照一起冻结，不引用可变目录对象', async () => {
+    const { store, requests } = mockStore(createMemoryChatRepository(), [
+      async (emit, request) => {
+        emit({ ...turn(request), type: 'end', finishReason: 'stop' });
+      },
+    ]);
+    await store.getState().init();
+    const source: TurnExtensionSnapshot = {
+      mcps: [],
+      skills: [{ id: 's1', name: '教案规范', description: '', content: '按七个栏目输出。' }],
+    };
+    await store.getState().send('问题', null, source);
+    source.skills[0]!.content = '发送后改写的正文';
+    expect(requests[0].extensions?.skills[0]?.content).toBe('按七个栏目输出。');
+    expect(store.getState().messages[1].extensions?.skills[0]?.content).toBe('按七个栏目输出。');
+  });
+
   it('无扩展时请求不带 extensions 字段，流程不变', async () => {
     const { store, requests } = mockStore(createMemoryChatRepository(), [
       async (emit, request) => {
@@ -369,5 +386,58 @@ describe('真实路径不发送扩展快照', () => {
     );
     expect(inputs).toHaveLength(1);
     expect('extensions' in inputs[0]).toBe(false);
+  });
+
+  it('带说明正文的技能转成 skills 下发，且只带名称与正文', async () => {
+    const { createRealChatService } = await import('./chat-service');
+    const inputs: Array<Record<string, unknown>> = [];
+    const service = createRealChatService({
+      stream: async (input) => {
+        inputs.push(input as unknown as Record<string, unknown>);
+      },
+    });
+    await service.run(
+      {
+        sessionId: 's',
+        turnId: 't',
+        messages: [{ role: 'user', content: '问' }],
+        modelProfileId: 'p1',
+        extensions: {
+          mcps: [{ id: 'm1', name: '目录工具', description: '演示 MCP' }],
+          skills: [
+            { id: 's1', name: '教案规范', description: '演示 Skill', content: '按七个栏目输出。' },
+            { id: 's2', name: '空正文', description: '' },
+            { id: 's3', name: '  仅空白  ', description: '', content: '   ' },
+          ],
+        },
+        signal: new AbortController().signal,
+      },
+      () => undefined,
+    );
+    expect(inputs).toHaveLength(1);
+    expect(inputs[0].skills).toEqual([{ name: '教案规范', content: '按七个栏目输出。' }]);
+    expect('extensions' in inputs[0]).toBe(false);
+  });
+
+  it('没有有效技能时不下发 skills 字段，MCP 也不下发', async () => {
+    const { createRealChatService } = await import('./chat-service');
+    const inputs: Array<Record<string, unknown>> = [];
+    const service = createRealChatService({
+      stream: async (input) => {
+        inputs.push(input as unknown as Record<string, unknown>);
+      },
+    });
+    await service.run(
+      {
+        sessionId: 's',
+        turnId: 't',
+        messages: [{ role: 'user', content: '问' }],
+        modelProfileId: 'p1',
+        extensions: structuredClone(SNAPSHOT),
+        signal: new AbortController().signal,
+      },
+      () => undefined,
+    );
+    expect('skills' in inputs[0]).toBe(false);
   });
 });
