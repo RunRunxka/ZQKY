@@ -405,7 +405,7 @@ export function SettingsWorkspace() {
                           saveGlass('fluid', e.target.checked);
                         }}
                       />
-                      WebGL 流体背景
+                      流体背景
                     </label>
                     {fluidOn && (
                       <>

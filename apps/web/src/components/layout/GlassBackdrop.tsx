@@ -10,9 +10,9 @@ const clamp = (value: number, lo: number, hi: number): number =>
   Math.min(hi, Math.max(lo, value));
 
 /**
- * 玻璃主题背景层（DSH "Free backdrop" + 流体板的平移），三形态互斥：
- * - ambient + 流体开：WebGL 流体画布（fluid-shader.ts，GPU 失败自动回落
- *   到 body::before 的 CSS 环境光，见 data-glass-fluid-ok）；
+ * 玻璃主题背景层（"Free backdrop" 与流体板的形态），三形态互斥：
+ * - ambient + 流体开：Canvas 2D 流体画布（fluid-shader.ts 自研实现）
+ *   覆盖住 CSS 环境光（见 data-glass-fluid-ok）；
  * - ambient + 流体关：仅 CSS 环境光；
  * - wallpaper：图片/视频层（IndexedDB 引用，blob.type 自动区分）。
  * 旋钮经 `zqky:glass-change` 事件即时同步；跨页签走 storage 事件。
@@ -90,7 +90,7 @@ export function GlassBackdrop() {
     };
   }, []);
 
-  // 挂载/卸载 WebGL 流体（fluidActive 变化时；含 GPU 失败降级标记）
+  // 挂载/卸载流体画布（fluidActive 变化时；含 2D 上下文失败降级标记）
   useEffect(() => {
     if (!fluidActive) {
       handleRef.current?.dispose();
@@ -100,8 +100,10 @@ export function GlassBackdrop() {
     }
     const canvas = canvasRef.current;
     if (!canvas) return;
-    // WebGL 可用性预检：禁用/不支持时直接回落 CSS 环境光，不留空白画布。
-    if (canvas.getContext('webgl2') === null) {
+    // 2D 上下文预检：拿不到时立刻回落 CSS 环境光，不留空白画布。
+    // 这里预检与 attachFluidShader 内部取的是同一种上下文，getContext 会返回
+    // 同一个对象，不会像 WebGL→2D 那样把一个 canvas 的上下文槽位占掉。
+    if (canvas.getContext('2d') === null) {
       document.documentElement.dataset.glassFluidOk = 'off';
       setFluidActive(false);
       return;
@@ -118,7 +120,7 @@ export function GlassBackdrop() {
       handleRef.current = handle;
       document.documentElement.dataset.glassFluidOk = 'on';
     } catch {
-      // GPU/驱动失败绝不能拖垮主题：回落 CSS 环境光（移除画布层）。
+      // 绘制失败绝不能拖垮主题：回落 CSS 环境光（移除画布层）。
       document.documentElement.dataset.glassFluidOk = 'off';
       setFluidActive(false);
     }

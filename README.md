@@ -174,7 +174,7 @@ npm.cmd run start
 
 ## 📄 许可证
 
-本仓库为私有项目（`package.json` 中 `private: true`），未附开源许可证文件。引用的字体与第三方资源的来源和许可见 [资源说明](docs/licenses/deeptutor-chat/README.md)。
+本仓库为私有项目（`package.json` 中 `private: true`），未附开源许可证文件。引用的字体与第三方资源的来源和许可分别见 [学习问答资源说明](docs/licenses/deeptutor-chat/README.md) 与 [玻璃主题来源与许可](docs/licenses/glass-theme/README.md)（后者记录 AGPL-3.0 流体背景的移除与自研替换）。**公开分发前请先读这两份台账**：字体 OFL 文本必须随产物保留。
 
 ## 🙏 致谢
 

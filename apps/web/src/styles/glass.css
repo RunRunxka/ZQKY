@@ -2,10 +2,10 @@
  * 玻璃质感主题（核心 MVP）：仅在 <html data-glass="on"> 时生效。
  * 关闭开关即回到原生界面，无残留、无需刷新。
  *
- * 技术平移自 DSH-Transparent-UI-Plugin 的磨砂配方
- * （backdrop-filter + 半透明填充 + 固定流体背景层），但选择器全部替换为
- * ZQKY 自有类名（.app-header / .global-nav / .export-menu / .workspace-modal…），
- * 不依赖 DeepSeek Harness 运行时。这是"兼容模式"思路：保持布局不变，只换材质。
+ * 磨砂配方为通用 Web 技术（backdrop-filter + 半透明填充 + 固定背景层）的自有实现，
+ * 选择器全部为 ZQKY 自有类名（.app-header / .global-nav / .export-menu /
+ * .workspace-modal…），不依赖任何外部运行时。
+ * 第三方来源与许可义务见 docs/licenses/deeptutor-chat/README.md。
  *
  * 旋钮（由 GlassThemePreference 从 localStorage 写入 <html>）：
  *   --glass-blur  : 磨砂半径(px)
@@ -614,9 +614,9 @@
 }
 
 /* ============================================================================
- * WebGL 流体背景层（DSH fluid-shader 的挂载形态）：fixed 全屏画布，
- * 绘制由 fluid-shader.ts 负责；GPU 失败时 GlassBackdrop 移除画布层并标记
- * data-glass-fluid-ok='off'，body::before 的 CSS 环境光自动顶上。
+ * 流体背景层：fixed 全屏画布，绘制由 fluid-shader.ts 的自研实现负责；
+ * 2D 上下文不可用时 GlassBackdrop 移除画布层并标记 data-glass-fluid-ok='off'，
+ * body::before 的 CSS 环境光自动顶上。
  * ========================================================================== */
 
 [data-glass-ambient] {

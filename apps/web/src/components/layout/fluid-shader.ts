@@ -1,49 +1,58 @@
 /**
- * 移植来源：DSH-Transparent-UI-Plugin (AGPL-3.0) src/client/fluid-shader.ts
- * 原始作者：WYH66666666（DSH-Transparent-UI-Plugin，本身移植自 deepseek.com
- * join-section 流体着色器）。本文件随宿主项目按 AGPL-3.0 传播；若宿主项目
- * 将来公开分发，请注意整体 AGPL 合规或移除本文件。
- * 除本头注释外，代码与上游保持一致。
- * ============================================================================
+ * fluid-shader.ts —— 原创流体背景（**本项目自研，不含任何第三方代码**）
+ *
+ * 背景（AGPL-OUT v1，2026-09-23）：本文件此前是 DSH-Transparent-UI-Plugin
+ * （AGPL-3.0）的逐行移植版，且其中 GLSL 源码字面量抄自 deepseek.com 线上包
+ * （无任何许可）。为消除分发风险，本文件已整份替换为自研实现：
+ * 对外接口保持不变（函数名 / 参数名 / 句柄形状），因此调用方
+ * `GlassBackdrop.tsx` 只需改掉 WebGL 预检，算法与上游零共享代码。
+ * 详见 docs/licenses/deeptutor-chat/README.md。
+ *
+ * —— 算法（约 200 行）——
+ *   1. 低分辨率画布（视口的 1/10），只画若干个软光斑；
+ *   2. 光斑中心由**正弦叠加**驱动（确定性、无随机数），获得平滑且长时间不重复的漂移；
+ *   3. 画布放大到全屏 → 天然低频模糊，不需要额外的模糊通道；
+ *   4. 光斑以 'lighter' 叠加：深色底 + 只在 G/B 上累加，得到「近黑深蓝 + 蓝色辉光」；
+ *   5. 指针提供轻微视差；stir() 提供一次性扰动。
+ *
+ * —— 参数 ——
+ * FluidParams 的字段与原接口保持一致以便直接替换。其中本实现真正使用：
+ *   color1 / color2 / color3、speed、scale、softness、offsetX、offsetY、
+ *   mouseRadius、mouseStrength；
+ * 其余字段（decay / distortBoost / noiseBoost / swirlBoost / distortion / swirl /
+ * swirlIterations / shapeScale / rotation / proportion）为接口兼容而保留，
+ * **本实现不读取**。
+ *
+ * —— 减少动画 ——
+ * 系统 `prefers-reduced-motion: reduce` 或本地 `html[data-motion="reduced"]`
+ * 任一命中时只绘制一帧静态画面，不启动帧循环（与原移植版行为一致，并补齐了
+ * 本地开关这一路）。
  */
 
-/**
- * Faithful port of the deepseek.com join-section fluid shader
- * (`ds-join-shader-bg`): a WebGL2 two-pass fluid simulation — a quarter-res
- * flow field (decay + pointer brush with velocity, ping-ponged between two
- * framebuffers) sampled by a full-res domain-warped noise renderer with
- * swirl iterations and a three-color soft blend. Shader sources are verbatim
- * from the site bundle; uniform wiring, the 30fps throttle, the 1.5x pixel
- * ratio cap, and the pointer-listener policy (touch and Windows skip the
- * mouse feed) are replicated exactly. Reduced-motion renders one static
- * frame instead of the loop.
- */
-
-/** Site-default parameters (the join-section look). */
 export interface FluidParams {
-  mouseRadius: number
-  mouseStrength: number
-  decay: number
-  distortBoost: number
-  noiseBoost: number
-  swirlBoost: number
-  speed: number
-  distortion: number
-  swirl: number
-  swirlIterations: number
-  scale: number
-  rotation: number
-  proportion: number
-  softness: number
-  shapeScale: number
-  offsetX: number
-  offsetY: number
-  color1: string
-  color2: string
-  color3: string
+  mouseRadius: number;
+  mouseStrength: number;
+  decay: number;
+  distortBoost: number;
+  noiseBoost: number;
+  swirlBoost: number;
+  speed: number;
+  distortion: number;
+  swirl: number;
+  swirlIterations: number;
+  scale: number;
+  rotation: number;
+  proportion: number;
+  softness: number;
+  shapeScale: number;
+  offsetX: number;
+  offsetY: number;
+  color1: string;
+  color2: string;
+  color3: string;
 }
 
-/** The exact default parameter set shipped by the site. */
+/** 站点默认参数（色值会被 fluid-tones 覆盖）。 */
 export const SITE_FLUID_PARAMS: FluidParams = {
   mouseRadius: 0.22,
   mouseStrength: 1.1,
@@ -65,427 +74,218 @@ export const SITE_FLUID_PARAMS: FluidParams = {
   color1: '#8AA3D6',
   color2: '#FFFFFF',
   color3: '#FFFFFF',
-}
+};
 
-const VERTEX_SHADER = `#version 300 es
-in vec4 a_position;
-out vec2 vUv;
-void main() {
-  vUv = a_position.xy * 0.5 + 0.5;
-  gl_Position = a_position;
-}
-`
-
-const FLOW_SHADER = `#version 300 es
-precision mediump float;
-in vec2 vUv;
-uniform sampler2D u_prev;
-uniform vec2 u_mouse;
-uniform vec2 u_velocity;
-uniform float u_brushRadius;
-uniform float u_brushStrength;
-uniform float u_decay;
-out vec4 fragColor;
-
-void main() {
-  vec4 prev = texture(u_prev, vUv);
-
-  prev.r *= u_decay;
-  prev.gb = mix(vec2(0.5), prev.gb, u_decay);
-
-  float dist = distance(vUv, u_mouse);
-
-  float influence = exp(-dist * dist / (u_brushRadius * u_brushRadius * 0.5));
-  influence = max(0.0, influence - 0.01);
-
-  float speed = length(u_velocity);
-  float presenceStrength = u_brushStrength * 0.3;
-  float velBonus = min(speed * 3.0, 0.7) * u_brushStrength;
-  float totalStrength = presenceStrength + velBonus;
-
-  prev.r = max(prev.r, influence * totalStrength);
-  float blendAmt = influence * min(totalStrength, 0.4) * 0.3;
-  prev.g = mix(prev.g, clamp(u_velocity.x * 2.0 + 0.5, 0.0, 1.0), blendAmt);
-  prev.b = mix(prev.b, clamp(u_velocity.y * 2.0 + 0.5, 0.0, 1.0), blendAmt);
-
-  fragColor = prev;
-}
-`
-
-const DISPLAY_SHADER = `#version 300 es
-precision mediump float;
-in vec2 vUv;
-uniform float u_time;
-uniform float u_pixelRatio;
-uniform vec2 u_resolution;
-uniform float u_scale;
-uniform float u_rotation;
-uniform vec4 u_color1, u_color2, u_color3;
-uniform float u_colorCount;
-uniform float u_proportion;
-uniform float u_softness;
-uniform float u_shape;
-uniform float u_shapeScale;
-uniform float u_distortion;
-uniform float u_swirl;
-uniform float u_swirlIterations;
-uniform vec2 u_offset;
-uniform sampler2D u_flowmap;
-uniform float u_distortBoost;
-uniform float u_noiseBoost;
-uniform float u_swirlBoost;
-out vec4 fragColor;
-
-#define TWO_PI 6.28318530718
-#define PI 3.14159265358979323846
-
-vec2 rotate(vec2 uv, float th) { return mat2(cos(th), sin(th), -sin(th), cos(th)) * uv; }
-float random(vec2 st) { return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123); }
-float noise(vec2 st) {
-  vec2 i = floor(st); vec2 f = fract(st);
-  float a = random(i), b = random(i + vec2(1,0)), c = random(i + vec2(0,1)), d = random(i + vec2(1,1));
-  vec2 u = f*f*(3.0-2.0*f);
-  return mix(mix(a,b,u.x), mix(c,d,u.x), u.y);
-}
-
-vec3 blend_multi(float mixer, float softness) {
-  float edge = 1.0 - softness;
-  vec3 col = u_color1.rgb;
-  if (u_colorCount > 1.5) { col = mix(col, u_color2.rgb, smoothstep(0.0 + 0.35*edge, 0.7 - 0.35*edge, mixer)); }
-  if (u_colorCount > 2.5) { col = mix(col, u_color3.rgb, smoothstep(0.3 + 0.35*edge, 1.0 - 0.35*edge, mixer)); }
-  return col;
-}
-
-void main() {
-  vec2 uv = gl_FragCoord.xy / u_resolution.xy;
-  float t = .5 * u_time;
-  float ns = .0005 + .006 * u_scale;
-  uv -= .5; uv *= (ns * u_resolution); uv = rotate(uv, u_rotation * .5 * PI);
-  uv /= u_pixelRatio; uv += .5; uv += u_offset;
-
-  vec2 fragUV = gl_FragCoord.xy / u_resolution.xy;
-  vec4 flow = texture(u_flowmap, fragUV);
-  float influence = flow.r;
-  vec2 flowDir = (flow.gb - 0.5) * 2.0;
-
-  float n1 = noise(uv + t), n2 = noise(uv*2. - t);
-  float angle = n1 * TWO_PI;
-
-  float totalDistortion = u_distortion + influence * u_distortBoost;
-  uv.x += 4. * totalDistortion * n2 * cos(angle);
-  uv.y += 4. * totalDistortion * n2 * sin(angle);
-
-  uv += flowDir * influence * 0.15;
-
-  if (influence > 0.001) {
-    float localNoise = noise(uv * 2.0 + t * 1.5);
-    uv += influence * u_noiseBoost * vec2(cos(localNoise * TWO_PI), sin(localNoise * TWO_PI));
-  }
-
-  float iters = ceil(clamp(u_swirlIterations, 1., 30.));
-  float swirlAmt = clamp(u_swirl, 0., 2.) + influence * u_swirlBoost;
-  for (float i = 1.; i <= 30.0; i++) {
-    if (i > iters) break;
-    uv.x += swirlAmt / i * cos(t + i*1.5*uv.y);
-    uv.y += swirlAmt / i * cos(t + i*1.*uv.x);
-  }
-
-  float proportion = clamp(u_proportion, 0., 1.);
-  vec2 cuv = uv * (.5 + 3.5 * u_shapeScale);
-  float shape = .5 + .5 * sin(cuv.x) * cos(cuv.y);
-  float mixer = shape + .48 * sign(proportion - .5) * pow(abs(proportion - .5), .5);
-  vec3 col = blend_multi(mixer, clamp(u_softness, 0., 1.));
-  fragColor = vec4(col, 1.0);
-}
-`
-
-function hexToRgb(value: string): [number, number, number] {
-  const hex = value.replace('#', '')
-  return [
-    parseInt(hex.slice(0, 2), 16) / 255,
-    parseInt(hex.slice(2, 4), 16) / 255,
-    parseInt(hex.slice(4, 6), 16) / 255,
-  ]
-}
-
-/** Handle returned by {@link attachFluidShader}. */
 export interface FluidShaderHandle {
-  /** Update simulation parameters (e.g. a palette switch) without re-mounting. */
-  setParams: (params: FluidParams) => void
-  /** Stir the fluid at normalized coordinates with a velocity burst (wakes). */
-  stir: (x: number, y: number, vx: number, vy: number) => void
-  /** Stop the loop and release listeners. */
-  dispose: () => void
+  /** 热更新参数（例如换色调）而不重新挂载。 */
+  setParams: (params: FluidParams) => void;
+  /** 在归一化坐标处给光斑一个速度扰动（指针唤醒）。 */
+  stir: (x: number, y: number, vx: number, vy: number) => void;
+  /** 停止绘制并释放监听。 */
+  dispose: () => void;
+}
+
+/** 低分辨率倍率：越小越柔和、开销越低。 */
+const LOW_RES_DIVISOR = 10;
+const TAU = Math.PI * 2;
+
+interface Blob {
+  /** 基准位置（0-1） */
+  bx: number;
+  by: number;
+  /** 半径（以视口长边为基准的比例） */
+  r: number;
+  /** 权重（决定颜色与不透明度） */
+  w: number;
+  /** 漂移周期（秒）与相位 */
+  px: number;
+  py: number;
+  phx: number;
+  phy: number;
+  /** 漂移幅度 */
+  ax: number;
+  ay: number;
+  /** 取哪一档颜色：0=bloom, 1=mid, 2=base */
+  tone: number;
 }
 
 /**
- * Mount the fluid simulation on a canvas and run it until disposed.
- * @param canvas - full-size canvas element (CSS-sized by the ambient layer).
- * @param params - simulation parameters (site defaults are the natural input).
- * @returns the live handle.
+ * 光斑布局：两块主辉光（左下 / 上右）+ 中部铺底 + 一个高光点。
+ * 位置由实测标定：深色下流体最亮处集中在左侧会话列与主区右上。
  */
-export function attachFluidShader(canvas: HTMLCanvasElement, params: FluidParams): FluidShaderHandle {
-  const gl = canvas.getContext('webgl2', {
-    alpha: true,
-    premultipliedAlpha: false,
-    powerPreference: 'low-power',
-  })
-  if (gl === null) {
+const BLOBS: Blob[] = [
+  { bx: 0.24, by: 0.7, r: 0.86, w: 1.0, px: 34, py: 41, phx: 0.0, phy: 1.7, ax: 0.14, ay: 0.08, tone: 0 },
+  { bx: 0.74, by: 0.05, r: 0.82, w: 1.0, px: 47, py: 29, phx: 2.1, phy: 0.4, ax: 0.14, ay: 0.07, tone: 0 },
+  { bx: 0.55, by: 0.42, r: 0.74, w: 0.44, px: 53, py: 37, phx: 4.3, phy: 3.1, ax: 0.12, ay: 0.1, tone: 1 },
+  { bx: 0.62, by: 0.2, r: 0.3, w: 0.34, px: 23, py: 19, phx: 1.2, phy: 5.6, ax: 0.09, ay: 0.05, tone: 3 },
+];
+
+/** #rrggbb → [r,g,b]；解析失败时回退到中性灰。 */
+function parseHex(hex: string): [number, number, number] {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return [128, 128, 128];
+  const n = parseInt(m[1]!, 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+/**
+ * 减少动画：系统偏好或本地设置任一命中即为真。
+ * 本地设置由 `MotionPreference` 写到 `<html data-motion>`。
+ */
+function prefersReducedMotion(): boolean {
+  return (
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches ||
+    document.documentElement.dataset.motion === 'reduced'
+  );
+}
+
+export function attachFluidShader(
+  canvas: HTMLCanvasElement,
+  initial: FluidParams,
+): FluidShaderHandle {
+  const maybeCtx = canvas.getContext('2d');
+  if (maybeCtx === null) {
+    // 2D 上下文不可用：返回空句柄，由调用方回落 CSS 环境光，绝不抛错拖垮主题
+    return { setParams: () => {}, stir: () => {}, dispose: () => {} };
+  }
+  // 收窄一次后固定为具体类型：闭包内不再有 null 判定
+  const ctx: CanvasRenderingContext2D = maybeCtx;
+
+  let params: FluidParams = { ...initial };
+  let palette: [number, number, number][] = [
+    parseHex(params.color1),
+    parseHex(params.color2),
+    parseHex(params.color3),
+  ];
+  let disposed = false;
+  let rafId = 0;
+  let lowW = 1;
+  let lowH = 1;
+
+  /** 指针状态：目标值与插值后的当前值（避免跟随突变）。 */
+  const pointer = { x: 0.5, y: 0.5, tx: 0.5, ty: 0.5 };
+  /** stir() 产生的瞬时扰动（会自然衰减）。 */
+  const stir = { x: 0.5, y: 0.5, rx: 0, ry: 0 };
+
+  function refreshPalette(): void {
+    palette = [
+      parseHex(params.color1),
+      parseHex(params.color2),
+      parseHex(params.color3),
+    ];
+  }
+
+  function resize(): void {
+    const vw = Math.max(1, window.innerWidth);
+    const vh = Math.max(1, window.innerHeight);
+    lowW = Math.max(8, Math.round(vw / LOW_RES_DIVISOR));
+    lowH = Math.max(8, Math.round(vh / LOW_RES_DIVISOR));
+    canvas.width = lowW;
+    canvas.height = lowH;
+  }
+
+  function onPointerMove(event: PointerEvent): void {
+    pointer.tx = Math.min(1, Math.max(0, event.clientX / Math.max(1, window.innerWidth)));
+    pointer.ty = Math.min(1, Math.max(0, event.clientY / Math.max(1, window.innerHeight)));
+  }
+  /** 正弦叠加：确定性准周期漂移（无随机数、无状态累积）。 */
+  function offsetOf(blob: Blob, t: number): { x: number; y: number } {
+    const speed = Math.max(0.05, params.speed / 14);
+    const tt = t * speed;
     return {
-      setParams: () => {},
-      stir: () => {},
-      dispose: () => {},
-    }
+      x:
+        blob.bx +
+        blob.ax * 0.5 * Math.sin(TAU * (tt / blob.px) + blob.phx) +
+        blob.ax * 0.5 * Math.sin(TAU * (tt / (blob.px * 0.37)) + blob.phy),
+      y:
+        blob.by +
+        blob.ay * 0.5 * Math.sin(TAU * (tt / blob.py) + blob.phy) +
+        blob.ay * 0.5 * Math.cos(TAU * (tt / (blob.py * 0.43)) + blob.phx),
+    };
   }
 
-  const compile = (type: number, source: string): WebGLShader | null => {
-    const shader = gl.createShader(type)
-    if (shader === null) return null
-    gl.shaderSource(shader, source)
-    gl.compileShader(shader)
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      console.error('ui-aqua fluid shader:', gl.getShaderInfoLog(shader))
-      return null
-    }
-    return shader
-  }
+  function frame(): void {
+    if (disposed) return;
+    const t = performance.now() / 1000;
 
-  const link = (fragment: string): WebGLProgram | null => {
-    const vertex = compile(gl.VERTEX_SHADER, VERTEX_SHADER)
-    const frag = compile(gl.FRAGMENT_SHADER, fragment)
-    if (vertex === null || frag === null) return null
-    const program = gl.createProgram()
-    if (program === null) return null
-    gl.attachShader(program, vertex)
-    gl.attachShader(program, frag)
-    gl.linkProgram(program)
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      console.error('ui-aqua fluid link:', gl.getProgramInfoLog(program))
-      return null
-    }
-    return program
-  }
+    pointer.x += (pointer.tx - pointer.x) * 0.045;
+    pointer.y += (pointer.ty - pointer.y) * 0.045;
+    stir.rx *= 0.94;
+    stir.ry *= 0.94;
 
-  const flowProgram = link(FLOW_SHADER)
-  const displayProgram = link(DISPLAY_SHADER)
-  if (flowProgram === null || displayProgram === null) {
-    return {
-      setParams: () => {},
-      stir: () => {},
-      dispose: () => {},
-    }
-  }
+    // 深色底：用 color3 铺满（深色模式下接近黑蓝，避免出现"整体提亮"）
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = params.color3;
+    ctx.fillRect(0, 0, lowW, lowH);
+    ctx.globalCompositeOperation = 'lighter';
 
-  const flow = {
-    prev: gl.getUniformLocation(flowProgram, 'u_prev'),
-    mouse: gl.getUniformLocation(flowProgram, 'u_mouse'),
-    velocity: gl.getUniformLocation(flowProgram, 'u_velocity'),
-    brushRadius: gl.getUniformLocation(flowProgram, 'u_brushRadius'),
-    brushStrength: gl.getUniformLocation(flowProgram, 'u_brushStrength'),
-    decay: gl.getUniformLocation(flowProgram, 'u_decay'),
-  }
-  const display = {
-    time: gl.getUniformLocation(displayProgram, 'u_time'),
-    pixelRatio: gl.getUniformLocation(displayProgram, 'u_pixelRatio'),
-    resolution: gl.getUniformLocation(displayProgram, 'u_resolution'),
-    scale: gl.getUniformLocation(displayProgram, 'u_scale'),
-    rotation: gl.getUniformLocation(displayProgram, 'u_rotation'),
-    offset: gl.getUniformLocation(displayProgram, 'u_offset'),
-    color1: gl.getUniformLocation(displayProgram, 'u_color1'),
-    color2: gl.getUniformLocation(displayProgram, 'u_color2'),
-    color3: gl.getUniformLocation(displayProgram, 'u_color3'),
-    colorCount: gl.getUniformLocation(displayProgram, 'u_colorCount'),
-    proportion: gl.getUniformLocation(displayProgram, 'u_proportion'),
-    softness: gl.getUniformLocation(displayProgram, 'u_softness'),
-    shape: gl.getUniformLocation(displayProgram, 'u_shape'),
-    shapeScale: gl.getUniformLocation(displayProgram, 'u_shapeScale'),
-    distortion: gl.getUniformLocation(displayProgram, 'u_distortion'),
-    swirl: gl.getUniformLocation(displayProgram, 'u_swirl'),
-    swirlIterations: gl.getUniformLocation(displayProgram, 'u_swirlIterations'),
-    flowmap: gl.getUniformLocation(displayProgram, 'u_flowmap'),
-    distortBoost: gl.getUniformLocation(displayProgram, 'u_distortBoost'),
-    noiseBoost: gl.getUniformLocation(displayProgram, 'u_noiseBoost'),
-    swirlBoost: gl.getUniformLocation(displayProgram, 'u_swirlBoost'),
-  }
+    // scale 控制光斑整体大小；softness 控制边缘衰减位置
+    const scaleRef = Math.max(0.2, params.scale) * Math.max(lowW, lowH) * 0.5;
+    const softness = Math.min(1, Math.max(0.05, params.softness / 100));
+    const centerBias = {
+      x: (params.offsetX ?? 0) / 100,
+      y: ((params.offsetY ?? 0) - 50) / 100,
+    };
 
-  const quadBuffer = gl.createBuffer()
-  gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer)
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW)
+    for (const blob of BLOBS) {
+      const o = offsetOf(blob, t);
+      const par = 0.06 * (1 - blob.w) + 0.02;
+      const cx =
+        (o.x + centerBias.x * 0.05 + stir.x * (stir.rx / 100) + (pointer.x - 0.5) * par * 2) *
+        lowW;
+      const cy =
+        (o.y + centerBias.y * 0.05 + stir.y * (stir.ry / 100) + (pointer.y - 0.5) * par * 2) *
+        lowH;
+      const rr = Math.max(4, blob.r * scaleRef);
+      const color = palette[Math.min(3, blob.tone)] ?? palette[0]!;
+      const alpha = 0.38 * blob.w;
 
-  const bindQuad = (program: WebGLProgram): void => {
-    const position = gl.getAttribLocation(program, 'a_position')
-    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer)
-    gl.enableVertexAttribArray(position)
-    gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0)
-  }
-
-  interface FlowTarget { fbo: WebGLFramebuffer; tex: WebGLTexture }
-  const makeTarget = (width: number, height: number, initial?: Uint8Array): FlowTarget => {
-    const tex = gl.createTexture()
-    if (tex === null) throw new Error('ui-aqua fluid: texture allocation failed')
-    gl.bindTexture(gl.TEXTURE_2D, tex)
-    if (initial !== undefined) {
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, initial)
-    } else {
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
-    }
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
-    const fbo = gl.createFramebuffer()
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo)
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0)
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
-    return { fbo, tex }
-  }
-
-  let width = 0
-  let height = 0
-  let flowWidth = 0
-  let flowHeight = 0
-  let flip = false
-  let current: FluidParams = { ...params }
-  const pointer = { x: 0.5, y: 0.5, smoothX: 0.5, smoothY: 0.5, vx: 0, vy: 0, svx: 0, svy: 0 }
-  const dprCap = Math.min(window.devicePixelRatio || 1, 1.5)
-  width = Math.round(canvas.clientWidth * dprCap)
-  height = Math.round(canvas.clientHeight * dprCap)
-  canvas.width = width
-  canvas.height = height
-  flowWidth = Math.round(width / 4)
-  flowHeight = Math.round(height / 4)
-
-  const initial = new Uint8Array(flowWidth * flowHeight * 4)
-  for (let i = 0; i < flowWidth * flowHeight; i += 1) {
-    initial[4 * i] = 0
-    initial[4 * i + 1] = 128
-    initial[4 * i + 2] = 128
-    initial[4 * i + 3] = 255
-  }
-  const targetA = makeTarget(flowWidth, flowHeight, initial)
-  const targetB = makeTarget(flowWidth, flowHeight, initial)
-
-  // Site policy: touch devices and Windows skip the mouse feed entirely.
-  const coarse = window.matchMedia('(hover: none), (pointer: coarse)').matches
-  const ua = navigator as Navigator & { userAgentData?: { platform?: string } }
-  const windows = ua.userAgentData
-    ? ua.userAgentData.platform === 'Windows'
-    : navigator.userAgent.includes('Windows')
-  const onMouseMove = (event: MouseEvent): void => {
-    const rect = canvas.getBoundingClientRect()
-    pointer.x = (event.clientX - rect.left) / rect.width
-    pointer.y = 1 - (event.clientY - rect.top) / rect.height
-  }
-  if (!coarse && !windows) window.addEventListener('mousemove', onMouseMove)
-
-  const start = performance.now()
-  let raf = 0
-  let previous = 0
-  const step = 1000 / 30
-
-  const frame = (now: number): void => {
-    raf = requestAnimationFrame(frame)
-    if (now - previous < step) return
-    previous = now - ((now - previous) % step)
-
-    const ratio = Math.min(window.devicePixelRatio || 1, 1.5)
-    const nextWidth = Math.round(canvas.clientWidth * ratio)
-    const nextHeight = Math.round(canvas.clientHeight * ratio)
-    if (nextWidth !== width || nextHeight !== height) {
-      width = nextWidth
-      height = nextHeight
-      canvas.width = width
-      canvas.height = height
+      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rr);
+      const rgb = `${color[0]},${color[1]},${color[2]}`;
+      g.addColorStop(0, `rgba(${rgb},${alpha})`);
+      g.addColorStop(softness * 0.55, `rgba(${rgb},${alpha * 0.45})`);
+      g.addColorStop(1, `rgba(${rgb},0)`);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(cx, cy, rr, 0, TAU);
+      ctx.fill();
     }
 
-    const p = current
-    const s = pointer
-    // Extra settle: the site's own decay plus one more damping notch so
-    // injected wakes fade softly instead of snapping.
-    s.svx *= 0.94
-    s.svy *= 0.94
-    s.smoothX += (s.x - s.smoothX) * 0.12
-    s.smoothY += (s.y - s.smoothY) * 0.12
-    s.svx += ((s.x - s.smoothX) * 0.5 - s.svx) * 0.15
-    s.svy += ((s.y - s.smoothY) * 0.5 - s.svy) * 0.15
-
-    const read = flip ? targetA : targetB
-    const write = flip ? targetB : targetA
-    flip = !flip
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, write.fbo)
-    gl.viewport(0, 0, flowWidth, flowHeight)
-    gl.useProgram(flowProgram)
-    bindQuad(flowProgram)
-    gl.activeTexture(gl.TEXTURE0)
-    gl.bindTexture(gl.TEXTURE_2D, read.tex)
-    gl.uniform1i(flow.prev, 0)
-    gl.uniform2f(flow.mouse, s.smoothX, s.smoothY)
-    gl.uniform2f(flow.velocity, s.svx, s.svy)
-    gl.uniform1f(flow.brushRadius, p.mouseRadius)
-    gl.uniform1f(flow.brushStrength, p.mouseStrength)
-    gl.uniform1f(flow.decay, p.decay)
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
-
-    gl.viewport(0, 0, width, height)
-    gl.useProgram(displayProgram)
-    bindQuad(displayProgram)
-    gl.activeTexture(gl.TEXTURE0)
-    gl.bindTexture(gl.TEXTURE_2D, write.tex)
-    gl.uniform1i(display.flowmap, 0)
-    const time = (performance.now() - start) * 0.001 * (p.speed / 100)
-    gl.uniform1f(display.time, time)
-    gl.uniform1f(display.pixelRatio, window.devicePixelRatio || 1)
-    gl.uniform2f(display.resolution, width, height)
-    gl.uniform1f(display.scale, p.scale)
-    gl.uniform1f(display.rotation, p.rotation / 90)
-    gl.uniform2f(display.offset, p.offsetX / 100, p.offsetY / 100)
-    const c1 = hexToRgb(p.color1 || '#2E58A4')
-    const c2 = hexToRgb(p.color2 || '#D2E2EE')
-    const c3 = hexToRgb(p.color3 || '#FFFFFF')
-    gl.uniform4f(display.color1, c1[0], c1[1], c1[2], 1)
-    gl.uniform4f(display.color2, c2[0], c2[1], c2[2], 1)
-    gl.uniform4f(display.color3, c3[0], c3[1], c3[2], 1)
-    gl.uniform1f(display.colorCount, 3)
-    gl.uniform1f(display.proportion, p.proportion / 100)
-    gl.uniform1f(display.softness, p.softness / 100)
-    gl.uniform1f(display.shape, 0)
-    gl.uniform1f(display.shapeScale, p.shapeScale / 100)
-    gl.uniform1f(display.distortion, p.distortion / 100)
-    gl.uniform1f(display.swirl, p.swirl / 50)
-    gl.uniform1f(display.swirlIterations, p.swirlIterations)
-    gl.uniform1f(display.distortBoost, p.distortBoost)
-    gl.uniform1f(display.noiseBoost, p.noiseBoost)
-    gl.uniform1f(display.swirlBoost, p.swirlBoost)
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
+    rafId = requestAnimationFrame(frame);
   }
 
-  const handle: FluidShaderHandle = {
-    setParams: (next: FluidParams) => {
-      current = { ...next }
+  resize();
+  refreshPalette();
+  window.addEventListener('resize', resize);
+  // 触摸/粗指针不接入指针视差：这类设备的 pointermove 在滚动时频繁触发，
+  // 收益低且会持续改写光斑位置（沿用既有移植版的指针策略）。
+  if (!window.matchMedia('(hover: none), (pointer: coarse)').matches) {
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+  }
+
+  frame();
+  if (prefersReducedMotion()) {
+    // 减少动画：保留这一帧静态画面，退出帧循环
+    cancelAnimationFrame(rafId);
+    rafId = 0;
+  }
+
+  return {
+    setParams(next: FluidParams) {
+      params = { ...params, ...next };
+      refreshPalette();
     },
-    stir: (x: number, y: number, vx: number, vy: number) => {
-      // Damped stir: the brush glides toward the event point and the
-      // velocity ramps up through a soft approach, so feedback reads as
-      // water settling rather than a teleported kick.
-      pointer.x += (x - pointer.x) * 0.35
-      pointer.y += (y - pointer.y) * 0.35
-      pointer.svx += (vx - pointer.svx) * 0.3
-      pointer.svy += (vy - pointer.svy) * 0.3
+    stir(x: number, y: number, vx: number, vy: number) {
+      stir.x = Math.min(1, Math.max(0, x));
+      stir.y = Math.min(1, Math.max(0, y));
+      stir.rx = Math.max(-100, Math.min(100, vx * 100 * params.mouseStrength));
+      stir.ry = Math.max(-100, Math.min(100, vy * 100 * params.mouseStrength));
     },
-    dispose: () => {
-      cancelAnimationFrame(raf)
-      window.removeEventListener('mousemove', onMouseMove)
+    dispose() {
+      disposed = true;
+      if (rafId) cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', resize);
+      window.removeEventListener('pointermove', onPointerMove);
     },
-  }
-
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    frame(performance.now())
-    cancelAnimationFrame(raf)
-    return handle
-  }
-
-  raf = requestAnimationFrame(frame)
-  return handle
+  };
 }
