@@ -34,8 +34,12 @@ export function ReasoningDisclosure({
     if (!open || !working || !following.current) return;
     const el = viewport.current;
     if (!el) return;
-    // 同一帧内的多次增量合并为一次滚动写入，避免每次提交都做同步布局读写
+    // 同一帧内的多次增量合并为一次滚动写入，避免每次提交都做同步布局读写。
+    // 关键：写入前**在回调内再次**确认用户仍选择跟随最新——排入 rAF 与执行之间有
+    // 一个窗口，用户在这段时间上滚时不得被拉回底部（独立验收 A1 实测首帧被写回
+    // 2095→4052；原实现"判断即同步写入"的窗口小得多，此处不得扩大）。
     const frame = requestAnimationFrame(() => {
+      if (!following.current) return;
       el.scrollTop = el.scrollHeight;
     });
     return () => cancelAnimationFrame(frame);

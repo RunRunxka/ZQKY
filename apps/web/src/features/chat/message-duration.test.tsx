@@ -113,3 +113,42 @@ it('R25 刷新恢复：中断轮次以会话最后保存时间冻结耗时，旧
     store.getState().dispose();
   }
 });
+
+it('历史旧能力值明确降级展示：已移除模式标注停用、未接入模式标注未接入（不清库、不冒充可用）', () => {
+  const base = {
+    id: 'cap-1',
+    role: 'assistant' as const,
+    content: '历史回答',
+    status: 'done' as const,
+    startedAt: '2026-09-01T00:00:00.000Z',
+    finishedAt: '2026-09-01T00:00:05.000Z',
+    modelLabel: '历史模型',
+  };
+  const { container, unmount } = render(
+    <Message
+      message={{ ...base, extensions: { mcps: [], skills: [], capability: { value: 'deep_solve', label: '深度求解' } } }}
+      copied={false}
+      onCopy={vi.fn()}
+      onReuse={vi.fn()}
+    />,
+  );
+  const details = container.querySelector('.chat-sources');
+  expect(details?.textContent).toContain('模式 · 深度求解');
+  expect(details?.textContent).toContain('入口已停用');
+  unmount();
+
+  // 仍存在但当前未接入的模式：标注未接入，不冒充可用
+  const { container: c2 } = render(
+    <Message
+      message={{
+        ...base,
+        extensions: { mcps: [], skills: [], capability: { value: 'visualize', label: '可视化' } },
+      }}
+      copied={false}
+      onCopy={vi.fn()}
+      onReuse={vi.fn()}
+    />,
+  );
+  expect(c2.querySelector('.chat-sources')?.textContent).toContain('模式 · 可视化');
+  expect(c2.querySelector('.chat-sources')?.textContent).toContain('当前未接入');
+});
