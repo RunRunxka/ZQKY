@@ -6,25 +6,23 @@ import { StreamingMarkdown } from './StreamingMarkdown';
 /**
  * DeepTutor 42fab3c AssistantActivity：阶段自动展开，手动选择固定在本消息。
  *
- * UX-PERF-CLOSEOUT v1（长推理流卡顿）：推理正文不再在**每次增量**上重跑整段增长文本的
- * Markdown/数学/高亮解析。
- * UX-REGRESSION-FIX v1（公式回归）：改为**流式安全切分**——已完整结束的块逐块渲染并复用
- * 解析结果，未完成的尾段在定界符闭合时同样用 Markdown 渲染，因此**流式过程中公式即时可见**；
- * 只有未闭合（或过长）的尾段暂以原文显示，补齐后自动转为公式。折叠时不渲染正文内容，
- * 展开后再一次性渲染（解析结果按块复用）。
- * 原文逐字保留、折叠与自动滚动语义不变。
+ * 流式 Markdown 使用安全切分：已结束的块复用解析结果，未闭合（或过长）的尾段暂按原文
+ * 显示，定界符闭合后即时转为 Markdown/公式。推理流仍活动时，用户重开折叠区继续跟随；
+ * 手动上滚后保留阅读位置，原文逐字保留。
  */
 export function ReasoningDisclosure({
   text,
   working,
+  autoExpand = working,
   children,
 }: {
   text?: string;
   working: boolean;
+  autoExpand?: boolean;
   children: ReactNode;
 }) {
   const [userOpen, setUserOpen] = useState<boolean | null>(null);
-  const open = !!text && (userOpen ?? working);
+  const open = !!text && (userOpen ?? autoExpand);
   /**
    * 折叠时先把内容留在 DOM 里覆盖 300ms 折叠过渡（否则内容会在过渡开始时瞬间消失，
    * 折叠动画变成"空框收缩"）；从未展开过的历史消息不渲染内容（不做无谓解析）。
@@ -41,17 +39,26 @@ export function ReasoningDisclosure({
   const id = useId();
   const viewport = useRef<HTMLDivElement>(null);
   const following = useRef(true);
+  const lastText = useRef(text);
+  const manualScroll = useRef(false);
+  const scrollIntentExpires = useRef(0);
+  const previousScrollTop = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (lastText.current !== text) {
+      lastText.current = text;
+      following.current = !manualScroll.current;
+    }
+  }, [text]);
 
   useEffect(() => {
     if (!open || !working || !following.current) return;
     const el = viewport.current;
     if (!el) return;
-    // 同一帧内的多次增量合并为一次滚动写入，避免每次提交都做同步布局读写。
-    // 关键：写入前**在回调内再次**确认用户仍选择跟随最新——排入 rAF 与执行之间有
-    // 一个窗口，用户在这段时间上滚时不得被拉回底部（独立验收 A1 实测首帧被写回
-    // 2095→4052；原实现"判断即同步写入"的窗口小得多，此处不得扩大）。
+    // 同一帧内合并滚动写入；回调再次检查跟随与节点身份，避免抢回用户阅读位置。
     const frame = requestAnimationFrame(() => {
-      if (!following.current) return;
+      if (!following.current || viewport.current !== el || !el.isConnected) return;
       el.scrollTop = el.scrollHeight;
     });
     return () => cancelAnimationFrame(frame);
@@ -67,6 +74,7 @@ export function ReasoningDisclosure({
           aria-controls={id}
           onClick={() => {
             following.current = true;
+            manualScroll.current = false;
             setUserOpen(!open);
           }}
         >
@@ -94,7 +102,48 @@ export function ReasoningDisclosure({
             aria-label="推理内容"
             onScroll={(event) => {
               const el = event.currentTarget;
-              following.current = el.scrollHeight - el.scrollTop - el.clientHeight < 32;
+              const previousTop = previousScrollTop.current;
+              previousScrollTop.current = el.scrollTop;
+              if (previousTop === null || previousTop === el.scrollTop) return;
+              const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 32;
+              const intentActive = performance.now() < scrollIntentExpires.current;
+              if (!intentActive || atBottom) {
+                following.current = atBottom;
+                manualScroll.current = !atBottom;
+              }
+            }}
+            onWheel={(event) => {
+              if (event.deltaY < 0) {
+                following.current = false;
+                manualScroll.current = true;
+                scrollIntentExpires.current = performance.now() + 500;
+              }
+            }}
+            onTouchStart={(event) => {
+              touchStartY.current = event.touches[0]?.clientY ?? null;
+            }}
+            onTouchMove={(event) => {
+              const y = event.touches[0]?.clientY;
+              if (y !== undefined && touchStartY.current !== null && y > touchStartY.current) {
+                following.current = false;
+                manualScroll.current = true;
+                scrollIntentExpires.current = performance.now() + 500;
+              } else if (
+                y !== undefined &&
+                touchStartY.current !== null &&
+                y < touchStartY.current
+              ) {
+                scrollIntentExpires.current = performance.now() + 500;
+              }
+            }}
+            onKeyDown={(event) => {
+              if (['ArrowUp', 'PageUp', 'Home'].includes(event.key)) {
+                following.current = false;
+                manualScroll.current = true;
+                scrollIntentExpires.current = performance.now() + 500;
+              } else if (['ArrowDown', 'PageDown', 'End'].includes(event.key)) {
+                scrollIntentExpires.current = performance.now() + 500;
+              }
             }}
           >
             {/* 展开时渲染（流式期间也渲染，公式即时可见）；折叠后保留 320ms 覆盖折叠过渡，

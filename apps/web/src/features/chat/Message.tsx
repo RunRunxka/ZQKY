@@ -8,6 +8,7 @@ import { conversationProjection } from './model/context-budget';
 import { formatTurnDuration, turnDurationSeconds } from './model/trace-timing';
 import { ReasoningDisclosure } from './ReasoningDisclosure';
 import { AnswerMarkdown } from './AnswerMarkdown';
+import { StreamingMarkdown } from './StreamingMarkdown';
 import { TraceStages } from './TraceStages';
 import { AskUserCard } from './AskUserCard';
 import { ToolProcessPanel } from './ToolProcessPanel';
@@ -155,7 +156,8 @@ export function Message({
       <div className="chat-bubble assistant">
         <ReasoningDisclosure
           text={message.reasoning}
-          working={message.status === 'streaming' && !message.content?.trim()}
+          working={message.status === 'streaming' && !!message.reasoning?.trim()}
+          autoExpand={message.status === 'streaming' && !message.content?.trim()}
         >
           <span className="chat-assistant-mark">
             <ThinkingOrb
@@ -215,7 +217,13 @@ export function Message({
           </div>
         )}
         {message.content ? (
-          <AnswerMarkdown text={message.content} />
+          <div className="chat-answer-content">
+            {message.status === 'streaming' ? (
+              <StreamingMarkdown text={message.content} rawClassName="chat-answer-raw" />
+            ) : (
+              <AnswerMarkdown text={message.content} />
+            )}
+          </div>
         ) : message.reasoning ? null : message.status === 'streaming' ? (
           /* R25：等待占位不再重复渲染耗时（标题区已有唯一耗时节点） */
           <p className="chat-status-text" role="status">

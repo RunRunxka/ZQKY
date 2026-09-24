@@ -4,7 +4,7 @@ import { AnswerMarkdown } from './AnswerMarkdown';
 import { splitMarkdownSegments } from './model/markdown-segments';
 
 /**
- * 流式推理正文（UX-REGRESSION-FIX v1）。
+ * 流式推理与助手正文（UX-REGRESSION-FIX v1 / CHAT-CONTENT-MATH-AND-FOLLOW v1）。
  *
  * 既要**流式过程中就显示公式**，又不能对每个 delta 重跑整段增长文本的解析：
  * - 已完整结束的块（空行边界、且不在未闭合围栏/块级公式内）逐块交给 memo 化的

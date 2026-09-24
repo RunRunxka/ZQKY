@@ -7,7 +7,7 @@ function expectExact(text: string) {
   expect(blocks.join('') + tail).toBe(text);
 }
 
-describe('流式 Markdown 安全切分（UX-REGRESSION-FIX v1）', () => {
+describe('流式 Markdown 安全切分（UX-REGRESSION-FIX v1 / 正文与推理共用）', () => {
   it('空行切块，且拼接后与原文逐字一致', () => {
     const text = '第一段。\n\n第二段。\n\n第三段';
     const { blocks, tail } = splitMarkdownSegments(text);
