@@ -7,7 +7,7 @@ const routes = [
   ['/reading', '沉浸阅读'],
   ['/space', '学习空间'],
   ['/knowledge-bases', '教材资料库'],
-  ['/books', '书籍'],
+  ['/books', '教材资料库'],
   ['/papers', '智能组卷（规划中）'],
   ['/question-bank', '题库（规划中）'],
   ['/templates', '模板中心（规划中）'],
@@ -37,19 +37,30 @@ test('全站侧栏图标、宽度和当前菜单一致，折叠偏好跨路由�
   await page.getByRole('navigation').getByRole('button', { name: '学习问答', exact: true }).click();
   await expect(page.getByRole('button', { name: '展开项目导航' })).toBeVisible();
   await expect(page.locator('.global-nav')).toHaveCSS('width', '56px');
-  const history = page.locator('.chat-page > .chat-sessions');
-  await expect(history).toBeVisible();
+  // 学习记录并入全站导航（UX-PERF-CLOSEOUT v1）：聊天区不再有独立中栏，
+  // 也不留下 236px 空列；聊天主区紧邻导航。
+  await expect(page.locator('.chat-page > .chat-sessions')).toHaveCount(0);
+  const sidebarSessions = page.locator('.global-nav > .sidebar-content');
+  await expect(sidebarSessions).toBeHidden(); // 收起态只有图标栏
   const navBox = (await page.locator('.global-nav').boundingBox())!;
-  const historyBox = (await history.boundingBox())!;
-  const mainBox = (await page.locator('.chat-main').boundingBox())!;
-  expect(historyBox.x).toBe(navBox.x + navBox.width);
-  expect(mainBox.x).toBe(historyBox.x + historyBox.width);
-  await page.getByRole('button', { name: '收起会话列表' }).click();
-  await expect(history).toBeHidden();
-  expect((await page.locator('.chat-main').boundingBox())!.x).toBe(56);
-  await page.getByRole('button', { name: '打开会话列表' }).click();
-  await expect(history).toBeVisible();
-  await page.screenshot({ path: info.outputPath('independent-history.png') });
+  expect((await page.locator('.chat-main').boundingBox())!.x).toBe(navBox.x + navBox.width);
+  await page.getByRole('button', { name: '展开项目导航' }).click();
+  await expect(sidebarSessions).toBeVisible();
+  // 侧栏展开有 200ms grid-template-columns 过渡：等宽度稳定后再量几何，
+  // 否则会取到过渡中间值（例如 62px）而不是最终 220px。
+  await expect(page.locator('.global-nav')).toHaveCSS('width', '220px');
+  const expandedNav = (await page.locator('.global-nav').boundingBox())!;
+  expect(expandedNav.width).toBe(220);
+  expect((await page.locator('.chat-main').boundingBox())!.x).toBe(
+    expandedNav.x + expandedNav.width,
+  );
+  // 会话区在主导航下方独立滚动，底部导航仍可见
+  const sessionsBox = (await sidebarSessions.boundingBox())!;
+  const bottomBox = (await page.locator('.global-nav .nav-bottom').boundingBox())!;
+  expect(sessionsBox.y).toBeGreaterThan(0);
+  expect(sessionsBox.y + sessionsBox.height).toBeLessThanOrEqual(bottomBox.y + bottomBox.height);
+  await expect(bottomBox.y + bottomBox.height).toBeLessThanOrEqual(900);
+  await page.screenshot({ path: info.outputPath('sidebar-learning-records.png') });
 });
 
 for (const [route, name] of [

@@ -28,13 +28,21 @@ export function normalizeConversation(value: Conversation): Conversation {
   ) {
     throw new Error('对话数据格式不受支持，原记录未被修改。');
   }
-  return {
+  const normalized: Conversation = {
     ...value,
     schemaVersion: 1,
     revision: value.revision ?? 0,
     draft: value.draft ?? '',
     modelProfileId: value.modelProfileId ?? null,
   };
+  // 课程归属（H1-COURSE-SESSIONS v1）：只保留非空字符串；缺失/空串 = 未归属。
+  // 旧记录缺该字段照常读、不写回、不按标题/最近访问猜测归属。
+  if (typeof value.courseId === 'string' && value.courseId) {
+    normalized.courseId = value.courseId;
+  } else {
+    delete normalized.courseId;
+  }
+  return normalized;
 }
 export function toMeta(c: Conversation): ConversationMeta {
   return {
@@ -43,6 +51,7 @@ export function toMeta(c: Conversation): ConversationMeta {
     messageCount: c.messages.length,
     createdAt: c.createdAt,
     updatedAt: c.updatedAt,
+    ...(c.courseId ? { courseId: c.courseId } : {}),
   };
 }
 export function createIdbChatRepository(dbName = 'zhiqikeyuan-chat'): ChatRepository {

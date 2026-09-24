@@ -12,6 +12,23 @@
   .module-workspace-content {
     overflow: visible;
   }
+  /* 打印媒体下公共壳的栅格放置必须与屏幕态一致：`.global-nav { grid-row: 1 / -1 }`
+     原本只写在 `@media screen` 内，打印时导航会退回 globals.css 的 `grid-row: 2`，
+     落进隐式 auto 行并吃掉整页高度，把显式 `1fr` 行里的内容区压成 0 高
+     （/chat 在 `emulateMedia('print')` 下 .chat-page 高度为 0）。这里补齐同一放置，
+     让内容区在打印媒体下仍有完整高度；教案页真正的打印样式由 lesson-plan 的
+     `@media print` 覆盖，不受影响。 */
+  .unified-shell > .global-nav {
+    grid-row: 1 / -1;
+    grid-column: 1;
+  }
+  .unified-shell > .app-header {
+    grid-column: 2 / -1;
+  }
+  .unified-shell > .chat-page {
+    grid-row: 1;
+    grid-column: 2;
+  }
 }
 @media screen {
   .app-shell.module-workspace-shell {
@@ -125,11 +142,12 @@
     height: 24px;
   }
 
-  /* R-05 收尾（2026-09-19）：公共导航随全站基准迁移到 Chat Geist（--font-ui），
-     与页面壳/控件一致；原 Arial/微软雅黑硬编码为 R-05 关闭前遗留缺口。 */
+  /* R-05 收尾（2026-09-19）：公共导航随全站基准迁移到公共字体变量层；
+     UX-PERF-CLOSEOUT v1 起使用界面衬线 token（--font-ui-serif，与标题同族）。 */
   .unified-shell .global-nav,
   .unified-shell .mobile-nav-panel {
-    font-family: var(--font-ui);
+    /* UX-PERF-CLOSEOUT v1：左侧导航全部可见文字与控件使用界面衬线 token */
+    font-family: var(--font-ui-serif);
   }
   .unified-shell .global-nav .nav-toggle {
     margin-left: 0;
@@ -157,6 +175,17 @@
   }
   .unified-shell .mobile-nav-panel .global-nav-item > span {
     display: flex;
+  }
+  /* 抽屉内的侧栏内容（学习问答“学习记录”，UX-PERF-CLOSEOUT v1）：独立可滚动区域，
+     底部导航组与说明仍可见；抽屉本身已带遮罩、关闭入口与焦点圈定。 */
+  .unified-shell .mobile-nav-sessions {
+    margin: 12px 0 0;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    min-height: 80px;
+    max-height: 44dvh;
   }
   @media (min-width: 768px) {
     .app-shell.unified-shell:not(.lesson-workspace) {

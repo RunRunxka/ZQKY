@@ -6,7 +6,6 @@ import {
   ArrowUp,
   BookOpen,
   Download,
-  List,
   Paperclip,
   Mic,
   PanelRight,
@@ -52,6 +51,8 @@ import {
 
 import { conversationProjection } from './model/context-budget';
 import { createIdbChatRepository } from '@/services/chat-repository';
+import { resolveCourse, courseAvailabilityLabel } from '@/services/course-session';
+import { subscribeCourses } from '@/services/courses-store';
 import { Message } from './Message';
 import { SessionPanel } from './SessionPanel';
 import { InfoPanel } from './InfoPanel';
@@ -107,8 +108,6 @@ function ChatPage({
     return () => media.removeEventListener('change', update);
   }, []);
   const { catalog, loading, error, refresh } = useModelCatalog();
-  const [sessionsOpen, setSessionsOpen] = useState(false),
-    [sessionsCollapsed, setSessionsCollapsed] = useState(false);
   // R22/S3：右面板 = 结果工作区（标签页形态：活动主页 + 产物标签）。
   // null=关闭；'workspace'=打开（活动标签或某个产物标签由 artifactKey 决定）
   const [panelView, setPanelViewState] = useState<'workspace' | null>(null);
@@ -190,6 +189,14 @@ function ChatPage({
   const [messageMissing, setMessageMissing] = useState(false);
   // R-10：来源会话失效时不自动打开最近会话，改为此空态（保留学习记录与主动返回）
   const [sessionUnavailable, setSessionUnavailable] = useState(false);
+  // 当前会话的课程归属（H1-COURSE-SESSIONS v1）：随 activeCourseId 与课程目录变化重算；
+  // 只按稳定 courseId 解析，不按标题/最近访问猜测，课程不可用时如实标注且不回落其他课程。
+  const [courseTick, bumpCourseTick] = useState(0);
+  useEffect(() => subscribeCourses(() => bumpCourseTick((value) => value + 1)), []);
+  const activeCourse = useMemo(() => {
+    void courseTick; // 课程目录变化时重算（改名/删除/读取失败）
+    return store.activeCourseId ? resolveCourse(store.activeCourseId) : null;
+  }, [store.activeCourseId, courseTick]);
   // R-10：当前要在会话内定位的消息 id（初值来自 URL，前进/后退可更新；切换会话时清空）
   const [targetMessageId, setTargetMessageId] = useState<string | undefined>(initialMessageId);
   const [dialog, setDialog] = useState<{
@@ -378,6 +385,24 @@ function ChatPage({
   }, [profile, error]);
   const activeTitle = store.conversations.find((c) => c.id === store.activeId)?.title ?? '新的对话';
   const hasMessages = store.messages.length > 0;
+  // CHAT-CONTEXT-BUDGET v1：最近一轮**实际发送时**的字符账目（随助手消息持久化，刷新可核）。
+  // 只如实转述裁剪事实，不声称精确 token，也不把估算说成模型上限保证。
+  const lastTurnBudget = useMemo(
+    () => [...store.messages].reverse().find((m) => m.role === 'assistant')?.requestBudget ?? null,
+    [store.messages],
+  );
+  const budgetRecordNotice = useMemo(() => {
+    if (!lastTurnBudget) return null;
+    const parts: string[] = [];
+    if (lastTurnBudget.courseDropped)
+      parts.push('课程上下文整体超出本轮输入预算，本轮未携带课程上下文（如实丢弃，未发送残缺内容）');
+    else if (lastTurnBudget.courseTrimmedFields.length)
+      parts.push(`课程动态字段已按上限受限（${lastTurnBudget.courseTrimmedFields.join('、')}）`);
+    if (lastTurnBudget.historyDroppedMessages > 0)
+      parts.push(`已整条丢弃最旧的 ${lastTurnBudget.historyDroppedMessages} 条历史消息`);
+    if (!parts.length) return null;
+    return `本轮请求按字符估算裁剪：${parts.join('；')}。历史消息与课程数据未被改写。`;
+  }, [lastTurnBudget]);
   // S3/R24：当前会话的全部产物，复合身份 key = `${messageId}:${artifactId}`——
   // 不同轮同 id 产物在列表、tab、复制、下载中互不串位；旧历史（无 turnId）同样兼容
   const conversationArtifacts: ArtifactPanelItem[] = useMemo(
@@ -620,9 +645,12 @@ function ChatPage({
     }
 
     if (!capabilityAvailableInReal(capabilityValue)) {
-      // 防御路径：真实模式不允许非对话能力发起（菜单已禁用），仍到达时明确说明
+      // 防御路径：真实模式不允许非对话能力发起（菜单已禁用，含 RAG 模式），
+      // 仍到达时明确说明并保留输入——绝不把请求发到普通聊天冒充该模式成功。
       setBlockedNotice(
-        `「${activeCap.label}」暂无真实服务，已保留选择；请切回“对话”能力。`,
+        capabilityValue === 'rag'
+          ? '「RAG 模式」尚未接入（规划中）：本轮未发送任何检索请求，输入已保留；请切回“对话”能力。'
+          : `「${activeCap.label}」暂无真实服务，已保留选择；请切回“对话”能力。`,
       );
       return;
     }
@@ -659,7 +687,6 @@ function ChatPage({
       store.newConversation();
       // 新建后地址指向新会话（replace：创建不是一次页面浏览，回退应回到之前的会话）
       syncSessionUrl(activeStore.getState().activeId, 'replace');
-      setSessionsOpen(false);
       setFollowing(true);
       textarea.current?.focus();
     }
@@ -673,8 +700,13 @@ function ChatPage({
     link.click();
     URL.revokeObjectURL(url);
   }
-  const sessions = (
-    <>
+  /** 学习记录（UX-PERF-CLOSEOUT v1）：并入全站左侧导航的可滚动区域，不再是聊天区
+   *  与导航之间的独立中栏；手机上随同一个全站导航抽屉呈现，不另开弹窗。 */
+  const learningRecords = (
+    <section className="chat-sessions-panel" aria-label="学习记录">
+      <div className="chat-session-head">
+        <span>学习记录</span>
+      </div>
       <div className="chat-session-search">
         <Search size={14} />
         <input
@@ -699,7 +731,6 @@ function ChatPage({
             // 选择成功且未被更新的操作顶替时，地址跟随当前会话（刷新/前进后退可恢复）
             if (activeStore.getState().activeId === id) syncSessionUrl(id, 'push');
           });
-          setSessionsOpen(false);
           setFollowing(true);
         }}
         onRename={(id) => {
@@ -715,50 +746,24 @@ function ChatPage({
           })
         }
       />
-    </>
+      <p className="chat-local-note">会话保存在当前浏览器</p>
+    </section>
   );
   return (
     <WorkspaceShell
       pageTitle="学习问答"
       className="chat-home-shell"
       sidebarLayout
+      sidebarContent={learningRecords}
       beforeNavigate={async () => {
         stores.real.getState().stop();
         const results = await Promise.all([stores.real.getState().flush()]);
         if (!results.every(Boolean)) throw new Error('unsaved');
       }}
     >
-      <div
-        className={`chat-page ${sessionsCollapsed ? 'sessions-collapsed' : ''} ${
-          panelView !== null ? 'info-open' : ''
-        }`}
-      >
-        <aside className={`chat-sessions ${sessionsCollapsed ? 'history-hidden' : ''}`}>
-          <div className="chat-session-head">
-            <span>学习记录</span>
-            <button
-              className="icon-button"
-              aria-label="收起会话列表"
-              onClick={() => setSessionsCollapsed(true)}
-            >
-              <List size={16} />
-            </button>
-          </div>
-          {sessions}
-          <p className="chat-local-note">会话保存在当前浏览器</p>
-        </aside>
+      <div className={`chat-page ${panelView !== null ? 'info-open' : ''}`}>
         <section className={`chat-main ${hasMessages ? '' : 'chat-welcome'}`}>
           <header className="chat-toolbar">
-            <button
-              className="icon-button"
-              aria-label="打开会话列表"
-              onClick={() => {
-                if (window.innerWidth < 768) setSessionsOpen(true);
-                else setSessionsCollapsed(!sessionsCollapsed);
-              }}
-            >
-              <List size={17} />
-            </button>
             <span className="chat-title">{activeTitle}</span>
 
             <span className="chat-flex-spacer" />
@@ -786,6 +791,43 @@ function ChatPage({
               <PanelRight size={17} />
             </button>
           </header>
+          {store.activeCourseId && activeCourse && (
+            <div className="chat-banner course" role="status" data-course-id={store.activeCourseId}>
+              {activeCourse.state === 'ok' ? (
+                <>
+                  <span>
+                    所属课程：<strong>{activeCourse.course.name}</strong>
+                  </span>
+                  <Link href={`/courses/${store.activeCourseId}`}>返回课程</Link>
+                </>
+              ) : (
+                <>
+                  <span>{courseAvailabilityLabel(activeCourse)}</span>
+                  {activeCourse.state === 'unavailable' && (
+                    <button onClick={() => bumpCourseTick((value) => value + 1)}>重试读取课程</button>
+                  )}
+                  <Link href="/courses">课程列表</Link>
+                </>
+              )}
+            </div>
+          )}
+          {store.budgetNotice && (
+            <div className="chat-banner warn chat-budget-notice" role="alert">
+              {store.budgetNotice}
+              <button onClick={() => store.dismissBudgetNotice()}>知道了</button>
+            </div>
+          )}
+          {budgetRecordNotice && (
+            <div className="chat-banner warn" role="status" data-budget-record>
+              {budgetRecordNotice}
+            </div>
+          )}
+          {store.courseContextWarning && (
+            <div className="chat-banner warn" role="alert">
+              {store.courseContextWarning}
+              <button onClick={() => store.dismissCourseContextWarning()}>知道了</button>
+            </div>
+          )}
           {sessionUnavailable && (
             <div className="chat-banner warn" role="status">
               来源会话已不存在或已被删除，无法打开。
@@ -1270,11 +1312,6 @@ function ChatPage({
           <p style={{ fontSize: 12, color: '#8c929c', marginTop: 8 }}>
             {attachments[previewIndex]!.filename} · {formatBytes(attachments[previewIndex]!.size)}
           </p>
-        </Modal>
-      )}
-      {sessionsOpen && (
-        <Modal title="学习记录" onClose={() => setSessionsOpen(false)}>
-          {sessions}
         </Modal>
       )}
       {dialog && (

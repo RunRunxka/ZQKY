@@ -1,19 +1,15 @@
 import type { AskUserAnswer, ChatArtifact } from '@/contracts/chat';
 import type { ChatService } from '@/features/chat/model/chat-service';
 import {
-  RESEARCH_MODE_LABELS,
   summarizeCapabilityConfig,
   VISUALIZE_RENDER_LABELS,
 } from '@/services/capability-catalog';
 
 import {
   makeDemoQuestion,
-  makeResearchCitations,
-  makeResearchSubtopics,
   planQuestionTypes,
   quizQuestionsToMarkdown,
   quizTypeLabel,
-  researchReportToMarkdown,
   type QuizArtifactQuestion,
 } from '@/features/chat/model/capability-demo';
 
@@ -188,7 +184,7 @@ export function createMockChatService(options?: { chunkDelayMs?: number }): Mock
       // S4：能力专属阶段序列在各自分支内 start/end；普通对话/追问用一个 organize 阶段
       const isCapabilityTurn =
         !!capability?.value &&
-        ['deep_solve', 'deep_question', 'deep_research', 'visualize'].includes(capability.value);
+        ['deep_question', 'visualize'].includes(capability.value);
       if (!isCapabilityTurn)
         emit({
           ...turn,
@@ -207,7 +203,7 @@ export function createMockChatService(options?: { chunkDelayMs?: number }): Mock
         (snapshot?.mcps?.length ?? 0) > 0 || (snapshot?.skills?.length ?? 0) > 0;
       const capabilityDrivesArtifact =
         !!capability?.value &&
-        ['deep_solve', 'deep_question', 'deep_research', 'visualize'].includes(capability.value);
+        ['deep_question', 'visualize'].includes(capability.value);
       const capabilityAsks = capability?.value === 'ask_questions';
       if ((shouldAsk || capabilityAsks) && !hasExtensions && !capabilityDrivesArtifact) {
         emit({
@@ -458,35 +454,6 @@ export function createMockChatService(options?: { chunkDelayMs?: number }): Mock
         });
       };
 
-      if (capability?.value === 'deep_solve') {
-        // 参考 manifest：planning→reasoning→writing（推理过程与正文分开呈现）
-        await runStage(
-          'planning',
-          '规划解题路径',
-          `[模拟] 分析「${shortQuestion}」的条件与求解目标，拆解为可执行的子步骤（本地演示，不访问真实推理服务）。`,
-        );
-        if (shouldFail) {
-          failCapabilityTurn();
-          return;
-        }
-        await runStage('reasoning', '逐步推理', null, async () => {
-          const reasoning =
-            '【模拟推理】按规划逐层推进：先整理已知量并确认约束，再选择对应方法代入推导，最后核对结论与题设一致。此过程为本地演示文本，不代表真实模型推理。';
-          for (const piece of chunkText(reasoning)) {
-            if (request.signal.aborted) throw new DOMException('aborted', 'AbortError');
-            emit({ ...turn, type: 'reasoning', delta: piece });
-            await sleep(chunkDelay, request.signal);
-          }
-        });
-        await runStage('writing', '组织答案', null, async () => {
-          const answer = `【模拟回复】深度求解（本地演示）\n\n## 已知与目标\n- 题面：${shortQuestion}\n\n## 解题步骤\n1. 【演示】明确条件与求解目标\n2. 【演示】选择方法并逐步代入\n3. 【演示】检验结果与题设一致性\n\n## 答案\n（演示占位：最终结论与检验说明）\n\n> 本轮为深度求解能力的结构演示，推理与答案均为本地演示内容。${composerNote}`;
-          await streamText(answer);
-        });
-        emit({ ...turn, type: 'usage', usage: { inputTokens: null, outputTokens: null } });
-        emit({ ...turn, type: 'end', finishReason: 'stop' });
-        return;
-      }
-
       if (capability?.value === 'deep_question') {
         // 参考 manifest：exploring→planning→quizzing；每题一个 quiz_question_emitted 增量
         const cfg = (capability.config ?? {}) as Record<string, unknown>;
@@ -546,112 +513,6 @@ export function createMockChatService(options?: { chunkDelayMs?: number }): Mock
         });
         await streamText(
           `【模拟回复】已按配置生成 ${plan.length} 道演示题（主题「${topic || '（空）'}」）。在结果工作区打开「出题结果（模拟）」可作答并查看反馈；题目与解析为本地演示内容，可一键保存到题库。${composerNote}`,
-        );
-        emit({ ...turn, type: 'usage', usage: { inputTokens: null, outputTokens: null } });
-        emit({ ...turn, type: 'end', finishReason: 'stop' });
-        return;
-      }
-
-      if (capability?.value === 'deep_research') {
-        // 参考：rephrasing→decomposing→（大纲确认 outline_preview）→researching→reporting
-        const cfg = (capability.config ?? {}) as Record<string, unknown>;
-        const depth = typeof cfg.depth === 'string' ? cfg.depth : '';
-        const mode = typeof cfg.mode === 'string' ? cfg.mode : '';
-        const modeLabel =
-          RESEARCH_MODE_LABELS.find((x) => x.value === mode)?.label ?? (mode || '（未选择）');
-        const subCount =
-          depth === 'manual' &&
-          typeof cfg.manual_subtopics === 'number' &&
-          cfg.manual_subtopics >= 2
-            ? Math.min(Math.floor(cfg.manual_subtopics), 6)
-            : depth === 'deep'
-              ? 4
-              : 3;
-        const artifactId = `deep_research-${request.turnId.slice(0, 8)}`;
-        await runStage(
-          'rephrasing',
-          '澄清研究问题',
-          `[模拟] 研究问题：${shortQuestion}；产出类型=${modeLabel}。`,
-        );
-        if (shouldFail) {
-          failCapabilityTurn();
-          return;
-        }
-        let subtopics: string[] = [];
-        await runStage('decomposing', '拆分子问题', null, async () => {
-          subtopics = makeResearchSubtopics(question, subCount);
-          emit({
-            ...turn,
-            type: 'process',
-            delta: `[模拟] 大纲共 ${subtopics.length} 个子问题：${subtopics.join('；')}`,
-          });
-        });
-        // 两段式：大纲确认（对照原版 outline_preview + 大纲编辑器；本地用追问卡确认/调整）
-        const outlineInteractionId = `research-outline-${request.turnId.slice(0, 8)}`;
-        emit({
-          ...turn,
-          type: 'wait-user',
-          interaction: {
-            interactionId: outlineInteractionId,
-            intro:
-              '已生成研究大纲（本地演示）。确认后开始逐题检索与撰写；如需调整，选择"调整后执行"并在补充栏说明。',
-            status: 'waiting',
-            questions: [
-              {
-                questionId: 'q-outline',
-                prompt: `确认这份包含 ${subtopics.length} 个子问题的大纲？`,
-                header: '研究大纲',
-                options: [
-                  { label: '确认大纲，按此执行', description: subtopics.join('；') },
-                  { label: '调整后执行', description: '在补充栏说明调整意见' },
-                ],
-                multiSelect: false,
-                allowFreeText: true,
-                placeholder: '调整意见（选择"调整后执行"时填写）',
-              },
-            ],
-          },
-        });
-        const outlineAnswers = await waitForReply(
-          pendingReplies,
-          outlineInteractionId,
-          request.signal,
-        );
-        const outlineChoice = outlineAnswers.find((a) => a.questionId === 'q-outline');
-        const adjustNote = outlineChoice?.freeText?.trim();
-        await runStage('researching', '逐题检索演示资料', null, async () => {
-          for (const [i, sub] of subtopics.entries()) {
-            emit({
-              ...turn,
-              type: 'process',
-              delta: `[模拟] 检索子问题 ${i + 1}/${subtopics.length}：${sub}（本地演示资料，不访问真实网络）`,
-            });
-            await sleep(chunkDelay, request.signal);
-          }
-        });
-        const citations = makeResearchCitations(subtopics);
-        const report = researchReportToMarkdown(
-          question,
-          adjustNote ? `${modeLabel}（调整备注：${adjustNote}）` : modeLabel,
-          subtopics,
-          citations,
-        );
-        await runStage('reporting', '撰写报告', null, async () => {
-          await streamText(report);
-        });
-        emit({
-          ...turn,
-          type: 'artifact',
-          artifact: {
-            id: artifactId,
-            kind: 'report',
-            title: '研究报告（模拟）',
-            content: report,
-            data: { mode, depth, subtopics, citations },
-          },
-        });
-        await streamText(
-          `【模拟回复】研究报告已完成（本地演示）。在结果工作区可查看引用定位与全文，也可复制、下载或保存到笔记；研究资料为演示内容，不捏造真实检索结果。${composerNote}`,
         );
         emit({ ...turn, type: 'usage', usage: { inputTokens: null, outputTokens: null } });
         emit({ ...turn, type: 'end', finishReason: 'stop' });

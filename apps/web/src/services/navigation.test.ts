@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { BookMarked } from 'lucide-react';
+import type { NavigationItem } from '@/contracts/navigation';
 import {
   HOME_LABEL,
   HOME_PATH,
@@ -103,18 +105,23 @@ describe('唯一主页与当前菜单解析（R-02/R-04）', () => {
     expect(HOME_LABEL).toBe('学习问答');
   });
 
-  it('每个已实现路由最多解析出一个当前项，隐藏直达页回退到可见父菜单', () => {
+  it('每个已实现路由最多解析出一个当前项，隐藏直达页上溯到可见父菜单', () => {
     const desktopCases: [string, string | null][] = [
       ['/chat', 'chat'],
       ['/lesson-plans', 'lesson-plan'],
       ['/reading/materials', 'reading'],
       ['/space/questions', 'space'],
-      ['/books/x/pages/y', 'books'],
+      // T4：书籍并入教材资料库（自身隐藏），页面级路径同样落到教材资料库
+      ['/books', 'knowledge'],
+      ['/books/x/pages/y', 'knowledge'],
+      ['/knowledge-bases/课程标准库', 'knowledge'],
       ['/settings', 'settings'],
       // 隐藏直达页在桌面侧栏标记可见父菜单
       ['/whisper', 'co-writer'],
       ['/notebooks/x', 'space'],
-      ['/courses/x', 'books'],
+      // 课程与书籍同级，父菜单同为教材资料库
+      ['/courses', 'knowledge'],
+      ['/courses/x', 'knowledge'],
       // 404 没有对应条目
       ['/definitely-missing', null],
     ];
@@ -123,13 +130,71 @@ describe('唯一主页与当前菜单解析（R-02/R-04）', () => {
     }
   });
 
+  it('桌面解析结果只能是可见项（隐藏项一律上溯或返回 null）', () => {
+    const visibleIds = new Set(navigation.filter((item) => !item.hidden).map((item) => item.id));
+    const pathnames = [
+      ...navigation.map((item) => item.path),
+      '/knowledge-bases/课程标准库',
+      '/books/demo-book',
+      '/books/demo-book/pages/demo-page',
+      '/courses/demo-course',
+      '/co-writer/room',
+      '/definitely-missing',
+    ];
+    for (const pathname of pathnames) {
+      const resolved = resolveCurrentNavigationId(pathname, { includeHidden: false });
+      if (resolved === null) continue;
+      expect(visibleIds.has(resolved), `${pathname} 落到不可见项 ${resolved}`).toBe(true);
+    }
+  });
+
+  it('父菜单成环时返回 null 而不是无限上溯', () => {
+    const cycleA = {
+      id: 'test-cycle-a',
+      label: '环形入口 A',
+      path: '/test-cycle/a',
+      status: 'ready',
+      position: 'main',
+      hidden: true,
+      parentPath: '/test-cycle/b',
+      icon: BookMarked,
+    } satisfies NavigationItem;
+    const cycleB = {
+      ...cycleA,
+      id: 'test-cycle-b',
+      label: '环形入口 B',
+      path: '/test-cycle/b',
+      parentPath: '/test-cycle/a',
+    } satisfies NavigationItem;
+    navigation.push(cycleA, cycleB);
+    try {
+      expect(resolveCurrentNavigationId('/test-cycle/a', { includeHidden: false })).toBeNull();
+      expect(resolveCurrentNavigationId('/test-cycle/b', { includeHidden: false })).toBeNull();
+      // 抽屉（includeHidden=true）语义不变：标记隐藏项自身
+      expect(resolveCurrentNavigationId('/test-cycle/a', { includeHidden: true })).toBe(
+        'test-cycle-a',
+      );
+    } finally {
+      for (const id of ['test-cycle-a', 'test-cycle-b']) {
+        const index = navigation.findIndex((item) => item.id === id);
+        if (index >= 0) navigation.splice(index, 1);
+      }
+    }
+  });
+
   it('手机抽屉对隐藏直达页标记自身', () => {
     expect(resolveCurrentNavigationId('/whisper', { includeHidden: true })).toBe('whisper');
     expect(resolveCurrentNavigationId('/notebooks/x', { includeHidden: true })).toBe('notebooks');
     expect(resolveCurrentNavigationId('/courses/x', { includeHidden: true })).toBe('courses');
     // 非隐藏页两种模式一致
+    expect(resolveCurrentNavigationId('/knowledge-bases', { includeHidden: true })).toBe('knowledge');
+    expect(resolveCurrentNavigationId('/knowledge-bases', { includeHidden: false })).toBe(
+      'knowledge',
+    );
+    // 书籍在抽屉里标记自身（桌面侧栏因隐藏而上溯到教材资料库）
     expect(resolveCurrentNavigationId('/books', { includeHidden: true })).toBe('books');
-    expect(resolveCurrentNavigationId('/books', { includeHidden: false })).toBe('books');
+    expect(resolveCurrentNavigationId('/books', { includeHidden: false })).toBe('knowledge');
+    expect(resolveCurrentNavigationId('/books/x/pages/y', { includeHidden: true })).toBe('books');
   });
 
   it('每个隐藏直达页都登记了可见父菜单且父菜单存在', () => {
@@ -138,5 +203,27 @@ describe('唯一主页与当前菜单解析（R-02/R-04）', () => {
       expect(item.parentPath, `${item.id} 缺少 parentPath`).toBeTruthy();
       expect(navigation.some((candidate) => candidate.path === item.parentPath && !candidate.hidden)).toBe(true);
     }
+  });
+
+  it('书籍与课程并入教材资料库：同为隐藏项、父菜单一致、抽屉图标可区分', () => {
+    const books = navigation.find((item) => item.id === 'books');
+    const courses = navigation.find((item) => item.id === 'courses');
+    const knowledge = navigation.find((item) => item.id === 'knowledge');
+    expect(books?.label).toBe('书籍');
+    expect(books?.path).toBe('/books');
+    expect(books?.hidden).toBe(true);
+    expect(books?.parentPath).toBe('/knowledge-bases');
+    expect(courses?.hidden).toBe(true);
+    expect(courses?.parentPath).toBe('/knowledge-bases');
+    // 手机抽屉用 sidebarIcon ?? icon：书籍不得再登记教材资料库的 Library，否则两枚图标同形
+    expect(books?.sidebarIcon).toBeUndefined();
+    expect(books?.icon).not.toBe(knowledge?.icon);
+    // 桌面侧栏（过滤 hidden）的教学资源分组只保留教材资料库为可见内容入口
+    const visibleResources = navigation
+      .filter((item) => !item.hidden && item.group === '教学资源')
+      .map((item) => item.id);
+    expect(visibleResources).toContain('knowledge');
+    expect(visibleResources).not.toContain('books');
+    expect(visibleResources).not.toContain('courses');
   });
 });

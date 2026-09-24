@@ -1,0 +1,48 @@
+{
+  "batch": "RAG-I0-PREP v1",
+  "frozenAt": "2026-09-23",
+  "branch": "main",
+  "candidateCommit": "13a93ae",
+  "candidateFullSha": "13a93aecb07ca7fe88c1bdaadf62e738027cc6a1",
+  "candidateParent": "a9968cd",
+  "candidateTree": "a067b4870d01edab24588cd17b011942c9c41eef",
+  "externalProject": {
+    "path": "F:\\ZQKY_RAG",
+    "head": "a0f9ade",
+    "headFullSha": "a0f9adedd3511acd4ec1d5f19a1f263df407f8f0",
+    "headParent": "8ed22b8",
+    "branch": "master",
+    "worktreeDrift": "7 dirty entries at start (5 M docs/*, 2 ?? docs/*) growing to 13 during verification due to an upstream concurrent writer (new src/evaluation/*_v2.py, tools/p8b_v2_packet.py); no confirmation that upstream stopped writing",
+    "freezeId": "P8-FREEZE-20260922-190500",
+    "freezePackageIntegrity": "manifest.json (144 archived members + 93 fingerprints) and receipt.json parse; receipt sha256 matches candidate.zip and manifest.json; candidate.zip members vs manifest: 0 mismatches; freeze_snapshot.py --verify (read-only, confirmed by line-by-line reading) exits 1 with 18 source-drift items only — it does NOT compare manifest git_head/porcelain",
+    "activeConfigComparison": "20/20 frozen config rows match configs/** and single definition points; no config drift found",
+    "performanceBoundary": "hot pure-retrieval p95 210 ms (subject) / 369 ms (all) within the <=500 ms criterion; end-to-end without generation cache P95 NOT met (22,675 ms vs <=15 s)",
+    "qualityBoundary": "evidence sufficiency / refusal quality, segment-level quality, explanation support, threshold selection all not_run (0 human reviewers, 0 gold labels)",
+    "performanceBoundarySource": "上游自身记录（docs/EVAL.md P8C 登记与结果 / docs/STATUS.md §4.5，2026-09-22），非本批实测；本批未运行任何上游评测"
+  },
+  "hostDeliverables": {
+    "contractModule": "apps/api/app/contracts/rag_adapter.py (contract + pure functions only; no retrieval, no model calls, no network, no route)",
+    "availability": "get_rag_adapter() always raises RagAdapterUnavailable; capability status stays 'planned'; nothing calls it from existing endpoints",
+    "tests": "35 synthetic-data contract tests; no network, no external directory reads, no model calls"
+  },
+  "checks": {
+    "ragContractTests": "35 passed (npm run test:api -- tests/test_rag_adapter_contract.py)",
+    "apiFull": "217 passed (npm run test:api)",
+    "upstreamVerification": "not_run (upstream pytest / src.verify / evaluation / model loading / index rebuild all not executed)"
+  },
+  "knownGaps": [
+    "G1 no controlled recoverable version artifact (no tag/remote/bundle; freeze package lives under gitignored data/derived/)",
+    "G2 upstream concurrent writer not stopped",
+    "G3 snapshot drift 18 items + inventory change",
+    "G4 --verify does not cover HEAD/porcelain",
+    "G5 host locked environment vs upstream deps/Python compatibility unverified (host lacks numpy/jieba/rank_bm25/PyYAML/httpx; 3.12.14 vs 3.14.6)",
+    "G6 no evidence of bounded queue implementation",
+    "G7 stop-underlying-inference capability not measured",
+    "G8 human quality review still not_run",
+    "G9 courseScope element count limit undefined",
+    "G10 textHash hash-input scope undefined",
+    "G11 legacy cloud asset disposal timing not assessed",
+    "G12 OLLAMA_NO_CLOUD not set"
+  ],
+  "conclusion": "host-side contract/preparation complete; upstream has concrete gaps; RAG not integrated, no real inference, no quality claim; I1 requires explicit user un-freeze"
+}

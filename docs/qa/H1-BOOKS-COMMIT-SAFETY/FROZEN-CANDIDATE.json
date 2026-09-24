@@ -1,0 +1,47 @@
+{
+  "task": "H1-BOOKS-COMMIT-SAFETY v1",
+  "revision": "r1（首个冻结候选：集合互斥锁 + 事务读改写 + 提交结果契约 + 调用方迁移 + 真实双标签页 e2e；本批唯一冻结版本）",
+  "revisionHistory": {
+    "r1": "起点 fedfa09；修复 CS-01/CS-02 并迁移全部写入口与调用方后冻结。r1 期间无冻结后产品改动。"
+  },
+  "frozenAt": "2026-09-22T17:03:53+08:00（名义冻结时刻＝FROZEN 文件写入时间；A1 复验期间 12 指纹零变化）",
+  "baseCommit": "fedfa09ab9e1f618127f12b48f066b89c7e47181",
+  "branch": "main",
+  "buildId": "AtxBYXEc_99FFQ8cGCtvu",
+  "verifiedRuns": {
+    "typecheck": "pass",
+    "lint": "pass(0 warnings)",
+    "unit": "48 files / 389 tests pass",
+    "build": "pass",
+    "e2eFull": "178 passed / 0 failed / 0 flaky（stats.expected=178, unexpected=0, flaky=0, duration 360257ms）",
+    "e2eNew": "tests/e2e/books-commit-safety.spec.ts 4 passed（真实双标签页 + 原生 Web Locks）",
+    "reviewProbes": "2/2 按预期失败（缺陷假设不再成立：写标记协议已由事务取代、写 API 已异步）"
+  },
+  "evidence": {
+    "fullE2E": "_work/commit-safety-full-e2e.txt、_work/commit-safety-full-e2e-results.json（本地证据，不入库）",
+    "probes": "docs/qa/H1-BOOKS-COMMIT-SAFETY/probe-reversal/（探针原件 + 修复后运行输出）",
+    "independentAcceptance": "docs/qa/H1-BOOKS-COMMIT-SAFETY/A1-REPORT.md"
+  },
+  "note": "候选 = 本批工作树改动（基线 fedfa09）。冻结后若任一产品文件改动，必须重新冻结并复验；A1 在该指纹上执行并在结束时复校一致。apps/api 零改动，API 测试未重跑（沿用本轮基线 181）。apps/web/next-env.d.ts 为构建生成文件，不随本批提交（提交前还原）。",
+  "fileSha256": {
+    "apps/web/src/services/collection-lock.ts": "f575ea871c341557e1597e50697e548cfc2d95462e5b0c69a2f68f3202f8431e",
+    "apps/web/src/services/books-store.ts": "b37bbc37aa12687228e7026e11025647dad9144c21c50fe9c5af77a0efabf0bb",
+    "apps/web/src/services/book-generation.ts": "d5265c64bed7f2e1846fdf17e0016180c1b3750877fce7b8dfb14038d2303e3b",
+    "apps/web/src/features/books/BooksRoute.tsx": "36cfb761dd15e096e89e3e222eead59aaaebdb37912cd7d1093c6bbc6233a3f4",
+    "apps/web/src/features/books/PageReader.tsx": "b97be533c4e667faff0a6f1e7fe5016ef9f1c39976ef2d135d4c8e190e32ec9c",
+    "apps/web/src/services/books-store.harden.test.ts": "5dcf36560a3c39425a30b7b03280d573e1645d27b46b5e16d84c1896cdd6b375",
+    "apps/web/src/services/book-generation.test.ts": "c4f98197b6b249e66d7fd2551c395a644b863a6352be3ceace53a15ee416bcab",
+    "apps/web/src/services/courses-store.test.ts": "bee7c14f0fc247b7877c66f5a209e56f13483714bba1babe398d37a364d65043",
+    "apps/web/src/features/books/PageReader.test.tsx": "27bf321e00f8b0ade60fd0cfd8bcccabe48ccf10c87d709cfecd2ae6167e8fb7",
+    "apps/web/src/features/books/BooksRoute.test.tsx": "71f60bee2ca8325fdbb266de0620fbc1eaaad6e6b948eb768bbf7889b3ee6681",
+    "tests/e2e/books-commit-safety.spec.ts": "bef4c1817f870b19174960c0fb62384fa4aa87e9c956906ac20720c0a6bddf97",
+    "docs/qa/H1-BOOKS-COMMIT-SAFETY/probe-reversal/original-defect-probe.test.ts": "babe49043e48bc853b73866aa8e68703d71a96456f6ac14de3cbce2ad1dc81d8"
+  },
+  "notIncluded": [
+    "apps/api/**（零改动）",
+    "services/local-collection.ts（语义未改：严格读 + 写前校验 + 失败回滚）",
+    "features/books/styles/*.css 与所有动画（本批未改样式/动画）",
+    "BookGenerationStrip.tsx / BookPausedBanner.tsx / BookBlockFailure.tsx（未改动）",
+    "apps/web/next-env.d.ts（构建生成文件，提交前还原）"
+  ]
+}

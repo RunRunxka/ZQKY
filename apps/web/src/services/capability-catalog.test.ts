@@ -10,24 +10,36 @@ import {
 } from './capability-catalog';
 
 describe('能力目录（对照参考 v1.6.5 capability 目录）', () => {
-  it('主列表为常用能力、次要能力收进“更多能力”，隐藏能力不出现在首页菜单', () => {
-    const primary = CHAT_CAPABILITIES.filter((cap) => !cap.secondary).map((cap) => cap.value);
-    const secondary = CHAT_CAPABILITIES.filter((cap) => cap.secondary).map((cap) => cap.value);
-    // 顺序对照参考 catalogOrder：chat → ask_questions → deep_question → visualize；
-    // 次要：deep_solve / deep_research / immersive_watching
-    expect(primary).toEqual(['', 'ask_questions', 'deep_question', 'visualize']);
-    expect(secondary).toEqual(['deep_solve', 'deep_research', 'immersive_watching']);
+  it('单层菜单：对话/追问澄清/智能出题/可视化 + RAG 模式；隐藏能力不出现在首页菜单', () => {
+    // UX-PERF-CLOSEOUT v1：移除“更多能力”飞出层与其三项次要能力，
+    // 在同级位置新增 RAG 模式入口占位（不可选、不发请求）。
+    expect(CHAT_CAPABILITIES.map((cap) => cap.value)).toEqual([
+      '',
+      'ask_questions',
+      'deep_question',
+      'visualize',
+      'rag',
+    ]);
+    // 已删除的三项能力不得以任何形式回流目录
+    for (const removed of ['deep_solve', 'deep_research', 'immersive_watching'])
+      expect(CHAT_CAPABILITIES.map((cap) => cap.value)).not.toContain(removed);
     // mastery_path / course_study 为工作区自有能力，不进首页菜单（参考 legacy/隐藏规则）
     expect(CHAT_CAPABILITIES.map((cap) => cap.value)).not.toContain('mastery_path');
     expect(CHAT_CAPABILITIES.map((cap) => cap.value)).not.toContain('course_study');
   });
 
-  it('needsConfig 仅出题/可视化/研究需要配置确认；未知值回退对话', () => {
+  it('RAG 模式：同级目录项、带「未接入 · 规划中」原因、不可选', () => {
+    const rag = getCapability('rag');
+    expect(rag.label).toBe('RAG 模式');
+    expect(rag.unavailableNote).toBe('未接入 · 规划中');
+    expect(rag.needsConfig).toBeFalsy(); // 不是二级菜单，也不是配置型能力
+    expect(capabilityAvailableInReal('rag')).toBe(false);
+  });
+
+  it('needsConfig 仅出题/可视化需要配置确认；未知值回退对话', () => {
     expect(getCapability('').needsConfig).toBeFalsy();
     expect(getCapability('deep_question').needsConfig).toBe(true);
     expect(getCapability('visualize').needsConfig).toBe(true);
-    expect(getCapability('deep_research').needsConfig).toBe(true);
-    expect(getCapability('deep_solve').needsConfig).toBeFalsy();
     expect(getCapability('不存在')?.value).toBe('');
   });
 
@@ -35,7 +47,7 @@ describe('能力目录（对照参考 v1.6.5 capability 目录）', () => {
     expect(capabilityAvailableInReal('')).toBe(true);
     expect(capabilityAvailableInReal('deep_question')).toBe(false);
     expect(capabilityAvailableInReal('visualize')).toBe(false);
-    expect(capabilityAvailableInReal('deep_research')).toBe(false);
+    expect(capabilityAvailableInReal('ask_questions')).toBe(false);
   });
 });
 
@@ -53,16 +65,12 @@ describe('能力配置校验（对照参考各面板必填规则）', () => {
     expect(capabilityValidationErrors('deep_question', forms).join('')).toContain('至少');
   });
 
-  it('可视化默认配置可用；研究 mode/depth 必选，手动深度需要子问题 ≥2', () => {
+  it('可视化默认配置可用；已移除的研究表单不再参与校验', () => {
     const forms = createDefaultCapabilityForms();
     expect(capabilityValidationErrors('visualize', forms)).toEqual([]);
-    expect(capabilityValidationErrors('deep_research', forms)).toHaveLength(2); // mode + depth
-    forms.deep_research.mode = 'report';
-    forms.deep_research.depth = 'manual';
-    forms.deep_research.manual_subtopics = 1; // 低于下限必须报错
-    expect(capabilityValidationErrors('deep_research', forms).join('')).toContain('至少 2');
-    forms.deep_research.manual_subtopics = 4;
+    // 已删除的能力值不产生校验错误（也不会被任何菜单项选中）
     expect(capabilityValidationErrors('deep_research', forms)).toEqual([]);
+    expect(Object.keys(forms).sort()).toEqual(['deep_question', 'visualize']);
   });
 });
 
@@ -87,13 +95,12 @@ describe('配置快照与摘要（发送冻结/模拟复述同源）', () => {
     expect(summary).toContain('选择题、填空题');
   });
 
-  it('研究手动深度快照包含子问题与迭代上限；对话能力无配置快照', () => {
+  it('可视化快照为纯数据；对话与已移除能力无配置快照', () => {
     const forms = createDefaultCapabilityForms();
-    forms.deep_research.mode = 'notes';
-    forms.deep_research.depth = 'manual';
-    const snapshot = capabilityConfigSnapshot('deep_research', forms) as Record<string, unknown>;
-    expect(snapshot.manual_subtopics).toBe(4);
-    expect(snapshot.manual_max_iterations).toBe(3);
+    forms.visualize.render_mode = 'mermaid';
+    const snapshot = capabilityConfigSnapshot('visualize', forms) as Record<string, unknown>;
+    expect(snapshot.render_mode).toBe('mermaid');
     expect(capabilityConfigSnapshot('', forms)).toBeUndefined();
+    expect(capabilityConfigSnapshot('deep_research', forms)).toBeUndefined();
   });
 });

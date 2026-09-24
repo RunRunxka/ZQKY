@@ -19,7 +19,7 @@
 | `/books/[bookId]` | 书籍工作区（提案→大纲→编译状态机，hub-and-spoke） | 已实现（`ready`） |
 | `/books/[bookId]/pages/[pageId]` | 页阅读器（Block 渲染/翻页/书签/进度） | 已实现（`ready`） |
 | `/courses` | 课程（主导航入口按参考隐藏，路由可达） | 已实现（`ready`） |
-| `/courses/[courseId]` | 课程详情（大纲/资料/约定；学习会话未接入） | 已实现（`ready`） |
+| `/courses/[courseId]` | 课程详情（大纲/资料/约定/学习会话：本课程会话列表、新建与恢复，归属按稳定 courseId） | 已实现（`ready`） |
 | `/space` | 学习空间 | 已实现（`ready`） |
 | `/space/chat-history` | 真实会话历史（旧模拟库不读写、不删除） | 已实现（`ready`） |
 | `/space/questions` | 题库 | 已实现（`ready`） |

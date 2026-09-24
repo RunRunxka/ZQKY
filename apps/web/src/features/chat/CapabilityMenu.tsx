@@ -2,16 +2,13 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   BarChart3,
-  BrainCircuit,
   Check,
   ChevronDown,
-  ChevronRight,
   CircleHelp,
+  Library,
   MessageSquare,
-  Microscope,
   PenLine,
   Sparkles,
-  Youtube,
   type LucideIcon,
 } from 'lucide-react';
 import { CHAT_CAPABILITIES, getCapability } from '@/services/capability-catalog';
@@ -23,9 +20,7 @@ const CAPABILITY_ICONS: Record<string, LucideIcon> = {
   ask_questions: CircleHelp,
   deep_question: PenLine,
   visualize: BarChart3,
-  deep_solve: BrainCircuit,
-  deep_research: Microscope,
-  immersive_watching: Youtube,
+  rag: Library,
 };
 
 function CapMenuItem({
@@ -70,9 +65,9 @@ function CapMenuItem({
 }
 
 /**
- * 能力选择菜单（S2）：对照参考 ChatComposer 的能力 chip 与弹层——
- * 主列表为常用能力，次要能力收进“更多能力”飞出层（悬停/点击展开）。
- * 不可用能力（真实模式下非对话能力）置灰并标注“真实服务未接入”，
+ * 模式选择菜单（S2）：对照参考 ChatComposer 的能力 chip 与弹层——**单层列表**，
+ * 无二级菜单或飞出层（UX-PERF-CLOSEOUT v1 移除了原“更多能力”入口）。
+ * 不可用能力（真实模式下非对话能力，含 RAG 模式）置灰并**在行内直接标注原因**，
  * 不静默转模拟。动画沿用 160ms 弹层 token，退场后卸载（与 ExtensionPicker 一致）。
  */
 export function CapabilityMenu({
@@ -89,14 +84,11 @@ export function CapabilityMenu({
 }) {
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const exitTimer = useRef<number | null>(null);
   const active = getCapability(value);
   const ActiveIcon = CAPABILITY_ICONS[active.value] ?? Sparkles;
-  const primary = CHAT_CAPABILITIES.filter((cap) => !cap.secondary);
-  const secondary = CHAT_CAPABILITIES.filter((cap) => cap.secondary);
 
   function clearExitTimer() {
     if (exitTimer.current) {
@@ -112,7 +104,6 @@ export function CapabilityMenu({
   function closePanel(restoreFocus: boolean) {
     if (!open) return;
     setOpen(false);
-    setMoreOpen(false);
     if (restoreFocus) triggerRef.current?.focus();
     clearExitTimer();
     exitTimer.current = window.setTimeout(() => {
@@ -151,7 +142,7 @@ export function CapabilityMenu({
         icon={CAPABILITY_ICONS[cap.value] ?? Sparkles}
         selected={active.value === cap.value}
         disabled={disabled || unavailableHere}
-        disabledNote={unavailableHere ? '真实服务未接入' : undefined}
+        disabledNote={unavailableHere ? (cap.unavailableNote ?? '真实服务未接入') : undefined}
         onSelect={handleSelect}
       />
     );
@@ -186,29 +177,7 @@ export function CapabilityMenu({
             }
           }}
         >
-          <div className="chat-cap-list">{primary.map(renderItem)}</div>
-          <div
-            className="chat-cap-more"
-            onMouseEnter={() => setMoreOpen(true)}
-            onMouseLeave={() => setMoreOpen(false)}
-          >
-            <button
-              type="button"
-              aria-haspopup="menu"
-              aria-expanded={moreOpen}
-              onClick={() => setMoreOpen((v) => !v)}
-            >
-              <Sparkles size={15} strokeWidth={1.7} />
-              <span className="chat-cap-item-text">
-                <strong>更多能力</strong>
-                <small>智能体循环驱动的模式</small>
-              </span>
-              <ChevronRight size={14} strokeWidth={2} />
-            </button>
-            <div className={`chat-cap-flyout ${moreOpen ? 'open' : ''}`} inert={!moreOpen}>
-              <div className="chat-cap-list">{secondary.map(renderItem)}</div>
-            </div>
-          </div>
+          <div className="chat-cap-list">{CHAT_CAPABILITIES.map(renderItem)}</div>
         </div>
       )}
     </div>

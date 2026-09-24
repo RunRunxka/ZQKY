@@ -103,7 +103,7 @@
 
 /* ===== 课程详情（/courses/[courseId]） ===== */
 
-/* 未接入 banner：排版微调（图标 + 文案），role 与文案不变 */
+/* 课程详情页信息提示条（角色/掌握度等未接入说明）：排版微调（图标 + 文案） */
 .courses-page .space-banner.info.courses-note-banner {
   display: flex;
   align-items: flex-start;

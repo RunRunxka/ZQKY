@@ -6,10 +6,12 @@ import '@/features/space/styles/space.css';
 // 知识库两页专属样式（B-R05-EXTEND-I1）：在 space.css 之后引入保证覆盖顺序
 import '@/features/knowledge/styles/knowledge.css';
 import {
+  BookMarked,
   ChevronRight,
   Cloud,
   Database,
   Globe,
+  GraduationCap,
   HardDrive,
   Library,
   Plus,
@@ -168,6 +170,29 @@ export function KnowledgeBasesSection() {
         </p>
       </header>
       <main className="space-content">
+        {/* 书籍/课程已并入教材资料库（T4）：桌面侧栏不再有独立入口，在此提供稳定可达的阅读入口 */}
+        <nav className="kb-library-links" aria-label="教材内容阅读">
+          <Link className="kb-library-link" href="/books">
+            <span className="kb-library-link-icon" aria-hidden>
+              <BookMarked size={18} />
+            </span>
+            <span className="kb-library-link-body">
+              <strong>书籍</strong>
+              <span>教材内容阅读</span>
+            </span>
+            <ChevronRight className="kb-library-link-chevron" size={16} aria-hidden />
+          </Link>
+          <Link className="kb-library-link" href="/courses">
+            <span className="kb-library-link-icon" aria-hidden>
+              <GraduationCap size={18} />
+            </span>
+            <span className="kb-library-link-body">
+              <strong>课程</strong>
+              <span>大纲与资源关联</span>
+            </span>
+            <ChevronRight className="kb-library-link-chevron" size={16} aria-hidden />
+          </Link>
+        </nav>
         <div className="space-tabs" role="tablist" aria-label="知识库视图">
           <button
             role="tab"

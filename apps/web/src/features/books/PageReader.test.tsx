@@ -14,19 +14,28 @@ const generationMock = vi.hoisted(() => ({
   retryBlock: vi.fn(),
   regeneratePage: vi.fn(),
   startRun: vi.fn(),
+  getRepair: vi.fn(),
 }));
 
 vi.mock('@/services/book-generation', () => ({
   retryBlock: (...args: unknown[]) => generationMock.retryBlock(...args),
   regeneratePage: (...args: unknown[]) => generationMock.regeneratePage(...args),
   startRun: (...args: unknown[]) => generationMock.startRun(...args),
+  getRepair: (...args: unknown[]) => generationMock.getRepair(...args),
 }));
 
+const routerMock = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn() }));
+
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push: routerMock.push, replace: routerMock.replace }),
 }));
 
 import { PageReader } from './PageReader';
+import {
+  __resetCollectionLockQueuesForTests,
+  __setCollectionLockProviderForTests,
+  createInMemoryCollectionLockProvider,
+} from '@/services/collection-lock';
 import type { ReplicaBook } from '@/services/books-store';
 
 const BOOK_KEY = 'zhiqikeyuan:books';
@@ -142,6 +151,20 @@ function renderReader(book: TestBook) {
   return render(<PageReader book={book as unknown as ReplicaBook} pageId={book.pages![0]!.id} />);
 }
 
+/** 修复结果替身（形状 = H1-BOOKS-HARDEN v1 冻结的 RepairResult） */
+function completedRepair(blockIds: string[]) {
+  return {
+    status: 'completed' as const,
+    operationId: 'rep-test',
+    bookId: 'test-book',
+    pageId: 'p1',
+    runId: 'run-1',
+    blockIds,
+    writtenBlockIds: blockIds,
+    droppedWrites: 0,
+  };
+}
+
 beforeEach(() => {
   vi.stubGlobal(
     'matchMedia',
@@ -156,9 +179,19 @@ beforeEach(() => {
     })),
   );
   window.localStorage.clear();
+  // 仅测试：缩短回退锁 settle（不改变被测语义；真实浏览器走 Web Locks）
+  expect(__setCollectionLockProviderForTests(createInMemoryCollectionLockProvider())).toBe(true);
+  // HARDEN v1：修复入口返回真实异步结果（Promise<RepairResult>），启动返回执行器句柄
+  generationMock.retryBlock.mockImplementation((_bookId: string, _pageId: string, blockId: string) =>
+    Promise.resolve(completedRepair([blockId])),
+  );
+  generationMock.regeneratePage.mockResolvedValue(completedRepair(['b1']));
+  generationMock.startRun.mockReturnValue({ bookId: 'test-book', runId: 'run-1', status: 'running' });
+  generationMock.getRepair.mockReturnValue(null);
 });
 
 afterEach(() => {
+  __resetCollectionLockQueuesForTests();
   cleanup();
   vi.unstubAllGlobals();
   vi.clearAllMocks();
@@ -441,7 +474,7 @@ describe('页失败面板', () => {
 });
 
 describe('阅读器工具栏与已读登记', () => {
-  it('保留「第 N/M 页」与书签按钮锚点；新增「强制重新生成」调用 regeneratePage', () => {
+  it('保留「第 N/M 页」与书签按钮锚点；新增「强制重新生成」调用 regeneratePage', async () => {
     const book = buildBook({
       pages: [
         { id: 'p1', bookId: 'test-book', chapterId: 'ch1', title: '第一章（1/2）', order: 0, status: 'ready', blocks: [textBlock('b1', '内容')] },
@@ -454,7 +487,8 @@ describe('阅读器工具栏与已读登记', () => {
     expect(screen.getByText('第 1/2 页')).toBeVisible();
     expect(screen.getByRole('button', { name: '添加书签' })).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: '添加书签' }));
-    expect(screen.getByRole('button', { name: '移除书签' })).toBeVisible();
+    // 书签提交是事务：等待真正落库后界面才切换状态
+    await screen.findByRole('button', { name: '移除书签' });
     expect(readBook().reading.bookmarkedPageIds).toEqual(['p1']);
 
     fireEvent.click(screen.getByRole('button', { name: '强制重新生成' }));
@@ -499,7 +533,7 @@ describe('阅读器工具栏与已读登记', () => {
 });
 
 describe('作答版本关系', () => {
-  it('版本不匹配：不把旧作答显示为新题答案，如实提示并允许重新作答；历史保留', () => {
+  it('版本不匹配：不把旧作答显示为新题答案，如实提示并允许重新作答；历史保留', async () => {
     const book = buildBook({
       pages: [
         {
@@ -529,8 +563,13 @@ describe('作答版本关系', () => {
     // 重新作答：正常判定并新增历史
     fireEvent.click(screen.getByRole('button', { name: 'A. 理解本页概念并能举例' }));
     expect(screen.getByRole('status', { name: '' })).toHaveTextContent('回答正确。');
-    const attempts = JSON.parse(window.localStorage.getItem(QUIZ_KEY) ?? '[]') as { blockId: string; choice: string }[];
-    expect(attempts.filter((item) => item.blockId === 'q1')).toHaveLength(2);
+    await waitFor(() => {
+      const attempts = JSON.parse(window.localStorage.getItem(QUIZ_KEY) ?? '[]') as {
+        blockId: string;
+        choice: string;
+      }[];
+      expect(attempts.filter((item) => item.blockId === 'q1')).toHaveLength(2);
+    });
   });
 
   it('版本匹配：恢复最近一次作答为当前题答案', () => {
@@ -635,5 +674,201 @@ describe('归档只读（A3：按钮可点但什么都不发生 = 静默无操�
     expect(start).toBeDisabled();
     fireEvent.click(start);
     expect(generationMock.startRun).not.toHaveBeenCalled();
+  });
+});
+
+describe('HARDEN v1：全局翻页键的输入排除（M22-06 原缺陷回归）', () => {
+  function twoPageBook(): TestBook {
+    return buildBook({
+      pages: [
+        {
+          id: 'p1',
+          bookId: 'test-book',
+          chapterId: 'ch1',
+          title: '第一章（1/2）',
+          order: 0,
+          status: 'ready',
+          blocks: [
+            textBlock('b1', '第一页正文（模拟生成）'),
+            { id: 'b-note', type: 'user_note', title: '我的笔记（本地保存）', content: '', status: 'ready' },
+          ],
+        },
+        {
+          id: 'p2',
+          bookId: 'test-book',
+          chapterId: 'ch1',
+          title: '第一章（2/2）',
+          order: 1,
+          status: 'ready',
+          blocks: [textBlock('b2', '第二页正文（模拟生成）')],
+        },
+      ],
+    });
+  }
+
+  it('笔记输入框内 ←/→ 不翻页；普通阅读时 ←/→ 仍然翻页', () => {
+    const book = twoPageBook();
+    seedBook(book);
+    renderReader(book);
+
+    const note = screen.getByLabelText('我的笔记内容');
+    note.focus();
+    fireEvent.keyDown(note, { key: 'ArrowRight' });
+    fireEvent.keyDown(note, { key: 'ArrowLeft' });
+    expect(routerMock.push).not.toHaveBeenCalled();
+
+    // 正文上下文（焦点不在输入元素上）：翻页仍然有效
+    fireEvent.keyDown(document.body, { key: 'ArrowRight' });
+    expect(routerMock.push).toHaveBeenCalledWith('/books/test-book/pages/p2');
+    expect(routerMock.push).toHaveBeenCalledTimes(1);
+  });
+
+  it('contenteditable、组合输入与修饰键都不触发翻页', () => {
+    const book = twoPageBook();
+    seedBook(book);
+    renderReader(book);
+
+    const editable = document.createElement('div');
+    editable.setAttribute('contenteditable', 'true');
+    editable.setAttribute('aria-label', '富文本笔记');
+    document.body.appendChild(editable);
+    fireEvent.keyDown(editable, { key: 'ArrowRight' });
+    expect(routerMock.push).not.toHaveBeenCalled();
+
+    // 组合输入进行中（中文输入法用 ←/→ 选字）
+    fireEvent.keyDown(document.body, { key: 'ArrowRight', isComposing: true });
+    expect(routerMock.push).not.toHaveBeenCalled();
+
+    // 修饰键：Ctrl/Alt/Meta/Shift + 方向键是编辑器/浏览器快捷键
+    fireEvent.keyDown(document.body, { key: 'ArrowRight', ctrlKey: true });
+    fireEvent.keyDown(document.body, { key: 'ArrowRight', altKey: true });
+    fireEvent.keyDown(document.body, { key: 'ArrowRight', metaKey: true });
+    fireEvent.keyDown(document.body, { key: 'ArrowRight', shiftKey: true });
+    expect(routerMock.push).not.toHaveBeenCalled();
+
+    // 已被其他处理器消费的事件不重复翻页
+    const consumed = new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true });
+    consumed.preventDefault();
+    window.dispatchEvent(consumed);
+    expect(routerMock.push).not.toHaveBeenCalled();
+
+    editable.remove();
+    fireEvent.keyDown(document.body, { key: 'ArrowRight' });
+    expect(routerMock.push).toHaveBeenCalledWith('/books/test-book/pages/p2');
+  });
+});
+
+describe('HARDEN v1：修复入口的真实异步结果（M22-02 原缺陷回归）', () => {
+  function partialBook(): TestBook {
+    return buildBook({
+      pages: [
+        {
+          id: 'p1',
+          bookId: 'test-book',
+          chapterId: 'ch1',
+          title: '第一章（1/1）',
+          order: 0,
+          status: 'partial',
+          blocks: [
+            textBlock('b1', '可读内容（模拟生成）'),
+            textBlock('b-err', '失败内容', { status: 'error', failure: failure('content', '本地模拟失败。') }),
+          ],
+        },
+      ],
+    });
+  }
+
+  it('重试结果 failure：如实显示原因，不谎报成功', async () => {
+    const book = partialBook();
+    seedBook(book);
+    renderReader(book);
+
+    generationMock.retryBlock.mockResolvedValue({
+      ...completedRepair(['b-err']),
+      status: 'failed',
+      writtenBlockIds: [],
+      error: '本地存储写入失败（存储可能已满）；本次修复未完成。',
+    });
+    fireEvent.click(screen.getByRole('button', { name: '重试' }));
+
+    expect(await screen.findByText(/本地存储写入失败（存储可能已满）/)).toBeVisible();
+    expect(screen.getByText(/重新生成未完成/)).toBeVisible();
+  });
+
+  it('修复结果为 skipped（不可写入）：同样给出原因，不静默无操作', async () => {
+    const book = partialBook();
+    seedBook(book);
+    renderReader(book);
+
+    generationMock.retryBlock.mockResolvedValue({
+      ...completedRepair(['b-err']),
+      status: 'skipped',
+      writtenBlockIds: [],
+      error: '书籍当前状态（archived）不接受页/块修复。',
+    });
+    fireEvent.click(screen.getByRole('button', { name: '重试' }));
+
+    expect(await screen.findByText(/不接受页\/块修复/)).toBeVisible();
+  });
+
+  it('完成：忙态复位且不留下错误提示', async () => {
+    const book = partialBook();
+    seedBook(book);
+    renderReader(book);
+
+    fireEvent.click(screen.getByRole('button', { name: '重试' }));
+    expect(await screen.findByRole('button', { name: '重新生成本页' })).toBeEnabled();
+    await waitFor(() => expect(screen.queryByText(/重新生成未完成/)).toBeNull());
+  });
+
+  it('忙态中重复点击不再发起第二次调用（互斥；真实去重由引擎的同目标复用保证）', async () => {
+    const book = partialBook();
+    seedBook(book);
+    let release: (value: ReturnType<typeof completedRepair>) => void = () => {};
+    generationMock.retryBlock.mockImplementation(
+      () => new Promise((resolve) => { release = resolve; }),
+    );
+    renderReader(book);
+
+    const retry = screen.getByRole('button', { name: '重试' });
+    fireEvent.click(retry);
+    await waitFor(() => expect(generationMock.retryBlock).toHaveBeenCalledTimes(1));
+    // 重试中的按钮已进入忙态（disabled + 文案变化），第二次点击不会产生新的调用
+    const busy = await screen.findByRole('button', { name: '正在重试…' });
+    expect(busy).toBeDisabled();
+    fireEvent.click(busy);
+    expect(generationMock.retryBlock).toHaveBeenCalledTimes(1);
+    release(completedRepair(['b-err']));
+    await waitFor(() => expect(screen.queryByText(/重新生成未完成/)).toBeNull());
+  });
+
+  it('挂载时若本页已有在途修复，忙态如实恢复（不假装空闲）', () => {
+    const book = partialBook();
+    seedBook(book);
+    generationMock.getRepair.mockReturnValue({
+      operationId: 'rep-inflight',
+      runId: 'run-1',
+      blockIds: ['b-err'],
+      writtenBlockIds: [],
+    });
+    renderReader(book);
+    expect(screen.getByRole('button', { name: '强制重新生成' })).toBeDisabled();
+    expect(generationMock.getRepair).toHaveBeenCalledWith('test-book', 'p1');
+  });
+
+  it('「生成本章」返回空句柄时给出显式原因（不静默无操作）', async () => {
+    const book = buildBook({
+      pages: [
+        { id: 'p1', bookId: 'test-book', chapterId: 'ch1', title: '第一章（1/1）', order: 0, status: 'pending', blocks: [] },
+      ],
+    });
+    seedBook(book);
+    generationMock.startRun.mockReturnValue(null);
+    renderReader(book);
+
+    fireEvent.click(screen.getByRole('button', { name: '生成本章' }));
+    expect(generationMock.startRun).toHaveBeenCalledWith('test-book', { source: 'user' });
+    // 启动结果是异步的：等待失败原因真正渲染
+    expect(await screen.findByText(/无法开始生成/)).toBeVisible();
   });
 });

@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Archive, ArrowRight, Layers, Loader2, Plus, Sparkles } from 'lucide-react';
+import { Archive, ArrowLeft, ArrowRight, Layers, Loader2, Plus, Sparkles } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import {
   COURSE_COLOR_DOT,
@@ -58,6 +58,13 @@ export function CoursesShelf() {
   return (
     <div className="space-page courses-page">
       <header className="space-header">
+        {/* UX-REGRESSION-FIX v1：课程列表同样提供固定指向教材资料库的返回入口 */}
+        <div className="space-header-row">
+          <Link className="space-back" href="/knowledge-bases">
+            <ArrowLeft size={16} />
+            返回教材资料库
+          </Link>
+        </div>
         <div className="space-header-row">
           <h1>课程</h1>
           <div className="space-card-actions">
@@ -65,7 +72,7 @@ export function CoursesShelf() {
               className="space-button"
               onClick={() => {
                 loadDemoCourses();
-                setNotice('已载入演示课程（重复载入不产生重复条目）。课程学习会话未接入（见页内说明）。');
+                setNotice('已载入演示课程（重复载入不产生重复条目）。可在课程详情创建学习会话并进入真实问答。');
               }}
             >
               <Sparkles size={14} />

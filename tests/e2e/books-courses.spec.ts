@@ -135,7 +135,9 @@ test('课程：演示载入、大纲勾选与编辑重置、资源附加与不�
 
   await page.getByRole('link', { name: '打开课程 七年级数学（演示课程）' }).click();
   await expect(page).toHaveURL(/\/courses\/demo-course-math$/);
-  await expect(page.getByRole('note').filter({ hasText: '课程学习会话未接入' })).toBeVisible();
+  // H1-COURSE-SESSIONS v1：本页已有真实学习会话区（不再是"课程学习会话未接入"占位），本课程此时尚无会话
+  await expect(page.getByRole('heading', { name: '学习会话' })).toBeVisible();
+  await expect(page.getByText('本课程还没有学习会话')).toBeVisible();
   // 大纲：1/2 已完成，下一单元
   await expect(page.getByText(/大纲（1\/2 已完成，下一单元：一元一次方程）/)).toBeVisible();
   // 演示资源引用的知识库未载入 → 不可用态
@@ -191,12 +193,83 @@ test('课程新建与导航显示：书籍可见、课程按参考隐藏', async
   await expect(page.getByRole('heading', { name: /测试课程甲/ })).toBeVisible();
   await expect(page.getByText('还没有大纲')).toBeVisible();
 
-  // 导航：书籍入口可见；课程入口按参考隐藏（路由可达）
+  // 导航（UX-PERF-CLOSEOUT v1）：书籍已并入「教材资料库」，桌面侧栏不再有
+  // 书籍顶级项；书籍与课程仍可经教材资料库页入口与手机抽屉到达，路由不变。
   // 项目导航根级默认展开（NavigationPreference）；仅在收起偏好下先展开，兼容两种状态
   await page.goto('/papers');
   await expect(page.locator('.app-shell')).toBeVisible();
   const expandNav = page.getByRole('button', { name: '展开项目导航' });
   if (await expandNav.isVisible()) await expandNav.click();
-  await expect(page.getByRole('button', { name: '书籍', exact: true })).toHaveCount(1);
+  await expect(page.getByRole('button', { name: '书籍', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: '课程', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: '教材资料库', exact: true })).toHaveCount(1);
+  await page.goto('/books');
+  await expect(
+    page.getByRole('navigation', { name: '项目功能导航' }).getByRole('button', {
+      name: '教材资料库',
+      exact: true,
+    }),
+  ).toHaveAttribute('aria-current', 'page');
+});
+
+test('教材资料库 ↔ 书籍/课程：完整往返路径、返回入口与唯一当前项（UX-REGRESSION-FIX v1）', async ({
+  page,
+}) => {
+  const currentNav = page.locator('.global-nav [aria-current="page"]');
+  const backToKb = page.getByRole('link', { name: '返回教材资料库' });
+
+  // ===== 教材资料库 → 书籍列表 → 书籍详情 → 书籍列表 → 教材资料库 =====
+  await page.goto('/knowledge-bases');
+  await page.locator('.kb-library-links a[href="/books"]').click();
+  await expect(page).toHaveURL(/\/books$/);
+  await expect(backToKb).toBeVisible();
+  await expect(currentNav).toHaveCount(1);
+  await expect(currentNav).toHaveText(/教材资料库/);
+
+  // 空列表也能看到返回入口
+  await expect(page.getByRole('heading', { name: '书籍', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '载入演示数据' }).click();
+  const bookCard = page.locator('a[href^="/books/"]').first();
+  await expect(bookCard).toBeVisible();
+  await bookCard.click();
+  await expect(page).toHaveURL(/\/books\/[^/]+$/);
+  await expect(currentNav).toHaveText(/教材资料库/);
+  await page.getByRole('link', { name: '返回书籍列表' }).click();
+  await expect(page).toHaveURL(/\/books$/);
+  await expect(backToKb).toBeVisible();
+  await backToKb.click();
+  await expect(page).toHaveURL(/\/knowledge-bases$/);
+  await expect(currentNav).toHaveText(/教材资料库/);
+
+  // 直接深链打开列表页同样能返回（不依赖 history.back）
+  await page.goto('/books');
+  await expect(backToKb).toBeVisible();
+  await backToKb.click();
+  await expect(page).toHaveURL(/\/knowledge-bases$/);
+
+  // ===== 教材资料库 → 课程列表 → 课程详情 → 课程列表 → 教材资料库 =====
+  await page.locator('.kb-library-links a[href="/courses"]').click();
+  await expect(page).toHaveURL(/\/courses$/);
+  await expect(backToKb).toBeVisible();
+  await expect(currentNav).toHaveCount(1);
+  await expect(currentNav).toHaveText(/教材资料库/);
+  await page.getByRole('button', { name: '载入演示数据' }).click();
+  const courseCard = page.locator('a[href^="/courses/"]').first();
+  await expect(courseCard).toBeVisible();
+  await courseCard.click();
+  await expect(page).toHaveURL(/\/courses\/[^/]+$/);
+  await expect(currentNav).toHaveText(/教材资料库/);
+  await page.getByRole('link', { name: '返回课程列表' }).click();
+  await expect(page).toHaveURL(/\/courses$/);
+  await backToKb.click();
+  await expect(page).toHaveURL(/\/knowledge-bases$/);
+  await expect(currentNav).toHaveText(/教材资料库/);
+
+  // 手机视口：返回入口仍可见且不横向溢出
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/books');
+  await expect(backToKb).toBeVisible();
+  await page.goto('/courses');
+  await expect(backToKb).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
 });

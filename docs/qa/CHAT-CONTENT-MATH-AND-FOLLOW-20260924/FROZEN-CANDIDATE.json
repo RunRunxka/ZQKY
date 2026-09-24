@@ -1,0 +1,88 @@
+{
+  "batch": "CHAT-CONTENT-MATH-AND-FOLLOW v1",
+  "revision": "r2（仅文档追加：写入独立验收 r1 结论、遗留待决，并把验收通过同步进 STATUS §5.A.7 与三矩阵；代码、测试与 fixture 哈希沿用 r1，未变）",
+  "revisionNote": "r1 为验收开始时的冻结时点（验收者已独立三次复算 17/17 一致）。r2 只改 5 个文档（README §7 + STATUS + AI_INTERACTIONS + MOTION_MATRIX + PAGE_MATRIX），因此这 5 个文件的哈希更新为上表值；其余 12 个文件（全部代码、测试与 fixture）哈希与 r1 完全相同，验收后 git status 与 HEAD 均回到 r1 状态、两个 BUILD_ID 未变。",
+  "frozenAt": "2026-09-24T16:05:00+08:00",
+  "hashSource": "sha256(LF 归一化工作树内容)。对应 .gitattributes `* text=auto` + md/ts/tsx/mjs/json `eol=lf`，即与「提交后 git blob 的 sha256」一致，不受 Windows CRLF 影响；核验方法：对文件字节做 CRLF→LF 后取 sha256。",
+  "sourceState": "未提交工作树（based on main@d0c30ec19f8603c7c7f46572948f64bd1a376658；本批尚未 commit，故无 headCommit 可用，哈希即当前文件内容）",
+  "buildIdNote": "BUILD_ID 只是「哪次运行的标签」，不是内容指纹：同源码不同 origin/时间重建会得到不同值。可复算的是下方 files 的 sha256。",
+  "builds": {
+    "ui": "vv2MkeoRZHz_a4di0tMTO（apps/web/.next：全量 e2e 201/1、标准 test:chat 13/1）",
+    "chat": "48OQ8YwWsaXik3hvv7EQK（apps/web/.next-test，ZQKY_API_ORIGIN=http://127.0.0.1:8001：聊天 integration 8/8、性能 20k/50k）"
+  },
+  "checks": {
+    "pyCompile": "pass（tests/fixtures/stream_backend.py）",
+    "typecheck": "pass（exit 0）",
+    "lint": "0 warnings（--max-warnings=0，exit 0）",
+    "unit": "55 files / 463 tests passed（NODE_OPTIONS=--no-experimental-webstorage）",
+    "unitCaveat": "同源码族更早一轮为 55 文件/462 例 + 1 例非本批 ModelSettingsPanel.review.test.tsx「MR-08」失败；该例单跑 1/1、所在文件 12/12 复跑通过，判为间歇，未修本批范围外模块。",
+    "build": "pass（.next 与 .next-test 均通过）",
+    "chatIntegration": "tests/integration/chat-reasoning.spec.ts 8 passed / 0 failed（3 协议 reasoning、正文公式流/终态/刷新、正文后推理重开跟随、20k、50k、连续跟随/手动上滚/回底）",
+    "testChat": "13 passed / 1 failed —— 唯一失败为既有 R-15（tests/integration/chat-live.spec.ts:59 settings 模型发现旧 selector 超时；本批零改动）",
+    "e2eFull": "201 passed / 1 failed（单次运行 9.1m）—— 唯一失败为跨批间歇 R-14（tests/e2e/books-commit-safety.spec.ts:238 双标签页并发写不同书）；隔离 --repeat-each=3 复测 3/3 通过。不得声称候选全量 e2e 恒绿。",
+    "perf20k": "rAF p95 5.7ms / max 44.5ms / >50ms 0 / longtask 0 / firstVisible 99ms / 80 KaTeX 0 error / stream 2.922s",
+    "perf50k": "rAF p95 5.7ms / max 38.9ms / >50ms 0 / longtask 0 / firstVisible 58.8ms / 80 KaTeX 0 error / stream 4.390s"
+  },
+  "notRun": [
+    "真实供应商（无凭证复验；用户真实正文原始片段不可得，未读取用户会话或私人对话）",
+    "用户人工视觉验收",
+    "硬件触摸、键盘滚动专项、reduced-motion 专项",
+    "逐帧折叠动画曲线（属 H6）",
+    "RAG / F:\\ZQKY_RAG（未接入、未访问）"
+  ],
+  "files": {
+    "apps/web/src/features/chat/Message.tsx": "913c41ca4941a46e6af79feeab0afc71f08d1c7b5eac0a3cc0fdc14459ec96dc",
+    "apps/web/src/features/chat/ReasoningDisclosure.tsx": "2af7bb709781002abe6ec9fea5cdf226ce02f91c8b46890918b7ac7b733c8aeb",
+    "apps/web/src/features/chat/StreamingMarkdown.tsx": "f5eae874b087d604f25c8cdf74e99f1574242b42837c86f4b8685f64d7fb1fd3",
+    "apps/web/src/features/chat/model/markdown-math.ts": "3cea9f8908682ffa9a940115216c8d82b3e8e7be4a243267c71515847238378f",
+    "apps/web/src/features/chat/model/markdown-segments.ts": "ad1e76f88fc9080458d1e3f51780127caf1e77676dce11fbc4de29a481a00b71",
+    "apps/web/src/features/chat/styles/chat.css": "5bcf3c22e7b72cb6309fad73c5c7fc2327ef0260b84ccb1645343e703d140dd3",
+    "apps/web/src/features/chat/Message.test.tsx": "c65bd8c94520d10ab71e1e5ec2dbe426a370d3bff8ddb1d55cf5104f00a19be1",
+    "apps/web/src/features/chat/ReasoningDisclosure.test.tsx": "843a3a94d006dc3b95a51bf81f0448f47f87821f7fac5dba7e3d95793a5332d1",
+    "apps/web/src/features/chat/AnswerMarkdown.test.tsx": "f41f52a1ee92ff22e72979babd212fc13c67e47967caa2b4b2a4c8377aefe9cf",
+    "apps/web/src/features/chat/model/markdown-segments.test.ts": "9eea1b8a4b0749d05d464b47a35859c852870f3c968249d32d749c9f6af0a236",
+    "tests/fixtures/stream_backend.py": "967b0a95bff5f97010c16438155955b546ff221d04dffa3496fe8c49ad769b53",
+    "tests/integration/chat-reasoning.spec.ts": "d8132eafc8f97041e1f4234577b7396b84e1634fe03011d398ce09c6233ede09",
+    "docs/STATUS.md": "d98c619a22903bd530462f9beb61e6b28772e6d6bd4cda2b846f225bdcbca894",
+    "docs/replica/AI_INTERACTIONS.md": "5ab6732dfef72586dd9c65494dc5ac71cfe14d6626355a82472db7c535bf12a5",
+    "docs/replica/MOTION_MATRIX.md": "1200b1aaf1810af893fddfebaaffb878593554bc16398fb33352c09c2daecaef",
+    "docs/replica/PAGE_MATRIX.md": "f1d0b38ba27eaca1afab8a51b805e4fde00b5e095b2dd7e2a879f28c41d99e5f",
+    "docs/qa/CHAT-CONTENT-MATH-AND-FOLLOW-20260924/README.md": "5f6052770394b81fe39bdbb58a0f2d6b3d86ea18b907ea7385ba7af8f0f76d9f"
+  },
+  "fileCount": 17,
+  "filesNote": "files 取自冻结时点的工作树；本冻结记录自身不在列表内。验收期间不改源码；如需修改则撤回本轮结论、改完重冻并只更新受影响文件的哈希。未包含 apps/web/next-env.d.ts（Next 自动生成，冻结时已还原为仓库基线内容）。",
+  "excludedFromFrozen": {
+    "apps/web/next-env.d.ts": "Next 自动生成（构建/typecheck 会改写 .next 或 .next-test 路径引用）；冻结前已恢复为仓库基线内容，不纳入本批哈希。"
+  },
+  "sensitiveDataReview": "仅 17 个本批源码/测试/文档文件；无密钥、无凭证、无用户会话或私人对话；测试上游为 tests/fixtures 合成数据。",
+  "independentAcceptance": {
+    "result": "pass（可交付）——附条件：真实供应商与用户人工视觉 not_run，不得表述为「真实供应商通过/用户视觉通过」",
+    "by": "Independent-Acceptor（只读复验，r1，2026-09-24）",
+    "verified": [
+      "17/17 文件 sha256(LF 归一化) 独立重算一致（验收开始/测试后/探针后三次），改动无越界，HEAD 与两个 BUILD_ID 未变",
+      "正文 .chat-answer-content：流式中 katex=8/display=2/error=0/raw=1，annotation 列表证明四类定界符均为可见公式，MutationObserver 证明流式期间逐步可见；终态与刷新 11/0；未闭合尾段原文逐字；代码围栏未混入 katex",
+      "IndexedDB 助手 message.content 与上游 bodyRaw 逐字相等（345/345，firstDiffIndex=-1）；流中停止 315/315",
+      "推理跟随：自动折叠保留；重开 10 次采样 gap 全 0；真实滚轮上滚后 top 恒 0 而 scrollHeight 275→423（约 2.2s、14 次采样）未被抢回；回底后 8 次采样 gap 全 0；内层 180/497/gap0",
+      "外层 .chat-messages 在本样本 689/689 无溢出（未声称外层场景通过）；其补充 1440×520 短视口外层有溢出且跟随、推理区完整可见 clippedPx=0",
+      "性能：其复跑集成 8/8；20k/50k rAF p95 均 5.7ms、>50ms 0、长任务 0；CDP 相位切分证明正文段 markdown/KaTeX chunk 72.9ms/80 公式，排除每 delta 重解析整段正文",
+      "其单测 55 文件/463 例、typecheck、lint 均通过；R-15 由其单跑复核确认为既有、范围外",
+      "边界：AnswerMarkdown 不在本批 diff（trust:false/skipHtml 未放宽）；双转义折叠仅展示副本且仅完整成对；无密钥/真实会话；无 RAG；文档口径与 R-16 订正确认"
+    ],
+    "nonBlockingObservations": [
+      "Windows 剪贴板把复制文本规范化为 CRLF（LF 归一后与上游完全相等；复制路径文件本批未改）",
+      "推理面板折叠 320ms 后内容按既有语义从 DOM 卸载，折叠态 katex=0 属预期"
+    ],
+    "openItemsForOwner": [
+      "R-16 最终关闭仍待真实供应商样本或用户人工视觉复核（本批 not_run）",
+      "外层 .chat-messages 跟随策略本批未改、未纳入断言；若用户场景含外层滚动需另立需求",
+      "剪贴板 CRLF、折叠卸载语义按「非本批」处理"
+    ],
+    "mustVerify": [
+      "亲自查看正文（.chat-bubble.assistant 内 .chat-answer-content）在流式/终态/刷新三阶段的公式与原文，不只看 reasoning 容器",
+      "亲自操作正文开始后仍活动的推理面板：重开跟随、真实滚轮上滚不被抢回、回底恢复",
+      "内外滚动容器分别测量（.chat-reasoning-body 与 .chat-messages）",
+      "核对落库 message.content 与上游原文逐字一致",
+      "真实供应商/用户人工视觉未执行 → 不得判「全部通过」"
+    ]
+  }
+}

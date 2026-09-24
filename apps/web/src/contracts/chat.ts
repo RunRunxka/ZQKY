@@ -156,6 +156,25 @@ export interface TraceStageRecord {
   endedAt?: string;
 }
 
+/**
+ * 轮次课程快照（H1-COURSE-SESSIONS v1）：发送时从课程记录**冻结**的独立数据。
+ *
+ * - 随助手占位消息持久化：重试沿用原快照，不读取最新课程替换旧轮配置；课程修改只影响**新轮**。
+ * - `resources` 只承载"登记引用"信息（kind/label/可用性），**不代表内容已解析、已检索或已传给模型**。
+ * - 真实请求链路：快照渲染为一条 `system` 消息插在请求 messages 最前（见 chat-service/chat-stream）。
+ */
+export interface TurnCourseSnapshot {
+  courseId: string;
+  name: string;
+  /** 课程约定（course.instructions），按上限截断 */
+  conventions: string;
+  /** 大纲摘要（covered 为学员手判，不推断掌握度） */
+  syllabus: { total: number; covered: number; nextTitle: string | null };
+  /** 仅登记引用：不代表资源内容已解析/已检索/已传给模型 */
+  resources: { kind: string; label: string; availability: 'available' | 'missing' | 'unknown' }[];
+  frozenAt: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: ChatRole;
@@ -182,12 +201,44 @@ export interface ChatMessage {
   asks?: AskUserInteraction[];
   /** 本轮产物（artifact 事件按 id 幂等更新；随会话持久化，刷新只恢复不重放） */
   artifacts?: ChatArtifact[];
+  /** 本轮冻结的课程快照（发送时生成，重试沿用；未归属会话/课程不可用时缺省） */
+  courseContext?: TurnCourseSnapshot;
+  /**
+   * 本轮请求的预算账目（CHAT-CONTEXT-BUDGET v1）：如实记录**实际发送时**的裁剪行为。
+   * 全部为**字符估算**（1 token ≈ 2 字符的保守估计），不是精确 token 计数；历史原文不受影响。
+   */
+  requestBudget?: RequestBudgetRecord;
   /** 轮级计时（S3）：开始=助手占位创建；结束=end/error/取消收尾（完成后冻结时长显示） */
   startedAt?: string;
   finishedAt?: string;
   finishReason?: string;
   usage?: { inputTokens?: number | null; outputTokens?: number | null };
   error?: ChatMessageError;
+}
+
+/**
+ * 本轮请求的预算账目（CHAT-CONTEXT-BUDGET v1；随助手消息持久化，刷新可核）。
+ *
+ * 语义边界：
+ * - `inputBudgetChars` 由模型档案的 `contextTokens/maxOutputTokens` 估算而来，并受后端总长度上限约束；
+ * - 裁剪顺序为「课程动态字段 → 旧历史 → 课程块整体丢弃」，当前问题与单条消息完整性不在裁剪范围内；
+ * - 账目只记录**发送时**的事实，不反向改写课程数据、不改写历史消息正文。
+ */
+export interface RequestBudgetRecord {
+  /** 实际发送的字符总数（课程块 + 历史 + 当前问题） */
+  totalChars: number;
+  /** 本轮采用的输入预算（字符） */
+  inputBudgetChars: number;
+  /** 后端单条消息字符上限（apps/api/app/schemas/chat.py: MAX_MESSAGE_CHARS） */
+  maxMessageChars: number;
+  /** 后端消息总长度字符上限（同文件：MAX_TOTAL_CHARS） */
+  maxTotalChars: number;
+  /** 因预算被丢弃的旧历史消息条数（不包含当前问题） */
+  historyDroppedMessages: number;
+  /** 课程块被裁剪的动态字段（如 name/conventions/syllabus/resourceLabels/resourceItems） */
+  courseTrimmedFields: string[];
+  /** 课程块整体无法容纳而被丢弃：本轮**未携带**课程上下文（如实标注，不伪造完整上下文） */
+  courseDropped: boolean;
 }
 
 export interface Conversation {
@@ -199,6 +250,11 @@ export interface Conversation {
   mode?: ChatServiceKind;
   /** S5-A：学习空间归档位——聊天侧边栏隐藏已归档会话，/space/chat-history 可归档/恢复 */
   archived?: boolean;
+  /**
+   * 课程归属（H1-COURSE-SESSIONS v1）：稳定 courseId；缺失/空串 = 未归属（旧会话保持未归属，
+   * 不按标题、最近访问或 URL 猜测，也不因出现在某课程页而被改写）。
+   */
+  courseId?: string;
   id: string;
   title: string;
   messages: ChatMessage[];
@@ -212,6 +268,8 @@ export interface ConversationMeta {
   messageCount: number;
   createdAt: string;
   updatedAt: string;
+  /** 课程归属（缺失 = 未归属）：课程页按此过滤本课程会话 */
+  courseId?: string;
 }
 
 /** 对话上下文预算：1 token ≈ 2 个字符的保守估算（中文） */

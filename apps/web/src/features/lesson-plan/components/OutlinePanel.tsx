@@ -1,7 +1,6 @@
 'use client';
 import {
   Check,
-  PanelLeftClose,
   SlidersHorizontal,
   ListTree,
   ShieldCheck,
@@ -17,7 +16,6 @@ export function OutlinePanel() {
     active,
     layoutTab,
     setLayoutTab,
-    setCollapsed,
     fontSize,
     setFontSize,
     fileInput,
@@ -27,16 +25,10 @@ export function OutlinePanel() {
   } = useLessonEditor();
   return (
     <>
-      <aside className="outline-panel">
+      {/* 折叠控件唯一存在于 EditorPanel 顶部；此面板只保留标题与内容 */}
+      <aside className="outline-panel" id="lesson-config-panel">
         <div className="outline-heading">
           <span>教案配置</span>
-          <button
-            className="icon-button"
-            aria-label="收起教案配置"
-            onClick={() => setCollapsed(true)}
-          >
-            <PanelLeftClose size={17} />
-          </button>
         </div>
         <div className="segmented">
           <button

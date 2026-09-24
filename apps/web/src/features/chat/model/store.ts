@@ -1,6 +1,5 @@
 import { createStore } from 'zustand/vanilla';
 import {
-  contextBudgetChars,
   type AskUserAnswer,
   type AskUserCardStatus,
   type AskUserDraft,
@@ -11,6 +10,7 @@ import {
   type ConversationMeta,
   type ToolCallRecord,
   type TraceStageRecord,
+  type TurnCourseSnapshot,
   type TurnExtensionSnapshot,
 } from '@/contracts/chat';
 import { createIdbChatRepository, type ChatRepository, toMeta } from '@/services/chat-repository';
@@ -22,7 +22,12 @@ import {
   type ChatServiceEvent,
   type ChatToolCall,
 } from './chat-service';
-import { selectMessagesForRequest } from './context-budget';
+import {
+  buildChatRequest,
+  requestHistory,
+  type BuildRequestResult,
+} from './request-budget';
+import { buildNewConversation, resolveCourseSnapshot } from '@/services/course-session';
 
 export interface ChatProfileSelection {
   id: string;
@@ -41,6 +46,19 @@ export interface ChatState {
   ready: boolean;
   loadError: string | null;
   storageWarning: string | null;
+  /** 课程上下文不可用时的如实提示（H1-COURSE-SESSIONS v1）；null = 无提示 */
+  courseContextWarning: string | null;
+  /**
+   * 请求构建失败时的可读提示（CHAT-CONTEXT-BUDGET v1）：当前问题超出本轮可用预算，
+   * **未发送任何请求**，草稿与历史保持原样，可修改后重发；null = 无提示。
+   */
+  budgetNotice: string | null;
+  /** 关闭预算提示（只清提示，不改动草稿、历史与会话归属） */
+  dismissBudgetNotice(): void;
+  /** 当前会话的课程归属（稳定 courseId；缺失 = 未归属）；供聊天页展示与"返回课程" */
+  activeCourseId: string | null;
+  /** 关闭"课程上下文不可用"提示（只清提示，不改变会话归属与历史） */
+  dismissCourseContextWarning(): void;
   mode: ChatServiceKind;
   conversations: ConversationMeta[];
   activeId: string | null;
@@ -49,7 +67,11 @@ export interface ChatState {
   draft: string;
   modelProfileId: string | null;
   init(): Promise<void>;
-  newConversation(): void;
+  /**
+   * 新建会话。`options.courseId` 只在课程页创建时传入（稳定归属，不因页面停留自动绑定）；
+   * 不带参数即普通未归属会话。
+   */
+  newConversation(options?: { courseId?: string; title?: string }): void;
   selectConversation(id: string): Promise<void>;
   renameConversation(id: string, title: string): Promise<void>;
   removeConversation(id: string): Promise<void>;
@@ -109,7 +131,22 @@ export function createChatStore(deps: ChatDeps = {}) {
   /** 当前进行中的追问提交（R11：结果只归属发起时的身份，不持久化） */
   let activeSubmissionId: string | null = null;
   /** 当前等待回答的追问（运行上下文，不持久化） */
-
+  /**
+   * 流式文本的 UI 提交合并（UX-PERF-CLOSEOUT v1，长推理流卡顿）。
+   *
+   * 每个增量都单独提交会让浏览器对**整段增长中的推理文本**重做一次换行布局：
+   * 实测 50k 字推理轮 2000 次提交 → 布局 11.7s、脚本 2.2s。这里按「前缘立即 +
+   * 尾部合并」节流：首个增量立即可见（首个可见增量延迟不变差），其后最多每
+   * `STREAM_COMMIT_INTERVAL_MS` 提交一次，**可见更新时延上限就是该值**。
+   * 缓冲按顺序保存每一段（推理/正文），提交时按原顺序折叠，事件顺序与原文不丢；
+   * 任何非文本事件、终止/停止/切换会话/落盘前都先 flush，保证不吞增量。
+   */
+  let pendingStream: {
+    apply: (update: (m: ChatMessage) => ChatMessage) => void;
+    segments: { text?: string; reasoning?: string }[];
+  } | null = null;
+  let streamCommitTimer: ReturnType<typeof setTimeout> | null = null;
+  let lastStreamCommitAt = -Infinity;
   return createStore<ChatState>()((set, get) => {
     const TOOL_TERMINAL: ToolCallRecord['status'][] = ['done', 'error', 'cancelled'];
     /** 工具事件按 callId 去重更新；已终态（done/error/cancelled）的卡片不接受重开或改写 */
@@ -366,6 +403,50 @@ export function createChatStore(deps: ChatDeps = {}) {
         }
       }
     }
+    /**
+     * 把合并缓冲里的文本按原顺序折叠进消息（一次 change = 一次 UI 提交）。
+     * 只在消息仍为 streaming 时写入；轮次已终态时丢弃（迟到增量本来就该丢）。
+     */
+    function flushStreamText() {
+      if (streamCommitTimer) {
+        clearTimeout(streamCommitTimer);
+        streamCommitTimer = null;
+      }
+      const pending = pendingStream;
+      pendingStream = null;
+      if (!pending || pending.segments.length === 0) return;
+      const { apply, segments } = pending;
+      lastStreamCommitAt = Date.now();
+      apply((m) => {
+        if (m.status !== 'streaming') return m;
+        let next = m;
+        for (const segment of segments) {
+          if (segment.reasoning)
+            next = { ...next, reasoning: (next.reasoning ?? '') + segment.reasoning };
+          else if (segment.text) next = appendTurnText(next, segment.text);
+        }
+        return next;
+      });
+    }
+    /** 入队一个文本增量：前缘立即提交，其后按 STREAM_COMMIT_INTERVAL_MS 合并 */
+    const STREAM_COMMIT_INTERVAL_MS = 80;
+    function queueStreamSegment(
+      apply: (update: (m: ChatMessage) => ChatMessage) => void,
+      segment: { text?: string; reasoning?: string },
+    ) {
+      if (!pendingStream) pendingStream = { apply, segments: [] };
+      pendingStream.segments.push(segment);
+      const elapsed = Date.now() - lastStreamCommitAt;
+      if (elapsed >= STREAM_COMMIT_INTERVAL_MS) {
+        flushStreamText();
+        return;
+      }
+      if (!streamCommitTimer)
+        streamCommitTimer = setTimeout(() => {
+          streamCommitTimer = null;
+          flushStreamText();
+        }, STREAM_COMMIT_INTERVAL_MS - elapsed);
+    }
     function publish() {
       // 本 store 的 docs 只包含自己模式的数据（R2），无需再按模式过滤。
       // S5-A：已归档会话不出现在聊天侧边栏（/space/chat-history 管理），仍可经深链打开
@@ -374,6 +455,7 @@ export function createChatStore(deps: ChatDeps = {}) {
         messages: active?.messages ?? [],
         draft: active?.draft ?? '',
         modelProfileId: active?.modelProfileId ?? null,
+        activeCourseId: active?.courseId ?? null,
         conversations: [...docs.values()]
           .filter((c) => !c.archived)
           .map(toMeta)
@@ -393,6 +475,7 @@ export function createChatStore(deps: ChatDeps = {}) {
         }, 400);
     }
     async function flush(): Promise<boolean> {
+      flushStreamText(); // 落库前先提交未进 UI 的增量，保证刷新/离开时不丢内容
       if (timer) {
         clearTimeout(timer);
         timer = null;
@@ -401,25 +484,35 @@ export function createChatStore(deps: ChatDeps = {}) {
       // 旧实现"保存中直接返回在途 Promise"会取消挂起的防抖 timer，
       // 导致保存期间到达的变更无人重排（点击面板/下载触发的 blur→flush 即可复现，
       // 刷新后数据丢失）。改为链式排队：后到的 flush 在前一个完成后处理剩余脏数据。
+      //
+      // UX-PERF-CLOSEOUT v1（长推理流卡顿）：每轮只保存"进入时脏快照"。
+      // 旧实现的 `while (dirty.size)` 会在持续增量下把新脏数据不断接进同一轮循环，
+      // 实测一次 50k 字推理轮写了 184 次 / 4.10MB（约每 170ms 一次整表结构化克隆）。
+      // 改为快照按轮保存后退出：保存期间新增的脏数据仍留在 dirty 中，且 change() 在
+      // timer 已清空时会重新安排 400ms 落盘，终态（end/error/停止/断流）与
+      // 切会话/离开页面路径上的 flush 都以 generation===null 进入循环到清空，
+      // 因此"显式 flush 落全部"的契约在需要它的时机不变。
       const tail = saving ?? Promise.resolve(true);
       const next = tail.then(async () => {
-        while (dirty.size) {
-          const id = dirty.values().next().value!;
-          const snapshot = docs.get(id)!;
-          dirty.delete(id);
-          try {
-            const revision = await repo.save(snapshot, snapshot.revision ?? 0);
-            const latest = docs.get(id);
-            if (latest) docs.set(id, { ...latest, revision });
-          } catch (error) {
-            dirty.add(id);
-            set({
-              storageWarning:
-                error instanceof Error ? error.message : '保存失败，当前内容仍保留在页面中。',
-            });
-            return false;
+        do {
+          for (const id of [...dirty]) {
+            const snapshot = docs.get(id);
+            dirty.delete(id);
+            if (!snapshot) continue;
+            try {
+              const revision = await repo.save(snapshot, snapshot.revision ?? 0);
+              const latest = docs.get(id);
+              if (latest) docs.set(id, { ...latest, revision });
+            } catch (error) {
+              dirty.add(id);
+              set({
+                storageWarning:
+                  error instanceof Error ? error.message : '保存失败，当前内容仍保留在页面中。',
+              });
+              return false;
+            }
           }
-        }
+        } while (dirty.size && generation === null);
         set({ storageWarning: null });
         return true;
       });
@@ -433,6 +526,7 @@ export function createChatStore(deps: ChatDeps = {}) {
     function stop() {
       const active = generation;
       if (!active) return;
+      flushStreamText(); // 停止前提交尚未进入 UI 的增量，避免丢最后一段
       generation = null;
       active.terminal = true; // R3：取消即终态，此后迟到事件不再修改消息
       active.endReason = 'stop';
@@ -451,23 +545,22 @@ export function createChatStore(deps: ChatDeps = {}) {
       set({ sending: false });
       void flush();
     }
-    function create() {
+    function create(options?: { courseId?: string; title?: string }) {
       stop();
       selectionEpoch++;
       const id = uid();
-      docs.set(id, {
+      // 会话形状由 services/course-session.buildNewConversation 统一给出（课程页新建也用它，不建第二套形状）
+      docs.set(
         id,
-        title: '新的对话',
-        messages: [],
-        createdAt: now(),
-        updatedAt: now(),
-        schemaVersion: 1,
-        revision: 0,
-        draft: '',
-        modelProfileId: null,
-        mode: 'real',
-      });
-      set({ activeId: id });
+        buildNewConversation({
+          id,
+          ...(options?.courseId ? { courseId: options.courseId } : {}),
+          ...(options?.title ? { title: options.title } : {}),
+          now: now(),
+        }),
+      );
+      // 新建会话：课程上下文警告属于上一轮/上一会话，随切换清除（A1 r1 F2）
+      set({ activeId: id, courseContextWarning: null, budgetNotice: null });
       change(id, (conversation) => conversation);
     }
     /**
@@ -494,18 +587,16 @@ export function createChatStore(deps: ChatDeps = {}) {
             ...c,
             messages: c.messages.map((m) => (m.id === token.assistantId ? update(m) : m)),
           }));
+        // 文本增量按顺序进合并缓冲；其他事件（阶段/工具/追问/产物/终态）先提交缓冲区，
+        // 保证"事件顺序严格不变"与"不吞增量"
+        const isStreamText = event.type === 'text' || event.type === 'reasoning';
+        if (!isStreamText) flushStreamText();
         switch (event.type) {
           case 'text':
-            if (event.delta)
-              patch((m) => (m.status === 'streaming' ? appendTurnText(m, event.delta) : m));
+            if (event.delta) queueStreamSegment(patch, { text: event.delta });
             break;
           case 'reasoning':
-            if (event.delta)
-              patch((m) =>
-                m.status === 'streaming'
-                  ? { ...m, reasoning: (m.reasoning ?? '') + event.delta }
-                  : m,
-              );
+            if (event.delta) queueStreamSegment(patch, { reasoning: event.delta });
             break;
           case 'process':
             // 过程增量：最新一条展示为状态行；完整过程工作区在后续阶段接入
@@ -618,13 +709,15 @@ export function createChatStore(deps: ChatDeps = {}) {
         }
       };
     }
-    async function run(
-      profile: ChatProfileSelection,
-      replyToId: string,
-      extensions?: TurnExtensionSnapshot,
-    ) {
+    /** 本轮已构建好的请求（由 buildChatRequest 产出；request.messages 与实际发送逐条一致） */
+    interface PreparedTurn {
+      request: Extract<BuildRequestResult, { ok: true }>;
+      extensions?: TurnExtensionSnapshot;
+      courseSnapshot?: TurnCourseSnapshot;
+    }
+    async function run(profile: ChatProfileSelection, replyToId: string, prepared: PreparedTurn) {
+      const { extensions, courseSnapshot } = prepared;
       const id = get().activeId!;
-      const conversation = docs.get(id)!;
       const assistantId = uid();
       const turnId = uid();
       const token = {
@@ -637,10 +730,10 @@ export function createChatStore(deps: ChatDeps = {}) {
       };
       generation = token;
       set({ sending: true });
-      const history = selectMessagesForRequest(
-        conversation.messages.filter((m) => !m.superseded && m.status !== 'error'),
-        contextBudgetChars(profile.contextTokens, profile.maxOutputTokens),
-      );
+      // CHAT-CONTEXT-BUDGET v1：请求体在**发送前**已由 buildChatRequest 统一构建
+      // （课程块 + 历史 + 当前问题同一预算），这里只做透传，绝不二次裁剪，
+      // 保证 requestBudget 账目与实际发送内容逐字段可核。
+      const requestMessages = prepared.request.messages;
       change(id, (c) => ({
         ...c,
         messages: [
@@ -656,6 +749,10 @@ export function createChatStore(deps: ChatDeps = {}) {
             modelProfileId: profile.id,
             // 快照随消息冻结并持久化：重试沿用，目录后续变化不影响本轮与历史展示
             ...(extensions ? { extensions: structuredClone(extensions) } : {}),
+            // 课程快照同样随本轮冻结：课程改名/改约定只影响**新轮**，重试沿用原快照
+            ...(courseSnapshot ? { courseContext: structuredClone(courseSnapshot) } : {}),
+            // 本次请求的字符账目（字符估算）：随消息持久化，刷新可核
+            requestBudget: structuredClone(prepared.request.record),
           },
         ],
       }));
@@ -665,7 +762,7 @@ export function createChatStore(deps: ChatDeps = {}) {
           {
             sessionId: id,
             turnId,
-            messages: history,
+            messages: requestMessages,
             modelProfileId: profile.id,
             maxOutputTokens: profile.maxOutputTokens ?? undefined,
             ...(extensions ? { extensions: structuredClone(extensions) } : {}),
@@ -708,6 +805,7 @@ export function createChatStore(deps: ChatDeps = {}) {
       // 终态只进入一次（交付复核 P2）：end/error 已给出明确终态时，
       // 通用断流兜底不得覆盖 endReason（否则合法同步续答的迟到确认会被误拒为断流）
       if (token.terminal || token.endReason) return;
+      flushStreamText(); // 断流也要把已收到的增量提交进 UI
       token.terminal = true; // 流已结束（含未收到 end 的断流）：本轮终态
       token.endReason = reason === 'client-stop' ? 'stop' : 'disconnect';
       change(id, (c) => ({
@@ -738,6 +836,7 @@ export function createChatStore(deps: ChatDeps = {}) {
       if (generation !== token) return;
       // 终态只进入一次：end/stop 已给出明确终态时，异常收尾不得改判（幂等进入条件）
       if (token.terminal || token.endReason) return;
+      flushStreamText(); // 异常收尾也要把已收到的增量提交进 UI
       token.terminal = true; // 异常收尾：本轮终态
       token.endReason = 'error';
       change(id, (c) => ({
@@ -841,6 +940,9 @@ export function createChatStore(deps: ChatDeps = {}) {
       ready: false,
       loadError: null,
       storageWarning: null,
+      courseContextWarning: null,
+      budgetNotice: null,
+      activeCourseId: null,
       mode: 'real',
       conversations: [],
       activeId: null,
@@ -851,9 +953,11 @@ export function createChatStore(deps: ChatDeps = {}) {
       waitingInteractionId: null,
       submittingReply: false,
       init: runInit,
-      newConversation: create,
+      newConversation: (options?: { courseId?: string; title?: string }) => create(options),
+      dismissCourseContextWarning: () => set({ courseContextWarning: null }),
+      dismissBudgetNotice: () => set({ budgetNotice: null }),
       async selectConversation(id) {
-        stop();
+        stop(); // 内部先提交缓冲
         const epoch = ++selectionEpoch;
         if (!(await flush())) return;
         try {
@@ -861,7 +965,8 @@ export function createChatStore(deps: ChatDeps = {}) {
           if (c && epoch === selectionEpoch) {
             // R5：再次载入历史走同一套恢复语义，不复活无人执行的 streaming/running
             docs.set(id, normalizeLoaded(c));
-            set({ activeId: id });
+            // 切换会话：清掉上一会话遗留的课程上下文警告（警告与该轮绑定，不跨会话保留）
+            set({ activeId: id, courseContextWarning: null, budgetNotice: null });
             publish();
           }
         } catch {
@@ -871,7 +976,7 @@ export function createChatStore(deps: ChatDeps = {}) {
       /** 见 ChatState.deactivate：只清当前会话，不动任何持久化数据。 */
       deactivate() {
         stop();
-        set({ activeId: null });
+        set({ activeId: null, courseContextWarning: null, budgetNotice: null });
         publish();
       },
       async renameConversation(id, title) {
@@ -885,7 +990,7 @@ export function createChatStore(deps: ChatDeps = {}) {
         try {
           await repo.remove(id, doc?.revision ?? 0);
           docs.delete(id);
-          if (get().activeId === id) set({ activeId: null });
+          if (get().activeId === id) set({ activeId: null, courseContextWarning: null });
           publish();
         } catch (error) {
           set({ storageWarning: error instanceof Error ? error.message : '删除失败。' });
@@ -907,6 +1012,23 @@ export function createChatStore(deps: ChatDeps = {}) {
         const effectiveProfile = resolveProfile(profile);
         if (!effectiveProfile) return; // 真实模式下缺少模型档案：由界面提示原因，不静默发送
         if (!get().activeId) create();
+        // 课程上下文：**发送时**按当前会话归属现读课程并冻结快照（新轮用新快照）
+        const activeCourseId = docs.get(get().activeId!)?.courseId;
+        const courseResolution = resolveCourseSnapshot(activeCourseId);
+        if (courseResolution.state === 'ok') {
+          set({ courseContextWarning: null });
+        } else if (courseResolution.state === 'missing') {
+          set({
+            courseContextWarning:
+              '所属课程已删除或不可用：本轮未附带课程上下文，已按普通问答发送（历史会话与消息保留）。',
+          });
+        } else if (courseResolution.state === 'unavailable') {
+          set({
+            courseContextWarning: `课程目录读取失败（${courseResolution.error}）：本轮未附带课程上下文，已按普通问答发送。`,
+          });
+        } else {
+          set({ courseContextWarning: null });
+        }
         const userId = uid();
         // 发送即冻结：深拷贝为独立数据，与扩展目录后续变化解耦
         const snapshot = extensions ? structuredClone(extensions) : undefined;
@@ -915,6 +1037,22 @@ export function createChatStore(deps: ChatDeps = {}) {
           ? `[附件] ${extensions.attachments.map((item) => item.filename).join('、')}`
           : `[引用会话] ${(extensions?.historyRefs ?? []).map((item) => item.title).join('、')}`;
         const userLabel = text.trim() || fallbackLabel;
+        const courseSnapshot = courseResolution.state === 'ok' ? courseResolution.snapshot : undefined;
+        // CHAT-CONTEXT-BUDGET v1：**先预检构建**再动任何状态——用候选问题 + 现有历史 +
+        // 本轮课程快照走同一构建器。失败（当前问题放不下）时只给可读提示：
+        // 不清草稿、不入库用户消息、不建助手占位、不置 sending，用户改短后可重发。
+        const built = buildChatRequest({
+          history: requestHistory(docs.get(get().activeId!)?.messages ?? []),
+          question: userLabel,
+          courseSnapshot,
+          contextTokens: effectiveProfile.contextTokens,
+          maxOutputTokens: effectiveProfile.maxOutputTokens,
+        });
+        if (!built.ok) {
+          set({ budgetNotice: built.message });
+          return;
+        }
+        set({ budgetNotice: null });
         change(get().activeId!, (c) => ({
           ...c,
           draft: '',
@@ -927,7 +1065,11 @@ export function createChatStore(deps: ChatDeps = {}) {
         // R20：此刻轮次已被接纳（用户消息已入库）——同步通知调用方清理本次消耗的一次性选择；
         // 上方任何拒绝路径都会提前返回，不会误触发清理
         onAccepted?.();
-        await run(effectiveProfile, userId, snapshot);
+        await run(effectiveProfile, userId, {
+          request: built,
+          ...(snapshot ? { extensions: snapshot } : {}),
+          ...(courseSnapshot ? { courseSnapshot } : {}),
+        });
       },
       stop,
       setAskDraft(interactionId, questionId, draft) {
@@ -983,21 +1125,39 @@ export function createChatStore(deps: ChatDeps = {}) {
           return;
         const user = [...messages].reverse().find((m) => m.role === 'user');
         if (!user) return;
-        change(get().activeId!, (c) => ({
-          ...c,
-          // 失败占位默认移除；带过程记录或追问交流的失败尝试必须保留（R12：可能没有正文）
-          messages: c.messages
-            .filter(
-              (m) =>
-                m.id !== id ||
-                m.content !== '' ||
-                (m.toolCalls?.length ?? 0) > 0 ||
-                (m.asks?.length ?? 0) > 0,
-            )
-            .map((m) => (m.id === id ? { ...m, superseded: true } : m)),
-        }));
-        // 重试沿用原请求快照，不读取最新目录替换旧配置；想采用新配置需重新发送
-        await run(effectiveProfile, user.id, last.extensions);
+        // 失败占位默认移除；带过程记录或追问交流的失败尝试必须保留（R12：可能没有正文）
+        const settled = messages
+          .filter(
+            (m) =>
+              m.id !== id ||
+              m.content !== '' ||
+              (m.toolCalls?.length ?? 0) > 0 ||
+              (m.asks?.length ?? 0) > 0,
+          )
+          .map((m) => (m.id === id ? { ...m, superseded: true } : m));
+        // CHAT-CONTEXT-BUDGET v1：重试同样**先预检**，并用旧轮冻结的课程快照
+        // （旧轮的超长快照也经同一构建器安全渲染；不要求清库）。
+        // 构建失败：保留失败态与重试入口，只给可读提示，不改动任何消息。
+        const built = buildChatRequest({
+          history: requestHistory(settled),
+          question: user.content,
+          courseSnapshot: last.courseContext,
+          contextTokens: effectiveProfile.contextTokens,
+          maxOutputTokens: effectiveProfile.maxOutputTokens,
+        });
+        if (!built.ok) {
+          set({ budgetNotice: built.message });
+          return;
+        }
+        set({ budgetNotice: null });
+        // 落库的正是构建请求时所用的那一份消息（同一变换只算一次，账目与历史可逐条核对）
+        change(get().activeId!, (c) => ({ ...c, messages: settled }));
+        // 重试沿用原请求快照（含课程快照），不读取最新目录替换旧配置；想采用新配置需重新发送
+        await run(effectiveProfile, user.id, {
+          request: built,
+          ...(last.extensions ? { extensions: last.extensions } : {}),
+          ...(last.courseContext ? { courseSnapshot: last.courseContext } : {}),
+        });
       },
       async retryLast(profile) {
         const last = get().messages.at(-1);

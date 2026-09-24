@@ -143,14 +143,26 @@ test('手机跨板块打开抽屉，菜单字体和尺寸沿用学习问答', as
       nodes.map((node) => {
         const css = getComputedStyle(node),
           box = node.getBoundingClientRect();
+        const group = node.closest('.mobile-nav-group');
+        const groups = group
+          ? [...group.parentElement.querySelectorAll('.mobile-nav-group')]
+          : [];
+        const siblings = group ? [...group.querySelectorAll('.global-nav-item')] : [];
+        const index = siblings.indexOf(node);
+        const previousInGroup = index > 0 ? siblings[index - 1].getBoundingClientRect() : null;
         return {
           x: box.x,
-          y: box.y,
           width: box.width,
           height: box.height,
           font: css.fontFamily,
           fontSize: css.fontSize,
           gap: css.gap,
+          // 绝对 y 跨板块不再相等：学习问答的抽屉里多了“学习记录”区域
+          // （UX-PERF-CLOSEOUT v1），其下方区块整体平移。改为比较
+          // 分组序号 + 组内间距——同一套菜单在插入固定高度区块后，
+          // 分组结构与组内纵向节奏必须完全一致。
+          groupIndex: groups.indexOf(group),
+          pitchInGroup: previousInGroup ? box.y - previousInGroup.y : 0,
         };
       }),
     );

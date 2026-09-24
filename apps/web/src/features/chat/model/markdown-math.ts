@@ -1,4 +1,27 @@
 /** 仅转换展示内容；原消息、复制和导出保留供应商原文。代码区不参与公式归一化。 */
+function collapseDoubleEscapedDelimiters(text: string, open: string, close: string) {
+  let result = '';
+  let cursor = 0;
+  while (cursor < text.length) {
+    const start = text.indexOf(open, cursor);
+    if (start < 0) return result + text.slice(cursor);
+    if (start > 0 && text[start - 1] === '\\') {
+      result += text.slice(cursor, start + 1);
+      cursor = start + 1;
+      continue;
+    }
+    const end = text.indexOf(close, start + open.length);
+    if (end < 0 || (end > 0 && text[end - 1] === '\\')) {
+      result += text.slice(cursor, start + open.length);
+      cursor = start + open.length;
+      continue;
+    }
+    result += `${text.slice(cursor, start)}${open.slice(1)}${text.slice(start + open.length, end)}${close.slice(1)}`;
+    cursor = end + close.length;
+  }
+  return result;
+}
+
 export function normalizeMathDelimiters(source: string): string {
   const protectedSpans: string[] = [];
   const marker = `\u0000MATH${source.length}\u0000`;
@@ -9,6 +32,10 @@ export function normalizeMathDelimiters(source: string): string {
     protect,
   );
   text = text.replace(/(`+)[^`\n]*?\1/g, protect).replace(/^(?: {4}|\t).*$/gm, protect);
+  // 一些供应商会把公式定界符本身再转义一层（\\(...\\) / \\[...\\]）。
+  // 仅对完整成对的定界符折叠这一层，不改消息原文。
+  text = collapseDoubleEscapedDelimiters(text, '\\\\(', '\\\\)');
+  text = collapseDoubleEscapedDelimiters(text, '\\\\[', '\\\\]');
   // 支持模型常用的 \(...\)、\[...\]，以及 $$ 内多包一层 \(...\) 的输出。
   text = text.replace(
     /\$\$\s*\\\(([\s\S]*?)\\\)\s*\$\$/g,

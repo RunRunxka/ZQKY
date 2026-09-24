@@ -1,0 +1,47 @@
+{
+  "task": "H1-BOOKS-HARDEN v1",
+  "revision": "r2（采纳独立验收 A1 挑刺后的修订候选：修复写入落地校验、笔记落地校验、失权文案、续跑提示不再与失败矛盾；相对 r1 仅 book-generation.ts / books-store.ts / BooksRoute.tsx / books-harden.spec.ts / 两个单测变化）",
+  "revisionHistory": {
+    "r1": "首个冻结候选（M22-01～06 修复 + 探针反转回归 + 新增 e2e）。A1 只读复验：核心 6 项与全部聚合数字独立成立（174/0 由其复现），提出 2 条文档对账 fail + 7 条挑刺（BUILD_ID pqzZk9dNwqAvuoc0KGNIH）",
+    "r2": "按 A1 挑刺修订：①修复路径逐块写后读回校验（书籍不可写时 failed，不计入 writtenBlockIds）②setUserNote 写后读回校验返回值 ③失权提示改为「已失去或无法确认」 ④自动续跑提示在句柄已 failed 时不显示 ⑤文档计数/口径修正。产品改动 3 文件 + e2e 断言 1 处 + 单测 2 例"
+  },
+  "frozenAt": "2026-09-22T14:12:00+08:00",
+  "baseCommit": "40491be86f366cb13bd424d365506200ac5e8527",
+  "branch": "main",
+  "buildId": "cTTq7b-No7rnD-HNmoyQc",
+  "verifiedRuns": {
+    "typecheck": "pass",
+    "lint": "pass(0 warnings)",
+    "unit": "48 files / 381 tests pass",
+    "build": "pass",
+    "e2eFull": "174 passed / 0 failed / 0 flaky（stats.expected=174, unexpected=0, duration 324963ms）",
+    "e2eNew": "tests/e2e/books-harden.spec.ts 6 passed",
+    "reviewProbes": "3/3 按预期失败（断言缺陷存在，修复后不再复现）"
+  },
+  "evidence": {
+    "fullE2E": "_work/harden-full-e2e-r2.txt、_work/harden-full-e2e-r2-results.json（本地证据，不入库）",
+    "probes": "docs/qa/H1-BOOKS-HARDEN/probe-reversal/probe-run-after-fix.txt",
+    "independentAcceptance": "docs/qa/H1-BOOKS-HARDEN/A1-REPORT.md（r1 全文 + 总控处置 + r2 复验记录）"
+  },
+  "note": "候选 = 本批工作树改动（基线 40491be）。冻结后若任一产品文件改动，必须重新冻结并复验；A1 在 r2 上做定向复验并在结束时复校指纹。apps/api 零改动，API 测试未重跑（沿用本轮基线 181）。apps/web/next-env.d.ts 为构建生成文件，不随本批提交（提交前还原）。",
+  "fileSha256": {
+    "apps/web/src/services/book-generation.ts": "dc7fdfec926949715264650098463346726049541b91ddfc6ede48af3eac46ba",
+    "apps/web/src/services/books-store.ts": "13dedcb2693e5620c987b8bfb65d5e721c15be7b33bf8855eb0baae4c100ebca",
+    "apps/web/src/features/books/BooksRoute.tsx": "227ca815ce5fce91d1a5d4efb4dfacf19b63effe6754e94acf6f1dc1985c8d21",
+    "apps/web/src/features/books/PageReader.tsx": "895f38895fcd680d3a61f56f0be148f7e346f2a1606c055b038831e5085b8ec2",
+    "apps/web/src/services/book-generation.test.ts": "99d3870db381d9907a3fb7a67115bb176c94d0e516ccdd3c7b60567b93792752",
+    "apps/web/src/services/books-store.test.ts": "cc778caa00f16224d729d4157f84285be821b6a9b40619a6b5aaedc6573388aa",
+    "apps/web/src/services/books-store.harden.test.ts": "53027df606f61842287f11d0765a8828b783c5f1720141c2be332c75ec7a701c",
+    "apps/web/src/features/books/PageReader.test.tsx": "c71f5c8f75c0a3441c02e4592d99e8198ff607e4e6b633ed223adb73c33479d6",
+    "apps/web/src/features/books/BooksRoute.test.tsx": "89139fcb0c701fde958d3cbb3167b82908b38ebae4c3b1936954a19ed5211cca",
+    "apps/web/src/features/books/BookGenerationStrip.test.tsx": "64eec28d68b834191f4e0e01c499292a9e0e32d67a5cde0b71cfc2724717960b",
+    "tests/e2e/books-harden.spec.ts": "0361711b39ef74e32d4b61e44f08d183ba8d885b21f6aea947771648f32da557",
+    "tests/e2e/books-pipeline.spec.ts": "2dad42df19a6d17879e9b1e143be6d3c7ba6eec2b309f859dc03e71ffd07f10d"
+  },
+  "notIncluded": [
+    "apps/api/**（零改动）",
+    "features/books/styles/*.css（本批未改样式；新增界面复用既有类）",
+    "BookGenerationStrip.tsx / BookPausedBanner.tsx / BookBlockFailure.tsx（未改动）",
+    "apps/web/next-env.d.ts（构建生成文件，提交前还原）"
+  ]
+}

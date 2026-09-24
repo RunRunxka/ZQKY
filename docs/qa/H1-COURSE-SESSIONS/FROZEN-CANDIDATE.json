@@ -1,0 +1,63 @@
+{
+  "batch": "H1-COURSE-SESSIONS v1",
+  "frozenAt": "2026-09-22",
+  "branch": "main",
+  "candidateCommit": "701d391",
+  "candidateFullSha": "701d391bde0d1b2a3e3a97e81b2248182378b3d9",
+  "candidateParent": "9d966c3",
+  "candidateTree": "d600f77c01ab3ce721775bdf954e5ebb602a8e5d",
+  "diffStat": "r1 提交 8104654: 14 files +1333/-23；r2 提交 701d391: 8 files +304/-33（产品修复 + 测试补齐 + A1 r1 报告归档）",
+  "buildId": "93TKwQeZ9Av2qkSOC_8aR",
+  "firstBuildIdBeforeFix": "KvvCBGKxFYVt6TGLyuGw8",
+  "checks": {
+    "typecheck": "pass (npm run typecheck: next typegen && tsc --noEmit)",
+    "lint": "pass, 0 warnings (eslint apps/web/src tests scripts --max-warnings=0)",
+    "unit": "51 files / 416 tests passed (NODE_OPTIONS=--no-experimental-webstorage npm run test:unit)",
+    "build": "pass (npm run build) -> BUILD_ID 93TKwQeZ9Av2qkSOC_8aR",
+    "e2eTargeted": "17/17 passed (npx playwright test tests/e2e/course-sessions.spec.ts tests/e2e/books-courses.spec.ts)",
+    "e2eFull": "191 passed / 0 failed / 0 flaky (npx playwright test, 6.4m)",
+    "api": "9 passed (npm run test:api -- tests/test_chat_stream_api.py)",
+    "realProvider": "not_run (no credentials)"
+  },
+  "fingerprintsSha256_16": {
+    "apps/web/src/contracts/chat.ts": "fe2123cdfd53ea23",
+    "apps/web/src/features/chat/model/store.ts": "fa76948f8fee29a6",
+    "apps/web/src/features/chat/ChatWorkspace.tsx": "2dae2b9442227c84",
+    "apps/web/src/features/chat/model/course-context.test.ts": "65c44ba3bc215068",
+    "apps/web/src/features/courses/CourseSessions.tsx": "243253ff8669d4db",
+    "apps/web/src/features/courses/CourseDetail.tsx": "cdc47981a9488861",
+    "apps/web/src/features/courses/CoursesShelf.tsx": "170943ad56090571",
+    "apps/web/src/features/courses/courses.css": "80cb0d3593cbeab6",
+    "apps/web/src/features/reading/ReadingWorkspace.tsx": "b3b40e97c8b3960b",
+    "apps/web/src/services/course-session.ts": "78562a746d455ccb",
+    "apps/web/src/services/course-session.test.ts": "465ae07d097eef1e",
+    "apps/web/src/services/chat-repository.ts": "eeca62d80aa5b02f",
+    "apps/web/src/services/chat-repository.test.ts": "e2a731a66e1ea063",
+    "tests/e2e/course-sessions.spec.ts": "05f9c00dc662f189",
+    "tests/e2e/books-courses.spec.ts": "1f5153530658b5fb",
+    "apps/api/tests/test_chat_stream_api.py": "86ca2645767a67ec"
+  },
+  "scopeExclusions": [
+    "apps/api product code (only a test was added)",
+    "style rules unchanged: the only .css edit is a comment correction in courses.css (no rule/selector/value change)",
+    ".env* / .local-data",
+    "build artifacts (apps/web/.next) and next-env.d.ts"
+  ],
+  "knownLimitations": [
+    "real provider calls: none issued in this batch, credential validity not verified (a .env key name and .local-data/model-config.json connection exist, structure-level check only)",
+    "resource entries are registration-only: not parsed, not retrieved, not sent (RAG not integrated)",
+    "no manual session re-binding / organizing actions (reference has OrganizedSessionList)",
+    "cross-profile concurrency not exercised (per-tab local IndexedDB)",
+    "course context block is appended after the context-budget trim; the 2400-char bound applies to the variable parts — an over-long syllabus unit title (no maxLength in the UI) can push that turn's system text over the limit (upstream error, never fake success)"
+  ],
+  "revision": "r2（关闭 A1 r1 的 F1/F2 后重新冻结）",
+  "supersededCandidates": {
+    "r1": {
+      "commit": "8104654",
+      "tree": "d55e1442fdb0cb04d3d3c2df1147b6c3ff41eb8f",
+      "buildId": "2Rz23h6qbByqaJTSJY4x1",
+      "verdict": "A1 r1 需修订（F1 重复会话窗口 / F2 警告残留）"
+    }
+  },
+  "commitChain": "a45b011（书籍补丁）→ 8104654（r1 课程代码）→ 68af6a0 / 9d966c3（纯文档）→ 701d391（r2 修复）→ a3e050a（纯文档）→ 交付后仅注释/文档订正（无行为变化，未重新构建）"
+}

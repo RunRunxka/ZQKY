@@ -1,10 +1,8 @@
 'use client';
 import { useRef } from 'react';
-import { BarChart3, Check, FileText, Microscope, PenLine, type LucideIcon } from 'lucide-react';
+import { BarChart3, Check, FileText, PenLine, type LucideIcon } from 'lucide-react';
 import {
   QUIZ_QUESTION_TYPE_LABELS,
-  RESEARCH_DEPTH_LABELS,
-  RESEARCH_MODE_LABELS,
   VISUALIZE_RENDER_LABELS,
   type CapabilityFormState,
 } from '@/services/capability-catalog';
@@ -12,7 +10,6 @@ import {
 const CARD_META: Record<string, { icon: LucideIcon; label: string }> = {
   deep_question: { icon: PenLine, label: '出题设置' },
   visualize: { icon: BarChart3, label: '可视化设置' },
-  deep_research: { icon: Microscope, label: '研究设置' },
 };
 
 /**
@@ -20,7 +17,8 @@ const CARD_META: Record<string, { icon: LucideIcon; label: string }> = {
  * 头部（图标 + 名称 + 已确认/必填徽标）、表单体（各能力字段）、
  * 校验错误列表、底部确认区。发送前必须确认；任何字段编辑都会使确认失效
  * （由父级在变更时重置 confirmed，对照参考 page.tsx 行为）。
- * 字段与默认值对照参考 QuizConfigPanel / VisualizeConfigPanel / ResearchConfigPanel。
+ * 字段与默认值对照参考 QuizConfigPanel / VisualizeConfigPanel。
+ * UX-PERF-CLOSEOUT v1：ResearchConfigPanel 随“更多能力”飞出层一并移除。
  */
 export function CapabilityConfigCard({
   capability,
@@ -63,9 +61,6 @@ export function CapabilityConfigCard({
         )}
         {capability === 'visualize' && (
           <VisualizeFields forms={forms} onChange={onChange} />
-        )}
-        {capability === 'deep_research' && (
-          <ResearchFields forms={forms} onChange={onChange} />
         )}
       </div>
       {hasErrors && (
@@ -241,70 +236,6 @@ function VisualizeFields({
           onChange={(e) => set({ style_hint: e.target.value })}
         />
       </label>
-    </>
-  );
-}
-
-function ResearchFields({
-  forms,
-  onChange,
-}: {
-  forms: CapabilityFormState;
-  onChange(next: CapabilityFormState): void;
-}) {
-  const research = forms.deep_research;
-  const set = (patch: Partial<CapabilityFormState['deep_research']>) =>
-    onChange({ ...forms, deep_research: { ...research, ...patch } });
-  return (
-    <>
-      <label className="chat-field-row">
-        <span className="chat-field-label">产出类型</span>
-        <select value={research.mode} onChange={(e) => set({ mode: e.target.value as CapabilityFormState['deep_research']['mode'] })}>
-          <option value="">请选择</option>
-          {RESEARCH_MODE_LABELS.map((item) => (
-            <option key={item.value} value={item.value}>
-              {item.label}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className="chat-field-row">
-        <span className="chat-field-label">研究深度</span>
-        <select value={research.depth} onChange={(e) => set({ depth: e.target.value as CapabilityFormState['deep_research']['depth'] })}>
-          <option value="">请选择</option>
-          {RESEARCH_DEPTH_LABELS.map((item) => (
-            <option key={item.value} value={item.value}>
-              {item.label}
-            </option>
-          ))}
-        </select>
-      </label>
-      {research.depth === 'manual' && (
-        <>
-          <label className="chat-field-row chat-field-slider">
-            <span className="chat-field-label">子问题数量</span>
-            <input
-              type="range"
-              min={2}
-              max={8}
-              value={research.manual_subtopics}
-              onChange={(e) => set({ manual_subtopics: Number(e.target.value) })}
-            />
-            <span className="chat-field-value">{research.manual_subtopics}</span>
-          </label>
-          <label className="chat-field-row chat-field-slider">
-            <span className="chat-field-label">迭代上限</span>
-            <input
-              type="range"
-              min={1}
-              max={5}
-              value={research.manual_max_iterations}
-              onChange={(e) => set({ manual_max_iterations: Number(e.target.value) })}
-            />
-            <span className="chat-field-value">{research.manual_max_iterations}</span>
-          </label>
-        </>
-      )}
     </>
   );
 }

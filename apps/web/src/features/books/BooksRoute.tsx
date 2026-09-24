@@ -32,10 +32,12 @@ import {
   type ReplicaBook,
 } from '@/services/books-store';
 import {
-  getRun,
   getLease,
+  getRun,
+  getRunExit,
   resumeRun,
   startRun,
+  stopRun,
   type BookRunScenario,
 } from '@/services/book-generation';
 import '@/features/space/styles/space.css';
@@ -191,14 +193,32 @@ function BookLibrary() {
   return (
     <div className="space-page books-page">
       <header className="space-header">
+        {/* UX-REGRESSION-FIX v1：书籍已并入教材资料库，列表页提供固定指向 /knowledge-bases
+            的返回入口（不依赖 history.back，直接深链打开也能返回） */}
+        <div className="space-header-row">
+          <Link className="space-back" href="/knowledge-bases">
+            <ArrowLeft size={16} />
+            返回教材资料库
+          </Link>
+        </div>
         <div className="space-header-row">
           <h1>书籍</h1>
           <div className="space-card-actions">
             <button
               className="space-button"
               onClick={() => {
-                loadDemoBooks();
-                setNotice('已载入演示书籍（重复载入不产生重复条目）。编译内容为本地模拟，不含模型产出。');
+                void (async () => {
+                  const result = await loadDemoBooks();
+                  if (result.status === 'committed') {
+                    setNotice(
+                      result.value && result.value > 0
+                        ? '已载入演示书籍（重复载入不产生重复条目）。编译内容为本地模拟，不含模型产出。'
+                        : '演示书籍已存在，无需重复载入。编译内容为本地模拟，不含模型产出。',
+                    );
+                  } else {
+                    setNotice(`载入演示书籍失败：${result.message}`);
+                  }
+                })();
               }}
             >
               <Sparkles size={14} />
@@ -345,8 +365,18 @@ function BookLibrary() {
                           <button
                             className="space-button danger"
                             onClick={() => {
-                              deleteBook(book.id);
-                              setPendingDeleteId(null);
+                              void (async () => {
+                                // 删除入口先停执行器与在途修复，再删记录（M22-01：不留心跳/监听/租约与幽灵任务）
+                                await stopRun(book.id, 'delete');
+                                const result = await deleteBook(book.id);
+                                if (result.status === 'committed') {
+                                  setPendingDeleteId(null);
+                                  setNotice(`已删除「${book.title}」。`);
+                                  return;
+                                }
+                                // 未提交：保留卡片与确认态，给出原因（可重试）
+                                setNotice(`删除失败：${result.message}`);
+                              })();
                             }}
                           >
                             确认删除
@@ -399,19 +429,27 @@ function CreateBookForm({ onClose, onCreated }: { onClose: () => void; onCreated
         className="space-form"
         onSubmit={(event) => {
           event.preventDefault();
+          if (submitting) return;
           setSubmitting(true);
-          // 本地同步模拟创建：短促 busy 呈现（Loader2 旋转）后落库，操作语义不变
-          window.setTimeout(() => {
+          setError(null);
+          void (async () => {
             try {
-              const book = createBook(title, description);
-              onCreated(book.id);
+              const result = await createBook(title, description);
+              if (result.status === 'committed' && result.value) {
+                // 只有真的落库才关表单并跳转
+                onCreated(result.value.id);
+                return;
+              }
+              // 未提交（冲突/写入失败/前置不满足）：保留用户输入，给出原因，可重试
+              setError(result.message || '创建失败，请重试。');
             } catch (cause) {
               setError(
                 cause instanceof BookValidationError ? cause.message : '创建失败，请检查输入后重试。',
               );
+            } finally {
               setSubmitting(false);
             }
-          }, 350);
+          })();
         }}
       >
         <p className="space-footnote" style={{ marginTop: 0 }}>
@@ -469,6 +507,8 @@ function BookWorkspace({ bookId, pageId }: { bookId: string; pageId?: string }) 
   const refresh = useCallback(() => {
     try {
       setBooks(readBooks());
+      // 读取成功即清除旧错误：上一次失败的原因不再残留在界面上（M22-04）
+      setError(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '书籍目录无法读取，原数据未修改。');
     }
@@ -509,14 +549,16 @@ function BookWorkspace({ bookId, pageId }: { bookId: string; pageId?: string }) 
     const lease = getLease(book.id);
     if (lease && lease.live && !lease.mine) return; // 他标签页持活租约：只读显示，等其失效后再接管
     if (autoRunRef.current.has(book.id)) return;
-    const handle = startRun(book.id, {
-      scenario: scenarioBookRef.current === book.id ? scenarioRef.current : undefined,
-      source: 'auto-open',
-    });
-    if (handle) {
-      autoRunRef.current.add(book.id);
-      setNotice('已从断点继续（本地模拟执行器）。');
-    }
+    void (async () => {
+      const handle = await startRun(book.id, {
+        scenario: scenarioBookRef.current === book.id ? scenarioRef.current : undefined,
+        source: 'auto-open',
+      });
+      if (handle) {
+        autoRunRef.current.add(book.id);
+        setNotice('已从断点继续（本地模拟执行器）。');
+      }
+    })();
   }, [book, tick]);
 
   // 组件卸载不清除执行器（模块级）；同书翻页由 key 稳定性保证不重启
@@ -530,6 +572,50 @@ function BookWorkspace({ bookId, pageId }: { bookId: string; pageId?: string }) 
       book.reading.currentPageId ?? book.chapters.flatMap((chapter) => chapter.pageIds)[0] ?? null;
     if (firstPageId) router.replace(`/books/${bookId}/pages/${firstPageId}`);
   }, [book, bookId, pageId, router]);
+
+  // 执行器异常收尾的如实提示：读失败/失权不是"静默停止"（M22-01/M22-03）。
+  // 只在退出原因变化时提示一次，不因 500ms 轮询反复弹出。
+  const exitNoticeRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!activeBookId) return;
+    const exit = getRunExit(activeBookId);
+    if (!exit || exit.reason === 'finished') return;
+    const stamp = `${exit.reason}@${exit.at}`;
+    if (exitNoticeRef.current === stamp) return;
+    exitNoticeRef.current = stamp;
+    if (exit.reason === 'read-denied' || exit.reason === 'lease-lost') {
+      setNotice(exit.message ?? '本次生成已停止。');
+    }
+  }, [activeBookId, tick]);
+
+  // 首次读取失败：显示错误与重试入口，而不是被"正在读取书籍…"的加载分支永久掩盖（M22-04）。
+  // 读取失败时书籍数据保持 null（不做任何写入），因此这里必须与"尚未读到数据"区分开。
+  if (books === null && error) {
+    return (
+      <div className="space-page books-page">
+        <div className="space-content" style={{ marginTop: 80 }}>
+          <div className="space-banner error" role="alert">
+            <div className="space-banner-row">
+              <span>书籍目录读取失败：{error}</span>
+              <button className="space-button" onClick={refresh}>
+                <RefreshCcw size={14} />
+                重试读取
+              </button>
+            </div>
+          </div>
+          <p className="space-footnote" style={{ marginTop: 0 }}>
+            读取失败时不会写入或清空任何本地数据；修复存储或稍后可重试读取。
+          </p>
+          <div className="space-card-actions">
+            <Link className="space-button" href="/books">
+              <ArrowLeft size={14} />
+              返回书籍列表
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (books !== null && !book) {
     return (
@@ -599,29 +685,60 @@ function BookWorkspace({ bookId, pageId }: { bookId: string; pageId?: string }) 
     const handle = getRun(book.id);
     if (!handle) return;
     setRunUi((current) => ({ ...current, pausing: true }));
-    handle.pause();
-    window.setTimeout(() => setRunUi((current) => ({ ...current, pausing: false })), 600);
+    void (async () => {
+      try {
+        // 等待"写盘 + 暂停状态提交"的**真实结果**：只有提交成功才算已暂停（F5）
+        const result = await handle.pause();
+        if (!result.paused) {
+          // 未提交：执行器仍在继续，如实提示失败原因，用户可重试（不显示"已暂停"）
+          setNotice(`暂停未保存：${result.message ?? '本地存储暂不可写，请稍后重试。'}`);
+          return;
+        }
+      } catch {
+        setNotice('暂停未保存：本地保存失败，生成仍在继续，可稍后重试。');
+      } finally {
+        setRunUi((current) => ({ ...current, pausing: false }));
+      }
+    })();
   };
   const handleResume = () => {
     setRunUi((current) => ({ ...current, resuming: true }));
     // paused 与"已中断（compiling 无执行器）"统一走 resumeRun：
     // 它先把 paused/error 转成 compiling 再启动执行器；直接调 startRun 对 paused 书无效
     // （startRun 只接受 compiling）——刷新/换标签页后点「恢复生成」会静默无操作。
-    const handle = resumeRun(book.id);
-    if (!handle) {
-      setNotice('无法继续生成：本书当前不是可恢复状态，或已有其他标签页在执行（本地模拟执行器）。');
-    }
-    window.setTimeout(() => setRunUi((current) => ({ ...current, resuming: false })), 600);
+    void (async () => {
+      try {
+        const handle = await resumeRun(book.id);
+        if (!handle) {
+          setNotice(
+            '无法继续生成：本书当前不是可恢复状态，或已有其他标签页在执行，或本地存储暂不可写（可稍后重试）。',
+          );
+        }
+      } catch {
+        setNotice('恢复未保存：本地存储暂不可写，本书仍是暂停状态，可稍后重试。');
+      } finally {
+        setRunUi((current) => ({ ...current, resuming: false }));
+      }
+    })();
   };
   /** 整轮失败（error）的「重试生成」：resumeRun 走 resumeBookRun→startRun，从断点续跑 */
   const handleRetryRun = () => {
     setRunUi((current) => ({ ...current, retrying: true }));
-    const handle = resumeRun(book.id);
-    if (!handle) {
-      // 无 run 记录或他标签页持活租约：明确说明，不留静默无操作
-      setNotice('无法重试生成：本书缺少可恢复的运行记录，或已有其他标签页在执行（本地模拟执行器）。');
-    }
-    window.setTimeout(() => setRunUi((current) => ({ ...current, retrying: false })), 600);
+    void (async () => {
+      try {
+        const handle = await resumeRun(book.id);
+        if (!handle) {
+          // 无 run 记录、他标签页持活租约或本地存储不可写：明确说明，不留静默无操作
+          setNotice(
+            '无法重试生成：本书缺少可恢复的运行记录，或已有其他标签页在执行，或本地存储暂不可写（可稍后重试）。',
+          );
+        }
+      } catch {
+        setNotice('重试生成失败：本地存储暂不可写，本书仍保持失败状态，可稍后重试。');
+      } finally {
+        setRunUi((current) => ({ ...current, retrying: false }));
+      }
+    })();
   };
 
   return (
@@ -737,13 +854,18 @@ function ProposalView({
             className="space-button primary"
             disabled={confirming}
             onClick={() => {
+              if (confirming) return;
               setConfirming(true);
-              // 本地同步模拟确认：短促 busy 呈现（Loader2 旋转）后落库，操作语义不变
-              window.setTimeout(() => {
-                const updated = confirmProposal(book.id);
-                onNotice(updated ? '已确认提案，进入大纲确认。' : '确认失败：书籍状态已变化。');
+              void (async () => {
+                const result = await confirmProposal(book.id);
+                // 成功文案只在真正提交后出现
+                onNotice(
+                  result.status === 'committed'
+                    ? '已确认提案，进入大纲确认。'
+                    : `确认失败：${result.message}`,
+                );
                 setConfirming(false);
-              }, 350);
+              })();
             }}
           >
             {confirming && <Loader2 size={13} className="space-spin" aria-hidden />}
@@ -770,6 +892,7 @@ function ScenarioSettings({
   const [failPages, setFailPages] = useState(false);
   const [providerPause, setProviderPause] = useState(false);
   const [storageFailure, setStorageFailure] = useState(false);
+  const [storageFailureOnFinish, setStorageFailureOnFinish] = useState(false);
   const [failPagesCount, setFailPagesCount] = useState(1);
   const [providerPauseCount, setProviderPauseCount] = useState(2);
   const [storagePageIndex, setStoragePageIndex] = useState(0);
@@ -782,8 +905,9 @@ function ScenarioSettings({
       ...(failPages ? { failPages: failPagesCount } : {}),
       ...(providerPause ? { providerPauseAfterPages: providerPauseCount } : {}),
       ...(storageFailure ? { storageFailureAt: { pageIndex: storagePageIndex } } : {}),
+      ...(storageFailureOnFinish ? { storageFailureOnFinish: true } : {}),
     };
-  }, [bookId, scenarioRef, scenarioBookRef, failBlocks, failPages, failPagesCount, providerPause, providerPauseCount, storageFailure, storagePageIndex]);
+  }, [bookId, scenarioRef, scenarioBookRef, failBlocks, failPages, failPagesCount, providerPause, providerPauseCount, storageFailure, storagePageIndex, storageFailureOnFinish]);
 
   return (
     <div className="book-pipeline-scenario">
@@ -855,6 +979,14 @@ function ScenarioSettings({
               aria-label="存储失败页序"
             />
             页写入失败）
+          </label>
+          <label className="space-toggle">
+            <input
+              type="checkbox"
+              checked={storageFailureOnFinish}
+              onChange={(event) => setStorageFailureOnFinish(event.target.checked)}
+            />
+            模拟最终完成写入失败（全部页生成完后，完成状态落库失败；一次性）
           </label>
           <p className="book-pipeline-scenario-note">
             以上均为本地模拟场景注入，用于验证失败与恢复链路；不调用模型，不代表真实供应商或存储故障。设置在确认大纲开始生成时生效。
@@ -929,24 +1061,26 @@ function SpineView({
             className="space-button primary"
             disabled={confirming}
             onClick={() => {
+              if (confirming) return;
               setConfirming(true);
-              // 确认大纲 → 进入 compiling 并启动本地模拟执行器（异步流水线，替代旧同步编译）
-              window.setTimeout(() => {
-                const updated = confirmSpine(book.id);
-                if (!updated) {
-                  onNotice('编译失败：书籍状态已变化。');
+              // 确认大纲 → 进入 compiling 并启动本地模拟执行器（异步流水线，代替旧同步编译）；
+              // 落库成功后才提示“已开始”
+              void (async () => {
+                const result = await confirmSpine(book.id);
+                if (result.status !== 'committed') {
+                  onNotice(`编译失败：${result.message}`);
                   setConfirming(false);
                   return;
                 }
                 const scenario = scenarioBookRef.current === book.id ? scenarioRef.current : undefined;
-                const handle = startRun(book.id, { scenario, source: 'user' });
+                const handle = await startRun(book.id, { scenario, source: 'user' });
                 onNotice(
                   handle
                     ? '已开始本地模拟编译（异步逐章生成，可在生成中阅读已完成内容）。'
-                    : '编译已登记，但本地模拟执行器未能启动（可能已在其他标签页生成）。',
+                    : '编译已登记，但本地模拟执行器未能启动（可能已在其他标签页生成或本地存储暂不可写）。',
                 );
                 setConfirming(false);
-              }, 350);
+              })();
             }}
           >
             {confirming && <Loader2 size={13} className="space-spin" aria-hidden />}
@@ -1062,8 +1196,14 @@ function ReaderLayout({
               disabled={exporting}
               onClick={() => {
                 if (window.confirm(`重建书籍「${book.title}」？将重新模拟编译并清空阅读进度。`)) {
-                  rebuildBook(book.id);
-                  onNotice('已重建（模拟重新编译），阅读进度已清空。');
+                  void (async () => {
+                    const result = await rebuildBook(book.id);
+                    onNotice(
+                      result.status === 'committed'
+                        ? '已重建（模拟重新编译），阅读进度已清空。'
+                        : `重建失败：${result.message}`,
+                    );
+                  })();
                 }
               }}
             >

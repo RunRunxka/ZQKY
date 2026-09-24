@@ -27,6 +27,26 @@ describe('IndexedDB transaction persistence', () => {
     await expect(a.save({ ...doc, schemaVersion: 99 }, 1)).rejects.toThrow('格式不受支持');
     expect((await a.load('one'))?.title).toBe('旧会话');
   });
+  it('H1-COURSE-SESSIONS：courseId 随会话与列表元数据往返；旧记录缺字段保持未归属', async () => {
+    const a = createIdbChatRepository(crypto.randomUUID());
+    await a.save(doc, 0);
+    // 旧会话（无 courseId）：读回仍无归属，列表元数据也不带该字段
+    expect((await a.load('one'))?.courseId).toBeUndefined();
+    expect((await a.list())[0]?.courseId).toBeUndefined();
+
+    const loaded = await a.load('one');
+    await a.save({ ...loaded!, courseId: 'cs-1' }, loaded!.revision ?? 0);
+    expect((await a.load('one'))?.courseId).toBe('cs-1');
+    expect((await a.list())[0]?.courseId).toBe('cs-1');
+
+    // 非法值（空串/非字符串）不写入归属，也不回填猜测
+    const withCourse = await a.load('one');
+    await a.save({ ...withCourse!, courseId: '' }, withCourse!.revision ?? 0);
+    expect((await a.load('one'))?.courseId).toBeUndefined();
+
+    // 删除课程不改会话（本批契约：保留历史与归属，失效由展示层标注）
+    expect((await a.load('one'))?.title).toBe('旧会话');
+  });
   it('S5-A 归档位随会话保存与读取（旧记录缺省视为未归档）', async () => {
     const a = createIdbChatRepository(crypto.randomUUID());
     await a.save(doc, 0);

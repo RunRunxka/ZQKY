@@ -3,10 +3,12 @@ import { Fragment, useEffect, useState } from 'react';
 import { Check, Copy, FileText, Pencil, Plus, RotateCcw } from 'lucide-react';
 import { ThinkingOrb } from './vendor/thinking-orbs';
 import type { AskUserAnswer, AskUserDraft, ChatMessage } from '@/contracts/chat';
+import { CHAT_CAPABILITIES, capabilityAvailableInReal } from '@/services/capability-catalog';
 import { conversationProjection } from './model/context-budget';
 import { formatTurnDuration, turnDurationSeconds } from './model/trace-timing';
 import { ReasoningDisclosure } from './ReasoningDisclosure';
 import { AnswerMarkdown } from './AnswerMarkdown';
+import { StreamingMarkdown } from './StreamingMarkdown';
 import { TraceStages } from './TraceStages';
 import { AskUserCard } from './AskUserCard';
 import { ToolProcessPanel } from './ToolProcessPanel';
@@ -22,6 +24,22 @@ function collectSources(message: ChatMessage): MessageSourceItem[] {
   const ext = message.extensions;
   if (!ext) return [];
   const items: MessageSourceItem[] = [];
+  // 本轮模式（历史能力值降级展示，UX-PERF-CLOSEOUT v1）：轮次快照里的 capability 一律
+  // 如实展示；入口已被移除（如「更多能力」三项）或当前未接入时**明确标注降级原因**，
+  // 绝不静默丢弃、不改写数据、不冒充为当前可用模式。
+  const capability = ext.capability;
+  if (capability?.value) {
+    const known = CHAT_CAPABILITIES.find((cap) => cap.value === capability.value);
+    items.push({
+      key: `capability:${capability.value}`,
+      label: `模式 · ${(known?.label ?? capability.label) || capability.value}`,
+      detail: !known
+        ? '该模式入口已停用（随「更多能力」一并移除），此处仅按历史轮次快照如实展示，历史记录保持可读。'
+        : capabilityAvailableInReal(known.value)
+          ? '本轮按该模式发起（轮次快照）。'
+          : '该模式当前未接入，仅按轮次快照如实展示，不代表现在可以发起。',
+    });
+  }
   if (ext.persona)
     items.push({
       key: `persona:${ext.persona.id}`,
@@ -140,7 +158,8 @@ export function Message({
       <div className="chat-bubble assistant">
         <ReasoningDisclosure
           text={message.reasoning}
-          working={message.status === 'streaming' && !message.content?.trim()}
+          working={message.status === 'streaming' && !!message.reasoning?.trim()}
+          autoExpand={message.status === 'streaming' && !message.content?.trim()}
         >
           <span className="chat-assistant-mark">
             <ThinkingOrb
@@ -200,7 +219,13 @@ export function Message({
           </div>
         )}
         {message.content ? (
-          <AnswerMarkdown text={message.content} />
+          <div className="chat-answer-content">
+            {message.status === 'streaming' ? (
+              <StreamingMarkdown text={message.content} rawClassName="chat-answer-raw" />
+            ) : (
+              <AnswerMarkdown text={message.content} />
+            )}
+          </div>
         ) : message.reasoning ? null : message.status === 'streaming' ? (
           /* R25：等待占位不再重复渲染耗时（标题区已有唯一耗时节点） */
           <p className="chat-status-text" role="status">

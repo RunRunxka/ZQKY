@@ -131,14 +131,17 @@ export const navigation: NavigationItem[] = [
     icon: Library,
   },
   {
+    // 书籍并入教材资料库（T4）：桌面侧栏不再有独立顶级项，页内入口见 KnowledgeBasesSection。
+    // 不登记 sidebarIcon：手机抽屉用 icon 的 BookMarked，与教材资料库的 Library 区分。
     id: 'books',
     label: '书籍',
     path: '/books',
     status: 'ready',
     position: 'main',
+    hidden: true,
+    parentPath: '/knowledge-bases',
     group: '教学资源',
     icon: BookMarked,
-    sidebarIcon: Library,
   },
   {
     // 参考中 /courses 主导航被临时隐藏（路由与数据完好）；目标遵循同样行为
@@ -148,8 +151,8 @@ export const navigation: NavigationItem[] = [
     status: 'ready',
     position: 'main',
     hidden: true,
-    // 与书籍同属“书籍/课程”内容阅读；桌面侧栏标记书籍为父菜单
-    parentPath: '/books',
+    // 与书籍同属“书籍/课程”内容阅读；桌面侧栏标记教材资料库为父菜单（与书籍同级上溯）
+    parentPath: '/knowledge-bases',
     group: '教学资源',
     icon: GraduationCap,
   },
@@ -237,8 +240,11 @@ function longestPathMatch(pathname: string, items: NavigationItem[]): Navigation
 /**
  * 单一当前菜单解析：桌面侧栏与手机抽屉共用同一函数，任一界面最多一个当前项。
  *
- * - `includeHidden=false`（桌面侧栏）：命中隐藏直达页时回退到它的可见父菜单 `parentPath`；
+ * - `includeHidden=false`（桌面侧栏）：命中隐藏直达页时沿 `parentPath` 上溯，
+ *   直到最近可见项（父菜单本身也可能隐藏，如 /books → /knowledge-bases）；
  * - `includeHidden=true`（手机抽屉）：直接标记隐藏项本身，便于焦点圈定。
+ *
+ * 上溯最多 `navigation.length` 步，父菜单缺失、自环或成环时返回 null（宁可无高亮，也不谎报）。
  */
 export function resolveCurrentNavigationId(
   pathname: string | null,
@@ -247,7 +253,13 @@ export function resolveCurrentNavigationId(
   if (!pathname) return null;
   const direct = longestPathMatch(pathname, navigation);
   if (!direct) return null;
-  if (!direct.hidden || includeHidden) return direct.id;
-  if (!direct.parentPath) return null;
-  return longestPathMatch(direct.parentPath, navigation)?.id ?? null;
+  if (includeHidden) return direct.id;
+  let current = direct;
+  for (let hops = 0; current.hidden && hops < navigation.length; hops += 1) {
+    if (!current.parentPath) return null;
+    const parent = longestPathMatch(current.parentPath, navigation);
+    if (!parent || parent.id === current.id) return null;
+    current = parent;
+  }
+  return current.hidden ? null : current.id;
 }
