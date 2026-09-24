@@ -1,16 +1,16 @@
 # 当前状态与实施主线
 
-更新：2026-09-23（UX-PERF-CLOSEOUT v1：长推理流性能收口 + 学习问答模式菜单 + 学习记录与导航与图标 + 教案工作台布局 + 全站双语字体；RAG 仍为未接入，仅界面入口占位）。本文件是唯一进度、问题、任务和后续计划入口。长期目标与稳定决定见 [PROJECT_GUIDE](PROJECT_GUIDE.md)，逐项范围见三矩阵，历史首败与批次全文见 [整理前完整快照](archive/DELIVERY_HISTORY.md#snapshot-status-20260915)。
+更新：2026-09-24（CHAT-CONTENT-MATH-AND-FOLLOW v1：助手正文流式数学安全渲染接线、正文后持续推理滚动跟随修复；真实供应商与用户人工视觉未运行，候选待独立验收）。本文件是唯一进度、问题、任务和后续计划入口。长期目标与稳定决定见 [PROJECT_GUIDE](PROJECT_GUIDE.md)，逐项范围见三矩阵，历史首败与批次全文见 [整理前完整快照](archive/DELIVERY_HISTORY.md#snapshot-status-20260915)。
 
 ## 1. 目标与当前结论
 
 **以智启课源品牌完成固定 DeepTutor 的产品前端、AI 交互与原有动画；全站以当前学习问答 `/chat` 为视觉基准，保留蓝色主题及原业务功能。整体尚未完成。**
 
-**当前工作：UX-PERF-CLOSEOUT v1（8 节用户批次）已本地实施并完成限定范围验收（2026-09-23），待交付审查。** 本批交付：① 长推理流卡顿收口（可复现取证 → 最小优化 → 前后实测：50k 字推理帧间隔 p95 **166.7→5.6 ms**、>50 ms 帧 **215→0**、主线程脚本 **28.3→1.1 s**，原始文本逐字节保留、19 项正确性回归全通过）；② 模式菜单单层化并修复面板横向滚动（1440/1024 实测 `clientWidth=scrollWidth`），以同级「RAG 模式」取代「更多能力」（**未接入、不可选、行内标注**，不发请求不返回模拟结果）；③ 学习记录并入全站左侧导航（删除 236px 中栏与手机第二套弹窗）、书籍并入教材资料库（唯一高亮）、正式品牌 favicon；④ 教案工作台去面包屑 + 编辑区/教案配置/预览顺序与单一折叠按钮；⑤ 全站双语字体 token 层（导航与学习问答用界面衬线、其余正文黑体、代码与公式局部例外，含阻断自托管字体的回退实测）。证据见 [批次证据](qa/UX-PERF-CLOSEOUT-20260923/README.md) 与 [可达性审计](qa/UX-PERF-CLOSEOUT-20260923/REACHABILITY-AUDIT.md)。**RAG 仍未接入**：菜单出现「RAG 模式」不等于检索能力完成，`get_rag_adapter()` 恒定不可用、capability 仍 `planned`。
+**当前工作：CHAT-CONTENT-MATH-AND-FOLLOW v1（2026-09-24）已完成实现与总控自验，并通过独立只读验收（pass，附条件：真实供应商与用户人工视觉 not_run）；待本地小提交。** 本批只涉及 `/chat` 正文渲染与 reasoning 跟随；UX-PERF-CLOSEOUT / UX-REGRESSION-FIX 的既有结果及历史 A1 报告均保留。本批详见 §5.A 与 [CHAT-CONTENT-MATH-AND-FOLLOW v1 批次证据](qa/CHAT-CONTENT-MATH-AND-FOLLOW-20260924/README.md)。真实供应商及用户人工视觉未执行，不将受控合成 SSE 通过表述为真实服务通过。RAG 仍未接入：`get_rag_adapter()` 恒定不可用、capability 仍 `planned`。
 
-上一批 CHAT-CONTEXT-BUDGET v1（请求统一预算）与 RAG-I0-PREP v1（RAG 只读准备）记录保留在 §5.C：预算侧把「课程上下文 + 历史 + 当前问题」放进**同一预算**并与后端硬限制（200 条 / 32000 单条 / 120000 总长）对齐，当前问题逐字不裁剪、放不下时发送前明确提示并保留输入；RAG 侧未启动任何推理，只在宿主 `apps/api` 定义 adapter 契约（`get_rag_adapter()` 恒定不可用、无假实现、无路由、capability 仍 planned）。**书籍仍为本地模拟执行器；RAG 未接入；真实供应商未外呼、未验证凭证有效性；均不代表模块或全站完成。**
+上一批 CHAT-CONTEXT-BUDGET v1（请求统一预算）与 RAG-I0-PREP v1（RAG 只读准备）记录保留在下方「历史批次（原 CHAT-CONTEXT-BUDGET v1 + RAG-I0-PREP v1）」：预算侧把「课程上下文 + 历史 + 当前问题」放进**同一预算**并与后端硬限制（200 条 / 32000 单条 / 120000 总长）对齐，当前问题逐字不裁剪、放不下时发送前明确提示并保留输入；RAG 侧未启动任何推理，只在宿主 `apps/api` 定义 adapter 契约（`get_rag_adapter()` 恒定不可用、无假实现、无路由、capability 仍 planned）。**书籍仍为本地模拟执行器；RAG 未接入；真实供应商未外呼、未验证凭证有效性；均不代表模块或全站完成。**
 
-R-05 内容视觉统一是 H1 之前已交付的批次。第六批 B-R05-EXTEND v5（2026-09-19）覆盖阅读工作区和 `/space` 四子页，并修复 R-09 滚动竞争。历史独立验收 A1 pass 0 fail 保留，R-05 只在 §5.3 登记范围内关闭，不扩大为全站逐状态完成。H1-BOOKS-HARDEN v1 已于 2026-09-22 交付（见 §5.F）；RAG 接入只完成宿主侧契约准备（见 §5.C、§6.1），见 [当前批次与下一动作](#current-task)。
+R-05 内容视觉统一是 H1 之前已交付的批次。第六批 B-R05-EXTEND v5（2026-09-19）覆盖阅读工作区和 `/space` 四子页，并修复 R-09 滚动竞争。历史独立验收 A1 pass 0 fail 保留，R-05 只在 §5.3 登记范围内关闭，不扩大为全站逐状态完成。H1-BOOKS-HARDEN v1 已于 2026-09-22 交付（见 §5.F）；RAG 接入只完成宿主侧契约准备（见下方「历史批次（原 CHAT-CONTEXT-BUDGET v1 + RAG-I0-PREP v1）」、§6.1），见 [当前批次与下一动作](#current-task)。
 
 - 本次审查代码基准：`main@7a394ef`，开始工作区干净；最近主要业务实现为 `f31d39f`，之后产品差异为公共导航字体。本批（H1-BOOKS-HARDEN v1）起点为 `40491be`，现场核对分支/HEAD 后开工，未切换或合并 `feat/glass-theme`。`main` 是个人分支，默认集成分支是 `feat/glass-theme`，本报告不计入后者的主题工作。
 - `.zcode/` 已退出 Git 跟踪；本机配置继续保留、不触碰。
@@ -23,7 +23,7 @@ R-05 内容视觉统一是 H1 之前已交付的批次。第六批 B-R05-EXTEND 
 | --- | --- | --- |
 | 公共壳 | `/chat` 单一主页；220/56px 侧栏、跨页折叠；隐藏页父菜单（支持传递上溯）；手机模态抽屉（Tab 圈定含输入框/链接，无当前项时焦点回落关闭入口）；404 一层壳；**学习记录并入侧栏可滚动区域（UX-PERF-CLOSEOUT v1）**；**字体 token 层：导航与学习问答用界面衬线、其余正文黑体（含阻断自托管字体的回退实测）**；品牌 `src/app/icon.svg` favicon | R-05 收口范围见 §5.3；错误页 reset 运行时未验；部分过渡曲线未验；真实硬件触摸未验 |
 | 教案 | 本地规则填充、编辑、草稿恢复、Word/PDF 导出；R-05 v4 有界视觉推广及导出/草稿回归；**UX-PERF-CLOSEOUT v1：去面包屑改同级直接标题、顺序改为编辑区 → 可折叠教案配置 → 预览、只留一个折叠按钮（不卸载、状态不丢）、打印与导出回归** | 不是 AI 生成；逐状态视觉与动画按矩阵保留未验项；冻结旧版及原 Word 不改；平板展开配置时预览列偏窄（已保证控件不裁切） |
-| 学习问答 | 三协议SSE、推理/正文及公式、本地会话、模型选择；生产mock残留已清；来源消息定位与失效会话空态已修；课程会话归属、聊天页课程上下文与轮次课程快照进入真实请求（H1-COURSE-SESSIONS v1）；请求统一预算与课程字段限幅（CHAT-CONTEXT-BUDGET v1）；**长推理流性能收口：活跃流轻量呈现 + 增量合并（可见更新上限 80 ms）+ 写盘快照（UX-PERF-CLOSEOUT v1，50k 字帧 p95 166.7→5.6 ms、>50 ms 帧 215→0、原始文本逐字节保留）**；**模式菜单单层化并修复横向滚动，同级「RAG 模式」占位（未接入、不可选、行内标注）**；**学习记录并入全站侧栏** | ask_user、工具、附件解析及复杂业务真实执行通道未接；不能以存量组件当可发起功能；真实供应商证据范围不因本批扩大；课程资源仍为登记引用；**RAG 未接入（`get_rag_adapter()` 恒定不可用、capability 仍 planned）** |
+| 学习问答 | 三协议 SSE、推理/正文及公式、本地会话、模型选择；生产 mock 残留已清；来源定位、课程会话归属、课程上下文与统一预算既有成果保留。**CHAT-CONTENT-MATH-AND-FOLLOW v1（2026-09-24，独立验收 pass）**：流式助手正文 `message.content` 接入 `StreamingMarkdown` 安全分块；正文闭合公式流中可见、未闭合尾段原文、终态/刷新恢复可渲染，落库与上游原文相等；拆分 reasoning 流仍活动与正文前默认自动展开状态，正文开始自动折叠保留，手动重开后继续跟随，滚轮上滚保留阅读位置。独立验收亲自复现（含四类定界符 annotation、IndexedDB 逐字相等、真滚轮上滚不被抢回），受控 20k/50k 样本 rAF p95 5.7ms、0 帧 >50ms、0 长任务；真实供应商未复验。 | ask_user、工具、附件解析及复杂业务真实执行通道未接；真实供应商本批 not_run；RAG 未接入（`get_rag_adapter()` 恒定不可用、capability 仍 planned）；外层 overflow、硬件触摸、用户人工视觉和动画曲线不因本批升级；标准 `test:chat` 既有 settings 模型发现用例 R-15 仍失败。 |
 | 模型与供应商 | contract-v1、38条注册（36现行+2 legacy）、6 backend、专用适配/受管认证、发现来源、推理控制、v1→v2迁移与凭证补偿；卡片/详情/发现/参数/默认选择闭环 | 真实仅DeepSeek指定场景有证据，其余37条注册项无独立真实通过；Codex真实登录条件仍需核实具备；R-13未关闭；模型动画partial |
 | 学习空间/笔记/题库 | 会话历史、角色、题库、笔记编辑、跨页保存；真实sessionId回链+可选messageId定位，旧数据缺身份不猜测；`/space` 首页、四子页与笔记本列表/详情已列入视觉推广批 | `/space` 功能级完整验收（弹窗/错误/长文案逐状态）待补；笔记编辑器等参考差距按矩阵保留；CLI只本地登记，无真实执行 |
 | 知识库 | 登记→解析→索引显式模拟，进度/取消/重试/恢复；局部状态与数据保护已有证据；R-05 v1 列表/详情视觉有界验收 | 不读真实文件、不做向量检索/RAG；全部分区/弹窗逐状态视觉及进度动画仍未完整验收 |
@@ -51,9 +51,9 @@ R-05 内容视觉统一是 H1 之前已交付的批次。第六批 B-R05-EXTEND 
 | R-11 | 已关闭 | `2308822`：课程目录损坏/读取被拒不崩页、不冒充空、不丢引用；失败目录不阻断其他来源 |
 | R-13 | **未关闭，真实服务轨道** | 默认2048+推理样本零正文；off/2048有正文但length截断；off/8192指定样本stop。不能自动关推理、无界加预算或断言正式384000配置必然成功 |
 | R-14 | **未关闭，跨批（书籍批次外观/时序）** | 2026-09-23 登记：`tests/e2e/books-commit-safety.spec.ts:238`「双标签页并发写不同书」在 `--repeat-each=3` 下 1/3 失败（队长与 A1 各自复现）：两个标签页同时生成两本书（同一集合）时集合写锁竞争，两次全量回归通过、加压后其中一次等待 `生成活动条消失`（120s）超时；失败快照显示书处于**「生成已中断（无执行器在跑）」+「继续生成」**的既有如实状态，内容与笔记未丢（快照可见正文与阅读进度）。判为**测试假设与既定行为不一致**（冲突预算耗尽即如实中断是本批既有设计），非数据丢失；本批不修（不属预算批范围），待书籍批次定性：或在测试内接受「已中断」再走继续生成，或调宽等待。 **UX-PERF-CLOSEOUT v1 复现更新（2026-09-23，候选 `ZkSw3NYEUtNUBATU0sde5`）**：全量 e2e 中再次失败一次（132s）；同文件 `--repeat-each=2` 第 1 轮失败、第 2 轮通过；隔离 `-g "双标签页并发写不同书" --repeat-each=3` **3/3 通过** → 间歇性、随负载出现。失败快照本次逐项取证：`生成已中断（无执行器在跑）`+`继续生成` 同时存在，**笔记内容与阅读进度完好**（摘录见 [R-14 证据](qa/UX-PERF-CLOSEOUT-20260923/r14/REPRO-EVIDENCE.md)）。本批**未修改该用例、未删除、未笼统加等待**，定性仍为「测试假设与既定行为不一致」，处置留待下一批（见 §6 路线第 2 步）。 |
-| R-15 | **未关闭（既有陈旧用例，非本批引入）** | `tests/integration/chat-live.spec.ts:59`「模型发现追加、默认模型同步、表单冲突保留」确定性失败：第 62 行等待 `.connection-group` 过滤「教学模型服务」后点「从服务获取模型」超时；现场快照显示 `/settings` 默认标签已是 contract-v1 的**连接卡片 + 详情弹窗**结构（`3 个连接 · 3 个模型`、「打开 … 的详情」），该 modal 现只在连接详情内可达（`ModelSettingsPanel.tsx:564`）。**本批改动与 settings/model-settings 图零交集**（grep 证实不引用本批任何文件），属既有陈旧用例；是否更新留待后续批次（不属本批授权范围）。2026-09-23 由 UX-REGRESSION-FIX v1 运行 `npm run test:chat` 时发现并登记。 |
-| R-16 | **已关闭（UX-REGRESSION-FIX v1，2026-09-23）** | 用户人工视觉验收发现的三项回归：① 推理流式期间公式不渲染（`mode=raw`/katex=0/最多 294 个原文 `$`，仅手动展开后才渲染）；② 教案工作台标题占独立网格行、与导出菜单不同行；③ `/books`、`/courses` 列表页无返回教材资料库入口。本批修复并实测（流式 katex=27/68/107 且 errors=0、四视口同行、两页返回链接可达），证据见 [批次证据](qa/UX-REGRESSION-FIX-20260923/README.md)；修复不把长推理流拉回卡顿（帧 p95 5.7 ms、0 帧 > 50 ms、0 长任务）。 |
-| R-17 | **未关闭（间歇，本批改动与 store/会话创建零交集）** | 2026-09-23 UX-REGRESSION-FIX v1 跑全量 e2e 时 `tests/e2e/course-sessions.spec.ts:427`「流式中切换会话」失败 1 次/202：失败点为第 461 行——**点击侧栏「新对话」后 URL 仍指向课程会话**（`expect(plainSession).not.toBe(courseSession)`），随后 45s 超时。独立复现：`-g "流式中切换会话" --repeat-each=3` **3/3 通过**、整文件 `--repeat-each=2` **22/22 通过** → 不可稳定复现，与 R-14 同属**随负载出现的间歇**。**机制假设（未证实，勿当结论）**：`fresh()` 在 `await store.flush()` 返回 false 时提前 return（不新建会话、不改 URL），若该轮保存撞上修订冲突/存储瞬时失败，点击就会“无反应”；本批改动文件与 `model/store.ts`、会话创建路径零交集（只改渲染与教案/列表页）。处置留待后续批次（在有界核查中定性：是保存失败的静默无反馈，还是测试时序）。 |
+| R-15 | **未关闭（既有陈旧用例，非本批引入）** | `tests/integration/chat-live.spec.ts:59`「模型发现追加、默认模型同步、表单冲突保留」第 62 行等待 `.connection-group` 过滤「教学模型服务」后点「从服务获取模型」超时；settings contract-v1 现为连接卡片 + 详情弹窗，旧 selector 需进入连接详情才可达。本批 settings/model-settings 零改动。2026-09-24 `npm run test:chat` 再现，13/14；未跳过、未改测试。
+| R-16 | **既有子项通过、正文公式未通过、推理跟随待修（本批修复已通过独立验收；真实供应商与用户人工视觉仍 not_run）** | 用户人工验收为准：历史 reasoning 子项（UX-REGRESSION-FIX v1）通过，但该批受控正文样例走 `AnswerMarkdown` 静态渲染，不证明流式 `message.content` 接线完整，旧“整体已关闭”口径作废。CHAT-CONTENT-MATH-AND-FOLLOW v1 首次单列：streaming body 原直接 `AnswerMarkdown`（未接安全分段），本批改接；另实测复现 reasoning 首败——正文到达自动折叠后，仍在输出的 reasoning 用户重开时停在旧内容（gap=144px，因 `working` 同时承载“自动展开”与“流是否活动”），本批拆分 `working`/`autoExpand` 修复。本批合成 HTTP/SSE + 浏览器证据覆盖正文流中/终态/刷新、IndexedDB 原文相等、尾段闭合转换、重开跟随、真实滚轮上滚不被拉回；**但未能在合成样例复现用户正文的完全相同失败，真实供应商仍未复验（not_run）**，故不据合成通过宣布正文公式已修好。证据见 [本批 README](qa/CHAT-CONTENT-MATH-AND-FOLLOW-20260924/README.md)；**独立验收已判 pass（可交付，附真实供应商/人工视觉 not_run 条件）**，但本条目最终关闭仍待真实供应商样本或用户人工视觉复核。
+| R-17 | **未关闭（跨批间歇）** | 2026-09-23 UX-REGRESSION-FIX 全量 e2e 中 `course-sessions.spec.ts:427` 流式中切换会话失败 1/202；隔离重复后 3/3 与整文件 22/22 通过，机制仍未证实。本批再次全量 202/202 通过（单次运行），不据此关闭 R-17。
 | READ-RETRY | 已关闭（2026-09-18） | 受控首败证明错误态"重试"被 turn 非空挡住（run 仍 1 次），`a9ebcaa` 放行错误态重试、保留流式防重入；组件级替身回归+全量单测 |
 | READ-END | 已关闭（2026-09-18） | 首败证明重复/迟到 end 落库 2 份；`a9ebcaa` finalizeTurn 按 turnId 幂等（finalizedTurnsRef），旧轮迟到 end 不重复落库/不复活取消标注/不清新轮；R-09 会话归属语义未变 |
 | R-09-FLAKY | **已关闭（2026-09-19，含产品修复）** | 受控诊断确证**双层机制**：(a) CDP 层——`mouse.wheel` 派发与 `evaluate` 读值竞争（24 次决定性实验、wheel 到达延迟实测 20-30ms）；(b) **产品层真实缺陷**——流式拉底产生的 `scroll` 事件因 `dist<90` 把 `followBottom` 重置回 true，用户上滚被永久吞掉（现场探针抓到完整序列：上滚成功 top=0 → 5ms 后拉回 179 → 最终贴底 212）。修复（`a9c28ea`）：`userScrolledAwayRef` 同步记录用户意图、堵住 `setState` 提交延迟窗口；`programmaticScrollRef` 区分程序化拉底副作用与用户滚动；spec 侧仅一处 `expect`→`expect.poll`（**阈值 `<60` 与语义未变**）。验证：R-09 五例 5/5、`--repeat-each=10` 队长复测 **10/10**（修复前同环境 3/10 失败）、A1 独立复现 **10/10**、阅读 spec 17/17、全量 154/154。**队长注意**：v4 批曾试过"仅加 poll"并失败撤回——那次失败正是因为 poll 只吸收 CDP 层、会暴露产品层的 212 贴底值，此结论已归档 |
@@ -77,7 +77,7 @@ R-05 内容视觉统一是 H1 之前已交付的批次。第六批 B-R05-EXTEND 
 | M22-05 | 最终完成落库异常被吞掉，内存仍 finished | 已修（落 kind storage 失败 + 「重试生成」，绝不假报完成；一次性注入开关） | 单测（状态 error、重试后 ready）+ 真实浏览器（卡片非「可阅读」→重试完成） |
 | M22-06 | 编辑笔记时左右方向键触发全局翻页 | 已修（输入框/可编辑/组合输入/修饰键全部排除） | 组件测试（输入框、contenteditable、isComposing、修饰键、已消费事件）+ 真实浏览器两组键盘 |
 
-**M22-03 的补充修复（H1-BOOKS-COMMIT-SAFETY v1，2026-09-22）**：本批用脱敏探针复现确认，HARDEN v1 采用的"写标记 + 有界重放"只能**写前检测**冲突——另一写入者在"检测之后、写入之前"提交时，其已保存内容仍会被旧整表覆盖（丢失更新，可控交错即可复现，不依赖"同一毫秒"）；同时确认冲突预算耗尽后会返回内存候选值，使 `createBook` 返回幻影书籍。修复：集合写改为**互斥锁内的事务读改写**（生产走原生 Web Locks；jsdom 单测走测试注入的 in-process 互斥——本批当时的 localStorage 回退锁已在 BOOKS-CS-FOLLOWUP v1 整体删除，无互斥即 `unsupported`、不降级写），并引入 `CommitResult` 提交结果契约（非 `committed` 一律不返回值）。证据见 [CS 批次台账](qa/H1-BOOKS-COMMIT-SAFETY/DEFECT-LEDGER.md)、[真实双标签页 e2e](qa/H1-BOOKS-COMMIT-SAFETY/README.md)。**HARDEN v1 的租约归属/失权停止/读取三态/统一收尾语义全部保留**；“不宣称强原子性”的边界同样保留（口径已按 BOOKS-CS-FOLLOWUP v1 任务卡 §6 订正：写后读回**不**必然发现所有绕过协议的写入，详见 §5.E）。
+**M22-03 的补充修复（H1-BOOKS-COMMIT-SAFETY v1，2026-09-22）**：本批用脱敏探针复现确认，HARDEN v1 采用的"写标记 + 有界重放"只能**写前检测**冲突——另一写入者在"检测之后、写入之前"提交时，其已保存内容仍会被旧整表覆盖（丢失更新，可控交错即可复现，不依赖"同一毫秒"）；同时确认冲突预算耗尽后会返回内存候选值，使 `createBook` 返回幻影书籍。修复：集合写改为**互斥锁内的事务读改写**（生产走原生 Web Locks；jsdom 单测走测试注入的 in-process 互斥——本批当时的 localStorage 回退锁已在 BOOKS-CS-FOLLOWUP v1 整体删除，无互斥即 `unsupported`、不降级写），并引入 `CommitResult` 提交结果契约（非 `committed` 一律不返回值）。证据见 [CS 批次台账](qa/H1-BOOKS-COMMIT-SAFETY/DEFECT-LEDGER.md)、[真实双标签页 e2e](qa/H1-BOOKS-COMMIT-SAFETY/README.md)。**HARDEN v1 的租约归属/失权停止/读取三态/统一收尾语义全部保留**；“不宣称强原子性”的边界同样保留（口径已按 [BOOKS-CS-FOLLOWUP v1 任务卡 §6](qa/BOOKS-CS-FOLLOWUP/TASK-CARD.md) 订正：写后读回**不**必然发现所有绕过协议的写入）。
 
 边界：修复均为本地模拟执行器范围内的行为纠正；真实供应商、真实 LLM/解析、RAG 接入与动画精度不因本批改变。M22-03 的"同一毫秒并发写入"窗口无法用测试确定性构造，实现为写后读回 + 有界重放并如实标注（见 [批次 README §6](qa/H1-BOOKS-HARDEN/README.md)）。
 
@@ -89,8 +89,8 @@ R-05 内容视觉统一是 H1 之前已交付的批次。第六批 B-R05-EXTEND 
 
 | 批次 | 实现 / 收口提交 | 关键验证与独立范围 | 证据 |
 | --- | --- | --- | --- |
-| UX-REGRESSION-FIX v1（三项人工视觉回归修复） | 见 §5.A（起点 `3a2e4a8`；最终 SHA 见结果卡） | typecheck/lint(0 警告)/unit **54 文件 459 例**/build/定向 e2e/`test:chat` 集成 8 通过 1 既有失败（R-15）；公式修复后 50k 复测帧 p95 5.7 ms、0 帧 > 50 ms、0 长任务；四视口顶栏与两条返回路径浏览器实测 | [批次证据](qa/UX-REGRESSION-FIX-20260923/README.md)、[任务卡](qa/UX-REGRESSION-FIX-20260923/TASK-CARD.md)；真实供应商/RAG/硬件触摸/逐帧动画 not_run |
-| UX-PERF-CLOSEOUT v1（长推理流性能 + 模式菜单 + 学习记录与导航与图标 + 教案布局 + 双语字体） | 见 §5.B（起点 `3dcace8`；候选 `ZkSw3NYEUtNUBATU0sde5`，最终 SHA 见结果卡） | typecheck/lint(0 警告)/unit **52 文件 440 例**/build **`ZkSw3NYEUtNUBATU0sde5`**/e2e 全量 **199 通过 1 失败（唯一为既有间歇 R-14，已独立复现定性）**/后端 **217 passed**；性能前后实测（50k 帧 p95 166.7→5.6 ms、>50 ms 帧 215→0、脚本 28.3→1.1 s）+ 19/19 正确性回归 + 菜单三视口 `clientWidth=scrollWidth` + 导航与 favicon 独立取证 + 字体三视口 6 路由（含阻断自托管字体）；全量回归中还定位并修复了一个**真实产品缺陷**（打印媒体下公共壳栅格错位） | [批次证据](qa/UX-PERF-CLOSEOUT-20260923/README.md)、[任务卡](qa/UX-PERF-CLOSEOUT-20260923/TASK-CARD.md)、[可达性审计](qa/UX-PERF-CLOSEOUT-20260923/REACHABILITY-AUDIT.md)、[R-14 证据](qa/UX-PERF-CLOSEOUT-20260923/r14/REPRO-EVIDENCE.md)、[冻结记录](qa/UX-PERF-CLOSEOUT-20260923/FROZEN-CANDIDATE.json)；**真实供应商与真实 RAG 均 not_run** |
+| UX-REGRESSION-FIX v1（三项人工视觉回归修复） | 历史批次，见 [UX-REGRESSION-FIX-20260923 批次证据](qa/UX-REGRESSION-FIX-20260923/README.md)；最终 SHA 见其原冻结记录 | typecheck/lint(0 警告)/unit **54 文件 459 例**/build/定向 e2e/`test:chat` 集成 8 通过 1 既有失败（R-15）；公式修复后 50k 复测帧 p95 5.7 ms、0 帧 > 50 ms、0 长任务；四视口顶栏与两条返回路径浏览器实测 | [批次证据](qa/UX-REGRESSION-FIX-20260923/README.md)、[任务卡](qa/UX-REGRESSION-FIX-20260923/TASK-CARD.md)；真实供应商/RAG/硬件触摸/逐帧动画 not_run |
+| UX-PERF-CLOSEOUT v1（长推理流性能 + 模式菜单 + 学习记录与导航与图标 + 教案布局 + 双语字体） | 历史批次，见 [UX-PERF-CLOSEOUT-20260923 批次证据](qa/UX-PERF-CLOSEOUT-20260923/README.md) | typecheck/lint(0 警告)/unit **52 文件 440 例**/build **`ZkSw3NYEUtNUBATU0sde5`**/e2e 全量 **199 通过 1 失败（唯一为既有间歇 R-14，已独立复现定性）**/后端 **217 passed**；性能前后实测（50k 帧 p95 166.7→5.6 ms、>50 ms 帧 215→0、脚本 28.3→1.1 s）+ 19/19 正确性回归 + 菜单三视口 `clientWidth=scrollWidth` + 导航与 favicon 独立取证 + 字体三视口 6 路由（含阻断自托管字体）；全量回归中还定位并修复了一个**真实产品缺陷**（打印媒体下公共壳栅格错位） | [批次证据](qa/UX-PERF-CLOSEOUT-20260923/README.md)、[任务卡](qa/UX-PERF-CLOSEOUT-20260923/TASK-CARD.md)、[可达性审计](qa/UX-PERF-CLOSEOUT-20260923/REACHABILITY-AUDIT.md)、[R-14 证据](qa/UX-PERF-CLOSEOUT-20260923/r14/REPRO-EVIDENCE.md)、[冻结记录](qa/UX-PERF-CLOSEOUT-20260923/FROZEN-CANDIDATE.json)；**真实供应商与真实 RAG 均 not_run** |
 | MODEL-EXEC与MR-01~16修复 | `1805397`→`560ac76`→`4ef803b` / `3dfc2fa` | 首轮needs_revision；修复API181、unit274、e2e88；后端/组件独立复验通过，真实及动画不全覆盖 | [模型审查与修复全文](archive/DELIVERY_HISTORY.md#snapshot-status-20260915)，正式model回归测试；部分原始探针仅在_work |
 | B-MODEL-ACCEPT | `9965592` / `2d0caaa` | 嵌套弹窗/草稿/焦点；unit274、API181、e2e92；视觉为实施者检查、动画partial；DeepSeek真实partial | [API报告](qa/model-accept-20260913/r13-api-report.md)、[浏览器证据](qa/model-accept-20260913/r13-browser-evidence.json) |
 | B-H0R-SHELL | `e7fb2a4` / `957730d` | unit278、API181、e2e119；独立遍历路由/三视口；reset运行时与曲线not_run | [截图目录](qa/shell-accept-20260913/)、`tests/e2e/shell-home-nav.spec.ts` |
@@ -140,12 +140,21 @@ npm.cmd run test:unit
 
 ## 5. 当前批次与下一动作
 
-<a id="commit-safety-results"></a>
+<a id="chat-content-math-follow-results"></a>
+### 5.A 当前批：CHAT-CONTENT-MATH-AND-FOLLOW v1（助手正文数学渲染 + 推理区滚动跟随），2026-09-24 本地实现与总控自验，待独立只读验收
 
-<a id="chat-budget-results"></a>
-<a id="ux-perf-closeout-results"></a>
+**范围**：只触及 `/chat` 助手 `message.content` 流式 Markdown 展示、推理内层 follow 意图与测试/证据；不改教案顶栏、书籍/课程返回路径、供应商配置、后端业务语义或 RAG。
+
+1. **首败与层级**：初始实现链路核对确认 `text.delta → chat-stream onText → store message.content → Message.tsx AnswerMarkdown`，reasoning 才接 `StreamingMarkdown`。旧 reasoning A1 和受控正文静态样例不能代表正文流式接线。合成 SSE 浏览器复验中，正常闭合 `$…$`/`$$…$$`/单反斜杠 `\\(...\\)`、`\\[...\\]`、列表/表格/代码/`aligned` 在旧 AnswerMarkdown 实际产生 `.katex`；所以本批不宣称它们在合成样例中重现了“闭合但无法渲染”。已观察到原路径没有安全分段、会对增长中的正文反复把全文交给 renderer，且正文双转义字面样本 `\\\\(r^2\\\\)` 保持字面。本批新增展示归一化对双转义成对公式的容错测试；不声称该双转义格式来自任何真实供应商。
+2. **正文修复/验收**：流式助手正文现在走 `StreamingMarkdown` 有界尾段/稳定块路径，终态/刷新用 `AnswerMarkdown`；HTML 仍 skip、KaTeX `trust=false`，代码围栏保护、GFM/highlight 保留。隔离浏览器对 `.chat-bubble.assistant .chat-answer-content` 在 streaming 实测 8 `.katex` / 2 display / 0 error，双反斜杠尾段在闭合前保留字面、补齐后过滤命中的 KaTeX 节点 1 处；完成后实测 11 `.katex` / 0 error，刷新仍 11 / 0。KaTeX CSS computed display=block、公式 computed font 含 KaTeX。fixture `bodyRaw === bodyDeltas.join('')`，IndexedDB 对应助手 `message.content === bodyRaw`；copy/export/store 接口未改。
+3. **推理跟随修复/验收**：首败隔离流顺序为 reasoning → 正文 → reasoning；正文后接近第 40/48 行时，初始 `scrollTop=0, clientHeight=180, scrollHeight=324, gap=144px`，直接复现用户重开后停在旧内容。修复将消息 streaming（follow 工作状态）与 `autoExpand`（正文前默认展开）拆开；正文到达仍默认折叠、手动折叠优先，用户重新展开且 reasoning 仍增量时恢复内层跟随。冻结候选上第 40/47 行实测 `top=268/height=180/total=448/gap=0`（多次运行 268–317，取决于采样时刻）。回归同时断言：上滚后 300ms 内 `scrollHeight` 仍在增长、`scrollTop` 不变、距底 >32px（证明“内容继续但位置未被抢回”），滚回底部后第 47 行到达时仍 `gap<32`（证明跟随已恢复）。纯推理 48 行长流另逐次采内外容器：内层 gap<32 且最新行可见；外层样本 `0/509/509`，无溢出，故不宣称外层溢出场景通过。真实鼠标 wheel 上滚后 top=123 稳定、后续 gap=169 未拉回，滚回底部后 gap=0。scrollTop 位移、滚轮/触摸/键盘方向、内容增长、rAF 执行前跟随状态与当前 DOM 身份分别处理；不使用 `scrollIntoView`。
+4. **性能（同一隔离浏览器/FastAPI 代理/受控 fixture，桌面 1440×900，256 字符 reasoning delta、~12ms 间隔，正文每轮 80 个公式）**：20k / 50k 源字符由 fixture 长度 assert 锁定；冻结候选一轮 rAF p95 **5.7/5.7ms**、最大帧 44.5/38.9ms、`>50ms` 帧 **0/0**、Long Tasks **0/0**、首可见 reasoning 99/58.8ms、受控上游流窗口 2.922/4.390s、正文 KaTeX 80/80、error 0。该探针未采 CDP script CPU，不与旧探针 script 字段比较；不承诺跨硬件稳定 60fps。另有初期错误负载试验因短块密度过高测出劣化，已在 README 如实标为无效对比，不作为通过结果。
+5. **最终门槛（全部在冻结候选源码上重跑）**：typecheck 通过；lint **0 警告**；unit **55 文件 / 463 例全通过**（此前同源码族另有一轮 462/463、失败为非本批 MR-08，单例与所在文件复跑通过，判间歇）；`py_compile` 通过；隔离 build 与常规 build 均通过（`.next-test` `48OQ8YwWsaXik3hvv7EQK`、`.next` `vv2MkeoRZHz_a4di0tMTO`）；聊天 integration **8/8**；标准 `test:chat` **13 通过 / 1 失败**（唯一既有 R-15 settings 旧 selector 超时）；全量 `test:e2e` **201 通过 / 1 失败**，唯一失败为跨批间歇 **R-14**（隔离 `--repeat-each=3` 复测 3/3 通过，与本批 diff 面零交集）——**不得据此声称候选恒绿**，R-14/R-15/R-17 均按 §3 台账管理。详见 [本批 README](qa/CHAT-CONTENT-MATH-AND-FOLLOW-20260924/README.md)。
+6. **证据边界**：真实供应商 `not_run`（无可报告的用户真实公式片段）；真实服务凭证不读、不外呼。三协议 reasoning 既有及本批 fixture 回归属于合成 SSE，不能当真实 provider 验收。用户人工视觉 `not_run`；hardware touch、键盘滚动、reduced-motion、本批逐帧折叠曲线 `not_run`；全量 e2e 内可覆盖的既有减少动画不等价于以上专项通过。
+7. **独立验收（Independent-Acceptor，只读，r1）**：**pass（可交付）**，附条件——真实供应商与用户人工视觉 `not_run`，不得表述为“真实供应商通过/用户视觉通过”。其独立证据：17/17 文件哈希三次复算一致、改动无越界、HEAD 与 BUILD_ID 未变；正文 `.chat-answer-content` 流式中 katex=8/display=2/**error=0**/raw=1，用 KaTeX `annotation` 逐条证明四类定界符都是可见公式，MutationObserver 时间序列证明**流式期间逐步可见**，终态与刷新 11/0，未闭合尾段原文逐字、代码围栏未混入公式；IndexedDB `message.content` 与上游逐字相等（345/345，`firstDiffIndex=-1`）；推理自动折叠保留、重开 10 次采样 gap 全 0、**真实滚轮上滚后 top 恒 0 而 scrollHeight 275→423（约 2.2s/14 次采样）未被抢回**、回底后 8 次采样 gap 全 0；外层 `.chat-messages` 在本样本无溢出（未声称外层场景通过），其补充 1440×520 短视口外层有溢出且跟随、推理区完整可见。性能其复跑 8/8、20k/50k p95 均 5.7ms、`>50ms` 0、长任务 0，并用 CDP 相位切分排除“每 delta 重解析整段正文”。全文与遗留待决见 [本批 README §7](qa/CHAT-CONTENT-MATH-AND-FOLLOW-20260924/README.md)。**遗留**：R-16 最终关闭仍待真实供应商样本或用户人工视觉；外层跟随策略未纳入本批断言；剪贴板 CRLF 与折叠卸载语义按非本批处理。
+
 <a id="ux-regression-fix-results"></a>
-### 5.A 本批实施：UX-REGRESSION-FIX v1（三项人工视觉回归修复：推理流式公式 / 教案顶栏 / 教材资料库返回路径），2026-09-23 本地实施与限定范围验收，待交付审查
+### 历史批次（原 UX-REGRESSION-FIX v1）：三项人工视觉回归修复（推理流式公式 / 教案顶栏 / 教材资料库返回路径），2026-09-23；旧首败、结果与 A1 报告见本节后文，不改写
 
 **目标（用户锁定）**：只修用户在 `main` 上人工视觉验收发现的三项回归，不扩展 RAG、模型供应商、书籍生成或全站主题。
 
@@ -164,7 +173,8 @@ npm.cmd run test:unit
 7. **独立验收 A1（只读复验，r2）**：判 **pass（可交付）**，全文见 [A1 报告](qa/UX-REGRESSION-FIX-20260923/A1-REPORT-01.md)。A1 自写探针复现：流式 `katex=4/display=2/error=0`、未闭合尾段原文、补齐 `katex=5`、**落库 reasoning/content 与上游逐字节全等（sha256 相同）**、停止=`已停止/client-stop` 且无自动重发、断流=`STREAM_INTERRUPTED`、15 步真实点击返回路径全绿、顶栏五视口几何与批次记录逐格一致、`lesson-plan` 9/9、22/22 blob 指纹匹配。其点名 6 条口径/记录问题**全部采纳**（e2e 加「单次运行」限定并写明 A1 的 201/1 因 R-14、性能改区间并标注同机状态相关、unit 门槛写明 `NODE_OPTIONS`、BUILD_ID 只作运行标签、`hashSource` 措辞订正、r1→r2 指纹变化如实登记）。**未执行**：真实供应商（not_run，不宣称任何真实流式公式验证）、硬件触摸、逐帧动画曲线、真实 RAG；A1 未重跑 build。
 8. **边界与未执行**：真实供应商外呼、真实 RAG、硬件触摸、逐帧动画曲线均 not_run；`F:\DeepTutor` 与 `F:\ZQKY_RAG` 本批零触碰；未改书籍/课程数据与业务动作、未改其他页面标题/面包屑行为。
 
-### 5.B 上一实施批（历史）：UX-PERF-CLOSEOUT v1（长推理流性能 + 模式菜单 + 学习记录与导航与图标 + 教案布局 + 双语字体），2026-09-23
+<a id="ux-perf-closeout-results"></a>
+### 历史批次（原 UX-PERF-CLOSEOUT v1）：长推理流性能、模式菜单、学习记录与导航/图标、教案布局、双语字体，2026-09-23
 
 **目标（用户锁定，八节）**：① 先对「模型思考过程较长时流式输出使界面与动画卡顿」做**可复现取证**再改实现，不得把静态推断写成已测根因；② 修复 `/chat` 模式菜单的横向滚动与左右滑动，并彻底移除「更多能力」入口/飞出层及其专属前端状态、目录项、配置表单、样式与已失效测试，在同级位置以「RAG 模式」占位（明确标注未接入，不发送到普通聊天冒充、不返回模拟检索结果）；③ 学习记录并入全站左侧导航（不再占独立中间列）、书籍并入教材资料库、增加正式品牌 favicon；④ 教案工作台去掉面包屑、改为编辑区 → 可折叠「教案配置」→ 预览且只留一个折叠按钮；⑤ 建立有名称与用途的双语字体 token 并清理全站硬编码字体；⑥ 文档整理与后续计划；⑦ 组织与交付门槛（任务卡、隔离资源、独立验收、小粒度提交）。
 
@@ -180,7 +190,8 @@ npm.cmd run test:unit
 10. **独立验收 A1（只读复验，两轮）**：r1 判 **needs_revision**（1 项必修 + 1 项条款未实现 + 6 项口径/记录问题，全文见 [A1 r1](qa/UX-PERF-CLOSEOUT-20260923/A1-REPORT-01.md)）：① 「用户上滚不被拉回」实为**本批引入的行为差异**（自动跟随改到 rAF 后未在回调内复检 `following`，验收者实测首次上滚 0→4052），非探针问题；② 用户第 3 节「历史旧能力值明确降级展示」在 r3 只有数据保留、缺渲染路径；③ 长任务数据其实有效（210 条/23.1 s → 0）而文档写成「取不到」、「唯一变差项」表述不成立、JS 堆应标单次采样；④ 冻结记录哈希口径未写死、tip 与 headCommit 不一致、记录自引用；⑤ 探针缺上游来源自检；⑥ 我方在验收期间并发重启共享上游，污染其一轮 `upstream.*`（已接受）。**r4 逐项处置**：rAF 回调内复检跟随状态（**断言反转**：移除复检 4/4 被拉回、恢复后 4/4 恒 0）、补齐降级展示（单测覆盖两分支）、订正全部口径、FROZEN r4 写死 `hashSource=git blob(LF)`+排除自身+代码指纹子集、探针加 `originSelfCheck`；受影响 7 spec 44 例与 50k 复测（p95 5.7 ms、0 帧 >50 ms）通过，unit **441 例**。r3 的 18/19 过程如实保留在批次证据 §3.1/§4。**A1 r2 窄复验判 pass**（[报告](qa/UX-PERF-CLOSEOUT-20260923/A1-REPORT-02.md)：19/19、其自写确定性探针 4/4、降级展示实测含「渲染后存储快照逐字节未变」、受影响 7 spec 44 例、50k 复测无性能回退；其点名的 5 项文档/证据收尾已处置：补双轮原始日志、统一堆字段与数值、停掉旧 5197 进程、出 r5 记录、闭合报告引用）。
 11. **实跑结果（r3 候选 `ZkSw3NYEUtNUBATU0sde5`；r4 增量见第 10 条）**：`npm run typecheck` 通过；`npm run lint`（`--max-warnings=0`）**0 警告**；`NODE_OPTIONS=--no-experimental-webstorage npm run test:unit` → **52 文件 / 440 例通过**；`npm run build` 通过（`BUILD_ID = ZkSw3NYEUtNUBATU0sde5`）；`npx playwright test` → **199 通过 / 1 失败**，唯一失败为跨批既有间歇 **R-14**（`books-commit-safety.spec.ts:238`，本轮独立复现并定性，见 §3 台账与 [R-14 证据](qa/UX-PERF-CLOSEOUT-20260923/r14/REPRO-EVIDENCE.md)：`--repeat-each=2` 1 失败 1 通过、隔离 `-g ... --repeat-each=3` 3/3 通过；失败快照为既有的「生成已中断 + 继续生成」**如实状态、笔记与进度完好**，未修改/未删除该用例、未笼统加等待）；后端 `npm run test:api` → **217 passed**（零后端改动，沿用基线）。全量回归中暴露并修复的**真实产品缺陷**（打印媒体下公共壳栅格错位导致内容区 0 高）与两处断言写法修正见 [批次证据 §8](qa/UX-PERF-CLOSEOUT-20260923/README.md)。**未执行**：真实供应商/RAG/硬件触摸/逐帧动画（not_run）。
 
-### 5.C 上一实施批（历史）：CHAT-CONTEXT-BUDGET v1（请求统一预算）+ RAG-I0-PREP v1（RAG 只读准备），2026-09-23
+<a id="chat-budget-results"></a>
+### 历史批次（原 CHAT-CONTEXT-BUDGET v1 + RAG-I0-PREP v1）：请求预算与 RAG 只读准备，2026-09-23
 
 **目标（用户锁定）**：① 为最终请求建立统一预算——课程上下文、历史消息、当前问题共同参与计算，预留输出预算，分别遵守后端单条/总长度限制，且**不把字符估算夸大为精确 token**；② 课程上下文所有动态字段受限，保留「资源仅登记，未解析未检索」说明，字段裁剪只影响发送内容、**不反向改写课程原始数据**；③ 优先缩减可省略的课程摘要与旧历史，**不静默丢掉当前问题、不拼接半条消息、不伪造完整上下文**，必要输入仍超限时在发请求前明确提示并保留输入可修改；④ 课程快照仍按轮次冻结（旧轮重试不读最新课程、新轮用新快照），**旧超长快照同样经安全构建、不要求清库**，如实记录发送时的裁剪行为且历史原文不变；⑤ 预算/构建失败不得留下 `sending=true`、空助手占位、无法重试状态或未处理 Promise；⑥ RAG 侧只做只读核对与宿主侧契约准备，**不启动模型、不重建索引、不填人工 verdict、不解封 held-out、不改 RAG 仓库**。同批不改变模型输出预算默认值、不自动关推理、不顺手处理 R-13、不引入 RAG 内容或模拟聊天。
 
@@ -204,6 +215,7 @@ npm.cmd run test:unit
 7. **不包含**：BookChatPanel、课程学习智能体工具、自动学习规划、精通/记忆、RAG 正式接入、真实书籍生成、全站动画重做，以及任何模拟聊天捷径。
 8. **独立验收（两轮）**：A1 r1 判「需修订（有界）」——F1「保存已提交、导航卸载再次点击会创建第二条课程会话」（探针 gap=10/25ms）、F2「课程上下文警告跨会话残留」，另列 F3–F11（测试有效性/文档口径/结构）；修复批 `701d391`（守卫保持到卸载、四处切换点清除警告、预算内收缩保留免责句、补 2 例 e2e + 1 例单测、文档清扫）重新冻结后，A1 r2 判 **可交付**（F1/F2 经其独立探针确认修复、要求 4/5/6/7 重跑无回退、191 例全量 e2e 与 416 例单测由其本机重现）。报告：[r1](qa/H1-COURSE-SESSIONS/A1-REPORT-01.md)、[r2](qa/H1-COURSE-SESSIONS/A1-REPORT-02.md)。
 
+<a id="commit-safety-results"></a>
 ### 5.E 更早实施批（历史）：BOOKS-CS-FOLLOWUP v1（书籍前置补丁）与 H1-BOOKS-COMMIT-SAFETY v1（书籍保存一致性）
 
 **目标**：收口书籍本地仓储的**提交一致性**——写入口单一协议、互斥/事务读改写、提交结果可判定，调用方只在落库成功后展示成功。冻结契约与范围见 [任务卡](qa/H1-BOOKS-COMMIT-SAFETY/TASK-CARD.md)。
@@ -332,15 +344,15 @@ npm.cmd run test:unit
 
 | 顺序/轨道 | 交付中心 | 出口 |
 | --- | --- | --- |
-| **UX-REGRESSION-FIX v1（2026-09-23 已交付，见 §5.A）** | 三项人工视觉回归修复（推理流式公式 / 教案顶栏 / 教材资料库返回路径） | 已完成（限定范围）；真实供应商/RAG/硬件触摸/逐帧动画 not_run |
-| **UX-PERF-CLOSEOUT v1（2026-09-23 已交付，见 §5.B）** | 长推理流性能收口 + 模式菜单（RAG 模式占位）+ 学习记录并入导航 + 书籍归属 + favicon + 教案布局 + 双语字体 token | 已完成（限定范围）；真实供应商/RAG 硬件触摸 not_run |
+| **UX-REGRESSION-FIX v1（2026-09-23 历史批次）** | 三项人工视觉回归修复（推理流式公式 / 教案顶栏 / 教材资料库返回路径） | 已完成（限定范围）；真实供应商/RAG/硬件触摸/逐帧动画 not_run |
+| **UX-PERF-CLOSEOUT v1（2026-09-23 历史批次）** | 长推理流性能收口 + 模式菜单（RAG 模式占位）+ 学习记录并入导航 + 书籍归属 + favicon + 教案布局 + 双语字体 token | 已完成（限定范围）；真实供应商/RAG 硬件触摸 not_run |
 | **下一批（依赖顺序第 2 步）：现存业务与 R-14 的有界核查** | ① R-14（书籍双标签页并发写测试假设与既定行为不一致）定性并处置：要么在测试内接受「已中断」再走继续生成，要么调宽等待；② R-13（模型真实长答）只做有界核查，不无界加预算、不自动关推理；③ 现存业务问题按 STATUS §3 台账逐条有界处理 | 每条给出复现命令、定性（产品缺陷/断言问题）与处置；不借机扩大范围 |
-| **下一批（依赖顺序第 3 步，前置未满足）：RAG 真实 I1 接入** | 需**用户先明确解除冻结并确认上游停止写入**，并在接入形态候选 A（独立进程边界）/ B（独立命名 wheel）中选定；`F:\ZQKY_RAG` 的漂移是用户侧进行中的开发，不是本项目的待修错误 | 前置满足前不启动；宿主 adapter 契约已就绪（§5.C、§6.1） |
+| **下一批（依赖顺序第 3 步，前置未满足）：RAG 真实 I1 接入** | 需**用户先明确解除冻结并确认上游停止写入**，并在接入形态候选 A（独立进程边界）/ B（独立命名 wheel）中选定；`F:\ZQKY_RAG` 的漂移是用户侧进行中的开发，不是本项目的待修错误 | 前置满足前不启动；宿主 adapter 契约已就绪（见「历史批次（原 CHAT-CONTEXT-BUDGET v1 + RAG-I0-PREP v1）」、§6.1） |
 | **最终阶段：真实服务、动画与全站总验收** | H6/H7：三矩阵逐项证据、逐帧动画曲线与中断、真实供应商按授权批接入 | 工程、视觉、真实/模拟、兼容与阻断分别有结论 |
 | **H1-BOOKS-COMMIT-SAFETY v1（2026-09-22 已交付）** | 书籍保存一致性收口：集合写互斥事务 + 提交结果契约 + 全写入口/调用方迁移；见 §5.E | 已完成（限定范围，A1 条件通过并处置交付前项） |
 | **H1-COURSE-SESSIONS v1（2026-09-22 已交付）** | 课程内创建/恢复真实聊天、课程归属、课程与聊天往返、旧会话兼容与失效处理；见 §5.D | 已完成（限定范围）；真实供应商调用 not_run；BookChatPanel 与课程学习智能体工具仍属后续 |
-| **CHAT-CONTEXT-BUDGET v1（2026-09-23 已交付）** | 请求统一预算（课程块+历史+当前问题）+ 课程字段限幅 + 构建失败如实提示；见 §5.C | 已完成（限定范围）；真实供应商 not_run；精确 token 计数不在承诺内 |
-| **RAG-I0-PREP v1（2026-09-23 已交付，宿主侧契约/准备）** | adapter 输入输出/引用坐标/状态错误契约 + 35 例合成测试；见 §5.C、§6.1 | 宿主侧完成；上游缺口 G1–G12 未清；**I1 需用户明确解除冻结并确认上游停止写入** |
+| **CHAT-CONTEXT-BUDGET v1（2026-09-23 已交付）** | 请求统一预算（课程块+历史+当前问题）+ 课程字段限幅 + 构建失败如实提示；见下方「历史批次（原 CHAT-CONTEXT-BUDGET v1 + RAG-I0-PREP v1）」 | 已完成（限定范围）；真实供应商 not_run；精确 token 计数不在承诺内 |
+| **RAG-I0-PREP v1（2026-09-23 已交付，宿主侧契约/准备）** | adapter 输入输出/引用坐标/状态错误契约 + 35 例合成测试；见下方「历史批次（原 CHAT-CONTEXT-BUDGET v1 + RAG-I0-PREP v1）」、§6.1 | 宿主侧完成；上游缺口 G1–G12 未清；**I1 需用户明确解除冻结并确认上游停止写入** |
 | H1 课程闭环后续（未启动） | 课程学习会话的工具与产物、课程聚合进度、BookChatPanel；复用已交付的会话归属与轮次快照契约 | 真实执行通道按授权接入；不重复实施本次已交付的归属/快照/非破坏删除语义 |
 | H1-BOOKS-PIPELINE v2 / H1-BOOKS-HARDEN v1（历史已交付） | 七态流水线与增量阅读闭环（§5.0）、M22-01～06 修复（§5.F） | 已完成（各自限定范围）；证据见对应 qa 目录 |
 | H2既有模块闭环 | 阅读媒体原视图与完整伴生过程、写作/Whisper、学习空间及产物消费 | 原功能/数据不丢、来源正确、完整参考交互 |
