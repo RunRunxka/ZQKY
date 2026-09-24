@@ -1566,8 +1566,15 @@
   }
   :where(.lesson-workspace) .app-header {
     padding: 0 14px;
-    gap: 0;
+    /* 顶栏内现在同时有标题与导出菜单：给相邻控件留最小间隔，
+       避免窄屏下标题与左侧品牌在视觉上贴成一体（390 实测二者原本间隔 0px）。 */
+    gap: 6px;
     grid-row: 1;
+  }
+  /* 窄屏顶栏要同时容纳「菜单键 + 品牌 + 标题 + 导出」：标题按比例收一档，
+     保证 390 宽下各控件有间隔且不横向溢出（桌面仍是与协同写作/沉浸阅读同级的 24px）。 */
+  :where(.lesson-workspace) .lesson-page-title {
+    font-size: 20px;
   }
   :where(.lesson-workspace) .brand {
     gap: 8px;

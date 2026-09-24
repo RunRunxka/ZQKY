@@ -335,16 +335,21 @@ test('教案标题与导出菜单同一顶栏，四视口不重叠不溢出（UX
         (b.textContent ?? '').includes('导出教案'),
       ) as HTMLElement | undefined;
       const editor = document.querySelector('.editor-panel') as HTMLElement;
+      const brand = document.querySelector('.app-header .brand') as HTMLElement | null;
       const r = (el?: HTMLElement | null) => (el ? el.getBoundingClientRect() : null);
       const hb = r(header);
       const tb = r(title);
       const eb = r(exportBtn);
+      const bb = r(brand);
       return {
         titleInsideHeader: !!header && !!title && header.contains(title),
         exportInsideHeader: !!header && !!exportBtn && header.contains(exportBtn),
         sameRow: !!(hb && tb && eb) && Math.abs(tb!.top + tb!.height / 2 - (eb!.top + eb!.height / 2)) < 2,
         verticallyInsideHeader: !!(hb && tb) && tb!.top >= hb!.top - 1 && tb!.bottom <= hb!.bottom + 1,
         noOverlap: !!(tb && eb) && tb!.right <= eb!.left,
+        // 相邻控件必须有可见间隔（UX-REGRESSION-FIX v1 自查修复：390 下品牌与标题原本间隔 0px）
+        brandToTitleGap: bb ? tb!.left - bb.right : null,
+        titleToExportGap: eb ? eb.left - tb!.right : null,
         editorTop: editor ? Math.round(editor.getBoundingClientRect().top) : null,
         headerBottom: hb ? Math.round(hb.bottom) : null,
         pageOverflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -355,6 +360,15 @@ test('教案标题与导出菜单同一顶栏，四视口不重叠不溢出（UX
     expect(geometry.sameRow, `标题与导出应同一行 @${viewport.width}`).toBe(true);
     expect(geometry.verticallyInsideHeader).toBe(true);
     expect(geometry.noOverlap, `标题不得与导出重叠 @${viewport.width}`).toBe(true);
+    expect(
+      geometry.titleToExportGap,
+      `标题与导出需有可见间隔 @${viewport.width}`,
+    ).toBeGreaterThanOrEqual(2);
+    if (geometry.brandToTitleGap !== null)
+      expect(
+        geometry.brandToTitleGap,
+        `顶栏品牌与标题需有可见间隔 @${viewport.width}`,
+      ).toBeGreaterThanOrEqual(2);
     expect(geometry.pageOverflowX, `不得横向溢出 @${viewport.width}`).toBeLessThanOrEqual(1);
     // 2) 内容区紧接顶栏，没有多出的一行标题空间
     expect(geometry.editorTop).toBe(geometry.headerBottom);
