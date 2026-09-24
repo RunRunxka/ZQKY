@@ -1,8 +1,8 @@
 {
   "batch": "UX-REGRESSION-FIX v1",
-  "revision": "r2（三项回归修复 + 窄屏顶栏间隔自查修复；r1 对 lesson-plan.css 的指纹因该修复失效，如实记录）",
+  "revision": "r3（仅元数据修订：e2e 数字加「单次运行」限定、性能改区间、标注 unit 门槛与 BUILD_ID 定位；代码与文件指纹沿用 r2）",
   "frozenAt": "2026-09-24T01:10:00+08:00",
-  "hashSource": "git blob（LF 归一化）：sha256(git show <headCommit>:<path>)；工作树为 CRLF，按工作树复算会全部不符",
+  "hashSource": "git blob（LF 归一化）：sha256(git show <headCommit>:<path>)。注意：Windows 工作树里 .ts/.tsx 即 LF（按工作树复算也匹配），.css/.md/.py 等工作树为 CRLF（按工作树复算会不符）——核验请一律用 git blob。",
   "normalization": "LF",
   "baseCommit": "3a2e4a8aa1b524b7a58671b8bfd31a7a44e865b4",
   "headCommit": "4b97880bd60a32df61cabdbb069b3290a5a25a00",
@@ -27,11 +27,13 @@
     "lint": "0 warnings",
     "unit": "54 files / 459 tests",
     "build": "pass",
-    "e2e_full": "202 passed / 0 failed（最终候选）",
-    "e2e_lessonplan": "9 passed / 0 failed",
+    "e2e_full": "202 passed / 0 failed（本机单次运行，未含 R-14 复现）",
+    "e2e_lessonplan": "9 passed / 0 failed（含顶栏控件最小间隔 ≥2px 断言）",
     "e2e_affected": "68 passed（前一构建）",
     "test_chat": "8 passed / 1 failed（既有陈旧用例 R-15）",
-    "perf50k": "frames p95 5.7ms / 0 帧>50ms / 0 长任务；script 2776ms"
+    "perf50k": "frames p95 5.7ms（多轮稳定）；>50ms 帧 0～1、长任务 0～1（同机状态相关：本机两轮 0/0，独立验收两轮 1 帧×~95–100ms 与 1 条×80ms）；script 2776~3071ms；相对优化前基线（215 帧 / 210 条 / 28300ms）仍为两个数量级改善",
+    "e2e_fullNote": "独立验收在同一候选上得 201 passed / 1 failed，唯一失败为跨批 R-14（books-commit-safety:238，既有「生成已中断+继续生成」如实状态、笔记与进度完好）。不得据此宣称候选恒绿。",
+    "testUnitRequires": "NODE_OPTIONS=--no-experimental-webstorage（Node 26 裸跑会因实验性 Web Storage 出现 216 例失败，独立验收已复现）"
   },
   "files": {
     "apps/web/src/features/books/BooksRoute.tsx": "699e4a1cc8849cff8a61e7bc0b2f7ed07a9fe65d72d88dafe2a4e425f2c36549",
@@ -76,5 +78,19 @@
     "tests/integration/chat-reasoning.spec.ts": "ee1f2a6e4f6906568296c780ea0fdd87d768bb9360b170316712da12e3c8459c"
   },
   "fileCount": 22,
-  "codeFileCount": 16
+  "codeFileCount": 16,
+  "filesNote": "files 的哈希取自 r2 的 headCommit（4b97880）；本记录不含自身。后续若 tip 前进只动文档，代码指纹以 codeFiles 为准。",
+  "buildIdNote": "BUILD_ID 只是「哪次运行的标签」，不是内容指纹：同源码同 origin 重建会得到不同 BUILD_ID（独立验收按记录重建 .next-test(8001) 得到 CVrJEslvTX8WkaJJD_9Ua ≠ 记录的 rs3f5lSJJCHsGAfb4a6Bb）。真正可复算是 files/codeFiles 的 blob 哈希。",
+  "independentAcceptance": {
+    "result": "pass（可交付）",
+    "by": "Independent-Acceptor（只读复验）",
+    "verified": [
+      "自写探针复现流式 katex=4/display=2/error=0、未闭合尾段原文、补齐 katex=5、落库 reasoning/content 与上游逐字节全等（sha256 相同）",
+      "停止=已停止/client-stop 且无自动重发；断流=STREAM_INTERRUPTED",
+      "顶栏五视口几何与截图逐格一致（390 brand→title 6px / title→export 11px）",
+      "15 步真实点击返回路径全绿、导航唯一当前项",
+      "lesson-plan 9/9（含 ≥2px 间隔断言）",
+      "22/22 blob 指纹"
+    ]
+  }
 }
