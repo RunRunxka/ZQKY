@@ -32,6 +32,7 @@ export function AskUserCard({
   submitting,
   onDraft,
   onSubmit,
+  source = 'mock',
 }: {
   interaction: AskUserInteraction;
   /** 是否为当前等待回答的卡（仅此卡可提交） */
@@ -39,6 +40,7 @@ export function AskUserCard({
   submitting: boolean;
   onDraft(interactionId: string, questionId: string, draft: AskUserDraft): void;
   onSubmit(interactionId: string, answers: AskUserAnswer[]): void;
+  source?: 'rag' | 'mock';
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const total = interaction.questions.length;
@@ -49,6 +51,7 @@ export function AskUserCard({
     (interaction.status === 'waiting' || interaction.status === 'failed') &&
     active &&
     !locked;
+  const editable = answerable && !interaction.pendingSubmission;
 
   function draftOf(q: AskUserQuestion): AskUserDraft {
     return interaction.drafts[q.questionId] ?? EMPTY_DRAFT;
@@ -66,7 +69,7 @@ export function AskUserCard({
     }
   }
   function pickOption(q: AskUserQuestion, label: string) {
-    if (!answerable) return;
+    if (!editable) return;
     if (q.multiSelect) {
       // 多选：只切换，不自动前进；选项与补充文本可共存
       const cur = draftOf(q).labels;
@@ -79,14 +82,14 @@ export function AskUserCard({
     hopToNextUnanswered(activeIndex, q.questionId);
   }
   function updateFreeText(q: AskUserQuestion, text: string) {
-    if (!answerable) return;
+    if (!editable) return;
     const next: AskUserDraft = { ...draftOf(q), freeText: text };
     // 单选下自由文本与选项互斥（对照原版 selectCustom）
     if (!q.multiSelect && text.trim()) next.labels = [];
     onDraft(interaction.interactionId, q.questionId, next);
   }
   function skipCurrent(q: AskUserQuestion) {
-    if (!answerable) return;
+    if (!editable) return;
     onDraft(interaction.interactionId, q.questionId, EMPTY_DRAFT);
     setActiveIndex((idx) => Math.min(total - 1, idx + 1));
   }
@@ -128,7 +131,7 @@ export function AskUserCard({
       <p className="chat-ask-head">
         <MessageCircleQuestion size={14} aria-hidden="true" />
         <span>
-          追问（本地模拟）
+          {source === 'rag' ? '教材追问' : '追问（本地模拟）'}
           {total > 1 && ` · ${Math.min(activeIndex + 1, total)}/${total}`}
           {interaction.status === 'submitting' && ' · 提交中'}
           {answered && ' · 已回答'}
@@ -136,6 +139,7 @@ export function AskUserCard({
         </span>
       </p>
       {interaction.intro && <p className="chat-ask-intro">{interaction.intro}</p>}
+      {interaction.pendingSubmission && !locked && <p className="chat-ask-note">上次提交尚未确认。再次提交会核对原回答，不会重复处理。</p>}
 
       {interaction.status === 'preview' && (
         // R13：预览按原版呈现已有题目（只读），无题目时才显示骨架
@@ -208,7 +212,8 @@ export function AskUserCard({
                 rows={2}
                 aria-label={`${question.prompt}（自由输入）`}
                 placeholder={question.placeholder ?? '补充说明（可选）'}
-                disabled={!answerable}
+                disabled={!editable}
+                maxLength={source === 'rag' ? 2000 : undefined}
                 value={draftOf(question).freeText}
                 onChange={(e) => updateFreeText(question, e.target.value)}
               />
@@ -269,7 +274,7 @@ export function AskUserCard({
           </footer>
           {total > 1 && (
             <p className="chat-ask-foot-actions">
-              <button type="button" disabled={!answerable} onClick={() => skipCurrent(question)}>
+              <button type="button" disabled={!editable} onClick={() => skipCurrent(question)}>
                 跳过此题
               </button>
             </p>

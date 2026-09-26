@@ -19,7 +19,7 @@ export interface ChatMessageError {
  */
 export type ChatServiceKind = 'real' | 'mock';
 
-/** 本轮扩展快照：发送时从模拟扩展目录冻结的独立数据（重试沿用，不引用可变目录对象） */export interface TurnExtensionSnapshot {
+/** 本轮扩展快照：发送时冻结的独立能力与扩展数据（重试沿用，不引用可变目录对象） */export interface TurnExtensionSnapshot {
   mcps: { id: string; name: string; description: string }[];
   skills: { id: string; name: string; description: string }[];
   /**
@@ -102,6 +102,17 @@ export interface AskUserInteraction {
   error?: { code: string; message: string };
   /** 本卡确认后、下一张卡或轮结束前的续写正文 */
   followUp?: string;
+  /** RAG 提交意图随卡保存；断线重试沿用同一标识与载荷。 */
+  pendingSubmission?: { submissionId: string; answers: AskUserAnswer[] };
+}
+
+/** 专用教材服务的恢复坐标；与正文同一次仓储写入，避免游标超前导致丢字。 */
+export interface RagTurnState {
+  sessionId: string;
+  turnId: string;
+  question: string;
+  lastEventId: number;
+  status: 'active' | 'interrupted' | 'terminal';
 }
 
 /**
@@ -188,7 +199,7 @@ export interface ChatMessage {
   stages?: TraceStageRecord[];
   /** 过程增量（process 事件）最新一条，流式时显示 */
   processNote?: string;
-  /** 本轮使用的扩展快照（发送时冻结；模拟模式专用，真实消息没有该字段） */
+  /** 本轮使用的能力与扩展快照（发送时冻结；教材身份另存于 rag） */
   extensions?: TurnExtensionSnapshot;
   /** 工具/技能执行过程（按 callId 去重；随会话持久化，刷新只恢复不重放） */
   toolCalls?: ToolCallRecord[];
@@ -203,6 +214,8 @@ export interface ChatMessage {
    * 全部为**字符估算**（1 token ≈ 2 字符的保守估计），不是精确 token 计数；历史原文不受影响。
    */
   requestBudget?: RequestBudgetRecord;
+  /** 仅真实本地教材服务写入；不能据普通扩展快照推断历史执行身份。 */
+  rag?: RagTurnState;
   /** 轮级计时（S3）：开始=助手占位创建；结束=end/error/取消收尾（完成后冻结时长显示） */
   startedAt?: string;
   finishedAt?: string;

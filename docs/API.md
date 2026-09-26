@@ -95,7 +95,7 @@ FastAPI 服务位于 apps/api，仅监听 127.0.0.1:8000；浏览器经 Next 同
 | 方法与路径 | 状态 | 说明 |
 | --- | --- | --- |
 | GET `/api/v1/health` | 已实现 | 返回 `status/service/apiVersion/time`，不含配置内容 |
-| GET `/api/v1/capabilities` | 已实现 | 能力清单；`model_settings`、`chat` 为 `ready`，组卷/模板/教材库/题库/RAG/Agent/MCP/Skills 为 `planned` |
+| GET `/api/v1/capabilities` | 已实现 | 能力清单；`model_settings`、`chat` 为 `ready`，RAG 按本地就绪状态为 `ready` / `unavailable`；组卷/模板/教材库/题库/Agent/MCP/Skills 为 `planned` |
 | GET/POST `/api/v1/model-connections` | 已实现 | 连接列表/创建；非空 `apiKey` 经 SecretStore 持久化到 .env，响应只返回凭证状态和变量名，不回显 Key |
 | GET `/api/v1/model-catalog` | 已实现 | 一次读取带 revision 的连接/模型/默认模型目录 |
 | GET `/api/v1/model-connections/{id}/models` | 已实现 | 使用服务端凭证发现上游模型；不修改目录 |
@@ -147,3 +147,34 @@ FastAPI 服务位于 apps/api，仅监听 127.0.0.1:8000；浏览器经 Next 同
 后续多用户/任务服务接入前，先确定用户和文档ID、鉴权、版本冲突、任务状态、数据保留及错误规范。FastAPI 已有接口由服务端声明；当前前端契约（`apps/web/src/contracts/api.ts`）为手写对齐，未宣称由 OpenAPI 生成。health、capabilities、模型管理和聊天为实际实现；其他功能以实际路由登记和能力状态为准。
 
 资料、问答、练习、笔记等全项目接口仍参考原项目规划，待具体任务再细化。模型密钥与数据库连接仅放服务端，浏览器不接收供应商凭证。
+
+## 本地教材 RAG（RAG-DELIVERY-v1）
+
+所有接口位于现有 FastAPI，沿用回环 Host/Origin 限制和统一错误信封，无第二套业务后端。
+
+| 接口 | 请求/结果 |
+| --- | --- |
+| GET `/api/v1/rag/status` | `available/detail/humanQuality/localOnly/limits`；就绪不表示质量通过 |
+| POST `/api/v1/rag/stream` | `{requestId, sessionId, turnId, question, subject?, afterEventId?}`；题文 1–4000 字符，subject 仅四科或空 |
+| POST `/api/v1/rag/reply` | `{sessionId, turnId, interactionId, submissionId, answers}`；答项含 questionId/labels/freeText/skipped |
+| POST `/api/v1/rag/cancel` | `{sessionId, turnId}`；显式取消，迟到结果丢弃 |
+
+`subject` 为空时检索空间是**四科全部册**（本机快照 6,745/11,608 个正文块），不是整个索引；
+索引内其他学科的册不属于产品范围，不会被作为教材原文发布。显式传 subject 时收窄到该科册。
+索引与冻结评测分组不改，范围选择只发生在产品入口。
+
+SSE 使用单调递增 `id`：`message.start` → `rag.result` / `text.delta` → `wait-user`，提交后 `reply.accepted`，
+再产生结果或 `message.end`；任何阶段失败发 `error`。每个事件携带 requestId/sessionId/turnId/messageId。
+`rag.result.result` 包括 `status/evidence/citations/explanations/uncertain_reason`，
+原文模式另带 `answerMode="textbook_excerpt"`。引用包含相对 file、book/path、源字节 SHA、半开字符区间、行号、原文。
+其 `ok` 仅表示本轮可展示材料，**不表示已完整解题或人工教学质量通过**；`partial` 只展示部分原文；
+`uncertain/no_evidence` 不带诊断候选。核验技术失败是明确错误，不冒充证据不足。
+
+相同 turnId 不允许替换题目/学科；跨 session 禁止复用。断线只断传输，`afterEventId` 重放已产生事件；
+后端重启或过期返回 410 `RAG_TURN_EXPIRED`。重复 submissionId 必须保持载荷相同，重复确认不再次推理。
+空/跳过回答结束本轮；补充与原题合计 >4000 字符会拒绝，卡片仍可修改。队列 4、并发 1、每次 180 秒、
+最多 64 个内存轮次、TTL 600 秒、最多 3 次定位。取消/超时不提前释放仍在推理的工作线程。
+
+宿主只发布经核对的教材原文，不发布未验证的自由推导或教材外补充。生成和查询模型强制 local-only、固定 digest、
+禁用环境代理和重定向。结果缓存（含拒答）仅在进程内，容量 64、有效期 600 秒，取用重验源 SHA；
+宿主清理器每 15 秒清理过期内容。业务题文不写后端磁盘或日志，调用台账仅含计数/身份/成本等元数据。

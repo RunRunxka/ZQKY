@@ -510,25 +510,24 @@ def test_non_string_or_non_int_arguments_are_rejected():
 # ---------------------------------------------------------------------------
 
 
-def test_get_rag_adapter_always_raises_unavailable():
+def test_get_rag_adapter_requires_application_owned_service():
     for _ in range(3):
         with pytest.raises(RagAdapterUnavailable) as excinfo:
             get_rag_adapter()
         assert isinstance(excinfo.value, RuntimeError)
         assert str(excinfo.value) == RAG_UNAVAILABLE_MESSAGE
-        assert "未接入" in str(excinfo.value)
-        assert "未实测" in str(excinfo.value)
+        assert "运行时" in str(excinfo.value)
 
 
 def test_capability_declaration_is_not_ready():
     assert RAG_CAPABILITY["feature"] == "rag"
-    assert RAG_CAPABILITY["status"] == "planned"
+    assert RAG_CAPABILITY["status"] == "unavailable"
     assert RAG_CAPABILITY["status"] != "ready"
     assert RAG_CAPABILITY["detail"].strip()
 
 
-def test_capabilities_endpoint_still_reports_rag_as_planned(client):
+def test_capabilities_endpoint_reports_missing_runtime(client):
     """与既有 capabilities 端点交叉核对：本批没有把 rag 改成 ready。"""
     body = client.get("/api/v1/capabilities").json()
     features = {item["feature"]: item for item in body["capabilities"]}
-    assert features["rag"]["status"] == "planned"
+    assert features["rag"]["status"] == "unavailable"

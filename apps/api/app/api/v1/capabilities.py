@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 from app.core.config import API_VERSION, SERVICE_NAME
 from app.schemas.capabilities import (
@@ -30,7 +30,7 @@ CAPABILITIES: tuple[Capability, ...] = (
         feature="chat",
         label="学习问答对话",
         status=CapabilityStatus.ready,
-        detail="流式对话已实现（D04）；对话记录保存在浏览器本地。教材检索（RAG）仍规划中。",
+        detail="流式对话已实现（D04）；对话记录保存在浏览器本地。教材定位与追问由独立的本地 RAG 模式提供。",
     ),
     Capability(
         feature="lesson_plan_ai_fill",
@@ -65,8 +65,8 @@ CAPABILITIES: tuple[Capability, ...] = (
     Capability(
         feature="rag",
         label="教材检索（RAG）",
-        status=CapabilityStatus.planned,
-        detail="没有索引与向量存储，不返回检索结果。",
+        status=CapabilityStatus.unavailable,
+        detail="本地教材运行时状态由 /rag/status 检查；人工教学质量验收尚未完成。",
     ),
     Capability(
         feature="agent_tasks",
@@ -90,10 +90,15 @@ CAPABILITIES: tuple[Capability, ...] = (
 
 
 @router.get("/capabilities", response_model=CapabilitiesResponse)
-async def capabilities() -> CapabilitiesResponse:
+async def capabilities(request: Request) -> CapabilitiesResponse:
+    rag = await request.app.state.rag_service.status()
+    items = [item.model_copy(update={
+        "status": CapabilityStatus.ready if rag["available"] else CapabilityStatus.unavailable,
+        "detail": rag["detail"] + "仅表示工程运行能力；人工教学质量验收尚未完成。",
+    }) if item.feature == "rag" else item for item in CAPABILITIES]
     return CapabilitiesResponse(
         service=SERVICE_NAME,
         apiVersion=API_VERSION,
         generatedAt=now_utc(),
-        capabilities=list(CAPABILITIES),
+        capabilities=items,
     )

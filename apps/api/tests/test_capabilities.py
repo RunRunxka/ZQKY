@@ -28,8 +28,9 @@ def test_capabilities_reports_feature_state(client):
     assert REQUIRED_FEATURES <= set(features)
     assert features["model_settings"]["status"] == "ready"
     assert features["chat"]["status"] == "ready"
+    assert features["rag"]["status"] == "unavailable"
     for feature, item in features.items():
-        if feature not in ("model_settings", "chat"):
+        if feature not in ("model_settings", "chat", "rag"):
             assert item["status"] == "planned"
         assert item["detail"].strip()
 
@@ -38,4 +39,4 @@ def test_capabilities_does_not_claim_unimplemented_success(client):
     statuses = {
         item["status"] for item in client.get("/api/v1/capabilities").json()["capabilities"]
     }
-    assert statuses == {"planned", "ready"}
+    assert statuses == {"planned", "ready", "unavailable"}
