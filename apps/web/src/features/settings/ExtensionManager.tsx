@@ -3,9 +3,12 @@
 import { useEffect, useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import {
+  BUILTIN_SKILLS,
   readExtensions,
   removeExtension,
   saveExtension,
+  seedBuiltinSkills,
+  skillTakesEffect,
   subscribeExtensions,
   type ExtensionEntry,
   type ExtensionKind,
@@ -31,7 +34,7 @@ export function ExtensionManager({ kind }: { kind: ExtensionKind }) {
   function perform(action: () => void) {
     try {
       action();
-      setNotice('已保存到本机模拟目录，未调用真实服务。');
+      setNotice(kind === 'skill' ? '已保存到本机目录。' : '已保存到本机登记，未连接任何服务。');
       return true;
     } catch (error) {
       setNotice(error instanceof Error ? error.message : '无法保存，请检查浏览器存储。');
@@ -40,9 +43,18 @@ export function ExtensionManager({ kind }: { kind: ExtensionKind }) {
   }
   return (
     <div className="extension-manager">
-      <p className="settings-hint">
-        模拟模式 · 配置仅用于交互演示，未安装或连接真实扩展。请勿填写密钥。
-      </p>
+      {/* 口径与 /capabilities 台账一致：Skill 真实生效于提示词层，MCP 未实现 */}
+      {kind === 'skill' ? (
+        <p className="settings-hint">
+          已启用的技能会随本轮问答发送给模型，作为写作与结构规范；技能只影响生成内容，
+          不执行工具、不访问外部服务。说明为空的技能不会生效。请勿填写密钥。
+        </p>
+      ) : (
+        <p className="settings-hint">
+          当前未实现 · 这里只能本地登记服务信息，不会连接、检测或执行任何外部服务，
+          也不会进入问答请求。请勿填写密钥。
+        </p>
+      )}
       <div className="settings-toolbar">
         <input
           aria-label={`搜索 ${label}`}
@@ -64,9 +76,26 @@ export function ExtensionManager({ kind }: { kind: ExtensionKind }) {
         >
           添加 {label}
         </button>
+        {kind === 'skill' && (
+          <button
+            onClick={() => {
+              let seeded = { added: 0, skipped: 0 };
+              if (perform(() => (seeded = seedBuiltinSkills())))
+                setNotice(
+                  `已载入内置教学技能 ${seeded.added} 个${seeded.skipped ? `，跳过同名 ${seeded.skipped} 个` : ''}（预设共 ${BUILTIN_SKILLS.length} 个）。`,
+                );
+            }}
+          >
+            载入内置教学技能
+          </button>
+        )}
       </div>
       {!items.some((item) => item.kind === kind) && (
-        <p className="settings-empty">还没有{label}。添加一个本地演示配置开始体验。</p>
+        <p className="settings-empty">
+          {kind === 'skill'
+            ? '还没有技能。可载入内置教学技能，或添加自己的技能。'
+            : '还没有 MCP。可添加一条本地登记信息。'}
+        </p>
       )}
       {items
         .filter(
@@ -79,6 +108,11 @@ export function ExtensionManager({ kind }: { kind: ExtensionKind }) {
             <div className="extension-card-body">
               <strong>{item.name}</strong>
               <p>{item.description || '暂无描述'}</p>
+              {kind === 'skill' && !skillTakesEffect(item) && (
+                <p className="extension-card-warning">
+                  未填写技能说明，本轮不会生效；补充说明后才会发送给模型。
+                </p>
+              )}
             </div>
             <div className="settings-toolbar">
               <button
@@ -87,16 +121,12 @@ export function ExtensionManager({ kind }: { kind: ExtensionKind }) {
                 aria-label={`启用 ${item.name}`}
                 onClick={() => perform(() => saveExtension({ ...item, enabled: !item.enabled }))}
               >
-                {item.enabled ? '演示已启用' : '未启用'}
+                {item.enabled ? '已启用' : '未启用'}
               </button>
               <button onClick={() => setEditor({ ...item })}>详情与编辑</button>
               {kind === 'mcp' && (
-                <button
-                  onClick={() =>
-                    setNotice(`模拟检测：${item.name} 的演示配置可读取；未进行网络连接测试。`)
-                  }
-                >
-                  模拟检测
+                <button onClick={() => setNotice('未实现：MCP 不会进行连接或可用性检测。')}>
+                  检测状态
                 </button>
               )}
               <button onClick={() => setRemoving(item)}>删除</button>
@@ -107,7 +137,7 @@ export function ExtensionManager({ kind }: { kind: ExtensionKind }) {
         {notice}
       </p>
       {editor && (
-        <Modal title={`${label} 配置（模拟）`} onClose={() => setEditor(null)}>
+        <Modal title={`${label} 配置`} onClose={() => setEditor(null)}>
           <form
             className="settings-form"
             onSubmit={(e) => {
@@ -140,7 +170,7 @@ export function ExtensionManager({ kind }: { kind: ExtensionKind }) {
                 onChange={(e) => setEditor({ ...editor, content: e.target.value })}
               />
             </label>
-            <button type="submit">保存模拟配置</button>
+            <button type="submit">保存</button>
             <p role="status" className="extension-notice">
               {notice}
             </p>
@@ -148,7 +178,7 @@ export function ExtensionManager({ kind }: { kind: ExtensionKind }) {
         </Modal>
       )}
       {removing && (
-        <Modal title="删除模拟配置" onClose={() => setRemoving(null)}>
+        <Modal title="删除配置" onClose={() => setRemoving(null)}>
           <p>删除“{removing.name}”？</p>
           <button
             onClick={() => {

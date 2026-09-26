@@ -282,3 +282,87 @@ class TestChatStreamEndpoint:
         )
         assert response.status_code == 502
         assert response.json()["code"] == "UPSTREAM_AUTH_FAILED"
+
+
+class TestChatStreamSkillContext:
+    """技能上下文：拼装为前置系统消息；无技能时不改变请求形态。"""
+
+    def _capture_messages(self, monkeypatch) -> list[list[dict]]:
+        captured: list[list[dict]] = []
+
+        async def capture_open_stream(config, url, headers, body, transport=None):
+            captured.append(body["messages"])
+
+            async def sse() -> AsyncIterator[tuple[str | None, str]]:
+                yield None, '{"choices":[{"delta":{"content":"好"}}]}'
+                yield None, '{"choices":[{"delta":{},"finish_reason":"stop"}]}'
+                yield None, "[DONE]"
+
+            from types import SimpleNamespace
+
+            yield SimpleNamespace(status_code=200), sse()
+
+        patch_open_stream(monkeypatch, capture_open_stream)
+        return captured
+
+    def _post(self, api_client, profile_id: str, **extra):
+        return api_client.post(
+            "/api/v1/chat/stream",
+            json={
+                "requestId": "req-12345678",
+                "modelProfileId": profile_id,
+                "messages": [{"role": "user", "content": "帮我写一份教案"}],
+                **extra,
+            },
+        )
+
+    def test_skills_prepended_as_single_system_message(self, api_client, monkeypatch):
+        captured = self._capture_messages(monkeypatch)
+        profile_id = setup_profile(api_client)
+        response = self._post(
+            api_client,
+            profile_id,
+            skills=[
+                {"name": "教案规范", "content": "按七个栏目输出。"},
+                {"name": "命题规范", "content": "写清答案与解析。"},
+            ],
+        )
+        assert response.status_code == 200
+        (messages,) = captured
+        assert [m["role"] for m in messages] == ["system", "user"]
+        assert "### 教案规范" in messages[0]["content"]
+        assert "### 命题规范" in messages[0]["content"]
+        assert messages[1]["content"] == "帮我写一份教案"
+
+    def test_without_skills_no_system_message_added(self, api_client, monkeypatch):
+        captured = self._capture_messages(monkeypatch)
+        profile_id = setup_profile(api_client)
+        assert self._post(api_client, profile_id).status_code == 200
+        (messages,) = captured
+        assert [m["role"] for m in messages] == ["user"]
+
+    def test_skills_total_too_large_413(self, api_client):
+        profile_id = setup_profile(api_client)
+        response = self._post(
+            api_client,
+            profile_id,
+            skills=[{"name": f"超长技能{i}", "content": "长" * 8_000} for i in range(3)],
+        )
+        assert response.status_code == 413
+        assert response.json()["code"] == "SKILL_CONTEXT_TOO_LARGE"
+
+    def test_too_many_skills_422(self, api_client):
+        profile_id = setup_profile(api_client)
+        response = self._post(
+            api_client,
+            profile_id,
+            skills=[{"name": f"技能{i}", "content": "正文"} for i in range(9)],
+        )
+        assert response.status_code == 422
+        assert response.json()["code"] == "INVALID_REQUEST"
+
+    def test_empty_skill_content_422(self, api_client):
+        profile_id = setup_profile(api_client)
+        response = self._post(api_client, profile_id, skills=[{"name": "空技能", "content": ""}])
+        assert response.status_code == 422
+        assert response.json()["code"] == "INVALID_REQUEST"

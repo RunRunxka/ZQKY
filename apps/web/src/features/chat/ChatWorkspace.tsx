@@ -24,6 +24,7 @@ import { ContextRefTree } from './ComposerSpaceMenu';
 import { useModelCatalog } from '@/features/model-settings/useModelCatalog';
 import { ModelSelector } from '@/features/model-settings/ModelSelector';
 import { readPersonas, subscribePersonas, type PersonaEntry } from '@/services/persona-catalog';
+import { buildTurnExtensionSnapshot } from '@/services/extension-catalog';
 import {
   readKnowledge,
   subscribeKnowledge,
@@ -674,7 +675,8 @@ function ChatPage({
     }
     setBlockedNotice(null);
     setFollowing(true);
-    void store.send(text, selection!);
+    // 发送即冻结：从扩展目录取本轮已启用的技能说明；无有效技能时不带 extensions 字段
+    void store.send(text, selection!, buildTurnExtensionSnapshot());
   }
   async function fresh() {
     setTargetMessageId(undefined);

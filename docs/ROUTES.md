@@ -35,8 +35,8 @@
 | `/reading/[workspaceId]` | 三栏工作区与事件驱动伴生模拟 AI | 入口 ready，完整交付待验收 |
 | `/reading/[workspaceId]/sessions(/[sessionId])` | 阅读会话深链；会话切换经 pushState 产生前进/后退历史并由 popstate 同步空间/会话/草稿（R-09 已修，见 [STATUS阅读批索引](STATUS.md#4-已完成批次与证据索引)） | 入口 ready，完整交付待验收 |
 | `/agents` | Agent 任务 | 规划状态页 |
-| `/mcp` | MCP | 重定向 `/settings#mcp`；本地模拟管理 |
-| `/skills` | Skills | 重定向 `/settings#skills`；本地模拟管理 |
+| `/mcp` | MCP | 重定向 `/settings#mcp`；条目仅本地登记，未实现连接与执行 |
+| `/skills` | Skills | 重定向 `/settings#skills`；已启用的技能作为提示词上下文随问答发送（不执行工具） |
 | `/settings` | 设置（模型管理可用；S6 整合工作空间/解析/记忆等 sections） | 已实现（`ready`） |
 | 其他未知路径 | 404 | 提供返回教案入口 |
 

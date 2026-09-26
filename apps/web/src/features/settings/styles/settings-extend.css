@@ -286,6 +286,13 @@
   border: 1px dashed var(--line);
 }
 
+/* 技能说明为空时的如实提示：条目存在但本轮不会生效 */
+.extension-manager .extension-card-warning {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: var(--danger);
+}
+
 /* 操作反馈行（role=status 语义不动，仅排版） */
 .extension-manager .extension-notice {
   margin-top: 10px;

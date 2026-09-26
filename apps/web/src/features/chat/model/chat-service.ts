@@ -5,7 +5,8 @@
  * callId/名称/状态，必要字段不可缺失。事件分类对齐参考仓库 v1.6.5 的 turn 协议
  * （thinking→reasoning、content→text、done→end 等），并按 replica 约束携带
  * sessionId + turnId：消费方据此丢弃迟到、串会话与重复事件。
- * 真实路径不发送扩展快照等模拟字段；等待用户与产物事件为预留类型。
+ * 真实路径不发送扩展快照本身：只把快照里带说明正文的技能转成 `skills`（提示词级
+ * 系统上下文），MCP 因无执行通道不参与请求；等待用户与产物事件为预留类型。
  */
 import type {
   AskUserAnswer,
@@ -82,8 +83,8 @@ export interface ChatServiceRequest {
   modelProfileId?: string;
   maxOutputTokens?: number;
   /**
-   * 本轮扩展快照（发送时冻结的独立数据）。仅模拟服务消费；
-   * 真实服务不读取、不向真实后端发送该字段。
+   * 本轮扩展快照（发送时冻结的独立数据）。真实服务只消费其中的技能说明：
+   * 派生为本轮 `skills` 系统上下文；MCP、人设、知识等模拟字段不下发、不执行。
    */
   extensions?: TurnExtensionSnapshot;
   signal: AbortSignal;
@@ -117,7 +118,7 @@ export interface ChatService {
   submitReply?(request: ChatServiceReplyRequest): Promise<ChatReplyAck>;
 }
 
-/** 真实服务：包装现有 SSE 客户端，真实路径行为保持不变（不发送扩展快照） */
+/** 真实服务：包装现有 SSE 客户端；只下发带说明正文的技能，其余扩展字段不下发 */
 export function createRealChatService(deps?: { stream?: typeof streamChat }): ChatService {
   const runStream = deps?.stream ?? streamChat;
   return {
@@ -131,12 +132,17 @@ export function createRealChatService(deps?: { stream?: typeof streamChat }): Ch
       };
     },
     async run(request, emit) {
+      // 技能上下文：只取说明正文非空的技能，名称为空时按目录条目名缺失处理，不伪造名称
+      const skills = (request.extensions?.skills ?? [])
+        .map((item) => ({ name: item.name.trim(), content: (item.content ?? '').trim() }))
+        .filter((item) => item.content !== '');
       await runStream(
         {
           requestId: request.turnId.replaceAll('-', ''),
           modelProfileId: request.modelProfileId ?? '',
           messages: request.messages,
           maxOutputTokens: request.maxOutputTokens,
+          ...(skills.length ? { skills } : {}),
           signal: request.signal,
         },
         {
