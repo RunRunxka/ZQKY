@@ -1,14 +1,38 @@
 # 当前状态与实施主线
 
-更新：2026-09-24（CHAT-CONTENT-MATH-AND-FOLLOW v1：助手正文流式数学安全渲染接线、正文后持续推理滚动跟随修复；真实供应商与用户人工视觉未运行，候选待独立验收）。本文件是唯一进度、问题、任务和后续计划入口。长期目标与稳定决定见 [PROJECT_GUIDE](PROJECT_GUIDE.md)，逐项范围见三矩阵，历史首败与批次全文见 [整理前完整快照](archive/DELIVERY_HISTORY.md#snapshot-status-20260915)。
+## RAG-DELIVERY-v2 当前批次（2026-09-26）
+
+用户授权把教材 RAG 移植到智启课源直接使用。本批**已安装到宿主**（起点 `main@31ca45f`，工作区干净），
+通过宿主检查与真实浏览器验收；独立只读验收 `pass（附条件）`。逐项证据见
+[RAG-DELIVERY-v2 批次证据](qa/RAG-DELIVERY-20260926/README.md) 与 [独立验收报告](qa/RAG-DELIVERY-20260926/A1-REPORT-01.md)。
+
+- **已装内容**：`apps/api` 内固定 `app.services.rag_engine`（28 模块；不依赖可变上游目录、不建第二套后端）；
+  新增 `/api/v1/rag/status|stream|reply|cancel`；`/chat` 的「RAG 模式」「追问澄清」走独立本地通道，
+  **无需配置云模型**；资产在 Git 忽略的 `.local-data/rag`（四科 24 册 / 11,608 个 body 块）。
+- **能力边界**：默认**只发布教材原文摘录 + 书册/章节/行号定位**，不发布独立生成推导或教材外补充；
+  `ok/partial` 不代表完整解题。自由生成推导未开放，人工质量 `not_run`，历史三项质量 FAIL 保留。
+- **检索范围**：未指定学科时取四科并集（实测 6,745/11,608 块），索引内其他 26 册不属于产品范围；
+  同时修复「产品入口沿用评测分组导致生物只检索必修一」。
+- **本批修复**（均由真实运行/浏览器发现）：release 过滤整条丢弃（v5→v6）、显示公式 `$$…$$` 被切碎
+  （v6→v7）、前端文件 CRLF 安装、验收脚本自身的 PASS/FAIL 计数被覆盖与等终态谓词缺陷、移动端占位重叠。
+- **验证**：宿主 `test:api` 233 passed、`test:unit` 477 passed（58 文件）、`typecheck`/`lint`/`build` 通过；
+  源全量 **1109 passed + 1 xpassed**（仓库外 basetemp + UTF-8；此前 4 项环境失败消除，未改断言）；
+  真实浏览器 `34 PASS / 0 FAIL`（数学/追问/续接/取消）与 `41 PASS / 0 FAIL`（四科/注入/隔离/过期），
+  三视口 1440×900 / 1920×1080 / 390×844。
+- **资源**：全部本机 Ollama，云端 0 成功 0 失败，**¥0**；宿主台账 45 行全为 `local-ollama`。
+- **未执行/未通过**：浏览器未覆盖模型不可用与真机移动端；人工质量 `not_run`；
+  源项目 `F:\ZQKY_RAG` 的改动未提交（该工作树含用户原有未提交变更，不做混合提交）。
+
+
+更新：2026-09-26（RAG-DELIVERY-v2：教材 RAG 已安装并通过宿主检查、真实浏览器验收与独立只读验收；见上段与 §5.A。此前 CHAT-CONTENT-MATH-AND-FOLLOW v1 已于 `71aca6a`/`31ca45f` 提交）。本文件是唯一进度、问题、任务和后续计划入口。长期目标与稳定决定见 [PROJECT_GUIDE](PROJECT_GUIDE.md)，逐项范围见三矩阵，历史首败与批次全文见 [整理前完整快照](archive/DELIVERY_HISTORY.md#snapshot-status-20260915)。
 
 ## 1. 目标与当前结论
 
 **以智启课源品牌完成固定 DeepTutor 的产品前端、AI 交互与原有动画；全站以当前学习问答 `/chat` 为视觉基准，保留蓝色主题及原业务功能。整体尚未完成。**
 
-**当前工作：CHAT-CONTENT-MATH-AND-FOLLOW v1（2026-09-24）已完成实现与总控自验，并通过独立只读验收（pass，附条件：真实供应商与用户人工视觉 not_run）；待本地小提交。** 本批只涉及 `/chat` 正文渲染与 reasoning 跟随；UX-PERF-CLOSEOUT / UX-REGRESSION-FIX 的既有结果及历史 A1 报告均保留。本批详见 §5.A 与 [CHAT-CONTENT-MATH-AND-FOLLOW v1 批次证据](qa/CHAT-CONTENT-MATH-AND-FOLLOW-20260924/README.md)。真实供应商及用户人工视觉未执行，不将受控合成 SSE 通过表述为真实服务通过。RAG 仍未接入：`get_rag_adapter()` 恒定不可用、capability 仍 `planned`。
+**当前工作：CHAT-CONTENT-MATH-AND-FOLLOW v1（2026-09-24）已完成实现与总控自验，并通过独立只读验收（pass，附条件：真实供应商与用户人工视觉 not_run）；待本地小提交。** 本批只涉及 `/chat` 正文渲染与 reasoning 跟随；UX-PERF-CLOSEOUT / UX-REGRESSION-FIX 的既有结果及历史 A1 报告均保留。本批详见 §5.A 与 [CHAT-CONTENT-MATH-AND-FOLLOW v1 批次证据](qa/CHAT-CONTENT-MATH-AND-FOLLOW-20260924/README.md)。真实供应商及用户人工视觉未执行，不将受控合成 SSE 通过表述为真实服务通过。RAG 已于 RAG-DELIVERY-v2（2026-09-26）真实接入并通过验收：`get_rag_adapter(service)` 绑定应用持有的本地教材服务，capability 由 `/api/v1/rag/status` 动态驱动；后文 §5/§6 中「RAG 未接入 / capability 仍 planned / 恒定抛 RagAdapterUnavailable」等表述属对应历史批次范围，已被本段与 §1 首段取代。
 
-上一批 CHAT-CONTEXT-BUDGET v1（请求统一预算）与 RAG-I0-PREP v1（RAG 只读准备）记录保留在下方「历史批次（原 CHAT-CONTEXT-BUDGET v1 + RAG-I0-PREP v1）」：预算侧把「课程上下文 + 历史 + 当前问题」放进**同一预算**并与后端硬限制（200 条 / 32000 单条 / 120000 总长）对齐，当前问题逐字不裁剪、放不下时发送前明确提示并保留输入；RAG 侧未启动任何推理，只在宿主 `apps/api` 定义 adapter 契约（`get_rag_adapter()` 恒定不可用、无假实现、无路由、capability 仍 planned）。**书籍仍为本地模拟执行器；RAG 未接入；真实供应商未外呼、未验证凭证有效性；均不代表模块或全站完成。**
+上一批 CHAT-CONTEXT-BUDGET v1（请求统一预算）与 RAG-I0-PREP v1（RAG 只读准备）记录保留在下方「历史批次（原 CHAT-CONTEXT-BUDGET v1 + RAG-I0-PREP v1）」：预算侧把「课程上下文 + 历史 + 当前问题」放进**同一预算**并与后端硬限制（200 条 / 32000 单条 / 120000 总长）对齐，当前问题逐字不裁剪、放不下时发送前明确提示并保留输入；RAG 侧未启动任何推理，只在宿主 `apps/api` 定义 adapter 契约（`get_rag_adapter()` 恒定不可用、无假实现、无路由、capability 仍 planned）。**书籍仍为本地模拟执行器；真实供应商未外呼、未验证凭证有效性；均不代表模块或全站完成。**（该段中的“RAG 未接入”为 CHAT-CONTEXT-BUDGET v1 时点结论；RAG 已于 RAG-DELIVERY-v2 接入，见首段。）
 
 R-05 内容视觉统一是 H1 之前已交付的批次。第六批 B-R05-EXTEND v5（2026-09-19）覆盖阅读工作区和 `/space` 四子页，并修复 R-09 滚动竞争。历史独立验收 A1 pass 0 fail 保留，R-05 只在 §5.3 登记范围内关闭，不扩大为全站逐状态完成。H1-BOOKS-HARDEN v1 已于 2026-09-22 交付（见 §5.F）；RAG 接入只完成宿主侧契约准备（见下方「历史批次（原 CHAT-CONTEXT-BUDGET v1 + RAG-I0-PREP v1）」、§6.1），见 [当前批次与下一动作](#current-task)。
 
@@ -23,7 +47,7 @@ R-05 内容视觉统一是 H1 之前已交付的批次。第六批 B-R05-EXTEND 
 | --- | --- | --- |
 | 公共壳 | `/chat` 单一主页；220/56px 侧栏、跨页折叠；隐藏页父菜单（支持传递上溯）；手机模态抽屉（Tab 圈定含输入框/链接，无当前项时焦点回落关闭入口）；404 一层壳；**学习记录并入侧栏可滚动区域（UX-PERF-CLOSEOUT v1）**；**字体 token 层：导航与学习问答用界面衬线、其余正文黑体（含阻断自托管字体的回退实测）**；品牌 `src/app/icon.svg` favicon | R-05 收口范围见 §5.3；错误页 reset 运行时未验；部分过渡曲线未验；真实硬件触摸未验 |
 | 教案 | 本地规则填充、编辑、草稿恢复、Word/PDF 导出；R-05 v4 有界视觉推广及导出/草稿回归；**UX-PERF-CLOSEOUT v1：去面包屑改同级直接标题、顺序改为编辑区 → 可折叠教案配置 → 预览、只留一个折叠按钮（不卸载、状态不丢）、打印与导出回归** | 不是 AI 生成；逐状态视觉与动画按矩阵保留未验项；冻结旧版及原 Word 不改；平板展开配置时预览列偏窄（已保证控件不裁切） |
-| 学习问答 | 三协议 SSE、推理/正文及公式、本地会话、模型选择；生产 mock 残留已清；来源定位、课程会话归属、课程上下文与统一预算既有成果保留。**CHAT-CONTENT-MATH-AND-FOLLOW v1（2026-09-24，独立验收 pass）**：流式助手正文 `message.content` 接入 `StreamingMarkdown` 安全分块；正文闭合公式流中可见、未闭合尾段原文、终态/刷新恢复可渲染，落库与上游原文相等；拆分 reasoning 流仍活动与正文前默认自动展开状态，正文开始自动折叠保留，手动重开后继续跟随，滚轮上滚保留阅读位置。独立验收亲自复现（含四类定界符 annotation、IndexedDB 逐字相等、真滚轮上滚不被抢回），受控 20k/50k 样本 rAF p95 5.7ms、0 帧 >50ms、0 长任务；真实供应商未复验。 | ask_user、工具、附件解析及复杂业务真实执行通道未接；真实供应商本批 not_run；RAG 未接入（`get_rag_adapter()` 恒定不可用、capability 仍 planned）；外层 overflow、硬件触摸、用户人工视觉和动画曲线不因本批升级；标准 `test:chat` 既有 settings 模型发现用例 R-15 仍失败。 |
+| 学习问答 | 三协议 SSE、推理/正文及公式、本地会话、模型选择；生产 mock 残留已清；来源定位、课程会话归属、课程上下文与统一预算既有成果保留。**CHAT-CONTENT-MATH-AND-FOLLOW v1（2026-09-24，独立验收 pass）**：流式助手正文 `message.content` 接入 `StreamingMarkdown` 安全分块；正文闭合公式流中可见、未闭合尾段原文、终态/刷新恢复可渲染，落库与上游原文相等；拆分 reasoning 流仍活动与正文前默认自动展开状态，正文开始自动折叠保留，手动重开后继续跟随，滚轮上滚保留阅读位置。独立验收亲自复现（含四类定界符 annotation、IndexedDB 逐字相等、真滚轮上滚不被抢回），受控 20k/50k 样本 rAF p95 5.7ms、0 帧 >50ms、0 长任务；真实供应商未复验。 | ask_user、工具、附件解析及复杂业务真实执行通道未接；真实供应商本批 not_run；**RAG 已接入（RAG-DELIVERY-v2）**：`/api/v1/rag/status|stream|reply|cancel` + 独立本地教材通道，默认只发布教材原文摘录与定位，无需云模型；未开放自由生成推导，人工质量 `not_run`；外层 overflow、硬件触摸、用户人工视觉和动画曲线不因该批升级；标准 `test:chat` 既有 settings 模型发现用例 R-15 仍失败。 |
 | 模型与供应商 | contract-v1、38条注册（36现行+2 legacy）、6 backend、专用适配/受管认证、发现来源、推理控制、v1→v2迁移与凭证补偿；卡片/详情/发现/参数/默认选择闭环 | 真实仅DeepSeek指定场景有证据，其余37条注册项无独立真实通过；Codex真实登录条件仍需核实具备；R-13未关闭；模型动画partial |
 | 学习空间/笔记/题库 | 会话历史、角色、题库、笔记编辑、跨页保存；真实sessionId回链+可选messageId定位，旧数据缺身份不猜测；`/space` 首页、四子页与笔记本列表/详情已列入视觉推广批 | `/space` 功能级完整验收（弹窗/错误/长文案逐状态）待补；笔记编辑器等参考差距按矩阵保留；CLI只本地登记，无真实执行 |
 | 知识库 | 登记→解析→索引显式模拟，进度/取消/重试/恢复；局部状态与数据保护已有证据；R-05 v1 列表/详情视觉有界验收 | 不读真实文件、不做向量检索/RAG；全部分区/弹窗逐状态视觉及进度动画仍未完整验收 |
@@ -89,6 +113,7 @@ R-05 内容视觉统一是 H1 之前已交付的批次。第六批 B-R05-EXTEND 
 
 | 批次 | 实现 / 收口提交 | 关键验证与独立范围 | 证据 |
 | --- | --- | --- | --- |
+| RAG-DELIVERY-v2（教材 RAG 移植：四科原文定位 + 同轮追问） | `3e6aec3`（接入实现）+ 本提交 `docs(qa)`（STATUS/矩阵/批次证据） | 宿主 test:api **233 passed**、test:unit **477 passed（58 文件）**、typecheck/lint/build 通过、`uv sync` 就绪、引擎 `probe_runtime` available=true（资产 9/9 + 两个模型 digest）；真实浏览器 **34 PASS / 0 FAIL**（数学/追问/续接/取消）与 **41 PASS / 0 FAIL**（四科/注入/隔离/过期），三视口 1440×900 / 1920×1080 / 390×844；源全量 **1109 passed + 1 xpassed**（仓库外 basetemp + UTF-8，4 项环境失败消除、未改断言）；安装一致性 76/76 载荷 SHA 全等；独立只读验收 pass（附条件） | [批次证据](qa/RAG-DELIVERY-20260926/README.md)、[独立验收](qa/RAG-DELIVERY-20260926/A1-REPORT-01.md)、[冻结记录](qa/RAG-DELIVERY-20260926/FROZEN-CANDIDATE.json)；**人工质量 not_run、历史三项质量 FAIL 保留** |
 | UX-REGRESSION-FIX v1（三项人工视觉回归修复） | 历史批次，见 [UX-REGRESSION-FIX-20260923 批次证据](qa/UX-REGRESSION-FIX-20260923/README.md)；最终 SHA 见其原冻结记录 | typecheck/lint(0 警告)/unit **54 文件 459 例**/build/定向 e2e/`test:chat` 集成 8 通过 1 既有失败（R-15）；公式修复后 50k 复测帧 p95 5.7 ms、0 帧 > 50 ms、0 长任务；四视口顶栏与两条返回路径浏览器实测 | [批次证据](qa/UX-REGRESSION-FIX-20260923/README.md)、[任务卡](qa/UX-REGRESSION-FIX-20260923/TASK-CARD.md)；真实供应商/RAG/硬件触摸/逐帧动画 not_run |
 | UX-PERF-CLOSEOUT v1（长推理流性能 + 模式菜单 + 学习记录与导航与图标 + 教案布局 + 双语字体） | 历史批次，见 [UX-PERF-CLOSEOUT-20260923 批次证据](qa/UX-PERF-CLOSEOUT-20260923/README.md) | typecheck/lint(0 警告)/unit **52 文件 440 例**/build **`ZkSw3NYEUtNUBATU0sde5`**/e2e 全量 **199 通过 1 失败（唯一为既有间歇 R-14，已独立复现定性）**/后端 **217 passed**；性能前后实测（50k 帧 p95 166.7→5.6 ms、>50 ms 帧 215→0、脚本 28.3→1.1 s）+ 19/19 正确性回归 + 菜单三视口 `clientWidth=scrollWidth` + 导航与 favicon 独立取证 + 字体三视口 6 路由（含阻断自托管字体）；全量回归中还定位并修复了一个**真实产品缺陷**（打印媒体下公共壳栅格错位） | [批次证据](qa/UX-PERF-CLOSEOUT-20260923/README.md)、[任务卡](qa/UX-PERF-CLOSEOUT-20260923/TASK-CARD.md)、[可达性审计](qa/UX-PERF-CLOSEOUT-20260923/REACHABILITY-AUDIT.md)、[R-14 证据](qa/UX-PERF-CLOSEOUT-20260923/r14/REPRO-EVIDENCE.md)、[冻结记录](qa/UX-PERF-CLOSEOUT-20260923/FROZEN-CANDIDATE.json)；**真实供应商与真实 RAG 均 not_run** |
 | MODEL-EXEC与MR-01~16修复 | `1805397`→`560ac76`→`4ef803b` / `3dfc2fa` | 首轮needs_revision；修复API181、unit274、e2e88；后端/组件独立复验通过，真实及动画不全覆盖 | [模型审查与修复全文](archive/DELIVERY_HISTORY.md#snapshot-status-20260915)，正式model回归测试；部分原始探针仅在_work |
@@ -139,6 +164,8 @@ npm.cmd run test:unit
 <a id="current-task"></a>
 
 ## 5. 当前批次与下一动作
+
+当前为页首 RAG-DELIVERY-v1；以下各节保留既有批次证据。
 
 <a id="chat-content-math-follow-results"></a>
 ### 5.A 当前批：CHAT-CONTENT-MATH-AND-FOLLOW v1（助手正文数学渲染 + 推理区滚动跟随），2026-09-24 本地实现与总控自验，待独立只读验收

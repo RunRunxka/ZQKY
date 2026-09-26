@@ -1,0 +1,33 @@
+{
+  "console": [
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+      "time": "2026-09-26T08:52:01.305Z"
+    },
+    {
+      "type": "log",
+      "text": "[HMR] connected",
+      "time": "2026-09-26T08:52:01.350Z"
+    }
+  ],
+  "pageErrors": [],
+  "requestFailures": [
+    {
+      "path": "/api/v1/rag/stream",
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "path": "/api/v1/rag/stream",
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "path": "/api/v1/rag/stream",
+      "error": "net::ERR_ABORTED"
+    },
+    {
+      "path": "/api/v1/rag/stream",
+      "error": "net::ERR_ABORTED"
+    }
+  ]
+}

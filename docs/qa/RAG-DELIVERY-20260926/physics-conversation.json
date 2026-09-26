@@ -1,0 +1,79 @@
+{
+  "id": "d4a1a124-e3c9-4110-8555-e032d6fd2a05",
+  "title": "物体做匀速圆周运动时，加速度的方向是什么？为什么速度大小",
+  "messages": [
+    {
+      "id": "83aa1506-9208-48f7-a131-6e2ec4ae4089",
+      "role": "user",
+      "content": "物体做匀速圆周运动时，加速度的方向是什么？为什么速度大小不变仍有加速度？",
+      "status": "done"
+    },
+    {
+      "id": "948c1ed1-ea72-499d-b6fa-f2347ad09814",
+      "replyToId": "83aa1506-9208-48f7-a131-6e2ec4ae4089",
+      "role": "assistant",
+      "content": "\n\n### 教材定位与原文讲解\n\n**[r1] 人教版物理必修第二册【高清教材】 → 第六章圆周运动 → 3 向心加速度 · 第 1048–1048 行**\n\n> 物体做匀速圆周运动时，所受合力提供向心力，合力的方向总是指向圆心，如图6.3-1所示。\n\n**[r2] 人教版物理必修第二册【高清教材】 → 第六章圆周运动 → 3 向心加速度 · 第 1048–1048 行**\n\n> 根据牛顿第二定律，物体运动的加速度方向与它所受合力的方向相同。\n\n**[r3] 人教版物理必修第二册【高清教材】 → 第六章圆周运动 → 3 向心加速度 · 第 1048–1048 行**\n\n> 因此，物体做匀速圆周运动时的加速度总指向圆心，我们把它叫作向心加速度（centripetal acceleration）。\n\n**[r4] 人教版物理必修第二册【高清教材】 → 第六章圆周运动 → 3 向心加速度 · 第 1059–1059 行**\n\n> 上一节我们学习了向心力大小的表达式。\n\n**[r5] 人教版物理必修第二册【高清教材】 → 第六章圆周运动 → 3 向心加速度 · 第 1059–1059 行**\n\n> 根据牛顿第二定律 F = ma 和向心力表达式 $F_{n} = m \\frac{v^{2}}{r}$ ，可得出向心加速度的大小\n\n**[r6] 人教版物理必修第二册【高清教材】 → 第六章圆周运动 → 3 向心加速度 · 第 1061–1063 行**\n\n> $$\n> a _ {\\mathrm{n}} = \\frac {v ^ {2}}{r}\n> $$\n\n**[r7] 人教版物理必修第二册【高清教材】 → 第六章圆周运动 → 3 向心加速度 · 第 1065–1065 行**\n\n> 或\n\n**[r8] 人教版物理必修第二册【高清教材】 → 第六章圆周运动 → 3 向心加速度 · 第 1067–1069 行**\n\n> $$\n> a _ {\\mathrm{n}} = \\omega^ {2} r\n> $$\n\n以上为相关教材原文摘录，供核对题目知识点；本轮未提供独立解题推导。\n",
+      "status": "streaming",
+      "startedAt": "2026-09-26T08:52:02.163Z",
+      "modelLabel": "本地教材引擎",
+      "modelProfileId": "local-textbook-rag",
+      "rag": {
+        "sessionId": "d4a1a124-e3c9-4110-8555-e032d6fd2a05",
+        "turnId": "bfb8cc2c-b3cc-42d8-9ed4-789ae10795de",
+        "question": "物体做匀速圆周运动时，加速度的方向是什么？为什么速度大小不变仍有加速度？",
+        "lastEventId": 4,
+        "status": "active"
+      },
+      "extensions": {
+        "mcps": [],
+        "skills": [],
+        "capability": {
+          "value": "rag",
+          "label": "RAG 模式"
+        }
+      },
+      "requestBudget": {
+        "totalChars": 36,
+        "inputBudgetChars": 9856,
+        "maxMessageChars": 32000,
+        "maxTotalChars": 120000,
+        "historyDroppedMessages": 0,
+        "courseTrimmedFields": [],
+        "courseDropped": false
+      },
+      "asks": [
+        {
+          "interactionId": "1a5a10e335f74c8c8228ded322b0695f",
+          "intro": "可继续细讲、纠正定位，或跳过结束本轮。",
+          "questions": [
+            {
+              "questionId": "textbook-follow-up",
+              "header": "继续讲解",
+              "prompt": "定位是否符合题意？你希望进一步理解哪一步？",
+              "options": [
+                {
+                  "label": "细讲解题思路"
+                },
+                {
+                  "label": "重新核对知识点"
+                }
+              ],
+              "multiSelect": false,
+              "allowFreeText": true,
+              "placeholder": "填写补充信息；不需要继续时可跳过"
+            }
+          ],
+          "status": "waiting",
+          "drafts": {}
+        }
+      ]
+    }
+  ],
+  "createdAt": "2026-09-26T08:52:02.122Z",
+  "updatedAt": "2026-09-26T08:52:02.200Z",
+  "schemaVersion": 1,
+  "revision": 4,
+  "draft": "",
+  "modelProfileId": null,
+  "mode": "real"
+}

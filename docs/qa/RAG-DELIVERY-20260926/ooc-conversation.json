@@ -1,0 +1,72 @@
+{
+  "id": "091fb161-ed54-45c2-bf61-09aeb13f1322",
+  "title": "快速排序算法的平均时间复杂度是多少？",
+  "messages": [
+    {
+      "id": "daaafec4-e8bf-4879-a461-af5377aec137",
+      "role": "user",
+      "content": "快速排序算法的平均时间复杂度是多少？",
+      "status": "done"
+    },
+    {
+      "id": "71e5fe6e-3fb6-4883-98f1-8601420c484c",
+      "replyToId": "daaafec4-e8bf-4879-a461-af5377aec137",
+      "role": "assistant",
+      "content": "\n\n现有教材证据不足以支持可靠讲解，请补充完整题干、学科或具体疑问。\n\n",
+      "status": "streaming",
+      "startedAt": "2026-09-26T08:51:49.965Z",
+      "modelLabel": "本地教材引擎",
+      "modelProfileId": "local-textbook-rag",
+      "rag": {
+        "sessionId": "091fb161-ed54-45c2-bf61-09aeb13f1322",
+        "turnId": "7501b647-7d5e-4686-bc2e-3966e7373c47",
+        "question": "快速排序算法的平均时间复杂度是多少？",
+        "lastEventId": 4,
+        "status": "active"
+      },
+      "extensions": {
+        "mcps": [],
+        "skills": [],
+        "capability": {
+          "value": "rag",
+          "label": "RAG 模式"
+        }
+      },
+      "requestBudget": {
+        "totalChars": 18,
+        "inputBudgetChars": 9856,
+        "maxMessageChars": 32000,
+        "maxTotalChars": 120000,
+        "historyDroppedMessages": 0,
+        "courseTrimmedFields": [],
+        "courseDropped": false
+      },
+      "asks": [
+        {
+          "interactionId": "cae816102e6d419296cb6f6d7b7e43e6",
+          "intro": "教材证据不足，请补充后重新定位。",
+          "questions": [
+            {
+              "questionId": "textbook-follow-up",
+              "header": "补充题目信息",
+              "prompt": "请补充完整题干、学科、教材章节或你最困惑的步骤。",
+              "options": [],
+              "multiSelect": false,
+              "allowFreeText": true,
+              "placeholder": "填写补充信息；不需要继续时可跳过"
+            }
+          ],
+          "status": "waiting",
+          "drafts": {}
+        }
+      ]
+    }
+  ],
+  "createdAt": "2026-09-26T08:51:49.778Z",
+  "updatedAt": "2026-09-26T08:51:53.389Z",
+  "schemaVersion": 1,
+  "revision": 4,
+  "draft": "",
+  "modelProfileId": null,
+  "mode": "real"
+}

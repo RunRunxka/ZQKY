@@ -1,5 +1,9 @@
 # 动画清单与验收边界
 
+> 2026-09-26 RAG-DELIVERY-v2：/chat 的「RAG 模式」「追问澄清」已接入**已安装并通过验收**的本地教材引擎（真实浏览器 34 PASS / 0 FAIL + 四科 41 PASS / 0 FAIL；三视口 1440×900 / 1920×1080 / 390×844）。
+> 新条目实测结果以 [批次证据](../qa/RAG-DELIVERY-20260926/README.md) 与 STATUS 页首为准；下方旧批次“RAG 未接入 / 禁用 / capability 仍 planned”保留历史语境。本批不升级全站功能、教学质量或动画精度：默认只发布教材原文摘录与定位，人工质量 `not_run`。
+
+
 更新：2026-09-24（CHAT-CONTENT-MATH-AND-FOLLOW v1 复验 M-reasoning-fold 用户重开后流式跟随/上滚让位行为；未重新采样逐帧折叠曲线，动画验收状态不升级）。UX-PERF-CLOSEOUT v1 与 UX-REGRESSION-FIX v1 历史折叠动画参数和减少动画证据保留；2026-09-20 曾新增 M-books-strip / M-books-paused。全站视觉基准为当前学习问答；模块专属动画对照固定 DeepTutor，原版没有则不添加。下表“已验收”均绑定具体日期、候选和范围；旧模拟生成动画不能据此视为当前可发起能力。历史65项、teardown首败及后续修复见 [交付历史](../archive/DELIVERY_HISTORY.md#snapshot-status-20260910)，当前计划与验证边界见 [STATUS](../STATUS.md)。
 
 状态词汇：待实现、部分实现、实现待验收、已验收；逐项记录开始/过渡/结束、快速中断、减少动画与焦点。
