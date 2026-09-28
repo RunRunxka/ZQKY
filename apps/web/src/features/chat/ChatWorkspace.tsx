@@ -23,6 +23,7 @@ import { CapabilityMenu } from './CapabilityMenu';
 
 import { useModelCatalog } from '@/features/model-settings/useModelCatalog';
 import { ModelSelector } from '@/features/model-settings/ModelSelector';
+import { buildTurnExtensionSnapshot } from '@/services/extension-catalog';
 import {
   CHAT_CAPABILITIES,
   capabilityAvailableInReal,
@@ -641,9 +642,15 @@ function ChatPage({
     }
     setBlockedNotice(null);
     setFollowing(true);
-    void store.send(text, ragMode ? LOCAL_RAG_PROFILE : selection!, ragMode ? {
-      mcps: [], skills: [], capability: { value: capabilityValue, label: activeCap.label },
-    } : undefined);
+    // 发送即冻结：普通聊天携带本轮已启用的技能说明（无有效技能时不带 extensions 字段）；
+    // RAG 模式走专用本地通道，只带能力快照（不携带技能/扩展）
+    void store.send(
+      text,
+      ragMode ? LOCAL_RAG_PROFILE : selection!,
+      ragMode
+        ? { mcps: [], skills: [], capability: { value: capabilityValue, label: activeCap.label } }
+        : buildTurnExtensionSnapshot(),
+    );
   }
   async function fresh() {
     setTargetMessageId(undefined);

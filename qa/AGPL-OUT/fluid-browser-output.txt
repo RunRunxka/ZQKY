@@ -1,0 +1,28 @@
+{
+  "normal": {
+    "first": {
+      "fluidOk": "on",
+      "canvas": true,
+      "width": 144,
+      "height": 90,
+      "meanLum": 11.13,
+      "stdDev": 5.51,
+      "distinctColors": 264,
+      "ambientHidden": true
+    },
+    "changedBetweenFrames": true
+  },
+  "reduced": {
+    "first": {
+      "fluidOk": "on",
+      "canvas": true,
+      "width": 144,
+      "height": 90,
+      "meanLum": 11.13,
+      "stdDev": 5.48,
+      "distinctColors": 257,
+      "ambientHidden": true
+    },
+    "changedBetweenFrames": false
+  }
+}

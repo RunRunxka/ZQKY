@@ -1,4 +1,4 @@
-"""能力状态：按实际实现如实报告，model_settings 已就绪，其余 planned。"""
+"""能力状态：按实际实现如实报告，model_settings / chat / skills 已就绪，rag 视本地运行时可用性，其余 planned。"""
 
 from __future__ import annotations
 
@@ -28,9 +28,12 @@ def test_capabilities_reports_feature_state(client):
     assert REQUIRED_FEATURES <= set(features)
     assert features["model_settings"]["status"] == "ready"
     assert features["chat"]["status"] == "ready"
+    assert features["skills"]["status"] == "ready"
+    # 技能只到提示词级：不得把 MCP 执行当作已实现
+    assert features["mcp"]["status"] == "planned"
     assert features["rag"]["status"] == "unavailable"
     for feature, item in features.items():
-        if feature not in ("model_settings", "chat", "rag"):
+        if feature not in ("model_settings", "chat", "skills", "rag"):
             assert item["status"] == "planned"
         assert item["detail"].strip()
 

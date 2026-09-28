@@ -8,7 +8,7 @@ import type { ExtensionEntry } from '@/services/extension-catalog';
 const EXIT_DURATION = 160;
 
 /**
- * 模拟模式扩展选择入口：分开展示已启用的 MCP 与 Skills，支持搜索、选中态与移除。
+ * 扩展选择入口：分开展示已启用的 MCP 与 Skills，支持搜索、选中态与移除。
  * 复用 services/extension-catalog 的目录数据（由父级注入，单一来源），不维护第二套目录。
  * 键盘：Escape 关闭并恢复焦点；触发按钮与选项均有清晰可访问名称。
  * 管理链接定位 /settings#mcp、/settings#skills。
@@ -149,11 +149,11 @@ export function ExtensionPicker({
             </button>
           </div>
           {!enabled.length && (
-            <p className="chat-ext-empty">还没有已启用的扩展。可在设置中添加并启用模拟扩展。</p>
+            <p className="chat-ext-empty">还没有已启用的扩展。可在设置中添加并启用。</p>
           )}
           {mcps.length > 0 && (
             <section>
-              <h4>MCP（模拟工具调用）</h4>
+              <h4>MCP（未实现，不会执行）</h4>
               <ul>{mcps.filter(match).map(renderItem)}</ul>
             </section>
           )}
