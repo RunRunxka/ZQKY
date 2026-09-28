@@ -53,14 +53,20 @@ CAPABILITIES: tuple[Capability, ...] = (
     Capability(
         feature="textbook_repository",
         label="教材资料库",
-        status=CapabilityStatus.planned,
-        detail="仅契约规划，没有存储与检索实现。",
+        status=CapabilityStatus.ready,
+        detail=(
+            "教材目录由 SQLite 权威管理（分类、逻辑库、不可变修订、任教范围），"
+            "原件与规范化文本按内容指纹封存；索引代状态见 /textbook-index/status。"
+        ),
     ),
     Capability(
         feature="question_bank",
         label="题库",
-        status=CapabilityStatus.planned,
-        detail="仅契约规划，没有存储与检索实现。",
+        status=CapabilityStatus.ready,
+        detail=(
+            "独立 SQLite 题库：导入拆题、原文对照校对、可选本地模型整理建议与幂等确认入库；"
+            "题库不进入教材向量库。"
+        ),
     ),
     Capability(
         feature="rag",

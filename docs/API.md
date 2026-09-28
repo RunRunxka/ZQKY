@@ -178,3 +178,86 @@ SSE 使用单调递增 `id`：`message.start` → `rag.result` / `text.delta` �
 宿主只发布经核对的教材原文，不发布未验证的自由推导或教材外补充。生成和查询模型强制 local-only、固定 digest、
 禁用环境代理和重定向。结果缓存（含拒答）仅在进程内，容量 64、有效期 600 秒，取用重验源 SHA；
 宿主清理器每 15 秒清理过期内容。业务题文不写后端磁盘或日志，调用台账仅含计数/身份/成本等元数据。
+
+---
+
+## RAG-REBUILD v1.0 接口（2026-09-28）
+
+本轮把教材 RAG 从「固定四科 npy 快照」重建为「SQLite 教材目录 + Qdrant 向量库 + 严格任教范围」。
+**`/api/v1/rag/*` 是破坏性升级**：请求与结果结构升到 v2，旧四科的 `subject` 字段被 `scope` 取代。
+旧 `rag_engine`（`app/services/rag_engine/**`）与 `.local-data/rag` 资产保留在仓库里但**不再是生产路径**，
+回滚方式为 revert 本批提交。逐项对照见 [RAG-REBUILD v1.0 批次证据](qa/RAG-REBUILD-v1/README.md)。
+
+### 教材目录与导入
+
+| 方法与路径 | 说明 |
+| --- | --- |
+| GET `/api/v1/textbook-taxonomy` | 学段/年级/学科/版本字典（含中文标签）；页面显示一律取自这里 |
+| GET/POST `/api/v1/textbook-libraries` | 逻辑库列表（`kind/gradeId/subjectId/editionId/includeDeleted`）与创建 |
+| GET/PATCH/DELETE `/api/v1/textbook-libraries/{id}` | 库详情（含书册）、改名/改年级/改版本（`expectedRevision`）、停用 |
+| POST `/api/v1/textbook-imports` | multipart：`file` + 可选 `metadataJson`（`{metadata, targetDocumentId?, expectedCurrentRevisionId?, confirmMetadata?}`） |
+| GET/PATCH `/api/v1/textbook-imports/{id}`、GET `/api/v1/textbook-imports` | 草稿详情（含解析预览与警告）与列表；PATCH 确认/修改分类（`expectedRevision`） |
+| POST `/api/v1/textbook-imports/{id}/commit` | 提交入库任务；返回 `JobView`（`submissionId` 幂等，`libraryIds` 必填） |
+| GET `/api/v1/textbook-jobs`、GET `/api/v1/textbook-jobs/{id}` | 任务列表与进度（阶段/已入库教材与块数/错误原因/是否可重试） |
+| POST `/api/v1/textbook-jobs/{id}/cancel`、`/retry` | 协作式取消；重试按当前状态创建合法新任务 |
+| GET `/api/v1/textbooks`、GET/PATCH/DELETE `/api/v1/textbooks/{id}` | 书册列表/详情/改分类（新建元数据修订）/逻辑删除 |
+| GET `/api/v1/textbook-revisions/{id}/source` | 受控原文与定位（`charStart`/`charEnd`；散列与区间逐次核验） |
+| GET/PUT `/api/v1/teaching-settings`、POST `/api/v1/teaching-settings/scope-check` | 任教范围（年级+学科+版本+已确认书册）与范围可用性预检 |
+
+### Embedding 与索引代
+
+| 方法与路径 | 说明 |
+| --- | --- |
+| GET `/api/v1/embedding-models` | 本机 Ollama 已安装模型；标注是否为 Embedding 模型（聊天模型不会被误认） |
+| POST `/api/v1/embedding-probes` | 真实嵌入能力检测：维度、模型身份 digest 前后一致、有限且非零 |
+| GET/POST `/api/v1/embedding-profiles` | 已登记配置与新建（编辑影响向量的字段=新配置，不原地改写） |
+| GET `/api/v1/textbook-index/status` | 唯一索引权威：当前代、当前模型与维度、重建任务、Qdrant 可用性、范围是否就绪 |
+| POST `/api/v1/textbook-index/rebuilds` | 新建重建任务（`submissionId` 幂等；在途入库时返回 409 `INDEX_MUTATION_BUSY`） |
+
+### 教材定位与详解（v2）
+
+| 方法与路径 | 说明 |
+| --- | --- |
+| GET `/api/v1/rag/status` | 分别报告 `retrieval` / `summarization` / `sourceAccess` / `scope` / `generation` / `humanQuality`；不再用单一 `localOnly`。`retrieval.available` / `summarization.available` 包含**对上游可达性的短超时真实探测**（Embedding 与概括分别探测），不可达时 `available=false` 并给出 `reason`；`scope.ready` 只表示任教范围是否就绪，与上游健康无关 |
+| POST `/api/v1/rag/stream` | `{requestId, sessionId, turnId, question, scope:{kind:"selection",selection}|{kind:"frozen",snapshot}, afterEventId}` |
+| POST `/api/v1/rag/reply` | 澄清提交：`{requestId, sessionId, turnId, interactionId, submissionId, answers}`；同键同载荷幂等，不同载荷 409 |
+| POST `/api/v1/rag/cancel` | `{sessionId, turnId}`；显式取消，迟到结果丢弃 |
+| POST `/api/v1/rag/explain/stream` | 用**当前聊天所选模型**详解：`RagExplainRequest`；普通聊天 SSE（无事件游标），断开即关闭上游 |
+
+`scope` 快照在定位时由服务端冻结（`scopeSnapshot`），客户端只回传、不构造判定；每次使用前服务端重新核验归属、
+修订、分类、删除与索引代并重算 `scopeHash`，不符即 409 `RAG_SCOPE_CHANGED`。检索固定为
+向量 50 + BM25 50 + RRF(k=60)，证据按完整区间选择（≤20 条、≤40,000 字符）。
+**索引范围口径**：正文与习题区的块**都写入向量库**（payload 带 `region`），检索时用过滤器限定
+`region="body"`——即「只检索正文」，而不是「只索引正文」。
+详解不要求 Qdrant 在线、不要求旧 Embedding 模型在场、不复用定位缓存。
+
+新增/明确错误码：`RAG_SCOPE_EMPTY`(422)、`RAG_SCOPE_CHANGED`(409)、`INDEX_NOT_READY`(409)、
+`INDEX_REBUILD_IN_PROGRESS`(409)、`INDEX_MUTATION_BUSY`(409)、`EMBEDDING_MODEL_CHANGED`(409)、
+`EMBEDDING_UNAVAILABLE`(503)、`QDRANT_UNAVAILABLE`(503)、`RAG_SUMMARY_UNAVAILABLE`(503)、
+`RAG_EVIDENCE_UNAVAILABLE`(409)、`RAG_TURN_EXPIRED`(410)、`CONTEXT_TOO_LARGE`(413)、
+`DOCUMENT_NEEDS_OCR`(422)、`DOCUMENT_TOO_LARGE`(413)、`LEASE_LOST`(409)、`REVISION_CONFLICT`(409)、
+`IDEMPOTENCY_CONFLICT`(409)。
+
+### 独立题库（不进入教材向量库）
+
+| 方法与路径 | 说明 |
+| --- | --- |
+| POST/GET `/api/v1/question-imports`、GET `/api/v1/question-imports/{id}` | 试题文件导入（multipart）、批次列表与详情（含草稿与**未归属原文块**） |
+| PATCH `/api/v1/question-drafts/{id}` | 校对编辑（`expectedRevision`）；编辑已校对草稿会回到 `needs_review` |
+| POST `/api/v1/question-imports/{id}/split`（`?draftId=`）、`/merge` | 拆分与合并草稿 |
+| POST `/api/v1/question-imports/{id}/organize` | 用户主动 AI 整理；返回 `suggestions`（仅供参考）与逐批 `failures` |
+| POST `/api/v1/question-suggestions/{id}/apply` | 应用/忽略建议；`expectedDraftRevision` 不符 409 `DRAFT_REVISION_CONFLICT` |
+| POST `/api/v1/question-imports/{id}/confirm` | 幂等确认入库（`submissionId`）；`HTTP 200 + failures` 表示整体不确认 |
+| GET `/api/v1/questions`、GET/PATCH/DELETE `/api/v1/questions/{id}` | 题目筛选/分页、新修订编辑（乐观锁）、归档 |
+
+### 运行与备份命令
+
+```text
+npm run rag:db:start / rag:db:stop / rag:db:status     # 正式 Qdrant（named volume）
+npm run rag:db:test:start / rag:db:test:stop          # 验收 Qdrant（独立 project 与 volume，端口 16333）
+npm run rag:migrate                                   # 迁移原始教材进正式目录与索引（--dry-run 只识别）
+npm run rag:verify                                    # 真实检索验收（无替身）
+npm run rag:backup / rag:backup:verify / rag:restore  # SQLite VACUUM INTO + Qdrant snapshot + 原件
+```
+
+备份**不含** `apps/api/.env`；恢复只写新目录，不覆盖正在使用的数据。

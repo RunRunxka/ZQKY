@@ -2,7 +2,8 @@
 import { Fragment, useEffect, useState } from 'react';
 import { Check, Copy, FileText, Pencil, Plus, RotateCcw } from 'lucide-react';
 import { ThinkingOrb } from './vendor/thinking-orbs';
-import type { AskUserAnswer, AskUserDraft, ChatMessage } from '@/contracts/chat';
+import type { AskUserDraft, ChatMessage } from '@/contracts/chat';
+import type { TextbookSelection } from '@/contracts/textbook';
 import { CHAT_CAPABILITIES, capabilityAvailableInReal } from '@/services/capability-catalog';
 import { conversationProjection } from './model/context-budget';
 import { formatTurnDuration, turnDurationSeconds } from './model/trace-timing';
@@ -11,6 +12,7 @@ import { AnswerMarkdown } from './AnswerMarkdown';
 import { StreamingMarkdown } from './StreamingMarkdown';
 import { TraceStages } from './TraceStages';
 import { AskUserCard } from './AskUserCard';
+import { RagEvidencePanel } from './RagEvidencePanel';
 import { ToolProcessPanel } from './ToolProcessPanel';
 
 /** 来源与上下文条目（S3 引用/来源定位）：来自本轮冻结的扩展快照，只如实展示 */
@@ -115,8 +117,10 @@ export function Message({
   onCopy,
   onRetry,
   onResume,
+  onRetryExplain,
   onReuse,
   ask,
+  scopeLabelFor,
   onOpenArtifact,
 }: {
   message: ChatMessage;
@@ -124,13 +128,24 @@ export function Message({
   onCopy: () => void;
   onRetry?: () => void;
   onResume?: () => void;
+  /** 详解失败/中断后的重试（沿用冻结的模型与证据，不新建轮次） */
+  onRetryExplain?: () => void;
   onReuse: () => void;
-  /** 追问交互句柄：等待回答的卡可交互，草稿与提交路由到 store */
+  /** 本轮范围文案（scopeSnapshot.selection → describeSelection）；缺字典时返回 null */
+  scopeLabelFor?: (selection: TextbookSelection) => string | null;
+  /**
+   * 追问交互句柄：等待回答的澄清卡与详解引导卡共用「继续/忽略」通道，
+   * 具体派发（/rag/reply 或详解流）由 store 按卡片种类决定。
+   */
   ask?: {
     waitingId: string | null;
     submitting: boolean;
+    focus: { interactionId: string; questionId: string } | null;
+    notice: { interactionId: string; text: string } | null;
     onDraft(interactionId: string, questionId: string, draft: AskUserDraft): void;
-    onSubmit(interactionId: string, answers: AskUserAnswer[]): void;
+    onFocusChange(interactionId: string, questionId: string): void;
+    onContinue(interactionId: string): void;
+    onSkip(interactionId: string): void;
   };
   /** S3：点击产物入口打开右侧结果工作区 */
   onOpenArtifact?: (artifactId: string) => void;
@@ -237,31 +252,54 @@ export function Message({
             <span className="chat-stream-dot">…</span>
           </p>
         ) : null}
+        {/* 教材证据与范围（RAG v2）：后端未给证据就不渲染证据区；范围按冻结快照如实展示 */}
+        <RagEvidencePanel message={message} scopeLabelFor={scopeLabelFor} />
         {/* 追问卡与各自续写按序渲染：正文→提问→回答记录→续写（同轮顺序） */}
-        {message.asks?.map((interaction) => (
-          <Fragment key={interaction.interactionId}>
-            {ask ? (
-              <AskUserCard
-                source={message.rag ? 'rag' : 'mock'}
-                interaction={interaction}
-                active={ask.waitingId === interaction.interactionId}
-                submitting={ask.submitting}
-                onDraft={ask.onDraft}
-                onSubmit={ask.onSubmit}
-              />
-            ) : (
-              <AskUserCard
-                source={message.rag ? 'rag' : 'mock'}
-                interaction={interaction}
-                active={false}
-                submitting={false}
-                onDraft={() => undefined}
-                onSubmit={() => undefined}
-              />
-            )}
-            {interaction.followUp && <AnswerMarkdown text={interaction.followUp} />}
-          </Fragment>
-        ))}
+        {message.asks?.map((interaction) => {
+          const isGuidance = interaction.kind === 'guidance';
+          return (
+            <Fragment key={interaction.interactionId}>
+              {ask ? (
+                <AskUserCard
+                  source={message.rag ? 'rag' : 'mock'}
+                  interaction={interaction}
+                  active={
+                    isGuidance
+                      ? interaction.status === 'waiting'
+                      : ask.waitingId === interaction.interactionId
+                  }
+                  submitting={ask.submitting}
+                  focusQuestionId={
+                    ask.focus?.interactionId === interaction.interactionId
+                      ? ask.focus.questionId
+                      : null
+                  }
+                  notice={
+                    ask.notice?.interactionId === interaction.interactionId
+                      ? ask.notice.text
+                      : null
+                  }
+                  onDraft={ask.onDraft}
+                  onFocusChange={ask.onFocusChange}
+                  onContinue={ask.onContinue}
+                  onSkip={ask.onSkip}
+                />
+              ) : (
+                <AskUserCard
+                  source={message.rag ? 'rag' : 'mock'}
+                  interaction={interaction}
+                  active={false}
+                  submitting={false}
+                  onDraft={() => undefined}
+                  onFocusChange={() => undefined}
+                  onContinue={() => undefined}
+                  onSkip={() => undefined}
+                />
+              )}
+              {interaction.followUp && <AnswerMarkdown text={interaction.followUp} />}
+            </Fragment>
+          );
+        })}
         {message.status === 'streaming' && message.processNote && (
           <p className="chat-process-note">{message.processNote}</p>
         )}
@@ -294,6 +332,21 @@ export function Message({
             {onResume && <button onClick={onResume}>继续本轮</button>}
           </div>
         )}
+        {message.ragExplain &&
+          (message.ragExplain.status === 'error' || message.ragExplain.status === 'stopped') && (
+            <div
+              className="chat-error chat-explain-error"
+              role={message.ragExplain.status === 'error' ? 'alert' : 'status'}
+            >
+              <p>
+                {message.ragExplain.error?.message ?? '教材详解已中断。'}
+                {message.ragExplain.error?.code ? `（${message.ragExplain.error.code}）` : ''}
+                {' '}重试沿用本轮冻结的模型
+                {message.modelLabel ? `（${message.modelLabel}）` : ''}与同一批证据，不换模型、不重新检索。
+              </p>
+              {onRetryExplain && <button onClick={onRetryExplain}>重试详解</button>}
+            </div>
+          )}
         {message.finishReason === 'length' && (
           <p className="chat-status-text">已达到输出上限，回答可能不完整。</p>
         )}

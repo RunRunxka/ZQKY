@@ -18,6 +18,16 @@ import type {
 } from '@/contracts/chat';
 import { streamChat } from '@/services/chat-stream';
 import { createRagChatService, isRagCapability, type RagServiceStatus } from './rag-service';
+import type { RagResultV2, RagScopeInput, ScopeSnapshot } from './rag-v2';
+
+/**
+ * 教材通道的本轮输入（v2）：在既有 `RagTurnState` 上补充范围入参。
+ * 首次定位传 `{kind:'selection'}`；断线续传回传 `message.start` 里的快照
+ * `{kind:'frozen'}`，服务端每次使用前重新核验。
+ */
+export interface RagChannelInput extends RagTurnState {
+  scope?: RagScopeInput;
+}
 
 export type ChatToolStatus = 'running' | 'done' | 'error' | 'cancelled';
 
@@ -45,8 +55,11 @@ interface ChatServiceEventBase {
 export type ChatServiceEvent =
   | (ChatServiceEventBase & { type: 'checkpoint' })
   | (ChatServiceEventBase & { type: 'reply-accepted'; interactionId: string; submissionId: string; answers: AskUserAnswer[] })
-  | (ChatServiceEventBase & { type: 'turn-start' })
-  | (ChatServiceEventBase & { type: 'text'; delta: string })
+  | (ChatServiceEventBase & { type: 'turn-start'; scopeSnapshot?: ScopeSnapshot })
+  /** 教材 v2 结构化结果：与正文、游标在同一次会话持久化中提交 */
+  | (ChatServiceEventBase & { type: 'rag-result'; result: RagResultV2 })
+  /** text：普通聊天为增量；教材 v2 带 replace=true（整段渲染好的正文，替换本轮正文） */
+  | (ChatServiceEventBase & { type: 'text'; delta: string; replace?: boolean })
   | (ChatServiceEventBase & { type: 'reasoning'; delta: string })
   | (ChatServiceEventBase & { type: 'process'; delta: string })
   | (ChatServiceEventBase & {
@@ -90,7 +103,8 @@ export interface ChatServiceRequest {
    * 本轮扩展快照；教材能力据此选择专用服务。普通聊天不向后端发送扩展。
    */
   extensions?: TurnExtensionSnapshot;
-  rag?: RagTurnState;
+  /** 教材通道（v2）本轮身份与范围；普通聊天不携带 */
+  rag?: RagChannelInput;
   signal: AbortSignal;
 }
 

@@ -9,7 +9,7 @@ const routes = [
   ['/knowledge-bases', '教材资料库'],
   ['/books', '教材资料库'],
   ['/papers', '智能组卷（规划中）'],
-  ['/question-bank', '题库（规划中）'],
+  ['/question-bank', '题库'],
   ['/templates', '模板中心（规划中）'],
   ['/settings', '设置'],
 ];

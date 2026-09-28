@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useRef } from 'react';
 import {
   AlertCircle,
   ChevronLeft,
@@ -7,9 +7,9 @@ import {
   CircleAlert,
   LoaderCircle,
   MessageCircleQuestion,
+  Sparkles,
 } from 'lucide-react';
 import type {
-  AskUserAnswer,
   AskUserDraft,
   AskUserInteraction,
   AskUserQuestion,
@@ -18,97 +18,105 @@ import type {
 const EMPTY_DRAFT: AskUserDraft = { labels: [], freeText: '' };
 
 /**
- * 消息内追问卡（对照原版 AskUserOptions）：
- * - 预览只读；waiting 才开放作答，不允许回答半生成的问题；
- * - 单选选中后跳到下一道未答题；多选只切换不前进；自由文本与单选互斥；
- * - 未回答题目按原版语义在提交时标记为跳过，不做"必须答完"拦截；
- * - 提交中锁定（重复提交无效）；失败保留草稿与选项可重试；
- * - 已回答/已中断为只读摘要。草稿即时入 store，正文增量不重置用户选择；
- * - 本组件无 Enter 提交路径，中文 IME 组合不受影响。
+ * 教材追问卡 / 详解引导卡（RAG-REBUILD v1.0 §7.2–§7.3）。
+ *
+ * - 顶部：标签、问题、左右箭头、页码；箭头**只浏览**（不确认、不提交、不清空草稿）；
+ * - 中部：编号选项（1. 2. …）+ 最后一项自由输入；单选选中**不自动跳题**；
+ * - 底部：键盘说明、「忽略」与「继续」；「忽略」只把当前题标记 skipped 后前进；
+ * - 最后一题的「继续」在存在未确认题时跳回该题并提示「还有问题尚未确认」，全部处理完才提交；
+ * - `pendingSubmission` 存在（提交结果未确认）时改选/输入/忽略全部锁定，只允许同
+ *   幂等键同载荷的精确重试；`reply.accepted` 到达后由 store 确认为已答；
+ * - 旧历史多选卡（`multiSelect:true`）只读展示，不允许编辑后提交；
+ * - 键盘：方向键只在选项列表内移动焦点；Enter/Space 选中；自由输入框 Enter 继续、
+ *   Shift+Enter 换行；中文输入法组合期间不触发确认；Tab 顺序保持文档顺序。
  */
 export function AskUserCard({
   interaction,
   active,
   submitting,
+  focusQuestionId,
+  notice,
   onDraft,
-  onSubmit,
-  source = 'mock',
+  onFocusChange,
+  onContinue,
+  onSkip,
+  source = 'rag',
 }: {
   interaction: AskUserInteraction;
-  /** 是否为当前等待回答的卡（仅此卡可提交） */
+  /** 是否为当前可作答的卡（澄清卡 = 服务端等待身份；引导卡 = 本地等待态） */
   active: boolean;
   submitting: boolean;
+  /** 当前聚焦题（与主输入框补充回答共用同一聚焦语义） */
+  focusQuestionId?: string | null;
+  /** 即时提示（如「还有问题尚未确认」），随题绑定 */
+  notice?: string | null;
   onDraft(interactionId: string, questionId: string, draft: AskUserDraft): void;
-  onSubmit(interactionId: string, answers: AskUserAnswer[]): void;
+  onFocusChange(interactionId: string, questionId: string): void;
+  onContinue(interactionId: string): void;
+  onSkip(interactionId: string): void;
   source?: 'rag' | 'mock';
 }) {
-  const [activeIndex, setActiveIndex] = useState(0);
+  const composingRef = useRef(false);
+  const optionsRef = useRef<HTMLDivElement>(null);
   const total = interaction.questions.length;
-  const question = interaction.questions[Math.min(activeIndex, Math.max(total - 1, 0))];
+  const requested = interaction.questions.findIndex((q) => q.questionId === focusQuestionId);
+  const activeIndex = Math.min(Math.max(requested, 0), Math.max(total - 1, 0));
+  const question: AskUserQuestion | undefined = interaction.questions[activeIndex];
+  // 旧历史多选卡只读兼容：新卡统一单选，不允许编辑后提交
+  const legacyMultiSelect = interaction.questions.some((q) => q.multiSelect === true);
+  const pendingRetry = !!interaction.pendingSubmission;
   const locked = interaction.status === 'submitting' || (submitting && active);
-  // waiting 与 failed（保留草稿可重试）均可编辑导航；提交中锁定
   const answerable =
     (interaction.status === 'waiting' || interaction.status === 'failed') &&
     active &&
-    !locked;
-  const editable = answerable && !interaction.pendingSubmission;
+    !locked &&
+    !legacyMultiSelect;
+  const editable = answerable && !pendingRetry;
+  /** 提交结果未确认时唯一可用的动作：同幂等键同载荷精确重试 */
+  const canRetry = pendingRetry && answerable;
+  const isGuidance = interaction.kind === 'guidance';
+  const progress = (draft?: AskUserDraft) =>
+    draft?.disposition === 'skipped' ? '已忽略' : undefined;
 
-  function draftOf(q: AskUserQuestion): AskUserDraft {
-    return interaction.drafts[q.questionId] ?? EMPTY_DRAFT;
-  }
-  function hopToNextUnanswered(from: number, pickedId: string) {
-    if (total <= 1) return;
-    for (let step = 1; step < total; step += 1) {
-      const j = (from + step) % total;
-      if (interaction.questions[j]!.questionId === pickedId) continue;
-      const draft = interaction.drafts[interaction.questions[j]!.questionId];
-      if (!draft || (!draft.labels.length && !draft.freeText.trim())) {
-        setActiveIndex(j);
-        return;
-      }
-    }
-  }
+  const draftOf = (q: AskUserQuestion): AskUserDraft => interaction.drafts[q.questionId] ?? EMPTY_DRAFT;
+  const isComposing = (event: React.KeyboardEvent) =>
+    event.nativeEvent.isComposing || composingRef.current;
+
   function pickOption(q: AskUserQuestion, label: string) {
     if (!editable) return;
-    if (q.multiSelect) {
-      // 多选：只切换，不自动前进；选项与补充文本可共存
-      const cur = draftOf(q).labels;
-      const next = cur.includes(label) ? cur.filter((l) => l !== label) : [...cur, label];
-      onDraft(interaction.interactionId, q.questionId, { ...draftOf(q), labels: next });
-      return;
-    }
-    // 单选（R15）：选中即清空自由文本（双向互斥），并跳到下一道未答题（对照原版）
-    onDraft(interaction.interactionId, q.questionId, { labels: [label], freeText: '' });
-    hopToNextUnanswered(activeIndex, q.questionId);
+    // 单选（v2）：覆盖为唯一选择、清空自由文本；**不自动翻页**（§7.3）
+    onDraft(interaction.interactionId, q.questionId, {
+      labels: [label],
+      freeText: '',
+      disposition: 'unanswered',
+    });
   }
   function updateFreeText(q: AskUserQuestion, text: string) {
     if (!editable) return;
-    const next: AskUserDraft = { ...draftOf(q), freeText: text };
-    // 单选下自由文本与选项互斥（对照原版 selectCustom）
-    if (!q.multiSelect && text.trim()) next.labels = [];
-    onDraft(interaction.interactionId, q.questionId, next);
-  }
-  function skipCurrent(q: AskUserQuestion) {
-    if (!editable) return;
-    onDraft(interaction.interactionId, q.questionId, EMPTY_DRAFT);
-    setActiveIndex((idx) => Math.min(total - 1, idx + 1));
-  }
-  function submit() {
-    if (!answerable) return;
-    // R15：序列化只提交当前有效分支——单选要么是选项要么是自由文本；多选允许共存
-    const answers: AskUserAnswer[] = interaction.questions.map((q) => {
-      const draft = draftOf(q);
-      const hasLabels = draft.labels.length > 0;
-      const hasText = draft.freeText.trim() !== '';
-      if (!hasLabels && !hasText)
-        return { questionId: q.questionId, labels: [], freeText: '', skipped: true };
-      if (q.multiSelect)
-        return { questionId: q.questionId, labels: draft.labels, freeText: draft.freeText };
-      return hasLabels
-        ? { questionId: q.questionId, labels: draft.labels, freeText: '' }
-        : { questionId: q.questionId, labels: [], freeText: draft.freeText };
+    const current = draftOf(q);
+    onDraft(interaction.interactionId, q.questionId, {
+      labels: q.multiSelect ? current.labels : text.trim() ? [] : current.labels,
+      freeText: text,
+      disposition: 'unanswered',
     });
-    onSubmit(interaction.interactionId, answers);
+  }
+  /** 方向键只在选项列表内移动焦点（不进入输入框、不改变选择） */
+  function moveOptionFocus(event: React.KeyboardEvent, position: number) {
+    if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
+    const buttons = optionsRef.current?.querySelectorAll<HTMLButtonElement>('button[data-option]');
+    if (!buttons?.length) return;
+    event.preventDefault();
+    const next =
+      event.key === 'ArrowDown'
+        ? Math.min(position + 1, buttons.length - 1)
+        : Math.max(position - 1, 0);
+    buttons[next]?.focus();
+  }
+  function browse(delta: -1 | 1) {
+    if (total <= 1) return;
+    const next = Math.min(total - 1, Math.max(0, activeIndex + delta));
+    const target = interaction.questions[next];
+    if (target) onFocusChange(interaction.interactionId, target.questionId);
   }
   function summaryLine(q: AskUserQuestion): string {
     const answer = interaction.answers?.find((a) => a.questionId === q.questionId);
@@ -121,25 +129,41 @@ export function AskUserCard({
   }
 
   const answered = interaction.status === 'answered';
-  const interrupted = interaction.status === 'interrupted' || (interaction.status === 'waiting' && !active);
+  const interrupted = interaction.status === 'interrupted' || (interaction.status === 'waiting' && !active && !isGuidance);
 
   return (
     <div
-      className={`chat-ask-card ${interaction.status}${active ? ' active' : ''}`}
+      className={`chat-ask-card ${interaction.status}${active ? ' active' : ''}${
+        isGuidance ? ' guidance' : ''
+      }`}
       data-status={interaction.status}
+      data-kind={isGuidance ? 'guidance' : 'clarification'}
     >
       <p className="chat-ask-head">
-        <MessageCircleQuestion size={14} aria-hidden="true" />
+        {isGuidance ? (
+          <Sparkles size={14} aria-hidden="true" />
+        ) : (
+          <MessageCircleQuestion size={14} aria-hidden="true" />
+        )}
         <span>
-          {source === 'rag' ? '教材追问' : '追问（本地模拟）'}
-          {total > 1 && ` · ${Math.min(activeIndex + 1, total)}/${total}`}
+          {isGuidance ? '教材详解' : source === 'rag' ? '教材追问' : '追问（本地模拟）'}
           {interaction.status === 'submitting' && ' · 提交中'}
-          {answered && ' · 已回答'}
-          {interrupted && ' · 已中断'}
+          {answered && (isGuidance ? ' · 已发起' : ' · 已回答')}
+          {interrupted && ' · 已忽略'}
         </span>
       </p>
       {interaction.intro && <p className="chat-ask-intro">{interaction.intro}</p>}
-      {interaction.pendingSubmission && !locked && <p className="chat-ask-note">上次提交尚未确认。再次提交会核对原回答，不会重复处理。</p>}
+      {pendingRetry && (
+        <p className="chat-ask-note" role="status">
+          <AlertCircle size={12} />
+          上次提交结果尚未确认：改选、输入与忽略已锁定，只能按原答案精确重试（不会重复处理）。
+        </p>
+      )}
+      {legacyMultiSelect && (
+        <p className="chat-ask-note" role="status">
+          历史多选卡：仅按原记录只读展示，不支持在此编辑或重新提交。
+        </p>
+      )}
 
       {interaction.status === 'preview' && (
         // R13：预览按原版呈现已有题目（只读），无题目时才显示骨架
@@ -174,113 +198,175 @@ export function AskUserCard({
         )
       )}
 
-      {interrupted && (
+      {interrupted && !answered && (
         <p className="chat-ask-note" role="status">
-          本轮等待已失效（取消或刷新后上下文不再可用），此卡不可提交；可重试原问题开启新的尝试。
+          {isGuidance
+            ? '详解引导已忽略：未调用教材追问、取消或任何模型。'
+            : '本轮等待已失效（取消或刷新后上下文不再可用），此卡不可提交；可重试原问题开启新的尝试。'}
         </p>
       )}
 
-      {(interaction.status === 'waiting' || interaction.status === 'submitting' || interaction.status === 'failed') && question && (
-        <>
-          <section
-            className="chat-ask-question"
-            aria-label={`追问 ${Math.min(activeIndex + 1, total)}/${total}${question.header ? `：${question.header}` : ''}`}
-          >
-            {question.header && <h4>{question.header}</h4>}
-            <p className="chat-ask-prompt">{question.prompt}</p>
-            <div className="chat-ask-options" role="group" aria-label={question.prompt}>
-              {(question.options ?? []).map((option) => {
-                const picked = draftOf(question).labels.includes(option.label);
-                return (
+      {(interaction.status === 'waiting' ||
+        interaction.status === 'submitting' ||
+        interaction.status === 'failed') &&
+        question && (
+          <>
+            <header className="chat-ask-pager">
+              <span className="chat-ask-label">
+                {question.header ?? (isGuidance ? '详解方向' : '追问')}
+              </span>
+              {total > 1 && (
+                <>
+                  <span className="chat-flex-spacer" />
                   <button
-                    key={option.label}
                     type="button"
-                    aria-pressed={picked}
-                    disabled={!answerable}
-                    onClick={() => pickOption(question, option.label)}
+                    className="chat-ask-arrow"
+                    aria-label="上一题"
+                    disabled={activeIndex === 0}
+                    onClick={() => browse(-1)}
                   >
-                    <span className="chat-ask-option-label">{option.label}</span>
-                    {option.description && (
-                      <small className="chat-ask-option-desc">{option.description}</small>
-                    )}
+                    <ChevronLeft size={14} />
                   </button>
-                );
-              })}
-            </div>
-            {question.allowFreeText && (
-              <textarea
-                rows={2}
-                aria-label={`${question.prompt}（自由输入）`}
-                placeholder={question.placeholder ?? '补充说明（可选）'}
-                disabled={!editable}
-                maxLength={source === 'rag' ? 2000 : undefined}
-                value={draftOf(question).freeText}
-                onChange={(e) => updateFreeText(question, e.target.value)}
-              />
-            )}
-            {interaction.status === 'failed' && interaction.error && (
-              <div className="chat-ask-error" role="alert">
-                <CircleAlert size={13} />
-                <span>
-                  {interaction.error.message}（{interaction.error.code}）
-                </span>
-                {active && (
-                  <button type="button" onClick={submit}>
-                    重试提交
+                  <span className="chat-ask-page" aria-live="polite">
+                    第 {activeIndex + 1} / {total} 题
+                  </span>
+                  <button
+                    type="button"
+                    className="chat-ask-arrow"
+                    aria-label="下一题"
+                    disabled={activeIndex >= total - 1}
+                    onClick={() => browse(1)}
+                  >
+                    <ChevronRight size={14} />
                   </button>
+                </>
+              )}
+            </header>
+            <section
+              className="chat-ask-question"
+              aria-label={`${isGuidance ? '详解方向' : '追问'} ${activeIndex + 1}/${total}${
+                question.header ? `：${question.header}` : ''
+              }`}
+            >
+              <p className="chat-ask-prompt">{question.prompt}</p>
+              <div
+                ref={optionsRef}
+                className="chat-ask-options"
+                role="group"
+                aria-label={question.prompt}
+              >
+                {(question.options ?? []).map((option, position) => {
+                  const picked = draftOf(question).labels.includes(option.label);
+                  return (
+                    <button
+                      key={option.label}
+                      type="button"
+                      data-option={position}
+                      aria-pressed={picked}
+                      disabled={!editable}
+                      onKeyDown={(event) => {
+                        if (isComposing(event)) {
+                          // 中文输入法组合期间不触发确认
+                          if (event.key === 'Enter') event.preventDefault();
+                          return;
+                        }
+                        moveOptionFocus(event, position);
+                      }}
+                      onClick={() => pickOption(question, option.label)}
+                    >
+                      <span className="chat-ask-option-index" aria-hidden="true">
+                        {position + 1}.
+                      </span>
+                      <span className="chat-ask-option-body">
+                        <span className="chat-ask-option-label">{option.label}</span>
+                        {option.description && (
+                          <small className="chat-ask-option-desc">{option.description}</small>
+                        )}
+                      </span>
+                    </button>
+                  );
+                })}
+                {question.allowFreeText && (
+                  <label className="chat-ask-free">
+                    <span className="chat-ask-option-index" aria-hidden="true">
+                      {(question.options?.length ?? 0) + 1}.
+                    </span>
+                    <textarea
+                      rows={2}
+                      aria-label={`${question.prompt}（自由输入）`}
+                      placeholder={question.placeholder ?? '补充说明（可选）'}
+                      disabled={!editable}
+                      maxLength={source === 'rag' ? 2000 : undefined}
+                      value={draftOf(question).freeText}
+                      onCompositionStart={() => {
+                        composingRef.current = true;
+                      }}
+                      onCompositionEnd={() => {
+                        composingRef.current = false;
+                      }}
+                      onChange={(e) => updateFreeText(question, e.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key !== 'Enter' || event.shiftKey) return;
+                        if (isComposing(event)) return; // 组合期间不触发确认
+                        event.preventDefault();
+                        onContinue(interaction.interactionId);
+                      }}
+                    />
+                  </label>
                 )}
               </div>
+              {progress(draftOf(question)) && (
+                <p className="chat-ask-question-state" role="status">
+                  {progress(draftOf(question))}
+                </p>
+              )}
+              {interaction.status === 'failed' && interaction.error && (
+                <div className="chat-ask-error" role="alert">
+                  <CircleAlert size={13} />
+                  <span>
+                    {interaction.error.message}（{interaction.error.code}）
+                  </span>
+                  {active && (
+                    <button type="button" disabled={!canRetry && !editable} onClick={() => onContinue(interaction.interactionId)}>
+                      重试提交
+                    </button>
+                  )}
+                </div>
+              )}
+            </section>
+            {notice && (
+              <p className="chat-ask-notice" role="status">
+                {notice}
+              </p>
             )}
-          </section>
-          <footer className="chat-ask-foot">
-            {total > 1 && activeIndex > 0 ? (
+            <footer className="chat-ask-foot">
+              <p className="chat-ask-hint">
+                {pendingRetry
+                  ? '结果未确认：仅可重试原提交'
+                  : legacyMultiSelect
+                    ? '历史多选卡只读'
+                    : '↑↓ 选项 · Enter 选中 · Enter 继续 · Shift+Enter 换行'}
+              </p>
               <button
                 type="button"
                 className="chat-ask-nav"
-                disabled={!answerable}
-                onClick={() => setActiveIndex((idx) => Math.max(0, idx - 1))}
+                disabled={!editable}
+                onClick={() => onSkip(interaction.interactionId)}
               >
-                <ChevronLeft size={13} />
-                上一题
+                忽略
               </button>
-            ) : (
-              <span className="chat-ask-hint">
-                {total > 1 ? '未回答的题目将按跳过提交。' : '可跳过或直接提交。'}
-              </span>
-            )}
-            {total > 1 && activeIndex < total - 1 ? (
               <button
                 type="button"
                 className="chat-ask-nav primary"
-                disabled={!answerable}
-                onClick={() => setActiveIndex((idx) => Math.min(total - 1, idx + 1))}
+                disabled={!(editable || canRetry)}
+                onClick={() => onContinue(interaction.interactionId)}
               >
-                下一题
-                <ChevronRight size={13} />
+                {locked ? <LoaderCircle size={13} className="chat-tool-spin" aria-hidden="true" /> : null}
+                {canRetry ? '重试提交' : isGuidance ? '继续详解' : '继续'}
               </button>
-            ) : (
-              <button
-                type="button"
-                className="chat-ask-nav primary"
-                disabled={!answerable}
-                onClick={submit}
-              >
-                {locked ? (
-                  <LoaderCircle size={13} className="chat-tool-spin" aria-hidden="true" />
-                ) : null}
-                {total > 1 ? '提交回答' : '提交'}
-              </button>
-            )}
-          </footer>
-          {total > 1 && (
-            <p className="chat-ask-foot-actions">
-              <button type="button" disabled={!editable} onClick={() => skipCurrent(question)}>
-                跳过此题
-              </button>
-            </p>
-          )}
-        </>
-      )}
+            </footer>
+          </>
+        )}
 
       {answered && (
         <dl className="chat-ask-summary">

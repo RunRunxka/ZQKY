@@ -3,12 +3,14 @@ import { useEffect, useRef, useState } from 'react';
 import { Boxes, Info, Palette, Plug, Sparkles, X } from 'lucide-react';
 import { WorkspaceShell } from '@/components/layout/WorkspaceShell';
 import { ModelSettingsPanel } from '@/features/model-settings/ModelSettingsPanel';
+import { EmbeddingPanel } from '@/features/model-settings/embedding/EmbeddingPanel';
 import { ExtensionManager } from './ExtensionManager';
 import './settings.css';
 import './styles/settings-extend.css';
 const sections = [
   { id: 'appearance', title: '外观', description: '显示与减少动画', icon: Palette },
   { id: 'models', title: '模型与连接', description: '连接、模型目录与默认模型', icon: Plug },
+  { id: 'embedding', title: 'Embedding 模型', description: '教材索引的本地向量模型', icon: Boxes },
   { id: 'mcp', title: 'MCP', description: '扩展能力 · 服务管理', icon: Boxes },
   { id: 'skills', title: 'Skills', description: '扩展能力 · 技能管理', icon: Sparkles },
   { id: 'about', title: '关于', description: '实现状态与版本', icon: Info },
@@ -159,6 +161,10 @@ export function SettingsWorkspace() {
           <section id="models">
             <h2>模型与连接</h2>
             <ModelSettingsPanel />
+          </section>
+          <section id="embedding" className="settings-panel">
+            <h2>Embedding 模型</h2>
+            <EmbeddingPanel />
           </section>
           <section id="mcp" className="settings-panel">
             <h2>MCP</h2>

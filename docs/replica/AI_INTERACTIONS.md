@@ -4,6 +4,8 @@
 > 新条目实测结果以 [批次证据](../qa/RAG-DELIVERY-20260926/README.md) 与 STATUS 页首为准；下方旧批次“RAG 未接入 / 禁用 / capability 仍 planned”保留历史语境。本批不升级全站功能、教学质量或动画精度：默认只发布教材原文摘录与定位，人工质量 `not_run`。
 
 
+> 2026-09-28 RAG-REBUILD v1.0：RAG 由「固定四科 npy 快照」重建为「SQLite 教材目录 + 本机 Qdrant + 严格任教范围」，`/api/v1/rag/*` 升至 **v2 契约**（`scope` 取代 `subject`），新增 `POST /rag/explain/stream`（用户所选聊天模型详解，点击时冻结模型与证据）。旧四科 `rag_engine` 与 `.local-data/rag` 资产保留但**不再是生产路径**。真实隔离数据 58 册 / 10,482 块；真实 bge-m3 + 真实 Qdrant + 真实 qwen2.5:7b，四科各 3 问 **11/12 ok**（1 问模型返回非合法 JSON，按设计降级 partial 并保留原文）。**人工教学质量 not_run**；独立验收 r1 判 needs_revision（D1–D6、P1–P3），修复后进入 r2 窄复验。见 [批次证据](../qa/RAG-REBUILD-v1/README.md)。
+
 更新：2026-09-24（CHAT-CONTENT-MATH-AND-FOLLOW v1 更新 A-reasoning-math：正文流式 Markdown 接线、尾段公式与 reasoning follow 修复；候选待独立验收；真实供应商 not_run）。此前 UX-REGRESSION-FIX v1（推理流式期间公式即时渲染）与 UX-PERF-CLOSEOUT v1（推理流呈现与提交语义、模式菜单单层化与 RAG 模式入口、学习记录归属）历史报告不改写；**RAG 仍未接入**。主聊天仅真实SSE，R-03生产模拟残留已清；复杂能力/工具/附件真实执行仍未接。模型管理和供应商隔离合同已有局部独立验收；真实DeepSeek证据按模型/预算/推理开关分组，R-13未关闭，其他供应商不据此升级。阅读/写作/知识库/书籍的显式模拟单独标注。当前状态与候选索引见 [STATUS](../STATUS.md)，历史真实首败见 [2026-09-12结果](../qa/acceptance-20260912/summary.json)。
 
 状态包含待实现、部分实现、实现待验收、已验收、实现待修复、真实服务未接入、已移除。下表“组件保留”不等于运行通道已接通；阅读/写作等模块的显式模拟与主聊天分开。

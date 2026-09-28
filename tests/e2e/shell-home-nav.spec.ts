@@ -52,6 +52,8 @@ test.describe('R-04 每个已实现路由都有唯一当前菜单', () => {
   const implemented = [
     ['/chat', '学习问答'],
     ['/lesson-plans', '教案工作台'],
+    // RAG-REBUILD v1.0：题库已是真实模块，桌面侧栏为自己高亮
+    ['/question-bank', '题库'],
     ['/knowledge-bases', '教材资料库'],
     // T4：书籍并入教材资料库（书籍自身为隐藏直达页），桌面侧栏高亮教材资料库
     ['/books', '教材资料库'],
@@ -73,7 +75,6 @@ test.describe('R-04 每个已实现路由都有唯一当前菜单', () => {
     ['/reading', '沉浸阅读'],
     ['/space', '学习空间'],
     ['/papers', '智能组卷'],
-    ['/question-bank', '题库'],
   ] as const;
 
   for (const [route, expected] of plannedSelf) {

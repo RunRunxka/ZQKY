@@ -1,0 +1,191 @@
+/* Embedding 面板样式（设置页「模型与连接」内的独立区域）
+   消费 globals.css 单一变量层：--font-ui/--font-display、--blue/--blue-soft、--surface/--ink/--line、
+   --radius-*、--space-*。作用域：全部选择器以 .embedding-panel 起头，不污染共享层。
+   与教材页共用少量字段类（textbook-field/hint/check）时在本作用域内同源实现，避免跨模块样式依赖。
+   减少动画：依赖全局 motion.css 的 prefers-reduced-motion / html[data-motion='reduced'] 机制。 */
+
+.embedding-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+}
+
+.embedding-panel .embedding-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  background: var(--bg);
+}
+
+.embedding-panel .embedding-section h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.embedding-panel .embedding-subhead,
+.embedding-panel h4.embedding-subhead {
+  margin: 12px 0 4px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* 与教材页同源的字段/提示类（本作用域内实现，不引用其它模块样式表） */
+.embedding-panel .textbook-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.embedding-panel .textbook-field input,
+.embedding-panel .textbook-field select {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 13.5px;
+}
+
+.embedding-panel .textbook-hint {
+  margin: 2px 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+
+.embedding-panel .textbook-hint strong {
+  color: var(--ink);
+}
+
+.embedding-panel .textbook-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.embedding-panel .embedding-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+/* ===== 模型候选 ===== */
+.embedding-panel .embedding-model-list,
+.embedding-panel .embedding-profile-list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.embedding-panel .embedding-model-item,
+.embedding-panel .embedding-profile-item {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  background: var(--surface);
+  min-width: 0;
+}
+
+.embedding-panel .embedding-model-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.embedding-panel .embedding-model-head strong {
+  font-size: 13.5px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.embedding-panel .embedding-probe {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.embedding-panel .embedding-prefix-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+
+/* ===== 重建进度 ===== */
+.embedding-panel .embedding-rebuild {
+  margin-top: 8px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.embedding-panel .embedding-progress {
+  height: 6px;
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.embedding-panel .embedding-progress > div {
+  height: 100%;
+  background: var(--blue);
+  transition: width 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1));
+}
+
+.embedding-panel .embedding-error {
+  margin: 6px 0 0;
+  color: var(--danger);
+  font-size: 12.5px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+/* ===== 窄视口（设置页 390 宽）：字段单列、避免横向溢出 ===== */
+@media (max-width: 640px) {
+  .embedding-panel .embedding-section {
+    padding: 12px;
+  }
+
+  .embedding-panel .embedding-prefix-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .embedding-panel .space-meta-row {
+    min-width: 0;
+  }
+}

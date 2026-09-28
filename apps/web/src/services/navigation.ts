@@ -64,6 +64,16 @@ export const navigation: NavigationItem[] = [
     },
   },
   {
+    // 题库紧跟「智能组卷」（RAG-REBUILD v1.0）：独立题库已是真实存储，不再是规划状态。
+    id: 'question-bank',
+    label: '题库',
+    path: '/question-bank',
+    status: 'ready',
+    position: 'main',
+    group: '教学工作台',
+    icon: FileQuestion,
+  },
+  {
     id: 'co-writer',
     label: '协同写作',
     path: '/co-writer',
@@ -139,19 +149,6 @@ export const navigation: NavigationItem[] = [
     parentPath: '/knowledge-bases',
     group: '教学资源',
     icon: GraduationCap,
-  },
-  {
-    id: 'question-bank',
-    label: '题库',
-    path: '/question-bank',
-    status: 'planned',
-    position: 'main',
-    group: '教学资源',
-    icon: FileQuestion,
-    plan: {
-      summary: '沉淀试题、答案与解析，按知识点、题型和难度组织。',
-      capabilities: ['题目录入与版本管理', '知识点、题型、难度筛选', '为智能组卷提供选题来源'],
-    },
   },
   {
     id: 'templates',

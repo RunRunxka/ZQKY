@@ -1,0 +1,515 @@
+/* 教材模块页面级样式（/knowledge-bases、/knowledge-bases/libraries/[libraryId]）
+   消费 globals.css 单一变量层（R-05），与 /chat 同源字体与蓝色主题：
+   --font-ui/--font-display、--blue/--blue-soft、--surface/--ink/--line、--radius-*、--space-*。
+   作用域：全部选择器以 .textbook-page 起头；与 space.css 共用类时只做必要的局部收窄。
+   减少动画：依赖全局 motion.css 的 prefers-reduced-motion / html[data-motion='reduced'] 机制。 */
+
+.textbook-page .space-content {
+  min-width: 0;
+}
+
+.textbook-page .space-header-row {
+  align-items: flex-start;
+}
+
+/* ===== 书籍/课程入口（沿用既有 .kb-library-links 结构，e2e 依赖该 class 名） ===== */
+.textbook-page .kb-library-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: var(--space-2);
+  margin-bottom: 16px;
+}
+
+.textbook-page .kb-library-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  color: var(--ink);
+  transition:
+    border-color 150ms,
+    color 150ms;
+}
+
+.textbook-page .kb-library-link:hover {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+.textbook-page .kb-library-link:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.textbook-page .kb-library-link-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.textbook-page .kb-library-link-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.textbook-page .kb-library-link-body strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.textbook-page .kb-library-link-body span {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.textbook-page .kb-library-link-chevron {
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+/* ===== 卡片（沿用 space-persona-card；长标题/长词不断行则内滚，禁止横向溢出） ===== */
+.textbook-page .space-persona-card {
+  position: relative;
+}
+
+.textbook-page .space-card-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.textbook-page .space-meta-row {
+  min-width: 0;
+}
+
+.textbook-page .space-chip {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.textbook-page .kb-card-chevron {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 150ms;
+  pointer-events: none;
+}
+
+.textbook-page .space-persona-card:hover .kb-card-chevron,
+.textbook-page .space-persona-card:focus-visible .kb-card-chevron {
+  opacity: 0.6;
+}
+
+.textbook-page .textbook-empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+/* ===== 筛选条 ===== */
+.textbook-page .textbook-filters {
+  align-items: flex-end;
+}
+
+.textbook-page .textbook-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.textbook-page .textbook-filter .space-select {
+  min-width: 130px;
+}
+
+/* ===== 表单与提示（导入面板、编辑分类共用） ===== */
+.textbook-page .textbook-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.textbook-page .textbook-field input,
+.textbook-page .textbook-field select,
+.textbook-page .textbook-field textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 13.5px;
+}
+
+.textbook-page .textbook-field fieldset,
+.textbook-page fieldset.textbook-field {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.textbook-page .textbook-field legend {
+  padding: 0 0 4px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.textbook-page .textbook-metadata {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.textbook-page .textbook-field-wide {
+  grid-column: 1 / -1;
+}
+
+.textbook-page .textbook-grade-options,
+.textbook-page .textbook-library-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.textbook-page .textbook-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.textbook-page .textbook-hint {
+  margin: 6px 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.textbook-page .textbook-subhead {
+  margin: 14px 0 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.textbook-page .textbook-file-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+
+.textbook-page .textbook-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+/* ===== 面板（导入教材 / 入库任务，渲染在 workspace-modal 内） ===== */
+.textbook-page .textbook-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  /* 弹层自身滚动：390 视口下仍可完整到达所有分区，不产生横向溢出 */
+  max-height: min(62dvh, 560px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 2px;
+}
+
+.textbook-page .textbook-panel-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.textbook-page .textbook-panel-section:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.textbook-page .textbook-panel-section h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.textbook-page .textbook-warning-list {
+  margin: 6px 0 8px;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.textbook-page .textbook-preview-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.textbook-page .textbook-preview-item {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  background: var(--surface);
+}
+
+.textbook-page .textbook-preview-text {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 96px;
+  overflow-y: auto;
+}
+
+/* ===== 入库任务 ===== */
+.textbook-page .textbook-job-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.textbook-page .textbook-job-item {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  background: var(--bg);
+}
+
+.textbook-page .textbook-job-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.textbook-page .textbook-job-head strong {
+  font-size: 13.5px;
+  overflow-wrap: anywhere;
+}
+
+.textbook-page .textbook-progress {
+  height: 6px;
+  margin-top: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.textbook-page .textbook-progress > div {
+  height: 100%;
+  background: var(--blue);
+  transition: width 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1));
+}
+
+.textbook-page .textbook-job-error {
+  margin: 8px 0 0;
+  color: var(--danger);
+  font-size: 12.5px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+/* ===== 历史登记（只读） ===== */
+.textbook-page .textbook-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.textbook-page .textbook-history-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  color: var(--ink);
+  transition: border-color 150ms;
+}
+
+.textbook-page .textbook-history-item:hover {
+  border-color: var(--blue);
+}
+
+.textbook-page .textbook-history-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.textbook-page .textbook-history-body strong {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.textbook-page .textbook-history-body span {
+  color: var(--muted);
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+
+/* ===== 详情页：书册列表 ===== */
+.textbook-page .textbook-document-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.textbook-page .textbook-document-item {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.textbook-page .textbook-document-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.textbook-page .textbook-document-head strong {
+  font-size: 14.5px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+/* ===== 来源预览 ===== */
+.textbook-page .textbook-source,
+.textbook-page .textbook-edit {
+  margin-top: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.textbook-page .textbook-source-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.textbook-page .textbook-source-controls .textbook-field {
+  width: 130px;
+}
+
+.textbook-page .textbook-source-text {
+  margin: 0;
+  padding: 12px;
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ===== 手机视口（390）：收紧留白，保证不横向溢出 ===== */
+@media (max-width: 640px) {
+  .textbook-page .space-tabs {
+    display: flex;
+    width: 100%;
+  }
+
+  .textbook-page .space-tabs button {
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .textbook-page .space-header-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .textbook-page .textbook-panel {
+    max-height: 58dvh;
+  }
+
+  .textbook-page .textbook-filter,
+  .textbook-page .textbook-filter .space-select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .textbook-page .textbook-filters {
+    align-items: stretch;
+  }
+}

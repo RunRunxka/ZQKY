@@ -7,7 +7,6 @@ const plannedRoutes = [
   '/co-writer',
   '/reading',
   '/space',
-  '/question-bank',
   '/templates',
 ];
 
@@ -40,7 +39,7 @@ test('导航可访问名称在收起、展开与底部入口保持一致', async
     '沉浸阅读（规划中）',
     '学习空间（规划中）',
     '教材资料库',
-    '题库（规划中）',
+    '题库',
     '模板中心（规划中）',
     '设置',
   ]) {
@@ -92,9 +91,10 @@ test('手机导航抽屉显示全部入口与规划标记，可进入规划页',
   await expect(dialog).toHaveCount(0);
   await page.getByRole('button', { name: '打开功能导航' }).click();
   await expect(dialog).toHaveCount(1);
-  await dialog.getByRole('button', { name: '题库（规划中）', exact: true }).click();
+  // RAG-REBUILD v1.0：题库已是真实模块，抽屉进入后是真实页面而不是规划页
+  await dialog.getByRole('button', { name: '题库', exact: true }).click();
   await expect(page).toHaveURL(/\/question-bank$/);
-  await expect(page.locator('.planned-page')).toBeVisible();
+  await expect(page.locator('.question-bank-page')).toBeVisible();
   await expect(dialog).toHaveCount(0);
 });
 

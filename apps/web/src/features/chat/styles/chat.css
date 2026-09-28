@@ -434,7 +434,7 @@
   font-size: 12px;
 }
 .chat-info-list,
-.chat-info-planned {
+.chat-info-capabilities {
   list-style: none;
   padding: 0;
 }
@@ -445,12 +445,52 @@
   color: var(--muted);
   font-size: 11px;
 }
-.chat-info-planned li {
+/* 「对话能力边界」行（F1-CHAT v1.1）：名称 + 状态徽标 + 逐条说明；全部由接口状态驱动 */
+.chat-info-capability {
+  margin-bottom: 12px;
+}
+.chat-info-capability-head {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 10px;
+}
+.chat-info-capability-name {
+  overflow-wrap: anywhere;
+}
+.chat-info-state {
+  flex: none;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #f1f2f4;
+  color: #8c929c;
+  white-space: nowrap;
+}
+.chat-info-state.ok {
+  background: var(--blue-soft);
+  color: var(--blue-deep);
+}
+.chat-info-state.warn {
+  background: #fff5f4;
+  color: #a82c25;
+}
+.chat-info-details {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.chat-info-details li {
+  overflow-wrap: anywhere;
+}
+.chat-info-retry {
+  color: var(--blue);
+  text-decoration: underline;
+  font-size: 11px;
+  margin-left: 4px;
 }
 .chat-link {
   color: var(--blue);
@@ -2362,4 +2402,131 @@
 .chat-mermaid-fallback pre { white-space: pre-wrap; }
 .chat-chart-preview[data-failed='true'] { display: block; }
 .chat-chart-fallback { white-space: pre-wrap; font-size: 12px; color: var(--muted); }
+
+/* ===== RAG-REBUILD v1.0（F1-CHAT）：追问卡 v2 / 详解引导 / 教材证据 / 分项状态 =====
+   视觉复用现有 token：继承页面字体、细边框 var(--line)、蓝色主题 var(--blue/--blue-soft)、
+   与输入框一致的圆角与留白；不新增主题、不新增动画库；减少动画依赖全局 prefers-reduced-motion 层。 */
+
+/* 顶部：标签 + 左右箭头 + 页码（箭头只浏览） */
+.chat-ask-pager { display: flex; align-items: center; gap: 6px; margin: 2px 0 0; min-width: 0; }
+.chat-ask-label { font-size: 11px; font-weight: 600; color: var(--muted); }
+.chat-ask-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--muted);
+}
+.chat-ask-arrow:hover:not(:disabled) { border-color: #a8c3f2; color: var(--blue); }
+.chat-ask-arrow:disabled { opacity: 0.45; }
+.chat-ask-page { font-size: 11px; color: var(--muted); min-width: 52px; text-align: center; }
+
+/* 中部：编号选项（最后一项为自由输入），长题文自然换行 */
+.chat-ask-prompt { overflow-wrap: anywhere; }
+.chat-ask-options button { flex-direction: row; align-items: flex-start; gap: 8px; }
+.chat-ask-option-index { flex: none; min-width: 16px; font-size: 12px; color: var(--muted); line-height: 1.7; }
+.chat-ask-option-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.chat-ask-option-label { overflow-wrap: anywhere; }
+.chat-ask-free { display: flex; align-items: flex-start; gap: 8px; }
+.chat-ask-free textarea { flex: 1 1 auto; width: auto; min-width: 0; margin-top: 0; }
+.chat-ask-question-state { margin: 6px 0 0; font-size: 11px; color: var(--muted); }
+.chat-ask-notice {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--blue-deep);
+  background: var(--blue-soft);
+  border: 1px solid #cddcf6;
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+.chat-ask-card.guidance { border-color: #cddcf6; background: #fbfcff; }
+.chat-ask-card.guidance .chat-ask-head { color: var(--blue-deep); }
+
+/* 底部：键盘说明 + 忽略/继续 */
+.chat-ask-foot { flex-wrap: wrap; }
+.chat-ask-foot .chat-ask-hint { flex: 1 1 auto; min-width: 0; }
+.chat-ask-nav { flex: none; }
+
+/* 教材证据与范围（只渲染后端给出的证据；历史修订明确标注） */
+.chat-rag-evidence {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fafbfc;
+  padding: 10px 12px;
+  margin: 12px 0;
+}
+.chat-rag-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--blue); }
+.chat-rag-head strong { font-weight: 600; }
+.chat-rag-status {
+  font-size: 11px;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+.chat-rag-status.no_evidence { color: #a82c25; border-color: #f2d2d0; background: #fff5f4; }
+.chat-rag-scope { font-size: 11px; color: var(--muted); overflow-wrap: anywhere; }
+.chat-rag-reason { font-size: 12px; color: var(--muted); margin: 6px 0 0; line-height: 1.7; }
+.chat-rag-hint { font-size: 12px; color: var(--muted); margin: 6px 0 0; line-height: 1.7; }
+.chat-rag-points { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.chat-rag-points li { border-top: 1px dashed var(--line); padding-top: 8px; font-size: 12.5px; }
+.chat-rag-points p { margin: 2px 0 0; line-height: 1.75; color: var(--ink); overflow-wrap: anywhere; }
+.chat-rag-points small { display: block; margin-top: 4px; color: var(--muted); font-size: 11px; }
+.chat-rag-list { margin: 10px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 10px; }
+.chat-rag-cite { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0; font-size: 12.5px; }
+.chat-rag-cite small { color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
+.chat-rag-eid { font-size: 11px; color: var(--muted); }
+.chat-rag-superseded {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  color: #8a5a00;
+  background: #fff8e6;
+  border: 1px solid #f0dfb4;
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+.chat-rag-text {
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  border-left: 3px solid #cddcf6;
+  background: #fff;
+  border-radius: 0 8px 8px 0;
+  font-size: 12.5px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+}
+.chat-rag-list li.superseded .chat-rag-text { color: var(--muted); }
+
+/* 服务状态分项（检索 / 本地概括 / 原文访问 / 范围分别报告） */
+.chat-rag-sections {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 11.5px;
+}
+.chat-rag-sections li { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; }
+.chat-rag-sections li strong { color: var(--ink); font-weight: 600; }
+.chat-rag-sections li span { color: var(--muted); overflow-wrap: anywhere; }
+.chat-rag-sections li.warn strong { color: #a82c25; }
+.chat-rag-sections li.ok strong { color: var(--blue-deep); }
+
+@media (max-width: 760px) {
+  .chat-ask-pager { flex-wrap: wrap; }
+  .chat-ask-foot .chat-ask-hint { flex-basis: 100%; }
+  .chat-ask-nav { flex: 1 1 auto; justify-content: center; }
+  .chat-rag-sections { flex-direction: column; gap: 3px; }
+}
 

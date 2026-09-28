@@ -174,7 +174,8 @@ test.describe('模型管理 contract-v1', () => {
     await page.getByRole('button', { name: /从服务获取/ }).click();
     const alert = page.getByRole('alert').first();
     await expect(alert).toBeVisible();
-    await expect(page.getByRole('button', { name: /重试/ })).toBeVisible();
+    // RAG-REBUILD v1.0：设置页新增 Embedding 区，重试定位收窄到模型区（断言意图不变）
+    await expect(page.locator('#models').getByRole('button', { name: /重试/ })).toBeVisible();
   });
 
   test('无模型列表接口的供应商明确说明需手工添加', async ({ page }) => {

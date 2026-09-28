@@ -17,7 +17,13 @@ import {
 import { WorkspaceShell } from '@/components/layout/WorkspaceShell';
 import { Modal } from '@/components/ui/Modal';
 import { ChatProvider, useChatSession, useChatStore } from './model/ChatContext';
-import { fetchRagStatus, LOCAL_RAG_PROFILE, type RagServiceStatus } from './model/rag-service';
+import {
+  fetchRagStatus,
+  LOCAL_RAG_PROFILE,
+  type RagServiceStatus,
+} from './model/rag-service';
+import { useTaughtScope } from './model/use-taught-scope';
+import { describeSelection, isSelectionUsable } from '@/services/taught-scope';
 
 import { CapabilityMenu } from './CapabilityMenu';
 
@@ -62,6 +68,70 @@ interface SessionPending {
 const EMPTY_PENDING: SessionPending = {
   attachments: [],
 };
+
+/** 教材服务分项状态（检索 / 本地概括 / 原文访问分别报告，不用单一结论概括） */
+function RagStatusLines({ status }: { status: RagServiceStatus }) {
+  const sections: { key: string; label: string; ok: boolean; text: string }[] = [
+    {
+      key: 'retrieval',
+      label: '检索',
+      ok: status.retrieval.available,
+      text: status.retrieval.available
+        ? status.retrieval.vectorStore && status.retrieval.queryEmbedding
+          ? '向量与词法检索就绪'
+          : '就绪'
+        : (status.retrieval.reason ?? '不可用'),
+    },
+    {
+      key: 'summarization',
+      label: '本地概括',
+      ok: status.summarization.available,
+      text: status.summarization.available
+        ? [status.summarization.model, status.summarization.providerUrl].filter(Boolean).join(' · ') || '就绪'
+        : (status.summarization.reason ?? '不可用'),
+    },
+    {
+      key: 'sourceAccess',
+      label: '原文访问',
+      ok: status.sourceAccess.available,
+      text: status.sourceAccess.available
+        ? status.sourceAccess.verifiesHash
+          ? '可用（核验规范化文本散列）'
+          : '可用'
+        : (status.sourceAccess.reason ?? '不可用'),
+    },
+    {
+      key: 'scope',
+      label: '任教范围',
+      ok: status.scope.ready,
+      text: status.scope.ready ? '已就绪' : (status.scope.reason ?? '未就绪'),
+    },
+  ];
+  return (
+    <ul className="chat-rag-sections">
+      {sections.map((section) => (
+        <li key={section.key} data-section={section.key} className={section.ok ? 'ok' : 'warn'}>
+          <strong>{section.label}</strong>
+          <span>{section.text}</span>
+        </li>
+      ))}
+      {status.humanQuality && (
+        <li data-section="humanQuality" className="warn">
+          <strong>人工教学质量</strong>
+          <span>
+            {status.humanQuality === 'not_run' ? '尚未评审' : status.humanQuality}
+          </span>
+        </li>
+      )}
+      {status.legacy && (
+        <li data-section="legacy" className="warn">
+          <strong>状态结构</strong>
+          <span>旧版服务状态：按不可用处理，未猜测可用性</span>
+        </li>
+      )}
+    </ul>
+  );
+}
 
 export function ChatWorkspace({
   initialSessionId,
@@ -120,16 +190,42 @@ function ChatPage({
   // S2 输入区：业务能力（默认“对话”）+ 各能力配置表单 + 确认状态
   const [capabilityValue, setCapabilityValue] = useState('');
   const ragMode = capabilityValue === 'rag' || capabilityValue === 'ask_questions';
-  const [ragStatus, setRagStatus] = useState<RagServiceStatus | null>(null);
+  const [ragStatus, setRagStatus] = useState<{ status: RagServiceStatus | null; error: string | null }>(
+    { status: null, error: null },
+  );
   const [ragStatusTick, refreshRagStatus] = useState(0);
   useEffect(() => {
     if (!ragMode) return;
     const controller = new AbortController();
-    void fetchRagStatus(controller.signal).then((status) => { if (!controller.signal.aborted) setRagStatus(status); }).catch((error: unknown) => {
-      if (!controller.signal.aborted) setRagStatus({ available: false, detail: error instanceof Error ? error.message : '无法连接教材服务。' });
-    });
+    void fetchRagStatus(controller.signal)
+      .then((status) => {
+        if (!controller.signal.aborted) setRagStatus({ status, error: null });
+      })
+      .catch((error: unknown) => {
+        // 请求失败不等于「服务不可用结论」：如实显示错误，不伪造分项状态
+        if (!controller.signal.aborted)
+          setRagStatus({
+            status: null,
+            error: error instanceof Error ? error.message : '无法连接教材服务。',
+          });
+      });
     return () => controller.abort();
   }, [ragMode, ragStatusTick]);
+  // 任教范围（真实状态）：读取失败保持 failed（不是空范围），发送前据此阻断。
+  // 同步用 store 的稳定 action（getState 取一次），避免把整份 state 当依赖造成重复渲染。
+  const {
+    scope: taughtScope,
+    state: scopeState,
+    error: scopeError,
+    reload: reloadTaughtScope,
+  } = useTaughtScope(ragMode);
+  const setRagScopeSelection = useMemo(
+    () => chatSession.stores.real.getState().setRagScopeSelection,
+    [chatSession],
+  );
+  useEffect(() => {
+    setRagScopeSelection(scopeState === 'ready' ? taughtScope.selection : null);
+  }, [setRagScopeSelection, scopeState, taughtScope.selection]);
   const [capForms] = useState<CapabilityFormState>(createDefaultCapabilityForms);
   const [capConfirmed, setCapConfirmed] = useState(false);
   // R21：人设/知识/会话引用/附件按「模式+会话」归属存储；
@@ -354,6 +450,14 @@ function ChatPage({
         }
       : null;
   }, [profile, error]);
+  // 当前聊天模型同步给 store：详解派发时冻结该模型（无可用模型时不消耗引导卡）
+  const setChatProfile = useMemo(
+    () => chatSession.stores.real.getState().setChatProfile,
+    [chatSession],
+  );
+  useEffect(() => {
+    setChatProfile(selection);
+  }, [setChatProfile, selection]);
   const activeTitle = store.conversations.find((c) => c.id === store.activeId)?.title ?? '新的对话';
   const hasMessages = store.messages.length > 0;
   // CHAT-CONTEXT-BUDGET v1：最近一轮**实际发送时**的字符账目（随助手消息持久化，刷新可核）。
@@ -633,6 +737,21 @@ function ChatPage({
       setBlockedNotice('当前真实服务不支持仅引用发送（无文件解析服务），请输入文字后发送。');
       return;
     }
+    // 教材范围门槛（RAG-REBUILD v1.0）：范围未配置或读取失败时**发送前**阻断并保留输入
+    if (ragMode) {
+      if (scopeState === 'failed') {
+        setBlockedNotice(
+          `任教范围读取失败：${scopeError ?? '未知原因'}。输入已保留；可先点“重新读取”，读取失败不会被当成空范围。`,
+        );
+        return;
+      }
+      if (!isSelectionUsable(taughtScope)) {
+        setBlockedNotice(
+          '尚未保存可用的任教范围（年级/学科/版本与书册）：请先在教材资料库保存任教范围。输入已保留，未发起任何教材请求。',
+        );
+        return;
+      }
+    }
     const reason = blockedReason();
     if (reason) {
       // 发送受阻必须给出即时反馈，不允许静默吞掉用户消息
@@ -821,11 +940,55 @@ function ChatPage({
               <button onClick={() => void store.flush()}>重试保存</button>
             </div>
           )}
-          {store.serviceNotice && <div className="chat-banner warn" role="alert">{store.serviceNotice}</div>}
+          {store.serviceNotice && (
+            <div className="chat-banner warn" role="alert">
+              {store.serviceNotice}
+              {ragMode && !selection && <Link href="/settings">打开设置</Link>}
+            </div>
+          )}
           {ragMode && (
-            <div className={`chat-banner ${ragStatus?.available ? '' : 'warn'}`} role="status">
-              {ragStatus ? (ragStatus.available ? '本地教材引擎可用。定位与讲解保留原文引用；证据不足时可补充题目。' : `教材服务不可用：${ragStatus.detail}`) : '正在检查本地教材服务…'}
+            <div className="chat-banner" role="status" data-rag-status>
+              {ragStatus.error ? (
+                <span>无法读取教材服务状态：{ragStatus.error}（未按“不可用”结论显示分项）</span>
+              ) : ragStatus.status ? (
+                <RagStatusLines status={ragStatus.status} />
+              ) : (
+                <span>正在检查本地教材服务…</span>
+              )}
               <button onClick={() => refreshRagStatus((value) => value + 1)}>重新检查</button>
+            </div>
+          )}
+          {ragMode && (
+            <div
+              className={`chat-banner ${scopeState === 'ready' ? '' : 'warn'}`}
+              role="status"
+              data-taught-scope={scopeState}
+            >
+              {scopeState === 'loading' && <span>正在读取任教范围…</span>}
+              {scopeState === 'empty' && (
+                <span>
+                  尚未保存可用的任教范围：
+                  {taughtScope.reason ?? '请先在教材资料库保存年级/学科/版本与书册。'}
+                  发送教材问题前需要先保存范围（输入会保留）。
+                </span>
+              )}
+              {scopeState === 'failed' && (
+                <span>
+                  任教范围读取失败：{scopeError ?? '未知原因'}。
+                  读取失败不等于没有范围，已按失败处理并保留输入。
+                </span>
+              )}
+              {scopeState === 'ready' && (
+                <span>
+                  本轮范围：
+                  {describeSelection(taughtScope.selection, taughtScope.taxonomy) ??
+                    `${taughtScope.selection?.documentIds.length ?? 0} 册`}
+                  {taughtScope.taxonomyError
+                    ? `（字典读取失败：${taughtScope.taxonomyError}，仅显示已保存范围）`
+                    : ''}
+                </span>
+              )}
+              <button onClick={reloadTaughtScope}>重新读取</button>
             </div>
           )}
           {!ragMode && error && (
@@ -870,12 +1033,20 @@ function ChatPage({
                   key={message.id}
                   message={message}
                   copied={copyState === message.id}
+                  scopeLabelFor={(selectionValue) =>
+                    describeSelection(selectionValue, taughtScope.taxonomy)
+                  }
                   ask={{
                     waitingId: store.waitingInteractionId,
                     submitting: store.submittingReply,
+                    focus: store.askFocus,
+                    notice: store.askNotice,
                     onDraft: (interactionId, questionId, draft) =>
                       store.setAskDraft(interactionId, questionId, draft),
-                    onSubmit: (interactionId, answers) => void store.submitReply(answers),
+                    onFocusChange: (interactionId, questionId) =>
+                      store.setAskFocus(interactionId, questionId),
+                    onContinue: (interactionId) => void store.continueAsk(interactionId),
+                    onSkip: (interactionId) => void store.skipAskQuestion(interactionId),
                   }}
                   onCopy={async () => {
                     try {
@@ -887,12 +1058,24 @@ function ChatPage({
                     }
                   }}
                   onRetry={
-                    index === store.messages.length - 1 && !store.sending && (!!selection || !!message.rag)
+                    index === store.messages.length - 1 &&
+                    !store.sending &&
+                    !message.ragExplain &&
+                    (!!selection || !!message.rag)
                       ? () => void store.retry(message.id, message.rag ? LOCAL_RAG_PROFILE : selection)
                       : undefined
                   }
                   onResume={index === store.messages.length - 1 && !store.sending && message.rag?.status === 'interrupted'
                     ? () => void store.resumeRag(message.id) : undefined}
+                  onRetryExplain={
+                    index === store.messages.length - 1 &&
+                    !store.sending &&
+                    !!message.ragExplain &&
+                    (message.ragExplain.status === 'error' ||
+                      message.ragExplain.status === 'stopped')
+                      ? () => void store.retryExplain(message.id)
+                      : undefined
+                  }
                   onReuse={() => {
                     const user = [...store.messages.slice(0, index + 1)]
                       .reverse()
@@ -1072,7 +1255,7 @@ function ChatPage({
                   }
                 />}
                 {
-                  ragMode ? <span className="chat-ext-unavailable">本地教材引擎</span> :
+                  ragMode ? <span className="chat-ext-unavailable">本地教材引擎 · 详解用 {profile?.displayName ?? '尚未选择聊天模型'}</span> :
                   <ModelSelector
                     catalog={catalog}
                     value={store.modelProfileId}

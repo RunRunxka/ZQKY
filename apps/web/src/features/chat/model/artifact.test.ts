@@ -299,6 +299,13 @@ describe('S4 能力模拟闭环：阶段序列与结构化产物', () => {
       services: { mock: createMockChatService({ chunkDelayMs: 0 }) },
     });
     await store.getState().init();
+    // RAG-REBUILD v1.0：教材/追问轮发送前必须已有可用任教范围（生产由聊天页读入）
+    store.getState().setRagScopeSelection({
+      gradeId: 'grade-1',
+      subjectId: 'subject-1',
+      editionId: 'edition-1',
+      documentIds: ['doc-1'],
+    });
     const run = store.getState().send('讲讲这个主题', null, {
       mcps: [],
       skills: [],

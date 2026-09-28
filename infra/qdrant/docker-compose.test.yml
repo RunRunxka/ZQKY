@@ -1,0 +1,16 @@
+# 验收专用 Qdrant：独立 project 名与独立 volume，端口 16333，不与正式 6333 冲突。
+# 用法：docker compose -p zqky-rag-test -f infra/qdrant/docker-compose.test.yml up -d
+services:
+  qdrant-test:
+    image: qdrant/qdrant:v1.15.4
+    container_name: zqky-qdrant-test
+    ports:
+      - "127.0.0.1:16333:6333"
+    environment:
+      QDRANT__TELEMETRY_DISABLED: "true"
+    volumes:
+      - zqky-qdrant-test:/qdrant/storage
+
+volumes:
+  zqky-qdrant-test:
+    name: zqky-qdrant-test

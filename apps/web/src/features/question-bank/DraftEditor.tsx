@@ -1,0 +1,327 @@
+'use client';
+
+/**
+ * 草稿编辑表单（校对页右侧）：
+ * - 保存 / 标记已校对 / 标记排除 / 标记原文未提供答案，全部走 `PATCH /question-drafts/{id}`
+ *   并如实显示服务端返回的 `reviewState`（编辑已校对草稿会回到待校对，界面不乐观隐藏）；
+ * - 拆分按字符偏移走 `POST /question-imports/{id}/split?draftId=`；
+ * - 409 冲突保留用户输入，展示服务端最新内容供比较，给出「用我的修改重试」与「放弃我的修改」。
+ */
+
+import { useEffect, useState } from 'react';
+import type { DraftReviewState, DraftView, QuestionImportDetail } from '@/contracts/question-bank';
+import { patchQuestionDraft, splitQuestionDraft } from '@/services/question-bank-api';
+import { ContentForm, type QuestionFormValue } from './ContentForm';
+import {
+  contentErrors,
+  contentFromDraft,
+  confirmBlockers,
+  metadataErrors,
+  metadataFromDraft,
+} from './draft-form';
+import { asApiError } from './hooks';
+import { EXTRACTION_METHOD_LABEL, reviewStateLabel } from './labels';
+import type { TaxonomyIndex } from './taxonomy';
+
+export function formValueOfDraft(draft: DraftView): QuestionFormValue {
+  return { content: contentFromDraft(draft), metadata: metadataFromDraft(draft) };
+}
+
+const REVIEW_ACTIONS: { state: DraftReviewState; label: string }[] = [
+  { state: 'reviewed', label: '标记已校对' },
+  { state: 'needs_review', label: '退回待校对' },
+  { state: 'excluded', label: '标记排除' },
+];
+
+export function DraftEditor({
+  importId,
+  draft,
+  taxonomy,
+  onDraftUpdated,
+  onDetailReplaced,
+  onReloadDraft,
+}: {
+  importId: string;
+  draft: DraftView;
+  taxonomy: TaxonomyIndex;
+  /** 保存成功：把服务端权威草稿交回父级（父级据此更新列表与计数）。 */
+  onDraftUpdated: (draft: DraftView) => void;
+  /** 拆分成功：服务端返回整个导入详情，直接替换父级状态。 */
+  onDetailReplaced: (detail: QuestionImportDetail) => void;
+  /** 冲突时重新读取服务端最新草稿（供比较与「用我的修改重试」）。 */
+  onReloadDraft: (draftId: string) => Promise<DraftView | null>;
+}) {
+  const [value, setValue] = useState<QuestionFormValue>(() => formValueOfDraft(draft));
+  const [dirty, setDirty] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [conflict, setConflict] = useState<string | null>(null);
+  const [snapshot, setSnapshot] = useState<DraftView | null>(null);
+  const [charOffset, setCharOffset] = useState('');
+  const [splitError, setSplitError] = useState<string | null>(null);
+
+  // 服务端内容更新且本地无未保存编辑时同步表单；有编辑时保留用户输入（冲突路径另行提示）。
+  useEffect(() => {
+    if (!dirty) setValue(formValueOfDraft(draft));
+  }, [draft, dirty]);
+
+  function update(next: QuestionFormValue) {
+    setValue(next);
+    setDirty(true);
+  }
+
+  function expectedRevision(): number {
+    return snapshot ? snapshot.revision : draft.revision;
+  }
+
+  async function handleWriteError(cause: unknown) {
+    const apiError = asApiError(cause);
+    if (apiError.status === 409) {
+      setConflict(
+        `内容已在别处被修改（${apiError.code}）：${apiError.message} 你的编辑已保留，下面是服务端最新内容。`,
+      );
+      const latest = await onReloadDraft(draft.draftId);
+      setSnapshot(latest);
+      return;
+    }
+    setError(`保存失败（${apiError.code}）：${apiError.message}`);
+  }
+
+  async function persist(options: {
+    reviewState?: DraftReviewState;
+    missingAnswerAcknowledged?: boolean;
+  }) {
+    const issues = [...contentErrors(value.content), ...metadataErrors(value.metadata)];
+    if (issues.length > 0) {
+      setError(issues.join(' '));
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const updated = await patchQuestionDraft(draft.draftId, {
+        expectedRevision: expectedRevision(),
+        content: value.content,
+        metadata: value.metadata,
+        reviewState: options.reviewState ?? null,
+        missingAnswerAcknowledged: options.missingAnswerAcknowledged ?? null,
+      });
+      onDraftUpdated(updated);
+      setValue(formValueOfDraft(updated));
+      setDirty(false);
+      setSnapshot(null);
+      setConflict(null);
+      setNotice(
+        options.reviewState
+          ? `已保存；服务端当前校对状态：${reviewStateLabel(updated.reviewState)}。`
+          : options.missingAnswerAcknowledged
+            ? '已标记「原文未提供答案」；入库前无需再补齐答案。'
+            : `已保存；服务端当前校对状态：${reviewStateLabel(updated.reviewState)}。`,
+      );
+    } catch (cause) {
+      await handleWriteError(cause);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function split() {
+    const offset = Number(charOffset);
+    if (!Number.isInteger(offset) || offset < 1) {
+      setSplitError('拆分位置需要是大于 0 的整数（以字符偏移计）。');
+      return;
+    }
+    setBusy(true);
+    setSplitError(null);
+    setNotice(null);
+    try {
+      const detail = await splitQuestionDraft(importId, draft.draftId, {
+        expectedRevision: expectedRevision(),
+        charOffset: offset,
+      });
+      onDetailReplaced(detail);
+      setCharOffset('');
+      setDirty(false);
+      setSnapshot(null);
+      setConflict(null);
+      setNotice('已按字符偏移拆分，原草稿标记为排除，请在左侧选择新草稿继续校对。');
+    } catch (cause) {
+      const apiError = asApiError(cause);
+      if (apiError.status === 409) {
+        setConflict(
+          `内容已在别处被修改（${apiError.code}）：${apiError.message} 拆分位置已保留，下面是服务端最新内容。`,
+        );
+        const latest = await onReloadDraft(draft.draftId);
+        setSnapshot(latest);
+      } else {
+        setSplitError(`拆分失败（${apiError.code}）：${apiError.message}`);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const blockers = confirmBlockers(value.content, draft.missingAnswerAcknowledged);
+
+  return (
+    <section className="qb-editor" aria-label="草稿编辑">
+      <header className="qb-editor-head">
+        <h2>草稿编辑</h2>
+        <span
+          className={
+            draft.reviewState === 'reviewed'
+              ? 'space-chip green'
+              : draft.reviewState === 'excluded'
+                ? 'space-chip'
+                : 'space-chip amber'
+          }
+          data-testid="qb-review-state"
+        >
+          {reviewStateLabel(draft.reviewState)}
+        </span>
+        <span className="space-chip">{EXTRACTION_METHOD_LABEL[draft.extractionMethod]}</span>
+        <span className="space-chip">修订 r{draft.revision}</span>
+        {draft.missingAnswerAcknowledged && (
+          <span className="space-chip amber">原文未提供答案</span>
+        )}
+        {dirty && <span className="space-chip blue">有未保存的编辑</span>}
+      </header>
+
+      {error && (
+        <p className="space-banner error" role="alert">
+          {error}
+        </p>
+      )}
+      {notice && (
+        <p className="space-banner info" role="status">
+          {notice}
+        </p>
+      )}
+      {dirty && !conflict && (
+        <p className="space-banner info" role="status">
+          有未保存的编辑；保存后请以服务端返回的校对状态为准。
+        </p>
+      )}
+
+      {conflict && (
+        <div className="space-banner error" role="alert">
+          {conflict}
+          <div className="qb-snapshot">
+            <p className="qb-hint">服务端最新内容：</p>
+            {snapshot ? (
+              <>
+                <p className="qb-snapshot-line">修订 r{snapshot.revision}</p>
+                <p className="qb-block-text">{snapshot.content.stemMarkdown}</p>
+                <p className="qb-hint">
+                  校对状态：{reviewStateLabel(snapshot.reviewState)} · 选项{' '}
+                  {snapshot.content.options.length} 个 · 答案{' '}
+                  {snapshot.content.answer?.choiceKeys.join('、') ||
+                    (snapshot.content.answer?.accepted === true
+                      ? '对'
+                      : snapshot.content.answer?.accepted === false
+                        ? '错'
+                        : snapshot.content.answer?.textMarkdown || '缺失')}
+                </p>
+              </>
+            ) : (
+              <p className="qb-hint">
+                服务端最新内容读取失败：可先「用我的修改重试」，或稍后刷新页面。
+              </p>
+            )}
+          </div>
+          <div className="qb-actions">
+            <button
+              className="space-button primary"
+              onClick={() => void persist({})}
+              disabled={busy}
+            >
+              用我的修改重试
+            </button>
+            <button
+              className="space-button"
+              disabled={busy}
+              onClick={() => {
+                setValue(formValueOfDraft(snapshot ?? draft));
+                setDirty(false);
+                setSnapshot(null);
+                setConflict(null);
+                setNotice('已放弃我的修改，表单为服务端最新内容。');
+              }}
+            >
+              放弃我的修改
+            </button>
+          </div>
+        </div>
+      )}
+
+      <ContentForm
+        value={value}
+        onChange={update}
+        disabled={busy}
+        taxonomy={taxonomy}
+        idPrefix="qb-draft"
+      />
+
+      {blockers.length > 0 && (
+        <ul className="qb-warning-list" role="status">
+          {blockers.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      )}
+
+      <div className="qb-actions">
+        <button className="space-button primary" onClick={() => void persist({})} disabled={busy}>
+          {busy ? '保存中…' : '保存修改'}
+        </button>
+        {REVIEW_ACTIONS.map((action) => (
+          <button
+            key={action.state}
+            className="space-button"
+            disabled={busy}
+            onClick={() => void persist({ reviewState: action.state })}
+          >
+            {action.label}
+          </button>
+        ))}
+        <button
+          className="space-button"
+          disabled={busy}
+          onClick={() => void persist({ missingAnswerAcknowledged: true })}
+        >
+          标记原文未提供答案
+        </button>
+      </div>
+
+      <fieldset className="qb-subpanel">
+        <legend>拆分草稿</legend>
+        <p className="qb-hint">
+          按字符偏移把当前草稿拆成两道：偏移必须落在该草稿的原文区间内；拆分后原草稿会被排除。
+        </p>
+        <div className="qb-actions">
+          <label className="qb-field" htmlFor="qb-split-offset">
+            拆分位置（字符偏移）
+            <input
+              id="qb-split-offset"
+              type="number"
+              min={1}
+              value={charOffset}
+              disabled={busy}
+              onChange={(event) => setCharOffset(event.target.value)}
+            />
+          </label>
+          <button className="space-button" onClick={() => void split()} disabled={busy}>
+            拆分
+          </button>
+        </div>
+        {splitError && (
+          <p className="space-banner error" role="alert">
+            {splitError}
+          </p>
+        )}
+      </fieldset>
+    </section>
+  );
+}

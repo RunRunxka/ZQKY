@@ -4,7 +4,23 @@ import { conversationProjection, selectMessagesForRequest } from './context-budg
 import type { AskUserInteraction } from '@/contracts/chat';
 import { createMockChatService, type MockChatService } from '../../../../../../tests/fixtures/scripted-chat-service';
 import { createRealChatService, type ChatService, type ChatServiceEvent, type ChatServiceRequest } from './chat-service';
-import { createScriptedChatStore as createChatStore } from '../../../../../../tests/fixtures/scripted-chat-store';
+import { createScriptedChatStore as createScriptedChatStoreBase } from '../../../../../../tests/fixtures/scripted-chat-store';
+
+/**
+ * RAG-REBUILD v1.0：教材轮发送前必须已有可用任教范围（生产由聊天页从
+ * /teaching-settings 读入）；测试统一注入固定范围，避免每个用例重复。
+ */
+const TEST_SELECTION = {
+  gradeId: 'grade-1',
+  subjectId: 'subject-1',
+  editionId: 'edition-1',
+  documentIds: ['doc-1'],
+};
+function createChatStore(deps: Parameters<typeof createScriptedChatStoreBase>[0]) {
+  const store = createScriptedChatStoreBase(deps);
+  store.getState().setRagScopeSelection(TEST_SELECTION);
+  return store;
+}
 
 function turn(request: ChatServiceRequest) {
   return { sessionId: request.sessionId, turnId: request.turnId };
@@ -121,16 +137,37 @@ describe('追问卡与同轮续答（真实模拟脚本）', () => {
     expect(runs()).toBe(1); // 全程一次 run：同 sessionId/turnId 继续，没有另开一轮
   });
 
-  it('主输入框回答当前追问：走同一提交接口，自由文本计入第一道未答题', async () => {
+  it('主输入框补充回答：填当前题后走同一套「继续」，不自动跳过其余题', async () => {
     const { service, runs } = countedMock({ ask: true });
     const store = mockStore(createMemoryChatRepository(), service);
     await store.getState().init();
     const run = store.getState().send('问题', null);
     await vi.waitFor(() => expect(store.getState().waitingInteractionId).toBeTruthy());
+    const interactionId = store.getState().waitingInteractionId!;
+    // 文本进入**当前题**并确认该题，然后前进到下一道待确认题（未提交、未跳过其余题）
     expect(await store.getState().submitComposerReply('我想要按题目场景讲解，多给例子')).toBe(
-      true,
+      false,
     );
-    expect(store.getState().draft).toBe(''); // 接受后清空输入
+    expect(store.getState().draft).toBe(''); // 文本已进入卡片草稿，输入框清空
+    const first = store.getState().messages[1].asks![0];
+    expect(first.drafts['q-style']).toMatchObject({
+      labels: [],
+      freeText: '我想要按题目场景讲解，多给例子',
+      disposition: 'answered',
+    });
+    expect(store.getState().askFocus).toMatchObject({
+      interactionId,
+      questionId: 'q-materials',
+    });
+    expect(first.answers).toBeUndefined(); // 未提交：其余题尚未确认不自动跳过
+    // 第二题作答后按「继续」：全部处理完才真正提交
+    store.getState().setAskDraft(interactionId, 'q-materials', {
+      labels: ['结合课标'],
+      freeText: '',
+      disposition: 'unanswered',
+    });
+    store.getState().setAskFocus(interactionId, 'q-materials');
+    expect(await store.getState().continueAsk(interactionId)).toBe(true);
     // 第二卡：跳过完成整轮
     await vi.waitFor(() =>
       expect((store.getState().waitingInteractionId ?? '').startsWith('ask-2')).toBe(true),
@@ -146,7 +183,8 @@ describe('追问卡与同轮续答（真实模拟脚本）', () => {
       labels: [],
       freeText: '我想要按题目场景讲解，多给例子',
     });
-    expect(asks[0].answers?.[1].skipped).toBe(true);
+    expect(asks[0].answers?.[1]).toMatchObject({ labels: ['结合课标'] });
+    expect(asks[0].answers?.[1].skipped).toBeFalsy();
     expect(asks[0].followUp).toContain('我想要按题目场景讲解，多给例子');
     expect(runs()).toBe(1);
   });

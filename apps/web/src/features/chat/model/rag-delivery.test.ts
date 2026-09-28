@@ -1,10 +1,46 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createMemoryChatRepository } from '@/services/chat-repository';
 import { ApiError } from '@/services/api-client';
-import { createChatStore } from './store';
+import { createChatStore as createChatStoreBase } from './store';
 import type { ChatService, ChatServiceEvent, ChatServiceRequest } from './chat-service';
+import type { RagServiceStatus } from './rag-service';
+
+/** RAG-REBUILD v1.0：教材轮发送前必须已有可用任教范围（生产由聊天页读入） */
+const TEST_SELECTION = {
+  gradeId: 'grade-1',
+  subjectId: 'subject-1',
+  editionId: 'edition-1',
+  documentIds: ['doc-1'],
+};
+function createChatStore(deps: Parameters<typeof createChatStoreBase>[0]) {
+  const store = createChatStoreBase(deps);
+  store.getState().setRagScopeSelection(TEST_SELECTION);
+  return store;
+}
 
 const extensions = { mcps: [], skills: [], capability: { value: 'rag', label: 'RAG 模式' } };
+/** v2 状态（分项）：检索/概括/原文访问分别报告；这里用「检索不可用」的服务不可用场景 */
+function ragStatus(over: Partial<RagServiceStatus> = {}): RagServiceStatus {
+  return {
+    available: false,
+    detail: '检索不可用：本地模型未启动',
+    retrieval: {
+      available: false,
+      reason: '本地模型未启动',
+      vectorStore: false,
+      queryEmbedding: false,
+      denseLimit: null,
+      lexicalLimit: null,
+      rrfK: null,
+    },
+    summarization: { available: false, reason: '未配置', model: null, providerUrl: null },
+    sourceAccess: { available: false, reason: '未就绪', verifiesHash: false },
+    scope: { ready: false, reason: '尚未保存任教范围', selection: null },
+    generation: null,
+    legacy: false,
+    ...over,
+  };
+}
 const interaction = { interactionId: 'i1', status: 'waiting' as const, questions: [{ questionId: 'q1', prompt: '补充原题条件', allowFreeText: true }] };
 const answer = [{ questionId: 'q1', labels: [], freeText: 'x>0' }];
 function pending(signal: AbortSignal): Promise<void> {
@@ -16,13 +52,29 @@ function event(req: ChatServiceRequest, body: Omit<ChatServiceEvent, 'sessionId'
 
 describe('教材轮次交付状态', () => {
   it('无需云模型；服务不可用时保留原输入，且不创建用户消息或调用推理', async () => {
-    const service: ChatService = { kind: 'real', run: vi.fn(), checkRagAvailable: async () => ({ available: false, detail: '本地模型未启动' }) };
+    const service: ChatService = { kind: 'real', run: vi.fn(), checkRagAvailable: async () => ragStatus() };
     const store = createChatStore({ repository: createMemoryChatRepository(), service });
     await store.getState().init(); store.getState().setDraft('原题');
     await store.getState().send('原题', null, extensions);
     expect(store.getState().draft).toBe('原题'); expect(store.getState().messages).toEqual([]);
     expect(store.getState().serviceNotice).toContain('本地模型未启动');
     expect(service.run).not.toHaveBeenCalled(); store.getState().dispose();
+  });
+
+  it('范围未就绪（界面尚未读入选择）时在发送前阻断：保留输入、不建用户消息、不发请求', async () => {
+    const run = vi.fn();
+    const service: ChatService = { kind: 'real', run };
+    const store = createChatStoreBase({ repository: createMemoryChatRepository(), service });
+    // 显式置空：读取失败/未保存都按「没有可用范围」处理，不猜造范围
+    store.getState().setRagScopeSelection(null);
+    await store.getState().init();
+    store.getState().setDraft('需要保留的题目');
+    await store.getState().send('需要保留的题目', null, extensions);
+    expect(store.getState().messages).toEqual([]);
+    expect(store.getState().draft).toBe('需要保留的题目');
+    expect(store.getState().serviceNotice).toContain('任教范围');
+    expect(run).not.toHaveBeenCalled();
+    store.getState().dispose();
   });
 
   it('刷新恢复同 session/turn/cursor，文本与追问草稿不丢失，不创建第二条回答', async () => {

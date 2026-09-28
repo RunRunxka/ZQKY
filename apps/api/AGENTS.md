@@ -4,7 +4,15 @@
 
 - 后端是本机单用户服务，只监听 `127.0.0.1`：开发 8000，后端测试 8001；不允许配置对外地址（`Settings` 会拒绝非回环 host）。
 - 依赖只用 uv 管理：`pyproject.toml` + `uv.lock` 是唯一依赖来源；改依赖必须 `uv lock`/`uv add` 并记录版本。不把 Python 加入 npm workspaces。
-- 本期禁止引入 PostgreSQL、SQLite、向量库、Redis 或其他数据库；本地文件与内存实现即可，仓储接口为后续替换留位。
+- 本地存储（2026-09-28 RAG-REBUILD v1.0 起，取代旧的「禁止数据库」规则）：教材目录用 SQLite（`.local-data/textbooks/catalog.sqlite3`）、题库用**独立** SQLite（`.local-data/question-bank/question-bank.sqlite3`）、教材向量用本机 Docker 中的 Qdrant。除这三者外仍不引入 PostgreSQL、Redis 或其他数据库。
+  - 连接统一走 `app/core/sqlite.py`（外键、WAL、有限 `busy_timeout`），不要在模块里各自 `sqlite3.connect`。
+  - `catalog_state.active_generation_id` 是**唯一**的「当前索引」权威；不得再存第二个模型或索引指针来与它竞争。
+  - 网络请求、文件解析、模型推理**不得**放在 SQL 写事务内。
+  - 不可变表（`document_revisions`、`document_metadata_revisions`、`chunk_sets`、`chunks`）没有任何 UPDATE 路径；改分类=新增元数据修订。
+  - 向量库不可达必须报 `QDRANT_UNAVAILABLE`，**绝不允许**降级成「没有匹配」或空结果。
+  - 题库与教材向量库完全隔离：题库不得有任何写入教材 collection 的路径。
+  - 单测一律用 `tmp_path` 与替身；真实 Qdrant 用测试实例（16333，compose project `zqky-rag-test`），不得连接正式 6333 跑单测。
+  - 单册教材入库可能远超 90 秒：任务必须**按 ≤20 秒续租**，长任务不得因租约过期中途失败。
 - 统一错误信封：`code、message、requestId、retryable、details?`；details 只放脱敏、可展示内容。未实现的 /api/v1 路由必须返回 501 `FEATURE_NOT_IMPLEMENTED`，禁止返回 200 假成功或示例数据。
 - 能力状态（/capabilities）按实际实现如实报告：没写的功能保持 `planned`，不得提前标 `ready` 或 `unconfigured`。
 - 来源检查：Host 必须是回环地址；带 Origin 的请求必须在允许列表（默认 5173/5174 前端端口，可用 `ZQKY_ALLOWED_ORIGINS` 覆盖）。无 Origin 的本机工具直连放行。

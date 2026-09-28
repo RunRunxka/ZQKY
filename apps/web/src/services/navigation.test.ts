@@ -23,11 +23,12 @@ describe('导航注册表', () => {
     }
   });
 
-  it('教案工作台本地可用，学习问答、资料库、书籍、课程与设置页已实现，协同写作/沉浸阅读/学习空间及其余均为规划中', () => {
+  it('教案工作台本地可用，学习问答、题库、资料库、书籍、课程与设置页已实现，其余均为规划中', () => {
     const implemented = navigation.filter((item) => item.status !== 'planned');
     expect(implemented.map((item) => item.id)).toEqual([
       'chat',
       'lesson-plan',
+      'question-bank',
       'knowledge',
       'books',
       'courses',
@@ -41,6 +42,11 @@ describe('导航注册表', () => {
     // 课程按参考行为隐藏主导航入口（路由可达），桌面上溯到教材资料库
     const courses = implemented.find((item) => item.id === 'courses');
     expect(courses?.hidden).toBe(true);
+  });
+
+  it('题库紧跟智能组卷，排在协同写作之前（RAG-REBUILD v1.0 导航口径）', () => {
+    const ids = navigation.map((item) => item.id);
+    expect(ids.indexOf('question-bank')).toBe(ids.indexOf('papers') + 1);
   });
 
   it('每个规划模块都登记了用途简介与能力清单', () => {
@@ -62,7 +68,6 @@ describe('导航注册表', () => {
         '/co-writer',
         '/reading',
         '/space',
-        '/question-bank',
         '/templates',
       ]),
     );

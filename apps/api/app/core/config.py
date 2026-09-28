@@ -17,6 +17,10 @@ LOCAL_HOSTNAMES = frozenset({"127.0.0.1", "localhost", "::1"})
 # 项目根 = apps/api/app/core/config.py 向上四级（core→app→api→apps→根）
 REPO_ROOT = Path(__file__).resolve().parents[4]
 DEFAULT_DATA_DIR = REPO_ROOT / ".local-data"
+# 只读原始教材目录（人教版 markdown）；仅迁移与基准导入读取，运行时不写入
+DEFAULT_TEXTBOOK_SOURCE_DIR = Path("F:/人教版教材/markdown")
+DEFAULT_QDRANT_URL = "http://127.0.0.1:6333"
+DEFAULT_EMBEDDING_BASE_URL = "http://127.0.0.1:11434"
 
 
 def _split_origins(raw: str) -> tuple[str, ...]:
@@ -31,6 +35,21 @@ class Settings:
     env: str
     data_dir: Path
     credentials_file: Path | None = None
+    # 教材/题库数据根；缺省由 data_dir 派生，测试整体注入临时目录
+    textbooks_dir: Path | None = None
+    question_bank_dir: Path | None = None
+    # 本机 Qdrant 与 Ollama 回环地址
+    qdrant_url: str = DEFAULT_QDRANT_URL
+    embedding_base_url: str = DEFAULT_EMBEDDING_BASE_URL
+    textbook_source_dir: Path = DEFAULT_TEXTBOOK_SOURCE_DIR
+
+    @property
+    def textbooks_root(self) -> Path:
+        return self.textbooks_dir or (self.data_dir / "textbooks")
+
+    @property
+    def question_bank_root(self) -> Path:
+        return self.question_bank_dir or (self.data_dir / "question-bank")
 
     @staticmethod
     def from_env(environ: Mapping[str, str] | None = None) -> "Settings":
@@ -54,4 +73,9 @@ class Settings:
             env=env.get("ZQKY_ENV", "development"),
             data_dir=data_dir,
             credentials_file=REPO_ROOT / 'apps' / 'api' / '.env',
+            qdrant_url=env.get("ZQKY_QDRANT_URL", DEFAULT_QDRANT_URL),
+            embedding_base_url=env.get("ZQKY_EMBEDDING_BASE_URL", DEFAULT_EMBEDDING_BASE_URL),
+            textbook_source_dir=Path(
+                env.get("ZQKY_TEXTBOOK_SOURCE_DIR", str(DEFAULT_TEXTBOOK_SOURCE_DIR))
+            ),
         )

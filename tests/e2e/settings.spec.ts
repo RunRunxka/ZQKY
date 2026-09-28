@@ -12,7 +12,8 @@ test('设置页在后端不可用时展示准确错误与重试入口', async ({
   const alert = page.getByText('无法读取模型设置');
   await expect(alert).toBeVisible();
   await expect(alert).toContainText('后端服务不可用');
-  await expect(page.getByRole('button', { name: '重试' })).toBeVisible();
+  // RAG-REBUILD v1.0：设置页新增 Embedding 区，重试定位收窄到模型区（断言意图不变）
+  await expect(page.locator('#models').getByRole('button', { name: '重试' })).toBeVisible();
   // 不渲染任何可提交的连接/模型表单，避免误以为功能可用
   await expect(page.locator('.settings-form')).toHaveCount(0);
   await expect(page.locator('.settings-card')).toHaveCount(0);
