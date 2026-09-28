@@ -4,7 +4,7 @@
   "files": [
     {
       "source": "docs/ARCHITECTURE.md",
-      "destination": "docs/archive/PROJECT_HISTORY.md",
+      "destination": "docs/archive/History.md",
       "anchor": "source-1",
       "sha256": "26026dced973dbd9c31756b2cb89addaccafc36b31d7a3256145378b707ad35e",
       "bytes": 2580,
@@ -12,7 +12,7 @@
     },
     {
       "source": "docs/DECISIONS.md",
-      "destination": "docs/archive/PROJECT_HISTORY.md",
+      "destination": "docs/archive/History.md",
       "anchor": "source-2",
       "sha256": "e595e093fcc6101363a030a4bf2b2aeb262a8c7c34b2f080cf604619007b31ce",
       "bytes": 17436,
@@ -20,7 +20,7 @@
     },
     {
       "source": "docs/IMPLEMENTATION_PLAN.md",
-      "destination": "docs/archive/PROJECT_HISTORY.md",
+      "destination": "docs/archive/History.md",
       "anchor": "source-3",
       "sha256": "6e06d2819817d423f7ec73595d0d8fc62c7b8aa39fe033097691d4083cd9d73a",
       "bytes": 56918,
@@ -28,7 +28,7 @@
     },
     {
       "source": "docs/CHAT_MODEL_REVIEW.md",
-      "destination": "docs/archive/PROJECT_HISTORY.md",
+      "destination": "docs/archive/History.md",
       "anchor": "source-4",
       "sha256": "96f92d2be59c194365082bb22dad8c8e42caefd74f11050c4eb72a0495575924",
       "bytes": 6429,
@@ -36,7 +36,7 @@
     },
     {
       "source": "docs/QA_REPORT.md",
-      "destination": "docs/archive/PROJECT_HISTORY.md",
+      "destination": "docs/archive/History.md",
       "anchor": "source-5",
       "sha256": "aaa2a7062905dec4edea2e7c241c7d963948a657af137bd50440e4080cd89081",
       "bytes": 2175,
@@ -44,7 +44,7 @@
     },
     {
       "source": "docs/replica/BASELINE.md",
-      "destination": "docs/archive/PROJECT_HISTORY.md",
+      "destination": "docs/archive/History.md",
       "anchor": "source-6",
       "sha256": "fab39dcc8bc0c1b93ed48065f2f61b71ede9a859ad2d73f103a623d605fe907c",
       "bytes": 1155,
@@ -52,7 +52,7 @@
     },
     {
       "source": "docs/TASKS.md",
-      "destination": "docs/archive/DELIVERY_HISTORY.md",
+      "destination": "docs/archive/History.md",
       "anchor": "source-1",
       "sha256": "1fa308831c0b74ade46cc9029313369ac1a3eea29afc9b0afe83133f70de9320",
       "bytes": 17125,
@@ -60,7 +60,7 @@
     },
     {
       "source": "docs/HANDOFF.md",
-      "destination": "docs/archive/DELIVERY_HISTORY.md",
+      "destination": "docs/archive/History.md",
       "anchor": "source-2",
       "sha256": "cc11798eac125b04e80870656afd2e42ff3d898eb95aa448718ac8b9c361da86",
       "bytes": 42257,
@@ -68,7 +68,7 @@
     },
     {
       "source": "docs/replica/HANDOFF.md",
-      "destination": "docs/archive/DELIVERY_HISTORY.md",
+      "destination": "docs/archive/History.md",
       "anchor": "source-3",
       "sha256": "0b556448caf48ee84708caf2c7ce1f24db9529bc3a9459811a8321baa058b5e2",
       "bytes": 66448,
@@ -76,7 +76,7 @@
     },
     {
       "source": "docs/replica/REVIEW_2026-09-07.md",
-      "destination": "docs/archive/REVIEW_HISTORY.md",
+      "destination": "docs/archive/History.md",
       "anchor": "source-1",
       "sha256": "bddaca0d893c58766b0b4c5e414b2e7402ecc140cd3c088a8bfd08873f9657c5",
       "bytes": 8181,
@@ -84,7 +84,7 @@
     },
     {
       "source": "docs/replica/REVIEW_EXTENSIONS_2026-09-07.md",
-      "destination": "docs/archive/REVIEW_HISTORY.md",
+      "destination": "docs/archive/History.md",
       "anchor": "source-2",
       "sha256": "7c8e51e86b697d3ddd5147c08d7a63fbfc6dff463394377182935c4b7254b252",
       "bytes": 24263,
@@ -92,7 +92,7 @@
     },
     {
       "source": "docs/replica/REVIEW_ASK_USER_2026-09-07.md",
-      "destination": "docs/archive/REVIEW_HISTORY.md",
+      "destination": "docs/archive/History.md",
       "anchor": "source-3",
       "sha256": "d2ac6c23e1c7e88f77b9c697500c25043f644d44b187f6e95723b6d70c1fd722",
       "bytes": 14279,
@@ -100,7 +100,7 @@
     },
     {
       "source": "docs/replica/REVIEW_S0_S2_2026-09-07.md",
-      "destination": "docs/archive/REVIEW_HISTORY.md",
+      "destination": "docs/archive/History.md",
       "anchor": "source-4",
       "sha256": "84152ea52fb990db56eb2231ae8c0a6e2e620bbd2bba71dfa76a9872505443b9",
       "bytes": 11586,
@@ -108,7 +108,7 @@
     },
     {
       "source": "docs/replica/REVIEW_DELIVERY_2026-09-07.md",
-      "destination": "docs/archive/REVIEW_HISTORY.md",
+      "destination": "docs/archive/History.md",
       "anchor": "source-5",
       "sha256": "6986ec2cdf5ea5b3eabe64cc0ceb8448497fca9f13f7b63c4956cc71a0824700",
       "bytes": 8077,
@@ -116,7 +116,7 @@
     },
     {
       "source": "docs/replica/REVIEW_S2_S3_2026-09-08.md",
-      "destination": "docs/archive/REVIEW_HISTORY.md",
+      "destination": "docs/archive/History.md",
       "anchor": "source-6",
       "sha256": "d33f32138aac4972dd016cd33568c915dfc2c2fac74965f13afc472a5883c828",
       "bytes": 13430,
@@ -124,7 +124,7 @@
     },
     {
       "source": "docs/replica/NEXT_PHASE_ASK_USER.md",
-      "destination": "docs/archive/PROMPT_HISTORY.md",
+      "destination": "docs/archive/History.md",
       "anchor": "source-1",
       "sha256": "c36414f65bba31943644d18f27b881d0d76f5cc179a0369e0a0029133683475b",
       "bytes": 9844,
@@ -132,7 +132,7 @@
     },
     {
       "source": "docs/replica/FINAL_REPLICA_EXECUTION_PROMPT.md",
-      "destination": "docs/archive/PROMPT_HISTORY.md",
+      "destination": "docs/archive/History.md",
       "anchor": "source-2",
       "sha256": "0a3b2bb6df45012287d59e853a63cf84e69c65ed69efb04f2ad464ca55b15139",
       "bytes": 27398,
@@ -140,7 +140,7 @@
     },
     {
       "source": "docs/replica/CONTINUE_TO_FINAL_2026-09-07.md",
-      "destination": "docs/archive/PROMPT_HISTORY.md",
+      "destination": "docs/archive/History.md",
       "anchor": "source-3",
       "sha256": "8076ca445dd4a8a6e40d3b33e78f9034ac6e60b6f06999b3582db675dac27cda",
       "bytes": 8599,
@@ -148,7 +148,7 @@
     },
     {
       "source": "docs/replica/NEXT_SESSION_START.md",
-      "destination": "docs/archive/PROMPT_HISTORY.md",
+      "destination": "docs/archive/History.md",
       "anchor": "source-4",
       "sha256": "0a29a772a45bd275a8e9ef64a668e102696beed31243b09d0b16316c4fc231cd",
       "bytes": 18203,
@@ -211,5 +211,7 @@
         "normalizedSha256": "33af60b12ff19dd310173e0f53d48cfb35a383fb7cfa7bb421d86f3ec99f2ac9"
       }
     ]
-  }
+  },
+  "mergedInto": "docs/archive/History.md",
+  "mergedNote": "2026-09-27：四份历史合并归档（PROJECT/DELIVERY/REVIEW/PROMPT_HISTORY.md）已合并为 docs/archive/History.md，原文内容未改动、锚点保留；本清单的 destination 字段为历史记录，现统一指向 History.md。"
 }

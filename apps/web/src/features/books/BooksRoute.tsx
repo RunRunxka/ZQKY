@@ -40,7 +40,7 @@ import {
   stopRun,
   type BookRunScenario,
 } from '@/services/book-generation';
-import '@/features/space/styles/space.css';
+import '@/components/layout/space.css';
 import '@/features/books/books.css';
 import '@/features/books/styles/book-pipeline.css';
 import { PageReader } from './PageReader';

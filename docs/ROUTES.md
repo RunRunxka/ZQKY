@@ -1,6 +1,6 @@
 # 路由与状态
 
-更新：2026-09-12 源码核对。此表仅说明运行时路由/导航，不是完整复刻验收结论；条目功能与视觉状态在 [页面矩阵](replica/PAGE_MATRIX.md)，当前代码审查与计划在 [STATUS](STATUS.md)。全站视觉以当前学习问答为准。
+更新：2026-09-12 源码核对。此表仅说明运行时路由/导航，不是完整复刻验收结论；条目功能与视觉状态在 [页面矩阵](replica/PAGE_MATRIX.md)，当前代码审查与计划在 [STATUS](CURRENT_STATUS.md)。全站视觉以当前学习问答为准。
 
 ## 已建立路由
 
@@ -33,7 +33,7 @@
 | `/reading` | 沉浸阅读集合列表 | 入口 ready，完整交付待验收 |
 | `/reading/materials` | 阅读材料库；多格式模拟解析与新建/分配/删除 | 入口 ready，完整交付待验收 |
 | `/reading/[workspaceId]` | 三栏工作区与事件驱动伴生模拟 AI | 入口 ready，完整交付待验收 |
-| `/reading/[workspaceId]/sessions(/[sessionId])` | 阅读会话深链；会话切换经 pushState 产生前进/后退历史并由 popstate 同步空间/会话/草稿（R-09 已修，见 [STATUS阅读批索引](STATUS.md#4-已完成批次与证据索引)） | 入口 ready，完整交付待验收 |
+| `/reading/[workspaceId]/sessions(/[sessionId])` | 阅读会话深链；会话切换经 pushState 产生前进/后退历史并由 popstate 同步空间/会话/草稿（R-09 已修，见 [STATUS阅读批索引](CURRENT_STATUS.md#4-已完成批次与证据索引)） | 入口 ready，完整交付待验收 |
 | `/agents` | Agent 任务 | 规划状态页 |
 | `/mcp` | MCP | 重定向 `/settings#mcp`；本地模拟管理 |
 | `/skills` | Skills | 重定向 `/settings#skills`；本地模拟管理 |

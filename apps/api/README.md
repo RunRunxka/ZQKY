@@ -1,6 +1,6 @@
 # 后端服务（D04：含模型设置、统一 Provider 适配层与流式对话）
 
-本目录是可运行的 FastAPI 本机服务：health、capabilities、模型连接/模型配置 CRUD、目录/默认模型、连接测试与三协议真实流式问答已实现；提供统一错误信封与本机访问防护。不连接数据库或 Redis；模板渲染、RAG 等未实现能力在 capabilities 报告 planned。真实供应商验收与本地链路测试分开，见 [STATUS](../../docs/STATUS.md)。
+本目录是可运行的 FastAPI 本机服务：health、capabilities、模型连接/模型配置 CRUD、目录/默认模型、连接测试与三协议真实流式问答已实现；提供统一错误信封与本机访问防护。不连接数据库或 Redis；模板渲染、RAG 等未实现能力在 capabilities 报告 planned。真实供应商验收与本地链路测试分开，见 [STATUS](../../docs/CURRENT_STATUS.md)。
 
 ## 启动与测试（项目根执行）
 
@@ -34,7 +34,7 @@ tests/               health、capabilities、防护、配置/凭证、Provider �
 
 ## 接口契约
 
-当前端点、请求/响应、SSE 事件、错误码、凭证作用域和未实现接口只维护在 [API 契约](../../docs/API.md)，本文件不重复接口状态，避免两处漂移。实现进度、代码审查与实际验证只看 [STATUS](../../docs/STATUS.md)。`GET /api/v1/capabilities` 必须按源码真实报告；当前已知文案差距记录在 STATUS R-12。
+当前端点、请求/响应、SSE 事件、错误码、凭证作用域和未实现接口只维护在 [API 契约](../../docs/API.md)，本文件不重复接口状态，避免两处漂移。实现进度、代码审查与实际验证只看 [STATUS](../../docs/CURRENT_STATUS.md)。`GET /api/v1/capabilities` 必须按源码真实报告；当前已知文案差距记录在 STATUS R-12。
 
 技术栈：Python 3.12（uv 托管 CPython 3.12.14）、FastAPI 0.141.1、Uvicorn 0.52.4、Pydantic 2.13.5；测试 Pytest 9.1.1 + httpx2 2.12.0 + pytest-asyncio 1.4.0（starlette 1.6.0 的 TestClient）。版本以 `uv.lock` 为准。Provider 接口设计参考 DeepTutor v1.6.4（Apache-2.0，固定提交 `93df3d48…`），为本项目自有实现。
 

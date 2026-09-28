@@ -1,6 +1,6 @@
 # 项目目标与工程说明
 
-更新：2026-09-23。取代旧 ARCHITECTURE、DECISIONS、BASELINE 的现行说明；历史原文见 [项目历史](archive/PROJECT_HISTORY.md)。当前进度、代码审查、完整阶段计划与下一动作只维护在 [STATUS](STATUS.md)。
+更新：2026-09-23。取代旧 ARCHITECTURE、DECISIONS、BASELINE 的现行说明；历史原文见 [项目历史](archive/History.md)。当前进度、代码审查、完整阶段计划与下一动作只维护在 [STATUS](CURRENT_STATUS.md)。
 
 ## 1. 唯一目标
 
@@ -88,7 +88,7 @@ _work/ test-results/      本机日志、截图、trace、备份（Git 忽略）
 
 用户要求外部Agent队长完成当前任务的产品代码、集成、验收组织、权威文档及本地提交；Codex负责交付审查，用户另外要求的文档整理可由Codex执行。用户本轮明确任务优先，其余范围以STATUS中已授权且未完成的当前任务为准；已交付记录与后续路线不能推导为重复实施或所有模块无限授权。共享文件和运行资源仍需单一负责人，不等待Codex定稿或代写常规契约。
 
-下面保留2026-09-13模型批D1–D16稳定决定，供维护与兼容使用，不是重新执行P0的任务。模型实现与验收候选、未验范围统一见 [STATUS](STATUS.md)。当时合同原始散列在 `_work/model-providers-v1/contract-v1.md`；即使本机产物缺失，也可从本表、版本源码及API核对，不将不可迁移的_work作为唯一交接依据。
+下面保留2026-09-13模型批D1–D16稳定决定，供维护与兼容使用，不是重新执行P0的任务。模型实现与验收候选、未验范围统一见 [STATUS](CURRENT_STATUS.md)。当时合同原始散列在 `_work/model-providers-v1/contract-v1.md`；即使本机产物缺失，也可从本表、版本源码及API核对，不将不可迁移的_work作为唯一交接依据。
 
 | 项 | 模型稳定决定（原draft-2裁决） |
 | --- | --- |
@@ -256,7 +256,7 @@ git show checkpoint/pre-reading-review-20260908:README.md
 
 README 做入口，PROJECT_GUIDE 管目标/架构/决定，STATUS 管进度/代码审查/完整计划/下一动作，NEXT_SESSION_START 仅提供接手步骤。API、ROUTES 管现行契约，三矩阵管条目证据，独立 review 保留首败与修复依据。MULTI_AGENT_COLLABORATION_PROPOSAL 保留可复用任务卡、结果卡和团队启动/角色提示词，详细任务引用STATUS，不保存当前 HEAD、进度或断点。不再维护多份 TASKS/HANDOFF/FINAL 提示词。
 
-19 份旧文档已合并为 [项目历史](archive/PROJECT_HISTORY.md)、[交付历史](archive/DELIVERY_HISTORY.md)、[审查历史](archive/REVIEW_HISTORY.md)、[提示词历史](archive/PROMPT_HISTORY.md)。2026-09-10 将旧 STATUS、旧 NEXT_SESSION_START、GAP_AUDIT 原文继续合入后三份归档，撤销 GAP_AUDIT 的独立状态维护入口。修复记录仍追加原 review，当前任务只更新 STATUS。清单保留原路径、原始与规范化 SHA256；旧相对链接以原文件目录解释，完整文件可从来源 Git 读取。原始规划/参考图/Word 保留。
+19 份旧文档已合并为 [项目历史](archive/History.md)、[交付历史](archive/History.md)、[审查历史](archive/History.md)、[提示词历史](archive/History.md)。2026-09-10 将旧 STATUS、旧 NEXT_SESSION_START、GAP_AUDIT 原文继续合入后三份归档，撤销 GAP_AUDIT 的独立状态维护入口。修复记录仍追加原 review，当前任务只更新 STATUS。清单保留原路径、原始与规范化 SHA256；旧相对链接以原文件目录解释，完整文件可从来源 Git 读取。原始规划/参考图/Word 保留。
 
 2026-09-15再次整理：旧STATUS和模型专用启动文本原文追加到既有交付/提示词归档并登记散列；现行STATUS只维护目标下的模块现状、问题、批次索引、当前任务及后续路线。禁止以“唯一模型阻断”为由隐藏全站视觉和未实现业务。
 

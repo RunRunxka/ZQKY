@@ -52,18 +52,10 @@ test.describe('R-04 每个已实现路由都有唯一当前菜单', () => {
   const implemented = [
     ['/chat', '学习问答'],
     ['/lesson-plans', '教案工作台'],
-    ['/co-writer', '协同写作'],
-    ['/reading', '沉浸阅读'],
-    ['/reading/materials', '沉浸阅读'],
-    ['/space', '学习空间'],
-    ['/space/chat-history', '学习空间'],
-    ['/space/personas', '学习空间'],
     ['/knowledge-bases', '教材资料库'],
     // T4：书籍并入教材资料库（书籍自身为隐藏直达页），桌面侧栏高亮教材资料库
     ['/books', '教材资料库'],
     ['/settings', '设置'],
-    ['/papers', '智能组卷'],
-    ['/question-bank', '题库'],
   ] as const;
 
   for (const [route, expected] of implemented) {
@@ -75,9 +67,25 @@ test.describe('R-04 每个已实现路由都有唯一当前菜单', () => {
     });
   }
 
+  // 规划中模块：路由可直达规划页，桌面侧栏当前项为自身入口（带「规划中」徽标）
+  const plannedSelf = [
+    ['/co-writer', '协同写作'],
+    ['/reading', '沉浸阅读'],
+    ['/space', '学习空间'],
+    ['/papers', '智能组卷'],
+    ['/question-bank', '题库'],
+  ] as const;
+
+  for (const [route, expected] of plannedSelf) {
+    test(`规划页 ${route} 桌面侧栏当前项为「${expected}」`, async ({ page }) => {
+      await page.goto(route);
+      await expect(page.locator(MAIN_NAV)).toBeVisible();
+      const item = await currentItem(page);
+      await expect(item).toHaveAttribute('aria-label', new RegExp(`^${expected}`));
+    });
+  }
+
   const hiddenWithParent = [
-    ['/whisper', '协同写作'],
-    ['/notebooks', '学习空间'],
     // T4：课程与书籍同级上溯，父菜单同为教材资料库
     ['/courses', '教材资料库'],
   ] as const;
@@ -109,19 +117,17 @@ test.describe('R-04 每个已实现路由都有唯一当前菜单', () => {
   });
 
   test('详情页保持父级当前菜单（唯一）', async ({ page }) => {
-    await page.goto('/space/questions');
-    await expect(await currentItem(page)).toHaveAttribute('aria-label', /^学习空间/);
-    await page.goto('/notebooks/unknown-id');
-    await expect(await currentItem(page)).toHaveAttribute('aria-label', /^学习空间/);
+    await page.goto('/knowledge-bases/课程标准库');
+    await expect(await currentItem(page)).toHaveAttribute('aria-label', /^教材资料库/);
   });
 
   test('手机抽屉标记隐藏项自身且仍唯一', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/whisper');
+    await page.goto('/courses/demo-course');
     await page.getByRole('button', { name: '打开功能导航' }).click();
     const panel = page.getByRole('dialog', { name: '功能导航' });
     await expect(panel.locator('[aria-current="page"]')).toHaveCount(1);
-    await expect(panel.getByRole('button', { name: 'Whisper 密室' })).toHaveAttribute(
+    await expect(panel.getByRole('button', { name: '课程' })).toHaveAttribute(
       'aria-current',
       'page',
     );

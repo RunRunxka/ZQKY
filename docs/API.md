@@ -1,6 +1,6 @@
 # 接口与模块边界
 
-更新：2026-09-13。本文为当前契约；进度、代码审查与验收只维护在 [STATUS](STATUS.md)。前端 TypeScript 服务与真实 HTTP 接口分别列明。
+更新：2026-09-13。本文为当前契约；进度、代码审查与验收只维护在 [STATUS](CURRENT_STATUS.md)。前端 TypeScript 服务与真实 HTTP 接口分别列明。
 
 **实施责任：** 模型增量合同由外部队长按STATUS的MODEL-EXEC v3和PROJECT_GUIDE的D1–D16直接定稿并落地，Python schemas、TS contracts/services、响应投影与必要路由挂载无需本Codex代写。draft-2仍是提案，本节现行接口不因权限转交自动变为新合同；实施者完成后同步实际字段与测试证据。
 
@@ -43,7 +43,7 @@
 
 **跨存储一致性（R-01）**：连接的更新/删除在仓储同一临界区内完成 revision 校验、文档变更与
 凭证写入（`ModelConfigRepository.run_atomic`）；配置落盘失败按快照回滚凭证，删除时凭证清理失败则整体不删，
-可安全重试。修复及独立验收候选统一见 [STATUS问题台账](STATUS.md#3-问题台账与验收限制)，本文件只维护当前接口语义。
+可安全重试。修复及独立验收候选统一见 [STATUS问题台账](CURRENT_STATUS.md#3-问题台账与验收限制)，本文件只维护当前接口语义。
 
 ## 后端凭证文件
 
@@ -65,7 +65,7 @@
 - 聊天使用 `POST /api/v1/chat/stream`，已保存参数作为默认值。上游连接建立后 start，随后 text/reasoning/usage/end；未正常终止、空回答或协议失败为脱敏错误。主动停止逐层关闭资源。
 - IndexedDB 会话增加 `schemaVersion:1`、revision、draft、modelProfileId；消息记录 modelProfileId、modelLabel、replyToId、superseded。旧记录读取补默认值。保存/删除在同一事务检查预期 revision，事务提交才返回成功。
 
-模型 JSON 配置及聊天历史不存密钥；凭证仅在服务端 SecretStore 和忽略的 .env 文件。历史实现依据见 [review 记录](archive/PROJECT_HISTORY.md#source-4)。
+模型 JSON 配置及聊天历史不存密钥；凭证仅在服务端 SecretStore 和忽略的 .env 文件。历史实现依据见 [review 记录](archive/History.md#source-4)。
 
 ## 教案与公共壳 TypeScript 接口
 

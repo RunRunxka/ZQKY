@@ -1,5 +1,6 @@
-/* S5-A 学习空间（/space*）：与全站共用 globals.css 的单一变量层
-   （--font-ui/--font-display、--radius-*、--shadow-card…，R-05 视觉基础） */
+/* 共享内容区样式（知识库/书籍/课程等内容页）：与全站共用 globals.css 的单一变量层
+   （--font-ui/--font-display、--radius-*、--shadow-card…，R-05 视觉基础）。
+   原为学习空间样式，学习空间移除后保留为内容页共享基础（space-* 类名沿用）。 */
 
 .space-page {
   min-height: 100vh;

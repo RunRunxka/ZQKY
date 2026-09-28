@@ -1,13 +1,14 @@
 import { test, expect } from '@playwright/test';
 
 // 与 services/navigation.ts 登记表一致的规划模块路由
-// （/chat、/settings、/space、/knowledge-bases、/notebooks 自 D03/S5 起为已实现页面，
-//  /reading 自 S5-D、/co-writer 与 /whisper 自 S5-E 起为实现页面，各自由对应 spec 覆盖）
+// （协同写作/沉浸阅读/学习空间已清除实现并标记为规划中；Agent 任务整体移除不再登记）
 const plannedRoutes = [
   '/papers',
+  '/co-writer',
+  '/reading',
+  '/space',
   '/question-bank',
   '/templates',
-  '/agents',
 ];
 
 test('全部登记路由可直达并刷新，规划页内容统一且无假提交', async ({ page }) => {
@@ -33,12 +34,14 @@ test('导航可访问名称在收起、展开与底部入口保持一致', async
   await expect(page.locator('.global-nav .nav-group-label').first()).toBeHidden();
   for (const name of [
     '学习问答',
-    '沉浸阅读',
+    '教案工作台',
     '智能组卷（规划中）',
+    '协同写作（规划中）',
+    '沉浸阅读（规划中）',
+    '学习空间（规划中）',
     '教材资料库',
     '题库（规划中）',
     '模板中心（规划中）',
-    'Agent 任务（规划中）',
     '设置',
   ]) {
     await expect(page.getByRole('button', { name, exact: true })).toHaveCount(1);

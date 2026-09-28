@@ -21,15 +21,8 @@ import { fetchRagStatus, LOCAL_RAG_PROFILE, type RagServiceStatus } from './mode
 
 import { CapabilityMenu } from './CapabilityMenu';
 
-import { ContextRefTree } from './ComposerSpaceMenu';
 import { useModelCatalog } from '@/features/model-settings/useModelCatalog';
 import { ModelSelector } from '@/features/model-settings/ModelSelector';
-import { readPersonas, subscribePersonas, type PersonaEntry } from '@/services/persona-catalog';
-import {
-  readKnowledge,
-  subscribeKnowledge,
-  type KnowledgeEntry,
-} from '@/services/knowledge-catalog';
 import {
   CHAT_CAPABILITIES,
   capabilityAvailableInReal,
@@ -62,17 +55,11 @@ import '@/features/model-settings/styles/model-settings.css';
 import './styles/chat.css';
 import './styles/chat-home.css';
 
-/** R21：会话级待发送状态（人设/知识/会话引用/附件）——归属键为「模式+会话」 */
+/** R21：会话级待发送状态（附件）——归属键为「模式+会话」 */
 interface SessionPending {
-  personaId: string | null;
-  knowledgeIds: string[];
-  historyIds: string[];
   attachments: PendingAttachment[];
 }
 const EMPTY_PENDING: SessionPending = {
-  personaId: null,
-  knowledgeIds: [],
-  historyIds: [],
   attachments: [],
 };
 
@@ -151,13 +138,7 @@ function ChatPage({
   const pendingRef = useRef<Record<string, SessionPending>>({});
   const pendingKey = store.activeId ?? '__pending__';
   const pending = pendingRef.current[pendingKey] ?? EMPTY_PENDING;
-  const selectedPersonaId = pending.personaId;
-  const selectedKnowledgeIds = pending.knowledgeIds;
-  const selectedHistoryIds = pending.historyIds;
   const attachments = pending.attachments;
-  // 人设/知识演示目录（页面级只读目录，选择的归属按会话计）
-  const [personas, setPersonas] = useState<PersonaEntry[]>([]);
-  const [knowledgeEntries, setKnowledgeEntries] = useState<KnowledgeEntry[]>([]);
   /** R21：写入指定会话的待发送状态（读改写必须走这里，保证跨批次的同步一致性） */
   function patchPending(key: string, patch: (p: SessionPending) => Partial<SessionPending>) {
     const current = pendingRef.current[key] ?? EMPTY_PENDING;
@@ -233,31 +214,6 @@ function ChatPage({
       textarea.current.style.height = `${Math.min(textarea.current.scrollHeight, 180)}px`;
     }
   }, [store.draft]);
-  useEffect(() => {
-    // 订阅角色/知识来源演示目录（S2）：显式载入演示数据，不自动写入用户存储
-    const updatePersonas = () => {
-      try {
-        setPersonas(readPersonas());
-      } catch {
-        /* 目录格式异常时保持现有列表 */
-      }
-    };
-    const updateKnowledge = () => {
-      try {
-        setKnowledgeEntries(readKnowledge());
-      } catch {
-        /* 目录格式异常时保持现有列表 */
-      }
-    };
-    updatePersonas();
-    updateKnowledge();
-    const unsubPersona = subscribePersonas(updatePersonas);
-    const unsubKnowledge = subscribeKnowledge(updateKnowledge);
-    return () => {
-      unsubPersona();
-      unsubKnowledge();
-    };
-  }, []);
   useEffect(() => {
     if (following && scroller.current) scroller.current.scrollTop = scroller.current.scrollHeight;
   }, [store.messages, following]);
@@ -649,8 +605,8 @@ function ChatPage({
       return;
     }
     const text = store.draft.trim();
-    const hasPendingSelections = attachments.length > 0 || selectedHistoryIds.length > 0;
-    // R20：完全空请求（无文字且无附件/引用）拒绝
+    const hasPendingSelections = attachments.length > 0;
+    // R20：完全空请求（无文字且无附件）拒绝
     if (!text && !hasPendingSelections) return;
     if (store.waitingInteractionId) {
       if (!text || store.submittingReply) return;
@@ -997,26 +953,6 @@ function ChatPage({
                 aria-hidden="true"
                 tabIndex={-1}
               />
-              <ContextRefTree
-                personaName={personas.find((item) => item.id === selectedPersonaId)?.name ?? null}
-                knowledgeNames={knowledgeEntries
-                  .filter((item) => selectedKnowledgeIds.includes(item.id))
-                  .map((item) => ({ id: item.id, name: item.name }))}
-                historyTitles={store.conversations
-                  .filter((c) => selectedHistoryIds.includes(c.id))
-                  .map((c) => ({ id: c.id, title: c.title }))}
-                onRemovePersona={() => patchPending(pendingKey, () => ({ personaId: null }))}
-                onRemoveKnowledge={(id) =>
-                  patchPending(pendingKey, (p) => ({
-                    knowledgeIds: p.knowledgeIds.filter((item) => item !== id),
-                  }))
-                }
-                onRemoveHistory={(id) =>
-                  patchPending(pendingKey, (p) => ({
-                    historyIds: p.historyIds.filter((item) => item !== id),
-                  }))
-                }
-              />
               <textarea
                 ref={textarea}
                 rows={1}
@@ -1187,9 +1123,7 @@ function ChatPage({
                     ? store.ready
                     : store.waitingInteractionId
                       ? !!store.draft.trim() && !store.submittingReply
-                      : (!!store.draft.trim() ||
-                          attachments.length > 0 ||
-                          selectedHistoryIds.length > 0) &&
+                      : (!!store.draft.trim() || attachments.length > 0) &&
                         store.ready &&
                         (ragMode || !!selection);
                   const label = streamingBlocksSend

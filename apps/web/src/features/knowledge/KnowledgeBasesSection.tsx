@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 // 复用 space 设计语言的样式；直达路由也需要加载（不能只依赖 SpaceMain 的引入）
-import '@/features/space/styles/space.css';
+import '@/components/layout/space.css';
 // 知识库两页专属样式（B-R05-EXTEND-I1）：在 space.css 之后引入保证覆盖顺序
 import '@/features/knowledge/styles/knowledge.css';
 import {

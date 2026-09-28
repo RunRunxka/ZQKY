@@ -5,8 +5,8 @@
  * 复刻「登记 → 解析 → 索引 → 就绪/失败/取消」的前端闭环，保留服务接口与状态语义；
  * 全程标注【模拟】，不读取真实文件内容，不宣称真实解析/索引成功。
  *
- * 与 `features/reading/reading-ingest.ts` 同构（模块内注册表 + cancel + 定时推进），
- * 但持久化走 `knowledge-catalog` 的 write + `subscribeKnowledge` 事件，保持单一仓储。
+ * 采用模块内注册表 + cancel + 定时推进结构；持久化走 `knowledge-catalog` 的
+ * write + `subscribeKnowledge` 事件，保持单一仓储。
  */
 import {
   addKbIndexVersion,

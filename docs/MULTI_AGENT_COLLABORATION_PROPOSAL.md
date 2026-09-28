@@ -1,6 +1,6 @@
 # 多智能体协作任务模板
 
-更新：2026-09-23。本文提供可复用任务卡、结果卡、资源分配格式和外部团队启动提示词。实际规则以根 `AGENTS.md` 为准，当前任务需求、进度、候选 SHA、缺陷和下一动作只看 [STATUS](STATUS.md#current-task)。旧完整提案与演练可从 Git 提交 `6e3f642` 追溯，不作为当前项目指令。
+更新：2026-09-23。本文提供可复用任务卡、结果卡、资源分配格式和外部团队启动提示词。实际规则以根 `AGENTS.md` 为准，当前任务需求、进度、候选 SHA、缺陷和下一动作只看 [STATUS](CURRENT_STATUS.md#current-task)。旧完整提案与演练可从 Git 提交 `6e3f642` 追溯，不作为当前项目指令。
 
 ## 角色
 
@@ -114,7 +114,7 @@
 
 ## 交接要求
 
-交接只更新 [STATUS](STATUS.md)、对应三矩阵和必要契约文档。NEXT_SESSION_START 只保留接手方法，不复制计划；旧 TASKS、HANDOFF 和长提示词不再新建。提交前检查 `git diff --cached --check`、暂存范围、凭证和生成产物；不自动推送或部署。
+交接只更新 [STATUS](CURRENT_STATUS.md)、对应三矩阵和必要契约文档。NEXT_SESSION_START 只保留接手方法，不复制计划；旧 TASKS、HANDOFF 和长提示词不再新建。提交前检查 `git diff --cached --check`、暂存范围、凭证和生成产物；不自动推送或部署。
 
 ## 可复制的外部团队提示词
 
@@ -135,7 +135,7 @@
 公共导航220/56px，手机模态抽屉；912px 对话宽度只属于聊天（学习记录自 2026-09-23 起在左侧导航内，不再有独立中栏）。
 
 先核对git status --short、git log -5 --oneline，保留现场用户改动，不reset或切共享分支。
-依次读根AGENTS/README、docs/PROJECT_GUIDE.md、docs/STATUS.md、三矩阵及修改目录更深规则。
+依次读根AGENTS/README、docs/PROJECT_GUIDE.md、docs/CURRENT_STATUS.md、三矩阵及修改目录更深规则。
 NEXT_SESSION_START只提供接手方法；历史/archive及旧MODEL-EXEC/P0任务不是当前授权。
 先核实STATUS当前任务是否已交付；已完成模型批、视觉批和缺陷修复只作为基线，不重复执行。
 用户本轮明确任务优先；否则只执行STATUS中已明确授权且未完成的当前任务。

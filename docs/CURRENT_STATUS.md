@@ -24,7 +24,7 @@
   源项目 `F:\ZQKY_RAG` 的改动未提交（该工作树含用户原有未提交变更，不做混合提交）。
 
 
-更新：2026-09-26（RAG-DELIVERY-v2：教材 RAG 已安装并通过宿主检查、真实浏览器验收与独立只读验收；见上段与 §5.A。此前 CHAT-CONTENT-MATH-AND-FOLLOW v1 已于 `71aca6a`/`31ca45f` 提交）。本文件是唯一进度、问题、任务和后续计划入口。长期目标与稳定决定见 [PROJECT_GUIDE](PROJECT_GUIDE.md)，逐项范围见三矩阵，历史首败与批次全文见 [整理前完整快照](archive/DELIVERY_HISTORY.md#snapshot-status-20260915)。
+更新：2026-09-26（RAG-DELIVERY-v2：教材 RAG 已安装并通过宿主检查、真实浏览器验收与独立只读验收；见上段与 §5.A。此前 CHAT-CONTENT-MATH-AND-FOLLOW v1 已于 `71aca6a`/`31ca45f` 提交）。本文件是唯一进度、问题、任务和后续计划入口。长期目标与稳定决定见 [PROJECT_GUIDE](PROJECT_GUIDE.md)，逐项范围见三矩阵，历史首败与批次全文见 [整理前完整快照](archive/History.md#snapshot-status-20260915)。
 
 ## 1. 目标与当前结论
 
@@ -116,11 +116,11 @@ R-05 内容视觉统一是 H1 之前已交付的批次。第六批 B-R05-EXTEND 
 | RAG-DELIVERY-v2（教材 RAG 移植：四科原文定位 + 同轮追问） | `3e6aec3`（接入实现）+ 本提交 `docs(qa)`（STATUS/矩阵/批次证据） | 宿主 test:api **233 passed**、test:unit **477 passed（58 文件）**、typecheck/lint/build 通过、`uv sync` 就绪、引擎 `probe_runtime` available=true（资产 9/9 + 两个模型 digest）；真实浏览器 **34 PASS / 0 FAIL**（数学/追问/续接/取消）与 **41 PASS / 0 FAIL**（四科/注入/隔离/过期），三视口 1440×900 / 1920×1080 / 390×844；源全量 **1109 passed + 1 xpassed**（仓库外 basetemp + UTF-8，4 项环境失败消除、未改断言）；安装一致性 76/76 载荷 SHA 全等；独立只读验收 pass（附条件） | [批次证据](qa/RAG-DELIVERY-20260926/README.md)、[独立验收](qa/RAG-DELIVERY-20260926/A1-REPORT-01.md)、[冻结记录](qa/RAG-DELIVERY-20260926/FROZEN-CANDIDATE.json)；**人工质量 not_run、历史三项质量 FAIL 保留** |
 | UX-REGRESSION-FIX v1（三项人工视觉回归修复） | 历史批次，见 [UX-REGRESSION-FIX-20260923 批次证据](qa/UX-REGRESSION-FIX-20260923/README.md)；最终 SHA 见其原冻结记录 | typecheck/lint(0 警告)/unit **54 文件 459 例**/build/定向 e2e/`test:chat` 集成 8 通过 1 既有失败（R-15）；公式修复后 50k 复测帧 p95 5.7 ms、0 帧 > 50 ms、0 长任务；四视口顶栏与两条返回路径浏览器实测 | [批次证据](qa/UX-REGRESSION-FIX-20260923/README.md)、[任务卡](qa/UX-REGRESSION-FIX-20260923/TASK-CARD.md)；真实供应商/RAG/硬件触摸/逐帧动画 not_run |
 | UX-PERF-CLOSEOUT v1（长推理流性能 + 模式菜单 + 学习记录与导航与图标 + 教案布局 + 双语字体） | 历史批次，见 [UX-PERF-CLOSEOUT-20260923 批次证据](qa/UX-PERF-CLOSEOUT-20260923/README.md) | typecheck/lint(0 警告)/unit **52 文件 440 例**/build **`ZkSw3NYEUtNUBATU0sde5`**/e2e 全量 **199 通过 1 失败（唯一为既有间歇 R-14，已独立复现定性）**/后端 **217 passed**；性能前后实测（50k 帧 p95 166.7→5.6 ms、>50 ms 帧 215→0、脚本 28.3→1.1 s）+ 19/19 正确性回归 + 菜单三视口 `clientWidth=scrollWidth` + 导航与 favicon 独立取证 + 字体三视口 6 路由（含阻断自托管字体）；全量回归中还定位并修复了一个**真实产品缺陷**（打印媒体下公共壳栅格错位） | [批次证据](qa/UX-PERF-CLOSEOUT-20260923/README.md)、[任务卡](qa/UX-PERF-CLOSEOUT-20260923/TASK-CARD.md)、[可达性审计](qa/UX-PERF-CLOSEOUT-20260923/REACHABILITY-AUDIT.md)、[R-14 证据](qa/UX-PERF-CLOSEOUT-20260923/r14/REPRO-EVIDENCE.md)、[冻结记录](qa/UX-PERF-CLOSEOUT-20260923/FROZEN-CANDIDATE.json)；**真实供应商与真实 RAG 均 not_run** |
-| MODEL-EXEC与MR-01~16修复 | `1805397`→`560ac76`→`4ef803b` / `3dfc2fa` | 首轮needs_revision；修复API181、unit274、e2e88；后端/组件独立复验通过，真实及动画不全覆盖 | [模型审查与修复全文](archive/DELIVERY_HISTORY.md#snapshot-status-20260915)，正式model回归测试；部分原始探针仅在_work |
+| MODEL-EXEC与MR-01~16修复 | `1805397`→`560ac76`→`4ef803b` / `3dfc2fa` | 首轮needs_revision；修复API181、unit274、e2e88；后端/组件独立复验通过，真实及动画不全覆盖 | [模型审查与修复全文](archive/History.md#snapshot-status-20260915)，正式model回归测试；部分原始探针仅在_work |
 | B-MODEL-ACCEPT | `9965592` / `2d0caaa` | 嵌套弹窗/草稿/焦点；unit274、API181、e2e92；视觉为实施者检查、动画partial；DeepSeek真实partial | [API报告](qa/model-accept-20260913/r13-api-report.md)、[浏览器证据](qa/model-accept-20260913/r13-browser-evidence.json) |
 | B-H0R-SHELL | `e7fb2a4` / `957730d` | unit278、API181、e2e119；独立遍历路由/三视口；reset运行时与曲线not_run | [截图目录](qa/shell-accept-20260913/)、`tests/e2e/shell-home-nav.spec.ts` |
 | B-H0R-CHAT-LINKS | `a5bb39c` / `97c6992` | unit285、API181、e2e128；来源身份与真实失败不回模拟；后续消息定位由下一批补齐 | [失败截图](qa/chat-links-20260914/r03-real-failure-no-mock.png)、`tests/e2e/chat-source-links.spec.ts` |
-| B-CHAT-SOURCE-FINISH | `aeacea8` / `4869e88` | unit286、API181、e2e140；独立7场景、真实产物保存按钮、deactivate无持久化副作用 | `tests/e2e/chat-message-locate.spec.ts`、[批次全文](archive/DELIVERY_HISTORY.md#snapshot-status-20260915) |
+| B-CHAT-SOURCE-FINISH | `aeacea8` / `4869e88` | unit286、API181、e2e140；独立7场景、真实产物保存按钮、deactivate无持久化副作用 | `tests/e2e/chat-message-locate.spec.ts`、[批次全文](archive/History.md#snapshot-status-20260915) |
 | B-COURSE-RESOURCE-SAFETY | `2308822` / `e7cd87f` | unit292、API181、e2e149；独立7例22断言，存储逐字节不变；笔记目录未单独注入 | [故障截图](qa/course-r11-20260914/)、`tests/e2e/course-resource-faults.spec.ts` |
 | B-READING-NAV-SCROLL | `a1fa16e` / `33ecd58`、`6d98718` | 实施者e2e154、API181；独立黑盒8/8+reading17/17，未独立重跑154全量 | [README与黑盒用例](qa/reading-r09-20260915/README.md) |
 | B-R05-READ-BOUNDED | `a9ebcaa`（阅读切片） | 首败5用例（重试无效、重复/迟到end双份落库）后修复；阅读目录9/9、全量unit297、eslint 0警告 | [首败与修复摘要](qa/space-r05-20260918/read-first-failure-excerpt.txt)、`ReadingWorkspaceCompanion.test.tsx` |
@@ -427,9 +427,9 @@ npm.cmd run test:unit
 
 ## 7. 历史保留与接手方式
 
-- [2026-09-15整理前完整STATUS](archive/DELIVERY_HISTORY.md#snapshot-status-20260915)：保留原R-01~13首败、模型38条/旧授权任务卡、6.1~6.10全文、测试数差异、真实服务与.env事件。旧章节号引用解释为此快照，不能当新任务入口。
+- [2026-09-15整理前完整STATUS](archive/History.md#snapshot-status-20260915)：保留原R-01~13首败、模型38条/旧授权任务卡、6.1~6.10全文、测试数差异、真实服务与.env事件。旧章节号引用解释为此快照，不能当新任务入口。
 - 2026-09-18 B-R05-SPACE-VISUAL v1 由外部队长在 ZCode 会话实施：子代理环境不可用（思考档位缺失）按协作提案降级为队长串行实施+黑盒自查留证，文件归属/提交/Git 仍按任务卡执行。
-- [旧团队提示词](archive/PROMPT_HISTORY.md#snapshot-collaboration-20260915)、[旧接手入口](archive/PROMPT_HISTORY.md#snapshot-next-session-20260915)仅供追溯；[归档清单](archive/MANIFEST.json)记录来源提交、原始与规范化SHA256。
+- [旧团队提示词](archive/History.md#snapshot-collaboration-20260915)、[旧接手入口](archive/History.md#snapshot-next-session-20260915)仅供追溯；[归档清单](archive/MANIFEST.json)记录来源提交、原始与规范化SHA256。
 - 模型D1–D16稳定决定仍在 [PROJECT_GUIDE](PROJECT_GUIDE.md)，API和ROUTES仍维护现行契约；不因模型批历史归档删除功能范围。
 - 新Agent从 [NEXT_SESSION_START](replica/NEXT_SESSION_START.md) 与 [团队协作提示词](MULTI_AGENT_COLLABORATION_PROPOSAL.md#队长启动提示词) 开始，先核对 [当前批次](#current-task) 是否已交付。明确授权且未完成才实施；已交付时接手现状并按用户新任务推进，不重做MODEL-EXEC/P0或旧视觉批，不等待Codex代写已授权代码。
 - 产品能力和历史状态均有局限，不以批次pass、代码行数、测试总数推算产品完成率。
