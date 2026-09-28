@@ -1,0 +1,79 @@
+{
+  "id": "fb76b741-4fb8-4434-986f-8f08785bc5b9",
+  "title": "DNA分子两条链之间的碱基配对遵循什么规律？",
+  "messages": [
+    {
+      "id": "6e9e23b1-e54a-481b-bbb7-25156dc296ea",
+      "role": "user",
+      "content": "DNA分子两条链之间的碱基配对遵循什么规律？",
+      "status": "done"
+    },
+    {
+      "id": "f66e19f7-14d4-404a-8c56-fb66aa766bb6",
+      "replyToId": "6e9e23b1-e54a-481b-bbb7-25156dc296ea",
+      "role": "assistant",
+      "content": "\n\n### 教材定位与原文讲解\n\n**[r1] 【2】人教版·生物学必修2 遗传与进化 → 第3章基因的本质 → 第2节DNA 的结构 · 第 1694–1694 行**\n\n> （3）两条链上的碱基通过氢键连接成碱基对，并且碱基配对具有一定的规律：A（腺嘌呤）一定与T（胸腺嘧啶）配对；G（鸟嘌呤）一定与C（胞嘧啶）配对。\n\n**[r2] 【2】人教版·生物学必修2 遗传与进化 → 第3章基因的本质 → 第2节DNA 的结构 · 第 1694–1694 行**\n\n> 碱基之间的这种一一对应的关系，叫作碱基互补配对原则。\n\n以上为相关教材原文摘录，供核对题目知识点；本轮未提供独立解题推导。\n",
+      "status": "streaming",
+      "startedAt": "2026-09-26T08:52:03.314Z",
+      "modelLabel": "本地教材引擎",
+      "modelProfileId": "local-textbook-rag",
+      "rag": {
+        "sessionId": "fb76b741-4fb8-4434-986f-8f08785bc5b9",
+        "turnId": "169ccd35-37f9-466c-b564-ca8fab628052",
+        "question": "DNA分子两条链之间的碱基配对遵循什么规律？",
+        "lastEventId": 4,
+        "status": "active"
+      },
+      "extensions": {
+        "mcps": [],
+        "skills": [],
+        "capability": {
+          "value": "rag",
+          "label": "RAG 模式"
+        }
+      },
+      "requestBudget": {
+        "totalChars": 22,
+        "inputBudgetChars": 9856,
+        "maxMessageChars": 32000,
+        "maxTotalChars": 120000,
+        "historyDroppedMessages": 0,
+        "courseTrimmedFields": [],
+        "courseDropped": false
+      },
+      "asks": [
+        {
+          "interactionId": "a3b9f58fb6c94302ae109d63e624f438",
+          "intro": "可继续细讲、纠正定位，或跳过结束本轮。",
+          "questions": [
+            {
+              "questionId": "textbook-follow-up",
+              "header": "继续讲解",
+              "prompt": "定位是否符合题意？你希望进一步理解哪一步？",
+              "options": [
+                {
+                  "label": "细讲解题思路"
+                },
+                {
+                  "label": "重新核对知识点"
+                }
+              ],
+              "multiSelect": false,
+              "allowFreeText": true,
+              "placeholder": "填写补充信息；不需要继续时可跳过"
+            }
+          ],
+          "status": "waiting",
+          "drafts": {}
+        }
+      ]
+    }
+  ],
+  "createdAt": "2026-09-26T08:52:03.251Z",
+  "updatedAt": "2026-09-26T08:52:03.353Z",
+  "schemaVersion": 1,
+  "revision": 4,
+  "draft": "",
+  "modelProfileId": null,
+  "mode": "real"
+}

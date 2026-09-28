@@ -6,7 +6,6 @@
  * 本宿主的课程学习会话由 H1-COURSE-SESSIONS v1 落地：归属为 `Conversation.courseId`（本地会话库，见 services/course-session.ts）。
  */
 import { readKnowledge, subscribeKnowledge, type KnowledgeEntry } from './knowledge-catalog';
-import { listNotebooks, subscribeNotebooks, type Notebook } from './notebook-store';
 import { readBooks, subscribeBooks, type ReplicaBook } from './books-store';
 import { readStrictList, writeStrictList } from './local-collection';
 
@@ -254,8 +253,6 @@ export interface ResourceCandidate {
 export interface ResourceDirectorySnapshot {
   knowledge: KnowledgeEntry[] | null;
   knowledgeError: string | null;
-  notebooks: Notebook[] | null;
-  notebooksError: string | null;
   books: ReplicaBook[] | null;
   booksError: string | null;
 }
@@ -271,16 +268,13 @@ function readDirectory<T>(read: () => T[]): { value: T[] | null; error: string |
   }
 }
 
-/** 集中读取三个资源目录，形成一次一致快照（失败目录为 null，不阻断其他目录）。 */
+/** 集中读取两个资源目录，形成一次一致快照（失败目录为 null，不阻断其他目录）。 */
 export function readResourceDirectories(): ResourceDirectorySnapshot {
   const knowledge = readDirectory(() => readKnowledge());
-  const notebooks = readDirectory(() => listNotebooks());
   const books = readDirectory(() => readBooks());
   return {
     knowledge: knowledge.value,
     knowledgeError: knowledge.error,
-    notebooks: notebooks.value,
-    notebooksError: notebooks.error,
     books: books.value,
     booksError: books.error,
   };
@@ -288,23 +282,22 @@ export function readResourceDirectories(): ResourceDirectorySnapshot {
 
 /** 目录快照是否全成功（供界面决定是否显示"目录读取失败"与重试入口）。 */
 export function snapshotError(snapshot: ResourceDirectorySnapshot): string | null {
-  return snapshot.knowledgeError ?? snapshot.notebooksError ?? snapshot.booksError ?? null;
+  return snapshot.knowledgeError ?? snapshot.booksError ?? null;
 }
 
-/** 资源目录变化（knowledge/notebooks/books）时通知课程页失效快照并重算。 */
+/** 资源目录变化（knowledge/books）时通知课程页失效快照并重算。 */
 export function subscribeResourceDirectories(listener: () => void): () => void {
   const offKnowledge = subscribeKnowledge(listener);
-  const offNotebooks = subscribeNotebooks(listener);
   const offBooks = subscribeBooks(listener);
   return () => {
     offKnowledge();
-    offNotebooks();
     offBooks();
   };
 }
 
 /**
- * 候选来自本地目录：知识库 + 笔记本 + 书籍（真实跨页联动）。
+ * 候选来自本地目录：知识库 + 书籍（真实跨页联动）。笔记本已随学习空间移除，
+ * 不再作为候选来源；历史已附加的 notebook 资源保留并显示为不可用。
  * 传入快照时只看成功读取的目录；读取失败的目录不假装为空，也不阻断其他来源。
  */
 export function listResourceCandidates(snapshot?: ResourceDirectorySnapshot): ResourceCandidate[] {
@@ -312,9 +305,6 @@ export function listResourceCandidates(snapshot?: ResourceDirectorySnapshot): Re
   const candidates: ResourceCandidate[] = [];
   for (const kb of dirs.knowledge ?? []) {
     candidates.push({ kind: 'knowledge_base', refId: kb.id, label: kb.name });
-  }
-  for (const notebook of dirs.notebooks ?? []) {
-    candidates.push({ kind: 'notebook', refId: notebook.id, label: notebook.name });
   }
   for (const book of dirs.books ?? []) {
     if (book.status === 'archived') continue;
@@ -397,17 +387,8 @@ function resolveResource(
     };
   }
   if (resource.kind === 'notebook') {
-    if (snapshot.notebooks === null) {
-      return { resource, available: false, availability: 'unknown', href: null, error: snapshot.notebooksError };
-    }
-    const found = snapshot.notebooks.some((notebook) => notebook.id === resource.refId);
-    return {
-      resource,
-      available: found,
-      availability: found ? 'available' : 'missing',
-      href: found ? `/notebooks/${resource.refId}` : null,
-      error: null,
-    };
+    // 笔记本已随学习空间移除：保留历史引用并如实标注不可用，不回落、不猜目标
+    return { resource, available: false, availability: 'missing', href: null, error: null };
   }
   if (snapshot.books === null) {
     return { resource, available: false, availability: 'unknown', href: null, error: snapshot.booksError };

@@ -28,6 +28,7 @@ import {
   type BuildRequestResult,
 } from './request-budget';
 import { buildNewConversation, resolveCourseSnapshot } from '@/services/course-session';
+import { isRagCapability, LOCAL_RAG_PROFILE } from './rag-service';
 
 export interface ChatProfileSelection {
   id: string;
@@ -53,6 +54,9 @@ export interface ChatState {
    * **未发送任何请求**，草稿与历史保持原样，可修改后重发；null = 无提示。
    */
   budgetNotice: string | null;
+  serviceNotice: string | null;
+  /** 只重连已持久化的教材轮次；不新建消息或重新推理。 */
+  resumeRag(messageId: string): Promise<void>;
   /** 关闭预算提示（只清提示，不改动草稿、历史与会话归属） */
   dismissBudgetNotice(): void;
   /** 当前会话的课程归属（稳定 courseId；缺失 = 未归属）；供聊天页展示与"返回课程" */
@@ -117,17 +121,20 @@ export function createChatStore(deps: ChatDeps = {}) {
   let timer: ReturnType<typeof setTimeout> | null = null;
   let saving: Promise<boolean> | null = null,
     initPromise: Promise<void> | null = null;
-  let generation: {
+  type GenerationToken = {
     controller: AbortController;
     conversationId: string;
     assistantId: string;
     turnId: string;
+    channel?: 'rag';
     /** R3：本轮是否已终态（end/error/取消）。终态后拒绝一切阶段与过程更新 */
     terminal: boolean;
     /** R11 补充：轮次以何种方式结束——区分正常完成与错误/断流/停止（迟到 ACK 归属判定用） */
     endReason: 'end' | 'error' | 'stop' | 'disconnect' | null;
-  } | null = null;
+  };
+  let generation: GenerationToken | null = null;
   let selectionEpoch = 0;
+  let ragPreflightPending = false;
   /** 当前进行中的追问提交（R11：结果只归属发起时的身份，不持久化） */
   let activeSubmissionId: string | null = null;
   /** 当前等待回答的追问（运行上下文，不持久化） */
@@ -322,7 +329,11 @@ export function createChatStore(deps: ChatDeps = {}) {
       const sessionId = get().activeId!;
       const turnId = activeGeneration.turnId;
       const ownerToken = activeGeneration;
-      const submissionId = uid();
+      const ownerCard = docs.get(sessionId)?.messages.flatMap((m) => m.asks ?? []).find((a) => a.interactionId === interactionId);
+      // 请求已发出而 ACK 丢失时，必须复用原载荷和幂等键，不能再次消费不同答案。
+      const pending = ownerToken.channel === 'rag' ? ownerCard?.pendingSubmission : undefined;
+      const submissionId = pending?.submissionId ?? uid();
+      if (pending) answers = structuredClone(pending.answers);
       if (!service.submitReply) {
         markReplyFailed(sessionId, interactionId, 'REPLY_NOT_SUPPORTED', '当前服务不支持追问回答。');
         return false;
@@ -330,9 +341,16 @@ export function createChatStore(deps: ChatDeps = {}) {
       activeSubmissionId = submissionId;
       set({ submittingReply: true });
       updateAsk(sessionId, interactionId, (a) =>
-        a.status === 'answered' ? a : { ...a, status: 'submitting', error: undefined },
+        a.status === 'answered' ? a : { ...a, status: 'submitting', error: undefined,
+          ...(ownerToken.channel === 'rag' ? { pendingSubmission: { submissionId, answers: structuredClone(answers) } } : {}),
+        },
       );
       try {
+        // 在真正提交前持久化意图，刷新后才能安全重发同一 submissionId。
+        if (ownerToken.channel === 'rag' && !(await flush())) {
+          markReplyFailed(sessionId, interactionId, 'SAVE_FAILED', '回答尚未提交：本地保存失败，请重试保存。');
+          return false;
+        }
         const result = await service.submitReply({
           sessionId,
           turnId,
@@ -340,6 +358,7 @@ export function createChatStore(deps: ChatDeps = {}) {
           submissionId,
           answers,
           signal: ownerToken.controller.signal,
+          ...(ownerToken.channel ? { channel: ownerToken.channel } : {}),
         });
         // 归属校验（R11 补充 + 交付复核 P2）：中止（取消/停止）或被新轮顶替后，迟到确认不得改写状态。
         // 终态与 Promise 生命周期区分：generation 仍指向本轮只说明运行对象未释放；
@@ -359,6 +378,7 @@ export function createChatStore(deps: ChatDeps = {}) {
           get().activeId === sessionId;
         if (!stillOwned) return false;
         if (!result.accepted) {
+          if (ownerToken.channel === 'rag') updateAsk(sessionId, interactionId, (a) => ({ ...a, pendingSubmission: undefined }));
           markReplyFailed(
             sessionId,
             interactionId,
@@ -372,6 +392,7 @@ export function createChatStore(deps: ChatDeps = {}) {
           status: 'answered',
           answers,
           error: undefined,
+          pendingSubmission: undefined,
         }));
         if (get().waitingInteractionId === interactionId)
           set({ waitingInteractionId: null });
@@ -383,6 +404,10 @@ export function createChatStore(deps: ChatDeps = {}) {
           activeSubmissionId === submissionId &&
           get().activeId === sessionId;
         if (stillOwned) {
+          // 明确的输入校验拒绝未消费回答，允许用户修改；网络错误继续保留原提交意图。
+          if (ownerToken.channel === 'rag' && error instanceof ApiError && [400, 422].includes(error.status)) {
+            updateAsk(sessionId, interactionId, (a) => ({ ...a, pendingSubmission: undefined }));
+          }
           if (ownerToken.controller.signal.aborted) {
             markReplyFailed(sessionId, interactionId, 'WAIT_CANCELLED', '本轮已取消，回答未提交。');
           } else {
@@ -530,14 +555,18 @@ export function createChatStore(deps: ChatDeps = {}) {
       generation = null;
       active.terminal = true; // R3：取消即终态，此后迟到事件不再修改消息
       active.endReason = 'stop';
-      set({ waitingInteractionId: null });
+      activeSubmissionId = null;
+      set({ waitingInteractionId: null, submittingReply: false });
+      if (active.channel === 'rag') void service.cancel?.({ sessionId: active.conversationId, turnId: active.turnId, channel: 'rag' }).catch(() => {
+        set({ serviceNotice: '已在本页停止；教材服务未确认取消，后台任务将按超时限制结束。' });
+      });
       active.controller.abort();
       change(active.conversationId, (c) => ({
         ...c,
         messages: c.messages.map((m) =>
           m.id === active.assistantId && m.status === 'streaming'
             ? closeUnansweredAsks(
-                closeRunningTools({ ...m, status: 'stopped', finishReason: 'client-stop', finishedAt: now() }),
+                closeRunningTools({ ...m, status: 'stopped', finishReason: 'client-stop', finishedAt: now(), ...(m.rag ? { rag: { ...m.rag, status: 'terminal' } } : {}) }),
               )
             : m,
         ),
@@ -573,6 +602,7 @@ export function createChatStore(deps: ChatDeps = {}) {
         conversationId: string;
         assistantId: string;
         turnId: string;
+        channel?: 'rag';
         terminal: boolean;
         endReason: 'end' | 'error' | 'stop' | 'disconnect' | null;
       },
@@ -582,10 +612,17 @@ export function createChatStore(deps: ChatDeps = {}) {
         if (generation !== token) return; // 已取消或已被新一轮替换
         if (event.turnId !== token.turnId || event.sessionId !== id) return; // 串会话/串轮次防御
         if (token.terminal) return; // 本轮已终态：end/error 之后不再接受阶段与过程更新
+        const current = docs.get(id)?.messages.find((m) => m.id === token.assistantId);
+        if (event.eventId !== undefined && current?.rag && event.eventId <= current.rag.lastEventId) return;
         const patch = (update: (m: ChatMessage) => ChatMessage) =>
           change(id, (c) => ({
             ...c,
-            messages: c.messages.map((m) => (m.id === token.assistantId ? update(m) : m)),
+            messages: c.messages.map((m) => {
+              if (m.id !== token.assistantId) return m;
+              const next = update(m);
+              return next.rag && event.eventId !== undefined
+                ? { ...next, rag: { ...next.rag, lastEventId: event.eventId } } : next;
+            }),
           }));
         // 文本增量按顺序进合并缓冲；其他事件（阶段/工具/追问/产物/终态）先提交缓冲区，
         // 保证"事件顺序严格不变"与"不吞增量"
@@ -593,7 +630,8 @@ export function createChatStore(deps: ChatDeps = {}) {
         if (!isStreamText) flushStreamText();
         switch (event.type) {
           case 'text':
-            if (event.delta) queueStreamSegment(patch, { text: event.delta });
+            if (token.channel === 'rag') patch((m) => appendTurnText(m, event.delta));
+            else if (event.delta) queueStreamSegment(patch, { text: event.delta });
             break;
           case 'reasoning':
             if (event.delta) queueStreamSegment(patch, { reasoning: event.delta });
@@ -669,7 +707,14 @@ export function createChatStore(deps: ChatDeps = {}) {
               return { ...m, artifacts: next };
             });
             break;
+          case 'reply-accepted':
+            patch((m) => ({ ...m, asks: m.asks?.map((a) => a.interactionId === event.interactionId
+              ? { ...a, status: 'answered', answers: event.answers, pendingSubmission: undefined, error: undefined } : a) }));
+            if (get().waitingInteractionId === event.interactionId) set({ waitingInteractionId: null });
+            break;
+          case 'checkpoint':
           case 'turn-start':
+            if (token.channel === 'rag') patch((m) => m);
             break;
           case 'usage':
             patch((m) => ({ ...m, usage: event.usage }));
@@ -680,7 +725,7 @@ export function createChatStore(deps: ChatDeps = {}) {
                 closeRunningStages(
                   closeRunningTools(
                     m.status === 'streaming'
-                      ? { ...m, status: 'done', finishReason: event.finishReason, finishedAt: now() }
+                      ? { ...m, status: 'done', finishReason: event.finishReason, finishedAt: now(), ...(m.rag ? { rag: { ...m.rag, status: 'terminal' } } : {}) }
                       : m,
                   ),
                   'done',
@@ -696,7 +741,7 @@ export function createChatStore(deps: ChatDeps = {}) {
               closeUnansweredAsks(
                 closeRunningStages(
                   closeRunningTools(
-                    m.status === 'streaming' ? { ...m, status: 'error', error: event.error, finishedAt: now() } : m,
+                    m.status === 'streaming' ? { ...m, status: 'error', error: event.error, finishedAt: now(), ...(m.rag ? { rag: { ...m.rag, status: 'terminal' } } : {}) } : m,
                   ),
                   'cancelled',
                 ),
@@ -707,6 +752,8 @@ export function createChatStore(deps: ChatDeps = {}) {
             token.terminal = true;
             break;
         }
+        // 教材事件较稀疏；每条按完整内容+游标一起保存，防止刷新后游标超前。
+        if (token.channel === 'rag') void flush();
       };
     }
     /** 本轮已构建好的请求（由 buildChatRequest 产出；request.messages 与实际发送逐条一致） */
@@ -720,11 +767,14 @@ export function createChatStore(deps: ChatDeps = {}) {
       const id = get().activeId!;
       const assistantId = uid();
       const turnId = uid();
+      const isRag = isRagCapability(extensions);
+      const rag = isRag ? { sessionId: id, turnId, question: prepared.request.messages.at(-1)!.content, lastEventId: 0, status: 'active' as const } : undefined;
       const token = {
         controller: new AbortController(),
         conversationId: id,
         assistantId,
         turnId,
+        ...(isRag ? { channel: 'rag' as const } : {}),
         terminal: false,
         endReason: null,
       };
@@ -747,6 +797,7 @@ export function createChatStore(deps: ChatDeps = {}) {
             startedAt: now(),
             modelLabel: profile.modelLabel,
             modelProfileId: profile.id,
+            ...(rag ? { rag } : {}),
             // 快照随消息冻结并持久化：重试沿用，目录后续变化不影响本轮与历史展示
             ...(extensions ? { extensions: structuredClone(extensions) } : {}),
             // 课程快照同样随本轮冻结：课程改名/改约定只影响**新轮**，重试沿用原快照
@@ -758,6 +809,7 @@ export function createChatStore(deps: ChatDeps = {}) {
       }));
       const emit = makeEmitter(token, id);
       try {
+        if (isRag && !(await flush())) throw new ApiError('SAVE_FAILED', '本地保存失败，本轮尚未请求教材服务。', 0, true);
         await service.run(
           {
             sessionId: id,
@@ -766,6 +818,7 @@ export function createChatStore(deps: ChatDeps = {}) {
             modelProfileId: profile.id,
             maxOutputTokens: profile.maxOutputTokens ?? undefined,
             ...(extensions ? { extensions: structuredClone(extensions) } : {}),
+            ...(rag ? { rag } : {}),
             signal: token.controller.signal,
           },
           emit,
@@ -778,6 +831,7 @@ export function createChatStore(deps: ChatDeps = {}) {
           (error instanceof Error && error.name === 'AbortError')
         )
           patchStoppedIfStreaming(token, id, 'client-stop');
+        else if (isRag && isRecoverableRagError(error)) patchRagInterrupted(token, error);
         else patchError(token, id, error);
       } finally {
         if (generation === token) {
@@ -790,11 +844,64 @@ export function createChatStore(deps: ChatDeps = {}) {
         await flush();
       }
     }
+    function isRecoverableRagError(error: unknown): boolean {
+      return !(error instanceof ApiError) || ['RAG_DISCONNECTED', 'STREAM_INTERRUPTED', 'SERVICE_UNAVAILABLE'].includes(error.code);
+    }
+    function patchRagInterrupted(token: GenerationToken, error?: unknown) {
+      if (generation !== token || token.terminal) return;
+      flushStreamText();
+      token.terminal = true;
+      token.endReason = 'disconnect';
+      activeSubmissionId = null;
+      change(token.conversationId, (c) => ({ ...c, messages: c.messages.map((m) => m.id === token.assistantId && m.rag
+        ? closeUnansweredAsks({ ...m, status: 'stopped', finishReason: 'disconnected', finishedAt: now(),
+          rag: { ...m.rag, status: 'interrupted' },
+          error: { code: 'RAG_DISCONNECTED', message: error instanceof Error ? error.message : '连接已中断，可继续本轮恢复教材服务结果。', retryable: true },
+        }) : m) }));
+      set({ waitingInteractionId: null, submittingReply: false });
+    }
+    async function resumeRag(messageId: string) {
+      if (generation || get().sending || !get().activeId) return;
+      const id = get().activeId!;
+      const message = docs.get(id)?.messages.find((m) => m.id === messageId);
+      if (!message?.rag || message.rag.status !== 'interrupted' || message.rag.sessionId !== id) return;
+      // 旧轮后已有新轮时不复活，避免旧答案写入用户正在使用的新轮。
+      if (docs.get(id)?.messages.at(-1)?.id !== messageId) return;
+      const rag = { ...message.rag, status: 'active' as const };
+      const token: GenerationToken = { controller: new AbortController(), conversationId: id, assistantId: messageId, turnId: rag.turnId, channel: 'rag', terminal: false, endReason: null };
+      generation = token;
+      const lastAsk = message.asks?.at(-1);
+      const waitingId = lastAsk && ['waiting', 'failed', 'submitting', 'interrupted'].includes(lastAsk.status) ? lastAsk.interactionId : null;
+      change(id, (c) => ({ ...c, messages: c.messages.map((m) => m.id === messageId ? {
+        ...m, status: 'streaming', finishedAt: undefined, finishReason: undefined, error: undefined, rag,
+        asks: m.asks?.map((a) => a.interactionId === waitingId ? { ...a, status: 'waiting', error: undefined } : a),
+      } : m) }));
+      set({ sending: true, waitingInteractionId: waitingId, serviceNotice: null });
+      try {
+        await service.run({ sessionId: id, turnId: rag.turnId, rag, messages: [{ role: 'user', content: rag.question }],
+          modelProfileId: LOCAL_RAG_PROFILE.id, extensions: message.extensions, signal: token.controller.signal,
+        }, makeEmitter(token, id));
+        patchStoppedIfStreaming(token, id);
+      } catch (error) {
+        if (!token.controller.signal.aborted) {
+          if (isRecoverableRagError(error)) patchRagInterrupted(token, error);
+          else patchError(token, id, error);
+        }
+      } finally {
+        if (generation === token) {
+          generation = null;
+          set({ sending: false, waitingInteractionId: null, submittingReply: false });
+        }
+        await flush();
+      }
+    }
     function patchStoppedIfStreaming(
       token: {
+        controller: AbortController;
         conversationId: string;
         assistantId: string;
         turnId: string;
+        channel?: 'rag';
         terminal: boolean;
         endReason: 'end' | 'error' | 'stop' | 'disconnect' | null;
       },
@@ -805,6 +912,10 @@ export function createChatStore(deps: ChatDeps = {}) {
       // 终态只进入一次（交付复核 P2）：end/error 已给出明确终态时，
       // 通用断流兜底不得覆盖 endReason（否则合法同步续答的迟到确认会被误拒为断流）
       if (token.terminal || token.endReason) return;
+      if (token.channel === 'rag' && reason === 'disconnected') {
+        patchRagInterrupted(token);
+        return;
+      }
       flushStreamText(); // 断流也要把已收到的增量提交进 UI
       token.terminal = true; // 流已结束（含未收到 end 的断流）：本轮终态
       token.endReason = reason === 'client-stop' ? 'stop' : 'disconnect';
@@ -848,6 +959,7 @@ export function createChatStore(deps: ChatDeps = {}) {
                   closeRunningTools({
                     ...m,
                     status: 'error',
+                    ...(m.rag ? { rag: { ...m.rag, status: 'terminal' as const } } : {}),
                     // R25：异常收尾也是终态——必须冻结耗时，不能让标题区继续计时
                     finishedAt: now(),
                     error:
@@ -888,6 +1000,10 @@ export function createChatStore(deps: ChatDeps = {}) {
         ...c,
         mode: 'real',
         messages: c.messages.map((m) => {
+          if (m.rag && m.rag.status !== 'terminal') return closeUnansweredAsks({
+            ...m, status: 'stopped', finishReason: 'disconnected', finishedAt: m.finishedAt ?? c.updatedAt,
+            rag: { ...m.rag, status: 'interrupted' },
+          });
           const closed = closeUnansweredAsks(
             closeRunningTools(
               m.status === 'streaming'
@@ -942,6 +1058,8 @@ export function createChatStore(deps: ChatDeps = {}) {
       storageWarning: null,
       courseContextWarning: null,
       budgetNotice: null,
+      serviceNotice: null,
+      resumeRag,
       activeCourseId: null,
       mode: 'real',
       conversations: [],
@@ -1009,12 +1127,35 @@ export function createChatStore(deps: ChatDeps = {}) {
             !!text.trim() || !!extensions?.attachments?.length || !!extensions?.historyRefs?.length;
           if (!stillValid || get().sending || get().waitingInteractionId || !get().ready) return;
         }
-        const effectiveProfile = resolveProfile(profile);
+        const isRag = isRagCapability(extensions);
+        const effectiveProfile = isRag ? LOCAL_RAG_PROFILE : resolveProfile(profile);
         if (!effectiveProfile) return; // 真实模式下缺少模型档案：由界面提示原因，不静默发送
+        if (isRag) {
+          if (ragPreflightPending) return;
+          if (!text.trim() || text.trim().length > 4000 || extensions?.attachments?.length || extensions?.historyRefs?.length) {
+            set({ serviceNotice: '教材服务需要 1–4000 字的题目文本；附件与会话引用暂不支持。输入已保留。' });
+            return;
+          }
+          ragPreflightPending = true;
+          const epoch = selectionEpoch;
+          const activeId = get().activeId;
+          try {
+            const status = await service.checkRagAvailable?.();
+            if (status && !status.available) {
+              set({ serviceNotice: `教材服务不可用：${status.detail} 输入已保留。` });
+              return;
+            }
+          } catch (error) {
+            set({ serviceNotice: `教材服务不可用：${error instanceof Error ? error.message : '无法连接服务。'} 输入已保留。` });
+            return;
+          } finally { ragPreflightPending = false; }
+          if (epoch !== selectionEpoch || activeId !== get().activeId || get().sending) return;
+        }
+        set({ serviceNotice: null });
         if (!get().activeId) create();
         // 课程上下文：**发送时**按当前会话归属现读课程并冻结快照（新轮用新快照）
         const activeCourseId = docs.get(get().activeId!)?.courseId;
-        const courseResolution = resolveCourseSnapshot(activeCourseId);
+        const courseResolution = resolveCourseSnapshot(isRag ? undefined : activeCourseId);
         if (courseResolution.state === 'ok') {
           set({ courseContextWarning: null });
         } else if (courseResolution.state === 'missing') {
@@ -1042,7 +1183,7 @@ export function createChatStore(deps: ChatDeps = {}) {
         // 本轮课程快照走同一构建器。失败（当前问题放不下）时只给可读提示：
         // 不清草稿、不入库用户消息、不建助手占位、不置 sending，用户改短后可重发。
         const built = buildChatRequest({
-          history: requestHistory(docs.get(get().activeId!)?.messages ?? []),
+          history: isRag ? [] : requestHistory(docs.get(get().activeId!)?.messages ?? []),
           question: userLabel,
           courseSnapshot,
           contextTokens: effectiveProfile.contextTokens,
@@ -1055,7 +1196,7 @@ export function createChatStore(deps: ChatDeps = {}) {
         set({ budgetNotice: null });
         change(get().activeId!, (c) => ({
           ...c,
-          draft: '',
+          draft: isRag && (c.draft ?? '').trim() !== text.trim() ? c.draft : '',
           title: c.title === '新的对话' ? userLabel.slice(0, 28) : c.title,
           messages: [
             ...c.messages,
@@ -1107,12 +1248,14 @@ export function createChatStore(deps: ChatDeps = {}) {
           target.skipped = false;
         }
         const ok = await submitReplyAnswers(answers);
-        if (ok) change(id, (c) => ({ ...c, draft: '' }));
+        if (ok) change(id, (c) => ({ ...c, draft: c.draft?.trim() === trimmed ? '' : c.draft }));
         return ok;
       },
       async retry(id, profile) {
         if (get().sending || !get().activeId) return;
-        const effectiveProfile = resolveProfile(profile);
+        const targetMessage = get().messages.find((m) => m.id === id);
+        if (targetMessage?.rag?.status === 'interrupted') return resumeRag(id);
+        const effectiveProfile = targetMessage?.rag ? LOCAL_RAG_PROFILE : resolveProfile(profile);
         if (!effectiveProfile) return;
         const messages = get().messages,
           last = messages.at(-1);
@@ -1177,7 +1320,14 @@ export function createChatStore(deps: ChatDeps = {}) {
        * 且不销毁 store 本身，兼容 React StrictMode 的 setup-cleanup-setup 后再次挂载使用。
        */
       dispose() {
-        stop();
+        if (generation?.channel === 'rag') {
+          // 刷新/卸载只断开连接，保留服务端轮次；显式“停止”才发 cancel。
+          const active = generation;
+          patchRagInterrupted(active);
+          generation = null;
+          active.controller.abort();
+          set({ sending: false });
+        } else stop();
         void flush();
       },
       exportActive() {

@@ -1,24 +1,20 @@
 'use client';
-import { useMemo, useState } from 'react';
-import { BookMarked } from 'lucide-react';
+import { useMemo } from 'react';
 import type { ChatArtifact } from '@/contracts/chat';
-import { saveNotebookEntry } from '@/services/space-store';
 import type { ReportArtifactData } from '../model/capability-demo';
 import { AnswerMarkdown } from '../AnswerMarkdown';
 
 /**
  * S4 研究报告产物视图：报告正文（markdown）+ 引用定位列表
  * （CIT-x-x 对照参考 citation 格式；引用为本地演示资料，如实标识）。
- * "保存到笔记"写入 space-store，与业务页（S5 /notebooks）同一仓储，同 id 幂等。
+ * 「保存到笔记」能力已随学习空间一并移除，报告仅在当前消息内展示。
  */
 export function ReportArtifactView({
   artifact,
-  messageId,
-  sessionId,
 }: {
   artifact: ChatArtifact;
-  messageId: string;
-  /** 产物所属会话 id（R-10）：写入笔记记录 metadata，供 /notebooks 按真实会话回链 */
+  messageId?: string;
+  /** 产物所属会话 id（R-10） */
   sessionId?: string | null;
 }) {
   const data = useMemo<ReportArtifactData | null>(() => {
@@ -31,20 +27,6 @@ export function ReportArtifactView({
       citations: Array.isArray(raw.citations) ? raw.citations : [],
     };
   }, [artifact.data]);
-  const [saved, setSaved] = useState<'idle' | 'added' | 'exists'>('idle');
-
-  const save = () => {
-    const result = saveNotebookEntry({
-      id: `${messageId}:${artifact.id}`,
-      messageId,
-      ...(sessionId ? { sessionId } : {}),
-      artifactId: artifact.id,
-      title: artifact.title,
-      kind: 'research_report',
-      content: artifact.content,
-    });
-    setSaved(result);
-  };
 
   return (
     <div className="chat-report-view">
@@ -64,16 +46,6 @@ export function ReportArtifactView({
           </ul>
         </details>
       )}
-      <div className="chat-report-actions">
-        <button type="button" className="chat-report-save" onClick={save}>
-          <BookMarked size={13} />
-          {saved === 'added'
-            ? '已保存到笔记'
-            : saved === 'exists'
-              ? '笔记中已存在（同源不重复）'
-              : '保存到笔记（本地仓储）'}
-        </button>
-      </div>
     </div>
   );
 }

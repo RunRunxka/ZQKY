@@ -5,8 +5,9 @@
  * callId/名称/状态，必要字段不可缺失。事件分类对齐参考仓库 v1.6.5 的 turn 协议
  * （thinking→reasoning、content→text、done→end 等），并按 replica 约束携带
  * sessionId + turnId：消费方据此丢弃迟到、串会话与重复事件。
- * 真实路径不发送扩展快照本身：只把快照里带说明正文的技能转成 `skills`（提示词级
- * 系统上下文），MCP 因无执行通道不参与请求；等待用户与产物事件为预留类型。
+ * 真实路径不发送扩展快照本身：普通聊天只把快照里带说明正文的技能转成 `skills`
+ * （提示词级系统上下文），MCP 因无执行通道不参与请求；教材能力路由到专用本地
+ * 服务（支持同轮追问与恢复）；等待用户与产物事件为预留类型。
  */
 import type {
   AskUserAnswer,
@@ -14,9 +15,11 @@ import type {
   ChatArtifact,
   ChatRole,
   ChatServiceKind,
+  RagTurnState,
   TurnExtensionSnapshot,
 } from '@/contracts/chat';
 import { streamChat } from '@/services/chat-stream';
+import { createRagChatService, isRagCapability, type RagServiceStatus } from './rag-service';
 
 export type ChatToolStatus = 'running' | 'done' | 'error' | 'cancelled';
 
@@ -38,9 +41,12 @@ export type ChatArtifactPayload = Omit<ChatArtifact, 'createdAt'>;
 interface ChatServiceEventBase {
   sessionId: string;
   turnId: string;
+  eventId?: number;
 }
 
 export type ChatServiceEvent =
+  | (ChatServiceEventBase & { type: 'checkpoint' })
+  | (ChatServiceEventBase & { type: 'reply-accepted'; interactionId: string; submissionId: string; answers: AskUserAnswer[] })
   | (ChatServiceEventBase & { type: 'turn-start' })
   | (ChatServiceEventBase & { type: 'text'; delta: string })
   | (ChatServiceEventBase & { type: 'reasoning'; delta: string })
@@ -83,10 +89,12 @@ export interface ChatServiceRequest {
   modelProfileId?: string;
   maxOutputTokens?: number;
   /**
-   * 本轮扩展快照（发送时冻结的独立数据）。真实服务只消费其中的技能说明：
-   * 派生为本轮 `skills` 系统上下文；MCP、人设、知识等模拟字段不下发、不执行。
+   * 本轮扩展快照（发送时冻结的独立数据）。普通聊天只消费其中的技能说明：
+   * 派生为本轮 `skills` 系统上下文（MCP、人设、知识等模拟字段不下发、不执行）；
+   * 教材能力据此选择专用本地服务。
    */
   extensions?: TurnExtensionSnapshot;
+  rag?: RagTurnState;
   signal: AbortSignal;
 }
 
@@ -99,6 +107,7 @@ export interface ChatServiceReplyRequest {
   submissionId: string;
   answers: AskUserAnswer[];
   signal: AbortSignal;
+  channel?: 'rag';
 }
 
 export interface ChatReplyAck {
@@ -112,19 +121,24 @@ export interface ChatService {
   run(request: ChatServiceRequest, emit: (event: ChatServiceEvent) => void): Promise<void>;
   /**
    * 回答当前追问（同一轮暂停与续答）。
-   * 真实服务显式不支持（返回 accepted:false），不静默转模拟；
-   * 模拟实现接受后继续当前轮。缺省视为不支持。
+   * 教材服务支持同轮回答；普通聊天显式不支持，不静默转模拟。
    */
   submitReply?(request: ChatServiceReplyRequest): Promise<ChatReplyAck>;
+  checkRagAvailable?(): Promise<RagServiceStatus>;
+  cancel?(request: { sessionId: string; turnId: string; channel?: 'rag' }): Promise<unknown>;
 }
 
 /** 真实服务：包装现有 SSE 客户端；只下发带说明正文的技能，其余扩展字段不下发 */
 export function createRealChatService(deps?: { stream?: typeof streamChat }): ChatService {
   const runStream = deps?.stream ?? streamChat;
+  const rag = createRagChatService();
   return {
     kind: 'real',
-    // 真实 SSE 协议暂无追问回答通道：显式拒绝，不静默转模拟
-    async submitReply() {
+    checkRagAvailable: () => rag.checkRagAvailable!(),
+    cancel: (request) => request.channel === 'rag' ? rag.cancel!(request) : Promise.resolve(),
+    // 普通聊天协议不支持追问；教材轮次只走专用回答接口。
+    async submitReply(request) {
+      if (request.channel === 'rag') return rag.submitReply!(request);
       return {
         accepted: false,
         code: 'REPLY_NOT_SUPPORTED',
@@ -132,6 +146,7 @@ export function createRealChatService(deps?: { stream?: typeof streamChat }): Ch
       };
     },
     async run(request, emit) {
+      if (request.rag || isRagCapability(request.extensions)) return rag.run(request, emit);
       // 技能上下文：只取说明正文非空的技能，名称为空时按目录条目名缺失处理，不伪造名称
       const skills = (request.extensions?.skills ?? [])
         .map((item) => ({ name: item.name.trim(), content: (item.content ?? '').trim() }))

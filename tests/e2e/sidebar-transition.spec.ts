@@ -62,11 +62,11 @@ for (const width of [1440, 1920]) {
       for (const [route, label] of [
         ['/lesson-plans', '教案工作台'],
         ['/chat', '学习问答'],
-        ['/space', '学习空间'],
+        ['/space', '学习空间（规划中）'],
         ['/chat', '学习问答'],
-        ['/co-writer', '协同写作'],
+        ['/co-writer', '协同写作（规划中）'],
         ['/chat', '学习问答'],
-        ['/reading', '沉浸阅读'],
+        ['/reading', '沉浸阅读（规划中）'],
         ['/chat', '学习问答'],
         ['/settings', '设置'],
         ['/chat', '学习问答'],
@@ -134,7 +134,7 @@ test('手机跨板块打开抽屉，菜单字体和尺寸沿用学习问答', as
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('/chat');
   let baseline: unknown;
-  for (const label of ['教案工作台', '学习空间', '设置', '学习问答']) {
+  for (const label of ['教案工作台', '学习空间（规划中）', '设置', '学习问答']) {
     await page.getByRole('button', { name: '打开功能导航' }).click();
     const drawer = page.getByRole('dialog', { name: '功能导航' });
     await expect(drawer).toHaveCSS('transform', 'none');

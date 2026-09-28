@@ -35,6 +35,10 @@ function collectSources(message: ChatMessage): MessageSourceItem[] {
       label: `模式 · ${(known?.label ?? capability.label) || capability.value}`,
       detail: !known
         ? '该模式入口已停用（随「更多能力」一并移除），此处仅按历史轮次快照如实展示，历史记录保持可读。'
+        : message.rag
+          ? '本轮使用真实本地教材服务，定位与讲解见正文引用。'
+          : ['rag', 'ask_questions'].includes(known.value)
+            ? '历史能力快照；此记录没有真实教材服务执行身份，保留原历史标注。'
         : capabilityAvailableInReal(known.value)
           ? '本轮按该模式发起（轮次快照）。'
           : '该模式当前未接入，仅按轮次快照如实展示，不代表现在可以发起。',
@@ -112,6 +116,7 @@ export function Message({
   copied,
   onCopy,
   onRetry,
+  onResume,
   onReuse,
   ask,
   onOpenArtifact,
@@ -120,6 +125,7 @@ export function Message({
   copied: boolean;
   onCopy: () => void;
   onRetry?: () => void;
+  onResume?: () => void;
   onReuse: () => void;
   /** 追问交互句柄：等待回答的卡可交互，草稿与提交路由到 store */
   ask?: {
@@ -238,6 +244,7 @@ export function Message({
           <Fragment key={interaction.interactionId}>
             {ask ? (
               <AskUserCard
+                source={message.rag ? 'rag' : 'mock'}
                 interaction={interaction}
                 active={ask.waitingId === interaction.interactionId}
                 submitting={ask.submitting}
@@ -246,6 +253,7 @@ export function Message({
               />
             ) : (
               <AskUserCard
+                source={message.rag ? 'rag' : 'mock'}
                 interaction={interaction}
                 active={false}
                 submitting={false}
@@ -282,6 +290,12 @@ export function Message({
             {message.finishReason === 'client-stop' ? '已停止' : '已中断'}
           </span>
         )}
+        {message.rag?.status === 'interrupted' && (
+          <div className="chat-error" role="status">
+            <p>{message.error?.message ?? '教材连接已中断，已保存题目、结果与追问草稿。'}</p>
+            {onResume && <button onClick={onResume}>继续本轮</button>}
+          </div>
+        )}
         {message.finishReason === 'length' && (
           <p className="chat-status-text">已达到输出上限，回答可能不完整。</p>
         )}
@@ -308,7 +322,7 @@ export function Message({
               {copied ? <Check size={14} /> : <Copy size={14} />}
             </button>
           )}
-          {message.status === 'stopped' && onRetry && (
+          {message.status === 'stopped' && onRetry && message.rag?.status !== 'interrupted' && (
             <button aria-label="重新生成" onClick={onRetry}>
               <RotateCcw size={14} />
             </button>

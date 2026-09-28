@@ -3,17 +3,15 @@ import { test, expect } from '@playwright/test';
 const routes = [
   ['/chat', '学习问答'],
   ['/lesson-plans', '教案工作台'],
-  ['/co-writer', '协同写作'],
-  ['/reading', '沉浸阅读'],
-  ['/space', '学习空间'],
+  ['/co-writer', '协同写作（规划中）'],
+  ['/reading', '沉浸阅读（规划中）'],
+  ['/space', '学习空间（规划中）'],
   ['/knowledge-bases', '教材资料库'],
   ['/books', '教材资料库'],
   ['/papers', '智能组卷（规划中）'],
   ['/question-bank', '题库（规划中）'],
   ['/templates', '模板中心（规划中）'],
-  ['/agents', 'Agent 任务（规划中）'],
   ['/settings', '设置'],
-  ['/space/chat-history', '学习空间'],
 ];
 test('全站侧栏图标、宽度和当前菜单一致，折叠偏好跨路由保留', async ({ page }, info) => {
   let icons: string[] = [];
@@ -66,7 +64,7 @@ test('全站侧栏图标、宽度和当前菜单一致，折叠偏好跨路由�
 for (const [route, name] of [
   ['/chat', '学习问答'],
   ['/lesson-plans', '教案工作台'],
-  ['/space/chat-history', '学习空间'],
+  ['/knowledge-bases', '教材资料库'],
 ]) {
   test(`手机抽屉焦点、遮罩、关闭与当前菜单 ${route}`, async ({ page }, info) => {
     await page.setViewportSize({ width: 390, height: 844 });

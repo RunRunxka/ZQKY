@@ -26,7 +26,7 @@
 - vendored TypeScript 按目标仓库 Prettier 格式规范化，没有引入新的动画或绘图库。
 - 原布局色值改用目标蓝色；目标业务仍使用原 ChatService、模型目录、Zustand 会话与 IndexedDB。未复制参考包的演示 adapter。
 
-进度与验收只维护在 [STATUS](../../STATUS.md)，逐项映射在三矩阵。
+进度与验收只维护在 [CURRENT_STATUS](../../CURRENT_STATUS.md)，逐项映射在三矩阵。
 
 > 玻璃主题（`glass.css`、流体背景层）的来源与许可另见
 > [玻璃主题来源与许可](../glass-theme/README.md)：那里的 AGPL-3.0 流体文件已整份移除并替换为自研实现，

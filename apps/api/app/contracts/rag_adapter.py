@@ -1,12 +1,9 @@
 """教材 RAG adapter 的输入输出契约（批次 RAG-I0-PREP v1，宿主侧）。
 
-本模块**只定义契约与纯函数**：没有检索实现、没有模型调用、没有网络、没有路由注册。
-真实检索服务位于外部只读项目 `F:\\ZQKY_RAG`，本轮**未接入、未实测**；任何调用
-`get_rag_adapter()` 的代码都会得到 `RagAdapterUnavailable`，不会得到"成功"结果。
-
-设计依据：PROJECT_GUIDE §4.1/§4.2 的接入设计，以及冻结记录
-`P8-FREEZE-20260922-190500` 保留的现役配置（`local-only` / `bge_m3_local` /
-`hybrid_weighted@alpha=0.5` / `bounded_window` / `local_ollama_qwen25_7b`）。
+本模块保留 I0 坐标与旧 RagAnswer 契约。当前宿主通过应用持有的 RagSessionService
+接入本地教材运行时；get_rag_adapter(service) 提供受限旧接口桥接。新流式接口保留
+uncertain 与澄清状态，旧接口不能无损表达时明确报错，不把拒答改写成 no_evidence。
+运行边界的当前实现见 app/services/rag_sessions.py，历史 I0 设计说明保留如下。
 
 ----------------------------------------------------------------------------
 一、坐标口径（**最容易被混用，必须逐条遵守**）
@@ -146,20 +143,13 @@ SourceType = ScopeKind
 
 RagStatus = Literal["ok", "no_evidence", "stale_source", "out_of_range", "unavailable"]
 
-#: `get_rag_adapter()` 与 `RagAdapterUnavailable` 的统一文案。
-#: 明确写"未接入、未实测"，避免任何调用方把契约当成已实现能力。
-RAG_UNAVAILABLE_MESSAGE = (
-    "RAG 未接入：I0 仅定义契约，尚未接入真实检索（未接入、未实测）。"
-)
-
-#: 能力可用性声明。与 `app/api/v1/capabilities.py` 中 `rag` 的 `planned` 状态一致
-#: （该文件由其它负责人维护，本模块不修改它，只声明同一事实）。
-#: **不得**把它改成 `ready`：能力转 ready 需要端到端真实闭环验收，本轮未做。
+#: Without an app-owned service there is intentionally no process-global adapter.
+RAG_UNAVAILABLE_MESSAGE = "RAG 尚未绑定当前应用运行时，请使用应用持有的教材服务。"
 RAG_CAPABILITY: dict[str, str] = {
     "feature": "rag",
     "label": "教材检索（RAG）",
-    "status": "planned",
-    "detail": "I0 仅定义 adapter 契约；没有索引与向量存储，不返回检索结果（未接入、未实测）。",
+    "status": "unavailable",
+    "detail": "实际可用性由 /rag/status 动态检查；人工教学质量验收尚未完成。",
 }
 
 
@@ -352,15 +342,16 @@ class RagAdapter(Protocol):
         ...
 
 
-def get_rag_adapter() -> RagAdapter:
-    """返回 RAG adapter。**本阶段恒定抛出 `RagAdapterUnavailable`。**
+def get_rag_adapter(service=None) -> RagAdapter:
+    """Bind the legacy adapter to an application-owned, bounded runtime service.
 
-    这里没有、也不得有"空实现"或"返回 `status="ok"` 的假实现"：
-    契约的存在不等于能力已接入，任何让调用方以为检索成功的替身都会把
-    "未接入"伪装成"检索到了"。I1 接入真实检索时改为从依赖注入/受控工厂取得实例，
-    并保持"不可用即抛错"的语义。
+    No global engine is created, and unsupported states/scopes fail explicitly.
+    New clients should use /rag/stream to preserve uncertain and follow-up states.
     """
-    raise RagAdapterUnavailable(RAG_UNAVAILABLE_MESSAGE)
+    if service is None:
+        raise RagAdapterUnavailable(RAG_UNAVAILABLE_MESSAGE)
+    from app.services.rag_legacy_adapter import LocalRagAdapter
+    return LocalRagAdapter(service)
 
 
 # ---------------------------------------------------------------------------

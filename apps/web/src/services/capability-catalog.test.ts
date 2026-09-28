@@ -12,7 +12,7 @@ import {
 describe('能力目录（对照参考 v1.6.5 capability 目录）', () => {
   it('单层菜单：对话/追问澄清/智能出题/可视化 + RAG 模式；隐藏能力不出现在首页菜单', () => {
     // UX-PERF-CLOSEOUT v1：移除“更多能力”飞出层与其三项次要能力，
-    // 在同级位置新增 RAG 模式入口占位（不可选、不发请求）。
+    // 同级 RAG 入口现在接入真实本地教材服务。
     expect(CHAT_CAPABILITIES.map((cap) => cap.value)).toEqual([
       '',
       'ask_questions',
@@ -28,12 +28,12 @@ describe('能力目录（对照参考 v1.6.5 capability 目录）', () => {
     expect(CHAT_CAPABILITIES.map((cap) => cap.value)).not.toContain('course_study');
   });
 
-  it('RAG 模式：同级目录项、带「未接入 · 规划中」原因、不可选', () => {
+  it('RAG 模式：同级目录项，使用真实教材服务，无额外配置', () => {
     const rag = getCapability('rag');
     expect(rag.label).toBe('RAG 模式');
-    expect(rag.unavailableNote).toBe('未接入 · 规划中');
+    expect(rag.unavailableNote).toBeUndefined();
     expect(rag.needsConfig).toBeFalsy(); // 不是二级菜单，也不是配置型能力
-    expect(capabilityAvailableInReal('rag')).toBe(false);
+    expect(capabilityAvailableInReal('rag')).toBe(true);
   });
 
   it('needsConfig 仅出题/可视化需要配置确认；未知值回退对话', () => {
@@ -43,11 +43,11 @@ describe('能力目录（对照参考 v1.6.5 capability 目录）', () => {
     expect(getCapability('不存在')?.value).toBe('');
   });
 
-  it('真实模式仅对话能力可用：其余标注不可用而非静默转模拟', () => {
+  it('真实对话与教材追问可用；未实现的出题与可视化仍禁用', () => {
     expect(capabilityAvailableInReal('')).toBe(true);
     expect(capabilityAvailableInReal('deep_question')).toBe(false);
     expect(capabilityAvailableInReal('visualize')).toBe(false);
-    expect(capabilityAvailableInReal('ask_questions')).toBe(false);
+    expect(capabilityAvailableInReal('ask_questions')).toBe(true);
   });
 });
 

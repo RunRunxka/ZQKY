@@ -1,0 +1,910 @@
+{
+  "task": "RAG-BROWSER-v1",
+  "startedAt": "2026-09-26T08:51:38.867Z",
+  "webUrl": "http://127.0.0.1:5174",
+  "claim": "真实本地教材服务工程验收；不是人工教学质量验收，也不认证自由解题推导。",
+  "expectedAnswerMode": "textbook_excerpt",
+  "humanQuality": "not_run",
+  "budget": {
+    "maxInitialQuestions": 2,
+    "maxNonemptyReplies": 1,
+    "maxLocateJobs": 3,
+    "cloudRequestsAllowed": 0
+  },
+  "fixtures": {
+    "math": {
+      "id": "NEW-MATH",
+      "question": "用列举法表示集合 A={x|x²-3x+2=0}，说明列举法是什么。"
+    },
+    "ooc": {
+      "id": "OOC-1",
+      "question": "快速排序算法的平均时间复杂度是多少？"
+    },
+    "supplement": "请只给出教材关于列举法的定义与原文，不需要解方程。",
+    "mathSha256": "646034171c1edf08323a20168dbd399c3dd1a60fde6cbd8aec39d9b4222f0055",
+    "oocSha256": "26a39b45b89bfcb186a44210add17b0b8bd6712432b7f88829bfe39ff99d6575"
+  },
+  "checks": [
+    {
+      "serviceStatus": {
+        "available": true,
+        "detail": "本地教材引擎可用；四科定位与依据核验。",
+        "humanQuality": "not_run",
+        "localOnly": true,
+        "limits": {
+          "concurrency": 1,
+          "queue": 4,
+          "maxRounds": 3,
+          "turnTtlSeconds": 600,
+          "timeoutSeconds": 180
+        }
+      },
+      "name": "真实本地教材服务可用",
+      "status": "PASS"
+    },
+    {
+      "name": "RAG 入口无需先选择云模型即可使用",
+      "status": "PASS"
+    },
+    {
+      "contentSha256": "cff627588ba024f1025fa620698118405f62954e9bbe95b70bf6c8ba9916acd6",
+      "observedText": "\n\n### 教材定位与原文讲解\n\n**[r1] 【人教版】高中必修 第一册数学电子课本 → 第一章 集合与常用逻辑用语 → 1.1 集合的概念 · 第 208–208 行**\n\n> 像这样把集合的所有元素一一列举出来，并用花括号“{ }”括起来表示集合的方法叫做列举法.\n\n**[r2] 【人教版】高中必修 第一册数学电子课本 → 第一章 集合与常用逻辑用语 → 1.1 集合的概念 · 第 206–206 行**\n\n> “地球上的四大洋”组成的集合可以表示为{太平洋，大西洋，印度洋，北冰洋}；“方程 $x^{2} - 3x + 2 = 0$ 的所有实数根”组成的集合可以表示为 $\\{1,2\\}$\n\n**[r3] 【人教版】高中必修 第一册数学电子课本 → 第一章 集合与常用逻辑用语 → 1.1 集合的概念 · 第 224–226 行**\n\n> $$\n> B = \\{0, 1 \\}.\n> $$\n\n以上为相关教材原文摘录，供核对题目知识点；本轮未提供独立解题推导。\n",
+      "name": "数学正向题返回教材原文与行号",
+      "status": "PASS"
+    },
+    {
+      "name": "默认交付如实标注原文讲解边界",
+      "status": "PASS"
+    },
+    {
+      "name": "真实教材引擎身份与追问卡",
+      "status": "PASS"
+    },
+    {
+      "width": 1440,
+      "rootScrollWidth": 1440,
+      "bodyScrollWidth": 1440,
+      "main": {
+        "left": 220,
+        "right": 1440,
+        "width": 1220
+      },
+      "reducedMotion": true,
+      "focus": "输入问题",
+      "name": "math-waiting 1440 无页面横向溢出",
+      "status": "PASS"
+    },
+    {
+      "width": 1920,
+      "rootScrollWidth": 1920,
+      "bodyScrollWidth": 1920,
+      "main": {
+        "left": 220,
+        "right": 1920,
+        "width": 1700
+      },
+      "reducedMotion": true,
+      "focus": "输入问题",
+      "name": "math-waiting 1920 无页面横向溢出",
+      "status": "PASS"
+    },
+    {
+      "width": 390,
+      "rootScrollWidth": 390,
+      "bodyScrollWidth": 390,
+      "main": {
+        "left": 0,
+        "right": 390,
+        "width": 390
+      },
+      "reducedMotion": true,
+      "focus": "输入问题",
+      "name": "math-waiting 390 无页面横向溢出",
+      "status": "PASS"
+    },
+    {
+      "name": "刷新保留主输入草稿",
+      "status": "PASS"
+    },
+    {
+      "request": {
+        "requestId": "ee6d802a-0543-4e0f-a4f6-3741dc3d3de1",
+        "sessionId": "4e33c5dc-6f39-4a28-946b-39dfcbea162c",
+        "turnId": "ee6d802a-0543-4e0f-a4f6-3741dc3d3de1",
+        "question": "用列举法表示集合 A={x|x²-3x+2=0}，说明列举法是什么。",
+        "afterEventId": 4
+      },
+      "savedCursor": 4,
+      "name": "刷新重连原轮与原游标，不新建推理轮",
+      "status": "PASS"
+    },
+    {
+      "name": "刷新保留追问卡草稿",
+      "status": "PASS"
+    },
+    {
+      "name": "重连不重复正文、卡片或助手消息",
+      "status": "PASS"
+    },
+    {
+      "followUp": "\n\n### 教材定位与原文讲解\n\n**[r1] 【人教版】高中必修 第一册数学电子课本 → 第一章 集合与常用逻辑用语 → 1.1 集合的概念 · 第 208–208 行**\n\n> 像这样把集合的所有元素一一列举出来，并用花括号“{ }”括起来表示集合的方法叫做列举法.\n\n**[r2] 【人教版】高中必修 第一册数学电子课本 → 第一章 集合与常用逻辑用语 → 1.1 集合的概念 · 第 228–228 行**\n\n> 由于元素完全相同的两个集合相等，而与列举的顺序无关，因此一个集合可以有不同的列举方法。\n\n**[r3] 【人教版】高中必修 第一册数学电子课本 → 第一章 集合与常用逻辑用语 → 1.1 集合的概念 · 第 228–228 行**\n\n> 例如，例1（1）的集合还可以写成\n\n**[r4] 【人教版】高中必修 第一册数学电子课本 → 第一章 集合与常用逻辑用语 → 1.1 集合的概念 · 第 230–232 行**\n\n> $$\n> A = \\{9, 8, 7, 6, 5, 4, 3, 2, 1, 0 \\}\n> $$\n\n以上为相关教材原文摘录，供核对题目知识点；本轮未提供独立解题推导。\n",
+      "status": "PASS",
+      "name": "回答经专用接口在同轮继续"
+    },
+    {
+      "note": "真实候选若拒答，此项保持 FAIL；不会改用预置文本。",
+      "name": "数学补充仍能返回教材原文",
+      "status": "PASS"
+    },
+    {
+      "name": "跳过不追加推理并正常结束",
+      "status": "PASS"
+    },
+    {
+      "name": "卡片提交未清空未消费的主输入草稿",
+      "status": "PASS"
+    },
+    {
+      "width": 1440,
+      "rootScrollWidth": 1440,
+      "bodyScrollWidth": 1440,
+      "main": {
+        "left": 220,
+        "right": 1440,
+        "width": 1220
+      },
+      "reducedMotion": true,
+      "focus": "BODY",
+      "name": "math-final 1440 无页面横向溢出",
+      "status": "PASS"
+    },
+    {
+      "width": 1920,
+      "rootScrollWidth": 1920,
+      "bodyScrollWidth": 1920,
+      "main": {
+        "left": 220,
+        "right": 1920,
+        "width": 1700
+      },
+      "reducedMotion": true,
+      "focus": "BODY",
+      "name": "math-final 1920 无页面横向溢出",
+      "status": "PASS"
+    },
+    {
+      "width": 390,
+      "rootScrollWidth": 390,
+      "bodyScrollWidth": 390,
+      "main": {
+        "left": 0,
+        "right": 390,
+        "width": 390
+      },
+      "reducedMotion": true,
+      "focus": "BODY",
+      "name": "math-final 390 无页面横向溢出",
+      "status": "PASS"
+    },
+    {
+      "actualText": "\n\n现有教材证据不足以支持可靠讲解，请补充完整题干、学科或具体疑问。\n\n",
+      "name": "OOC-1 如实拒答，不展示无关教材引用或硬答",
+      "status": "PASS"
+    },
+    {
+      "name": "OOC-1 提供补充题目入口",
+      "status": "PASS"
+    },
+    {
+      "width": 1440,
+      "rootScrollWidth": 1440,
+      "bodyScrollWidth": 1440,
+      "main": {
+        "left": 220,
+        "right": 1440,
+        "width": 1220
+      },
+      "reducedMotion": true,
+      "focus": "停止",
+      "name": "ooc-waiting 1440 无页面横向溢出",
+      "status": "PASS"
+    },
+    {
+      "width": 1920,
+      "rootScrollWidth": 1920,
+      "bodyScrollWidth": 1920,
+      "main": {
+        "left": 220,
+        "right": 1920,
+        "width": 1700
+      },
+      "reducedMotion": true,
+      "focus": "停止",
+      "name": "ooc-waiting 1920 无页面横向溢出",
+      "status": "PASS"
+    },
+    {
+      "width": 390,
+      "rootScrollWidth": 390,
+      "bodyScrollWidth": 390,
+      "main": {
+        "left": 0,
+        "right": 390,
+        "width": 390
+      },
+      "reducedMotion": true,
+      "focus": "停止",
+      "name": "ooc-waiting 390 无页面横向溢出",
+      "status": "PASS"
+    },
+    {
+      "httpStatus": 200,
+      "name": "取消调用真实后端并立即关闭本地轮次",
+      "status": "PASS"
+    },
+    {
+      "name": "取消后刷新不复活轮次或恢复入口",
+      "status": "PASS"
+    },
+    {
+      "width": 1440,
+      "rootScrollWidth": 1440,
+      "bodyScrollWidth": 1440,
+      "main": {
+        "left": 220,
+        "right": 1440,
+        "width": 1220
+      },
+      "reducedMotion": true,
+      "focus": "BODY",
+      "name": "ooc-cancelled 1440 无页面横向溢出",
+      "status": "PASS"
+    },
+    {
+      "width": 1920,
+      "rootScrollWidth": 1920,
+      "bodyScrollWidth": 1920,
+      "main": {
+        "left": 220,
+        "right": 1920,
+        "width": 1700
+      },
+      "reducedMotion": true,
+      "focus": "BODY",
+      "name": "ooc-cancelled 1920 无页面横向溢出",
+      "status": "PASS"
+    },
+    {
+      "width": 390,
+      "rootScrollWidth": 390,
+      "bodyScrollWidth": 390,
+      "main": {
+        "left": 0,
+        "right": 390,
+        "width": 390
+      },
+      "reducedMotion": true,
+      "focus": "BODY",
+      "name": "ooc-cancelled 390 无页面横向溢出",
+      "status": "PASS"
+    },
+    {
+      "uniqueInitialTurns": 2,
+      "nonemptyReplies": 1,
+      "streamConnections": 3,
+      "maximumEnqueuedLocatesFromObservedRequests": 3,
+      "note": "HTTP 发起任务上限，不冒充模型台账实测次数；实际生成/复核/缓存用量由root核对后端台账。",
+      "name": "固定调用预算未超出",
+      "status": "PASS"
+    },
+    {
+      "name": "未调用普通聊天或云模型配置写入",
+      "status": "PASS"
+    },
+    {
+      "name": "未出现非本地网络请求",
+      "status": "PASS"
+    },
+    {
+      "count": 0,
+      "name": "页面无未捕获异常",
+      "status": "PASS"
+    },
+    {
+      "errors": [],
+      "name": "浏览器无 console.error",
+      "status": "PASS"
+    }
+  ],
+  "screenshots": [
+    {
+      "file": "math-waiting-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "dimensions": {
+        "width": 1440,
+        "rootScrollWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "main": {
+          "left": 220,
+          "right": 1440,
+          "width": 1220
+        },
+        "reducedMotion": true,
+        "focus": "输入问题"
+      }
+    },
+    {
+      "file": "math-waiting-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "dimensions": {
+        "width": 1920,
+        "rootScrollWidth": 1920,
+        "bodyScrollWidth": 1920,
+        "main": {
+          "left": 220,
+          "right": 1920,
+          "width": 1700
+        },
+        "reducedMotion": true,
+        "focus": "输入问题"
+      }
+    },
+    {
+      "file": "math-waiting-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "dimensions": {
+        "width": 390,
+        "rootScrollWidth": 390,
+        "bodyScrollWidth": 390,
+        "main": {
+          "left": 0,
+          "right": 390,
+          "width": 390
+        },
+        "reducedMotion": true,
+        "focus": "输入问题"
+      }
+    },
+    {
+      "file": "math-final-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "dimensions": {
+        "width": 1440,
+        "rootScrollWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "main": {
+          "left": 220,
+          "right": 1440,
+          "width": 1220
+        },
+        "reducedMotion": true,
+        "focus": "BODY"
+      }
+    },
+    {
+      "file": "math-final-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "dimensions": {
+        "width": 1920,
+        "rootScrollWidth": 1920,
+        "bodyScrollWidth": 1920,
+        "main": {
+          "left": 220,
+          "right": 1920,
+          "width": 1700
+        },
+        "reducedMotion": true,
+        "focus": "BODY"
+      }
+    },
+    {
+      "file": "math-final-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "dimensions": {
+        "width": 390,
+        "rootScrollWidth": 390,
+        "bodyScrollWidth": 390,
+        "main": {
+          "left": 0,
+          "right": 390,
+          "width": 390
+        },
+        "reducedMotion": true,
+        "focus": "BODY"
+      }
+    },
+    {
+      "file": "ooc-waiting-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "dimensions": {
+        "width": 1440,
+        "rootScrollWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "main": {
+          "left": 220,
+          "right": 1440,
+          "width": 1220
+        },
+        "reducedMotion": true,
+        "focus": "停止"
+      }
+    },
+    {
+      "file": "ooc-waiting-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "dimensions": {
+        "width": 1920,
+        "rootScrollWidth": 1920,
+        "bodyScrollWidth": 1920,
+        "main": {
+          "left": 220,
+          "right": 1920,
+          "width": 1700
+        },
+        "reducedMotion": true,
+        "focus": "停止"
+      }
+    },
+    {
+      "file": "ooc-waiting-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "dimensions": {
+        "width": 390,
+        "rootScrollWidth": 390,
+        "bodyScrollWidth": 390,
+        "main": {
+          "left": 0,
+          "right": 390,
+          "width": 390
+        },
+        "reducedMotion": true,
+        "focus": "停止"
+      }
+    },
+    {
+      "file": "ooc-cancelled-1440x900.png",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "dimensions": {
+        "width": 1440,
+        "rootScrollWidth": 1440,
+        "bodyScrollWidth": 1440,
+        "main": {
+          "left": 220,
+          "right": 1440,
+          "width": 1220
+        },
+        "reducedMotion": true,
+        "focus": "BODY"
+      }
+    },
+    {
+      "file": "ooc-cancelled-1920x1080.png",
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "dimensions": {
+        "width": 1920,
+        "rootScrollWidth": 1920,
+        "bodyScrollWidth": 1920,
+        "main": {
+          "left": 220,
+          "right": 1920,
+          "width": 1700
+        },
+        "reducedMotion": true,
+        "focus": "BODY"
+      }
+    },
+    {
+      "file": "ooc-cancelled-390x844.png",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "dimensions": {
+        "width": 390,
+        "rootScrollWidth": 390,
+        "bodyScrollWidth": 390,
+        "main": {
+          "left": 0,
+          "right": 390,
+          "width": 390
+        },
+        "reducedMotion": true,
+        "focus": "BODY"
+      }
+    }
+  ],
+  "cases": {
+    "math": {
+      "sessionId": "4e33c5dc-6f39-4a28-946b-39dfcbea162c",
+      "turnId": "ee6d802a-0543-4e0f-a4f6-3741dc3d3de1",
+      "initialStatus": "streaming"
+    },
+    "ooc": {
+      "sessionId": "091fb161-ed54-45c2-bf61-09aeb13f1322",
+      "turnId": "7501b647-7d5e-4686-bc2e-3966e7373c47",
+      "status": "streaming"
+    }
+  },
+  "console": [
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+      "location": {
+        "url": "http://127.0.0.1:5174/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js",
+        "lineNumber": 776,
+        "columnNumber": 27
+      },
+      "time": "2026-09-26T08:51:39.482Z"
+    },
+    {
+      "type": "log",
+      "text": "[HMR] connected",
+      "location": {
+        "url": "http://127.0.0.1:5174/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js",
+        "lineNumber": 776,
+        "columnNumber": 27
+      },
+      "time": "2026-09-26T08:51:39.528Z"
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+      "location": {
+        "url": "http://127.0.0.1:5174/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js",
+        "lineNumber": 776,
+        "columnNumber": 27
+      },
+      "time": "2026-09-26T08:51:40.901Z"
+    },
+    {
+      "type": "log",
+      "text": "[HMR] connected",
+      "location": {
+        "url": "http://127.0.0.1:5174/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js",
+        "lineNumber": 776,
+        "columnNumber": 27
+      },
+      "time": "2026-09-26T08:51:40.910Z"
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold",
+      "location": {
+        "url": "http://127.0.0.1:5174/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js",
+        "lineNumber": 776,
+        "columnNumber": 27
+      },
+      "time": "2026-09-26T08:51:54.145Z"
+    },
+    {
+      "type": "log",
+      "text": "[HMR] connected",
+      "location": {
+        "url": "http://127.0.0.1:5174/_next/static/chunks/node_modules_next_dist_1e8vcs8._.js",
+        "lineNumber": 776,
+        "columnNumber": 27
+      },
+      "time": "2026-09-26T08:51:54.164Z"
+    }
+  ],
+  "pageErrors": [],
+  "requests": [
+    {
+      "path": "/api/v1/model-catalog",
+      "method": "GET",
+      "time": "2026-09-26T08:51:39.629Z"
+    },
+    {
+      "path": "/api/v1/model-catalog",
+      "method": "GET",
+      "time": "2026-09-26T08:51:39.630Z"
+    },
+    {
+      "path": "/api/v1/rag/status",
+      "method": "GET",
+      "time": "2026-09-26T08:51:39.697Z"
+    },
+    {
+      "path": "/api/v1/rag/status",
+      "method": "GET",
+      "time": "2026-09-26T08:51:39.755Z"
+    },
+    {
+      "path": "/api/v1/rag/stream",
+      "method": "POST",
+      "time": "2026-09-26T08:51:39.806Z",
+      "body": {
+        "requestId": "ee6d802a-0543-4e0f-a4f6-3741dc3d3de1",
+        "sessionId": "4e33c5dc-6f39-4a28-946b-39dfcbea162c",
+        "turnId": "ee6d802a-0543-4e0f-a4f6-3741dc3d3de1",
+        "question": "用列举法表示集合 A={x|x²-3x+2=0}，说明列举法是什么。",
+        "afterEventId": 0
+      }
+    },
+    {
+      "path": "/api/v1/model-catalog",
+      "method": "GET",
+      "time": "2026-09-26T08:51:40.984Z"
+    },
+    {
+      "path": "/api/v1/model-catalog",
+      "method": "GET",
+      "time": "2026-09-26T08:51:40.984Z"
+    },
+    {
+      "path": "/api/v1/rag/status",
+      "method": "GET",
+      "time": "2026-09-26T08:51:41.038Z"
+    },
+    {
+      "path": "/api/v1/rag/stream",
+      "method": "POST",
+      "time": "2026-09-26T08:51:41.104Z",
+      "body": {
+        "requestId": "ee6d802a-0543-4e0f-a4f6-3741dc3d3de1",
+        "sessionId": "4e33c5dc-6f39-4a28-946b-39dfcbea162c",
+        "turnId": "ee6d802a-0543-4e0f-a4f6-3741dc3d3de1",
+        "question": "用列举法表示集合 A={x|x²-3x+2=0}，说明列举法是什么。",
+        "afterEventId": 4
+      }
+    },
+    {
+      "path": "/api/v1/rag/reply",
+      "method": "POST",
+      "time": "2026-09-26T08:51:41.160Z",
+      "body": {
+        "sessionId": "4e33c5dc-6f39-4a28-946b-39dfcbea162c",
+        "turnId": "ee6d802a-0543-4e0f-a4f6-3741dc3d3de1",
+        "interactionId": "3964ddad040d425db4684b29c89635e1",
+        "submissionId": "b429d422-7d04-4369-9f53-8dc2d54ad00f",
+        "answers": [
+          {
+            "questionId": "textbook-follow-up",
+            "labels": [],
+            "freeText": "请只给出教材关于列举法的定义与原文，不需要解方程。"
+          }
+        ]
+      }
+    },
+    {
+      "path": "/api/v1/rag/reply",
+      "method": "POST",
+      "time": "2026-09-26T08:51:49.207Z",
+      "body": {
+        "sessionId": "4e33c5dc-6f39-4a28-946b-39dfcbea162c",
+        "turnId": "ee6d802a-0543-4e0f-a4f6-3741dc3d3de1",
+        "interactionId": "a8c93fd7413145e3ac1739b67931640b",
+        "submissionId": "c0b56381-c561-452b-b209-f96778ff896b",
+        "answers": [
+          {
+            "questionId": "textbook-follow-up",
+            "labels": [],
+            "freeText": "",
+            "skipped": true
+          }
+        ]
+      }
+    },
+    {
+      "path": "/api/v1/rag/status",
+      "method": "GET",
+      "time": "2026-09-26T08:51:49.831Z"
+    },
+    {
+      "path": "/api/v1/rag/stream",
+      "method": "POST",
+      "time": "2026-09-26T08:51:49.985Z",
+      "body": {
+        "requestId": "7501b647-7d5e-4686-bc2e-3966e7373c47",
+        "sessionId": "091fb161-ed54-45c2-bf61-09aeb13f1322",
+        "turnId": "7501b647-7d5e-4686-bc2e-3966e7373c47",
+        "question": "快速排序算法的平均时间复杂度是多少？",
+        "afterEventId": 0
+      }
+    },
+    {
+      "path": "/api/v1/rag/cancel",
+      "method": "POST",
+      "time": "2026-09-26T08:51:53.816Z",
+      "body": {
+        "sessionId": "091fb161-ed54-45c2-bf61-09aeb13f1322",
+        "turnId": "7501b647-7d5e-4686-bc2e-3966e7373c47"
+      }
+    },
+    {
+      "path": "/api/v1/model-catalog",
+      "method": "GET",
+      "time": "2026-09-26T08:51:54.282Z"
+    },
+    {
+      "path": "/api/v1/model-catalog",
+      "method": "GET",
+      "time": "2026-09-26T08:51:54.284Z"
+    },
+    {
+      "path": "/api/v1/rag/status",
+      "method": "GET",
+      "time": "2026-09-26T08:51:54.356Z"
+    }
+  ],
+  "responses": [
+    {
+      "path": "/api/v1/model-catalog",
+      "status": 200,
+      "time": "2026-09-26T08:51:39.641Z"
+    },
+    {
+      "path": "/api/v1/model-catalog",
+      "status": 200,
+      "time": "2026-09-26T08:51:39.641Z"
+    },
+    {
+      "path": "/api/v1/rag/status",
+      "status": 200,
+      "time": "2026-09-26T08:51:39.718Z"
+    },
+    {
+      "path": "/api/v1/rag/status",
+      "status": 200,
+      "time": "2026-09-26T08:51:39.763Z"
+    },
+    {
+      "path": "/api/v1/rag/stream",
+      "status": 200,
+      "time": "2026-09-26T08:51:39.812Z"
+    },
+    {
+      "path": "/api/v1/model-catalog",
+      "status": 200,
+      "time": "2026-09-26T08:51:41.021Z"
+    },
+    {
+      "path": "/api/v1/model-catalog",
+      "status": 200,
+      "time": "2026-09-26T08:51:41.021Z"
+    },
+    {
+      "path": "/api/v1/rag/status",
+      "status": 200,
+      "time": "2026-09-26T08:51:41.050Z"
+    },
+    {
+      "path": "/api/v1/rag/stream",
+      "status": 200,
+      "time": "2026-09-26T08:51:41.166Z"
+    },
+    {
+      "path": "/api/v1/rag/reply",
+      "status": 200,
+      "time": "2026-09-26T08:51:41.178Z"
+    },
+    {
+      "path": "/api/v1/rag/reply",
+      "status": 200,
+      "time": "2026-09-26T08:51:49.285Z"
+    },
+    {
+      "path": "/api/v1/rag/status",
+      "status": 200,
+      "time": "2026-09-26T08:51:49.968Z"
+    },
+    {
+      "path": "/api/v1/rag/stream",
+      "status": 200,
+      "time": "2026-09-26T08:51:49.992Z"
+    },
+    {
+      "path": "/api/v1/rag/cancel",
+      "status": 200,
+      "time": "2026-09-26T08:51:53.850Z"
+    },
+    {
+      "path": "/api/v1/model-catalog",
+      "status": 200,
+      "time": "2026-09-26T08:51:54.326Z"
+    },
+    {
+      "path": "/api/v1/model-catalog",
+      "status": 200,
+      "time": "2026-09-26T08:51:54.327Z"
+    },
+    {
+      "path": "/api/v1/rag/status",
+      "status": 200,
+      "time": "2026-09-26T08:51:54.375Z"
+    }
+  ],
+  "requestFailures": [
+    {
+      "path": "/api/v1/rag/stream",
+      "method": "POST",
+      "error": "net::ERR_ABORTED",
+      "time": "2026-09-26T08:51:40.816Z"
+    },
+    {
+      "path": "/api/v1/rag/stream",
+      "method": "POST",
+      "error": "net::ERR_ABORTED",
+      "time": "2026-09-26T08:51:49.285Z"
+    },
+    {
+      "path": "/api/v1/rag/stream",
+      "method": "POST",
+      "error": "net::ERR_ABORTED",
+      "time": "2026-09-26T08:51:53.817Z"
+    }
+  ],
+  "externalRequestsBlocked": [],
+  "serviceStatus": {
+    "available": true,
+    "detail": "本地教材引擎可用；四科定位与依据核验。",
+    "humanQuality": "not_run",
+    "localOnly": true,
+    "limits": {
+      "concurrency": 1,
+      "queue": 4,
+      "maxRounds": 3,
+      "turnTtlSeconds": 600,
+      "timeoutSeconds": 180
+    }
+  },
+  "observedBudget": {
+    "uniqueInitialTurns": 2,
+    "nonemptyReplies": 1,
+    "streamConnections": 3,
+    "maximumEnqueuedLocatesFromObservedRequests": 3,
+    "note": "HTTP 发起任务上限，不冒充模型台账实测次数；实际生成/复核/缓存用量由root核对后端台账。"
+  },
+  "cleanup": [
+    {
+      "sessionId": "4e33c5dc-6f39-4a28-946b-39dfcbea162c",
+      "turnId": "ee6d802a-0543-4e0f-a4f6-3741dc3d3de1",
+      "status": 200
+    },
+    {
+      "sessionId": "091fb161-ed54-45c2-bf61-09aeb13f1322",
+      "turnId": "7501b647-7d5e-4686-bc2e-3966e7373c47",
+      "status": 200
+    }
+  ],
+  "finishedAt": "2026-09-26T08:51:54.707Z",
+  "completed": true,
+  "summary": {
+    "pass": 34,
+    "fail": 0,
+    "humanQuality": "not_run"
+  }
+}

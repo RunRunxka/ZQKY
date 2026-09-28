@@ -14,11 +14,9 @@
  * - lib/quiz-types.ts（DEFAULT_QUIZ_CONFIG）
  * - lib/visualize-types.ts（DEFAULT_VISUALIZE_CONFIG）
  *
- * 服务模式边界：真实后端当前仅支持普通对话（chat）；其余能力（含 `rag`）在真实模式
- * 为**不可选**状态，并在菜单内直接标注原因，不静默转模拟、不把请求发到普通聊天冒充成功。
- * `rag` 是 UX-PERF-CLOSEOUT v1 新增的入口占位：宿主内部 adapter 契约已就绪，但
- * `get_rag_adapter()` 恒定不可用、capability 仍为 planned，因此该模式不发请求、
- * 不返回任何检索结果。
+ * 普通对话使用模型目录；RAG 与教材追问经真实本地教材专用通道执行。
+ * 服务可用性由 /rag/status 与请求结果核对；不可用时保留输入，不回退普通聊天。
+ * 出题与可视化尚无真实执行通道，继续禁用。
  */
 
 export type CapabilityConfigValue = Record<string, unknown>;
@@ -47,7 +45,7 @@ export const CHAT_CAPABILITIES: CapabilityDef[] = [
   {
     value: 'ask_questions',
     label: '追问澄清',
-    description: '让模型先向你提问补全上下文',
+    description: '结合教材定位，在证据不足时补充题目条件',
   },
   {
     value: 'deep_question',
@@ -66,7 +64,6 @@ export const CHAT_CAPABILITIES: CapabilityDef[] = [
     value: 'rag',
     label: 'RAG 模式',
     description: '基于教材资料库的定位与讲解',
-    unavailableNote: '未接入 · 规划中',
   },
 ];
 
@@ -74,9 +71,9 @@ export function getCapability(value: string): CapabilityDef {
   return CHAT_CAPABILITIES.find((cap) => cap.value === value) ?? CHAT_CAPABILITIES[0]!;
 }
 
-/** 真实模式可用的能力：当前真实后端仅支持普通对话 */
+/** 已接入真实服务通道的能力；运行时可用性仍须检查。 */
 export function capabilityAvailableInReal(value: string): boolean {
-  return value === '';
+  return value === '' || value === 'rag' || value === 'ask_questions';
 }
 
 /** 能力配置表单类型（字段名对照参考 lib/*-types.ts，便于逐项核对） */

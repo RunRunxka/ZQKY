@@ -6,15 +6,12 @@ import { WorkspaceShell } from './WorkspaceShell';
 import { ShellScope } from './ShellScope';
 
 // 这些独立模块此前没有全局导航；已有壳的聊天、教案、设置和规划页不重复嵌套。
+// 注：协同写作/沉浸阅读/学习空间/笔记本/Whisper 已移除实现并走 [planned] 规划页
+// （规划页自带壳），不再登记为独立模块根，避免双重壳。
 const independentRoots = new Set([
-  '/co-writer',
-  '/reading',
-  '/space',
   '/knowledge-bases',
   '/books',
   '/courses',
-  '/notebooks',
-  '/whisper',
 ]);
 export function ModuleWorkspaceShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();

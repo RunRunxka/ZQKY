@@ -34,18 +34,19 @@ describe('模式选择菜单', () => {
     expect(within(dialog).queryByRole('button', { name: /^沉浸观看/ })).toBeNull();
   });
 
-  it('真实模式：非对话能力置灰并标注原因，不可选择（不静默转模拟）', () => {
-    const unavailable = new Set(['ask_questions', 'deep_question', 'visualize', 'rag']);
+  it('真实模式：教材入口可选，未实现的出题与可视化仍禁用', () => {
+    const unavailable = new Set(['deep_question', 'visualize']);
     render(<CapabilityMenu value="" onSelect={vi.fn()} unavailable={unavailable} />);
     const dialog = openMenu();
     const quiz = within(dialog).getByRole('button', { name: /^智能出题/ });
     expect(quiz).toBeDisabled();
     expect(within(dialog).getAllByText('真实服务未接入').length).toBeGreaterThan(0);
     expect(within(dialog).getByRole('button', { name: /^对话/ })).toBeEnabled();
-    // RAG 模式的原因必须行内可见，而不是只在 title 里
+    // 教材入口独立于普通云模型，选择后由服务可用性检查给出真实结果。
     const rag = within(dialog).getByRole('button', { name: /^RAG 模式/ });
-    expect(rag).toBeDisabled();
-    expect(rag).toHaveTextContent('未接入 · 规划中');
+    expect(rag).toBeEnabled();
+    expect(rag).not.toHaveTextContent('未接入 · 规划中');
+    expect(within(dialog).getByRole('button', { name: /^追问澄清/ })).toBeEnabled();
   });
 
   it('选择能力回调并关闭菜单', () => {

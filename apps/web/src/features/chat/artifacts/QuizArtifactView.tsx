@@ -2,18 +2,13 @@
 import { useMemo, useState } from 'react';
 import { Check, ChevronRight, X } from 'lucide-react';
 import type { ChatArtifact } from '@/contracts/chat';
-import {
-  recordQuizAnswer,
-  saveQuizEntries,
-  type QuizBankEntry,
-} from '@/services/space-store';
 import { quizTypeLabel, type QuizArtifactQuestion } from '../model/capability-demo';
 
 /**
  * S4 出题产物视图（quiz.data.questions，字段对照参考 QuizQuestion）：
  * 选择题点选即判定，填空/概念本地比对，简答/写作/编程不判对错、展示参考答案对照；
- * 判定为本地确定性比对并显式说明（不伪装 AI 判定服务）。"保存到题库"写入
- * space-store 与业务页同一仓储（S5 /space/questions 读取），同 id 幂等。
+ * 判定为本地确定性比对并显式说明（不伪装 AI 判定服务）。
+ * 「保存到题库」能力已随学习空间一并移除，作答仅在当前消息内即时判定，不持久化。
  */
 
 interface ParsedData {
@@ -37,19 +32,15 @@ const CHOICE_KEYS = ['A', 'B', 'C', 'D', 'E', 'F'] as const;
 
 export function QuizArtifactView({
   artifact,
-  messageId,
-  sessionId,
 }: {
   artifact: ChatArtifact;
-  messageId: string;
-  /** 产物所属会话 id（R-10）：随条目落库，供 /space/questions 按真实会话回链 */
+  messageId?: string;
+  /** 产物所属会话 id（R-10） */
   sessionId?: string | null;
 }) {
   const parsed = useMemo(() => parseData(artifact), [artifact]);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [verdicts, setVerdicts] = useState<Record<string, Verdict>>({});
-  const [savedState, setSavedState] = useState<'idle' | 'saved'>('idle');
-  const [savedCount, setSavedCount] = useState(0);
 
   if (!parsed) {
     return (
@@ -73,41 +64,6 @@ export function QuizArtifactView({
     if (!answer.trim()) return;
     const verdict = judge(q, answer);
     setVerdicts((cur) => ({ ...cur, [q.question_id]: verdict }));
-    recordQuizAnswer(`${messageId}:${q.question_id}`, {
-      answer,
-      correct: verdict === 'open' ? null : verdict === 'correct',
-    });
-  };
-
-  const saveAll = () => {
-    const entries: Omit<QuizBankEntry, 'savedAt'>[] = parsed.questions.map((q) => ({
-      id: `${messageId}:${q.question_id}`,
-      messageId,
-      ...(sessionId ? { sessionId } : {}),
-      questionId: q.question_id,
-      topic: parsed.topic,
-      question: q.question,
-      questionType: q.question_type,
-      options: q.options,
-      correctAnswer: q.correct_answer,
-      explanation: q.explanation,
-      difficulty: q.difficulty,
-      ...(answers[q.question_id]
-        ? {
-            lastAnswer: {
-              answer: answers[q.question_id]!,
-              correct:
-                verdicts[q.question_id] === 'open'
-                  ? null
-                  : verdicts[q.question_id] === 'correct',
-              at: new Date().toISOString(),
-            },
-          }
-        : {}),
-    }));
-    const { added } = saveQuizEntries(entries);
-    setSavedCount(added);
-    setSavedState('saved');
   };
 
   return (
@@ -161,10 +117,6 @@ export function QuizArtifactView({
                           setAnswers((cur) => ({ ...cur, [q.question_id]: key }));
                           const v = judge(q, key);
                           setVerdicts((cur) => ({ ...cur, [q.question_id]: v }));
-                          recordQuizAnswer(`${messageId}:${q.question_id}`, {
-                            answer: key,
-                            correct: v === 'correct',
-                          });
                         }}
                       >
                         <strong>{key}.</strong> {q.options?.[key]}
@@ -176,7 +128,7 @@ export function QuizArtifactView({
                 <div className="chat-quiz-text">
                   <textarea
                     aria-label={`第 ${index + 1} 题作答`}
-                    placeholder="输入你的作答（本地记录，可用于保存到题库）"
+                    placeholder="输入你的作答（仅当前消息内即时判定，不持久化）"
                     value={selected}
                     disabled={verdict !== undefined}
                     onChange={(e) =>
@@ -212,16 +164,6 @@ export function QuizArtifactView({
           );
         })}
       </ol>
-      <div className="chat-quiz-actions">
-        <button type="button" className="chat-quiz-save" onClick={saveAll}>
-          {savedState === 'saved'
-            ? `已保存到题库（新增 ${savedCount} 题）`
-            : '保存到题库（本地仓储）'}
-        </button>
-        <span className="chat-quiz-save-note">
-          与业务页（学习空间 · 题库）共用同一本地仓储，同题幂等不重复。
-        </span>
-      </div>
     </div>
   );
 }

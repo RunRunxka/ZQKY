@@ -3,6 +3,7 @@
 export interface SseEvent {
   name: string;
   data: string;
+  id?: string;
 }
 
 export interface SseParser {
@@ -15,13 +16,15 @@ export interface SseParser {
 export function createSseParser(onEvent: (event: SseEvent) => void): SseParser {
   let buffer = '';
   let eventName: string | null = null;
+  let eventId: string | undefined;
   let dataLines: string[] = [];
 
   function dispatch() {
     if (dataLines.length > 0) {
-      onEvent({ name: eventName ?? 'message', data: dataLines.join('\n') });
+      onEvent({ name: eventName ?? 'message', data: dataLines.join('\n'), ...(eventId ? { id: eventId } : {}) });
     }
     eventName = null;
+    eventId = undefined;
     dataLines = [];
   }
 
@@ -34,8 +37,10 @@ export function createSseParser(onEvent: (event: SseEvent) => void): SseParser {
       eventName = line.slice(6).trim();
     } else if (line.startsWith('data:')) {
       dataLines.push(line.slice(5).trim());
+    } else if (line.startsWith('id:')) {
+      eventId = line.slice(3).trim();
     }
-    // 其他 SSE 字段（id:/retry:）忽略
+    // retry 等其他 SSE 字段忽略
   }
 
   return {

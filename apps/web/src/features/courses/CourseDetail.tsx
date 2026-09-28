@@ -30,7 +30,7 @@ import {
   type ResourceDirectorySnapshot,
   type StudyCourse,
 } from '@/services/courses-store';
-import '@/features/space/styles/space.css';
+import '@/components/layout/space.css';
 import '@/features/courses/courses.css';
 import { CourseSessions } from './CourseSessions';
 
@@ -108,7 +108,7 @@ export function CourseDetail() {
   // 快照尚未就绪时先按空快照渲染（不触发目录读取）；就绪后由 effect 重算
   const resources = courseResourceStates(
     course,
-    directories ?? { knowledge: [], knowledgeError: null, notebooks: [], notebooksError: null, books: [], booksError: null },
+    directories ?? { knowledge: [], knowledgeError: null, books: [], booksError: null },
   );
   const directoryError = directories ? snapshotError(directories) : null;
 
@@ -333,7 +333,7 @@ export function CourseDetail() {
           {resources.length === 0 ? (
             <div className="space-empty">
               <strong>还没有附加资料</strong>
-              <span>从知识库、笔记本、书籍目录附加，或先到对应页面创建。</span>
+              <span>从知识库、书籍目录附加，或先到对应页面创建。</span>
             </div>
           ) : (
             <ul className="space-session-list">
@@ -382,7 +382,7 @@ export function CourseDetail() {
           )}
           <p className="space-footnote">
             新建关联设施：
-            <Link href="/knowledge-bases"> 教材资料库</Link> ·<Link href="/notebooks"> 笔记本</Link> ·
+            <Link href="/knowledge-bases"> 教材资料库</Link> ·
             <Link href="/books"> 书籍</Link>（创建后回到本页附加）。
           </p>
         </section>
@@ -547,7 +547,7 @@ function AddResourceForm({
   const directoryError = directories ? snapshotError(directories) : null;
   const candidates = useMemo(() => listResourceCandidates(directories ?? undefined), [directories]);
   const attachedKeys = new Set(course.resources.map((item) => `${item.kind}:${item.refId}`));
-  const groups: CourseResourceKind[] = ['knowledge_base', 'notebook', 'book'];
+  const groups: CourseResourceKind[] = ['knowledge_base', 'book'];
   return (
     <Modal title="附加课程资料" onClose={onClose}>
       {/* R-11：某个目录读取失败只提示该目录，不阻断其他目录的候选 */}
@@ -564,7 +564,7 @@ function AddResourceForm({
       {candidates.length === 0 && !directoryError ? (
         <div className="space-empty">
           <strong>本地目录为空</strong>
-          <span>先到教材资料库 / 笔记本 / 书籍创建或载入演示数据，再回来附加。</span>
+          <span>先到教材资料库 / 书籍创建或载入演示数据，再回来附加。</span>
           <div className="space-form-footer" style={{ width: '100%' }}>
             <button className="space-button" onClick={onClose}>
               关闭

@@ -16,7 +16,7 @@ import {
   type CourseColor,
   type StudyCourse,
 } from '@/services/courses-store';
-import '@/features/space/styles/space.css';
+import '@/components/layout/space.css';
 import '@/features/courses/courses.css';
 
 export function CoursesShelf() {

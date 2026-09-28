@@ -218,7 +218,7 @@ test('无面包屑直接标题、编辑→配置→预览顺序与唯一折叠�
       textAlign: style.textAlign,
     };
   });
-  // 与 /co-writer、/reading 的 .space-header h1 同级：同一 --font-display 变量与同一套排版值
+  // 教案标题与全站内容页 .space-header h1 同级：同一 --font-display 变量与同一套排版值
   expect(titleStyle.fontFamily).toContain(displayFont);
   expect(titleStyle.fontSize).toBe('24px');
   expect(titleStyle.fontWeight).toBe('600');

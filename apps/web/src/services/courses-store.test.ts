@@ -73,12 +73,12 @@ describe('courses-store', () => {
     expect(syllabusSummary(readCourses()[0]!).covered).toBe(0);
   });
 
-  it('资源：候选来自知识库/笔记本/书籍目录；附加去重；目标消失显示不可用', async () => {
+  it('资源：候选来自知识库/书籍目录；附加去重；目标消失显示不可用', async () => {
     loadDemoKnowledge();
     await loadDemoBooks();
     const candidates = listResourceCandidates();
     expect(candidates.some((item) => item.kind === 'knowledge_base' && item.label === '课程标准库')).toBe(true);
-    expect(candidates.some((item) => item.kind === 'notebook' && item.refId === 'notebook-main')).toBe(true);
+    expect(candidates.some((item) => item.kind === 'notebook')).toBe(false);
     expect(candidates.some((item) => item.kind === 'book' && item.refId === 'demo-book-fractions')).toBe(true);
 
     const course = createCourse('资源课程', '');
@@ -87,7 +87,7 @@ describe('courses-store', () => {
       attachCourseResource(course.id, 'knowledge_base', 'demo-kb-curriculum', '课程标准库'),
     ).toThrow(/已附加/);
     attachCourseResource(course.id, 'book', 'demo-book-fractions', '分数入门（演示书籍）');
-    // 幽灵引用（目录中没有）：available=false、href=null
+    // 历史 notebook 引用（笔记本已随学习空间移除）：保留并如实标注不可用
     attachCourseResource(course.id, 'notebook', 'ghost-notebook', '已删除的笔记本');
 
     let states = courseResourceStates(readCourses()[0]!);
@@ -101,6 +101,7 @@ describe('courses-store', () => {
     });
     expect(states.find((state) => state.resource.refId === 'ghost-notebook')).toMatchObject({
       available: false,
+      availability: 'missing',
       href: null,
     });
 
@@ -139,7 +140,6 @@ describe('R-11 资源目录故障容错', () => {
     expect(snapshot.knowledge).toBeNull();
     expect(snapshot.knowledgeError).toBeTruthy();
     // 其他目录仍成功读取，不因知识目录失败而连带失败
-    expect(snapshot.notebooks).not.toBeNull();
     expect(snapshot.books).not.toBeNull();
     expect(snapshotError(snapshot)).toBeTruthy();
     // 候选列表不得把失败目录当成空
@@ -220,7 +220,7 @@ describe('R-11 资源目录故障容错', () => {
     expect(window.localStorage.getItem('zhiqikeyuan:courses')).toBe(before);
   });
 
-  it('知识目录失败不阻断其他目录的候选（笔记本/书籍仍可用）', async () => {
+  it('知识目录失败不阻断其他目录的候选（书籍仍可用）', async () => {
     await loadDemoBooks();
     window.localStorage.setItem(KB_KEY, '{broken');
     const snapshot = readResourceDirectories();

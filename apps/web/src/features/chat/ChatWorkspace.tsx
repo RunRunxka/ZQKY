@@ -17,19 +17,13 @@ import {
 import { WorkspaceShell } from '@/components/layout/WorkspaceShell';
 import { Modal } from '@/components/ui/Modal';
 import { ChatProvider, useChatSession, useChatStore } from './model/ChatContext';
+import { fetchRagStatus, LOCAL_RAG_PROFILE, type RagServiceStatus } from './model/rag-service';
 
 import { CapabilityMenu } from './CapabilityMenu';
 
-import { ContextRefTree } from './ComposerSpaceMenu';
 import { useModelCatalog } from '@/features/model-settings/useModelCatalog';
 import { ModelSelector } from '@/features/model-settings/ModelSelector';
-import { readPersonas, subscribePersonas, type PersonaEntry } from '@/services/persona-catalog';
 import { buildTurnExtensionSnapshot } from '@/services/extension-catalog';
-import {
-  readKnowledge,
-  subscribeKnowledge,
-  type KnowledgeEntry,
-} from '@/services/knowledge-catalog';
 import {
   CHAT_CAPABILITIES,
   capabilityAvailableInReal,
@@ -62,17 +56,11 @@ import '@/features/model-settings/styles/model-settings.css';
 import './styles/chat.css';
 import './styles/chat-home.css';
 
-/** R21：会话级待发送状态（人设/知识/会话引用/附件）——归属键为「模式+会话」 */
+/** R21：会话级待发送状态（附件）——归属键为「模式+会话」 */
 interface SessionPending {
-  personaId: string | null;
-  knowledgeIds: string[];
-  historyIds: string[];
   attachments: PendingAttachment[];
 }
 const EMPTY_PENDING: SessionPending = {
-  personaId: null,
-  knowledgeIds: [],
-  historyIds: [],
   attachments: [],
 };
 
@@ -132,6 +120,17 @@ function ChatPage({
   const [blockedNotice, setBlockedNotice] = useState<string | null>(null);
   // S2 输入区：业务能力（默认“对话”）+ 各能力配置表单 + 确认状态
   const [capabilityValue, setCapabilityValue] = useState('');
+  const ragMode = capabilityValue === 'rag' || capabilityValue === 'ask_questions';
+  const [ragStatus, setRagStatus] = useState<RagServiceStatus | null>(null);
+  const [ragStatusTick, refreshRagStatus] = useState(0);
+  useEffect(() => {
+    if (!ragMode) return;
+    const controller = new AbortController();
+    void fetchRagStatus(controller.signal).then((status) => { if (!controller.signal.aborted) setRagStatus(status); }).catch((error: unknown) => {
+      if (!controller.signal.aborted) setRagStatus({ available: false, detail: error instanceof Error ? error.message : '无法连接教材服务。' });
+    });
+    return () => controller.abort();
+  }, [ragMode, ragStatusTick]);
   const [capForms] = useState<CapabilityFormState>(createDefaultCapabilityForms);
   const [capConfirmed, setCapConfirmed] = useState(false);
   // R21：人设/知识/会话引用/附件按「模式+会话」归属存储；
@@ -140,13 +139,7 @@ function ChatPage({
   const pendingRef = useRef<Record<string, SessionPending>>({});
   const pendingKey = store.activeId ?? '__pending__';
   const pending = pendingRef.current[pendingKey] ?? EMPTY_PENDING;
-  const selectedPersonaId = pending.personaId;
-  const selectedKnowledgeIds = pending.knowledgeIds;
-  const selectedHistoryIds = pending.historyIds;
   const attachments = pending.attachments;
-  // 人设/知识演示目录（页面级只读目录，选择的归属按会话计）
-  const [personas, setPersonas] = useState<PersonaEntry[]>([]);
-  const [knowledgeEntries, setKnowledgeEntries] = useState<KnowledgeEntry[]>([]);
   /** R21：写入指定会话的待发送状态（读改写必须走这里，保证跨批次的同步一致性） */
   function patchPending(key: string, patch: (p: SessionPending) => Partial<SessionPending>) {
     const current = pendingRef.current[key] ?? EMPTY_PENDING;
@@ -211,6 +204,10 @@ function ChatPage({
   // 当前模式 store 的稳定实例：URL 同步与 popstate 处理经 getState() 取最新状态，
   // 不依赖渲染快照（R2：固定模式 store 各自独立）
   const activeStore = stores.real;
+  useEffect(() => {
+    const last = activeStore.getState().messages.filter((m) => m.role === 'assistant').at(-1);
+    if (last?.rag) setCapabilityValue(last.extensions?.capability?.value ?? 'rag');
+  }, [activeStore, store.activeId]);
   // 会话存储的初始化与卸载清理统一由 ChatProvider 负责（R1/R2），此处只保留 UI 相关效果
   useEffect(() => {
     if (textarea.current) {
@@ -218,31 +215,6 @@ function ChatPage({
       textarea.current.style.height = `${Math.min(textarea.current.scrollHeight, 180)}px`;
     }
   }, [store.draft]);
-  useEffect(() => {
-    // 订阅角色/知识来源演示目录（S2）：显式载入演示数据，不自动写入用户存储
-    const updatePersonas = () => {
-      try {
-        setPersonas(readPersonas());
-      } catch {
-        /* 目录格式异常时保持现有列表 */
-      }
-    };
-    const updateKnowledge = () => {
-      try {
-        setKnowledgeEntries(readKnowledge());
-      } catch {
-        /* 目录格式异常时保持现有列表 */
-      }
-    };
-    updatePersonas();
-    updateKnowledge();
-    const unsubPersona = subscribePersonas(updatePersonas);
-    const unsubKnowledge = subscribeKnowledge(updateKnowledge);
-    return () => {
-      unsubPersona();
-      unsubKnowledge();
-    };
-  }, []);
   useEffect(() => {
     if (following && scroller.current) scroller.current.scrollTop = scroller.current.scrollHeight;
   }, [store.messages, following]);
@@ -426,6 +398,7 @@ function ChatPage({
     if (selection) setBlockedNotice(null);
   }, [selection]);
   function blockedReason(): string | null {
+    if (ragMode) return null; // 教材服务在 store 边界核对可用性，无需普通云模型凭证。
     if (!selection) {
       if (error) return `无法读取模型配置：${error}`;
       if (loading) return '正在读取模型配置，请稍后重试。';
@@ -445,7 +418,7 @@ function ChatPage({
   // R19：门控不只看确认布尔——配置无效时同样阻断，非法配置无法绕过提交边界；
   // 确认对应当前能力与当前配置版本（字段变更即撤销确认，见 handleCapFormChange）
   const capBlocked = activeCap.needsConfig && (!capConfirmed || capErrors.length > 0);
-  // 真实模式仅支持普通对话：其余能力为“真实服务未接入”的不可用状态（不静默转模拟）
+  // 只启用已有真实通道的能力；教材可用性由专用状态检查与实际请求确认。
   const unavailableCapabilities = useMemo(() => {
     return new Set(
       CHAT_CAPABILITIES.filter((cap) => !capabilityAvailableInReal(cap.value)).map(
@@ -633,8 +606,8 @@ function ChatPage({
       return;
     }
     const text = store.draft.trim();
-    const hasPendingSelections = attachments.length > 0 || selectedHistoryIds.length > 0;
-    // R20：完全空请求（无文字且无附件/引用）拒绝
+    const hasPendingSelections = attachments.length > 0;
+    // R20：完全空请求（无文字且无附件）拒绝
     if (!text && !hasPendingSelections) return;
     if (store.waitingInteractionId) {
       if (!text || store.submittingReply) return;
@@ -645,13 +618,7 @@ function ChatPage({
     }
 
     if (!capabilityAvailableInReal(capabilityValue)) {
-      // 防御路径：真实模式不允许非对话能力发起（菜单已禁用，含 RAG 模式），
-      // 仍到达时明确说明并保留输入——绝不把请求发到普通聊天冒充该模式成功。
-      setBlockedNotice(
-        capabilityValue === 'rag'
-          ? '「RAG 模式」尚未接入（规划中）：本轮未发送任何检索请求，输入已保留；请切回“对话”能力。'
-          : `「${activeCap.label}」暂无真实服务，已保留选择；请切回“对话”能力。`,
-      );
+      setBlockedNotice(`「${activeCap.label}」暂无真实服务，输入与选择已保留。`);
       return;
     }
     if (attachments.length) {
@@ -675,8 +642,15 @@ function ChatPage({
     }
     setBlockedNotice(null);
     setFollowing(true);
-    // 发送即冻结：从扩展目录取本轮已启用的技能说明；无有效技能时不带 extensions 字段
-    void store.send(text, selection!, buildTurnExtensionSnapshot());
+    // 发送即冻结：普通聊天携带本轮已启用的技能说明（无有效技能时不带 extensions 字段）；
+    // RAG 模式走专用本地通道，只带能力快照（不携带技能/扩展）
+    void store.send(
+      text,
+      ragMode ? LOCAL_RAG_PROFILE : selection!,
+      ragMode
+        ? { mcps: [], skills: [], capability: { value: capabilityValue, label: activeCap.label } }
+        : buildTurnExtensionSnapshot(),
+    );
   }
   async function fresh() {
     setTargetMessageId(undefined);
@@ -854,13 +828,20 @@ function ChatPage({
               <button onClick={() => void store.flush()}>重试保存</button>
             </div>
           )}
-          {error && (
+          {store.serviceNotice && <div className="chat-banner warn" role="alert">{store.serviceNotice}</div>}
+          {ragMode && (
+            <div className={`chat-banner ${ragStatus?.available ? '' : 'warn'}`} role="status">
+              {ragStatus ? (ragStatus.available ? '本地教材引擎可用。定位与讲解保留原文引用；证据不足时可补充题目。' : `教材服务不可用：${ragStatus.detail}`) : '正在检查本地教材服务…'}
+              <button onClick={() => refreshRagStatus((value) => value + 1)}>重新检查</button>
+            </div>
+          )}
+          {!ragMode && error && (
             <div className="chat-banner error" role="alert">
               无法读取模型配置：{error}
               <button onClick={() => void refresh()}>重试</button>
             </div>
           )}
-          {!loading && !error && !selection && (
+          {!ragMode && !loading && !error && !selection && (
             <div className="chat-banner warn">
               {profile
                 ? '当前模型缺少凭证，请到设置补充。'
@@ -913,10 +894,12 @@ function ChatPage({
                     }
                   }}
                   onRetry={
-                    index === store.messages.length - 1 && !store.sending && !!selection
-                      ? () => void store.retry(message.id, selection)
+                    index === store.messages.length - 1 && !store.sending && (!!selection || !!message.rag)
+                      ? () => void store.retry(message.id, message.rag ? LOCAL_RAG_PROFILE : selection)
                       : undefined
                   }
+                  onResume={index === store.messages.length - 1 && !store.sending && message.rag?.status === 'interrupted'
+                    ? () => void store.resumeRag(message.id) : undefined}
                   onReuse={() => {
                     const user = [...store.messages.slice(0, index + 1)]
                       .reverse()
@@ -977,26 +960,6 @@ function ChatPage({
                 aria-hidden="true"
                 tabIndex={-1}
               />
-              <ContextRefTree
-                personaName={personas.find((item) => item.id === selectedPersonaId)?.name ?? null}
-                knowledgeNames={knowledgeEntries
-                  .filter((item) => selectedKnowledgeIds.includes(item.id))
-                  .map((item) => ({ id: item.id, name: item.name }))}
-                historyTitles={store.conversations
-                  .filter((c) => selectedHistoryIds.includes(c.id))
-                  .map((c) => ({ id: c.id, title: c.title }))}
-                onRemovePersona={() => patchPending(pendingKey, () => ({ personaId: null }))}
-                onRemoveKnowledge={(id) =>
-                  patchPending(pendingKey, (p) => ({
-                    knowledgeIds: p.knowledgeIds.filter((item) => item !== id),
-                  }))
-                }
-                onRemoveHistory={(id) =>
-                  patchPending(pendingKey, (p) => ({
-                    historyIds: p.historyIds.filter((item) => item !== id),
-                  }))
-                }
-              />
               <textarea
                 ref={textarea}
                 rows={1}
@@ -1005,7 +968,7 @@ function ChatPage({
                 value={store.draft}
                 placeholder={
                   store.waitingInteractionId
-                    ? '回答当前追问：输入内容后 Enter 提交（同一轮内续答，不新开一轮）'
+                    ? '回答追问：输入内容后 Enter 提交'
                     : '输入问题，Enter 发送，Shift+Enter 换行'
                 }
                 onChange={(e) => store.setDraft(e.target.value)}
@@ -1106,7 +1069,7 @@ function ChatPage({
                   </button>
                 }
                 <span className="chat-flex-spacer" />
-                <ComposerContextChips
+                {!ragMode && <ComposerContextChips
                   contextTokens={profile?.contextTokens}
                   contentChars={
                     store.messages.reduce(
@@ -1114,8 +1077,9 @@ function ChatPage({
                       0,
                     ) + store.draft.length
                   }
-                />
+                />}
                 {
+                  ragMode ? <span className="chat-ext-unavailable">本地教材引擎</span> :
                   <ModelSelector
                     catalog={catalog}
                     value={store.modelProfileId}
@@ -1166,11 +1130,9 @@ function ChatPage({
                     ? store.ready
                     : store.waitingInteractionId
                       ? !!store.draft.trim() && !store.submittingReply
-                      : (!!store.draft.trim() ||
-                          attachments.length > 0 ||
-                          selectedHistoryIds.length > 0) &&
+                      : (!!store.draft.trim() || attachments.length > 0) &&
                         store.ready &&
-                        !!selection;
+                        (ragMode || !!selection);
                   const label = streamingBlocksSend
                     ? '停止'
                     : store.waitingInteractionId

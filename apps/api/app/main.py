@@ -1,7 +1,7 @@
 """FastAPI 应用：生命周期、路由注册、统一错误与本机访问防护。
 
-本期（D02）只实现 /api/v1/health 与 /api/v1/capabilities；
-其余 /api/v1 路由一律返回 501 FEATURE_NOT_IMPLEMENTED，不提供假成功响应。
+现有模型、对话与本地教材路由共用此应用；未实现的 /api/v1 路由返回
+501 FEATURE_NOT_IMPLEMENTED，不提供假成功响应。
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.v1 import capabilities as capabilities_route
 from app.api.v1 import chat as chat_route
+from app.api.v1 import rag as rag_route
 from app.api.v1 import health as health_route
 from app.api.v1 import model_connections as model_connections_route
 from app.api.v1 import model_profiles as model_profiles_route
@@ -29,6 +30,7 @@ from app.repositories.model_config_repository import ModelConfigRepository
 from app.schemas.errors import error_response
 from app.services.model_auth import ModelAuthService
 from app.services.model_config_service import ModelConfigService
+from app.services.rag_sessions import RagSessionService
 
 logger = logging.getLogger("zhiqikeyuan.api")
 
@@ -54,8 +56,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         settings.port,
         settings.env,
     )
-    yield
-    logger.info("后端服务已停止")
+    try:
+        yield
+    finally:
+        await app.state.rag_service.close()
+        logger.info("后端服务已停止")
 
 
 def create_app(
@@ -63,6 +68,7 @@ def create_app(
     *,
     repository: ModelConfigRepository | None = None,
     secret_store: SecretStore | None = None,
+    rag_service: RagSessionService | None = None,
 ) -> FastAPI:
     settings = settings or Settings.from_env()
     logging.basicConfig(
@@ -71,6 +77,9 @@ def create_app(
     )
     app = FastAPI(title="智启课源 API", version="0.3.0", lifespan=lifespan)
     app.state.settings = settings
+    app.state.rag_service = rag_service or RagSessionService(
+        settings.data_dir / "rag", settings.data_dir / "rag-state",
+    )
     app.state.model_config_repo = repository or ModelConfigRepository(
         settings.data_dir / "model-config.json"
     )
@@ -92,6 +101,7 @@ def create_app(
     app.include_router(model_profiles_route.router, prefix="/api/v1")
     app.include_router(model_catalog_route.router, prefix="/api/v1")
     app.include_router(chat_route.router, prefix="/api/v1")
+    app.include_router(rag_route.router, prefix="/api/v1")
 
     @app.api_route(
         "/api/v1/{rest:path}",

@@ -147,17 +147,12 @@ test('课程：演示载入、大纲勾选与编辑重置、资源附加与不�
   await page.getByRole('checkbox', { name: '标记「一元一次方程」为已完成' }).check();
   await expect(page.getByText(/大纲（2\/2 已完成，全部完成）/)).toBeVisible();
 
-  // 附加资料：候选来自本地目录（笔记本默认项恒在）
+  // 附加资料：候选来自本地目录（知识库/书籍；笔记本已随学习空间移除）
   await page.getByRole('button', { name: '附加资料' }).click();
   const addDialog = page.getByRole('dialog', { name: '附加课程资料' });
-  await expect(addDialog.getByRole('heading', { name: '笔记本' })).toBeVisible();
-  const notebookRow = addDialog.locator('.space-session-card', { hasText: '学习笔记' });
-  await notebookRow.getByRole('button', { name: '附加' }).click();
-  await expect(page.getByRole('status').filter({ hasText: '已附加资料「学习笔记」' })).toBeVisible();
-  await expect(page.getByRole('link', { name: '学习笔记', exact: true })).toHaveAttribute(
-    'href',
-    '/notebooks/notebook-main',
-  );
+  // 笔记本不再作为候选来源
+  await expect(addDialog.getByRole('heading', { name: '笔记本' })).toHaveCount(0);
+  await addDialog.getByRole('button', { name: '关闭对话框' }).click();
 
   // 编辑大纲：重建并重置 covered
   await page.getByRole('button', { name: '编辑大纲' }).click();
@@ -166,10 +161,8 @@ test('课程：演示载入、大纲勾选与编辑重置、资源附加与不�
   await expect(page.getByRole('status').filter({ hasText: '已保存大纲' })).toBeVisible();
   await expect(page.getByText(/大纲（0\/1 已完成，下一单元：新单元甲）/)).toBeVisible();
 
-  // 移除资料：仅剩演示知识库条目（不可用态仍在）
-  await page.getByRole('button', { name: '移除资料 学习笔记' }).click();
-  await expect(page.getByRole('status').filter({ hasText: '已移除资料「学习笔记」' })).toBeVisible();
-  await expect(page.getByRole('link', { name: '学习笔记', exact: true })).toHaveCount(0);
+  // 演示知识库条目不可用态仍在（无其他资源）
+  await expect(page.getByText(/课程标准库（不可用：目标已删除或未载入）/)).toBeVisible();
   await expect(page.getByText(/课程标准库（不可用：目标已删除或未载入）/)).toBeVisible();
 
   // 归档 → 列表折叠区展开后可见

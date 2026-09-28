@@ -61,7 +61,6 @@ describe('WorkspaceShell 导航', () => {
     fireEvent.click(screen.getByRole('button', { name: '展开项目导航' }));
     expect(screen.getByText('教学工作台')).toBeInTheDocument();
     expect(screen.getByText('教学资源')).toBeInTheDocument();
-    expect(screen.getByText('扩展能力')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '收起项目导航' })).toBeInTheDocument();
   });
 
