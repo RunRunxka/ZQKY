@@ -127,7 +127,7 @@
 }
 
 /* ===== 任教范围（F2-SCOPE-UI）：当前范围 + 显式修改 =====
-   与筛选条同级：同一张 1px 细边框卡片语言、同一组 --space-*/--radius-*，不引入新色。
+   与筛选条同级：同一张 1px 细边框卡片语言、同一组间距与圆角变量，不引入新色。
    「已确认 N 册」是这块唯一的强调数字（tabular-nums，与 space-tile-number 同源）。 */
 .textbook-page .textbook-scope {
   border: 1px solid var(--line);
