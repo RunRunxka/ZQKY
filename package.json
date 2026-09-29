@@ -25,6 +25,8 @@
     "rag:db:test:stop": "docker compose -p zqky-rag-test -f infra/qdrant/docker-compose.test.yml stop",
     "rag:migrate": "cd apps/api && uv run python ../../scripts/rag/migrate_textbooks.py",
     "rag:verify": "cd apps/api && uv run python ../../scripts/rag/verify_retrieval.py",
+    "rag:rebuild": "cd apps/api && uv run python ../../scripts/rag/rebuild_index.py",
+    "rag:quality": "cd apps/api && uv run python ../../scripts/rag/run_quality_set.py",
     "rag:backup": "cd apps/api && uv run python ../../scripts/rag/backup.py create",
     "rag:backup:verify": "cd apps/api && uv run python ../../scripts/rag/backup.py verify",
     "rag:restore": "cd apps/api && uv run python ../../scripts/rag/backup.py restore",

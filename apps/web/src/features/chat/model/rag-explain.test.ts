@@ -352,4 +352,105 @@ describe('教材 v2 落库与详解轮（RAG-REBUILD v1.0）', () => {
     expect(explainMessage.ragExplain?.status).toBe('stopped');
     store.getState().dispose();
   });
+
+  it('详解历史走单一消息投影：旧记录里的整段教材原文摘录不进入后续请求，普通正文不截断', async () => {
+    const explainCalls: RagExplainRequest[] = [];
+    const explainStream = vi.fn(
+      async (
+        body: RagExplainRequest,
+        handlers: { onText: (d: string) => void; onEnd?: (r: string) => void },
+      ) => {
+        explainCalls.push(body);
+        handlers.onText('详解正文');
+        handlers.onEnd?.('stop');
+      },
+    );
+    const legacyContent =
+      '### 教材知识点\n\n1. **集合表示**\n   列举法或描述法。[1]\n\n### 教材原文摘录\n\n> 集合的表示方法：列举法与描述法（旧版正文摘录）。\n';
+    const plainText = `${'普通回答需要完整保留。'.repeat(60)}普通回答结尾。`;
+    const repo = createMemoryChatRepository();
+    await repo.save(
+      {
+        schemaVersion: 1,
+        revision: 1,
+        id: 'legacy-1',
+        title: '旧会话',
+        createdAt: '2026-09-01T00:00:00.000Z',
+        updatedAt: '2026-09-01T00:05:00.000Z',
+        messages: [
+          { id: 'u1', role: 'user', content: '旧题：求定义域', status: 'done' },
+          {
+            id: 'a-rag-old',
+            role: 'assistant',
+            content: legacyContent,
+            status: 'done',
+            modelLabel: '本地教材引擎',
+            ragResult: result,
+            ragEvidence: [evidence],
+            ragScope: scope,
+          },
+          {
+            id: 'a-plain',
+            role: 'assistant',
+            content: plainText,
+            status: 'done',
+            modelLabel: '测试模型',
+          },
+          {
+            id: 'a-rag',
+            role: 'assistant',
+            content: '### 教材知识点\n\n1. **集合表示**\n   列举法或描述法。[1]\n',
+            status: 'done',
+            modelLabel: '本地教材引擎',
+            ragResult: result,
+            ragEvidence: [evidence],
+            ragScope: scope,
+            asks: [
+              {
+                interactionId: 'guidance-legacy',
+                status: 'waiting',
+                kind: 'guidance',
+                questions: [
+                  {
+                    questionId: 'explain-direction',
+                    header: '详解方向',
+                    prompt: '希望进一步理解哪一步？',
+                    options: [{ label: '细讲解题思路' }],
+                    multiSelect: false,
+                    allowFreeText: true,
+                  },
+                ],
+                drafts: {},
+                guidance: {},
+              },
+            ],
+          },
+        ],
+      } as never,
+      0,
+    );
+    const store = createChatStore({
+      repository: repo,
+      service: { kind: 'real', run: vi.fn() },
+      explainStream: explainStream as unknown as ExplainStream,
+    });
+    store.getState().setChatProfile(profileA);
+    await store.getState().init();
+    store.getState().setAskDraft('guidance-legacy', 'explain-direction', {
+      labels: ['细讲解题思路'],
+      freeText: '',
+      disposition: 'unanswered',
+    });
+    expect(await store.getState().continueAsk('guidance-legacy')).toBe(true);
+    const history = explainCalls[0]!.history;
+    const joined = history.map((item) => item.content).join('\n');
+    // 结构化首答按投影进入历史：知识点与紧凑出处保留，原文摘录不进入
+    expect(joined).toContain('列举法或描述法。');
+    expect(joined).toContain('高中数学 必修一');
+    expect(joined).not.toContain('教材原文摘录');
+    expect(joined).not.toContain('旧版正文摘录');
+    // 普通回答不在投影中被截断
+    expect(joined).toContain(plainText);
+    store.getState().dispose();
+  });
 });

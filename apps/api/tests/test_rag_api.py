@@ -13,6 +13,7 @@ import json
 
 from fastapi.testclient import TestClient
 
+from app.services.text_projection import TEXT_PROJECTION_VERSION
 from app.main import create_app
 from tests.conftest import make_settings
 from tests.test_rag_v2_support import (
@@ -70,9 +71,17 @@ def test_sse_ids_and_result_payload_and_idempotent_reconnect(tmp_path):
             assert data["sessionId"] == body["sessionId"] and data["turnId"] == body["turnId"]
         result = payload_of(frames[1])["result"]
         assert result["status"] == "ok" and result["evidence"] and result["points"]
-        first_line = result["evidence"][0]["text"].splitlines()[0]
-        assert f"> {first_line}" in response.text
-        assert "以上为教材原文摘录" in response.text
+        assert result["reasonCode"] is None
+        assert result["presentation"]["version"] == "compact-v1"
+        assert result["presentation"]["bodyCharCount"] == sum(
+            len(point["title"]) + len(point["summary"]) for point in result["points"]
+        )
+        # 首答正文只渲染知识点：不含 > 原文块、不含长 ev-id、不追加原文摘录
+        content = payload_of(frames[2])["text"]
+        assert result["points"][0]["title"] in content and "[1]" in content
+        assert "> " not in content and "教材原文摘录" not in content
+        assert result["evidence"][0]["evidenceId"] not in content
+        assert result["evidence"][0]["readable"]["version"] == TEXT_PROJECTION_VERSION
         assert len(retriever.calls) == 1
 
         resumed = client.post("/api/v1/rag/stream", json={**body, "afterEventId": 2})

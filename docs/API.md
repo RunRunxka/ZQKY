@@ -261,3 +261,79 @@ npm run rag:backup / rag:backup:verify / rag:restore  # SQLite VACUUM INTO + Qdr
 ```
 
 备份**不含** `apps/api/.env`；恢复只写新目录，不覆盖正在使用的数据。
+
+---
+
+## RAG-QUALITY v1.1 接口变更（2026-09-29）
+
+本批修复首答重复展示、图片 Markdown 污染、证据窗口无界、首答无长度约束、引用校验用错证据集，
+并把题库 AI 整理改回「当前聊天模型」。**只加字段、不改旧协议**；新增字段对旧历史消息一律可选。
+
+### 首答与证据（`/rag/stream`、`/rag/reply`）
+
+| 项 | 变化 |
+| --- | --- |
+| `text.delta` | **只含知识点正文**（编号 + 标题 + 说明 + `[n]`），**不再拼接教材原文摘录**。原文改由结构化来源面板展示 |
+| `rag.result.result.presentation` | 新增可选：`{version:"compact-v1", answerStyle:"brief", bodyCharCount}`；`bodyCharCount` 为知识点正文码点数 |
+| `rag.result.result.reasonCode` | 新增可选：`NO_MATCH` / `EVIDENCE_TEXT_EMPTY` / `EVIDENCE_UNIT_TOO_LARGE` / `SUMMARY_INVALID` / `SUMMARY_PARTIAL`；`ok` 时为 `null` |
+| `evidence[].readable` | 新增可选：`{version:"rag-readable-v1", text, removedImageCount}`。**新服务端必填**，旧历史可缺失 |
+| `evidence[].text` | **语义不变**：仍是可逐字验证的**封存原文切片**（含图片 Markdown 也必须原样保留）。展示/预览/复制用 `readable.text`；回传引用与散列校验只用 `text` 与坐标字段 |
+
+`[n]` 的编号 = 该证据在 `result.evidence` 数组中的序号（1 基），与后端渲染的首次出现顺序一致。
+
+**首答预算（`app/core/rag_budget.py` 为唯一事实来源，长度单位为 Unicode 码点）**：
+
+```text
+首答证据最多 6 条；邻块扩展左右各 ≤1 块
+单条证据清洗后 ≤1600 码点；单条原文切片 ≤6000 码点；证据原文总量 ≤16000 码点
+首答入模证据总量 ≤6000 码点（并受模型 num_ctx 估算二次约束）
+首答 ≤3 个知识点；单点「标题+说明」≤90 码点；合计 ≤250 码点；每点 ≤2 条引用
+模型输出不合法时最多修正一次
+```
+
+**状态语义（不得退化）**：有文本命中但因预算无法完整装入 → `partial` + `EVIDENCE_UNIT_TOO_LARGE`（附定位），
+**不得**报「没有找到教材依据」；有命中但清洗后无文本 → `uncertain` + `EVIDENCE_TEXT_EMPTY`；
+范围内没有任何文本命中 → `no_evidence` + `NO_MATCH`。
+
+### 索引与分块
+
+- `ChunkPolicy` 新增 `textProjectionVersion`（默认 `rag-readable-v1`）并**进入分块策略指纹**：
+  清洗策略一变指纹就变，必然产生新 `chunk_set`，绝不复用旧划分/旧清洗。
+  旧策略 JSON 缺该字段时按 `raw-v0` 解释，且**旧指纹仍可复现**。
+- 块坐标与 `text_sha256` 仍绑定**原文切片**；新增索引输入文本 = 清洗投影；
+  清洗后为空的块在**分块清单阶段**排除（不留「有块无向量」的计数差异），仅含公式的块保留。
+- Qdrant payload 新增 `textProjectionVersion` 与 `indexTextSha256`；`text_sha256` 含义不变。
+- BM25 文档文本按该代登记的清洗版本投影；缓存键含 `generation_id + 修订集合 + 清洗版本 + 分词版本`。
+- 入库导入草稿：清洗后无可用文本时 `canCommit=false` 且给出可读警告，错误码 `NO_INDEXABLE_TEXT`（422）。
+
+### 题库 AI 整理（`POST /question-imports/{id}/organize`）
+
+`modelProfileId` **必填**，语义恢复为**当前聊天模型的 profile id**（本地或云端一视同仁），
+由共享的 `services.model_runtime.resolve_chat_model` 解析。任务在点击时**冻结**模型；
+进行中切换聊天模型不影响已冻结任务。新增错误码：
+`ORGANIZER_MODEL_RESELECT_REQUIRED`（旧语义的未完成任务，不自动恢复，既有建议保留）、
+`ORGANIZER_OUTPUT_TRUNCATED`（上游截断，不生成可应用建议）、
+`AUTH_REQUIRED` / `RATE_LIMITED` / `UPSTREAM_UNAVAILABLE`（**任务级**，文案指向模型服务，不得说成「试题内容无效」）。
+取消时在途未完成批的建议**不落库**。
+
+### 备份与恢复（`scripts/rag/backup.py`）
+
+- `create`：先取数据根**排他锁**（拿不到 → `DATA_LOCK_BUSY`，非零退出，不写任何文件）；
+  有未结束任务则拒绝；用 **SQLite backup API** 生成副本（不直接拷 WAL）；
+  只复制**被数据库引用**的文件；含 `staging` 草稿产物（排除 `tmp-*.part`）；
+  Qdrant 快照核对点数与维度；**全部通过才把清单标 `status:"complete"`**。
+- 清单 `schemaVersion: 2`（`files[]` 带 `logicalRole/restorePath/sha256`；`collections[]` 带维度/点数/快照指纹）。
+- `restore`：**按应用运行布局**写入 `textbooks/…` 与 `question-bank/…`；
+  Qdrant 恢复必须显式给 `--isolated-qdrant`（给 6333 或缺失一律拒绝）；
+  先验后写，失败把 `restore-state` 留在 `incomplete`；旧清单只读兼容并标 `legacy_revalidated`。
+- 数据根处于 `incomplete` 时**应用拒绝启动**；API 生命周期持有同一把锁（`app/core/data_lock.py`）。
+
+### 运维命令补充
+
+```text
+npm run rag:rebuild       # 同 Embedding 身份、新清洗策略重建一个新代并原子切换（旧代保留不删）
+npm run rag:quality       # 固定质量集（30 问：10 组 × 2 正向 + 1 边界），只读、不建库、不改任教设置
+```
+
+`rag:verify` / `rag:quality` / 命中率测量脚本一律**只读打开**正式数据根，
+**不再调用 `migrate()`、不再写入任教设置**（验收不得改用户配置）。

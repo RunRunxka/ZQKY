@@ -354,3 +354,35 @@ def test_memory_store_guards() -> None:
     store.delete_collection("c")
     assert store.collection_exists("c") is False
     assert store.ping() is True
+
+
+# ----------------------------------- v1.1 清洗版本 / 索引输入散列：payload 直通
+
+def test_projection_payload_fields_pass_through_without_new_indexes() -> None:
+    """新增清洗字段是普通 payload：原样写入 Qdrant，不需要（也不得增加）过滤索引字段。"""
+    from app.repositories.vector_store import INDEXED_PAYLOAD_FIELDS
+    from app.services.textbook_ingest import (
+        PAYLOAD_INDEX_TEXT_SHA256,
+        PAYLOAD_TEXT_PROJECTION_VERSION,
+    )
+
+    point = VectorPoint(
+        point_id="22222222-2222-5222-8222-222222222222",
+        vector=[0.4],
+        payload={
+            "ordinal": 1,
+            "text_sha256": "b" * 64,
+            PAYLOAD_TEXT_PROJECTION_VERSION: "rag-readable-v1",
+            PAYLOAD_INDEX_TEXT_SHA256: "c" * 64,
+        },
+    )
+    router = Router({("PUT", "/collections/textbooks_1/points"): (200, {"result": {}})})
+    store(router).upsert(name="textbooks_1", points=[point], wait=True)
+    body = router.bodies("PUT", "/collections/textbooks_1/points")[0]
+    payload = body["points"][0]["payload"]
+    assert payload[PAYLOAD_TEXT_PROJECTION_VERSION] == "rag-readable-v1"
+    assert payload[PAYLOAD_INDEX_TEXT_SHA256] == "c" * 64
+    assert payload["text_sha256"] == "b" * 64  # 原文散列字段名与含义不变
+    # 过滤仍只按既有字段下推；新字段不参与范围过滤，因此不扩索引集合
+    assert PAYLOAD_TEXT_PROJECTION_VERSION not in INDEXED_PAYLOAD_FIELDS
+    assert PAYLOAD_INDEX_TEXT_SHA256 not in INDEXED_PAYLOAD_FIELDS

@@ -34,8 +34,13 @@ from app.services.rag_v2.requests import RagStreamRequestV2  # noqa: E402
 
 
 def build_service(settings: Settings) -> tuple[RagV2Service, TextbookCatalog, OllamaEmbeddingProvider]:
+    # 只读验收：不动正式库结构、不建空库、不写任教设置（PLAN §6.2）
     catalog = TextbookCatalog(settings.textbooks_root / "catalog.sqlite3")
-    catalog.migrate()
+    try:
+        catalog.open_existing()
+    except Exception as exc:
+        raise SystemExit(f"教材目录不可只读打开：{exc}")
+    print(f"数据目录：{settings.data_dir}（只读打开，不改结构）")
     provider = OllamaEmbeddingProvider(settings.embedding_base_url)
     vectors = HttpQdrantStore(settings.qdrant_url)
     service = RagV2Service(
@@ -154,9 +159,7 @@ async def main_async(args: argparse.Namespace) -> int:
 
     selection = selection_for(catalog, args.grade, args.subject, args.edition)
     print(f"范围：{args.grade}/{args.subject}/{args.edition}，{len(selection['documentIds'])} 册")
-    catalog.set_teaching_settings(selection_json=selection, expected_revision=(
-        catalog.get_teaching_settings().revision
-    ))
+    # 范围以请求内联传入（scope.kind="selection"），**不落库**：验收不得改用户的任教配置
 
     questions = [args.question] if args.question else Path(args.questions_file).read_text(
         encoding="utf-8"

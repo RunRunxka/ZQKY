@@ -1,4 +1,4 @@
-"""教材解析与分块：三格式解析、正文/习题区划分、版本化分块策略。"""
+"""教材解析与分块：三格式解析、正文/习题区划分、版本化分块策略与清洗文本投影。"""
 
 from app.services.document_parsing.chunking import (
     CHUNK_POLICY_VERSION,
@@ -6,14 +6,19 @@ from app.services.document_parsing.chunking import (
     DEFAULT_MAX_CHARS,
     DEFAULT_OVERLAP_CHARS,
     DEFAULT_TARGET_CHARS,
+    LEGACY_TEXT_PROJECTION_VERSION,
+    TEXT_PROJECTION_VERSION,
     ChunkPolicy,
     chunk_document,
+    chunk_index_text,
     chunk_manifest_sha256,
+    chunk_projection,
     chunk_region_share,
     chunk_policy_fingerprint,
     chunk_policy_from_json,
     chunk_policy_json,
     chunk_text,
+    retained_for_manifest,
 )
 from app.services.document_parsing.parser import (
     DOCX_KIND,
@@ -66,6 +71,7 @@ __all__ = [
     "EXERCISE_MARKERS",
     "EXERCISE_RATIO_LIMIT",
     "LEGACY_REGION_RULES_VERSION",
+    "LEGACY_TEXT_PROJECTION_VERSION",
     "LOW_BODY_SHARE_WARNING_PREFIX",
     "MARKDOWN_KIND",
     "PARSER_VERSION",
@@ -75,6 +81,7 @@ __all__ = [
     "REGION_RULES_VERSION",
     "SOURCE_KINDS",
     "SUPPORTED_SUFFIXES",
+    "TEXT_PROJECTION_VERSION",
     "ChunkPolicy",
     "ParsedDocument",
     "RegionReport",
@@ -82,8 +89,10 @@ __all__ = [
     "SourceBlock",
     "analyze_regions",
     "chunk_document",
+    "chunk_index_text",
     "chunk_manifest_sha256",
     "chunk_policy_fingerprint",
+    "chunk_projection",
     "chunk_region_share",
     "chunk_policy_from_json",
     "chunk_policy_json",
@@ -96,6 +105,7 @@ __all__ = [
     "parsed_from_source_map",
     "region_at",
     "region_for_span",
+    "retained_for_manifest",
     "source_map_payload",
     "split_regions",
     "text_sha256",

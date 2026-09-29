@@ -8,13 +8,21 @@ from app.services.textbook_ingest.generation_doc import (
     generation_policy_document,
     new_collection_name,
 )
-from app.services.textbook_ingest.indexer import DocumentIndexer, JobCancelled
+from app.services.textbook_ingest.indexer import (
+    PAYLOAD_INDEX_TEXT_SHA256,
+    PAYLOAD_TEXT_PROJECTION_VERSION,
+    DocumentIndexer,
+    JobCancelled,
+)
 from app.services.textbook_ingest.jobs import (
     DEFAULT_RENEW_SECONDS,
     LeaseKeeper,
     try_fail_lost_lease,
 )
 from app.services.textbook_ingest.service import (
+    CLEANED_TEXT_EMPTY_CODE,
+    CLEANED_TEXT_EMPTY_FLAG,
+    CLEANED_TEXT_EMPTY_WARNING,
     ORIGIN_REUSE_WARNING,
     ImportFormOptions,
     IngestService,
@@ -24,8 +32,13 @@ from app.services.textbook_ingest.service import (
 from app.services.textbook_ingest.taxonomy import TAXONOMY
 
 __all__ = [
+    "CLEANED_TEXT_EMPTY_CODE",
+    "CLEANED_TEXT_EMPTY_FLAG",
+    "CLEANED_TEXT_EMPTY_WARNING",
     "DEFAULT_RENEW_SECONDS",
     "ORIGIN_REUSE_WARNING",
+    "PAYLOAD_INDEX_TEXT_SHA256",
+    "PAYLOAD_TEXT_PROJECTION_VERSION",
     "TAXONOMY",
     "BlobStore",
     "DocumentIndexer",

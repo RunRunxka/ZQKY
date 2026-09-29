@@ -95,6 +95,10 @@ describe('导入试题面板', () => {
     expect(form.get('file')).toBeInstanceOf(File);
     expect(form.get('subjectId')).toBe('math');
     expect(form.get('gradeId')).toBeNull();
+    // v1.1：导入与解析不触发任何模型调用（只有点「AI 整理草稿」才发 organize）
+    expect(
+      fetchMock.mock.calls.filter(([url]) => String(url).includes('/organize')),
+    ).toHaveLength(0);
   });
 
   it('上传失败时显示错误码并保留已选文件，可直接重试', async () => {

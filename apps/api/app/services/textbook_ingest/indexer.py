@@ -8,6 +8,10 @@
 - 身份（digest）变化、维度错误、指纹损坏不重试。
 - point id 由 (generation, chunk_set, ordinal, text_sha256) 决定：崩溃重做覆盖同一 id，
   不会产生重复向量。
+- **送模型的文本是该代登记的清洗版本投影后的索引输入文本**（RAG-QUALITY v1.1 §3.2）：
+  ``document_prefix + 上下文头 + projection.text``；payload 里的 ``text_sha256`` 仍是
+  **原文切片**散列，另有 ``textProjectionVersion`` / ``indexTextSha256`` 描述索引输入。
+  旧代（``raw-v0``）投影是恒等变换，历史行为不变。
 """
 
 from __future__ import annotations
@@ -45,10 +49,17 @@ from app.services.document_parsing.chunking import (
     chunk_document,
     chunk_manifest_sha256,
     chunk_policy_fingerprint,
+    chunk_projection,
 )
 from app.services.document_parsing.parser import ParsedDocument, parsed_from_source_map
 from app.services.textbook_ingest.blobs import BlobStore, sha256_text
+from app.services.textbook_ingest.generation_doc import generation_policy
 from app.services.textbook_ingest.jobs import DEFAULT_RENEW_SECONDS, LeaseKeeper
+
+#: 索引输入文本的清洗版本（与 :mod:`app.services.text_projection` 的版本常量同源）
+PAYLOAD_TEXT_PROJECTION_VERSION = "textProjectionVersion"
+#: 索引输入文本（清洗文本）的 sha256；与原文切片散列 ``text_sha256`` 是两个不同事实
+PAYLOAD_INDEX_TEXT_SHA256 = "indexTextSha256"
 
 DEFAULT_BATCH_SIZE = 8
 DEFAULT_RETRY_BACKOFF = (2.0, 10.0, 30.0)
@@ -304,16 +315,20 @@ class DocumentIndexer:
         *,
         profile: ProfileRecord,
         document_title: str,
-        text: str,
+        index_text: str,
         chunk: ChunkInput,
     ) -> str:
-        slice_text = text[chunk.char_start:chunk.char_end]
+        """送模型的文本 = 文档前缀 + 上下文头 + **清洗后的索引输入文本**。
+
+        ``index_text`` 由 :func:`chunk_projection` 按该代登记的清洗版本派生；原文切片
+        不再直接送模型（图片 Markdown 不进入向量空间）。
+        """
         header = " > ".join(
             part for part in (document_title, *chunk.chapter_path) if part
         )
         if profile.document_prefix or header:
-            return f"{profile.document_prefix}{header}\n{slice_text}"
-        return slice_text
+            return f"{profile.document_prefix}{header}\n{index_text}"
+        return index_text
 
     def payload_for(
         self,
@@ -324,7 +339,10 @@ class DocumentIndexer:
         document_id: str,
         owner_id: str,
         chunk: ChunkInput,
+        text_projection_version: str,
+        index_text_sha256: str,
     ) -> dict:
+        """point payload：原有字段含义不变（``text_sha256`` 仍是原文切片散列），新增两个字段。"""
         return {
             PAYLOAD_GENERATION_ID: generation.generation_id,
             PAYLOAD_DOCUMENT_ID: document_id,
@@ -334,6 +352,8 @@ class DocumentIndexer:
             PAYLOAD_OWNER_ID: owner_id,
             PAYLOAD_REGION: chunk.region,
             PAYLOAD_TEXT_SHA256: chunk.text_sha256,
+            PAYLOAD_TEXT_PROJECTION_VERSION: text_projection_version,
+            PAYLOAD_INDEX_TEXT_SHA256: index_text_sha256,
         }
 
     def upsert_points(self, *, collection: str, points: list[VectorPoint]) -> None:
@@ -374,8 +394,13 @@ class DocumentIndexer:
         每个批次的两端都做租约检查与（到期）续租：批次开始前核验+续租，
         upsert 之后、checkpoint 之前再续租一次；任何一次续租失败立即抛
         ``LEASE_LOST`` 停止写入，不再产生新批次。
+
+        索引输入文本按**该索引代登记的清洗版本**投影（旧代 = ``raw-v0`` 恒等投影，
+        新代 = ``rag-readable-v1`` 清洗文本）；块清单已排除清洗后为空的块，
+        所以点数与 ``expected_chunk_count`` 永远一致。
         """
         self.require_profile_usable(profile)
+        policy = generation_policy(generation)
         total = len(chunks)
         batch_size = self.batch_size
         index = 0
@@ -383,14 +408,17 @@ class DocumentIndexer:
             self.require_lease_and_renew(job_id=job.job_id, lease_token=lease_token)
             self.raise_if_cancelled(job.job_id)
             batch = list(chunks[index:index + batch_size])
+            projections = [
+                chunk_projection(chunk, parsed.normalized_text, policy) for chunk in batch
+            ]
             texts = [
                 self.embedding_text(
                     profile=profile,
                     document_title=document_title,
-                    text=parsed.normalized_text,
+                    index_text=projection.text,
                     chunk=chunk,
                 )
-                for chunk in batch
+                for chunk, projection in zip(batch, projections)
             ]
             self.require_digest(profile)
             vectors, batch_size = self.embed_batch(profile=profile, texts=texts)
@@ -411,9 +439,11 @@ class DocumentIndexer:
                         document_id=document_id,
                         owner_id=owner_id,
                         chunk=chunk,
+                        text_projection_version=projection.version,
+                        index_text_sha256=sha256_text(projection.text),
                     ),
                 )
-                for chunk, vector in zip(batch, vectors)
+                for chunk, projection, vector in zip(batch, projections, vectors)
             ]
             self.upsert_points(collection=generation.collection_name, points=points)
             index += len(batch)

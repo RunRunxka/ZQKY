@@ -208,7 +208,22 @@ describe('教材入口与 v2 追问/详解界面', () => {
             submissionId: reply.submissionId,
             answers: reply.answers,
           });
-          push('text.delta', { text: '教材知识点：按补充条件重新定位后的结果。' });
+          // 追问后重新定位：真实协议会再发一次 rag.result + 正文（项目既有顺序）
+          push('rag.result', {
+            result: {
+              ...result,
+              points: [
+                {
+                  pointId: 'p2',
+                  title: '重新定位结果',
+                  summary: '按补充条件重新定位后的结果。[1]',
+                  evidenceIds: ['ev-1'],
+                },
+              ],
+              presentation: { version: 'compact-v1', answerStyle: 'brief', bodyCharCount: 20 },
+            },
+          });
+          push('text.delta', { text: '教材知识点：补充条件后的正文说明。' });
           push('message.end', { finishReason: 'stop' });
           sink.close();
           return Response.json({ accepted: true });
@@ -264,8 +279,12 @@ describe('教材入口与 v2 追问/详解界面', () => {
       afterEventId: 0,
       scope: { kind: 'selection', selection },
     });
-    // 结构化证据与可读定位随正文展示
-    expect(await screen.findByText('教材依据')).toBeInTheDocument();
+    // 知识点回答头随结构化结果展示（紧凑视图）；来源默认折叠，条数可展开
+    expect(await screen.findByText('教材知识点')).toBeInTheDocument();
+    expect(screen.getByText('集合表示')).toBeInTheDocument();
+    const sourceToggle = await screen.findByRole('button', { name: /查看教材依据（1 条）/ });
+    expect(sourceToggle).toHaveAttribute('aria-expanded', 'false');
+    fireEvent.click(sourceToggle);
     expect(screen.getByText('高中数学 必修一')).toBeInTheDocument();
     expect(screen.getByText(/第 10–12 行/)).toBeInTheDocument();
     expect(screen.queryByText('追问（本地模拟）')).not.toBeInTheDocument();
@@ -278,7 +297,11 @@ describe('教材入口与 v2 追问/详解界面', () => {
       answers: [{ questionId: 'textbook-follow-up', labels: ['细讲解题思路'], freeText: '' }],
     });
     expect((streamBodies.reply as { submissionId: string }).submissionId).toBeTruthy();
-    await screen.findByText(/按补充条件重新定位后的结果/);
+    // 追问后重新定位：新 rag.result 替换旧结果，紧凑知识点更新一次；
+    // 同一份正文（content 里的渲染结果）不再作为第二遍出现在消息流里
+    expect(await screen.findByText('按补充条件重新定位后的结果。')).toBeInTheDocument();
+    expect(screen.queryByText('列举法或描述法。')).toBeNull();
+    expect(screen.queryByText(/补充条件后的正文说明/)).toBeNull();
     // 终态后出现详解引导；选择方向 → 冻结当前聊天模型与证据发起详解
     const guidanceOption = await screen.findByRole('button', { name: /细讲解题思路/ });
     fireEvent.click(guidanceOption);

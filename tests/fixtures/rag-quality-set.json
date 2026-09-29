@@ -1,0 +1,329 @@
+{
+  "schemaVersion": 1,
+  "note": "RAG-QUALITY v1.1 固定质量集：10 个高一分组 ×（2 个正向知识点问题 + 1 个边界问题）。问题用自然问法（不拿章节标题充当问题）；正向标注 = 目标书册 documentId + 必须在命中证据原文中出现的锚点短语。锚点由运行器**先对语料校验存在**，不存在即整份数据集失败，避免自证式标签。",
+  "groups": [
+    {
+      "id": "math-a",
+      "gradeId": "senior-1",
+      "subjectId": "math",
+      "editionId": "renjiao-a"
+    },
+    {
+      "id": "math-b",
+      "gradeId": "senior-1",
+      "subjectId": "math",
+      "editionId": "renjiao-b"
+    },
+    {
+      "id": "physics",
+      "gradeId": "senior-1",
+      "subjectId": "physics",
+      "editionId": "renjiao"
+    },
+    {
+      "id": "chemistry",
+      "gradeId": "senior-1",
+      "subjectId": "chemistry",
+      "editionId": "renjiao"
+    },
+    {
+      "id": "biology",
+      "gradeId": "senior-1",
+      "subjectId": "biology",
+      "editionId": "renjiao"
+    },
+    {
+      "id": "chinese",
+      "gradeId": "senior-1",
+      "subjectId": "chinese",
+      "editionId": "renjiao"
+    },
+    {
+      "id": "english",
+      "gradeId": "senior-1",
+      "subjectId": "english",
+      "editionId": "renjiao"
+    },
+    {
+      "id": "history",
+      "gradeId": "senior-1",
+      "subjectId": "history",
+      "editionId": "renjiao"
+    },
+    {
+      "id": "geography",
+      "gradeId": "senior-1",
+      "subjectId": "geography",
+      "editionId": "renjiao"
+    },
+    {
+      "id": "politics",
+      "gradeId": "senior-1",
+      "subjectId": "politics",
+      "editionId": "renjiao"
+    }
+  ],
+  "questions": [
+    {
+      "id": "Q01",
+      "group": "math-a",
+      "kind": "positive",
+      "question": "集合的表示方法有哪几种",
+      "anchors": [
+        "列举法",
+        "描述法"
+      ]
+    },
+    {
+      "id": "Q02",
+      "group": "math-a",
+      "kind": "positive",
+      "question": "函数单调递增是怎么定义的",
+      "anchors": [
+        "单调递增"
+      ]
+    },
+    {
+      "id": "Q03",
+      "group": "math-a",
+      "kind": "boundary",
+      "boundaryKind": "out_of_scope",
+      "question": "请按人教版高中化学教材讲解乙醇的酯化反应",
+      "anchors": []
+    },
+    {
+      "id": "Q04",
+      "group": "math-b",
+      "kind": "positive",
+      "question": "向量的数量积是怎么定义的",
+      "anchors": [
+        "数量积"
+      ]
+    },
+    {
+      "id": "Q05",
+      "group": "math-b",
+      "kind": "positive",
+      "question": "复数的几何意义是什么",
+      "anchors": [
+        "复数"
+      ]
+    },
+    {
+      "id": "Q06",
+      "group": "math-b",
+      "kind": "boundary",
+      "boundaryKind": "insufficient",
+      "question": "请给出本册教材里没有的泰勒展开式的完整推导",
+      "anchors": []
+    },
+    {
+      "id": "Q07",
+      "group": "physics",
+      "kind": "positive",
+      "question": "匀变速直线运动的速度与时间的关系式是什么",
+      "anchors": [
+        "匀变速直线运动"
+      ]
+    },
+    {
+      "id": "Q08",
+      "group": "physics",
+      "kind": "positive",
+      "question": "滑动摩擦力的大小与什么有关",
+      "anchors": [
+        "滑动摩擦力"
+      ]
+    },
+    {
+      "id": "Q09",
+      "group": "physics",
+      "kind": "boundary",
+      "boundaryKind": "image_dependent",
+      "question": "请读出第 3.2 节图 3.2-2 中雪橇的受力分析图上有几个力的箭头",
+      "anchors": []
+    },
+    {
+      "id": "Q10",
+      "group": "chemistry",
+      "kind": "positive",
+      "question": "物质的量浓度的定义和表达式是什么",
+      "anchors": [
+        "物质的量浓度"
+      ]
+    },
+    {
+      "id": "Q11",
+      "group": "chemistry",
+      "kind": "positive",
+      "question": "氧化还原反应的本质是什么",
+      "anchors": [
+        "氧化还原反应"
+      ]
+    },
+    {
+      "id": "Q12",
+      "group": "chemistry",
+      "kind": "boundary",
+      "boundaryKind": "insufficient",
+      "question": "请说明本册没有涉及的有机化学中格氏试剂的制备",
+      "anchors": []
+    },
+    {
+      "id": "Q13",
+      "group": "biology",
+      "kind": "positive",
+      "question": "细胞膜的流动镶嵌模型讲了什么",
+      "anchors": [
+        "流动镶嵌模型"
+      ]
+    },
+    {
+      "id": "Q14",
+      "group": "biology",
+      "kind": "positive",
+      "question": "光合作用的光反应发生在细胞的什么部位",
+      "anchors": [
+        "类囊体"
+      ]
+    },
+    {
+      "id": "Q15",
+      "group": "biology",
+      "kind": "boundary",
+      "boundaryKind": "out_of_scope",
+      "question": "请按高一生物教材讲经济学里的边际效用递减规律",
+      "anchors": []
+    },
+    {
+      "id": "Q16",
+      "group": "chinese",
+      "kind": "positive",
+      "question": "《劝学》里是怎么论述学习需要积累的",
+      "anchors": [
+        "劝学"
+      ]
+    },
+    {
+      "id": "Q17",
+      "group": "chinese",
+      "kind": "positive",
+      "question": "《赤壁赋》中作者由乐转悲又转喜的思路是怎样的",
+      "anchors": [
+        "赤壁赋"
+      ]
+    },
+    {
+      "id": "Q18",
+      "group": "chinese",
+      "kind": "boundary",
+      "boundaryKind": "out_of_scope",
+      "question": "请讲解本册未收录的《滕王阁序》全文翻译",
+      "anchors": []
+    },
+    {
+      "id": "Q19",
+      "group": "english",
+      "kind": "positive",
+      "question": "定语从句中关系代词 that 和 which 的用法区别是什么",
+      "anchors": [
+        "relative"
+      ]
+    },
+    {
+      "id": "Q20",
+      "group": "english",
+      "kind": "positive",
+      "question": "一般现在时表示习惯性动作时怎么用",
+      "anchors": [
+        "present"
+      ]
+    },
+    {
+      "id": "Q21",
+      "group": "english",
+      "kind": "boundary",
+      "boundaryKind": "insufficient",
+      "question": "请给出本册口语活动中没有出现过的古英语变位表",
+      "anchors": []
+    },
+    {
+      "id": "Q22",
+      "group": "history",
+      "kind": "positive",
+      "question": "秦朝为巩固统一采取了哪些措施",
+      "anchors": [
+        "秦"
+      ]
+    },
+    {
+      "id": "Q23",
+      "group": "history",
+      "kind": "positive",
+      "question": "辛亥革命的历史意义是什么",
+      "anchors": [
+        "辛亥革命"
+      ]
+    },
+    {
+      "id": "Q24",
+      "group": "history",
+      "kind": "boundary",
+      "boundaryKind": "out_of_scope",
+      "question": "请按高一历史教材讲解量子力学的矩阵力学",
+      "anchors": []
+    },
+    {
+      "id": "Q25",
+      "group": "geography",
+      "kind": "positive",
+      "question": "水循环的地理意义有哪些",
+      "anchors": [
+        "水循环"
+      ]
+    },
+    {
+      "id": "Q26",
+      "group": "geography",
+      "kind": "positive",
+      "question": "热力环流是怎么形成的",
+      "anchors": [
+        "热力环流"
+      ]
+    },
+    {
+      "id": "Q27",
+      "group": "geography",
+      "kind": "boundary",
+      "boundaryKind": "out_of_scope",
+      "question": "请按高一地理教材讲解高数里的格林公式",
+      "anchors": []
+    },
+    {
+      "id": "Q28",
+      "group": "politics",
+      "kind": "positive",
+      "question": "中国特色社会主义进入新时代的主要矛盾是什么",
+      "anchors": [
+        "主要矛盾"
+      ]
+    },
+    {
+      "id": "Q29",
+      "group": "politics",
+      "kind": "positive",
+      "question": "公有制经济的主体地位体现在哪些方面",
+      "anchors": [
+        "公有制"
+      ]
+    },
+    {
+      "id": "Q30",
+      "group": "politics",
+      "kind": "boundary",
+      "boundaryKind": "insufficient",
+      "question": "请给出本册没有收录的某企业内部薪酬明细",
+      "anchors": []
+    }
+  ]
+}

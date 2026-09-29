@@ -1,16 +1,22 @@
 import type { ChatMessage, ChatRole } from '@/contracts/chat';
+import { projectMessage } from './message-projection';
 
 /**
- * 消息的对话投影（R12）：正文 + 已确认追问交流 + 逐卡续写，按时间顺序。
- * - 已确认答案以"问题：回答"行进入投影；未提交草稿不冒充已提交回答；
- * - 无追问卡的消息原样返回（旧纯 content 历史兼容，不重复正文）；
- * - 复制、服务请求上下文、预算计算共用同一投影，避免消费者各自适配。
+ * 消息的对话投影（R12；RAG-QUALITY v1.1 起统一走单一投影）：投影正文 + 已确认追问交流 +
+ * 逐卡续写，按时间顺序。**默认复制与后续请求上下文共用本函数**。
+ *
+ * - 投影正文来自 `projectMessage`（`features/chat/model/message-projection.ts`）：
+ *   结构化 RAG 首答 = 简短知识点 + 紧凑出处，**不含整段教材原文**；
+ *   普通回答 / 详解回答 / 旧 v1 = 原正文，不做任何截断；
+ * - 是否走投影只看结构化字段（`ragResult` 是否存在且无 `ragExplain`），
+ *   **不再**用 `asks?.length` 决定分支；
+ * - 已确认答案以"问题：回答"行进入投影；未提交草稿不冒充已提交回答。
  */
 export function conversationProjection(m: ChatMessage): string {
-  if (!m.asks?.length) return m.content;
   const parts: string[] = [];
-  if (m.content) parts.push(m.content);
-  for (const ask of m.asks) {
+  const base = projectMessage(m).historyText;
+  if (base) parts.push(base);
+  for (const ask of m.asks ?? []) {
     if (ask.status === 'answered' && ask.answers?.length) {
       const lines = ask.questions
         .map((q) => {
@@ -37,13 +43,13 @@ export interface RequestMessage {
 }
 
 /**
- * 对话历史 → 可发送的整条消息：统一走对话投影（R12），无正文的空占位
+ * 对话历史 → 可发送的整条消息：统一走对话投影（R12 + 单一消息投影），无正文的空占位
  * （失败/流式中的助手占位）与 system 空行不发送。
  */
 export function projectRequestHistory(messages: ChatMessage[]): RequestMessage[] {
   const projected: RequestMessage[] = [];
   for (const message of messages) {
-    const content = message.asks?.length ? conversationProjection(message) : message.content;
+    const content = conversationProjection(message);
     if (!content.trim()) continue;
     projected.push({ role: message.role, content });
   }

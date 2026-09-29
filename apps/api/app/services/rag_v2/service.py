@@ -15,6 +15,17 @@
 
 一次定位的同步部分由 executor 承担；超时/取消不会提前释放该 worker，迟到的结果
 被计数丢弃（``discarded_late_results``），不会污染已结束的轮次。
+
+RAG-QUALITY v1.1（PLAN §3.3/§3.4）接线：
+
+- 证据由 :func:`app.services.rag_v2.evidence.select_evidence` **有界**选择（≤6 条 / 单条
+  ≤6,000 码点原文、≤1,600 码点清洗文本 / 总量 ≤16,000），每条都带 ``readable`` 清洗投影；
+- 有命中却装不进预算时按 ``EVIDENCE_UNIT_TOO_LARGE`` / ``EVIDENCE_TEXT_EMPTY`` / ``NO_MATCH``
+  给出可解释状态与 ``reasonCode``，**绝不**退化成"没有找到教材依据"；
+- 首答正文只渲染知识点（``presenter.render_result``），并填 ``presentation``
+  （``compact-v1`` + 知识点正文码点数）；概括失败保留证据 + ``partial``；
+- ``ok`` 时 ``reasonCode`` 恒为 ``None``；概括侧明确"部分保留"或服务端二次校验丢弃知识点时，
+  状态降为 ``partial``，不静默丢点。
 """
 
 from __future__ import annotations
@@ -31,20 +42,27 @@ from dataclasses import dataclass, field
 
 from app.core.exceptions import AppError
 from app.repositories.textbook_catalog.catalog import TextbookCatalog
-from app.schemas.rag_v2 import RagExplainRequest, RagResultV2, ScopeSnapshot, TextbookEvidence
+from app.schemas.rag_v2 import (
+    RagExplainRequest,
+    RagPoint,
+    RagPresentation,
+    RagResultV2,
+    ScopeSnapshot,
+    TextbookEvidence,
+)
 from app.schemas.textbook import TextbookSelection
 from app.services.rag_v2.evidence import (
     MAX_EVIDENCE_CHARS,
     MAX_EVIDENCE_ITEMS,
-    build_evidence,
     rebuild_evidence_refs,
+    select_evidence,
 )
 from app.services.rag_v2.explain import (
     ChatModelHandle,
     Explainer,
     build_explanation_request,
 )
-from app.services.rag_v2.presenter import render_result
+from app.services.rag_v2.presenter import body_char_count, render_result
 from app.services.rag_v2.requests import RagReplyRequestV2, RagStreamRequestV2
 from app.services.rag_v2.retrieval import DENSE_LIMIT, LEXICAL_LIMIT, RRF_K, HybridRetriever
 from app.services.rag_v2.scope import resolve_scope, verify_scope
@@ -777,56 +795,91 @@ class RagV2Service:
         candidates = retrieval.retrieve(
             question=job.question, scope=scope, profile=profile, generation=generation
         )
-        evidence = build_evidence(
+        selection = select_evidence(
             catalog=catalog,
             scope=scope,
             candidates=candidates,
             texts=self._source(),
+            question=job.question,
             max_items=self.evidence_max_items,
-            max_chars=self.evidence_max_chars,
+            max_total_raw_chars=self.evidence_max_chars,
         )
         # 证据重建后再核验一次：来源可能在本轮中途被删除或换修订
         verify_scope(catalog, turn.scope_snapshot)
-        if not evidence:
+        if not selection.evidence:
+            # 有命中但无法使用必须给可解释状态，绝不退化成"没有找到教材依据"（PLAN §3.3）。
             return RagResultV2(
                 resultId=uuid.uuid4().hex,
-                status="no_evidence",
+                status=selection.status,
                 scopeSnapshot=turn.scope_snapshot,
                 points=[],
                 evidence=[],
-                reason="当前教材范围没有找到足够依据，请补充题干、章节或确认任教范围。",
+                reason=selection.reason,
+                reasonCode=selection.reason_code,
+                presentation=self._presentation([]),
             )
-        outcome = self._summarize(job.question, evidence)
+        outcome = self._summarize(job.question, selection.evidence)
+        points = list(outcome.points)
+        # 概括侧明确回报"部分保留"或服务端二次校验丢弃了知识点时，状态必须是 partial，
+        # 不能让被丢掉的知识点静默消失（ok 时 reasonCode 恒为 None）。
+        partial_by_summary = bool(outcome.reason_code) or bool(outcome.dropped)
+        status = "ok" if points and not partial_by_summary else "partial"
         return RagResultV2(
             resultId=uuid.uuid4().hex,
-            status="ok" if outcome.points else "partial",
+            status=status,
             scopeSnapshot=turn.scope_snapshot,
-            points=outcome.points,
-            evidence=list(evidence),
+            points=points,
+            evidence=list(selection.evidence),
             reason=outcome.reason,
+            reasonCode=None if status == "ok" else (outcome.reason_code or "SUMMARY_INVALID"),
+            presentation=self._presentation(points),
+        )
+
+    @staticmethod
+    def _presentation(points: Sequence[RagPoint]) -> RagPresentation:
+        """首答呈现元数据：紧凑简短回答 + 知识点正文码点数（标题 + 说明）。"""
+        return RagPresentation(
+            version="compact-v1",
+            answerStyle="brief",
+            bodyCharCount=body_char_count(points),
         )
 
     def _summarize(self, question: str, evidence: Sequence[TextbookEvidence]) -> SummaryOutcome:
         """概括失败一律保留证据：可用原文 + partial，绝不降级成 no_evidence、绝不编造。"""
         if self.summarizer is None:
             return SummaryOutcome(
-                points=[], reason="本地知识点概括服务未装配，保留教材原文供核对。"
+                points=[],
+                reason="本地知识点概括服务未装配，保留教材原文供核对。",
+                reason_code="SUMMARY_INVALID",
             )
         try:
             outcome = self.summarizer.summarize(question=question, evidence=list(evidence))
         except AppError as exc:
             if exc.code == "RAG_SUMMARY_UNAVAILABLE":
                 return SummaryOutcome(
-                    points=[], reason=f"{exc}（已保留教材原文供核对）"
+                    points=[],
+                    reason=f"{exc}（已保留教材原文供核对）",
+                    reason_code="SUMMARY_INVALID",
                 )
             raise
         raw_points = list(getattr(outcome, "points", []) or [])
         reason = getattr(outcome, "reason", None)
-        # 服务端二次校验：任何实现（含替身）产出的知识点都必须只引用已核验证据
-        points, dropped = filter_points(raw_points, evidence)
+        # 服务端二次校验：只允许引用**打包后实际进入提示词**的证据（替身没有打包信息时
+        # 退回"全部已核验证据"），任何实现都不可能把非法引用带进结果。
+        admitted = getattr(outcome, "admitted_evidence_ids", None)
+        points, dropped = filter_points(raw_points, evidence, allowed_ids=admitted)
         if raw_points and not points:
             reason = "知识点概括未通过原文引用校验，保留教材原文供核对。"
-        return SummaryOutcome(points=points, reason=reason, dropped=dropped)
+        elif dropped:
+            reason = "部分知识点未通过原文引用校验，已保留通过校验的知识点，保留教材原文供核对。"
+        if dropped:
+            outcome_reason_code = "SUMMARY_PARTIAL" if points else "SUMMARY_INVALID"
+        else:
+            outcome_reason_code = getattr(outcome, "reason_code", None)
+        reason_code = outcome_reason_code or (None if points else "SUMMARY_INVALID")
+        return SummaryOutcome(
+            points=points, reason=reason, reason_code=reason_code, dropped=dropped
+        )
 
     @staticmethod
     def _interaction(result: RagResultV2) -> dict:

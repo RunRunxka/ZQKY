@@ -29,35 +29,73 @@ function CodeBlock({ children }: { children?: ReactNode }) {
     </div>
   );
 }
-export const AnswerMarkdown = memo(function AnswerMarkdown({ text }: { text: string }) {
+
+/**
+ * 正文 Markdown 渲染。
+ *
+ * - `omitImages`（RAG 专用「省略图片」策略，PLAN §4.2）：`img` 不渲染、**不发起任何图片请求**；
+ *   普通聊天保持默认 `false`，仍显示既有的文字占位（行为不变）；
+ * - `inline`：知识点标题/说明内的公式同行渲染，不产生块级段落（`[n]` 引用编号可紧跟其后）。
+ */
+const MarkdownBody = memo(function MarkdownBody({
+  text,
+  omitImages = false,
+  inline = false,
+}: {
+  text: string;
+  omitImages?: boolean;
+  inline?: boolean;
+}) {
+  return (
+    <Markdown
+      remarkPlugins={[remarkGfm, remarkMath]}
+      rehypePlugins={[
+        [rehypeKatex, { trust: false, strict: 'ignore', throwOnError: false, maxExpand: 1000 }],
+        rehypeHighlight,
+      ]}
+      skipHtml
+      components={{
+        pre: CodeBlock,
+        a: ({ children, href }) => (
+          <a href={href} target="_blank" rel="noopener noreferrer">
+            {children}
+          </a>
+        ),
+        img: ({ alt }) =>
+          omitImages ? null : <span className="chat-status-text">[图片：{alt || '图片内容未加载'}]</span>,
+        table: ({ children }) => (
+          <div className="answer-table" tabIndex={0}>
+            <table>{children}</table>
+          </div>
+        ),
+        ...(inline
+          ? { p: ({ children }: { children?: ReactNode }) => <span className="chat-answer-line">{children}</span> }
+          : {}),
+      }}
+    >
+      {normalizeMathDelimiters(text)}
+    </Markdown>
+  );
+});
+
+export const AnswerMarkdown = memo(function AnswerMarkdown({
+  text,
+  omitImages = false,
+  inline = false,
+}: {
+  text: string;
+  omitImages?: boolean;
+  inline?: boolean;
+}) {
+  if (inline)
+    return (
+      <span className="answer-markdown answer-markdown-inline">
+        <MarkdownBody text={text} omitImages={omitImages} inline />
+      </span>
+    );
   return (
     <div className="answer-markdown">
-      <Markdown
-        remarkPlugins={[remarkGfm, remarkMath]}
-        rehypePlugins={[
-          [rehypeKatex, { trust: false, strict: 'ignore', throwOnError: false, maxExpand: 1000 }],
-          rehypeHighlight,
-        ]}
-        skipHtml
-        components={{
-          pre: CodeBlock,
-          a: ({ children, href }) => (
-            <a href={href} target="_blank" rel="noopener noreferrer">
-              {children}
-            </a>
-          ),
-          img: ({ alt }) => (
-            <span className="chat-status-text">[图片：{alt || '图片内容未加载'}]</span>
-          ),
-          table: ({ children }) => (
-            <div className="answer-table" tabIndex={0}>
-              <table>{children}</table>
-            </div>
-          ),
-        }}
-      >
-        {normalizeMathDelimiters(text)}
-      </Markdown>
+      <MarkdownBody text={text} omitImages={omitImages} />
     </div>
   );
 });

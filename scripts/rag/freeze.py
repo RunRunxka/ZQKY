@@ -9,12 +9,21 @@ import time
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    import argparse
+
+    parser = argparse.ArgumentParser(description="生成批次冻结候选记录（默认输出到批次目录）")
+    parser.add_argument("--batch", required=True, help="批次目录名，例如 RAG-QUALITY-v1")
+    parser.add_argument("--base-commit", default="", help="验收基线提交（默认取 HEAD）")
+    args = parser.parse_args(argv)
     raw = subprocess.run(
         ["git", "status", "--porcelain", "-uall"],
         capture_output=True, text=True, encoding="utf-8", cwd=ROOT,
     ).stdout
-    manifest_path = ROOT / "docs/qa/RAG-REBUILD-v1/FROZEN-CANDIDATE.json"
+    batch_dir = ROOT / "docs/qa" / args.batch
+    if not batch_dir.is_dir():
+        raise SystemExit(f"批次目录不存在（先建目录，避免把清单写到别处）：{batch_dir}")
+    manifest_path = batch_dir / "FROZEN-CANDIDATE.json"
     entries = []
     for line in raw.splitlines():
         status, path = line[:2].strip(), line[3:].strip().strip('"')
@@ -37,7 +46,9 @@ def main() -> int:
         "taskId": "RAG-REBUILD-v1",
         "version": "v1",
         "frozenAt": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
-        "baseCommit": "c2f31ec0a70fc9b9e9d38479b6c193416c19befb",
+        "baseCommit": args.base_commit or subprocess.run(
+            ["git", "rev-parse", "HEAD"], capture_output=True, text=True, cwd=ROOT
+        ).stdout.strip(),
         "hashSource": "sha256(file bytes)",
         "frontendBuildId": build_id,
         "changedFileCount": len(entries),

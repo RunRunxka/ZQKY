@@ -171,9 +171,9 @@ class DraftMergeRequest(_Strict):
 class OrganizeRequest(_Strict):
     draftIds: list[str] = Field(default_factory=list, max_length=50)
     includeUnassigned: bool = False
-    #: 可选的**本机 Ollama 模型名**；空串或省略 = 服务端默认整理模型。
-    #: 语义固定为本地模型（教材与题面不外发云端）；传聊天 profileId 会被拒绝为 422。
-    modelProfileId: str = Field(default="", max_length=128)
+    #: **当前聊天模型**的 profile id（本地或云端均可）；语义与详解一致，必填。
+    #: 后端经 `model_runtime.resolve_chat_model` 解析——不得把 profile id 当模型名用。
+    modelProfileId: str = Field(min_length=1, max_length=128)
 
 
 class OrganizeBatchFailure(_Frozen):

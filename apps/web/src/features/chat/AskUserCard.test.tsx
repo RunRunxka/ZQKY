@@ -194,4 +194,63 @@ describe('追问卡 v2（§7.2/§7.3）', () => {
     );
     expect(ui.container.querySelector('.chat-ask-summary')?.textContent).toContain('细讲解题思路');
   });
+
+  it('RAG-QUALITY v1.1 精简：普通状态不再渲染独立卡标题，标签与分页合并到顶行', () => {
+    const { container } = render(<Harness interaction={card()} />);
+    // 顶行（标签 + 分页）只有一处；旧的独立卡标题（.chat-ask-head）在普通状态不再渲染
+    expect(container.querySelectorAll('.chat-ask-pager')).toHaveLength(1);
+    expect(container.querySelectorAll('.chat-ask-pager .chat-ask-kind')).toHaveLength(1);
+    expect(container.querySelectorAll('.chat-ask-head')).toHaveLength(0);
+    expect(screen.getAllByText('教材追问')).toHaveLength(1);
+    // 题干（prompt）只出现一次，题干标签与题目含义不同时保留一个题干标签
+    expect(screen.getAllByText('定位是否符合题意？')).toHaveLength(1);
+    expect(container.querySelectorAll('.chat-ask-pager .chat-ask-label')).toHaveLength(1);
+  });
+
+  it('RAG-QUALITY v1.1 精简：与题干/标签同义的 intro 不再重复显示', () => {
+    const { container } = render(
+      <Harness
+        interaction={card({
+          intro: '继续追问',
+          questions: [
+            {
+              questionId: 'q1',
+              header: '继续追问',
+              prompt: '继续追问',
+              options: [{ label: '细讲解题思路' }],
+              multiSelect: false,
+              allowFreeText: false,
+            },
+          ],
+        })}
+      />,
+    );
+    // 题干标签与题干同义 → 不重复渲染题干标签；intro 与题干相同 → 不重复渲染
+    expect(container.querySelector('.chat-ask-pager .chat-ask-label')).toBeNull();
+    expect(container.querySelectorAll('.chat-ask-intro')).toHaveLength(0);
+    expect(screen.getAllByText('继续追问')).toHaveLength(1);
+  });
+
+  it('RAG-QUALITY v1.1 精简：有信息量的 intro 仍显示一次，异常状态保留必要说明', () => {
+    const { container } = render(<Harness interaction={card()} />);
+    expect(container.querySelectorAll('.chat-ask-intro')).toHaveLength(1);
+    cleanup();
+    const pending = render(
+      <Harness
+        interaction={card({
+          pendingSubmission: {
+            submissionId: 'sub-1',
+            answers: [{ questionId: 'q1', labels: [], freeText: 'x>0' }],
+          },
+          drafts: { q1: { labels: [], freeText: 'x>0', disposition: 'unanswered' } },
+        })}
+      />,
+    );
+    expect(pending.container.querySelector('.chat-ask-note')?.textContent).toContain(
+      '上次提交结果尚未确认',
+    );
+    expect(pending.container.querySelector('.chat-ask-foot .chat-ask-hint')?.textContent).toContain(
+      '结果未确认：仅可重试原提交',
+    );
+  });
 });

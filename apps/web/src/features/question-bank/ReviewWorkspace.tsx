@@ -19,6 +19,7 @@ import type {
   QuestionImportDetail,
 } from '@/contracts/question-bank';
 import { ApiError } from '@/services/api-client';
+import { loadModelCatalog } from '@/services/model-settings-api';
 import {
   applyQuestionSuggestion,
   confirmQuestionImport,
@@ -35,10 +36,15 @@ import { asApiError, useAsyncResource } from './hooks';
 import { importStateLabel, questionTypeLabel, reviewStateLabel } from './labels';
 import { MergePanel } from './MergePanel';
 import {
-  fetchLocalOrganizerModel,
-  organizerModelLabel,
-  type LocalOrganizerModel,
+  ORGANIZER_CLOUD_NOTICE,
+  ORGANIZER_NO_DEFAULT_REASON,
+  organizerCatalogErrorReason,
+  pickOrganizerChatModel,
+  resolveOrganizerChatModel,
+  unavailableOrganizerModel,
+  type OrganizerChatModel,
 } from './model-profile';
+import { organizerFailureText, ORGANIZER_SUGGESTION_SEMANTICS } from './organizer-notice';
 import { SourcePane } from './SourcePane';
 import { SuggestionPanel } from './SuggestionPanel';
 import { buildTaxonomyIndex } from './taxonomy';
@@ -81,14 +87,51 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
     [taxonomy.state],
   );
 
-  // AI 整理只用本机 Ollama 模型（契约 v1.1）：状态来自 /rag/status 的 summarization 分区
-  const organizer = useAsyncResource(
-    (signal) => fetchLocalOrganizerModel(signal),
-    'qb-organizer-model',
+  /**
+   * AI 整理使用**点击时的当前聊天模型**（RAG-QUALITY v1.1）：来源与 /chat 同一处
+   * （`GET /model-catalog` 的 profiles + `defaultChatProfileId`）。
+   * 读取目录本身不调用模型；只有点「AI 整理草稿」才发 organize 请求。
+   */
+  const organizer = useAsyncResource(() => loadModelCatalog(), 'qb-organizer-model');
+  const organizerCatalog = organizer.state.phase === 'ready' ? organizer.state.data : null;
+  const currentModel: OrganizerChatModel = useMemo(() => {
+    if (organizer.state.phase === 'failed') {
+      const error = organizer.state.error;
+      return unavailableOrganizerModel(
+        organizerCatalogErrorReason(error.code, error.message),
+      );
+    }
+    return pickOrganizerChatModel(organizerCatalog);
+  }, [organizer.state, organizerCatalog]);
+
+  /** 点击时冻结的模型快照：任务未成功结束前，重试沿用同一个 profile id，不因切换聊天模型而改。 */
+  const [frozenModel, setFrozenModel] = useState<OrganizerChatModel | null>(null);
+  const frozenNow = useMemo(
+    () =>
+      frozenModel && organizerCatalog
+        ? resolveOrganizerChatModel(organizerCatalog, frozenModel.profileId)
+        : null,
+    [frozenModel, organizerCatalog],
   );
-  const organizerModel: LocalOrganizerModel | null =
-    organizer.state.phase === 'ready' ? organizer.state.data : null;
-  const organizerReady = organizerModel?.available === true;
+  // 只在目录读取成功时判断「冻结模型是否已失效」，避免刷新目录时误报
+  const frozenStale =
+    !!frozenModel && organizer.state.phase === 'ready' && frozenNow?.available !== true;
+  const activeModel = frozenModel ?? currentModel;
+  /** 冻结模型与当前聊天模型不同时，给出显式的「改用当前模型」出口（绝不自动替换）。 */
+  const canSwitchModel =
+    !!frozenModel && currentModel.available && currentModel.profileId !== frozenModel.profileId;
+
+  // 目录变化（在「模型设置」里改动后回到本页）时重新读取；只读目录，不触发模型调用
+  const reloadOrganizer = organizer.reload;
+  useEffect(() => {
+    const refresh = () => reloadOrganizer();
+    window.addEventListener('focus', refresh);
+    window.addEventListener('model-catalog-changed', refresh);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      window.removeEventListener('model-catalog-changed', refresh);
+    };
+  }, [reloadOrganizer]);
 
   const [mergeSelection, setMergeSelection] = useState<string[]>([]);
   const [mergeBusy, setMergeBusy] = useState(false);
@@ -216,14 +259,24 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
     }
   }
 
+  /**
+   * 发起 AI 整理。
+   *
+   * - 点击这一刻把当前聊天模型 profile id 冻结进请求；任务未成功结束前，
+   *   即使用户在「模型设置」里换了聊天模型，重试仍沿用冻结的同一个 profile id；
+   * - 模型失效时只提示修复，**不自动换一个模型重发**；
+   * - 失败保留已有建议与草稿，不发生任何自动重试（模型只在点击时被调用）。
+   */
   async function runOrganize() {
-    if (!organizerModel || !organizerModel.available) {
+    const next = activeModel;
+    if (!next || !next.available) {
       setOrganizeError(
-        organizerModel?.reason ??
-          '本机概括模型状态未知：请先确认本机 Ollama 可用后重新检查本机模型。',
+        next?.reason ?? '当前聊天模型不可用：请到「模型设置」选择默认问答模型后重试。',
       );
       return;
     }
+    const useFrozen = frozenModel !== null;
+    setFrozenModel(next);
     setOrganizeBusy(true);
     setOrganizeError(null);
     try {
@@ -232,18 +285,28 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
           .filter((draft) => draft.reviewState !== 'excluded')
           .map((draft) => draft.draftId),
         includeUnassigned,
-        // 本地模型名；空串 = 服务端默认本机模型（绝不传聊天 profileId）
-        modelProfileId: organizerModel.modelName,
+        // 当前聊天模型 profile id（本地或云端均可）；绝不是模型名、不是空串
+        modelProfileId: next.profileId,
       });
       setJob(result);
+      // 任务成功结束：解除冻结，下一次点击按届时的当前聊天模型发起新任务
+      if (result.state === 'succeeded') setFrozenModel(null);
     } catch (cause) {
       const error = asApiError(cause);
       setOrganizeError(
-        `AI 整理失败（${error.code}）：${error.message} 未修改任何草稿，可稍后重试。`,
+        `AI 整理未完成（${error.code}）：${organizerFailureText(error.code, error.message)} ${
+          useFrozen ? '本次重试沿用已冻结的模型；' : ''
+        }草稿与既有建议未被修改。`,
       );
     } finally {
       setOrganizeBusy(false);
     }
+  }
+
+  /** 显式改用当前聊天模型：清掉冻结快照，不自动重发（下一次点击才调用模型）。 */
+  function useCurrentModelInstead() {
+    setFrozenModel(null);
+    setOrganizeError(null);
   }
 
   async function reviewSuggestion(suggestionId: string, accept: boolean) {
@@ -434,17 +497,46 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
                   <div className="qb-subpanel">
                     <h2>AI 整理</h2>
                     <p className="qb-hint">
-                      使用<strong>本机模型</strong>
-                      把草稿整理成更规范的题目结构（教材与题目不外发云端）；
-                      结果只是待校对建议，不会覆盖你的人工修改，也不会自动入库。
+                      把草稿整理成更规范的题目结构（只有点「AI 整理草稿」才调用模型）；
+                      {ORGANIZER_SUGGESTION_SEMANTICS}
                     </p>
-                    <p
-                      className={organizerReady ? 'qb-hint' : 'qb-hint qb-warn-text'}
-                      data-testid="qb-organizer-model"
-                      role={organizerReady ? undefined : 'status'}
-                    >
-                      {organizerModelLabel(organizerModel)}
-                    </p>
+                    {activeModel.available ? (
+                      <p className="qb-hint" data-testid="qb-organizer-model">
+                        使用<strong>{activeModel.modelLabel}</strong>整理。
+                      </p>
+                    ) : (
+                      <p
+                        className="qb-hint qb-warn-text"
+                        // 读目录失败是异步错误：用 alert 播报；「没有可用模型」是状态：用 status
+                        role={organizer.state.phase === 'failed' ? 'alert' : 'status'}
+                        data-testid="qb-organizer-model"
+                      >
+                        {activeModel.reason ?? ORGANIZER_NO_DEFAULT_REASON}
+                      </p>
+                    )}
+                    {frozenModel && (
+                      <p className="qb-hint" data-testid="qb-organizer-frozen">
+                        本次任务已冻结该模型：整理过程中在「模型设置」切换聊天模型不影响它，
+                        重试沿用同一个模型。
+                      </p>
+                    )}
+                    {activeModel.available &&
+                      (activeModel.cloud ? (
+                        <p className="qb-dataflow-note" data-testid="qb-organizer-dataflow">
+                          云端模型：{ORGANIZER_CLOUD_NOTICE}。
+                        </p>
+                      ) : (
+                        <p className="qb-hint" data-testid="qb-organizer-dataflow">
+                          本机模型：题目文本不会发送到外部模型服务。
+                        </p>
+                      ))}
+                    {frozenStale && (
+                      <p className="space-banner error" role="alert">
+                        冻结的模型「{frozenModel?.modelLabel}
+                        」在当前模型配置里已不可用：不会自动改用其他模型；请到「模型设置」修复后重试，
+                        或点「改用当前聊天模型」再发起。
+                      </p>
+                    )}
                     <label className="qb-check">
                       <input
                         type="checkbox"
@@ -457,7 +549,7 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
                     <div className="qb-actions">
                       <button
                         className="space-button primary"
-                        disabled={organizeBusy || !organizerReady}
+                        disabled={organizeBusy || !activeModel.available}
                         onClick={() => void runOrganize()}
                       >
                         <Sparkles size={14} aria-hidden />
@@ -468,13 +560,22 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
                         disabled={organizeBusy}
                         onClick={organizer.reload}
                       >
-                        重新检查本机模型
+                        重新读取模型配置
                       </button>
+                      {frozenModel && canSwitchModel && (
+                        <button
+                          className="space-button"
+                          disabled={organizeBusy}
+                          onClick={useCurrentModelInstead}
+                        >
+                          改用当前聊天模型
+                        </button>
+                      )}
                     </div>
-                    {!organizerReady && (
+                    {!activeModel.available && (
                       <p className="qb-hint">
-                        「AI 整理」在本机模型可用前不可点：先在本机 Ollama 拉取并运行默认模型 （如
-                        qwen2.5:7b），再点「重新检查本机模型」。
+                        「AI 整理草稿」在聊天模型可用前不可点：请到「模型设置」选择并修复默认问答模型
+                        （本地或云端均可）；读取模型配置不会调用模型。
                       </p>
                     )}
                     {organizeError && (

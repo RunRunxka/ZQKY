@@ -1,29 +1,49 @@
-"""题库 AI 整理：建议落 pending、失败批保留原文、取消、重试与重启恢复。
+"""题库 AI 整理（RAG-QUALITY v1.1）：当前聊天模型、任务冻结、恢复、错误分类与预算。
 
-模型一律走注入替身（``FakeOrganizer``），不连真实 Ollama；断点恢复只依赖
-``question_jobs.checkpoint_json`` 里的批次快照。
+模型语义：``OrganizeRequest.modelProfileId`` 是**点击时的聊天模型 profile id**，本地或云端
+一视同仁；解析只经注入的 ``model_resolver``。全部替身，不连真实云端/本机模型；
+断点恢复只依赖 ``question_jobs.checkpoint_json``（contractVersion=2）。
 """
 
 from __future__ import annotations
 
+import inspect
 import json
+import threading
 from pathlib import Path
+from typing import Any, Sequence
 
 import pytest
 
+from app.api.v1 import question_bank as question_bank_route
 from app.core.exceptions import AppError
-from app.schemas.question_bank import OrganizeRequest, SuggestionApplyRequest
-from app.services.question_bank.organizer import DEFAULT_ORGANIZE_MODEL
+from app.providers.llm.base import FINISH_LENGTH, LLMResponse, ProviderError
+from app.repositories.question_bank.records import SourceBlockInput, SuggestionInput
+from app.schemas.model_config import ModelProtocol
+from app.schemas.question_bank import DraftPatchRequest, OrganizeRequest, SuggestionApplyRequest
+from app.services.question_bank import views
+from app.services.question_bank.organizer import (
+    MAX_BATCH_INPUT_CHARS,
+    MAX_OUTPUT_TOKENS,
+    ORGANIZE_CONTRACT_VERSION,
+    ORGANIZE_INSTRUCTION,
+    RESELECT_MODEL_CODE,
+    pack_batches,
+    render_block,
+)
+from app.services.question_bank.service import QuestionBankService
 from tests.test_question_bank import (
-    FakeModelCatalog,
-    FakeOrganizer,
+    CLOUD_PROFILE,
+    FAKE_API_KEY,
+    LOCAL_PROFILE,
+    FakeLLMProvider,
+    FakeResolver,
     Harness,
     block_ids_of,
+    make_handle,
     open_harness,
     organize_reply,
 )
-
-MODEL_PROFILE = "qwen2.5:7b"
 
 
 @pytest.fixture()
@@ -39,17 +59,734 @@ def organize(harness: Harness, import_id: str, **overrides):
     body = {
         "draftIds": overrides.pop("draftIds", []),
         "includeUnassigned": overrides.pop("includeUnassigned", False),
-        "modelProfileId": overrides.pop("modelProfileId", MODEL_PROFILE),
+        "modelProfileId": overrides.pop("modelProfileId", LOCAL_PROFILE),
     }
     assert not overrides, overrides
     return harness.client.post(f"/api/v1/question-imports/{import_id}/organize", json=body)
+
+
+def organize_body(draft_ids: Sequence[str], *, profile: str = LOCAL_PROFILE) -> OrganizeRequest:
+    return OrganizeRequest(
+        draftIds=list(draft_ids), includeUnassigned=False, modelProfileId=profile
+    )
 
 
 def job_records(harness: Harness):
     return harness.catalog.list_jobs(kind="organize")
 
 
-# --------------------------------------------------------------------------- 5
+def running_job(harness: Harness):
+    jobs = [job for job in job_records(harness) if job.state == "running"]
+    assert len(jobs) == 1, [job.state for job in job_records(harness)]
+    return jobs[0]
+
+
+def draft_by_id(harness: Harness, import_id: str, draft_id: str) -> dict:
+    detail = harness.import_detail(import_id)
+    return [item for item in detail["drafts"] if item["draftId"] == draft_id][0]
+
+
+def crash_on(batch_index: int):
+    """模型调用在第 N 批模拟进程崩溃（其余批次正常返回）。"""
+
+    def handler(call):
+        if call.index == batch_index:
+            raise RuntimeError("模拟进程崩溃")
+        return organize_reply(block_ids_of(call.input_text))
+
+    return handler
+
+
+# ------------------------------------------------------- 1/2 本地与云端 profile
+
+
+@pytest.mark.parametrize(
+    "protocol",
+    [
+        ModelProtocol.openai_chat,
+        ModelProtocol.openai_responses,
+        ModelProtocol.anthropic_messages,
+    ],
+)
+def test_organize_uses_current_chat_profile_and_freezes_it(
+    harness: Harness, protocol: ModelProtocol
+) -> None:
+    """① 本地 profile：用该 profile 的 provider 调用一次；checkpoint 记 profileId，不是模型名。"""
+    harness.resolver.profiles[LOCAL_PROFILE] = make_handle(
+        LOCAL_PROFILE,
+        protocol=protocol,
+        api_format=f"api_format_{protocol.value}",
+        provider=harness.provider,
+    )
+    detail = harness.sample_detail()
+    draft = detail["drafts"][0]
+
+    response = organize(harness, detail["importId"], draftIds=[draft["draftId"]])
+    assert response.status_code == 200, response.text
+    view = response.json()
+    assert view["state"] == "succeeded"
+    assert view["suggestionCount"] == 1
+
+    # 该 profile 的 provider 恰好被调用一次（单草稿单批）
+    assert len(harness.provider.calls) == 1
+    call = harness.provider.calls[0]
+    assert call.model_profile_id == LOCAL_PROFILE
+    assert call.max_output_tokens == MAX_OUTPUT_TOKENS
+    assert len(call.input_text) <= MAX_BATCH_INPUT_CHARS
+    assert ORGANIZE_INSTRUCTION in call.messages[0].content
+    assert harness.resolver.calls == [LOCAL_PROFILE]
+
+    checkpoint = harness.catalog.get_job(view["jobId"]).checkpoint
+    assert checkpoint["contractVersion"] == ORGANIZE_CONTRACT_VERSION
+    assert checkpoint["modelProfileId"] == LOCAL_PROFILE
+    assert checkpoint["modelFingerprint"].startswith("sha256:")
+    # 不写模型名、不写凭证、不写完整配置
+    assert "resolvedModel" not in checkpoint
+    serialized = json.dumps(checkpoint, ensure_ascii=False)
+    assert "qwen2.5:7b" not in serialized
+    assert FAKE_API_KEY not in serialized
+    assert "apiKey" not in serialized
+
+
+def test_organize_uses_cloud_profile_like_local(harness: Harness) -> None:
+    """② 云端 profile：不同 protocol / modelId / baseUrl 同样走通，本地/云端一视同仁。"""
+    cloud_provider = FakeLLMProvider()
+    harness.resolver.profiles[CLOUD_PROFILE] = make_handle(
+        CLOUD_PROFILE,
+        model_id="gpt-5.2",
+        protocol=ModelProtocol.anthropic_messages,
+        base_url="https://api.example.com/v1",
+        api_format="anthropic",
+        provider=cloud_provider,
+    )
+    detail = harness.sample_detail()
+    response = organize(
+        harness, detail["importId"], draftIds=[detail["drafts"][0]["draftId"]],
+        modelProfileId=CLOUD_PROFILE,
+    )
+    assert response.status_code == 200, response.text
+    view = response.json()
+    assert view["state"] == "succeeded"
+    assert len(cloud_provider.calls) == 1
+    assert cloud_provider.calls[0].model_id == "gpt-5.2"
+    assert cloud_provider.calls[0].model_profile_id == CLOUD_PROFILE
+    assert harness.provider.calls == []  # 本地 profile 的 provider 一次都没调
+    checkpoint = harness.catalog.get_job(view["jobId"]).checkpoint
+    assert checkpoint["modelProfileId"] == CLOUD_PROFILE
+    assert "gpt-5.2" not in json.dumps(checkpoint, ensure_ascii=False)
+
+
+# ---------------------------------------------- 3/4 resolver 失败与未装配装配
+
+
+@pytest.mark.parametrize(
+    ("error", "status_code", "code"),
+    [
+        (
+            AppError("模型配置不存在。", code="MODEL_PROFILE_NOT_FOUND", status_code=404),
+            404,
+            "MODEL_PROFILE_NOT_FOUND",
+        ),
+        (
+            AppError(
+                "该连接未保存凭证，请先在设置中填写 API Key。",
+                code="MODEL_NOT_CONFIGURED",
+                status_code=400,
+            ),
+            400,
+            "MODEL_NOT_CONFIGURED",
+        ),
+        (
+            AppError(
+                "该模型配置用途为 embedding，不能用于chat。",
+                code="MODEL_PURPOSE_MISMATCH",
+                status_code=422,
+            ),
+            422,
+            "MODEL_PURPOSE_MISMATCH",
+        ),
+    ],
+)
+def test_profile_unavailable_fails_before_job(
+    harness: Harness, error: AppError, status_code: int, code: str
+) -> None:
+    """③ profile 不存在/不可调用：HTTP 错误码 + 可读原因；0 次 provider 调用、0 条任务行。"""
+    detail = harness.sample_detail()
+    harness.resolver.error = error
+
+    response = organize(harness, detail["importId"], draftIds=[detail["drafts"][0]["draftId"]])
+    assert response.status_code == status_code, response.text
+    body = response.json()
+    assert body["code"] == code
+    assert body["message"]  # 可读原因
+    assert harness.provider.calls == []
+    assert job_records(harness) == []
+    # 草稿与原文一条不动
+    assert harness.import_detail(detail["importId"])["drafts"] == detail["drafts"]
+
+
+def test_missing_model_resolver_is_503(tmp_path: Path) -> None:
+    """④ modelResolver 未注入 → 503 SERVICE_UNAVAILABLE，不建任务、不发上游。"""
+    instance = open_harness(tmp_path, model_resolver=None)
+    try:
+        assert instance.service.model_resolver is None
+        detail = instance.sample_detail()
+        response = organize(instance, detail["importId"])
+        assert response.status_code == 503, response.text
+        body = response.json()
+        assert body["code"] == "SERVICE_UNAVAILABLE"
+        assert body["retryable"] is True
+        assert "model_resolver" in body["message"]
+        assert instance.provider.calls == []
+        assert job_records(instance) == []
+    finally:
+        instance.close()
+
+
+def test_organize_http_contract_requires_model_profile_id(harness: Harness) -> None:
+    """HTTP 契约：modelProfileId 必填且非空（不再有“省略即用默认模型”的旧语义）。"""
+    detail = harness.sample_detail()
+    for payload in (
+        {"draftIds": []},
+        {"draftIds": [], "modelProfileId": ""},
+    ):
+        response = harness.client.post(
+            f"/api/v1/question-imports/{detail['importId']}/organize", json=payload
+        )
+        assert response.status_code == 422, response.text
+        assert harness.provider.calls == []
+        assert job_records(harness) == []
+
+
+async def test_recover_without_resolver_fails_job_honestly(harness: Harness) -> None:
+    """恢复路径同样不假成功：未装配 model_resolver → 任务按失败落库并给可读原因。"""
+    detail = harness.sample_detail()
+    draft = detail["drafts"][0]
+    job = harness.catalog.create_job(
+        kind="organize",
+        state="queued",
+        checkpoint={
+            "contractVersion": ORGANIZE_CONTRACT_VERSION,
+            "modelProfileId": LOCAL_PROFILE,
+            "modelFingerprint": "sha256:" + "1" * 64,
+            "instruction": ORGANIZE_INSTRUCTION,
+            "drafts": [{"draftId": draft["draftId"], "revision": draft["revision"]}],
+            "batches": [
+                {
+                    "index": 0,
+                    "draftId": draft["draftId"],
+                    "blockIds": [draft["sourceSpans"][0]["blockId"]],
+                    "inputText": "[块 x]\n旧文本",
+                    "charCount": 9,
+                }
+            ],
+            "nextBatchIndex": 0,
+            "suggestionIds": [],
+            "failedBatches": [],
+        },
+    )
+    harness.service.model_resolver = None
+    assert await harness.service.recover_organize_jobs() == 1
+    failed = harness.catalog.get_job(job.job_id)
+    assert failed.state == "failed"
+    assert failed.error_code == "SERVICE_UNAVAILABLE"
+    assert "model_resolver" in failed.checkpoint["jobError"]["message"]
+    assert harness.provider.calls == []
+
+
+# ------------------------------------------------------------- 5 模型冻结
+
+
+def test_model_switch_during_run_does_not_affect_frozen_job(harness: Harness) -> None:
+    """⑤ 任务进行中切换聊天模型：已冻结任务仍用原 profile 的句柄，运行中只解析一次。"""
+    cloud_provider = FakeLLMProvider()
+    switched = False
+
+    def handler(call):
+        nonlocal switched
+        if not switched:
+            switched = True
+            # 模型调用期间用户在界面上换了聊天模型：解析器指向另一个 profile
+            harness.service.model_resolver = FakeResolver(
+                {
+                    CLOUD_PROFILE: make_handle(
+                        CLOUD_PROFILE, model_id="cloud-x", provider=cloud_provider
+                    )
+                }
+            )
+        return organize_reply(block_ids_of(call.input_text))
+
+    harness.provider.handler = handler
+    detail = harness.sample_detail()
+    response = organize(harness, detail["importId"])  # 4 道草稿 -> 4 批
+
+    assert response.status_code == 200, response.text
+    view = response.json()
+    assert view["state"] == "succeeded"
+    assert view["suggestionCount"] == 4
+    assert len(harness.provider.calls) == 4
+    # 全部批次仍用冻结前的 profile / 模型
+    assert {call.model_profile_id for call in harness.provider.calls} == {LOCAL_PROFILE}
+    assert {call.model_id for call in harness.provider.calls} == {"qwen2.5:7b"}
+    assert cloud_provider.calls == []
+    # 冻结解析只发生一次（在 organize 入口）
+    assert harness.resolver.calls == [LOCAL_PROFILE]
+    checkpoint = harness.catalog.get_job(view["jobId"]).checkpoint
+    assert checkpoint["modelProfileId"] == LOCAL_PROFILE
+
+
+# ------------------------------------------------------------- 6 崩溃与恢复
+
+
+async def test_recover_resolves_frozen_profile_and_continues(harness: Harness) -> None:
+    """⑥ 崩溃后重新进入：用 checkpoint 里的 profileId 重新解析并续跑，不重复已完成批次。"""
+    detail = harness.sample_detail()
+    import_id = detail["importId"]
+    draft_ids = [item["draftId"] for item in detail["drafts"][:2]]
+    harness.provider.handler = crash_on(1)
+
+    with pytest.raises(RuntimeError):
+        await harness.service.organize(import_id, organize_body(draft_ids))
+    interrupted = running_job(harness)
+    job_id = interrupted.job_id
+    assert interrupted.checkpoint["nextBatchIndex"] == 1  # 第 0 批已提交
+
+    # 重启恢复：解析器换成记录型替身，仍按 checkpoint 的 profile id 解析
+    replacement = FakeResolver({LOCAL_PROFILE: harness.handle(LOCAL_PROFILE)})
+    harness.service.model_resolver = replacement
+    harness.provider.handler = None
+
+    assert await harness.service.recover_organize_jobs() == 1
+    assert replacement.calls == [LOCAL_PROFILE]
+    recovered = harness.catalog.get_job(job_id)
+    assert recovered.state == "succeeded"
+    assert len(harness.catalog.list_suggestions(organization_job_id=job_id)) == 2
+    # 第 0 批只跑过 1 次；第 1 批崩溃 1 次 + 恢复重放 1 次 → 共 3 次调用，没有重复落建议
+    assert len(harness.provider.calls) == 3
+    assert await harness.service.recover_organize_jobs() == 0
+
+
+async def test_recover_fails_job_with_readable_reason_when_profile_gone(
+    harness: Harness,
+) -> None:
+    """⑥ profile 已不存在/不可调用 → 任务失败落库并给可读原因（不发上游）。"""
+    detail = harness.sample_detail()
+    draft = detail["drafts"][0]
+    job = harness.catalog.create_job(
+        kind="organize",
+        state="running",
+        checkpoint={
+            "contractVersion": ORGANIZE_CONTRACT_VERSION,
+            "modelProfileId": "removed-profile",
+            "modelFingerprint": "sha256:" + "0" * 64,
+            "instruction": ORGANIZE_INSTRUCTION,
+            "drafts": [{"draftId": draft["draftId"], "revision": draft["revision"]}],
+            "batches": [
+                {
+                    "index": 0,
+                    "draftId": draft["draftId"],
+                    "blockIds": [draft["sourceSpans"][0]["blockId"]],
+                    "inputText": "[块 x]\n旧文本",
+                    "charCount": 9,
+                }
+            ],
+            "nextBatchIndex": 0,
+            "suggestionIds": [],
+            "failedBatches": [],
+        },
+    )
+    harness.service.model_resolver = FakeResolver(
+        error=AppError("模型配置不存在。", code="MODEL_PROFILE_NOT_FOUND", status_code=404)
+    )
+    assert await harness.service.recover_organize_jobs() == 1
+
+    failed = harness.catalog.get_job(job.job_id)
+    assert failed.state == "failed"
+    assert failed.error_code == "MODEL_PROFILE_NOT_FOUND"
+    message = failed.checkpoint["jobError"]["message"]
+    assert "模型" in message and "重新选择" in message
+    assert harness.provider.calls == []
+
+
+async def test_legacy_checkpoint_is_not_auto_resumed_and_keeps_suggestions(
+    harness: Harness,
+) -> None:
+    """⑦ 旧形状 checkpoint：不自动恢复、标记需重新选择模型；已产生的建议一条不动。"""
+    detail = harness.sample_detail()
+    draft = detail["drafts"][0]
+    legacy = harness.catalog.create_job(
+        kind="organize",
+        state="running",
+        checkpoint={
+            # v1.0/v1.1 形状：没有 contractVersion / 指纹，modelProfileId 可能是模型名或 UUID
+            "modelProfileId": "63b3ffdc-1111-4222-8333-444455556666",
+            "resolvedModel": "qwen2.5:7b",
+            "instruction": "旧指令",
+            "drafts": [{"draftId": draft["draftId"], "revision": draft["revision"]}],
+            "batches": [
+                {
+                    "index": 0,
+                    "draftId": draft["draftId"],
+                    "blockIds": [draft["sourceSpans"][0]["blockId"]],
+                    "inputText": "[块 x]\n旧文本",
+                    "charCount": 9,
+                }
+            ],
+            "nextBatchIndex": 0,
+            "suggestionIds": ["legacy-suggestion"],
+            "failedBatches": [],
+        },
+    )
+    # 旧任务已产生的建议：内容与状态必须原样保留
+    existing = harness.catalog.create_suggestions(
+        [
+            SuggestionInput(
+                organization_job_id=legacy.job_id,
+                target_draft_id=draft["draftId"],
+                base_draft_revision=draft["revision"],
+                proposed_content=draft["content"],
+                proposed_metadata=draft["metadata"],
+                source_block_ids=(draft["sourceSpans"][0]["blockId"],),
+                state="pending",
+            )
+        ]
+    )
+    before = harness.catalog.list_suggestions(organization_job_id=legacy.job_id)
+    assert len(before) == 1
+
+    assert await harness.service.recover_organize_jobs() == 1
+    stale = harness.catalog.get_job(legacy.job_id)
+    assert stale.state == "failed"
+    assert stale.error_code == RESELECT_MODEL_CODE
+    assert stale.checkpoint["needsModelReselection"] is True
+    assert harness.provider.calls == []
+    assert harness.resolver.calls == []
+
+    after = harness.catalog.list_suggestions(organization_job_id=legacy.job_id)
+    assert [item.suggestion_id for item in after] == [existing[0].suggestion_id]
+    assert [item.state for item in after] == ["pending"]
+    assert [item.proposed_content for item in after] == [existing[0].proposed_content]
+    assert draft_by_id(harness, detail["importId"], draft["draftId"])["revision"] == draft["revision"]
+
+
+# ------------------------------------------------------------- 8 错误分类
+
+
+@pytest.mark.parametrize(
+    ("label", "failure", "expected_code", "batch_level"),
+    [
+        (
+            "length",
+            LLMResponse(text='{"stem":"截断的题目"', finishReason=FINISH_LENGTH),
+            "ORGANIZER_OUTPUT_TRUNCATED",
+            True,
+        ),
+        ("invalid_json", "{不是 JSON", "ORGANIZER_INVALID_JSON", True),
+        (
+            "unknown_block",
+            json.dumps(
+                {
+                    "stem": "题干",
+                    "options": [],
+                    "answer": None,
+                    "sourceBlockIds": ["not-in-input"],
+                },
+                ensure_ascii=False,
+            ),
+            "ORGANIZER_UNKNOWN_SOURCE_BLOCK",
+            True,
+        ),
+        (
+            "auth",
+            ProviderError("UPSTREAM_AUTH_FAILED", "上游认证失败，请检查凭证与权限。"),
+            "AUTH_REQUIRED",
+            False,
+        ),
+        (
+            "rate_limited",
+            ProviderError("RATE_LIMITED", "上游限流，请稍后重试。", retryable=True),
+            "RATE_LIMITED",
+            False,
+        ),
+        (
+            "network",
+            ProviderError("UPSTREAM_UNREACHABLE", "无法连接到模型服务，请检查 Base URL 与网络。"),
+            "UPSTREAM_UNAVAILABLE",
+            False,
+        ),
+    ],
+)
+def test_error_classification(
+    harness: Harness, label: str, failure: Any, expected_code: str, batch_level: bool
+) -> None:
+    """⑧ 五类错误各自的 code 与“建议是否落库”，且绝不把上游失败说成试题内容问题。"""
+    harness.provider.replies = [failure]
+    detail = harness.sample_detail()
+    draft = detail["drafts"][0]
+    before_blocks = harness.catalog.list_source_blocks(detail["importId"])
+
+    response = organize(harness, detail["importId"], draftIds=[draft["draftId"]])
+    assert response.status_code == 200, response.text
+    view = response.json()
+    assert view["state"] == "failed"
+    assert view["errorCode"] == expected_code, label
+    assert view["suggestionCount"] == 0
+    assert view["suggestions"] == []
+    assert harness.catalog.list_suggestions(organization_job_id=view["jobId"]) == []
+
+    if batch_level:
+        assert view["failedBatches"] == 1
+        assert [(item["batchIndex"], item["code"]) for item in view["failures"]] == [
+            (0, expected_code)
+        ]
+        assert view["failures"][0]["message"]
+        if expected_code == "ORGANIZER_OUTPUT_TRUNCATED":
+            message = view["failures"][0]["message"]
+            assert "截断" in message and "原文保留" in message
+    else:
+        # 任务级：不是「某批内容失败」，文案指向模型服务
+        assert view["failedBatches"] == 0
+        assert view["failures"] == []
+        job_message = harness.catalog.get_job(view["jobId"]).checkpoint["jobError"]["message"]
+        assert "模型" in job_message
+        assert "试题" not in job_message and "题目" not in job_message
+        assert "内容无效" not in job_message
+
+    # 原文与草稿一条不动
+    after = draft_by_id(harness, detail["importId"], draft["draftId"])
+    assert after["revision"] == draft["revision"]
+    assert after["content"] == draft["content"]
+    assert len(harness.catalog.list_source_blocks(detail["importId"])) == len(before_blocks)
+
+
+def test_unknown_upstream_code_falls_back_to_model_service() -> None:
+    """未知上游 code 一律按任务级「模型服务不可用」处理，不冤枉试题内容。"""
+    from app.services.question_bank.organizer import job_level_error_code, job_level_message
+
+    assert job_level_error_code("SOMETHING_NEW_FROM_UPSTREAM") == "UPSTREAM_UNAVAILABLE"
+    assert job_level_error_code("ORGANIZER_INVALID_JSON") == "UPSTREAM_UNAVAILABLE"
+    for code in (
+        "AUTH_REQUIRED",
+        "RATE_LIMITED",
+        "UPSTREAM_UNAVAILABLE",
+        "MODEL_NOT_CONFIGURED",
+        "MODEL_PROFILE_NOT_FOUND",
+        "SERVICE_UNAVAILABLE",
+    ):
+        assert "模型" in job_level_message(code)
+
+
+def test_organize_invalid_json_keeps_original(harness: Harness) -> None:
+    """既有覆盖点（改写）：非法 JSON 该批失败，原文保留、草稿不变。"""
+    harness.provider.replies = ["{不是 JSON"]
+    detail = harness.sample_detail()
+    draft = detail["drafts"][0]
+    before_blocks = harness.catalog.list_source_blocks(detail["importId"])
+
+    response = organize(harness, detail["importId"], draftIds=[draft["draftId"]])
+    assert response.status_code == 200, response.text
+    view = response.json()
+    assert view["state"] == "failed"
+    assert view["errorCode"] == "ORGANIZER_INVALID_JSON"
+    assert view["suggestionCount"] == 0
+    assert view["failedBatches"] == 1
+    assert view["suggestions"] == []
+    assert len(view["failures"]) == 1
+    failure = view["failures"][0]
+    assert failure["batchIndex"] == 0
+    assert failure["code"] == "ORGANIZER_INVALID_JSON"
+    assert failure["message"]
+
+    after = draft_by_id(harness, detail["importId"], draft["draftId"])
+    assert after["revision"] == draft["revision"]
+    assert after["content"] == draft["content"]
+    assert len(harness.catalog.list_source_blocks(detail["importId"])) == len(before_blocks)
+
+
+def test_organize_unknown_source_block_fails_batch(harness: Harness) -> None:
+    """既有覆盖点（改写）：引用输入之外的来源块 → 该批失败、不落建议。"""
+    harness.provider.replies = [
+        json.dumps(
+            {"stem": "题干", "options": [], "answer": None, "sourceBlockIds": ["not-in-input"]},
+            ensure_ascii=False,
+        )
+    ]
+    detail = harness.sample_detail()
+    response = organize(
+        harness, detail["importId"], draftIds=[detail["drafts"][0]["draftId"]]
+    )
+    assert response.status_code == 200, response.text
+    view = response.json()
+    assert view["state"] == "failed"
+    assert view["errorCode"] == "ORGANIZER_UNKNOWN_SOURCE_BLOCK"
+    assert view["failedBatches"] == 1
+    assert harness.catalog.list_suggestions(organization_job_id=view["jobId"]) == []
+
+
+def test_organize_truncated_output_fails_batch(harness: Harness) -> None:
+    """既有覆盖点（改写）：finish_reason=length → ORGANIZER_OUTPUT_TRUNCATED，不生成建议。"""
+    harness.provider.replies = [
+        LLMResponse(text='{"stem":"写到一半被截断"', finishReason=FINISH_LENGTH)
+    ]
+    detail = harness.sample_detail()
+    response = organize(
+        harness, detail["importId"], draftIds=[detail["drafts"][0]["draftId"]]
+    )
+    assert response.status_code == 200, response.text
+    view = response.json()
+    assert view["state"] == "failed"
+    assert view["errorCode"] == "ORGANIZER_OUTPUT_TRUNCATED"
+    assert view["failedBatches"] == 1
+    assert view["suggestions"] == []
+    assert [(item["batchIndex"], item["code"]) for item in view["failures"]] == [
+        (0, "ORGANIZER_OUTPUT_TRUNCATED")
+    ]
+    assert "截断" in view["failures"][0]["message"]
+
+
+# ------------------------------------------------------------- 9 预算
+
+
+def test_pack_batches_counts_labels_and_separators() -> None:
+    """⑨ 预算含标签与分隔符：6000 码点是**打包文本**上限，不是原文上限。"""
+    assert MAX_BATCH_INPUT_CHARS == 6000
+    block_a, block_b = "a" * 32, "b" * 32
+    rendered_a = 3000
+    rendered_b = 2998
+
+    def body_for(block_id: str, rendered_chars: int) -> str:
+        return "x" * (rendered_chars - len(render_block(block_id, "")))
+
+    # 3000 + 2（分隔符）+ 2998 == 6000 → 刚好一批
+    exact = pack_batches("d1", [(block_a, body_for(block_a, rendered_a)), (block_b, body_for(block_b, rendered_b))])
+    assert len(exact) == 1
+    assert exact[0].char_count == 6000
+    assert len(exact[0].input_text) == 6000
+
+    # 3000 + 2 + 2999 == 6001 → 必须分两批
+    over = pack_batches(
+        "d1",
+        [(block_a, body_for(block_a, rendered_a)), (block_b, body_for(block_b, rendered_b + 1))],
+    )
+    assert len(over) == 2
+    for batch in over:
+        assert batch.char_count == len(batch.input_text) <= MAX_BATCH_INPUT_CHARS
+
+    # 单块超限：按行/硬切分包，每片渲染后仍 ≤ 上限，且拼回等于原正文
+    huge_line = "y" * 20000
+    sliced = pack_batches("d1", [(block_a, huge_line)])
+    assert len(sliced) >= 3
+    for batch in sliced:
+        assert batch.char_count == len(batch.input_text) <= MAX_BATCH_INPUT_CHARS
+        assert batch.block_ids == (block_a,)
+    rebuilt = "".join(
+        batch.input_text[len(render_block(block_a, "")) :] for batch in sliced
+    )
+    assert rebuilt == huge_line
+
+
+def test_organize_splits_oversized_source_into_bounded_batches(harness: Harness) -> None:
+    """⑨ 端到端：超过 6000 的来源被切成多批，每批打包文本（含标签、分隔符）≤ 6000。"""
+    detail = harness.sample_detail()
+    import_id = detail["importId"]
+    draft = detail["drafts"][0]
+    big = "题" * 14000
+    harness.catalog.add_source_blocks(
+        import_id,
+        [
+            SourceBlockInput(
+                ordinal=999,
+                text=big,
+                locator={
+                    "kind": "markdown",
+                    "lineStart": 0,
+                    "lineEnd": 0,
+                    "charStart": 900000,
+                    "charEnd": 914000,
+                },
+            )
+        ],
+    )
+
+    response = organize(
+        harness, import_id, draftIds=[draft["draftId"]], includeUnassigned=True
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["state"] == "succeeded"
+    calls = harness.provider.calls
+    assert len(calls) >= 2
+    for call in calls:
+        assert len(call.input_text) <= MAX_BATCH_INPUT_CHARS
+    # 大块按正文预算切片：批次数 == 小批 + 大块切片数
+    big_block_id = harness.catalog.list_source_blocks(import_id)[-1].block_id
+    body_budget = MAX_BATCH_INPUT_CHARS - len(render_block(big_block_id, ""))
+    expected_slices = -(-len(big) // body_budget)
+    assert len(calls) == 1 + expected_slices
+    assert sum(1 for call in calls if big_block_id in call.input_text) == expected_slices
+
+
+# ------------------------------------------------------------- 10 异步与线程
+
+
+class ThreadRecordingCatalog:
+    """目录代理：记录每个被观察方法所在线程，用于验证 SQL 不在事件循环线程执行。"""
+
+    WATCHED = frozenset(
+        {
+            "get_import",
+            "list_drafts",
+            "list_source_blocks",
+            "create_job",
+            "get_job",
+            "list_suggestions",
+            "record_organize_batch",
+            "fail_organize_job",
+            "finish_organize_job",
+        }
+    )
+
+    def __init__(self, inner: Any) -> None:
+        self._inner = inner
+        self.threads: list[int] = []
+
+    def __getattr__(self, name: str) -> Any:
+        attribute = getattr(self._inner, name)
+        if name not in self.WATCHED or not callable(attribute):
+            return attribute
+
+        def observed(*args: Any, **kwargs: Any) -> Any:
+            self.threads.append(threading.get_ident())
+            return attribute(*args, **kwargs)
+
+        return observed
+
+
+async def test_organize_is_async_and_runs_sql_off_the_loop_thread(harness: Harness) -> None:
+    """⑩ organize/run/recover 是协程；SQL 经有界线程执行，不在事件循环线程。"""
+    assert inspect.iscoroutinefunction(QuestionBankService.organize)
+    assert inspect.iscoroutinefunction(QuestionBankService.run_organize_job)
+    assert inspect.iscoroutinefunction(QuestionBankService.recover_organize_jobs)
+    assert inspect.iscoroutinefunction(question_bank_route.organize_question_import)
+
+    proxy = ThreadRecordingCatalog(harness.catalog)
+    harness.service.catalog = proxy
+    loop_thread = threading.get_ident()
+    detail = harness.sample_detail()
+    draft = detail["drafts"][0]
+
+    view = await harness.service.organize(
+        detail["importId"], organize_body([draft["draftId"]])
+    )
+    assert view.state == "succeeded"
+
+    assert proxy.threads, "没有观察到任何 SQL 调用"
+    assert all(thread != loop_thread for thread in proxy.threads)  # SQL 不在事件循环线程
+    assert all(thread != loop_thread for thread in harness.resolver.thread_ids)
+    # 模型调用在事件循环线程上 await（网络 I/O 不在事务里，也不占线程池）
+    assert [call.thread_id for call in harness.provider.calls] == [loop_thread]
+
+
+# ------------------------------------------------------- 既有覆盖点（改写）
 
 
 def test_organize_creates_pending_suggestions(harness: Harness) -> None:
@@ -85,6 +822,7 @@ def test_organize_creates_pending_suggestions(harness: Harness) -> None:
     assert detail_view["baseDraftRevision"] == draft["revision"]
     assert detail_view["state"] == "pending"
     assert detail_view["sourceBlockIds"]  # 必须来自输入块
+    assert detail_view["proposedMetadata"] == draft["metadata"]  # 事务内取当前草稿分类
 
     suggestions = harness.catalog.list_suggestions(organization_job_id=view["jobId"])
     assert len(suggestions) == 1
@@ -94,22 +832,15 @@ def test_organize_creates_pending_suggestions(harness: Harness) -> None:
     assert suggestion.target_draft_id == draft["draftId"]
     assert suggestion.base_draft_revision == draft["revision"]
     # 建议不直接改草稿
-    after = harness.import_detail(import_id)
-    same = [item for item in after["drafts"] if item["draftId"] == draft["draftId"]][0]
-    assert same["revision"] == draft["revision"]
-    assert same["content"] == draft["content"]
-    assert same["reviewState"] == "needs_review"
-
-    listed = harness.client.get(f"/api/v1/question-imports/{import_id}")
-    assert listed.status_code == 200
+    after = draft_by_id(harness, import_id, draft["draftId"])
+    assert after["revision"] == draft["revision"]
+    assert after["content"] == draft["content"]
+    assert after["reviewState"] == "needs_review"
 
     # 明细字段可直接调用 apply：baseDraftRevision 就是 expectedDraftRevision
     applied = harness.client.post(
         f"/api/v1/question-suggestions/{detail_view['suggestionId']}/apply",
-        json={
-            "expectedDraftRevision": detail_view["baseDraftRevision"],
-            "accept": True,
-        },
+        json={"expectedDraftRevision": detail_view["baseDraftRevision"], "accept": True},
     )
     assert applied.status_code == 200, applied.text
     assert applied.json()["revision"] == draft["revision"] + 1
@@ -124,65 +855,27 @@ def test_organize_creates_pending_suggestions(harness: Harness) -> None:
     assert refreshed.failedBatches == 0
 
 
-def test_organize_uses_injected_model_and_bounded_batches(harness: Harness) -> None:
+@pytest.mark.parametrize(
+    ("profile_limit", "expected_tokens"),
+    [(512, 512), (8192, MAX_OUTPUT_TOKENS)],
+)
+def test_organize_uses_injected_model_and_respects_output_cap(
+    harness: Harness, profile_limit: int, expected_tokens: int
+) -> None:
+    """输出预算 = min(2048, 所选模型 max_output_tokens)，逐批同样受约束。"""
+    harness.resolver.profiles[LOCAL_PROFILE] = harness.handle(
+        LOCAL_PROFILE, max_output_tokens=profile_limit
+    )
     detail = harness.sample_detail()
     response = organize(harness, detail["importId"])
     assert response.status_code == 200, response.text
     view = response.json()
-    # 4 道草稿 -> 4 批；每批输入不超过 6000 字符，输出预算不超过 2048
     assert view["suggestionCount"] == 4
-    assert len(harness.organizer.calls) == 4
-    for call in harness.organizer.calls:
-        assert call.model_name == MODEL_PROFILE
-        assert call.max_output_tokens == 2048
-        assert len(call.input_text) <= 6000
-        assert "不推断原文缺失的答案" in call.instruction
-
-
-def test_organize_invalid_json_keeps_original(harness: Harness) -> None:
-    harness.organizer.replies = ["{不是 JSON"]
-    detail = harness.sample_detail()
-    draft = detail["drafts"][0]
-    before_blocks = harness.catalog.list_source_blocks(detail["importId"])
-
-    response = organize(harness, detail["importId"], draftIds=[draft["draftId"]])
-    assert response.status_code == 200, response.text
-    view = response.json()
-    assert view["state"] == "failed"
-    assert view["errorCode"] == "ORGANIZER_INVALID_JSON"
-    assert view["suggestionCount"] == 0
-    assert view["failedBatches"] == 1
-    assert view["suggestions"] == []
-    assert len(view["failures"]) == 1
-    failure = view["failures"][0]
-    assert failure["batchIndex"] == 0
-    assert failure["code"] == "ORGANIZER_INVALID_JSON"
-    assert failure["message"]
-
-    after = harness.import_detail(detail["importId"])
-    same = [item for item in after["drafts"] if item["draftId"] == draft["draftId"]][0]
-    assert same["revision"] == draft["revision"]
-    assert same["content"] == draft["content"]
-    assert len(harness.catalog.list_source_blocks(detail["importId"])) == len(before_blocks)
-
-
-def test_organize_unknown_source_block_fails_batch(harness: Harness) -> None:
-    harness.organizer.replies = [
-        json.dumps(
-            {"stem": "题干", "options": [], "answer": None, "sourceBlockIds": ["not-in-input"]},
-            ensure_ascii=False,
-        )
-    ]
-    detail = harness.sample_detail()
-    response = organize(
-        harness, detail["importId"], draftIds=[detail["drafts"][0]["draftId"]]
-    )
-    assert response.status_code == 200, response.text
-    view = response.json()
-    assert view["state"] == "failed"
-    assert view["errorCode"] == "ORGANIZER_UNKNOWN_SOURCE_BLOCK"
-    assert view["failedBatches"] == 1
-    assert harness.catalog.list_suggestions(organization_job_id=view["jobId"]) == []
+    assert len(harness.provider.calls) == 4
+    for call in harness.provider.calls:
+        assert call.max_output_tokens == expected_tokens
+        assert len(call.input_text) <= MAX_BATCH_INPUT_CHARS
+        assert "不推断原文缺失的答案" in call.messages[0].content
 
 
 def test_organize_partial_success_can_retry_failed_batch(harness: Harness) -> None:
@@ -191,15 +884,13 @@ def test_organize_partial_success_can_retry_failed_batch(harness: Harness) -> No
     first, second = detail["drafts"][0], detail["drafts"][1]
 
     def handler(call):
-        if call.batch_index == 0:
+        if call.index == 0:
             return "not json"
         return organize_reply(block_ids_of(call.input_text))
 
-    harness.service.organizer = FakeOrganizer(handler=handler)
+    harness.provider.handler = handler
 
-    response = organize(
-        harness, import_id, draftIds=[first["draftId"], second["draftId"]]
-    )
+    response = organize(harness, import_id, draftIds=[first["draftId"], second["draftId"]])
     assert response.status_code == 200, response.text
     view = response.json()
     assert view["state"] == "succeeded"
@@ -212,8 +903,7 @@ def test_organize_partial_success_can_retry_failed_batch(harness: Harness) -> No
     assert failure["code"] == "ORGANIZER_INVALID_JSON"
     assert failure["message"]
 
-    after = harness.import_detail(import_id)
-    unchanged = [item for item in after["drafts"] if item["draftId"] == first["draftId"]][0]
+    unchanged = draft_by_id(harness, import_id, first["draftId"])
     assert unchanged["content"] == first["content"]
     assert unchanged["revision"] == first["revision"]
     assert harness.catalog.get_job(view["jobId"]).checkpoint["failedBatches"][0]["code"] == (
@@ -221,7 +911,7 @@ def test_organize_partial_success_can_retry_failed_batch(harness: Harness) -> No
     )
 
     # 只重试失败的那一道：新任务成功，不再产生重复建议
-    harness.service.organizer = FakeOrganizer()
+    harness.provider.handler = None
     retry = organize(harness, import_id, draftIds=[first["draftId"]])
     assert retry.status_code == 200, retry.text
     retry_view = retry.json()
@@ -230,69 +920,28 @@ def test_organize_partial_success_can_retry_failed_batch(harness: Harness) -> No
     assert retry_view["jobId"] != view["jobId"]
 
 
-def test_organize_truncated_output_fails_batch(harness: Harness) -> None:
-    def handler(call):
-        raise AppError(
-            "整理模型输出被截断，该批已失败，原文保留。",
-            code="ORGANIZER_TRUNCATED",
-            status_code=422,
-        )
-
-    harness.service.organizer = FakeOrganizer(handler=handler)
-    detail = harness.sample_detail()
-    response = organize(harness, detail["importId"], draftIds=[detail["drafts"][0]["draftId"]])
-    assert response.status_code == 200, response.text
-    view = response.json()
-    assert view["state"] == "failed"
-    assert view["errorCode"] == "ORGANIZER_TRUNCATED"
-    assert view["failedBatches"] == 1
-    assert view["suggestions"] == []
-    assert [(item["batchIndex"], item["code"]) for item in view["failures"]] == [
-        (0, "ORGANIZER_TRUNCATED")
-    ]
-    assert view["failures"][0]["message"]
-
-
-def test_organize_model_unavailable_fails_job(harness: Harness) -> None:
-    def handler(call):
-        raise AppError(
-            "本机整理模型不可用，请确认 Ollama 已启动。",
-            code="ORGANIZER_UNAVAILABLE",
-            status_code=503,
-            retryable=True,
-        )
-
-    harness.service.organizer = FakeOrganizer(handler=handler)
-    detail = harness.sample_detail()
-    response = organize(harness, detail["importId"], draftIds=[detail["drafts"][0]["draftId"]])
-    assert response.status_code == 200, response.text
-    view = response.json()
-    assert view["state"] == "failed"
-    assert view["errorCode"] == "ORGANIZER_UNAVAILABLE"
-    assert view["failedBatches"] == 0
-    # 传输层错误是整条任务失败，不是「批内容失败」：明细与失败批都为空
-    assert view["suggestions"] == []
-    assert view["failures"] == []
-
-
 def test_organize_target_changed_discards_batch(harness: Harness) -> None:
     detail = harness.sample_detail()
     import_id = detail["importId"]
     draft = detail["drafts"][0]
 
     def handler(call):
-        # 模型调用期间用户编辑草稿：该批建议必须丢弃，不能落成过期建议
-        current = [
-            item
-            for item in harness.import_detail(import_id)["drafts"]
-            if item["draftId"] == draft["draftId"]
-        ][0]
-        edited = dict(current["content"])
+        # 模型调用期间用户编辑草稿（同一服务入口，不经 HTTP）：该批建议必须丢弃，
+        # 不能落成过期建议；编辑发生在事务之外（模型调用期间）。
+        current = harness.catalog.get_draft(draft["draftId"])
+        edited = dict(current.content)
         edited["stemMarkdown"] = "模型调用期间被改写的题干"
-        harness.patch_draft(current, content=edited)
+        harness.service.patch_draft(
+            draft["draftId"],
+            DraftPatchRequest(
+                expectedRevision=current.revision,
+                content=edited,
+                metadata=current.metadata,
+            ),
+        )
         return organize_reply(block_ids_of(call.input_text))
 
-    harness.service.organizer = FakeOrganizer(handler=handler)
+    harness.provider.handler = handler
     response = organize(harness, import_id, draftIds=[draft["draftId"]])
     assert response.status_code == 200, response.text
     view = response.json()
@@ -307,6 +956,10 @@ def test_organize_target_changed_discards_batch(harness: Harness) -> None:
         (0, "ORGANIZE_DRAFT_CHANGED")
     ]
     assert "被编辑" in view["failures"][0]["message"]
+    # 人工编辑保留，草稿没有被建议覆盖
+    assert draft_by_id(harness, import_id, draft["draftId"])["content"]["stemMarkdown"] == (
+        "模型调用期间被改写的题干"
+    )
 
 
 def test_organize_all_batches_fail_lists_every_failure(harness: Harness) -> None:
@@ -314,7 +967,7 @@ def test_organize_all_batches_fail_lists_every_failure(harness: Harness) -> None
     detail = harness.sample_detail()
     import_id = detail["importId"]
     before_blocks = [block.block_id for block in harness.catalog.list_source_blocks(import_id)]
-    harness.service.organizer = FakeOrganizer(replies=["{坏 JSON"] * 4)
+    harness.provider.replies = ["{坏 JSON"] * 4
 
     response = organize(harness, import_id)  # 4 道草稿 -> 4 批
     assert response.status_code == 200, response.text
@@ -345,13 +998,14 @@ def test_organize_all_batches_fail_lists_every_failure(harness: Harness) -> None
 
 def test_batch_failure_mapping_is_strict() -> None:
     """失败批映射：缺 message 用固定兜底文案；结构损坏报 QUESTION_BANK_CORRUPT，不静默跳过。"""
-    from app.core.exceptions import AppError as ServiceAppError
-    from app.services.question_bank import views
-
     mapped = views.organize_batch_failure({"index": 2, "code": "ORGANIZER_INVALID_JSON"})
     assert mapped.batchIndex == 2
     assert mapped.code == "ORGANIZER_INVALID_JSON"
     assert mapped.message  # 兜底文案非空
+
+    for code in ("ORGANIZER_OUTPUT_TRUNCATED", "ORGANIZE_DRAFT_CHANGED"):
+        fallback = views.organize_batch_failure({"index": 0, "code": code})
+        assert fallback.message
 
     for broken in (
         "not-a-dict",
@@ -359,81 +1013,56 @@ def test_batch_failure_mapping_is_strict() -> None:
         {"index": 0, "code": ""},
         {"index": -1, "code": "ORGANIZER_INVALID_JSON"},
     ):
-        with pytest.raises(ServiceAppError) as corrupt:
+        with pytest.raises(AppError) as corrupt:
             views.organize_batch_failure(broken)
         assert corrupt.value.code == "QUESTION_BANK_CORRUPT"
 
 
-def test_organize_cancel_stops_remaining_batches(harness: Harness) -> None:
+async def test_organize_cancel_stops_remaining_batches(harness: Harness) -> None:
+    """取消：不再调用后续批次；已提交的批次建议保留可处理，未跑的批次不产生伪造失败。"""
     detail = harness.sample_detail()
     import_id = detail["importId"]
 
     def handler(call):
-        harness.service.cancel_organize_job(call.job_id)
+        if call.index == 1:
+            harness.service.cancel_organize_job(running_job(harness).job_id)
         return organize_reply(block_ids_of(call.input_text))
 
-    cancelling = FakeOrganizer(handler=handler)
-    harness.service.organizer = cancelling
-    response = organize(harness, import_id)  # 4 道草稿 -> 4 批
-    assert response.status_code == 200, response.text
-    view = response.json()
-    assert view["state"] == "cancelled"
-    assert view["suggestionCount"] == 1
-    assert view["failedBatches"] == 0
-    assert len(cancelling.calls) == 1
-    # 取消前已完成的那批建议仍然可见可处理；未跑的批次不产生伪造失败
-    assert len(view["suggestions"]) == 1
-    assert view["suggestions"][0]["state"] == "pending"
-    assert view["failures"] == []
+    harness.provider.handler = handler
+    view = await harness.service.organize(import_id, organize_body([]))  # 4 道草稿 -> 4 批
+    assert view.state == "cancelled"
+    assert len(harness.provider.calls) == 2  # 第 2 批（含）之后的批次不再调用模型
+    assert view.suggestionCount == 1  # 第 0 批已提交，仍可见可处理
+    assert view.failedBatches == 0
+    assert [item.state for item in view.suggestions] == ["pending"]
+    assert view.failures == []
 
     # 取消的任务不会被重启恢复再跑
-    harness.service.organizer = FakeOrganizer()
-    assert harness.service.recover_organize_jobs() == 0
-    assert harness.catalog.get_job(view["jobId"]).state == "cancelled"
+    assert await harness.service.recover_organize_jobs() == 0
+    assert harness.catalog.get_job(view.jobId).state == "cancelled"
 
 
-def test_organize_recovers_after_crash(harness: Harness) -> None:
+async def test_cancel_during_batch_discards_that_batch(harness: Harness) -> None:
+    """取消发生在某批模型调用期间：该批建议不落库（事务内检查任务未取消）。"""
     detail = harness.sample_detail()
-    import_id = detail["importId"]
-    draft_ids = [item["draftId"] for item in detail["drafts"][:2]]
 
-    def crashing(call):
-        if call.batch_index == 1:
-            raise RuntimeError("模拟进程崩溃")
+    def handler(call):
+        harness.service.cancel_organize_job(running_job(harness).job_id)
         return organize_reply(block_ids_of(call.input_text))
 
-    harness.service.organizer = FakeOrganizer(handler=crashing)
-    with pytest.raises(RuntimeError):
-        harness.client.post(
-            f"/api/v1/question-imports/{import_id}/organize",
-            json={"draftIds": draft_ids, "includeUnassigned": False, "modelProfileId": MODEL_PROFILE},
-        )
-    interrupted = [
-        job for job in job_records(harness) if job.state == "running"
-    ]
-    assert len(interrupted) == 1
-    job_id = interrupted[0].job_id
-    assert interrupted[0].checkpoint["nextBatchIndex"] == 1
-
-    # 重启恢复：从 checkpoint 续跑，不重复已完成的批次
-    harness.service.organizer = FakeOrganizer()
-    assert harness.service.recover_organize_jobs() == 1
-    recovered = harness.catalog.get_job(job_id)
-    assert recovered.state == "succeeded"
-    assert len(harness.catalog.list_suggestions(organization_job_id=job_id)) == 2
-    recovered_view = harness.service.get_organize_job(job_id)
-    assert recovered_view.suggestionCount == 2
-    assert len(recovered_view.suggestions) == 2
-    assert recovered_view.failures == []
-    assert {
-        item.targetDraftId for item in recovered_view.suggestions
-    } == set(draft_ids)
-
-    # 恢复不会与手动取消冲突：再次恢复不重复执行
-    assert harness.service.recover_organize_jobs() == 0
+    harness.provider.handler = handler
+    view = await harness.service.organize(
+        detail["importId"], organize_body([detail["drafts"][0]["draftId"]])
+    )
+    assert view.state == "cancelled"
+    assert len(harness.provider.calls) == 1
+    assert view.suggestionCount == 0
+    assert view.suggestions == []
+    assert view.failures == []
+    assert harness.catalog.list_suggestions(organization_job_id=view.jobId) == []
 
 
-# --------------------------------------------------------------------------- 6
+# ------------------------------------------------------------- 应用建议
 
 
 def test_apply_suggestion_after_stale_base_is_conflict(harness: Harness) -> None:
@@ -453,10 +1082,7 @@ def test_apply_suggestion_after_stale_base_is_conflict(harness: Harness) -> None
 
     response = harness.client.post(
         f"/api/v1/question-suggestions/{suggestion.suggestion_id}/apply",
-        json={
-            "expectedDraftRevision": patched.json()["revision"],
-            "accept": True,
-        },
+        json={"expectedDraftRevision": patched.json()["revision"], "accept": True},
     )
     assert response.status_code == 409
     assert response.json()["code"] == "DRAFT_REVISION_CONFLICT"
@@ -526,7 +1152,9 @@ def test_organize_rejects_failed_or_confirmed_import(harness: Harness) -> None:
         json={
             "submissionId": "submission-0001",
             "importId": import_id,
-            "items": [{"draftId": draft["draftId"], "expectedDraftRevision": reviewed.json()["revision"]}],
+            "items": [
+                {"draftId": draft["draftId"], "expectedDraftRevision": reviewed.json()["revision"]}
+            ],
         },
     )
     assert confirmed.status_code == 200, confirmed.text
@@ -537,14 +1165,14 @@ def test_organize_rejects_failed_or_confirmed_import(harness: Harness) -> None:
 
     unknown = harness.client.post(
         f"/api/v1/question-imports/{harness.sample_detail()['importId']}/organize",
-        json={"draftIds": ["missing"], "modelProfileId": MODEL_PROFILE},
+        json={"draftIds": ["missing"], "modelProfileId": LOCAL_PROFILE},
     )
     assert unknown.status_code == 404
     assert unknown.json()["code"] == "DRAFT_NOT_FOUND"
 
     missing_import = harness.client.post(
         "/api/v1/question-imports/nope/organize",
-        json={"draftIds": [], "modelProfileId": MODEL_PROFILE},
+        json={"draftIds": [], "modelProfileId": LOCAL_PROFILE},
     )
     assert missing_import.status_code == 404
     assert missing_import.json()["code"] == "IMPORT_NOT_FOUND"
@@ -576,213 +1204,6 @@ def test_service_apply_suggestion_direct(harness: Harness) -> None:
     assert view.reviewState == "needs_review"
 
 
-def test_organize_empty_model_name_reaches_server_default(harness: Harness) -> None:
-    """服务层语义（v1.2）：省略/空串 → 服务端默认本地模型，且只发给本机已安装名。
-
-    注：共享 schema 目前仍是 ``modelProfileId: str = Field(min_length=1, ...)``，HTTP 层还无法
-    省略该字段（未改共享 schema）；这里用 ``model_construct`` 直接验证服务层契约。
-    """
-    detail = harness.sample_detail()
-    body = OrganizeRequest.model_construct(
-        draftIds=[detail["drafts"][0]["draftId"]],
-        includeUnassigned=False,
-        modelProfileId="",
-    )
-    view = harness.service.organize(detail["importId"], body)
-    assert view.suggestionCount == 1
-    assert view.state == "succeeded"
-    assert harness.organizer.calls[-1].model_name == DEFAULT_ORGANIZE_MODEL
-    checkpoint = harness.catalog.get_job(view.jobId).checkpoint
-    assert checkpoint["resolvedModel"] == DEFAULT_ORGANIZE_MODEL
-    assert checkpoint["modelProfileId"] == ""
-
-
-def test_organize_explicit_local_model_is_used(harness: Harness) -> None:
-    harness.model_catalog = FakeModelCatalog(("qwen2.5:7b", "qwen2.5:7b-instruct"))
-    harness.service.model_catalog = harness.model_catalog
-    detail = harness.sample_detail()
-    response = organize(
-        harness, detail["importId"], modelProfileId="qwen2.5:7b-instruct"
-    )
-    assert response.status_code == 200, response.text
-    assert harness.organizer.calls[-1].model_name == "qwen2.5:7b-instruct"
-    assert harness.catalog.get_job(response.json()["jobId"]).checkpoint["resolvedModel"] == (
-        "qwen2.5:7b-instruct"
-    )
-
-
-def test_organize_profile_id_is_never_sent_upstream(harness: Harness) -> None:
-    """D2：前端传默认聊天模型 profileId（UUID）时必须 422，且不发出任何上游调用。"""
-    profile_id = "63b3ffdc-1111-4222-8333-444455556666"
-    detail = harness.sample_detail()
-    response = organize(harness, detail["importId"], modelProfileId=profile_id)
-    assert response.status_code == 422, response.text
-    body = response.json()
-    assert body["code"] == "ORGANIZER_MODEL_MISSING"
-    assert "AI 整理只使用本机 Ollama 模型" in body["message"]
-    assert profile_id not in body["message"]  # 不回显请求原文
-    assert harness.organizer.calls == []  # 没有 /api/chat 调用
-    # 不留下半死的整理任务
-    assert job_records(harness) == []
-
-
-def test_organize_unknown_model_name_is_rejected(harness: Harness) -> None:
-    harness.model_catalog = FakeModelCatalog(("qwen2.5:7b",))
-    harness.service.model_catalog = harness.model_catalog
-    detail = harness.sample_detail()
-    response = organize(
-        harness, detail["importId"], modelProfileId="qwen2.5-coder:7b"
-    )
-    assert response.status_code == 422, response.text
-    assert response.json()["code"] == "ORGANIZER_MODEL_MISSING"
-    assert harness.organizer.calls == []
-
-
-def test_organize_model_tag_normalization_follows_b1(harness: Harness) -> None:
-    """tag 归一按 B1 语义：省略 tag 等价 :latest；不做包含匹配、不做双重 tag 折叠。"""
-    # 本机安装名不带 tag，"qwen2.5:latest" 与 "qwen2.5" 等价 → 命中（传给上游的是已安装名）
-    harness.model_catalog = FakeModelCatalog(("qwen2.5",))
-    harness.service.model_catalog = harness.model_catalog
-    detail = harness.sample_detail()
-    matched = organize(harness, detail["importId"], modelProfileId="qwen2.5:latest")
-    assert matched.status_code == 200, matched.text
-    assert harness.organizer.calls[-1].model_name == "qwen2.5"
-    assert matched.json()["state"] == "succeeded"
-
-    # "qwen2.5-coder:7b" 不得命中 "qwen2.5:7b"（不做包含匹配）
-    harness.model_catalog = FakeModelCatalog(("qwen2.5:7b",))
-    harness.service.model_catalog = harness.model_catalog
-    second = harness.sample_detail()
-    rejected = organize(harness, second["importId"], modelProfileId="qwen2.5-coder:7b")
-    assert rejected.status_code == 422
-    assert rejected.json()["code"] == "ORGANIZER_MODEL_MISSING"
-
-    # 记录一个真实边界：B1 的 normalize_model_tag 不折叠双重 tag，
-    # "qwen2.5:7b:latest" 与已安装的 "qwen2.5:7b" 不视为同一模型（如实拒绝，不猜）
-    third = harness.sample_detail()
-    doubled = organize(harness, third["importId"], modelProfileId="qwen2.5:7b:latest")
-    assert doubled.status_code == 422
-    assert doubled.json()["code"] == "ORGANIZER_MODEL_MISSING"
-
-
-def test_ollama_adapters_read_tags_and_never_send_empty_model() -> None:
-    """适配器层（MockTransport，不触网）：/api/tags 解析 + 空模型名不发 /api/chat。"""
-    import httpx
-
-    from app.services.question_bank.organizer import (
-        OllamaModelCatalog,
-        OllamaOrganizerModel,
-        OrganizerCall,
-    )
-
-    seen: list[httpx.Request] = []
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        seen.append(request)
-        if request.url.path == "/api/tags":
-            return httpx.Response(
-                200, json={"models": [{"name": "qwen2.5:7b", "model": "qwen2.5:7b"}, {"name": ""}]}
-            )
-        return httpx.Response(
-            200, json={"message": {"content": "{}"}, "done_reason": "stop"}
-        )
-
-    transport = httpx.MockTransport(handler)
-    catalog = OllamaModelCatalog("http://127.0.0.1:11434", transport=transport)
-    assert catalog.installed_models() == ["qwen2.5:7b"]
-
-    # 模型清单只允许本机回环地址
-    with pytest.raises(AppError) as not_local:
-        OllamaModelCatalog("http://10.0.0.5:11434")
-    assert not_local.value.code == "ORGANIZER_BASE_URL_NOT_LOCAL"
-
-    adapter = OllamaOrganizerModel("http://127.0.0.1:11434", transport=transport)
-    with pytest.raises(AppError) as missing:
-        adapter.organize(
-            OrganizerCall(
-                job_id="job",
-                batch_index=0,
-                model_name="",
-                instruction="i",
-                input_text="x",
-                max_output_tokens=10,
-            )
-        )
-    assert missing.value.code == "ORGANIZER_MODEL_MISSING"
-    assert [request.url.path for request in seen] == ["/api/tags"]  # 没发 /api/chat
-
-    raw = adapter.organize(
-        OrganizerCall(
-            job_id="job",
-            batch_index=0,
-            model_name="qwen2.5:7b",
-            instruction="i",
-            input_text="x",
-            max_output_tokens=10,
-        )
-    )
-    chat_requests = [request for request in seen if request.url.path == "/api/chat"]
-    assert len(chat_requests) == 1
-    payload = json.loads(chat_requests[0].content.decode("utf-8"))
-    assert payload["model"] == "qwen2.5:7b"
-    assert payload["format"] == "json"
-    assert payload["stream"] is False
-    assert payload["options"]["num_predict"] == 10
-    assert raw == "{}"
-
-
-def test_organize_catalog_unavailable_is_503(harness: Harness) -> None:
-    """Ollama 不在场 → 503（可重试），与「模型不存在」的 422 区分开，且不发上游调用。"""
-    harness.model_catalog = FakeModelCatalog(
-        error=AppError(
-            "本机 Ollama 不可用，无法确认已安装模型；请启动 Ollama 后重试。",
-            code="ORGANIZER_UNAVAILABLE",
-            status_code=503,
-            retryable=True,
-        )
-    )
-    harness.service.model_catalog = harness.model_catalog
-    detail = harness.sample_detail()
-    response = organize(harness, detail["importId"], modelProfileId="qwen2.5:7b")
-    assert response.status_code == 503
-    assert response.json()["code"] == "ORGANIZER_UNAVAILABLE"
-    assert response.json()["retryable"] is True
-    assert harness.organizer.calls == []
-    assert job_records(harness) == []
-
-
-def test_organize_recovers_legacy_checkpoint_without_uuid_upstream(harness: Harness) -> None:
-    """v1.0/v1.1 遗留 checkpoint（存的是 profile 标识）恢复时不把 UUID 当模型名发出。"""
-    detail = harness.sample_detail()
-    draft = detail["drafts"][0]
-    legacy = harness.catalog.create_job(
-        kind="organize",
-        state="running",
-        checkpoint={
-            "modelProfileId": "63b3ffdc-1111-4222-8333-444455556666",
-            "instruction": "旧指令",
-            "drafts": [{"draftId": draft["draftId"], "revision": draft["revision"]}],
-            "batches": [
-                {
-                    "index": 0,
-                    "draftId": draft["draftId"],
-                    "blockIds": [detail["drafts"][0]["sourceSpans"][0]["blockId"]],
-                    "inputText": "[块 x]\n旧文本",
-                    "charCount": 6,
-                }
-            ],
-            "nextBatchIndex": 0,
-            "suggestionIds": [],
-            "failedBatches": [],
-        },
-    )
-    assert harness.service.recover_organize_jobs() == 1
-    job = harness.catalog.get_job(legacy.job_id)
-    assert job.state == "failed"
-    assert job.error_code == "ORGANIZER_MODEL_MISSING"
-    assert harness.organizer.calls == []
-
-
 def test_organize_include_unassigned_attaches_blocks(harness: Harness) -> None:
     detail = harness.sample_detail()
     import_id = detail["importId"]
@@ -798,3 +1219,35 @@ def test_organize_include_unassigned_attaches_blocks(harness: Harness) -> None:
     # 未归属块被挂到前一道所选草稿，来源仍可回溯
     assert suggested_blocks & unassigned_ids
     assert "includeUnassigned" in harness.catalog.get_job(view["jobId"]).checkpoint
+
+
+def test_organize_rejects_draft_from_other_import(harness: Harness) -> None:
+    """草稿不属于该导入 → 404 DRAFT_NOT_FOUND，不建任务、不发上游。"""
+    first_detail = harness.sample_detail()
+    import_id = first_detail["importId"]
+    other_detail = harness.sample_detail()
+    foreign = other_detail["drafts"][0]
+
+    response = harness.client.post(
+        f"/api/v1/question-imports/{import_id}/organize",
+        json={"draftIds": [foreign["draftId"]], "modelProfileId": LOCAL_PROFILE},
+    )
+    assert response.status_code == 404
+    assert response.json()["code"] == "DRAFT_NOT_FOUND"
+    assert harness.provider.calls == []
+    assert job_records(harness) == []
+
+
+def test_excluded_only_drafts_is_rejected(harness: Harness) -> None:
+    """没有可整理的草稿（全部排除）→ 422 ORGANIZE_TARGET_EMPTY。"""
+    detail = harness.sample_detail()
+    import_id = detail["importId"]
+    for draft in detail["drafts"]:
+        harness.catalog.set_draft_review_state(
+            draft["draftId"], expected_revision=draft["revision"], review_state="excluded"
+        )
+    response = organize(harness, import_id)
+    assert response.status_code == 422
+    assert response.json()["code"] == "ORGANIZE_TARGET_EMPTY"
+    assert harness.provider.calls == []
+    assert job_records(harness) == []

@@ -3,7 +3,8 @@
 取服务：目录来自 ``request.app.state.question_bank``，业务服务来自
 ``request.app.state.question_bank_service``；服务为 ``None`` 时统一 503
 ``SERVICE_UNAVAILABLE``（可重试），绝不返回空列表或假成功。
-所有同步重活（SQL、文件、解析、模型调用）都在有界线程中执行。
+``organize`` 是 async 服务方法（模型经注入的 ``model_resolver`` 解析、调用在 SQL 写事务外），
+路由直接 ``await``；其余同步重活（SQL、文件、解析）都在有界线程中执行。
 """
 
 from __future__ import annotations
@@ -191,8 +192,9 @@ async def merge_question_drafts(
 async def organize_question_import(
     request: Request, import_id: str, body: OrganizeRequest
 ) -> OrganizeJobView:
+    """AI 整理：模型 = 点击时的当前聊天模型（``modelProfileId``），服务层自身是 async。"""
     service = _service(request)
-    return await _run(service.organize, import_id, body)
+    return await service.organize(import_id, body)
 
 
 @router.post("/question-suggestions/{suggestion_id}/apply")

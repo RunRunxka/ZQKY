@@ -215,7 +215,9 @@ def question_detail(record: QuestionRecord) -> QuestionDetail:
 #: 批级失败码的默认中文说明；checkpoint 里 message 为空时用它兜底，不吞掉失败
 _BATCH_FAILURE_MESSAGES = {
     "ORGANIZER_INVALID_JSON": "AI 返回内容不是合法 JSON，该批已失败，原文保留。",
-    "ORGANIZER_TRUNCATED": "模型输出被截断，该批已失败，原文保留。",
+    "ORGANIZER_OUTPUT_TRUNCATED": (
+        "模型输出被截断（结束原因 length），该批未生成可应用建议，原文保留。"
+    ),
     "ORGANIZER_UNKNOWN_SOURCE_BLOCK": "AI 引用了输入之外的来源块，该批已失败，原文保留。",
     "ORGANIZER_INVALID_CONTENT": "AI 返回内容不符合题库契约，该批已失败，原文保留。",
     "ORGANIZE_TARGET_MISSING": "目标草稿已不存在，该批建议未落库，原文保留。",

@@ -41,10 +41,14 @@ export interface DraftMergeRequest {
   expectedRevisions: Record<string, number>;
 }
 
-/** 镜像后端 `OrganizeRequest`。 */
+/** 镜像后端 `OrganizeRequest`（严格模型，字段名与取值必须一致）。 */
 export interface OrganizeQuestionsRequest {
   draftIds: string[];
   includeUnassigned: boolean;
+  /**
+   * **当前聊天模型的 profile id**（RAG-QUALITY v1.1；本地或云端一视同仁）。
+   * 不是模型名、不是空串：后端经共享 `resolve_chat_model` 解析，解析失败返回可读错误。
+   */
   modelProfileId: string;
 }
 
@@ -66,15 +70,12 @@ export interface QuestionQuery {
 }
 
 /**
- * `organize` 的结果视图：冻结契约的 `OrganizeJobView` 加上可选建议明细。
+ * `organize` 的结果视图 = 冻结契约的 `OrganizeJobView`（含 `suggestions` 与 `failures`）。
  *
- * 后端当前只在任务视图里给出计数（没有建议列表 HTTP 通道）。为避免伪造数据，
- * 这里对响应做容错归一：响应带 `suggestions` 时原样透传，未带时为空数组，
- * 由界面如实说明「本次未返回建议明细」。
+ * 保留 `normalizeOrganizeResult` 的原因：响应缺字段或形状不认识时必须显式失败
+ * （不能让界面把未知响应当成功），也不能用假数据补齐。
  */
-export interface OrganizeJobResult extends OrganizeJobView {
-  suggestions: SuggestionView[];
-}
+export type OrganizeJobResult = OrganizeJobView;
 
 /* ------------------------------------------------------------------ 查询串 */
 
@@ -170,6 +171,11 @@ export function mergeQuestionDrafts(
 
 /* ------------------------------------------------------------------ AI 整理 */
 
+/**
+ * 发起 AI 整理：`modelProfileId` 由调用方在**点击那一刻**冻结为当前聊天模型的 profile id
+ * （重复发起同一任务时沿用冻结值，不因聊天模型被切换而更改）。
+ * 失败一律抛 `ApiError`（含任务级错误码），绝不降级为空建议或假成功。
+ */
 export function organizeQuestions(
   importId: string,
   body: OrganizeQuestionsRequest,

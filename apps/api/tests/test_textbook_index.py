@@ -10,9 +10,15 @@ from pathlib import Path
 
 import pytest
 
+from app.services.text_projection import TEXT_PROJECTION_VERSION
 from app.core.exceptions import AppError
 from app.repositories.vector_store import AllowedFilter, InMemoryVectorStore
-from app.services.textbook_ingest import DEFAULT_RENEW_SECONDS, generation_manifest
+from app.services.textbook_ingest import (
+    DEFAULT_RENEW_SECONDS,
+    generation_manifest,
+    generation_policy,
+    new_collection_name,
+)
 from app.services.textbook_index import IndexService
 from tests.test_textbook_ingest import (
     CountingVectorStore,
@@ -600,3 +606,413 @@ def test_installed_flag_is_false_when_local_service_unreachable(tmp_path: Path) 
     env = IndexHarness(tmp_path, embeddings=UnreachableEmbeddings(), bootstrap=False)
     listed = env.service.list_profiles()
     assert listed.profiles[0].installed is False  # 无法证明在场，不猜
+
+
+# ------------------------ v1.1 清洗版本：分代词法文本、缓存键与新策略产生新分块集
+
+#: 逼出"整块只有一张图"的文档（图片行前后都是超长段落，块边界落在图片行上）
+IMAGE_ONLY_TEXT = (
+    "# 第一章 力\n\n"
+    + "开头段落。" * 170
+    + "\n\n![](images/only.jpg)\n\n"
+    + "长段落说明。" * 220
+    + "\n\n## 练习 1.1\n\n1. 求并集。\n"
+)
+
+
+def _scope_for(revision, chunk_set_id: str, document) -> "object":
+    from app.services.rag_v2.scope import RevisionScope
+
+    return RevisionScope(
+        document_id=document.document_id,
+        document_revision_id=revision.revision_id,
+        metadata_revision_id=document.current_metadata_revision_id,
+        chunk_set_id=chunk_set_id,
+        owner_id=document.owner_id,
+        title=document.title,
+        edition_label="人教版 必修一",
+        subject_label="数学",
+        grade_ids=("senior-1",),
+        library_ids=tuple(document.library_ids),
+    )
+
+
+def test_bm25_text_follows_generation_projection_version_and_cache_key(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """BM25 文档文本按**该代登记**的清洗版本投影；缓存键含清洗版本，跨版本不命中。"""
+    from app.services.document_parsing import (
+        LEGACY_TEXT_PROJECTION_VERSION,
+        ChunkPolicy,
+        chunk_document,
+        chunk_manifest_sha256,
+        chunk_policy_fingerprint,
+    )
+    from app.services.rag_v2 import retrieval as retrieval_module
+    from app.services.rag_v2.retrieval import HybridRetriever
+    from app.services.textbook_ingest import generation_policy_document
+
+    env = IndexHarness(tmp_path)
+    draft = env.base.import_with_metadata(IMAGE_ONLY_TEXT)
+    job = env.base.commit_and_run(draft, submission_id="submission-bm25-1")
+    assert job.state == "succeeded", job.errorMessage
+    revision = env.catalog.get_revision(job.inputRevisionId)
+    assert revision is not None
+    document = env.catalog.list_documents()[0]
+    parsed = env.base.service.indexer.parse_revision(revision)
+
+    new_policy = generation_policy(env.base.generation)
+    legacy_policy = ChunkPolicy(text_projection_version=LEGACY_TEXT_PROJECTION_VERSION)
+    assert new_policy.text_projection_version == TEXT_PROJECTION_VERSION
+    assert legacy_policy.text_projection_version == "raw-v0"
+    assert chunk_policy_fingerprint(legacy_policy) != chunk_policy_fingerprint(new_policy)
+
+    # 旧口径分块集：同一修订、同一几何，但多一个"图片独占块"（清洗后为空的那个）
+    legacy_chunks = chunk_document(parsed, policy=legacy_policy)
+    legacy_set = env.catalog.create_chunk_set(
+        revision.revision_id,
+        policy_fingerprint=chunk_policy_fingerprint(legacy_policy),
+        manifest_sha256=chunk_manifest_sha256(legacy_chunks),
+        chunks=legacy_chunks,
+    )
+    new_link = env.catalog.list_generation_revisions(env.base.generation.generation_id)[0]
+    new_chunks = env.catalog.list_chunks(new_link.chunk_set_id)
+    assert len(legacy_chunks) == len(new_chunks) + 1  # 新策略不复用旧划分
+
+    # 旧代：一个登记 raw-v0 策略的索引代（模拟 v1.1 之前已发布的代）
+    legacy_generation = env.catalog.create_generation(
+        profile_id=env.base.profile.profile_id,
+        collection_name=new_collection_name(),
+        chunk_policy_json=generation_policy_document(legacy_policy, []),
+        state="building",
+    )
+    env.catalog.upsert_generation_revision(
+        legacy_generation.generation_id,
+        revision.revision_id,
+        legacy_set.chunk_set_id,
+        state="ready",
+        expected_chunk_count=len(legacy_chunks),
+        manifest_sha256=legacy_set.manifest_sha256,
+    )
+
+    retriever = HybridRetriever(env.catalog, env.vectors, env.embeddings)
+    scope_new = (_scope_for(revision, new_link.chunk_set_id, document),)
+    scope_legacy = (_scope_for(revision, legacy_set.chunk_set_id, document),)
+
+    index_new = retriever._lexical_index(env.base.generation, scope_new)
+    index_legacy = retriever._lexical_index(legacy_generation, scope_legacy)
+    assert (retriever.cache_misses, retriever.cache_hits) == (2, 0)
+    new_texts = [entry.text for entry in index_new.entries]
+    legacy_texts = [entry.text for entry in index_legacy.entries]
+    # 新代：图片地址不进入词法文本；旧代：保持登记策略（原样含图片地址）
+    assert new_texts and all("images/" not in text for text in new_texts)
+    assert any("images/only.jpg" in text for text in legacy_texts)
+    assert len(legacy_texts) == len(new_texts) + 1
+
+    # 缓存键含清洗版本：同一代 + 同一范围，只换清洗版本也必须重建（不命中同一缓存）
+    # 用旧口径分块集作为范围：它含"清洗后为空"的图片独占块，差异最直观
+    monkeypatch.setattr(
+        retrieval_module,
+        "generation_policy",
+        lambda generation: legacy_policy,
+    )
+    swapped = retriever._lexical_index(env.base.generation, scope_legacy)
+    monkeypatch.undo()
+    assert retriever.cache_misses == 3 and retriever.cache_hits == 0
+    assert any("images/only.jpg" in entry.text for entry in swapped.entries)
+    # 同一批块在登记策略（rag-readable-v1）下投影：图片独占块清洗后为空 → 正是被清单排除的原因
+    image_chunk = next(
+        chunk
+        for chunk in env.catalog.list_chunks(legacy_set.chunk_set_id)
+        if "images/only.jpg" in parsed.normalized_text[chunk.char_start:chunk.char_end]
+    )
+    from app.services.document_parsing import chunk_projection
+
+    assert chunk_projection(image_chunk, parsed.normalized_text, new_policy).text.strip() == ""
+    assert new_chunks and not any(
+        "images/only.jpg" in parsed.normalized_text[chunk.char_start:chunk.char_end]
+        for chunk in new_chunks
+    )
+
+    # 恢复原策略后，原键仍命中缓存（同输入同索引）
+    again = retriever._lexical_index(env.base.generation, scope_new)
+    assert again is index_new and retriever.cache_hits == 1
+
+
+def test_new_projection_policy_rebuild_keeps_old_generation_untouched(tmp_path: Path) -> None:
+    """旧代按 raw-v0 建（含图片块），新策略重建后：新代新分块集，旧代与其 collection 不改写。"""
+    from app.services.document_parsing import (
+        LEGACY_TEXT_PROJECTION_VERSION,
+        ChunkPolicy,
+    )
+    from app.services.rag_v2.retrieval import HybridRetriever
+    from app.services.textbook_ingest import generation_policy_document
+
+    env = IndexHarness(tmp_path, bootstrap=False)
+    legacy_policy = ChunkPolicy(text_projection_version=LEGACY_TEXT_PROJECTION_VERSION)
+    old_generation = env.catalog.create_generation(
+        profile_id=env.base.profile.profile_id,
+        collection_name=new_collection_name(),
+        chunk_policy_json=generation_policy_document(legacy_policy, []),
+        state="building",
+    )
+    env.vectors.ensure_collection(
+        name=old_generation.collection_name, dimensions=4, distance="Cosine"
+    )
+    env.catalog.publish_generation(old_generation.generation_id)
+    env.catalog.set_active_generation(old_generation.generation_id)
+    env.base.generation = old_generation
+    env.base.collection = old_generation.collection_name
+
+    # 入库走旧代登记策略（raw-v0）：图片独占块保留在清单与向量里
+    draft = env.base.import_with_metadata(IMAGE_ONLY_TEXT)
+    job = env.base.commit_and_run(draft, submission_id="submission-legacy-1")
+    assert job.state == "succeeded", job.errorMessage
+    revision = env.catalog.get_revision(job.inputRevisionId)
+    assert revision is not None
+    parsed = env.base.service.indexer.parse_revision(revision)
+    old_link = env.catalog.list_generation_revisions(old_generation.generation_id)[0]
+    old_chunks = env.catalog.list_chunks(old_link.chunk_set_id)
+    old_points = env.vectors.point_ids(old_generation.collection_name)
+    # 旧口径保留图片独占块：清单与向量里都有它
+    assert any(
+        "images/only.jpg" in parsed.normalized_text[chunk.char_start:chunk.char_end]
+        for chunk in old_chunks
+    )
+    old_payloads = env.vectors.payloads(old_generation.collection_name)
+    assert old_payloads and all(
+        payload["textProjectionVersion"] == LEGACY_TEXT_PROJECTION_VERSION
+        for payload in old_payloads
+    )
+
+    # 同模型、新清洗策略重建：新代必须产生新分块集与自己的 collection
+    rebuild = env.service.begin_rebuild(
+        profile_id=env.base.profile.profile_id, submission_id="submission-rebuild-clean"
+    )
+    generation = env.catalog.get_generation(rebuild.targetGenerationId)
+    assert generation_policy(generation).text_projection_version == TEXT_PROJECTION_VERSION
+    assert env.service.run_rebuild(rebuild.jobId).state == "succeeded"
+    assert env.catalog.catalog_state().active_generation_id == generation.generation_id
+
+    new_link = env.catalog.list_generation_revisions(generation.generation_id)[0]
+    assert new_link.state == "ready"
+    new_chunk_set = env.catalog.get_chunk_set(new_link.chunk_set_id)
+    assert new_chunk_set is not None
+    assert new_chunk_set.chunk_set_id != old_link.chunk_set_id  # 不复用旧划分
+    assert new_chunk_set.manifest_sha256 == new_link.manifest_sha256
+    new_chunks = env.catalog.list_chunks(new_link.chunk_set_id)
+    assert new_chunk_set.chunk_count == new_link.expected_chunk_count == len(new_chunks)
+    assert len(new_chunks) == len(old_chunks) - 1  # 图片独占块在新代被排除
+    assert env.vectors.count(name=generation.collection_name) == new_link.expected_chunk_count
+    new_payloads = env.vectors.payloads(generation.collection_name)
+    assert new_payloads and all(
+        payload["textProjectionVersion"] == TEXT_PROJECTION_VERSION for payload in new_payloads
+    )
+    for payload in new_payloads:
+        assert isinstance(payload["indexTextSha256"], str)
+        assert len(payload["indexTextSha256"]) == 64
+        assert payload["text_sha256"]  # 原文切片散列仍在，含义不变
+
+    # 旧代：状态、分块集、collection 与点集一字不改（不就地改写旧 collection）
+    assert env.catalog.get_generation(old_generation.generation_id).state == "ready"
+    assert (
+        env.catalog.list_generation_revisions(old_generation.generation_id)[0].chunk_set_id
+        == old_link.chunk_set_id
+    )
+    assert env.vectors.point_ids(old_generation.collection_name) == old_points
+    assert env.vectors.payloads(old_generation.collection_name) == old_payloads
+
+    # 两个代各自按登记策略产出词法文本：新代不含图片地址，旧代保留
+    document = env.catalog.list_documents()[0]
+    retriever = HybridRetriever(env.catalog, env.vectors, env.embeddings)
+    index_old = retriever._lexical_index(
+        old_generation, (_scope_for(revision, old_link.chunk_set_id, document),)
+    )
+    index_new = retriever._lexical_index(
+        generation, (_scope_for(revision, new_link.chunk_set_id, document),)
+    )
+    assert any("images/only.jpg" in entry.text for entry in index_old.entries)
+    assert all("images/" not in entry.text for entry in index_new.entries)
+    assert len(index_old.entries) == len(index_new.entries) + 1
+    assert parsed.normalized_text  # 原文一字未改，仍可读
+
+
+# ---------------- B2 修复 v1.1（1）：分词全空语料不得让检索直接崩
+
+def _activate_generation_with_policy(env: IndexHarness, policy):
+    """把自定义分块策略的代设为活动代（用于精确控制"分词为空"的块）。"""
+    from app.services.textbook_ingest import generation_policy_document
+
+    generation = env.catalog.create_generation(
+        profile_id=env.base.profile.profile_id,
+        collection_name=new_collection_name(),
+        chunk_policy_json=generation_policy_document(policy, []),
+        state="building",
+    )
+    env.vectors.ensure_collection(
+        name=generation.collection_name, dimensions=4, distance="Cosine"
+    )
+    env.catalog.publish_generation(generation.generation_id)
+    env.catalog.set_active_generation(generation.generation_id)
+    env.base.generation = generation
+    env.base.collection = generation.collection_name
+    return generation
+
+
+def test_all_empty_token_corpus_does_not_crash_retrieval(tmp_path: Path) -> None:
+    """单块纯符号语料（分词为空）：不构造 BM25、不抛异常，向量侧结果照常融合返回。"""
+    from app.services.document_parsing import ChunkPolicy
+    from app.services.rag_v2.retrieval import HybridRetriever, tokenize
+
+    env = IndexHarness(tmp_path)
+    policy = ChunkPolicy(target_chars=12, max_chars=24, overlap_chars=0)
+    generation = _activate_generation_with_policy(env, policy)
+    draft = env.base.import_with_metadata("…" * 40, file_name="symbols.md")
+    job = env.base.commit_and_run(draft, submission_id="submission-empty-token-1")
+    assert job.state == "succeeded", job.errorMessage
+    revision = env.catalog.get_revision(job.inputRevisionId)
+    assert revision is not None
+    parsed = env.base.service.indexer.parse_revision(revision)
+    document = env.catalog.list_documents()[0]
+    link = env.catalog.list_generation_revisions(generation.generation_id)[0]
+    chunks = env.catalog.list_chunks(link.chunk_set_id)
+    assert chunks  # 有块（不是"没有文本"）：只是每块分词都为空
+    assert all(
+        tokenize(parsed.normalized_text[chunk.char_start:chunk.char_end]) == []
+        for chunk in chunks
+    )
+
+    retriever = HybridRetriever(env.catalog, env.vectors, env.embeddings)
+    scope = (_scope_for(revision, link.chunk_set_id, document),)
+    # 构造期不崩：可索引条目为空 → 不构造 BM25
+    index = retriever._lexical_index(generation, scope)
+    assert index.entries == [] and index.bm25 is None
+    assert retriever._lexical(generation, scope, "集合的表示方法") == []
+
+    candidates = retriever.retrieve(
+        question="集合的表示方法",
+        scope=scope,
+        profile=env.base.profile,
+        generation=generation,
+    )
+    # 词法为空不影响向量侧与 RRF：稠密结果照常返回，不判定为整体不可用
+    assert candidates
+    assert all(item.dense_rank is not None and item.lexical_rank is None for item in candidates)
+    assert candidates[0].dense_rank == 1
+    assert candidates[0].fused_score == pytest.approx(1.0 / (retriever.rrf_k + 1))
+
+
+def test_mixed_empty_token_corpus_keeps_lexical_mapping_aligned(tmp_path: Path) -> None:
+    """混合语料（一块分词为空 + 若干正常块）：正常块仍可命中，且序号映射不错位。"""
+    from rank_bm25 import BM25Okapi
+
+    from app.services.document_parsing import ChunkPolicy
+    from app.services.rag_v2.retrieval import HybridRetriever, tokenize
+
+    env = IndexHarness(tmp_path)
+    policy = ChunkPolicy(target_chars=12, max_chars=24, overlap_chars=0)
+    generation = _activate_generation_with_policy(env, policy)
+    text = (
+        "# 第一章 集合与常用逻辑用语\n\n"
+        + "…" * 20
+        + "\n\n"
+        + "集合的表示方法。" * 3
+        + "\n\n"
+        + "集合的表示。\n"
+    )
+    draft = env.base.import_with_metadata(text, file_name="mixed.md")
+    job = env.base.commit_and_run(draft, submission_id="submission-empty-token-2")
+    assert job.state == "succeeded", job.errorMessage
+    revision = env.catalog.get_revision(job.inputRevisionId)
+    assert revision is not None
+    parsed = env.base.service.indexer.parse_revision(revision)
+    document = env.catalog.list_documents()[0]
+    link = env.catalog.list_generation_revisions(generation.generation_id)[0]
+    chunks = env.catalog.list_chunks(link.chunk_set_id)
+    empty_ordinals = [
+        chunk.ordinal
+        for chunk in chunks
+        if tokenize(parsed.normalized_text[chunk.char_start:chunk.char_end]) == []
+    ]
+    assert empty_ordinals == [1]  # 样本里恰好一个"分词为空"的块
+
+    retriever = HybridRetriever(env.catalog, env.vectors, env.embeddings)
+    scope = (_scope_for(revision, link.chunk_set_id, document),)
+    index = retriever._lexical_index(generation, scope)
+    # 过滤后序号与 _LexicalEntry 重新对齐：条目 = 块表去掉空词元块，顺序不变
+    assert [(entry.chunk_set_id, entry.ordinal) for entry in index.entries] == [
+        (link.chunk_set_id, chunk.ordinal)
+        for chunk in chunks
+        if chunk.ordinal not in set(empty_ordinals)
+    ]
+    assert index.bm25 is not None and index.bm25.corpus_size == len(index.entries)
+
+    question = "集合的表示方法"
+    query_tokens = set(tokenize(question))
+    # 独立 BM25（同一份已过滤语料）给出期望命中与名次：与检索器逐一比对，错位必然暴露
+    independent = BM25Okapi([tokenize(entry.text) for entry in index.entries])
+    independent_scores = independent.get_scores(tokenize(question))
+    expected_hits = [
+        (entry.chunk_set_id, entry.ordinal)
+        for entry, score in sorted(
+            zip(index.entries, independent_scores),
+            key=lambda pair: (-float(pair[1]), pair[0].chunk_set_id, pair[0].ordinal),
+        )
+        if entry.tokens & query_tokens
+    ][: retriever.lexical_limit]
+    hits = retriever._lexical(generation, scope, question)
+    assert hits == expected_hits
+    assert hits  # 正常块仍可被词法命中
+    assert empty_ordinals[0] not in [ordinal for _chunk_set, ordinal in hits]
+
+
+# ---------------- B2 修复 v1.1（2）：chunk_count 兜底必须找得到旧口径分块集
+
+def test_chunk_count_falls_back_to_latest_sealed_chunk_set(tmp_path: Path) -> None:
+    """无代链接的修订：块数取该修订下最新已封存分块集，不再按指纹猜成 0。"""
+    from app.services.document_parsing import (
+        LEGACY_TEXT_PROJECTION_VERSION,
+        ChunkPolicy,
+        chunk_document,
+        chunk_manifest_sha256,
+        chunk_policy_fingerprint,
+    )
+    from app.services.textbook_ingest.views import ViewContext, latest_sealed_chunk_count
+
+    env = IndexHarness(tmp_path)
+    draft = env.base.import_with_metadata(sample_text())
+    job = env.base.service.commit_import(
+        draft.importId,
+        expected_revision=draft.revision,
+        submission_id="submission-chunk-count-1",
+        library_ids=[env.base.library.library_id],
+    )
+    revision = env.catalog.get_revision(job.inputRevisionId)
+    assert revision is not None
+    parsed = env.base.service.indexer.parse_revision(revision)
+    # 该修订只有旧口径分块集，且没有任何索引代链接（模拟历史/中断产物）
+    legacy = ChunkPolicy(text_projection_version=LEGACY_TEXT_PROJECTION_VERSION)
+    legacy_chunks = chunk_document(parsed, policy=legacy)
+    legacy_set = env.catalog.create_chunk_set(
+        revision.revision_id,
+        policy_fingerprint=chunk_policy_fingerprint(legacy),
+        manifest_sha256=chunk_manifest_sha256(legacy_chunks),
+        chunks=legacy_chunks,
+    )
+    assert env.catalog.list_generation_revisions(env.base.generation.generation_id) == []
+    assert legacy_set.policy_fingerprint != chunk_policy_fingerprint()
+
+    views = ViewContext(env.catalog)
+    assert views.chunk_count(revision.revision_id) == legacy_set.chunk_count == len(legacy_chunks) > 0
+    assert latest_sealed_chunk_count(env.catalog, revision.revision_id) == len(legacy_chunks)
+    # 更晚写入的分块集（新策略）优先：兜底取"最新"
+    new_chunks = chunk_document(parsed, policy=ChunkPolicy())
+    new_set = env.catalog.create_chunk_set(
+        revision.revision_id,
+        policy_fingerprint=chunk_policy_fingerprint(ChunkPolicy()),
+        manifest_sha256=chunk_manifest_sha256(new_chunks),
+        chunks=new_chunks,
+    )
+    assert views.chunk_count(revision.revision_id) == new_set.chunk_count
+    # 完全没有分块集的修订才显示 0
+    assert views.chunk_count("no-such-revision") == 0

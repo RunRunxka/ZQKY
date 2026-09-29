@@ -11,6 +11,7 @@ from typing import Any, TypeVar
 import anyio
 
 from app.core.exceptions import AppError
+from app.core.sqlite import connect as sqlite_connect
 from app.repositories.textbook_catalog.catalog import TextbookCatalog
 from app.repositories.textbook_catalog.records import (
     DocumentRecord,
@@ -38,7 +39,6 @@ from app.schemas.textbook import (
     TeachingSettingsView,
     TextbookSelection,
 )
-from app.services.document_parsing.chunking import chunk_policy_fingerprint
 
 #: 失败后仍可重试的错误：其余错误重试也会再次失败（身份/维度/指纹/数据缺失）。
 RETRYABLE_JOB_ERRORS = frozenset(
@@ -211,8 +211,7 @@ class ViewContext:
             count = self._generation_links[1].get(revision_id)
             if count is not None:
                 return count
-        chunk_set = self.catalog.find_chunk_set(revision_id, chunk_policy_fingerprint())
-        return chunk_set.chunk_count if chunk_set is not None else 0
+        return latest_sealed_chunk_count(self.catalog, revision_id)
 
     def document_summary(self, record: DocumentRecord) -> DocumentSummary:
         revision = (
@@ -304,6 +303,31 @@ def _int(value: object) -> int:
     if isinstance(value, bool) or not isinstance(value, int) or value < 0:
         return 0
     return value
+
+
+def latest_sealed_chunk_count(catalog: TextbookCatalog, revision_id: str) -> int:
+    """该修订下**最新已封存分块集**的块数；真的没有任何分块集才返回 0。
+
+    兜底不再按某个策略指纹猜（新清洗策略会让旧口径分块集查不到，显示成 0 块）；
+    按 ``sealed_at`` 倒序取第一个，得到该修订当前实际存在的块数。
+
+    接口缺口（已上报总控）：仓库层只有 ``find_chunk_set(修订, 指纹)``，没有"按修订列出分块集"的
+    公开方法，所以这里用统一连接入口 ``app.core.sqlite.connect`` 做一次只读查询。
+    若 B0 补上 ``TextbookCatalog.list_chunk_sets(document_revision_id)``，本函数应改为调用它。
+    """
+    connection = sqlite_connect(catalog.db_path)
+    try:
+        row = connection.execute(
+            "SELECT chunk_count FROM chunk_sets WHERE document_revision_id = ? "
+            # 秒级时间戳相同时按插入顺序取最后写入的那一个（"最新"的确定口径）
+            "ORDER BY sealed_at DESC, rowid DESC LIMIT 1",
+            (revision_id,),
+        ).fetchone()
+    finally:
+        connection.close()
+    if row is None:
+        return 0
+    return _int(row["chunk_count"])
 
 
 def _selection_from_json(raw: object) -> TextbookSelection | None:

@@ -37,6 +37,20 @@
   color: #92610c;
 }
 
+/* AI 整理：云模型的数据外发说明（蓝色变量层，不用新主题色） */
+.question-bank-page .qb-dataflow-note {
+  margin: 6px 0;
+  padding: 6px 10px;
+  border-left: 2px solid var(--blue);
+  border-radius: var(--radius-sm);
+  background: var(--blue-soft);
+  color: var(--ink);
+  font-size: 12.5px;
+  line-height: 1.7;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .question-bank-page .qb-link {
   color: var(--blue);
   text-decoration: underline;

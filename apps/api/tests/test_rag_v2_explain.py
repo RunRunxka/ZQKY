@@ -9,7 +9,12 @@ from app.providers.llm.base import LLMConfig, LLMStreamEvent
 from app.schemas.chat import MAX_TOTAL_CHARS
 from app.schemas.model_config import ModelProtocol
 from app.schemas.rag_v2 import EvidenceRef, RagExplainHistoryMessage, RagExplainRequest
-from app.services.rag_v2.evidence import build_evidence, rebuild_evidence_refs
+from app.services.rag_v2.evidence import (
+    build_evidence,
+    evidence_id,
+    rebuild_evidence_refs,
+    sha256_utf8,
+)
 from app.services.rag_v2.explain import (
     ChatModelHandle,
     ExplainDelta,
@@ -289,19 +294,28 @@ def test_budget_drops_oldest_history_and_never_truncates_question_or_evidence(tm
 
 @pytest.mark.asyncio
 async def test_explain_service_surfaces_budget_error_before_streaming(tmp_path):
+    """长正文：单条引用本身合法（历史详解不套首答窗口），20 条合计超过 120,000 字符硬上限。"""
     env = RagEnv(tmp_path, explainer=FakeExplainer())
-    # 长正文：单条证据本身合法，但 20 条引用合计超过 120,000 字符硬上限
     document = env.add_document(
         title="长正文册",
         text="# 第一章 集合\n\n" + long_body("集合", paragraphs=60, sentences=8) + "\n\n## 练习 1.1\n\n1. 求并集。\n",
     )
-    _scope, evidence = evidence_for(env, document)
-    assert len(evidence[0].text) > 5_000, "本用例依赖足够长的单条证据"
+    scope = verify_scope(env.catalog, env.snapshot(document))
+    body = document.body_chunks()
+    big_ref = EvidenceRef(
+        evidenceId=evidence_id(document.revision_id, body[0].char_start, body[-1].char_end),
+        documentRevisionId=document.revision_id,
+        normalizedTextSha256=sha256_utf8(document.normalized_text),
+        charStart=body[0].char_start,
+        charEnd=body[-1].char_end,
+    )
+    rebuilt = rebuild_evidence_refs(catalog=env.catalog, scope=scope, refs=[big_ref])
+    assert len(rebuilt[0].text) > 5_000, "本用例依赖足够长的单条证据"
     service = env.make_service()
-    body = explain_body(env, document, [ref_for(evidence[0])] * 20)
+    body_request = explain_body(env, document, [big_ref] * 20)
 
     with pytest.raises(AppError) as too_large:
-        async for _frame in service.explain(body):
+        async for _frame in service.explain(body_request):
             pass
     assert too_large.value.code == "CONTEXT_TOO_LARGE"
     assert too_large.value.status_code == 413

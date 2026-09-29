@@ -6,6 +6,9 @@
   没有定位事件游标；断开或停止即关闭上游。
 - 不复用定位的 600 秒缓存，不要求 Qdrant 在线，不要求旧 Embedding 模型仍安装：
   本模块只处理"已重建的证据 + 已冻结的模型句柄"。
+- **证据送模型前先用同一清洗器**（B0 ``project_readable`` 的 ``readable.text``）：
+  图片 Markdown 与图片地址不进模型，只保留正文、公式与表格；
+  讲解也不整段复述教材原文（PLAN §3.5）。
 - 预算顺序：① 超硬上限直接 ``CONTEXT_TOO_LARGE``（413）；② 从最旧开始整条丢弃历史；
   ③ 仍超限返回 ``CONTEXT_TOO_LARGE``。原题、当前追问与用户已选证据**不截断**。
 - 上限沿用后端既有常量（``app.schemas.chat`` 的 200 条 / 单条 32,000 / 总 120,000 字符），
@@ -28,7 +31,12 @@ from app.providers.llm.base import (
     LLMStreamEvent,
 )
 from app.schemas.chat import MAX_MESSAGE_CHARS, MAX_MESSAGES, MAX_TOTAL_CHARS
+from app.services.model_runtime import (  # noqa: F401  (ChatModelHandle 由共享层定义)
+    DEFAULT_CHAT_MAX_OUTPUT_TOKENS,
+    ChatModelHandle,
+)
 from app.schemas.rag_v2 import RagExplainRequest, TextbookEvidence
+from app.services.rag_v2.summary import readable_text
 
 DEFAULT_CHAT_MAX_OUTPUT_TOKENS = 2048
 #: 证据块按整条拆成多条 user 消息，单条不超过既有单条上限（不截断任何一条原文）。
@@ -37,7 +45,9 @@ EVIDENCE_MESSAGE_BUDGET = MAX_MESSAGE_CHARS
 SYSTEM_INSTRUCTION = (
     "你是教材详解助手。只依据下方提供的教材原文证据讲解当前题目与追问，"
     "引用时标出对应的 evidenceId；原文没有依据的部分必须明说「证据不足」，不得编造教材出处，"
-    "不得引入未提供的教材内容。不给出与教材依据无关的独立解题推导。"
+    "不得引入未提供的教材内容。不给出与教材依据无关的独立解题推导，"
+    "也不要把教材原文整段复述成回答（保留必要公式与教学步骤即可）。"
+    "如果问题依赖图片中的信息而文本证据无法提供，明确指出缺少图中条件，不要依据图片文件名猜测内容。"
 )
 
 FINISH_REASONS = frozenset({FINISH_STOP, "length", FINISH_UNKNOWN})
@@ -47,15 +57,8 @@ def _too_large(message: str) -> AppError:
     return AppError(message, code="CONTEXT_TOO_LARGE", status_code=413)
 
 
-@dataclass(frozen=True)
-class ChatModelHandle:
-    """点击详解时冻结的模型句柄：Provider + 连接快照 + 生效输出上限。"""
-
-    profile_id: str
-    model_id: str
-    provider: LLMProvider
-    config: LLMConfig
-    max_output_tokens: int = DEFAULT_CHAT_MAX_OUTPUT_TOKENS
+# `ChatModelHandle` 与「按 profileId 解析聊天模型」的唯一实现在共享的 model_runtime
+# （RAG-QUALITY v1.1 · C0）：详解与题库 AI 整理共用，任何模块不得再定义第二份。
 
 
 @dataclass(frozen=True)
@@ -165,11 +168,15 @@ def _message(role: str, content: str, *, label: str) -> LLMMessage:
 
 
 def evidence_messages(evidence: Sequence[TextbookEvidence]) -> list[LLMMessage]:
-    """把证据按整条装进多条 user 消息；任何一条原文都不被截断。"""
+    """把证据按整条装进多条 user 消息；任何一条都不被截断，且只用清洗文本。
+
+    送模型的是 ``readable.text``（B0 清洗结果，无图片 Markdown/地址）；``readable`` 缺失的
+    历史证据退回封存原文切片，绝不在这里再写一套清洗规则。
+    """
     blocks = [
         f"[{item.evidenceId}] {item.title}"
         + (" → " + " → ".join(item.chapterPath) if item.chapterPath else "")
-        + f"（第 {item.charStart}–{item.charEnd} 字符）\n{item.text}"
+        + f"（第 {item.charStart}–{item.charEnd} 字符）\n{readable_text(item)}"
         for item in evidence
     ]
     messages: list[LLMMessage] = []

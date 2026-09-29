@@ -1,21 +1,46 @@
 """题库服务：导入拆题、校对编辑、拆分/合并、AI 整理建议、幂等确认入库与题目管理。
 
 不变量：
-- 解析、文件与模型调用一律在 SQL 写事务之外执行；
+- 解析、文件与模型调用一律在 SQL 写事务之外执行；SQL 一律经 ``anyio.to_thread`` 有界线程，
+  事件循环里不跑同步数据库调用；
 - 未归属原文块永久保留：拆题只记录 spans，从不删除 ``question_source_blocks``；
 - AI 建议只落 ``pending``，应用前核对 ``base_draft_revision``，绝不直接覆盖人工草稿；
 - 确认入库在单个事务内完成：同 submissionId 同载荷返回原结果，同键不同载荷 409；
 - 任一草稿校验失败整体不确认，返回逐条 failures（HTTP 200 + ``ConfirmResult.failures``）；
 - 题库没有任何指向教材索引与教材向量库的路径。
+
+模型语义（RAG-QUALITY v1.1，唯一一套）：
+- AI 整理使用**点击时的当前聊天模型，本地或云端一视同仁**；``modelProfileId`` 是聊天模型
+  profile id，解析委托注入的 ``model_resolver``（唯一实现在共享的
+  ``services.model_runtime.resolve_chat_model``）；本服务不解释 profile id、不列本机模型、
+  不做默认模型回退；
+- 未注入 ``model_resolver`` 时 ``organize`` 抛 503 ``SERVICE_UNAVAILABLE``（可重试），
+  不建任务、不发上游；
+- 建任务时把 ``modelProfileId`` 与非敏感 ``modelFingerprint`` 冻结进 checkpoint；
+  任务进行中用户切换聊天模型不影响已冻结任务；恢复时用同一 profile id 重新解析，
+  配置已不存在或不可调用则任务失败并给可读原因；
+- 旧语义 checkpoint（不是 profile id 形状）不自动恢复，标记 ``ORGANIZER_MODEL_RESELECT_REQUIRED``
+  并要求重新选择模型，已产生的建议一条不动。
+
+错误分类（详见 ``services.question_bank.organizer`` 模块 docstring）：
+- 批级（内容问题，该批失败，原文保留、草稿不变，其余批次继续）：
+  ``ORGANIZER_INVALID_JSON`` / ``ORGANIZER_OUTPUT_TRUNCATED``（截断，不生成可应用建议）/
+  ``ORGANIZER_UNKNOWN_SOURCE_BLOCK`` / ``ORGANIZER_INVALID_CONTENT`` / ``ORGANIZE_DRAFT_CHANGED``；
+- 任务级（模型服务问题，整条任务失败，文案指向模型服务，不记成批内容失败）：
+  ``AUTH_REQUIRED`` / ``RATE_LIMITED`` / ``UPSTREAM_UNAVAILABLE`` / ``MODEL_NOT_CONFIGURED`` /
+  ``MODEL_PROFILE_NOT_FOUND`` / ``MODEL_PURPOSE_MISMATCH`` / ``SERVICE_UNAVAILABLE``。
 """
 
 from __future__ import annotations
 
+import anyio
+import functools
 import logging
 from pathlib import Path
 from typing import Any, Callable, Sequence
 
 from app.core.exceptions import AppError
+from app.providers.llm.base import FINISH_LENGTH, LLMMessage, LLMRequest, LLMResponse
 from app.repositories.question_bank.catalog import QuestionBankCatalog
 from app.repositories.question_bank.records import (
     DraftInput,
@@ -23,7 +48,6 @@ from app.repositories.question_bank.records import (
     JobRecord,
     SourceBlockInput,
     SourceBlockRecord,
-    SuggestionInput,
 )
 from app.schemas.question_bank import (
     ConfirmFailure,
@@ -49,26 +73,27 @@ from app.services.document_parsing.parser import (
     ParsedDocument,
     parse_document,
 )
+from app.services.model_runtime import ChatModelHandle
 from app.services.question_bank import fingerprint as fp
 from app.services.question_bank import rules, validation, views
 from app.services.question_bank.blobs import QuestionBlobStore
 from app.services.question_bank.organizer import (
     BATCH_LEVEL_ORGANIZER_ERRORS,
-    DEFAULT_ORGANIZE_MODEL,
-    JOB_LEVEL_ORGANIZER_ERRORS,
-    LOCAL_MODEL_POLICY,
     MAX_OUTPUT_TOKENS,
+    ORGANIZE_CONTRACT_VERSION,
     ORGANIZE_INSTRUCTION,
+    RESELECT_MODEL_CODE,
+    RESELECT_MODEL_MESSAGE,
+    ChatModelResolver,
     Batch,
-    LocalModelCatalog,
-    OllamaModelCatalog,
-    OllamaOrganizerModel,
-    OrganizerCall,
-    OrganizerModel,
     batch_from_snapshot,
     batch_snapshot,
-    match_installed_model,
+    is_current_checkpoint,
+    job_level_error_code,
+    job_level_message,
+    model_fingerprint,
     normalize_reply,
+    output_truncated_error,
     pack_batches,
 )
 
@@ -79,8 +104,22 @@ DEFAULT_IMPORT_LIMIT = 50
 MAX_IMPORT_LIMIT = 200
 DEFAULT_LIST_LIMIT = 20
 
+#: 任务终态：已结束的任务不重复执行
+TERMINAL_JOB_STATES = frozenset({"succeeded", "failed", "cancelled"})
+
 SPLIT_NOTE = "已按原文偏移拆分为两道草稿；本行仅保留，不再参与确认。"
 MERGE_NOTE = "已与同批草稿合并；本行仅保留，不再参与确认。"
+
+
+async def _threaded(fn, /, *args, **kwargs):
+    """把同步的 SQL/仓储调用放到 anyio 有界线程执行（事件循环里不跑同步数据库调用）。"""
+    return await anyio.to_thread.run_sync(functools.partial(fn, *args, **kwargs))
+
+
+def _protocol_value(protocol: Any) -> str:
+    value = getattr(protocol, "value", None)
+    return str(value if value is not None else protocol or "")
+
 
 
 def _invalid(message: str, *, code: str = "INVALID_REQUEST") -> AppError:
@@ -96,12 +135,12 @@ def _conflict(message: str, *, code: str, retryable: bool = False) -> AppError:
 
 
 class QuestionBankService:
-    """题库业务入口；目录（SQLite）与模型端口都由构造参数注入，测试可整体替换。
+    """题库业务入口；目录（SQLite）与模型解析器都由构造参数注入，测试可整体替换。
 
-    AI 整理的模型语义（v1.2 唯一化）：**只用本机 Ollama 的本地模型，绝不调用云端聊天模型**。
-    ``OrganizeRequest.modelProfileId`` 是可选的本地模型名覆盖（省略/空串 → ``default_model``）；
-    调用上游前先用本机 ``/api/tags`` 校验在场（tag 归一复用 B1 的 ``model_names_match``），
-    不在场一律 422 ``ORGANIZER_MODEL_MISSING``；profile 标识（UUID）永远不会被当成模型名发出。
+    AI 整理的模型语义（RAG-QUALITY v1.1）：使用**点击时的当前聊天模型**，本地或云端均可。
+    ``model_resolver`` 是唯一注入点（``(profileId) -> ChatModelHandle``，由总控在 ``main.py``
+    装配共享的 ``resolve_chat_model``）；未注入时 ``organize`` 直接 503，不建任务、不发上游。
+    本服务不解释 profile id、不读本机模型清单、没有默认模型回退。
     """
 
     def __init__(
@@ -109,9 +148,7 @@ class QuestionBankService:
         catalog: QuestionBankCatalog,
         settings: Any,
         *,
-        organizer: OrganizerModel | None = None,
-        model_catalog: LocalModelCatalog | None = None,
-        default_model: str = DEFAULT_ORGANIZE_MODEL,
+        model_resolver: ChatModelResolver | None = None,
         parser: Callable[..., ParsedDocument] = parse_document,
         owner_id: str = DEFAULT_OWNER_ID,
     ) -> None:
@@ -119,45 +156,43 @@ class QuestionBankService:
         self.settings = settings
         self.owner_id = owner_id
         self.parser = parser
-        self.default_model = (default_model or "").strip() or DEFAULT_ORGANIZE_MODEL
         self.blobs = QuestionBlobStore(settings.question_bank_root)
-        # 默认实现只连本机回环 Ollama；AI 整理必须可注入替身，测试与总控都替换它。
-        self.organizer: OrganizerModel = (
-            organizer
-            if organizer is not None
-            else OllamaOrganizerModel(settings.embedding_base_url)
-        )
-        # 在场校验同样可注入替身：测试不得依赖真实 Ollama /api/tags
-        self.model_catalog: LocalModelCatalog = (
-            model_catalog
-            if model_catalog is not None
-            else OllamaModelCatalog(settings.embedding_base_url)
-        )
+        # 模型解析器由外部注入；None 表示未装配（organize 直接 503，不建任务）
+        self.model_resolver: ChatModelResolver | None = model_resolver
 
     def close(self) -> None:
         """无长连接需要关闭；保留方法以便统一生命周期调用。"""
         return None
 
-    def _resolve_local_model(self, requested: str) -> str:
-        """把请求里的模型字段解析为本机已安装的模型名；不在场一律 422。
+    async def _resolve_handle(self, model_profile_id: str) -> ChatModelHandle:
+        """解析聊天模型句柄；未装配解析器一律 503（可重试），不建任务。
 
-        - 空串/未给 → 服务端默认整理模型；
-        - 命中按 B1 的 tag 归一（``qwen2.5`` 与 ``qwen2.5:latest`` 等价；不做包含匹配）；
-        - 返回命中的**已安装名**，保证传给 ``/api/chat`` 的名字一定来自本机列表；
-        - 错误信息不回显请求原文，只给固定策略说明与可操作提示。
+        解析器内部的 profile 存在性/用途/连接可调用性校验由共享实现完成，
+        失败原因（404/400/422）原样上抛，消息可读且不含凭证。
         """
-        target = (requested or "").strip() or self.default_model
-        installed = self.model_catalog.installed_models()
-        matched = match_installed_model(target, installed)
-        if matched is None:
+        if self.model_resolver is None:
             raise AppError(
-                f"{LOCAL_MODEL_POLICY}；本机没有名为该名称的模型，该次整理未执行。"
-                f"请先用 `ollama pull {self.default_model}` 安装默认整理模型，"
-                "或在请求里指定一个本机已安装的模型名。",
-                code="ORGANIZER_MODEL_MISSING",
-                status_code=422,
+                "题库 AI 整理未装配模型解析器（model_resolver），无法调用聊天模型；"
+                "请检查后端启动配置。",
+                code="SERVICE_UNAVAILABLE",
+                status_code=503,
+                retryable=True,
             )
-        return matched
+        profile_id = (model_profile_id or "").strip()
+        if not profile_id:
+            raise AppError(
+                "请先选择用于整理的聊天模型（modelProfileId 不能为空）。",
+                code="MODEL_PROFILE_NOT_FOUND",
+                status_code=404,
+            )
+        handle = await _threaded(self.model_resolver, profile_id)
+        if not isinstance(handle, ChatModelHandle):
+            raise AppError(
+                "模型解析器返回的句柄不符合契约，已停止整理。",
+                code="SERVICE_UNAVAILABLE",
+                status_code=503,
+            )
+        return handle
 
     # ------------------------------------------------------------------ 导入
 
@@ -409,8 +444,14 @@ class QuestionBankService:
 
     # ------------------------------------------------------------- AI 整理
 
-    def organize(self, import_id: str, body: OrganizeRequest) -> OrganizeJobView:
-        record = self.catalog.get_import(import_id)
+    async def organize(self, import_id: str, body: OrganizeRequest) -> OrganizeJobView:
+        """建任务并立即执行：模型在「点击整理」这一刻解析并冻结进 checkpoint。
+
+        顺序：① 导入状态闸门；② **模型闸门**（未注入 resolver / profile 不存在 / 不可调用
+        → 立即失败，不建任务、0 次上游调用）；③ 取目标草稿与原文块；④ 按输入预算打包；
+        ⑤ 建任务并逐批执行。全程 SQL 走有界线程，模型调用在 SQL 写事务之外。
+        """
+        record = await _threaded(self.catalog.get_import, import_id)
         if record is None:
             raise _not_found("导入不存在。", code="IMPORT_NOT_FOUND")
         if record.state == "failed":
@@ -418,12 +459,14 @@ class QuestionBankService:
         if record.state == "cancelled":
             raise _conflict("该导入已取消，不能进行 AI 整理。", code="IMPORT_CANCELLED")
         if record.state == "confirmed":
-            raise _conflict("该导入已确认入库，不能再次发起 AI 整理。", code="IMPORT_ALREADY_CONFIRMED")
-        # 模型闸门先于取草稿：配置不对时立即 422，不建任务、不发上游、不回显请求原文
-        model_name = self._resolve_local_model(body.modelProfileId)
-        all_drafts = self.catalog.list_drafts(import_id)
+            raise _conflict(
+                "该导入已确认入库，不能再次发起 AI 整理。", code="IMPORT_ALREADY_CONFIRMED"
+            )
+        # 模型闸门先于取草稿：配置不对时立即失败，不建任务、不发上游、不回显请求原文
+        handle = await self._resolve_handle(body.modelProfileId)
+        all_drafts = await _threaded(self.catalog.list_drafts, import_id)
         selected = self._select_drafts(all_drafts, body.draftIds)
-        blocks = self.catalog.list_source_blocks(import_id)
+        blocks = await _threaded(self.catalog.list_source_blocks, import_id)
         draft_blocks = {
             draft.draft_id: [block for block in blocks if self._intersects(draft, block)]
             for draft in selected
@@ -432,24 +475,41 @@ class QuestionBankService:
             self._attach_unassigned(draft_blocks, selected, all_drafts, blocks)
         batches: list[Batch] = []
         for draft in selected:
-            chunk = [
-                (block.block_id, block.text) for block in draft_blocks[draft.draft_id]
-            ]
+            chunk = [(block.block_id, block.text) for block in draft_blocks[draft.draft_id]]
             if not chunk:
                 continue
-            batches.extend(
-                pack_batches(draft.draft_id, chunk, start_index=len(batches))
-            )
+            batches.extend(pack_batches(draft.draft_id, chunk, start_index=len(batches)))
         if not batches:
             raise _invalid(
                 "所选草稿没有可整理的原文块；请检查草稿来源区间。",
                 code="ORGANIZE_TARGET_EMPTY",
             )
-        checkpoint: dict[str, Any] = {
-            # 请求原文与解析结果都留痕：恢复时不再需要重新解释 profile 标识
-            "modelProfileId": (body.modelProfileId or "").strip(),
-            "resolvedModel": model_name,
-            "includeUnassigned": body.includeUnassigned,
+        checkpoint = self._new_checkpoint(handle, body=body, selected=selected, batches=batches)
+        job = await _threaded(
+            self.catalog.create_job, kind="organize", state="running", checkpoint=checkpoint
+        )
+        return await self.run_organize_job(job.job_id, model=handle)
+
+    def _new_checkpoint(
+        self,
+        model: ChatModelHandle,
+        *,
+        body: OrganizeRequest,
+        selected: Sequence[DraftRecord],
+        batches: Sequence[Batch],
+    ) -> dict[str, Any]:
+        """冻结本次任务的模型身份与批次快照；只写 profile id 与**非敏感**指纹。"""
+        config = model.config
+        return {
+            "contractVersion": ORGANIZE_CONTRACT_VERSION,
+            "modelProfileId": model.profile_id,
+            "modelFingerprint": model_fingerprint(
+                model_id=model.model_id,
+                protocol=_protocol_value(config.protocol),
+                base_url=config.baseUrl,
+                api_format=config.apiFormat or "",
+            ),
+            "includeUnassigned": bool(body.includeUnassigned),
             "instruction": ORGANIZE_INSTRUCTION,
             "drafts": [
                 {"draftId": draft.draft_id, "revision": draft.revision} for draft in selected
@@ -459,124 +519,143 @@ class QuestionBankService:
             "suggestionIds": [],
             "failedBatches": [],
         }
-        job = self.catalog.create_job(kind="organize", state="running", checkpoint=checkpoint)
-        return self.run_organize_job(job.job_id)
 
-    def run_organize_job(self, job_id: str) -> OrganizeJobView:
-        job = self.catalog.get_job(job_id)
+    @staticmethod
+    def _output_budget(model: ChatModelHandle) -> int:
+        """输出预算 = min(组织者上限, 所选模型的输出上限)。"""
+        limit = model.max_output_tokens
+        if not isinstance(limit, int) or isinstance(limit, bool) or limit <= 0:
+            return MAX_OUTPUT_TOKENS
+        return min(MAX_OUTPUT_TOKENS, limit)
+
+    async def _call_model(
+        self,
+        model: ChatModelHandle,
+        instruction: str,
+        batch: Batch,
+        max_output_tokens: int,
+    ) -> LLMResponse:
+        """一次非流式模型调用；未开始任何 SQL 写事务，取消可直接传播。"""
+        request = LLMRequest(
+            messages=[
+                LLMMessage(role="system", content=instruction),
+                LLMMessage(role="user", content=batch.input_text),
+            ],
+            maxOutputTokens=max_output_tokens,
+            params={},
+        )
+        return await model.provider.complete(model.config, request)
+
+    async def _fail_job(self, job_id: str, code: str) -> OrganizeJobView:
+        """任务级失败：整条任务落 failed，文案指向模型服务，不写任何批内容失败。"""
+        failed = await _threaded(
+            self.catalog.fail_organize_job,
+            job_id,
+            error_code=code,
+            message=job_level_message(code),
+        )
+        return await _threaded(self._job_view, failed)
+
+    async def run_organize_job(
+        self, job_id: str, *, model: ChatModelHandle | None = None
+    ) -> OrganizeJobView:
+        """执行/续跑一个整理任务；崩溃后从 checkpoint 续跑，不重复已提交的批次。
+
+        - ``model`` 由 ``organize`` 传入（点击时冻结的句柄）；恢复路径传 ``None``，
+          用 checkpoint 里的 ``modelProfileId`` 重新解析（配置失效 → 任务失败并给可读原因）；
+        - 每批的模型调用在 SQL 写事务之外；建议写入与进度推进在**同一个短事务**内完成；
+        - 任务级失败（认证/限流/网络）整条任务失败，不记成「批内容失败」。
+        """
+        job = await _threaded(self.catalog.get_job, job_id)
         if job is None:
             raise _not_found("整理任务不存在。", code="JOB_NOT_FOUND")
-        if job.state in ("succeeded", "failed", "cancelled"):
-            return self._job_view(job)
+        if job.state in TERMINAL_JOB_STATES:
+            return await _threaded(self._job_view, job)
         checkpoint = dict(job.checkpoint)
+        if not is_current_checkpoint(checkpoint):
+            # 旧语义 checkpoint：不自动恢复、不猜模型；已产生的建议一条不动
+            stale = await _threaded(
+                self.catalog.fail_organize_job,
+                job_id,
+                error_code=RESELECT_MODEL_CODE,
+                message=RESELECT_MODEL_MESSAGE,
+                checkpoint={**checkpoint, "needsModelReselection": True},
+            )
+            return await _threaded(self._job_view, stale)
+        if model is None:
+            try:
+                model = await self._resolve_handle(str(checkpoint["modelProfileId"]))
+            except AppError as exc:
+                return await self._fail_job(job_id, job_level_error_code(exc.code))
         batches = [batch_from_snapshot(item) for item in checkpoint.get("batches", [])]
         drafts_snapshot = {
             str(item.get("draftId")): int(item.get("revision", 0))
             for item in checkpoint.get("drafts", [])
         }
-        failed: list[dict[str, Any]] = list(checkpoint.get("failedBatches", []))
-        suggestion_ids: list[str] = list(checkpoint.get("suggestionIds", []))
         instruction = str(checkpoint.get("instruction") or ORGANIZE_INSTRUCTION)
         start = int(checkpoint.get("nextBatchIndex", 0))
-        # 恢复/续跑前重新确认本机在场（含 v1.0/v1.1 遗留 checkpoint：那时可能存的是 profile 标识）
-        try:
-            model_name = self._resolve_local_model(
-                str(checkpoint.get("resolvedModel") or checkpoint.get("modelProfileId") or "")
-            )
-        except AppError as exc:
-            if exc.code not in JOB_LEVEL_ORGANIZER_ERRORS:
-                raise
-            updated = self.catalog.update_job(
-                job_id, state="failed", error_code=exc.code, checkpoint=checkpoint
-            )
-            return self._job_view(updated)
-        try:
-            for index in range(start, len(batches)):
-                current = self.catalog.get_job(job_id)
-                if current is None:
-                    raise _not_found("整理任务不存在。", code="JOB_NOT_FOUND")
-                if current.state == "cancelled":
-                    return self._job_view(current)
-                batch = batches[index]
-                # 先记进度再调用模型：崩溃后重放同一批，不会漏批也不会重复落建议
-                checkpoint["nextBatchIndex"] = index
-                code: str | None = None
-                message: str | None = None
-                try:
-                    raw = self.organizer.organize(
-                        OrganizerCall(
-                            job_id=job_id,
-                            batch_index=index,
-                            model_name=model_name,
-                            instruction=instruction,
-                            input_text=batch.input_text,
-                            max_output_tokens=MAX_OUTPUT_TOKENS,
-                        )
-                    )
-                    parsed = normalize_reply(raw, batch.block_ids)
-                except AppError as exc:
-                    if exc.code in JOB_LEVEL_ORGANIZER_ERRORS:
-                        self.catalog.update_job(
-                            job_id, state="failed", error_code=exc.code, checkpoint=checkpoint
-                        )
-                        return self._job_view(self.catalog.get_job(job_id) or job)
-                    code = (
-                        exc.code
-                        if exc.code in BATCH_LEVEL_ORGANIZER_ERRORS
-                        else "ORGANIZER_INVALID_CONTENT"
-                    )
-                    message = str(exc)
-                else:
-                    draft = self.catalog.get_draft(batch.draft_id)
-                    base_revision = drafts_snapshot.get(batch.draft_id, 0)
-                    if draft is None:
-                        code = "ORGANIZE_TARGET_MISSING"
-                        message = "该批目标草稿已不存在，原文保留，建议未落库。"
-                    elif draft.revision != base_revision:
-                        code = "ORGANIZE_DRAFT_CHANGED"
-                        message = "该批目标草稿在整理期间被编辑，建议已丢弃，请重新整理。"
-                    else:
-                        created = self.catalog.create_suggestions(
-                            [
-                                SuggestionInput(
-                                    organization_job_id=job_id,
-                                    target_draft_id=batch.draft_id,
-                                    base_draft_revision=base_revision,
-                                    proposed_content=parsed["content"],
-                                    proposed_metadata=dict(draft.metadata),
-                                    source_block_ids=tuple(parsed["source_block_ids"]),
-                                    state="pending",
-                                )
-                            ]
-                        )
-                        suggestion_ids.extend(item.suggestion_id for item in created)
-                if code is not None:
-                    failed.append({"index": index, "code": code, "message": message or ""})
-                checkpoint["nextBatchIndex"] = index + 1
-                checkpoint["suggestionIds"] = suggestion_ids
-                checkpoint["failedBatches"] = failed
-                self.catalog.update_job(job_id, checkpoint=checkpoint)
-        except BaseException:
-            # 未预期异常：保留 running 与已完成的进度，重启后由 recover 续跑
+        max_output_tokens = self._output_budget(model)
+        for index in range(start, len(batches)):
+            current = await _threaded(self.catalog.get_job, job_id)
+            if current is None:
+                raise _not_found("整理任务不存在。", code="JOB_NOT_FOUND")
+            if current.state == "cancelled":
+                return await _threaded(self._job_view, current)
+            batch = batches[index]
+            base_revision = drafts_snapshot.get(batch.draft_id, 0)
             try:
-                self.catalog.update_job(job_id, checkpoint=checkpoint)
-            except Exception:  # noqa: BLE001 - 保存进度失败不掩盖原始异常
-                logger.exception("保存题库整理任务 %s 进度失败", job_id)
-            raise
-        checkpoint["suggestionIds"] = suggestion_ids
-        checkpoint["failedBatches"] = failed
-        if suggestion_ids:
-            updated = self.catalog.update_job(
-                job_id, state="succeeded", checkpoint=checkpoint, clear_error=True
+                response = await self._call_model(
+                    model, instruction, batch, max_output_tokens
+                )
+                if response.finishReason == FINISH_LENGTH:
+                    raise output_truncated_error()
+                parsed = normalize_reply(response.text, batch.block_ids)
+            except AppError as exc:
+                if exc.code in BATCH_LEVEL_ORGANIZER_ERRORS:
+                    job_now, _created, _failure = await _threaded(
+                        self.catalog.record_organize_batch,
+                        job_id,
+                        batch_index=index,
+                        next_batch_index=index + 1,
+                        draft_id=batch.draft_id,
+                        base_draft_revision=base_revision,
+                        failure={"index": index, "code": exc.code, "message": str(exc)},
+                    )
+                    if job_now.state == "cancelled":
+                        return await _threaded(self._job_view, job_now)
+                    continue
+                # 模型服务问题（认证/限流/网络/协议/配置）：整条任务失败
+                return await self._fail_job(job_id, job_level_error_code(exc.code))
+            job_now, _created, _failure = await _threaded(
+                self.catalog.record_organize_batch,
+                job_id,
+                batch_index=index,
+                next_batch_index=index + 1,
+                draft_id=batch.draft_id,
+                base_draft_revision=base_revision,
+                proposed_content=parsed["content"],
+                source_block_ids=parsed["source_block_ids"],
+            )
+            if job_now.state == "cancelled":
+                return await _threaded(self._job_view, job_now)
+        final = await _threaded(self.catalog.get_job, job_id)
+        if final is None:
+            raise _not_found("整理任务不存在。", code="JOB_NOT_FOUND")
+        if final.state == "cancelled":
+            return await _threaded(self._job_view, final)
+        settled = dict(final.checkpoint)
+        suggestions = list(settled.get("suggestionIds") or [])
+        failures = list(settled.get("failedBatches") or [])
+        if suggestions:
+            final = await _threaded(
+                self.catalog.finish_organize_job, job_id, state="succeeded", error_code=None
             )
         else:
-            updated = self.catalog.update_job(
-                job_id,
-                state="failed",
-                checkpoint=checkpoint,
-                error_code=(failed[-1]["code"] if failed else "ORGANIZE_NO_SUGGESTION"),
+            code = str(failures[-1].get("code")) if failures else "ORGANIZE_NO_SUGGESTION"
+            final = await _threaded(
+                self.catalog.finish_organize_job, job_id, state="failed", error_code=code
             )
-        return self._job_view(updated)
+        return await _threaded(self._job_view, final)
 
     def cancel_organize_job(self, job_id: str) -> OrganizeJobView:
         job = self.catalog.get_job(job_id)
@@ -586,14 +665,22 @@ class QuestionBankService:
             job = self.catalog.update_job(job_id, state="cancelled")
         return self._job_view(job)
 
-    def recover_organize_jobs(self, *, max_jobs: int = 8) -> int:
-        """重启恢复：续跑未完成的整理任务；已完成/已取消的不重复执行。"""
+    async def recover_organize_jobs(self, *, max_jobs: int = 8) -> int:
+        """重启恢复：只续跑本契约形状（``contractVersion=2``）的未完成任务。
+
+        旧语义 checkpoint 不自动恢复（标记需重新选择模型，建议保留）；profile 失效按任务级
+        失败落库并给可读原因；单条恢复失败不影响其他任务。
+        """
         recovered = 0
-        for job in self.catalog.pending_jobs(
-            kinds=["organize"], states=["queued", "running"], limit=max_jobs
-        ):
+        jobs = await _threaded(
+            self.catalog.pending_jobs,
+            kinds=["organize"],
+            states=["queued", "running"],
+            limit=max_jobs,
+        )
+        for job in jobs:
             try:
-                self.run_organize_job(job.job_id)
+                await self.run_organize_job(job.job_id)
             except Exception:  # noqa: BLE001 - 单条恢复失败不影响其他任务
                 logger.exception("恢复题库整理任务 %s 失败", job.job_id)
                 continue
@@ -1195,19 +1282,21 @@ def build_question_bank_service(
     catalog: QuestionBankCatalog,
     settings: Any,
     *,
-    organizer: OrganizerModel | None = None,
-    model_catalog: LocalModelCatalog | None = None,
-    default_model: str = DEFAULT_ORGANIZE_MODEL,
+    model_resolver: ChatModelResolver | None = None,
+    parser: Callable[..., ParsedDocument] = parse_document,
+    owner_id: str = DEFAULT_OWNER_ID,
 ) -> QuestionBankService:
-    """装配入口：总控在 main.py 里用 ``settings.question_bank_root`` 构造目录与本服务。
+    """装配入口：总控在 ``main.py`` 里用 ``settings.question_bank_root`` 构造目录与本服务。
 
-    ``organizer`` / ``model_catalog`` 都可注入替身；``default_model`` 是省略
-    ``modelProfileId`` 时使用的本机模型名（默认与 RAG 概括同一默认 ``qwen2.5:7b``）。
+    ``model_resolver`` 是**唯一**的模型注入点（``(profileId) -> ChatModelHandle``，
+    内部走共享的 ``services.model_runtime.resolve_chat_model``）；测试注入替身。
+    ``model_resolver`` 为 ``None`` 时服务仍可装配，但 ``organize`` 直接 503
+    ``SERVICE_UNAVAILABLE``——不返回假成功、不偷偷换模型。
     """
     return QuestionBankService(
         catalog,
         settings,
-        organizer=organizer,
-        model_catalog=model_catalog,
-        default_model=default_model,
+        model_resolver=model_resolver,
+        parser=parser,
+        owner_id=owner_id,
     )

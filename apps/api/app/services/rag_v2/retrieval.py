@@ -10,11 +10,16 @@
 2. 稠密检索把允许集合（修订 / 分块集 / 归属 / 正文区）作为 Qdrant filter **下推**，
    绝不"从全库取结果再过滤"。
 3. BM25 只从 ``catalog.list_chunks`` 读允许范围内的块（正文区），用 ``rank_bm25``
-   建内存索引；缓存键含索引代 + 排序后的修订/分块集集合 + 分词版本，容量有界。
+   建内存索引；**文档文本用该索引代登记的清洗版本投影后的索引输入文本**（历史代
+   ``raw-v0`` 为恒等投影，新旧代绝不混用词法文本）。缓存键含索引代 + 排序后的
+   修订/分块集集合 + **清洗版本** + 分词版本，容量有界。
    词法命中判定用"与查询有词元交集"，不按分数正负判定（小语料上 IDF 可能为负，
-   负分块仍是真命中）；块文本按块指纹核验后才进入索引。
+   负分块仍是真命中）；块文本按块指纹核验后才进入索引（核验的是**原文切片**）。
 4. RRF：``score = Σ 1/(k + rank)``，``k=60``，rank 从 1 起；并列时按稳定块身份
    （``chunk_set_id`` + ``ordinal``）排序，保证同输入同顺序。
+
+查询向量不需要投影（用户问题是原文），查询前缀与身份核验逻辑保持不变
+（含 ``EMBEDDING_MODEL_CHANGED``）。
 
 不使用 pickle/.npy 作为正式索引存储，不加载用户上传的索引文件。
 """
@@ -34,9 +39,11 @@ from app.repositories.vector_store.base import (
     PAYLOAD_ORDINAL,
     VectorStore,
 )
+from app.services.document_parsing.chunking import chunk_projection
 from app.services.rag_v2.scope import BODY_REGION, RevisionScope, allowed_filter
 from app.services.rag_v2.source_text import ImmutableSource, ImmutableTextSource
 from app.services.textbook_ingest.blobs import sha256_text
+from app.services.textbook_ingest.generation_doc import generation_policy
 
 DENSE_LIMIT = 50
 LEXICAL_LIMIT = 50
@@ -76,7 +83,12 @@ class _LexicalEntry:
 
 
 class _LexicalIndex:
-    """一个允许集合内的 BM25 索引：条目顺序固定（分块集 id、ordinal 升序）。"""
+    """一个允许集合内的 BM25 索引：条目顺序固定（分块集 id、ordinal 升序）。
+
+    ``entries`` 只含**可被命中**的块（分词非空的块）：分词为空的块（纯符号、纯公式）与任何
+    查询都不可能有词元交集，且全空语料会让 ``BM25Okapi`` 构造期除零崩溃。过滤后
+    ``bm25`` 语料与 ``entries`` 按同一顺序一一对应，不会错位。
+    """
 
     def __init__(self, entries: list[_LexicalEntry], bm25) -> None:
         self.entries = entries
@@ -292,7 +304,9 @@ class HybridRetriever:
         if self.lexical_limit <= 0:
             return []
         index = self._lexical_index(generation, scope)
-        if not index.entries:
+        if not index.entries or index.bm25 is None:
+            # 该范围内没有可被词法命中的块（含"全部块分词为空"）：词法侧为空，
+            # 不构造 BM25，也不把整个检索判定为不可用；稠密与 RRF 照常进行。
             return []
         query_tokens = set(tokenize(question))
         if not query_tokens:
@@ -309,10 +323,13 @@ class HybridRetriever:
         return [(entry.chunk_set_id, entry.ordinal) for entry, _score in rows[: self.lexical_limit]]
 
     def _lexical_index(self, generation: GenerationRecord, scope: Sequence[RevisionScope]) -> _LexicalIndex:
+        policy = generation_policy(generation)
+        projection_version = policy.text_projection_version
         key = (
             generation.generation_id,
             tuple(sorted(item.document_revision_id for item in scope)),
             tuple(sorted(item.chunk_set_id for item in scope)),
+            projection_version,
             TOKENIZER_VERSION,
         )
         cached = self._cache.get(key)
@@ -341,19 +358,25 @@ class HybridRetriever:
                         code="RAG_EVIDENCE_UNAVAILABLE",
                         status_code=409,
                     )
+                # 词法文本与向量输入同一口径：按该代登记的清洗版本投影（旧代 raw-v0 恒等）
+                index_text = chunk_projection(chunk, text, policy).text
                 entries.append(
                     _LexicalEntry(
                         chunk_set_id=chunk.chunk_set_id,
                         ordinal=chunk.ordinal,
                         document_revision_id=item.document_revision_id,
-                        text=piece,
-                        tokens=frozenset(tokenize(piece)),
+                        text=index_text,
+                        tokens=frozenset(tokenize(index_text)),
                     )
                 )
         from rank_bm25 import BM25Okapi
 
-        bm25 = BM25Okapi([tokenize(entry.text) for entry in entries]) if entries else None
-        index = _LexicalIndex(entries=entries, bm25=bm25)
+        # BM25 语料只收分词非空的块：空词元块永远不可能与查询有词元交集（不可能成为命中），
+        # 但会让 BM25Okapi 在全空语料上构造期除零崩溃（合法语料的崩溃，不是坏数据）。
+        # 过滤后按同一顺序重建语料与 entries，保证 get_scores 的序号与条目一一对应。
+        indexable = [entry for entry in entries if entry.tokens]
+        bm25 = BM25Okapi([tokenize(entry.text) for entry in indexable]) if indexable else None
+        index = _LexicalIndex(entries=indexable, bm25=bm25)
         self._cache[key] = index
         while len(self._cache) > self.cache_entries:
             self._cache.popitem(last=False)

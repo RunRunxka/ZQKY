@@ -7,8 +7,9 @@
  * 「应用」走 `POST /question-suggestions/{id}/apply`（带 `expectedDraftRevision`），
  * 「忽略」以 `accept:false` 复用同一通道；应用后草稿回到待校对。
  *
- * 后端当前只在任务视图里返回建议**计数**；响应若带 `suggestions` 明细则逐条展示，
- * 未带时如实说明缺少明细通道，不用假数据补齐。
+ * 错误说明只来自 `organizer-notice`（v1.1 唯一一份）：
+ * 认证/限流/网络/配置失败指向**模型服务**，批级失败说明「该批未生成可应用建议，原文与草稿未被修改」；
+ * 前端不自己编造错误码，也不把上游故障说成题目内容有问题。
  */
 
 import type { DraftView, OrganizeJobView, SuggestionView } from '@/contracts/question-bank';
@@ -18,21 +19,13 @@ import {
   questionTypeLabel,
   SUGGESTION_STATE_LABEL,
 } from './labels';
+import {
+  ORGANIZER_CANCELLED_NOTICE,
+  ORGANIZER_SUGGESTION_SEMANTICS,
+  organizerFailureText,
+  organizerStaleSuggestionText,
+} from './organizer-notice';
 import { QuestionPreview } from './QuestionPreview';
-
-/** 整理失败错误码 → 用户可读原因（本机模型链路；未知码按「本机模型服务不可用」提示）。 */
-export const ORGANIZER_ERROR_HINT: Record<string, string> = {
-  ORGANIZER_MODEL_MISSING:
-    '本机没有该整理模型：请在本机 Ollama 拉取并运行默认模型（如 qwen2.5:7b），或在本机模型状态里确认模型名。',
-  ORGANIZER_UNAVAILABLE: '本机模型服务不可达：请确认本机 Ollama 正在运行。',
-  ORGANIZER_TIMEOUT: '本机模型响应超时：可稍后重试，或换更小的本机模型。',
-  ORGANIZE_TARGET_EMPTY: '没有可整理的草稿：请先选择或新增草稿。',
-};
-
-export function organizerFailureReason(code: string | null): string {
-  if (!code) return '本机模型服务不可用或未返回原因。';
-  return ORGANIZER_ERROR_HINT[code] ?? `本机模型整理失败（${code}）。`;
-}
 
 export function SuggestionPanel({
   job,
@@ -58,9 +51,7 @@ export function SuggestionPanel({
         <h2>AI 整理建议</h2>
         <span className="space-chip">{organizeStateLabel(job.state)}</span>
       </header>
-      <p className="qb-hint">
-        AI 只给出待校对建议，永不直接覆盖人工草稿；应用建议同样不会自动入库，需要重新标记已校对。
-      </p>
+      <p className="qb-hint">{ORGANIZER_SUGGESTION_SEMANTICS}</p>
       <div className="space-meta-row">
         <span className="space-chip">建议 {job.suggestionCount} 条</span>
         <span className="space-chip">失败批次 {job.failedBatches}</span>
@@ -71,15 +62,35 @@ export function SuggestionPanel({
       {job.state === 'failed' && (
         <p className="space-banner error" role="alert">
           本次 AI 整理失败{job.errorCode ? `（${job.errorCode}）` : ''}：
-          {organizerFailureReason(job.errorCode)} 草稿未被修改，可修正本机模型后重试。
+          {organizerFailureText(job.errorCode)}
+          {job.failures.length > 0
+            ? ' 失败批次的建议没有落库，原文与草稿未被修改；其余批次照常。'
+            : ' 原文与草稿未被修改。'}
         </p>
+      )}
+
+      {job.state === 'cancelled' && (
+        <p className="space-banner info" role="status">
+          {ORGANIZER_CANCELLED_NOTICE}
+        </p>
+      )}
+
+      {job.failures.length > 0 && (
+        <ul className="qb-failure-list">
+          {job.failures.map((failure) => (
+            <li key={`${failure.batchIndex}-${failure.code}`}>
+              批次 {failure.batchIndex + 1}（{failure.code}）：
+              {failure.message.trim() || organizerFailureText(failure.code)}
+            </li>
+          ))}
+        </ul>
       )}
 
       {job.suggestionCount > 0 && suggestions.length === 0 && (
         <p className="space-banner info" role="status">
           服务端报告生成 {job.suggestionCount}{' '}
-          条建议，但本次响应没有返回建议明细（当前后端未提供建议列表接口），
-          因此无法逐条应用或忽略。草稿未被修改；请刷新页面或等待接口补齐后重新整理。
+          条建议，但本次响应没有返回可处理的建议明细（可能已被应用或忽略），
+          因此无法逐条应用或忽略。草稿未被修改；请重新整理或刷新页面后再看。
         </p>
       )}
 
@@ -107,9 +118,10 @@ export function SuggestionPanel({
                 </div>
                 {stale && (
                   <p className="space-banner error" role="alert">
-                    该建议基于的草稿修订已过期（草案 r{suggestion.baseDraftRevision}
-                    {target ? ` → 当前 r${target.revision}` : ' → 草稿已不在批次中'}）。
-                    应用会被服务端拒绝；请重新整理或先处理该草稿。
+                    {organizerStaleSuggestionText(
+                      suggestion.baseDraftRevision,
+                      target ? target.revision : null,
+                    )}
                   </p>
                 )}
                 {suggestion.note && <p className="qb-hint">{suggestion.note}</p>}
@@ -136,7 +148,7 @@ export function SuggestionPanel({
         </ul>
       )}
 
-      {job.suggestionCount === 0 && job.state !== 'failed' && (
+      {job.suggestionCount === 0 && job.state === 'succeeded' && (
         <p className="qb-hint">本次整理没有产生建议：现有草稿结构与原文已经一致。</p>
       )}
     </section>

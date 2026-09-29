@@ -66,50 +66,40 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         settings.port,
         settings.env,
     )
-    try:
-        yield
-    finally:
-        await app.state.rag_service.close()
-        _shutdown_textbook_runtime(app)
-        logger.info("后端服务已停止")
+    # 数据根闸门：恢复目录处于 incomplete 时必须拒绝启动，避免静默新建空库掩盖恢复失败。
+    from app.core.data_lock import acquire_data_lock, require_data_root_ready
+
+    require_data_root_ready(settings.data_dir)
+    # 服务生命周期内持有数据根排他锁（OS 级，进程退出自动释放）：
+    # 离线一致性备份拿不到锁会返回 DATA_LOCK_BUSY，而不会去停用户进程。
+    with acquire_data_lock(settings.data_dir, exclusive=True, label="api"):
+        try:
+            yield
+        finally:
+            await app.state.rag_service.close()
+            _shutdown_textbook_runtime(app)
+            logger.info("后端服务已停止")
 
 
-def _build_explainer_factory(app: FastAPI):
-    """把既有「模型配置 → 连接 → Provider」链路包成详解用的模型句柄工厂。
+def _build_model_handle_resolver(app: FastAPI):
+    """按 profileId 解析聊天模型的唯一入口（详解与题库 AI 整理共用）。
 
-    详解在用户点击时冻结模型：工厂只按 profileId 解析，失败重试沿用同一 id，
-    不因为默认模型后来变化而换模型。
+    解析逻辑在共享的 `services.model_runtime.resolve_chat_model`；
+    这里只把 `app.state` 上的仓储/凭证/认证服务注入进去。
     """
-    from app.api.v1.chat import DEFAULT_CHAT_MAX_OUTPUT_TOKENS
-    from app.services.model_readiness import callable_state
-    from app.services.model_runtime import build_llm_config, build_provider
-    from app.services.rag_v2.explain import ChatModelHandle
 
-    def factory(model_profile_id: str) -> ChatModelHandle:
-        repo = app.state.model_config_repo
-        secrets = app.state.secret_store
-        profile = repo.get_profile(model_profile_id)
-        connection = repo.get_connection(profile.connectionId)
-        state = callable_state(connection, secrets)
-        if not state.ready:
-            raise AppError(
-                state.reason or "该模型连接当前不可调用。",
-                code="MODEL_NOT_CONFIGURED",
-                status_code=400,
-            )
-        config = build_llm_config(connection, profile, secrets)
-        provider = build_provider(
-            connection, config, auth_service=app.state.model_auth_service
-        )
-        return ChatModelHandle(
-            profile_id=profile.id,
-            model_id=profile.modelId,
-            provider=provider,
-            config=config,
-            max_output_tokens=profile.maxOutputTokens or DEFAULT_CHAT_MAX_OUTPUT_TOKENS,
+    def resolver(model_profile_id: str, *, purpose: str | None = "chat"):
+        from app.services.model_runtime import resolve_chat_model
+
+        return resolve_chat_model(
+            app.state.model_config_repo,
+            app.state.secret_store,
+            model_profile_id,
+            auth_service=app.state.model_auth_service,
+            purpose=purpose,
         )
 
-    return factory
+    return resolver
 
 
 def _build_textbook_runtime(app: FastAPI, settings: Settings) -> None:
@@ -172,23 +162,21 @@ def _build_textbook_runtime(app: FastAPI, settings: Settings) -> None:
         catalog=app.state.catalog,
         retrieval=HybridRetriever(app.state.catalog, vectors, provider),
         summarizer=KnowledgeSummarizer(settings.embedding_base_url),
-        explainer=Explainer(_build_explainer_factory(app)),
+        explainer=Explainer(_build_model_handle_resolver(app)),
     )
     # 教材定位与追问的唯一生产入口；旧四科 rag_engine 保留但不再被 /rag/* 调用。
     app.state.rag_service = app.state.rag_v2
 
     if app.state.question_bank is not None:
         try:
-            from app.services.question_bank.service import (
-                OllamaOrganizerModel, build_question_bank_service,
-            )
+            from app.services.question_bank.service import build_question_bank_service
         except ImportError:  # pragma: no cover - 实现落地前
             pass
         else:
             app.state.question_bank_service = build_question_bank_service(
                 app.state.question_bank,
                 settings,
-                organizer=OllamaOrganizerModel(settings.embedding_base_url),
+                model_resolver=_build_model_handle_resolver(app),
             )
 
 

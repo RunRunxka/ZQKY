@@ -1,17 +1,19 @@
 'use client';
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { Check, Copy, FileText, Pencil, Plus, RotateCcw } from 'lucide-react';
 import { ThinkingOrb } from './vendor/thinking-orbs';
 import type { AskUserDraft, ChatMessage } from '@/contracts/chat';
 import type { TextbookSelection } from '@/contracts/textbook';
 import { CHAT_CAPABILITIES, capabilityAvailableInReal } from '@/services/capability-catalog';
 import { conversationProjection } from './model/context-budget';
+import { projectMessage } from './model/message-projection';
 import { formatTurnDuration, turnDurationSeconds } from './model/trace-timing';
 import { ReasoningDisclosure } from './ReasoningDisclosure';
 import { AnswerMarkdown } from './AnswerMarkdown';
 import { StreamingMarkdown } from './StreamingMarkdown';
 import { TraceStages } from './TraceStages';
 import { AskUserCard } from './AskUserCard';
+import { RagAnswer } from './RagAnswer';
 import { RagEvidencePanel } from './RagEvidencePanel';
 import { ToolProcessPanel } from './ToolProcessPanel';
 
@@ -111,6 +113,24 @@ function TurnDuration({ startedAt, finishedAt }: { startedAt?: string; finishedA
   );
 }
 
+/** 本轮范围文案：无冻结范围或缺字典时如实返回 null（不猜范围、不伪造）。 */
+function scopeLabelForText(
+  message: ChatMessage,
+  scopeLabelFor?: (selection: TextbookSelection) => string | null,
+): string | null {
+  const selection = message.ragResult?.scopeSnapshot?.selection ?? message.ragScope?.selection ?? null;
+  if (!selection || !scopeLabelFor) return null;
+  return scopeLabelFor(selection);
+}
+
+/**
+ * 是否 RAG 轮（教材定位 / 详解）：其 Markdown 使用「省略图片」策略（不渲染、不请求图片）。
+ * 普通聊天的渲染行为不变（仍显示既有文字占位）。
+ */
+function isRagTurn(message: ChatMessage): boolean {
+  return !!message.rag || !!message.ragResult || !!message.ragExplain;
+}
+
 export function Message({
   message,
   copied,
@@ -153,6 +173,11 @@ export function Message({
   // R12 补充：复制等操作的可用性按统一投影判断——纯追问续答有正文即可复制，
   // 真正的空白占位不显示无意义操作
   const copyableText = conversationProjection(message);
+  // RAG-QUALITY v1.1（PLAN §4.1）：显示、默认复制与后续历史共用同一投影入口；
+  // 结构化首答只看结构化字段（ragResult + presentation），不靠正文字符串猜测。
+  const view = projectMessage(message);
+  const citationFocusToken = useRef(0);
+  const [citationFocus, setCitationFocus] = useState<{ evidenceId: string; token: number } | null>(null);
   // S3 引用/来源定位：本轮冻结快照中的来源条目（知识/会话引用/附件/扩展）
   const sources = collectSources(message);
   if (message.role === 'user')
@@ -237,12 +262,23 @@ export function Message({
             ))}
           </div>
         )}
-        {message.content ? (
+        {view.kind === 'rag' ? (
+          /* 结构化 RAG 首答：只渲染知识点（RagAnswer），不再渲染 content 里的正文/原文块，
+             教材原文由下方「教材依据」面板按需展开——同一条消息里知识点只出现一次 */
+          <RagAnswer
+            view={view}
+            scopeLabel={scopeLabelForText(message, scopeLabelFor)}
+            onCitation={(evidenceId) => {
+              citationFocusToken.current += 1;
+              setCitationFocus({ evidenceId, token: citationFocusToken.current });
+            }}
+          />
+        ) : message.content ? (
           <div className="chat-answer-content">
             {message.status === 'streaming' ? (
               <StreamingMarkdown text={message.content} rawClassName="chat-answer-raw" />
             ) : (
-              <AnswerMarkdown text={message.content} />
+              <AnswerMarkdown text={message.content} omitImages={isRagTurn(message)} />
             )}
           </div>
         ) : message.reasoning ? null : message.status === 'streaming' ? (
@@ -252,8 +288,13 @@ export function Message({
             <span className="chat-stream-dot">…</span>
           </p>
         ) : null}
-        {/* 教材证据与范围（RAG v2）：后端未给证据就不渲染证据区；范围按冻结快照如实展示 */}
-        <RagEvidencePanel message={message} scopeLabelFor={scopeLabelFor} />
+        {/* 教材证据与范围（RAG v2）：面板只负责来源；后端未给证据就不渲染证据区 */}
+        <RagEvidencePanel
+          message={message}
+          view={view.kind === 'rag' ? view : null}
+          scopeLabel={scopeLabelForText(message, scopeLabelFor)}
+          focusRequest={citationFocus}
+        />
         {/* 追问卡与各自续写按序渲染：正文→提问→回答记录→续写（同轮顺序） */}
         {message.asks?.map((interaction) => {
           const isGuidance = interaction.kind === 'guidance';

@@ -6,6 +6,7 @@ import asyncio
 
 import pytest
 
+from app.services.text_projection import TEXT_PROJECTION_VERSION
 from app.core.exceptions import AppError
 from app.schemas.rag_v2 import RagPoint
 from app.services.rag_v2.requests import RagReplyRequestV2, RagStreamRequestV2
@@ -136,12 +137,28 @@ async def test_location_events_are_numbered_and_carry_scope_and_result(tmp_path)
         assert result["points"] and result["points"][0]["evidenceIds"]
         assert result["evidence"] and result["evidence"][0]["text"]
         assert result["evidence"][0]["evidenceId"] in result["points"][0]["evidenceIds"]
+        # v1.1：每条证据都带清洗投影，且 text 仍是封存原文切片
+        readable = result["evidence"][0]["readable"]
+        assert readable["version"] == TEXT_PROJECTION_VERSION
+        assert readable["text"].strip()
 
+        # 首答正文只渲染知识点：不含 > 原文块、不含长 ev-id、不追加原文摘录
         content = frames[2]["data"]["text"]
         assert result["points"][0]["title"] in content
-        first_line = result["evidence"][0]["text"].splitlines()[0]
-        assert f"> {first_line}" in content
+        assert "[1]" in content, "知识点正文用 [n] 引用编号（按首次出现顺序）"
+        assert "> " not in content and "教材原文摘录" not in content
+        assert result["evidence"][0]["evidenceId"] not in content
         assert "教材外补充" not in content
+        expected_body_chars = sum(
+            len(point["title"]) + len(point["summary"]) for point in result["points"]
+        )
+        assert result["reasonCode"] is None
+        assert result["presentation"] == {
+            "version": "compact-v1",
+            "answerStyle": "brief",
+            "bodyCharCount": expected_body_chars,
+        }
+        assert expected_body_chars <= 250
 
         interaction = frames[3]["data"]
         assert interaction["interactionId"] and interaction["questions"][0]["questionId"]
@@ -285,6 +302,7 @@ async def test_no_evidence_never_fabricates_points_or_calls_summarizer(tmp_path)
         frames = await drain(service, turn, until="wait-user")
         result = frames[1]["data"]["result"]
         assert result["status"] == "no_evidence"
+        assert result["reasonCode"] == "NO_MATCH"
         assert result["points"] == [] and result["evidence"] == []
         assert "没有找到足够依据" in result["reason"]
         content = frames[2]["data"]["text"]
@@ -308,8 +326,12 @@ async def test_summary_failure_keeps_verified_evidence_as_partial(tmp_path):
         assert result["status"] == "partial", "概括不可用不得降级成 no_evidence"
         assert result["points"] == []
         assert result["evidence"], "部分结果必须保留合法证据"
+        assert result["reasonCode"] == "SUMMARY_INVALID"
         assert "不可用" in result["reason"]
-        assert "教材原文摘录" in frames[2]["data"]["text"]
+        content = frames[2]["data"]["text"]
+        assert "保留教材原文供核对" in content
+        assert "教材原文摘录" not in content, "首答正文不再拼接原文摘录（改由来源面板展示）"
+        assert "没有找到足够依据" not in content
         assert unavailable.calls
     finally:
         await service.close()
@@ -324,6 +346,8 @@ async def test_summary_failure_keeps_verified_evidence_as_partial(tmp_path):
         result = frames[1]["data"]["result"]
         assert result["status"] == "partial" and result["evidence"]
         assert result["points"] == [] and "概括未完成" in result["reason"]
+        assert result["reasonCode"] == "SUMMARY_INVALID"
+        assert result["presentation"]["bodyCharCount"] == 0
     finally:
         await service2.close()
 

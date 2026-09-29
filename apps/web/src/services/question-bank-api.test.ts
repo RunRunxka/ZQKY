@@ -256,19 +256,50 @@ describe('AI 整理建议', () => {
     const result = await organizeQuestions('imp-1', {
       draftIds: ['d-1'],
       includeUnassigned: false,
-      // v1.1：本地模型名（空串 = 服务端默认），原样透传
-      modelProfileId: 'qwen2.5:7b',
+      // v1.1：当前聊天模型 profile id（本地/云端一视同仁），原样透传
+      modelProfileId: 'p-chat-1',
     });
 
     expect(call(fetchMock).url).toBe(`${API_BASE_PATH}/question-imports/imp-1/organize`);
     expect(bodyOf(fetchMock)).toEqual({
       draftIds: ['d-1'],
       includeUnassigned: false,
-      modelProfileId: 'qwen2.5:7b',
+      modelProfileId: 'p-chat-1',
     });
+    // 不得把模型名当 profile id 发出去
+    expect((bodyOf(fetchMock) as { modelProfileId: string }).modelProfileId).not.toBe(
+      CONTENT.stemMarkdown,
+    );
     expect(result.suggestionCount).toBe(1);
     expect(result.suggestions).toHaveLength(1);
     expect(result.suggestions[0]?.suggestionId).toBe('sg-1');
+  });
+
+  it('透传任务级错误码与失败批原因，不由客户端改写', async () => {
+    stubFetch(() =>
+      ok({
+        jobId: 'job-3',
+        state: 'failed',
+        suggestionCount: 0,
+        failedBatches: 1,
+        errorCode: 'ORGANIZER_MODEL_RESELECT_REQUIRED',
+        suggestions: [],
+        failures: [{ batchIndex: 0, code: 'ORGANIZER_INVALID_JSON', message: '不是合法 JSON。' }],
+      }),
+    );
+
+    const result = await organizeQuestions('imp-1', {
+      draftIds: [],
+      includeUnassigned: true,
+      modelProfileId: 'p-chat-1',
+    });
+
+    expect(result.errorCode).toBe('ORGANIZER_MODEL_RESELECT_REQUIRED');
+    expect(result.failures[0]).toEqual({
+      batchIndex: 0,
+      code: 'ORGANIZER_INVALID_JSON',
+      message: '不是合法 JSON。',
+    });
   });
 
   it('响应未带建议明细时归一为空数组而不是伪造', () => {
@@ -277,12 +308,12 @@ describe('AI 整理建议', () => {
       state: 'failed',
       suggestionCount: 4,
       failedBatches: 2,
-      errorCode: 'MODEL_UNAVAILABLE',
+      errorCode: 'UPSTREAM_UNAVAILABLE',
     });
     expect(result.suggestions).toEqual([]);
     expect(result.suggestionCount).toBe(4);
     expect(result.failedBatches).toBe(2);
-    expect(result.errorCode).toBe('MODEL_UNAVAILABLE');
+    expect(result.errorCode).toBe('UPSTREAM_UNAVAILABLE');
   });
 
   it('响应形状不认识时给出失败态而不是假成功', () => {

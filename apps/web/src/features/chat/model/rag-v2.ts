@@ -44,6 +44,28 @@ export interface EvidenceRef {
   charEnd: number;
 }
 
+/**
+ * 清洗后的可读派生文本（RAG-QUALITY v1.1 · PLAN §2.3）。
+ *
+ * **只用于展示/预览/复制摘录**：`text` 是已清洗 Markdown（公式保留、图片节点移除），
+ * `removedImageCount` 是被清除的图片节点数。它不是可信证据，不能用于回传引用或校验——
+ * 回传/校验只用 `EvidenceRef` 的坐标字段（`evidenceId` + `documentRevisionId` +
+ * `normalizedTextSha256` + `charStart/charEnd`）。旧历史消息允许缺失。
+ */
+export interface EvidenceReadable {
+  version: 'rag-readable-v1' | 'rag-readable-v2';
+  text: string;
+  removedImageCount: number;
+}
+
+/** 首答呈现策略（后端 `presentation.version === 'compact-v1'` 表示已按首答预算收敛）。 */
+export interface RagPresentation {
+  version: 'compact-v1';
+  answerStyle: 'brief';
+  /** 知识点正文码点数（标题 + 说明，不含引用编号与来源） */
+  bodyCharCount: number;
+}
+
 /** 教材原文证据（字段与后端 TextbookEvidence 一致，含来源定位）。 */
 export interface TextbookEvidence extends EvidenceRef {
   documentId: string;
@@ -51,11 +73,14 @@ export interface TextbookEvidence extends EvidenceRef {
   editionLabel: string;
   subjectLabel: string;
   chapterPath: string[];
+  /** 可逐字验证的**封存原文切片**（不可变；含公式，历史数据可能含图片 Markdown） */
   text: string;
   originalFileSha256: string;
   locator: LocatorView;
   /** 教材已更新：该引用属于历史修订，必须明确标注且不隐藏 */
   isSuperseded: boolean;
+  /** 新服务端必填的清洗派生文本；旧历史消息允许缺失（展示降级为 `text` 并明确标注） */
+  readable?: EvidenceReadable;
 }
 
 export type RagPointStatus = 'ok' | 'partial' | 'uncertain' | 'no_evidence';
@@ -75,6 +100,13 @@ export interface RagResultV2 {
   points: RagPoint[];
   evidence: TextbookEvidence[];
   reason?: string | null;
+  /** 首答呈现策略；旧历史消息允许缺失（缺失时前端按旧答预算投影，不伪造摘要） */
+  presentation?: RagPresentation;
+  /**
+   * 结果原因码：'NO_MATCH' | 'EVIDENCE_TEXT_EMPTY' | 'EVIDENCE_UNIT_TOO_LARGE' |
+   * 'SUMMARY_INVALID' | 'SUMMARY_PARTIAL'（`ok` 时缺省）。
+   */
+  reasonCode?: string;
 }
 
 /* ------------------------------------------------------------------ 定位请求范围入参 */
@@ -209,6 +241,25 @@ export function isLocatorView(value: unknown): value is LocatorView {
   );
 }
 
+/** 清洗派生文本的运行时校验：缺失视为「旧历史」（允许），存在则必须结构完整。 */
+export function isEvidenceReadable(value: unknown): value is EvidenceReadable {
+  if (!isRecord(value)) return false;
+  return (
+    (value.version === 'rag-readable-v1' || value.version === 'rag-readable-v2') &&
+    typeof value.text === 'string' &&
+    typeof value.removedImageCount === 'number'
+  );
+}
+
+/** 呈现策略的运行时校验：缺失视为「旧结果」（允许）；未知版本如实保留并按旧答预算投影。 */
+export function isRagPresentation(value: unknown): value is RagPresentation {
+  if (!isRecord(value)) return false;
+  if (typeof value.version !== 'string') return false;
+  if (value.version === 'compact-v1')
+    return value.answerStyle === 'brief' && typeof value.bodyCharCount === 'number';
+  return true;
+}
+
 export function isTextbookEvidence(value: unknown): value is TextbookEvidence {
   if (!isRecord(value)) return false;
   return (
@@ -225,7 +276,8 @@ export function isTextbookEvidence(value: unknown): value is TextbookEvidence {
     typeof value.text === 'string' &&
     typeof value.originalFileSha256 === 'string' &&
     isLocatorView(value.locator) &&
-    typeof value.isSuperseded === 'boolean'
+    typeof value.isSuperseded === 'boolean' &&
+    (value.readable === undefined || isEvidenceReadable(value.readable))
   );
 }
 
@@ -247,7 +299,9 @@ export function isRagResultV2(value: unknown): value is RagResultV2 {
     ) &&
     Array.isArray(value.evidence) &&
     value.evidence.every(isTextbookEvidence) &&
-    (value.reason === undefined || value.reason === null || typeof value.reason === 'string')
+    (value.reason === undefined || value.reason === null || typeof value.reason === 'string') &&
+    (value.presentation === undefined || isRagPresentation(value.presentation)) &&
+    (value.reasonCode === undefined || value.reasonCode === null || typeof value.reasonCode === 'string')
   );
 }
 

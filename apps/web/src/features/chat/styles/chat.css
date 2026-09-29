@@ -2407,9 +2407,12 @@
    视觉复用现有 token：继承页面字体、细边框 var(--line)、蓝色主题 var(--blue/--blue-soft)、
    与输入框一致的圆角与留白；不新增主题、不新增动画库；减少动画依赖全局 prefers-reduced-motion 层。 */
 
-/* 顶部：标签 + 左右箭头 + 页码（箭头只浏览） */
+/* 顶部：标签 + 题干标签 + 左右箭头 + 页码（箭头只浏览）；
+   追问卡精简后普通状态不再单独渲染卡标题，标签与分页在同一行 */
 .chat-ask-pager { display: flex; align-items: center; gap: 6px; margin: 2px 0 0; min-width: 0; }
-.chat-ask-label { font-size: 11px; font-weight: 600; color: var(--muted); }
+.chat-ask-kind { display: inline-flex; align-items: center; gap: 5px; min-width: 0; font-size: 11.5px; color: var(--blue-deep); }
+.chat-ask-kind span { font-weight: 600; overflow-wrap: anywhere; }
+.chat-ask-label { font-size: 11px; font-weight: 600; color: var(--muted); overflow-wrap: anywhere; }
 .chat-ask-arrow {
   display: inline-flex;
   align-items: center;
@@ -2458,9 +2461,8 @@
   background: #fafbfc;
   padding: 10px 12px;
   margin: 12px 0;
+  min-width: 0;
 }
-.chat-rag-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--blue); }
-.chat-rag-head strong { font-weight: 600; }
 .chat-rag-status {
   font-size: 11px;
   color: var(--muted);
@@ -2470,17 +2472,114 @@
   padding: 1px 8px;
 }
 .chat-rag-status.no_evidence { color: #a82c25; border-color: #f2d2d0; background: #fff5f4; }
+.chat-rag-status.partial { color: #8a5a00; border-color: #f0dfb4; background: #fff8e6; }
+.chat-rag-status.uncertain { color: #8a5a00; border-color: #f0dfb4; background: #fff8e6; }
 .chat-rag-scope { font-size: 11px; color: var(--muted); overflow-wrap: anywhere; }
 .chat-rag-reason { font-size: 12px; color: var(--muted); margin: 6px 0 0; line-height: 1.7; }
 .chat-rag-hint { font-size: 12px; color: var(--muted); margin: 6px 0 0; line-height: 1.7; }
-.chat-rag-points { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
-.chat-rag-points li { border-top: 1px dashed var(--line); padding-top: 8px; font-size: 12.5px; }
-.chat-rag-points p { margin: 2px 0 0; line-height: 1.75; color: var(--ink); overflow-wrap: anywhere; }
-.chat-rag-points small { display: block; margin-top: 4px; color: var(--muted); font-size: 11px; }
-.chat-rag-list { margin: 10px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 10px; }
+.chat-rag-hint.partial,
+.chat-rag-hint.uncertain { color: #8a5a00; }
+.chat-rag-hint.no_evidence { color: #a82c25; }
+
+/* 知识点回答（紧凑首答）：只渲染知识点一次，原文交给下方来源面板 */
+.chat-rag-answer { margin: 10px 0 0; min-width: 0; }
+.chat-rag-answer-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 12px; color: var(--blue); }
+.chat-rag-answer-head strong { font-weight: 600; }
+.chat-rag-answer-points {
+  list-style: decimal;
+  margin: 8px 0 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.chat-rag-answer-points li { font-size: 13px; line-height: 1.8; color: var(--ink); overflow-wrap: anywhere; }
+.chat-rag-point-title { font-weight: 600; }
+.chat-rag-point-summary { display: inline; margin: 0; }
+.chat-rag-cite-chip {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 1px;
+  padding: 0 4px;
+  border: 1px solid #cddcf6;
+  border-radius: 6px;
+  background: #f4f8ff;
+  color: var(--blue-deep);
+  font-size: 11px;
+  line-height: 1.6;
+  vertical-align: baseline;
+}
+.chat-rag-cite-chip:hover { border-color: #a8c3f2; background: #e9f1ff; }
+.chat-rag-cite-plain { font-size: 11px; color: var(--muted); }
+.chat-rag-answer-foot { margin: 8px 0 0; font-size: 11px; color: var(--muted); }
+.chat-rag-legacy-answer { margin-top: 4px; }
+.chat-rag-legacy-answer > summary { font-size: 12px; color: var(--blue); cursor: pointer; }
+.chat-rag-legacy-refs { margin: 6px 0 0; }
+
+/* 来源面板：二级展开（面板 → 单条摘录），预览在完整句边界结束 */
+.chat-rag-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 2px;
+  border: 0;
+  background: none;
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+}
+.chat-rag-toggle:hover { color: var(--blue-deep); }
+.chat-rag-toggle svg.open { transform: rotate(90deg); }
+.chat-rag-body { margin-top: 8px; min-width: 0; }
+.chat-rag-list { margin: 8px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 10px; }
 .chat-rag-cite { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0; font-size: 12.5px; }
+.chat-rag-cite strong { overflow-wrap: anywhere; }
 .chat-rag-cite small { color: var(--muted); font-size: 11px; overflow-wrap: anywhere; }
-.chat-rag-eid { font-size: 11px; color: var(--muted); }
+.chat-rag-index { flex: none; font-size: 11.5px; font-weight: 600; color: var(--blue-deep); }
+.chat-rag-preview { display: block; margin: 6px 0 0; font-size: 12.5px; line-height: 1.75; color: var(--ink); overflow-wrap: anywhere; }
+.chat-rag-source-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 0; }
+.chat-rag-source-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.chat-rag-source-actions button:hover { border-color: #a8c3f2; color: var(--blue); }
+.chat-rag-excerpt {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-left: 3px solid #cddcf6;
+  background: #fff;
+  border-radius: 0 8px 8px 0;
+  font-size: 12.5px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+}
+.chat-rag-excerpt .answer-markdown-inline { line-height: inherit; }
+.chat-rag-legacy-note,
+.chat-rag-image-note {
+  margin: 0 0 6px;
+  font-size: 11.5px;
+  color: #8a5a00;
+  background: #fff8e6;
+  border: 1px solid #f0dfb4;
+  border-radius: 8px;
+  padding: 4px 8px;
+  line-height: 1.7;
+}
+.chat-rag-list li.superseded .chat-rag-excerpt,
+.chat-rag-list li.superseded .chat-rag-preview { color: var(--muted); }
+
+/* 行内 Markdown（知识点标题/说明/预览）：不产生块级段落，引用编号可与文字同行 */
+.answer-markdown-inline { display: inline; }
+.chat-answer-line { display: inline; }
 .chat-rag-superseded {
   display: flex;
   align-items: center;
@@ -2493,19 +2592,6 @@
   border-radius: 8px;
   padding: 6px 8px;
 }
-.chat-rag-text {
-  margin: 6px 0 0;
-  padding: 8px 10px;
-  border-left: 3px solid #cddcf6;
-  background: #fff;
-  border-radius: 0 8px 8px 0;
-  font-size: 12.5px;
-  line-height: 1.8;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  color: var(--ink);
-}
-.chat-rag-list li.superseded .chat-rag-text { color: var(--muted); }
 
 /* 服务状态分项（检索 / 本地概括 / 原文访问 / 范围分别报告） */
 .chat-rag-sections {
@@ -2528,5 +2614,12 @@
   .chat-ask-foot .chat-ask-hint { flex-basis: 100%; }
   .chat-ask-nav { flex: 1 1 auto; justify-content: center; }
   .chat-rag-sections { flex-direction: column; gap: 3px; }
+  /* 390 窄视口：长书名/长定位自然换行，来源操作可点按，不横向溢出 */
+  .chat-rag-answer-points { padding-left: 18px; }
+  .chat-rag-cite { align-items: flex-start; }
+  .chat-rag-source-actions button { flex: 1 1 auto; justify-content: center; }
+  .chat-rag-evidence,
+  .chat-rag-excerpt,
+  .chat-rag-preview { max-width: 100%; }
 }
 

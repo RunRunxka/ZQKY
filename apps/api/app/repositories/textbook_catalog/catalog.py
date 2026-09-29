@@ -23,8 +23,15 @@ from pathlib import Path
 from typing import Any, get_args
 
 from app.core.exceptions import AppError
-from app.core.sqlite import connect, now_iso, read_transaction, transaction
+from app.core.sqlite import (
+    connect,
+    now_iso,
+    open_readonly,
+    read_transaction,
+    transaction,
+)
 from app.repositories.textbook_catalog import json_fields
+from app.repositories.textbook_catalog.schema import REQUIRED_TABLES
 from app.repositories.textbook_catalog.records import (
     AllowedChunks,
     CatalogState,
@@ -163,6 +170,16 @@ class TextbookCatalog:
 
     def close(self) -> None:
         self._closed = True
+
+    def open_existing(self) -> None:
+        """**只读**打开既有目录：不建库、不建表、不改结构。
+
+        验收脚本与只读工具用这个入口，避免"路径写错时静默建出空库"把失败伪装成空数据
+        （docs/PLAN.md §6.2）。库不存在或结构不完整时明确报错。
+        """
+        connection = open_readonly(self._db_path, required_tables=REQUIRED_TABLES)
+        connection.close()
+        self._migrated = True
 
     def _open(self, *, require_migrated: bool = True) -> sqlite3.Connection:
         """每次操作独立连接：实例可被 FastAPI 线程池并发使用，连接不跨线程共享。"""

@@ -82,6 +82,12 @@ DEFAULT_LEASE_SECONDS = 90
 DEFAULT_OWNER_ID = "local-user"
 #: 命中同一来源键（内容相同）时的草稿警告文案
 ORIGIN_REUSE_WARNING = "检测到相同内容的既有书册，已作为该书册的新修订（不新建重复书册）。"
+#: 清洗（去图片 Markdown）后没有可用文本：草稿阶段就如实标注并禁止提交。
+#: 与 ``DOCUMENT_NEEDS_OCR`` 是两类问题（不是扫描件缺文本层，而是清洗后为空），文案与错误码都不复用。
+CLEANED_TEXT_EMPTY_WARNING = "该文件在清洗图片后没有可用文本，无法建立可检索索引。"
+CLEANED_TEXT_EMPTY_CODE = "NO_INDEXABLE_TEXT"
+#: 草稿产物里的标记键（``parsed_artifacts_json``）
+CLEANED_TEXT_EMPTY_FLAG = "cleanedTextEmpty"
 _ARTIFACT_FIELDS = (
     "normalizedBlobId",
     "normalizedTextSha256",
@@ -261,6 +267,11 @@ class IngestService:
             policy = DEFAULT_CHUNK_POLICY
             chunks = list(self.chunker(parsed, policy=policy))
             artifacts = self._store_artifacts(parsed, chunks, policy, confirmed=confirmed)
+            if parsed.normalized_text.strip() and not chunks:
+                # 有原文但清洗后没有任何可索引块（例如整册只有图片 Markdown）：
+                # 草稿阶段就标注并禁止提交，不让用户点到一个注定失败的提交。
+                artifacts[CLEANED_TEXT_EMPTY_FLAG] = True
+                warnings.append(CLEANED_TEXT_EMPTY_WARNING)
             warnings.extend(parsed.warnings)
         except AppError as exc:
             state = "failed"
@@ -404,6 +415,9 @@ class IngestService:
                 "该文件没有可提取的文本层，无法生成教材索引；请先做 OCR。",
                 code="DOCUMENT_NEEDS_OCR",
             )
+        if artifacts.get(CLEANED_TEXT_EMPTY_FLAG):
+            # 与草稿 warnings 同一原因、同一文案：清洗后没有可用文本，提交必然失败
+            raise _invalid(CLEANED_TEXT_EMPTY_WARNING, code=CLEANED_TEXT_EMPTY_CODE)
         if record.metadata is None or not artifacts.get("metadataConfirmed"):
             raise _invalid(
                 "提交前必须先确认教材分类信息。",
@@ -676,6 +690,9 @@ class IngestService:
         if record.state != "needs_review" or not isinstance(artifacts, dict):
             return False
         if artifacts.get("needsOcr"):
+            return False
+        if artifacts.get(CLEANED_TEXT_EMPTY_FLAG):
+            # 清洗后没有可用文本：提交必然失败，草稿如实标记为不可提交
             return False
         if not artifacts.get("metadataConfirmed"):
             return False

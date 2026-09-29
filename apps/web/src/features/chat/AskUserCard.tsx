@@ -130,6 +130,41 @@ export function AskUserCard({
 
   const answered = interaction.status === 'answered';
   const interrupted = interaction.status === 'interrupted' || (interaction.status === 'waiting' && !active && !isGuidance);
+  /**
+   * 追问卡精简（RAG-QUALITY v1.1 · PLAN §4.4）：只压掉重复信息，不改状态机。
+   * - 顶行合并为「标签 + 题干标签 + 分页」，不再单独渲染一张卡标题；
+   * - 题干与标签含义相同时不重复显示；`intro` 与可见标签/题干逐字相同时不再重复一遍；
+   * - 异常与待重试状态（提交中/已忽略/待重试/历史多选/预览）保留必要说明。
+   */
+  const kindLabel = isGuidance ? '教材详解' : source === 'rag' ? '教材追问' : '追问（本地模拟）';
+  const headerText = question?.header?.trim() ?? '';
+  const promptText = question?.prompt?.trim() ?? '';
+  const showHeaderChip =
+    !!headerText &&
+    headerText !== kindLabel &&
+    headerText !== '追问' &&
+    headerText !== '详解方向' &&
+    headerText !== promptText;
+  const introText = interaction.intro?.trim() ?? '';
+  // 题干提示与可见标签/题干逐字相同时不再重复一遍（普通状态）
+  const showIntro = !!introText && ![kindLabel, headerText, promptText].includes(introText);
+  const answerableState =
+    interaction.status === 'waiting' || interaction.status === 'submitting' || interaction.status === 'failed';
+  const headContent = (
+    <>
+      {isGuidance ? (
+        <Sparkles size={14} aria-hidden="true" />
+      ) : (
+        <MessageCircleQuestion size={14} aria-hidden="true" />
+      )}
+      <span>
+        {kindLabel}
+        {interaction.status === 'submitting' && ' · 提交中'}
+        {answered && (isGuidance ? ' · 已发起' : ' · 已回答')}
+        {interrupted && ' · 已忽略'}
+      </span>
+    </>
+  );
 
   return (
     <div
@@ -139,20 +174,8 @@ export function AskUserCard({
       data-status={interaction.status}
       data-kind={isGuidance ? 'guidance' : 'clarification'}
     >
-      <p className="chat-ask-head">
-        {isGuidance ? (
-          <Sparkles size={14} aria-hidden="true" />
-        ) : (
-          <MessageCircleQuestion size={14} aria-hidden="true" />
-        )}
-        <span>
-          {isGuidance ? '教材详解' : source === 'rag' ? '教材追问' : '追问（本地模拟）'}
-          {interaction.status === 'submitting' && ' · 提交中'}
-          {answered && (isGuidance ? ' · 已发起' : ' · 已回答')}
-          {interrupted && ' · 已忽略'}
-        </span>
-      </p>
-      {interaction.intro && <p className="chat-ask-intro">{interaction.intro}</p>}
+      {(!answerableState || !question) && <p className="chat-ask-head">{headContent}</p>}
+      {showIntro && <p className="chat-ask-intro">{introText}</p>}
       {pendingRetry && (
         <p className="chat-ask-note" role="status">
           <AlertCircle size={12} />
@@ -212,9 +235,9 @@ export function AskUserCard({
         question && (
           <>
             <header className="chat-ask-pager">
-              <span className="chat-ask-label">
-                {question.header ?? (isGuidance ? '详解方向' : '追问')}
-              </span>
+              {/* 顶行合并：标签 + 题干标签 + 分页（不再单独渲染卡标题，避免同义重复） */}
+              <span className="chat-ask-kind">{headContent}</span>
+              {showHeaderChip && <span className="chat-ask-label">{headerText}</span>}
               {total > 1 && (
                 <>
                   <span className="chat-flex-spacer" />

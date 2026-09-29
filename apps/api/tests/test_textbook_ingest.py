@@ -18,26 +18,42 @@ from app.providers.embeddings.fingerprint import embedding_fingerprint
 from app.providers.embeddings.ollama_embedding import model_names_match
 from app.repositories.textbook_catalog.catalog import TextbookCatalog
 from app.repositories.textbook_catalog.records import ImportRecord
-from app.repositories.vector_store import AllowedFilter, InMemoryVectorStore, VectorPoint
+from app.repositories.vector_store import (
+    AllowedFilter,
+    InMemoryVectorStore,
+    PAYLOAD_ORDINAL,
+    VectorPoint,
+)
 from app.schemas.textbook import ChunkPreview, EmbeddingModelCandidate
 from app.services.document_parsing import (
     DEFAULT_CHUNK_POLICY,
     DEGRADED_WARNING_PREFIX,
     LEGACY_REGION_RULES_VERSION,
+    LEGACY_TEXT_PROJECTION_VERSION,
+    TEXT_PROJECTION_VERSION,
+    ChunkPolicy,
     chunk_document,
     chunk_manifest_sha256,
     chunk_policy_fingerprint,
     chunk_policy_from_json,
+    chunk_projection,
     parse_document,
 )
 from app.services.textbook_ingest import (
+    CLEANED_TEXT_EMPTY_CODE,
+    CLEANED_TEXT_EMPTY_FLAG,
+    CLEANED_TEXT_EMPTY_WARNING,
     DEFAULT_RENEW_SECONDS,
     ORIGIN_REUSE_WARNING,
+    PAYLOAD_INDEX_TEXT_SHA256,
+    PAYLOAD_TEXT_PROJECTION_VERSION,
     IngestService,
+    generation_policy,
     generation_policy_document,
     new_collection_name,
     origin_key_for,
 )
+from app.services.textbook_ingest.blobs import sha256_text
 
 DIMENSIONS = 4
 MODEL = "bge-m3"
@@ -1366,3 +1382,170 @@ def test_changed_region_rules_version_creates_new_chunk_set(tmp_path: Path) -> N
     assert new_chunk_set.chunk_count == link.expected_chunk_count > 0
     # 旧分块集保留可读（不可变），但当前代挂的是新分块集
     assert env.catalog.get_chunk_set(legacy_chunk_set.chunk_set_id) is not None
+
+
+# ------------------------------------- v1.1 清洗文本进入索引输入（payload 与模型输入）
+
+#: 内联图片：原文切片含图片地址，清洗文本不含；正文与说明文字逐字保留
+IMAGE_INGEST_TEXT = (
+    "# 第一章 力\n\n"
+    "正文说明：" + "加速度与力的关系。" * 40 + "\n\n"
+    "![加速度与力关系图](images/9f2c1abd.jpg)\n\n"
+    "继续正文说明。\n\n## 练习 1.1\n\n1. 求并集。\n"
+)
+
+#: 逼出"整块只有一张图"的文档：图片行前后都是超长段落，块边界落在图片行上
+IMAGE_ONLY_INGEST_TEXT = (
+    "# 第一章 力\n\n"
+    + "开头段落。" * 170
+    + "\n\n![](images/only.jpg)\n\n"
+    + "长段落说明。" * 220
+    + "\n\n## 练习 1.1\n\n1. 求并集。\n"
+)
+
+
+class RecordingEmbeddings(FakeEmbeddings):
+    """记录送模型的文本：验证图片 Markdown 不进入向量输入。"""
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.texts: list[str] = []
+        self.batches: list[list[str]] = []
+
+    def embed(self, *, model: str, texts: list[str]) -> list[list[float]]:
+        self.texts.extend(texts)
+        self.batches.append(list(texts))
+        return super().embed(model=model, texts=texts)
+
+
+def test_upsert_payload_describes_projection_and_raw_hash_side_by_side(
+    tmp_path: Path,
+) -> None:
+    """payload：原有字段含义不变 + 清洗版本 + 索引输入散列；送模型的是清洗文本。"""
+    embeddings = RecordingEmbeddings()
+    env = Harness(tmp_path, embeddings=embeddings)
+    draft = env.import_with_metadata(IMAGE_INGEST_TEXT)
+    job = env.commit_and_run(draft)
+    assert job.state == "succeeded", job.errorMessage
+    link = env.catalog.list_generation_revisions(env.generation.generation_id)[0]
+    revision = env.catalog.get_revision(job.inputRevisionId)
+    assert revision is not None
+    parsed = env.service.indexer.parse_revision(revision)
+    policy = generation_policy(env.generation)
+    chunks = env.catalog.list_chunks(link.chunk_set_id)
+
+    # 送模型的文本 = 上下文头 + **清洗后**的索引输入文本
+    sent = embeddings.texts
+    assert sent and len(sent) == len(chunks)
+    assert not any("images/" in text for text in sent)
+    assert any("加速度与力关系图" in text for text in sent)  # 有意义的说明文字保留
+    assert all(METADATA["title"] in text for text in sent)  # 上下文头仍在
+
+    payloads = env.vectors.payloads(env.collection)
+    by_ordinal = {payload[PAYLOAD_ORDINAL]: payload for payload in payloads}
+    assert len(payloads) == len(chunks) == link.expected_chunk_count  # 点数 = 清单块数
+    assert set(by_ordinal) == {chunk.ordinal for chunk in chunks}
+    image_chunks = 0
+    for chunk in chunks:
+        payload = by_ordinal[chunk.ordinal]
+        piece = parsed.normalized_text[chunk.char_start:chunk.char_end]
+        # 原有字段含义不变：仍是**原文切片**散列
+        assert payload["text_sha256"] == chunk.text_sha256 == sha256_text(piece)
+        assert payload[PAYLOAD_TEXT_PROJECTION_VERSION] == TEXT_PROJECTION_VERSION
+        index_text = chunk_projection(chunk, parsed.normalized_text, policy).text
+        assert payload[PAYLOAD_INDEX_TEXT_SHA256] == sha256_text(index_text)
+        assert payload[PAYLOAD_INDEX_TEXT_SHA256] != payload["text_sha256"]
+        assert index_text and any(index_text in text for text in sent)
+        if "images/9f2c1abd.jpg" in piece:
+            image_chunks += 1
+            assert "images/" not in index_text
+            assert not any("images/" in text for text in sent)
+    assert image_chunks >= 1  # 样本确实覆盖"原文含图片地址"的块
+
+
+def test_image_only_chunk_is_excluded_before_upsert_so_counts_stay_consistent(
+    tmp_path: Path,
+) -> None:
+    """图片独占块在清单阶段排除：chunk_set 计数 / 清单指纹 / 向量点数三者一致。"""
+    embeddings = RecordingEmbeddings()
+    env = Harness(tmp_path, embeddings=embeddings)
+    draft = env.import_with_metadata(IMAGE_ONLY_INGEST_TEXT)
+    job = env.commit_and_run(draft)
+    assert job.state == "succeeded", job.errorMessage
+    link = env.catalog.list_generation_revisions(env.generation.generation_id)[0]
+    revision = env.catalog.get_revision(job.inputRevisionId)
+    assert revision is not None
+    parsed = env.service.indexer.parse_revision(revision)
+    policy = generation_policy(env.generation)
+    chunk_set = env.catalog.get_chunk_set(link.chunk_set_id)
+    assert chunk_set is not None
+    chunks = env.catalog.list_chunks(chunk_set.chunk_set_id)
+
+    assert chunk_set.chunk_count == len(chunks) == link.expected_chunk_count > 0
+    assert chunk_set.manifest_sha256 == link.manifest_sha256 == chunk_manifest_sha256(chunks)
+    assert env.vectors.count(name=env.collection) == len(chunks)
+    assert [chunk.ordinal for chunk in chunks] == list(range(len(chunks)))
+    # 图片独占块在原文里存在，但不在清单/向量/模型输入里
+    assert "images/only.jpg" in parsed.normalized_text
+    assert not any(
+        "images/only.jpg" in parsed.normalized_text[chunk.char_start:chunk.char_end]
+        for chunk in chunks
+    )
+    assert not any("images/" in text for batch in embeddings.batches for text in batch)
+    # 旧口径（raw-v0）下同一文档保留该块：排除是清洗驱动的，不是分块几何变了
+    legacy = ChunkPolicy(text_projection_version=LEGACY_TEXT_PROJECTION_VERSION)
+    legacy_chunks = chunk_document(parsed, policy=legacy)
+    assert len(legacy_chunks) == len(chunks) + 1
+    assert any(
+        "images/only.jpg" in parsed.normalized_text[chunk.char_start:chunk.char_end]
+        for chunk in legacy_chunks
+    )
+    # 同一份原文的旧口径分块集与新一代分块集并存（不可变、不复用）
+    assert chunk_policy_fingerprint(legacy) != chunk_policy_fingerprint(policy)
+    assert env.catalog.find_chunk_set(revision.revision_id, chunk_policy_fingerprint(legacy)) is None
+
+
+# ---------------- B2 修复 v1.1（3）：清洗后无可用文本的草稿必须如实标注且不可提交
+
+#: 整篇只有图片 Markdown：原文非空，但清洗后没有任何可索引文本
+IMAGE_ONLY_DRAFT_TEXT = "![](images/a.jpg)\n\n![](images/b.jpg)\n"
+
+
+def test_cleaned_text_empty_draft_is_warned_and_not_committable(tmp_path: Path) -> None:
+    """只含图片 Markdown 的草稿：warnings 可见、canCommit=false、提交以同一原因拒绝。"""
+    env = Harness(tmp_path)
+    draft = env.import_with_metadata(IMAGE_ONLY_DRAFT_TEXT, file_name="images-only.md")
+    assert draft.state == "needs_review"
+    assert draft.parsed is not None
+    assert draft.parsed.chunkCount == 0  # 清洗后没有可索引块
+    assert draft.parsed.needsOcr is False  # 不是扫描件问题
+    assert draft.canCommit is False
+    assert CLEANED_TEXT_EMPTY_WARNING in draft.warnings
+    # 不复用 DOCUMENT_NEEDS_OCR 的文案：两类问题必须可区分
+    assert not any("OCR" in warning or "文本层" in warning for warning in draft.warnings)
+    assert env.service.get_import_view(draft.importId).canCommit is False  # 重新读取仍是同一结论
+
+    with pytest.raises(AppError) as exc_info:
+        env.service.commit_import(
+            draft.importId,
+            expected_revision=draft.revision,
+            submission_id="submission-empty-clean-1",
+            library_ids=[env.library.library_id],
+        )
+    assert (exc_info.value.code, exc_info.value.status_code) == (CLEANED_TEXT_EMPTY_CODE, 422)
+    assert str(exc_info.value) == CLEANED_TEXT_EMPTY_WARNING
+    # 拒绝发生在建任务之前：没有留下注定失败的任务
+    assert env.catalog.list_jobs() == []
+    record = env.catalog.get_import(draft.importId)
+    assert record is not None and record.parsed_artifacts.get(CLEANED_TEXT_EMPTY_FLAG) is True
+
+
+def test_normal_markdown_draft_is_unaffected_by_cleaned_text_gate(tmp_path: Path) -> None:
+    """正常 md（清洗后仍有文本）：警告不出现、canCommit 为真、提交照常成功。"""
+    env = Harness(tmp_path)
+    draft = env.import_with_metadata(sample_text())
+    assert draft.parsed is not None and draft.parsed.chunkCount > 0
+    assert CLEANED_TEXT_EMPTY_WARNING not in draft.warnings
+    assert draft.canCommit is True
+    job = env.commit_and_run(draft, submission_id="submission-normal-clean-1")
+    assert job.state == "succeeded", job.errorMessage

@@ -138,8 +138,11 @@ def main() -> int:
     if args.qdrant:
         settings = settings.__class__(**{**settings.__dict__, "qdrant_url": args.qdrant})
 
-    catalog = TextbookCatalog(settings.textbooks_root / "catalog.sqlite3")
-    catalog.migrate()
+    # 只读测量：不动正式库结构、不建空库（PLAN §6.2）
+    catalog_path = settings.textbooks_root / "catalog.sqlite3"
+    if not catalog_path.is_file():
+        raise SystemExit(f"教材目录不存在，拒绝创建空库：{catalog_path}")
+    catalog = TextbookCatalog(catalog_path)
     provider = OllamaEmbeddingProvider(settings.embedding_base_url)
     vectors = HttpQdrantStore(settings.qdrant_url)
     generation_id = catalog.catalog_state().active_generation_id

@@ -219,6 +219,28 @@ _INDEXES: tuple[str, ...] = (
 )
 
 
+
+#: 目录库必须存在的表：只读打开既有库时用于校验结构完整性
+#: （缺表说明文件不是本应用的目录库，不能当"空库"继续用）。
+REQUIRED_TABLES = (
+    "catalog_state",
+    "embedding_profiles",
+    "index_generations",
+    "libraries",
+    "documents",
+    "library_documents",
+    "document_metadata_revisions",
+    "document_revisions",
+    "chunk_sets",
+    "chunks",
+    "generation_revisions",
+    "import_drafts",
+    "index_jobs",
+    "cleanup_queue",
+    "teaching_settings",
+)
+
+
 def migrate(connection: sqlite3.Connection) -> None:
     """建表并补齐单行 catalog_state；重复调用不改变既有数据。"""
     for statement in _TABLES:

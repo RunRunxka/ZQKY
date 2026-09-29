@@ -10,27 +10,33 @@ from pathlib import Path
 
 import pytest
 
+from app.services.text_projection import TEXT_PROJECTION_VERSION
 from app.core.exceptions import AppError
 from app.services.document_parsing import (
     BODY_SHARE_FLOOR,
     DEFAULT_CHUNK_POLICY,
     DEGRADED_WARNING_PREFIX,
     LEGACY_REGION_RULES_VERSION,
+    LEGACY_TEXT_PROJECTION_VERSION,
     LOW_BODY_SHARE_WARNING_PREFIX,
     PARSER_VERSION,
     REGION_RULES_VERSION,
+    TEXT_PROJECTION_VERSION,
     ChunkPolicy,
     analyze_regions,
     chunk_document,
+    chunk_index_text,
     chunk_manifest_sha256,
     chunk_policy_fingerprint,
     chunk_policy_from_json,
     chunk_policy_json,
+    chunk_projection,
     chunk_region_share,
     is_exercise_marker_line,
     is_section_heading_line,
     parse_document,
     parsed_from_source_map,
+    retained_for_manifest,
     source_map_payload,
     split_regions,
 )
@@ -909,3 +915,185 @@ def test_trailing_exercise_block_has_no_phantom_body_chunk(tmp_path: Path) -> No
         if chunk.region == "body"
     )
     assert exercise_text not in body_text
+
+
+# ------------------------- v1.1 清洗文本进入索引：策略版本、两套事实与空块排除
+
+
+def _sha256_text(value: str) -> str:
+    import hashlib
+
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+#: 段内联图片：清洗必须只删图片节点，正文与有意义的说明文字逐字保留
+IMAGE_INLINE_MARKDOWN = (
+    "# 第一章 力\n\n"
+    "图注：下面说明加速度与力的关系。\n\n"
+    "![加速度与力关系图](images/9f2c1abd.jpg)\n\n"
+    "继续正文说明。\n"
+)
+
+#: 整段只有一张图 + 一条独立公式块 + 一条超长单行（逼出图片独占块）
+IMAGE_ONLY_MARKDOWN = (
+    "# 第一章 力\n\n"
+    + "开头段落。" * 170
+    + "\n\n![](images/only.jpg)\n\n"
+    + "长段落说明。" * 220
+    + "\n\n## 练习 1.1\n\n1. 求并集。\n"
+)
+
+
+def test_text_projection_version_enters_policy_and_fingerprint() -> None:
+    """清洗版本与划分规则版本同样进入指纹：策略一变必然产生新分块集。"""
+    assert TEXT_PROJECTION_VERSION == "rag-readable-v2"
+    assert LEGACY_TEXT_PROJECTION_VERSION == "raw-v0"
+    assert DEFAULT_CHUNK_POLICY.text_projection_version == TEXT_PROJECTION_VERSION
+    assert chunk_policy_json(DEFAULT_CHUNK_POLICY)["textProjectionVersion"] == TEXT_PROJECTION_VERSION
+
+    base = ChunkPolicy()
+    same = ChunkPolicy(text_projection_version=TEXT_PROJECTION_VERSION)
+    legacy = ChunkPolicy(text_projection_version=LEGACY_TEXT_PROJECTION_VERSION)
+    assert chunk_policy_fingerprint(base) == chunk_policy_fingerprint(same)
+    assert chunk_policy_fingerprint(legacy) != chunk_policy_fingerprint(base)
+    # 其他参数一致时，差异必须只来自清洗版本；raw-v0 不写该键（旧指纹可复现）
+    assert "textProjectionVersion" not in chunk_policy_json(legacy)
+    assert chunk_policy_json(legacy)["regionRulesVersion"] == REGION_RULES_VERSION
+    # 未知清洗版本不得构造（更不能默认套用新规则去建索引）
+    with pytest.raises(ValueError):
+        ChunkPolicy(text_projection_version="rag-readable-v99")
+    with pytest.raises(ValueError):
+        ChunkPolicy(text_projection_version="")
+
+
+def test_legacy_policy_json_without_projection_version_keeps_old_fingerprint() -> None:
+    """v1.1 口径（5 键：有 regionRulesVersion、无清洗版本）读出 raw-v0 并复现旧指纹。"""
+    v11_json = {
+        "targetChars": 800,
+        "maxChars": 1200,
+        "overlapChars": 120,
+        "version": "zqky-chunk-v1",
+        "regionRulesVersion": REGION_RULES_VERSION,
+    }
+    policy = chunk_policy_from_json(v11_json)
+    assert policy.text_projection_version == LEGACY_TEXT_PROJECTION_VERSION
+    assert policy.region_rules_version == REGION_RULES_VERSION
+    assert chunk_policy_json(policy) == v11_json  # 不写入新键 → 旧指纹仍可复现
+    assert chunk_policy_fingerprint(policy) != chunk_policy_fingerprint()
+
+
+def test_unknown_projection_version_in_json_is_reported_not_defaulted() -> None:
+    corrupt = dict(LEGACY_POLICY_JSON, textProjectionVersion="rag-readable-v99")
+    with pytest.raises(AppError) as exc_info:
+        chunk_policy_from_json(corrupt)
+    assert exc_info.value.code == "CHUNK_POLICY_CORRUPT"
+    # 非法类型同样报损坏，绝不静默套用默认（新）规则
+    with pytest.raises(AppError) as typed:
+        chunk_policy_from_json(dict(LEGACY_POLICY_JSON, textProjectionVersion=5))
+    assert typed.value.code == "CHUNK_POLICY_CORRUPT"
+
+
+def test_chunk_keeps_raw_slice_and_text_hash_while_index_text_is_cleaned(
+    tmp_path: Path,
+) -> None:
+    """两套事实：原文坐标/散列绑定封存原文；索引输入文本按清洗版本派生。"""
+    path = tmp_path / "image-inline.md"
+    path.write_text(IMAGE_INLINE_MARKDOWN, encoding="utf-8")
+    parsed = parse_document(path=path, file_name="image-inline.md", parser_version=PARSER_VERSION)
+    chunks = chunk_document(parsed, policy=DEFAULT_CHUNK_POLICY)
+    assert len(chunks) == 1
+    chunk = chunks[0]
+
+    raw_piece = parsed.normalized_text[chunk.char_start:chunk.char_end]
+    assert "images/9f2c1abd.jpg" in raw_piece  # 原文切片逐字节不变，图片地址仍在
+    assert chunk.text_sha256 == _sha256_text(raw_piece)  # 散列仍验证原文切片
+
+    projection = chunk_projection(chunk, parsed.normalized_text, DEFAULT_CHUNK_POLICY)
+    assert projection.version == TEXT_PROJECTION_VERSION
+    assert "images/" not in projection.text and "![" not in projection.text
+    assert "加速度与力关系图" in projection.text  # 有意义的说明文字保留
+    assert "继续正文说明" in projection.text and "图注" in projection.text
+    assert chunk_index_text(chunk, parsed.normalized_text) == projection.text
+    # 来源映射仍锚定全文坐标（B1 的原文重建依赖该语义），且删除段确实只覆盖图片节点
+    assert projection.source_segments[0].raw_start == chunk.char_start
+    assert projection.source_segments[-1].raw_end == chunk.char_end
+    removed_spans = [segment for segment in projection.source_segments if segment.kind == "removed"]
+    assert removed_spans
+    assert any(
+        "images/9f2c1abd.jpg" in parsed.normalized_text[segment.raw_start : segment.raw_end]
+        for segment in removed_spans
+    )
+
+
+def test_raw_v0_projection_is_identity_so_legacy_chunk_sets_are_unchanged(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "legacy.md"
+    path.write_text(IMAGE_INLINE_MARKDOWN, encoding="utf-8")
+    parsed = parse_document(path=path, file_name="legacy.md", parser_version=PARSER_VERSION)
+    legacy = ChunkPolicy(text_projection_version=LEGACY_TEXT_PROJECTION_VERSION)
+    chunks = chunk_document(parsed, policy=legacy)
+    assert chunks
+    for chunk in chunks:
+        raw_piece = parsed.normalized_text[chunk.char_start:chunk.char_end]
+        assert chunk_index_text(chunk, parsed.normalized_text, legacy) == raw_piece
+        assert chunk_projection(chunk, parsed.normalized_text, legacy).version == "raw-v0"
+
+
+def test_image_only_chunk_is_excluded_from_manifest_and_formula_chunk_is_kept(
+    tmp_path: Path,
+) -> None:
+    """清洗后完全为空的块在清单阶段排除；仅含有效公式的块必须保留。"""
+    path = tmp_path / "image-only.md"
+    path.write_text(IMAGE_ONLY_MARKDOWN, encoding="utf-8")
+    parsed = parse_document(path=path, file_name="image-only.md", parser_version=PARSER_VERSION)
+    chunks = chunk_document(parsed, policy=DEFAULT_CHUNK_POLICY)
+    pieces = [parsed.normalized_text[chunk.char_start:chunk.char_end] for chunk in chunks]
+
+    # 图片独占块：原文里确实存在（见下方 raw-v0 对照），但清洗后为空 → 不进清单
+    assert "images/only.jpg" in parsed.normalized_text
+    assert not any("images/only.jpg" in piece for piece in pieces)
+    assert len(chunks) == 4
+    # ordinal 按保留顺序连续；每个保留块的清洗文本非空（不会"有块无向量"）
+    assert [chunk.ordinal for chunk in chunks] == list(range(len(chunks)))
+    for chunk in chunks:
+        assert chunk_index_text(chunk, parsed.normalized_text).strip()
+        # 清单描述的是保留后的块：指纹与块序列一一对应
+        assert chunk.text_sha256 == _sha256_text(
+            parsed.normalized_text[chunk.char_start:chunk.char_end]
+        )
+    assert chunk_manifest_sha256(chunks) == chunk_manifest_sha256(
+        retained_for_manifest(chunks, parsed.normalized_text, DEFAULT_CHUNK_POLICY)
+    )
+    # 旧策略（raw-v0）保留图片独占块：证明排除是清洗驱动的，不是分块几何变了
+    legacy = ChunkPolicy(text_projection_version=LEGACY_TEXT_PROJECTION_VERSION)
+    legacy_chunks = chunk_document(parsed, policy=legacy)
+    assert len(legacy_chunks) == len(chunks) + 1
+    assert any(
+        "images/only.jpg" in parsed.normalized_text[chunk.char_start:chunk.char_end]
+        for chunk in legacy_chunks
+    )
+
+
+def test_formula_only_chunk_survives_cleaning(tmp_path: Path) -> None:
+    """仅含一条公式的块是有效内容：清洗保留公式，绝不能被当成空块删除。"""
+    path = tmp_path / "formula-only.md"
+    path.write_text(
+        "# 第一章\n\n$$\nE = mc^2\n$$\n\n![](images/only.jpg)\n", encoding="utf-8"
+    )
+    parsed = parse_document(path=path, file_name="formula-only.md", parser_version=PARSER_VERSION)
+    policy = ChunkPolicy(target_chars=12, max_chars=24, overlap_chars=0)
+    chunks = chunk_document(parsed, policy=policy)
+    pieces = [parsed.normalized_text[chunk.char_start:chunk.char_end] for chunk in chunks]
+    assert chunks
+    formula_piece = next(piece for piece in pieces if "$$" in piece)
+    formula_chunk = next(
+        chunk
+        for chunk in chunks
+        if "$$" in parsed.normalized_text[chunk.char_start:chunk.char_end]
+    )
+    index_text = chunk_index_text(formula_chunk, parsed.normalized_text, policy)
+    assert index_text.strip() == formula_piece.strip()  # 公式逐字保留
+    assert "E = mc^2" in index_text
+    # 同一份文本里"整块只有一张图"的块仍被排除
+    assert not any("images/only.jpg" in piece for piece in pieces)

@@ -241,13 +241,15 @@ class EmptyRetrieval:
 
 
 class FakeSummarizer:
-    """本地概括替身：默认给一条引用首条证据的知识点；可指定不可用/非法输出。"""
+    """本地概括替身：默认给一条引用首条证据的知识点；可指定不可用/非法输出/准入集合。"""
 
     def __init__(
         self,
         *,
         points: list[RagPoint] | None = None,
         reason: str | None = None,
+        reason_code: str | None = None,
+        admitted_evidence_ids: frozenset[str] | None = None,
         unavailable: bool = False,
         error: AppError | None = None,
         model: str = "qwen2.5:7b",
@@ -255,6 +257,8 @@ class FakeSummarizer:
     ) -> None:
         self.points = points
         self.reason = reason
+        self.reason_code = reason_code
+        self.admitted_evidence_ids = admitted_evidence_ids
         self.unavailable = unavailable
         self.error = error
         self.model = model
@@ -282,7 +286,12 @@ class FakeSummarizer:
                 retryable=True,
             )
         if self.points is not None:
-            return SummaryOutcome(points=list(self.points), reason=self.reason)
+            return SummaryOutcome(
+                points=list(self.points),
+                reason=self.reason,
+                reason_code=self.reason_code,
+                admitted_evidence_ids=self.admitted_evidence_ids,
+            )
         ids = [item.evidenceId for item in evidence]
         return SummaryOutcome(
             points=[
@@ -294,6 +303,8 @@ class FakeSummarizer:
                 )
             ],
             reason=self.reason,
+            reason_code=self.reason_code,
+            admitted_evidence_ids=self.admitted_evidence_ids,
         )
 
 

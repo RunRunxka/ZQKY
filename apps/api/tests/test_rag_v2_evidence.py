@@ -1,17 +1,37 @@
-"""原文证据重建：不可变切片、邻块扩展边界、预算取舍与来源定位一致性。"""
+"""原文证据重建：不可变切片、有界邻块窗口、预算取舍与来源定位一致性。
+
+RAG-QUALITY v1.1（PLAN §3.3）后本文件断言的口径：
+
+- 邻块扩展**左右各最多 1 块**（旧实现沿同章无上限扩张，823 码点命中扩成整章 45,577 码点）；
+- 单条原文切片 ≤ ``EVIDENCE_SINGLE_RAW_MAX_CHARS``、清洗后文本 ≤
+  ``EVIDENCE_SINGLE_CLEANED_MAX_CHARS``；首答 ≤6 条、原文总量 ≤ ``EVIDENCE_TOTAL_RAW_MAX_CHARS``；
+- 每条证据带 ``readable``（清洗投影），``text`` 仍是逐字节一致的封存原文切片。
+"""
 
 from __future__ import annotations
 
 import pytest
 
+from app.services.text_projection import TEXT_PROJECTION_VERSION
 from app.core.exceptions import AppError
+from app.core.rag_budget import (
+    EVIDENCE_SINGLE_CLEANED_MAX_CHARS,
+    EVIDENCE_SINGLE_RAW_MAX_CHARS,
+    EVIDENCE_TOTAL_RAW_MAX_CHARS,
+    FIRST_ANSWER_EVIDENCE_MAX_ITEMS,
+)
 from app.providers.embeddings.fingerprint import canonical_json
 from app.services.document_parsing import parsed_from_source_map, split_regions
-from app.services.rag_v2.evidence import build_evidence, evidence_id, sha256_utf8
+from app.services.rag_v2.evidence import (
+    build_evidence,
+    evidence_id,
+    select_evidence,
+    sha256_utf8,
+)
 from app.services.rag_v2.retrieval import Candidate
 from app.services.rag_v2.scope import verify_scope
 from app.services.textbook_ingest.source_access import read_source_span
-from tests.test_rag_v2_support import RagEnv, multi_chapter_text
+from tests.test_rag_v2_support import RagEnv, multi_chapter_text, textbook_text
 
 #: 含公式、emoji 的正文：验证逐字节一致与码点坐标
 BODY_LINE = "集合的 $$A\\cup B$$ 运算与 emoji 🙂 说明，注意区间端点。"
@@ -56,7 +76,9 @@ def test_evidence_text_is_byte_identical_to_immutable_normalized_text(tmp_path):
     ]
 
     evidence = build_evidence(catalog=env.catalog, scope=scope, candidates=candidates)
-    assert len(evidence) == 1, "同一章节的连续正文块应合并成一个完整 span"
+    assert evidence, "同一章节的连续正文块至少要产出一条证据，绝不能因超预算整段丢弃"
+    assert len(evidence) <= FIRST_ANSWER_EVIDENCE_MAX_ITEMS
+    assert sum(len(item.text) for item in evidence) <= EVIDENCE_TOTAL_RAW_MAX_CHARS
     normalized = document.normalized_text
     assert "\r" not in normalized, "规范化文本必须统一 LF"
     revision = env.catalog.get_revision(document.revision_id)
@@ -72,41 +94,62 @@ def test_evidence_text_is_byte_identical_to_immutable_normalized_text(tmp_path):
     exercise_start = next(span.char_start for span in regions if span.region == "exercise")
     body_span = next(span for span in regions if span.region == "body")
 
-    # 合并从正文区起点开始，并覆盖到正文区末尾附近；边界允许极小的换行/尾块缝
-    # （分块器在正文/习题边界处的切点由 B1 决定，这里只断言"覆盖正文、不含习题"）
-    covered = min(chunk.char_start for chunk in body_chunks)
-    item = evidence[0]
-    assert (item.charStart, item.charStart) == (covered, body_span.char_start)
-    assert item.charStart < item.charEnd, "半开区间 [start, end)"
-    assert item.charEnd <= exercise_start
-    assert item.charEnd >= exercise_start - 8, "正文区应被覆盖到边界附近"
-    assert item.text == normalized[item.charStart : item.charEnd]
-    assert item.evidenceId == evidence_id(document.revision_id, item.charStart, item.charEnd)
-    assert item.normalizedTextSha256 == revision.normalized_text_sha256
-    assert item.documentId == document.document_id
-    assert item.isSuperseded is False
-    assert item.chapterPath == ["第一章 集合"]
-    assert "$$A\\cup B$$" in item.text and "🙂" in item.text
-    assert item.originalFileSha256 == revision.original_file_sha256
-    assert item.locator.kind == "markdown"
-    assert item.locator.lineStart is not None and item.locator.lineStart >= 1
+    for item in evidence:
+        assert item.text == normalized[item.charStart : item.charEnd]
+        assert len(item.text) <= EVIDENCE_SINGLE_RAW_MAX_CHARS
+        assert item.evidenceId == evidence_id(document.revision_id, item.charStart, item.charEnd)
+        assert item.normalizedTextSha256 == revision.normalized_text_sha256
+        assert item.documentId == document.document_id
+        assert item.isSuperseded is False
+        assert item.chapterPath == ["第一章 集合"]
+        assert item.originalFileSha256 == revision.original_file_sha256
+        assert item.locator.kind == "markdown"
+        assert item.locator.lineStart is not None and item.locator.lineStart >= 1
+        # 清洗只产生派生展示文本：readable 必须存在，且不得改变封存原文切片
+        assert item.readable is not None and item.readable.version == TEXT_PROJECTION_VERSION
+        assert item.readable.text.strip(), "有文本命中时清洗后不得为空"
+        assert len(item.readable.text) <= EVIDENCE_SINGLE_CLEANED_MAX_CHARS
+        # 证据必须整段落在正文区：习题区文本永不作为知识点依据
+        assert item.charStart >= body_span.char_start and item.charEnd <= body_span.char_end
+        assert item.charEnd <= exercise_start
+        assert "练习" not in item.text
 
-    # 定位与 source_access 的受控读取逐字段一致（同一套来源映射语义）
-    expected = read_source_span(
-        catalog=env.catalog,
-        blobs=env.blobs,
-        revision_id=document.revision_id,
-        char_start=item.charStart,
-        char_end=item.charEnd,
+        # 定位与 source_access 的受控读取逐字段一致（同一套来源映射语义）
+        expected = read_source_span(
+            catalog=env.catalog,
+            blobs=env.blobs,
+            revision_id=document.revision_id,
+            char_start=item.charStart,
+            char_end=item.charEnd,
+        )
+        assert item.locator == expected.locator
+        assert item.text == expected.text
+
+    assert any("$$A\\cup B$$" in item.text and "🙂" in item.text for item in evidence), (
+        "公式与 emoji 必须逐字保留在证据里"
     )
-    assert item.locator == expected.locator
-    assert item.text == expected.text
 
-    # 证据必须整段落在正文区：习题区文本永不作为知识点依据
-    assert item.charEnd <= exercise_start
-    assert body_span.char_start <= item.charStart and body_span.char_end >= item.charEnd
-    assert item.charEnd >= body_span.char_end - 2, "正文区应被完整覆盖（只允许边界换行缝）"
-    assert "练习" not in item.text
+    # 排名第一的命中块必须被第一条证据覆盖；有序块之间不得重复/重叠地拼出两遍内容
+    first_seed = body_chunks[0]
+    assert evidence[0].charStart <= first_seed.char_start
+    assert evidence[0].charEnd >= first_seed.char_end
+    merged = merge_intervals([(item.charStart, item.charEnd) for item in evidence])
+    assert len(merged) == 1, "同一章节的连续正文块应被合并成一条连续覆盖，不得重复同一段内容"
+    assert merged[0][0] <= body_span.char_start
+    assert merged[0][1] >= body_span.char_end - 2, "正文区应被完整覆盖（只允许边界换行缝）"
+    for item in evidence:
+        assert item.charEnd <= exercise_start
+
+
+def merge_intervals(intervals: list[tuple[int, int]], *, gap: int = 2) -> list[tuple[int, int]]:
+    """把证据区间并成连续覆盖段（允许 ≤2 码点的换行缝）。"""
+    merged: list[list[int]] = []
+    for start, end in sorted(intervals):
+        if merged and start <= merged[-1][1] + gap:
+            merged[-1][1] = max(merged[-1][1], end)
+        else:
+            merged.append([start, end])
+    return [(start, end) for start, end in merged]
 
 
 def test_neighbor_expansion_never_crosses_document_section_or_exercise_gap(tmp_path):
@@ -161,6 +204,72 @@ def test_neighbor_expansion_never_crosses_document_section_or_exercise_gap(tmp_p
         assert "练习" not in item.text
     for item in evidence:
         assert item.charEnd - item.charStart == len(item.text)
+
+
+def test_over_long_protected_unit_reports_partial_with_locator_not_no_evidence(tmp_path):
+    """单个受保护单元超预算：整条不采用、给出可解释状态与 locator，绝不报"没有找到依据"。"""
+    env = RagEnv(tmp_path)
+    formula = "$$\n" + "x_{1}+y_{2}=z_{3};" * 400 + "\n$$"  # ≈7,600 码点的单个显示公式
+    assert len(formula) > EVIDENCE_SINGLE_RAW_MAX_CHARS
+    document = env.add_document(
+        title="公式超长册",
+        text=f"# 第一章 向量\n\n向量公式：\n\n{formula}\n\n## 练习 1.1\n\n1. 求并集。\n",
+    )
+    scope = verify_scope(env.catalog, env.snapshot(document))
+    body = document.body_chunks()
+    hit = max(body, key=lambda chunk: chunk.char_end - chunk.char_start)
+    assert hit.char_end - hit.char_start > EVIDENCE_SINGLE_RAW_MAX_CHARS, (
+        "本用例依赖不可拆单元超过单条原文上限"
+    )
+
+    selection = select_evidence(
+        catalog=env.catalog,
+        scope=scope,
+        candidates=[
+            candidate_for(hit, chunk_set_id=document.chunk_set_id, revision_id=document.revision_id)
+        ],
+    )
+    assert selection.status == "partial"
+    assert selection.reason_code == "EVIDENCE_UNIT_TOO_LARGE"
+    assert selection.evidence == ()
+    assert selection.saw_text_hit is True
+    assert selection.oversized_locators, "必须附可展示定位"
+    locator = selection.oversized_locators[0]
+    assert locator.kind == "markdown" and locator.lineStart is not None
+    assert "超长公式" in selection.reason and "没有找到" not in selection.reason
+    # 兼容入口同样不得把"有命中但装不下"伪装成空结果无解释
+    assert build_evidence(catalog=env.catalog, scope=scope, candidates=[]) == []
+
+
+def test_neighbour_window_covers_at_most_one_block_each_side(tmp_path):
+    """邻块扩展左右各最多 1 块：放宽单条预算后仍不得越过相邻的第二块。"""
+    env = RagEnv(tmp_path)
+    document = env.add_document(title="长章节册", text=textbook_text("集合", paragraphs=120))
+    scope = verify_scope(env.catalog, env.snapshot(document))
+    body = document.body_chunks()
+    assert len(body) >= 6, "本用例需要同章多个可合并块"
+    index = len(body) // 2
+    selection = select_evidence(
+        catalog=env.catalog,
+        scope=scope,
+        candidates=[
+            candidate_for(
+                body[index], chunk_set_id=document.chunk_set_id, revision_id=document.revision_id
+            )
+        ],
+        # 放宽单条预算以单独验证"窗口几何"，默认预算下的有界性由 Q3 回归用例覆盖
+        max_single_raw_chars=40_000,
+        max_single_cleaned_chars=40_000,
+        max_total_raw_chars=40_000,
+    )
+    assert selection.status == "ok" and len(selection.evidence) == 1
+    item = selection.evidence[0]
+    assert item.charStart <= body[index - 1].char_start, "左侧应补齐相邻块"
+    assert item.charStart >= body[index - 2].char_start, "左侧最多补 1 块"
+    assert item.charEnd >= body[index + 1].char_end, "右侧应补齐相邻块"
+    assert item.charEnd <= body[index + 2].char_end, "右侧最多补 1 块"
+    assert item.charEnd - item.charStart <= 40_000
+    assert item.text == document.normalized_text[item.charStart : item.charEnd]
 
 
 def test_evidence_budget_keeps_whole_spans_and_never_truncates(tmp_path):

@@ -56,6 +56,15 @@ JOB_KINDS = frozenset({"organize"})
 JOB_STATES = frozenset({"queued", "running", "succeeded", "failed", "cancelled"})
 LOCATOR_KINDS = frozenset({"markdown", "pdf", "docx", "text"})
 
+#: 整理事务内核对目标草稿时产生的批级失败（建议不落库，原文与草稿不变）
+ORGANIZE_TARGET_MISSING = "ORGANIZE_TARGET_MISSING"
+ORGANIZE_DRAFT_CHANGED = "ORGANIZE_DRAFT_CHANGED"
+#: 事务内失败记录里的可读文案（视图层 ``_BATCH_FAILURE_MESSAGES`` 有同一份兜底）
+_CONFLICT_MESSAGES = {
+    ORGANIZE_TARGET_MISSING: "目标草稿已不存在，该批建议未落库，原文保留。",
+    ORGANIZE_DRAFT_CHANGED: "目标草稿在整理期间被编辑，该批建议已丢弃，请重新整理。",
+}
+
 #: 草稿 update 允许写入的列（其余字段一律拒绝，避免隐式写坏指纹与状态机）
 _DRAFT_UPDATE_COLUMNS = frozenset(
     {
@@ -524,33 +533,7 @@ class QuestionBankCatalog:
             prepared.append((uuid.uuid4().hex, row))
         with self._write() as conn:
             for suggestion_id, row in prepared:
-                draft = self._require_draft_row_in(conn, _text(row.target_draft_id, field="target_draft_id"))
-                base_revision = _count(
-                    row.base_draft_revision, field="base_draft_revision", minimum=0
-                )
-                state = _choice(row.state, field="state", allowed=SUGGESTION_STATES)
-                conn.execute(
-                    "INSERT INTO question_suggestions (id, organization_job_id, target_draft_id, "
-                    "base_draft_revision, proposed_content_json, proposed_metadata_json, "
-                    "source_block_ids_json, state, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (
-                        suggestion_id,
-                        _text(row.organization_job_id, field="organization_job_id"),
-                        draft["id"],
-                        base_revision,
-                        json_fields.write_object(
-                            row.proposed_content, field="proposed_content_json"
-                        ),
-                        json_fields.write_object(
-                            row.proposed_metadata, field="proposed_metadata_json"
-                        ),
-                        json_fields.write_string_list(
-                            list(row.source_block_ids), field="source_block_ids_json"
-                        ),
-                        state,
-                        _optional_text(row.note, field="note"),
-                    ),
-                )
+                self._insert_suggestion_in(conn, suggestion_id, row)
             ids = [suggestion_id for suggestion_id, _row in prepared]
             placeholders = ", ".join("?" for _ in ids)
             rows_out = conn.execute(
@@ -1050,7 +1033,198 @@ class QuestionBankCatalog:
             ).fetchall()
         return [self._job_record(row) for row in rows]
 
+    # -------------------------------------- 整理任务：单事务批次提交与任务收尾
+
+    def record_organize_batch(
+        self,
+        job_id: str,
+        *,
+        batch_index: int,
+        next_batch_index: int,
+        draft_id: str,
+        base_draft_revision: int,
+        proposed_content: dict[str, Any] | None = None,
+        source_block_ids: Sequence[str] = (),
+        failure: dict[str, Any] | None = None,
+    ) -> tuple[JobRecord, SuggestionRecord | None, dict[str, Any] | None]:
+        """**单个短事务**提交一批的结果：先核对任务未取消、目标草稿修订未变，再写建议与进度。
+
+        - 任务已取消 → 一个字节都不写，返回 ``(job, None, None)``；
+        - 建议与 ``checkpoint``（``nextBatchIndex`` / ``suggestionIds`` / ``failedBatches``）
+          同事务提交：崩溃只会重放该批，不会漏批或重复落建议；
+        - 草稿不存在 / 修订已变 → 该批建议丢弃，返回生效的失败记录（不写建议）；
+        - 建议的 ``proposed_metadata`` 取事务内读到的当前草稿分类，避免跨事务读到旧值。
+        """
+        job_id = _text(job_id, field="job_id")
+        batch_index = _count(batch_index, field="batch_index", minimum=0)
+        next_batch_index = _count(next_batch_index, field="next_batch_index", minimum=0)
+        draft_id = _text(draft_id, field="draft_id")
+        base_revision = _count(base_draft_revision, field="base_draft_revision", minimum=0)
+        if proposed_content is not None and not isinstance(proposed_content, dict):
+            raise _invalid("proposed_content 必须是 JSON 对象。")
+        with self._write() as conn:
+            job = self._job_record(self._require_job_row_in(conn, job_id))
+            if job.state == "cancelled":
+                return job, None, None
+            checkpoint = dict(job.checkpoint)
+            raw_ids = checkpoint.get("suggestionIds")
+            suggestion_ids = list(raw_ids) if isinstance(raw_ids, list) else []
+            raw_failures = checkpoint.get("failedBatches")
+            failures = [dict(item) for item in raw_failures] if isinstance(raw_failures, list) else []
+            effective: dict[str, Any] | None = dict(failure) if failure else None
+            created: SuggestionRecord | None = None
+            if effective is None:
+                draft_row = self._draft_row_in(conn, draft_id)
+                if draft_row is None:
+                    effective = self._conflict_failure(batch_index, ORGANIZE_TARGET_MISSING)
+                elif (
+                    _stored_count(draft_row["revision"], field="revision") != base_revision
+                ):
+                    effective = self._conflict_failure(batch_index, ORGANIZE_DRAFT_CHANGED)
+                elif proposed_content is not None:
+                    suggestion_id = uuid.uuid4().hex
+                    self._insert_suggestion_in(
+                        conn,
+                        suggestion_id,
+                        SuggestionInput(
+                            organization_job_id=job_id,
+                            target_draft_id=draft_id,
+                            base_draft_revision=base_revision,
+                            proposed_content=proposed_content,
+                            proposed_metadata=dict(
+                                self._draft_record(draft_row).metadata
+                            ),
+                            source_block_ids=tuple(str(item) for item in source_block_ids),
+                            state="pending",
+                        ),
+                    )
+                    created = self._suggestion_record(
+                        conn.execute(
+                            "SELECT * FROM question_suggestions WHERE id = ?",
+                            (suggestion_id,),
+                        ).fetchone()
+                    )
+                    suggestion_ids.append(suggestion_id)
+            if effective is not None:
+                failures.append(effective)
+            checkpoint["nextBatchIndex"] = next_batch_index
+            checkpoint["suggestionIds"] = suggestion_ids
+            checkpoint["failedBatches"] = failures
+            self._apply_updates(
+                conn,
+                "question_jobs",
+                job_id,
+                {"checkpoint_json": json_fields.write_object(checkpoint, field="checkpoint_json")},
+            )
+            return (
+                self._job_record(self._require_job_row_in(conn, job_id)),
+                created,
+                effective,
+            )
+
+    def fail_organize_job(
+        self,
+        job_id: str,
+        *,
+        error_code: str,
+        message: str,
+        checkpoint: dict[str, Any] | None = None,
+    ) -> JobRecord:
+        """任务级失败落库（模型服务问题，不是某批内容问题）；已取消的任务不被覆盖。
+
+        可读原因写进 ``checkpoint["jobError"]``（非敏感），``error_code`` 供接口返回。
+        """
+        return self._close_organize_job(
+            job_id,
+            state="failed",
+            error_code=error_code,
+            checkpoint=checkpoint,
+            job_error_message=message,
+        )
+
+    def finish_organize_job(
+        self,
+        job_id: str,
+        *,
+        state: str,
+        error_code: str | None = None,
+        checkpoint: dict[str, Any] | None = None,
+    ) -> JobRecord:
+        """任务收尾（succeeded / failed）；已取消的任务不被覆盖。"""
+        return self._close_organize_job(
+            job_id,
+            state=state,
+            error_code=error_code,
+            checkpoint=checkpoint,
+        )
+
+    def _close_organize_job(
+        self,
+        job_id: str,
+        *,
+        state: str,
+        error_code: str | None,
+        checkpoint: dict[str, Any] | None,
+        job_error_message: str | None = None,
+    ) -> JobRecord:
+        job_id = _text(job_id, field="job_id")
+        state = _choice(state, field="state", allowed=JOB_STATES)
+        with self._write() as conn:
+            job = self._job_record(self._require_job_row_in(conn, job_id))
+            if job.state == "cancelled":
+                return job
+            updates: dict[str, object] = {"state": state, "error_code": error_code}
+            payload = dict(checkpoint) if checkpoint is not None else dict(job.checkpoint)
+            if job_error_message is not None:
+                payload["jobError"] = {
+                    "code": error_code or "",
+                    "message": job_error_message,
+                }
+            updates["checkpoint_json"] = json_fields.write_object(
+                payload, field="checkpoint_json"
+            )
+            self._apply_updates(conn, "question_jobs", job_id, updates)
+            return self._job_record(self._require_job_row_in(conn, job_id))
+
+    @staticmethod
+    def _conflict_failure(batch_index: int, code: str) -> dict[str, Any]:
+        return {"index": batch_index, "code": code, "message": _CONFLICT_MESSAGES[code]}
+
     # -------------------------------------------------------------- 内部写入
+
+    def _insert_suggestion_in(
+        self, conn: sqlite3.Connection, suggestion_id: str, row: SuggestionInput
+    ) -> None:
+        """在调用方事务内插入一条 AI 建议（``create_suggestions`` 与批次提交共用）。"""
+        draft = self._require_draft_row_in(
+            conn, _text(row.target_draft_id, field="target_draft_id")
+        )
+        base_revision = _count(
+            row.base_draft_revision, field="base_draft_revision", minimum=0
+        )
+        state = _choice(row.state, field="state", allowed=SUGGESTION_STATES)
+        conn.execute(
+            "INSERT INTO question_suggestions (id, organization_job_id, target_draft_id, "
+            "base_draft_revision, proposed_content_json, proposed_metadata_json, "
+            "source_block_ids_json, state, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                suggestion_id,
+                _text(row.organization_job_id, field="organization_job_id"),
+                draft["id"],
+                base_revision,
+                json_fields.write_object(
+                    row.proposed_content, field="proposed_content_json"
+                ),
+                json_fields.write_object(
+                    row.proposed_metadata, field="proposed_metadata_json"
+                ),
+                json_fields.write_string_list(
+                    list(row.source_block_ids), field="source_block_ids_json"
+                ),
+                state,
+                _optional_text(row.note, field="note"),
+            ),
+        )
 
     def _draft_insert_values(self, import_id: str, draft: DraftInput) -> tuple:
         if not isinstance(draft, DraftInput):

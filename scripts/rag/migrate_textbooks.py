@@ -265,6 +265,19 @@ def migrate(args: argparse.Namespace) -> int:
             )
         return 0
 
+    # 写数据的 CLI 与 API 持同一把数据根排他锁：API 在跑时迁移会明确失败，
+    # 而不是两个写入者同时改同一个数据根（见 docs/PLAN.md §5.2）。
+    from app.core.data_lock import acquire_data_lock
+
+    data_lock = acquire_data_lock(settings.data_dir, exclusive=True, label="rag-migrate")
+    data_lock.__enter__()
+    try:
+        return _migrate_locked(args, settings, tasks=tasks, skipped=skipped)
+    finally:
+        data_lock.__exit__(None, None, None)
+
+
+def _migrate_locked(args, settings, *, tasks: list[BookTask], skipped: list[str]) -> int:
     catalog = TextbookCatalog(settings.textbooks_root / "catalog.sqlite3")
     catalog.migrate()
     provider = OllamaEmbeddingProvider(settings.embedding_base_url)
@@ -410,7 +423,7 @@ def migrate(args: argparse.Namespace) -> int:
     elapsed = round(time.monotonic() - started, 1)
     final = index.status()
     report = {
-        "sourceRoot": str(source_root),
+        "sourceRoot": str(settings.textbook_source_dir),
         "model": profile.modelName,
         "dimensions": profile.dimensions,
         "profileId": profile.profileId,
@@ -419,6 +432,8 @@ def migrate(args: argparse.Namespace) -> int:
         "elapsedSeconds": elapsed,
         "books": [result.__dict__ for result in results],
         "skippedDirectories": skipped,
+        "requestedSource": args.source or None,
+        "requestedSourceZip": args.source_zip or None,
     }
     report_path = Path(args.report) if args.report else (
         REPO_ROOT / "_work" / "rag-rebuild-v1" / "migration-report.json"

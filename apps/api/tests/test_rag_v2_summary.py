@@ -12,13 +12,14 @@ import pytest
 import httpx
 
 from app.core.exceptions import AppError
-from app.schemas.rag_v2 import RagPoint
 from app.services.rag_v2.evidence import build_evidence
 from app.services.rag_v2.retrieval import Candidate
 from app.services.rag_v2.scope import verify_scope
 from app.services.rag_v2.summary import (
     INSTRUCTION,
     KnowledgeSummarizer,
+    choose_complete_valid_points,
+    filter_points,
     validate_points,
 )
 from tests.test_rag_v2_support import RagEnv, sample_text
@@ -124,7 +125,8 @@ def test_summarizer_parses_structured_points_and_keeps_prompt_grounded(tmp_path)
     assert "不提供完整解题推导" in payload["messages"][0]["content"]
 
 
-def test_summarizer_drops_points_with_unknown_evidence_ids(tmp_path):
+def test_summarizer_rejects_points_with_not_admitted_evidence_ids(tmp_path):
+    """引用不在准入集合内的证据 → **整个点**拒绝；修正一次后仍非法 → 保留完整合法点。"""
     env = RagEnv(tmp_path)
     document = env.add_document(title="高中数学必修第一册", text=sample_text())
     evidence = evidence_of(env, document)
@@ -136,12 +138,39 @@ def test_summarizer_drops_points_with_unknown_evidence_ids(tmp_path):
             {"title": "合法", "summary": "有原文依据的要点。", "evidenceIds": [evidence[0].evidenceId]},
         ]
     }
-    summarizer, _client = make_summarizer(
+    summarizer, client = make_summarizer(
         StubResponse(payload={"message": {"content": json.dumps(proposal, ensure_ascii=False)}})
     )
     outcome = summarizer.summarize(question="并集是什么？", evidence=evidence)
     assert [point.title for point in outcome.points] == ["合法"]
     assert outcome.dropped == 3
+    assert outcome.reason_code == "SUMMARY_PARTIAL"
+    assert outcome.corrected == 1, "非法输出必须触发且只触发一次修正"
+    assert len(client.requests) == 2, "模型总调用次数 = 首次 + 一次修正"
+    assert "引用了未进入提示词的证据" in outcome.reason
+    assert outcome.admitted_evidence_ids == frozenset({evidence[0].evidenceId})
+
+
+def test_summarizer_never_reuses_a_point_whose_reference_was_rejected(tmp_path):
+    """整点拒绝：不得只删非法 ID 后继续使用可能依赖它的标题/说明。"""
+    env = RagEnv(tmp_path)
+    document = env.add_document(title="高中数学必修第一册", text=sample_text())
+    evidence = evidence_of(env, document)
+    known = evidence[0].evidenceId
+    proposal = {
+        "points": [
+            # 同一段说明既引用合法证据又引用未入模证据：必须整点丢弃，不能"删掉非法 ID 后留下"
+            {"title": "混合引用", "summary": "依赖被排除证据的说明。", "evidenceIds": [known, "ev-nope"]},
+            {"title": "纯合法", "summary": "只引用已核验证据。", "evidenceIds": [known]},
+        ]
+    }
+    summarizer, _client = make_summarizer(
+        StubResponse(payload={"message": {"content": json.dumps(proposal, ensure_ascii=False)}})
+    )
+    outcome = summarizer.summarize(question="并集是什么？", evidence=evidence)
+    assert [point.title for point in outcome.points] == ["纯合法"]
+    assert all("混合引用" not in point.title for point in outcome.points)
+    assert outcome.reason_code == "SUMMARY_PARTIAL" and outcome.dropped == 1
 
 
 def test_summarizer_failure_classes_are_explicit(tmp_path):
@@ -199,29 +228,82 @@ def test_summarizer_only_accepts_loopback_and_reports_status(tmp_path):
     assert outcome.points == [] and client.requests == []
 
 
-def test_validate_points_filters_and_reports_drops(tmp_path):
-    env = RagEnv(tmp_path)
-    document = env.add_document(title="高中数学必修第一册", text=sample_text())
-    evidence = evidence_of(env, document)
-    known = evidence[0].evidenceId
-
-    points, dropped = validate_points(
+def test_validate_points_enforces_admitted_refs_and_length_budget():
+    """校验只认准入集合：非子集 → 整点拒绝；并强制 3 点 / 90 / 250 / 2 引用上限。"""
+    allowed = frozenset({"ev-a", "ev-b"})
+    checked = validate_points(
         {
             "points": [
-                {"title": "要点", "summary": "摘要", "evidenceIds": [known, known, "ev-unknown"]},
-                {"title": "超长摘要", "summary": "长" * 5000, "evidenceIds": [known]},
-                {"title": "缺引用", "summary": "摘要", "evidenceIds": []},
+                {"title": "合法", "summary": "两条引用。", "evidenceIds": ["ev-a", "ev-b"]},
+                {"title": "非准入", "summary": "引用了证据列表内但未入模的 id。", "evidenceIds": ["ev-c"]},
+                {"title": "混合", "summary": "部分非法。", "evidenceIds": ["ev-a", "ev-c"]},
+                {"title": "缺引用", "summary": "没有引用。", "evidenceIds": []},
                 "不是对象",
             ]
         },
-        evidence,
+        allowed_ids=allowed,
     )
-    assert dropped == 3
-    assert len(points) == 1
-    assert points[0].evidenceIds == [known], "重复与不存在的引用都必须被去掉"
-    assert isinstance(points[0], RagPoint) and points[0].pointId.startswith("pt-")
+    assert [point.title for point in checked.points] == ["合法"]
+    assert checked.dropped == 4
+    assert set(checked.violation_codes) >= {
+        "REF_NOT_ADMITTED",
+        "REF_EMPTY",
+        "POINT_EMPTY",
+    }
+    assert checked.valid is False
 
-    # 非对象 / 缺 points 数组：返回空列表，不抛错、不编造
-    assert validate_points("not a dict", evidence) == ([], 0)
-    assert validate_points({"points": "nope"}, evidence) == ([], 0)
+    # 单点超 90 码点 / 单点超 2 引用 / 重复点：逐点拒绝且原因码可区分
+    long_point = validate_points(
+        {"points": [{"title": "超长", "summary": "长" * 90, "evidenceIds": ["ev-a"]}]},
+        allowed_ids=allowed,
+    )
+    assert long_point.points == () and "POINT_TOO_LONG" in long_point.violation_codes
+    too_many_refs = validate_points(
+        {"points": [{"title": "引用超限", "summary": "说明", "evidenceIds": ["ev-a", "ev-b", "ev-a"]}]},
+        allowed_ids=allowed,
+        max_refs_per_point=1,
+    )
+    assert too_many_refs.points == () and "REF_LIMIT" in too_many_refs.violation_codes
+    duplicated = validate_points(
+        {
+            "points": [
+                {"title": "同一点", "summary": "同一说明。", "evidenceIds": ["ev-a"]},
+                {"title": "同一点", "summary": "同一说明。", "evidenceIds": ["ev-a"]},
+            ]
+        },
+        allowed_ids=allowed,
+    )
+    assert len(duplicated.points) == 1 and "DUPLICATE_POINT" in duplicated.violation_codes
+
+    # 数量与总量超限属于"点本身完整但超预算"：点数保留，违规码记录
+    over_count = validate_points(
+        {
+            "points": [
+                {"title": f"点{index}", "summary": "说明", "evidenceIds": ["ev-a"]}
+                for index in range(5)
+            ]
+        },
+        allowed_ids=allowed,
+    )
+    assert len(over_count.points) == 5 and "POINT_LIMIT" in over_count.violation_codes
+    assert choose_complete_valid_points(over_count.points) == list(over_count.points[:3])
+
+    # 非对象 / 缺 points 数组：结构违规，不抛错
+    assert validate_points("not a dict", allowed_ids=allowed).violation_codes == ("STRUCTURE",)
+    assert validate_points({"points": "nope"}, allowed_ids=allowed).violation_codes == ("STRUCTURE",)
+    assert validate_points({"points": []}, allowed_ids=allowed).violation_codes == ("STRUCTURE",)
+
+
+def test_filter_points_second_check_uses_admitted_set():
+    """服务端二次校验口径：给了准入集合就只认它（替身也不能把非法引用带进结果）。"""
+    from app.schemas.rag_v2 import RagPoint
+
+    point = RagPoint(
+        pointId="pt-x", title="点", summary="说明", evidenceIds=["ev-not-admitted"]
+    )
+    kept, dropped = filter_points([point], [], allowed_ids=frozenset({"ev-admitted"}))
+    assert kept == [] and dropped == 1
+    # 未提供准入集合（替身）时退回"全部已核验证据"：仍然拒绝凭空引用
+    kept, dropped = filter_points([point], [])
+    assert kept == [] and dropped == 1
 

@@ -12,6 +12,8 @@ from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
+from app.core.exceptions import AppError
+
 BUSY_TIMEOUT_MS = 5000
 
 
@@ -54,3 +56,41 @@ def read_transaction(connection: sqlite3.Connection) -> Iterator[sqlite3.Connect
         yield connection
     finally:
         connection.execute("COMMIT")
+
+
+def open_readonly(path: Path | str, *, required_tables: tuple[str, ...] = ()) -> sqlite3.Connection:
+    """以**只读**方式打开既有数据库：不建库、不建表、不写 WAL。
+
+    验收脚本与只读工具用这个入口，避免"路径写错时静默建出空库"把失败伪装成空数据
+    （见 docs/PLAN.md §6.2）。库文件不存在或缺少必需表时抛 ``AppError``。
+    """
+    target = Path(path)
+    if not target.is_file():
+        raise AppError(
+            f"数据库不存在，拒绝创建空库：{target.name}",
+            code="DATABASE_MISSING",
+            status_code=500,
+        )
+    connection = sqlite3.connect(f"file:{target.as_posix()}?mode=ro", uri=True)
+    connection.row_factory = sqlite3.Row
+    try:
+        present = {
+            row[0]
+            for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        }
+    except sqlite3.DatabaseError as exc:
+        connection.close()
+        raise AppError(
+            f"数据库无法读取：{target.name}",
+            code="DATABASE_UNREADABLE",
+            status_code=500,
+        ) from exc
+    missing = [name for name in required_tables if name not in present]
+    if missing:
+        connection.close()
+        raise AppError(
+            f"数据库结构不完整（缺少 {', '.join(missing)}）；请勿把未迁移的库当既有库使用。",
+            code="DATABASE_SCHEMA_INCOMPLETE",
+            status_code=500,
+        )
+    return connection

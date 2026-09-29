@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { ChatMessage } from '@/contracts/chat';
 import { Message } from './Message';
 import type { RagResultV2, ScopeSnapshot, TextbookEvidence } from './model/rag-v2';
@@ -39,6 +39,7 @@ function evidence(over: Partial<TextbookEvidence> = {}): TextbookEvidence {
       blockEnd: null,
     },
     isSuperseded: false,
+    readable: { version: 'rag-readable-v1', text: '集合的表示方法：列举法与描述法。', removedImageCount: 0 },
     ...over,
   };
 }
@@ -49,9 +50,10 @@ function result(over: Partial<RagResultV2> = {}): RagResultV2 {
     resultId: 'res-1',
     status: 'ok',
     scopeSnapshot: scope,
-    points: [{ pointId: 'p1', title: '集合表示', summary: '两种表示法。', evidenceIds: ['ev-1'] }],
+    points: [{ pointId: 'p1', title: '集合表示', summary: '两种表示法。[1]', evidenceIds: ['ev-1'] }],
     evidence: [evidence()],
     reason: null,
+    presentation: { version: 'compact-v1', answerStyle: 'brief', bodyCharCount: 12 },
     ...over,
   };
 }
@@ -60,7 +62,7 @@ function message(over: Partial<ChatMessage> = {}): ChatMessage {
   return {
     id: 'a1',
     role: 'assistant',
-    content: '教材知识点与原文摘录。',
+    content: '### 教材知识点\n\n1. **集合表示**\n   两种表示法。[1]\n',
     status: 'done',
     modelLabel: '本地教材引擎',
     ...over,
@@ -70,9 +72,9 @@ function message(over: Partial<ChatMessage> = {}): ChatMessage {
 const scopeLabelFor = () => '高一 · 数学 · 人教A版 · 2 册';
 const noop = () => undefined;
 
-describe('教材证据与范围展示', () => {
-  it('按 evidence[] 渲染标题、版本、学科、章节、可读定位与原文，并显示本轮范围', () => {
-    render(
+describe('教材证据与范围展示（RAG-QUALITY v1.1 紧凑来源面板）', () => {
+  it('面板只负责来源：折叠显示条数，展开后按 [n] 渲染标题、版本、学科、章节与可读定位', () => {
+    const { container } = render(
       <Message
         message={message({ ragResult: result(), ragEvidence: [evidence()], ragScope: scope })}
         copied={false}
@@ -81,29 +83,35 @@ describe('教材证据与范围展示', () => {
         scopeLabelFor={scopeLabelFor}
       />,
     );
-    expect(screen.getByText('教材依据')).toBeInTheDocument();
+    // 范围随知识点回答头显示一次（面板不重复）
     expect(screen.getByText(/本轮范围：高一 · 数学 · 人教A版 · 2 册/)).toBeInTheDocument();
+    // 知识点由 RagAnswer 渲染一次；面板不再渲染知识点
+    expect(container.querySelectorAll('.chat-rag-point-title')).toHaveLength(1);
+    expect(container.querySelector('.chat-rag-evidence .chat-rag-answer-points')).toBeNull();
+    // 来源默认折叠，只有条数入口；展开后显示来源条目
+    const toggle = screen.getByRole('button', { name: /查看教材依据（1 条）/ });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByText('高中数学 必修一')).toBeNull();
+    fireEvent.click(toggle);
+    expect(container.querySelector('.chat-rag-evidence .chat-rag-index')?.textContent).toBe('[1]');
     expect(screen.getByText('高中数学 必修一')).toBeInTheDocument();
     expect(screen.getByText(/人教A版 · 数学 · 第一章 → 1\.1 集合 · 第 10–12 行/)).toBeInTheDocument();
-    expect(screen.getByText('[ev-1]')).toBeInTheDocument();
-    expect(screen.getByText('集合的表示方法：列举法与描述法。')).toBeInTheDocument();
-    expect(screen.getByText('集合表示')).toBeInTheDocument();
+    // 长 evidenceId 不作为主要阅读内容
+    expect(container.textContent).not.toContain('[ev-1]');
   });
 
   it('isSuperseded 明确标注历史修订，不隐藏也不冒充有效', () => {
+    const superseded = evidence({ isSuperseded: true });
     render(
       <Message
-        message={message({
-          ragResult: result({ evidence: [evidence({ isSuperseded: true })] }),
-          ragEvidence: [evidence({ isSuperseded: true })],
-        })}
+        message={message({ ragResult: result({ evidence: [superseded] }), ragEvidence: [superseded] })}
         copied={false}
         onCopy={noop}
         onReuse={noop}
       />,
     );
-    expect(screen.getByText(/教材已更新，此引用为历史修订/)).toBeInTheDocument();
-    expect(screen.getByText('集合的表示方法：列举法与描述法。')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /查看教材依据（1 条）/ }));
+    expect(screen.getAllByText(/教材已更新，此引用为历史修订/)).toHaveLength(1);
   });
 
   it('后端未给证据就不显示证据区（旧消息与空结果都不猜造引用）', () => {
@@ -127,6 +135,7 @@ describe('教材证据与范围展示', () => {
       />,
     );
     expect(ui2.container.querySelector('.chat-rag-evidence')).not.toBeNull();
+    fireEvent.click(ui2.container.querySelector('.chat-rag-toggle')!);
     expect(ui2.container.querySelectorAll('.chat-rag-list li')).toHaveLength(0);
     cleanup();
     // 旧 v1 形状（citations/explanations）只读可渲染，不伪造证据区
@@ -157,17 +166,22 @@ describe('教材证据与范围展示', () => {
       <Message
         message={message({
           content: '当前教材范围没有找到足够依据。',
-          ragResult: result({ status: 'no_evidence', points: [], evidence: [], reason: '没有匹配的教材片段。' }),
+          ragResult: result({
+            status: 'no_evidence',
+            reasonCode: 'NO_MATCH',
+            points: [],
+            evidence: [],
+            reason: '没有匹配的教材片段。',
+          }),
         })}
         copied={false}
         onCopy={noop}
         onReuse={noop}
       />,
     );
-    expect(screen.getByText('没有匹配的教材片段。')).toBeInTheDocument();
-    expect(
-      screen.getByText(/当前范围内没有找到足够依据，回答未包含教材外推内容/),
-    ).toBeInTheDocument();
+    // 原因只展示一次（回答头），面板不再重复
+    expect(screen.getAllByText('没有匹配的教材片段。')).toHaveLength(1);
+    expect(screen.getByText(/当前范围内没有找到足够依据，回答未包含教材外推内容/)).toBeInTheDocument();
     expect(ui.container.querySelector('.chat-ask-card.guidance')).toBeNull();
   });
 

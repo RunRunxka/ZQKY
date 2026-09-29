@@ -3,11 +3,13 @@
 背景（首败）：真实规模证据下提示词被上游按默认窗口截断，模型看不到"必须返回 points 数组并
 引用 evidenceId"的指令 → 0 条知识点、首答永远 partial。这里用替身锁定修复后的行为：
 
-- 提示词预算由显式 ``num_ctx``/``num_predict`` 推导（保守字符估算 + 安全余量）；
-- 证据按顺序整条装入，装不下的整条丢弃（绝不截断单条原文）；
+- 提示词预算由显式 ``num_ctx``/``num_predict``（默认 8192 / 1024）推导（保守字符估算 +
+  安全余量），并与首答入模上限 ``EVIDENCE_PROMPT_MAX_CHARS`` 取较小者；
+- ``PromptPack`` 返回**真实准入集合**（``admitted_evidence_ids`` / ``admitted_evidence`` /
+  ``skipped_evidence_ids``）；证据按顺序整条装入，装不下的整条丢弃（绝不截断单条原文）；
 - 连一条都装不下时不发请求，直接 partial 并说明原因；
 - 回应结构分级（结构不符 / points 为空 / 引用校验不过）措辞可区分；
-- 上游截断自检（prompt_eval_count 顶到窗口）时拒绝该输出；
+- 上游截断自检（prompt_eval_count 顶到窗口，**诊断信号**）时拒绝该输出；
 - reason 不回显题目全文或原文内容。
 """
 
@@ -18,6 +20,7 @@ import json
 import httpx
 import pytest
 
+from app.core.rag_budget import EVIDENCE_PROMPT_MAX_CHARS
 from app.services.rag_v2.summary import (
     CHARS_PER_TOKEN,
     DEFAULT_NUM_CTX,
@@ -36,17 +39,23 @@ from tests.test_rag_v2_support import RagEnv, sample_text
 
 
 def many_evidence(evidence, count: int = 24):
-    """把真实证据复制成 count 条（不同 evidenceId），用于打包/预算用例。"""
+    """把真实证据复制成 count 条（不同 evidenceId）；``text`` 与 ``readable`` 保持同一内容。
+
+    这些复制件没有图片，清洗文本 == 原文切片，便于断言"入模的是完整证据"。
+    """
     base = evidence[0]
-    return [
-        base.model_copy(
-            update={
-                "evidenceId": f"ev-{index:016d}",
-                "text": base.text + f"（第{index}段补充原文。）",
-            }
+    items = []
+    for index in range(count):
+        text = base.text + f"（第{index}段补充原文。）"
+        readable = (
+            base.readable.model_copy(update={"text": text}) if base.readable is not None else None
         )
-        for index in range(count)
-    ]
+        items.append(
+            base.model_copy(
+                update={"evidenceId": f"ev-{index:016d}", "text": text, "readable": readable}
+            )
+        )
+    return items
 
 
 def test_prompt_budget_is_derived_from_explicit_context_window():
@@ -54,13 +63,19 @@ def test_prompt_budget_is_derived_from_explicit_context_window():
     assert tokens == DEFAULT_NUM_CTX - DEFAULT_NUM_PREDICT - RESERVED_TOKENS
     assert prompt_char_budget(DEFAULT_NUM_CTX, DEFAULT_NUM_PREDICT) == int(
         tokens * CHARS_PER_TOKEN * PROMPT_SAFETY_MARGIN
-    ) == 8601
+    ) == 9318
     # 窗口变小 → 预算单调变小；窗口小于生成预留时预算为 0（不发出必然截断的请求）
     assert prompt_char_budget(4096, 512) < prompt_char_budget(8192, 512)
     assert prompt_char_budget(1024, 1024) == 0
 
     summarizer = KnowledgeSummarizer("http://127.0.0.1:11434", num_ctx=4096, num_predict=1024)
-    assert summarizer.prompt_budget_chars == prompt_char_budget(4096, 1024)
+    # 入模预算 = min(模型窗口估算, 首答入模上限 EVIDENCE_PROMPT_MAX_CHARS)
+    assert summarizer.prompt_budget_chars == min(
+        prompt_char_budget(4096, 1024), EVIDENCE_PROMPT_MAX_CHARS
+    )
+    assert KnowledgeSummarizer("http://127.0.0.1:11434").prompt_budget_chars == min(
+        prompt_char_budget(DEFAULT_NUM_CTX, DEFAULT_NUM_PREDICT), EVIDENCE_PROMPT_MAX_CHARS
+    )
     status = summarizer.status()
     assert status["numCtx"] == 4096 and status["numPredict"] == 1024
     assert status["promptBudgetChars"] == summarizer.prompt_budget_chars
@@ -70,7 +85,7 @@ def test_prompt_budget_is_derived_from_explicit_context_window():
     assert KnowledgeSummarizer("http://127.0.0.1:11434", num_ctx=8).num_ctx == 1024
 
 
-def test_pack_evidence_takes_whole_items_and_never_truncates(tmp_path):
+def test_pack_evidence_takes_whole_items_and_returns_admitted_set(tmp_path):
     env = RagEnv(tmp_path)
     document = env.add_document(title="高中数学必修第一册", text=sample_text())
     evidence = many_evidence(evidence_of(env, document), count=6)
@@ -89,14 +104,49 @@ def test_pack_evidence_takes_whole_items_and_never_truncates(tmp_path):
     assert "并集是什么？" in pack.prompt
     assert pack.prompt.rstrip().endswith("]}]}")
 
+    # 真实准入集合：恰好是提示词里出现过的证据；被排除的 id 不在其中
+    assert pack.admitted_evidence_ids == frozenset(
+        item.evidenceId for item in pack.admitted_evidence
+    )
+    assert len(pack.admitted_evidence) == pack.used_evidence
+    assert pack.skipped_evidence_ids == tuple(
+        item.evidenceId for item in evidence[pack.used_evidence :]
+    )
+    for excluded in pack.skipped_evidence_ids:
+        assert excluded not in pack.prompt and excluded not in pack.admitted_evidence_ids
+    for admitted_id in pack.admitted_evidence_ids:
+        assert admitted_id in pack.prompt
+
     # 预算连一条都放不下 → fits=False 且不产生提示词（调用方必须跳过请求）
     tiny = pack_evidence(question="并集是什么？", evidence=evidence, budget_chars=50)
     assert tiny.fits is False and tiny.prompt == ""
     assert tiny.used_evidence == 0 and tiny.skipped_evidence == 6
+    assert tiny.admitted_evidence_ids == frozenset() and len(tiny.skipped_evidence_ids) == 6
 
     # 超长题目吃掉预算：同样不产生提示词
     long_question = "并集" * 300
     assert pack_evidence(question=long_question, evidence=evidence, budget_chars=200).fits is False
+
+
+def test_pack_evidence_uses_cleaned_readable_text_not_image_markdown(tmp_path):
+    """入模文本是清洗后的 readable.text：图片地址不进入提示词，文本仍是完整证据。"""
+    env = RagEnv(tmp_path)
+    document = env.add_document(
+        title="图册",
+        text="# 第一章 集合\n\n集合的表示方法。![加速度与力关系图](images/a1b2c3d4e5f6.png)\n"
+        "并集由所有属于 A 或属于 B 的元素组成。\n\n## 练习 1.1\n\n1. 求并集。\n",
+    )
+    document_evidence = evidence_of(env, document)
+    assert document_evidence and document_evidence[0].readable is not None
+    item = document_evidence[0]
+    assert "![加速度与力关系图](images/a1b2c3d4e5f6.png)" in item.text, "封存原文切片不变"
+    assert "![" not in item.readable.text and "images/a1b2c3d4e5f6.png" not in item.readable.text
+    assert item.readable.removedImageCount == 1
+
+    pack = pack_evidence(question="并集是什么？", evidence=[item], budget_chars=6000)
+    assert pack.fits is True
+    assert "![" not in pack.prompt and "images/a1b2c3d4e5f6.png" not in pack.prompt
+    assert "加速度与力关系图" in pack.prompt, "有意义的图片说明文字保留"
 
 
 def test_over_budget_evidence_skips_request_and_reports_coverage(tmp_path):
@@ -127,7 +177,7 @@ def test_summarize_sends_explicit_context_and_output_options(tmp_path):
     summarizer.summarize(question="并集是什么？", evidence=evidence)
     _path, payload = client.requests[0]
     assert payload["options"]["num_ctx"] == 8192
-    assert payload["options"]["num_predict"] == 1536
+    assert payload["options"]["num_predict"] == DEFAULT_NUM_PREDICT == 1024
     assert payload["options"]["temperature"] == 0
 
     custom, custom_client = make_summarizer(

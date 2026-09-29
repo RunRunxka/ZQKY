@@ -1,13 +1,19 @@
 """题库导入与校对：规则拆题、原文保留、乐观锁、拆分/合并。
 
-全部用 ``TestClient`` + 注入替身（模型端口、临时目录），只写 pytest ``tmp_path``；
-正式 ``.local-data`` / ``.env`` 与真实模型调用一律不参与。
+全部用 ``TestClient`` + 注入替身（模型解析器 + Provider 替身、临时目录），只写 pytest ``tmp_path``；
+正式 ``.local-data`` / ``.env``、真实云端与本机模型调用一律不参与。
+
+模型替身语义（RAG-QUALITY v1.1）：``QuestionBankService`` 只经注入的
+``model_resolver``（``(profileId) -> ChatModelHandle``）解析聊天模型；Provider 替身用
+``FakeLLMProvider`` 实现 ``provider.complete``，负责记录每次调用（含所在线程与配置摘要）。
 """
 
 from __future__ import annotations
 
 import copy
 import json
+import threading
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Sequence
 
@@ -15,17 +21,24 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.core.config import Settings
+from app.core.exceptions import AppError
 from app.main import create_app
+from app.providers.llm.base import FINISH_STOP, LLMConfig, LLMResponse
 from app.repositories.question_bank.catalog import QuestionBankCatalog
-from app.services.question_bank.organizer import DEFAULT_ORGANIZE_MODEL
-from app.services.question_bank.service import QuestionBankService
+from app.schemas.model_config import ModelProtocol
+from app.services.model_runtime import ChatModelHandle
+from app.services.question_bank.service import build_question_bank_service
 
 ALLOWED_ORIGINS = frozenset({"http://127.0.0.1:5173"})
-#: 替身声明的本机已安装模型；测试绝不访问真实 Ollama /api/tags
-DEFAULT_LOCAL_MODELS = ("qwen2.5:7b",)
 DISTRACTOR_TOP = "答题须知：本卷共四题，请在答题卡上作答，考试时间 90 分钟。"
 DISTRACTOR_MID = "本卷所有选择题均为单项选择，请将所选字母填涂在答题卡相应位置。"
 SAMPLE_NAME = "第三章练习.md"
+
+#: 替身里的「当前聊天模型」profile id（不是模型名）
+LOCAL_PROFILE = "chat-model-local"
+CLOUD_PROFILE = "chat-model-cloud"
+#: 写入替身凭证的哨兵值：任何 checkpoint / 响应里出现它即视为泄漏
+FAKE_API_KEY = "sk-test-should-never-be-persisted"
 
 SAMPLE_DOC = f"""# 第三章 练习
 
@@ -109,40 +122,120 @@ def organize_reply(
     return json.dumps(payload, ensure_ascii=False)
 
 
-class FakeOrganizer:
-    """模型端口替身：按批次返回预设回复（字符串）或抛出预设异常。"""
+@dataclass
+class ProviderCall:
+    """一次 Provider 调用的可断言摘要（含所在线程，用于验证「不在事件循环线程跑 SQL」）。"""
 
-    def __init__(self, replies: Sequence[Any] | None = None, handler: Callable | None = None) -> None:
+    index: int
+    input_text: str
+    max_output_tokens: int | None
+    model_profile_id: str | None
+    model_id: str
+    thread_id: int
+    messages: list[Any] = field(default_factory=list)
+
+
+class FakeLLMProvider:
+    """Provider 替身：不触网；按批次返回预设回复/``LLMResponse``，或抛预设异常。
+
+    - ``replies`` 依次消费（字符串、``LLMResponse`` 或 ``Exception``）；
+    - ``handler(call)`` 优先于 ``replies``，返回同上；
+    - 默认返回本批块 id 组成的合法 JSON（``finish_reason=stop``）。
+    """
+
+    def __init__(
+        self, replies: Sequence[Any] | None = None, handler: Callable[[ProviderCall], Any] | None = None
+    ) -> None:
         self.replies = list(replies or [])
         self.handler = handler
-        self.calls: list[Any] = []
+        self.calls: list[ProviderCall] = []
 
-    def organize(self, call):
+    async def complete(self, config: LLMConfig, request: Any, *, transport: Any = None) -> LLMResponse:
+        call = ProviderCall(
+            index=len(self.calls),
+            input_text=request.messages[-1].content,
+            max_output_tokens=request.maxOutputTokens,
+            model_profile_id=config.modelProfileId,
+            model_id=config.modelId,
+            thread_id=threading.get_ident(),
+            messages=list(request.messages),
+        )
         self.calls.append(call)
         if self.handler is not None:
-            return self.handler(call)
+            return _as_response(self.handler(call))
         if self.replies:
-            value = self.replies.pop(0)
-            if isinstance(value, Exception):
-                raise value
-            return value
-        blocks = block_ids_of(call.input_text)
-        return organize_reply(blocks)
+            return _as_response(self.replies.pop(0))
+        return LLMResponse(
+            text=organize_reply(block_ids_of(call.input_text)), finishReason=FINISH_STOP
+        )
 
 
-class FakeModelCatalog:
-    """本机已安装模型清单替身：不触碰真实 Ollama /api/tags。"""
+def _as_response(value: Any) -> LLMResponse:
+    if isinstance(value, BaseException):
+        raise value
+    if isinstance(value, LLMResponse):
+        return value
+    return LLMResponse(text=str(value), finishReason=FINISH_STOP)
 
-    def __init__(self, models: Sequence[str] = DEFAULT_LOCAL_MODELS, error: Exception | None = None) -> None:
-        self.models = list(models)
+
+def make_handle(
+    profile_id: str = LOCAL_PROFILE,
+    *,
+    model_id: str = "qwen2.5:7b",
+    protocol: ModelProtocol = ModelProtocol.openai_chat,
+    base_url: str = "http://127.0.0.1:11434/v1",
+    api_format: str = "openai_chat",
+    max_output_tokens: int = 2048,
+    provider: Any | None = None,
+    api_key: str | None = FAKE_API_KEY,
+) -> ChatModelHandle:
+    """构造真实的 ``ChatModelHandle``（只把 Provider 换成替身）。"""
+    config = LLMConfig(
+        protocol=protocol,
+        baseUrl=base_url,
+        modelId=model_id,
+        apiKey=api_key,
+        apiFormat=api_format,
+        connectionId="conn-1",
+        modelProfileId=profile_id,
+    )
+    return ChatModelHandle(
+        profile_id=profile_id,
+        model_id=model_id,
+        provider=provider if provider is not None else FakeLLMProvider(),
+        config=config,
+        max_output_tokens=max_output_tokens,
+    )
+
+
+class FakeResolver:
+    """``(profileId) -> ChatModelHandle`` 替身：可换映射、可抛错、记录调用参数与线程。"""
+
+    def __init__(
+        self,
+        profiles: dict[str, ChatModelHandle] | None = None,
+        *,
+        default: ChatModelHandle | None = None,
+        error: BaseException | None = None,
+    ) -> None:
+        self.profiles = dict(profiles or {})
+        self.default = default
         self.error = error
-        self.calls = 0
+        self.calls: list[str] = []
+        self.thread_ids: list[int] = []
 
-    def installed_models(self) -> list[str]:
-        self.calls += 1
+    def __call__(self, profile_id: str) -> ChatModelHandle:
+        self.calls.append(profile_id)
+        self.thread_ids.append(threading.get_ident())
         if self.error is not None:
             raise self.error
-        return list(self.models)
+        handle = self.profiles.get(profile_id) or self.default
+        if handle is None:
+            raise AppError("模型配置不存在。", code="MODEL_PROFILE_NOT_FOUND", status_code=404)
+        return handle
+
+
+_UNSET = object()
 
 
 class Harness:
@@ -152,24 +245,25 @@ class Harness:
         self,
         tmp_path: Path,
         *,
-        organizer: Any | None = None,
-        model_catalog: Any | None = None,
-        default_model: str = DEFAULT_ORGANIZE_MODEL,
+        provider: FakeLLMProvider | None = None,
+        resolver: FakeResolver | None = None,
+        model_resolver: Any = _UNSET,
     ) -> None:
         self.settings = make_settings(tmp_path)
         self.app = create_app(self.settings)
         self.catalog: QuestionBankCatalog = self.app.state.question_bank
         assert self.catalog is not None, "题库目录未装配"
-        self.organizer = organizer if organizer is not None else FakeOrganizer()
-        self.model_catalog = (
-            model_catalog if model_catalog is not None else FakeModelCatalog()
+        self.provider = provider if provider is not None else FakeLLMProvider()
+        self.resolver = (
+            resolver
+            if resolver is not None
+            else FakeResolver(default=self.handle(LOCAL_PROFILE))
         )
-        self.service = QuestionBankService(
+        self.service = build_question_bank_service(
             self.catalog,
             self.settings,
-            organizer=self.organizer,
-            model_catalog=self.model_catalog,
-            default_model=default_model,
+            # 显式传 None（未装配）与不传是两种测试意图，用哨兵区分
+            model_resolver=(self.resolver if model_resolver is _UNSET else model_resolver),
         )
         self.app.state.question_bank_service = self.service
         self.client = TestClient(self.app, base_url="http://127.0.0.1:8001")
@@ -179,6 +273,11 @@ class Harness:
         self.client.__exit__(None, None, None)
 
     # -------------------------------------------------------------- 便捷方法
+
+    def handle(self, profile_id: str = LOCAL_PROFILE, **overrides: Any) -> ChatModelHandle:
+        """默认绑定本 harness 的 Provider 替身，便于用 ``provider.calls`` 断言。"""
+        overrides.setdefault("provider", self.provider)
+        return make_handle(profile_id, **overrides)
 
     def upload(self, data: bytes | str, *, name: str = SAMPLE_NAME, **fields: str):
         payload = data.encode("utf-8") if isinstance(data, str) else data

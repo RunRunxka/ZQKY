@@ -31,6 +31,7 @@ import {
 } from './request-budget';
 import { buildNewConversation, resolveCourseSnapshot } from '@/services/course-session';
 import { isRagCapability, LOCAL_RAG_PROFILE, streamExplain } from './rag-service';
+import { projectMessage } from './message-projection';
 import {
   toEvidenceRefs,
   type RagExplainHistoryMessage,
@@ -566,7 +567,11 @@ export function createChatStore(deps: ChatDeps = {}) {
             },
       );
     }
-    /** 详解历史：取该轮之前的可见消息，按后端预算（单条 ≤32,000、总量 ≤120,000）从最旧整条丢弃 */
+    /**
+     * 详解历史：取该轮之前的可见消息，按后端预算（单条 ≤32,000、总量 ≤120,000）从最旧整条丢弃。
+     * RAG-QUALITY v1.1：历史正文走**单一消息投影**——结构化首答只带简短知识点与紧凑出处，
+     * 不再把整段教材原文塞进后续请求；普通回答/详解/旧 v1 原文不变。
+     */
     function buildExplainHistory(sessionId: string, beforeMessageId: string): RagExplainHistoryMessage[] {
       const messages = docs.get(sessionId)?.messages ?? [];
       const index = messages.findIndex((m) => m.id === beforeMessageId);
@@ -575,7 +580,7 @@ export function createChatStore(deps: ChatDeps = {}) {
       let total = 0;
       for (const message of [...prior].reverse()) {
         if (message.role === 'system') continue;
-        const content = message.content.trim();
+        const content = projectMessage(message).historyText.trim();
         if (!content || content.length > 32000) continue;
         if (total + content.length > 120000) break;
         history.unshift({ role: message.role, content });

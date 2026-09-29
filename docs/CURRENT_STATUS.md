@@ -1,7 +1,37 @@
 # 当前状态与实施主线
 
 <a id="current-batch"></a>
-## RAG-REBUILD v1.0 当前批次（2026-09-28）
+## RAG-QUALITY v1.1 当前批次（2026-09-29）
+
+用户授权按 `docs/PLAN.md`（RAG-QUALITY v1.1）整改首答质量、图片污染、证据窗口、题库模型与备份恢复。
+起点 `main@2f27841`（= `eee2799` + 命中率测量脚本）。证据见
+[RAG-QUALITY v1.1 批次证据](qa/RAG-QUALITY-v1/README.md)、[任务卡](qa/RAG-QUALITY-v1/TASK-CARD.md)、
+[独立验收任务卡](qa/RAG-QUALITY-v1/A1-TASK-CARD.md)、[A1 报告](qa/RAG-QUALITY-v1/A1-REPORT-01.md)。
+
+- **图片清洗（本批核心）**：新增可读文本投影（清洗图片 Markdown、派生不改原文），并把它**作为索引输入**——
+  新索引代里 Qdrant payload 带 `textProjectionVersion` 与 `indexTextSha256`，`text_sha256` 仍是**不可变原文切片**散列。
+  独立核验：含 5 图的真实块，`indexTextSha256` 与我方重算的 `sha256(project_readable(raw).text)` 逐位一致。
+- **紧凑首答**：`text.delta` 只含知识点（≤3 点 / 合计 ≤250 码点 / 每点 ≤2 引用），正文不再拼接教材原文；
+  证据 ≤6 条、单条清洗后 ≤1600 码点、原文总量 ≤16000；来源改两级折叠。前端改为**单一消息投影**，知识点只显示一次。
+- **证据窗口有界**：邻块扩展左右各 ≤1（旧实现沿同章无上限，会把 800 字命中扩成 40,800 字后被整段丢弃 → 返回零证据）。
+- **题库 AI 整理改回当前聊天模型**（本地或云端），点击时冻结、进行中切模型不影响已冻结任务。
+- **备份恢复重做**：数据根跨进程锁 + SQLite backup API + 只复制被引用文件（含 staging、排除 `tmp-*.part`）
+  + Qdrant 快照对账 + 清单 `status`；恢复**按应用运行布局**写入且必须 `--isolated-qdrant`；
+  `restore-state=incomplete` 时应用拒绝启动。独立验收已做完整 create→verify→restore 演练。
+- **固定质量集**（30 问：10 个高一分组 × 2 正向 + 1 边界）：问题用自然问法，正向标签的锚点**先对语料校验存在**；
+  新旧代对比：**正向锚点 Hit@5 20/20**、预算零越界、正文零重复、清洗零泄漏。
+- **R-15 已关闭**：陈旧集成用例按 contract-v1 新设置页重写，`npm run test:chat` 由 13+1 变为 **14 passed / 0 failed**。
+- **实施中修复的真实缺陷**：图片清洗器在真实教材上**死循环**（阻塞正式重建，最小复现 `project_readable('4x-5<3
+
+![](images/abc)')`）；
+  BM25 全空词元语料**构造即崩**；`chunk_count` 兜底取不到旧分块集；清洗后为空的草稿仍显示"可提交"；
+  验收脚本会改用户任教配置/建空库；迁移 CLI 在数据锁重构后报告阶段 `NameError`。
+- **未关闭（交下一批）**：**缺相关性闸门**——10 个边界问题（范围外/证据不足/依赖图片）仍返回 `ok`；
+  实测正/边界稠密分重叠（正向 top1 min 0.577 vs 边界 max 0.595），未 ship 零余量阈值。
+- **如实边界**：人工教学质量 `not_run`；`chapter_path` 章节标签在真实教材上不完全准确（行号准确）；
+  30/58 册未识别习题区（练习被当正文索引）；三个索引代并存（批前 / 我方重复 / 当前活动）。
+
+## RAG-REBUILD v1.0 历史批次（2026-09-28）
 
 用户授权按 `docs/PLAN.md` 完成教材 RAG 重构与独立题库。起点 `main@c2f31ec`（工作区仅 `docs/PLAN.md` 未跟踪）。
 逐项证据见 [RAG-REBUILD v1.0 批次证据](qa/RAG-REBUILD-v1/README.md)、[任务卡与文件归属](qa/RAG-REBUILD-v1/TASK-CARD.md)、
@@ -104,6 +134,7 @@ R-05 内容视觉统一是 H1 之前已交付的批次。第六批 B-R05-EXTEND 
 | R-15 | **未关闭（既有陈旧用例，非本批引入）** | `tests/integration/chat-live.spec.ts:59`「模型发现追加、默认模型同步、表单冲突保留」第 62 行等待 `.connection-group` 过滤「教学模型服务」后点「从服务获取模型」超时；settings contract-v1 现为连接卡片 + 详情弹窗，旧 selector 需进入连接详情才可达。本批 settings/model-settings 零改动。2026-09-24 `npm run test:chat` 再现，13/14；未跳过、未改测试。
 | R-16 | **既有子项通过、正文公式未通过、推理跟随待修（本批修复已通过独立验收；真实供应商与用户人工视觉仍 not_run）** | 用户人工验收为准：历史 reasoning 子项（UX-REGRESSION-FIX v1）通过，但该批受控正文样例走 `AnswerMarkdown` 静态渲染，不证明流式 `message.content` 接线完整，旧“整体已关闭”口径作废。CHAT-CONTENT-MATH-AND-FOLLOW v1 首次单列：streaming body 原直接 `AnswerMarkdown`（未接安全分段），本批改接；另实测复现 reasoning 首败——正文到达自动折叠后，仍在输出的 reasoning 用户重开时停在旧内容（gap=144px，因 `working` 同时承载“自动展开”与“流是否活动”），本批拆分 `working`/`autoExpand` 修复。本批合成 HTTP/SSE + 浏览器证据覆盖正文流中/终态/刷新、IndexedDB 原文相等、尾段闭合转换、重开跟随、真实滚轮上滚不被拉回；**但未能在合成样例复现用户正文的完全相同失败，真实供应商仍未复验（not_run）**，故不据合成通过宣布正文公式已修好。证据见 [本批 README](qa/CHAT-CONTENT-MATH-AND-FOLLOW-20260924/README.md)；**独立验收已判 pass（可交付，附真实供应商/人工视觉 not_run 条件）**，但本条目最终关闭仍待真实供应商样本或用户人工视觉复核。
 | R-17 | **未关闭（跨批间歇）** | 2026-09-23 UX-REGRESSION-FIX 全量 e2e 中 `course-sessions.spec.ts:427` 流式中切换会话失败 1/202；隔离重复后 3/3 与整文件 22/22 通过，机制仍未证实。本批再次全量 202/202 通过（单次运行），不据此关闭 R-17。
+| R-18 | **未关闭（跨批间歇，非本批引入）** | `apps/web/src/features/model-settings/embedding/EmbeddingPanel.test.tsx:166` 存在**加载敏感**的间歇失败：全量并行单测偶发 1 例失败，单跑与重跑均通过（2026-09-29 RAG-QUALITY v1.1 期间 A1 与实现者各观测到一次）。该文件最后修改早于本批，判为**测试对并行加载时序敏感**，不构成本批产品缺陷；处置留待测试稳定化批次——不通过加重试或放宽断言「修」。 |
 | READ-RETRY | 已关闭（2026-09-18） | 受控首败证明错误态"重试"被 turn 非空挡住（run 仍 1 次），`a9ebcaa` 放行错误态重试、保留流式防重入；组件级替身回归+全量单测 |
 | READ-END | 已关闭（2026-09-18） | 首败证明重复/迟到 end 落库 2 份；`a9ebcaa` finalizeTurn 按 turnId 幂等（finalizedTurnsRef），旧轮迟到 end 不重复落库/不复活取消标注/不清新轮；R-09 会话归属语义未变 |
 | R-09-FLAKY | **已关闭（2026-09-19，含产品修复）** | 受控诊断确证**双层机制**：(a) CDP 层——`mouse.wheel` 派发与 `evaluate` 读值竞争（24 次决定性实验、wheel 到达延迟实测 20-30ms）；(b) **产品层真实缺陷**——流式拉底产生的 `scroll` 事件因 `dist<90` 把 `followBottom` 重置回 true，用户上滚被永久吞掉（现场探针抓到完整序列：上滚成功 top=0 → 5ms 后拉回 179 → 最终贴底 212）。修复（`a9c28ea`）：`userScrolledAwayRef` 同步记录用户意图、堵住 `setState` 提交延迟窗口；`programmaticScrollRef` 区分程序化拉底副作用与用户滚动；spec 侧仅一处 `expect`→`expect.poll`（**阈值 `<60` 与语义未变**）。验证：R-09 五例 5/5、`--repeat-each=10` 队长复测 **10/10**（修复前同环境 3/10 失败）、A1 独立复现 **10/10**、阅读 spec 17/17、全量 154/154。**队长注意**：v4 批曾试过"仅加 poll"并失败撤回——那次失败正是因为 poll 只吸收 CDP 层、会暴露产品层的 212 贴底值，此结论已归档 |
