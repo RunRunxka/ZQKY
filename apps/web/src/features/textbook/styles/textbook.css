@@ -126,6 +126,144 @@
   color: var(--blue);
 }
 
+/* ===== 任教范围（F2-SCOPE-UI）：当前范围 + 显式修改 =====
+   与筛选条同级：同一张 1px 细边框卡片语言、同一组 --space-*/--radius-*，不引入新色。
+   「已确认 N 册」是这块唯一的强调数字（tabular-nums，与 space-tile-number 同源）。 */
+.textbook-page .textbook-scope {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  padding: 14px 16px 12px;
+  margin-bottom: 16px;
+  min-width: 0;
+}
+
+.textbook-page .textbook-scope-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.textbook-page .textbook-scope-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.textbook-page .textbook-scope-title svg {
+  color: var(--blue);
+}
+
+.textbook-page .textbook-scope-actions {
+  margin-top: 0;
+}
+
+.textbook-page .textbook-scope-current {
+  margin-top: 4px;
+  min-width: 0;
+}
+
+.textbook-page .textbook-scope-tags {
+  margin-top: 2px;
+}
+
+/* 未就绪原因：复用共享 .space-banner 的版式，只换成与 .space-chip.amber 同一组的琥珀色 */
+.textbook-page .textbook-scope-reason {
+  margin: 8px 0 0;
+  border-color: #f2d9a4;
+  background: #fdf6e7;
+  color: #92610c;
+  font-size: 12.5px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.textbook-page .textbook-scope-editor {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.textbook-page .textbook-scope-editor .textbook-subhead {
+  margin-top: 0;
+}
+
+.textbook-page .textbook-scope-documents {
+  border: 0;
+  margin: 8px 0 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.textbook-page .textbook-scope-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.textbook-page .textbook-scope-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  cursor: pointer;
+  transition: border-color 150ms;
+}
+
+.textbook-page .textbook-scope-item:hover {
+  border-color: var(--blue);
+}
+
+.textbook-page .textbook-scope-item input {
+  flex-shrink: 0;
+  margin-top: 2px;
+  accent-color: var(--blue);
+}
+
+.textbook-page .textbook-scope-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.textbook-page .textbook-scope-item-body strong {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.textbook-page .textbook-scope-item-body .space-meta-row {
+  min-width: 0;
+}
+
+/* 已确认册数：唯一的强调数字 */
+.textbook-page .textbook-scope-tags .space-chip.green {
+  font-variant-numeric: tabular-nums;
+}
+
 /* ===== 筛选条 ===== */
 .textbook-page .textbook-filters {
   align-items: flex-end;
@@ -511,5 +649,18 @@
 
   .textbook-page .textbook-filters {
     align-items: stretch;
+  }
+
+  /* 任教范围：收紧留白，操作行与卡片不挤出视口 */
+  .textbook-page .textbook-scope {
+    padding: 12px 12px 10px;
+  }
+
+  .textbook-page .textbook-scope-actions {
+    width: 100%;
+  }
+
+  .textbook-page .textbook-scope-item {
+    padding: 10px;
   }
 }

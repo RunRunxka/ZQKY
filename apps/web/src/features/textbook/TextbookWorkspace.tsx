@@ -20,6 +20,7 @@ import { ImportPanel } from './ImportPanel';
 import { JobsPanel } from './JobsPanel';
 import { LIBRARY_KIND_LABEL } from './labels';
 import { LibraryBrowser } from './LibraryBrowser';
+import { TeachingScopePanel } from './TeachingScopePanel';
 import { useAsyncResource } from './hooks';
 import { buildTaxonomyIndex } from './taxonomy';
 
@@ -66,6 +67,9 @@ export function TextbookWorkspace() {
       </header>
 
       <main className="space-content">
+        {/* 任教范围（RAG-QUALITY v1.1 · F2-SCOPE-UI）：只读展示 + 显式修改；页面加载只 GET，不写任何数据 */}
+        <TeachingScopePanel taxonomy={index} />
+
         {/* 书籍/课程入口（T4）：桌面侧栏没有这两个顶级项，这里提供稳定可达路径 */}
         <nav className="kb-library-links" aria-label="教材内容阅读">
           <Link className="kb-library-link" href="/books">
