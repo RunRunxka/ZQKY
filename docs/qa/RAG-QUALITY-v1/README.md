@@ -127,7 +127,8 @@ payload.textProjectionVersion   = rag-readable-v1
 | 新代重建 | `_work/rag-quality-v1/rebuild*.log` |
 | 各任务结果卡 | `_work/rag-quality-v1/<TASK-ID>/RESULT.md` |
 | 冻结候选 | [FROZEN-CANDIDATE.json](FROZEN-CANDIDATE.json)（98 文件 + sha256，BUILD_ID `WXHZTQm_Ma2tbqT2sRCUY`） |
-| 独立验收报告 | [A1-REPORT-01.md](A1-REPORT-01.md) |
+| 独立验收报告 | r1 [A1-REPORT-01.md](A1-REPORT-01.md)（判 needs_revision，F1–F5 逐条处置）；**r2 窄复验进行中**，结果见 `A1-REPORT-02.md` |
+| 本批本地提交 | `a97bd99`（102 文件，+19,982/−2,197）；提交为**检查点**，不代表 r2 已验收 |
 
 ## 6. 总控过程问题（如实登记）
 
