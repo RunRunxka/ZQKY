@@ -27,6 +27,28 @@ def _split_origins(raw: str) -> tuple[str, ...]:
     return tuple(origin.strip() for origin in raw.split(",") if origin.strip())
 
 
+#: 回环主机的等价写法：开发时人最容易直接敲 localhost:5173，
+#: 若默认只允许 127.0.0.1 形式，浏览器会得到难以理解的 403 FORBIDDEN_ORIGIN。
+_LOOPBACK_ALIASES = ("127.0.0.1", "localhost", "[::1]")
+
+
+def _with_loopback_aliases(origins: tuple[str, ...]) -> frozenset[str]:
+    """给回环来源补齐等价主机名（只用于默认值；显式配置原样尊重）。"""
+    expanded: set[str] = set(origins)
+    for origin in origins:
+        scheme, _, rest = origin.partition("://")
+        if not rest:
+            continue
+        host, sep, port = rest.rpartition(":")
+        if not sep:
+            host, port = rest, ""
+        if host not in _LOOPBACK_ALIASES:
+            continue
+        for alias in _LOOPBACK_ALIASES:
+            expanded.add(f"{scheme}://{alias}{sep}{port}" if sep else f"{scheme}://{alias}")
+    return frozenset(expanded)
+
+
 @dataclass(frozen=True)
 class Settings:
     host: str
@@ -64,12 +86,18 @@ class Settings:
             raise ValueError(f"ZQKY_API_PORT 必须是整数，收到：{port_raw}") from exc
         if not 0 <= port <= 65535:
             raise ValueError(f"ZQKY_API_PORT 超出范围，收到：{port}")
-        raw_origins = env.get("ZQKY_ALLOWED_ORIGINS", ",".join(DEFAULT_ALLOWED_ORIGINS))
+        raw_origins = env.get("ZQKY_ALLOWED_ORIGINS")
+        # 默认值补齐 localhost/127.0.0.1 等价写法；显式配置原样尊重（用户说了算）。
+        origins = (
+            _with_loopback_aliases(DEFAULT_ALLOWED_ORIGINS)
+            if raw_origins is None
+            else frozenset(_split_origins(raw_origins))
+        )
         data_dir = Path(env.get("ZQKY_DATA_DIR", str(DEFAULT_DATA_DIR)))
         return Settings(
             host=host,
             port=port,
-            allowed_origins=frozenset(_split_origins(raw_origins)),
+            allowed_origins=origins,
             env=env.get("ZQKY_ENV", "development"),
             data_dir=data_dir,
             credentials_file=REPO_ROOT / 'apps' / 'api' / '.env',
