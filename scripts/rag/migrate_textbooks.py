@@ -22,6 +22,7 @@ import argparse
 import json
 import os
 import re
+import shutil
 import sys
 import time
 from dataclasses import dataclass, field
@@ -278,6 +279,11 @@ def migrate(args: argparse.Namespace) -> int:
 
 
 def _migrate_locked(args, settings, *, tasks: list[BookTask], skipped: list[str]) -> int:
+    import tempfile
+
+    # 本次运行独占的源文件副本目录：源目录只读，绝不移动/删除源文件
+    stage_dir = Path(tempfile.mkdtemp(prefix="rag-migrate-src-"))
+    print(f"源文件副本目录：{stage_dir}（源目录只读）")
     catalog = TextbookCatalog(settings.textbooks_root / "catalog.sqlite3")
     catalog.migrate()
     provider = OllamaEmbeddingProvider(settings.embedding_base_url)
@@ -361,6 +367,11 @@ def _migrate_locked(args, settings, *, tasks: list[BookTask], skipped: list[str]
                 result.document_id = target.document_id
                 result.notes.append("命中既有书册，按更新路径追加修订")
 
+            # 入库链路对"上传暂存文件"是**移动**语义（浏览器上传后临时文件即可丢弃）。
+            # 源教材必须保持不动，因此先复制到本次运行独占的暂存目录，再把副本交给入库。
+            staged_copy = stage_dir / f"{abs(hash(str(task.source))):x}{task.source.suffix}"
+            shutil.copy2(task.source, staged_copy)
+
             metadata = {
                 "title": task.title,
                 "stageId": "senior",
@@ -372,7 +383,7 @@ def _migrate_locked(args, settings, *, tasks: list[BookTask], skipped: list[str]
             }
             draft = ingest.create_import_from_path(
                 file_name=task.source.name,
-                staged_path=task.source,
+                staged_path=staged_copy,
                 metadata=metadata,
                 target_document_id=target.document_id if target else None,
                 expected_current_revision_id=(
