@@ -1,0 +1,189 @@
+{
+  "probe": "v1_migrations",
+  "passed": 36,
+  "failed": 0,
+  "total": 36,
+  "results": [
+    {
+      "name": "v1.1a 知识点库 7 张 B1 表齐备",
+      "ok": true,
+      "detail": "missing=[]"
+    },
+    {
+      "name": "v1.1b 知识点库 4 个触发器齐备",
+      "ok": true,
+      "detail": "missing=[]"
+    },
+    {
+      "name": "v1.1c knowledge_imports 含 issues_json（0003）",
+      "ok": true,
+      "detail": "cols=['created_at', 'error_code', 'file_asset_id', 'id', 'issues_json', 'mapping_json', 'owner_id', 'revision', 'source', 'state', 'subject_id', 'updated_at', 'warnings_json']"
+    },
+    {
+      "name": "v1.1d 0001 只要求 B0 基础表（REQUIRED_TABLES 未被 B1 扩大）",
+      "ok": true,
+      "detail": "REQUIRED_TABLES=('knowledge_submissions', 'knowledge_jobs')"
+    },
+    {
+      "name": "v1.1e 知识点器登记 3 条迁移（0001/0002/0003）",
+      "ok": true,
+      "detail": "['0001_knowledge_baseline', '0002_knowledge_business_tables', '0003_knowledge_import_issues_column']"
+    },
+    {
+      "name": "v1.1f 教学库 5 张 B1 表齐备",
+      "ok": true,
+      "detail": "missing=[]"
+    },
+    {
+      "name": "v1.1g ux_active_membership 是部分唯一索引（WHERE left_on IS NULL）",
+      "ok": true,
+      "detail": "sql=CREATE UNIQUE INDEX ux_active_membership ON class_memberships(class_id,student_id) WHERE left_on IS NULL"
+    },
+    {
+      "name": "v1.1h 教学库 REQUIRED_TABLES 仍只含 B0 表",
+      "ok": true,
+      "detail": "('command_submissions', 'file_assets', 'workflow_jobs')"
+    },
+    {
+      "name": "v1.3a 重复 apply 返回空列表（无待应用迁移）",
+      "ok": true,
+      "detail": "returned=[]"
+    },
+    {
+      "name": "v1.3b 重复 apply 不改变库的逻辑状态",
+      "ok": true,
+      "detail": "before==after is True"
+    },
+    {
+      "name": "v1.2a 仅 B0 结构旧库只登记 0001",
+      "ok": true,
+      "detail": "['0001_knowledge_baseline']"
+    },
+    {
+      "name": "v1.2b 旧库缺 0002 表（确为 B0 结构）",
+      "ok": true,
+      "detail": "tables=['knowledge_jobs', 'knowledge_submissions', 'schema_migrations']"
+    },
+    {
+      "name": "v1.2c 仅 B0 结构旧库通过启动门控（不判损坏/结构不符）",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "v1.2d 旧库迁移后补齐 7 张 B1 表",
+      "ok": true,
+      "detail": "tables=['knowledge_aliases', 'knowledge_import_rows', 'knowledge_imports', 'knowledge_jobs', 'knowledge_point_revisions', 'knowledge_points', 'knowledge_submissions', 'schema_migrations', 'subjects', 'textbook_knowledge_links']"
+    },
+    {
+      "name": "v1.2e 旧库迁移后 0002/0003 均登记",
+      "ok": true,
+      "detail": "[('0001_knowledge_baseline', 'c1260aece348b1f7068e812d95a8bbb65f69d885c3a246d1d9938ff8f2285da9'), ('0002_knowledge_business_tables', '6389e7c456b614059df2e3d96b695d963ee460237286747f857b0582b828c6d6'), ('0003_knowledge_import_issues_column', 'ec0fdc9abcc7009ebe7a801927f21814c4fdeed809fda27c26e1f6873f76bb09')]"
+    },
+    {
+      "name": "v1.4a 注入失败迁移抛错（未被吞掉）",
+      "ok": true,
+      "detail": "OperationalError: no such table: probe_table_that_does_not_exist"
+    },
+    {
+      "name": "v1.4b 失败迁移的部分表被整体回滚（probe_rollback_marker 不存在）",
+      "ok": true,
+      "detail": "tables=['knowledge_aliases', 'knowledge_import_rows', 'knowledge_imports', 'knowledge_jobs', 'knowledge_point_revisions', 'knowledge_points', 'knowledge_submissions', 'schema_migrations', 'subjects', 'textbook_knowledge_links']"
+    },
+    {
+      "name": "v1.4c 失败迁移不写登记（0001/0002/0003 已登记，9999 未登记）",
+      "ok": true,
+      "detail": "['0001_knowledge_baseline', '0002_knowledge_business_tables', '0003_knowledge_import_issues_column']"
+    },
+    {
+      "name": "v1.4d 失败后重跑：注入迁移移走后无待应用项",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "v1.5a textbooks 0001 声明散列自算一致",
+      "ok": true,
+      "detail": "3979cd64de3bf245… vs 3979cd64de3bf245…"
+    },
+    {
+      "name": "v1.5a question_bank 0001 声明散列自算一致",
+      "ok": true,
+      "detail": "b7025e4ad9e2b042… vs b7025e4ad9e2b042…"
+    },
+    {
+      "name": "v1.5a knowledge 0001 声明散列自算一致",
+      "ok": true,
+      "detail": "c1260aece348b1f7… vs c1260aece348b1f7…"
+    },
+    {
+      "name": "v1.5a teaching 0001 声明散列自算一致",
+      "ok": true,
+      "detail": "bf78fb3fb702b6f6… vs bf78fb3fb702b6f6…"
+    },
+    {
+      "name": "v1.5b teaching 0001 散列与 B0 V00 证据逐字节一致",
+      "ok": true,
+      "detail": "bf78fb3fb702b6f6…"
+    },
+    {
+      "name": "v1.5c 正式库 knowledge 0001 散列只读对比",
+      "ok": true,
+      "detail": "{\"db\": \"knowledge\", \"state\": \"ok\", \"recordedIds\": [\"0001_knowledge_baseline\"], \"recorded\": \"c1260aece348b1f7068e812d95a8bbb65f69d885c3a246d1d9938ff8f2285da9\", \"expected\": \"c1260aece348b1f7068e812d95a8bbb65f69d885c3a246d1d9938ff8f2285da9\", \"match\": true}"
+    },
+    {
+      "name": "v1.5c 正式库 teaching 0001 散列只读对比",
+      "ok": true,
+      "detail": "{\"db\": \"teaching\", \"state\": \"ok\", \"recordedIds\": [\"0001_teaching_baseline\"], \"recorded\": \"bf78fb3fb702b6f65f3d9802dfd9b53b6628d14e58d33380a9a7da8936b8612a\", \"expected\": \"bf78fb3fb702b6f65f3d9802dfd9b53b6628d14e58d33380a9a7da8936b8612a\", \"match\": true}"
+    },
+    {
+      "name": "v1.5c 正式库 question_bank 0001 散列只读对比",
+      "ok": true,
+      "detail": "{\"db\": \"question_bank\", \"state\": \"ok\", \"recordedIds\": [\"0001_question_bank_baseline\", \"0002_question_jobs_engine_columns\"], \"recorded\": \"b7025e4ad9e2b042c5cc943927bf5b17a40a3dc01116bb99dadbb8b573298156\", \"expected\": \"b7025e4ad9e2b042c5cc943927bf5b17a40a3dc01116bb99dadbb8b573298156\", \"match\": true}"
+    },
+    {
+      "name": "v1.5c 正式库 textbooks 0001 散列只读对比",
+      "ok": true,
+      "detail": "{\"db\": \"textbooks\", \"state\": \"ok\", \"recordedIds\": [\"0001_textbooks_baseline\"], \"recorded\": \"3979cd64de3bf245ed6a72a81763efc08ccd1761c7292b6f7dcfeb66ad0945c0\", \"expected\": \"3979cd64de3bf245ed6a72a81763efc08ccd1761c7292b6f7dcfeb66ad0945c0\", \"match\": true}"
+    },
+    {
+      "name": "v1.6a 垃圾文件被拒（DATABASE_UNREADABLE）",
+      "ok": true,
+      "detail": "AppError(code=DATABASE_UNREADABLE, status=500) 数据库无法读取（knowledge.sqlite3）：DatabaseError。已拒绝启动，不会按空库重建。"
+    },
+    {
+      "name": "v1.6b 合法但缺表的库被拒（DATABASE_SCHEMA_INCOMPLETE）",
+      "ok": true,
+      "detail": "AppError(code=DATABASE_SCHEMA_INCOMPLETE, status=500) 数据库结构不完整（empty.sqlite3 缺少 knowledge_submissions, knowledge_jobs）；请勿把未迁移或来源不符的库当既有库使用。已拒绝启动。"
+    },
+    {
+      "name": "v1.6c 散列漂移库被拒（SCHEMA_MIGRATION_DRIFT）",
+      "ok": true,
+      "detail": "AppError(code=SCHEMA_MIGRATION_DRIFT, status=500) 数据库 knowledge 的迁移 0002_knowledge_business_tables 已登记散列与当前 SQL 不一致（登记 000000000000…，当前 6389e7c456b6…）。已登记迁移不得改写；请新增一条迁移，或从备份恢复该库。"
+    },
+    {
+      "name": "v1.6d verify_migrations 散列漂移必报错",
+      "ok": true,
+      "detail": "AppError(code=SCHEMA_MIGRATION_DRIFT, status=500) 数据库 knowledge 的迁移 0001_knowledge_baseline 已登记散列与当前 SQL 不一致（登记 ffffffffffff…，当前 c1260aece348…）。已登记迁移不得改写；请新增一条迁移，或从备份恢复该库。"
+    },
+    {
+      "name": "v1.7a 列存在时批次级 issues 从 issues_json 读出",
+      "ok": true,
+      "detail": "({'code': 'KNOWLEDGE_IMPORT_MISSING_COLUMN', 'field': 'code', 'message': '缺列'},)"
+    },
+    {
+      "name": "v1.7b 注册表缺 0003 且列已存在 → apply 失败（无 adjust 钩子，无自愈）",
+      "ok": true,
+      "detail": "OperationalError: duplicate column name: issues_json"
+    },
+    {
+      "name": "v1.7c 该失败是原始 sqlite3 异常而非 AppError（错误可见性下降）",
+      "ok": true,
+      "detail": "type=OperationalError"
+    },
+    {
+      "name": "v1.7d 列被手工删除、注册表仍有 0003 → apply 不重补（记录为 observation）",
+      "ok": true,
+      "detail": "reapplied=[] cols=['created_at', 'error_code', 'file_asset_id', 'id', 'mapping_json', 'owner_id', 'revision', 'source', 'state', 'subject_id', 'updated_at', 'warnings_json']"
+    }
+  ],
+  "crashed": null
+}

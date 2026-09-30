@@ -1,0 +1,19 @@
+{
+  "r1_0003_sha256": "ec0fdc9abcc7009ebe7a801927f21814c4fdeed809fda27c26e1f6873f76bb09",
+  "r2_0003_sha256": "ec0fdc9abcc7009ebe7a801927f21814c4fdeed809fda27c26e1f6873f76bb09",
+  "match": true,
+  "0002_sha256": "6389e7c456b614059df2e3d96b695d963ee460237286747f857b0582b828c6d6",
+  "adjusted_scenarios": {
+    "A": [
+      "0003_knowledge_import_issues_column"
+    ],
+    "B": [
+      "0003_knowledge_import_issues_column"
+    ],
+    "D": [
+      "0001_knowledge_baseline",
+      "0002_knowledge_business_tables",
+      "0003_knowledge_import_issues_column"
+    ]
+  }
+}

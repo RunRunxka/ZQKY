@@ -409,7 +409,8 @@ README 做入口，PROJECT_GUIDE 管目标/架构/决定，STATUS 管进度/代�
 - 备份是**离线一致性**方案（不宣称跨 SQLite/Qdrant 原子热备）：
   SQLite backup API → 从副本读引用 → 只复制被引用文件（含 `staging`、排除 `tmp-*.part`）
   → Qdrant 快照并核对点数/维度 → 全部通过才标 `status:"complete"`。
-- 清单 `schemaVersion: 2`；**凭证（`apps/api/.env`）不进清单**。
+- 清单 `schemaVersion: 2`（**TEACHING-LOOP B0 起新备份为 `schemaVersion: 3`：四库 + 受管资产，
+  见 §11**）；**凭证（`apps/api/.env`）不进清单**。
 - 恢复**按应用运行布局**写入，Qdrant 必须显式 `--isolated-qdrant`（给正式 6333 或缺失一律拒绝）；
   失败把 `restore-state` 留在 `incomplete`，**应用启动时拒绝**，避免静默新建空库。
 - 旧清单只读兼容并标记 `legacy_revalidated`，不补造历史完整性结论。
@@ -428,3 +429,61 @@ README 做入口，PROJECT_GUIDE 管目标/架构/决定，STATUS 管进度/代�
   `core.sqlite.open_readonly()`）：**不建库、不建表、不改结构**。
 - **不得**为测评修改用户任教配置：范围一律以请求内联传入（`scope.kind="selection"`），不落库。
 - 质量集标签必须**先对语料校验存在**，禁止自生成问题 + 自打标签。
+
+## 11. 教学闭环公共契约与基础设施（TEACHING-LOOP B0，2026-09-30 稳定决定）
+
+依 [教学闭环设计目录](design/teaching-loop-v1/README.md) 与
+[多 Agent 实施任务计划书 v2.0](design/teaching-loop-v1/多Agent实施任务计划书_v2.0.md) 实施 B0；
+业务模块（知识点、名单、原卷、成绩、学情、练习、教案）属 B1—B7，**尚未实现**。
+批次任务卡与证据见 [docs/qa/TEACHING-LOOP-B0](qa/TEACHING-LOOP-B0/TASK-CARD.md)。
+
+- **四库边界**：教材目录、题库、知识点库（`.local-data/knowledge/knowledge.sqlite3`）、
+  教学业务库（`.local-data/teaching/teaching.sqlite3`）各自独立；受管原件在
+  `.local-data/assets/blobs/<sha256>`（内容寻址、只增不改）；Qdrant 只服务教材检索。
+- **迁移登记是唯一建表路径**：每库 `schema_migrations` + `app/core/migrations/` 的追加式清单；
+  已登记 SQL 不可改写（漂移即拒绝启动）；失败迁移整体回滚、可重跑；**损坏的既有库不得按空库重建**。
+  业务表增量由实现方提供 SQL、**总控登记**。
+- **任务协议唯一**：三库各一张任务表，统一经 `app/repositories/jobs` + `app/services/jobs`；
+  租约 90 秒 / 心跳 20 秒；**并发上限 2 个重任务、其中 1 个模型任务**；任务结果与终态在所属业务库
+  同一事务提交；取消只走接口且迟到结果不发布；重启遗留 `running` 收敛为 `interrupted`，
+  **不自动重新调用模型**；重试保留冻结输入与模型指纹。
+  **B0 的启动收敛范围只含知识点库与教学库**（`app/main.py` 的 `RECONCILE_DOMAINS`）：题库组织任务仍是
+  既有五态与旧界面视图，提前写入 `interrupted` 会让旧界面出现未知状态；题库任务在 B2 迁移到统一任务协议时一并纳入。
+- **提交幂等身份** `(ownerId, operation, submissionId)`：同键同 hash 重放原结果，同键不同 hash 409。
+- **类型单一来源**：跨模块类型只在 `app/contracts/teaching_loop.py` 与
+  `apps/web/src/contracts/teaching-loop.ts` 定义；`revision`（乐观锁）与 `revisionId`（固定修订）
+  不得混用；分数用整数 `scoreUnits`（×100）；外部 camelCase、内部 snake_case。
+- **业务规则（用户已定）**：知识点独立建库、题目经知识点 ID 多对多关联、教材依据可选；
+  学情只用「原卷已确认小题知识点 + 教师给出的成绩」，任一相关小题失分即「本次需巩固」；
+  不建立掌握概率、不评分、不建立评分点；有效 0、空白、缺考、免考严格区分；综合题不分摊失分；
+  AI 只进候选/建议，经确认才能进入正式流程；学生姓名/学号/人员 ID 不发给模型。
+- **测试隔离**：后端测试套件在导入 `app.main` 前把默认数据根指向会话级临时目录
+  （`ZQKY_DATA_DIR`，显式设置优先），不再对正式 `.local-data` 建库/迁移。
+
+## 12. 知识点库与名单后端的稳定决定（TEACHING-LOOP B1，2026-09-30）
+
+- **知识点身份与修订**：`code` 是**学科内**身份键（`UNIQUE(subject_id, code)`）；`id` 稳定身份、
+  `revisionId`/`version` 是不可变内容修订、`revision` 是编辑乐观锁——三者不得混用。
+  改名 = 追加修订；被引用历史修订由触发器永久保护（`IMMUTABLE_REVISION`）；
+  名称或别名相同**只提示不合并**（跨知识点同名别名是合法的，靠教师选择）。
+- **父树**：父子必须同学科；自指/环/跨学科父节点在服务层给出可定位错误，DB 触发器兜底 `KNOWLEDGE_CYCLE`。
+- **导入与 AI 候选**：表格字段固定 `subjectCode/code/name/description/parentCode/aliases`；
+  预览批次持久化（批次 + 行 + issues），动作 `create/update/ignore`，更新核 `expectedRevision`，
+  空白可选字段默认不修改、`clearFields` 才清空；失败整批回滚；确认以 `(owner, operation, submissionId)` 幂等。
+  **AI 候选只生成 `source="ai"` 的待确认批次**（不写正式表），确认走同一流程；
+  教材读取失败一律 503 `TEXTBOOK_EVIDENCE_UNAVAILABLE`，**不得当作"没有依据"**。
+- **名单**：学号按文本保存（保留前导零 `0012`）；姓名不是主键、同名不合并；
+  无学号/同名/姓名不符/重复行进入人工身份核对（`link|create|ignore`，`link` 必须指定学生）；
+  **名单未出现的学生不自动退班**；转班保留旧归属；非法数据整批回滚；确认幂等。
+- **施测分两段**：B1（T30-a）只冻结请求、参测人次与身份/班级/出勤快照契约；
+  真实创建是 **T30-b**，依赖 T40 已确认原卷修订，在 B2 联调后验收——此前接口保持 501，
+  不得用假原卷、缺失外键或放宽确认规则宣称施测可用。
+- **跨库发布**：跨库引用发布与归档经 `PublicationCoordinator` 串行化（进程内锁；锁内只做数据库读取与短事务；
+  不是跨进程锁，不宣称跨库原子事务；模型/解析/资产写入在锁外）。
+- **富内容**：`RichContentV2` 是唯一形状（B0 冻结）；DOCX 解析产出块顺序 + 来源坐标 + 受管资产 + 可见问题清单，
+  DOCX 渲染支持学生/教师两种内容投影（学生版无答案与解析）、共同材料只出一次、图片 relationship 重建、
+  原卷 OMML 原样保留、新 LaTeX 经锁定转换器（`math2docx==3.1.0`）导出。
+  **既有教材解析（`document_parsing/parser.py`）语义不动**。
+- **结构变更**：一律追加迁移（B1 为知识点库 `0002`+`0003`、教学库 `0002`）；B0 已登记声明与散列不得改写；
+  启动门控的 `REQUIRED_TABLES` 只要求 B0 基础表，保证"尚未应用 B1 迁移"的合法旧库可启动。
+  带 `adjust` 钩子的迁移必须保证"声明集合 = 全新库上实际执行的语句集合"（B0 曾因此漏执行索引，见 B0 证据）。

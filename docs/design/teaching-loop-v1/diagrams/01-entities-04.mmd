@@ -1,0 +1,14 @@
+erDiagram
+  analysis_runs ||--o{ group_sets : supports
+  group_sets ||--o{ learning_groups : contains
+  learning_groups ||--o{ group_members : members
+  classes ||--o{ lesson_plans : teaches
+  lesson_plans ||--|{ lesson_plan_revisions : versions
+  analysis_runs |o--o{ lesson_plan_revisions : optional_input
+  lesson_plan_revisions ||--o{ lesson_plan_evidence : reasoning_sources
+  lesson_plan_revisions |o--o{ practice_revisions : optional_plan
+  practice_sets ||--|{ practice_revisions : versions
+  practice_revisions ||--o{ practice_items : selected_items
+  question_revisions ||..o{ practice_items : external_reference
+  practice_items ||--o{ practice_item_knowledge : targets
+  practice_revisions |o--o{ paper_revisions : converts_to

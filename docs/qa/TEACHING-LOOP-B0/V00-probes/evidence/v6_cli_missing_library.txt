@@ -1,0 +1,7 @@
+$ uv run python ../../scripts/rag/backup.py create --data-dir C:\Users\96022\AppData\Local\Temp\zqky-v00-v6-7y4c81ue\data-missing --into C:\Users\96022\AppData\Local\Temp\zqky-v00-v6-7y4c81ue\archive-missing --label v00-missing
+[exit 1]
+--- stdout ---
+
+--- stderr ---
+备份失败，已保留失败记录：C:\Users\96022\AppData\Local\Temp\zqky-v00-v6-7y4c81ue\archive-missing\manifest.json
+  - 教学业务库缺失：C:\Users\96022\AppData\Local\Temp\zqky-v00-v6-7y4c81ue\data-missing\teaching\teaching.sqlite3

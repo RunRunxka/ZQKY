@@ -1,0 +1,88 @@
+{
+  "probe": "v00r2_o1_retry_error_probe",
+  "total": 16,
+  "failed": [],
+  "results": [
+    {
+      "name": "O1.1 前置：任务为 failed 且带错误",
+      "ok": true,
+      "detail": "state=failed error_code=MODEL_CONFIG_INVALID"
+    },
+    {
+      "name": "O1.2 retry 后 state=queued 且错误被清空（记录层）",
+      "ok": true,
+      "detail": "state=queued error_code=None error=None"
+    },
+    {
+      "name": "O1.3 retry 后视图 error 为 null（前端看到的就是 queued+无错误）",
+      "ok": true,
+      "detail": "state=queued error=None"
+    },
+    {
+      "name": "O1.4 原始 DB 行 error_code / error_json 均为 NULL（同一事务落盘）",
+      "ok": true,
+      "detail": "error_code=None error_json=None"
+    },
+    {
+      "name": "O1.5 单条 UPDATE 覆盖状态与错误：行内无中间态（state/error 同源变化）",
+      "ok": true,
+      "detail": "before=(failed,MODEL_CONFIG_INVALID) after=(queued,None)"
+    },
+    {
+      "name": "O1.6 保留 frozen_input / model_snapshot / input_hash",
+      "ok": true,
+      "detail": "hash=f3c11f60d5ce5cab…"
+    },
+    {
+      "name": "O1.7 attempt 不变、租约与取消标志清空",
+      "ok": true,
+      "detail": "attempt=1 lease=None"
+    },
+    {
+      "name": "O1.8 下次 claim 才递增 attempt 且错误仍为空",
+      "ok": true,
+      "detail": "attempt=2"
+    },
+    {
+      "name": "O1.9 前置：queued 取消 → cancelled",
+      "ok": true,
+      "detail": "cancelled"
+    },
+    {
+      "name": "O1.10 cancelled 重试：queued 且错误列为 NULL、cancel_requested 归零",
+      "ok": true,
+      "detail": "state=queued"
+    },
+    {
+      "name": "O1.11 前置：running 收敛 → interrupted",
+      "ok": true,
+      "detail": "interrupted"
+    },
+    {
+      "name": "O1.12 interrupted 重试：queued 且错误列为 NULL",
+      "ok": true,
+      "detail": "state=queued"
+    },
+    {
+      "name": "O1.13 retry on queued -> 409 JOB_NOT_RETRYABLE",
+      "ok": true,
+      "detail": "code=JOB_NOT_RETRYABLE status=409"
+    },
+    {
+      "name": "O1.13 retry on running -> 409 JOB_NOT_RETRYABLE",
+      "ok": true,
+      "detail": "code=JOB_NOT_RETRYABLE status=409"
+    },
+    {
+      "name": "O1.13 retry on succeeded -> 409 JOB_NOT_RETRYABLE",
+      "ok": true,
+      "detail": "code=JOB_NOT_RETRYABLE status=409"
+    },
+    {
+      "name": "O1.14 被拒绝的 retry 未改写任务行（仍为 succeeded）",
+      "ok": true,
+      "detail": "succeeded"
+    }
+  ],
+  "observations": []
+}

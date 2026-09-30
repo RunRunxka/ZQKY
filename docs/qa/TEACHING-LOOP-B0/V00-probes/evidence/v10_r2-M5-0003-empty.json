@@ -1,0 +1,31 @@
+{
+  "label": "r2-M5-0003-empty",
+  "file": "apps/api/app/core/migrations/question_bank.py",
+  "old": "description=\"question_jobs 补齐 (state, created_at) 索引（修复 0002 钩子漏执行；既有库由此补齐）\",\n        statements=_ENGINE_INDEX_STATEMENTS,",
+  "new": "description=\"变异：0003 不建索引\",\n        statements=(\"SELECT 1\",),",
+  "runs": [
+    {
+      "kind": "pytest",
+      "exit_code": 1,
+      "failed": [
+        "tests/test_migrations.py::test_existing_database_already_on_0002_gains_index_from_0003"
+      ],
+      "tail": "     columns == [\"state\", \"created_at\"] for columns in before.values()\n            ), before\n            monkeypatch.setitem(REGISTERED_MIGRATIONS, \"question_bank\", original)\n            applied_again = apply_migrations(connection, database=\"question_bank\")\n            assert applied_again == [\"0003_question_jobs_engine_state_index\"]\n            after = _index_columns(connection, \"question_jobs\")\n>           assert any(columns == [\"state\", \"created_at\"] for columns in after.values()), after\nE           AssertionError: {'idx_question_jobs_state': ['kind', 'state'], 'sqlite_autoindex_question_jobs_1': ['id']}\nE           assert False\nE            +  where False = any(<generator object test_existing_database_already_on_0002_gains_index_from_0003.<locals>.<genexpr> at 0x0000026CAE80A0C0>)\ntests\\test_migrations.py:296: AssertionError\n============================== warnings summary ===============================\n.venv\\Lib\\site-packages\\starlette\\testclient.py:53\n  H:\\备份xuexi\\智启课源\\apps\\api\\.venv\\Lib\\site-packages\\starlette\\testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.\n    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ===========================\nFAILED tests/test_migrations.py::test_existing_database_already_on_0002_gains_index_from_0003",
+      "targets": [
+        "tests/test_migrations.py"
+      ]
+    },
+    {
+      "kind": "probe",
+      "exit_code": 1,
+      "failed": [
+        "[FAIL] F1.2e 既有库补上 idx_question_jobs_engine_state(state, created_at) :: {'idx_question_jobs_state': ['kind', 'state'], 'sqlite_autoindex_question_jobs_1': ['id']}",
+        "[FAIL] F1.5 0003 声明 == 0002 声明集合里的索引语句 :: ('SELECT 1',)"
+      ],
+      "tail": "id']}\n[PASS] F1.1e 0003 已登记且 0002 散列与 r1 一致 :: registered=['0001_question_bank_baseline', '0002_question_jobs_engine_columns', '0003_question_jobs_engine_state_index']\n[PASS] F1.2a 修复前既有库夹具：12 列已补齐但 (state, created_at) 索引缺失 :: {'idx_question_jobs_state': ['kind', 'state'], 'sqlite_autoindex_question_jobs_1': ['id']}\n[PASS] F1.2b 夹具登记状态：只有 0001/0002 :: ['0001_question_bank_baseline', '0002_question_jobs_engine_columns']\n[PASS] F1.2c 应用完整清单未把 0002 判为漂移 :: None\n[PASS] F1.2d 只新增应用 0003 :: ['0003_question_jobs_engine_state_index']\n[FAIL] F1.2e 既有库补上 idx_question_jobs_engine_state(state, created_at) :: {'idx_question_jobs_state': ['kind', 'state'], 'sqlite_autoindex_question_jobs_1': ['id']}\n[PASS] F1.2f 0001/0002 登记散列未被改写（仍是原值） :: ok\n[PASS] F1.2g 再次 apply 无事发生（幂等） :: []\n[PASS] F1.3a 0002 声明散列 == r1 口径 61e55952…（既有库不被判漂移） :: 61e5595258709835d269b84c3b6d96594124ac818a5f67168c6af2bfe3fb9ee1\n[PASS] F1.3b 0002 的声明集合仍为 12 ALTER + 1 索引（散列对象未变） :: 声明 13 条\n[PASS] F1.3c 独立复算的声明散列 == 登记常量（我自己的 digest 计算） :: 61e5595258709835 vs 61e5595258709835\n[PASS] F1.4 根因已修：钩子在旧表上返回 12 条 ALTER + 1 条索引（索引不再被丢） :: hook 返回 13 条\n[FAIL] F1.5 0003 声明 == 0002 声明集合里的索引语句 :: ('SELECT 1',)\n临时数据根：C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-v00-r2-f1-htkce53b（探针结束后删除）\n\n== v00r2_f1_index_probe: 15/17 passed; failed=['F1.2e 既有库补上 idx_question_jobs_engine_state(state, created_at)', 'F1.5 0003 声明 == 0002 声明集合里的索引语句']; observations=[] ==\n证据：H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B0\\V00-probes\\evidence\\v00r2_f1_index_probe.json\n",
+      "targets": [
+        "H:/备份xuexi/智启课源/docs/qa/TEACHING-LOOP-B0/V00-probes/v00r2_f1_index_probe.py"
+      ]
+    }
+  ]
+}

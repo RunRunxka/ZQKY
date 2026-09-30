@@ -1,0 +1,120 @@
+{
+  "heavy_peak": 1,
+  "model_peak": 1,
+  "timeline": [
+    {
+      "t": 0.078,
+      "event": "heavy-start",
+      "job": "081bf02e7b2e4297bc8f911c403fdcff"
+    },
+    {
+      "t": 2.078,
+      "event": "heavy-end",
+      "job": "081bf02e7b2e4297bc8f911c403fdcff"
+    },
+    {
+      "t": 2.078,
+      "event": "heavy-start",
+      "job": "27321a35b42e476b82af4646a7370bce"
+    },
+    {
+      "t": 4.093,
+      "event": "heavy-end",
+      "job": "27321a35b42e476b82af4646a7370bce"
+    },
+    {
+      "t": 4.093,
+      "event": "model-start",
+      "job": "155c78685eec4e7993bbcbcfcb173869"
+    },
+    {
+      "t": 5.312,
+      "event": "model-end",
+      "job": "155c78685eec4e7993bbcbcfcb173869"
+    },
+    {
+      "t": 5.328,
+      "event": "model-start",
+      "job": "35d870d856804397a2a7bbb5fa79dc09"
+    },
+    {
+      "t": 6.531,
+      "event": "model-end",
+      "job": "35d870d856804397a2a7bbb5fa79dc09"
+    }
+  ],
+  "wait_observations": {
+    "27321a35b42e476b82af4646a7370bce": [
+      "2026-09-30T11:19:44Z",
+      "2026-09-30T11:19:44Z",
+      "2026-09-30T11:19:45Z",
+      "2026-09-30T11:19:45Z",
+      "2026-09-30T11:19:45Z"
+    ],
+    "155c78685eec4e7993bbcbcfcb173869": [
+      "2026-09-30T11:19:44Z",
+      "2026-09-30T11:19:44Z",
+      "2026-09-30T11:19:45Z",
+      "2026-09-30T11:19:45Z",
+      "2026-09-30T11:19:45Z",
+      "2026-09-30T11:19:46Z",
+      "2026-09-30T11:19:46Z"
+    ],
+    "35d870d856804397a2a7bbb5fa79dc09": [
+      "2026-09-30T11:19:44Z",
+      "2026-09-30T11:19:44Z",
+      "2026-09-30T11:19:45Z",
+      "2026-09-30T11:19:45Z",
+      "2026-09-30T11:19:45Z",
+      "2026-09-30T11:19:46Z",
+      "2026-09-30T11:19:46Z"
+    ]
+  },
+  "takeover_attempts": {
+    "27321a35b42e476b82af4646a7370bce": [
+      "JOB_BUSY",
+      "JOB_BUSY",
+      "JOB_BUSY",
+      "JOB_BUSY",
+      "JOB_BUSY"
+    ],
+    "155c78685eec4e7993bbcbcfcb173869": [
+      "JOB_BUSY",
+      "JOB_BUSY",
+      "JOB_BUSY",
+      "JOB_BUSY",
+      "JOB_BUSY",
+      "JOB_BUSY",
+      "JOB_BUSY"
+    ],
+    "35d870d856804397a2a7bbb5fa79dc09": [
+      "JOB_BUSY",
+      "JOB_BUSY",
+      "JOB_BUSY",
+      "JOB_BUSY",
+      "JOB_BUSY",
+      "JOB_BUSY",
+      "JOB_BUSY"
+    ]
+  },
+  "results": [
+    "succeeded",
+    "succeeded",
+    "succeeded",
+    "succeeded"
+  ],
+  "attempts_after": {
+    "081bf02e7b2e4297bc8f911c403fdcff": 1,
+    "27321a35b42e476b82af4646a7370bce": 1,
+    "155c78685eec4e7993bbcbcfcb173869": 1,
+    "35d870d856804397a2a7bbb5fa79dc09": 1
+  },
+  "executor_finished": {
+    "081bf02e7b2e4297bc8f911c403fdcff": true,
+    "27321a35b42e476b82af4646a7370bce": true,
+    "155c78685eec4e7993bbcbcfcb173869": true,
+    "35d870d856804397a2a7bbb5fa79dc09": true
+  },
+  "third_started_after_first_end": null,
+  "engine_active_after": 0
+}

@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 3,
+  "status": "complete",
+  "createdAt": "2026-09-30T10:55:53Z",
+  "label": "v00-probe",
+  "dataDir": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-v00-v6-7y4c81ue\\data",
+  "activeGenerationId": null,
+  "qdrantUrl": "http://127.0.0.1:6333",
+  "files": [
+    {
+      "logicalRole": "textbook-catalog",
+      "archivePath": "sqlite/textbooks-catalog.sqlite3",
+      "restorePath": "textbooks/catalog.sqlite3",
+      "sourcePath": "textbooks/catalog.sqlite3",
+      "bytes": 192512,
+      "sha256": "fb03287dffe48808e2e7478a411971b6fd3a8af3f6793ff6a572b2768c1e86b2"
+    },
+    {
+      "logicalRole": "question-bank-catalog",
+      "archivePath": "sqlite/question-bank.sqlite3",
+      "restorePath": "question-bank/question-bank.sqlite3",
+      "sourcePath": "question-bank/question-bank.sqlite3",
+      "bytes": 122880,
+      "sha256": "09e2dee2858bcdd97bfcee64df2a1062ca992cc0d7124e6d47b17d09891d22ee"
+    },
+    {
+      "logicalRole": "knowledge-catalog",
+      "archivePath": "sqlite/knowledge.sqlite3",
+      "restorePath": "knowledge/knowledge.sqlite3",
+      "sourcePath": "knowledge/knowledge.sqlite3",
+      "bytes": 36864,
+      "sha256": "5634254c816090a6aa425c97d4215b3c857b60699f7d5807b20fc017a10e7e54"
+    },
+    {
+      "logicalRole": "teaching-catalog",
+      "archivePath": "sqlite/teaching.sqlite3",
+      "restorePath": "teaching/teaching.sqlite3",
+      "sourcePath": "teaching/teaching.sqlite3",
+      "bytes": 49152,
+      "sha256": "2eba7c5289f80f3112c310871a1ec3d6a0e205f2c4e577bba2cff2b234fb386a"
+    },
+    {
+      "logicalRole": "textbook-blob",
+      "archivePath": "files/textbook-blob/cef206d3778c49a82f068017c75e02c2a0a55ef393ee4256e16944f4039ab5a7",
+      "restorePath": "textbooks/blobs/cef206d3778c49a82f068017c75e02c2a0a55ef393ee4256e16944f4039ab5a7",
+      "sourcePath": "textbooks/blobs/cef206d3778c49a82f068017c75e02c2a0a55ef393ee4256e16944f4039ab5a7",
+      "bytes": 23,
+      "sha256": "cef206d3778c49a82f068017c75e02c2a0a55ef393ee4256e16944f4039ab5a7"
+    },
+    {
+      "logicalRole": "textbook-normalized",
+      "archivePath": "files/textbook-normalized/660a889c4670bc9b522aecb6de786659d05e24a00f47b4a591000bfb6d3bf2dd",
+      "restorePath": "textbooks/normalized/660a889c4670bc9b522aecb6de786659d05e24a00f47b4a591000bfb6d3bf2dd",
+      "sourcePath": "textbooks/normalized/660a889c4670bc9b522aecb6de786659d05e24a00f47b4a591000bfb6d3bf2dd",
+      "bytes": 15,
+      "sha256": "660a889c4670bc9b522aecb6de786659d05e24a00f47b4a591000bfb6d3bf2dd"
+    },
+    {
+      "logicalRole": "textbook-normalized",
+      "archivePath": "files/textbook-normalized/7d7553ffd13a283d7dda8128f5cdbb5b05e10d073fd1635bdd35e53624148ef8",
+      "restorePath": "textbooks/normalized/7d7553ffd13a283d7dda8128f5cdbb5b05e10d073fd1635bdd35e53624148ef8",
+      "sourcePath": "textbooks/normalized/7d7553ffd13a283d7dda8128f5cdbb5b05e10d073fd1635bdd35e53624148ef8",
+      "bytes": 9,
+      "sha256": "7d7553ffd13a283d7dda8128f5cdbb5b05e10d073fd1635bdd35e53624148ef8"
+    },
+    {
+      "logicalRole": "question-bank-blob",
+      "archivePath": "files/question-bank-blob/10813bd4017e0b6dd6df873328bc09cff50a8b97be22310da10bd4df8aaa1ca3",
+      "restorePath": "question-bank/blobs/10813bd4017e0b6dd6df873328bc09cff50a8b97be22310da10bd4df8aaa1ca3",
+      "sourcePath": "question-bank/blobs/10813bd4017e0b6dd6df873328bc09cff50a8b97be22310da10bd4df8aaa1ca3",
+      "bytes": 22,
+      "sha256": "10813bd4017e0b6dd6df873328bc09cff50a8b97be22310da10bd4df8aaa1ca3"
+    },
+    {
+      "logicalRole": "asset-blob",
+      "archivePath": "files/assets/blobs/a264fc99f3fd3d26b4eb2c006190c512d359900fd714cf2e8b8bb61d2af757e7",
+      "restorePath": "assets/blobs/a264fc99f3fd3d26b4eb2c006190c512d359900fd714cf2e8b8bb61d2af757e7",
+      "sourcePath": "assets/blobs/a264fc99f3fd3d26b4eb2c006190c512d359900fd714cf2e8b8bb61d2af757e7",
+      "bytes": 21,
+      "sha256": "a264fc99f3fd3d26b4eb2c006190c512d359900fd714cf2e8b8bb61d2af757e7"
+    }
+  ],
+  "collections": [],
+  "failures": [],
+  "note": "只有 status=complete 才是可恢复的完整备份；凭证（apps/api/.env）与锁文件不在清单内；恢复只写新目录且必须指向隔离 Qdrant。"
+}

@@ -1,0 +1,108 @@
+{
+  "probe": "v2_startup_gate_probe",
+  "total": 20,
+  "failed": [],
+  "results": [
+    {
+      "name": "v2.1a[0] garbage file refused",
+      "ok": true,
+      "detail": "code=DATABASE_UNREADABLE status=500 msg=数据库无法读取（catalog.sqlite3）：DatabaseError。已拒绝启动，不会按空库重建。"
+    },
+    {
+      "name": "v2.1a[1] garbage file refused",
+      "ok": true,
+      "detail": "code=DATABASE_UNREADABLE status=500 msg=数据库无法读取（catalog.sqlite3）：DatabaseError。已拒绝启动，不会按空库重建。"
+    },
+    {
+      "name": "v2.1a[2] garbage file refused",
+      "ok": true,
+      "detail": "code=DATABASE_UNREADABLE status=500 msg=数据库无法读取（catalog.sqlite3）：DatabaseError。已拒绝启动，不会按空库重建。"
+    },
+    {
+      "name": "v2.1b garbage file not rewritten (bytes unchanged)",
+      "ok": true,
+      "detail": "61c89ceb83a9c192"
+    },
+    {
+      "name": "v2.1c refusal creates no database/sidecar files",
+      "ok": true,
+      "detail": "['textbooks/catalog.sqlite3']"
+    },
+    {
+      "name": "v2.2 refusal releases the file handle (rename ok)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "v2.1d create_app refuses garbage db",
+      "ok": true,
+      "detail": "code=DATABASE_UNREADABLE"
+    },
+    {
+      "name": "v2.1e refusal creates no other database",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "v2.1f garbage app db still byte-identical after create_app refusal",
+      "ok": true,
+      "detail": "5de361ec0a2ce524"
+    },
+    {
+      "name": "v2.3a missing required table refused",
+      "ok": true,
+      "detail": "code=DATABASE_SCHEMA_INCOMPLETE msg=数据库结构不完整（teaching.sqlite3 缺少 file_assets, workflow_jobs）；请勿把未迁移或来源不符的库当既有库使用。已拒绝启动。"
+    },
+    {
+      "name": "v2.3b incomplete db not rebuilt (bytes unchanged)",
+      "ok": true,
+      "detail": "67e78daece212858"
+    },
+    {
+      "name": "v2.3c refusal did not add tables",
+      "ok": true,
+      "detail": "['command_submissions']"
+    },
+    {
+      "name": "v2.4a drift refused by gate",
+      "ok": true,
+      "detail": "code=SCHEMA_MIGRATION_DRIFT msg=数据库 knowledge 的迁移 0001_knowledge_baseline 已登记散列与当前 SQL 不一致（登记 111111111111…，当前 c1260aece348…）。已登记迁移不得改写；请新增一条迁移，或从备份恢复该库。"
+    },
+    {
+      "name": "v2.4b drift refusal leaves file untouched",
+      "ok": true,
+      "detail": "d9a24fa486182c33"
+    },
+    {
+      "name": "v2.5a missing file passes gate",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "v2.5b missing file is not created by the gate",
+      "ok": true,
+      "detail": "exists=False parent_exists=False"
+    },
+    {
+      "name": "v2.6a incomplete restore root refuses create_app",
+      "ok": true,
+      "detail": "code=DATA_RESTORE_INCOMPLETE"
+    },
+    {
+      "name": "v2.6b refusal created no database under incomplete root",
+      "ok": true,
+      "detail": "['restore-state.json']"
+    },
+    {
+      "name": "v2.6c ready restore root passes gate and migrates",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "v2.6d ready root migrates all four databases",
+      "ok": true,
+      "detail": "['knowledge/knowledge.sqlite3', 'question-bank/question-bank.sqlite3', 'teaching/teaching.sqlite3', 'textbooks/catalog.sqlite3']"
+    }
+  ],
+  "observations": []
+}

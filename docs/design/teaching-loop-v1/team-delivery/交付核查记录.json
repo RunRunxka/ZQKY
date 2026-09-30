@@ -1,0 +1,92 @@
+{
+  "date": "2026-09-30",
+  "main_sha": "301fc356493db21d187ab85f32fd49dfffdc51ef",
+  "documents": 9,
+  "pages": 47,
+  "renderer": "WPS COM ExportAsFixedFormat plus bundled Poppler 120 DPI",
+  "packaged_renderer": "unavailable: missing soffice.exe; fallback logs retained in _work",
+  "application_tests": "not_run: documents only, no product-code changes",
+  "checks": [
+    {
+      "file": "00_智启课源八人协作总计划.docx",
+      "pdf": "00_智启课源八人协作总计划.pdf",
+      "pages": 15,
+      "structural": "pass",
+      "visual": "pass",
+      "docx_sha256": "4cab99c6d268ac8d440a93053828987ac90043f57190037cb0e69774b7122719",
+      "pdf_sha256": "9c71a34f33c8cdb136ef1577d8133516c942fde03f037f6d4b51debd3adccf1b"
+    },
+    {
+      "file": "P1_技术负责人和公共基础任务书.docx",
+      "pdf": "P1_技术负责人和公共基础任务书.pdf",
+      "pages": 4,
+      "structural": "pass",
+      "visual": "pass",
+      "docx_sha256": "0ba0a8fe0c6ae18d72bd537a03ebdfb7e9f4a0146cbf66d6a2eb5a67f9e5236a",
+      "pdf_sha256": "009f51a9c020c51db25dfd3f89c31a3c95ce04d53a035ee28770d5e838313845"
+    },
+    {
+      "file": "P2_知识点题库和练习后端任务书.docx",
+      "pdf": "P2_知识点题库和练习后端任务书.pdf",
+      "pages": 4,
+      "structural": "pass",
+      "visual": "pass",
+      "docx_sha256": "aab185a4ee3be338a28e4edd2dd830dd09ff9a676d8f3ed90876e51c7d4dd2ca",
+      "pdf_sha256": "ec72eb046e5bdf30f3324531b492d02902841e855720cd3c872b8f9e0c2c1bca"
+    },
+    {
+      "file": "P3_班级原卷和成绩后端任务书.docx",
+      "pdf": "P3_班级原卷和成绩后端任务书.pdf",
+      "pages": 4,
+      "structural": "pass",
+      "visual": "pass",
+      "docx_sha256": "bee299411a24609a7511434cde48b7e31ccde184883292ca8e9ca4db25d5fce4",
+      "pdf_sha256": "d93137ab2d98a74a011751b5f8c52de28346ec227d12ba440a656a504499c97c"
+    },
+    {
+      "file": "P4_学情报告和AI教案后端任务书.docx",
+      "pdf": "P4_学情报告和AI教案后端任务书.pdf",
+      "pages": 4,
+      "structural": "pass",
+      "visual": "pass",
+      "docx_sha256": "92c33fc0f59555e292c1f077e694b68def903dc6e9ef612ca8c2567f42464005",
+      "pdf_sha256": "2356527d523db0df78acfb3e3b499529d6a5d496978fd353b4468362ca330697"
+    },
+    {
+      "file": "P5_知识点题库和练习前端任务书.docx",
+      "pdf": "P5_知识点题库和练习前端任务书.pdf",
+      "pages": 4,
+      "structural": "pass",
+      "visual": "pass",
+      "docx_sha256": "3ceb83beb7ca5b5aaa29a83b7a8deac97b71ee71c01c7bac531a3f711e9ed18d",
+      "pdf_sha256": "14f838267cffcf377ad1ca4a8438d6d1c7d27fcc116b8aef78cdc941fd109c66"
+    },
+    {
+      "file": "P6_班级测评和成绩前端任务书.docx",
+      "pdf": "P6_班级测评和成绩前端任务书.pdf",
+      "pages": 4,
+      "structural": "pass",
+      "visual": "pass",
+      "docx_sha256": "f827a1642df1d4b77951508a24f2f7b91fe9c5aa4e90ddeb590d5a445c28456b",
+      "pdf_sha256": "b781ed4f6677148ae2507be596a85ee81f1b8fddd187dc5cf9997589cbc37b1c"
+    },
+    {
+      "file": "P7_学情报告和教案前端任务书.docx",
+      "pdf": "P7_学情报告和教案前端任务书.pdf",
+      "pages": 4,
+      "structural": "pass",
+      "visual": "pass",
+      "docx_sha256": "b54b0f28755923fc9f6bb48b28944e56c24a64e82c86b227d8cf898cdc166c31",
+      "pdf_sha256": "6f8318154b84262a2755ab17065339e4ff8d102d8935280e63656df70189ea6a"
+    },
+    {
+      "file": "P8_独立测试和交付验收任务书.docx",
+      "pdf": "P8_独立测试和交付验收任务书.pdf",
+      "pages": 4,
+      "structural": "pass",
+      "visual": "pass",
+      "docx_sha256": "639874c7f3fca45a283717af32b5267726c841396d7ed32aeb6dc45deedb740b",
+      "pdf_sha256": "8c37b4148edaf47ac951238a9d896f89c476341742ba64939ed1c7ff9b1f3817"
+    }
+  ]
+}

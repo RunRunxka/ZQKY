@@ -1,0 +1,10 @@
+erDiagram
+  subjects ||--o{ knowledge_points : owns
+  knowledge_points |o--o{ knowledge_points : parent
+  knowledge_points ||--|{ knowledge_point_revisions : versions
+  knowledge_points ||--o{ knowledge_aliases : aliases
+  knowledge_point_revisions ||..o{ question_knowledge_links : external_reference
+  question_revisions ||--o{ question_knowledge_links : classifies
+  questions ||--|{ question_revisions : versions
+  knowledge_point_revisions ||--o{ textbook_knowledge_links : optional_evidence
+  document_revisions ||..o{ textbook_knowledge_links : external_reference

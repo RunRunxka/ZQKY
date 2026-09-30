@@ -1,8 +1,11 @@
 """备份 / 校验 / 恢复：离线一致性、内容寻址、隔离恢复与应用可读性。
 
-全部在 pytest ``tmp_path`` 内构造真实布局（教材目录 + 题库 + staging 草稿产物），
-Qdrant 用 ``httpx.MockTransport`` 上的最小 REST 替身，走**真实的** ``QdrantAdmin``
-HTTP 代码路径；不连接正式 6333，也不读写正式 ``.local-data``。
+全部在 pytest ``tmp_path`` 内构造真实布局（教材目录 + 题库 + 知识点库 + 教学库 +
+受管资产 + staging 草稿产物），Qdrant 用 ``httpx.MockTransport`` 上的最小 REST 替身，
+走**真实的** ``QdrantAdmin`` HTTP 代码路径；不连接正式 6333，也不读写正式 ``.local-data``。
+
+v3 起备份覆盖四库与 ``assets/blobs``；v2（两库）与 legacy（无版本/1）清单一律手工构造，
+只读兼容语义由专门用例锁定。
 """
 
 from __future__ import annotations
@@ -22,10 +25,14 @@ import pytest
 from app.core.config import Settings
 from app.core.data_lock import acquire_data_lock, require_data_root_ready, restore_state
 from app.core.exceptions import AppError
+from app.repositories.assets.file_assets import FileAssetsRepository
+from app.repositories.knowledge.catalog import KnowledgeCatalog
 from app.repositories.question_bank.catalog import QuestionBankCatalog
+from app.repositories.teaching.catalog import TeachingCatalog
 from app.repositories.textbook_catalog.catalog import TextbookCatalog
 from app.repositories.vector_store import InMemoryVectorStore
 from app.repositories.vector_store.base import point_id_for
+from app.services.assets.store import AssetStore
 from app.services.document_parsing import chunk_document, parse_document
 from app.services.question_bank.service import QuestionBankService
 from app.services.textbook_ingest import IngestService
@@ -261,6 +268,35 @@ class BackupEnv:
             self.question_blob_id = record.original_blob_id
             assert self.question_blob_id
 
+        # 知识点库与教学库：B0 迁移建库（四库备份必须都能取到 SQLite 快照）
+        self.knowledge_catalog = KnowledgeCatalog(
+            self.root / "knowledge" / "knowledge.sqlite3"
+        )
+        self.knowledge_catalog.migrate()
+        self.teaching_catalog = TeachingCatalog(
+            self.root / "teaching" / "teaching.sqlite3"
+        )
+        self.teaching_catalog.migrate()
+
+        # 受管资产：真实文件（内容寻址）+ 教学库 file_assets 登记行
+        self.asset_bytes = "受管资产基线：名单一行\n".encode("utf-8")
+        self.asset_store = AssetStore(self.root / "assets")
+        stored = self.asset_store.store_original(
+            self.asset_bytes, media_type="text/csv", original_name="名单.csv"
+        )
+        self.asset_blob_key = stored.blob_key
+        self.asset_sha256 = stored.sha256
+        self.asset_repo = FileAssetsRepository(self.teaching_catalog)
+        asset_record = self.asset_repo.create(
+            kind="roster",
+            blob_key=stored.blob_key,
+            sha256=stored.sha256,
+            media_type="text/csv",
+            byte_size=stored.byte_size,
+            original_name="名单.csv",
+        )
+        self.asset_id = asset_record.asset_id
+
         # 替身 Qdrant：按目录里的分块写入与索引器一致的 point
         self.server = FakeQdrantServer()
         self.admin = backup.QdrantAdmin("http://127.0.0.1:16333", transport=self.server.transport())
@@ -402,16 +438,20 @@ def test_backup_manifest_shape_includes_draft_artifacts_and_excludes_temporary(
     target = tmp_path / "backup"
     manifest = env.create(target)
     assert manifest["status"] == "complete", manifest["failures"]
-    assert manifest["schemaVersion"] == 2
+    assert manifest["schemaVersion"] == 3
     assert manifest["createdAt"]
     assert manifest["activeGenerationId"] == env.generation_id
 
     restore_paths = {item["restorePath"] for item in manifest["files"]}
+    # v3：四库都必须登记（缺任何一个都是 failure，不会悄悄少备份）
     assert "textbooks/catalog.sqlite3" in restore_paths
     assert "question-bank/question-bank.sqlite3" in restore_paths
+    assert "knowledge/knowledge.sqlite3" in restore_paths
+    assert "teaching/teaching.sqlite3" in restore_paths
     assert f"textbooks/blobs/{env.revision.original_blob_id}" in restore_paths
     assert f"textbooks/normalized/{env.revision.normalized_blob_id}" in restore_paths
     assert f"question-bank/blobs/{env.question_blob_id}" in restore_paths
+    assert f"assets/{env.asset_blob_key}" in restore_paths
     for expected in env.draft_staging_files():
         assert expected in restore_paths, manifest["files"]
     assert all("tmp-" not in item["archivePath"] for item in manifest["files"])
@@ -442,6 +482,9 @@ def test_backup_only_copies_referenced_files(tmp_path: Path) -> None:
     orphan_file.write_bytes(b"orphan-blob")
     orphan_question = hashlib.sha256(b"orphan-question").hexdigest()
     (env.root / "question-bank" / "blobs" / orphan_question).write_bytes(b"orphan-question")
+    orphan_asset = hashlib.sha256(b"orphan-asset").hexdigest()
+    orphan_asset_file = env.root / "assets" / "blobs" / orphan_asset
+    orphan_asset_file.write_bytes(b"orphan-asset")
 
     target = tmp_path / "backup"
     manifest = env.create(target)
@@ -449,8 +492,12 @@ def test_backup_only_copies_referenced_files(tmp_path: Path) -> None:
     blob_ids = {Path(item["archivePath"]).name for item in manifest["files"]}
     assert orphan_blob not in blob_ids
     assert orphan_question not in blob_ids
+    assert orphan_asset not in blob_ids
+    assert env.asset_sha256 in blob_ids  # 被 file_assets 引用的资产必须收录
     assert not (target / "files" / "textbook-blob" / orphan_blob).exists()
     assert not (target / "files" / "question-bank-blob" / orphan_question).exists()
+    assert not (target / "files" / "assets" / "blobs" / orphan_asset).exists()
+    assert (target / "files" / "assets" / env.asset_blob_key).is_file()
     # 锁文件也不在归档里
     assert not list(target.rglob(".zqky-data.lock"))
 
@@ -507,6 +554,75 @@ def test_verify_reports_failed_status(tmp_path: Path) -> None:
     assert backup.main(["verify", "--path", str(target)]) == 1
 
 
+def test_missing_knowledge_catalog_fails_backup_and_cli_exit_1(tmp_path: Path) -> None:
+    """四库缺任何一个都算失败：不得悄悄少备份一个库。"""
+    env = make_env(tmp_path)
+    (env.root / "knowledge" / "knowledge.sqlite3").unlink()
+    target = tmp_path / "backup-missing-knowledge"
+
+    manifest = env.create(target)
+    assert manifest["status"] == "failed"
+    assert any("知识点库缺失" in item for item in manifest["failures"])
+    assert "knowledge/knowledge.sqlite3" not in {
+        item["restorePath"] for item in manifest["files"]
+    }
+    assert (target / "manifest.json").is_file()
+
+    failures, _notes = backup.verify_backup(target)
+    assert any("status=failed" in item for item in failures)
+
+    result = _run_cli(
+        "create", "--data-dir", str(env.root), "--into", str(tmp_path / "cli-missing")
+    )
+    assert result.returncode == 1
+    assert "备份完成" not in result.stdout
+    assert "备份失败" in result.stderr
+    assert "知识点库" in result.stderr
+
+
+def test_backup_fails_when_referenced_asset_missing_or_tampered(tmp_path: Path) -> None:
+    env = make_env(tmp_path)
+    asset_path = env.root / "assets" / env.asset_blob_key
+    original = asset_path.read_bytes()
+
+    # 源文件字节被篡改（同长度）→ 内容指纹不符
+    asset_path.write_bytes(bytes([original[0] ^ 0xFF]) + original[1:])
+    target = tmp_path / "backup-tampered-asset"
+    manifest = env.create(target)
+    assert manifest["status"] == "failed"
+    assert any(
+        "受管资产" in item and "指纹不符" in item for item in manifest["failures"]
+    )
+
+    # 源文件缺失 → 明确失败并指名文件
+    asset_path.write_bytes(original)
+    asset_path.unlink()
+    target = tmp_path / "backup-missing-asset"
+    manifest = env.create(target)
+    assert manifest["status"] == "failed"
+    assert any(
+        "受管资产" in item and "缺失" in item for item in manifest["failures"]
+    )
+
+
+def test_verify_rejects_tampered_asset_blob(tmp_path: Path) -> None:
+    env = make_env(tmp_path)
+    target = tmp_path / "backup"
+    manifest = env.create(target)
+    assert manifest["status"] == "complete", manifest["failures"]
+
+    entry = next(item for item in manifest["files"] if item["logicalRole"] == "asset-blob")
+    assert Path(entry["archivePath"]).name == env.asset_sha256  # 内容寻址
+    tampered = target / entry["archivePath"]
+    tampered.write_bytes(tampered.read_bytes() + b"x")
+
+    failures, _notes = backup.verify_backup(target)
+    assert any(
+        "指纹不符" in item or "内容寻址不符" in item for item in failures
+    ), failures
+    assert backup.main(["verify", "--path", str(target)]) == 1
+
+
 # --------------------------------------------------------------------------- 恢复
 
 
@@ -528,6 +644,10 @@ def test_restore_writes_runtime_layout_and_app_can_read(tmp_path: Path) -> None:
     assert (restored / "textbooks" / "normalized").is_dir()
     assert (restored / "textbooks" / "staging").is_dir()
     assert (restored / "question-bank" / "question-bank.sqlite3").is_file()
+    # v3：知识点库、教学库与受管资产同样恢复为运行布局
+    assert (restored / "knowledge" / "knowledge.sqlite3").is_file()
+    assert (restored / "teaching" / "teaching.sqlite3").is_file()
+    assert (restored / "assets" / env.asset_blob_key).is_file()
     assert not (restored / "sqlite").exists()
     assert not (restored / "files").exists()
 
@@ -575,6 +695,20 @@ def test_restore_writes_runtime_layout_and_app_can_read(tmp_path: Path) -> None:
     imports = question_catalog.list_imports()
     assert len(imports) == 1 and imports[0].original_blob_id == env.question_blob_id
 
+    # 知识点库与教学库同样可读，应用侧能读出受管资产登记行
+    knowledge_catalog = KnowledgeCatalog(settings.knowledge_root / "knowledge.sqlite3")
+    knowledge_catalog.migrate()
+    teaching_catalog = TeachingCatalog(settings.teaching_root / "teaching.sqlite3")
+    teaching_catalog.migrate()
+    asset_record = FileAssetsRepository(teaching_catalog).get(env.asset_id)
+    assert asset_record is not None
+    assert asset_record.blob_key == env.asset_blob_key
+    assert asset_record.sha256 == env.asset_sha256
+    assert asset_record.ref().byte_size == len(env.asset_bytes)
+    asset_store = AssetStore(settings.assets_root)
+    assert asset_store.read(env.asset_blob_key) == env.asset_bytes
+    assert asset_store.verify(env.asset_blob_key) == len(env.asset_bytes)
+
     # 隔离实例上出现新 collection，点数与 payload 指纹已核对；原 collection 未被改写
     restored_record = state["restoredCollections"][0]
     assert restored_record["pointCount"] == env.point_count
@@ -590,6 +724,60 @@ def test_restore_writes_runtime_layout_and_app_can_read(tmp_path: Path) -> None:
     assert original_catalog.get_generation(env.generation_id).collection_name == (
         original_collection_name
     )
+    assert (env.root / "assets" / env.asset_blob_key).read_bytes() == env.asset_bytes
+    assert env.asset_repo.get(env.asset_id) is not None
+
+
+def test_v3_backup_verify_restore_all_four_catalogs_and_assets(tmp_path: Path) -> None:
+    """v3 全链路：create → verify → restore，四库可读、资产可校验。"""
+    env = make_env(tmp_path)
+    source = tmp_path / "backup-v3"
+
+    manifest = env.create(source)
+    assert manifest["status"] == "complete", manifest["failures"]
+    assert manifest["schemaVersion"] == 3
+    failures, _notes = backup.verify_backup(source)
+    assert failures == []
+    assert backup.main(["verify", "--path", str(source)]) == 0
+
+    restored = tmp_path / "restored-v3"
+    state = backup.restore_backup(source, restored, isolated_qdrant=env.admin)
+    assert state["status"] == "ready"
+    assert state["manifestSchemaVersion"] == 3
+    assert restore_state(restored)["status"] == "ready"
+    require_data_root_ready(restored)
+
+    settings = Settings(
+        host="127.0.0.1",
+        port=8001,
+        allowed_origins=frozenset(),
+        env="test",
+        data_dir=restored,
+    )
+    for relative in (
+        "textbooks/catalog.sqlite3",
+        "question-bank/question-bank.sqlite3",
+        "knowledge/knowledge.sqlite3",
+        "teaching/teaching.sqlite3",
+    ):
+        assert (restored / relative).is_file(), relative
+    assert not (restored / "sqlite").exists()
+    assert not (restored / "files").exists()
+
+    # 资产可校验：改名文件在运行布局里，内容与散列一致
+    asset_store = AssetStore(settings.assets_root)
+    assert asset_store.read(env.asset_blob_key) == env.asset_bytes
+    assert asset_store.verify(env.asset_blob_key) == len(env.asset_bytes)
+
+    # 应用侧：知识点库/教学库迁移幂等，教学库能读出 file_assets 行
+    KnowledgeCatalog(settings.knowledge_root / "knowledge.sqlite3").migrate()
+    teaching = TeachingCatalog(settings.teaching_root / "teaching.sqlite3")
+    teaching.migrate()
+    record = FileAssetsRepository(teaching).get(env.asset_id)
+    assert record is not None
+    assert record.kind == "roster"
+    assert record.blob_key == env.asset_blob_key
+    assert record.ref().sha256 == env.asset_sha256
 
 
 def test_restore_refuses_existing_target(tmp_path: Path) -> None:
@@ -737,11 +925,45 @@ def test_restore_refuses_when_collection_dimensions_mismatch(tmp_path: Path) -> 
     assert state is not None and state["status"] == "incomplete"
 
 
+def test_restore_fails_when_teaching_asset_reference_missing(tmp_path: Path) -> None:
+    """恢复后的教学库引用了未随归档恢复的资产 → 失败且 restore-state 留 incomplete。"""
+    env = make_env(tmp_path)
+    source = tmp_path / "backup"
+    env.create(source)
+
+    # 手工构造内部不一致的 v3 归档：教学库仍引用资产，但清单与归档都没有该资产
+    manifest_path = source / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    removed = [
+        item for item in manifest["files"] if item.get("logicalRole") == "asset-blob"
+    ]
+    assert removed
+    manifest["files"] = [
+        item for item in manifest["files"] if item.get("logicalRole") != "asset-blob"
+    ]
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
+    for item in removed:
+        (source / item["archivePath"]).unlink(missing_ok=True)
+
+    target = tmp_path / "restored-missing-asset"
+    with pytest.raises(backup.BackupFailed) as excinfo:
+        backup.restore_backup(source, target, isolated_qdrant=env.admin)
+    assert "受管资产" in str(excinfo.value)
+    assert not (target / "assets" / env.asset_blob_key).exists()
+
+    state = restore_state(target)
+    assert state is not None and state["status"] == "incomplete"
+    assert any("受管资产" in item for item in state["failures"])
+    with pytest.raises(AppError) as excinfo:
+        require_data_root_ready(target)
+    assert excinfo.value.code == "DATA_RESTORE_INCOMPLETE"
+
+
 # --------------------------------------------------------------------------- 旧清单
 
 
 def _copy_legacy_layout(env: BackupEnv, archive: Path, *, include_snapshot: bool = True) -> dict:
-    """把 v2 备份内容摊成旧归档布局（sqlite/ + files/ + qdrant/），并写旧清单。"""
+    """把数据根的两库与 blob 摊成旧归档布局（sqlite/ + files/ + qdrant/），并写旧清单。"""
     (archive / "sqlite").mkdir(parents=True)
     (archive / "files" / "textbooks-blobs").mkdir(parents=True)
     (archive / "files" / "textbooks-normalized").mkdir(parents=True)
@@ -859,3 +1081,71 @@ def test_legacy_manifest_with_draft_artifacts_refuses_before_writing(tmp_path: P
         backup.restore_backup(archive, target, isolated_qdrant=env.admin)
     assert "草稿" in str(excinfo.value)
     assert not target.exists()
+
+
+# --------------------------------------------------------------------------- v2 兼容
+
+
+def _downgrade_to_v2(source: Path, target: Path) -> None:
+    """把 v3 归档裁剪成手工构造的 v2 两库清单（不依赖已经过时的真实创建路径）。
+
+    只保留教材/题库的 restorePath 条目并删除对应归档里多余的库与资产文件，
+    证明 v2 语义（两库必需、无知识点/教学/资产）仍然成立。
+    """
+    shutil.copytree(source, target)
+    manifest_path = target / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    kept: list[dict] = []
+    dropped: list[dict] = []
+    for item in manifest["files"]:
+        restore_path = str(item.get("restorePath") or "")
+        bucket = (
+            kept
+            if restore_path.startswith(("textbooks/", "question-bank/"))
+            else dropped
+        )
+        bucket.append(item)
+    manifest["files"] = kept
+    manifest["schemaVersion"] = 2
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
+    for item in dropped:
+        archive_path = item.get("archivePath")
+        if isinstance(archive_path, str):
+            (target / archive_path).unlink(missing_ok=True)
+    for stale in ("sqlite/knowledge.sqlite3", "sqlite/teaching.sqlite3"):
+        (target / stale).unlink(missing_ok=True)
+    shutil.rmtree(target / "files" / "assets", ignore_errors=True)
+
+
+def test_v2_manifest_still_verifies_and_restores_two_catalogs(tmp_path: Path) -> None:
+    env = make_env(tmp_path)
+    source = tmp_path / "backup-v3"
+    env.create(source)
+    v2_archive = tmp_path / "backup-v2"
+    _downgrade_to_v2(source, v2_archive)
+
+    failures, notes = backup.verify_backup(v2_archive)
+    assert failures == []
+    assert any("旧 v2 清单只覆盖教材目录与题库" in note for note in notes)
+    assert backup.main(["verify", "--path", str(v2_archive)]) == 0
+
+    restored = tmp_path / "restored-v2"
+    state = backup.restore_backup(v2_archive, restored, isolated_qdrant=env.admin)
+    assert state["status"] == "ready"
+    assert state["manifestSchemaVersion"] == 2
+    require_data_root_ready(restored)
+    assert (restored / "textbooks" / "catalog.sqlite3").is_file()
+    assert (restored / "question-bank" / "question-bank.sqlite3").is_file()
+    # v2 语义不变：知识库/教学库/资产目录不因 v3 扩展而被凭空要求
+    assert not (restored / "knowledge").exists()
+    assert not (restored / "teaching").exists()
+    assert not (restored / "assets").exists()
+
+    catalog = TextbookCatalog(restored / "textbooks" / "catalog.sqlite3")
+    catalog.migrate()
+    assert catalog.catalog_state().active_generation_id == env.generation_id
+    question_catalog = QuestionBankCatalog(
+        restored / "question-bank" / "question-bank.sqlite3"
+    )
+    question_catalog.migrate()
+    assert question_catalog.list_imports()[0].original_blob_id == env.question_blob_id

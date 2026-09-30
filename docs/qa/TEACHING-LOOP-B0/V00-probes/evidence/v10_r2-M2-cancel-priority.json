@@ -1,0 +1,19 @@
+{
+  "label": "r2-M2-cancel-priority",
+  "file": "apps/api/app/repositories/jobs/repository.py",
+  "old": "            if record.cancel_requested:",
+  "new": "            if False:",
+  "runs": [
+    {
+      "kind": "pytest",
+      "exit_code": 1,
+      "failed": [
+        "tests/test_jobs_engine.py::test_complete_after_cancel_request_marks_cancelled_without_publishing"
+      ],
+      "tail": "_after_cancel_request_marks_cancelled_without_publishing(\n        tmp_path: Path,\n    ) -> None:\n        catalog, store, _clock = _teaching_store(tmp_path)\n        _create_probe(catalog)\n        job = store.create(kind=\"export\")\n        lease = store.claim(job.job_id)\n        requested = store.request_cancel(job.job_id)\n        assert requested.state == \"running\"\n        assert requested.cancel_requested is True\n        def publish(tx: sqlite3.Connection) -> None:\n            tx.execute(\"INSERT INTO publish_probe (id) VALUES ('nope')\")\n        done = store.complete(job.job_id, lease, result={\"late\": True}, publish=publish)\n>       assert done.state == \"cancelled\"\nE       AssertionError: assert 'succeeded' == 'cancelled'\nE         \nE         - cancelled\nE         + succeeded\ntests\\test_jobs_engine.py:264: AssertionError\n============================== warnings summary ===============================\n.venv\\Lib\\site-packages\\starlette\\testclient.py:53\n  H:\\备份xuexi\\智启课源\\apps\\api\\.venv\\Lib\\site-packages\\starlette\\testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.\n    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ===========================\nFAILED tests/test_jobs_engine.py::test_complete_after_cancel_request_marks_cancelled_without_publishing",
+      "targets": [
+        "tests/test_jobs_engine.py"
+      ]
+    }
+  ]
+}

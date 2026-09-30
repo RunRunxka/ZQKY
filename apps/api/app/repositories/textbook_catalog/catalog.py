@@ -162,8 +162,8 @@ class TextbookCatalog:
     def migrate(self) -> None:
         connection = self._open(require_migrated=False)
         try:
-            with transaction(connection, immediate=True) as conn:
-                migrate_schema(conn)
+            # 迁移执行器（app.core.migrations）逐条自管事务；这里不再包外层事务。
+            migrate_schema(connection)
         finally:
             connection.close()
         self._migrated = True

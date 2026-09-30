@@ -3,12 +3,28 @@
  * 修改任一侧时必须同步另一侧并更新测试。
  */
 
+/** 422 行列错误：定位到原行/原列，不回显请求内容（TEACHING-LOOP B0 冻结）。 */
+export interface ErrorIssue {
+  row?: number;
+  column?: string;
+  field?: string;
+  code: string;
+  message: string;
+}
+
+/** 错误详情冻结形状：409 版本冲突用 currentRevision，422 用 issues（简单字段错误可用 fields）。 */
+export interface ApiErrorDetails {
+  currentRevision?: number;
+  issues?: ErrorIssue[];
+  fields?: string[];
+}
+
 export interface ApiErrorEnvelope {
   code: string;
   message: string;
   requestId?: string;
   retryable?: boolean;
-  details?: Record<string, unknown>;
+  details?: ApiErrorDetails;
 }
 
 export type CapabilityStatus = 'planned' | 'ready' | 'unconfigured' | 'unavailable';

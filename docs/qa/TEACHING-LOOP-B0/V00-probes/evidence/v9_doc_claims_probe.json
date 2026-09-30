@@ -1,0 +1,308 @@
+{
+  "probe": "v9_doc_claims_probe",
+  "total": 60,
+  "failed": [],
+  "results": [
+    {
+      "name": "v9.a1 API.md 声明 GET 路由",
+      "ok": true,
+      "detail": "GET `/api/v1/workflow-jobs/{jobId}?domain=knowledge\\|question\\|teaching`"
+    },
+    {
+      "name": "v9.a1 API.md 声明 cancel 路由",
+      "ok": true,
+      "detail": "POST `/api/v1/workflow-jobs/{jobId}/cancel`"
+    },
+    {
+      "name": "v9.a1 API.md 声明 retry 路由",
+      "ok": true,
+      "detail": "POST `/api/v1/workflow-jobs/{jobId}/retry`"
+    },
+    {
+      "name": "v9.a2 API.md 声明 404 JOB_NOT_FOUND",
+      "ok": true,
+      "detail": "404 `JOB_NOT_FOUND`"
+    },
+    {
+      "name": "v9.a2 API.md 声明 非法域 422",
+      "ok": true,
+      "detail": "域非法 422"
+    },
+    {
+      "name": "v9.a2 API.md 声明 未装配 503",
+      "ok": true,
+      "detail": "域未装配 503"
+    },
+    {
+      "name": "v9.a2 API.md 声明 重试仅终态",
+      "ok": true,
+      "detail": "仅终态 `failed/interrupted/cancelled` 可重试"
+    },
+    {
+      "name": "v9.a2 API.md 声明 queued/running 409",
+      "ok": true,
+      "detail": "`queued/running` → 409 `JOB_NOT_RETRYABLE`"
+    },
+    {
+      "name": "v9.a2 API.md 声明 取消幂等",
+      "ok": true,
+      "detail": "幂等"
+    },
+    {
+      "name": "v9.a2 API.md 声明 租约/心跳时间",
+      "ok": true,
+      "detail": "租约 90 秒、每 20 秒续租"
+    },
+    {
+      "name": "v9.a2 API.md 声明 并发上限",
+      "ok": true,
+      "detail": "同时最多 2 个后台重任务，其中最多 1 个模型生成任务"
+    },
+    {
+      "name": "v9.a3 四库实际路径 = API.md 表格",
+      "ok": true,
+      "detail": "{'textbooks': 'textbooks/catalog.sqlite3', 'question_bank': 'question-bank/question-bank.sqlite3', 'knowledge': 'knowledge/knowledge.sqlite3', 'teaching': 'teaching/teaching.sqlite3'}"
+    },
+    {
+      "name": "v9.a4 资产根 = data_dir/assets",
+      "ok": true,
+      "detail": "T:\\probe-data\\assets"
+    },
+    {
+      "name": "v9.a5 JobStore 默认租约 90 秒；引擎心跳上限 20 秒",
+      "ok": true,
+      "detail": "kwdefaults={'lease_seconds': 90, 'now': None}"
+    },
+    {
+      "name": "v9.a6 kinds 白名单在 app/main.py（TASK-CARD §6 声明）",
+      "ok": true,
+      "detail": "{'question': ['generate', 'organize'], 'knowledge': ['suggestion'], 'teaching': ['analysis', 'export', 'lesson_generation', 'paper_import', 'paper_mapping']}"
+    },
+    {
+      "name": "v9.a7 收敛范围（TASK-CARD §3.4.5 更新版）与代码一致",
+      "ok": true,
+      "detail": "RECONCILE_DOMAINS=('knowledge', 'teaching')"
+    },
+    {
+      "name": "v9.b API.md 备份声明：清单 `schemaVersion: 3`",
+      "ok": true,
+      "detail": "清单 `schemaVersion: 3`"
+    },
+    {
+      "name": "v9.b API.md 备份声明：`textbooks/catalog.sqlite3`",
+      "ok": true,
+      "detail": "`textbooks/catalog.sqlite3`"
+    },
+    {
+      "name": "v9.b API.md 备份声明：`question-bank/question-bank.sqlit",
+      "ok": true,
+      "detail": "`question-bank/question-bank.sqlite3`"
+    },
+    {
+      "name": "v9.b API.md 备份声明：`knowledge/knowledge.sqlite3`",
+      "ok": true,
+      "detail": "`knowledge/knowledge.sqlite3`"
+    },
+    {
+      "name": "v9.b API.md 备份声明：`teaching/teaching.sqlite3`",
+      "ok": true,
+      "detail": "`teaching/teaching.sqlite3`"
+    },
+    {
+      "name": "v9.b API.md 备份声明：缺任一库/任一被引用原件即 `status:\"failed\"`",
+      "ok": true,
+      "detail": "缺任一库/任一被引用原件即 `status:\"failed\"`"
+    },
+    {
+      "name": "v9.b API.md 备份声明：`file_assets` 引用逐文件重算 sha256",
+      "ok": true,
+      "detail": "`file_assets` 引用逐文件重算 sha256"
+    },
+    {
+      "name": "v9.b API.md 备份声明：`integrity_check` + `foreign_key_c",
+      "ok": true,
+      "detail": "`integrity_check` + `foreign_key_check`"
+    },
+    {
+      "name": "v9.b2 代码事实：SCHEMA_VERSION=3 且必需恢复路径为四库",
+      "ok": true,
+      "detail": "SCHEMA_VERSION=3 必需=('textbooks/catalog.sqlite3', 'question-bank/question-bank.sqlite3', 'knowledge/knowledge.sqlite3', 'teaching/teaching.sqlite3')"
+    },
+    {
+      "name": "v9.b3 代码事实：受管资产归档前缀 files/assets/ + 恢复路径 assets/<blob_key>",
+      "ok": true,
+      "detail": "files/assets/ / ('textbooks/', 'question-bank/', 'knowledge/', 'teaching/', 'assets/')"
+    },
+    {
+      "name": "v9.c AGENTS.md 迁移纪律：每库 `schema_migrations`",
+      "ok": true,
+      "detail": "每库 `schema_migrations`"
+    },
+    {
+      "name": "v9.c AGENTS.md 迁移纪律：app/core/migrations/{textboo",
+      "ok": true,
+      "detail": "app/core/migrations/{textbooks,question_bank,knowledge,teaching}.py"
+    },
+    {
+      "name": "v9.c AGENTS.md 迁移纪律：改动结构一律**新增迁移**，不得改写已登记 SQL",
+      "ok": true,
+      "detail": "改动结构一律**新增迁移**，不得改写已登记 SQL"
+    },
+    {
+      "name": "v9.c AGENTS.md 迁移纪律：散列漂移会拒绝启动",
+      "ok": true,
+      "detail": "散列漂移会拒绝启动"
+    },
+    {
+      "name": "v9.c 迁移纪律在 AGENTS.md 的其余口径见 PROJECT_GUIDE §11（不得按空库重建）",
+      "ok": true,
+      "detail": "该句在 PROJECT_GUIDE §11；AGENTS.md 未重复声明，属分工而非缺失"
+    },
+    {
+      "name": "v9.c2 迁移清单文件实际存在",
+      "ok": true,
+      "detail": "['__init__.py', 'base.py', 'knowledge.py', 'question_bank.py', 'teaching.py', 'textbooks.py']"
+    },
+    {
+      "name": "v9.d PROJECT_GUIDE §11 声明：租约 90 秒 / 心跳 20 秒",
+      "ok": true,
+      "detail": "租约 90 秒 / 心跳 20 秒"
+    },
+    {
+      "name": "v9.d PROJECT_GUIDE §11 声明：**并发上限 2 个重任务、其中 1 个模型任务**",
+      "ok": true,
+      "detail": "**并发上限 2 个重任务、其中 1 个模型任务**"
+    },
+    {
+      "name": "v9.d PROJECT_GUIDE §11 声明：重启遗留 `running` 收敛为 `interr",
+      "ok": true,
+      "detail": "重启遗留 `running` 收敛为 `interrupted`"
+    },
+    {
+      "name": "v9.d PROJECT_GUIDE §11 声明：.local-data/knowledge/know",
+      "ok": true,
+      "detail": ".local-data/knowledge/knowledge.sqlite3"
+    },
+    {
+      "name": "v9.d PROJECT_GUIDE §11 声明：.local-data/teaching/teach",
+      "ok": true,
+      "detail": ".local-data/teaching/teaching.sqlite3"
+    },
+    {
+      "name": "v9.d PROJECT_GUIDE §11 声明：.local-data/assets/blobs/<",
+      "ok": true,
+      "detail": ".local-data/assets/blobs/<sha256>"
+    },
+    {
+      "name": "v9.d PROJECT_GUIDE §11 声明：`app/contracts/teaching_lo",
+      "ok": true,
+      "detail": "`app/contracts/teaching_loop.py`"
+    },
+    {
+      "name": "v9.d PROJECT_GUIDE §11 声明：apps/web/src/contracts/tea",
+      "ok": true,
+      "detail": "apps/web/src/contracts/teaching-loop.ts"
+    },
+    {
+      "name": "v9.d PROJECT_GUIDE §11 声明：重试保留冻结输入与模型指纹",
+      "ok": true,
+      "detail": "重试保留冻结输入与模型指纹"
+    },
+    {
+      "name": "v9.d PROJECT_GUIDE §11 声明：取消只走接口且迟到结果不发布",
+      "ok": true,
+      "detail": "取消只走接口且迟到结果不发布"
+    },
+    {
+      "name": "v9.d2 §11 收敛范围点名例外",
+      "ok": true,
+      "detail": "§11 已说明收敛范围"
+    },
+    {
+      "name": "v9.e1 从 TASK-CARD §3.5 解析出 19 列",
+      "ok": true,
+      "detail": "['id', 'owner_id', 'kind', 'state', 'frozen_input_json', 'input_hash', 'model_snapshot_json', 'attempt', 'lease_token', 'lease_expires_at', 'cancel_requested', 'checkpoint_json', 'result_json', 'error_code', 'error_json', 'created_at', 'updated_at', 'started_at', 'finished_at']"
+    },
+    {
+      "name": "v9.e2 knowledge_jobs 列集合 = §3.5 列清单",
+      "ok": true,
+      "detail": "missing=[] extra=[]"
+    },
+    {
+      "name": "v9.e3 knowledge_jobs state 有六态 CHECK",
+      "ok": true,
+      "detail": "CHECK 六态存在"
+    },
+    {
+      "name": "v9.e4 knowledge_jobs kind 不加 CHECK（§3.5 偏差记录）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "v9.e5 knowledge_jobs 具备 §3.5 声明的 (state, created_at) 与 (kind, state) 索引",
+      "ok": true,
+      "detail": "indexes={'idx_knowledge_jobs_kind': ['kind', 'state'], 'idx_knowledge_jobs_state': ['state', 'created_at'], 'sqlite_autoindex_knowledge_jobs_1': ['id']}"
+    },
+    {
+      "name": "v9.e2 workflow_jobs 列集合 = §3.5 列清单",
+      "ok": true,
+      "detail": "missing=[] extra=[]"
+    },
+    {
+      "name": "v9.e3 workflow_jobs state 有六态 CHECK",
+      "ok": true,
+      "detail": "CHECK 六态存在"
+    },
+    {
+      "name": "v9.e4 workflow_jobs kind 不加 CHECK（§3.5 偏差记录）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "v9.e5 workflow_jobs 具备 §3.5 声明的 (state, created_at) 与 (kind, state) 索引",
+      "ok": true,
+      "detail": "indexes={'idx_workflow_jobs_kind': ['kind', 'state'], 'idx_workflow_jobs_state': ['state', 'created_at'], 'sqlite_autoindex_workflow_jobs_1': ['id']}"
+    },
+    {
+      "name": "v9.e2 question_jobs 列集合 = §3.5 列清单",
+      "ok": true,
+      "detail": "missing=[] extra=[]"
+    },
+    {
+      "name": "v9.e3 question_jobs 无 CHECK（§3.5 偏差记录），由应用层校验",
+      "ok": true,
+      "detail": "见 app/repositories/question_bank/schema.py 与 TASK-CARD §3.5"
+    },
+    {
+      "name": "v9.e4 question_jobs kind 不加 CHECK（§3.5 偏差记录）",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "v9.e5 question_jobs 具备 §3.5 声明的 (state, created_at) 与 (kind, state) 索引",
+      "ok": true,
+      "detail": "indexes={'idx_question_jobs_engine_state': ['state', 'created_at'], 'idx_question_jobs_state': ['kind', 'state'], 'sqlite_autoindex_question_jobs_1': ['id']}"
+    },
+    {
+      "name": "v9.e6 knowledge_submissions 列 = §3.6（复合身份）",
+      "ok": true,
+      "detail": "doc=['owner_id', 'operation', 'submission_id', 'request_hash', 'result_json', 'created_at'] actual=['owner_id', 'operation', 'submission_id', 'request_hash', 'result_json', 'created_at']"
+    },
+    {
+      "name": "v9.e6 command_submissions 列 = §3.6（复合身份）",
+      "ok": true,
+      "detail": "doc=['owner_id', 'operation', 'submission_id', 'request_hash', 'result_json', 'created_at'] actual=['owner_id', 'operation', 'submission_id', 'request_hash', 'result_json', 'created_at']"
+    },
+    {
+      "name": "v9.e7 file_assets 列 = §3.7",
+      "ok": true,
+      "detail": "doc=['id', 'owner_id', 'kind', 'blob_key', 'sha256', 'original_name', 'media_type', 'byte_size', 'created_at'] actual=['id', 'owner_id', 'kind', 'blob_key', 'sha256', 'original_name', 'media_type', 'byte_size', 'created_at']"
+    },
+    {
+      "name": "v9.e8 file_assets kind/sha256/byte_size 约束与 §3.7 一致",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "observations": []
+}

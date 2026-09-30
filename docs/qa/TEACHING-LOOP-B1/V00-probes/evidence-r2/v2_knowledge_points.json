@@ -1,0 +1,194 @@
+{
+  "probe": "v2_knowledge_points",
+  "passed": 37,
+  "failed": 0,
+  "total": 37,
+  "results": [
+    {
+      "name": "v2.1a 创建知识点 201",
+      "ok": true,
+      "detail": "201 {'id': 'd4e503f81fcb4b6eb7a2205669d3fad3', 'subjectId': 'math', 'code': 'M-01', 'name': '有理数', 'description': 'desc-1', 'parentId': None, 'parentCode': None, 'sortOrder': 5, 'status': 'active', 'revision': 0, 'revisionId': '7bca47eb9aec4d1288749045e95d932f', 'version': 1, 'aliases': ['ＡＢＣ'], 'createdAt': '2026-09-30T13:54:21Z'}"
+    },
+    {
+      "name": "v2.1b 首修订 version=1 / revision=0 / revisionId 非空",
+      "ok": true,
+      "detail": "{\"version\": 1, \"revision\": 0, \"revisionId\": \"7bca47eb9aec4d1288749045e95d932f\", \"status\": \"active\"}"
+    },
+    {
+      "name": "v2.1c 别名按规范化（NFKC+casefold）在点内去重",
+      "ok": true,
+      "detail": "aliases=['ＡＢＣ']"
+    },
+    {
+      "name": "v2.1d 详情读取一致",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "name": "v2.1e parentCode 解析成功（子点创建 201）",
+      "ok": true,
+      "detail": "201 {'id': '22d91ec200e34390addc90afe7ef2651', 'subjectId': 'math', 'code': 'M-02', 'name': '相反数', 'description': '', 'parentId': 'd4e503f81fcb4b6eb7a2205669d3fad3', 'parentCode': 'M-01', 'sortOrder': 0, 'status': 'active', 'revision': 0, 'revisionId': '4157b464f2a5423aa850e29ee32a7ddc', 'version': 1, 'aliases': [], 'createdAt': '2026-09-30T13:54:21Z'}"
+    },
+    {
+      "name": "v2.1f 子点 parentId/parentCode 正确回填",
+      "ok": true,
+      "detail": "{\"parentId\": \"d4e503f81fcb4b6eb7a2205669d3fad3\", \"parentCode\": \"M-01\"}"
+    },
+    {
+      "name": "v2.1g 列表分页形状 {items,total,offset,limit}",
+      "ok": true,
+      "detail": "{\"total\": 3, \"offset\": 1, \"limit\": 2} items=2"
+    },
+    {
+      "name": "v2.1h q 可命中别名（规范化后模糊）",
+      "ok": true,
+      "detail": "[{\"id\": \"d4e503f81fcb4b6eb7a2205669d3fad3\", \"subjectId\": \"math\", \"code\": \"M-01\", \"name\": \"有理数\", \"description\": \"desc-1\", \"parentId\": null, \"parentCode\": null, \"sortOrder\": 5, \"status\": \"active\", \"revi"
+    },
+    {
+      "name": "v2.1i parentId 过滤",
+      "ok": true,
+      "detail": "[\"M-02\"]"
+    },
+    {
+      "name": "v2.2a 改名 200",
+      "ok": true,
+      "detail": "200 {'id': 'd4e503f81fcb4b6eb7a2205669d3fad3', 'subjectId': 'math', 'code': 'M-01', 'name': '有理数与无理数', 'description': 'desc-1', 'parentId': None, 'parentCode': None, 'sortOrder': 5, 'status': 'active', 'revision': 1, 'revisionId': 'ab87dfc31e294df88c8485f78fd268f2', 'version': 2, 'aliases': ['ＡＢＣ'], 'createdAt': '2026-09-30T13:54:21Z'}"
+    },
+    {
+      "name": "v2.2b 改名追加修订（version 2 / revision 1 / revisionId 变化）",
+      "ok": true,
+      "detail": "{\"version\": 2, \"revision\": 1, \"name\": \"有理数与无理数\"}"
+    },
+    {
+      "name": "v2.2c 过期 expectedRevision → 409 REVISION_CONFLICT + details.currentRevision",
+      "ok": true,
+      "detail": "409 {\"code\": \"REVISION_CONFLICT\", \"message\": \"数据已被其他操作更新，请刷新后重试。\", \"requestId\": \"c27b2f12e3c6425caeb1a998cb199ffe\", \"retryable\": false, \"details\": {\"currentRevision\": 1}}"
+    },
+    {
+      "name": "v2.2d 同学科同 code → 409 KNOWLEDGE_CODE_CONFLICT",
+      "ok": true,
+      "detail": "409 KNOWLEDGE_CODE_CONFLICT"
+    },
+    {
+      "name": "v2.2e 空白可选字段默认不修改",
+      "ok": true,
+      "detail": "200 desc='desc-1'"
+    },
+    {
+      "name": "v2.2f clearFields 才清空（description/aliases）",
+      "ok": true,
+      "detail": "{\"description\": \"\", \"aliases\": []}"
+    },
+    {
+      "name": "v2.2g 历史修订不可变（UPDATE/DELETE 均被 DB 触发器拒绝）",
+      "ok": true,
+      "detail": "['IMMUTABLE_REVISION', 'IMMUTABLE_REVISION']"
+    },
+    {
+      "name": "v2.2h 历史修订全部保留（v1 改名前后、v3 clearFields 追加）",
+      "ok": true,
+      "detail": "[(1, '有理数'), (2, '有理数与无理数'), (3, '有理数与无理数')]"
+    },
+    {
+      "name": "v2.3a 跨学科父 → 422 KNOWLEDGE_CROSS_SUBJECT_PARENT + issues[].field=parentId",
+      "ok": true,
+      "detail": "422 {\"code\": \"KNOWLEDGE_CROSS_SUBJECT_PARENT\", \"message\": \"父节点必须与知识点同学科。\", \"requestId\": \"666d8cf2421349258682c3918befdc91\", \"retryable\": false, \"details\": {\"issues\": [{\"field\": \"parentId\", \"code\": \"KNOWLEDGE_CROSS_SUBJECT_PARENT\", \"message\": \"parentId 指向的知识点属于其他学科。\"}]}}"
+    },
+    {
+      "name": "v2.3b 缺父（parentId）→ 422 KNOWLEDGE_PARENT_INVALID + field=parentId",
+      "ok": true,
+      "detail": "422 {\"code\": \"KNOWLEDGE_PARENT_INVALID\", \"message\": \"父节点不存在。\", \"requestId\": \"6b3dd97b240147e9a24643f5000df3a8\", \"retryable\": false, \"details\": {\"issues\": [{\"field\": \"parentId\", \"code\": \"KNOWLEDGE_PARENT_INVALID\", \"message\": \"parentId 指向的知识点不存在。\"}]}}"
+    },
+    {
+      "name": "v2.3c 缺父（parentCode）→ 422 KNOWLEDGE_PARENT_INVALID + field=parentCode",
+      "ok": true,
+      "detail": "422 {\"code\": \"KNOWLEDGE_PARENT_INVALID\", \"message\": \"父级编码「NOPE」在本学科内不存在。\", \"requestId\": \"188b213610784924a23235f93a0410d5\", \"retryable\": false, \"details\": {\"issues\": [{\"field\": \"parentCode\", \"code\": \"KNOWLEDGE_PARENT_INVALID\", \"message\": \"parentCode「NOPE」在本学科内不存在。\"}]}}"
+    },
+    {
+      "name": "v2.3d parentId 与 parentCode 同时给出 → 422 INVALID_REQUEST",
+      "ok": true,
+      "detail": "422 {\"code\": \"INVALID_REQUEST\", \"message\": \"父节点只能给一个：parentId 或 parentCode。\", \"requestId\": \"a8e2284f19094ba39c0032ce7f3e71b7\", \"retryable\": false, \"details\": {\"fields\": [\"parentId\", \"parentCode\"]}}"
+    },
+    {
+      "name": "v2.3e 自指父 → 422 KNOWLEDGE_PARENT_INVALID（记录是否带 issues 定位）",
+      "ok": true,
+      "detail": "422 {\"code\": \"KNOWLEDGE_PARENT_INVALID\", \"message\": \"父节点非法：知识点不能把自己作为父节点。\", \"requestId\": \"bda9f43235c14b59b947da00d2369ade\", \"retryable\": false, \"details\": {\"issues\": [{\"field\": \"parentId\", \"code\": \"KNOWLEDGE_PARENT_INVALID\", \"message\": \"parentId 指向本知识点自身，不能作为父节点。\"}]}}"
+    },
+    {
+      "name": "v2.3f 自指父错误带 details.issues[].field（契约 §2.2 可定位要求）",
+      "ok": true,
+      "detail": "details={\"issues\": [{\"field\": \"parentId\", \"code\": \"KNOWLEDGE_PARENT_INVALID\", \"message\": \"parentId 指向本知识点自身，不能作为父节点。\"}]}"
+    },
+    {
+      "name": "v2.3g 成环父 → 422 KNOWLEDGE_CYCLE（DB 触发器兜底）",
+      "ok": true,
+      "detail": "422 {\"code\": \"KNOWLEDGE_CYCLE\", \"message\": \"父节点变更会形成环（新父节点是本节点的后代）。\", \"requestId\": \"6bbc980ae7e84c46ad230bcd18e437f8\", \"retryable\": false, \"details\": {\"issues\": [{\"field\": \"parentId\", \"code\": \"KNOWLEDGE_CYCLE\", \"message\": \"parentId 指向的父节点是本知识点的后代，会形成环。\"}]}}"
+    },
+    {
+      "name": "v2.3h 环错误带 details.issues[].field（契约 §2.2 可定位要求）",
+      "ok": true,
+      "detail": "details={\"issues\": [{\"field\": \"parentId\", \"code\": \"KNOWLEDGE_CYCLE\", \"message\": \"parentId 指向的父节点是本知识点的后代，会形成环。\"}]}"
+    },
+    {
+      "name": "v2.3i 成环被拒后原父关系不变（无部分写入）",
+      "ok": true,
+      "detail": "{\"parentId\": null, \"revision\": 2}"
+    },
+    {
+      "name": "v2.4a 归档 200 + status=archived + revision+1",
+      "ok": true,
+      "detail": "200 {\"status\": \"archived\", \"revision\": 3}"
+    },
+    {
+      "name": "v2.4b 归档后显式编辑仍允许（§8 预先登记行为）",
+      "ok": true,
+      "detail": "200 {\"id\": \"d4e503f81fcb4b6eb7a2205669d3fad3\", \"subjectId\": \"math\", \"code\": \"M-01\", \"name\": \"有理数与无理数\", \"description\": \"归档后仍可显式编辑\", \"parentId\": null, \"parentCode\": null, \"sortOrder\": 5, \"status\": \"archived"
+    },
+    {
+      "name": "v2.4c 归档知识点作为新父 → 409 KNOWLEDGE_ARCHIVED + field=parentCode",
+      "ok": true,
+      "detail": "409 {\"code\": \"KNOWLEDGE_ARCHIVED\", \"message\": \"父节点已归档：归档保留历史引用，但不能作为新引用的父节点。\", \"requestId\": \"957e9f5b5f2347aa8afb3bcca8f23b2f\", \"retryable\": false, \"details\": {\"issues\": [{\"field\": \"parentCode\", \"code\": \"KNOWLEDGE_ARCHIVED\", \"message\": \"parentCode「M-01」对应的知识点已归档，请先恢复。\"}]}}"
+    },
+    {
+      "name": "v2.4d 归档知识点新增教材依据被拒 409 KNOWLEDGE_ARCHIVED",
+      "ok": true,
+      "detail": "AppError: KNOWLEDGE_ARCHIVED 知识点已归档：归档保留历史引用，但不能新增教材依据，请先恢复。"
+    },
+    {
+      "name": "v2.4e 恢复 200 + status=active",
+      "ok": true,
+      "detail": "200 {\"id\": \"d4e503f81fcb4b6eb7a2205669d3fad3\", \"subjectId\": \"math\", \"code\": \"M-01\", \"name\": \"有理数与无理数\", \"description\": \"归档后仍可显式编辑\", \"parentId\": null, \"parentCode\": null, \"sortOrder\": 5, \"status\": \"active\","
+    },
+    {
+      "name": "v2.5a 预置别名到另一点（PATCH aliases）",
+      "ok": true,
+      "detail": "200 [\"ABC\"]"
+    },
+    {
+      "name": "v2.5a2 跨点同别名不报错（只提示，201 成功）",
+      "ok": true,
+      "detail": "201 {\"id\": \"6736243e0a60437b996a18b672be01cf\", \"subjectId\": \"math\", \"code\": \"M-95\", \"name\": \"别名撞车\", \"description\": \"\", \"parentId\": null, \"parentCode\": null, \"sortOrder\": 0, \"status\": \"active\", \"revision\":"
+    },
+    {
+      "name": "v2.5b 跨点同别名记 warning（不合并、不自动改数据）",
+      "ok": true,
+      "detail": "warnings=['知识点别名歧义（只提示，不合并）：别名「ABC」在学科 math 内已指向 839f4a4b93664ab0a53d8bf7d6b4fe03']"
+    },
+    {
+      "name": "v2.5c 两点各自保留自己的别名（未合并/未清空）",
+      "ok": true,
+      "detail": "first=[] second=['ABC']"
+    },
+    {
+      "name": "v2.5d 同一请求内重复别名被 422 拒绝（不静默去重）",
+      "ok": true,
+      "detail": "422 {\"code\": \"INVALID_REQUEST\", \"message\": \"请求参数不合法。\", \"requestId\": \"9c88caf73f824f2b8f3918e1deeaa5db\", \"retryable\": false, \"details\": {\"fields\": [\"('aliases',)\"]}}"
+    },
+    {
+      "name": "v2.6a 不存在知识点 → 404 KNOWLEDGE_POINT_NOT_FOUND",
+      "ok": true,
+      "detail": "404 KNOWLEDGE_POINT_NOT_FOUND"
+    }
+  ],
+  "crashed": null
+}

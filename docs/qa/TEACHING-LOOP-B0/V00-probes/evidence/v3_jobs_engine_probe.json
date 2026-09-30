@@ -1,0 +1,258 @@
+{
+  "probe": "v3_jobs_engine_probe",
+  "total": 50,
+  "failed": [],
+  "results": [
+    {
+      "name": "v3.0 create -> queued",
+      "ok": true,
+      "detail": "state=queued attempt=0"
+    },
+    {
+      "name": "v3.1a claim increments attempt to 1 and issues token",
+      "ok": true,
+      "detail": "attempt=1 token=0593e58d... expires=2026-09-30T00:00:30Z"
+    },
+    {
+      "name": "v3.1b lease expiry = now + lease_seconds",
+      "ok": true,
+      "detail": "2026-09-30T00:00:30Z"
+    },
+    {
+      "name": "v3.2 unexpired lease re-claim -> 409 JOB_BUSY",
+      "ok": true,
+      "detail": "code=JOB_BUSY status=409 retryable=True"
+    },
+    {
+      "name": "v3.3a expired lease can be taken over (attempt+1, new token)",
+      "ok": true,
+      "detail": "attempt=2 token_changed=True"
+    },
+    {
+      "name": "v3.3b old holder heartbeat -> False",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "v3.3c new holder heartbeat -> True",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "v3.4a late complete with lost lease -> LEASE_LOST",
+      "ok": true,
+      "detail": "code=LEASE_LOST status=409"
+    },
+    {
+      "name": "v3.4b lost-lease publish left no result row",
+      "ok": true,
+      "detail": "None"
+    },
+    {
+      "name": "v3.4c row still owned by new holder",
+      "ok": true,
+      "detail": "f6e28d28"
+    },
+    {
+      "name": "v3.5a queued cancel -> cancelled immediately",
+      "ok": true,
+      "detail": "state=cancelled flag=True finished=2026-09-30T00:00:00Z"
+    },
+    {
+      "name": "v3.5b running cancel -> only sets flag, stays running",
+      "ok": true,
+      "detail": "state=running flag=True"
+    },
+    {
+      "name": "v3.5c cancelled job: complete publishes nothing and lands cancelled",
+      "ok": true,
+      "detail": "state=cancelled result=None publish_called=[]"
+    },
+    {
+      "name": "v3.5d cancelled publish wrote no business row",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "v3.5e cancel on terminal state is an idempotent no-op",
+      "ok": true,
+      "detail": "state=succeeded updated_at=2026-09-30T00:00:00Z"
+    },
+    {
+      "name": "v3.6a reconcile only touches running jobs",
+      "ok": true,
+      "detail": "['0e50b408bb434dd497ad41fe9819b702']"
+    },
+    {
+      "name": "v3.6b running -> interrupted + lease cleared",
+      "ok": true,
+      "detail": "interrupted"
+    },
+    {
+      "name": "v3.6c queued untouched",
+      "ok": true,
+      "detail": "queued"
+    },
+    {
+      "name": "v3.6d succeeded untouched",
+      "ok": true,
+      "detail": "succeeded"
+    },
+    {
+      "name": "v3.6e reconcile is idempotent (second call = [])",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "v3.7a failed state + error recorded",
+      "ok": true,
+      "detail": "failed"
+    },
+    {
+      "name": "v3.7b duplicate job id rejected",
+      "ok": true,
+      "detail": "JOB_ALREADY_EXISTS"
+    },
+    {
+      "name": "v3.7c retry on queued -> 409 JOB_NOT_RETRYABLE",
+      "ok": true,
+      "detail": "code=JOB_NOT_RETRYABLE status=409"
+    },
+    {
+      "name": "v3.7c retry on succeeded -> 409 JOB_NOT_RETRYABLE",
+      "ok": true,
+      "detail": "JOB_NOT_RETRYABLE"
+    },
+    {
+      "name": "v3.7c retry on running -> 409 JOB_NOT_RETRYABLE",
+      "ok": true,
+      "detail": "JOB_NOT_RETRYABLE"
+    },
+    {
+      "name": "v3.7d retry keeps frozen input / model snapshot / input hash",
+      "ok": true,
+      "detail": "frozen_ok=True snapshot_ok=True"
+    },
+    {
+      "name": "v3.7e retry keeps attempt, clears lease/cancel flag",
+      "ok": true,
+      "detail": "state=queued attempt=1"
+    },
+    {
+      "name": "v3.7f next claim increments attempt",
+      "ok": true,
+      "detail": "2"
+    },
+    {
+      "name": "v3.9a publish failure rolls back result+status",
+      "ok": true,
+      "detail": "RuntimeError('publish 探针失败')"
+    },
+    {
+      "name": "v3.9b after publish failure: state running, no result, no business row",
+      "ok": true,
+      "detail": "state=running result=None side_effects=[]"
+    },
+    {
+      "name": "v3.9c unknown job -> 404 JOB_NOT_FOUND",
+      "ok": true,
+      "detail": "JOB_NOT_FOUND"
+    },
+    {
+      "name": "v3.9d unknown table rejected",
+      "ok": true,
+      "detail": "INVALID_REQUEST"
+    },
+    {
+      "name": "v3.8a heavy peak <= 2",
+      "ok": true,
+      "detail": "peak=2"
+    },
+    {
+      "name": "v3.8b heavy peak == 2 (two slots actually used)",
+      "ok": true,
+      "detail": "peak=2"
+    },
+    {
+      "name": "v3.8c third heavy task waits for a free slot",
+      "ok": true,
+      "detail": "started_after_first_end=True"
+    },
+    {
+      "name": "v3.8d waiting task baba5d8e keeps renewing lease while queued",
+      "ok": true,
+      "detail": "samples=['2026-09-30T11:19:33Z', '2026-09-30T11:19:33Z', '2026-09-30T11:19:34Z', '2026-09-30T11:19:34Z', '2026-09-30T11:19:34Z', '2026-09-30T11:19:35Z', '2026-09-30T11:19:35Z']"
+    },
+    {
+      "name": "v3.8e waiting task baba5d8e cannot be taken over (all claims JOB_BUSY)",
+      "ok": true,
+      "detail": "['JOB_BUSY', 'JOB_BUSY', 'JOB_BUSY', 'JOB_BUSY', 'JOB_BUSY', 'JOB_BUSY', 'JOB_BUSY']"
+    },
+    {
+      "name": "v3.8f a queued task was observed waiting",
+      "ok": true,
+      "detail": "observed=['baba5d8ee80b4c86b7377a642c399034']"
+    },
+    {
+      "name": "v3.8g every heavy job succeeded with attempt=1 (single executor per job)",
+      "ok": true,
+      "detail": "results=['succeeded', 'succeeded', 'succeeded'] attempts={'7ef01c02eec44bb182c44f15fffb5379': 1, '149d4176a37a493087ea57e526bf16a4': 1, 'baba5d8ee80b4c86b7377a642c399034': 1}"
+    },
+    {
+      "name": "v3.8h engine slots released after run",
+      "ok": true,
+      "detail": "0"
+    },
+    {
+      "name": "v3.8i model peak <= 1",
+      "ok": true,
+      "detail": "peak=1"
+    },
+    {
+      "name": "v3.8j model peak == 1",
+      "ok": true,
+      "detail": "peak=1"
+    },
+    {
+      "name": "v3.8k second model task renews lease while waiting for the model slot",
+      "ok": true,
+      "detail": "{'44c6b6a38d3c47dc8800f2eb44446b83': ['2026-09-30T11:19:40Z', '2026-09-30T11:19:40Z', '2026-09-30T11:19:41Z', '2026-09-30T11:19:41Z', '2026-09-30T11:19:41Z']}"
+    },
+    {
+      "name": "v3.8l waiting model task never taken over",
+      "ok": true,
+      "detail": "{'44c6b6a38d3c47dc8800f2eb44446b83': ['JOB_BUSY', 'JOB_BUSY', 'JOB_BUSY', 'JOB_BUSY', 'JOB_BUSY']}"
+    },
+    {
+      "name": "v3.8m both model jobs succeeded with attempt=1",
+      "ok": true,
+      "detail": "results=['succeeded', 'succeeded'] attempts={'27d421051bc1496bbf299988d7fd239d': 1, '44c6b6a38d3c47dc8800f2eb44446b83': 1}"
+    },
+    {
+      "name": "v3.8n variant heavy_limit=1 -> heavy peak == 1",
+      "ok": true,
+      "detail": "peak=1"
+    },
+    {
+      "name": "v3.8o variant model_limit=1 -> model peak == 1",
+      "ok": true,
+      "detail": "peak=1"
+    },
+    {
+      "name": "v3.8p variant: all four jobs succeeded",
+      "ok": true,
+      "detail": "['succeeded', 'succeeded', 'succeeded', 'succeeded']"
+    },
+    {
+      "name": "v3.8q lease lost mid-execution: executor stopped, nothing published",
+      "ok": true,
+      "detail": "executor_completed=False state=running result=None"
+    },
+    {
+      "name": "v3.8r engine slots released",
+      "ok": true,
+      "detail": "0"
+    }
+  ],
+  "observations": []
+}

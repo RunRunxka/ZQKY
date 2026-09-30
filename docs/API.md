@@ -105,6 +105,7 @@ FastAPI 服务位于 apps/api，仅监听 127.0.0.1:8000；浏览器经 Next 同
 | PUT/DELETE `/api/v1/model-profiles/{id}` | 已实现（D03） | 更新/删除；能力证据取值 `verified/claimed/unknown` |
 | POST `/api/v1/model-profiles/{id}/test` | 已实现（D03） | 真实小额上游请求；无论上游成败都返回 200 `ok:true/false`，成功后 `chat` 证据更新为 `verified` |
 | POST `/api/v1/chat/stream` | 已实现（D04） | 规范化 SSE 流式对话（见下方事件协议）；客户端断开时取消上游连接 |
+| GET/POST `/api/v1/workflow-jobs/...` | 已实现（TEACHING-LOOP B0） | 公共任务查询/取消/重试；见下「教学闭环 B0 公共契约」，域未装配返回 503 |
 | 其余 `/api/v1/*` | 通配占位 | GET/POST/PUT/DELETE/PATCH 返回501 `FEATURE_NOT_IMPLEMENTED`，不能假成功 |
 
 错误信封统一为 `code、message、requestId、retryable、details?`（details 只含脱敏展示内容），并附 `X-Request-Id` 头。约定：非允许 Origin → 403 `FORBIDDEN_ORIGIN`；非回环 Host → 400 `INVALID_HOST`；非 `/api/v1/*` 的未知路径 → 404 `NOT_FOUND`；参数错误 → 422 `INVALID_REQUEST`。后端停止时 Next 代理返回500纯文本，前端 `services/api-client.ts` 转为 `ApiError('SERVICE_UNAVAILABLE')`。本次与历史验收范围以 STATUS 为准。
@@ -319,13 +320,21 @@ npm run rag:backup / rag:backup:verify / rag:restore  # SQLite VACUUM INTO + Qdr
 ### 备份与恢复（`scripts/rag/backup.py`）
 
 - `create`：先取数据根**排他锁**（拿不到 → `DATA_LOCK_BUSY`，非零退出，不写任何文件）；
-  有未结束任务则拒绝；用 **SQLite backup API** 生成副本（不直接拷 WAL）；
+  有未结束任务则拒绝（含知识点库/教学库任务）；用 **SQLite backup API** 生成副本（不直接拷 WAL）；
   只复制**被数据库引用**的文件；含 `staging` 草稿产物（排除 `tmp-*.part`）；
   Qdrant 快照核对点数与维度；**全部通过才把清单标 `status:"complete"`**。
-- 清单 `schemaVersion: 2`（`files[]` 带 `logicalRole/restorePath/sha256`；`collections[]` 带维度/点数/快照指纹）。
-- `restore`：**按应用运行布局**写入 `textbooks/…` 与 `question-bank/…`；
+- 清单 `schemaVersion: 3`（TEACHING-LOOP B0 起）：**四个库**都必须入清单——
+  `textbooks/catalog.sqlite3`、`question-bank/question-bank.sqlite3`、`knowledge/knowledge.sqlite3`、
+  `teaching/teaching.sqlite3`；受管资产按 `restorePath = assets/blobs/<sha256>` 入清单（归档路径为
+  `files/assets/blobs/<sha256>`，前缀 `files/` 只出现在归档内）；`files[]` 带
+  `logicalRole/restorePath/sha256`，`collections[]` 带维度/点数/快照指纹。
+  **缺任一库/任一被引用原件即 `status:"failed"`**（CLI 非 0，不宣称备份完成）。
+- `restore`：**按应用运行布局**写入四库与 `assets/…`；
+  恢复后对四库做 `integrity_check` + `foreign_key_check`，并从恢复后的教学库重新推导
+  `file_assets` 引用逐文件重算 sha256（缺失/不符即失败）；
   Qdrant 恢复必须显式给 `--isolated-qdrant`（给 6333 或缺失一律拒绝）；
-  先验后写，失败把 `restore-state` 留在 `incomplete`；旧清单只读兼容并标 `legacy_revalidated`。
+  先验后写，失败把 `restore-state` 留在 `incomplete`；旧清单（`schemaVersion:2` 两库与 legacy）
+  只读兼容并标 `legacy_revalidated`，其范围只覆盖当时的教材目录与题库。
 - 数据根处于 `incomplete` 时**应用拒绝启动**；API 生命周期持有同一把锁（`app/core/data_lock.py`）。
 
 ### 运维命令补充
@@ -337,3 +346,146 @@ npm run rag:quality       # 固定质量集（30 问：10 组 × 2 正向 + 1 �
 
 `rag:verify` / `rag:quality` / 命中率测量脚本一律**只读打开**正式数据根，
 **不再调用 `migrate()`、不再写入任教设置**（验收不得改用户配置）。
+
+---
+
+## 教学闭环 B0 公共契约与基础设施（2026-09-30）
+
+依据 [教学闭环设计目录](design/teaching-loop-v1/README.md) 与
+[多 Agent 实施任务计划书 v2.0 §二.3](design/teaching-loop-v1/多Agent实施任务计划书_v2.0.md) 实施 B0
+（CTRL + T00）：冻结类型/错误/版本/任务/资产/迁移契约并落地公共基础。业务模块（知识点、名单、
+原卷、成绩、学情、练习、教案）在 B1—B7 另行实施，**本批未实现任何业务表与业务页面**。
+任务卡与逐项证据见 [B0 批次目录](qa/TEACHING-LOOP-B0/TASK-CARD.md)。
+
+### 四库与迁移登记
+
+| 存储 | 路径 | B0 内容 |
+| --- | --- | --- |
+| 教材目录 | `.local-data/textbooks/catalog.sqlite3` | 既有结构（冻结为 `0001_textbooks_baseline`） |
+| 题库 | `.local-data/question-bank/question-bank.sqlite3` | 既有 9 表 + `question_jobs` 任务引擎列（`0002`） |
+| 知识点库 | `.local-data/knowledge/knowledge.sqlite3` | `knowledge_submissions`、`knowledge_jobs` |
+| 教学业务库 | `.local-data/teaching/teaching.sqlite3` | `command_submissions`、`file_assets`、`workflow_jobs` |
+| 受管资产 | `.local-data/assets/blobs/<sha256>` | 内容寻址原件（不覆盖） |
+
+- 每库持有 `schema_migrations(id, sha256, applied_at)`；迁移清单在 `app/core/migrations/`，**追加式**：
+  已登记迁移的 SQL 散列不符 → 启动拒绝（`SCHEMA_MIGRATION_DRIFT`），结构变化必须新增迁移。
+- 迁移逐条独立事务：失败整体回滚且不登记，下次启动从该条重跑。
+- 启动顺序：恢复状态闸门（`incomplete` 拒绝启动）→ 既有库体检（不可读/结构不符/漂移拒绝，
+  **不按空库重建**）→ 迁移登记 → 任务收敛（遗留 `running` → `interrupted`）。
+- 业务表增量（B1+）由实现方提供 SQL、总控登记；不得改写冻结基线。
+
+### 公共任务（`/api/v1/workflow-jobs`）
+
+| 方法与路径 | 说明 |
+| --- | --- |
+| GET `/api/v1/workflow-jobs/{jobId}?domain=knowledge\|question\|teaching` | 返回 `JobView`；未知任务 404 `JOB_NOT_FOUND`；域非法 422；域未装配 503 |
+| POST `/api/v1/workflow-jobs/{jobId}/cancel`（body `{domain}`） | 协作式取消，幂等；`queued` 立即取消，`running` 置标志后不发布迟到结果 |
+| POST `/api/v1/workflow-jobs/{jobId}/retry`（body `{domain}`） | 仅终态 `failed/interrupted/cancelled` 可重试（保留冻结输入与模型指纹）；`queued/running` → 409 `JOB_NOT_RETRYABLE` |
+
+`JobView = {jobId, domain, kind, attempt, state, result, error}`；
+`state ∈ queued | running | succeeded | failed | cancelled | interrupted`。
+租约 90 秒、每 20 秒续租；**同时最多 2 个后台重任务，其中最多 1 个模型生成任务**；
+任务结果与终态在所属业务库的**同一事务**提交；页面停止观察不取消任务，只有 cancel 接口取消；
+重启不自动重跑中断的模型任务。
+
+### 提交幂等与错误详情
+
+- 提交幂等身份 `(ownerId, operation, submissionId)`：同键同 `requestHash` 重放返回原结果
+  （不重复执行业务写入）；同键不同 hash → 409 `SUBMISSION_CONFLICT`。
+- 版本冲突 409 `REVISION_CONFLICT` 带 `details.currentRevision`；422 行列错误带
+  `details.issues[{row?, column?, field?, code, message}]`；简单字段错误用 `details.fields`。
+- 前端 `ApiError` 现在保留 `details`；`AbortError` 原样抛出（`isAbortError` 判定），不再被
+  吞成 `SERVICE_UNAVAILABLE`；新增 `apiRequestBlob`（返回 `{blob, fileName}`）供导出产物下载。
+
+### 受管资产
+
+- `file_assets`（教学库）：`id/owner_id/kind/blob_key/sha256/original_name/media_type/byte_size/created_at`；
+  `kind ∈ roster|score_sheet|paper|export|attachment`。
+- `blob_key` 只接受 `blobs/<64 位小写 hex>`；文件读取时重算 sha256，缺失/篡改分别报
+  `ASSET_MISSING` / `ASSET_CORRUPT`；路径穿越、非法键一律 422 且不创建目录。
+
+### 跨模块类型（冻结）
+
+`apps/api/app/contracts/teaching_loop.py` 与 `apps/web/src/contracts/teaching-loop.ts` 双侧一致：
+`RevisionIdentity`（`revision` 乐观锁 vs `revisionId` 固定修订）、`ScoreCell`（`scoreUnits` 整数）、
+`Observation`、`AssetRef`、`RichContentV2`/`ContentBlock`、`JobView`、`canonical_hash`。
+分数禁止浮点；外部 JSON camelCase、内部 snake_case；时间 UTC。
+
+---
+
+## 教学闭环 B1 接口（2026-09-30）——富内容基础 / 知识点后端 / 名单后端
+
+依据 [多 Agent 实施任务计划书 v2.0 §二.3](design/teaching-loop-v1/多Agent实施任务计划书_v2.0.md)
+实施 **B1（T10 + T20 + T30-a + CTRL）**。任务卡与证据见
+[B1 批次目录](qa/TEACHING-LOOP-B1/TASK-CARD.md)。**本批不新增前端页面。**
+
+结构与依赖（追加式迁移，B0 已登记声明与散列不变）：
+
+| 库 | 迁移 | 内容 |
+| --- | --- | --- |
+| 知识点库 | `0002_knowledge_business_tables` | 设计 5 表（`subjects`/`knowledge_points`/`knowledge_point_revisions`/`knowledge_aliases`/`textbook_knowledge_links`）+ 环检测与修订不可变触发器 + 导入批次表（`knowledge_imports`/`knowledge_import_rows`） |
+| 知识点库 | `0003_knowledge_import_issues_column` | `knowledge_imports` 补 `issues_json`（批次级问题独立落列；列已存在时由 adjust 钩子跳过 ALTER） |
+| 教学库 | `0002_teaching_business_tables` | `classes`/`students`/`class_memberships`（含 `ux_active_membership` 部分唯一索引）+ 名单批次表（`roster_imports`/`roster_import_rows`） |
+
+- 新增依赖（uv 锁定）：`openpyxl==3.1.5`（XLSX 只读解析）、`math2docx==3.1.0`（LaTeX→OMML，导出新题用）。
+- 表格导入接受 `.xlsx` 与 `.csv`；`.txt`/`text/plain` 按 CSV 文本解析（方便教师直接贴表格），其余格式 422 `UNSUPPORTED_DOCUMENT_FORMAT`。
+- 启动门控 `REQUIRED_TABLES` 仍只要求 B0 基础表：**尚未应用 B1 迁移的旧库可正常启动**，迁移后新表齐备。
+- 跨库发布/归档统一经 `app/services/publication.py` 的 `PublicationCoordinator`（进程内锁，锁内只做数据库读取与短事务；
+  不是跨进程锁，也不宣称跨库原子事务）。
+
+### 知识点（T20）
+
+| 方法与路径 | 说明 |
+| --- | --- |
+| GET `/api/v1/knowledge-points` | 列表：`subjectId`/`status`/`parentId`/`q` 过滤 + 分页 `{items,total,offset,limit}` |
+| POST `/api/v1/knowledge-points` | 人工建立（201）；同 `(subjectId, code)` → 409 `KNOWLEDGE_CODE_CONFLICT` |
+| GET `/api/v1/knowledge-points/{id}` | 详情（当前修订、别名、`revision` 乐观锁与 `revisionId`/`version`） |
+| PATCH `/api/v1/knowledge-points/{id}` | 更新（`expectedRevision`；改名=追加修订；空白默认不修改，`clearFields` 明确清空） |
+| POST `/api/v1/knowledge-points/{id}/archive`、`/restore` | 归档/恢复（`expectedRevision`）；归档保留历史引用，新引用禁选归档 |
+| GET/POST `/api/v1/knowledge-points/{id}/textbook-links`、DELETE `/…/{linkId}` | 可选教材依据：区间经教材目录核验并冻结标题；教材不可用 → 503 `TEXTBOOK_EVIDENCE_UNAVAILABLE`（**不当作"没有依据"**） |
+| POST `/api/v1/knowledge-imports` | multipart：`file`(.xlsx/.csv) + `subjectId` + 可选 `mappingJson`/`sheetName`；字段 `subjectCode/code/name/description/parentCode/aliases` |
+| GET `/api/v1/knowledge-imports`、GET `/api/v1/knowledge-imports/{id}` | 批次列表 / 详情（含行、建议动作与 `issues`） |
+| PATCH `/api/v1/knowledge-imports/{id}` | 改映射 / 行动作（`expectedRevision`） |
+| POST `/api/v1/knowledge-imports/{id}/confirm` | 确认（`expectedRevision`+`submissionId`+`actions`）；同 `submissionId` 同载荷重放返回原结果 |
+| POST `/api/v1/knowledge-suggestion-jobs` | AI 候选（`modelProfileId`+`subjectId`+`materials`/`textbookEvidence`）→ 202 `JobView`；候选只进 `source="ai"` 待确认批次，不写正式表 |
+
+知识点错误码：`KNOWLEDGE_CODE_CONFLICT`(409)、`KNOWLEDGE_PARENT_INVALID`/`KNOWLEDGE_CROSS_SUBJECT_PARENT`/
+`KNOWLEDGE_CYCLE`(422，自指/环/跨学科/缺父都可经 `details.issues[].field ∈ {parentId, parentCode}` 定位)、
+`KNOWLEDGE_ARCHIVED`(409)、`KNOWLEDGE_IMPORT_BLOCKING_ISSUES`(422)、`KNOWLEDGE_LINK_NOT_FOUND`(404)、
+`KNOWLEDGE_LINK_DUPLICATE`(409)、`KNOWLEDGE_SUGGESTION_INVALID_JSON`/`_UNKNOWN_REFERENCE`/`_TRUNCATED`/`_NO_EVIDENCE`(422)、
+`TEXTBOOK_EVIDENCE_INVALID`(422)、`TEXTBOOK_EVIDENCE_UNAVAILABLE`(503)。
+（契约中的 `KNOWLEDGE_SUBJECT_UNKNOWN` 与 `KNOWLEDGE_LINK_INVALID` 为保留码：当前实现按需 `ensure_subject`
+建学科、链接不存在/不属于该点返回 404 `KNOWLEDGE_LINK_NOT_FOUND`，这两个码**目前不会抛出**。）
+
+### 班级、学生与名单（T30-a）
+
+| 方法与路径 | 说明 |
+| --- | --- |
+| GET/POST `/api/v1/classes`、GET/PATCH `/api/v1/classes/{id}`、POST `/api/v1/classes/{id}/archive`、`/restore` | 班级 CRUD（`schoolYear`+`code` 用户内唯一 → 409 `CLASS_CODE_CONFLICT`；归档班级仍可读，新导入 409 `CLASS_ARCHIVED`） |
+| GET `/api/v1/classes/{id}/students` | 该班活跃成员（含归属历史） |
+| GET `/api/v1/students`、GET `/api/v1/students/{id}`、POST `/api/v1/students` | 学生身份：**学号按文本保存并保留前导零**；无学号可显式建档；姓名允许重名 |
+| PATCH `/api/v1/students/{id}`、POST `/api/v1/students/{id}/transfer` | 改名/改学号（乐观锁）；转班（旧归属置 `leftOn`，历史保留） |
+| POST `/api/v1/classes/{id}/roster-imports` | multipart 名单上传（`.xlsx`/`.csv`）→ 预览批次 |
+| GET `/api/v1/roster-imports`、GET `/api/v1/roster-imports/{id}`、PATCH、POST `/…/confirm` | 批次/预览/校对/确认（`identityMatches` 每行 `link|create|ignore`；未出现的学生不自动退班；整批回滚；幂等重放） |
+
+名单错误码：`CLASS_CODE_CONFLICT`/`CLASS_ARCHIVED`/`STUDENT_NO_CONFLICT`(409)、
+`ROSTER_ROW_INVALID`/`ROSTER_IDENTITY_UNRESOLVED`/`ROSTER_IMPORT_BLOCKING_ISSUES`/`ROSTER_MAPPING_INVALID`(422)。
+
+### 施测（planned，T30-b）
+
+`POST /api/v1/assessments` 等**未实现**：由通配占位返回 501 `FEATURE_NOT_IMPLEMENTED`。
+本批只冻结契约（`AssessmentCreateRequest`/`ParticipantSnapshot`/`ConfirmedPaperRevisionView`/
+`ConfirmedPaperReader`），真实创建依赖 T40 已确认原卷修订，在 B2 的 T30-b 联调后验收；
+`UnavailablePaperReader` 任何调用都返回 501 `PAPER_READER_UNAVAILABLE`，**不返回模拟成功**。
+
+### 富内容（T10，库能力，无 HTTP 路由）
+
+- `app/services/rich_content/`：`parse_docx_rich`（段落/表格合并单元格/图片真实字节与尺寸/OMML 原样/未知对象进
+  `issues`，块顺序与来源坐标可核验）→ `group_shared_materials`（保守分组，题号前/材料标记）→
+  `render_rich_document(variant=student|teacher)`（学生版不输出答案与解析；共同材料只出一次；图片重建
+  relationship，不复用旧 rId；OMML 原样、LaTeX 经 `math2docx` 转换，失败报 `FORMULA_CONVERSION_FAILED`(422) 并保留定位）。
+- 表格块 `cells` 为**行优先**序列、`rowSpan`/`colSpan` 占位；`columnCount`（B1 新增，可选）给出网格宽度，
+  是精确还原行的依据（DOCX 解析器必须填；旧数据缺失时消费方回退启发式）。
+- 该模块是 T40/T50/T80 的复用基础；正式原卷确认与练习导出业务在相应批次实现。
+- 本模块新增错误码：`DOCUMENT_FILE_MISSING`(500)、`DOCUMENT_PARSE_FAILED`(422)、`RICH_IMAGE_UNSUPPORTED`(422)、
+  `ASSET_NOT_FOUND`(422)、`FORMULA_CONVERSION_FAILED`(422)；资产层 `ASSET_MISSING`/`ASSET_CORRUPT` 原样传出。

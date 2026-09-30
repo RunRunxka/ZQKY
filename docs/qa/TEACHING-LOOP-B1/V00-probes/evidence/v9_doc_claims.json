@@ -1,0 +1,104 @@
+{
+  "probe": "v9_doc_claims",
+  "passed": 16,
+  "failed": 3,
+  "total": 19,
+  "results": [
+    {
+      "name": "v9.1 文档 B1 节列出的公开路由都存在（HTTP 实测非通配 501；共 27 条）",
+      "ok": true,
+      "detail": "{\"documented\": 27, \"missing\": []}"
+    },
+    {
+      "name": "v9.3 文档声明施测为 501（HTTP 实测通配占位）",
+      "ok": true,
+      "detail": "501 FEATURE_NOT_IMPLEMENTED"
+    },
+    {
+      "name": "v9.2 反向核对：B1 路由模块里的路由除『模块文档化的 restore』外都在批次文档里",
+      "ok": true,
+      "detail": "{\"moduleRoutes\": 32, \"undocumented\": [[\"DELETE\", \"/api/v1/knowledge-points/{point_id}/textbook-links/{link_id}\"], [\"PATCH\", \"/api/v1/roster-imports/{import_id}\"], [\"POST\", \"/api/v1/classes/{class_id}/restore\"], [\"POST\", \"/api/v1/knowledge-points/{point_id}/restore\"], [\"POST\", \"/api/v1/roster-imports/{import_id}/confirm\"]], \"extra\": [[\"POST\", \"/api/v1/classes/{class_id}/restore\"]]}"
+    },
+    {
+      "name": "v9.2b API.md / 任务卡覆盖全部已注册路由（POST /classes/{id}/restore 未被列出 → 文档缺口）",
+      "ok": false,
+      "detail": "{\"undocumentedRoutes\": [[\"POST\", \"/api/v1/classes/{class_id}/restore\"]]}"
+    },
+    {
+      "name": "v9.4 文档列出的错误码都有常量定义（21 个）",
+      "ok": true,
+      "detail": "{\"documented\": [\"CLASS_ARCHIVED\", \"CLASS_CODE_CONFLICT\", \"FEATURE_NOT_IMPLEMENTED\", \"KNOWLEDGE_ARCHIVED\", \"KNOWLEDGE_CODE_CONFLICT\", \"KNOWLEDGE_CROSS_SUBJECT_PARENT\", \"KNOWLEDGE_CYCLE\", \"KNOWLEDGE_IMPORT_BLOCKING_ISSUES\", \"KNOWLEDGE_LINK_DUPLICATE\", \"KNOWLEDGE_LINK_INVALID\", \"KNOWLEDGE_PARENT_INVALID\", \"KNOWLEDGE_SUBJECT_UNKNOWN\", \"KNOWLEDGE_SUGGESTION_INVALID_JSON\", \"PAPER_READER_UNAVAILABLE\", \"ROSTER_IDENTITY_UNRESOLVED\", \"ROSTER_IMPORT_BLOCKING_ISSUES\", \"ROSTER_MAPPING_INVALID\", \"ROSTER_ROW_INVALID\", \"STUDENT_NO_CONFLICT\", \"TEXTBOOK_EVIDENCE_INVALID\", \"TEXTBOOK_EVIDENCE_UNAVAILABLE\"], \"missing\": []}"
+    },
+    {
+      "name": "v9.5 文档里的 KNOWLEDGE_SUBJECT_UNKNOWN / KNOWLEDGE_LINK_INVALID 是否可达（记录为 observation）",
+      "ok": true,
+      "detail": "{\"candidates\": [\"KNOWLEDGE_SUBJECT_UNKNOWN\", \"KNOWLEDGE_LINK_INVALID\"], \"constantOnly\": [\"KNOWLEDGE_SUBJECT_UNKNOWN\", \"KNOWLEDGE_LINK_INVALID\"]}"
+    },
+    {
+      "name": "v9.6 文档标注的状态码与本批探针实测一致（V2/V3/V4/V5 证据）",
+      "ok": true,
+      "detail": "{\"KNOWLEDGE_CYCLE\": 422, \"KNOWLEDGE_PARENT_INVALID\": 422, \"KNOWLEDGE_CROSS_SUBJECT_PARENT\": 422, \"KNOWLEDGE_CODE_CONFLICT\": 409, \"KNOWLEDGE_ARCHIVED\": 409, \"KNOWLEDGE_IMPORT_BLOCKING_ISSUES\": 422, \"TEXTBOOK_EVIDENCE_UNAVAILABLE\": 503, \"CLASS_CODE_CONFLICT\": 409, \"ROSTER_IMPORT_BLOCKING_ISSUES\": 422, \"ROSTER_IDENTITY_UNRESOLVED\": 422, \"STUDENT_NO_CONFLICT\": 409, \"REVISION_CONFLICT\": 409, \"SUBMISSION_CONFLICT\": 409}"
+    },
+    {
+      "name": "v9.7 迁移 id 与任务卡一致（knowledge 0002+0003 / teaching 0002）",
+      "ok": true,
+      "detail": "{\"knowledge\": [\"0001_knowledge_baseline\", \"0002_knowledge_business_tables\", \"0003_knowledge_import_issues_column\"], \"teaching\": [\"0001_teaching_baseline\", \"0002_teaching_business_tables\"]}"
+    },
+    {
+      "name": "v9.8 API.md 结构表覆盖知识库全部 B1 迁移（含 0003）——记录实际覆盖",
+      "ok": false,
+      "detail": "{\"apiMdMentions0003\": false, \"projectGuideMentions0003\": false, \"agentsMdMentions0003\": false, \"cardMentions0003\": true}"
+    },
+    {
+      "name": "v9.9 任务卡 §3 的表名在 DDL 里都有（知识点 7 表 / 教学 5 表）",
+      "ok": true,
+      "detail": "table names present in DDL"
+    },
+    {
+      "name": "v9.10 门控语义声明（REQUIRED_TABLES 只要求 B0 表）与代码一致",
+      "ok": true,
+      "detail": "{\"answers RequiredTables B0-only\": true, \"teaching RequiredTables B0-only\": true}"
+    },
+    {
+      "name": "v9.11 依赖版本与文档一致（openpyxl==3.1.5 / math2docx==3.1.0，pyproject 与 uv.lock）",
+      "ok": true,
+      "detail": "{\"pyproject\": [[\"openpyxl\", \"3.1.5\"], [\"math2docx\", \"3.1.0\"]]}"
+    },
+    {
+      "name": "v9.12 装配工厂签名与任务卡 §5 冻结签名一致",
+      "ok": true,
+      "detail": "{\"knowledge\": [\"catalog\", \"asset_store\", \"file_assets\", \"evidence\", \"coordinator\", \"model_resolver\", \"job_engine\"], \"roster\": [\"catalog\", \"asset_store\", \"file_assets\", \"job_engine\"]}"
+    },
+    {
+      "name": "v9.13 任务白名单含 knowledge={suggestion}（AI 候选走 B0 任务引擎）",
+      "ok": true,
+      "detail": "{\"question\": [\"generate\", \"organize\"], \"knowledge\": [\"suggestion\"], \"teaching\": [\"analysis\", \"export\", \"lesson_generation\", \"paper_import\", \"paper_mapping\"]}"
+    },
+    {
+      "name": "v9.14 上传上限与文档/路由声明一致（各 10 MiB）",
+      "ok": true,
+      "detail": "{\"knowledge\": 10485760, \"roster\": 10485760}"
+    },
+    {
+      "name": "v9.15 既有教材解析语义不动（parser.py 不在候选清单、对 HEAD 无差异）",
+      "ok": true,
+      "detail": "{\"inFrozenCandidate\": false, \"gitDiff\": \"\"}"
+    },
+    {
+      "name": "v9.16 PROJECT_GUIDE §12 关键声明与代码一致（结构/触发器/AI 批次/转换器版本）",
+      "ok": true,
+      "detail": "{\"code 学科内唯一（DDL UNIQUE(subject_id,code)）\": true, \"IMMUTABLE_REVISION 触发器存在\": true, \"AiOnly source=ai（服务层写批次时 source='ai'）\": true, \"math2docx 锁定 3.1.0\": true}"
+    },
+    {
+      "name": "v9.17 PROJECT_GUIDE §12『自指/环…服务层给出可定位错误』与代码一致（V2 实测：无 details.issues）",
+      "ok": false,
+      "detail": "{\"would_create_cycle_defined\": true, \"called_anywhere\": false, \"guideClaimsServiceLayerLocatable\": true}"
+    },
+    {
+      "name": "v9.18 AGENTS.md 声明与代码一致（四库路径 / tabular 唯一解析 / rich_content 入口）",
+      "ok": true,
+      "detail": "AGENTS.md 路径/模块名都存在"
+    }
+  ],
+  "crashed": null
+}

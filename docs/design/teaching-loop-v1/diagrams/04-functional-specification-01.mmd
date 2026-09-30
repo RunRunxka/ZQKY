@@ -1,0 +1,10 @@
+stateDiagram-v2
+  [*] --> Draft
+  Draft --> Reviewing: 解析或编辑后校对
+  Reviewing --> Draft: 教师修改
+  Reviewing --> Sealed: 校验通过并确认
+  Reviewing --> Failed: 解析或外部核验失败
+  Failed --> Draft: 修复并重试
+  Sealed --> NewRevision: 修改创建新版本
+  NewRevision --> Draft
+  Sealed --> [*]: 历史保留

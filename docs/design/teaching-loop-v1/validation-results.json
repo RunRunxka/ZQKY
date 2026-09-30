@@ -1,0 +1,193 @@
+{
+  "date": "2026-09-30",
+  "scope": "reference DDL and synthetic in-memory fixtures only",
+  "checks": [
+    {
+      "name": "knowledge DDL + all DML FK preparation",
+      "result": "pass"
+    },
+    {
+      "name": "teaching DDL + all DML FK preparation",
+      "result": "pass"
+    },
+    {
+      "name": "question_bank_extension DDL + all DML FK preparation",
+      "result": "pass"
+    },
+    {
+      "name": "知识树祖先环拒绝",
+      "result": "pass"
+    },
+    {
+      "name": "知识点跨学科父子拒绝",
+      "result": "pass"
+    },
+    {
+      "name": "知识点修订不可覆写",
+      "result": "pass"
+    },
+    {
+      "name": "知识点当前指针不能指他人修订",
+      "result": "pass"
+    },
+    {
+      "name": "跨库教材引用登记允许而非伪装 SQL 外键",
+      "result": "pass"
+    },
+    {
+      "name": "一题多知识点且题目内容不复制",
+      "result": "pass"
+    },
+    {
+      "name": "知识点题目关联去重",
+      "result": "pass"
+    },
+    {
+      "name": "题库内题目外键有效",
+      "result": "pass"
+    },
+    {
+      "name": "同一学生活跃班级归属防重复",
+      "result": "pass"
+    },
+    {
+      "name": "同卷题号唯一",
+      "result": "pass"
+    },
+    {
+      "name": "题干容器不能带满分",
+      "result": "pass"
+    },
+    {
+      "name": "试卷父子无环",
+      "result": "pass"
+    },
+    {
+      "name": "未确认卷不能施测",
+      "result": "pass"
+    },
+    {
+      "name": "缺知识点不能确认卷",
+      "result": "pass"
+    },
+    {
+      "name": "试卷总分一致性",
+      "result": "pass"
+    },
+    {
+      "name": "正式小题不可覆写",
+      "result": "pass"
+    },
+    {
+      "name": "正式知识点映射不可覆写",
+      "result": "pass"
+    },
+    {
+      "name": "成绩矩阵不能漏行",
+      "result": "pass"
+    },
+    {
+      "name": "超满分拒绝",
+      "result": "pass"
+    },
+    {
+      "name": "负分拒绝",
+      "result": "pass"
+    },
+    {
+      "name": "空白不能附带零分数值",
+      "result": "pass"
+    },
+    {
+      "name": "题干容器不能录分",
+      "result": "pass"
+    },
+    {
+      "name": "不能跨卷错配得分",
+      "result": "pass"
+    },
+    {
+      "name": "正式成绩不可覆写",
+      "result": "pass"
+    },
+    {
+      "name": "any_loss_v1：失分、综合题、满分、缺失、缺考、真实零分共 10 个结果",
+      "result": "pass"
+    },
+    {
+      "name": "证据失分事实不能造假",
+      "result": "pass"
+    },
+    {
+      "name": "ready 报告结果不可覆写",
+      "result": "pass"
+    },
+    {
+      "name": "成绩修正新版本不改变旧报告的分数依据",
+      "result": "pass"
+    },
+    {
+      "name": "报告证据不能切到其他成绩版本",
+      "result": "pass"
+    },
+    {
+      "name": "幂等键 SQL 唯一性",
+      "result": "pass"
+    }
+  ],
+  "observations": [
+    {
+      "participant": "TEST_1",
+      "knowledge": "k1",
+      "observation": "needs_consolidation"
+    },
+    {
+      "participant": "TEST_1",
+      "knowledge": "k2",
+      "observation": "needs_consolidation"
+    },
+    {
+      "participant": "TEST_2",
+      "knowledge": "k1",
+      "observation": "full_credit"
+    },
+    {
+      "participant": "TEST_2",
+      "knowledge": "k2",
+      "observation": "full_credit"
+    },
+    {
+      "participant": "TEST_3",
+      "knowledge": "k1",
+      "observation": "incomplete"
+    },
+    {
+      "participant": "TEST_3",
+      "knowledge": "k2",
+      "observation": "no_evidence"
+    },
+    {
+      "participant": "TEST_4",
+      "knowledge": "k1",
+      "observation": "no_evidence"
+    },
+    {
+      "participant": "TEST_4",
+      "knowledge": "k2",
+      "observation": "no_evidence"
+    },
+    {
+      "participant": "TEST_5",
+      "knowledge": "k1",
+      "observation": "needs_consolidation"
+    },
+    {
+      "participant": "TEST_5",
+      "knowledge": "k2",
+      "observation": "full_credit"
+    }
+  ],
+  "passed": 33,
+  "failed": 0,
+  "sqlite_version": "3.53.2"
+}

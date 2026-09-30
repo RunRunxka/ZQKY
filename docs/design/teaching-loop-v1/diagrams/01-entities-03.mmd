@@ -1,0 +1,17 @@
+erDiagram
+  papers ||--|{ paper_revisions : versions
+  paper_revisions ||--|{ paper_items : contains
+  paper_items |o--o{ paper_items : common_stem
+  paper_items ||--|{ paper_item_knowledge : confirmed_links
+  paper_revisions ||--o{ assessments : used_in
+  assessments ||--o{ assessment_classes : target_classes
+  classes ||--o{ assessment_classes : joins
+  assessments ||--o{ assessment_participants : roster
+  students ||--o{ assessment_participants : participates
+  assessments ||--o{ score_revisions : score_versions
+  score_revisions ||--o{ student_item_scores : score_facts
+  assessment_participants ||--o{ student_item_scores : has
+  paper_items ||--o{ student_item_scores : scored
+  score_revisions ||--o{ analysis_runs : analyzed
+  analysis_runs ||--o{ analysis_results : results
+  analysis_results ||--o{ analysis_evidence : traceable_items

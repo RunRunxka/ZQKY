@@ -1,0 +1,43 @@
+[
+  {
+    "db": "knowledge",
+    "state": "ok",
+    "recordedIds": [
+      "0001_knowledge_baseline"
+    ],
+    "recorded": "c1260aece348b1f7068e812d95a8bbb65f69d885c3a246d1d9938ff8f2285da9",
+    "expected": "c1260aece348b1f7068e812d95a8bbb65f69d885c3a246d1d9938ff8f2285da9",
+    "match": true
+  },
+  {
+    "db": "teaching",
+    "state": "ok",
+    "recordedIds": [
+      "0001_teaching_baseline"
+    ],
+    "recorded": "bf78fb3fb702b6f65f3d9802dfd9b53b6628d14e58d33380a9a7da8936b8612a",
+    "expected": "bf78fb3fb702b6f65f3d9802dfd9b53b6628d14e58d33380a9a7da8936b8612a",
+    "match": true
+  },
+  {
+    "db": "question_bank",
+    "state": "ok",
+    "recordedIds": [
+      "0001_question_bank_baseline",
+      "0002_question_jobs_engine_columns"
+    ],
+    "recorded": "b7025e4ad9e2b042c5cc943927bf5b17a40a3dc01116bb99dadbb8b573298156",
+    "expected": "b7025e4ad9e2b042c5cc943927bf5b17a40a3dc01116bb99dadbb8b573298156",
+    "match": true
+  },
+  {
+    "db": "textbooks",
+    "state": "ok",
+    "recordedIds": [
+      "0001_textbooks_baseline"
+    ],
+    "recorded": "3979cd64de3bf245ed6a72a81763efc08ccd1761c7292b6f7dcfeb66ad0945c0",
+    "expected": "3979cd64de3bf245ed6a72a81763efc08ccd1761c7292b6f7dcfeb66ad0945c0",
+    "match": true
+  }
+]

@@ -1,0 +1,247 @@
+{
+  "probe": "v6_backup_restore_probe",
+  "total": 48,
+  "failed": [],
+  "results": [
+    {
+      "name": "v6.1a create status complete",
+      "ok": true,
+      "detail": "failures=[]"
+    },
+    {
+      "name": "v6.1b all four catalogs + assets + blobs captured",
+      "ok": true,
+      "detail": "['asset-blob', 'knowledge-catalog', 'question-bank-blob', 'question-bank-catalog', 'teaching-catalog', 'textbook-blob', 'textbook-catalog', 'textbook-normalized']"
+    },
+    {
+      "name": "v6.1c every archived file hash matches the manifest",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "v6.1d verify passes on a complete archive",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "v6.1e verify adds no legacy/v2 notes",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "v6.1f restore ends ready",
+      "ok": true,
+      "detail": "ready"
+    },
+    {
+      "name": "v6.1g restore touched no Qdrant collection",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "v6.1h require_data_root_ready passes on restored dir",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "v6.1i all four restored databases readable",
+      "ok": true,
+      "detail": "['textbooks/catalog.sqlite3', 'question-bank/question-bank.sqlite3', 'knowledge/knowledge.sqlite3', 'teaching/teaching.sqlite3']"
+    },
+    {
+      "name": "v6.1j restored catalogs byte-identical to archived snapshots",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "v6.1k managed asset restored and hash matches registry",
+      "ok": true,
+      "detail": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-v00-v6-7y4c81ue\\restored\\assets\\blobs\\a264fc99f3fd3d26b4eb2c006190c512d359900fd714cf2e8b8bb61d2af757e7"
+    },
+    {
+      "name": "v6.1l blob restored: textbooks/blobs/cef206d3",
+      "ok": true,
+      "detail": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-v00-v6-7y4c81ue\\restored\\textbooks\\blobs\\cef206d3778c49a82f068017c75e02c2a0a55ef393ee4256e16944f4039ab5a7"
+    },
+    {
+      "name": "v6.1l blob restored: textbooks/normalized/660a889c",
+      "ok": true,
+      "detail": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-v00-v6-7y4c81ue\\restored\\textbooks\\normalized\\660a889c4670bc9b522aecb6de786659d05e24a00f47b4a591000bfb6d3bf2dd"
+    },
+    {
+      "name": "v6.1l blob restored: textbooks/normalized/7d7553ff",
+      "ok": true,
+      "detail": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-v00-v6-7y4c81ue\\restored\\textbooks\\normalized\\7d7553ffd13a283d7dda8128f5cdbb5b05e10d073fd1635bdd35e53624148ef8"
+    },
+    {
+      "name": "v6.1l blob restored: question-bank/blobs/10813bd4",
+      "ok": true,
+      "detail": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-v00-v6-7y4c81ue\\restored\\question-bank\\blobs\\10813bd4017e0b6dd6df873328bc09cff50a8b97be22310da10bd4df8aaa1ca3"
+    },
+    {
+      "name": "v6.1m restored teaching registry row readable via repository",
+      "ok": true,
+      "detail": "blobs/a264fc99f3fd3d26b4eb2c006190c512d359900fd714cf2e8b8bb61d2af757e7"
+    },
+    {
+      "name": "v6.2a CLI exits non-zero",
+      "ok": true,
+      "detail": "exit=1"
+    },
+    {
+      "name": "v6.2b CLI stdout does not claim success",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "v6.2c CLI stderr names the missing library",
+      "ok": true,
+      "detail": "备份失败，已保留失败记录：C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-v00-v6-7y4c81ue\\archive-missing\\manifest.json |   - 教学业务库缺失：C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-v00-v6-7y4c81ue\\data-missing\\teaching\\teaching.sqlite3"
+    },
+    {
+      "name": "v6.2d manifest written for the failure",
+      "ok": true,
+      "detail": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-v00-v6-7y4c81ue\\archive-missing\\manifest.json"
+    },
+    {
+      "name": "v6.2e manifest status failed",
+      "ok": true,
+      "detail": "failed"
+    },
+    {
+      "name": "v6.2f manifest lists the missing library",
+      "ok": true,
+      "detail": "['教学业务库缺失：C:\\\\Users\\\\96022\\\\AppData\\\\Local\\\\Temp\\\\zqky-v00-v6-7y4c81ue\\\\data-missing\\\\teaching\\\\teaching.sqlite3']"
+    },
+    {
+      "name": "v6.2g missing library not silently declared as present",
+      "ok": true,
+      "detail": "['knowledge/knowledge.sqlite3', 'question-bank/blobs/10813bd4017e0b6dd6df873328bc09cff50a8b97be22310da10bd4df8aaa1ca3', 'question-bank/question-bank.sqlite3', 'textbooks/blobs/cef206d3778c49a82f068017c75e02c2a0a55ef393ee4256e16944f4039ab5a7', 'textbooks/catalog.sqlite3', 'textbooks/normalized/660a889c4670bc9b522aecb6de786659d05e24a00f47b4a591000bfb6d3bf2dd', 'textbooks/normalized/7d7553ffd13a283d7dda8128f5cdbb5b05e10d073fd1635bdd35e53624148ef8']"
+    },
+    {
+      "name": "v6.2h verify rejects the failed archive",
+      "ok": true,
+      "detail": "['清单 status=failed，不是 complete：备份未通过一致性校验', '清单内记录的备份失败：教学业务库缺失：C:\\\\Users\\\\96022\\\\AppData\\\\Local\\\\Temp\\\\zqky-v00-v6-7y4c81ue\\\\data-missing\\\\teaching\\\\teaching.sqlite3', '完整清单缺少必需文件：teaching/teaching.sqlite3']"
+    },
+    {
+      "name": "v6.3a archived asset blob present",
+      "ok": true,
+      "detail": "[WindowsPath('C:/Users/96022/AppData/Local/Temp/zqky-v00-v6-7y4c81ue/archive-tamper/files/assets/blobs/a264fc99f3fd3d26b4eb2c006190c512d359900fd714cf2e8b8bb61d2af757e7')]"
+    },
+    {
+      "name": "v6.3b tampered asset bytes -> verify fails",
+      "ok": true,
+      "detail": "['指纹不符：files/assets/blobs/a264fc99f3fd3d26b4eb2c006190c512d359900fd714cf2e8b8bb61d2af757e7', '内容寻址不符：files/assets/blobs/a264fc99f3fd3d26b4eb2c006190c512d359900fd714cf2e8b8bb61d2af757e7 文件名不是内容 sha256（实际 a74ffc407c03052e3fda2498514e5c3ea1363e82864d3d78f0710b95e7d75f2c）']"
+    },
+    {
+      "name": "v6.3c restore refuses tampered archive before writing",
+      "ok": true,
+      "detail": "恢复前校验失败，未写任何文件：\n  - 指纹不符：files/assets/blobs/a264fc99f3fd3d26b4eb2c006190c512d359900fd714cf2e8b8bb61d2af757e7"
+    },
+    {
+      "name": "v6.3d refused restore wrote nothing",
+      "ok": true,
+      "detail": "False"
+    },
+    {
+      "name": "v6.3e deleted archived teaching db -> verify fails (missing file)",
+      "ok": true,
+      "detail": "['缺失文件（含未完成临时文件与失败记录）：sqlite/teaching.sqlite3']"
+    },
+    {
+      "name": "v6.3f teaching db removed from manifest too -> verify still fails",
+      "ok": true,
+      "detail": "['完整清单缺少必需文件：teaching/teaching.sqlite3']"
+    },
+    {
+      "name": "v6.4a crafted archive still passes verify (missing blob only derivable from teaching db)",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "v6.4b restore fails when a referenced asset is absent",
+      "ok": true,
+      "detail": "恢复后受管资产校验失败：   - 受管资产缺失：assets/blobs/f425c02a50d3a0e0f652578cfb130003df8d53c7f82019a11c27a5ea04dcb89e（file_assets asset-ghost）"
+    },
+    {
+      "name": "v6.4c restore-state.json exists",
+      "ok": true,
+      "detail": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-v00-v6-7y4c81ue\\restored-missing-asset\\restore-state.json"
+    },
+    {
+      "name": "v6.4d restore-state stays incomplete",
+      "ok": true,
+      "detail": "incomplete"
+    },
+    {
+      "name": "v6.4e incomplete state records the missing asset",
+      "ok": true,
+      "detail": "['BackupFailed: 恢复后受管资产校验失败：\\n  - 受管资产缺失：assets/blobs/f425c02a50d3a0e0f652578cfb130003df8d53c7f82019a11c27a5ea04dcb89e（file_assets asset-ghost）']"
+    },
+    {
+      "name": "v6.4f incomplete restored root refuses startup",
+      "ok": true,
+      "detail": "DATA_RESTORE_INCOMPLETE"
+    },
+    {
+      "name": "v6.5a v2 manifest verifies",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "v6.5b v2 verify notes it does not cover four libraries",
+      "ok": true,
+      "detail": "['旧 v2 清单只覆盖教材目录与题库：不含知识点库/教学库与受管资产，不能据此宣称四库完整。']"
+    },
+    {
+      "name": "v6.5c v2 restore ends ready",
+      "ok": true,
+      "detail": "ready"
+    },
+    {
+      "name": "v6.5d v2 restore writes exactly the two legacy databases",
+      "ok": true,
+      "detail": "['question-bank/question-bank.sqlite3', 'textbooks/catalog.sqlite3']"
+    },
+    {
+      "name": "v6.5d2 v2 restore copies its blob trees",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "v6.5e v2 without the question bank entry fails verify",
+      "ok": true,
+      "detail": "['完整清单缺少必需文件：question-bank/question-bank.sqlite3']"
+    },
+    {
+      "name": "v6.6a legacy manifest verifies (read-only compatibility)",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "v6.6b legacy verify notes legacy_revalidated",
+      "ok": true,
+      "detail": "['旧清单（schemaVersion<2）只读兼容：只能证明其覆盖的旧资产状态，不能据此宣称当前数据已有完整灾备。', 'legacy_revalidated：以下检查只核对该归档内实际存在的文件与快照。']"
+    },
+    {
+      "name": "v6.6c legacy restore ends ready",
+      "ok": true,
+      "detail": "ready"
+    },
+    {
+      "name": "v6.6d legacy restore keeps the old layout paths",
+      "ok": true,
+      "detail": "['question-bank/question-bank.sqlite3', 'textbooks/catalog.sqlite3']"
+    },
+    {
+      "name": "v6.6e legacy restore copied the content-addressed blob trees",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "v6.6f legacy restored dir passes the startup gate",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}

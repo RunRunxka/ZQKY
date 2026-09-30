@@ -1,0 +1,143 @@
+{
+  "probe": "v8_workflow_jobs_api_probe",
+  "total": 27,
+  "failed": [],
+  "results": [
+    {
+      "name": "v8.0a engine assembled with three domain stores",
+      "ok": true,
+      "detail": "['knowledge', 'question', 'teaching']"
+    },
+    {
+      "name": "v8.1a GET returns 200",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "name": "v8.1b view fields are exactly camelCase JobView",
+      "ok": true,
+      "detail": "['attempt', 'domain', 'error', 'jobId', 'kind', 'result', 'state']"
+    },
+    {
+      "name": "v8.1c view values",
+      "ok": true,
+      "detail": "{'jobId': '03078a4231294d25b874df2ed88643bc', 'domain': 'teaching', 'kind': 'export', 'attempt': 0, 'state': 'queued', 'result': None, 'error': None}"
+    },
+    {
+      "name": "v8.2 unknown id -> 404 JOB_NOT_FOUND",
+      "ok": true,
+      "detail": "status=404 body={'code': 'JOB_NOT_FOUND', 'message': '任务不存在。', 'requestId': 'd636f8be1e83440d99bec4b9b81c13a7', 'retryable': False}"
+    },
+    {
+      "name": "v8.3a GET illegal domain -> 422 INVALID_REQUEST",
+      "ok": true,
+      "detail": "status=422 body={'code': 'INVALID_REQUEST', 'message': '未知任务域：bogus。', 'requestId': 'ec72e57aba304faa9898c227b6e8bdb0', 'retryable': False, 'details': {'fields': ['domain']}}"
+    },
+    {
+      "name": "v8.3b 422 details.fields points at domain",
+      "ok": true,
+      "detail": "{'fields': ['domain']}"
+    },
+    {
+      "name": "v8.3c POST cancel illegal domain -> 422",
+      "ok": true,
+      "detail": "status=422"
+    },
+    {
+      "name": "v8.3d POST cancel missing domain -> 422 INVALID_REQUEST",
+      "ok": true,
+      "detail": "status=422 body=INVALID_REQUEST"
+    },
+    {
+      "name": "v8.3e GET without domain -> 422",
+      "ok": true,
+      "detail": "422"
+    },
+    {
+      "name": "v8.5a queued cancel -> cancelled",
+      "ok": true,
+      "detail": "status=200 state=cancelled"
+    },
+    {
+      "name": "v8.5b cancel is idempotent (second call no-op)",
+      "ok": true,
+      "detail": "{'jobId': '3897a41e47bf41cdb6e59d3be42eebc3', 'domain': 'teaching', 'kind': 'export', 'attempt': 0, 'state': 'cancelled', 'result': None, 'error': None}"
+    },
+    {
+      "name": "v8.5c repeated cancel does not rewrite the row",
+      "ok": true,
+      "detail": "updated_at=2026-09-30T11:19:57Z"
+    },
+    {
+      "name": "v8.5d running cancel keeps running state",
+      "ok": true,
+      "detail": "running"
+    },
+    {
+      "name": "v8.5e running cancel set the cooperative flag",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "v8.6a retry on queued -> 409 JOB_NOT_RETRYABLE",
+      "ok": true,
+      "detail": "status=409 code=JOB_NOT_RETRYABLE"
+    },
+    {
+      "name": "v8.6a retry on running -> 409 JOB_NOT_RETRYABLE",
+      "ok": true,
+      "detail": "status=409 code=JOB_NOT_RETRYABLE"
+    },
+    {
+      "name": "v8.6b failed view carries the error envelope",
+      "ok": true,
+      "detail": "{'code': 'MODEL_CONFIG_INVALID', 'message': '模型配置失效', 'requestId': None, 'retryable': True, 'details': None}"
+    },
+    {
+      "name": "v8.6c terminal retry -> back to queued",
+      "ok": true,
+      "detail": "status=200 state=queued"
+    },
+    {
+      "name": "v8.6d retry keeps frozen input/model snapshot/attempt",
+      "ok": true,
+      "detail": "attempt=1"
+    },
+    {
+      "name": "v8.6e retried row clears the previous error (r2 口径：queued 视图无 error)",
+      "ok": true,
+      "detail": "state=queued error_code=None（retry 同事务清空 error；r1 曾是 observation，r2 已修）"
+    },
+    {
+      "name": "v8.6f next claim bumps attempt and keeps error empty",
+      "ok": true,
+      "detail": "attempt=2 error=None"
+    },
+    {
+      "name": "v8.4a unassembled engine -> 503 SERVICE_UNAVAILABLE (retryable)",
+      "ok": true,
+      "detail": "status=503 body={'code': 'SERVICE_UNAVAILABLE', 'message': '任务引擎未装配（本地数据库运行时未启动）。', 'requestId': 'c84732c5fdb84abb8be0319586322844', 'retryable': True}"
+    },
+    {
+      "name": "v8.4b unassembled engine retry -> 503",
+      "ok": true,
+      "detail": "503"
+    },
+    {
+      "name": "v8.4c known domain without a store -> 503 (not fake 404)",
+      "ok": true,
+      "detail": "status=503 body={'code': 'SERVICE_UNAVAILABLE', 'message': '任务域 question 的服务未装配。', 'requestId': '0348516da50943d484216dc2c26f32d2', 'retryable': True}"
+    },
+    {
+      "name": "v8.7 knowledge domain works with its own kind whitelist",
+      "ok": true,
+      "detail": "200"
+    },
+    {
+      "name": "v8.8 unknown kind rejected by whitelist",
+      "ok": true,
+      "detail": "AppError: INVALID_REQUEST"
+    }
+  ],
+  "observations": []
+}

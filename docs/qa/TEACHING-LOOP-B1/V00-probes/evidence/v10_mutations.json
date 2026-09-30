@@ -1,0 +1,59 @@
+{
+  "probe": "v10_mutations",
+  "passed": 10,
+  "failed": 0,
+  "total": 10,
+  "results": [
+    {
+      "name": "M1-remove-cycle-trigger 变异已注入副本（app/core/migrations/knowledge.py）",
+      "ok": true,
+      "detail": "copy=C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-v10-M1-remove-cycle-trigger-xdve3twj"
+    },
+    {
+      "name": "M1-remove-cycle-trigger 变异后对应断言失败（证明有牙齿）",
+      "ok": true,
+      "detail": "{\"exit\": 1, \"expected_failing_checks\": [\"v2.3g 成环父 → 422 KNOWLEDGE_CYCLE（DB 触发器兜底）\"], \"baseline_pass\": {\"v2.3g 成环父 → 422 KNOWLEDGE_CYCLE（DB 触发器兜底）\": true}, \"evidence\": \"C:\\\\Users\\\\96022\\\\AppData\\\\Local\\\\Temp\\\\zqky-v10-M1-remove-cycle-trigger-xdve3twj\\\\evidence\"}"
+    },
+    {
+      "name": "M1-remove-cycle-trigger 基线同名断言为 pass（对照）",
+      "ok": true,
+      "detail": "{\"hit\": [\"v2.3g 成环父 → 422 KNOWLEDGE_CYCLE（DB 触发器兜底）\"], \"baseline_matching\": {\"v2.3g 成环父 → 422 KNOWLEDGE_CYCLE（DB 触发器兜底）\": true}}"
+    },
+    {
+      "name": "M2-answer-leak-to-student 变异已注入副本（app/services/rich_content/renderer_docx.py）",
+      "ok": true,
+      "detail": "copy=C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-v10-M2-answer-leak-to-student-9hdx1p87"
+    },
+    {
+      "name": "M2-answer-leak-to-student 变异后对应断言失败（证明有牙齿）",
+      "ok": true,
+      "detail": "{\"exit\": 1, \"expected_failing_checks\": [\"v7.1b 学生版不含答案与解析文本\"], \"baseline_pass\": {\"v7.1b 学生版不含答案与解析文本\": true}, \"evidence\": \"C:\\\\Users\\\\96022\\\\AppData\\\\Local\\\\Temp\\\\zqky-v10-M2-answer-leak-to-student-9hdx1p87\\\\evidence\"}"
+    },
+    {
+      "name": "M2-answer-leak-to-student 基线同名断言为 pass（对照）",
+      "ok": true,
+      "detail": "{\"hit\": [\"v7.1b 学生版不含答案与解析文本\"], \"baseline_matching\": {\"v7.1b 学生版不含答案与解析文本\": true}}"
+    },
+    {
+      "name": "M3-gate-requires-b1-tables 变异已注入副本（app/repositories/knowledge/schema.py）",
+      "ok": true,
+      "detail": "copy=C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-v10-M3-gate-requires-b1-tables-9785e0ix"
+    },
+    {
+      "name": "M3-gate-requires-b1-tables 变异后对应断言失败（证明有牙齿）",
+      "ok": true,
+      "detail": "{\"exit\": 1, \"expected_failing_checks\": [\"v1.2c 仅 B0 结构旧库通过启动门控（不判损坏/结构不符）\"], \"baseline_pass\": {\"v1.2c 仅 B0 结构旧库通过启动门控（不判损坏/结构不符）\": true}, \"evidence\": \"C:\\\\Users\\\\96022\\\\AppData\\\\Local\\\\Temp\\\\zqky-v10-M3-gate-requires-b1-tables-9785e0ix\\\\evidence\"}"
+    },
+    {
+      "name": "M3-gate-requires-b1-tables 基线同名断言为 pass（对照）",
+      "ok": true,
+      "detail": "{\"hit\": [\"v1.2c 仅 B0 结构旧库通过启动门控（不判损坏/结构不符）\"], \"baseline_matching\": {\"v1.2c 仅 B0 结构旧库通过启动门控（不判损坏/结构不符）\": true}}"
+    },
+    {
+      "name": "v10.fingerprint 候选 95 文件 sha256 复算 0 差异（副本变异未污染候选）",
+      "ok": true,
+      "detail": "[]"
+    }
+  ],
+  "crashed": null
+}

@@ -1,7 +1,92 @@
 # 当前状态与实施主线
 
 <a id="current-batch"></a>
-## RAG-QUALITY v1.1 当前批次（2026-09-29）
+## TEACHING-LOOP B1 当前批次（2026-09-30）——富内容基础 / 知识点后端 / 名单后端
+
+用户授权按 [多Agent实施任务计划书 v2.0 §二.3](design/teaching-loop-v1/多Agent实施任务计划书_v2.0.md)
+实施 **B1（CTRL + T10 + T20 + T30-a）**。起点为 B0 r2 工作树（B0 未提交交付；
+开工核对 r2 55 文件指纹 **55/55 一致、0 差异**）。任务卡与证据见
+[B1 批次目录](qa/TEACHING-LOOP-B1/TASK-CARD.md)；**本批不新增前端页面**，B2（T40/T50/T30-b）需另行授权。
+
+- **结构（追加式迁移，B0 已登记声明与散列零漂移）**：知识点库 `0002` 登记设计 5 表
+  （`subjects`/`knowledge_points`/`knowledge_point_revisions`/`knowledge_aliases`/`textbook_knowledge_links`，
+  含 `KNOWLEDGE_CYCLE` 环检测与 `IMMUTABLE_REVISION` 触发器）与导入批次表；
+  教学库 `0002` 登记 `classes`/`students`/`class_memberships`（含 `ux_active_membership` 部分唯一索引）
+  与名单批次表。施测三表留 T30-b（依赖 T40 的 `paper_revisions`）。
+  启动门控 `REQUIRED_TABLES` 仍只要求 B0 基础表：尚未应用 B1 迁移的合法旧库可启动。
+- **契约（B1 冻结）**：`app/contracts/knowledge.py`（知识点视图/导入 DTO/确认结果/教材依据/AI 候选）与
+  `app/contracts/roster.py`（班级/学生/归属/名单 DTO + 施测请求、参测人次、身份/班级/出勤快照与
+  `ConfirmedPaperReader` 端口），前端镜像 `apps/web/src/contracts/{knowledge,roster}.ts`。
+- **共享基础**：`app/services/publication.py`（`PublicationCoordinator`：进程内锁，锁内只做数据库读取与短事务）、
+  `app/services/tabular.py`（XLSX/CSV 唯一读取实现）；新增依赖 `openpyxl==3.1.5`、`math2docx==3.1.0`（uv.lock）。
+- **T10 富内容**：`app/services/rich_content/`（DOCX 富解析：段落/表格合并单元格/图片真实字节与尺寸/OMML 原样/
+  未知对象进可见问题清单/共同材料保守分组；DOCX 渲染：学生/教师投影、共同材料一次、图片 relationship 重建、
+  LaTeX 经 math2docx，转换失败保留定位并报错）。既有教材解析语义不动。
+- **T20 知识点**：人工建立/更新（改名追加修订、`clearFields` 显式清空）、父树与归档、别名（同名只提示）、
+  可选教材依据（区间经教材目录核验；不可用 503 且不得当"没有依据"）、XLSX/CSV 导入预览与整批确认（幂等）、
+  AI 候选（`knowledge:suggestion` 任务，候选只进待确认批次，确认与任务终态同库同事务）。
+- **T30-a 名单**：班级/学生/归属历史；学号文本保留前导零、姓名非主键；无学号/同名/姓名不符/重复行人工核对；
+  名单未出现不自动退班；转班保留旧归属；确认幂等与整批回滚。**施测真实创建 = T30-b**，接口保持 501。
+- **验证**：后端全量 `npm run test:api` **1170 passed**（B0 基线 1011；唯一一次失败为台账 **R-19** 冷启动间歇——
+  单例单跑失败、整文件 14/14 通过，与 B1 diff 面零交集）；前端单测 **76 文件 / 733 例**；
+  `npm run check` 退出码 0（typecheck + lint 0 警告 + unit + build）。命令与退出码见
+  [EVIDENCE-COMMANDS](qa/TEACHING-LOOP-B1/EVIDENCE-COMMANDS.md)。
+- **独立验收 V00 r1**：V1/V3–V8/V10 **pass**，**V2 与 V9 fail**（自指/环错误缺 `details.issues[].field`；
+  三处文档未登记 `0003`/未列 `/classes/{id}/restore`），另 17 条 observation（含 publish 失败任务停 `running`
+  等 B0 契约边界）。逐条处置：F1 由 T20 修复（`would_create_cycle` 预检 + 触发器兜底同形状 details，CTRL 独立复现通过）；
+  F2–F4 文档已补齐；O1（0003 补 adjust 钩子）已修；O4/O6/O7/O10/O11/O16 已按边界登记在
+  [B1 任务卡 §8](qa/TEACHING-LOOP-B1/TASK-CARD.md) 与批次 README。
+- **独立验收 V00 r2（最终候选）**：**全部 pass、无遗留 fail**——F1 独立复现（37/37）、文档声明探针 19/19、
+  O1 修复验证 13/13、r2 指纹 95/95 且差异恰为声明的 10 文件、B1 相关 178 例与全量 **1170 例** exit 0；
+  新增 6 条 observation 均为边界/文档口径（详见 [V00-REPORT-02](qa/TEACHING-LOOP-B1/V00-REPORT-02.md)）。
+- **未执行（not_run）**：e2e（无页面改动）、真实模型调用、真实 Word/WPS 排版、真实 Qdrant、
+  正式数据根上的 B1 迁移演练（需写入授权：正式库当前为"待应用 knowledge 0002/0003 与 teaching 0002"的合法状态，
+  下次启动自动补齐）；R-19 等台账间歇项按既有口径记录，未"修"未放宽断言。
+- **下一批入口（B2，需另行授权）**：T40 原卷（依赖 T10/T20）、T50 题库增量、**T30-b 施测真实创建**
+  （登记 `assessments`/`assessment_classes`/`assessment_participants` 三表 + `ConfirmedPaperReader` 端口实现，
+  只用已确认原卷修订）、F10 知识点前端。
+
+## TEACHING-LOOP B0 批次（2026-09-30，上一批）——公共契约与基础设施
+
+用户授权按 [多Agent实施任务计划书 v2.0 §二.3](design/teaching-loop-v1/多Agent实施任务计划书_v2.0.md)
+实施 **B0（CTRL + T00）**：冻结类型/错误/版本/任务/资产/迁移契约，并落地公共基础设施。
+起点 `main@301fc356493db21d187ab85f32fd49dfffdc51ef`（现场保留用户对 `docs/PLAN.md` 的未提交修改）。
+任务卡与逐项证据见 [B0 批次目录](qa/TEACHING-LOOP-B0/TASK-CARD.md)；本批**未实现任何业务模块**，
+B1—B7 需用户另行授权。
+
+- **四库边界**：新增知识点库 `.local-data/knowledge/knowledge.sqlite3`（本批：`knowledge_submissions`、
+  `knowledge_jobs`）与教学业务库 `.local-data/teaching/teaching.sqlite3`（本批：`command_submissions`、
+  `file_assets`、`workflow_jobs`）；教材目录、题库、Qdrant 既有职责不变；受管原件在
+  `.local-data/assets/blobs/<sha256>`（内容寻址、只增不改）。
+- **迁移登记**：每库 `schema_migrations(id,sha256,applied_at)`，清单在 `app/core/migrations/`
+  （教材/题库既有 DDL 冻结为 `0001` 基线，`question_jobs` 任务引擎列为 `0002` 增量）；
+  逐条独立事务、失败回滚可重跑、散列漂移拒绝启动；启动顺序为
+  「恢复状态闸门 → 既有库体检（损坏不重建）→ 迁移 → 任务收敛」。
+- **任务协议**：`app/repositories/jobs` + `app/services/jobs` 统一租约（90 秒/心跳 20 秒）、
+  `attempt`、取消标志、结果与终态**同库同事务**提交；并发上限 2 个重任务、其中 1 个模型任务；
+  重启遗留 `running` → `interrupted` 且不自动重跑；重试保留冻结输入与模型指纹；
+  对外路由 `GET/POST /api/v1/workflow-jobs/...`（查询/取消/重试）。
+- **提交幂等**：`(ownerId, operation, submissionId)` 复合身份；同键同 hash 重放原结果、
+  同键不同 hash 409 `SUBMISSION_CONFLICT`；版本冲突 409 带 `details.currentRevision`；
+  422 行列错误带 `details.issues`。
+- **受管资产**：`AssetStore`（内容寻址、读取重算散列）+ `file_assets` 登记（kind 白名单）；
+  非法 `blob_key`、路径穿越一律拒绝。
+- **前端**：`contracts/teaching-loop.ts`（`JobView`/`RevisionIdentity`/`ScoreCell`/`RichContentV2` 等）
+  与服务客户端；`api-client` 补齐 details、取消语义（`isAbortError`）、`apiRequestBlob`；
+  新增 `workflow-jobs-api.ts`（含 2 秒/5 秒轮询的 `observeJob`）。
+- **测试隔离修正**：后端测试套件在导入 `app.main` 前把默认数据根指向会话级临时目录
+  （`ZQKY_DATA_DIR`），不再对正式 `.local-data` 建库/迁移（此前模块级 `create_app()` 会在导入时
+  对正式数据根执行迁移——既有行为，本批修正为测试隔离）；`connect()` 改为先设 `busy_timeout`
+  再切 WAL，避免并行进程首次打开同一库时 `database is locked`。
+- **验证（r2 候选）**：后端 `npm run test:api` **1011 passed**（基线 920）；前端单测 **76 文件 / 733 例**；
+  `npm run check` 退出码 0（typecheck + lint 0 警告 + unit + build）；独立验收 V00 r1 为 9 pass / 1 fail / 6 observation，
+  修复后重新冻结 r2 并窄复验 **5/5 pass**（含变异实验证明回归保护），逐条处置见
+  [批次 README §4](qa/TEACHING-LOOP-B0/README.md) 与 [V00 报告 02](qa/TEACHING-LOOP-B0/V00-REPORT-02.md)。
+- **未执行**：e2e（本批无页面/路由/布局/保存/导出改动）、真实模型调用、真实 Qdrant v3 备份恢复 CLI、真实 DOCX/XLSX 解析、
+  `0003` 在正式数据根上的补齐演练（需写入授权；正式库当前为"待应用 0003"的合法状态，下次启动自动补齐）。
+  **本批未实现任何业务模块**；B1（T10/T20/T30 起点）需用户另行授权。
+
+## RAG-QUALITY v1.1 批次（2026-09-29，上一批）
 
 用户授权按 `docs/PLAN.md`（RAG-QUALITY v1.1）整改首答质量、图片污染、证据窗口、题库模型与备份恢复。
 起点 `main@2f27841`（= `eee2799` + 命中率测量脚本）。证据见
@@ -232,7 +317,8 @@ npm.cmd run test:unit
 
 ## 5. 当前批次与下一动作
 
-当前为页首 RAG-DELIVERY-v1；以下各节保留既有批次证据。
+当前批次为**页首 TEACHING-LOOP B0（公共契约与基础设施）**；其后继 B1—B7 需用户逐批授权。
+以下各节保留既有批次证据。
 
 <a id="chat-content-math-follow-results"></a>
 ### 5.A 当前批：CHAT-CONTENT-MATH-AND-FOLLOW v1（助手正文数学渲染 + 推理区滚动跟随），2026-09-24 本地实现与总控自验，待独立只读验收
@@ -438,6 +524,8 @@ npm.cmd run test:unit
 
 | 顺序/轨道 | 交付中心 | 出口 |
 | --- | --- | --- |
+| **TEACHING-LOOP B1（2026-09-30，页首当前批）** | 富内容基础（T10）、知识点后端（T20）、班级/学生/名单导入后端（T30-a）；施测只冻结契约 | 见页首；B2（T40 原卷 / T50 题库增量 / T30-b 施测 / F10 知识点前端）按用户逐批授权 |
+| **TEACHING-LOOP B0（2026-09-30，已交付）** | 公共契约与基础设施（四库/迁移登记/任务引擎/提交幂等/受管资产/四库备份/公共任务路由/前端 API 客户端缺口） | 独立验收 V00 r1 1 fail → 修复 → r2 窄复验 5/5 pass；见 B0 批次证据 |
 | **UX-REGRESSION-FIX v1（2026-09-23 历史批次）** | 三项人工视觉回归修复（推理流式公式 / 教案顶栏 / 教材资料库返回路径） | 已完成（限定范围）；真实供应商/RAG/硬件触摸/逐帧动画 not_run |
 | **UX-PERF-CLOSEOUT v1（2026-09-23 历史批次）** | 长推理流性能收口 + 模式菜单（RAG 模式占位）+ 学习记录并入导航 + 书籍归属 + favicon + 教案布局 + 双语字体 token | 已完成（限定范围）；真实供应商/RAG 硬件触摸 not_run |
 | **下一批（依赖顺序第 2 步）：现存业务与 R-14 的有界核查** | ① R-14（书籍双标签页并发写测试假设与既定行为不一致）定性并处置：要么在测试内接受「已中断」再走继续生成，要么调宽等待；② R-13（模型真实长答）只做有界核查，不无界加预算、不自动关推理；③ 现存业务问题按 STATUS §3 台账逐条有界处理 | 每条给出复现命令、定性（产品缺陷/断言问题）与处置；不借机扩大范围 |

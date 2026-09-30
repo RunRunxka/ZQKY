@@ -1,0 +1,74 @@
+{
+  "probe": "v1r2_o1",
+  "passed": 13,
+  "failed": 0,
+  "total": 13,
+  "results": [
+    {
+      "name": "v1r2.0 知识库末条迁移仍是 0003（id 未变）",
+      "ok": true,
+      "detail": "0003_knowledge_import_issues_column"
+    },
+    {
+      "name": "v1r2.1 0003 声明集合未变（单条 ALTER，散列与 r1 一致）",
+      "ok": true,
+      "detail": "{\"len\": 1, \"sha256\": \"ec0fdc9abcc7009ebe7a801927f21814c4fdeed809fda27c26e1f6873f76bb09\", \"r1\": \"ec0fdc9abcc7009ebe7a801927f21814c4fdeed809fda27c26e1f6873f76bb09\", \"match\": true}"
+    },
+    {
+      "name": "v1r2.2 0003 已挂 adjust 钩子",
+      "ok": true,
+      "detail": "adjust=<function _skip_existing_issues_column at 0x000001ACBA938540>"
+    },
+    {
+      "name": "v1r2.3 0002 声明散列未变（B0/B1 冻结面未动）",
+      "ok": true,
+      "detail": "6389e7c456b614059df2e3d96b695d963ee460237286747f857b0582b828c6d6"
+    },
+    {
+      "name": "v1r2.4 场景 A 构造：列已存在、注册表缺 0003",
+      "ok": true,
+      "detail": "{\"columns\": [\"id\", \"owner_id\", \"source\", \"subject_id\", \"file_asset_id\", \"state\", \"revision\", \"mapping_json\", \"warnings_json\", \"error_code\", \"created_at\", \"updated_at\", \"issues_json\"], \"registry\": [\"0001_knowledge_baseline\", \"0002_knowledge_business_tables\"]}"
+    },
+    {
+      "name": "v1r2.5 场景 A：apply 不再抛错（O1 修复）",
+      "ok": true,
+      "detail": "raised=None: None"
+    },
+    {
+      "name": "v1r2.6 场景 A：本次补登记 0003 且列保留",
+      "ok": true,
+      "detail": "{\"applied\": [\"0003_knowledge_import_issues_column\"], \"columns\": [\"id\", \"owner_id\", \"source\", \"subject_id\", \"file_asset_id\", \"state\", \"revision\", \"mapping_json\", \"warnings_json\", \"error_code\", \"created_at\", \"updated_at\", \"issues_json\"]}"
+    },
+    {
+      "name": "v1r2.7 场景 A：重复 apply 幂等（再跑返回空）",
+      "ok": true,
+      "detail": "second apply -> []"
+    },
+    {
+      "name": "v1r2.8 场景 B 构造：列缺失（0002 无 issues_json）、0003 未登记",
+      "ok": true,
+      "detail": "[\"id\", \"owner_id\", \"source\", \"subject_id\", \"file_asset_id\", \"state\", \"revision\", \"mapping_json\", \"warnings_json\", \"error_code\", \"created_at\", \"updated_at\"]"
+    },
+    {
+      "name": "v1r2.9 场景 B：钩子未误跳过 —— ADD COLUMN 执行并登记 0003",
+      "ok": true,
+      "detail": "{\"applied\": [\"0003_knowledge_import_issues_column\"], \"columns\": [\"id\", \"owner_id\", \"source\", \"subject_id\", \"file_asset_id\", \"state\", \"revision\", \"mapping_json\", \"warnings_json\", \"error_code\", \"created_at\", \"updated_at\", \"issues_json\"]}"
+    },
+    {
+      "name": "v1r2.10 场景 B：列定义仍为 NOT NULL DEFAULT '[]'",
+      "ok": true,
+      "detail": "[\", issues_json TEXT NOT NULL DEFAULT '[]')\"]"
+    },
+    {
+      "name": "v1r2.11 钩子两态：列存在 → 空；列缺失 → 原 ALTER",
+      "ok": true,
+      "detail": "{\"present\": [], \"missing\": [\"ALTER TABLE knowledge_imports ADD COLUMN issues_json TEXT NOT NULL DEFAULT '[]'\"]}"
+    },
+    {
+      "name": "v1r2.12 新库全量：0001/0002/0003 依次登记且散列与 r1 一致",
+      "ok": true,
+      "detail": "{\"applied\": [\"0001_knowledge_baseline\", \"0002_knowledge_business_tables\", \"0003_knowledge_import_issues_column\"], \"0003\": \"ec0fdc9abcc7009ebe7a801927f21814c4fdeed809fda27c26e1f6873f76bb09\"}"
+    }
+  ],
+  "crashed": null
+}

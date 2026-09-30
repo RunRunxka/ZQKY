@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import importlib
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -26,11 +27,17 @@ from app.api.v1 import model_profiles as model_profiles_route
 from app.api.v1 import model_catalog as model_catalog_route
 from app.api.v1 import textbook_index as textbook_index_route
 from app.api.v1 import textbooks as textbooks_route
+from app.api.v1 import workflow_jobs as workflow_jobs_route
 from app.core.config import Settings
+from app.core.database_gate import DatabaseExpectation, verify_existing_databases
 from app.core.exceptions import AppError
 from app.core.http_safe import LocalAccessGuardMiddleware
 from app.core.secrets import SecretStore
 from app.repositories.model_config_repository import ModelConfigRepository
+from app.repositories.knowledge.schema import REQUIRED_TABLES as KNOWLEDGE_TABLES
+from app.repositories.question_bank.schema import REQUIRED_TABLES as QUESTION_BANK_TABLES
+from app.repositories.teaching.schema import REQUIRED_TABLES as TEACHING_TABLES
+from app.repositories.textbook_catalog.schema import REQUIRED_TABLES as TEXTBOOK_TABLES
 from app.schemas.errors import error_response
 from app.services.model_auth import ModelAuthService
 from app.services.model_config_service import ModelConfigService
@@ -40,11 +47,61 @@ logger = logging.getLogger("zhiqikeyuan.api")
 
 _HTTP_ERROR_CODES = {404: "NOT_FOUND", 405: "METHOD_NOT_ALLOWED"}
 
-# 教材/题库运行时在 app.state 上的装配键；缺服务时统一为 None，路由据此报 501/503
+# 本地数据库运行时在 app.state 上的装配键；缺服务时统一为 None，路由据此报 501/503
 TEXTBOOK_STATE_KEYS = (
     "catalog", "embedding_provider", "vector_store",
     "ingest_service", "index_service", "question_bank", "question_bank_service", "rag_v2",
+    "knowledge", "teaching", "job_engine",
+    "asset_store", "file_assets", "publication_coordinator", "textbook_evidence",
+    "knowledge_service", "roster_service",
 )
+
+#: 可选路由（模块缺失时只记录原因，不影响其他模块；并行开发期与裁剪部署都安全）
+OPTIONAL_ROUTERS = (
+    ("app.api.v1.knowledge", "知识点"),
+    ("app.api.v1.roster", "名单"),
+)
+
+
+def _include_optional_routers(app: FastAPI) -> None:
+    for module_path, label in OPTIONAL_ROUTERS:
+        try:
+            module = importlib.import_module(module_path)
+        except ImportError as exc:  # pragma: no cover - 实现落地前
+            logger.warning("%s 路由未注册：%s", label, exc)
+            continue
+        app.include_router(module.router, prefix="/api/v1")
+
+#: 任务白名单：任务种类是契约的一部分；新增 kind 属总控级变更（改这里 + 文档）。
+#: 知识点候选与 AI 补题分别落在知识点库与题库；原卷/学情/教案/导出落在教学库。
+JOB_KINDS: dict[str, frozenset[str]] = {
+    "question": frozenset({"organize", "generate"}),
+    "knowledge": frozenset({"suggestion"}),
+    "teaching": frozenset({"paper_import", "paper_mapping", "analysis", "lesson_generation", "export"}),
+}
+
+#: 启动时执行"遗留 running → interrupted"收敛的任务域（见 _build_job_engine 说明）。
+RECONCILE_DOMAINS: tuple[str, ...] = ("knowledge", "teaching")
+
+
+def _database_expectations(settings: Settings) -> list[DatabaseExpectation]:
+    """四库期望清单：启动体检与迁移登记共用同一份路径/结构定义。"""
+    return [
+        DatabaseExpectation(
+            settings.textbooks_root / "catalog.sqlite3", "textbooks", TEXTBOOK_TABLES
+        ),
+        DatabaseExpectation(
+            settings.question_bank_root / "question-bank.sqlite3",
+            "question_bank",
+            QUESTION_BANK_TABLES,
+        ),
+        DatabaseExpectation(
+            settings.knowledge_root / "knowledge.sqlite3", "knowledge", KNOWLEDGE_TABLES
+        ),
+        DatabaseExpectation(
+            settings.teaching_root / "teaching.sqlite3", "teaching", TEACHING_TABLES
+        ),
+    ]
 
 
 @asynccontextmanager
@@ -76,6 +133,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         try:
             yield
         finally:
+            engine = getattr(app.state, "job_engine", None)
+            shutdown = getattr(engine, "shutdown", None)
+            if callable(shutdown):
+                try:
+                    # 停止本进程持有的任务 worker：在跑的任务留 running，
+                    # 下次启动由 reconcile 转 interrupted（不自动重跑）。
+                    await shutdown()
+                except Exception:  # pragma: no cover - 收尾失败不覆盖正常退出
+                    logger.exception("停止任务引擎失败")
             await app.state.rag_service.close()
             _shutdown_textbook_runtime(app)
             logger.info("后端服务已停止")
@@ -102,15 +168,22 @@ def _build_model_handle_resolver(app: FastAPI):
     return resolver
 
 
-def _build_textbook_runtime(app: FastAPI, settings: Settings) -> None:
-    """装配教材目录/入库/索引/题库服务；缺模块或缺本机依赖时留 None 并记录原因。
+def _build_local_runtime(app: FastAPI, settings: Settings) -> None:
+    """装配本地数据库运行时（四库 + 任务引擎）与教材/题库/RAG 服务。
 
-    这里不做任何假成功：服务为 None 时对应路由返回 501/503，而不是空列表。
-    每个子服务独立装配，一个未落地不影响其他已落地的服务。
+    启动顺序（TEACHING-LOOP B0）：恢复状态闸门 → 既有库体检（损坏不重建）→
+    四库迁移登记 → 任务收敛（遗留 running → interrupted）。缺模块或缺本机依赖时
+    留 None 并记录原因：服务为 None 时对应路由返回 501/503，而不是空列表。
     """
     for key in TEXTBOOK_STATE_KEYS:
         setattr(app.state, key, getattr(app.state, key, None))
     app.state.textbooks_error = None
+
+    # 恢复未完成的数据根拒绝启动（避免在未恢复目录里建库）；体检拒绝损坏/结构不符的既有库。
+    from app.core.data_lock import require_data_root_ready
+
+    require_data_root_ready(settings.data_dir)
+    verify_existing_databases(_database_expectations(settings))
 
     try:
         from app.repositories.textbook_catalog.catalog import TextbookCatalog
@@ -130,6 +203,29 @@ def _build_textbook_runtime(app: FastAPI, settings: Settings) -> None:
         )
         app.state.question_bank.migrate()
 
+    try:
+        from app.repositories.knowledge.catalog import KnowledgeCatalog
+    except ImportError as exc:  # pragma: no cover - 实现落地前
+        app.state.textbooks_error = f"知识点库实现缺失：{exc}"
+    else:
+        app.state.knowledge = KnowledgeCatalog(
+            settings.knowledge_root / "knowledge.sqlite3"
+        )
+        app.state.knowledge.migrate()
+
+    try:
+        from app.repositories.teaching.catalog import TeachingCatalog
+    except ImportError as exc:  # pragma: no cover - 实现落地前
+        app.state.textbooks_error = f"教学库实现缺失：{exc}"
+    else:
+        app.state.teaching = TeachingCatalog(settings.teaching_root / "teaching.sqlite3")
+        app.state.teaching.migrate()
+
+    _build_job_engine(app)
+    _build_shared_services(app, settings)
+    _build_knowledge_runtime(app)
+    _build_roster_runtime(app)
+
     if app.state.catalog is None:
         return
     try:
@@ -145,7 +241,6 @@ def _build_textbook_runtime(app: FastAPI, settings: Settings) -> None:
         from app.services.textbook_index.service import IndexService
     except ImportError as exc:  # pragma: no cover - 实现落地前
         app.state.textbooks_error = f"教材入库/索引/RAG 实现缺失：{exc}"
-        return
         return
 
     provider = OllamaEmbeddingProvider(settings.embedding_base_url)
@@ -180,10 +275,127 @@ def _build_textbook_runtime(app: FastAPI, settings: Settings) -> None:
             )
 
 
+def _build_shared_services(app: FastAPI, settings: Settings) -> None:
+    """受管资产、文件登记、发布协调器与教材证据读取器（跨域共享，CTRL 独占装配）。
+
+    缺依赖时留 None：调用方按 503 处理，不降级成假成功。
+    """
+    try:
+        from app.services.publication import PublicationCoordinator
+    except ImportError as exc:  # pragma: no cover - 实现落地前
+        app.state.publication_coordinator = None
+        logger.warning("发布协调器缺失：%s", exc)
+    else:
+        app.state.publication_coordinator = PublicationCoordinator()
+
+    if app.state.teaching is None:
+        return
+    try:
+        from app.repositories.assets.file_assets import FileAssetsRepository
+        from app.services.assets.store import AssetStore
+    except ImportError as exc:  # pragma: no cover - 实现落地前
+        logger.warning("受管资产实现缺失：%s", exc)
+        return
+    app.state.asset_store = AssetStore(settings.assets_root)
+    app.state.file_assets = FileAssetsRepository(app.state.teaching)
+
+    if app.state.catalog is None:
+        return
+    try:
+        from app.services.knowledge.evidence import TextbookEvidenceReader
+        from app.services.rag_v2.source_text import ImmutableSource
+    except ImportError:  # pragma: no cover - 实现落地前
+        return
+    # blobs_root 由 catalog 自动派生（ImmutableSource.blob_root_for），显式传会与教材根脱钩
+    source = ImmutableSource(catalog=app.state.catalog)
+    app.state.textbook_evidence = TextbookEvidenceReader(app.state.catalog, source=source)
+
+
+def _build_knowledge_runtime(app: FastAPI) -> None:
+    """知识点服务：依赖知识点库 + 受管资产登记 + 发布协调器 + 任务引擎。"""
+    if app.state.knowledge is None or app.state.asset_store is None or app.state.file_assets is None:
+        return
+    try:
+        from app.services.knowledge.service import build_knowledge_service
+    except ImportError as exc:  # pragma: no cover - 实现落地前
+        logger.warning("知识点服务缺失：%s", exc)
+        return
+    app.state.knowledge_service = build_knowledge_service(
+        app.state.knowledge,
+        asset_store=app.state.asset_store,
+        file_assets=app.state.file_assets,
+        evidence=app.state.textbook_evidence,
+        coordinator=app.state.publication_coordinator,
+        model_resolver=_build_model_handle_resolver(app),
+        job_engine=app.state.job_engine,
+    )
+
+
+def _build_roster_runtime(app: FastAPI) -> None:
+    """名单服务：班级/学生/归属历史与名单导入（施测真实创建属 T30-b）。"""
+    if app.state.teaching is None or app.state.asset_store is None or app.state.file_assets is None:
+        return
+    try:
+        from app.services.roster.service import build_roster_service
+    except ImportError as exc:  # pragma: no cover - 实现落地前
+        logger.warning("名单服务缺失：%s", exc)
+        return
+    app.state.roster_service = build_roster_service(
+        app.state.teaching,
+        asset_store=app.state.asset_store,
+        file_assets=app.state.file_assets,
+        job_engine=app.state.job_engine,
+    )
+
+
+def _build_job_engine(app: FastAPI) -> None:
+    """按已装配的库构造任务引擎，并做启动收敛（遗留 running → interrupted）。
+
+    ``reconcile`` 不重新调用模型：中断的模型任务保持 interrupted，等教师显式重试。
+
+    B0 的收敛范围**只含知识点库与教学库**：题库的组织任务仍在既有流程里管理
+    （其状态枚举与前端视图尚未迁移到六态），B2 迁移题库任务时一并纳入，
+    避免在旧界面上出现它不认识的状态。
+    """
+    try:
+        from app.repositories.jobs.repository import JobStore
+        from app.services.jobs.engine import JobEngine
+    except ImportError as exc:  # pragma: no cover - 实现落地前
+        app.state.job_engine = None
+        if app.state.textbooks_error is None:
+            app.state.textbooks_error = f"任务引擎实现缺失：{exc}"
+        return
+
+    bindings = (
+        ("question", app.state.question_bank, "question_jobs"),
+        ("knowledge", app.state.knowledge, "knowledge_jobs"),
+        ("teaching", app.state.teaching, "workflow_jobs"),
+    )
+    stores = {
+        domain: JobStore(catalog, domain=domain, table=table, kinds=JOB_KINDS[domain])
+        for domain, catalog, table in bindings
+        if catalog is not None
+    }
+    engine = JobEngine(stores, heavy_limit=2, model_limit=1)
+    app.state.job_engine = engine
+
+    interrupted: dict[str, list[str]] = {}
+    for domain in RECONCILE_DOMAINS:
+        try:
+            store = engine.store(domain)
+        except AppError as exc:
+            if exc.code == "INVALID_REQUEST":  # 该域未装配（隔离测试）
+                continue
+            raise
+        interrupted[domain] = store.reconcile_interrupted()
+    if any(interrupted.values()):
+        logger.info("启动任务收敛（running → interrupted）：%s", interrupted)
+
+
 def _shutdown_textbook_runtime(app: FastAPI) -> None:
     for key in (
         "ingest_service", "index_service", "question_bank_service",
-        "question_bank", "catalog",
+        "question_bank", "catalog", "knowledge", "teaching",
     ):
         service = getattr(app.state, key, None)
         close = getattr(service, "close", None)
@@ -226,7 +438,7 @@ def create_app(
         app.state.model_config_repo, app.state.secret_store
     )
     if bootstrap_textbooks:
-        _build_textbook_runtime(app, settings)
+        _build_local_runtime(app, settings)
     else:
         app.state.textbooks_error = "教材目录未装配（隔离测试）"
         for key in TEXTBOOK_STATE_KEYS:
@@ -244,6 +456,8 @@ def create_app(
     app.include_router(textbooks_route.router, prefix="/api/v1")
     app.include_router(textbook_index_route.router, prefix="/api/v1")
     app.include_router(question_bank_route.router, prefix="/api/v1")
+    app.include_router(workflow_jobs_route.router, prefix="/api/v1")
+    _include_optional_routers(app)
 
     @app.api_route(
         "/api/v1/{rest:path}",
@@ -260,7 +474,11 @@ def create_app(
     @app.exception_handler(AppError)
     async def app_error(request: Request, exc: AppError) -> JSONResponse:
         return error_response(
-            exc.status_code, exc.code, str(exc), retryable=exc.retryable
+            exc.status_code,
+            exc.code,
+            str(exc),
+            retryable=exc.retryable,
+            details=getattr(exc, "details", None),
         )
 
     @app.exception_handler(StarletteHTTPException)

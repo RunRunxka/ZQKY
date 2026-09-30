@@ -1,0 +1,129 @@
+{
+  "probe": "v2r2_f1",
+  "passed": 24,
+  "failed": 0,
+  "total": 24,
+  "results": [
+    {
+      "name": "v2r2.0 建树成功（B.parent=A, C.parent=B）",
+      "ok": true,
+      "detail": "{\"B.parent\": \"0c56698805fa4215ad53bc31ee7426fb\", \"A.id\": \"0c56698805fa4215ad53bc31ee7426fb\", \"C.parent\": \"8be2a92c53a942f48557d8824ca9c821\", \"B.id\": \"8be2a92c53a942f48557d8824ca9c821\"}"
+    },
+    {
+      "name": "v2r2.1 自指（parentId）→ 422 KNOWLEDGE_PARENT_INVALID + issues[0].field=parentId",
+      "ok": true,
+      "detail": "422 {\"code\": \"KNOWLEDGE_PARENT_INVALID\", \"message\": \"父节点非法：知识点不能把自己作为父节点。\", \"requestId\": \"39a3ecd7bc0a48ea8aca4fe0b745cce4\", \"retryable\": false, \"details\": {\"issues\": [{\"field\": \"parentId\", \"code\": \"KNOWLEDGE_PARENT_INVALID\", \"message\": \"parentId 指向本知识点自身，不能作为父节点。\"}]}}"
+    },
+    {
+      "name": "v2r2.1b 自指（parentId）错误带可读 message 且无部分写入",
+      "ok": true,
+      "detail": "{\"message\": \"parentId 指向本知识点自身，不能作为父节点。\", \"revision\": 0}"
+    },
+    {
+      "name": "v2r2.2 自指（parentCode）→ 422 KNOWLEDGE_PARENT_INVALID + issues[0].field=parentCode",
+      "ok": true,
+      "detail": "422 {\"code\": \"KNOWLEDGE_PARENT_INVALID\", \"message\": \"父节点非法：知识点不能把自己作为父节点。\", \"requestId\": \"639faa32641442a992b4167db200e65e\", \"retryable\": false, \"details\": {\"issues\": [{\"field\": \"parentCode\", \"code\": \"KNOWLEDGE_PARENT_INVALID\", \"message\": \"parentCode 指向本知识点自身，不能作为父节点。\"}]}}"
+    },
+    {
+      "name": "v2r2.3 成环（parentId 指向孙节点）→ 422 KNOWLEDGE_CYCLE + issues[0].field=parentId",
+      "ok": true,
+      "detail": "422 {\"code\": \"KNOWLEDGE_CYCLE\", \"message\": \"父节点变更会形成环（新父节点是本节点的后代）。\", \"requestId\": \"3342938dbbcb40dd87595cecbe774522\", \"retryable\": false, \"details\": {\"issues\": [{\"field\": \"parentId\", \"code\": \"KNOWLEDGE_CYCLE\", \"message\": \"parentId 指向的父节点是本知识点的后代，会形成环。\"}]}}"
+    },
+    {
+      "name": "v2r2.3b 成环被拒后父关系与 revision 不变（无部分写入）",
+      "ok": true,
+      "detail": "{\"parentId\": null, \"revision\": 0}"
+    },
+    {
+      "name": "v2r2.4 成环（parentCode）→ 422 KNOWLEDGE_CYCLE + issues[0].field=parentCode",
+      "ok": true,
+      "detail": "422 {\"code\": \"KNOWLEDGE_CYCLE\", \"message\": \"父节点变更会形成环（新父节点是本节点的后代）。\", \"requestId\": \"be2868e3c77a4899847534767e4e34bb\", \"retryable\": false, \"details\": {\"issues\": [{\"field\": \"parentCode\", \"code\": \"KNOWLEDGE_CYCLE\", \"message\": \"parentCode 指向的父节点是本知识点的后代，会形成环。\"}]}}"
+    },
+    {
+      "name": "v2r2.4b 中间节点成环（B→C）同样 422 KNOWLEDGE_CYCLE + field=parentId",
+      "ok": true,
+      "detail": "422 {\"code\": \"KNOWLEDGE_CYCLE\", \"message\": \"父节点变更会形成环（新父节点是本节点的后代）。\", \"requestId\": \"fe4857fe7d2f491f8631c14cec5e22c5\", \"retryable\": false, \"details\": {\"issues\": [{\"field\": \"parentId\", \"code\": \"KNOWLEDGE_CYCLE\", \"message\": \"parentId 指向的父节点是本知识点的后代，会形成环。\"}"
+    },
+    {
+      "name": "v2r2.5 仓储直写（绕过服务层预检）→ 422 KNOWLEDGE_CYCLE + details.issues[0].field=parentId",
+      "ok": true,
+      "detail": "AppError: KNOWLEDGE_CYCLE details={'issues': [{'field': 'parentId', 'code': 'KNOWLEDGE_CYCLE', 'message': 'parentId 指向的父节点是本知识点的后代，会形成环。'}]}"
+    },
+    {
+      "name": "v2r2.5c 仓储直写自指 → 422 KNOWLEDGE_PARENT_INVALID + details.issues[0].field=parentId",
+      "ok": true,
+      "detail": "AppError: KNOWLEDGE_PARENT_INVALID details={'issues': [{'field': 'parentId', 'code': 'KNOWLEDGE_PARENT_INVALID', 'message': 'parentId 指向本知识点自身，不能作为父节点。'}]}"
+    },
+    {
+      "name": "v2r2.5d 仓储拒绝后树与 revision 未变",
+      "ok": true,
+      "detail": "{\"parentId\": null, \"revision\": 0}"
+    },
+    {
+      "name": "v2r2.6 DB 触发器仍兜底（裸 SQL 造环 → RAISE KNOWLEDGE_CYCLE）",
+      "ok": true,
+      "detail": "KNOWLEDGE_CYCLE"
+    },
+    {
+      "name": "v2r2.6b 裸 SQL 自指仍被 DB 拒绝（实测触发器先报 KNOWLEDGE_CYCLE；CHECK 为第二道）",
+      "ok": true,
+      "detail": "KNOWLEDGE_CYCLE"
+    },
+    {
+      "name": "v2r2.6c DDL 仍保留 CHECK(parent_id IS NULL OR parent_id<>id)",
+      "ok": true,
+      "detail": "[\"CHECK(parent_id IS NULL OR parent_id<>id)\"]"
+    },
+    {
+      "name": "v2r2.7 导入预览：批内成环行带 KNOWLEDGE_CYCLE + field=parentCode",
+      "ok": true,
+      "detail": "[[{\"row\": 1, \"column\": null, \"field\": \"parentCode\", \"code\": \"KNOWLEDGE_CYCLE\", \"message\": \"批内父链形成环（编码 X-01）；请修正父级编码。\"}], [{\"row\": 2, \"column\": null, \"field\": \"parentCode\", \"code\": \"KNOWLEDGE_CYCLE\", \"message\": \"批内父链形成环（编码 X-02）；请修正父级编码。\"}]]"
+    },
+    {
+      "name": "v2r2.8 导入确认：批内环 → 422 KNOWLEDGE_IMPORT_BLOCKING_ISSUES + issues[].field=parentCode",
+      "ok": true,
+      "detail": "422 {\"code\": \"KNOWLEDGE_IMPORT_BLOCKING_ISSUES\", \"message\": \"导入批次存在阻断问题，未写入任何知识点。\", \"requestId\": \"35330893bc9442cbb64a5a15e0d43033\", \"retryable\": false, \"details\": {\"issues\": [{\"row\": 1, \"field\": \"parentCode\", \"code\": \"KNOWLEDGE_CYCLE\", \"message\": \"批内父链形成环（编码 X-01）；请修正父级编码。\"}, {\"row\": 2, \"field\": \"parentCode\", \"code\": \"KNOWLEDGE_CYCLE\", \"message\": \"批内父链形成环（编码 X-02）；请修正父级编码。\"}]}}"
+    },
+    {
+      "name": "v2r2.9 导入环阻断时零写入（含同批正常行）",
+      "ok": true,
+      "detail": "before=3 after=3"
+    },
+    {
+      "name": "v2r2.10 合法改父（C 挂到 A，跨层上移）→ 200 且父关系更新",
+      "ok": true,
+      "detail": "200 {\"parentId\": \"0c56698805fa4215ad53bc31ee7426fb\", \"parentCode\": \"A\"}"
+    },
+    {
+      "name": "v2r2.11 合法改父（B 挂到 C，按当前树判定不成环）→ 200",
+      "ok": true,
+      "detail": "200 {\"id\": \"8be2a92c53a942f48557d8824ca9c821\", \"subjectId\": \"math\", \"code\": \"B\", \"name\": \"B 子\", \"description\": \"\", \"parentId\": \"9e23298267364d5f98501f3d249d0404\", \"parentCode\": \"C\", \"sortOrder\": 0, \"statu"
+    },
+    {
+      "name": "v2r2.12 改父后新树成环（C→B 与 B→C 冲突）→ 422 KNOWLEDGE_CYCLE + field=parentCode",
+      "ok": true,
+      "detail": "422 {\"code\": \"KNOWLEDGE_CYCLE\", \"message\": \"父节点变更会形成环（新父节点是本节点的后代）。\", \"requestId\": \"84b423c7a23844b4bbb2f7a46ded822d\", \"retryable\": false, \"details\": {\"issues\": [{\"field\": \"parentCode\", \"code\": \"KNOWLEDGE_CYCLE\", \"message\": \"parentCode 指向的父节点是本知识点的后代，会形成环。\"}]}}"
+    },
+    {
+      "name": "v2r2.12b 新树形下合法改父仍 200（B 挂到 A：A 无父，非环）",
+      "ok": true,
+      "detail": "valid move after cycle rejection"
+    },
+    {
+      "name": "v2r2.13 自指（改父后仍生效）→ 422 KNOWLEDGE_PARENT_INVALID + field=parentCode",
+      "ok": true,
+      "detail": "422 {\"code\": \"KNOWLEDGE_PARENT_INVALID\", \"message\": \"父节点非法：知识点不能把自己作为父节点。\", \"requestId\": \"eca76ed05d004817a0bd24e3571c60d7\", \"retryable\": false, \"details\": {\"issues\": [{\"field\": \"parentCode\", \"code\": \"KNOWLEDGE_PARENT_INVALID\", \"message\": \"parentCode 指向本"
+    },
+    {
+      "name": "v2r2.14 未改父的普通更新不受预检影响（改 name 200）",
+      "ok": true,
+      "detail": "edit without parent change"
+    },
+    {
+      "name": "v2r2.15 缺父（parentCode）仍 422 KNOWLEDGE_PARENT_INVALID + field=parentCode（未被 F1 改动）",
+      "ok": true,
+      "detail": "422 {\"code\": \"KNOWLEDGE_PARENT_INVALID\", \"message\": \"父级编码「NOPE」在本学科内不存在。\", \"requestId\": \"440ec08d6751422f95f52a2a8b445877\", \"retryable\": false, \"details\": {\"issues\": [{\"field\": \"parentCode\", \"code\": \"KNOWLEDGE_PARENT_INVALID\", \"message\": \"parentCode「NOPE"
+    }
+  ],
+  "crashed": null
+}

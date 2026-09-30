@@ -57,9 +57,12 @@ class Settings:
     env: str
     data_dir: Path
     credentials_file: Path | None = None
-    # 教材/题库数据根；缺省由 data_dir 派生，测试整体注入临时目录
+    # 教材/题库/知识点/教学/受管资产数据根；缺省由 data_dir 派生，测试整体注入临时目录
     textbooks_dir: Path | None = None
     question_bank_dir: Path | None = None
+    knowledge_dir: Path | None = None
+    teaching_dir: Path | None = None
+    assets_dir: Path | None = None
     # 本机 Qdrant 与 Ollama 回环地址
     qdrant_url: str = DEFAULT_QDRANT_URL
     embedding_base_url: str = DEFAULT_EMBEDDING_BASE_URL
@@ -72,6 +75,21 @@ class Settings:
     @property
     def question_bank_root(self) -> Path:
         return self.question_bank_dir or (self.data_dir / "question-bank")
+
+    @property
+    def knowledge_root(self) -> Path:
+        """知识点库数据根（独立 SQLite；B0 起建立）。"""
+        return self.knowledge_dir or (self.data_dir / "knowledge")
+
+    @property
+    def teaching_root(self) -> Path:
+        """教学业务库数据根（班级/原卷/成绩/学情/教案/练习；B0 起建立）。"""
+        return self.teaching_dir or (self.data_dir / "teaching")
+
+    @property
+    def assets_root(self) -> Path:
+        """受管资产根（内容寻址 blobs；文件本体与数据库元数据分开）。"""
+        return self.assets_dir or (self.data_dir / "assets")
 
     @staticmethod
     def from_env(environ: Mapping[str, str] | None = None) -> "Settings":

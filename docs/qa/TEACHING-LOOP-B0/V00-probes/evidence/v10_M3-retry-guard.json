@@ -1,0 +1,32 @@
+{
+  "label": "M3-retry-guard",
+  "file": "apps/api/app/repositories/jobs/repository.py",
+  "old": "            if record.state not in _RETRYABLE_STATES:",
+  "new": "            if False:",
+  "runs": [
+    {
+      "kind": "pytest",
+      "exit_code": 1,
+      "failed": [
+        "tests/test_jobs_engine.py::test_retry_rejected_for_queued_running_and_succeeded"
+      ],
+      "tail": "............F................                                            [100%]\n================================== FAILURES ===================================\n____________ test_retry_rejected_for_queued_running_and_succeeded _____________\ntmp_path = WindowsPath('C:/Users/96022/AppData/Local/Temp/pytest-of-96022/pytest-1004/test_retry_rejected_for_queued0')\n    def test_retry_rejected_for_queued_running_and_succeeded(tmp_path: Path) -> None:\n        _catalog, store, _clock = _teaching_store(tmp_path)\n        queued = store.create(kind=\"export\")\n>       with pytest.raises(AppError) as err:\n             ^^^^^^^^^^^^^^^^^^^^^^^\nE       Failed: DID NOT RAISE AppError\ntests\\test_jobs_engine.py:382: Failed\n============================== warnings summary ===============================\n.venv\\Lib\\site-packages\\starlette\\testclient.py:53\n  H:\\备份xuexi\\智启课源\\apps\\api\\.venv\\Lib\\site-packages\\starlette\\testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.\n    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ===========================\nFAILED tests/test_jobs_engine.py::test_retry_rejected_for_queued_running_and_succeeded",
+      "targets": [
+        "tests/test_jobs_engine.py"
+      ]
+    },
+    {
+      "kind": "probe",
+      "exit_code": 1,
+      "failed": [
+        "[FAIL] v3.7c retry on queued -> 409 JOB_NOT_RETRYABLE :: no exception",
+        "[FAIL] v3.7c retry on succeeded -> 409 JOB_NOT_RETRYABLE :: no exception",
+        "[FAIL] v3.7c retry on running -> 409 JOB_NOT_RETRYABLE :: no exception"
+      ],
+      "tail": "8cdb462b68a1dfc': 1}\n[PASS] v3.8h engine slots released after run :: 0\n[PASS] v3.8i model peak <= 1 :: peak=1\n[PASS] v3.8j model peak == 1 :: peak=1\n[PASS] v3.8k second model task renews lease while waiting for the model slot :: {'c2ff9a30437e4ad49751bdaa570dd3b7': ['2026-09-30T11:03:17Z', '2026-09-30T11:03:17Z', '2026-09-30T11:03:18Z', '2026-09-30T11:03:18Z', '2026-09-30T11:03:18Z']}\n[PASS] v3.8l waiting model task never taken over :: {'c2ff9a30437e4ad49751bdaa570dd3b7': ['JOB_BUSY', 'JOB_BUSY', 'JOB_BUSY', 'JOB_BUSY', 'JOB_BUSY']}\n[PASS] v3.8m both model jobs succeeded with attempt=1 :: results=['succeeded', 'succeeded'] attempts={'a6ee52b182984f7d8c5297b3e1059107': 1, 'c2ff9a30437e4ad49751bdaa570dd3b7': 1}\n[PASS] v3.8n variant heavy_limit=1 -> heavy peak == 1 :: peak=1\n[PASS] v3.8o variant model_limit=1 -> model peak == 1 :: peak=1\n[PASS] v3.8p variant: all four jobs succeeded :: ['succeeded', 'succeeded', 'succeeded', 'succeeded']\n[PASS] v3.8q lease lost mid-execution: executor stopped, nothing published :: executor_completed=False state=running result=None\n[PASS] v3.8r engine slots released :: 0\n临时数据根：C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-v00-v3-p6yol5qr（探针结束后删除）\n\n== v3_jobs_engine_probe: 47/50 passed; failed=['v3.7c retry on queued -> 409 JOB_NOT_RETRYABLE', 'v3.7c retry on succeeded -> 409 JOB_NOT_RETRYABLE', 'v3.7c retry on running -> 409 JOB_NOT_RETRYABLE']; observations=[] ==\n证据：H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B0\\V00-probes\\evidence\\v3_jobs_engine_probe.json\n",
+      "targets": [
+        "H:/备份xuexi/智启课源/docs/qa/TEACHING-LOOP-B0/V00-probes/v3_jobs_engine_probe.py"
+      ]
+    }
+  ]
+}

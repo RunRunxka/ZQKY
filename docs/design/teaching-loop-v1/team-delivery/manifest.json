@@ -1,0 +1,53 @@
+{
+  "base_branch": "main",
+  "base_sha": "301fc356493db21d187ab85f32fd49dfffdc51ef",
+  "version": "1.0",
+  "date": "2026-09-30",
+  "documents": [
+    {
+      "file": "00_智启课源八人协作总计划.docx",
+      "planned_pages": 15,
+      "title": "智启课源八人协作实施计划"
+    },
+    {
+      "file": "P1_技术负责人和公共基础任务书.docx",
+      "planned_pages": 4,
+      "title": "P1 技术负责人和公共基础任务书"
+    },
+    {
+      "file": "P2_知识点题库和练习后端任务书.docx",
+      "planned_pages": 4,
+      "title": "P2 知识点题库和练习后端任务书"
+    },
+    {
+      "file": "P3_班级原卷和成绩后端任务书.docx",
+      "planned_pages": 4,
+      "title": "P3 班级原卷和成绩后端任务书"
+    },
+    {
+      "file": "P4_学情报告和AI教案后端任务书.docx",
+      "planned_pages": 4,
+      "title": "P4 学情报告和AI教案后端任务书"
+    },
+    {
+      "file": "P5_知识点题库和练习前端任务书.docx",
+      "planned_pages": 4,
+      "title": "P5 知识点题库和练习前端任务书"
+    },
+    {
+      "file": "P6_班级测评和成绩前端任务书.docx",
+      "planned_pages": 4,
+      "title": "P6 班级测评和成绩前端任务书"
+    },
+    {
+      "file": "P7_学情报告和教案前端任务书.docx",
+      "planned_pages": 4,
+      "title": "P7 学情报告和教案前端任务书"
+    },
+    {
+      "file": "P8_独立测试和交付验收任务书.docx",
+      "planned_pages": 4,
+      "title": "P8 独立测试和交付验收任务书"
+    }
+  ]
+}

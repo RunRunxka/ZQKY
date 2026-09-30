@@ -1,0 +1,124 @@
+{
+  "probe": "v4_knowledge_suggestions",
+  "passed": 23,
+  "failed": 0,
+  "total": 23,
+  "results": [
+    {
+      "name": "v4.1a 任务 succeeded 且返回 candidateCount",
+      "ok": true,
+      "detail": "{\"state\": \"succeeded\", \"result\": {\"candidateCount\": 1, \"importId\": \"1211ce42d8a6401582887c4afb4d57c2\"}}"
+    },
+    {
+      "name": "v4.1b 候选只进 source=ai 待确认批次（正式知识点表零新增）",
+      "ok": true,
+      "detail": "before={'knowledge_points': 0, 'knowledge_imports': 0, 'knowledge_import_rows': 0, 'knowledge_jobs': 0, 'file_assets': 0} after={'knowledge_points': 0, 'knowledge_imports': 1, 'knowledge_import_rows': 1, 'knowledge_jobs': 1, 'file_assets': 1}"
+    },
+    {
+      "name": "v4.1c 批次 source=ai / state=reviewing / candidate 行已落库",
+      "ok": true,
+      "detail": "{\"source\": \"ai\", \"state\": \"reviewing\", \"rows\": 1}"
+    },
+    {
+      "name": "v4.1d 模型原始输出登记为教学库 file_assets（§8.3 跨库逻辑引用）",
+      "ok": true,
+      "detail": "assets 0 -> 1"
+    },
+    {
+      "name": "v4.1e 任务视图 202 语义字段（jobId/state/attempt）齐全",
+      "ok": true,
+      "detail": "{\"jobId\": \"316b03e1dc9849519aa239a06c5e9f0b\", \"state\": \"queued\", \"attempt\": 0}"
+    },
+    {
+      "name": "v4.2a 非法 JSON → 任务 failed + KNOWLEDGE_SUGGESTION_INVALID_JSON",
+      "ok": true,
+      "detail": "{\"state\": \"failed\", \"error\": \"KNOWLEDGE_SUGGESTION_INVALID_JSON\"}"
+    },
+    {
+      "name": "v4.2b 非法 JSON：批次/正式表/资产零新增",
+      "ok": true,
+      "detail": "before={'knowledge_points': 0, 'knowledge_imports': 1, 'knowledge_import_rows': 1, 'file_assets': 1} after={'knowledge_points': 0, 'knowledge_imports': 1, 'knowledge_import_rows': 1, 'file_assets': 1}"
+    },
+    {
+      "name": "v4.3a 未知引用 → 任务 failed + KNOWLEDGE_SUGGESTION_UNKNOWN_REFERENCE",
+      "ok": true,
+      "detail": "{\"state\": \"failed\", \"error\": \"KNOWLEDGE_SUGGESTION_UNKNOWN_REFERENCE\"}"
+    },
+    {
+      "name": "v4.3b 未知引用零写入",
+      "ok": true,
+      "detail": "before={'knowledge_points': 0, 'knowledge_imports': 1, 'knowledge_import_rows': 1, 'file_assets': 1} after={'knowledge_points': 0, 'knowledge_imports': 1, 'knowledge_import_rows': 1, 'file_assets': 1}"
+    },
+    {
+      "name": "v4.4a 截断（finishReason=length）→ 任务 failed + KNOWLEDGE_SUGGESTION_TRUNCATED",
+      "ok": true,
+      "detail": "{\"state\": \"failed\", \"error\": \"KNOWLEDGE_SUGGESTION_TRUNCATED\"}"
+    },
+    {
+      "name": "v4.4b 截断零写入",
+      "ok": true,
+      "detail": "before={'knowledge_points': 0, 'knowledge_imports': 1, 'knowledge_import_rows': 1, 'file_assets': 1} after={'knowledge_points': 0, 'knowledge_imports': 1, 'knowledge_import_rows': 1, 'file_assets': 1}"
+    },
+    {
+      "name": "v4.5a 模型配置失效 → 任务 failed + MODEL_PROFILE_NOT_FOUND（不落假候选）",
+      "ok": true,
+      "detail": "{\"state\": \"failed\", \"error\": \"MODEL_PROFILE_NOT_FOUND\"}"
+    },
+    {
+      "name": "v4.5b 配置失效零写入",
+      "ok": true,
+      "detail": "before={'knowledge_points': 0, 'knowledge_imports': 1, 'knowledge_import_rows': 1, 'file_assets': 1} after={'knowledge_points': 0, 'knowledge_imports': 1, 'knowledge_import_rows': 1, 'file_assets': 1}"
+    },
+    {
+      "name": "v4.6a 取消迟到 → 任务 cancelled（不发布迟到结果）",
+      "ok": true,
+      "detail": "{\"state\": \"cancelled\", \"result\": null}"
+    },
+    {
+      "name": "v4.6b 取消迟到：批次/正式表/资产零新增",
+      "ok": true,
+      "detail": "before={'knowledge_points': 0, 'knowledge_imports': 1, 'knowledge_import_rows': 1, 'file_assets': 1} after={'knowledge_points': 0, 'knowledge_imports': 1, 'knowledge_import_rows': 1, 'file_assets': 1}"
+    },
+    {
+      "name": "v4.7a publish 注入失败 → 异常向上抛（B0 引擎文档口径），未写 succeeded",
+      "ok": true,
+      "detail": "AppError: PROBE_PUBLISH_FAILED"
+    },
+    {
+      "name": "v4.7a2 publish 失败后任务状态（记录实际值；非 succeeded）",
+      "ok": true,
+      "detail": "state=running"
+    },
+    {
+      "name": "v4.7b 批次/行零残留（同事务回滚）",
+      "ok": true,
+      "detail": "imports 1->1 rows 1->1"
+    },
+    {
+      "name": "v4.7c 已落盘的原始输出资产登记保留（§8.3 预先登记的只增不改）",
+      "ok": true,
+      "detail": "assets 1 -> 2"
+    },
+    {
+      "name": "v4.8a 教材证据不可用 → 503 TEXTBOOK_EVIDENCE_UNAVAILABLE",
+      "ok": true,
+      "detail": "AppError: TEXTBOOK_EVIDENCE_UNAVAILABLE 教材目录未装配，无法读取教材证据；请检查后端启动配置。"
+    },
+    {
+      "name": "v4.8b 教材证据不可用不建任务（knowledge_jobs 零新增）",
+      "ok": true,
+      "detail": "jobs 7 -> 7"
+    },
+    {
+      "name": "v4.9a 无任何证据 → 422 KNOWLEDGE_SUGGESTION_NO_EVIDENCE",
+      "ok": true,
+      "detail": "KNOWLEDGE_SUGGESTION_NO_EVIDENCE AI 候选至少需要一份证据（materials 或 textbookEvidence）。"
+    },
+    {
+      "name": "v4.9b 未装配任务引擎 → 503 SERVICE_UNAVAILABLE（不假成功）",
+      "ok": true,
+      "detail": "SERVICE_UNAVAILABLE 知识点 AI 候选未装配任务引擎（job_engine），无法创建任务；请检查后端启动配置。"
+    }
+  ],
+  "crashed": null
+}

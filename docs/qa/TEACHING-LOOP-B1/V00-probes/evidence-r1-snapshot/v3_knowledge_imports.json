@@ -1,0 +1,199 @@
+{
+  "probe": "v3_knowledge_imports",
+  "passed": 38,
+  "failed": 0,
+  "total": 38,
+  "results": [
+    {
+      "name": "v3.1a XLSX 上传 201",
+      "ok": true,
+      "detail": "201 {\"importId\": \"6ad0819f13d345a68b283c5700c5c71c\", \"source\": \"file\", \"subjectId\": \"math\", \"state\": \"reviewing\", \"revision\": 0, \"fileAsset\": {\"assetId\": \"3ff0ff9f507244f3b37c3bd7ab6fc12a\", \"kind\": \"attachment\", \"blobKey\": \"blobs/7129ebc0c37fc7aede7a1ffd2cb54c26cf59398c255b91812b3552e284a5f1d7\", \"sha256"
+    },
+    {
+      "name": "v3.1b 自动映射命中（编码/名称/描述/父级/别名）+ 未映射列提示；无缺必需列 issue",
+      "ok": true,
+      "detail": "{\"mapping\": {\"aliases\": \"别名\", \"code\": \"编码\", \"description\": \"描述\", \"name\": \"名称\", \"parentCode\": \"父级\"}, \"issues\": [{\"row\": null, \"column\": \"备注\", \"field\": null, \"code\": \"KNOWLEDGE_IMPORT_UNKNOWN_COLUMN\", \"message\": \"列「备注」未被映射，已忽略。\"}], \"warnings\": []}"
+    },
+    {
+      "name": "v3.1c 预览行落库（4 行、别名拆分、原始单元格保留）",
+      "ok": true,
+      "detail": "{\"rowNo\": 1, \"name\": \"子节点\", \"code\": \"A-02\", \"parentCode\": \"A-01\", \"description\": \"子说明\", \"aliases\": [\"别一\", \"bei\"], \"targetKnowledgePointId\": null, \"baseRevision\": null, \"baseVersion\": null, \"decision\": null, \"issues\": []}"
+    },
+    {
+      "name": "v3.1d 批内父链成环 → 逐行可定位 KNOWLEDGE_CYCLE（field=parentCode）",
+      "ok": true,
+      "detail": "[[{\"row\": 3, \"column\": null, \"field\": \"parentCode\", \"code\": \"KNOWLEDGE_CYCLE\", \"message\": \"批内父链形成环（编码 A-03）；请修正父级编码。\"}], [{\"row\": 4, \"column\": null, \"field\": \"parentCode\", \"code\": \"KNOWLEDGE_CYCLE\", \"message\": \"批内父链形成环（编码 A-04）；请修正父级编码。\"}]]"
+    },
+    {
+      "name": "v3.1e 预览持久化：批次 issues_json 非空 + 行 issues 独立落列",
+      "ok": true,
+      "detail": "batch_issues=[{\"code\":\"KNOWLEDGE_IMPORT_UNKNOWN_COLUMN\",\"column\":\"备注\",\"message\":\"列「备注」未被映射，已忽略。\"}] rows_with_issues=2"
+    },
+    {
+      "name": "v3.1f 环行即使 ignore 也被预检拒绝（blocking 只看行 issues，不看动作）",
+      "ok": true,
+      "detail": "422 {\"code\": \"KNOWLEDGE_IMPORT_BLOCKING_ISSUES\", \"message\": \"导入批次存在阻断问题，未写入任何知识点。\", \"requestId\": \"3911e5e023a94dcfaa69ed156dfe8e00\", \"retryable\": false, \"details\": {\"issues\": [{\"row\": 3, \"field\": \"parentCode\", \"code\": \"KNOWLEDGE_CYCLE\", \"message\": \"批内父链形成环（编码 A-03）；请修正父级编码。\"}, {\"row\": 4, \"field\": \"paren"
+    },
+    {
+      "name": "v3.1g 阻断时零写入",
+      "ok": true,
+      "detail": "points=0"
+    },
+    {
+      "name": "v3.2a 确认成功 200 + state=confirmed",
+      "ok": true,
+      "detail": "200 {\"importId\": \"af890b383a774daaaba41cfc7266be3c\", \"state\": \"confirmed\", \"created\": [{\"rowNo\": 2, \"knowledgePointId\": \"fa2e1620d1154c2482a647206a631314\", \"revisionId\": \"b0c31a2914d14afbbee40684df19a0b1\", \"version\": 1}, {\"rowNo\": 1, \"knowledgePointId\": \"9eb327c3ca9e4dabafff5b11ab56f974\", \"revisionId\": "
+    },
+    {
+      "name": "v3.2b created 按批内拓扑序（父先子后），ignored 记录行号",
+      "ok": true,
+      "detail": "{\"importId\": \"af890b383a774daaaba41cfc7266be3c\", \"state\": \"confirmed\", \"created\": [{\"rowNo\": 2, \"knowledgePointId\": \"fa2e1620d1154c2482a647206a631314\", \"revisionId\": \"b0c31a2914d14afbbee40684df19a0b1\", \"version\": 1}, {\"rowNo\": 1, \"knowledgePointId\": \"9eb327c3ca9e4dabafff5b11ab56f974\", \"revisionId\": \"b7d17e12d97e49ebb574d465a4cf90da\", \"version\": 1}], \"updated\": [], \"ignored\": [3], \"replayed\": false"
+    },
+    {
+      "name": "v3.2c 入库 2 个知识点、被忽略的 1 行未建",
+      "ok": true,
+      "detail": "points=2"
+    },
+    {
+      "name": "v3.2d 子点父链正确（parentCode=B-01）",
+      "ok": true,
+      "detail": "{\"childParent\": \"B-01\", \"childParentId\": \"fa2e1620d1154c2482a647206a631314\", \"parentId\": \"fa2e1620d1154c2482a647206a631314\"}"
+    },
+    {
+      "name": "v3.2e 同 submissionId 重放 → replayed=true 且返回原结果",
+      "ok": true,
+      "detail": "{\"replayed\": true, \"ignored\": [3]}"
+    },
+    {
+      "name": "v3.2f 重放不重复写",
+      "ok": true,
+      "detail": "points=2"
+    },
+    {
+      "name": "v3.2g 同 submissionId 不同载荷 → 409 SUBMISSION_CONFLICT",
+      "ok": true,
+      "detail": "409 SUBMISSION_CONFLICT"
+    },
+    {
+      "name": "v3.3a 既有 code 自动匹配 update 目标并冻结 baseRevision",
+      "ok": true,
+      "detail": "{\"rowNo\": 1, \"name\": \"B 父改名\", \"code\": \"B-01\", \"parentCode\": null, \"description\": \"\", \"aliases\": [], \"targetKnowledgePointId\": \"fa2e1620d1154c2482a647206a631314\", \"baseRevision\": 0, \"baseVersion\": 1, \"decision\": \"update\", \"issues\": []}"
+    },
+    {
+      "name": "v3.3b 空白可选字段默认不修改（description 保持原值）",
+      "ok": true,
+      "detail": "200 {\"importId\": \"32488b34f50848b6b53a534865baf9c4\", \"state\": \"confirmed\", \"created\": [], \"updated\": [{\"rowNo\": 1, \"knowledgePointId\": \"fa2e1620d1154c2482a647206a631314\", \"revisionId\": \"23324511bd8744f5966afbb773f18b1b\", \"version\": 2}], \"ignored\": [], \"replayed\": false}"
+    },
+    {
+      "name": "v3.3c 改名生效但 description/aliases 未被空白清空",
+      "ok": true,
+      "detail": "{\"name\": \"B 父改名\", \"description\": \"父说明\", \"aliases\": []}"
+    },
+    {
+      "name": "v3.3d 知识点级 clearFields 才清空 description",
+      "ok": true,
+      "detail": "{\"status\": 200, \"description\": \"\"}"
+    },
+    {
+      "name": "v3.4a update 行 expectedRevision 过期 → 409 REVISION_CONFLICT + details.currentRevision",
+      "ok": true,
+      "detail": "409 {\"code\": \"REVISION_CONFLICT\", \"message\": \"数据已被其他操作更新，请刷新后重试。\", \"requestId\": \"3b80ca1d4ae54085947d9648fda3a5aa\", \"retryable\": false, \"details\": {\"currentRevision\": 2}}"
+    },
+    {
+      "name": "v3.4b apply 失败整批回滚（同批 create 行也没写）",
+      "ok": true,
+      "detail": "before=2 after=2"
+    },
+    {
+      "name": "v3.4c 失败批次状态未置 confirmed（仍可重试）",
+      "ok": true,
+      "detail": "state=reviewing"
+    },
+    {
+      "name": "v3.4d 修正动作后重试成功（同批重试可用）",
+      "ok": true,
+      "detail": "200 {\"importId\": \"0f73793f490742c9bf244a25309e6ae2\", \"state\": \"confirmed\", \"created\": [{\"rowNo\": 1, \"knowledgePointId\": \"afa71553af484950aae649b2d2560f80\", \"revisionId\": \"64b33c8330104ff4893e0e4d81347fb4\""
+    },
+    {
+      "name": "v3.5a 已确认批次再确认 → 409 KNOWLEDGE_IMPORT_CONFIRMED",
+      "ok": true,
+      "detail": "409 KNOWLEDGE_IMPORT_CONFIRMED"
+    },
+    {
+      "name": "v3.5b 行缺决定 → 422 KNOWLEDGE_ROW_INVALID + 逐行定位（rows 1/2 都在 issues）",
+      "ok": true,
+      "detail": "422 {\"code\": \"KNOWLEDGE_ROW_INVALID\", \"message\": \"导入批次还有行没有最终动作，未写入任何知识点。\", \"requestId\": \"093f9549df60470fb9f2170a6ec8d291\", \"retryable\": false, \"details\": {\"issues\": [{\"row\": 1, \"field\": \"decision\", \"code\": \"KNOWLEDGE_ROW_INVALID\", \"message\": \"该行没有最终动作：请在 actions 或行 decision 里给出 create/update/ignore。\"}"
+    },
+    {
+      "name": "v3.5c 缺决定时零写入",
+      "ok": true,
+      "detail": "points=3"
+    },
+    {
+      "name": "v3.6a CSV 上传成功（表头自动映射）",
+      "ok": true,
+      "detail": "{\"status\": 201, \"mapping\": {\"code\": \"编码\", \"name\": \"名称\"}}"
+    },
+    {
+      "name": "v3.6b 无法自动识别的表头 → 缺必需列 issue（code/name）",
+      "ok": true,
+      "detail": "{\"mapping\": {}, \"issues\": [{\"row\": null, \"column\": null, \"field\": \"code\", \"code\": \"KNOWLEDGE_IMPORT_MISSING_COLUMN\", \"message\": \"缺少必需列 code：未映射到任何表头，该列缺失时相关行会在确认时被拒绝。\"}, {\"row\": null, \"column\": null, \"field\": \"name\", \"code\": \"KNOWLEDGE_IMPORT_MISSING_COLUMN\", \"message\": \"缺少必需列 name：未映射到任何表头，该列缺失时相关行会在确认时被拒绝。\"}, {\"row\": null, \"column\": \"甲\", \"field\": null, \"code\": \"KNOWLEDGE_IMPORT_UNKNOWN_COLUMN\", "
+    },
+    {
+      "name": "v3.6c 手工映射后重算行（code/name 就位、批次 issues 清空）",
+      "ok": true,
+      "detail": "{\"mapping\": {\"code\": \"甲\", \"name\": \"乙\"}, \"row\": {\"rowNo\": 1, \"name\": \"E 名\", \"code\": \"E-01\", \"parentCode\": null, \"description\": \"\", \"aliases\": [], \"targetKnowledgePointId\": null, \"baseRevision\": null, \"baseVersion\": null, \"decision\": null, \"issues\": []}}"
+    },
+    {
+      "name": "v3.6d 映射不存在列 → 422 + details.fields 定位",
+      "ok": true,
+      "detail": "422 {\"code\": \"INVALID_REQUEST\", \"message\": \"映射指向了不存在的列：不存在列。\", \"requestId\": \"62777d87649b4065bc2329f1236abad5\", \"retryable\": false, \"details\": {\"fields\": [\"不存在列\"]}}"
+    },
+    {
+      "name": "v3.6e 映射未知字段 → 422 INVALID_REQUEST",
+      "ok": true,
+      "detail": "422 INVALID_REQUEST"
+    },
+    {
+      "name": "v3.6f 手工映射批次确认入库成功",
+      "ok": true,
+      "detail": "200 {\"importId\": \"e72d9d17191746cbb6c5f6afe10a36fe\", \"state\": \"confirmed\", \"created\": [{\"rowNo\": 1, \"knowledgePointId\": \"863bfca9e103421aad2847e2fb135827\", \"revisionId\": \"fb22b81697be41b6b9b7390b64ffa7ae\""
+    },
+    {
+      "name": "v3.7a 既有 code 的行自动落 update 目标（不会误 create）",
+      "ok": true,
+      "detail": "{\"rowNo\": 1, \"name\": \"撞车\", \"code\": \"E-01\", \"parentCode\": null, \"description\": \"\", \"aliases\": [], \"targetKnowledgePointId\": \"863bfca9e103421aad2847e2fb135827\", \"baseRevision\": 0, \"baseVersion\": 1, \"decision\": \"update\", \"issues\": []}"
+    },
+    {
+      "name": "v3.7b 强行 create 既有 code → 422 KNOWLEDGE_CODE_CONFLICT（逐行定位）",
+      "ok": true,
+      "detail": "422 {\"code\": \"KNOWLEDGE_IMPORT_BLOCKING_ISSUES\", \"message\": \"导入批次存在阻断问题，未写入任何知识点。\", \"requestId\": \"64a5fb8669794d59b692173328ec088e\", \"retryable\": false, \"details\": {\"issues\": [{\"row\": 1, \"field\": \"code\", \"code\": \"KNOWLEDGE_CODE_CONFLICT\", \"message\": \"编码「E-01」已存在知识点 863bfca9e103421aad2847e2fb135827，不能 create；请改用 update。\"}]}}"
+    },
+    {
+      "name": "v3.8a 批次列表形状 {items,total,offset,limit} 且摘要含 rowCount/blockingIssueCount",
+      "ok": true,
+      "detail": "[{\"importId\": \"5e45a6af3830430db463afa53e937da5\", \"source\": \"file\", \"subjectId\": \"math\", \"state\": \"reviewing\", \"revision\": 0, \"rowCount\": 1, \"blockingIssueCount\": 0, \"createdAt\": \"2026-09-30T13:14:44Z\", \"updatedAt\": \"2026-09-30T13:14:44Z\"}]"
+    },
+    {
+      "name": "v3.8b 已确认批次详情 state=confirmed（列表/详情可读）",
+      "ok": true,
+      "detail": "200 confirmed"
+    },
+    {
+      "name": "v3.8c 缺 subjectId → 422 INVALID_REQUEST（不猜学科）",
+      "ok": true,
+      "detail": "422 INVALID_REQUEST"
+    },
+    {
+      "name": "v3.8d 不支持的格式 → 422 UNSUPPORTED_DOCUMENT_FORMAT",
+      "ok": true,
+      "detail": "422 UNSUPPORTED_DOCUMENT_FORMAT"
+    },
+    {
+      "name": "v3.8e .txt + text/plain 被当作 CSV 解析（read_table 声明的 CSV 媒体类型；记录为 observation）",
+      "ok": true,
+      "detail": "201 rows=0"
+    }
+  ],
+  "crashed": null
+}

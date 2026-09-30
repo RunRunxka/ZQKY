@@ -1,0 +1,6 @@
+python knowledge models: 22 ts exports: 25
+python-only: ['KnowledgePointRevisionRequest', 'KnowledgeSuggestionJobView']
+python roster models: 24 ts exports: 30
+python-only: ['ClassRevisionRequest']
+knowledge.ts 引用共享 JobView: False
+teaching-loop.ts 定义 JobView: True

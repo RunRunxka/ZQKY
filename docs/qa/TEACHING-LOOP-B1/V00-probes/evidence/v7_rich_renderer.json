@@ -1,0 +1,99 @@
+{
+  "probe": "v7_rich_renderer",
+  "passed": 18,
+  "failed": 0,
+  "total": 18,
+  "results": [
+    {
+      "name": "v7.1a 学生版/教师版产物可被 python-docx 重新打开（非空、结构可读）",
+      "ok": true,
+      "detail": "{\"studentParas\": 9, \"teacherParas\": 12, \"tables\": 2}"
+    },
+    {
+      "name": "v7.1b 学生版不含答案与解析文本",
+      "ok": true,
+      "detail": "{\"studentHasAnswer\": false, \"studentHasExplanation\": false}"
+    },
+    {
+      "name": "v7.1c 教师版含答案与解析（顺序：答案在解析前）",
+      "ok": true,
+      "detail": "answer@47 explanation@63"
+    },
+    {
+      "name": "v7.1d 学生版不含答案图片（media=1、无答案图字节），教师版含（media=2）",
+      "ok": true,
+      "detail": "{\"studentMedia\": 1, \"teacherMedia\": 2, \"studentHasAnswerImage\": false, \"teacherHasAnswerImage\": true}"
+    },
+    {
+      "name": "v7.1e 共同材料只出现一次（学生/教师版各 1 次标题、2 次正文各 1 次）",
+      "ok": true,
+      "detail": "{\"student\": 1, \"teacher\": 1}"
+    },
+    {
+      "name": "v7.2a 源图片关系已改为哨兵值（样本自检）",
+      "ok": true,
+      "detail": "[\"rId404\"]"
+    },
+    {
+      "name": "v7.2b 产物不复用源 rId（哨兵 rId404 不出现），图片关系为新建 part",
+      "ok": true,
+      "detail": "{\"outputRids\": [\"rId9\"], \"bytesMatch\": true}"
+    },
+    {
+      "name": "v7.2c 产物图片字节与源一致（内容寻址不变）",
+      "ok": true,
+      "detail": "sha256=21391377d875154e…"
+    },
+    {
+      "name": "v7.2d 源文件未被修改（渲染不写回源件）",
+      "ok": true,
+      "detail": "source untouched"
+    },
+    {
+      "name": "v7.2e 图片尺寸按块字段还原（96px → 914400 EMU）",
+      "ok": true,
+      "detail": "{\"shapes\": 1, \"width\": 914400}"
+    },
+    {
+      "name": "v7.3a 产物含 OMML 节点（原样插入 + LaTeX 转换各 1+）",
+      "ok": true,
+      "detail": "{\"teacher\": 2, \"student\": 2}"
+    },
+    {
+      "name": "v7.3b math2docx 转换产物是合法 m:oMath XML（根节点正确）",
+      "ok": true,
+      "detail": "<m:oMath xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:box><m:e><m:f><m:num><m:box><m:e><m:r><m:rPr><m:sty m:val=\"p\"/></m:rPr><m:t>3</"
+    },
+    {
+      "name": "v7.3c 非法 LaTeX → 422 FORMULA_CONVERSION_FAILED + details.fields 带块 id",
+      "ok": true,
+      "detail": "FORMULA_CONVERSION_FAILED details={'fields': ['bad-1']}"
+    },
+    {
+      "name": "v7.4a columnCount 存在：3x3 网格 + 合并单元格文本不丢",
+      "ok": true,
+      "detail": "{\"rows\": 3, \"cols\": 3, \"c00\": \"表头跨两列\", \"c20\": \"纵向起始\\n纵向续接文本\"}"
+    },
+    {
+      "name": "v7.4b columnCount 缺失（旧数据）：启发式仍还原 3x3 行结构且文本不丢",
+      "ok": true,
+      "detail": "{\"rows\": 3, \"cols\": 3}"
+    },
+    {
+      "name": "v7.4c columnCount 与单元格序列矛盾 → 422 INVALID_REQUEST（不猜表格）",
+      "ok": true,
+      "detail": "INVALID_REQUEST details={'fields': ['stem-table']}"
+    },
+    {
+      "name": "v7.5a 同一块 id 在多处出现 → 422（不静默去重/重复输出）",
+      "ok": true,
+      "detail": "INVALID_REQUEST details={'fields': ['stem-1']}"
+    },
+    {
+      "name": "v7.5b 受管资产被篡改 → ASSET_CORRUPT（不返回可疑内容）",
+      "ok": true,
+      "detail": "ASSET_CORRUPT"
+    }
+  ],
+  "crashed": null
+}

@@ -1,0 +1,20 @@
+{
+  "label": "r2-M1-heartbeat-interval",
+  "file": "apps/api/app/services/jobs/engine.py",
+  "old": "interval = max(1, min(20, store.lease_seconds // 3))",
+  "new": "interval = store.lease_seconds * 30",
+  "runs": [
+    {
+      "kind": "pytest",
+      "exit_code": 1,
+      "failed": [
+        "tests/test_jobs_engine.py::test_engine_heartbeat_loss_cancels_executor_and_publishes_nothing",
+        "tests/test_jobs_engine.py::test_engine_slot_wait_keeps_lease_and_blocks_takeover"
+      ],
+      "tail": "ase_and_blocks_takeover.<locals>.<lambda> at 0x0000019BED8D7380>\ntimeout = 4.0\n    async def _wait_until(predicate: Callable[[], bool], *, timeout: float = 3.0) -> None:\n        deadline = time.monotonic() + timeout\n        while time.monotonic() < deadline:\n            if predicate():\n                return\n            await asyncio.sleep(0.01)\n>       raise AssertionError(\"等待条件超时。\")\nE       AssertionError: 等待条件超时。\ntests\\test_jobs_engine.py:559: AssertionError\n============================== warnings summary ===============================\n.venv\\Lib\\site-packages\\_pytest\\config\\__init__.py:1345\n  H:\\备份xuexi\\智启课源\\apps\\api\\.venv\\Lib\\site-packages\\_pytest\\config\\__init__.py:1345: PytestAssertRewriteWarning: Module already imported so cannot be rewritten; anyio\n    self._mark_plugins_for_rewrite(hook, disable_autoload)\n.venv\\Lib\\site-packages\\starlette\\testclient.py:53\n  H:\\备份xuexi\\智启课源\\apps\\api\\.venv\\Lib\\site-packages\\starlette\\testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.\n    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ===========================\nFAILED tests/test_jobs_engine.py::test_engine_heartbeat_loss_cancels_executor_and_publishes_nothing\nFAILED tests/test_jobs_engine.py::test_engine_slot_wait_keeps_lease_and_blocks_takeover",
+      "targets": [
+        "tests/test_jobs_engine.py"
+      ]
+    }
+  ]
+}

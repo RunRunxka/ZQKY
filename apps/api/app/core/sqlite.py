@@ -23,14 +23,19 @@ def now_iso() -> str:
 
 
 def connect(path: Path | str) -> sqlite3.Connection:
-    """打开（必要时创建）数据库并设定固定 PRAGMA。"""
+    """打开（必要时创建）数据库并设定固定 PRAGMA。
+
+    ``busy_timeout`` 必须在 ``journal_mode`` 之前设置：多个进程（应用、CLI、并行测试）
+    同时首次打开同一库时，切换 journal 模式也需要写锁，没有 busy_timeout 会立刻
+    ``database is locked``（TEACHING-LOOP B0：四库共享同一数据根后更易触发）。
+    """
     target = Path(path)
     target.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(str(target), isolation_level=None, timeout=BUSY_TIMEOUT_MS / 1000)
     connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA busy_timeout = %d" % BUSY_TIMEOUT_MS)
     connection.execute("PRAGMA foreign_keys = ON")
     connection.execute("PRAGMA journal_mode = WAL")
-    connection.execute("PRAGMA busy_timeout = %d" % BUSY_TIMEOUT_MS)
     return connection
 
 

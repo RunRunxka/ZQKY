@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ApiError, API_BASE_PATH, fetchCapabilities, fetchHealth } from './api-client';
+import {
+  ApiError,
+  API_BASE_PATH,
+  apiRequestBlob,
+  fetchCapabilities,
+  fetchHealth,
+  filenameFromDisposition,
+  isAbortError,
+} from './api-client';
 
 function stubFetch(implementation: (url: string) => Promise<unknown>) {
   const fetchMock = vi.fn((input: RequestInfo | URL) =>
@@ -90,5 +98,104 @@ describe('api-client', () => {
     const error = await rejected(fetchHealth());
     expect(error.code).toBe('REQUEST_FAILED');
     expect(error.retryable).toBe(false);
+  });
+
+  it('错误信封的 details 随 ApiError 保留（409 currentRevision）', async () => {
+    stubFetch(async () =>
+      jsonResponse(false, 409, {
+        code: 'REVISION_CONFLICT',
+        message: '版本已变化。',
+        requestId: 'req-9',
+        retryable: false,
+        details: { currentRevision: 7 },
+      }),
+    );
+    const error = await rejected(fetchHealth());
+    expect(error.code).toBe('REVISION_CONFLICT');
+    expect(error.details).toEqual({ currentRevision: 7 });
+  });
+
+  it('错误信封的 422 行列错误 issues 结构完整保留', async () => {
+    const issues = [
+      { row: 3, column: 'D', code: 'INVALID_SCORE', message: '超出满分。' },
+      { row: 5, field: 'studentNo', code: 'UNKNOWN_STUDENT', message: '名单中不存在。' },
+    ];
+    stubFetch(async () =>
+      jsonResponse(false, 422, {
+        code: 'INVALID_REQUEST',
+        message: '请求参数不合法。',
+        retryable: false,
+        details: { issues },
+      }),
+    );
+    const error = await rejected(fetchHealth());
+    expect(error.details?.issues).toEqual(issues);
+  });
+
+  it('AbortError 原样抛出，不转换成 SERVICE_UNAVAILABLE', async () => {
+    const controller = new AbortController();
+    stubFetch(async () => {
+      controller.abort();
+      throw new DOMException('已取消', 'AbortError');
+    });
+    let caught: unknown;
+    try {
+      await fetchHealth(controller.signal);
+    } catch (error) {
+      caught = error;
+    }
+    expect(isAbortError(caught)).toBe(true);
+    expect(caught).not.toBeInstanceOf(ApiError);
+  });
+
+  it('isAbortError 把非取消错误判为 false', () => {
+    expect(isAbortError(new ApiError('REQUEST_FAILED', 'x', 400, false))).toBe(false);
+    expect(isAbortError(new Error('boom'))).toBe(false);
+    expect(isAbortError(null)).toBe(false);
+  });
+
+  it('apiRequestBlob 返回文件与 Content-Disposition 文件名', async () => {
+    // jsdom 的 Blob 没有 text()；替身只需满足本适配器读取的接口。
+    const blob = {
+      size: 10,
+      type: 'application/vnd.openxmlformats',
+      text: async () => 'docx-bytes',
+    } as unknown as Blob;
+    stubFetch(async () => ({
+      ok: true,
+      status: 200,
+      headers: {
+        get: (name: string) =>
+          name.toLowerCase() === 'content-disposition'
+            ? "attachment; filename*=UTF-8''%E7%BB%83%E4%B9%A0.docx"
+            : null,
+      },
+      blob: async () => blob,
+    }));
+    const download = await apiRequestBlob('/export-artifacts/abc/download');
+    expect(download.fileName).toBe('练习.docx');
+    expect(await download.blob.text()).toBe('docx-bytes');
+  });
+
+  it('apiRequestBlob 失败时转换为 ApiError 并保留 details', async () => {
+    stubFetch(async () => ({
+      ...jsonResponse(false, 404, {
+        code: 'NOT_FOUND',
+        message: '产物不存在。',
+        retryable: false,
+        details: { fields: ['artifact'] },
+      }),
+      headers: { get: () => null },
+      blob: async () => new Blob([]),
+    }));
+    const error = await rejected(apiRequestBlob('/export-artifacts/missing/download'));
+    expect(error.code).toBe('NOT_FOUND');
+    expect(error.details?.fields).toEqual(['artifact']);
+  });
+
+  it('filenameFromDisposition 回退普通 filename 与空值', () => {
+    expect(filenameFromDisposition('attachment; filename="a.docx"')).toBe('a.docx');
+    expect(filenameFromDisposition(null)).toBeNull();
+    expect(filenameFromDisposition('attachment')).toBeNull();
   });
 });

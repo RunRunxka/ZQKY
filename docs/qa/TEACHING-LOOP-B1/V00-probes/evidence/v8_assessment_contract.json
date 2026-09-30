@@ -1,0 +1,104 @@
+{
+  "probe": "v8_assessment_contract",
+  "passed": 19,
+  "failed": 0,
+  "total": 19,
+  "results": [
+    {
+      "name": "v8.1 POST /api/v1/assessments → 501 FEATURE_NOT_IMPLEMENTED",
+      "ok": true,
+      "detail": "501 {\"code\": \"FEATURE_NOT_IMPLEMENTED\", \"message\": \"接口 /api/v1/assessments 尚未实现，请勿当作可用能力调用。\", \"requestId\": \"c161cfcbb6964c9891d5c33a52fe0d06\", \"retryable\": false}"
+    },
+    {
+      "name": "v8.1 GET /api/v1/assessments → 501 FEATURE_NOT_IMPLEMENTED",
+      "ok": true,
+      "detail": "501 {\"code\": \"FEATURE_NOT_IMPLEMENTED\", \"message\": \"接口 /api/v1/assessments 尚未实现，请勿当作可用能力调用。\", \"requestId\": \"6cbfaa4dbc8646179d93053e36233764\", \"retryable\": false}"
+    },
+    {
+      "name": "v8.1 PATCH /api/v1/assessments → 501 FEATURE_NOT_IMPLEMENTED",
+      "ok": true,
+      "detail": "501 {\"code\": \"FEATURE_NOT_IMPLEMENTED\", \"message\": \"接口 /api/v1/assessments 尚未实现，请勿当作可用能力调用。\", \"requestId\": \"4cf2f11eda2d443da94b8dc805cb4a4e\", \"retryable\": false}"
+    },
+    {
+      "name": "v8.1 PUT /api/v1/assessments → 501 FEATURE_NOT_IMPLEMENTED",
+      "ok": true,
+      "detail": "501 {\"code\": \"FEATURE_NOT_IMPLEMENTED\", \"message\": \"接口 /api/v1/assessments 尚未实现，请勿当作可用能力调用。\", \"requestId\": \"8d7b8864f2da4676882cecd639fcb2de\", \"retryable\": false}"
+    },
+    {
+      "name": "v8.1 DELETE /api/v1/assessments → 501 FEATURE_NOT_IMPLEMENTED",
+      "ok": true,
+      "detail": "501 {\"code\": \"FEATURE_NOT_IMPLEMENTED\", \"message\": \"接口 /api/v1/assessments 尚未实现，请勿当作可用能力调用。\", \"requestId\": \"a8c3bec0ca9a46b78a5af44181bfcb60\", \"retryable\": false}"
+    },
+    {
+      "name": "v8.2 路由表没有 assessments 真实现（只有通配占位）",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "v8.3 未知 /api/v1 路径同样 501（不返回 404/空 200）",
+      "ok": true,
+      "detail": "501 FEATURE_NOT_IMPLEMENTED"
+    },
+    {
+      "name": "v8.4 全套装配下知识点路由可用（对照：同 app 内 501 是施测专属）",
+      "ok": true,
+      "detail": "201"
+    },
+    {
+      "name": "v8.5 UnavailablePaperReader → 501 PAPER_READER_UNAVAILABLE（不伪造原卷）",
+      "ok": true,
+      "detail": "AppError: PAPER_READER_UNAVAILABLE 已确认原卷读取端口尚未实现（依赖 T40 原卷业务）。"
+    },
+    {
+      "name": "v8.6 端口返回类型符合契约（ConfirmedPaperRevisionView 字段可构造）",
+      "ok": true,
+      "detail": "[\"paper_id\", \"paper_revision_id\", \"scored_leaf_count\", \"subject_id\", \"title\", \"total_score_units\"]"
+    },
+    {
+      "name": "v8.7 未装配 GET /api/v1/knowledge-points → 503 SERVICE_UNAVAILABLE（不是空列表）",
+      "ok": true,
+      "detail": "503 {\"code\": \"SERVICE_UNAVAILABLE\", \"message\": \"知识点服务未装配：后端缺少对应服务，请检查启动日志与依赖。\", \"requestId\": \"11b709b54e404126a339732a87f7f326\", \"retryable\": true}"
+    },
+    {
+      "name": "v8.7 未装配 POST /api/v1/knowledge-points → 503 SERVICE_UNAVAILABLE（不是空列表）",
+      "ok": true,
+      "detail": "503 {\"code\": \"SERVICE_UNAVAILABLE\", \"message\": \"知识点服务未装配：后端缺少对应服务，请检查启动日志与依赖。\", \"requestId\": \"adb6026b8d25428bbe5865a3a7517fd5\", \"retryable\": true}"
+    },
+    {
+      "name": "v8.7 未装配 GET /api/v1/classes → 503 SERVICE_UNAVAILABLE（不是空列表）",
+      "ok": true,
+      "detail": "503 {\"code\": \"SERVICE_UNAVAILABLE\", \"message\": \"名单服务未装配：后端缺少对应服务，请检查启动日志与依赖。\", \"requestId\": \"a1c595ca9b41451894268a0c3d7eec09\", \"retryable\": true}"
+    },
+    {
+      "name": "v8.7 未装配 POST /api/v1/classes → 503 SERVICE_UNAVAILABLE（不是空列表）",
+      "ok": true,
+      "detail": "503 {\"code\": \"SERVICE_UNAVAILABLE\", \"message\": \"名单服务未装配：后端缺少对应服务，请检查启动日志与依赖。\", \"requestId\": \"7cc2b9921be64ac6bb944171898d070f\", \"retryable\": true}"
+    },
+    {
+      "name": "v8.7 未装配 GET /api/v1/students → 503 SERVICE_UNAVAILABLE（不是空列表）",
+      "ok": true,
+      "detail": "503 {\"code\": \"SERVICE_UNAVAILABLE\", \"message\": \"名单服务未装配：后端缺少对应服务，请检查启动日志与依赖。\", \"requestId\": \"33be1b8f83e84753b85b34aaf68221cb\", \"retryable\": true}"
+    },
+    {
+      "name": "v8.7 未装配 GET /api/v1/roster-imports → 503 SERVICE_UNAVAILABLE（不是空列表）",
+      "ok": true,
+      "detail": "503 {\"code\": \"SERVICE_UNAVAILABLE\", \"message\": \"名单服务未装配：后端缺少对应服务，请检查启动日志与依赖。\", \"requestId\": \"3d5924df14e24b01954207e525a14b75\", \"retryable\": true}"
+    },
+    {
+      "name": "v8.7b 未装配 + 请求体不合法 → 422 校验优先（记录顺序，不视为假成功）",
+      "ok": true,
+      "detail": "422 INVALID_REQUEST"
+    },
+    {
+      "name": "v8.8 未装配下施测仍是 501（不是 503——无服务可缺）",
+      "ok": true,
+      "detail": "501 FEATURE_NOT_IMPLEMENTED"
+    },
+    {
+      "name": "v8.9 教学库不含施测三表（assessments/assessment_classes/assessment_participants）",
+      "ok": true,
+      "detail": "[\"class_memberships\", \"classes\", \"command_submissions\", \"file_assets\", \"roster_import_rows\", \"roster_imports\", \"schema_migrations\", \"students\", \"workflow_jobs\"]"
+    }
+  ],
+  "crashed": null
+}

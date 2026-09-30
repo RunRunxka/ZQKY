@@ -1,0 +1,9 @@
+冻结记录声明 55 个文件；实际记录 55 条
+一致 54；不一致 1；缺失 0
+  DIFF docs/qa/TEACHING-LOOP-B0/TASK-CARD.md
+    frozen=f797e13f12fee3587481c968e6cdc869035e4d6a412ecddbc21d05b348424eb0
+    actual=df1b0f69aa2451e2a1a6e965546552c6a45f8b3ee564d28c045417db70291e65
+本轮变异涉及的候选文件：
+  apps/api/app/services/jobs/engine.py sha256=92f5e344f65a6479e279b8643a975d2c4ed1b6f68d47ebb841a92c08b5a833ea 与冻结一致=True
+  apps/api/app/repositories/jobs/repository.py sha256=5df7ce2dbbb38f13f77433a22b9234a4665ad1cea2943d8684c0480ec710fb24 与冻结一致=True
+证据：H:\备份xuexi\智启课源\docs\qa\TEACHING-LOOP-B0\V00-probes\evidence\v10_hash_reconcile.json

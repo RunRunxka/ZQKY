@@ -1,0 +1,64 @@
+{
+  "probe": "v00r2_fingerprint_probe",
+  "r2_revision": "r2",
+  "r2_previous": "r1",
+  "entries": 55,
+  "identical": 55,
+  "mismatched": [],
+  "missing": [],
+  "computed_changed": [
+    "apps/api/app/core/migrations/question_bank.py",
+    "apps/api/app/repositories/jobs/repository.py",
+    "apps/api/tests/test_jobs_engine.py",
+    "apps/api/tests/test_migrations.py",
+    "docs/API.md",
+    "docs/CURRENT_STATUS.md",
+    "docs/PROJECT_GUIDE.md",
+    "docs/qa/TEACHING-LOOP-B0/TASK-CARD.md"
+  ],
+  "declared_changed": [
+    "apps/api/app/core/migrations/question_bank.py",
+    "apps/api/app/repositories/jobs/repository.py",
+    "apps/api/tests/test_jobs_engine.py",
+    "apps/api/tests/test_migrations.py",
+    "docs/API.md",
+    "docs/CURRENT_STATUS.md",
+    "docs/PROJECT_GUIDE.md",
+    "docs/qa/TEACHING-LOOP-B0/TASK-CARD.md"
+  ],
+  "changed_sets_equal": true,
+  "changed_hashes": {
+    "apps/api/app/core/migrations/question_bank.py": {
+      "r1": "2d29bae2f1279df22ecdb3cc7a62fc66385b3bb51064030249c1e747f066e4df",
+      "r2": "1b145515806bb464971c8efdd8419168939f470cc98f3798224b5e68acd16c1c"
+    },
+    "apps/api/app/repositories/jobs/repository.py": {
+      "r1": "5df7ce2dbbb38f13f77433a22b9234a4665ad1cea2943d8684c0480ec710fb24",
+      "r2": "6f6e48e69a9b7e255ff2aa53aec6b6920b139c8c8ca05f0fa2a5cb3398df5f3b"
+    },
+    "apps/api/tests/test_jobs_engine.py": {
+      "r1": "aad422f0e818df530b41864fbf2ea4752b3fffdcf2d5dfbf709e31b4ab7105dc",
+      "r2": "770e2abd4503ad3a1fea8075d5b01b57233a05db0f89489c040fbe80a73682f4"
+    },
+    "apps/api/tests/test_migrations.py": {
+      "r1": "b19a6106d054ad02cb6a43835c3705738e71b79614ec217ccb1d6080a7e66199",
+      "r2": "ba4d75da28e76dd3d3c960f5dfb39021e8613453d45311f78d24cf94b61d2a07"
+    },
+    "docs/API.md": {
+      "r1": "ff0a6bad70deda0c677bd2ae61f9e47ee9ec146033ace0a63bbf81baa90e6956",
+      "r2": "34fa7349ad3dd302c800e15361bf7d434710e2543c54f16f262c5267c42b4e7f"
+    },
+    "docs/CURRENT_STATUS.md": {
+      "r1": "29a6e3a47bda93af2140ad7fe64133b2ca9ccecb0b7dec2b0061e3ab6e90b687",
+      "r2": "bd70874c3812433434adf9191f9d0deaeaa7015679d71b381596bd84a29643aa"
+    },
+    "docs/PROJECT_GUIDE.md": {
+      "r1": "2d637d0476fff0f6499b1d3602d3d2b12c03ca3d1ee9ff53c74b8d545617271e",
+      "r2": "84f46f23a5795738a1f15fc860edb2b9e652e507d7546a29ed55fc5312308150"
+    },
+    "docs/qa/TEACHING-LOOP-B0/TASK-CARD.md": {
+      "r1": "f797e13f12fee3587481c968e6cdc869035e4d6a412ecddbc21d05b348424eb0",
+      "r2": "07f0f944faa78a6e9cf2aed531d1a6a4695ed139cae7b91c799730043445e85a"
+    }
+  }
+}

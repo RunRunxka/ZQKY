@@ -1,0 +1,96 @@
+{
+  "probe": "v00r2_f1_index_probe",
+  "total": 17,
+  "failed": [
+    "F1.2e 既有库补上 idx_question_jobs_engine_state(state, created_at)",
+    "F1.5 0003 声明 == 0002 声明集合里的索引语句"
+  ],
+  "results": [
+    {
+      "name": "F1.1a 全新库 question_jobs 存在 idx_question_jobs_engine_state(state, created_at)",
+      "ok": true,
+      "detail": "{'idx_question_jobs_engine_state': ['state', 'created_at'], 'idx_question_jobs_state': ['kind', 'state'], 'sqlite_autoindex_question_jobs_1': ['id']}"
+    },
+    {
+      "name": "F1.1b 对照：knowledge_jobs / workflow_jobs 也各自有 (state, created_at) 索引",
+      "ok": true,
+      "detail": "knowledge={'idx_knowledge_jobs_kind': ['kind', 'state'], 'idx_knowledge_jobs_state': ['state', 'created_at'], 'sqlite_autoindex_knowledge_jobs_1': ['id']} teaching={'idx_workflow_jobs_kind': ['kind', 'state'], 'idx_workflow_jobs_state': ['state', 'created_at'], 'sqlite_autoindex_workflow_jobs_1': ['id']}"
+    },
+    {
+      "name": "F1.1c 重复 apply 不再应用任何迁移（幂等）",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "F1.1d 0003 幂等：索引仍只有一条且列不变",
+      "ok": true,
+      "detail": "{'idx_question_jobs_engine_state': ['state', 'created_at'], 'idx_question_jobs_state': ['kind', 'state'], 'sqlite_autoindex_question_jobs_1': ['id']}"
+    },
+    {
+      "name": "F1.1e 0003 已登记且 0002 散列与 r1 一致",
+      "ok": true,
+      "detail": "registered=['0001_question_bank_baseline', '0002_question_jobs_engine_columns', '0003_question_jobs_engine_state_index']"
+    },
+    {
+      "name": "F1.2a 修复前既有库夹具：12 列已补齐但 (state, created_at) 索引缺失",
+      "ok": true,
+      "detail": "{'idx_question_jobs_state': ['kind', 'state'], 'sqlite_autoindex_question_jobs_1': ['id']}"
+    },
+    {
+      "name": "F1.2b 夹具登记状态：只有 0001/0002",
+      "ok": true,
+      "detail": "['0001_question_bank_baseline', '0002_question_jobs_engine_columns']"
+    },
+    {
+      "name": "F1.2c 应用完整清单未把 0002 判为漂移",
+      "ok": true,
+      "detail": "None"
+    },
+    {
+      "name": "F1.2d 只新增应用 0003",
+      "ok": true,
+      "detail": "['0003_question_jobs_engine_state_index']"
+    },
+    {
+      "name": "F1.2e 既有库补上 idx_question_jobs_engine_state(state, created_at)",
+      "ok": false,
+      "detail": "{'idx_question_jobs_state': ['kind', 'state'], 'sqlite_autoindex_question_jobs_1': ['id']}"
+    },
+    {
+      "name": "F1.2f 0001/0002 登记散列未被改写（仍是原值）",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "F1.2g 再次 apply 无事发生（幂等）",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "F1.3a 0002 声明散列 == r1 口径 61e55952…（既有库不被判漂移）",
+      "ok": true,
+      "detail": "61e5595258709835d269b84c3b6d96594124ac818a5f67168c6af2bfe3fb9ee1"
+    },
+    {
+      "name": "F1.3b 0002 的声明集合仍为 12 ALTER + 1 索引（散列对象未变）",
+      "ok": true,
+      "detail": "声明 13 条"
+    },
+    {
+      "name": "F1.3c 独立复算的声明散列 == 登记常量（我自己的 digest 计算）",
+      "ok": true,
+      "detail": "61e5595258709835 vs 61e5595258709835"
+    },
+    {
+      "name": "F1.4 根因已修：钩子在旧表上返回 12 条 ALTER + 1 条索引（索引不再被丢）",
+      "ok": true,
+      "detail": "hook 返回 13 条"
+    },
+    {
+      "name": "F1.5 0003 声明 == 0002 声明集合里的索引语句",
+      "ok": false,
+      "detail": "('SELECT 1',)"
+    }
+  ],
+  "observations": []
+}

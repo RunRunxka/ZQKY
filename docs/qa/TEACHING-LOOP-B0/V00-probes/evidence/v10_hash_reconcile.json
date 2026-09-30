@@ -1,0 +1,18 @@
+{
+  "probe": "v10_hash_reconcile",
+  "declared": 55,
+  "entries": 55,
+  "identical": 54,
+  "different": [
+    {
+      "path": "docs/qa/TEACHING-LOOP-B0/TASK-CARD.md",
+      "frozen": "f797e13f12fee3587481c968e6cdc869035e4d6a412ecddbc21d05b348424eb0",
+      "actual": "df1b0f69aa2451e2a1a6e965546552c6a45f8b3ee564d28c045417db70291e65"
+    }
+  ],
+  "missing": [],
+  "mutated_files_reconciled": {
+    "apps/api/app/services/jobs/engine.py": true,
+    "apps/api/app/repositories/jobs/repository.py": true
+  }
+}

@@ -1,23 +1,32 @@
-"""教材与题库的离线一致性备份 / 校验 / 恢复（RAG-QUALITY v1.1）。
+"""教材/题库/知识点库/教学库与受管资产的离线一致性备份 / 校验 / 恢复（v3）。
 
 方案与 ``docs/PLAN.md`` §5.2、§5.3 一致：
 
 - 备份前先取**数据根排他锁**（``app.core.data_lock``）；拿不到只报 ``DATA_LOCK_BUSY``
   并退出，**不自动停止用户进程**；
 - 检查没有未结束的入库 / 整理 / 重建任务，有则拒绝备份，**不擅自修改遗留任务状态**；
-- 两库用 **SQLite backup API**（``sqlite3.Connection.backup``）生成一致性副本，
-  不直接复制正在写入的 WAL 文件；
+- **四库**（教材目录、题库、知识点库、教学业务库）用 **SQLite backup API**
+  （``sqlite3.Connection.backup``）生成一致性副本，不直接复制正在写入的 WAL 文件；
+  缺任何一个库都算失败（``status: "failed"``），不悄悄少备份一个库；
 - **只**从备份后的数据库读取被引用的文件（``textbooks/blobs``、``textbooks/normalized``、
-  ``textbooks/staging`` 里草稿引用的产物、``question-bank/blobs``），逐文件记录
-  ``bytes`` 与 ``sha256``，并核对"文件名 = 内容 sha256"的内容寻址约定；
+  ``textbooks/staging`` 里草稿引用的产物、``question-bank/blobs``、教学库 ``file_assets``
+  引用的 ``assets/blobs/<sha256>``），逐文件记录 ``bytes`` 与 ``sha256``，并核对
+  "文件名 = 内容 sha256" 的内容寻址约定；
 - 需要快照的 collection 走 Qdrant 官方 snapshot，下载后核对**点数、维度**并用
   ``exact=true`` 对账 payload 指纹；
 - 全部通过才把 manifest 标 ``status: "complete"``；任一必需文件、原文哈希或快照缺失
   都保留失败记录、标 ``failed`` 并非零退出，**绝不输出"备份完成"**。
 
 恢复**只写新目录**且必须显式指向隔离 Qdrant（本机回环、非 6333），按应用真实布局生成
-``textbooks/catalog.sqlite3``、``textbooks/blobs/…``、``question-bank/question-bank.sqlite3``
-等，并把 ``restore-state.json`` 留在 ``incomplete``/``ready`` 供应用启动检查。
+``textbooks/catalog.sqlite3``、``textbooks/blobs/…``、``question-bank/question-bank.sqlite3``、
+``knowledge/knowledge.sqlite3``、``teaching/teaching.sqlite3``、``assets/blobs/…`` 等，
+并把 ``restore-state.json`` 留在 ``incomplete``/``ready`` 供应用启动检查。恢复完成后对
+**恢复到本目录的每个库**做 ``PRAGMA integrity_check`` + ``foreign_key_check``，并从恢复后的
+教学库重新推导 ``file_assets`` 引用逐文件重算 sha256。``schema_migrations`` 是库内表，
+随库一起备份/恢复，恢复过程不改写它。
+
+清单版本：``schemaVersion: 3``（四库 + 资产）；既有 ``schemaVersion: 2``（两库）与
+legacy（无版本/1）清单仍可 verify / restore，语义不变。
 
 用法::
 
@@ -62,10 +71,13 @@ from app.core.exceptions import AppError  # noqa: E402
 from app.core.sqlite import now_iso  # noqa: E402
 from app.providers.embeddings.fingerprint import sha256_hex  # noqa: E402
 from app.repositories.textbook_catalog.records import ChunkInput  # noqa: E402
+from app.services.assets.store import is_managed_blob_key, is_sha256_hex  # noqa: E402
 from app.services.document_parsing import chunk_manifest_sha256  # noqa: E402
 
 BACKUP_ROOT = REPO_ROOT / "_work" / "rag-backups"
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
+#: 旧两库清单版本；仍然只读兼容 verify/restore
+SCHEMA_VERSION_V2 = 2
 MANIFEST_NAME = "manifest.json"
 
 #: 正式 Qdrant 端口；恢复时明确拒绝，绝不覆盖正式 collection
@@ -78,6 +90,9 @@ ROLE_TEXTBOOK_NORMALIZED = "textbook-normalized"
 ROLE_TEXTBOOK_STAGING = "textbook-staging"
 ROLE_QUESTION_CATALOG = "question-bank-catalog"
 ROLE_QUESTION_BLOB = "question-bank-blob"
+ROLE_KNOWLEDGE_CATALOG = "knowledge-catalog"
+ROLE_TEACHING_CATALOG = "teaching-catalog"
+ROLE_ASSET_BLOB = "asset-blob"
 
 #: 教材区域的运行目录名 → 清单角色
 TEXTBOOK_AREA_ROLES = {
@@ -86,14 +101,68 @@ TEXTBOOK_AREA_ROLES = {
     "staging": ROLE_TEXTBOOK_STAGING,
 }
 QUESTION_AREA_ROLES = {"blobs": ROLE_QUESTION_BLOB}
-BLOB_ROLES = frozenset(TEXTBOOK_AREA_ROLES.values()) | frozenset(QUESTION_AREA_ROLES.values())
+#: 受管资产区域：归档 ``files/assets/<blob_key>`` → 恢复 ``assets/<blob_key>``
+ASSET_AREA_ROLES = {"blobs": ROLE_ASSET_BLOB}
+BLOB_ROLES = (
+    frozenset(TEXTBOOK_AREA_ROLES.values())
+    | frozenset(QUESTION_AREA_ROLES.values())
+    | frozenset(ASSET_AREA_ROLES.values())
+)
 
 TEXTBOOK_CATALOG_ARCHIVE = "sqlite/textbooks-catalog.sqlite3"
 TEXTBOOK_CATALOG_RESTORE = "textbooks/catalog.sqlite3"
 QUESTION_CATALOG_ARCHIVE = "sqlite/question-bank.sqlite3"
 QUESTION_CATALOG_RESTORE = "question-bank/question-bank.sqlite3"
+KNOWLEDGE_CATALOG_ARCHIVE = "sqlite/knowledge.sqlite3"
+KNOWLEDGE_CATALOG_RESTORE = "knowledge/knowledge.sqlite3"
+TEACHING_CATALOG_ARCHIVE = "sqlite/teaching.sqlite3"
+TEACHING_CATALOG_RESTORE = "teaching/teaching.sqlite3"
 
-RESTORE_PATH_PREFIXES = ("textbooks/", "question-bank/")
+#: v3 完整清单必需的四库恢复路径（顺序即校验顺序）
+CATALOG_RESTORE_PATHS = (
+    TEXTBOOK_CATALOG_RESTORE,
+    QUESTION_CATALOG_RESTORE,
+    KNOWLEDGE_CATALOG_RESTORE,
+    TEACHING_CATALOG_RESTORE,
+)
+#: v2 清单只覆盖两库（旧语义原样保留）
+CATALOG_RESTORE_PATHS_V2 = (TEXTBOOK_CATALOG_RESTORE, QUESTION_CATALOG_RESTORE)
+
+#: (数据根内相对路径, 归档路径, 恢复路径, 清单角色, 可读名称)
+CATALOG_SPECS = (
+    (
+        "textbooks/catalog.sqlite3",
+        TEXTBOOK_CATALOG_ARCHIVE,
+        TEXTBOOK_CATALOG_RESTORE,
+        ROLE_TEXTBOOK_CATALOG,
+        "教材目录",
+    ),
+    (
+        "question-bank/question-bank.sqlite3",
+        QUESTION_CATALOG_ARCHIVE,
+        QUESTION_CATALOG_RESTORE,
+        ROLE_QUESTION_CATALOG,
+        "题库数据库",
+    ),
+    (
+        "knowledge/knowledge.sqlite3",
+        KNOWLEDGE_CATALOG_ARCHIVE,
+        KNOWLEDGE_CATALOG_RESTORE,
+        ROLE_KNOWLEDGE_CATALOG,
+        "知识点库",
+    ),
+    (
+        "teaching/teaching.sqlite3",
+        TEACHING_CATALOG_ARCHIVE,
+        TEACHING_CATALOG_RESTORE,
+        ROLE_TEACHING_CATALOG,
+        "教学业务库",
+    ),
+)
+
+RESTORE_PATH_PREFIXES = ("textbooks/", "question-bank/", "knowledge/", "teaching/", "assets/")
+#: 受管资产归档目录前缀（归档路径 = ``files/assets/<blob_key>``）
+ASSET_ARCHIVE_PREFIX = "files/assets/"
 #: 草稿处于这些状态时预览/继续编辑不再需要 staging 产物
 FINAL_IMPORT_STATES = frozenset({"ready", "cancelled"})
 #: 未完成的临时文件不是有效草稿产物，永不收录
@@ -623,6 +692,116 @@ def _question_blob_needs(db_path: Path) -> tuple[list[BlobNeed], list[str]]:
     return needs, failures
 
 
+def _file_assets_rows(db_path: Path) -> tuple[list[dict], list[str]]:
+    """从（备份后或恢复后的）教学库读受管资产引用行。
+
+    行结构非法（``blob_key`` 不是 ``blobs/<64 位小写 hex>``、``sha256`` 形状不对、
+    键与散列不一致、``byte_size`` 非法）如实报失败，**不当合法行**。
+    """
+    rows_out: list[dict] = []
+    failures: list[str] = []
+    connection = open_sqlite(db_path)
+    try:
+        for row in connection.execute(
+            "SELECT id, blob_key, sha256, byte_size FROM file_assets ORDER BY rowid ASC"
+        ):
+            asset_id = str(row["id"])
+            blob_key = row["blob_key"]
+            sha256 = row["sha256"]
+            if not is_managed_blob_key(blob_key):
+                failures.append(
+                    f"教学库 file_assets {asset_id} 的 blob_key 不是受管键：{blob_key!r}"
+                )
+                continue
+            if not is_sha256_hex(sha256):
+                failures.append(
+                    f"教学库 file_assets {asset_id} 的 sha256 不是 64 位小写 hex"
+                )
+                continue
+            if blob_key != f"blobs/{sha256}":
+                failures.append(
+                    f"教学库 file_assets {asset_id} 的 blob_key 与 sha256 不一致（内容寻址）"
+                )
+                continue
+            byte_size = row["byte_size"]
+            if not isinstance(byte_size, int) or isinstance(byte_size, bool) or byte_size < 0:
+                failures.append(f"教学库 file_assets {asset_id} 的 byte_size 非法")
+                continue
+            rows_out.append(
+                {
+                    "assetId": asset_id,
+                    "blobKey": blob_key,
+                    "sha256": sha256,
+                    "byteSize": byte_size,
+                }
+            )
+    except sqlite3.Error as exc:
+        failures.append(
+            f"读取教学库 file_assets 失败：{exc.__class__.__name__}: {exc}"
+        )
+    finally:
+        connection.close()
+    return rows_out, failures
+
+
+def _collect_teaching_assets(
+    *,
+    teaching_snapshot: Path | None,
+    assets_root: Path,
+    destination: Path,
+    files: list[dict],
+) -> list[str]:
+    """把教学库引用的受管资产复制进归档并逐文件校验（缺失/指纹/大小/内容寻址）。
+
+    归档路径为 ``files/assets/<blob_key>``，恢复路径为 ``assets/<blob_key>``
+    （即 ``assets/blobs/<sha256>``）。同一内容只收录一次。
+    """
+    if teaching_snapshot is None or not teaching_snapshot.is_file():
+        return []
+    rows, failures = _file_assets_rows(teaching_snapshot)
+    seen: set[str] = set()
+    for row in rows:
+        blob_key = row["blobKey"]
+        if blob_key in seen:
+            continue
+        seen.add(blob_key)
+        label = f"受管资产 {blob_key}（file_assets {row['assetId']}）"
+        source = assets_root / blob_key
+        if not source.is_file():
+            failures.append(f"{label} 缺失：{source}")
+            continue
+        archive_path = f"{ASSET_ARCHIVE_PREFIX}{blob_key}"
+        archive_file = destination / archive_path
+        try:
+            size, digest = copy_hashed(source, archive_file)
+        except OSError as exc:
+            failures.append(f"{label} 复制失败：{exc.__class__.__name__}: {exc}")
+            continue
+        if digest != row["sha256"]:
+            failures.append(
+                f"{label} 内容指纹不符（实际 {digest}），源文件缺失或损坏"
+            )
+            archive_file.unlink(missing_ok=True)
+            continue
+        if size != row["byteSize"]:
+            failures.append(
+                f"{label} 大小不符（登记 {row['byteSize']}，实际 {size}）"
+            )
+            archive_file.unlink(missing_ok=True)
+            continue
+        files.append(
+            {
+                "logicalRole": ROLE_ASSET_BLOB,
+                "archivePath": archive_path,
+                "restorePath": f"assets/{blob_key}",
+                "sourcePath": f"assets/{blob_key}",
+                "bytes": size,
+                "sha256": digest,
+            }
+        )
+    return failures
+
+
 def _resolve_needs(
     root: Path, needs: Sequence[BlobNeed], role_by_area: dict[str, str]
 ) -> tuple[list[dict], list[str]]:
@@ -697,6 +876,43 @@ def _unfinished_jobs(textbook_db: Path | None, question_db: Path | None) -> list
                 )
         except sqlite3.Error as exc:
             pending.append(f"读取题库任务状态失败：{exc.__class__.__name__}")
+        finally:
+            connection.close()
+    return pending
+
+
+def _unfinished_extra_jobs(
+    knowledge_db: Path | None, teaching_db: Path | None
+) -> list[str]:
+    """知识点库 / 教学库里的未结束任务（v3 新增；只读，不修改任何状态）。
+
+    表不存在视为该库尚未迁移（迁移登记会拒绝启动），不误报为任务；读取失败如实列出。
+    """
+    plan = (
+        (knowledge_db, "knowledge_jobs", "知识点任务"),
+        (teaching_db, "workflow_jobs", "教学任务"),
+    )
+    pending: list[str] = []
+    for db_path, table, label in plan:
+        if db_path is None or not db_path.is_file():
+            continue
+        connection = open_sqlite(db_path)
+        try:
+            present = connection.execute(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (table,)
+            ).fetchone()
+            if present is None:
+                continue
+            for row in connection.execute(
+                f"SELECT id, kind, state, updated_at FROM {table} "
+                "WHERE state IN ('queued', 'running') ORDER BY created_at ASC, rowid ASC"
+            ):
+                pending.append(
+                    f"{label} {row['id']}（kind={row['kind']}, state={row['state']}, "
+                    f"updated_at={row['updated_at']}）"
+                )
+        except sqlite3.Error as exc:
+            pending.append(f"读取{label}状态失败：{exc.__class__.__name__}")
         finally:
             connection.close()
     return pending
@@ -827,8 +1043,11 @@ def create_backup(
     destination = Path(target)
     textbooks_root = root / "textbooks"
     question_root = root / "question-bank"
+    assets_root = root / "assets"
     textbook_db = textbooks_root / "catalog.sqlite3"
     question_db = question_root / "question-bank.sqlite3"
+    knowledge_db = root / "knowledge" / "knowledge.sqlite3"
+    teaching_db = root / "teaching" / "teaching.sqlite3"
 
     if not root.is_dir():
         raise BackupRefused(f"数据根不存在，拒绝备份：{root}")
@@ -836,13 +1055,23 @@ def create_backup(
     with acquire_data_lock(root, exclusive=True, blocking=False, label="backup"):
         if destination.exists():
             raise BackupRefused(f"备份目录已存在，拒绝覆盖：{destination}")
-        if not textbook_db.is_file() and not question_db.is_file():
+        present_databases = [
+            root / relative for relative, *_rest in CATALOG_SPECS if (root / relative).is_file()
+        ]
+        if not present_databases:
             raise BackupRefused(
-                f"数据根没有任何数据库，拒绝生成空备份：{textbook_db} / {question_db}"
+                "数据根没有任何数据库，拒绝生成空备份："
+                + " / ".join(str(root / relative) for relative, *_rest in CATALOG_SPECS)
             )
         pending = _unfinished_jobs(
             textbook_db if textbook_db.is_file() else None,
             question_db if question_db.is_file() else None,
+        )
+        pending.extend(
+            _unfinished_extra_jobs(
+                knowledge_db if knowledge_db.is_file() else None,
+                teaching_db if teaching_db.is_file() else None,
+            )
         )
         if pending:
             detail = "\n".join(f"  - {item}" for item in pending)
@@ -854,23 +1083,10 @@ def create_backup(
         failures: list[str] = []
         files: list[dict] = []
 
-        for db_path, archive_path, restore_path, role, label_text in (
-            (
-                textbook_db,
-                TEXTBOOK_CATALOG_ARCHIVE,
-                TEXTBOOK_CATALOG_RESTORE,
-                ROLE_TEXTBOOK_CATALOG,
-                "教材目录",
-            ),
-            (
-                question_db,
-                QUESTION_CATALOG_ARCHIVE,
-                QUESTION_CATALOG_RESTORE,
-                ROLE_QUESTION_CATALOG,
-                "题库数据库",
-            ),
-        ):
+        for relative_db, archive_path, restore_path, role, label_text in CATALOG_SPECS:
+            db_path = root / relative_db
             if not db_path.is_file():
+                # 四个库缺任何一个都是失败：绝不悄悄少备份一个库
                 failures.append(f"{label_text}缺失：{db_path}")
                 continue
             copy_path = destination / archive_path
@@ -960,6 +1176,16 @@ def create_backup(
                     "sha256": digest,
                 }
             )
+
+        # 教学库引用的受管资产：从**备份后的**教学库快照读 file_assets，逐文件校验
+        failures.extend(
+            _collect_teaching_assets(
+                teaching_snapshot=destination / TEACHING_CATALOG_ARCHIVE,
+                assets_root=assets_root,
+                destination=destination,
+                files=files,
+            )
+        )
 
         effective_qdrant = qdrant_url or Settings.from_env().qdrant_url
         admin = qdrant_client
@@ -1133,7 +1359,7 @@ def _legacy_manifest_files(backup: Path, manifest: dict) -> tuple[list[dict], li
 
 
 def normalize_manifest(backup: Path) -> dict:
-    """读清单并归一成内部结构；v2 保持原字段，旧清单映射到运行目录布局。"""
+    """读清单并归一成内部结构；v3/v2 保持原字段，旧清单映射到运行目录布局。"""
     manifest_path = Path(backup) / MANIFEST_NAME
     if not manifest_path.is_file():
         raise BackupRefused(f"备份清单不存在：{manifest_path}")
@@ -1145,9 +1371,9 @@ def normalize_manifest(backup: Path) -> dict:
         raise BackupRefused("备份清单顶层不是 JSON 对象。")
 
     version = raw.get("schemaVersion")
-    if version == SCHEMA_VERSION:
+    if version in (SCHEMA_VERSION_V2, SCHEMA_VERSION):
         return {
-            "schemaVersion": SCHEMA_VERSION,
+            "schemaVersion": version,
             "legacy": False,
             "status": str(raw.get("status") or ""),
             "createdAt": raw.get("createdAt"),
@@ -1247,11 +1473,21 @@ def verify_backup(
             )
         for item in normalized["failures"]:
             failures.append(f"清单内记录的备份失败：{item}")
+        if normalized["schemaVersion"] < SCHEMA_VERSION:
+            notes.append(
+                "旧 v2 清单只覆盖教材目录与题库：不含知识点库/教学库与受管资产，"
+                "不能据此宣称四库完整。"
+            )
 
     active = normalized["activeGenerationId"]
     if not normalized["legacy"]:
         declared_paths = {item.get("restorePath") for item in normalized["files"]}
-        for required in (TEXTBOOK_CATALOG_RESTORE, QUESTION_CATALOG_RESTORE):
+        required_restores = (
+            CATALOG_RESTORE_PATHS
+            if normalized["schemaVersion"] >= SCHEMA_VERSION
+            else CATALOG_RESTORE_PATHS_V2
+        )
+        for required in required_restores:
             if required not in declared_paths:
                 failures.append(f"完整清单缺少必需文件：{required}")
     snapshot_names = {
@@ -1303,7 +1539,7 @@ def verify_backup(
             if not restore_path.startswith(RESTORE_PATH_PREFIXES) and item.get(
                 "logicalRole"
             ) != "qdrant-snapshot":
-                failures.append(f"restorePath 不在教材/题库运行目录内：{restore_path}")
+                failures.append(f"restorePath 不在运行目录内：{restore_path}")
             if Path(restore_path).name == ".zqky-data.lock":
                 failures.append("清单试图收录数据根锁文件，拒绝：.zqky-data.lock")
         actual_size = archive_file.stat().st_size
@@ -1428,11 +1664,16 @@ def _restore_target_check(new_root: Path) -> None:
 
 
 def _verify_required_structure(normalized: dict) -> None:
-    """v2 完整清单必须同时含两库；缺任何一件都在写文件前拒绝。"""
+    """完整清单必须在写文件前含齐必需库（v3 四库；v2 两库，旧语义不变）。"""
     if normalized["legacy"]:
         return
+    required_restores = (
+        CATALOG_RESTORE_PATHS
+        if normalized["schemaVersion"] >= SCHEMA_VERSION
+        else CATALOG_RESTORE_PATHS_V2
+    )
     restore_paths = {item.get("restorePath") for item in normalized["files"]}
-    for required in (TEXTBOOK_CATALOG_RESTORE, QUESTION_CATALOG_RESTORE):
+    for required in required_restores:
         if required not in restore_paths:
             raise BackupRefused(f"完整清单缺少必需文件：{required}")
 
@@ -1449,7 +1690,7 @@ def _verify_paths_stay_inside_roots(backup: Path, normalized: dict, new_root: Pa
         if not isinstance(restore_path, str) or not restore_path:
             raise BackupRefused(f"清单条目缺少 restorePath：{archive_path}")
         if not restore_path.startswith(RESTORE_PATH_PREFIXES):
-            raise BackupRefused(f"restorePath 不在教材/题库运行目录内：{restore_path}")
+            raise BackupRefused(f"restorePath 不在运行目录内：{restore_path}")
         _relative_inside(new_root, restore_path, what="restorePath")
     for item in normalized["collections"]:
         snapshot_path = item.get("snapshotPath")
@@ -1590,11 +1831,12 @@ def _sqlite_rows(path: Path, sql: str, params: Sequence[object] = ()) -> list[sq
         connection.close()
 
 
-def _verify_sqlite_integrity_and_foreign_keys(new_root: Path) -> None:
-    for db_path in (
-        new_root / TEXTBOOK_CATALOG_RESTORE,
-        new_root / QUESTION_CATALOG_RESTORE,
-    ):
+def _verify_sqlite_integrity_and_foreign_keys(
+    new_root: Path, restore_paths: Sequence[str]
+) -> None:
+    """对本次恢复到目录里的每个库做 integrity_check + foreign_key_check。"""
+    for relative in restore_paths:
+        db_path = new_root / relative
         if not db_path.is_file():
             raise BackupFailed(f"恢复目录缺少数据库：{db_path}")
         connection = open_sqlite(db_path)
@@ -1609,6 +1851,41 @@ def _verify_sqlite_integrity_and_foreign_keys(new_root: Path) -> None:
                 )
         finally:
             connection.close()
+
+
+def _verify_teaching_assets(new_root: Path) -> None:
+    """从**恢复后的**教学库重新推导 ``file_assets`` 引用并逐文件重算 sha256。
+
+    恢复目录没有教学库（v2/legacy 清单）时跳过；只要教学库存在，每条引用都必须能
+    在 ``assets/blobs/<sha256>`` 找到且内容、大小与登记一致，否则恢复失败。
+    """
+    db_path = new_root / TEACHING_CATALOG_RESTORE
+    if not db_path.is_file():
+        return
+    rows, failures = _file_assets_rows(db_path)
+    if failures:
+        raise BackupFailed("；".join(failures))
+    missing: list[str] = []
+    seen: set[str] = set()
+    for row in rows:
+        blob_key = row["blobKey"]
+        if blob_key in seen:
+            continue
+        seen.add(blob_key)
+        target = new_root / "assets" / blob_key
+        if not target.is_file():
+            missing.append(
+                f"受管资产缺失：assets/{blob_key}（file_assets {row['assetId']}）"
+            )
+            continue
+        if target.stat().st_size != row["byteSize"]:
+            missing.append(f"受管资产大小不符：assets/{blob_key}")
+            continue
+        if sha256_file(target) != row["sha256"]:
+            missing.append(f"受管资产内容指纹不符：assets/{blob_key}")
+    if missing:
+        detail = "\n".join(f"  - {item}" for item in missing[:20])
+        raise BackupFailed("恢复后受管资产校验失败：\n" + detail)
 
 
 def _verify_all_referenced_blobs(new_root: Path) -> None:
@@ -1901,8 +2178,12 @@ def restore_backup(
                 }
             )
 
-        _verify_sqlite_integrity_and_foreign_keys(target)
+        # 恢复目录里声明了哪些库就逐个做 integrity_check + foreign_key_check
+        declared_restores = {item.get("restorePath") for item in normalized["files"]}
+        db_restores = [path for path in CATALOG_RESTORE_PATHS if path in declared_restores]
+        _verify_sqlite_integrity_and_foreign_keys(target, db_restores)
         _verify_all_referenced_blobs(target)
+        _verify_teaching_assets(target)
         _verify_draft_previews(target)
         _verify_revision_and_point_manifests(target)
 
@@ -2035,7 +2316,7 @@ def restore_command(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="教材/题库离线一致性备份、校验与恢复（RAG-QUALITY v1.1）"
+        description="四库（教材/题库/知识点/教学）+ 受管资产的离线一致性备份、校验与恢复（schemaVersion 3）"
     )
     sub = parser.add_subparsers(dest="command", required=True)
 

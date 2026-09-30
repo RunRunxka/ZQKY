@@ -1,0 +1,60 @@
+{
+  "count": 11,
+  "diagrams": [
+    {
+      "name": "01-entities-01.mmd",
+      "syntax": "pass",
+      "svg": "pass"
+    },
+    {
+      "name": "01-entities-02.mmd",
+      "syntax": "pass",
+      "svg": "pass"
+    },
+    {
+      "name": "01-entities-03.mmd",
+      "syntax": "pass",
+      "svg": "pass"
+    },
+    {
+      "name": "01-entities-04.mmd",
+      "syntax": "pass",
+      "svg": "pass"
+    },
+    {
+      "name": "02-relationships-and-constraints-01.mmd",
+      "syntax": "pass",
+      "svg": "pass"
+    },
+    {
+      "name": "03-function-modules-01.mmd",
+      "syntax": "pass",
+      "svg": "pass"
+    },
+    {
+      "name": "03-function-modules-02.mmd",
+      "syntax": "pass",
+      "svg": "pass"
+    },
+    {
+      "name": "04-functional-specification-01.mmd",
+      "syntax": "pass",
+      "svg": "pass"
+    },
+    {
+      "name": "05-total-er.mmd",
+      "syntax": "pass",
+      "svg": "pass"
+    },
+    {
+      "name": "README-01.mmd",
+      "syntax": "pass",
+      "svg": "pass"
+    },
+    {
+      "name": "README-02.mmd",
+      "syntax": "pass",
+      "svg": "pass"
+    }
+  ]
+}

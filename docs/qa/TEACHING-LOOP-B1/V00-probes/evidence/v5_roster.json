@@ -1,0 +1,199 @@
+{
+  "probe": "v5_roster",
+  "passed": 38,
+  "failed": 0,
+  "total": 38,
+  "results": [
+    {
+      "name": "v5.0a 建班 201",
+      "ok": true,
+      "detail": "201 {\"id\": \"43be02df7a3b4ff1b39bf39963a3a504\", \"code\": \"C1\", \"name\": \"一年一班\", \"schoolYear\": \"2026-2027\", \"gradeId\": \"g1\", \"status\": \"active\", \"revision\": 0, \"studentCount\": 0, \"createdAt\": \"2026-09-30T13:1"
+    },
+    {
+      "name": "v5.0b 同学年同 code → 409 CLASS_CODE_CONFLICT",
+      "ok": true,
+      "detail": "409 CLASS_CODE_CONFLICT"
+    },
+    {
+      "name": "v5.0c 学号原样保存（前导零不丢）",
+      "ok": true,
+      "detail": "[\"0012\", \"0007\", null]"
+    },
+    {
+      "name": "v5.1a 名单上传 201",
+      "ok": true,
+      "detail": "201 {\"importId\": \"30a346b72bb14236a1630d7c83dbd087\", \"classId\": \"43be02df7a3b4ff1b39bf39963a3a504\", \"className\": \"一年一班\", \"state\": \"reviewing\", \"revision\": 0, \"fileAsset\": {\"assetId\": \"342980138b1a47d6b179c3af01fab356\", \"kind\": \"roster\", \"blobKey\": \"blobs/3ff75c6160cd9c30526a8a7ae2187ed5442408d52a2564963"
+    },
+    {
+      "name": "v5.1b 表头自动映射（学号/姓名）+ state=reviewing",
+      "ok": true,
+      "detail": "{\"mapping\": {\"name\": \"姓名\", \"studentNo\": \"学号\"}, \"state\": \"reviewing\"}"
+    },
+    {
+      "name": "v5.1c XLSX 文本学号保留前导零（0012）",
+      "ok": true,
+      "detail": "row1.studentNo='0012'"
+    },
+    {
+      "name": "v5.1d XLSX 数值学号无小数噪声（12 → \"12\"）",
+      "ok": true,
+      "detail": "row2.studentNo='12'"
+    },
+    {
+      "name": "v5.1e 无学号行保留 None（不当空串/占位）",
+      "ok": true,
+      "detail": "row3.studentNo=None"
+    },
+    {
+      "name": "v5.1f 建议分类：1=link 2=create(数值学号) 3=conflict 4=create 5=name_mismatch 6/7=duplicate",
+      "ok": true,
+      "detail": "{\"1\": \"link\", \"2\": \"create\", \"3\": \"conflict\", \"4\": \"create\", \"5\": \"name_mismatch\", \"6\": \"duplicate\", \"7\": \"duplicate\"}"
+    },
+    {
+      "name": "v5.1g 建议不构成写入决定（decision 仍为空）",
+      "ok": true,
+      "detail": "[null, null, null, null, null, null, null]"
+    },
+    {
+      "name": "v5.1h 同名冲突行带可定位 issue（ROSTER_NAME_CONFLICT）",
+      "ok": true,
+      "detail": "[{\"row\": 3, \"column\": \"name\", \"field\": \"name\", \"code\": \"ROSTER_NAME_CONFLICT\", \"message\": \"同名学生在库中有 2 人，请人工指定 link 目标（不自动选第一人）。\"}]"
+    },
+    {
+      "name": "v5.2a 未给决定 → 422 ROSTER_IMPORT_BLOCKING_ISSUES（先报阻断行 3/6/7）",
+      "ok": true,
+      "detail": "422 {\"code\": \"ROSTER_IMPORT_BLOCKING_ISSUES\", \"message\": \"名单仍有未消歧的重复行或同名冲突，整批未写入。\", \"requestId\": \"6e92ecd310fe40fc82aeab71aa56212a\", \"retryable\": false, \"details\": {\"issues\": [{\"row\": 3, \"column\": \"identity\", \"field\": \"identity\", \"code\": \"ROSTER_IMPORT_BLOCKING_ISSUES\", \"message\": \"该行存在未消歧的重复行或同名冲突，请先给出决定。\"}, {\"row\": 6, \"column\": \"identity\", \"field\": \"identity\", \"code\": \"ROSTER_IMPORT_BLOCKING_ISSUES\""
+    },
+    {
+      "name": "v5.2b 未给决定零写入",
+      "ok": true,
+      "detail": "students unchanged"
+    },
+    {
+      "name": "v5.2c 消歧后仍有未决定行 → 422 ROSTER_IDENTITY_UNRESOLVED 逐行定位 [1,2,4,5]",
+      "ok": true,
+      "detail": "422 {\"code\": \"ROSTER_IDENTITY_UNRESOLVED\", \"message\": \"名单存在没有决定的行，整批未写入。\", \"requestId\": \"6c6ea1dfd145415aadb12e269cba25f0\", \"retryable\": false, \"details\": {\"issues\": [{\"row\": 1, \"column\": \"identity\", \"field\": \"identity\", \"code\": \"ROSTER_IDENTITY_UNRESOLVED\", \"message\": \"该行还没有决定；请给出 link/create/ignore。\"}, {\"row\": 2, \"column\": \"identity\", \"field\": \"identity\", \"code\": \"ROSTER_IDENTITY_UNRESOLVED\", \"messa"
+    },
+    {
+      "name": "v5.2d 零写入",
+      "ok": true,
+      "detail": "students unchanged"
+    },
+    {
+      "name": "v5.3a link 缺 studentId → 422 ROSTER_IDENTITY_UNRESOLVED + field=studentId",
+      "ok": true,
+      "detail": "422 {\"code\": \"ROSTER_IDENTITY_UNRESOLVED\", \"message\": \"第 1 行选择 link 但没有指定学生。\", \"requestId\": \"39ce9a8befe849d993c7d62844f62512\", \"retryable\": false, \"details\": {\"issues\": [{\"row\": 1, \"column\": \"studentId\", \"field\": \"studentId\", \"code\": \"ROSTER_IDENTITY_UNRESOLVED\", \"message\": \"link 必须给出 studentId。\"}]}}"
+    },
+    {
+      "name": "v5.3b create 带 studentId → 422 INVALID_REQUEST + field=studentId",
+      "ok": true,
+      "detail": "422 {\"code\": \"INVALID_REQUEST\", \"message\": \"第 4 行的决定不允许携带 studentId。\", \"requestId\": \"5dbc0c424cf34971ae3aca72c6c097a8\", \"retryable\": false, \"details\": {\"issues\": [{\"row\": 4, \"column\": \"studentId\", \"field\": \"studentId\", \"code\": \"INVALID_REQUEST\", \"message\": \"create 不得携带 studentId。\"}]}}"
+    },
+    {
+      "name": "v5.3c 形状校验失败零写入",
+      "ok": true,
+      "detail": "students unchanged"
+    },
+    {
+      "name": "v5.4a 确认成功 200 + state=confirmed",
+      "ok": true,
+      "detail": "200 {\"importId\": \"30a346b72bb14236a1630d7c83dbd087\", \"state\": \"confirmed\", \"applied\": [{\"rowNo\": 1, \"studentId\": \"31a68070da724ae7bac3c8e26b0d2ab3\", \"membershipId\": \"432874c46aa845fa8e6e7736718f05b8\", \"createdStudent\": false, \"createdMembership\": false}, {\"rowNo\": 2, \"studentId\": \"0c69003369d74ef58c0ed9"
+    },
+    {
+      "name": "v5.4b applied 覆盖 1..6、ignored=[7]；已建班学生的归属复用（createdMembership=false）",
+      "ok": true,
+      "detail": "{\"importId\": \"30a346b72bb14236a1630d7c83dbd087\", \"state\": \"confirmed\", \"applied\": [{\"rowNo\": 1, \"studentId\": \"31a68070da724ae7bac3c8e26b0d2ab3\", \"membershipId\": \"432874c46aa845fa8e6e7736718f05b8\", \"createdStudent\": false, \"createdMembership\": false}, {\"rowNo\": 2, \"studentId\": \"0c69003369d74ef58c0ed932842ab4bc\", \"membershipId\": \"daf32250678c4d1f9993de907c105ee5\", \"createdStudent\": true, \"createdMembership\": true}, {\"rowNo\": 3, \"studentId\": \"1fedea27e37d4651bdcaff5ad73e91ac\", \"membershipId\": \"4e1a"
+    },
+    {
+      "name": "v5.4c 新建 3 名学生（行 2/5/6），link 行不建学生",
+      "ok": true,
+      "detail": "students=8"
+    },
+    {
+      "name": "v5.4d 班级活跃成员 = 6（张三/李四/张伟 + 行2/4/6 新建）",
+      "ok": true,
+      "detail": "{\"total\": 6, \"names\": [\"张三\", \"李四\", \"张伟\", \"张伟\", \"新同学\", \"重复同学\"]}"
+    },
+    {
+      "name": "v5.4e 未出现的学生不动（王五 仍在、无新归属、姓名学号不变）",
+      "ok": true,
+      "detail": "{\"name\": \"王五\", \"studentNo\": null, \"memberships\": []}"
+    },
+    {
+      "name": "v5.4f 同 submissionId 重放 → replayed=true 且结果一致、无重复写入",
+      "ok": true,
+      "detail": "{\"status\": 200, \"replayed\": true, \"students\": 8}"
+    },
+    {
+      "name": "v5.4g 已确认批次换新 submissionId 再确认 → 409 ROSTER_IMPORT_CONFIRMED",
+      "ok": true,
+      "detail": "409 ROSTER_IMPORT_CONFIRMED"
+    },
+    {
+      "name": "v5.5a 转班 200",
+      "ok": true,
+      "detail": "200 {\"id\": \"015db88075fa4ec9bd15037e74897d03\", \"studentNo\": \"0007\", \"name\": \"李四\", \"status\": \"active\", \"revision\": 1, \"memberships\": [{\"membershipId\": \"c55363fcf98a44c6b8b418f34908ff7c\", \"classId\": \"43be02"
+    },
+    {
+      "name": "v5.5b 转班后旧归属置 leftOn、新归属活跃（历史保留）",
+      "ok": true,
+      "detail": "[{\"membershipId\": \"c55363fcf98a44c6b8b418f34908ff7c\", \"classId\": \"43be02df7a3b4ff1b39bf39963a3a504\", \"className\": \"一年一班\", \"joinedOn\": \"2026-09-30\", \"leftOn\": \"2026-10-08\"}, {\"membershipId\": \"7826ec6093aa40d9a398b13f0dc0c941\", \"classId\": \"24c3c875af324751bd536b3db6d8e45b\", \"className\": \"一年二班\", \"joinedOn\": \"2026-10-08\", \"leftOn\": null}]"
+    },
+    {
+      "name": "v5.5c A 班活跃成员不再含李四（6-1=5 人）",
+      "ok": true,
+      "detail": "{\"total\": 5}"
+    },
+    {
+      "name": "v5.6a 同姓名同学号 link+create → 阻断且零写入（实测错误码记录）",
+      "ok": true,
+      "detail": "409 {\"code\": \"STUDENT_NO_CONFLICT\", \"message\": \"第 2 行新建学生时学号已存在，整批未写入。\", \"requestId\": \"081aa0ada89245aca47bb34e17ea868a\", \"retryable\": false, \"details\": {\"issues\": [{\"row\": 2, \"column\": \"studentNo\", \"field\": \"studentNo\", \"code\": \"STUDENT_NO_CONFLICT\", \"message\": \"该学号已存在；请改为 link 或修正表格后重试。\"}]}}"
+    },
+    {
+      "name": "v5.6b 阻断行可定位（details.issues[].row 指向第 2 行）",
+      "ok": true,
+      "detail": "{\"issues\": [{\"row\": 2, \"column\": \"studentNo\", \"field\": \"studentNo\", \"code\": \"STUDENT_NO_CONFLICT\", \"message\": \"该学号已存在；请改为 link 或修正表格后重试。\"}]}"
+    },
+    {
+      "name": "v5.6c 阻断后批次仍可编辑（state 未变 confirmed）",
+      "ok": true,
+      "detail": "state=reviewing"
+    },
+    {
+      "name": "v5.7a 同名(均无学号) link+create：记录实际行为（阻断 or 新建同名学生）",
+      "ok": true,
+      "detail": "status=200 students 8->9 code=None"
+    },
+    {
+      "name": "v5.7b 若未阻断则必须真的新建了一名同名学生（不是假成功）",
+      "ok": true,
+      "detail": "status=200 students=9"
+    },
+    {
+      "name": "v5.8a 同学号异名两行都 create → 阻断（实测 STUDENT_NO_CONFLICT 409）+ 零写入",
+      "ok": true,
+      "detail": "409 {\"code\": \"STUDENT_NO_CONFLICT\", \"message\": \"第 2 行新建学生时学号已存在，整批未写入。\", \"requestId\": \"4c2814fe800640b3ae4c072ac34844f1\", \"retryable\": false, \"details\": {\"issues\": [{\"row\": 2, \"column\": \"studentNo\", \"field\": \"studentNo\", \"code\": \"STUDENT_NO_CONFLICT\", \"message\": \"该学号已存在；请改为 link 或修正表格后重试。\"}]}}"
+    },
+    {
+      "name": "v5.8b 消歧后（一行 create 一行 ignore）确认成功",
+      "ok": true,
+      "detail": "200 {\"importId\": \"7659fc8bf2924518bcbb7913ba7e04ba\", \"state\": \"confirmed\", \"applied\": [{\"rowNo\": 1, \"studentId\": \"18e0624df9cc4cccbb16241e171ef143\", \"membershipId\": \"bbfbef81f75046609da6a700027b785a\", \"createdStudent\": true, \"createdMembership\": true}], "
+    },
+    {
+      "name": "v5.9a CSV 名单上传 + 自动映射（学号/姓名）",
+      "ok": true,
+      "detail": "201 {\"name\": \"姓名\", \"studentNo\": \"学号\"}"
+    },
+    {
+      "name": "v5.9b 归档班级 200 + status=archived",
+      "ok": true,
+      "detail": "200 {\"id\": \"24c3c875af324751bd536b3db6d8e45b\", \"code\": \"C2\", \"name\": \"一年二班\", \"schoolYear\": \"2026-2027\", \"gradeId\": \"g1\", \"status\": \"archived\", \"revision\": 1, \"studentCount\": 1, \"createdAt\": \"2026-09-30T13"
+    },
+    {
+      "name": "v5.9c 归档班级导入名单被拒（409 CLASS_ARCHIVED）",
+      "ok": true,
+      "detail": "409 CLASS_ARCHIVED"
+    }
+  ],
+  "crashed": null
+}

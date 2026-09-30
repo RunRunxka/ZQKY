@@ -1,0 +1,75 @@
+{
+  "heavy_peak": 2,
+  "model_peak": 0,
+  "timeline": [
+    {
+      "t": 0.062,
+      "event": "heavy-start",
+      "job": "7ef01c02eec44bb182c44f15fffb5379"
+    },
+    {
+      "t": 0.062,
+      "event": "heavy-start",
+      "job": "149d4176a37a493087ea57e526bf16a4"
+    },
+    {
+      "t": 3.453,
+      "event": "heavy-end",
+      "job": "7ef01c02eec44bb182c44f15fffb5379"
+    },
+    {
+      "t": 3.453,
+      "event": "heavy-end",
+      "job": "149d4176a37a493087ea57e526bf16a4"
+    },
+    {
+      "t": 3.484,
+      "event": "heavy-start",
+      "job": "baba5d8ee80b4c86b7377a642c399034"
+    },
+    {
+      "t": 6.906,
+      "event": "heavy-end",
+      "job": "baba5d8ee80b4c86b7377a642c399034"
+    }
+  ],
+  "wait_observations": {
+    "baba5d8ee80b4c86b7377a642c399034": [
+      "2026-09-30T11:19:33Z",
+      "2026-09-30T11:19:33Z",
+      "2026-09-30T11:19:34Z",
+      "2026-09-30T11:19:34Z",
+      "2026-09-30T11:19:34Z",
+      "2026-09-30T11:19:35Z",
+      "2026-09-30T11:19:35Z"
+    ]
+  },
+  "takeover_attempts": {
+    "baba5d8ee80b4c86b7377a642c399034": [
+      "JOB_BUSY",
+      "JOB_BUSY",
+      "JOB_BUSY",
+      "JOB_BUSY",
+      "JOB_BUSY",
+      "JOB_BUSY",
+      "JOB_BUSY"
+    ]
+  },
+  "results": [
+    "succeeded",
+    "succeeded",
+    "succeeded"
+  ],
+  "attempts_after": {
+    "7ef01c02eec44bb182c44f15fffb5379": 1,
+    "149d4176a37a493087ea57e526bf16a4": 1,
+    "baba5d8ee80b4c86b7377a642c399034": 1
+  },
+  "executor_finished": {
+    "7ef01c02eec44bb182c44f15fffb5379": true,
+    "149d4176a37a493087ea57e526bf16a4": true,
+    "baba5d8ee80b4c86b7377a642c399034": true
+  },
+  "third_started_after_first_end": true,
+  "engine_active_after": 0
+}

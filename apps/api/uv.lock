@@ -61,6 +61,15 @@ wheels = [
 ]
 
 [[package]]
+name = "et-xmlfile"
+version = "2.0.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d3/38/af70d7ab1ae9d4da450eeec1fa3918940a5fafb9055e934af8d6eb0c2313/et_xmlfile-2.0.0.tar.gz", hash = "sha256:dab3f4764309081ce75662649be815c4c9081e88f0837825f90fd28317d4da54", size = 17234, upload-time = "2024-10-25T17:25:40.039Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c1/8b/5fe2cc11fee489817272089c4203e679c63b570a5aaeb18d852ae3cbba6a/et_xmlfile-2.0.0-py3-none-any.whl", hash = "sha256:7a91720bc756843502c3b7504c77b8fe44217c85c537d85037f0f536151b2caa", size = 18059, upload-time = "2024-10-25T17:25:39.051Z" },
+]
+
+[[package]]
 name = "fastapi"
 version = "0.141.1"
 source = { registry = "https://pypi.org/simple" }
@@ -186,6 +195,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/df/bf/f7da0350254c0ed7c72f3e33cef02e048281fec7ecec5f032d4aac52226b/jinja2-3.1.6.tar.gz", hash = "sha256:0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d", size = 245115, upload-time = "2025-03-05T20:05:02.478Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/62/a1/3d680cbfd5f4b8f15abc1d571870c5fc3e594bb582bc3b64ea099db13e56/jinja2-3.1.6-py3-none-any.whl", hash = "sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67", size = 134899, upload-time = "2025-03-05T20:05:00.369Z" },
+]
+
+[[package]]
+name = "latex2mathml"
+version = "3.81.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/88/db/336c38300e44582752b95842b15a4be8fe656914cf5b02ad1bec53cebceb/latex2mathml-3.81.1.tar.gz", hash = "sha256:c95add0c0fcdecad2d70567e0643050d5ea1149fb2e98a5d5792fb1c8eea2ed5", size = 77475, upload-time = "2026-09-07T19:55:11.037Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/07/30/b8bcfb01a2514cb7554a048ed52883de276e66d757c3cc535a3c29eb9e98/latex2mathml-3.81.1-py3-none-any.whl", hash = "sha256:c337668441b71c819b6733905a8058ba9a9d767bae11a0c5fdacb3aff31361bd", size = 79159, upload-time = "2026-09-07T19:55:09.611Z" },
 ]
 
 [[package]]
@@ -362,6 +380,29 @@ wheels = [
 ]
 
 [[package]]
+name = "math2docx"
+version = "3.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "latex2mathml" },
+    { name = "mathml2omml-as" },
+    { name = "python-docx" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f8/1e/c965e1cc17a4226e05c4e0ea31d7e9df0d98897ddaeb8152850b775618db/math2docx-3.1.0.tar.gz", hash = "sha256:eff26404ec69c647d6db4d3364bb51231b90f6b940c897aaf9952e3e826ed271", size = 16105, upload-time = "2026-04-08T12:15:34.736Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3f/3f/14ba6efc34d172427568dad0c830c4deab58789b94738c66854d3a9101ed/math2docx-3.1.0-py3-none-any.whl", hash = "sha256:fd6743a4d7d56c113c149e162c7ed49ed16635bcf18ed12342de5050a9daee90", size = 3060, upload-time = "2026-04-08T12:15:33.605Z" },
+]
+
+[[package]]
+name = "mathml2omml-as"
+version = "0.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/29/4c/cf348f43eca6170c1d6e80171c01879fe6f935c00cead4a0a0c8061fc8b1/mathml2omml_as-0.1.0.tar.gz", hash = "sha256:a6defed2573a9eb9f76a0ffe56e946bd86b904f01743cdc2879a5edd1457cd7a", size = 25941, upload-time = "2025-06-03T20:16:33.415Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/00/69/24017fe54856f99b466f973389a2e66299beb4036916e339a1ba2ea2dda3/mathml2omml_as-0.1.0-py3-none-any.whl", hash = "sha256:20ee45f45ced7cb2414b6b627c6bae25c43f2b4d44c9d89902c582b3755dc95b", size = 24817, upload-time = "2025-06-03T20:16:32.161Z" },
+]
+
+[[package]]
 name = "numpy"
 version = "2.5.3"
 source = { registry = "https://pypi.org/simple" }
@@ -432,6 +473,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/a1/d2/4e1014173aa3c55e6a756e0e567290743a6ab33a288460374d7ef6bcd239/numpy-2.5.3-cp315-cp315t-win32.whl", hash = "sha256:f54660b0eb6b0b9f36e7fe1cdfdff472028dd0d14acd9b9b65098efbad059469", size = 6330292, upload-time = "2026-09-06T16:27:38.149Z" },
     { url = "https://files.pythonhosted.org/packages/6c/b0/ff5658a58199b7bcaad87bf260eef6713d9d42cca4e028f935b4fc5fbac6/numpy-2.5.3-cp315-cp315t-win_amd64.whl", hash = "sha256:1aad64d99730d013cfc6debafed22783b4fc5a7f4b8bc744d2d8cf7dcc880551", size = 12884918, upload-time = "2026-09-06T16:27:40.965Z" },
     { url = "https://files.pythonhosted.org/packages/fb/0b/b12a2df5d1b774bd9007a6fdff9381145b6223d37f11afc9c37ab0efd9a1/numpy-2.5.3-cp315-cp315t-win_arm64.whl", hash = "sha256:befa1ae5bd6030b3f512b43ff3fa5290bbed6b84411a44244b14adf835f5b89d", size = 10850807, upload-time = "2026-09-06T16:27:43.868Z" },
+]
+
+[[package]]
+name = "openpyxl"
+version = "3.1.5"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "et-xmlfile" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3d/f9/88d94a75de065ea32619465d2f77b29a0469500e99012523b91cc4141cd1/openpyxl-3.1.5.tar.gz", hash = "sha256:cf0e3cf56142039133628b5acffe8ef0c12bc902d2aadd3e0fe5878dc08d1050", size = 186464, upload-time = "2024-06-28T14:03:44.161Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c0/da/977ded879c29cbd04de313843e76868e6e13408a94ed6b987245dc7c8506/openpyxl-3.1.5-py2.py3-none-any.whl", hash = "sha256:5282c12b107bffeef825f4617dc029afaf41d0ea60823bbb665ef3079dc79de2", size = 250910, upload-time = "2024-06-28T14:03:41.161Z" },
 ]
 
 [[package]]
@@ -725,7 +778,9 @@ dependencies = [
     { name = "httpx" },
     { name = "jieba" },
     { name = "jinja2" },
+    { name = "math2docx" },
     { name = "numpy" },
+    { name = "openpyxl" },
     { name = "pypdf" },
     { name = "python-docx" },
     { name = "pyyaml" },
@@ -746,7 +801,9 @@ requires-dist = [
     { name = "httpx", specifier = "==0.28.1" },
     { name = "jieba", specifier = "==0.42.1" },
     { name = "jinja2", specifier = "==3.1.6" },
+    { name = "math2docx", specifier = "==3.1.0" },
     { name = "numpy", specifier = "==2.5.3" },
+    { name = "openpyxl", specifier = "==3.1.5" },
     { name = "pypdf", specifier = "==6.1.1" },
     { name = "python-docx", specifier = "==1.2.0" },
     { name = "pyyaml", specifier = "==6.0.3" },

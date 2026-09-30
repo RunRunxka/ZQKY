@@ -1,0 +1,19 @@
+{
+  "label": "r2-M3-retry-guard",
+  "file": "apps/api/app/repositories/jobs/repository.py",
+  "old": "            if record.state not in _RETRYABLE_STATES:",
+  "new": "            if False:",
+  "runs": [
+    {
+      "kind": "pytest",
+      "exit_code": 1,
+      "failed": [
+        "tests/test_jobs_engine.py::test_retry_rejected_for_queued_running_and_succeeded"
+      ],
+      "tail": ".............F................                                           [100%]\n================================== FAILURES ===================================\n____________ test_retry_rejected_for_queued_running_and_succeeded _____________\ntmp_path = WindowsPath('C:/Users/96022/AppData/Local/Temp/pytest-of-96022/pytest-1019/test_retry_rejected_for_queued0')\n    def test_retry_rejected_for_queued_running_and_succeeded(tmp_path: Path) -> None:\n        _catalog, store, _clock = _teaching_store(tmp_path)\n        queued = store.create(kind=\"export\")\n>       with pytest.raises(AppError) as err:\n             ^^^^^^^^^^^^^^^^^^^^^^^\nE       Failed: DID NOT RAISE AppError\ntests\\test_jobs_engine.py:413: Failed\n============================== warnings summary ===============================\n.venv\\Lib\\site-packages\\starlette\\testclient.py:53\n  H:\\备份xuexi\\智启课源\\apps\\api\\.venv\\Lib\\site-packages\\starlette\\testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.\n    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ===========================\nFAILED tests/test_jobs_engine.py::test_retry_rejected_for_queued_running_and_succeeded",
+      "targets": [
+        "tests/test_jobs_engine.py"
+      ]
+    }
+  ]
+}

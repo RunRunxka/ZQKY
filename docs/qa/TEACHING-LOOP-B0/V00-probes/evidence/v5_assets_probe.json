@@ -1,0 +1,217 @@
+{
+  "probe": "v5_assets_probe",
+  "total": 42,
+  "failed": [],
+  "results": [
+    {
+      "name": "v5.1a content addressed key = blobs/<sha256>",
+      "ok": true,
+      "detail": "blobs/d405faad4913e111e99c75fd3f97310a64e28ceae8004574132d84a66ffdb5e6 size=25"
+    },
+    {
+      "name": "v5.1b blob written under <root>/blobs",
+      "ok": true,
+      "detail": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-v00-v5-6yize3pp\\assets\\blobs\\d405faad4913e111e99c75fd3f97310a64e28ceae8004574132d84a66ffdb5e6"
+    },
+    {
+      "name": "v5.1c read returns exact bytes",
+      "ok": true,
+      "detail": "25 bytes"
+    },
+    {
+      "name": "v5.1d verify returns byte size",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "v5.1e duplicate write is idempotent (same key/content)",
+      "ok": true,
+      "detail": "blobs/d405faad4913e111e99c75fd3f97310a64e28ceae8004574132d84a66ffdb5e6"
+    },
+    {
+      "name": "v5.1f no temp/extra files left in blobs dir",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "v5.1g media_type/original_name do not affect the path",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "v5.1h re-write keeps digest stable",
+      "ok": true,
+      "detail": "d405faad4913e111e99c75fd3f97310a64e28ceae8004574132d84a66ffdb5e6"
+    },
+    {
+      "name": "v5.2a tampered blob read -> ASSET_CORRUPT",
+      "ok": true,
+      "detail": "code=ASSET_CORRUPT status=500"
+    },
+    {
+      "name": "v5.2b tampered blob verify -> ASSET_CORRUPT",
+      "ok": true,
+      "detail": "ASSET_CORRUPT"
+    },
+    {
+      "name": "v5.2c missing blob read -> ASSET_MISSING",
+      "ok": true,
+      "detail": "code=ASSET_MISSING"
+    },
+    {
+      "name": "v5.2d missing blob verify -> ASSET_MISSING",
+      "ok": true,
+      "detail": "ASSET_MISSING"
+    },
+    {
+      "name": "v5.2e exists() False for missing managed key",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "v5.3 illegal key rejected: 'blobs/../../2d711642b726b04401627ca9fbac32f5'",
+      "ok": true,
+      "detail": "code=INVALID_ASSET_KEY status=422"
+    },
+    {
+      "name": "v5.3 illegal key rejected: '../blobs/2d711642b726b04401627ca9fbac32f5c85'",
+      "ok": true,
+      "detail": "code=INVALID_ASSET_KEY status=422"
+    },
+    {
+      "name": "v5.3 illegal key rejected: 'blobs/sub/2d711642b726b04401627ca9fbac32f5c8'",
+      "ok": true,
+      "detail": "code=INVALID_ASSET_KEY status=422"
+    },
+    {
+      "name": "v5.3 illegal key rejected: 'blobs\\\\2d711642b726b04401627ca9fbac32f5c8530f'",
+      "ok": true,
+      "detail": "code=INVALID_ASSET_KEY status=422"
+    },
+    {
+      "name": "v5.3 illegal key rejected: 'blobs/2D711642B726B04401627CA9FBAC32F5C8530F'",
+      "ok": true,
+      "detail": "code=INVALID_ASSET_KEY status=422"
+    },
+    {
+      "name": "v5.3 illegal key rejected: 'blobs/2d711642b726b04401627ca9fbac32f5c8530f'",
+      "ok": true,
+      "detail": "code=INVALID_ASSET_KEY status=422"
+    },
+    {
+      "name": "v5.3 illegal key rejected: 'blobs/2d711642b726b04401627ca9fbac32f5c8530f'",
+      "ok": true,
+      "detail": "code=INVALID_ASSET_KEY status=422"
+    },
+    {
+      "name": "v5.3 illegal key rejected: 'blobs/2d711642b726b04401627ca9fbac32f5c8530f'",
+      "ok": true,
+      "detail": "code=INVALID_ASSET_KEY status=422"
+    },
+    {
+      "name": "v5.3 illegal key rejected: '/blobs/2d711642b726b04401627ca9fbac32f5c8530'",
+      "ok": true,
+      "detail": "code=INVALID_ASSET_KEY status=422"
+    },
+    {
+      "name": "v5.3 illegal key rejected: 'H:/tmp/blobs/2d711642b726b04401627ca9fbac32f'",
+      "ok": true,
+      "detail": "code=INVALID_ASSET_KEY status=422"
+    },
+    {
+      "name": "v5.3 illegal key rejected: 'C:\\\\blobs\\\\2d711642b726b04401627ca9fbac32f5c85'",
+      "ok": true,
+      "detail": "code=INVALID_ASSET_KEY status=422"
+    },
+    {
+      "name": "v5.3 illegal key rejected: 'blobs/2d711642b726b04401627ca9fbac32f5c8530f'",
+      "ok": true,
+      "detail": "code=INVALID_ASSET_KEY status=422"
+    },
+    {
+      "name": "v5.3 illegal key rejected: ''",
+      "ok": true,
+      "detail": "code=INVALID_ASSET_KEY status=422"
+    },
+    {
+      "name": "v5.3 illegal key rejected: 'None'",
+      "ok": true,
+      "detail": "code=INVALID_ASSET_KEY status=422"
+    },
+    {
+      "name": "v5.3b only managed blobs dir exists (no traversal artifacts)",
+      "ok": true,
+      "detail": "['assets', 'assets/blobs', 'assets/blobs/2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881']"
+    },
+    {
+      "name": "v5.3c rejection wrote nothing outside the managed root",
+      "ok": true,
+      "detail": "['assets/blobs/2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881']"
+    },
+    {
+      "name": "v5.4a ref() keys are camelCase",
+      "ok": true,
+      "detail": "['assetId', 'blobKey', 'byteSize', 'kind', 'mediaType', 'originalName', 'sha256']"
+    },
+    {
+      "name": "v5.4b ref() values match registry row",
+      "ok": true,
+      "detail": "{'assetId': '3c4661346c684f419c8065f427cd98da', 'kind': 'roster', 'blobKey': 'blobs/7777324873ae28cbe47c647868b11e40c585748e5cfce39eb6efec524cb6dc3f', 'sha256': '7777324873ae28cbe47c647868b11e40c585748e5cfce39eb6efec524cb6dc3f', 'mediaType': 'text/csv', 'byteSize': 12, 'originalName': '名单.csv'}"
+    },
+    {
+      "name": "v5.4c read back by asset id",
+      "ok": true,
+      "detail": "3c4661346c684f419c8065f427cd98da"
+    },
+    {
+      "name": "v5.4d list_by_kind returns it",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "v5.5 invalid registry input rejected (kind 非白名单)",
+      "ok": true,
+      "detail": "code=INVALID_REQUEST"
+    },
+    {
+      "name": "v5.5 invalid registry input rejected (blob_key 与 sha256 不一致)",
+      "ok": true,
+      "detail": "code=INVALID_REQUEST"
+    },
+    {
+      "name": "v5.5 invalid registry input rejected (blob_key 非受管键)",
+      "ok": true,
+      "detail": "code=INVALID_REQUEST"
+    },
+    {
+      "name": "v5.5 invalid registry input rejected (sha256 大写)",
+      "ok": true,
+      "detail": "code=INVALID_REQUEST"
+    },
+    {
+      "name": "v5.5 invalid registry input rejected (byte_size 负数)",
+      "ok": true,
+      "detail": "code=INVALID_REQUEST"
+    },
+    {
+      "name": "v5.5b invalid inputs wrote no rows",
+      "ok": true,
+      "detail": "rows=1"
+    },
+    {
+      "name": "v5.6 corrupt registry row (blob_key 不是受管键) -> ASSET_ROW_CORRUPT",
+      "ok": true,
+      "detail": "code=ASSET_ROW_CORRUPT status=500"
+    },
+    {
+      "name": "v5.6 corrupt registry row (blob_key 与 sha256 不一致) -> ASSET_ROW_CORRUPT",
+      "ok": true,
+      "detail": "code=ASSET_ROW_CORRUPT status=500"
+    },
+    {
+      "name": "v5.7 list_by_kind refuses to silently skip corrupt rows",
+      "ok": true,
+      "detail": "ASSET_ROW_CORRUPT"
+    }
+  ]
+}

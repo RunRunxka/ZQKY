@@ -1,0 +1,38 @@
+{
+  "probe": "v9b_question_jobs_index_probe",
+  "total": 6,
+  "failed": [],
+  "results": [
+    {
+      "name": "v9b.1 迁移模块确实声明了该索引（散列覆盖的声明集合里）",
+      "ok": true,
+      "detail": "['CREATE INDEX IF NOT EXISTS idx_question_jobs_engine_state ON question_jobs(state, created_at)']"
+    },
+    {
+      "name": "v9b.2 全新题库库：question_jobs 没有 (state, created_at) 索引",
+      "ok": true,
+      "detail": "{'idx_question_jobs_state': ['kind', 'state'], 'sqlite_autoindex_question_jobs_1': ['id']}"
+    },
+    {
+      "name": "v9b.3 根因：adjust 钩子只返回实际执行的 12 条 ALTER，索引语句不在其中",
+      "ok": true,
+      "detail": "hook 返回 12 条（全部 ALTER）；声明集合共 13 条（12 ALTER + 1 CREATE INDEX）→ 索引语句永远不会被执行"
+    },
+    {
+      "name": "v9b.4 对照：knowledge_jobs / workflow_jobs 都有 (state, created_at) 索引",
+      "ok": true,
+      "detail": "knowledge={'idx_knowledge_jobs_kind': ['kind', 'state'], 'idx_knowledge_jobs_state': ['state', 'created_at'], 'sqlite_autoindex_knowledge_jobs_1': ['id']} teaching={'idx_workflow_jobs_kind': ['kind', 'state'], 'idx_workflow_jobs_state': ['state', 'created_at'], 'sqlite_autoindex_workflow_jobs_1': ['id']}"
+    },
+    {
+      "name": "v9b.5 既有库路径：ALTER 补齐了 12 列，但 (state, created_at) 索引同样缺失",
+      "ok": true,
+      "detail": "columns=19 indexes={'idx_question_jobs_state': ['kind', 'state'], 'sqlite_autoindex_question_jobs_1': ['id']}"
+    },
+    {
+      "name": "v9b.6 登记散列与声明语句一致（因此漂移校验不会揭示该索引缺失）",
+      "ok": true,
+      "detail": "registered=['0001_question_bank_baseline', '0002_question_jobs_engine_columns']"
+    }
+  ],
+  "observations": []
+}

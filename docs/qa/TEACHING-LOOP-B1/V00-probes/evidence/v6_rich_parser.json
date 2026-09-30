@@ -1,0 +1,139 @@
+{
+  "probe": "v6_rich_parser",
+  "passed": 26,
+  "failed": 0,
+  "total": 26,
+  "results": [
+    {
+      "name": "v6.1a 块顺序与 id 符合原件（p1..p3、t4、p5、p5-1、p6、p7、p7-1、p8、p9）",
+      "ok": true,
+      "detail": "{\"p1\": \"paragraph\", \"p2\": \"paragraph\", \"p3\": \"paragraph\", \"t4\": \"table\", \"p5\": \"paragraph\", \"p5-1\": \"formula\", \"p6\": \"formula\", \"p7\": \"paragraph\", \"p7-1\": \"image\", \"p8\": \"paragraph\", \"p9\": \"paragraph\"}"
+    },
+    {
+      "name": "v6.1b 块类型判别正确（段落/表格/公式/图片）",
+      "ok": true,
+      "detail": "{\"p1\": \"paragraph\", \"p2\": \"paragraph\", \"p3\": \"paragraph\", \"t4\": \"table\", \"p5\": \"paragraph\", \"p5-1\": \"formula\", \"p6\": \"formula\", \"p7\": \"paragraph\", \"p7-1\": \"image\", \"p8\": \"paragraph\", \"p9\": \"paragraph\"}"
+    },
+    {
+      "name": "v6.1c 空段落不产生块（块数=11，body 级 sdt 不占块序号）",
+      "ok": true,
+      "detail": "blocks=11"
+    },
+    {
+      "name": "v6.1d 每个块都有 1 基来源定位（blockStart/blockEnd）",
+      "ok": true,
+      "detail": "{\"p1\": {\"blockStart\": 1, \"blockEnd\": 1}, \"t4\": {\"blockStart\": 4, \"blockEnd\": 4, \"tableColumns\": 3, \"tableRows\": 3}, \"p9\": {\"blockStart\": 9, \"blockEnd\": 9}}"
+    },
+    {
+      "name": "v6.2a columnCount 一律填写且等于网格宽度（3）",
+      "ok": true,
+      "detail": "columnCount=3"
+    },
+    {
+      "name": "v6.2b 合并单元格只在起始位置出现一次（7 个单元格，rowSpan/colSpan 正确）",
+      "ok": true,
+      "detail": "[[\"表头跨两列\", true, 1, 2], [\"表头C\", true, 1, 1], [\"纵向起始\\n纵向续接文本\", false, 2, 1], [\"r2c2\", false, 1, 1], [\"r2c3\", false, 1, 1], [\"r3c2\", false, 1, 1], [\"r3c3\", false, 1, 1]]"
+    },
+    {
+      "name": "v6.2c 被覆盖的续接单元格不产生重复条目（3 行合计 7 项而非 9 项）",
+      "ok": true,
+      "detail": "cells=7"
+    },
+    {
+      "name": "v6.2d 续接单元格可见文本并入起始单元格（不丢字）",
+      "ok": true,
+      "detail": "'纵向起始\\n纵向续接文本'"
+    },
+    {
+      "name": "v6.2e 表头行标记（首行 + tblHeader → isHeader）",
+      "ok": true,
+      "detail": "[true, true, false, false, false, false, false]"
+    },
+    {
+      "name": "v6.2f 表格定位附 tableColumns/tableRows（与 columnCount 同值）",
+      "ok": true,
+      "detail": "{\"blockStart\": 4, \"blockEnd\": 4, \"tableColumns\": 3, \"tableRows\": 3}"
+    },
+    {
+      "name": "v6.3a 图片块 assetId=受管 blob_key 且尺寸像素=wp:extent 换算（96px）",
+      "ok": true,
+      "detail": "{\"assetId\": \"blobs/21391377d87515\\u2026\", \"width\": 96, \"height\": 96}"
+    },
+    {
+      "name": "v6.3b assets[].sha256 == 图片字节 sha256（真实字节）",
+      "ok": true,
+      "detail": "{\"assets\": [{\"sha256\": \"21391377d875…\", \"media\": \"image/png\"}], \"expected\": \"21391377d875…\"}"
+    },
+    {
+      "name": "v6.3c 图片可读回且与源字节一致",
+      "ok": true,
+      "detail": "bytes=73 match=True"
+    },
+    {
+      "name": "v6.4a 公式块数量与文档顺序一致（行内 + 独立 = 2）",
+      "ok": true,
+      "detail": "[\"p5-1\", \"p6\"]"
+    },
+    {
+      "name": "v6.4b ommlXml 与原件 word/document.xml 的 m:oMath 逐字节一致（不改写）",
+      "ok": true,
+      "detail": "{\"parsed\": [\"<m:oMath xmlns:m=\\\"http://schemas.openxmlformats.org/officeDocument/2006/math\\\" xmlns:wpc=\\\"http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas\\\" xmlns:mo=\\\"http://schemas.microsoft.com/office/mac/office/2008/main\\\" xmlns:mc=\\\"http://schemas.openxmlformats.org/markup-compatibility/2006\\\" xmlns:mv=\\\"urn:schemas-microsoft-com:mac:vml\\\" xmlns:o=\\\"urn:schemas-microsoft-com:office:office\\\" xmlns:r=\\\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\\\" xmlns:v=\\\"urn:schemas-microsoft-com:vml\\\" xmlns:wp14=\\\"http://schemas.microsoft.com/office/word/2010/wor"
+    },
+    {
+      "name": "v6.4c 行内公式段落仍保留题干文本块",
+      "ok": true,
+      "detail": "[\"阅读下面的材料\", \"材料正文第一段\", \"材料正文第二段\", \"1. 题干文字\", \"图片前的文字\", \"未知对象同行\", \"2. 第二题\"]"
+    },
+    {
+      "name": "v6.5a 未知对象（w:object）进 issues 且带块定位",
+      "ok": true,
+      "detail": "[[\"UNSUPPORTED_OBJECT\", \"p8\", [\"blockEnd\", \"blockStart\"]], [\"UNSUPPORTED_OBJECT\", null, [\"bodyIndex\"]]]"
+    },
+    {
+      "name": "v6.5b body 级未知元素（w:sdt）进 issues 且带 bodyIndex",
+      "ok": true,
+      "detail": "[[\"UNSUPPORTED_OBJECT\", \"p8\", [\"blockEnd\", \"blockStart\"]], [\"UNSUPPORTED_OBJECT\", null, [\"bodyIndex\"]]]"
+    },
+    {
+      "name": "v6.5c 原件散列一致时不产生来源告警",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "v6.5d 散列不符只警告不拒绝（内容权威）",
+      "ok": true,
+      "detail": "[\"原件散列与 origin.originalSha256 不一致（原件 f4093622060f…，origin 000000000000…）；已按给定路径的内容解析，请核对来源。\"]"
+    },
+    {
+      "name": "v6.6a 首个题号段之前的块归入共同材料组（material-1 = p1/p2/p3/t4）",
+      "ok": true,
+      "detail": "[[\"p1\", \"p2\", \"p3\", \"t4\"]]"
+    },
+    {
+      "name": "v6.6b 题号段本身不进材料组（留在 unassigned）",
+      "ok": true,
+      "detail": "[\"p5\", \"p5-1\", \"p6\", \"p7\", \"p7-1\", \"p8\", \"p9\"]"
+    },
+    {
+      "name": "v6.6c 材料组后的零散块不猜（p6/p7/p7-1/p8 都在 unassigned）",
+      "ok": true,
+      "detail": "[\"p5\", \"p5-1\", \"p6\", \"p7\", \"p7-1\", \"p8\", \"p9\"]"
+    },
+    {
+      "name": "v6.6d 分组确定（同输入重复调用结果一致）",
+      "ok": true,
+      "detail": "deterministic"
+    },
+    {
+      "name": "v6.6e 组装 RichContentV2：题干=非材料块；材料里的表格 columnCount 原样保留",
+      "ok": true,
+      "detail": "{\"stem\": [\"p5\", \"p5-1\", \"p6\", \"p7\", \"p7-1\", \"p8\", \"p9\"], \"materialTable\": {\"id\": \"t4\", \"columnCount\": 3}}"
+    },
+    {
+      "name": "v6.6f 同一块既作题干又作材料 → 明确拒绝（不静默丢弃）",
+      "ok": true,
+      "detail": "AppError: INVALID_REQUEST stem_block_ids 与共享材料冲突：p1（同一块不能既是题干又是共享材料）。"
+    }
+  ],
+  "crashed": null
+}

@@ -1,0 +1,152 @@
+{
+  "probe": "v4_submission_probe",
+  "total": 29,
+  "failed": [],
+  "results": [
+    {
+      "name": "v4.1a first submit executes apply",
+      "ok": true,
+      "detail": "replayed=False calls=['apply']"
+    },
+    {
+      "name": "v4.1b replay returns original result and does NOT execute apply again",
+      "ok": true,
+      "detail": "replayed=True result={'created': 'b1', 'revision': 1} calls=['apply']"
+    },
+    {
+      "name": "v4.1c business row written exactly once",
+      "ok": true,
+      "detail": "1"
+    },
+    {
+      "name": "v4.1d exactly one submission row",
+      "ok": true,
+      "detail": "1"
+    },
+    {
+      "name": "v4.1e key order does not change request hash (still a replay)",
+      "ok": true,
+      "detail": "hash_equal=True"
+    },
+    {
+      "name": "v4.2a first submit ok",
+      "ok": true,
+      "detail": "SubmissionOutcome(result={'created': 'b2'}, replayed=False)"
+    },
+    {
+      "name": "v4.2b payload change actually changes hash",
+      "ok": true,
+      "detail": "d341d5ea23cc vs cd0a28a92adc"
+    },
+    {
+      "name": "v4.2c changed payload under same key -> 409 SUBMISSION_CONFLICT",
+      "ok": true,
+      "detail": "code=SUBMISSION_CONFLICT status=409 msg=同一提交标识已用于不同请求；请换 submissionId 或核对请求内容。"
+    },
+    {
+      "name": "v4.2d second submit did not run apply",
+      "ok": true,
+      "detail": "['apply']"
+    },
+    {
+      "name": "v4.2e business table untouched by conflict",
+      "ok": true,
+      "detail": "1"
+    },
+    {
+      "name": "v4.2f submission table still one row, hash unchanged",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "v4.2g different operation = different identity",
+      "ok": true,
+      "detail": "SubmissionOutcome(result={'created': 'b2b'}, replayed=False)"
+    },
+    {
+      "name": "v4.2h different owner = different identity",
+      "ok": true,
+      "detail": "SubmissionOutcome(result={'created': 'b2c'}, replayed=False)"
+    },
+    {
+      "name": "v4.3a stale expected_revision -> 409 REVISION_CONFLICT",
+      "ok": true,
+      "detail": "code=REVISION_CONFLICT status=409"
+    },
+    {
+      "name": "v4.3b details.currentRevision is the actual current revision",
+      "ok": true,
+      "detail": "details={'currentRevision': 7}"
+    },
+    {
+      "name": "v4.3c conflict wrote nothing",
+      "ok": true,
+      "detail": "business=0 submissions=0"
+    },
+    {
+      "name": "v4.3d matching expected_revision applies",
+      "ok": true,
+      "detail": "SubmissionOutcome(result={'created': 'b3'}, replayed=False)"
+    },
+    {
+      "name": "v4.4a apply failure propagates",
+      "ok": true,
+      "detail": "RuntimeError('业务写入探针失败')"
+    },
+    {
+      "name": "v4.4b apply failure rolled back business write",
+      "ok": true,
+      "detail": "0"
+    },
+    {
+      "name": "v4.4c apply failure left no submission row",
+      "ok": true,
+      "detail": "0"
+    },
+    {
+      "name": "v4.4d after failure the same key can be submitted again",
+      "ok": true,
+      "detail": "SubmissionOutcome(result={'created': 'b4-ok'}, replayed=False)"
+    },
+    {
+      "name": "v4.4e non-object apply result rejected (422)",
+      "ok": true,
+      "detail": "INVALID_REQUEST"
+    },
+    {
+      "name": "v4.5 illegal table rejected (题库既有表)",
+      "ok": true,
+      "detail": "code=INVALID_REQUEST status=422"
+    },
+    {
+      "name": "v4.5 illegal table rejected (非提交表)",
+      "ok": true,
+      "detail": "code=INVALID_REQUEST status=422"
+    },
+    {
+      "name": "v4.5 illegal table rejected (注入尝试)",
+      "ok": true,
+      "detail": "code=INVALID_REQUEST status=422"
+    },
+    {
+      "name": "v4.5b guard wrote nothing",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "v4.5c knowledge_submissions whitelist works",
+      "ok": true,
+      "detail": "SubmissionOutcome(result={'ok': True}, replayed=False)"
+    },
+    {
+      "name": "v4.6a request_hash matches frozen canonical JSON recipe",
+      "ok": true,
+      "detail": "a79e3cd5fa2b7e1d vs a79e3cd5fa2b7e1d"
+    },
+    {
+      "name": "v4.6b hash uses ensure_ascii=False (not escaped)",
+      "ok": true,
+      "detail": "probe=4ae68bf3e870 escaped=65a9f4583fca"
+    }
+  ]
+}

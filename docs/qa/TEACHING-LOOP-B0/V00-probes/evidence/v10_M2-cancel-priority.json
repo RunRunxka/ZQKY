@@ -1,0 +1,31 @@
+{
+  "label": "M2-cancel-priority",
+  "file": "apps/api/app/repositories/jobs/repository.py",
+  "old": "            if record.cancel_requested:",
+  "new": "            if False:",
+  "runs": [
+    {
+      "kind": "pytest",
+      "exit_code": 1,
+      "failed": [
+        "tests/test_jobs_engine.py::test_complete_after_cancel_request_marks_cancelled_without_publishing"
+      ],
+      "tail": "_after_cancel_request_marks_cancelled_without_publishing(\n        tmp_path: Path,\n    ) -> None:\n        catalog, store, _clock = _teaching_store(tmp_path)\n        _create_probe(catalog)\n        job = store.create(kind=\"export\")\n        lease = store.claim(job.job_id)\n        requested = store.request_cancel(job.job_id)\n        assert requested.state == \"running\"\n        assert requested.cancel_requested is True\n        def publish(tx: sqlite3.Connection) -> None:\n            tx.execute(\"INSERT INTO publish_probe (id) VALUES ('nope')\")\n        done = store.complete(job.job_id, lease, result={\"late\": True}, publish=publish)\n>       assert done.state == \"cancelled\"\nE       AssertionError: assert 'succeeded' == 'cancelled'\nE         \nE         - cancelled\nE         + succeeded\ntests\\test_jobs_engine.py:264: AssertionError\n============================== warnings summary ===============================\n.venv\\Lib\\site-packages\\starlette\\testclient.py:53\n  H:\\备份xuexi\\智启课源\\apps\\api\\.venv\\Lib\\site-packages\\starlette\\testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.\n    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ===========================\nFAILED tests/test_jobs_engine.py::test_complete_after_cancel_request_marks_cancelled_without_publishing",
+      "targets": [
+        "tests/test_jobs_engine.py"
+      ]
+    },
+    {
+      "kind": "probe",
+      "exit_code": 1,
+      "failed": [
+        "[FAIL] v3.5c cancelled job: complete publishes nothing and lands cancelled :: state=succeeded result={'late': 'result'} publish_called=['called']",
+        "[FAIL] v3.5d cancelled publish wrote no business row :: ['cancelled-late']"
+      ],
+      "tail": "cfdfd8d13f': 1, 'a0313513171d4c30a704bcade437edc0': 1}\n[PASS] v3.8h engine slots released after run :: 0\n[PASS] v3.8i model peak <= 1 :: peak=1\n[PASS] v3.8j model peak == 1 :: peak=1\n[PASS] v3.8k second model task renews lease while waiting for the model slot :: {'310f46ce452a441f83f4e33391829e10': ['2026-09-30T11:02:47Z', '2026-09-30T11:02:47Z', '2026-09-30T11:02:48Z', '2026-09-30T11:02:48Z', '2026-09-30T11:02:48Z']}\n[PASS] v3.8l waiting model task never taken over :: {'310f46ce452a441f83f4e33391829e10': ['JOB_BUSY', 'JOB_BUSY', 'JOB_BUSY', 'JOB_BUSY', 'JOB_BUSY']}\n[PASS] v3.8m both model jobs succeeded with attempt=1 :: results=['succeeded', 'succeeded'] attempts={'7a3007fe7f484dae93f318cc85b8bfb5': 1, '310f46ce452a441f83f4e33391829e10': 1}\n[PASS] v3.8n variant heavy_limit=1 -> heavy peak == 1 :: peak=1\n[PASS] v3.8o variant model_limit=1 -> model peak == 1 :: peak=1\n[PASS] v3.8p variant: all four jobs succeeded :: ['succeeded', 'succeeded', 'succeeded', 'succeeded']\n[PASS] v3.8q lease lost mid-execution: executor stopped, nothing published :: executor_completed=False state=running result=None\n[PASS] v3.8r engine slots released :: 0\n临时数据根：C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-v00-v3-viu5l5ze（探针结束后删除）\n\n== v3_jobs_engine_probe: 48/50 passed; failed=['v3.5c cancelled job: complete publishes nothing and lands cancelled', 'v3.5d cancelled publish wrote no business row']; observations=[] ==\n证据：H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B0\\V00-probes\\evidence\\v3_jobs_engine_probe.json\n",
+      "targets": [
+        "H:/备份xuexi/智启课源/docs/qa/TEACHING-LOOP-B0/V00-probes/v3_jobs_engine_probe.py"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "label": "M1-heartbeat-interval",
+  "file": "apps/api/app/services/jobs/engine.py",
+  "old": "interval = max(1, min(20, store.lease_seconds // 3))",
+  "new": "interval = store.lease_seconds * 30",
+  "runs": [
+    {
+      "kind": "pytest",
+      "exit_code": 1,
+      "failed": [
+        "tests/test_jobs_engine.py::test_engine_heartbeat_loss_cancels_executor_and_publishes_nothing",
+        "tests/test_jobs_engine.py::test_engine_slot_wait_keeps_lease_and_blocks_takeover"
+      ],
+      "tail": "ase_and_blocks_takeover.<locals>.<lambda> at 0x00000177C2BF3060>\ntimeout = 4.0\n    async def _wait_until(predicate: Callable[[], bool], *, timeout: float = 3.0) -> None:\n        deadline = time.monotonic() + timeout\n        while time.monotonic() < deadline:\n            if predicate():\n                return\n            await asyncio.sleep(0.01)\n>       raise AssertionError(\"等待条件超时。\")\nE       AssertionError: 等待条件超时。\ntests\\test_jobs_engine.py:528: AssertionError\n============================== warnings summary ===============================\n.venv\\Lib\\site-packages\\_pytest\\config\\__init__.py:1345\n  H:\\备份xuexi\\智启课源\\apps\\api\\.venv\\Lib\\site-packages\\_pytest\\config\\__init__.py:1345: PytestAssertRewriteWarning: Module already imported so cannot be rewritten; anyio\n    self._mark_plugins_for_rewrite(hook, disable_autoload)\n.venv\\Lib\\site-packages\\starlette\\testclient.py:53\n  H:\\备份xuexi\\智启课源\\apps\\api\\.venv\\Lib\\site-packages\\starlette\\testclient.py:53: DeprecationWarning: The anyio.abc.BlockingPortal alias is deprecated, use anyio.from_thread.BlockingPortal instead.\n    _PortalFactoryType = Callable[[], AbstractContextManager[anyio.abc.BlockingPortal]]\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n=========================== short test summary info ===========================\nFAILED tests/test_jobs_engine.py::test_engine_heartbeat_loss_cancels_executor_and_publishes_nothing\nFAILED tests/test_jobs_engine.py::test_engine_slot_wait_keeps_lease_and_blocks_takeover",
+      "targets": [
+        "tests/test_jobs_engine.py"
+      ]
+    },
+    {
+      "kind": "probe",
+      "exit_code": 1,
+      "failed": [
+        "[FAIL] v3.8e waiting task a0e1e59c cannot be taken over (all claims JOB_BUSY) :: ['JOB_BUSY', 'JOB_BUSY', 'CLAIMED', 'JOB_BUSY', 'JOB_BUSY', 'JOB_BUSY', 'JOB_BUSY']",
+        "[FAIL] v3.8g every heavy job succeeded with attempt=1 (single executor per job) :: results=['succeeded', 'succeeded', 'AppError: 任务租约已失效，迟到结果不能发布。'] attempts={'2d850fd5075e4915929d1c27ef23d013': 1, '3f73daa8055848ee889c5737b61adb23': 1, 'a0e1e59c04754c7d91bb8f7f73ac1d49': 2}",
+        "[FAIL] v3.8l waiting model task never taken over :: {'1de51705eb8b4f4fb38879c351eb8f2c': ['JOB_BUSY', 'JOB_BUSY', 'JOB_BUSY', 'CLAIMED', 'JOB_BUSY']}",
+        "[FAIL] v3.8m both model jobs succeeded with attempt=1 :: results=['succeeded', 'AppError: 任务租约已失效，迟到结果不能发布。'] attempts={'5b7d24e68212421aac271eccb92f24c5': 1, '1de51705eb8b4f4fb38879c351eb8f2c': 2}",
+        "[FAIL] v3.8p variant: all four jobs succeeded :: ['succeeded', 'AppError: 任务租约已失效，迟到结果不能发布。', 'AppError: 任务租约已失效，迟到结果不能发布。', 'AppError: 任务租约已失效，迟到结果不能发布。']",
+        "[FAIL] v3_jobs_engine_probe.uncaught :: app.core.exceptions.AppError: 任务租约已失效，迟到结果不能发布。"
+      ],
+      "tail": "^\n  File \"C:\\Users\\96022\\AppData\\Roaming\\uv\\python\\cpython-3.12-windows-x86_64-none\\Lib\\asyncio\\base_events.py\", line 691, in run_until_complete\n    return future.result()\n           ^^^^^^^^^^^^^^^\n  File \"H:/备份xuexi/智启课源/docs/qa/TEACHING-LOOP-B0/V00-probes/v3_jobs_engine_probe.py\", line 581, in scenario\n    returned = await task\n               ^^^^^^^^^^\n  File \"C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-v00-mutation-5ch7dd3b\\engine.py\", line 166, in run_job\n    return await self._execute_claimed(\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-v00-mutation-5ch7dd3b\\engine.py\", line 250, in _execute_claimed\n    return store.complete(\n           ^^^^^^^^^^^^^^^\n  File \"H:\\备份xuexi\\智启课源\\apps\\api\\app\\repositories\\jobs\\repository.py\", line 511, in complete\n    self._require_current_lease(record, lease)\n  File \"H:\\备份xuexi\\智启课源\\apps\\api\\app\\repositories\\jobs\\repository.py\", line 633, in _require_current_lease\n    raise _conflict(\napp.core.exceptions.AppError: 任务租约已失效，迟到结果不能发布。\n\n== v3_jobs_engine_probe: 43/49 passed; failed=['v3.8e waiting task a0e1e59c cannot be taken over (all claims JOB_BUSY)', 'v3.8g every heavy job succeeded with attempt=1 (single executor per job)', 'v3.8l waiting model task never taken over', 'v3.8m both model jobs succeeded with attempt=1', 'v3.8p variant: all four jobs succeeded', 'v3_jobs_engine_probe.uncaught']; observations=[] ==\n证据：H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B0\\V00-probes\\evidence\\v3_jobs_engine_probe.json\n",
+      "targets": [
+        "H:/备份xuexi/智启课源/docs/qa/TEACHING-LOOP-B0/V00-probes/v3_jobs_engine_probe.py"
+      ]
+    }
+  ]
+}

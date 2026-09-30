@@ -1,0 +1,128 @@
+{
+  "probe": "v1_migrations_probe",
+  "total": 24,
+  "failed": [],
+  "results": [
+    {
+      "name": "v1.1a fresh apply registers baseline",
+      "ok": true,
+      "detail": "['0001_teaching_baseline']"
+    },
+    {
+      "name": "v1.1b repeat apply applies nothing",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "v1.1c repeat apply leaves every table/row identical",
+      "ok": true,
+      "detail": "dump equal"
+    },
+    {
+      "name": "v1.1d repeat apply leaves db file byte-identical",
+      "ok": true,
+      "detail": "61a4a6d5d2134806 vs 61a4a6d5d2134806"
+    },
+    {
+      "name": "v1.1e no duplicate registration row",
+      "ok": true,
+      "detail": "[('0001_teaching_baseline', 'bf78fb3fb702b6f65f3d9802dfd9b53b6628d14e58d33380a9a7da8936b8612a', '2026-09-30T11:05:42Z')]"
+    },
+    {
+      "name": "v1.2a failing migration raises",
+      "ok": true,
+      "detail": "OperationalError: no such table: probe_table_that_does_not_exist"
+    },
+    {
+      "name": "v1.2b failed migration left no table",
+      "ok": true,
+      "detail": "['knowledge_jobs', 'knowledge_submissions', 'schema_migrations']"
+    },
+    {
+      "name": "v1.2c failed migration not registered",
+      "ok": true,
+      "detail": "['0001_knowledge_baseline']"
+    },
+    {
+      "name": "v1.2d per-migration transactions: baseline kept, failed one rolled back",
+      "ok": true,
+      "detail": "baseline_registered=True（每条迁移独立事务：失败条不登记，已成功的基线保留）"
+    },
+    {
+      "name": "v1.2e rerun after fix succeeds",
+      "ok": true,
+      "detail": "['9001_probe_bad']"
+    },
+    {
+      "name": "v1.2f fixed migration created its table",
+      "ok": true,
+      "detail": "['knowledge_jobs', 'knowledge_submissions', 'probe_tmp', 'schema_migrations']"
+    },
+    {
+      "name": "v1.3a tampered registry sha256 -> drift on verify",
+      "ok": true,
+      "detail": "expected code=SCHEMA_MIGRATION_DRIFT got code='SCHEMA_MIGRATION_DRIFT' type=AppError msg=数据库 teaching 的迁移 0001_teaching_baseline 已登记散列与当前 SQL 不一致（登记 000000000000…，当前 bf78fb3fb702…）。已登记迁移不得改写；请新增一条迁移，或从备份恢复该库。"
+    },
+    {
+      "name": "v1.3b tampered registry sha256 -> drift on apply",
+      "ok": true,
+      "detail": "expected code=SCHEMA_MIGRATION_DRIFT got code='SCHEMA_MIGRATION_DRIFT' type=AppError msg=数据库 teaching 的迁移 0001_teaching_baseline 已登记散列与当前 SQL 不一致（登记 000000000000…，当前 bf78fb3fb702…）。已登记迁移不得改写；请新增一条迁移，或从备份恢复该库。"
+    },
+    {
+      "name": "v1.3c rewritten registered SQL -> drift",
+      "ok": true,
+      "detail": "expected code=SCHEMA_MIGRATION_DRIFT got code='SCHEMA_MIGRATION_DRIFT' type=AppError msg=数据库 teaching 的迁移 0001_teaching_baseline 已登记散列与当前 SQL 不一致（登记 bf78fb3fb702…，当前 d8ae19bb71aa…）。已登记迁移不得改写；请新增一条迁移，或从备份恢复该库。"
+    },
+    {
+      "name": "v1.3d drift refuses without executing new SQL",
+      "ok": true,
+      "detail": "['command_submissions', 'file_assets', 'schema_migrations', 'workflow_jobs']"
+    },
+    {
+      "name": "v1.4a legacy fixture has no schema_migrations",
+      "ok": true,
+      "detail": "['question_drafts', 'question_imports', 'question_jobs', 'question_revisions', 'question_source_blocks', 'question_sources', 'question_submissions', 'question_suggestions', 'questions']"
+    },
+    {
+      "name": "v1.4b legacy db adopted: baseline + engine migration registered",
+      "ok": true,
+      "detail": "applied_now=['0001_question_bank_baseline', '0002_question_jobs_engine_columns'] registered=['0001_question_bank_baseline', '0002_question_jobs_engine_columns']"
+    },
+    {
+      "name": "v1.4c pre-existing question_imports row byte-identical",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "v1.4d pre-existing questions row byte-identical",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "v1.4e pre-existing question_jobs row: legacy columns byte-identical",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "v1.4f legacy tables DDL untouched (question_jobs 除外：ADD COLUMN 是本批冻结增量)",
+      "ok": true,
+      "detail": "changed=[]"
+    },
+    {
+      "name": "v1.4f2 question_jobs DDL change is append-only ADD COLUMN",
+      "ok": true,
+      "detail": "changed=True legacy_kept=True new_declared=True"
+    },
+    {
+      "name": "v1.4g engine columns appended (ALTER TABLE, additive only)",
+      "ok": true,
+      "detail": "new_columns=['owner_id', 'frozen_input_json', 'input_hash', 'model_snapshot_json', 'attempt', 'lease_token', 'lease_expires_at', 'cancel_requested', 'result_json', 'error_json', 'started_at', 'finished_at']"
+    },
+    {
+      "name": "v1.4h legacy columns order preserved",
+      "ok": true,
+      "detail": "['id', 'kind', 'state', 'checkpoint_json', 'error_code', 'created_at', 'updated_at', 'owner_id', 'frozen_input_json', 'input_hash', 'model_snapshot_json', 'attempt', 'lease_token', 'lease_expires_at', 'cancel_requested', 'result_json', 'error_json', 'started_at', 'finished_at']"
+    }
+  ],
+  "observations": []
+}

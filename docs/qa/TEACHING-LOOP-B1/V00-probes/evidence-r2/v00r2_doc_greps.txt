@@ -1,0 +1,35 @@
+### 0003 登记（三份文档 + 任务卡 + CURRENT_STATUS）
+docs/API.md                                   1
+docs/PROJECT_GUIDE.md                         1
+apps/api/AGENTS.md                            1
+docs/qa/TEACHING-LOOP-B1/TASK-CARD.md         3
+docs/CURRENT_STATUS.md                        3
+
+### 0003 行
+docs/API.md:427:| 知识点库 | `0003_knowledge_import_issues_column` | `knowledge_imports` 补 `issues_json`（批次级问题独立落列；列已存在时由 adjust 钩子跳过 ALTER） |
+apps/api/AGENTS.md:10:  - **B1 业务结构（2026-09-30）**：知识点库 `0002` 登记设计 5 表（`subjects`/`knowledge_points`/`knowledge_point_revisions`/`knowledge_aliases`/`textbook_knowledge_links`，含环检测与修订不可变触发器）与导入批次表（`knowledge_imports`/`knowledge_import_rows`），`0003` 补 `knowledge_imports.issues_json`（批次级问题独立落列）；教学库 `0002` 登记 `classes`/`students`/`class_memberships`（含 `ux_active_membership` 部分唯一索引）与名单批次表（`roster_imports`/`roster_import_rows`）。施测三表留 T30-b（依赖 T40 的 `paper_revisions`）。
+docs/PROJECT_GUIDE.md:487:- **结构变更**：一律追加迁移（B1 为知识点库 `0002`+`0003`、教学库 `0002`）；B0 已登记声明与散列不得改写；
+
+### /classes/{id}/restore
+apps/api/app/api/v1/roster.py:153:@router.post("/classes/{class_id}/restore")
+
+### PROJECT_GUIDE §12 自指/环 可定位
+469:- **父树**：父子必须同学科；自指/环/跨学科父节点在服务层给出可定位错误，DB 触发器兜底 `KNOWLEDGE_CYCLE`。
+
+### would_create_cycle 调用点
+apps/api/app\repositories\knowledge\points.py:617:    def would_create_cycle(
+apps/api/app\services\knowledge\service.py:1314:        if points.would_create_cycle(conn, point_id=point_id, parent_id=resolved):
+### API.md 班级行（含 restore 简写）
+| GET/POST `/api/v1/classes`、GET/PATCH `/api/v1/classes/{id}`、POST `/api/v1/classes/{id}/archive`、`/restore` | 班级 CRUD（`schoolYear`+`code` 用户内唯一 → 409 `CLASS_CODE_CONFLICT`；归档班级仍可读，新导入 409 `CLASS_ARCHIVED`） |
+
+### 任务卡 §4 班级行
+36:| **T30-a** | `app/repositories/teaching/{classes,students,roster}.py`；`app/services/roster/{__init__,service,imports}.py`；`app/api/v1/roster.py`；`apps/api/tests/{test_roster_classes,test_roster_imports}.py` | 无 |
+68:| 教学库 | `0002_teaching_business_tables` | 设计 3 表（`classes`/`students`/`class_memberships`，含 `ux_active_membership` 部分唯一索引、`ix_membership_student`）+ **补齐** `roster_imports`/`roster_import_rows`（+4 索引） |
+97:| GET/POST `/classes`、GET/PATCH `/classes/{id}`、POST `/classes/{id}/archive`、`/restore` | 班级 CRUD（`schoolYear`+`code` 用户内唯一 409 `CLASS_CODE_CONFLICT`） |
+98:| GET `/classes/{id}/students` | 该班活跃成员（含归属历史） |
+
+### 『/restore』出现处
+docs/qa/TEACHING-LOOP-B1/TASK-CARD.md:85:| POST `/knowledge-points/{id}/archive`、`/restore` | 归档/恢复（`expectedRevision`） |
+docs/qa/TEACHING-LOOP-B1/TASK-CARD.md:97:| GET/POST `/classes`、GET/PATCH `/classes/{id}`、POST `/classes/{id}/archive`、`/restore` | 班级 CRUD（`schoolYear`+`code` 用户内唯一 409 `CLASS_CODE_CONFLICT`） |
+docs/API.md:444:| POST `/api/v1/knowledge-points/{id}/archive`、`/restore` | 归档/恢复（`expectedRevision`）；归档保留历史引用，新引用禁选归档 |
+docs/API.md:464:| GET/POST `/api/v1/classes`、GET/PATCH `/api/v1/classes/{id}`、POST `/api/v1/classes/{id}/archive`、`/restore` | 班级 CRUD（`schoolYear`+`code` 用户内唯一 → 409 `CLASS_CODE_CONFLICT`；归档班级仍可读，新导入 409 `CLASS_ARCHIVED`） |

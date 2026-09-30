@@ -1,0 +1,58 @@
+{
+  "heavy_peak": 0,
+  "model_peak": 1,
+  "timeline": [
+    {
+      "t": 0.031,
+      "event": "model-start",
+      "job": "27d421051bc1496bbf299988d7fd239d"
+    },
+    {
+      "t": 2.234,
+      "event": "model-end",
+      "job": "27d421051bc1496bbf299988d7fd239d"
+    },
+    {
+      "t": 2.25,
+      "event": "model-start",
+      "job": "44c6b6a38d3c47dc8800f2eb44446b83"
+    },
+    {
+      "t": 4.453,
+      "event": "model-end",
+      "job": "44c6b6a38d3c47dc8800f2eb44446b83"
+    }
+  ],
+  "wait_observations": {
+    "44c6b6a38d3c47dc8800f2eb44446b83": [
+      "2026-09-30T11:19:40Z",
+      "2026-09-30T11:19:40Z",
+      "2026-09-30T11:19:41Z",
+      "2026-09-30T11:19:41Z",
+      "2026-09-30T11:19:41Z"
+    ]
+  },
+  "takeover_attempts": {
+    "44c6b6a38d3c47dc8800f2eb44446b83": [
+      "JOB_BUSY",
+      "JOB_BUSY",
+      "JOB_BUSY",
+      "JOB_BUSY",
+      "JOB_BUSY"
+    ]
+  },
+  "results": [
+    "succeeded",
+    "succeeded"
+  ],
+  "attempts_after": {
+    "27d421051bc1496bbf299988d7fd239d": 1,
+    "44c6b6a38d3c47dc8800f2eb44446b83": 1
+  },
+  "executor_finished": {
+    "27d421051bc1496bbf299988d7fd239d": true,
+    "44c6b6a38d3c47dc8800f2eb44446b83": true
+  },
+  "third_started_after_first_end": null,
+  "engine_active_after": 0
+}
