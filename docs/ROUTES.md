@@ -1,53 +1,52 @@
-# 路由与状态
+# 路由与模块状态
 
-更新：2026-09-12 源码核对。此表仅说明运行时路由/导航，不是完整复刻验收结论；条目功能与视觉状态在 [页面矩阵](replica/PAGE_MATRIX.md)，当前代码审查与计划在 [STATUS](CURRENT_STATUS.md)。全站视觉以当前学习问答为准。
+更新：2026-10-01，按 `apps/web/src/app` 和 `apps/web/src/services/navigation.ts` 核对。本表只说明现有路由、导航和服务边界；当前任务、审查缺陷与验收限制见 [CURRENT_STATUS](CURRENT_STATUS.md)。全站保留学习问答的视觉基准，建设核心以 2026-09-29 起的教学闭环为准。
 
-## 已建立路由
+`ready` 表示已有业务实现，不能据此认定所有场景已验收或运行依赖已就绪；`local` 表示本地功能；`planned` 只有用途说明页。B3 成绩与题库的独立审查待修项以 CURRENT_STATUS 为准。
 
-| 路径 | 页面 | 状态 |
+## 已建立业务路由
+
+| 路径 | 页面与能力 | 导航状态 / 服务边界 |
 | --- | --- | --- |
-| `/` | 重定向到学习问答（2026-09-06 起为默认首页） | 可用 |
-| `/lesson-plans` | 教案工作台 | 本地功能可用（`local`） |
-| `/chat` | 学习问答（仅普通真实对话；未接入能力明确禁用） | 已实现（`ready`） |
-| `/chat/[sessionId]` | 真实会话深链；旧 `?mode=mock` 不启用模拟或访问模拟库 | 已实现（`ready`） |
-| `/papers` | 智能组卷 | 规划状态页 |
-| `/knowledge-bases` | 教材资料库（基础库 / 我的教材 / 历史登记 三页签；真实上传·解析·入库·任务；任教范围与书册管理） | 已实现（`ready`，RAG-REBUILD v1.0） |
-| `/knowledge-bases/libraries/[libraryId]` | 逻辑库详情：书册列表、更新/编辑分类/删除/来源预览（乐观锁与真实修订） | 已实现（`ready`） |
-| `/knowledge-bases/[kbName]` | 历史本地登记详情（只读；旧 localStorage 登记，**不参与真实检索**） | 只读保留 |
-| `/notebooks` | 笔记本（默认库"学习笔记"；与聊天"保存到笔记"同仓储；侧栏隐藏入口） | 已实现（`ready`） |
-| `/notebooks/[notebookId]` | 笔记本深链选中 | 已实现（`ready`） |
-| `/books` | 书籍（生成流水线为本地显式模拟；进度/导出本地保存） | 已实现（`ready`） |
-| `/books/[bookId]` | 书籍工作区（提案→大纲→编译状态机，hub-and-spoke） | 已实现（`ready`） |
-| `/books/[bookId]/pages/[pageId]` | 页阅读器（Block 渲染/翻页/书签/进度） | 已实现（`ready`） |
-| `/courses` | 课程（主导航入口按参考隐藏，路由可达） | 已实现（`ready`） |
-| `/courses/[courseId]` | 课程详情（大纲/资料/约定/学习会话：本课程会话列表、新建与恢复，归属按稳定 courseId） | 已实现（`ready`） |
-| `/space` | 学习空间 | 已实现（`ready`） |
-| `/space/chat-history` | 真实会话历史（旧模拟库不读写、不删除） | 已实现（`ready`） |
-| `/space/questions` | 题库 | 已实现（`ready`） |
-| `/space/personas` | 角色目录 | 已实现（`ready`） |
-| `/space/cli-apps` | CLI 应用（本地模拟安装） | 已实现（`ready`） |
-| `/space/mcp`、`/space/skills` | 旧入口迁移 | 重定向 `/settings#mcp`、`/settings#skills` |
-| `/question-bank` | 题库（导入批次、已入库题目筛选/分页、导入入口） | 已实现（`ready`，RAG-REBUILD v1.0） |
-| `/knowledge-points` | 独立知识点库（学科筛选、父树、建立/更新、别名、归档、教材依据、表格导入校对确认、AI 候选） | 已实现（`ready`，TEACHING-LOOP B1 后端 + B2 前端） |
-| `/assessments` | 施测与成绩（五步：名单 → 原卷 → 施测 → 成绩 → 历史；成绩导入 upload/映射/校对/承认/确认、四态区分、修正与只读矩阵） | 已实现（`ready`，TEACHING-LOOP B3 / T60 + F20-I） |
-| `/question-bank/imports/[importId]` | 试题校对台：原文与草稿并排、未归属原文、拆分/合并、AI 整理建议、确认入库 | 已实现（`ready`） |
-| `/templates` | 模板中心 | 规划状态页 |
-| `/co-writer`、`/co-writer/[docId]` | 文档列表/编辑器；自动保存/版本恢复，AI 为显式模拟 | 入口 ready，完整交付待验收 |
-| `/whisper` | 双席位房间与结束状态；回复为显式模拟 | 路由已建立，完整交付待验收 |
-| `/reading` | 沉浸阅读集合列表 | 入口 ready，完整交付待验收 |
-| `/reading/materials` | 阅读材料库；多格式模拟解析与新建/分配/删除 | 入口 ready，完整交付待验收 |
-| `/reading/[workspaceId]` | 三栏工作区与事件驱动伴生模拟 AI | 入口 ready，完整交付待验收 |
-| `/reading/[workspaceId]/sessions(/[sessionId])` | 阅读会话深链；会话切换经 pushState 产生前进/后退历史并由 popstate 同步空间/会话/草稿（R-09 已修，见 [STATUS阅读批索引](CURRENT_STATUS.md#4-已完成批次与证据索引)） | 入口 ready，完整交付待验收 |
-| `/agents` | Agent 任务 | 规划状态页 |
-| `/mcp` | MCP | 重定向 `/settings#mcp`；本地模拟管理 |
-| `/skills` | Skills | 重定向 `/settings#skills`；本地模拟管理 |
-| `/settings` | 设置（模型管理可用；S6 整合工作空间/解析/记忆等 sections） | 已实现（`ready`） |
-| 其他未知路径 | 404 | 提供返回教案入口 |
+| `/` | 重定向到学习问答 `/chat` | 唯一默认首页 |
+| `/chat` | 学习问答：真实三协议 SSE、教材定位与追问、主动触发详解、本地会话 | `ready`；模型与 RAG 依赖分别检查，未接入能力明确禁用 |
+| `/chat/[sessionId]` | 真实会话深链；旧 `?mode=mock` 不启用模拟或访问模拟库 | `ready` |
+| `/lesson-plans` | 教案填写、规则填充、编辑、草稿恢复、Word/PDF 导出 | `local`；学情驱动 AI 教案升级尚未实现 |
+| `/knowledge-bases` | 教材资料库：基础库 / 我的教材 / 历史登记；真实上传、解析、入库、索引任务与任教范围 | `ready`；历史登记不参与真实检索 |
+| `/knowledge-bases/libraries/[libraryId]` | 逻辑库详情：书册列表、更新、分类编辑、删除、来源预览 | `ready`；真实修订与乐观锁 |
+| `/knowledge-bases/[kbName]` | 历史本地登记详情 | 只读保留；不参与真实检索 |
+| `/knowledge-points` | 独立知识点库：学科、父树、建立/更新、别名、归档、教材依据、表格导入校对确认、AI 候选 | `ready`；独立于教材资料库 |
+| `/question-bank` | 独立题库：导入批次、正式题目筛选分页、知识点关联、AI 补题候选 | `ready`；正式存储与教师确认链，待修项见 CURRENT_STATUS |
+| `/question-bank/imports/[importId]` | 试题校对台：原文与草稿对照、未归属原文、拆分合并、AI 建议、确认入库 | `ready`；AI 产物先审核，`200 + failures` 仍是整批未确认 |
+| `/assessments` | 五步工作区：名单 → 原卷 → 施测 → 成绩 → 历史；成绩导入、映射、校对、承认、确认、修正与只读矩阵 | `ready`；真实后端，待修项见 CURRENT_STATUS；尚无学情报告页面 |
+| `/books` | 书籍列表、生成与内容入口 | `ready`；生成流水线为本地显式模拟；侧栏隐藏，归属教材资料库 |
+| `/books/[bookId]` | 书籍工作区：提案、大纲、编译状态机 | `ready`；本地保存 |
+| `/books/[bookId]/pages/[pageId]` | 页阅读器：block、翻页、书签、进度 | `ready`；本地保存 |
+| `/courses` | 课程入口 | `ready`；侧栏隐藏，归属教材资料库 |
+| `/courses/[courseId]` | 大纲、资料、约定与课程学习会话；会话按稳定 courseId 归属 | `ready`；资源登记引用不等于已送入模型或 RAG |
+| `/settings` | 外观、模型与连接、MCP、Skills 与扩展目录 | `ready`；模型管理是真实服务，扩展目录不代表已接入执行 |
+| `/mcp` | 兼容入口 | 重定向 `/settings#mcp` |
+| `/skills` | 兼容入口 | 重定向 `/settings#skills` |
+| 其他未知路径 | 404 | 保留公共壳，提供返回学习问答入口 |
 
-导航清单的唯一运行时来源是 `apps/web/src/services/navigation.ts`，同时登记模块状态（`planned / local / ready`）、图标、分组、`hidden`（如 /notebooks、/courses：路由可达但不出现在侧栏）和各规划页的用途简介与能力清单。规划状态页由受控动态路由匹配清单中 `status=planned` 的项，没有清单项的路径不会渲染伪业务页面；规划页统一使用 `components/layout/PlannedModulePage.tsx`，不含示例数据和可提交的假操作。
+## 规划介绍页
 
-桌面全站采用学习问答侧栏：220px 展开/56px 折叠，完整标签与规划徽标，分组标题在桌面隐藏；根级 Context 持有折叠偏好，跨页沿用。手机（≤767px）使用带遮罩、关闭按钮、当前菜单焦点、Tab 限制与焦点返回的模态抽屉。规划中模块的可访问名称统一为"模块名（规划中）"。**导航顺序（RAG-REBUILD v1.0）**：题库紧跟智能组卷（`papers` 之后），不再是规划状态；学习记录自 2026-09-23 起并入左侧导航可滚动区域，不再是独立中栏。
+以下根路径由 `[planned]/page.tsx` 从导航登记表匹配，只展示用途和能力规划，没有可提交的假业务操作。
 
-## 后续规划但尚未建立
+| 路径 | 模块 | 当前边界 |
+| --- | --- | --- |
+| `/papers` | 智能组卷 | 本地组卷、选题、排版和导出尚未实现；原卷导入校对在 `/assessments` |
+| `/co-writer` | 协同写作 | 只有规划根页；原列表、编辑器和房间实现已移除 |
+| `/reading` | 沉浸阅读 | 只有规划根页；原材料库、工作区和会话实现已移除 |
+| `/space` | 学习空间 | 只有规划根页；原仪表盘及子模块实现已移除 |
+| `/templates` | 模板中心 | 任意 DOCX 模板上传、映射与版本管理尚未实现；既有教案模板导出继续可用 |
 
-`/partners`、`/mastery`、`/memory`、账号页面和相应详情页仍待建立（STATUS H3–H5）。添加功能时登记具体页面、参数和验收，不提前堆积空模块；自有规划页 `/papers`、`/question-bank`、`/templates` 的后续关系见 STATUS T2。
+`/notebooks` 及其详情、`/whisper`、`/agents`、`/space/chat-history`、`/space/questions`、`/space/personas`、`/space/cli-apps`、`/space/mcp`、`/space/skills`，以及旧 `/co-writer/[docId]`、`/reading/materials`、`/reading/[workspaceId]` 和阅读会话深链，当前均无对应业务路由，按未知路径显示 404。旧文档对这些页面的“已实现”判断仅作历史追溯，不能用于当前导航或验收。
+
+## 导航与公共壳
+
+导航清单的唯一运行时来源是 `apps/web/src/services/navigation.ts`，统一维护状态、图标、分组、隐藏入口和规划页内容。`/books`、`/courses` 是隐藏直达业务页，桌面侧栏沿 `parentPath` 高亮教材资料库。规划页只匹配清单内 `planned` 根路径，未登记地址不生成伪业务页面。
+
+教学工作台主导航依次为：学习问答、教案工作台、智能组卷、题库、知识点、施测与成绩、协同写作、沉浸阅读、学习空间；教学资源为教材资料库与模板中心，设置在底部。导航具体顺序以源码为准，本表不维护第二份运行时清单。
+
+桌面侧栏展开 220px、收起 56px，折叠偏好跨页保留；学习记录位于侧栏可滚动区域。手机使用带遮罩、显式关闭、焦点限制与焦点返回的模态抽屉。规划项的可访问名称为“模块名（规划中）”。新增或改动路由必须同步本表与导航登记，按当前任务验收，不从历史 H1–H6 页面清单推导新任务。

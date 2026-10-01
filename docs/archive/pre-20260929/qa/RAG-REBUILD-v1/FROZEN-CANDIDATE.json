@@ -1,0 +1,1242 @@
+{
+  "taskId": "RAG-REBUILD-v1",
+  "version": "v1",
+  "frozenAt": "2026-09-28T22:53:25+0800",
+  "baseCommit": "c2f31ec0a70fc9b9e9d38479b6c193416c19befb",
+  "hashSource": "sha256(file bytes)",
+  "frontendBuildId": "qAq9_vzcvKIFhfkQ7_7cy",
+  "changedFileCount": 205,
+  "files": [
+    {
+      "path": "apps/api/AGENTS.md",
+      "status": "M",
+      "bytes": 3948,
+      "sha256": "a8a4d736d81035e02fc6227bbbb981cfe70fee25156243cc3e9138a289bc2ff2"
+    },
+    {
+      "path": "apps/api/app/api/v1/capabilities.py",
+      "status": "M",
+      "bytes": 4145,
+      "sha256": "9e395103e7a04d5c15624d6e22fd3d37b693e32f41aa24ad5d69ec2f45cbbbb5"
+    },
+    {
+      "path": "apps/api/app/api/v1/rag.py",
+      "status": "M",
+      "bytes": 4887,
+      "sha256": "b2f737500e266e1ac8f4c2fce1c6f3d8b0b88002f020d4a076303beb30a7ed20"
+    },
+    {
+      "path": "apps/api/app/core/config.py",
+      "status": "M",
+      "bytes": 3362,
+      "sha256": "afee881a789afb504270d1259aeddf5197c2a2f1f9c863145fc410dc7d29e7b4"
+    },
+    {
+      "path": "apps/api/app/main.py",
+      "status": "M",
+      "bytes": 12987,
+      "sha256": "bbaee183fc8a4a5d59aaebcd2a28f19509f48fa2ac067ab52462915eb373943a"
+    },
+    {
+      "path": "apps/api/pyproject.toml",
+      "status": "M",
+      "bytes": 642,
+      "sha256": "2cc86efe251135d638af403e35825ea07f47330f61a21b4a4984fcd264bdd154"
+    },
+    {
+      "path": "apps/api/tests/test_capabilities.py",
+      "status": "M",
+      "bytes": 1589,
+      "sha256": "4d0890a5e8def14a32da0fffeabee4fdc6465d47f32dc9228f9a3317c141ceb9"
+    },
+    {
+      "path": "apps/api/tests/test_rag_api.py",
+      "status": "M",
+      "bytes": 6114,
+      "sha256": "5260f4c91f50bec2390426351a5a5941a3610773cb4865cdb2c64ba3bc7f69c5"
+    },
+    {
+      "path": "apps/api/tests/test_rag_sessions.py",
+      "status": "M",
+      "bytes": 19587,
+      "sha256": "8d9d39c791f4db68467ce3eac32030118d259ce70b5c06d0100bb58cf20c40e1"
+    },
+    {
+      "path": "apps/api/uv.lock",
+      "status": "M",
+      "bytes": 130455,
+      "sha256": "f20ae30fa6d8d386240c441160351f3e0f6d948da602f3ac7f73ae235cb5f03d"
+    },
+    {
+      "path": "apps/web/src/app/knowledge-bases/page.tsx",
+      "status": "M",
+      "bytes": 228,
+      "sha256": "e0159844da399c90d0b17dd0a0e317423cece550927bf2ae7ce8c8b70d5e1250"
+    },
+    {
+      "path": "apps/web/src/components/layout/ModuleWorkspaceShell.tsx",
+      "status": "M",
+      "bytes": 1341,
+      "sha256": "9fa7474b7abeeff32295388404a0d14a57474bd72fbeaed9a79e83b4a8d3fb0f"
+    },
+    {
+      "path": "apps/web/src/features/chat/AskUserCard.tsx",
+      "status": "M",
+      "bytes": 16395,
+      "sha256": "fc18ba1c7925a06a9b969fef60ba162f2d645efdb53d82dee7710e8256f6eb7e"
+    },
+    {
+      "path": "apps/web/src/features/chat/ChatWorkspace.rag.test.tsx",
+      "status": "M",
+      "bytes": 14336,
+      "sha256": "fe7b9394d4423798cff769493abe001ebeccbb68710b17c020f4f0b992c50fb9"
+    },
+    {
+      "path": "apps/web/src/features/chat/ChatWorkspace.tsx",
+      "status": "M",
+      "bytes": 65708,
+      "sha256": "58e9f0f63a30c0ac6e1d3a0d3e850433df2cc9b5780dc08129ec564a689a9f98"
+    },
+    {
+      "path": "apps/web/src/features/chat/InfoPanel.tsx",
+      "status": "M",
+      "bytes": 4426,
+      "sha256": "2b259f074cf8c0856edff1ade93c475caf06bd9581cea0e69aeb1a9f1ad01a28"
+    },
+    {
+      "path": "apps/web/src/features/chat/Message.tsx",
+      "status": "M",
+      "bytes": 16955,
+      "sha256": "563ca294424426c16869df066cc328ca659b18df53c20acdaba95c7c567b7235"
+    },
+    {
+      "path": "apps/web/src/features/chat/model/artifact.test.ts",
+      "status": "M",
+      "bytes": 14940,
+      "sha256": "e4d6e6906f4e75753d469b01f982091bec2ec70cfe6e989cff40d5be5a19eab3"
+    },
+    {
+      "path": "apps/web/src/features/chat/model/ask-user.test.ts",
+      "status": "M",
+      "bytes": 35900,
+      "sha256": "49b5c23f5e2f1c9fa925577f7080023d11e5aca6066083da927292b47bda1d97"
+    },
+    {
+      "path": "apps/web/src/features/chat/model/chat-service.ts",
+      "status": "M",
+      "bytes": 7551,
+      "sha256": "048298b468c1c6241211749d4e262c38b99acb8c866b736e5f4a36a1b254fb40"
+    },
+    {
+      "path": "apps/web/src/features/chat/model/rag-delivery.test.ts",
+      "status": "M",
+      "bytes": 12509,
+      "sha256": "40e3f3b6ccc659ea5cd1d33367906e17d024d552ca9660e531701832c3a45844"
+    },
+    {
+      "path": "apps/web/src/features/chat/model/rag-service.test.ts",
+      "status": "M",
+      "bytes": 13532,
+      "sha256": "4b7074ea12bff627531db2eec66b92fcaf7a0f9e2f20274106b8584a71810209"
+    },
+    {
+      "path": "apps/web/src/features/chat/model/rag-service.ts",
+      "status": "M",
+      "bytes": 18985,
+      "sha256": "86aa5578e9e5f84dae4ef256ed3fe08aed8e57366f5129fe26923d6926c14bcc"
+    },
+    {
+      "path": "apps/web/src/features/chat/model/store.ts",
+      "status": "M",
+      "bytes": 91160,
+      "sha256": "409f6068b5875b36336e22643d2c41263e1e9555c9784e7bc80082c4854cf923"
+    },
+    {
+      "path": "apps/web/src/features/chat/styles/chat.css",
+      "status": "M",
+      "bytes": 58714,
+      "sha256": "18a0d5362c23a14607fa9c1795f1d34a56fb2c2056325190af8f738ac78fcc28"
+    },
+    {
+      "path": "apps/web/src/features/settings/SettingsWorkspace.tsx",
+      "status": "M",
+      "bytes": 7495,
+      "sha256": "a6bdacaf9acc2042f7c5128d1f44ffe5144b90d0b16069884b71a2705b25cce9"
+    },
+    {
+      "path": "apps/web/src/services/navigation.test.ts",
+      "status": "M",
+      "bytes": 9431,
+      "sha256": "0b7f2122ec510c282bb989352e0c938c2088bf3bd09171c3998f33df8f3849f7"
+    },
+    {
+      "path": "apps/web/src/services/navigation.ts",
+      "status": "M",
+      "bytes": 7265,
+      "sha256": "df9f5a7297158114bae6d864e45a7e9567fcc1ebbfcfb1239ad5ee73e04d54e6"
+    },
+    {
+      "path": "docs/API.md",
+      "status": "M",
+      "bytes": 26244,
+      "sha256": "84577a79026b1e702f5495a98cc94a713cfaf60e84a602cb64b512e928df32ae"
+    },
+    {
+      "path": "docs/CURRENT_STATUS.md",
+      "status": "M",
+      "bytes": 122878,
+      "sha256": "3160b4240033ba9f65957bb6aa0c047fec56df3eecbecfbeb4fc05396af7c615"
+    },
+    {
+      "path": "docs/PROJECT_GUIDE.md",
+      "status": "M",
+      "bytes": 52069,
+      "sha256": "b702c8f973d48a6d4bd92dc94f9ef4c4cb4a1166c59015832da412de092cc2d6"
+    },
+    {
+      "path": "docs/ROUTES.md",
+      "status": "M",
+      "bytes": 5678,
+      "sha256": "5d02f2e96c9df8c16413a6fe785eea9ceaf6b469651b50930280161a71c267e2"
+    },
+    {
+      "path": "docs/replica/AI_INTERACTIONS.md",
+      "status": "M",
+      "bytes": 32145,
+      "sha256": "db34ae59f40da33a6093da2365f70171c3ae2d048c4556df128f98088ed81076"
+    },
+    {
+      "path": "docs/replica/PAGE_MATRIX.md",
+      "status": "M",
+      "bytes": 41170,
+      "sha256": "3a10d81fe2d98da833d1584a67b1ba67878175cf1144278babac2b9443a1c0a3"
+    },
+    {
+      "path": "package.json",
+      "status": "M",
+      "bytes": 2246,
+      "sha256": "9bb79c11c94f1cb1f7700af1993f34245059514de59493eb23fef4b520666ced"
+    },
+    {
+      "path": "tests/e2e/model-settings.spec.ts",
+      "status": "M",
+      "bytes": 10325,
+      "sha256": "51415f54844f1a3bdf7ea19bcfb6df79f2efe1aa0b8bc42f7e93e077da7a1e7e"
+    },
+    {
+      "path": "tests/e2e/navigation.spec.ts",
+      "status": "M",
+      "bytes": 6193,
+      "sha256": "294e784e7da93e3efbd467d96952688c4c88c74a13e84d64a2a998e76a7562fb"
+    },
+    {
+      "path": "tests/e2e/settings.spec.ts",
+      "status": "M",
+      "bytes": 1307,
+      "sha256": "4341d78adcb4bc75cddbc7d6be8cff9a5ea6f3fa114cd70496170fda9cee82f2"
+    },
+    {
+      "path": "tests/e2e/shell-home-nav.spec.ts",
+      "status": "M",
+      "bytes": 8968,
+      "sha256": "86039c72d60043d21ddeae4a0f876ecf51c8f8c55ebbca6fab272ea7f5618a44"
+    },
+    {
+      "path": "tests/e2e/sidebar-chat-fixes.spec.ts",
+      "status": "M",
+      "bytes": 6144,
+      "sha256": "0231c1dfb582af271e05d9dda8f9071d0bf44c94553ab9fe1b6b02518ed51b06"
+    },
+    {
+      "path": "apps/api/app/api/v1/embedding_models.py",
+      "status": "??",
+      "bytes": 2791,
+      "sha256": "5d8307daccf9ae58f8c003090fc6a25d81fd15bb6f6e865bf467ce9bf2d8f5b4"
+    },
+    {
+      "path": "apps/api/app/api/v1/question_bank.py",
+      "status": "??",
+      "bytes": 9104,
+      "sha256": "1d56277add14086324051ecbcfd843eab7269b93c98a1235d7098c74fddd6bef"
+    },
+    {
+      "path": "apps/api/app/api/v1/textbook_index.py",
+      "status": "??",
+      "bytes": 1499,
+      "sha256": "2bba83dd593d8741e80668667926895db13acc74001ab555eab2fa693c09b138"
+    },
+    {
+      "path": "apps/api/app/api/v1/textbooks.py",
+      "status": "??",
+      "bytes": 15643,
+      "sha256": "ee3e68b94a898eb588ee74e0d7648a263d90b740eddbe2c262278ff3aadb6972"
+    },
+    {
+      "path": "apps/api/app/core/sqlite.py",
+      "status": "??",
+      "bytes": 1880,
+      "sha256": "7a9be11bf3cec9a65042e352ddb6660291acd35806b4b0d73cf57ff10030a53d"
+    },
+    {
+      "path": "apps/api/app/providers/embeddings/__init__.py",
+      "status": "??",
+      "bytes": 1014,
+      "sha256": "9b31821551c3aa10efa659ea590c68a1d6c8de8b8c705f32f20d626d54cb8277"
+    },
+    {
+      "path": "apps/api/app/providers/embeddings/fingerprint.py",
+      "status": "??",
+      "bytes": 1619,
+      "sha256": "bc3e3b4c6994ef7308fa6ba06c73d1d454c761fda6ab4ed54117d84fe42bbf30"
+    },
+    {
+      "path": "apps/api/app/providers/embeddings/ollama_embedding.py",
+      "status": "??",
+      "bytes": 19711,
+      "sha256": "c478aceda0eb4767c8f0940292784fdd88e3e4fa556fcab9424cb666ca7bbdc1"
+    },
+    {
+      "path": "apps/api/app/repositories/question_bank/__init__.py",
+      "status": "??",
+      "bytes": 1383,
+      "sha256": "e1eed6daaf48ee156949fe463a1c8daf7e96e1fa8fb0c58aa383dc71cf3106ac"
+    },
+    {
+      "path": "apps/api/app/repositories/question_bank/catalog.py",
+      "status": "??",
+      "bytes": 64546,
+      "sha256": "6bf7bf48ba43e081476ee23b0000d9cb2063fcdd1d902e58da665e4a16fa1145"
+    },
+    {
+      "path": "apps/api/app/repositories/question_bank/json_fields.py",
+      "status": "??",
+      "bytes": 4480,
+      "sha256": "97049edb9fa2d0cad942ba2655da73388cc35ab5e8111ced51649cae601f6789"
+    },
+    {
+      "path": "apps/api/app/repositories/question_bank/records.py",
+      "status": "??",
+      "bytes": 3027,
+      "sha256": "e6867808e42f7f834fb1d2f7db0f761984fa80a4b6b8dc8c64a5a74b5a1f57bc"
+    },
+    {
+      "path": "apps/api/app/repositories/question_bank/schema.py",
+      "status": "??",
+      "bytes": 4980,
+      "sha256": "8bd648ea300d7868ab3bd0d5e8fe96eb6646f3f3024207994f217a89e3d110d0"
+    },
+    {
+      "path": "apps/api/app/repositories/textbook_catalog/__init__.py",
+      "status": "??",
+      "bytes": 939,
+      "sha256": "56ac82e6256e1ff7246fe351dd11b04680e906b06a3240ef0549c05f104c6800"
+    },
+    {
+      "path": "apps/api/app/repositories/textbook_catalog/catalog.py",
+      "status": "??",
+      "bytes": 96645,
+      "sha256": "d1ae9b89bf69f041f9f030f17dd77b33ea4a3acc17868e698152e4ed916b94d0"
+    },
+    {
+      "path": "apps/api/app/repositories/textbook_catalog/json_fields.py",
+      "status": "??",
+      "bytes": 4120,
+      "sha256": "86f2b80ef476f8295bd1534de56b145ea529d24891e4e71f748b95d73ca0d4bf"
+    },
+    {
+      "path": "apps/api/app/repositories/textbook_catalog/records.py",
+      "status": "??",
+      "bytes": 6965,
+      "sha256": "45186eaa3ae9849b6565941f9db7133cdb60175b22c898cc923c775061ff136e"
+    },
+    {
+      "path": "apps/api/app/repositories/textbook_catalog/schema.py",
+      "status": "??",
+      "bytes": 8162,
+      "sha256": "6b9537560cef48ab6182a7794e3c0553edbfae2cdef8de4149940ec212caa903"
+    },
+    {
+      "path": "apps/api/app/repositories/vector_store/__init__.py",
+      "status": "??",
+      "bytes": 1175,
+      "sha256": "e2b014396727f0174509de7b21d2dd579ef7779ae2786c686c7a0ce56192addc"
+    },
+    {
+      "path": "apps/api/app/repositories/vector_store/base.py",
+      "status": "??",
+      "bytes": 5118,
+      "sha256": "a8542dfd8cb0eef32119ad2cda716130d35fa3fdc25b79d9862843bda07985fc"
+    },
+    {
+      "path": "apps/api/app/repositories/vector_store/memory.py",
+      "status": "??",
+      "bytes": 6103,
+      "sha256": "7e36deefdea683c95848aae0df2402386731b71ff55fb53abc8d3bd69e1590e6"
+    },
+    {
+      "path": "apps/api/app/repositories/vector_store/qdrant.py",
+      "status": "??",
+      "bytes": 12754,
+      "sha256": "39965b739496048ef3653bf266bdf0b7c5f71f4ce8241469072cfe58a55e3e94"
+    },
+    {
+      "path": "apps/api/app/schemas/question_bank.py",
+      "status": "??",
+      "bytes": 7617,
+      "sha256": "3abf374fa0b343e1bb5c950c5dd5a0978446ad91b114a0b672b3c63bec4a801c"
+    },
+    {
+      "path": "apps/api/app/schemas/rag_v2.py",
+      "status": "??",
+      "bytes": 3251,
+      "sha256": "939aa193f4ed47c3b8c87420890d2852ceeaccb950780d35467f75c50593dab1"
+    },
+    {
+      "path": "apps/api/app/schemas/textbook.py",
+      "status": "??",
+      "bytes": 11713,
+      "sha256": "41d3b9ceb41af77526d97289ccd7a3931741503a8d7ac8c96b45c74bd986efd7"
+    },
+    {
+      "path": "apps/api/app/services/document_parsing/__init__.py",
+      "status": "??",
+      "bytes": 2553,
+      "sha256": "faf75fc4f18657296c03cc0489864177c0fd748599c78237e4bb5c39b03a3d8c"
+    },
+    {
+      "path": "apps/api/app/services/document_parsing/chunking.py",
+      "status": "??",
+      "bytes": 17460,
+      "sha256": "257d26933562cc43edfe8ea2a5f81f4e003746b7d0dc2d7398ec7a4967a73350"
+    },
+    {
+      "path": "apps/api/app/services/document_parsing/parser.py",
+      "status": "??",
+      "bytes": 17624,
+      "sha256": "fc71581b5afdefffd76cded1b52e414a88e10d9e185613ef71cf98f800970241"
+    },
+    {
+      "path": "apps/api/app/services/document_parsing/regions.py",
+      "status": "??",
+      "bytes": 14722,
+      "sha256": "5bdbc30ad11602b9b1daf84207c72e83f9734d1b5f6883fae1fb02711cd4d490"
+    },
+    {
+      "path": "apps/api/app/services/question_bank/__init__.py",
+      "status": "??",
+      "bytes": 1755,
+      "sha256": "7ec061049c3d0c6059d281f3fd9c6190d964a9d6dc08446943f89ac22a1427e3"
+    },
+    {
+      "path": "apps/api/app/services/question_bank/blobs.py",
+      "status": "??",
+      "bytes": 2776,
+      "sha256": "3af4b0654951661e9927ff3bbd7f0b88809f34dce4c822a860e89ba69d772b39"
+    },
+    {
+      "path": "apps/api/app/services/question_bank/fingerprint.py",
+      "status": "??",
+      "bytes": 2336,
+      "sha256": "ff374f35714fd7d8276e8592890e7b0306b598485437d12da3ec1870e95e558c"
+    },
+    {
+      "path": "apps/api/app/services/question_bank/organizer.py",
+      "status": "??",
+      "bytes": 22519,
+      "sha256": "b306d36c41083179383e589b98d801e064e53ce06756ed691b89c3767a626532"
+    },
+    {
+      "path": "apps/api/app/services/question_bank/rules.py",
+      "status": "??",
+      "bytes": 17999,
+      "sha256": "d028db0beb8a9561371ad217a42705e3f4c38138e84b9547659fe86d98cf1219"
+    },
+    {
+      "path": "apps/api/app/services/question_bank/service.py",
+      "status": "??",
+      "bytes": 52575,
+      "sha256": "17efa31c76210e4fe19be5227b822687e70ecd84ab6eb670ffb5cced3c8a5ca0"
+    },
+    {
+      "path": "apps/api/app/services/question_bank/validation.py",
+      "status": "??",
+      "bytes": 4778,
+      "sha256": "f3586580576f34cb3d700166d8390aae9e99e5119f8e8a9f69ba8ccd742b0d30"
+    },
+    {
+      "path": "apps/api/app/services/question_bank/views.py",
+      "status": "??",
+      "bytes": 9397,
+      "sha256": "cd4bf76c034ac03aaeefb2a3ec4e1a874f155101ee4feff0d996dc3e7d8c727e"
+    },
+    {
+      "path": "apps/api/app/services/rag_v2/__init__.py",
+      "status": "??",
+      "bytes": 1190,
+      "sha256": "ae3bae5d37c3284dc28568b984a384753138bb8fafd3982cd407db231f0d2565"
+    },
+    {
+      "path": "apps/api/app/services/rag_v2/evidence.py",
+      "status": "??",
+      "bytes": 15585,
+      "sha256": "11fc8f6fa282754349e51fd7577af6be778aed2ae8c303691673d870956bec41"
+    },
+    {
+      "path": "apps/api/app/services/rag_v2/explain.py",
+      "status": "??",
+      "bytes": 9763,
+      "sha256": "7d19f90ee8e4f9c6c5b0cdb1c0736ced33e2c3d6a9cda8e8e2dfc53cc6d3ed7a"
+    },
+    {
+      "path": "apps/api/app/services/rag_v2/presenter.py",
+      "status": "??",
+      "bytes": 2328,
+      "sha256": "1bff86134d45d8fbf9c78142cf197a77f18ae4b720c86869e8577bed68e16e85"
+    },
+    {
+      "path": "apps/api/app/services/rag_v2/requests.py",
+      "status": "??",
+      "bytes": 2193,
+      "sha256": "ef644e8a8079c551969c1d81d36e7052a1c780d895393794e0382679b5999d68"
+    },
+    {
+      "path": "apps/api/app/services/rag_v2/retrieval.py",
+      "status": "??",
+      "bytes": 17512,
+      "sha256": "73a630c872ca2eebcee37773606d0120f3b047d1a3fd3dfb565ec5afcae913a3"
+    },
+    {
+      "path": "apps/api/app/services/rag_v2/scope.py",
+      "status": "??",
+      "bytes": 10037,
+      "sha256": "d5d3958ca8580fe7f011b3fcdcc0a9118eaeaa73925f244bfc7db38d199ba74f"
+    },
+    {
+      "path": "apps/api/app/services/rag_v2/service.py",
+      "status": "??",
+      "bytes": 46149,
+      "sha256": "b4a8bb3c4ccaaa349d0d84f6000ce49ccfd9057f6a9eaf90fed400a8b5964a1f"
+    },
+    {
+      "path": "apps/api/app/services/rag_v2/source_text.py",
+      "status": "??",
+      "bytes": 6429,
+      "sha256": "73eaf1da7ec80c0777e5a5db96c79bee0c9801c95ca9e7e4409d807edfbe61d9"
+    },
+    {
+      "path": "apps/api/app/services/rag_v2/summary.py",
+      "status": "??",
+      "bytes": 25198,
+      "sha256": "064c7276c395f06c1fd1f9fdb865b5a22268d3d6ff9f43d8b3c1f8f21b0f9cf8"
+    },
+    {
+      "path": "apps/api/app/services/textbook_index/__init__.py",
+      "status": "??",
+      "bytes": 301,
+      "sha256": "5fb01613ac2638d285e3d61d5e3329fd29c86a6a765e753573685dee77c814f1"
+    },
+    {
+      "path": "apps/api/app/services/textbook_index/service.py",
+      "status": "??",
+      "bytes": 42447,
+      "sha256": "521657213599d5358a40cbad5fcd94350ff86daa83d744d8924b5f91124af115"
+    },
+    {
+      "path": "apps/api/app/services/textbook_ingest/__init__.py",
+      "status": "??",
+      "bytes": 1205,
+      "sha256": "5e09b1aeb12cbba212aa1aaf027a08f10fc191d2b916c60d98f97c65f6db7075"
+    },
+    {
+      "path": "apps/api/app/services/textbook_ingest/blobs.py",
+      "status": "??",
+      "bytes": 7393,
+      "sha256": "2defb6721f2b9a2e0a8ea5c91d0aa7cafdcce17b2e0735f60cb761770d3eb40d"
+    },
+    {
+      "path": "apps/api/app/services/textbook_ingest/generation_doc.py",
+      "status": "??",
+      "bytes": 4102,
+      "sha256": "0258775c52178495687ab075e0c154a53170cb3c6b3ae4780ee0c4dda0781c74"
+    },
+    {
+      "path": "apps/api/app/services/textbook_ingest/indexer.py",
+      "status": "??",
+      "bytes": 17727,
+      "sha256": "31f38ccc0109089dfb6e713ee62c5f474746dd4a876358b8d910444243922bdd"
+    },
+    {
+      "path": "apps/api/app/services/textbook_ingest/jobs.py",
+      "status": "??",
+      "bytes": 6333,
+      "sha256": "27ba6ca875eda07c7eddcbf247550c7baf45d73c5d0e83303aa60ede168662a4"
+    },
+    {
+      "path": "apps/api/app/services/textbook_ingest/multipart.py",
+      "status": "??",
+      "bytes": 5035,
+      "sha256": "706f671684b812b122445ea9323ee03fd5a09997bf0b601f31c2f0af6a89c3fe"
+    },
+    {
+      "path": "apps/api/app/services/textbook_ingest/service.py",
+      "status": "??",
+      "bytes": 53555,
+      "sha256": "8254571d0cff81e0bbe8bbc290db06720088b19c0bd97395d68931ba4f58a5a7"
+    },
+    {
+      "path": "apps/api/app/services/textbook_ingest/source_access.py",
+      "status": "??",
+      "bytes": 3484,
+      "sha256": "f14ed0c56ba4e48afb372c1bb5d07cb11bb7f20d8ee4433a0e3634b1609a0165"
+    },
+    {
+      "path": "apps/api/app/services/textbook_ingest/taxonomy.py",
+      "status": "??",
+      "bytes": 2049,
+      "sha256": "6e3ed65c5b72c7a126caf84ad890d19c181381cfb9e86478eb5191631f502afe"
+    },
+    {
+      "path": "apps/api/app/services/textbook_ingest/views.py",
+      "status": "??",
+      "bytes": 15166,
+      "sha256": "32e45276641e79121901ad9f360396cfe4a46f02497c60f9605852fa709f8216"
+    },
+    {
+      "path": "apps/api/tests/test_document_parsing.py",
+      "status": "??",
+      "bytes": 39939,
+      "sha256": "92e7b3c3b875afa592ce3ab461f3a38f858595a0edac7fd1a1ffb204eaf40ce2"
+    },
+    {
+      "path": "apps/api/tests/test_embedding_provider.py",
+      "status": "??",
+      "bytes": 16354,
+      "sha256": "cfa8d057dd538b479c8a187077a751324564342759824914633e35800f48c605"
+    },
+    {
+      "path": "apps/api/tests/test_question_bank.py",
+      "status": "??",
+      "bytes": 21255,
+      "sha256": "6fc0d4076ea5ae1db30aab0cc7dc554003f0fb785fc3f88c2623533310a513f8"
+    },
+    {
+      "path": "apps/api/tests/test_question_bank_confirm.py",
+      "status": "??",
+      "bytes": 25057,
+      "sha256": "b7eb7b4043dced02a076090bf357aec1a2a1edb9c596fc5a56804ed11a5f659e"
+    },
+    {
+      "path": "apps/api/tests/test_question_bank_organize.py",
+      "status": "??",
+      "bytes": 33879,
+      "sha256": "2b56086fea28e5ed24d5812e5646740e8d05e8da673c3ed13e084a92d321a486"
+    },
+    {
+      "path": "apps/api/tests/test_rag_v2_api.py",
+      "status": "??",
+      "bytes": 20108,
+      "sha256": "639528e40a4a7a6fec4d6bbdc08f45ba04052f566b438178a7294d3b6b0c9f12"
+    },
+    {
+      "path": "apps/api/tests/test_rag_v2_evidence.py",
+      "status": "??",
+      "bytes": 14128,
+      "sha256": "2e9cb8653157902e96707477bc322d07bbb8224f4972395b582ce94e6385da38"
+    },
+    {
+      "path": "apps/api/tests/test_rag_v2_explain.py",
+      "status": "??",
+      "bytes": 15187,
+      "sha256": "d7894249268bfb0b24dcf6a79b103638f7ea6cc8e104988c5156eb8520c93e56"
+    },
+    {
+      "path": "apps/api/tests/test_rag_v2_identity.py",
+      "status": "??",
+      "bytes": 7539,
+      "sha256": "43ecf2a80a9b9840164d95542812db3e9f1307a9431c99aa368b050562a29ea8"
+    },
+    {
+      "path": "apps/api/tests/test_rag_v2_retrieval.py",
+      "status": "??",
+      "bytes": 10382,
+      "sha256": "bf63ae324d63ebe1f4f6ea590331d4ad5551b5647db10ea0cf64c2299d050355"
+    },
+    {
+      "path": "apps/api/tests/test_rag_v2_scope.py",
+      "status": "??",
+      "bytes": 12103,
+      "sha256": "b8999e260f66eecb2455b05301219138936880e3a4a322fe8c0f8eb19b678618"
+    },
+    {
+      "path": "apps/api/tests/test_rag_v2_service.py",
+      "status": "??",
+      "bytes": 20178,
+      "sha256": "a642c1f79bfc0b622126016c070daec902f42bfed01523ebab8084b3210c51f4"
+    },
+    {
+      "path": "apps/api/tests/test_rag_v2_status_probe.py",
+      "status": "??",
+      "bytes": 11311,
+      "sha256": "07dea848951f0c418b0e02ca96ddc1a412786833515124604bf5101d7362f8cf"
+    },
+    {
+      "path": "apps/api/tests/test_rag_v2_summary.py",
+      "status": "??",
+      "bytes": 9232,
+      "sha256": "6909597f413b67bab90355ef0d9fcd749a6d8c4d28e06e1bb3ead512287e460e"
+    },
+    {
+      "path": "apps/api/tests/test_rag_v2_summary_budget.py",
+      "status": "??",
+      "bytes": 12262,
+      "sha256": "6b06c430cf98a6ca4acda78ee636911c54dda78783b746fc48d3ba9602bfc018"
+    },
+    {
+      "path": "apps/api/tests/test_rag_v2_support.py",
+      "status": "??",
+      "bytes": 23813,
+      "sha256": "fb16adb6f46d4c6076a5aeca8d739e955eda3dcbe609862db5209a62e557f4d7"
+    },
+    {
+      "path": "apps/api/tests/test_textbook_api.py",
+      "status": "??",
+      "bytes": 25442,
+      "sha256": "9732e03f2f902ad29737c7eb87b4a00d36950ac5b298744ecf7486eb9b0e3b73"
+    },
+    {
+      "path": "apps/api/tests/test_textbook_catalog.py",
+      "status": "??",
+      "bytes": 40215,
+      "sha256": "b9972f9f3e7d9cf35224305cf8139f73b5b16ced707ac4f394684943aa5554f7"
+    },
+    {
+      "path": "apps/api/tests/test_textbook_index.py",
+      "status": "??",
+      "bytes": 26210,
+      "sha256": "9ad24ea52e03476b4d9987d1744aafd3c7ff96d5c22a9695ebdb0196ac863e82"
+    },
+    {
+      "path": "apps/api/tests/test_textbook_ingest.py",
+      "status": "??",
+      "bytes": 57879,
+      "sha256": "15391879f80eb132eff607fa9e5cd052be4eb3bef0b885e8880bb2e7ecf96f75"
+    },
+    {
+      "path": "apps/api/tests/test_vector_store.py",
+      "status": "??",
+      "bytes": 13771,
+      "sha256": "02eba82471536da2c07cefa63ad614bff9287af3eb72d0b75f837b0f69cae53f"
+    },
+    {
+      "path": "apps/web/src/app/knowledge-bases/libraries/[libraryId]/page.tsx",
+      "status": "??",
+      "bytes": 543,
+      "sha256": "8299365cc94599d3ace66c9c533dedd559366690f1c48273bd9b67cb051facb3"
+    },
+    {
+      "path": "apps/web/src/app/question-bank/imports/[importId]/page.tsx",
+      "status": "??",
+      "bytes": 352,
+      "sha256": "f700ebddd6bd6e1096acbf84fac30e4368b9d604e867261aa2f37e76961a4687"
+    },
+    {
+      "path": "apps/web/src/app/question-bank/page.tsx",
+      "status": "??",
+      "bytes": 234,
+      "sha256": "8034830d704f0350fdeabccec63a5d12068b02ff8ebf9dc94452e8c1c5848ccc"
+    },
+    {
+      "path": "apps/web/src/contracts/question-bank.ts",
+      "status": "??",
+      "bytes": 5788,
+      "sha256": "0378bc2d85bf9b8e2f2f2570322912d25254c603c238397f7403a57e848377df"
+    },
+    {
+      "path": "apps/web/src/contracts/textbook.ts",
+      "status": "??",
+      "bytes": 7601,
+      "sha256": "f7e4ee320cb8b336d59d5b8ed8df97e17437d97c9f73c8240ba4f0aa2dd5c577"
+    },
+    {
+      "path": "apps/web/src/features/chat/AskUserCard.test.tsx",
+      "status": "??",
+      "bytes": 7595,
+      "sha256": "7bbfc09c3780c1a4a68ca40cd57b6a80a19798eec637de4f9b5b583b685486ba"
+    },
+    {
+      "path": "apps/web/src/features/chat/InfoPanel.test.tsx",
+      "status": "??",
+      "bytes": 8061,
+      "sha256": "e22004651b6d5ae8d0f009cb3fc8899a7139757040f68d4b301b4e0a38f86842"
+    },
+    {
+      "path": "apps/web/src/features/chat/Message.rag.test.tsx",
+      "status": "??",
+      "bytes": 7494,
+      "sha256": "c8f3382aecd4fe60be97476669963cdf2fb3177429865bfdc1ca19b9aff8dd75"
+    },
+    {
+      "path": "apps/web/src/features/chat/RagEvidencePanel.tsx",
+      "status": "??",
+      "bytes": 3948,
+      "sha256": "aa4b437a3d76d63729b476de8fcc22258537c6609eb8cf9733618a0d51453e73"
+    },
+    {
+      "path": "apps/web/src/features/chat/model/ask-flow.test.ts",
+      "status": "??",
+      "bytes": 9161,
+      "sha256": "3295f6f3534e9b1c7738eb040b492f4ee764e9aa11352bd0db9b1c5a0fb72b93"
+    },
+    {
+      "path": "apps/web/src/features/chat/model/capability-rows.ts",
+      "status": "??",
+      "bytes": 7296,
+      "sha256": "a67af5833b61fa4a1c4ec7040b58de6c096dd84f5686657114ea579f162caa82"
+    },
+    {
+      "path": "apps/web/src/features/chat/model/rag-explain.test.ts",
+      "status": "??",
+      "bytes": 14150,
+      "sha256": "c5d72a94079b5c1c981e972cc6e8c4ff09126df25ab94ca304b92d9de581b962"
+    },
+    {
+      "path": "apps/web/src/features/chat/model/rag-history.test.ts",
+      "status": "??",
+      "bytes": 5235,
+      "sha256": "181bbaa1489fbf2f210c2c154ed3d3fab5554d4b54b48d7dec3a330dcc56f427"
+    },
+    {
+      "path": "apps/web/src/features/chat/model/rag-v2.ts",
+      "status": "??",
+      "bytes": 10290,
+      "sha256": "e8c4c8929c0e0df4743619270c1bd7c1e379b74503b16fab2921479e43820c92"
+    },
+    {
+      "path": "apps/web/src/features/chat/model/taught-scope.test.ts",
+      "status": "??",
+      "bytes": 3863,
+      "sha256": "db8065a87da7917cca997121109c9ef9d905c19d942615685b8496709ec1cad6"
+    },
+    {
+      "path": "apps/web/src/features/chat/model/use-capability-status.ts",
+      "status": "??",
+      "bytes": 3074,
+      "sha256": "e455a59527ed29e4d1d8e94ba687172f10dce09839634ad9f83e9cb6fc0fdce3"
+    },
+    {
+      "path": "apps/web/src/features/chat/model/use-taught-scope.ts",
+      "status": "??",
+      "bytes": 1603,
+      "sha256": "70d7386c4407082b03872a78aae9d8aedbcef1a68b5b5663e991f7ee7538e4c1"
+    },
+    {
+      "path": "apps/web/src/features/model-settings/embedding/EmbeddingPanel.test.tsx",
+      "status": "??",
+      "bytes": 11230,
+      "sha256": "8b9131276af92490dc6c7b3c821038d4dc73bf57b2cd15bfd6c384cb4006e581"
+    },
+    {
+      "path": "apps/web/src/features/model-settings/embedding/EmbeddingPanel.tsx",
+      "status": "??",
+      "bytes": 27217,
+      "sha256": "d12a3ba63783c5035cd79ea7937469cca1aa728235a5b2a2a1ee2a0a4d9a0d4c"
+    },
+    {
+      "path": "apps/web/src/features/model-settings/embedding/styles/embedding.css",
+      "status": "??",
+      "bytes": 4338,
+      "sha256": "37952c3e24c99d4440106433fc870e692182797a78028c36bdbc02dab97dfcda"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/ConfirmPanel.tsx",
+      "status": "??",
+      "bytes": 6672,
+      "sha256": "ab7b0bb716720cceb5604e2463b1ae3c7524d2f6ef7cfb3217f600e3e4ce6e8b"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/ContentForm.tsx",
+      "status": "??",
+      "bytes": 16250,
+      "sha256": "e6d4379eec9faa045aa9417f7e07cc9205759c12f74504835dceac2ef56a06ea"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/DraftEditor.tsx",
+      "status": "??",
+      "bytes": 11623,
+      "sha256": "0c93c16d476274d8ddbefc3ddee0a79d589d520c311ed78cbabbd4dceba84621"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/ErrorNotice.tsx",
+      "status": "??",
+      "bytes": 618,
+      "sha256": "d6b8264816c8e26dd80e49bd809ab71290631a06dcbf5b3b2f27cbcaca876f66"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/ImportBatchList.tsx",
+      "status": "??",
+      "bytes": 3063,
+      "sha256": "21686491777e054ead7c579f49f0bc98b8c43f2aafb3d35c50a9bf91c15d46cb"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/ImportQuestionPanel.test.tsx",
+      "status": "??",
+      "bytes": 5207,
+      "sha256": "f4e4111d17ac019c55cfda23f710f4cf2120b71f7169683e99e5579a4d393f56"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/ImportQuestionPanel.tsx",
+      "status": "??",
+      "bytes": 5028,
+      "sha256": "64b68b073388fac05813c908c204ba103c0cc9ca796bd8e94de915a677e6f4a5"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/MergePanel.tsx",
+      "status": "??",
+      "bytes": 2180,
+      "sha256": "9b91451154c337afef057253523555bc6941580f645b7cd6d3d45d799f4849e0"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/QuestionBankWorkspace.test.tsx",
+      "status": "??",
+      "bytes": 12470,
+      "sha256": "895d839f0d5fc01f137bd38dcf725369a882256d71eda17a5590c4e7e423825e"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/QuestionBankWorkspace.tsx",
+      "status": "??",
+      "bytes": 4551,
+      "sha256": "d9d7e3785e54fff9c7d7c9f3d645cc0bcd6caea9419f3904c7adbac415f9e770"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/QuestionDetailPanel.tsx",
+      "status": "??",
+      "bytes": 12426,
+      "sha256": "a54b65e36837c56e1dcf19e0371553bb2d35243dffdfdf533945a779a7b7aca2"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/QuestionLibrary.tsx",
+      "status": "??",
+      "bytes": 8924,
+      "sha256": "a820c844562a5d82ba36d11570d704cf3c80055d4ab24af5c4920305c10683a0"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/QuestionPreview.tsx",
+      "status": "??",
+      "bytes": 2139,
+      "sha256": "77080839ea1bfa878247f99c38a50f45df6893a9cb43bc12ae4d610c8c69170b"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/ReviewWorkspace.test.tsx",
+      "status": "??",
+      "bytes": 23092,
+      "sha256": "9a5431e8eaf78f1c09cf409440ffed67e58f5f46b98e2163f18a1502b3f60f1a"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/ReviewWorkspace.tsx",
+      "status": "??",
+      "bytes": 21692,
+      "sha256": "73ac7a59d9d9672d4e7fee93699c55fbafcdc520b9bea3ef7406cd550afb29aa"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/SourcePane.tsx",
+      "status": "??",
+      "bytes": 4601,
+      "sha256": "669eb667e4d992f84f2e32d3f72ed944cda37e2a89a82ec6f1b4e2e9c4b7082b"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/SuggestionPanel.tsx",
+      "status": "??",
+      "bytes": 6483,
+      "sha256": "f2bbdbb1efb2f075e42ef186f664935ccce77017b2b51384eea7d0d5d1e10f45"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/draft-form.test.ts",
+      "status": "??",
+      "bytes": 5559,
+      "sha256": "df7ff77cf02d6ec9accee2d730d9d104338648aa97943a5478f3f0788630b6d9"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/draft-form.ts",
+      "status": "??",
+      "bytes": 7702,
+      "sha256": "1adf9036da82f169fb2d99dedfe0abdcfeded90bba8c531acba668051624fb11"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/hooks.ts",
+      "status": "??",
+      "bytes": 1936,
+      "sha256": "5b7259c97df516b6d9f03b37f902f047b2914a64c26dada58c74e589fdce9e6f"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/labels.ts",
+      "status": "??",
+      "bytes": 4025,
+      "sha256": "4564abeff81b6b2160e38f857209b706b9a667606a5c47684d82775c4a23f19c"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/model-profile.test.ts",
+      "status": "??",
+      "bytes": 3170,
+      "sha256": "626f3c15b99366da781375a02e445f2626b79184bf07387120f596aef16fe077"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/model-profile.ts",
+      "status": "??",
+      "bytes": 3398,
+      "sha256": "af2a387a122bd445c8cf78b3db2c1f38189671716f185e1f3b6e586149cbe76d"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/question-file.ts",
+      "status": "??",
+      "bytes": 1304,
+      "sha256": "a93149cdd325f1ab802ffbf4b79bf801e3ebcabe6dd9d3b10fb04536d1c0eaa1"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/styles/question-bank.css",
+      "status": "??",
+      "bytes": 13824,
+      "sha256": "3dc71013c2a91dd01c3e2d2d1630059a6083ef073ebb29a1d2da5cba78677653"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/taxonomy.ts",
+      "status": "??",
+      "bytes": 1812,
+      "sha256": "9f880115945d1037cb23c2c5c3291f9b47566aa903e1edf1d38926a830de3280"
+    },
+    {
+      "path": "apps/web/src/features/textbook/DocumentEditForm.tsx",
+      "status": "??",
+      "bytes": 5836,
+      "sha256": "8539c0f9415d3e7872318348f413595655b083bf6a713170fd35b97aa2b11992"
+    },
+    {
+      "path": "apps/web/src/features/textbook/DocumentSourcePreview.tsx",
+      "status": "??",
+      "bytes": 3987,
+      "sha256": "a2492bdfb85f39568c8f0768a8720ac3cf1118e4eaf36f038564f799e4c2b88b"
+    },
+    {
+      "path": "apps/web/src/features/textbook/HistoryRegistrations.test.tsx",
+      "status": "??",
+      "bytes": 2379,
+      "sha256": "4fdfff7af2e4d437cd9b9bde1819553c30beb629ab0875c63374565818563f08"
+    },
+    {
+      "path": "apps/web/src/features/textbook/HistoryRegistrations.tsx",
+      "status": "??",
+      "bytes": 3579,
+      "sha256": "d2d414a5b285a0a6ce52f887f406dd391acd63aa8e38ae7df4e7d0e2a123f839"
+    },
+    {
+      "path": "apps/web/src/features/textbook/ImportPanel.test.tsx",
+      "status": "??",
+      "bytes": 15939,
+      "sha256": "8d7715511f73faa34c031dc738fe352bbed592233f0714593a22b80649376536"
+    },
+    {
+      "path": "apps/web/src/features/textbook/ImportPanel.tsx",
+      "status": "??",
+      "bytes": 25831,
+      "sha256": "d4ecf2427e19ad6c1397094300c6bdeac663ee224b9eddfbaeb0e3d99730f8b7"
+    },
+    {
+      "path": "apps/web/src/features/textbook/JobsPanel.test.tsx",
+      "status": "??",
+      "bytes": 5176,
+      "sha256": "b0bde6ec63e87433ef611737e9c5c2eb0ade52ffff473a52d215eaffec9ea62f"
+    },
+    {
+      "path": "apps/web/src/features/textbook/JobsPanel.tsx",
+      "status": "??",
+      "bytes": 8052,
+      "sha256": "76559212c0faf6c9850616d43165d15dcaaccee25afad48560b728566f737bd8"
+    },
+    {
+      "path": "apps/web/src/features/textbook/LibraryBrowser.tsx",
+      "status": "??",
+      "bytes": 7015,
+      "sha256": "60bbdc97b1a22be993c5c6f84e5a93ee6d36c2016f47f82aec806bddf67027f4"
+    },
+    {
+      "path": "apps/web/src/features/textbook/LibraryDetailSection.test.tsx",
+      "status": "??",
+      "bytes": 13401,
+      "sha256": "ba0ed06609e9039b82725844ca2ae966dff3f59914711adb1f4e1d00865f8def"
+    },
+    {
+      "path": "apps/web/src/features/textbook/LibraryDetailSection.tsx",
+      "status": "??",
+      "bytes": 15712,
+      "sha256": "9ae9871020fc3942d64386b7ef99a7131fa316df7752a49cc6ae2045fed14e7c"
+    },
+    {
+      "path": "apps/web/src/features/textbook/MetadataForm.tsx",
+      "status": "??",
+      "bytes": 6809,
+      "sha256": "3d341789c1fd182a98433dd98b145abdda13a80fee964255845b1354d235465a"
+    },
+    {
+      "path": "apps/web/src/features/textbook/TextbookWorkspace.test.tsx",
+      "status": "??",
+      "bytes": 7100,
+      "sha256": "7bf937c03225781cc97bc9b18a766febaa05b5b820282d7a18f485478ff15586"
+    },
+    {
+      "path": "apps/web/src/features/textbook/TextbookWorkspace.tsx",
+      "status": "??",
+      "bytes": 6669,
+      "sha256": "77465094780443d5b1f4781f17b01b3ddcfe79e8326bcf2f561ecf33c18527fa"
+    },
+    {
+      "path": "apps/web/src/features/textbook/hooks.ts",
+      "status": "??",
+      "bytes": 3202,
+      "sha256": "60a4ce27b039b00a1f3e974c0aecbc51849857bc2b7a4c802fd9598f62c8ea45"
+    },
+    {
+      "path": "apps/web/src/features/textbook/ids.ts",
+      "status": "??",
+      "bytes": 804,
+      "sha256": "ef32ff3a188816eeca37ebb588944306460db9c3484d7d5ebb6d7605aff02d13"
+    },
+    {
+      "path": "apps/web/src/features/textbook/import-file.ts",
+      "status": "??",
+      "bytes": 1297,
+      "sha256": "6addcc56fc4e999b9412523ddc15e5417b62fdf9653f0560932a27f55fcf4495"
+    },
+    {
+      "path": "apps/web/src/features/textbook/labels.test.ts",
+      "status": "??",
+      "bytes": 5794,
+      "sha256": "80524c1754e46dff725eea1ac96663d83e57cbbdf840e64e4853a9c2199b0aac"
+    },
+    {
+      "path": "apps/web/src/features/textbook/labels.ts",
+      "status": "??",
+      "bytes": 4642,
+      "sha256": "e4bcdb74b7433f95b4f009557348dc59b2a7ce9e42ff4413a6f4128cddf8ced3"
+    },
+    {
+      "path": "apps/web/src/features/textbook/styles/textbook.css",
+      "status": "??",
+      "bytes": 10742,
+      "sha256": "d9478ca5d1a3fc81c3f95143c684ac08ccce7ff24aecd1901d61f714ceaba7cb"
+    },
+    {
+      "path": "apps/web/src/features/textbook/taxonomy.ts",
+      "status": "??",
+      "bytes": 2273,
+      "sha256": "e6adf7bc82f90bf512e2d8200179c02641706f33ec7702d88d910adb7dc9b51e"
+    },
+    {
+      "path": "apps/web/src/services/question-bank-api.test.ts",
+      "status": "??",
+      "bytes": 15658,
+      "sha256": "60b98e5ae7a8170d2aab0530380a981dea035b0743170342fa230f6ada6a28c3"
+    },
+    {
+      "path": "apps/web/src/services/question-bank-api.ts",
+      "status": "??",
+      "bytes": 10201,
+      "sha256": "c32e05ddc0549017a14e08128687ddcfe0f8b5df569b09c01ef80eae6d47d3da"
+    },
+    {
+      "path": "apps/web/src/services/taught-scope.ts",
+      "status": "??",
+      "bytes": 4506,
+      "sha256": "92be21cf80ad601bd6b3c4ddc14f5e663d5b47e1ffc4a3b8edcb89215758d9f4"
+    },
+    {
+      "path": "apps/web/src/services/textbook-api.test.ts",
+      "status": "??",
+      "bytes": 15627,
+      "sha256": "7c0475a5843051235bf2822c430d04324419666297bd8ece202e630517538cad"
+    },
+    {
+      "path": "apps/web/src/services/textbook-api.ts",
+      "status": "??",
+      "bytes": 12589,
+      "sha256": "11ece2cfda3e57a090c7ae9e7b48ff0455be7da830ff40e22d76606f7e1c5e5d"
+    },
+    {
+      "path": "docs/PLAN.md",
+      "status": "??",
+      "bytes": 70447,
+      "sha256": "3747fb2a22c65d82a3816b019cd5d81b6a56c9b65ede412aa4e81bade8f7e8ee"
+    },
+    {
+      "path": "docs/qa/RAG-REBUILD-v1/A1-REPORT-01.md",
+      "status": "??",
+      "bytes": 32645,
+      "sha256": "3894564dce7c7004f3fa9852341a8e91d8e2dc805ee8b666757f0e829c33045e"
+    },
+    {
+      "path": "docs/qa/RAG-REBUILD-v1/A1-REPORT-02.md",
+      "status": "??",
+      "bytes": 22180,
+      "sha256": "234454963f34be6d28674946f607a7f76fe5ba8075ffceb41216c36b89d2e5d5"
+    },
+    {
+      "path": "docs/qa/RAG-REBUILD-v1/A1-TASK-CARD.md",
+      "status": "??",
+      "bytes": 5151,
+      "sha256": "8b804a55f3b72ee5dd3a39c5ef7a2357d00d8fffef3b60d3cb162fc95b903b0f"
+    },
+    {
+      "path": "docs/qa/RAG-REBUILD-v1/README.md",
+      "status": "??",
+      "bytes": 18615,
+      "sha256": "3df99c4f7268f8da5e2a9d065443689f8da69ae66ae0a323928f51273c142150"
+    },
+    {
+      "path": "docs/qa/RAG-REBUILD-v1/TASK-CARD.md",
+      "status": "??",
+      "bytes": 11329,
+      "sha256": "4a574ddd30dd232f75759919652127a39b1dd74f6fe784caf1cb1db82a8991c1"
+    },
+    {
+      "path": "infra/qdrant/docker-compose.test.yml",
+      "status": "??",
+      "bytes": 499,
+      "sha256": "6aac5757d9fa3ca317ece99424b4a845560d6b64ab42944faef2e8166792ed98"
+    },
+    {
+      "path": "infra/qdrant/docker-compose.yml",
+      "status": "??",
+      "bytes": 640,
+      "sha256": "ad2a56e9e31ac8cd7e4e63a04d5ffa6540624b3253cfacb8a6e26391a2334e21"
+    },
+    {
+      "path": "scripts/rag/backup.py",
+      "status": "??",
+      "bytes": 9679,
+      "sha256": "6eb06e2349648d03adb70672883b8d03c993b8f450e9846697e79ca693b71645"
+    },
+    {
+      "path": "scripts/rag/freeze.py",
+      "status": "??",
+      "bytes": 2171,
+      "sha256": "138b709fb209c052617299e71c8cc55b8aa32936e083a96a834b42cf96843d67"
+    },
+    {
+      "path": "scripts/rag/migrate_textbooks.py",
+      "status": "??",
+      "bytes": 20073,
+      "sha256": "4f881d49c9608c26c51911e8b2ca1ff20ebbed98bb0160c15af9d4aa11809cea"
+    },
+    {
+      "path": "scripts/rag/verify_retrieval.py",
+      "status": "??",
+      "bytes": 9381,
+      "sha256": "5d40a20f2deea7d0f0c4d58e125e40dade44ff4b64174e8fd474da0e8b7ec1f2"
+    },
+    {
+      "path": "scripts/rag/visual-check.mjs",
+      "status": "??",
+      "bytes": 5957,
+      "sha256": "a66cf9c600e413add21ed4e199a894bd840e2f26ff4c55e61b90a3c7007e5cb1"
+    }
+  ],
+  "note": "候选为工作树（未提交）。验收期间不得再改产品代码；需要修复时升级版本并重新冻结。本清单不包含自身（排除自引用），也不包含 Next 自动生成的 next-env.d.ts 之外的构建产物。"
+}

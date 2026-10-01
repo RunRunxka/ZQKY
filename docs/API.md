@@ -1,15 +1,15 @@
 # 接口与模块边界
 
-更新：2026-09-13。本文为当前契约；进度、代码审查与验收只维护在 [STATUS](CURRENT_STATUS.md)。前端 TypeScript 服务与真实 HTTP 接口分别列明。
+更新：2026-10-01。本文维护现行接口契约；进度、代码审查缺陷与验收限制只维护在 [CURRENT_STATUS](CURRENT_STATUS.md)。前端 TypeScript 服务与真实 HTTP 接口分别列明。当前建设以 2026-09-29 起的教材 RAG 与教学闭环为主，接口声明不代表已通过所有业务验收。
 
-**实施责任：** 模型增量合同由外部队长按STATUS的MODEL-EXEC v3和PROJECT_GUIDE的D1–D16直接定稿并落地，Python schemas、TS contracts/services、响应投影与必要路由挂载无需本Codex代写。draft-2仍是提案，本节现行接口不因权限转交自动变为新合同；实施者完成后同步实际字段与测试证据。
+**阅读顺序：** 本文按功能与交付批次保留契约来源。同一路径、字段或分期限制出现多次时，以后续章节明确的变更为准：RAG v2 及 RAG-QUALITY 取代旧四科 v1；B2 取代 B1 的施测占位；B3 取代 B2 的成绩指针仅空限制。B0–B3 的稳定契约继续有效，实现偏差与待修项见 CURRENT_STATUS。历史阶段编号和角色分工不构成当前执行、提交或部署授权。
 
 ### contract-v1 已落地（2026-09-13）
 
-外部队长已按 MODEL-EXEC v3 完成 contract-v1 并落地；以下为本节新增的现行接口与字段。
+模型 contract-v1 于 2026-09-13 落地；以下字段与协议继续用于既有模型配置的维护和兼容。
 实现文件：`apps/api/app/providers/llm/registry.py`（38 条单一真值）、`.../factory.py`（按 backend 分派）、
 `app/services/model_config_service.py`（跨 .env/JSON 补偿）、`app/services/model_auth.py`（认证状态机）。
-冻结散列与 D1–D16 落地位置见 `_work/model-providers-v1/contract-v1.md`（本机证据，不随 Git）。
+历史冻结材料曾保存在 `_work/model-providers-v1/contract-v1.md`（本机证据，不随 Git）；现行接口可依据本节、源码与版本记录核对，不以该本机文件作为唯一交接入口。
 
 | 方法与路径 | 状态 | 说明 |
 | --- | --- | --- |
@@ -43,7 +43,7 @@
 
 **跨存储一致性（R-01）**：连接的更新/删除在仓储同一临界区内完成 revision 校验、文档变更与
 凭证写入（`ModelConfigRepository.run_atomic`）；配置落盘失败按快照回滚凭证，删除时凭证清理失败则整体不删，
-可安全重试。修复及独立验收候选统一见 [STATUS问题台账](CURRENT_STATUS.md#3-问题台账与验收限制)，本文件只维护当前接口语义。
+可安全重试。修复及独立验收候选统一见 [CURRENT_STATUS 问题台账](CURRENT_STATUS.md)，本文件只维护当前接口语义。
 
 ## 后端凭证文件
 
@@ -51,7 +51,7 @@
 - 设置页原创建/编辑连接 API 不变，非空 `apiKey` 写入 `.env` 的 `ZQKY_API_KEY_<连接ID>`；空值仍表示保持原凭证。每个连接独立映射，模型共用所属连接的 Key。写入采用临时文件、flush/fsync、原子替换，保留其他行；删除连接会移除对应文件项。
 - 可手动编辑该变量（原样字符串、单引号或 JSON 双引号字符串均支持；不进行 shell 展开或变量插值），然后重启 API。进程环境变量在启动时覆盖同名文件项；Windows 环境变量名大小写不影响小写连接 ID 匹配。
 - 连接响应仍不回显密钥，新增非敏感 `credentialEnvName`，`credentialScope` 为 `env-file`（正式持久化存储）或 `process`（注入的内存存储）。`.env`、临时 `.env.*.tmp` 均由既有 `.gitignore` 排除；仅无密钥 `.env.example` 入库。
-- 文件读写失败返回 `CREDENTIAL_STORAGE_ERROR`，不回显凭证/底层异常。更新先校验 revision 与字段，凭证写失败不提交本次连接配置变更。跨文件补偿按 contract-v1 实现（R-01）：更新在同一临界区快照凭证，配置保存失败则回滚；删除在配置落盘前清理凭证，清理失败整体不删除，配置落盘失败恢复凭证；`credentialAction:"clear"` 提供独立清除动作（R-08）。相关回归见 `apps/api/tests/test_model_contract_v1_api.py` 与 `apps/api/tests/test_review_regressions.py`。没有数据库或第二套业务后端。
+- 文件读写失败返回 `CREDENTIAL_STORAGE_ERROR`，不回显凭证/底层异常。更新先校验 revision 与字段，凭证写失败不提交本次连接配置变更。跨文件补偿按 contract-v1 实现（R-01）：更新在同一临界区快照凭证，配置保存失败则回滚；删除在配置落盘前清理凭证，清理失败整体不删除，配置落盘失败恢复凭证；`credentialAction:"clear"` 提供独立清除动作（R-08）。相关回归见 `apps/api/tests/test_model_contract_v1_api.py` 与 `apps/api/tests/test_review_regressions.py`。凭证与模型配置沿用文件存储，不另建凭证数据库；教学业务使用下文的四库结构，全部由同一 FastAPI 后端提供服务。
 - 主聊天仅实例化真实服务、真实 IndexedDB 会话库；移除模拟生成与免密伪模型。SSE 事件名与三协议适配保持原契约。
 
 ## 模型目录与会话约定
@@ -95,7 +95,7 @@ FastAPI 服务位于 apps/api，仅监听 127.0.0.1:8000；浏览器经 Next 同
 | 方法与路径 | 状态 | 说明 |
 | --- | --- | --- |
 | GET `/api/v1/health` | 已实现 | 返回 `status/service/apiVersion/time`，不含配置内容 |
-| GET `/api/v1/capabilities` | 已实现 | 能力清单；`model_settings`、`chat` 为 `ready`，RAG 按本地就绪状态为 `ready` / `unavailable`；组卷/模板/教材库/题库/Agent/MCP/Skills 为 `planned` |
+| GET `/api/v1/capabilities` | 已实现 | 能力清单；`model_settings`、`chat`、`textbook_repository`、`question_bank` 为 `ready`，RAG 按运行时就绪状态为 `ready` / `unavailable`；教案真实 AI、组卷、模板、Agent/MCP/Skills 为 `planned`。清单不是全部教学闭环接口的索引 |
 | GET/POST `/api/v1/model-connections` | 已实现 | 连接列表/创建；非空 `apiKey` 经 SecretStore 持久化到 .env，响应只返回凭证状态和变量名，不回显 Key |
 | GET `/api/v1/model-catalog` | 已实现 | 一次读取带 revision 的连接/模型/默认模型目录 |
 | GET `/api/v1/model-connections/{id}/models` | 已实现 | 使用服务端凭证发现上游模型；不修改目录 |
@@ -106,7 +106,8 @@ FastAPI 服务位于 apps/api，仅监听 127.0.0.1:8000；浏览器经 Next 同
 | POST `/api/v1/model-profiles/{id}/test` | 已实现（D03） | 真实小额上游请求；无论上游成败都返回 200 `ok:true/false`，成功后 `chat` 证据更新为 `verified` |
 | POST `/api/v1/chat/stream` | 已实现（D04） | 规范化 SSE 流式对话（见下方事件协议）；客户端断开时取消上游连接 |
 | GET/POST `/api/v1/workflow-jobs/...` | 已实现（TEACHING-LOOP B0） | 公共任务查询/取消/重试；见下「教学闭环 B0 公共契约」，域未装配返回 503 |
-| 其余 `/api/v1/*` | 通配占位 | GET/POST/PUT/DELETE/PATCH 返回501 `FEATURE_NOT_IMPLEMENTED`，不能假成功 |
+| 教材、索引、RAG、题库、知识点、名单、原卷、施测与成绩 | 已建立真实路由 | 具体路径和语义见本文对应章节；依赖未就绪不能返回假成功 |
+| 未登记的 `/api/v1/*` | 通配占位 | GET/POST/PUT/DELETE/PATCH 返回501 `FEATURE_NOT_IMPLEMENTED`，不能假成功 |
 
 错误信封统一为 `code、message、requestId、retryable、details?`（details 只含脱敏展示内容），并附 `X-Request-Id` 头。约定：非允许 Origin → 403 `FORBIDDEN_ORIGIN`；非回环 Host → 400 `INVALID_HOST`；非 `/api/v1/*` 的未知路径 → 404 `NOT_FOUND`；参数错误 → 422 `INVALID_REQUEST`。后端停止时 Next 代理返回500纯文本，前端 `services/api-client.ts` 转为 `ApiError('SERVICE_UNAVAILABLE')`。本次与历史验收范围以 STATUS 为准。
 
@@ -131,7 +132,7 @@ FastAPI 服务位于 apps/api，仅监听 127.0.0.1:8000；浏览器经 Next 同
 
 ## 后续 HTTP 草案（未实现，不作当前调用契约）
 
-下表保留历史 D 阶段映射；实际排期以 STATUS 为准。这些 `/api/v1/*` 草案由通配占位返回501，不代表具体业务接口已实现。
+下表只列当前尚未实现的 HTTP 草案，历史 D 阶段编号仅供追溯；实际任务以 CURRENT_STATUS 为准。未登记的路径由通配占位返回 501，不代表具体业务接口已实现。教材、题库、RAG 和教学闭环已实现部分见后文，不属于本表。
 
 | 方法和路径 | 用途 | 实施阶段 |
 | --- | --- | --- |
@@ -139,7 +140,7 @@ FastAPI 服务位于 apps/api，仅监听 127.0.0.1:8000；浏览器经 Next 同
 | POST/GET `/api/v1/exports`、cancel、artifacts | 渲染任务与受控下载 | D07 |
 | POST `/api/v1/lesson-plans/fill` | 生成填充建议 | 随 D08 评估 |
 | GET/POST/PUT `/api/v1/lesson-plans(/{id})` | 未来多教案服务端存储 | 未排期 |
-| 教材库/题库/RAG/Agent/MCP/Skills 相关 | 仅契约规划 | F 系列 |
+| Agent/MCP/Skills 执行相关 | 仅契约规划 | 历史 F 系列；当前未排期 |
 
 填充类接口实施时沿用既定约束：同源会话、JSON 请求、30 秒默认超时，校验 patch 与 warnings，不在错误后回退规则实现。
 
@@ -147,9 +148,11 @@ FastAPI 服务位于 apps/api，仅监听 127.0.0.1:8000；浏览器经 Next 同
 
 后续多用户/任务服务接入前，先确定用户和文档ID、鉴权、版本冲突、任务状态、数据保留及错误规范。FastAPI 已有接口由服务端声明；当前前端契约（`apps/web/src/contracts/api.ts`）为手写对齐，未宣称由 OpenAPI 生成。health、capabilities、模型管理和聊天为实际实现；其他功能以实际路由登记和能力状态为准。
 
-资料、问答、练习、笔记等全项目接口仍参考原项目规划，待具体任务再细化。模型密钥与数据库连接仅放服务端，浏览器不接收供应商凭证。
+后续学情报告、教案调整与练习闭环依据 [教学闭环设计](design/teaching-loop-v1/README.md) 和 CURRENT_STATUS 排期细化；原项目规划仅作历史参考。模型密钥与数据库连接仅放服务端，浏览器不接收供应商凭证。
 
-## 本地教材 RAG（RAG-DELIVERY-v1）
+## 历史本地教材 RAG v1（已由 RAG v2 替代）
+
+本节保留旧四科快照契约的来源，**不作当前调用契约**。生产 `/rag/*` 已由下文 RAG-REBUILD v1.0 的 v2 协议取代；请求使用 `scope`，不再使用本节的 `subject` 或旧固定索引范围。
 
 所有接口位于现有 FastAPI，沿用回环 Host/Origin 限制和统一错误信封，无第二套业务后端。
 
@@ -187,7 +190,7 @@ SSE 使用单调递增 `id`：`message.start` → `rag.result` / `text.delta` �
 本轮把教材 RAG 从「固定四科 npy 快照」重建为「SQLite 教材目录 + Qdrant 向量库 + 严格任教范围」。
 **`/api/v1/rag/*` 是破坏性升级**：请求与结果结构升到 v2，旧四科的 `subject` 字段被 `scope` 取代。
 旧 `rag_engine`（`app/services/rag_engine/**`）与 `.local-data/rag` 资产保留在仓库里但**不再是生产路径**，
-回滚方式为 revert 本批提交。逐项对照见 [RAG-REBUILD v1.0 批次证据](qa/RAG-REBUILD-v1/README.md)。
+回滚方式为 revert 对应实现提交。逐项对照见 [RAG-REBUILD v1.0 历史批次证据](archive/pre-20260929/qa/RAG-REBUILD-v1/README.md)。
 
 ### 教材目录与导入
 
@@ -353,8 +356,8 @@ npm run rag:quality       # 固定质量集（30 问：10 组 × 2 正向 + 1 �
 
 依据 [教学闭环设计目录](design/teaching-loop-v1/README.md) 与
 [多 Agent 实施任务计划书 v2.0 §二.3](design/teaching-loop-v1/多Agent实施任务计划书_v2.0.md) 实施 B0
-（CTRL + T00）：冻结类型/错误/版本/任务/资产/迁移契约并落地公共基础。业务模块（知识点、名单、
-原卷、成绩、学情、练习、教案）在 B1—B7 另行实施，**本批未实现任何业务表与业务页面**。
+（CTRL + T00）：冻结类型/错误/版本/任务/资产/迁移契约并落地公共基础。下表记录 B0 的基础结构；
+知识点、名单、原卷、施测、成绩与对应页面已由后续 B1–B3 增量实现。学情报告、教案升级与练习闭环仍属后续任务。
 任务卡与逐项证据见 [B0 批次目录](qa/TEACHING-LOOP-B0/TASK-CARD.md)。
 
 ### 四库与迁移登记
@@ -471,12 +474,11 @@ npm run rag:quality       # 固定质量集（30 问：10 组 × 2 正向 + 1 �
 名单错误码：`CLASS_CODE_CONFLICT`/`CLASS_ARCHIVED`/`STUDENT_NO_CONFLICT`(409)、
 `ROSTER_ROW_INVALID`/`ROSTER_IDENTITY_UNRESOLVED`/`ROSTER_IMPORT_BLOCKING_ISSUES`/`ROSTER_MAPPING_INVALID`(422)。
 
-### 施测（planned，T30-b）
+### 施测契约的 B1 分期说明（已由 B2 实现替代）
 
-`POST /api/v1/assessments` 等**未实现**：由通配占位返回 501 `FEATURE_NOT_IMPLEMENTED`。
-本批只冻结契约（`AssessmentCreateRequest`/`ParticipantSnapshot`/`ConfirmedPaperRevisionView`/
-`ConfirmedPaperReader`），真实创建依赖 T40 已确认原卷修订，在 B2 的 T30-b 联调后验收；
-`UnavailablePaperReader` 任何调用都返回 501 `PAPER_READER_UNAVAILABLE`，**不返回模拟成功**。
+B1 仅冻结 `AssessmentCreateRequest`/`ParticipantSnapshot`/`ConfirmedPaperRevisionView`/
+`ConfirmedPaperReader`。B2 已装配真实 `ConfirmedPaperReader` 并实现施测创建，现行路径与闸门见下文「施测（T30-b）」。
+未装配真实 reader 时仍须明确返回不可用错误，不能返回模拟成功；不再将正式 `POST /api/v1/assessments` 描述为通配 501 占位。
 
 ### 富内容（T10，库能力，无 HTTP 路由）
 
@@ -506,9 +508,10 @@ npm run rag:quality       # 固定质量集（30 问：10 组 × 2 正向 + 1 �
 | 教学库 | `0004_teaching_assessment_tables` | `assessments`/`assessment_classes`/`assessment_participants` + 参测班级显式确认列 + `assessment_confirmed_paper_insert`/`assessment_paper_fixed` |
 | 题库 | `0004_question_knowledge_links` | `question_knowledge_links`（设计逐字 + 不可变触发器）+ `question_draft_knowledge_links`、`question_import_provenance`、`question_content_fingerprints` |
 
-**分期偏差（B2 冻结）**：`paper_revisions.source_practice_revision_id` 与 `assessments.active_score_revision_id`
-本批只允许为空（无未来表外键，CHECK 拒绝非空）；`paper_revisions.source_file_id` 必须非空；
-草稿 `total_score_units >= 0`，确认闸门要求 >0 且等于计分叶子合计；`paper_confirm` 无 `PRACTICE_NOT_REVIEWED` 分支。
+**分期结构及后续覆盖**：B2 冻结时 `paper_revisions.source_practice_revision_id` 与 `assessments.active_score_revision_id`
+均只允许为空。B3 的 `0007` 已重建 `assessments`，恢复成绩指针复合外键并允许引用本施测已确认成绩；
+现行成绩语义见下文「成绩迁移」。练习来源指针仍只允许为空，`paper_confirm` 尚无 `PRACTICE_NOT_REVIEWED` 分支。
+`paper_revisions.source_file_id` 必须非空；草稿 `total_score_units >= 0`，确认闸门要求 >0 且等于计分叶子合计。
 
 ### 原卷（T40）
 

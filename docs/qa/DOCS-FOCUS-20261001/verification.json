@@ -1,0 +1,49 @@
+{
+  "checkedAt": "2026-10-01",
+  "head": "d70f812777539374743e2ac0becad828fa167552",
+  "focusFromInclusive": "2026-09-29",
+  "result": "pass",
+  "archive": {
+    "filesChecked": 702,
+    "movedFiles": 679,
+    "snapshots": 23,
+    "failures": []
+  },
+  "compatibilityCopies": [
+    {
+      "path": "docs/qa/RAG-REBUILD-v1/FROZEN-CANDIDATE.json",
+      "pass": true
+    }
+  ],
+  "currentDocumentLinks": {
+    "documents": 57,
+    "fileLinksChecked": 228,
+    "broken": [],
+    "unbalancedFences": []
+  },
+  "retainedRecentEvidence": {
+    "directories": 7,
+    "trackedChanges": []
+  },
+  "productCode": {
+    "b3FrozenFilesChecked": 153,
+    "drift": [],
+    "outOfDocumentationScopeChanges": []
+  },
+  "gitDiffCheck": {
+    "exitCode": 0,
+    "output": ""
+  },
+  "notRun": [
+    "npm/check",
+    "pytest",
+    "Playwright",
+    "real model/Word/Qdrant",
+    "formal database migration"
+  ],
+  "limitations": [
+    "Historical document links are interpreted through MANIFEST; original bytes unchanged.",
+    "File-link validation does not validate web URLs or Markdown fragment anchors.",
+    "Current document edits are subsequent changes, not a refreeze of old candidates."
+  ]
+}

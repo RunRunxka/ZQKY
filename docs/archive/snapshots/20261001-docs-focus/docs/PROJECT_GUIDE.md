@@ -1,0 +1,563 @@
+# 项目目标与工程说明
+
+更新：2026-09-23。取代旧 ARCHITECTURE、DECISIONS、BASELINE 的现行说明；历史原文见 [项目历史](archive/History.md)。当前进度、代码审查、完整阶段计划与下一动作只维护在 [STATUS](CURRENT_STATUS.md)。
+
+## 1. 唯一目标
+
+目标仓库 `H:\备份xuexi\智启课源`；功能、业务信息结构与动画参考 `F:\DeepTutor`，固定 **v1.6.5 / 42fab3cf429a1fbf36b257ab8d116a3814964202**，只读且不自动更新版本。历史核对不替代后续每批的源码确认。
+
+用智启课源名称和品牌资产，完成参考**全部产品前端页面、AI 交互、原有动画**。全站首页、列表、详情、弹窗和公共控件以当前学习问答为视觉基准，保留蓝色主题；各模块保留完成业务所需的信息结构。保留既有教案编辑、草稿恢复、Word/PDF 导出、模型管理、真实 SSE 问答及本地数据。首页 `/` → `/chat`，教案独立入口 `/lesson-plans`。
+
+**允许模拟的是其他模块新服务的执行，不是删减前端；主聊天除外，生产只能调用真实服务。** 配置、输入、加载、流式/阶段、工具、等待用户、产物、失败、取消、重试、恢复、保存、跨页联动，凡参考存在的相关状态都要完整。服务边界显式注入，真实失败不回退模拟。主聊天复杂能力待真实通道接入后启用，不能把测试替身重新放回生产。
+
+只完成部分材料视图、block 呈现或省略暂停/恢复，均不是用户批准的永久缩减；是否已有修复看 STATUS 与源码，不在目标文档重复保存待办。解析、安装、联网、转录、鉴权未接入时，保留前端状态和服务契约，演示结果明确标注。
+
+## 2. 批准差异与统一规则
+
+2026-09-10 起的稳定决定：**所有板块整体界面以当前学习问答为准**，覆盖旧“主页外观仅限聊天”的范围说明。`/chat` 是唯一默认主页；品牌入口、404 恢复入口和页面标题都应与此一致。跨页全局侧栏共用尺寸、图标、排版、折叠状态和动画；**学习记录自 2026-09-23（UX-PERF-CLOSEOUT v1）起并入全站左侧导航的可滚动区域**，不再是导航与聊天之间的独立中栏（手机随同一个全站导航抽屉，不另开弹窗）。手机导航使用带遮罩、关闭入口、当前菜单语义和焦点管理的抽屉。统一外观不能删减模块状态或改变原业务功能。
+
+2026-09-09 已批准服务差异继续有效：主聊天删除模拟模式、模拟服务与伪模型，生产仅走真实 FastAPI；原模拟浏览器数据库不清除，其他模块演示功能保留。凭证允许通过后端 `.env` 持久化；推理展示/折叠以固定 `F:\DeepTutor` 的 `AssistantActivity` 为依据，AI 正文与推理支持公式。
+
+视觉来源顺序：当前学习问答实现 → 其来源包 `C:\Users\96022\Documents\Codex\2026-09-09\wo\outputs\deeptutor-page` → 固定 DeepTutor 的模块专属功能/交互/动画。来源、SHA256 与许可见 [资源说明](licenses/deeptutor-chat/README.md)。聊天输入区采用 912px 内容上限，不恢复旧 S2 的欢迎 768→会话 960 扩宽；其他业务工作区按内容需要布局，不把聊天宽度硬套到编辑器或阅读器。
+
+### 全站视觉基准
+
+| 层面 | 固定要求 |
+| --- | --- |
+| 品牌与色彩 | 保留智启课源名称与资产；主色使用现有 `--blue: #2563eb`，背景、表面、正文与分隔线沿用 `--surface / --ink / --line`，状态色只表达真实状态 |
+| 字体 | **单一 token 层（UX-PERF-CLOSEOUT v1，2026-09-23）**：`--font-ui` 界面正文黑体（其余模块页面、表单、卡片、表格；拉丁 Chat Geist、中文黑体回退）、`--font-display` 标题与展示衬线（Chat Lora + 明确中文衬线回退）、`--font-ui-serif` 界面衬线（= display 族；**左侧导航与学习问答的全部界面文字**）、`--font-document` 文档内容宋体族（教案纸面，与导出 Word 一致）、`--font-mono` 代码与等宽。局部例外：公式保留 KaTeX 自带字体族、图标为 SVG。**页面不得再散写具体字体名**；硬编码字体族已全部收敛到 token |
+| 全局壳 | 桌面侧栏 220px 展开、56px 收起、200ms 切换；当前项有蓝色背景/文字、可访问的 `aria-current`；折叠偏好跨页保存。**侧栏内主导航下方为独立可滚动的「学习记录」区域（仅学习问答提供），底部导航始终可见** |
+| 页面内容 | 首页、列表、详情、弹窗复用学习问答的留白、圆角、边框、阴影、图标线宽与文案语气；模块工作区按业务信息密度决定宽度 |
+| 聊天专属 | 912px 对话内容上限只属于学习问答，不复制到阅读、教案或编辑器；**不再有 236px 学习记录中栏**（已并入全站导航） |
+| 手机 | 使用模态抽屉、遮罩和显式关闭入口；打开时聚焦当前菜单或明确的回退控件，Tab 不逃逸，关闭后返回触发按钮 |
+| 动画 | 延用参考已有的时长、缓动、进入、退出和中断；系统与本地减少动画设置均生效，不为统一外观臆造动画 |
+| 错误与空态 | 正常页、错误页和 404 均保留统一导航和品牌语义；文案说明下一步，不显示不存在的操作 |
+
+这套基准是 H1–H5 每一批的完成条件之一；H6 只集中补漏和做全站总验收。
+
+| 项目 | 要求 |
+| --- | --- |
+| 品牌 | 智启课源；参考交互不等于沿用参考品牌 |
+| MCP/Skills | 唯一管理实现 `/settings#mcp`、`/settings#skills` |
+| 兼容地址 | `/mcp`、`/skills`、`/space/mcp`、`/space/skills` 只重定向设置 |
+| 聊天扩展 | 目录和管理只维护一套；当前未接入执行项明确不可用，不能把保留组件写成可用能力 |
+| 真实问答 | 保留 FastAPI、SSE、模型目录，不改为参考后端协议 |
+| 运行隔离 | 主聊天仅真实执行；其他模块演示明确标识；真实失败不转模拟，轮次快照固定，历史不重放 |
+| 教案 | 原功能与数据兼容，冻结旧版和 Word 原件不改 |
+| 动画 | 逐组件核对属性、时长、缓动、退出与中断；原版没有则不添加 |
+| 减少动画 | 系统偏好与本地设置均生效，保留反馈和焦点；不加第二套动画库 |
+
+## 3. 工程结构
+
+### 模型管理与供应商决定（2026-09-12）
+
+- 模型管理的信息结构和交互以固定 DeepTutor 的 `ConnectionsEditor`、`ServiceConfigEditor`、`ModelCards`、`ModelListPicker` 为准：连接可复用，供应商卡片打开详情，详情中配置连接及模型；打开编辑不等于切换当前模型。视觉仍使用智启课源学习问答的蓝色、字体和公共壳。仅调整模型相关设置，不借此重做其他设置与业务页。
+- 供应商身份、认证方式、API 格式和模型参数分层。供应商清单以固定源码 `deeptutor/services/provider_registry.py` 的注册表为依据；图标存在、通用三协议可调用均不代表已实现该供应商。旧别名和配置必须兼容，不按模型名猜测并改写用户显式连接。
+- 在既有 FastAPI Provider 工厂、模型目录和 SSE 事件上扩展，保留连接/profile ID、revision、默认模型与历史引用。旧数据迁移可回退；不照搬 DeepTutor 的配置文件结构或将 Key 镜像到非敏感模型 JSON。凭证只经服务端 secret store，前端只见状态；OAuth/本机认证需专门服务端生命周期，不能当普通 API Key 下拉选项实现。
+- 本轮模型范围只含 LLM 连接、模型配置和其必要认证/发现/推理能力。Embedding、搜索、TTS/STT、图像/视频生成、任务模型分配及其他业务模块不因参考页面包含它们而自动纳入。供应商实际请求格式以固定参考核对后实现；实测发现上游变化时单独记录差异，不静默更换参考版本。
+
+```text
+apps/web/src/
+  app/                   Next 薄路由、布局、错误/规划页
+  components/            公共壳、导航、通用控件
+  features/
+    chat/                输入、消息、过程、追问、产物、轮次 store
+    lesson-plan/         既有教案、草稿与导出
+    model-settings/      真实连接与模型管理
+    settings/            统一设置与扩展管理
+    space/               学习空间、历史、题库、角色、CLI
+    knowledge/ notebooks/ books/ courses/ reading/
+  services/              API、共享目录、模块仓储
+  contracts/             共用契约
+apps/api/                现有 FastAPI 三协议业务后端
+assets/templates/source/ 模板副本及校验信息
+tests/e2e/               正式浏览器回归
+tests/review/            独立审查复现，修复后迁入正式测试
+scripts/                 启动、模板与检查工具
+docs/                    当前规范、进度、矩阵、历史
+infra/                   部署规划
+项目规划/                 原始规划和参考原件，非执行入口
+_work/ test-results/      本机日志、截图、trace、备份（Git 忽略）
+```
+
+延用 npm workspace、Next App Router、React、TypeScript、Tailwind、Lucide、Zustand，版本以根锁文件为准。业务进 features，路由保持薄层，服务明确注入；不在服务端共享用户可变状态，不新建第二套业务后端。
+
+## 4. 数据与联动
+
+### 实施授权与模型稳定决定
+
+用户要求外部Agent队长完成当前任务的产品代码、集成、验收组织、权威文档及本地提交；Codex负责交付审查，用户另外要求的文档整理可由Codex执行。用户本轮明确任务优先，其余范围以STATUS中已授权且未完成的当前任务为准；已交付记录与后续路线不能推导为重复实施或所有模块无限授权。共享文件和运行资源仍需单一负责人，不等待Codex定稿或代写常规契约。
+
+下面保留2026-09-13模型批D1–D16稳定决定，供维护与兼容使用，不是重新执行P0的任务。模型实现与验收候选、未验范围统一见 [STATUS](CURRENT_STATUS.md)。当时合同原始散列在 `_work/model-providers-v1/contract-v1.md`；即使本机产物缺失，也可从本表、版本源码及API核对，不将不可迁移的_work作为唯一交接依据。
+
+| 项 | 模型稳定决定（原draft-2裁决） |
+| --- | --- |
+| D1 | providerId落库；旧连接缺字段时按原protocol映射custom，不猜供应商、不改URL、ID和默认引用。别名仅来自显式别名表，keywords是匹配词，二者分开。 |
+| D2 | apiFormat连接级，profile覆盖不纳入本批；非法新请求组合报明确错误，不静默换协议。旧配置规范化与新请求校验分开。 |
+| D3 | 支持请求开始前按供应商/模型/端点解析auto；OpenAI官方端点限制与Copilot专用规则分开。显式格式优先，记录本轮实际协议；流开始后不得切协议重放，认证/配额错误不被fallback掩盖。 |
+| D4 | Azure modelId复用deployment，运行时归一到/openai/v1并按参考走Responses；存储URL原值不改。apiVersion独立字段，参考仅preview实际转发，其他值不得显示为已生效。 |
+| D5 | 现有validate_base_url已允许路径，无需放宽。继续禁止query/fragment/内嵌凭证；版本走apiVersion字段，公网HTTPS、HTTP仅回环。 |
+| D6 | reasoningEnabled三态与reasoningEffort独立；reasoningStyle只读派生、不接受写入、不落库。effort覆盖参考含xhigh/max的受控全集，再按供应商/模型限制子集；明确关闭与非关闭effort冲突应校验。 |
+| D7 | 保留temperature/top_p，推理不放任意JSON；后端删除或固定参数时给出可解释状态，不暗示保存即上游已采用。 |
+| D8 | schema、Python/TS合同和仓储迁移均由外部队长指定负责人直接落地。读取v1不自动覆盖文件，首次写v2保留可恢复原配置并测失败回滚；不能只靠版本分支宣称可回退。 |
+| D9 | 接受model-providers与auth/status/start/cancel/logout路径方案；外部团队可调整模块拆分并修改main/lifespan挂载，无需本Codex加include。既有SSE事件与错误信封保留。 |
+| D10 | 认证四态可用，增加有定义的操作ID、过期/取消语义和可用方式；迟到回调不能复活已取消授权。不仅实现静态状态，须按实际流程完成生命周期和隔离测试。 |
+| D11 | Codex客户端常量存在不证明它属于DeepTutor或必需自有应用，实施者核对官方支持方式后实现；缺必要真实登录条件时精确记录。不得凭假设将三个专用供应商全部缩成API Key。 |
+| D12 | 发现返回upstream/catalog/manual来源；catalog注明来源/版本，manual明确无发现能力。认证/网络失败不能吞成空列表或回退静态候选冒充成功。 |
+| D13 | 接受提案新增认证/格式/操作错误类别；外部合同负责人同步HTTP状态、retryable、幂等语义和前端处理。 |
+| D14 | model_views、schemas、前端contracts/services及必要路由接线都归外部团队，文件各自单一写入者，不再只交diff建议。 |
+| D15 | 不向产品UI暴露原始backend作为选择或业务判断依据；下发apiFormats、认证方式、模型能力与实现/配置状态即可，backend保留服务端分派。 |
+| D16 | 不自动读取第三方CLI/IDE登录文件。CodeBuddy按参考已有API Key通道实现；Copilot的GitHub令牌交换与普通模型API Key不同，可对智启课源自身受管令牌存储实现注入和交换并用测试凭证隔离验证。真实获取/导入需用户操作时给具体步骤，未具备路径标不可用，不能伪造已支持或删供应商范围。 |
+
+共同约束：不新增isCustomProvider布尔来混合供应商类型和URL编辑状态；providerId=custom表达前者，显式baseUrl始终保留，默认地址替换由用户操作。目录支持多认证方式和可选无Key本机服务，不能用单一oauth/api_key枚举决定全部控件。以上决定供外部队长直接实施，剩余常规字段和文件组织由其自行完成；确实超出用户范围或需要用户登录时再提出具体问题。
+
+| 数据 | 当前实现 | 保持的关系 |
+| --- | --- | --- |
+| 聊天 | chat-repository，当前仅 IndexedDB `zhiqikeyuan-chat`；旧 `zhiqikeyuan-chat-mock` 留存但不读写 | revision、会话草稿、轮次快照、串行 flush、终态守卫；不得清旧数据解决兼容问题 |
+| MCP/Skills | extension-catalog | 设置修改更新聊天候选，历史快照不变 |
+| 人设/知识 | persona-catalog / knowledge-catalog | 业务页与聊天共享 id 和目录，失效引用提示 |
+| 题库/笔记 | space-store / notebook-store | 聊天保存、列表、编辑、作答记录与导出同源 |
+| 书籍/课程 | books-store / courses-store | 章节、进度和课程资源引用关联；删除资源显示不可用 |
+| 阅读 | reading-store 本地仓储 | 材料/集合/批注/书签/会话及会话草稿；发到笔记本真实本地写入；当前问题见 STATUS，历史首败见 review |
+| 教案 | 模块内 repository/store | 原格式兼容，读取失败不覆盖，编辑/恢复/导出可回归 |
+| 模型 | 既有 model-catalog / 后端 | 配置、普通调用、流式供应商验收分开，凭证不进入 Git |
+
+演示数据按稳定 id 合并，不能重写用户集合。读取失败/结构损坏不能当空库后覆盖；写入失败保留编辑并可重试。多键操作考虑中途失败恢复。切材料/会话/工作区时撤销旧异步任务和过期上下文，不能串数据。数据库格式变更须迁移与旧数据回归，不能清库解决。
+
+### 4.1 教材 RAG 接入设计（2026-09-22，规划，尚未实施）
+
+用户计划接入教材 RAG。实际发现路径为 `F:\ZQKY_RAG`，区别于原消息 `F:\ZQKY\_RAG`；不修改或搬迁该仓库。阶段状态、修复门槛和下一动作只记 STATUS §6.1。以下为拟采用架构，现行 API 与 capability 不因此变为已实现。
+
+1. **单一业务后端**：浏览器 → 现有 `apps/api` → 内部 RAG adapter → 可注入的 `locate_and_explain`/检索服务 → 本地模型运行时。复用现有错误信封、回环访问检查和生命周期，不新建 FastAPI 或 Next 业务后端。RAG 发布为固定版本、独立命名的 Python 包或一次受控源码引入，I0 决定其一；不永久 `sys.path` 指向可变的 `F:\ZQKY_RAG\src`，不把通用 `src` 命名空间散入宿主。
+2. **保持本地执行策略**：RAG 默认本地检索融合 alpha=0.5、rerank off；embedding 与讲解用固定身份的本地模型，不因聊天默认模型是云端就将教材或题面转给云端。普通聊天维持原 provider 行为。模型/权重/索引身份、能力就绪与数据来源分别记录；不自动下载权重、不偷偷启用云端回退。embedding/rerank 保持独立接口，不伪装成 LLM chat adapter。
+3. **运行隔离**：I0 先验证宿主锁定 Python/uv 环境。CPU/同步检索不得直接堵塞 async 路由；采用有界线程/任务执行，GPU 模型访问设置并发/队列上限，显式超时与协作取消。取消 HTTP 等待不等于取消底层推理，实际停止能力必须测量；取消后的结果永不落入新轮次。独立本地推理进程可复用，不增加第二套业务服务；不能依赖未记录的个人 system-site-packages。
+4. **语料与索引**：教材根目录和受信索引目录由服务端配置，教材就地只读，不进 Git；权重、向量、缓存和原始评测题不入 Git。冻结包记录代码/模型/语料/chunks/索引/schema 指纹，加载失败明确不可用，不自动重建或静默换模型。仅接受部署方生成的受信索引，特别是 pickle 产物，禁止用户上传后直接反序列化。首版接入既有教材，不自动扩大成任意附件解析/通用知识库上传。
+5. **证据合同**：保留 `LocateResult.status` 与 EvidenceSpan/Citation；绑定书册唯一标识、相对 file、章节、原文 sha256、字符/行区间、原文和教材外补充。字符区间是归一化 Python str 的 Unicode 码点 `[start,end)`，行号是1起闭区间，原文散列是文件原始字节；前端 UTF-16 下标不可直接套用，优先由后端返回核验后的片段及定位。score 是未校准排序值，不能显示为正确概率。引用 ID 只在单结果内唯一，宿主须连同 resultId/sessionId/turnId 绑定。
+6. **引用读取边界**：前端通过受控 citation/result ID 请求来源片段，服务端在限定语料根内解析并重新检查散列/区间；拒绝路径穿越、绝对路径和链接逃逸，不开放任意读盘接口。教材文本与模型输出视作不可信数据，原文不能成为工具指令。来源变更需明确失效，不继续展示为已验证引用。
+7. **追问是完整状态合同**：当前 AskUserCard 与 store 可复用，真实服务仍拒绝 submitReply。I0 必须确定 sessionId/turnId/interactionId/operationId、版本、幂等、TTL、状态查询、等待和终态事件；等待用户时可以关闭 SSE 并释放模型连接，不能把连接 EOF 自动当最终完成。续答走新请求并验证原交互身份，重复请求返回同操作状态；崩溃中断不冒充 exactly-once，也不自动重放耗时生成。
+8. **恢复与隐私先决策**：优先沿用客户端 IndexedDB 保存题面/回答/卡片快照，服务端只保留最小交互身份、revision、状态、期限与结果引用；客户端快照须有服务端完整性校验和范围重验，不能信任任意回传上下文。I0 明确后端重启恢复或“已中断可重试”的合同。若实现必须持久化原始题面/回答/教材原文，先明确数据保存、清理和授权决定，不默认突破现有“对话内容不在后端落盘或记录日志”规则；不引入数据库作为隐藏前置。
+9. **界面落点**：/chat 显式教材定位/追问入口，普通聊天不强制检索；原文与定位作为结构化引用/来源面板，追问卡承载知识点确认和纠偏，可展示摘要，不把全部证据只拼进 prompt 文本。真实本地、模拟、缓存状态分别呈现；AskUserCard 的“本地模拟”改为来源驱动，历史模拟卡标记必须保留。仅端到端真实闭环验收后启用相关 capability。
+10. **质量与上线分开**：原文可核验、零云端、接口可用属于工程出口；段级定位与讲解质量另按冻结金标、分科指标和人工审核验收。真实本地可运行不等于教学正确，历史节级 Hit@5 不等于答案准确率。未过质量门槛只允许明确边界的技术预览。
+
+### 4.2 接入准备核对清单（2026-09-22 只读核对 `F:\ZQKY_RAG`，事实与缺口）
+
+**2026-09-23 更新（RAG-I0-PREP v1）**：上游实际 HEAD `a0f9ade`（父 `8ed22b8`，分支 `master`），工作区 7→13 项漂移（含 P8B 12 题裁定材料未提交；核对期间另一写入者新增 `src/evaluation/*_v2.py` 等），**未确认停止写入**；候选冻结 `P8-FREEZE-20260922-190500` 的包/manifest/receipt 完好（144 成员、receipt sha256 逐一匹配），`freeze_snapshot.py --verify` 退出码 1 且失败仅为“当前树 vs 快照”漂移 18 项、**不比对 HEAD/porcelain**；冻结配置表 20/20 与 `configs/**` 一致；性能：热态检索 p95 210/369 ms 达标、**端到端 P95 22.7 s 未达标**；质量三类结论仍 `not_run`（评审者 0）。宿主侧 I0 已完成：内部 adapter 契约（`apps/api/app/contracts/rag_adapter.py`：输入输出/引用坐标/状态与错误 + 双向 UTF-16↔码点转换）、**35 例**合成数据契约测试、`get_rag_adapter()` 恒定不可用且无路由；**执行边界（有界队列/超时/取消等待≠停止推理/迟到结果/模型不可用）仅为设计描述、全部未实测**。以下表格为 2026-09-22 的现场记录（保留为历史）：
+
+以下为**只读核对**得到的事实（未修改 RAG 仓库、未运行其测试/评测、未加载模型、未启动服务），供 I0 决策使用；事实若与 RAG 侧文档不符，以现场为准并去更新本表。
+
+| 项目 | 现场事实 | 缺口 / 待办 |
+| --- | --- | --- |
+| 可恢复版本 | **未发现可恢复版本交付物**：无 tag、无 remote、无 bundle/zip/pack；`git tag -l` 空、`count-objects -v` 显示 `in-pack: 0`。唯一提交基线 `3b132df` 只覆盖到 P4-LOCAL；`git status --porcelain -uall` 为 74 条（18 modified + 56 untracked），暂存区为空——`src/service.py`、`src/config.py`、`src/llm/`、`src/retrieval/{evidence,rerank,execution_policy}.py`、`src/locate_cli.py` 等**尚未跟踪** | 宿主 R0 的进入条件要求"可恢复提交或受控版本包"：需由 RAG 侧先产出（本批不代做、不提交其工作区） |
+| 依赖指纹 | 直接依赖 pinned（`numpy==2.5.3`/`httpx==0.28.1`/`jieba`/`rank_bm25`/`PyYAML`/`pytest`；本地重排另有 `transformers/tokenizers/…`）；**无 `--require-hashes`**，主环境无全量 freeze；本地重排 venv 依赖基础解释器的 `--system-site-packages` 提供 torch | 与宿主锁定环境的重装与导入验证属 I0；不接受未记录的个人 site-packages |
+| 模型/索引指纹 | 有：reranker 权重逐文件 sha256 + 固定 revision（`P5-LOCAL-RUNTIME/weights_manifest.json`）、Ollama `bge-m3` blob digest、索引 `chunks_fingerprint`；但索引建于 2026-09-19 时**未记录权重 digest**（该次构建身份为历史未知，等价性靠重嵌位级一致支撑）。这些指纹文件位于被 gitignore 的 `data/derived/`，**不在任何提交里** | 冻结包需携带指纹清单；索引/权重/缓存不入 Git，加载失败必须明确不可用 |
+| 服务输入输出 | 入口是**同步纯函数**：`locate_and_explain(question, *, deps=ServiceDeps(...), subject/book/file, top_k, pool, alpha, rerank='off') -> LocateResult`；无 HTTP 框架/端口/凭证依赖，全部 I/O 经 `ServiceDeps` 注入；`SERVICE_CONTRACT_VERSION = "p8a-v1(evidence:v1,schema:p7-v2)"`；`rerank != "off"` 直接 `ValueError` | 宿主侧仍需在 `apps/api` 内做"同步检索不阻塞 async 路由"的有界执行与取消适配（I0/I1） |
+| 引用坐标 | `EvidenceSpan{citation_id,file,book,path,source_sha256,char_span,line_span,text,chunk_ids,method,selection_score,score_kind,expansions}`；`char_span` 是**归一化 str 的 Unicode 码点** `[start,end)`（非字节偏移、非前端 UTF-16 下标），`source_sha256` 是**原始文件字节**散列，`line_span` 1 起闭区间；`citation_id` 只在单结果内唯一 | 前端展示/定位需由后端返回核验后片段；宿主须绑定 resultId/sessionId/turnId |
+| 错误状态 | `LocateResult.status ∈ {ok, partial, uncertain, generation_failed, model_unavailable, invalid_citation}`（`contracts.py` 冻结 6 值）；服务层映射含证据为空→uncertain、预算不足→partial、模型/查询向量化不可用→model_unavailable、有解释但引用全失败→invalid_citation，另有 `failure_stage ∈ {context_budget, embed_query, retrieval, evidence}` | 宿主 capability/错误信封映射与前端呈现需在 I0/I1 落地；当前 `capabilities.py` 的 `rag` 仍为 planned |
+| 资源与取消边界 | 配置了超时（embedding 120/60s、rerank worker 600s、云端 rerank 60s+重试、生成 300s）与生成预算（`num_ctx/num_predict/safety_margin`、发送前拒绝并 `refused=true`）；生成器支持 `cancel_token`（请求前/返回后/身份核验后各检一次），rerank worker 单请求在飞、OOM 降级且**绝不回落云端**；台账含取消后计次规则 | **未发现并发/队列上限实现**（无 Semaphore/max_workers/队列深度限制），也无"实际停止能力"测量证据；宿主 §4.1 第 3 条要求的队列上限与停止能力测量需在 I0/I1 补齐并测量 |
+| 质量口径 | RAG 侧 STATUS 记录 **P8A 十项（4 P1 + 6 P2）已修复并独立复验为 fixed（14/14）**；段级质量与讲解支持性**人工评审 not_run**（88 题全 pending、金标 0、`human_reviewer: null`），性能属 P8C 未评估 | 质量门槛未过只能进受限技术预览；宿主不得把"节级 Hit@5"当解释正确率 |
+
+### 4.3 课程学习会话与课程上下文（H1-COURSE-SESSIONS v1，2026-09-22 稳定决定）
+
+参考 `F:\DeepTutor` @ `42fab3cf` 的对应形态是"会话 preferences 里的 `course_id` + 每轮现读课程渲染 system 提示块 + course_study 状态摘要"。本宿主无服务端会话库，契约按下列稳定决定落地（与参考的差异随行说明）：
+
+1. **归属字段**：`Conversation.courseId`（可选，稳定课程 id）。缺失或空串 = **未归属**；旧会话保持未归属，**不按标题、最近访问或 URL 猜测**，也不因出现在某课程页而被改写。`ConversationMeta.courseId` 贯通列表元数据，课程页只按 `meta.courseId === course.id` 过滤（与参考"拉全量会话后客户端过滤"一致）。`schemaVersion` 不变（读取期容错、不迁移、不回填）。
+2. **会话库唯一**：课程会话复用既有 IndexedDB `zhiqikeyuan-chat` 与 `ChatRepository`，课程页与聊天页共用 `buildNewConversation` 形状；**不建第二套课程会话库、不做模拟问答**。创建走"保存成功后才跳转"，同一 tick 连点由同步 ref 去重。
+3. **课程上下文的进入方式（有意差异）**：发送时把课程名、约定（`instructions`，截 1200 字符）、大纲摘要与**仅登记形态**的资源清单冻结为 `TurnCourseSnapshot`，渲染成**一条 `system` 消息**插在请求 `messages` 最前，经既有 `POST /api/v1/chat/stream` 到达供应商适配器（`ChatMessageIn.role` 已支持 system，不新增请求字段、不改后端协议）。快照随助手消息持久化：**重试沿用原快照**，课程修改只影响**新轮**——参考为"每轮现读"，本宿主按用户要求采用轮次冻结以避免"重试读到新配置"。
+4. **课程删除/归档不修改会话**（有意差异）：不级联删除、不清空 `courseId`、不自动换绑；展示层如实标注"所属课程已删除或不可用"并**不回落其他课程**（参考在删除时把命中会话的 `course_id` 清空）。归档课程会话区只读（新建禁用），既有会话仍可打开。
+5. **能力边界如实**：课程资源只是登记引用（R-11 三态 available/missing/unknown；目录读取失败不得当成"目标已删除"），**登记不等于已解析、已检索或已随请求发送**；RAG 未接入；大纲 `covered` 为学员手判，**不推断掌握度**（参考同样明令 covered 由学习者决定）。
+6. **不变量**：主聊天仅真实服务（无 `?mode=mock` 捷径）；R-10 来源回链、深链失效不回落最近会话、turnId/sessionId 事件守卫、归档会话不入侧栏等既有语义不受本批影响。
+
+### 4.4 学习问答请求的统一预算（CHAT-CONTEXT-BUDGET v1，2026-09-23 稳定决定）
+
+一次真实请求到底发送什么，由 `features/chat/model/request-budget.ts` 的 `buildChatRequest()` **唯一构建**；`features/chat/model/store.ts` 只透传，不再二次裁剪。稳定口径：
+
+1. **预算口径**：`inputBudgetChars = min(contextBudgetChars(contextTokens, maxOutputTokens), maxTotalChars)`，其中 `contextBudgetChars = max(2000, contextTokens*2 - maxOutputTokens*3)`（1 token ≈ 2 字符的**保守字符估算**）。后端硬限制的单一事实来源是同模块的 `BACKEND_REQUEST_LIMITS`，对应 `apps/api/app/schemas/chat.py` 的 `MAX_MESSAGES=200` / `MAX_MESSAGE_CHARS=32000` / `MAX_TOTAL_CHARS=120000`。**不得把字符估算表述为精确 token 计数，也不承诺不超模型自身上下文上限——只承诺不超本轮输入预算与后端硬限制。**
+2. **裁剪阶梯（固定顺序）**：① 课程块动态字段限幅 → ② 整条丢弃最旧的旧历史 → ③ 整体丢弃课程块（`courseDropped=true`，本轮**不携带**课程上下文，界面如实提示）。**绝不拼接半条消息、绝不静默截断历史正文**；课程块被丢弃时不得发送残缺上下文冒充完整。
+3. **当前问题不可裁剪**：`question` 逐字发送；若超过 `min(inputBudget, maxMessageChars)` 则**发送前**返回 `ok:false`，store 只设置可读提示（`budgetNotice`），**不清草稿、不入库用户消息、不创建助手占位、不置 `sending`**，用户改短后可重发。失败路径不得留下 `sending=true`、空助手占位、不可重试状态或未处理 Promise。
+4. **课程块字段上限**：`name ≤ 80`、`nextTitle ≤ 120`、`conventions ≤ 1200`、资源 ≤ 12 条且单条标签 ≤ 80、整体 ≤ `min(2400, maxMessageChars-1)`；「内容未解析、未检索、未随本请求发送」免责句是**固定前缀，不被砍尾**。限幅只作用于发送内容，**不回写课程原始数据（`StudyCourse`）与历史消息正文**。
+5. **轮次冻结不变**：新轮用新快照、旧轮重试用**冻结在助手消息上的原快照**（`ChatMessage.courseContext`）；历史遗留的超长快照同样经同一构建器安全渲染（限幅/整体丢弃），**不要求清库**。
+6. **账目可核**：`ChatMessage.requestBudget`（`RequestBudgetRecord`）随助手消息持久化，记录 `totalChars/inputBudgetChars/maxMessageChars/maxTotalChars/historyDroppedMessages/courseTrimmedFields/courseDropped`，只反映**发送时**事实；历史原文不变。
+7. **不改动**：模型输出预算默认值、推理开关、R-13 处理范围、供应商选择；不引入 RAG 内容或模拟聊天。
+
+---
+
+### 4.5 内部 RAG adapter 契约（RAG-I0-PREP v1，2026-09-23 宿主侧稳定决定）
+
+宿主侧契约落在 `apps/api/app/contracts/rag_adapter.py`（**仅契约与纯函数**），稳定口径：
+
+1. **能力可用性**：`get_rag_adapter()` **恒定抛 `RagAdapterUnavailable`**；不注册路由、不在任何现有端点调用，capability 状态保持 `planned`。**禁止给任何"返回演示成功"的生产入口**；未接入期间宿主不得声称已检索教材。
+2. **输入输出**：`RagQuery{question, courseScope, maxEvidence}` → `RagAnswer{status, answer, evidence, citations, warnings}`；契约 `extra="forbid"` + `frozen`，指纹只收 64 位小写 hexdigest。
+3. **状态**：`ok | no_evidence | stale_source | out_of_range | unavailable`；**非 `ok` 一律 `answer=None`、`evidence=[]`、`citations=[]` 且 `warnings` 非空**。`unavailable` 不得降级成 `no_evidence` 冒充"没有内容"。
+4. **引用坐标**：字符区间半开 `[charStart, charEnd)`、行号 1 基闭区间 `[lineStart, lineEnd]`；RAG 侧与宿主后端是 Python **码点**下标，前端是 **UTF-16 码元**下标，**不得直接混用**，换算必须走 `codepoint_to_utf16_offset` / `utf16_offset_to_codepoint`；`fileFingerprint` 是**原始文件字节**的 SHA-256，与字符下标是两套语义。
+5. **越界不裁剪**：区间倒置、引用超出证据区间、指纹格式非法、引用悬空、状态夹带载荷一律抛错；`validate_answer_payload()` 只校验、不归一化、不做 I/O。
+6. **执行边界（设计约束，均未实测）**：有界队列（不得无界排队）、超时分层（总超时 vs 子超时）、**取消只保证"取消等待"，不声明能中断底层推理**、迟到结果按 `requestId/turnId` 丢弃、模型不可用时如实报错。未实测的能力**不得写成已支持**。
+
+---
+
+### 4.6 长推理流呈现、模式菜单、学习记录归属与字体 token（UX-PERF-CLOSEOUT v1，2026-09-23 稳定决定）
+
+1. **推理流的呈现与提交**：活跃流期间（`status === 'streaming'`）与推理折叠未展开时，推理正文以
+   **轻量纯文本**呈现（`pre-wrap`，字号/行高/颜色与展开后一致）；仅在**已结束且用户正在看**时做一次
+   完整 Markdown/KaTeX 渲染。文本/推理增量按「前缘立即 + 尾部合并」节流，**可见更新时延上限 80 ms**；
+   缓冲按原顺序折叠进消息，任何非文本事件与终止/停止/断流/切会话/落盘前必须先提交缓冲区。
+   **不得**为此丢增量、截断原文、关闭动画或把真实失败改成模拟；折叠与自动跟随语义不变。
+2. **写盘语义**：持续流式期间 `flush()` 一轮只保存“进入时的脏快照”，其余脏数据留在集合中由
+   `change()` 重排的 400 ms 定时器与终态 flush 处理；**无活动轮次时仍循环到清空**，
+   「显式 flush 落全部」的契约在刷新/离开/切会话/停止/错误路径上不变。
+3. **模式菜单为单层**：「更多能力」二级飞出层及其三项专属能力（deep_solve / deep_research /
+   immersive_watching）已整体移除（不可达产品代码）。菜单固定为
+   `对话 / 追问澄清 / 智能出题 / 可视化 / RAG 模式`，**不再开二级菜单或选择弹窗**。
+4. **RAG 模式的可用性行为（总控裁定）**：入口与其余模式**同一行样式与同一选中语义**，
+   **不可选（disabled）**，原因以**行内徽标「未接入 · 规划中」直接可见**（不只在 `title` 里），
+   与后端 `/capabilities` 的 `feature="rag", status=planned` 一致；`ChatWorkspace.submit()`
+   另保留专门阻断文案作纵深防御。**任何情况下都不得把该模式发到普通聊天冒充检索成功、
+   不得返回模拟检索结果**；真实 RAG 未接入前，`get_rag_adapter()` 恒定不可用。
+5. **学习记录归属**：`/chat` 的学习记录并入全站左侧导航内的可滚动区域（`WorkspaceShell.sidebarContent`），
+   桌面侧栏收起为 56px 图标栏时该区域隐藏；手机随同一个功能导航抽屉呈现（复用其遮罩、关闭入口、
+   焦点圈定与 Escape 语义），**不另建第二套弹窗**。独立中栏的折叠/打开按钮与状态已删除，
+   只保留全站导航本身的折叠按钮；新建/搜索/切换/重命名/删除/归档/深链/课程会话往返/本地保存行为不变。
+6. **书籍归属**：`/books`、`/books/[...]`、`/courses` 的路由、数据与业务不变；左侧导航不再把「书籍」
+   作为与「教材资料库」并列的顶级项——书籍与课程为隐藏直达项，桌面在这些路由上**唯一高亮「教材资料库」**
+   （父菜单解析支持传递上溯），手机抽屉仍列出「书籍」「课程」，教材资料库页提供清晰可达的书籍/课程入口。
+7. **字体与排版**：见 §2 全站视觉基准的字体行（token 层为唯一来源）。
+8. **教案工作台**：不再显示「备课空间 > 教案工作台」面包屑，改为与协同写作/沉浸阅读同级的直接页面标题；
+   面板顺序为 **编辑区 → 可折叠「教案配置」→ 教案预览**，折叠按钮只保留编辑区顶部一个
+   （`aria-expanded`/`aria-controls` 与状态一致），折叠只切 class **不卸载**（表单值/预览/撤销历史/焦点不丢）。
+
+---
+
+## 5. 验收定义
+
+页面矩阵分开记录功能状态与学习问答视觉状态；AI 矩阵区分前端组件、显式模拟、真实通道和供应商验收；动画矩阵记录参数、中断、退出与减少动画。每条按适用范围补参考源码、目标组件、入口、保存/恢复、错误/取消、实际检查和证据。53 个现有非调试页面条目（50 参考产品页、1 自有教案、2 额外别名）是清单计数，不能当百分比；改分母须说明参考扫描依据。
+
+静态截图核布局，录像/采样核开始—过渡—结束和中断；覆盖 1440×900、1920×1080、390×844、主题与减少动画。构建、自动断言、人工视觉和真实供应商分别记录。导航 `ready` 只表示入口可达，不代表完整复刻已验收。
+
+## 6. Git 与恢复
+
+基线 `b8cf71f`，标签 `checkpoint/pre-reading-review-20260908`；分支 `codex/replica-review-20260908`。这是带已知缺陷的审查前快照。当前用户已授权本地版本控制，每批小提交，不自动推送/部署，不全局修改 Git 身份。历史基线仅供只读追溯，不能当新任务起点或自动恢复目标。
+
+**分支与远程改名（2026-09-21，用户决定）**：工作分支由 `codex/replica-review-20260908` 改名为 **`main`**——仅 `git branch -m` 加一次普通推送，**提交 SHA 未变、历史未改写**（改名时点 `17e3a09`）；当时远程默认分支一度切为 `main`，旧名分支已删除，`feat/glass-theme` 不受影响。仓库地址改为 `https://github.com/RunRunxka/ZQKY.git`（GitHub 提示仓库已更名），本地 `origin` 的 fetch/push 已指向新地址。本段以上及 `docs/qa/**`、`docs/archive/**` 中其余旧分支名是**当时批次的历史记录**，按证据原则保持原样，不代表当前分支。
+
+**分支分工（2026-09-21 用户裁定，以此为准）**：**默认（集成）分支 = `feat/glass-theme`**——它已完整包含 `main` 的历史（`git merge main` → `191c1ad`），并承载主题四提交与根目录 Word 原件恢复（`cb0bfd8`）；GitHub 默认分支按此设置，本地 `origin/HEAD` 已同步为 `origin/feat/glass-theme`。**`main` 是用户个人分支**，只承接本线小提交（分支改名记录 `b4604d7`、在 `main` 补回 Word 原件 `c7df565`；`main` 上 `npm run template:verify` 曾因该文件缺失而退出码 1，`c7df565` 后恢复为 `{"original": true, "source": true}`）。主题与整合工作以 `feat/glass-theme` 为准，不要把 `main` 当作另一条主线。
+
+流程：status/diff → 确定本批 → 实现/验证 → 更新唯一STATUS及对应矩阵 → 显式暂存 → diff --cached --check 与产物/凭证检查 → 本地提交。最终SHA在结果卡报告，后续接手现场读取Git。WIP 可以保存但不得标已验收。不覆盖用户或其他人的未提交修改。
+
+```powershell
+git log --oneline --decorate -8
+git diff checkpoint/pre-reading-review-20260908 -- docs
+git show checkpoint/pre-reading-review-20260908:docs/replica/HANDOFF.md
+# 在共享工作区只读查看，不切换其他实例正在使用的分支：
+git show checkpoint/pre-reading-review-20260908:README.md
+```
+
+撤销明确提交优先 `git revert <提交>`，不用 `reset --hard`、`clean -fd` 或批量覆盖。备份包在 `_work/git-backups/`，可 `git bundle verify <文件>` 校验。**Git/bundle 不含浏览器 localStorage/IndexedDB、忽略的运行数据与凭证**；数据迁移前另做可控导出与兼容验证，测试只用隔离数据。
+
+## 7. 文档规则
+
+README 做入口，PROJECT_GUIDE 管目标/架构/决定，STATUS 管进度/代码审查/完整计划/下一动作，NEXT_SESSION_START 仅提供接手步骤。API、ROUTES 管现行契约，三矩阵管条目证据，独立 review 保留首败与修复依据。MULTI_AGENT_COLLABORATION_PROPOSAL 保留可复用任务卡、结果卡和团队启动/角色提示词，详细任务引用STATUS，不保存当前 HEAD、进度或断点。不再维护多份 TASKS/HANDOFF/FINAL 提示词。
+
+19 份旧文档已合并为 [项目历史](archive/History.md)、[交付历史](archive/History.md)、[审查历史](archive/History.md)、[提示词历史](archive/History.md)。2026-09-10 将旧 STATUS、旧 NEXT_SESSION_START、GAP_AUDIT 原文继续合入后三份归档，撤销 GAP_AUDIT 的独立状态维护入口。修复记录仍追加原 review，当前任务只更新 STATUS。清单保留原路径、原始与规范化 SHA256；旧相对链接以原文件目录解释，完整文件可从来源 Git 读取。原始规划/参考图/Word 保留。
+
+2026-09-15再次整理：旧STATUS和模型专用启动文本原文追加到既有交付/提示词归档并登记散列；现行STATUS只维护目标下的模块现状、问题、批次索引、当前任务及后续路线。禁止以“唯一模型阻断”为由隐藏全站视觉和未实现业务。
+
+## 8. 教材 RAG 本地交付决定（2026-09-26；同日安装并验收）
+
+用户已明确要求移植并直接使用，先前“未启动接入”仅为历史记录。**本决定已于 2026-09-26 落地**：固定源码快照已安装到宿主、依赖按 `apps/api/uv.lock` 同步、宿主检查与真实浏览器验收通过、独立只读验收 `pass（附条件）`；逐项证据见 [RAG-DELIVERY-v2](qa/RAG-DELIVERY-20260926/README.md)。§4.1–§4.5 保留为设计/历史记录，其中“尚未实施 / 恒定不可用 / capability 仍 planned”等表述已被本段取代。采用受控源码快照 `app.services.rag_engine`，
+不运行时依赖可变的上游目录；清单记录来源模块和资产散列。运行仍在唯一 `apps/api` 中。
+
+公开能力限定为四科教材定位、原文讲解摘录、同轮追问。受控实测发现小模型核验也可能放行错误推导，
+故默认只公开教材本身的文字，独立生成的解题推导不开放；人工教学质量未完成不因接口就绪而升级。
+产品学科范围单独由 `host_runtime.yaml` 维护，不能沿用冻结评测对生物必修一等的缩小筛选。**未指定学科时取四科并集（实测 6,745/11,608 块），索引内其他学科册不属于产品范围**；该范围选择只在产品入口发生，索引与冻结评测分组不变。
+
+普通聊天的云供应商选项不影响 RAG；RAG 不回退云端、不自动下载模型或建立索引。
+浏览器保留会话；后端仅短期内存保留题文和事件。缓存拒答与正常结果，技术失败/取消不缓存，**同进程 600 秒 TTL 内重放逐字节一致；跨进程/重启后生成非确定，同一题可能一次给摘录、一次拒答**，
+模型/资产身份失败明确终止；重启后不承诺恢复未完成轮次。现行协议以 API 文档为准，覆盖旧 4.5 一次性接口不能表达的 partial/uncertain。
+
+---
+
+## 9. 教材 RAG 与题库的稳定决定（RAG-REBUILD v1.0，2026-09-28）
+
+> 本文档 §4.1–§4.5 记录的是 2026-09-22 的旧设计与 2026-09-26 的四科快照交付；本节是**当前口径**。
+> 逐项证据见 [RAG-REBUILD v1.0 批次证据](qa/RAG-REBUILD-v1/README.md)。
+
+### 9.1 存储与唯一权威
+
+- **教材目录 = SQLite**（`.local-data/textbooks/catalog.sqlite3`）：分类、逻辑库、文档与**不可变修订**、
+  分块集、索引代、任务与任教设置。**题库 = 另一个独立 SQLite**（`.local-data/question-bank/`），
+  两者不共享连接、不互相打开。
+- **向量库 = 本机 Docker 中的 Qdrant**（named volume；正式 6333，验收 16333 独立 project 与 volume）。
+  Qdrant 数据目录**不**直接挂载 Windows 路径。
+- **`catalog_state.active_generation_id` 是唯一的「当前索引」权威**。不再存在第二个模型指针、
+  Qdrant alias 或 `model-config.json` 字段来表达"当前用哪个索引"。
+- 不可变表（`document_revisions` / `document_metadata_revisions` / `chunk_sets` / `chunks`）**没有任何 UPDATE 路径**；
+  改分类 = 新增元数据修订；改分块或划分规则 = 指纹变化 = 新分块集。
+- 网络、解析、推理**不得**在 SQL 写事务内执行；向量库不可达必须报 `QDRANT_UNAVAILABLE`，
+  **绝不降级成"没有匹配"**。
+
+### 9.2 解析、分块与检索范围
+
+- 支持 `.md` / 文本 `.pdf` / `.docx`；扫描件不实现 OCR，明确 `DOCUMENT_NEEDS_OCR`，**不生成空索引**。
+- 解析规则版本化：`PARSER_VERSION`（规范化文本语义）与 `REGION_RULES_VERSION`（正文/习题划分）
+  分别递增，且划分规则版本**进入分块策略指纹**，避免规则变化被旧分块集静默复用。
+- 正文/习题**保留区分**（`region`）。**全部块都写入向量库**，检索时用过滤器限定 `region=body`
+  ——即「只检索正文」，不是「只索引正文」。划分结果异常（习题占比 >90%，或某册 body <50%）
+  时降级/告警并在导入草稿里如实呈现。
+- 分块默认目标 800 码点 / 上限 1200 / 重叠 ≤120，公式、表格与代码围栏不从中间截断。
+- **检索范围**：年级 + 学科 + 教材版本 + 教师明确确认的书册。范围由服务端解析并冻结为 `scopeSnapshot`，
+  每次使用前重新核验归属、修订、分类、删除与索引代并重算 `scopeHash`（`scopeHash` 用于检测意外变化，
+  **不是认证凭证**）。不把课程标题、旧知识库名或问题里的"高二数学"当作可信范围。
+- 检索固定为**向量 50 + BM25 50 + RRF(k=60)**（不新增重排模型、不自动多轮改写）；
+  证据按**完整区间**选择（≤20 条、总字符 ≤40,000），`never_cross(document|section|exercise gap)`
+  的三条邻块扩展约束保持；证据文本必须与其**不可变规范化文本逐字节相同**。
+
+### 9.3 Embedding 与重建
+
+- 只使用**本机 Ollama** 原生 `/api/embed`（`truncate=False`）；**不自动下载模型、不回落云端**。
+- Embedding 配置以**指纹**为身份（模型 manifest digest + 维度 + 前缀 + 归一化），
+  `fingerprint` 唯一；编辑影响向量的字段 = 新建配置，不原地改写正在使用的配置。
+- 换模型 = **新建索引代并完整重建成功后统一切换**；重建失败或取消保留旧代继续可用
+  （旧代 `aborted`、闸门释放，不修改 `active_generation_id`）。重建期间暂停新教材发布，但允许上传与编辑草稿。
+- 「发现到模型」不等于「具备 Embedding 能力」；检测通过只代表**接口能力**，不代表检索质量已验收。
+
+### 9.4 定位协议 v2 与详解
+
+- `/api/v1/rag/*` 升级为 **v2 契约**（`scope` 取代旧四科的 `subject`，`rag.result` 携带 `RagResultV2`）
+  —— **这是有意破坏性变更**：旧 `rag_engine`（npy 快照）与 `.local-data/rag` 资产保留在仓库中但
+  **不再是生产路径**，回滚方式为 revert 提交。旧协议→新协议字段对照见批次证据。
+- 定位保留既有事件编号与恢复语义（断线不取消、显式 `/rag/cancel` 才取消、`afterEventId` 续传、
+  过期返回 410、重复事件去重、身份不符报协议错误）；`rag.result`、正文与游标在**同一次会话持久化中提交**。
+- **详解**：用户主动触发，使用**当前聊天所选模型**，在点击时**冻结**模型与证据，重试不换模型；
+  走独立通道 `/api/v1/rag/explain/stream`（普通聊天 SSE、无事件游标、断开即关闭上游），
+  **不经 `/rag/reply`、不再次自动检索、不要求 Qdrant 在线、不复用定位缓存**。
+  预算超限返回 `CONTEXT_TOO_LARGE`，**原题、当前追问与用户已选证据不截断**。
+- 澄清卡与详解引导是**两条不同生命周期**：澄清走 `/rag/reply`（`submissionId` 幂等，占澄清轮数上限），
+  详解引导在 RAG 终态后创建（不占澄清轮数，「忽略」不调用 RAG 或 LLM）。
+
+### 9.5 独立题库
+
+- 题库与教材向量库**完全隔离**：没有任何自动路径把题目写进教材 collection（有源码级扫描用例守住）。
+- 未归属的原文块**必须保留**并在校对页可见，不得为显示"完成"而丢弃。
+- 规则拆题是启发式；「AI 整理」只是 `pending` 建议，**永不直接覆盖人工草稿**，
+  应用前核 `base_draft_revision`；编辑任何已校对草稿后回到 `needs_review`。
+- 确认入库为**单事务 + `submissionId` 幂等**；`HTTP 200 + failures` 表示整体不确认、逐条给原因。
+
+### 9.6 运行与备份
+
+- 命令入口：`rag:db:start|stop|status`、`rag:db:test:start|stop`、`rag:migrate`、`rag:verify`、
+  `rag:backup` / `rag:backup:verify` / `rag:restore`。
+- 备份 = SQLite `VACUUM INTO` 一致性快照 + Qdrant snapshot + 原件与规范化文本 + 指纹清单与当前索引代；
+  **凭证（`apps/api/.env`）不进清单**。恢复**只写新目录**，不覆盖正在使用的数据。
+- 迁移（`scripts/rag/migrate_textbooks.py`）复用真实入库链路，幂等：同内容重跑走更新路径，
+  不产生重复书册；源目录只读。**普通启动不会自动迁移或重建**。
+- 验收一律用独立 Qdrant（16333）与临时数据目录；**不得**连正式 6333 或正式 `.local-data` 跑单测。
+
+### 9.7 如实边界（不得表述为"质量已通过"）
+
+- **人工教学质量 `not_run`**：自动化只能证明"证据可核验、引用可追溯"，不能证明"讲解正确"。
+- **`chapter_path` 章节归属在真实教材上不完全准确**（PDF→markdown 的标题层级不规范；
+  行号定位准确，错的是章节标签）。修复属解析质量专项，不在本批范围。
+- **划分覆盖仍有缺口**：独立验收实测 2/57 册 body 占比 <50%（数学 A 版选择性必修第一、二册），
+  被划为习题的块中含明确正文而检索不到；已在 B1 v1.4 修复并加告警，最终数字以 A1 r2 复验为准。
+- **迁移来源可复现性**：`F:\人教版教材\markdown` 目录在批次期间被外部流程清空；
+  归档 `F:\人教版教材.zip` 含 58 册 markdown（57 册与已迁移文档 `original_file_sha256` 逐字节一致）。
+  迁移脚本支持 `--source-zip` 从归档复现；已迁移结果可核验，但不能从原目录路径重跑。
+- 年级归属是**规则推断**（必修→高一、选修/选择性必修→高二），需教师确认后才参与检索。
+- AI 整理的真实模型输出形状**未联调**（单测为替身）。
+
+---
+
+## 10. 图片清洗、首答预算与备份恢复的稳定决定（RAG-QUALITY v1.1，2026-09-29）
+
+> 本节取代 §9 中与首答长度、证据条数、索引范围措辞相关的部分；§9 其余（存储、唯一权威、范围语义、
+> 删除先失效、题库隔离）继续有效。逐项证据见 [RAG-QUALITY v1.1 批次证据](qa/RAG-QUALITY-v1/README.md)。
+
+### 10.1 三种文本必须分开
+
+| 文本 | 用途 | 可变性 |
+| --- | --- | --- |
+| **封存原文** | 引用验证、原始坐标、历史引用重建（`text_sha256` 绑它） | **不可变** |
+| **清洗文本**（`rag-readable-v2`） | Embedding / BM25 输入、模型上下文、来源预览与复制 | 按清洗规则版本派生，规则变则版本递增 |
+| **简短首答** | 默认展示与复制、后续历史投影 | 按回答策略生成 |
+
+- 清洗**只产生派生文本**：`blobs/`、`normalized/`、`document_revisions` 一个字节都不改；
+  行号、字符区间、散列、历史引用全部继续有效。
+- 投影文本**不参与**原文散列校验；`evidence[].readable.text` 是展示用派生文本，
+  **不得**作为客户端回传的可信证据。
+- **清洗规则版本进入分块指纹**（与划分规则版本同理）：规则一变指纹就变，必然产生新分块集；
+  历史版本（`rag-readable-v1`、`raw-v0`）保持可读以便解释旧数据。
+
+### 10.2 首答与证据预算（`app/core/rag_budget.py` 为唯一事实来源）
+
+```text
+证据：最多 6 条；邻块扩展左右各 ≤1 块；单条清洗后 ≤1600 码点；单条原文切片 ≤6000 码点；原文总量 ≤16000 码点
+入模：证据总量 ≤6000 码点，且受模型 num_ctx 估算二次约束；整条装入，绝不截断单条原文
+首答：≤3 个知识点；单点「标题+说明」≤90 码点；合计 ≤250 码点；每点 ≤2 条引用；模型输出不合法最多修正一次
+详解：仍接受 ≤20 条引用与既有 40,000 字符上限（历史兼容）
+```
+
+- 长度单位是 **Unicode 码点**，不是字节、不是前端 UTF-16 码元。
+- **引用校验只用"实际进入提示词的准入集合"**：引用被排除证据的整点拒绝，不删非法 ID 后继续用其内容。
+- 状态语义：有命中但装不下 → `partial` + `EVIDENCE_UNIT_TOO_LARGE`（**不得**报"没有找到教材依据"）；
+  清洗后无文本 → `uncertain` + `EVIDENCE_TEXT_EMPTY`；范围内无命中 → `no_evidence` + `NO_MATCH`。
+- `presenter` **只渲染知识点**（编号 + 标题 + 说明 + `[n]`），不拼接教材原文；原文只经结构化来源面板展示。
+- **未关闭**：尚无相关性闸门，"范围外问题"仍可能返回 `ok`（实测正/边界分数分布重叠，阈值不可靠）。
+
+### 10.3 备份与恢复
+
+- 数据根有**跨进程排他锁**（OS 级、进程退出自动释放）：API 生命周期持锁；
+  备份拿不到锁返回 `DATA_LOCK_BUSY` 并**不自动停止用户进程**；写数据的 CLI 同锁。
+- 备份是**离线一致性**方案（不宣称跨 SQLite/Qdrant 原子热备）：
+  SQLite backup API → 从副本读引用 → 只复制被引用文件（含 `staging`、排除 `tmp-*.part`）
+  → Qdrant 快照并核对点数/维度 → 全部通过才标 `status:"complete"`。
+- 清单 `schemaVersion: 2`（**TEACHING-LOOP B0 起新备份为 `schemaVersion: 3`：四库 + 受管资产，
+  见 §11**）；**凭证（`apps/api/.env`）不进清单**。
+- 恢复**按应用运行布局**写入，Qdrant 必须显式 `--isolated-qdrant`（给正式 6333 或缺失一律拒绝）；
+  失败把 `restore-state` 留在 `incomplete`，**应用启动时拒绝**，避免静默新建空库。
+- 旧清单只读兼容并标记 `legacy_revalidated`，不补造历史完整性结论。
+
+### 10.4 题库 AI 整理的模型语义（**取代上一批的"只用本机模型"**）
+
+- `modelProfileId` = **当前聊天模型的 profile id**（本地或云端一视同仁），必填；
+  由 `services.model_runtime.resolve_chat_model` 唯一解析，**不得**把 profile id 当模型名用。
+- 点击时冻结模型；任务进行中切换聊天模型不影响已冻结任务；模型失效时提示修复，不静默换模型。
+- 上游认证/限流/网络失败是**任务级**失败，文案指向模型服务，不得说成"试题内容无效"。
+- AI 建议仍只是 `pending`，永不自动覆盖人工草稿。
+
+### 10.5 验收脚本的只读要求
+
+- 验收/测量脚本必须**只读打开**数据根（`TextbookCatalog.open_existing()` /
+  `core.sqlite.open_readonly()`）：**不建库、不建表、不改结构**。
+- **不得**为测评修改用户任教配置：范围一律以请求内联传入（`scope.kind="selection"`），不落库。
+- 质量集标签必须**先对语料校验存在**，禁止自生成问题 + 自打标签。
+
+## 11. 教学闭环公共契约与基础设施（TEACHING-LOOP B0，2026-09-30 稳定决定）
+
+依 [教学闭环设计目录](design/teaching-loop-v1/README.md) 与
+[多 Agent 实施任务计划书 v2.0](design/teaching-loop-v1/多Agent实施任务计划书_v2.0.md) 实施 B0；
+业务模块（知识点、名单、原卷、成绩、学情、练习、教案）属 B1—B7，**尚未实现**。
+批次任务卡与证据见 [docs/qa/TEACHING-LOOP-B0](qa/TEACHING-LOOP-B0/TASK-CARD.md)。
+
+- **四库边界**：教材目录、题库、知识点库（`.local-data/knowledge/knowledge.sqlite3`）、
+  教学业务库（`.local-data/teaching/teaching.sqlite3`）各自独立；受管原件在
+  `.local-data/assets/blobs/<sha256>`（内容寻址、只增不改）；Qdrant 只服务教材检索。
+- **迁移登记是唯一建表路径**：每库 `schema_migrations` + `app/core/migrations/` 的追加式清单；
+  已登记 SQL 不可改写（漂移即拒绝启动）；失败迁移整体回滚、可重跑；**损坏的既有库不得按空库重建**。
+  业务表增量由实现方提供 SQL、**总控登记**。
+- **任务协议唯一**：三库各一张任务表，统一经 `app/repositories/jobs` + `app/services/jobs`；
+  租约 90 秒 / 心跳 20 秒；**并发上限 2 个重任务、其中 1 个模型任务**；任务结果与终态在所属业务库
+  同一事务提交；取消只走接口且迟到结果不发布；重启遗留 `running` 收敛为 `interrupted`，
+  **不自动重新调用模型**；重试保留冻结输入与模型指纹。
+  **B0 的启动收敛范围只含知识点库与教学库**（`app/main.py` 的 `RECONCILE_DOMAINS`）：题库组织任务仍是
+  既有五态与旧界面视图，提前写入 `interrupted` 会让旧界面出现未知状态；题库任务在 B2 迁移到统一任务协议时一并纳入。
+- **提交幂等身份** `(ownerId, operation, submissionId)`：同键同 hash 重放原结果，同键不同 hash 409。
+- **类型单一来源**：跨模块类型只在 `app/contracts/teaching_loop.py` 与
+  `apps/web/src/contracts/teaching-loop.ts` 定义；`revision`（乐观锁）与 `revisionId`（固定修订）
+  不得混用；分数用整数 `scoreUnits`（×100）；外部 camelCase、内部 snake_case。
+- **业务规则（用户已定）**：知识点独立建库、题目经知识点 ID 多对多关联、教材依据可选；
+  学情只用「原卷已确认小题知识点 + 教师给出的成绩」，任一相关小题失分即「本次需巩固」；
+  不建立掌握概率、不评分、不建立评分点；有效 0、空白、缺考、免考严格区分；综合题不分摊失分；
+  AI 只进候选/建议，经确认才能进入正式流程；学生姓名/学号/人员 ID 不发给模型。
+- **测试隔离**：后端测试套件在导入 `app.main` 前把默认数据根指向会话级临时目录
+  （`ZQKY_DATA_DIR`，显式设置优先），不再对正式 `.local-data` 建库/迁移。
+
+## 12. 知识点库与名单后端的稳定决定（TEACHING-LOOP B1，2026-09-30）
+
+- **知识点身份与修订**：`code` 是**学科内**身份键（`UNIQUE(subject_id, code)`）；`id` 稳定身份、
+  `revisionId`/`version` 是不可变内容修订、`revision` 是编辑乐观锁——三者不得混用。
+  改名 = 追加修订；被引用历史修订由触发器永久保护（`IMMUTABLE_REVISION`）；
+  名称或别名相同**只提示不合并**（跨知识点同名别名是合法的，靠教师选择）。
+- **父树**：父子必须同学科；自指/环/跨学科父节点在服务层给出可定位错误，DB 触发器兜底 `KNOWLEDGE_CYCLE`。
+- **导入与 AI 候选**：表格字段固定 `subjectCode/code/name/description/parentCode/aliases`；
+  预览批次持久化（批次 + 行 + issues），动作 `create/update/ignore`，更新核 `expectedRevision`，
+  空白可选字段默认不修改、`clearFields` 才清空；失败整批回滚；确认以 `(owner, operation, submissionId)` 幂等。
+  **AI 候选只生成 `source="ai"` 的待确认批次**（不写正式表），确认走同一流程；
+  教材读取失败一律 503 `TEXTBOOK_EVIDENCE_UNAVAILABLE`，**不得当作"没有依据"**。
+- **名单**：学号按文本保存（保留前导零 `0012`）；姓名不是主键、同名不合并；
+  无学号/同名/姓名不符/重复行进入人工身份核对（`link|create|ignore`，`link` 必须指定学生）；
+  **名单未出现的学生不自动退班**；转班保留旧归属；非法数据整批回滚；确认幂等。
+- **施测分两段**：B1（T30-a）只冻结请求、参测人次与身份/班级/出勤快照契约；
+  真实创建是 **T30-b**，依赖 T40 已确认原卷修订，在 B2 联调后验收——此前接口保持 501，
+  不得用假原卷、缺失外键或放宽确认规则宣称施测可用。
+- **跨库发布**：跨库引用发布与归档经 `PublicationCoordinator` 串行化（进程内锁；锁内只做数据库读取与短事务；
+  不是跨进程锁，不宣称跨库原子事务；模型/解析/资产写入在锁外）。
+- **富内容**：`RichContentV2` 是唯一形状（B0 冻结）；DOCX 解析产出块顺序 + 来源坐标 + 受管资产 + 可见问题清单，
+  DOCX 渲染支持学生/教师两种内容投影（学生版无答案与解析）、共同材料只出一次、图片 relationship 重建、
+  原卷 OMML 原样保留、新 LaTeX 经锁定转换器（`math2docx==3.1.0`）导出。
+  **既有教材解析（`document_parsing/parser.py`）语义不动**。
+- **结构变更**：一律追加迁移（B1 为知识点库 `0002`+`0003`、教学库 `0002`）；B0 已登记声明与散列不得改写；
+  启动门控的 `REQUIRED_TABLES` 只要求 B0 基础表，保证"尚未应用 B1 迁移"的合法旧库可启动。
+  带 `adjust` 钩子的迁移必须保证"声明集合 = 全新库上实际执行的语句集合"（B0 曾因此漏执行索引，见 B0 证据）。
+
+## 13. 原卷、题库关联与施测的稳定决定（TEACHING-LOOP B2，2026-10-01）
+
+- **原卷以"完整题号 + 计分叶子"为骨架**：题号是完整路径（`16(1)`），同修订唯一；父子同卷、无环；
+  **只有叶子计分**（容器 `is_scored=0` 且无满分）；满分与总分一律 **Decimal 字符串**进入、服务端换算为
+  `×100` 整数单位，禁止浮点；确认闸门要求每个计分叶有至少一个同学科未归档知识点、叶子合计=总分>0、
+  **所有原文块已归属或有明确排除理由**、无未解决的 blocking 问题。
+- **确认即冻结**：确认后的修订及其题目、知识点关联、原文块归属、问题处置记录不可增删改
+  （DB 触发器 + 服务双保护，`UPDATE` 改归属与 `DELETE` 都覆盖）；**修改已确认卷 = 新建修订**，
+  旧修订与已建立的施测继续引用旧卷。
+- **分期 DDL（B2 不得越界）**：`paper_revisions.source_practice_revision_id` 与
+  `assessments.active_score_revision_id` 本批**只允许为空**（无外键、CHECK 拒绝非空），
+  由 B3/练习批次通过新迁移补齐外键与写入能力；`paper_revisions.source_file_id` 必须非空指向核验过的受管原件。
+  草稿总分允许 0（教师补分前），确认闸门要求 >0。
+- **AI 边界**：原卷知识点建议只做"关联已有知识点 / 提出待确认新知识点 / 提醒歧义"，不输出评分点、
+  不判断掌握；建议只进 `ai_proposals`（pending），应用前复核草稿编辑版本（过期即 stale）；
+  新知识点必须先走知识点库的候选确认，再单独绑定（**不宣称两库原子提交**）。
+- **题库关联**：草稿关联（`question_draft_knowledge_links`）与正式关联（`question_knowledge_links`，不可变）分离；
+  改内容创建新修订并**复制旧正式关联**，明确改关联才替换；旧 `knowledgeTags` 保持原义、不自动升级为正式关联；
+  历史未分类题可读并明确标注未正式关联。
+- **AI 补题**：`question:generate` 使用**独立 GenerateReply**（不复用 organizer 的 sourceBlockIds 解析器）；
+  冻结允许知识点/证据/题型/数量与模型指纹；产物是 `needs_review` 草稿批次并记录 AI 来源与生成来源，
+  教师审核确认后才入正式题库；`200 + failures 非空` 仍表示整批未确认。
+- **题库任务并入统一引擎**：组织与生成任务统一走 `JobEngine`（租约 90s/心跳 20s/attempt/取消/重试/
+  重启 `running → interrupted`），`question` 域纳入启动收敛，消除"组织器自管 running"的双执行者；
+  旧 URL、checkpoint（`contractVersion=2`）与响应形状保持兼容；旧语义 checkpoint 明确要求重选模型，
+  不得凭当前配置伪造冻结指纹。
+- **施测（T30-b）**：只用**已确认**的固定原卷修订（DB 触发器 + reader + 服务三重把关）；
+  参测姓名/学号从服务端 `students` 读取后冻结，不信任客户端快照；显式非空参测名单（空 → 422）；
+  `(施测, 学生, 人次)` 唯一、补考新增人次不覆盖首次；出勤 `present/absent/exempt` 与未来成绩状态分开。
+  **名单导入日 ≠ 真实入班日**：历史归属未覆盖施测日期时，教师显式确认本次班级并写入依据（`classConfirmed` +
+  `classConfirmationNote` 落库），**不自动修改归属历史**、不阻断"今日导入名单分析过去考试"的合法流程。
+- **知识点前端（F10-KP）**：`/knowledge-points` 是独立知识点库入口（与教材资料库 `/knowledge-bases` 不同）；
+  学科取自 `textbook-taxonomy` 的真实 `subjectId`；教材依据不可用时显示"暂不可用"，**不得显示成"没有依据"**；
+  AI 任务用公共 `workflow-jobs` 客户端显示六态并支持取消/重试；保存冲突保留编辑由教师处理。
+
+## 14. 成绩、公共任务语义与受控迁移的稳定决定（TEACHING-LOOP B3，2026-10-01）
+
+- **成绩只能来自教师提供的原始小题得分**（XLSX/CSV）：不调用大模型评分、不推断分数、不自动补分。
+  服务端读表用**公式视图 + data_only 缓存视图**（不计算公式）、保留**物理行列坐标**、超限明确报错、
+  **不静默截断**；原件为受管资产（`kind='score_sheet'`）。
+- **四个状态互不顶替**：0 = 显式记 0（`recorded`），空 = `missing`，缺考 = `absent`，免考 = `exempt`；
+  分数一律 **Decimal 文本 ↔ ×100 整数单位**（`scoreUnits`），禁止浮点。`recorded` 必须有分数，
+  非 `recorded` 必须没有分数。
+- **全矩阵 = 冻结参测人次集合 × 冻结原卷的固定计分叶集合**：缺行、缺列、未映射叶一律显式落 `missing`，
+  **绝不补 0**；总分只在该人次**全部 recorded** 时给出（`totalUnits`），否则为 null——有
+  missing/absent/exempt 的人次不展示总分，也不用 0 代替。确认必须**逐类承认**（逐班列举 absent 人次 +
+  missing 人次/单元数），承认内容与预览不一致 → 422 `SCORE_ACKNOWLEDGEMENT_MISMATCH`。
+- **三个版本权威互不替代**：`expectedImportRevision`（导入草稿锁：映射/行定位/单元格校正）、
+  `expectedAssessmentRevision`（施测锁：参测人次等）、`baseScoreRevisionId`（所基于的正式成绩版本；
+  首个版本为 null，修正时必须等于当前 active）。任一不符 → 409 + `currentRevision`，前端保留编辑。
+- **确认后不可变**：成绩修订及其矩阵行不可增删改（DB 触发器 + 服务）；封存闸门**按该修订自己的快照**
+  核完整性（人次 × 叶全覆盖，参数化于 `participant_snapshot_json`/`item_snapshot_json`）；
+  `assessments.active_score_revision_id` 只能指向**本施测已确认**修订（复合外键 + 触发器兜底）。
+  **修正 = 从不可变 base 复制全矩阵 + 修正当时参测快照 → 新完整版本**，审计（原值/新值/理由）落
+  `score_revision_corrections`；base 必须为当前 active；同一 `submissionId` 重放幂等。
+- **公共任务语义（G0）**：`POST /workflow-jobs/{id}/retry` 置 `queued` 后经唯一执行器注册表原子调度
+  （注册表导入失败阻断启动）；重试观察窗口 **[N, N+1]**，N+2 视为被接管；并发重复 retry 合法结果
+  ∈ {200, 409} 且**恰好执行一次**。发布失败用**本次执行开始时的原 JobLease** 收敛：请求过取消 → `cancelled`
+  优先，失权零写入，其余 → `failed`（保留域内错误码，跨域统一 `JOB_FAILED` + 已回滚说明）。
+  模型任务执行前比对**冻结指纹**（`sha256(modelId, protocol, baseHost, apiFormat)`，不含凭证）：
+  漂移 → `MODEL_CONFIG_DRIFT`；旧任务无指纹 → `MODEL_FINGERPRINT_MISSING`（要求新任务，不静默放行）。
+- **已确认关联发布复核**：原卷/题库确认在 `PublicationCoordinator` 内复核知识点身份/修订/学科/未归档
+  （归档 → `KNOWLEDGE_ARCHIVED`，无效 → `KNOWLEDGE_REFERENCE_INVALID`）；历史已确认关联保持可读。
+- **受控表重建**：SQLite 结构重建按官方流程（事务外关外键 → 单事务新建/拷贝/删旧/改名/恢复索引触发器 →
+  `foreign_key_check` 全读 + `integrity_check=ok` + 数据对账 → 登记；`finally` 恢复并核验 `foreign_keys=ON`，
+  失败回滚不登记可重跑）；不改写已登记迁移的声明与散列；不使用 `writable_schema`、不先改名旧表
+  （避免子表外键被重写）。
+- **成绩导入工作区（F20-I）**：0/missing/absent/exempt 显著区分（不只靠颜色）；异常显示原表物理地址；
+  409 保留编辑（提示刷新对照，不静默覆盖）、422 保留校对并定位行列；逻辑确认冻结 `submissionId` +
+  原 payload 到明确结果；切换/卸载使在途请求失效（操作身份 + 观察代次）。
+- **题库前端（F10-QB）**：知识点筛选/标注与**显式替换**（跨学科冲突不得静默继承）；旧 `knowledgeTags` 与
+  正式关联分区块呈现、不合并不丢弃；补题六态 + 取消 + 真实重试（[N, N+1] 窗口）；AI 来源与校对链
+  （pending/apply/reject/stale）可见；`200 + failures` 仍显示**整批未确认**，不得显示成功徽标。

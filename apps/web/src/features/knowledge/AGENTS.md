@@ -1,7 +1,6 @@
-# knowledge 模块约定（教材资料库）
+# knowledge 模块约定（历史本地登记）
 
-先读根 `AGENTS.md`。入口 `/knowledge-bases`（详情 `/knowledge-bases/[kbName]`）。
-**登记 → 解析 → 索引为显式模拟**（界面标注【模拟】）：真实文件解析与向量检索未接入。
+先读根 `AGENTS.md`。本指南仅约束历史本地登记组件及 `/knowledge-bases/[kbName]` 的只读兼容详情。当前 `/knowledge-bases` 由 `features/textbook/TextbookWorkspace` 承担真实教材管理，解析、目录、索引与 RAG 走 FastAPI；不要将下方历史模拟规则扩大到真实教材模块。
 
 ## 结构与职责
 
@@ -13,8 +12,8 @@
 
 ## 关键不变量
 
-- **显式模拟**：全程标注，不读真实文件内容，不宣称真实解析/索引成功；保留进度/取消/重试/恢复完整状态。
-- **单一仓储**：目录读写只经 `knowledge-catalog`；读取失败/结构损坏走 `local-collection` 抛错路径，
+- **历史模拟边界**：遗留登记不宣称真实解析/索引成功，不把模拟登记接入教材检索；生产历史详情只读。保留数据兼容，真实功能走 textbook 模块。
+- **历史登记仓储**：本地登记目录只经 `knowledge-catalog`；读取失败/结构损坏走 `local-collection` 抛错路径，
   不当作空库、不覆盖。
 - **样式作用域**：不改写共享 `space-*` 类；新增规则必须收窄前缀。
 - 书籍（`/books`）与课程（`/courses`）作为隐藏直达项并入本模块：桌面侧栏在此类路由上唯一高亮「教材资料库」，

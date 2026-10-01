@@ -1,21 +1,4 @@
-# 新会话接手入口
+# 接手入口迁移
 
-更新：2026-09-26。本页只提供接手顺序，不复制候选、任务计划或验收计数。
-
-## 先了解项目
-
-仓库 `H:/备份xuexi/智启课源`：正式前端apps/web，真实FastAPI后端apps/api，冻结旧版“教案模板部分”不开发。最终目标是智启课源品牌下复刻固定DeepTutor产品前端/AI交互/动画，**全站视觉以当前/chat为准，保留蓝色与原业务**。
-
-主聊天只能真实执行；其他批准模块可显式模拟，但状态、保存、失败、取消、重试和联动不能省略。能力边界不能凭测试数或路由存在推断。
-
-## 接手顺序
-
-1. `git status --short`、`git log -5 --oneline`；保留用户改动，不reset、不切共享分支。
-2. 读根AGENTS、README及 [PROJECT_GUIDE](../PROJECT_GUIDE.md)，确认目标、品牌、数据与服务边界。
-3. 读 [STATUS当前任务](../STATUS.md#current-task) 和模块/问题/证据索引，先判断批次是否已交付。用户本轮明确任务优先；已交付记录只作基线，不当作待办重复实施。若尚无新任务，依据 [后续路线](../STATUS.md#roadmap) 提出一个有界批次及实现方式，完成接手说明，不自动开展整份路线。
-4. 读三矩阵、修改目录规则及实际源码/测试。固定参考 `F:/DeepTutor` SHA `42fab3cf429a1fbf36b257ab8d116a3814964202` 只读，不升级。
-   - 2026-09-23 起的三条现状须知（细节见 PROJECT_GUIDE §4.6）：**学习记录在全站左侧导航内**（无独立中栏）、**模式菜单是单层的**；「RAG 模式」与教材追问**已安装并验收**、走独立本地接口（无需云模型）；安装、能力边界与未执行项看 README/API 与 [批次证据](../qa/RAG-DELIVERY-20260926/README.md)，实测看 STATUS、**字体只能经 token 引用**（`--font-ui` / `--font-display` / `--font-ui-serif` / `--font-document` / `--font-mono`），不得在页面里散写具体字体名。
-5. 对已明确授权的当前批，用 [队长与角色提示词](../MULTI_AGENT_COLLABORATION_PROPOSAL.md#队长启动提示词) 分配文件与资源，完成代码和验收。外部队长实施，Codex审查；不重做旧P0或等待Codex代写。没有可用子智能体工具时如实说明，串行实现与自检不能冒充独立验收。
-6. 完成后只更新STATUS及对应矩阵/必要契约；独立验收稳定候选，本地小提交，不推送/部署。
-
-当前未完成范围、真实供应商条件和历史首败只读STATUS及其归档链接，不在本页复述第二套状态。
+现行接手顺序已移至 [docs/NEXT_SESSION_START.md](../NEXT_SESSION_START.md)。
+本路径保留兼容入口；[2026-09-26 原文](../archive/snapshots/20261001-docs-focus/docs/replica/NEXT_SESSION_START.md) 仅供历史读取。

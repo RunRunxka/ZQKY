@@ -1,5 +1,7 @@
 # 正式教案模块
 
+更新：2026-10-01。本文件说明已有教案的使用和维护边界，当前任务与验收限制见 [CURRENT_STATUS](../../CURRENT_STATUS.md)。
+
 入口 `/lesson-plans`，源码 `apps/web/src/features/lesson-plan`。本目录说明正式Next.js版本；原目录中的Vite文档仅适用于冻结旧版。
 
 ## 当前功能
@@ -35,6 +37,6 @@ PDF使用标准A4、网页预览的紧凑布局和字号；长文本保守分片
 
 ## 尚未实施
 
-真实AI、多教案列表、云端存储、账号、协同冲突、任意模板上传、图片/公式富文本、服务端一键PDF下载均未实现。Word/WPS实际打开后的长文分页和细节排版仍需人工验收。
+真实AI、多教案列表、云端存储、账号、协同冲突、任意模板上传、图片/公式富文本、服务端一键PDF下载均未实现。**基于学情报告调整教案、生成针对性课堂练习属于后续教学闭环升级，尚未实现**；保留当前本地教案功能和旧草稿兼容。升级设计见 [教学闭环设计](../../design/teaching-loop-v1/README.md)，排期与授权只看 CURRENT_STATUS。Word/WPS实际打开后的长文分页和细节排版仍需人工验收。
 
-当前进度与最近验证只看 [STATUS](../../CURRENT_STATUS.md)，逐页功能和视觉状态看 [页面矩阵](../../replica/PAGE_MATRIX.md)。旧 `docs/QA_REPORT.md` 已合入 [项目历史 source-5](../../archive/History.md#source-5)，只作迁移前追溯，不作为当前 Next.js 验收证据。
+当前进度、审查问题与最近验证只看 [CURRENT_STATUS](../../CURRENT_STATUS.md)。旧复刻矩阵与 `docs/QA_REPORT.md` 只作历史追溯；后者已合入 [项目历史 source-5](../../archive/History.md#source-5)，不能作为当前 Next.js 或未来 AI 教案升级的验收结论。

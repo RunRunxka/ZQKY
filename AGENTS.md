@@ -6,15 +6,13 @@
 
 ## 1. 项目概述
 
-智启课源是一套面向教师备授课场景的 Web 应用：以**学习问答**（真实大模型 SSE）为核心，
-配套**教案工作台**（本地规则填充 + Word/PDF 导出）、**教材资料库**、**书籍/课程**、
-**教材 RAG 检索**（本地 Ollama 引擎）与**模型/连接管理**。前端复刻自 DeepTutor v1.6.5
-（固定提交 `42fab3cf…`，只读对齐、不升级、不写入），用智启课源品牌与蓝色主题。
+智启课源是面向教师的 AI 教学工作台。**2026-09-29 起的任务核心是教材 RAG 与教学闭环**：独立知识点库、原卷/名单/施测/成绩、知识点题库，后续学情分析、教案调整和练习回流。Next.js 是正式前端，FastAPI 是唯一业务后端。
 
-- **真实服务**：学习问答（三协议 SSE）、教材 RAG（本地引擎）、模型连接/目录/发现。
-- **本地规则**：教案填充与导出、书籍生成（本地模拟执行器）、知识库登记（显式模拟）。
-- **规划中（无实现，导航标「规划中」徽标）**：协同写作、沉浸阅读、学习空间、智能组卷、题库、模板中心。
-- **已移除**：Whisper 密室、笔记本、Agent 任务（2026-09 清理；历史见 `docs/archive/History.md`）。
+- **真实业务**：学习问答、模型连接、教材资料库/RAG、知识点、题库、名单、原卷、施测及成绩；已有实现偏差和验收边界只看 CURRENT_STATUS，不能将模块存在等同于全部可用。
+- **已有本地能力**：教案规则填充、编辑、草稿恢复和 Word/PDF 导出；书籍生成仍是明确标识的本地模拟。
+- **后续设计**：学情报告、学情驱动 AI 教案调整、针对练习与回流闭环；不得提前宣称实现。
+- **规划根页**：协同写作、沉浸阅读、学习空间、智能组卷、模板中心。题库不再属于规划页。
+- **历史参考**：DeepTutor v1.6.5 固定提交 `42fab3cf…` 只读。保留当前 /chat 视觉基准、品牌和蓝色，不把旧全页面复刻路线或已移除模块当作当前任务。
 
 ## 2. 技术栈
 
@@ -38,14 +36,14 @@
 │   │   └── src/
 │   │       ├── app/              # 薄路由与布局（[planned] 为规划页捕获路由）
 │   │       ├── components/       # 公共壳（layout/）与通用控件（ui/）
-│   │       ├── features/         # 业务模块（chat / lesson-plan / knowledge / books / courses / model-settings / settings）
+│   │       ├── features/         # 业务模块（chat / lesson-plan / textbook / knowledge-points / question-bank / assessments / books / courses / model-settings / settings）
 │   │       ├── services/         # API 客户端与本地仓储（不含 UI）
 │   │       ├── contracts/        # 跨模块共享类型
 │   │       └── styles/           # globals.css / motion.css 单一变量层
 │   └── api/                      # 真实业务后端（FastAPI，唯一业务后端）
-│       ├── app/api/v1/           # HTTP 路由（chat / rag / model_* / capabilities / health）
+│       ├── app/api/v1/           # HTTP 路由（chat / rag / textbook_* / knowledge / roster / papers / assessments / scores / question_bank 等）
 │       ├── app/providers/llm/    # 供应商适配（三协议）
-│       ├── app/services/         # 业务服务（含 rag_engine 固定快照）
+│       ├── app/services/         # 业务服务（含生产 rag_v2 与保留的历史 rag_engine）
 │       ├── app/schemas|contracts|repositories|core/
 │       └── tests/                # pytest
 ├── assets/templates/source/      # 教案模板副本与校验信息（原 Word 不改）
@@ -54,7 +52,7 @@
 │   ├── PROJECT_GUIDE.md          # 唯一目标与稳定决定
 │   ├── API.md / ROUTES.md        # 现行接口契约 / 路由索引
 │   ├── archive/History.md        # 全部历史归档（只读快照）
-│   ├── replica/                  # 三矩阵（页面 / AI 交互 / 动画）与接手说明
+│   ├── replica/                  # 旧三矩阵的历史快照入口；当前接手见 docs/NEXT_SESSION_START.md
 │   └── qa/                       # 各批次证据（历史记录，保持原样）
 ├── infra/                        # 部署规划（当前仅说明）
 ├── scripts/                      # 启动、模板构建/校验、RAG 验收工具
@@ -114,7 +112,7 @@ npm.cmd run template:build / template:verify   # 教案模板派生 / 校验
 ## 8. Git 约定
 
 - 检查 → 小批改动 → 验证 → 明确范围提交；**不自动推送/部署，不改全局 Git 身份**。
-- 当前分支 `main`（个人分支）；默认集成分支为 `feat/glass-theme`。撤销明确提交优先 `git revert`，
+- 开工读取现场分支/HEAD，不自动切换共享分支；历史 `feat/glass-theme` 不作为当前默认集成目标。撤销明确提交优先 `git revert`，
   不用 `reset --hard`/`clean -fd`。保存检查点不代表已验收。
 
 ## 9. 文档地图
@@ -124,8 +122,8 @@ npm.cmd run template:build / template:verify   # 教案模板派生 / 校验
 | [docs/CURRENT_STATUS.md](docs/CURRENT_STATUS.md) | 唯一进度、问题台账、当前任务、下一动作 |
 | [docs/PROJECT_GUIDE.md](docs/PROJECT_GUIDE.md) | 唯一目标、视觉基准、稳定决定 |
 | [docs/API.md](docs/API.md) / [docs/ROUTES.md](docs/ROUTES.md) | 现行接口契约 / 路由索引 |
-| [docs/replica/](docs/replica/) | 页面 / AI 交互 / 动画三矩阵 |
-| [docs/archive/History.md](docs/archive/History.md) | 全部历史归档（只读，非当前指令） |
+| [docs/replica/](docs/replica/) | 历史复刻矩阵与接手兼容入口 |
+| [docs/archive/History.md](docs/archive/History.md) | 旧合并历史（只读，非当前指令）；新增归档见 docs/archive/README.md |
 | [docs/MULTI_AGENT_COLLABORATION_PROPOSAL.md](docs/MULTI_AGENT_COLLABORATION_PROPOSAL.md) | 可复用任务卡/结果卡 |
 
 ## 10. 多智能体协作要点
@@ -135,6 +133,9 @@ npm.cmd run template:build / template:verify   # 教案模板派生 / 校验
 - 默认由总控独占权威进度文档、验收矩阵、依赖锁文件与最终 Git 操作。
 - 实现者自检并标记待验收；独立验收者对稳定候选核查并给证据；总控确认已验收。
 - 保留用户与其他智能体的改动：不切换共享分支、不批量暂存、不清理未知数据、不撤销他人工作。
+
+| [docs/README.md](docs/README.md) | 当前阅读索引：9 月 29 日起设计、实施、审查与归档 |
+| [docs/design/teaching-loop-v1/](docs/design/teaching-loop-v1/README.md) | 教学闭环设计与 v2.0 详细实施规格 |
 
 ## 11. 模块级 AGENTS.md
 

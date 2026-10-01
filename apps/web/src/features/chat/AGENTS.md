@@ -12,7 +12,7 @@
 - `model/request-budget.ts`：唯一请求构建入口 `buildChatRequest()`——课程上下文 + 历史 +
   当前问题共享同一预算，裁剪阶梯固定，当前问题逐字不裁剪；`BACKEND_REQUEST_LIMITS` 是后端硬限制的单一事实来源。
 - `model/chat-service.ts` / `chat-sse.ts` / `chat-stream.ts`：SSE 连接与事件分发。
-- `model/rag-service.ts`：本地教材 RAG 通道（`/api/v1/rag/*`），独立于普通聊天，无需配置云模型。
+- `model/rag-service.ts`：本地教材 RAG 通道（`/api/v1/rag/*`），首答独立于普通聊天使用本地检索；详解冻结并使用当前选择的聊天模型，可为本地或云端。
 - `Message.tsx` / `AnswerMarkdown.tsx` / `StreamingMarkdown.tsx` / `ReasoningDisclosure.tsx`：
   正文/推理的流式与终态渲染（KaTeX 公式、代码围栏保护、安全分块；活跃流轻量呈现 + 增量合并）。
 - `artifacts/`：智能出题（Quiz）与深度报告（Report）产物视图。**「保存到题库/笔记」已随学习空间移除**，
