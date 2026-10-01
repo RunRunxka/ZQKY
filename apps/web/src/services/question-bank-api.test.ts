@@ -9,14 +9,21 @@ import type {
 import {
   applyQuestionSuggestion,
   confirmQuestionImport,
+  createQuestionGenerationJob,
   createQuestionImport,
   deleteQuestion,
+  generationFieldsFromJobView,
   getQuestion,
   getQuestionImport,
   listQuestionImports,
   listQuestions,
+  mergeGenerationObservation,
+  mergeOrganizeObservation,
   mergeQuestionDrafts,
+  normalizeGenerationResult,
   normalizeOrganizeResult,
+  organizeFieldsFromJobView,
+  organizeJobPending,
   organizeQuestions,
   patchQuestion,
   patchQuestionDraft,
@@ -316,6 +323,123 @@ describe('AI 整理建议', () => {
     expect(result.errorCode).toBe('UPSTREAM_UNAVAILABLE');
   });
 
+  it('六态：保留 attempt（含 0）与 interrupted 状态，未知状态按失败处理', () => {
+    const interrupted = normalizeOrganizeResult({
+      jobId: 'job-9',
+      state: 'interrupted',
+      attempt: 0,
+      suggestionCount: 1,
+      failedBatches: 0,
+      errorCode: null,
+      suggestions: [],
+      failures: [],
+    });
+    expect(interrupted.state).toBe('interrupted');
+    expect(interrupted.attempt).toBe(0);
+    expect(organizeJobPending(interrupted)).toBe(false);
+
+    const running = normalizeOrganizeResult({ jobId: 'job-10', state: 'running', attempt: 2 });
+    expect(organizeJobPending(running)).toBe(true);
+
+    // 未知状态不能当成功：按 failed 处理并保留原响应其它字段
+    const unknown = normalizeOrganizeResult({ jobId: 'job-11', state: 'paused', attempt: 3 });
+    expect(unknown.state).toBe('failed');
+    expect(unknown.attempt).toBe(3);
+
+    // 缺 attempt 时不补 0（0 是真实尝试号，不能与「缺省」混为一谈）
+    expect(normalizeOrganizeResult({ jobId: 'job-12', state: 'queued' }).attempt).toBeUndefined();
+  });
+
+  it('任务观察合并：状态/尝试号来自任务视图，建议只在服务端给出时更新', () => {
+    const base = normalizeOrganizeResult({
+      jobId: 'job-1',
+      state: 'running',
+      attempt: 1,
+      suggestionCount: 1,
+      failedBatches: 0,
+      errorCode: null,
+      suggestions: [
+        {
+          suggestionId: 'sg-1',
+          organizationJobId: 'job-1',
+          targetDraftId: 'd-1',
+          baseDraftRevision: 3,
+          proposedContent: CONTENT,
+          proposedMetadata: METADATA,
+          sourceBlockIds: ['b-1'],
+          state: 'pending',
+          note: null,
+        },
+      ],
+      failures: [],
+    });
+
+    // 任务视图只有状态（result 为 null）：建议保持上一份权威数据，不猜造、不清零
+    const observing = mergeOrganizeObservation(base, {
+      jobId: 'job-1',
+      domain: 'question',
+      kind: 'organize',
+      attempt: 1,
+      state: 'running',
+      result: null,
+      error: null,
+    });
+    expect(observing.state).toBe('running');
+    expect(observing.suggestions.map((item) => item.suggestionId)).toEqual(['sg-1']);
+
+    // 终态任务视图带 result：采用服务端给出的建议与错误码
+    const done = mergeOrganizeObservation(observing, {
+      jobId: 'job-1',
+      domain: 'question',
+      kind: 'organize',
+      attempt: 2,
+      state: 'failed',
+      result: {
+        suggestionCount: 1,
+        failedBatches: 1,
+        suggestions: [
+          {
+            suggestionId: 'sg-1',
+            organizationJobId: 'job-1',
+            targetDraftId: 'd-1',
+            baseDraftRevision: 3,
+            proposedContent: CONTENT,
+            proposedMetadata: METADATA,
+            sourceBlockIds: ['b-1'],
+            state: 'pending',
+            note: null,
+          },
+        ],
+        failures: [{ batchIndex: 1, code: 'ORGANIZER_INVALID_JSON', message: '不是合法 JSON。' }],
+      },
+      error: { code: 'ORGANIZER_INVALID_JSON', message: '不是合法 JSON。', retryable: false },
+    });
+    expect(done.state).toBe('failed');
+    expect(done.attempt).toBe(2);
+    expect(done.failedBatches).toBe(1);
+    expect(done.failures[0]?.batchIndex).toBe(1);
+    // 任务视图没给 errorCode 时用错误信封补充（仍是服务端给出的码）
+    expect(done.errorCode).toBe('ORGANIZER_INVALID_JSON');
+  });
+
+  it('organizeFieldsFromJobView 只取明确给出的字段', () => {
+    const patch = organizeFieldsFromJobView({
+      jobId: 'job-7',
+      domain: 'question',
+      kind: 'organize',
+      attempt: 4,
+      state: 'succeeded',
+      result: { suggestionCount: 0 },
+      error: null,
+    });
+    expect(patch.jobId).toBe('job-7');
+    expect(patch.state).toBe('succeeded');
+    expect(patch.attempt).toBe(4);
+    expect(patch.suggestionCount).toBe(0);
+    expect(patch).not.toHaveProperty('suggestions');
+    expect(patch).not.toHaveProperty('failures');
+  });
+
   it('响应形状不认识时给出失败态而不是假成功', () => {
     expect(normalizeOrganizeResult(null)).toMatchObject({
       state: 'failed',
@@ -412,6 +536,14 @@ describe('已入库题目', () => {
     expect(call(fetchMock).url).toBe(`${API_BASE_PATH}/questions`);
   });
 
+  it('GET /questions 支持按正式知识点筛选（knowledgePointId）', async () => {
+    const fetchMock = stubFetch(() => ok({ questions: [], total: 0, offset: 0, limit: 20 }));
+    await listQuestions({ subjectId: 'math', knowledgePointId: 'kp/1', offset: 0, limit: 20 });
+    expect(call(fetchMock).url).toBe(
+      `${API_BASE_PATH}/questions?subjectId=math&knowledgePointId=kp%2F1&offset=0&limit=20`,
+    );
+  });
+
   it('GET /questions/{id} 与 PATCH /questions/{id} 使用同一路径', async () => {
     const fetchMock = stubFetch((url) =>
       url.includes('/questions/q-1') ? ok({ questionId: 'q-1' }) : ok({}),
@@ -438,6 +570,148 @@ describe('已入库题目', () => {
 
     await expect(deleteQuestion('q-1')).resolves.toBeUndefined();
     expect(call(fetchMock, 1).url).toBe(`${API_BASE_PATH}/questions/q-1`);
+  });
+});
+
+describe('AI 补题（生成）', () => {
+  it('POST /question-generation-jobs 原样发送冻结载荷（模型 profile id、知识点、题数）', async () => {
+    const fetchMock = stubFetch(() =>
+      jsonResponse(true, 202, {
+        jobId: 'job-1',
+        state: 'queued',
+        attempt: 0,
+        importId: null,
+        candidateCount: 0,
+        errorCode: null,
+      }),
+    );
+
+    const view = await createQuestionGenerationJob({
+      modelProfileId: 'p-chat-1',
+      subjectId: 'math',
+      knowledgePointIds: ['kp-1'],
+      questionTypes: ['single_choice'],
+      difficulty: 'easy',
+      count: 2,
+      instructions: '只考有理数。',
+    });
+
+    expect(call(fetchMock).url).toBe(`${API_BASE_PATH}/question-generation-jobs`);
+    expect(call(fetchMock).init?.method).toBe('POST');
+    expect(bodyOf(fetchMock)).toEqual({
+      modelProfileId: 'p-chat-1',
+      subjectId: 'math',
+      knowledgePointIds: ['kp-1'],
+      questionTypes: ['single_choice'],
+      difficulty: 'easy',
+      count: 2,
+      instructions: '只考有理数。',
+    });
+    // attempt=0 是真实尝试号：保留 0，不当作缺省
+    expect(view.attempt).toBe(0);
+    expect(view.state).toBe('queued');
+    expect(view.importId).toBeNull();
+  });
+
+  it('归一补题响应：未知状态按失败处理；空 importId 归一为 null，缺失 attempt 不补 0', () => {
+    const unknown = normalizeGenerationResult({
+      jobId: 'job-2',
+      state: 'paused',
+      attempt: 3,
+      importId: '',
+      candidateCount: 1,
+      errorCode: '',
+    });
+    expect(unknown.state).toBe('failed');
+    expect(unknown.attempt).toBe(3);
+    expect(unknown.importId).toBeNull();
+    expect(unknown.errorCode).toBeNull();
+    expect(normalizeGenerationResult({ jobId: 'job-3', state: 'queued' })).not.toHaveProperty(
+      'attempt',
+    );
+    expect(normalizeGenerationResult(null)).toMatchObject({
+      jobId: '',
+      state: 'failed',
+      errorCode: 'INVALID_RESPONSE',
+    });
+  });
+
+  it('任务观察合并：状态/尝试号来自任务视图，importId 只在服务端给出时更新', () => {
+    const base = normalizeGenerationResult({
+      jobId: 'job-1',
+      state: 'running',
+      attempt: 1,
+      importId: null,
+      candidateCount: 0,
+      errorCode: null,
+    });
+
+    const observing = mergeGenerationObservation(base, {
+      jobId: 'job-1',
+      domain: 'question',
+      kind: 'generate',
+      attempt: 1,
+      state: 'running',
+      result: null,
+      error: null,
+    });
+    expect(observing?.state).toBe('running');
+    expect(observing?.importId).toBeNull();
+    expect(observing?.candidateCount).toBe(0);
+
+    const done = mergeGenerationObservation(observing, {
+      jobId: 'job-1',
+      domain: 'question',
+      kind: 'generate',
+      attempt: 2,
+      state: 'succeeded',
+      result: { importId: 'imp-9', candidateCount: 2 },
+      error: null,
+    });
+    expect(done?.attempt).toBe(2);
+    expect(done?.state).toBe('succeeded');
+    expect(done?.importId).toBe('imp-9');
+    expect(done?.candidateCount).toBe(2);
+    // 视图缺失时不凭空造结果
+    expect(mergeGenerationObservation(null, {
+      jobId: 'job-1',
+      domain: 'question',
+      kind: 'generate',
+      attempt: 1,
+      state: 'running',
+      result: null,
+      error: null,
+    })).toBeNull();
+  });
+
+  it('generationFieldsFromJobView 只取明确给出的字段；错误码可由错误信封补充', () => {
+    const patch = generationFieldsFromJobView({
+      jobId: 'job-7',
+      domain: 'question',
+      kind: 'generate',
+      attempt: 4,
+      state: 'failed',
+      result: { candidateCount: 0 },
+      error: { code: 'UPSTREAM_UNAVAILABLE', message: '模型服务当前不可用。', retryable: true },
+    });
+    expect(patch).toMatchObject({ jobId: 'job-7', state: 'failed', attempt: 4, candidateCount: 0 });
+    expect(patch).not.toHaveProperty('importId');
+    expect(patch).not.toHaveProperty('errorCode');
+
+    const merged = mergeGenerationObservation(
+      normalizeGenerationResult({ jobId: 'job-7', state: 'running', attempt: 3 }),
+      {
+        jobId: 'job-7',
+        domain: 'question',
+        kind: 'generate',
+        attempt: 4,
+        state: 'failed',
+        result: null,
+        error: { code: 'UPSTREAM_UNAVAILABLE', message: '模型服务当前不可用。', retryable: true },
+      },
+    );
+    expect(merged?.errorCode).toBe('UPSTREAM_UNAVAILABLE');
+    expect(merged?.attempt).toBe(4);
   });
 });
 

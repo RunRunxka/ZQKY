@@ -1,0 +1,300 @@
+{
+ "probe": "v2_papers_import_probe",
+ "results": [
+  {
+   "name": "V2.1 导入返回 201",
+   "status": "PASS",
+   "detail": "201 {\"paper\":{\"paperId\":\"119124684509403d8a584c46399bda01\",\"subjectId\":\"math\",\"title\":\"V00 期中卷\",\"status\":\"active\",\"revision\":0,\"currentRevisionId\":\"bdc328c732cf487db02ca1d5b181d57f\",\"currentState\":\"draft\""
+  },
+  {
+   "name": "V2.2 草稿修订 version=1 / state=draft",
+   "status": "PASS",
+   "detail": "version=1 state=draft"
+  },
+  {
+   "name": "V2.3 导入告警包含解析损失",
+   "status": "PASS",
+   "detail": "['UNSUPPORTED_OBJECT：未支持的对象「object」（未提取其内容）。', 'UNSUPPORTED_OBJECT：未支持的对象「object」（未提取其内容）。', 'ITEM_SCORE_MISSING：题 18 未识别到满分标记（如「（6 分）」）；该题暂不计分，请补充分值或显式排除该问题。']"
+  },
+  {
+   "name": "V2.4 规则拆题 = {16,16(1),16(2),17,18}",
+   "status": "PASS",
+   "detail": "['16', '16(1)', '16(2)', '17', '18']"
+  },
+  {
+   "name": "V2.5 16 是容器（不计分）/ 16(1),16(2),17 计分",
+   "status": "PASS",
+   "detail": "16=False 16(1)=4 16(2)=6"
+  },
+  {
+   "name": "V2.6 父题路径：16(1)/16(2) 的 parentItemId = 16",
+   "status": "PASS",
+   "detail": "ed80009325824977812c4c6a253eaae2 == ed80009325824977812c4c6a253eaae2"
+  },
+  {
+   "name": "V2.7 18 是未识别满分的不计分叶（不伪造 0 分）",
+   "status": "PASS",
+   "detail": "False"
+  },
+  {
+   "name": "V2.8 导入合计 = 4+6+5 = 15 分（1500 单位）",
+   "status": "PASS",
+   "detail": "1500"
+  },
+  {
+   "name": "V2.9 未知对象问题落库（含无 block_id 与有 block_id 两种）",
+   "status": "PASS",
+   "detail": "[('UNSUPPORTED_OBJECT', 'blocking', None), ('UNSUPPORTED_OBJECT', 'blocking', 'bdc328c732cf487db02ca1d5b181d57f:p13'), ('ITEM_SCORE_MISSING', 'blocking', 'bdc328c732cf487db02ca1d5b181d57f:p13')]"
+  },
+  {
+   "name": "V2.10 未知对象判 blocking 且必须 resolution/exclude",
+   "status": "PASS",
+   "detail": "['blocking', 'blocking']"
+  },
+  {
+   "name": "V2.11 18 未识别满分 → blocking ITEM_SCORE_MISSING",
+   "status": "PASS",
+   "detail": "['UNSUPPORTED_OBJECT', 'UNSUPPORTED_OBJECT', 'ITEM_SCORE_MISSING']"
+  },
+  {
+   "name": "V2.12 块顺序与 id 与原件 body 顺序一致",
+   "status": "PASS",
+   "detail": "['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p6-1', 'p7', 't8', 'p9', 'p10', 'p10-1', 'p13']"
+  },
+  {
+   "name": "V2.13 块类型序列（含 formula/image/table）",
+   "status": "PASS",
+   "detail": "['paragraph', 'paragraph', 'paragraph', 'paragraph', 'paragraph', 'paragraph', 'formula', 'image', 'table', 'paragraph', 'paragraph', 'formula', 'paragraph']"
+  },
+  {
+   "name": "V2.14 定位 blockStart 与 body 顺序一致",
+   "status": "PASS",
+   "detail": "p1={'blockEnd': 1, 'blockStart': 1} t8={'blockEnd': 8, 'blockStart': 8, 'tableColumns': 3, 'tableRows': 2} p13={'blockEnd': 13, 'blockStart': 13}"
+  },
+  {
+   "name": "V2.15 表格定位含 tableColumns/tableRows",
+   "status": "PASS",
+   "detail": "{'blockEnd': 8, 'blockStart': 8, 'tableColumns': 3, 'tableRows': 2}"
+  },
+  {
+   "name": "V2.16 前导共同材料 p1/p2 → shared_material",
+   "status": "PASS",
+   "detail": "{'p1': 'shared_material', 'p2': 'shared_material'}"
+  },
+  {
+   "name": "V2.17 块归属题目正确（16(2) 收 6/6-1/7/t8；17 收 9/10/10-1；18 收 13）",
+   "status": "PASS",
+   "detail": "{'p6-1': '5268fab0', 'p7': '5268fab0', 't8': '5268fab0', 'p9': 'c6882862', 'p10-1': 'c6882862', 'p13': '0b9e6a40'}"
+  },
+  {
+   "name": "V2.18 图片块引用受管资产且字节 == 原件 PNG",
+   "status": "PASS",
+   "detail": "assetId=blobs/b3a677250a401cbd0e677931f86950824dc8a630f90dab1e07c5142ab1b7dc7d file=True"
+  },
+  {
+   "name": "V2.19 图片尺寸（extent EMU → px）",
+   "status": "PASS",
+   "detail": "120x60"
+  },
+  {
+   "name": "V2.20 行内 OMML 子树逐节点未改写（结构/属性/文本相同 + m:oMath 原样）",
+   "status": "PASS",
+   "detail": "same=True head=<m:oMath xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\" xmlns:wpc=\"http://sche"
+  },
+  {
+   "name": "V2.21 独立 OMML 子树逐节点未改写（结构/属性/文本相同 + m:oMath 原样）",
+   "status": "PASS",
+   "detail": "same=True head=<m:oMath xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\" xmlns:wpc=\"http://sche"
+  },
+  {
+   "name": "V2.22 OMML 可见文本未丢（x+1）",
+   "status": "PASS",
+   "detail": "x+1"
+  },
+  {
+   "name": "V2.23 合并表格 columnCount=3",
+   "status": "PASS",
+   "detail": "3"
+  },
+  {
+   "name": "V2.24 横向合并只出现一次且 colSpan=2（得分表）",
+   "status": "PASS",
+   "detail": "[{'text': '得分表', 'colSpan': 2, 'rowSpan': 1, 'header': True}, {'text': '题号', 'colSpan': 1, 'rowSpan': 2, 'header': True}, {'text': '16(1)', 'colSpan': 1, 'rowSpan': 1, 'header': False}, {'text': '16(2)', 'colSpan': 1, 'rowSpan': 1, 'header': False}]"
+  },
+  {
+   "name": "V2.25 纵向合并 rowSpan=2（题号）",
+   "status": "PASS",
+   "detail": "[{'text': '得分表', 'colSpan': 2, 'rowSpan': 1, 'header': True}, {'text': '题号', 'colSpan': 1, 'rowSpan': 2, 'header': True}, {'text': '16(1)', 'colSpan': 1, 'rowSpan': 1, 'header': False}, {'text': '16(2)', 'colSpan': 1, 'rowSpan': 1, 'header': False}]"
+  },
+  {
+   "name": "V2.26 被覆盖单元格不再产生条目（4 个起始格）",
+   "status": "PASS",
+   "detail": "cells=4 [{'text': '得分表', 'colSpan': 2, 'rowSpan': 1, 'header': True}, {'text': '题号', 'colSpan': 1, 'rowSpan': 2, 'header': True}, {'text': '16(1)', 'colSpan': 1, 'rowSpan': 1, 'header': False}, {'text': '16(2)', 'colSpan': 1, 'rowSpan': 1, 'header': False}]"
+  },
+  {
+   "name": "V2.27 首行 isHeader",
+   "status": "PASS",
+   "detail": "True/False"
+  },
+  {
+   "name": "V2.28 GET /papers 列表含该卷",
+   "status": "PASS",
+   "detail": "200 total=1"
+  },
+  {
+   "name": "V2.29 GET 修订内容可读且状态 draft",
+   "status": "PASS",
+   "detail": "200"
+  },
+  {
+   "name": "V2.30 预备：知识点建档/归档成功",
+   "status": "PASS",
+   "detail": "200"
+  },
+  {
+   "name": "V2.P0 块→题目映射可用（p3..p10-1 覆盖；p13 属被删的 18）",
+   "status": "PASS",
+   "detail": "{'p3': 'ed8000', 'p4': '51ff01', 'p5': '5268fa', 'p6': '5268fa', 'p6-1': '5268fa', 'p7': '5268fa', 't8': '5268fa', 'p9': 'c68828', 'p10': 'c68828', 'p10-1': 'c68828', 'p13': ''}"
+  },
+  {
+   "name": "V2.31 PATCH 整表替换成功（删除 18）",
+   "status": "PASS",
+   "detail": "200 {\"paperId\":\"119124684509403d8a584c46399bda01\",\"paperRevisionId\":\"bdc328c732cf487db02ca1d5b181d57f\",\"version\":1,\"state\":\"draft\",\"subjectId\":\"math\",\"title\":\"V00 期中卷（校对后）\",\"totalScoreUnits\":1500,\"totalSc"
+  },
+  {
+   "name": "V2.32 替换后题目 = 4 道（18 已删除）",
+   "status": "PASS",
+   "detail": "4"
+  },
+  {
+   "name": "V2.33 知识点按请求写入（human）",
+   "status": "PASS",
+   "detail": "[['327c722d', 'human'], ['c4b8c404', 'human'], ['327c722d', 'human']]"
+  },
+  {
+   "name": "V2.34 替换后总分 = 1500 保持",
+   "status": "PASS",
+   "detail": "1500"
+  },
+  {
+   "name": "V2.35 标题已更新",
+   "status": "PASS",
+   "detail": "V00 期中卷（校对后）"
+  },
+  {
+   "name": "V2.36 papers.revision 同事务 +1",
+   "status": "PASS",
+   "detail": "0 → 1"
+  },
+  {
+   "name": "V2.37 被删除题目的块归属被清空并记 warning",
+   "status": "PASS",
+   "detail": "['UNSUPPORTED_OBJECT', 'UNSUPPORTED_OBJECT', 'ITEM_SCORE_MISSING', 'PAPER_BLOCK_ITEM_RESET']"
+  },
+  {
+   "name": "V2.38 复用已删除的 itemId 建新题成功",
+   "status": "PASS",
+   "detail": "200 {\"paperId\":\"119124684509403d8a584c46399bda01\",\"paperRevisionId\":\"bdc328c732cf487db02ca1d5b181d57f\",\"version\":1,\"state\":\"draft\",\"subjectId\":\"math\",\"title\":\"V00 期"
+  },
+  {
+   "name": "V2.39 题号重复 → ITEM_QUESTION_NO_DUPLICATE",
+   "status": "PASS",
+   "detail": "422/ITEM_QUESTION_NO_DUPLICATE field=questionNo:True rows=[3]"
+  },
+  {
+   "name": "V2.40 父子成环 → ITEM_CYCLE",
+   "status": "PASS",
+   "detail": "422/ITEM_CYCLE field=parentItemId:True rows=[0, 1]"
+  },
+  {
+   "name": "V2.41 父题不在本批（跨卷父） → ITEM_PARENT_INVALID",
+   "status": "PASS",
+   "detail": "422/ITEM_PARENT_INVALID field=parentItemId:True rows=[0]"
+  },
+  {
+   "name": "V2.42 容器计分（非叶子计分） → SCORED_ITEM_MUST_BE_LEAF",
+   "status": "PASS",
+   "detail": "422/SCORED_ITEM_MUST_BE_LEAF field=isScored:True rows=[0]"
+  },
+  {
+   "name": "V2.43 负分 → 422（schema 拒绝）",
+   "status": "PASS",
+   "detail": "422/INVALID_REQUEST"
+  },
+  {
+   "name": "V2.44 三位小数 → 422（schema 拒绝）",
+   "status": "PASS",
+   "detail": "422/INVALID_REQUEST"
+  },
+  {
+   "name": "V2.45 零分 → ITEM_SCORE_INVALID",
+   "status": "PASS",
+   "detail": "422/ITEM_SCORE_INVALID field=maxScore:True rows=[0]"
+  },
+  {
+   "name": "V2.46 容器带分 → ITEM_SCORE_INVALID",
+   "status": "PASS",
+   "detail": "422/ITEM_SCORE_INVALID field=maxScore:True rows=[0]"
+  },
+  {
+   "name": "V2.47 expectedRevision 过期 → 409 + currentRevision",
+   "status": "PASS",
+   "detail": "409/PAPER_REVISION_STALE currentRevision=2"
+  },
+  {
+   "name": "V2.48 未知知识点 → KNOWLEDGE_REFERENCE_INVALID",
+   "status": "PASS",
+   "detail": "422/KNOWLEDGE_REFERENCE_INVALID field=knowledgePointId:True rows=[None]"
+  },
+  {
+   "name": "V2.49 跨学科知识点 → KNOWLEDGE_REFERENCE_INVALID",
+   "status": "PASS",
+   "detail": "422/KNOWLEDGE_REFERENCE_INVALID field=knowledgePointId:True rows=[None]"
+  },
+  {
+   "name": "V2.50 已归档知识点 → KNOWLEDGE_REFERENCE_INVALID",
+   "status": "PASS",
+   "detail": "422/KNOWLEDGE_REFERENCE_INVALID field=knowledgePointId:True rows=[None]"
+  },
+  {
+   "name": "V2.51 排序号重复 → ITEM_ORDINAL_DUPLICATE",
+   "status": "PASS",
+   "detail": "422/ITEM_ORDINAL_DUPLICATE field=ordinal:True rows=[1, 2, 3, 4]"
+  },
+  {
+   "name": "V2.52 引用其他修订已占用的 itemId → ITEM_ID_INVALID",
+   "status": "PASS",
+   "detail": "422/ITEM_ID_INVALID field=itemId:True rows=[5]"
+  },
+  {
+   "name": "V2.53 块补丁引用不存在的 blockId → PAPER_BLOCK_INVALID",
+   "status": "PASS",
+   "detail": "422/PAPER_BLOCK_INVALID field=blockId:True rows=[0]"
+  },
+  {
+   "name": "V2.54 问题补丁引用不存在 issueId → PAPER_ISSUE_NOT_FOUND",
+   "status": "PASS",
+   "detail": "422/PAPER_ISSUE_NOT_FOUND field=issueId:True rows=[0]"
+  },
+  {
+   "name": "V2.55 全部失败后题数仍为 5（4+复用 1）且修订未变",
+   "status": "PASS",
+   "detail": "items=5"
+  },
+  {
+   "name": "V2.56 当前草稿仍有 blocking 未解决问题（至少 3 条）",
+   "status": "PASS",
+   "detail": "[('UNSUPPORTED_OBJECT', None), ('UNSUPPORTED_OBJECT', 'bdc328c732cf487db02ca1d5b181d57f:p13'), ('ITEM_SCORE_MISSING', 'bdc328c732cf487db02ca1d5b181d57f:p13')]"
+  },
+  {
+   "name": "V2.57 阻断问题无 resolution → 422 PAPER_ISSUE_BLOCKING 且可定位",
+   "status": "PASS",
+   "detail": "422/PAPER_ISSUE_BLOCKING {'issues': [{'row': 0, 'column': 'resolution', 'field': 'resolution', 'code': 'PAPER_ISSUE_BLOCKING', 'message': '解决或排除阻断问题必须给出 resolution（说明补录/排除的依据）。'}]}"
+  },
+  {
+   "name": "V2.58 阻断问题带 resolution 可解决（warning 仍可保持 open）",
+   "status": "PASS",
+   "detail": "200 blocking=[('UNSUPPORTED_OBJECT', 'resolved'), ('UNSUPPORTED_OBJECT', 'resolved'), ('ITEM_SCORE_MISSING', 'resolved')]"
+  }
+ ]
+}

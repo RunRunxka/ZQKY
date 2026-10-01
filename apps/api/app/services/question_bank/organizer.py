@@ -429,19 +429,12 @@ def _answer(value: Any) -> dict[str, Any] | None:
 def model_fingerprint(
     *, model_id: str, protocol: str, base_url: str, api_format: str
 ) -> str:
-    """非敏感模型指纹：``sha256(modelId + protocol + baseUrl 主机名 + apiFormat)``。
+    """非敏感模型指纹；B3/G0 起实现统一在 ``app.services.model_runtime``（此处保留名字兼容）。"""
+    from app.services.model_runtime import model_fingerprint as shared
 
-    **绝不包含凭证、认证头、完整配置或 URL 路径/查询串**，可安全写入 checkpoint 与日志。
-    """
-    host = urlsplit(base_url or "").hostname or ""
-    payload = {
-        "modelId": model_id or "",
-        "protocol": protocol or "",
-        "baseHost": host,
-        "apiFormat": api_format or "",
-    }
-    digest = hashlib.sha256(canonical_json(payload).encode("utf-8")).hexdigest()
-    return f"sha256:{digest}"
+    return shared(
+        model_id=model_id, protocol=protocol, base_url=base_url, api_format=api_format
+    )
 
 
 def is_current_checkpoint(checkpoint: Any) -> bool:

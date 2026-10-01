@@ -1,0 +1,14 @@
+{
+  "probe": "B2 assessment date membership review",
+  "create_status": 201,
+  "patch_status": 200,
+  "initialHeldOn": "2026-09-30",
+  "requestedHeldOn": "2026-09-01",
+  "heldOn": "2026-09-01",
+  "participantConfirmed": false,
+  "joinedOn": "2026-09-20",
+  "expected": "Reject date changes invalidating unconfirmed participant membership, or require an explicit confirmation flow.",
+  "bugReproduced": true,
+  "executionSucceeded": true,
+  "isolation": "ZQKY_DATA_DIR set before importing tests.assessments_support/app.main; all application data under TemporaryDirectory"
+}

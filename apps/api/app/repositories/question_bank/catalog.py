@@ -6,10 +6,18 @@
 - 每次操作独立开连接（``connect``）：实例可被 FastAPI 线程池跨线程使用；
 - ``question_imports`` 的 revision 是乐观锁；``question_drafts`` 的 revision 同时是
   校对修订号，命中 ``expected_revision`` 才写；
-- 草稿内容/分类一经变化，已校对状态强制回到 ``needs_review``（显式排除除外）；
+- 草稿内容/分类/知识点关联一经变化，已校对状态强制回到 ``needs_review``（显式排除除外）；
 - 原文块只增不改：``question_source_blocks`` 没有更新与删除路径，未归属原文不会被丢弃；
+- 知识点关联分两层（B2）：``question_draft_knowledge_links`` 是草稿上的可编辑关联，
+  ``question_knowledge_links`` 是**不可变题目修订**上的正式关联快照（DB 触发器保护，
+  旧修订与旧关联不可改）；改题=追加新修订并复制/替换关联，绝不原地改写历史；
+- 正式关联在关联时冻结 ``subject_id_snapshot`` 与名称快照：知识点改名/归档不影响
+  历史题目的可读性；
 - ``question_submissions`` 是确认入库的幂等表：同 submissionId 同载荷返回原结果，
   同键不同载荷抛 ``IDEMPOTENCY_CONFLICT``；
+- ``question_import_provenance`` 记录导入来源（upload/ai/rule/manual）与生成任务的
+  非敏感模型快照；``question_content_fingerprints`` 是**版本化派生指纹**表，
+  与 ``question_revisions.content_fingerprint``（旧列，不改写）并存；
 - 确认入库的多表写入共用一次 ``write_transaction()``，失败整体回滚。
 """
 
@@ -17,13 +25,16 @@ from __future__ import annotations
 
 import sqlite3
 import uuid
-from collections.abc import Iterator, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, get_args
 
 from app.core.exceptions import AppError
 from app.core.sqlite import connect, now_iso, read_transaction, transaction
+# 租约过期判定与 JobStore 共用同一实现（单一事实来源；不在此处复制一份时间规则）
+from app.repositories.jobs.repository import _lease_active as _task_lease_active
 from app.repositories.question_bank import json_fields
 from app.repositories.question_bank.records import (
     DraftInput,
@@ -52,9 +63,16 @@ SUGGESTION_STATES = frozenset(get_args(SuggestionState))
 QUESTION_STATUSES = frozenset(get_args(QuestionStatus))
 ANSWER_STATES = frozenset(get_args(AnswerState))
 EXTRACTION_METHODS = frozenset({"rule", "ai", "manual"})
-JOB_KINDS = frozenset({"organize"})
-JOB_STATES = frozenset({"queued", "running", "succeeded", "failed", "cancelled"})
+JOB_KINDS = frozenset({"organize", "generate"})
+JOB_STATES = frozenset(
+    {"queued", "running", "succeeded", "failed", "cancelled", "interrupted"}
+)
 LOCATOR_KINDS = frozenset({"markdown", "pdf", "docx", "text"})
+#: 知识点关联角色 / 草稿关联来源（与冻结 DDL 的 CHECK 一致）
+KNOWLEDGE_LINK_ROLES = frozenset({"primary", "secondary"})
+DRAFT_LINK_SOURCES = frozenset({"human", "ai"})
+#: 导入来源（``question_import_provenance.source``）
+IMPORT_SOURCES = frozenset({"upload", "ai", "rule", "manual"})
 
 #: 整理事务内核对目标草稿时产生的批级失败（建议不落库，原文与草稿不变）
 ORGANIZE_TARGET_MISSING = "ORGANIZE_TARGET_MISSING"
@@ -149,6 +167,117 @@ def _stored_flag(value: object, *, field: str) -> bool:
     if value not in (0, 1):
         raise _corrupt(f"题库数据损坏：{field} 不是 0/1 标志。")
     return bool(value)
+
+
+#: 知识点关联行的字段（草稿关联与正式关联共用前缀；草稿多一个 ``source``）
+_LINK_FIELDS = (
+    "knowledgePointId",
+    "knowledgeRevisionId",
+    "subjectIdSnapshot",
+    "knowledgeNameSnapshot",
+    "role",
+)
+
+
+@dataclass(frozen=True)
+class DraftKnowledgeLinkRecord:
+    """草稿上的知识点关联（教师编辑；确认时冻结为正式题修订关联）。"""
+
+    draft_id: str
+    knowledge_point_id: str
+    knowledge_revision_id: str
+    subject_id_snapshot: str
+    knowledge_name_snapshot: str
+    role: str
+    source: str
+
+
+@dataclass(frozen=True)
+class QuestionKnowledgeLinkRecord:
+    """正式题目修订上的知识点关联（不可变修订上的快照）。"""
+
+    question_revision_id: str
+    knowledge_point_id: str
+    knowledge_revision_id: str
+    subject_id_snapshot: str
+    knowledge_name_snapshot: str
+    role: str
+
+
+@dataclass(frozen=True)
+class ImportProvenanceRecord:
+    """``question_import_provenance`` 一行：来源、生成任务与非敏感模型快照。"""
+
+    import_id: str
+    source: str
+    job_id: str | None
+    model_snapshot: dict[str, Any]
+    created_at: str
+
+
+@dataclass(frozen=True)
+class JobLeaseIdentity:
+    """一个执行轮持有的任务租约身份（B2-RV05 中间批 CAS 用）。
+
+    只含 CAS 需要的 ``attempt`` 与 ``token``；执行器在**本执行轮开始时**取一次，
+    随后每次中间批提交都带同一份身份。不得在每个批次提交前重读"当前行租约"：
+    租约被新 attempt 接管后重读会拿到接管者的凭据，让迟到批次冒充当前持有者写入。
+    """
+
+    attempt: int
+    token: str
+
+
+def _link_rows(value: object, *, field: str) -> list[dict[str, str]]:
+    """校验知识点关联整表输入（快照字段由服务层解析知识点后给出）。
+
+    只接受**完整快照行**：``knowledgePointId`` / ``knowledgeRevisionId`` /
+    ``subjectIdSnapshot`` / ``knowledgeNameSnapshot`` / ``role``（草稿行另加
+    ``source``）。任一字段缺失/非法或同一知识点重复 → 422，不做隐式补全，
+    也不静默丢弃重复行。
+    """
+    if isinstance(value, (str, bytes)) or not isinstance(value, Sequence):
+        raise _invalid(f"{field} 必须是关联行序列。")
+    rows: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for item in value:
+        if not isinstance(item, Mapping):
+            raise _invalid(f"{field} 的元素必须是关联行对象。")
+        row: dict[str, str] = {}
+        for key in _LINK_FIELDS:
+            raw = item.get(key)
+            if not isinstance(raw, str) or not raw.strip():
+                raise _invalid(f"{field} 的元素缺少 {key}。")
+            row[key] = raw
+        role = row["role"]
+        if role not in KNOWLEDGE_LINK_ROLES:
+            raise _invalid(f"{field} 的 role 必须是 {sorted(KNOWLEDGE_LINK_ROLES)} 之一。")
+        point_id = row["knowledgePointId"]
+        if point_id in seen:
+            raise _invalid(f"{field} 里同一知识点不允许重复：{point_id}。")
+        seen.add(point_id)
+        source = item.get("source")
+        if source is not None:
+            if not isinstance(source, str) or source not in DRAFT_LINK_SOURCES:
+                raise _invalid(f"{field} 的 source 必须是 {sorted(DRAFT_LINK_SOURCES)} 之一。")
+            row["source"] = source
+        rows.append(row)
+    return rows
+
+
+def _draft_link_row_input(row: Mapping[str, Any], *, field: str) -> tuple[str, str, str, str, str, str]:
+    """把一条草稿关联输入转成 INSERT 参数；缺 ``source`` 视为人工编辑。"""
+    source = row.get("source", "human")
+    if not isinstance(source, str) or source not in DRAFT_LINK_SOURCES:
+        raise _invalid(f"{field} 的 source 必须是 {sorted(DRAFT_LINK_SOURCES)} 之一。")
+    return (
+        _text(row["knowledgePointId"], field="knowledgePointId"),
+        _text(row["knowledgeRevisionId"], field="knowledgeRevisionId"),
+        _text(row["subjectIdSnapshot"], field="subjectIdSnapshot"),
+        _text(row["knowledgeNameSnapshot"], field="knowledgeNameSnapshot"),
+        _choice(row["role"], field="role", allowed=KNOWLEDGE_LINK_ROLES),
+        source,
+    )
 
 
 class QuestionBankCatalog:
@@ -418,15 +547,23 @@ class QuestionBankCatalog:
         duplicate_of_question_id: str | None = None,
         clear_duplicate: bool = False,
         extraction_method: str | None = None,
+        knowledge_links: Sequence[Mapping[str, Any]] | None = None,
     ) -> DraftRecord:
-        """乐观锁更新；content/metadata 实际变化时强制回到 ``needs_review``。
+        """乐观锁更新；content/metadata/知识点关联实际变化时强制回到 ``needs_review``。
 
         显式把 reviewState 设为 ``excluded`` 表示人工排除，允许与内容修改同批提交；
-        其余情况下内容一变，``reviewed`` 不会被保留。
+        其余情况下内容或关联一变，``reviewed`` 不会被保留。
+
+        ``knowledge_links`` 提供即**整表替换**（空序列 = 清空，``None`` = 不动），
+        与内容写入在同一短事务内完成：失败整体回滚，不会出现"内容已改、关联没换"。
         """
         draft_id = _text(draft_id, field="draft_id")
         updates: dict[str, object] = {}
         content_changed = False
+        links_changed = False
+        link_rows = None if knowledge_links is None else _link_rows(
+            knowledge_links, field="knowledge_links"
+        )
         with self._write() as conn:
             row = self._require_draft_row_in(conn, draft_id)
             self._check_revision(row["revision"], expected_revision, what="草稿")
@@ -468,12 +605,121 @@ class QuestionBankCatalog:
                 updates["extraction_method"] = _choice(
                     extraction_method, field="extraction_method", allowed=EXTRACTION_METHODS
                 )
+            if link_rows is not None:
+                links_changed = self._replace_draft_links_in(conn, draft_id, link_rows)
             target_state = updates.get("review_state", row["review_state"])
-            if content_changed and target_state != "excluded":
+            if (content_changed or links_changed) and target_state != "excluded":
                 updates["review_state"] = "needs_review"
             if updates:
                 self._apply_updates(conn, "question_drafts", draft_id, updates)
-            return self._draft_record(self._draft_row_in(conn, draft_id))
+            elif links_changed:
+                # 只换关联、内容一字未动：仍必须 revision +1（乐观锁与校对状态都要刷新）
+                conn.execute(
+                    "UPDATE question_drafts SET revision = revision + 1 WHERE id = ?",
+                    (draft_id,),
+                )
+            return self._draft_record(self._require_draft_row_in(conn, draft_id))
+
+    def set_draft_knowledge_links(
+        self,
+        draft_id: str,
+        *,
+        expected_revision: int,
+        links: Sequence[Mapping[str, Any]],
+    ) -> DraftRecord:
+        """仅替换草稿知识点关联（整表替换）：revision +1 并回到 ``needs_review``。"""
+        return self.update_draft(
+            draft_id, expected_revision=expected_revision, knowledge_links=links
+        )
+
+    def _replace_draft_links_in(
+        self, conn: sqlite3.Connection, draft_id: str, rows: Sequence[Mapping[str, Any]]
+    ) -> bool:
+        """整表替换草稿关联；返回是否发生实际变化（用于 ``needs_review`` 判定）。"""
+        existing = sorted(
+            (
+                record.knowledge_point_id,
+                record.knowledge_revision_id,
+                record.subject_id_snapshot,
+                record.knowledge_name_snapshot,
+                record.role,
+                record.source,
+            )
+            for record in self._draft_link_records_in(conn, draft_id)
+        )
+        prepared = [
+            _draft_link_row_input(row, field="knowledge_links") for row in rows
+        ]
+        pending = sorted(tuple(item) for item in prepared)
+        if not existing and not pending:
+            return False
+        if existing == pending:
+            return False
+        conn.execute(
+            "DELETE FROM question_draft_knowledge_links WHERE draft_id = ?", (draft_id,)
+        )
+        now = now_iso()
+        conn.executemany(
+            "INSERT INTO question_draft_knowledge_links (draft_id, knowledge_point_id, "
+            "knowledge_revision_id, subject_id_snapshot, knowledge_name_snapshot, role, "
+            "source, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            [(draft_id, *item, now) for item in prepared],
+        )
+        return True
+
+    def insert_draft_knowledge_links_in(
+        self,
+        conn: sqlite3.Connection,
+        draft_id: str,
+        rows: Sequence[Mapping[str, Any]],
+    ) -> None:
+        """在调用方事务内写入草稿关联（生成发布路径；调用方保证草稿刚建、无旧行）。"""
+        draft_id = _text(draft_id, field="draft_id")
+        self._require_draft_row_in(conn, draft_id)
+        prepared = [_draft_link_row_input(row, field="knowledge_links") for row in rows]
+        if not prepared:
+            return
+        now = now_iso()
+        conn.executemany(
+            "INSERT INTO question_draft_knowledge_links (draft_id, knowledge_point_id, "
+            "knowledge_revision_id, subject_id_snapshot, knowledge_name_snapshot, role, "
+            "source, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            [(draft_id, *item, now) for item in prepared],
+        )
+
+    def draft_knowledge_links(self, draft_id: str) -> list[DraftKnowledgeLinkRecord]:
+        """读取一只草稿的知识点关联（草稿不存在 → 404，不返回空表掩盖）。"""
+        draft_id = _text(draft_id, field="draft_id")
+        with self._read() as conn:
+            self._require_draft_row_in(conn, draft_id)
+            return self._draft_link_records_in(conn, draft_id)
+
+    def draft_knowledge_links_by_import(
+        self, import_id: str
+    ) -> dict[str, list[DraftKnowledgeLinkRecord]]:
+        """一次读取整批草稿的关联（列表/详情视图用，避免逐草稿查询）。"""
+        import_id = _text(import_id, field="import_id")
+        with self._read() as conn:
+            self._require_import_row_in(conn, import_id)
+            rows = conn.execute(
+                "SELECT l.* FROM question_draft_knowledge_links AS l "
+                "JOIN question_drafts AS d ON d.id = l.draft_id "
+                "WHERE d.import_id = ? ORDER BY l.rowid ASC",
+                (import_id,),
+            ).fetchall()
+        grouped: dict[str, list[DraftKnowledgeLinkRecord]] = {}
+        for row in rows:
+            record = self._draft_link_record(row)
+            grouped.setdefault(record.draft_id, []).append(record)
+        return grouped
+
+    def draft_knowledge_links_in(
+        self, conn: sqlite3.Connection, draft_id: str
+    ) -> list[DraftKnowledgeLinkRecord]:
+        """调用方事务内的草稿关联读取（确认入库时冻结为正式关联）。"""
+        return self._draft_link_records_in(
+            conn, _text(draft_id, field="draft_id")
+        )
 
     def replace_draft_set(
         self,
@@ -679,6 +925,7 @@ class QuestionBankCatalog:
         edition_id: str | None = None,
         status: str | None = None,
         query: str | None = None,
+        knowledge_point_id: str | None = None,
         offset: int = 0,
         limit: int = 20,
     ) -> tuple[list[QuestionRecord], int]:
@@ -696,12 +943,22 @@ class QuestionBankCatalog:
         else:
             statuses = (_choice(status, field="status", allowed=QUESTION_STATUSES),)
         placeholders = ", ".join("?" for _ in statuses)
+        clauses = [f"q.status IN ({placeholders})"]
+        params: list[object] = [owner_id, *statuses]
+        if knowledge_point_id is not None:
+            # 按**正式**知识点筛选：只查最新修订上的关联（历史修订不算当前归属）
+            clauses.append(
+                "EXISTS (SELECT 1 FROM question_knowledge_links AS link "
+                "WHERE link.question_revision_id = q.current_revision_id "
+                "AND link.knowledge_point_id = ?)"
+            )
+            params.append(_text(knowledge_point_id, field="knowledge_point_id"))
         with self._read() as conn:
             rows = conn.execute(
                 f"SELECT q.* FROM questions AS q JOIN question_revisions AS r "
                 "ON r.id = q.current_revision_id WHERE q.owner_id = ? "
-                f"AND q.status IN ({placeholders}) ORDER BY q.created_at DESC, q.rowid DESC",
-                (owner_id, *statuses),
+                f"AND {' AND '.join(clauses)} ORDER BY q.created_at DESC, q.rowid DESC",
+                params,
             ).fetchall()
             records = [self._question_record(conn, row) for row in rows]
         filtered: list[QuestionRecord] = []
@@ -748,19 +1005,30 @@ class QuestionBankCatalog:
         metadata: object,
         answer_state: str,
         content_fingerprint: str,
+        knowledge_links: Sequence[Mapping[str, Any]] | None = None,
+        derived_fingerprint: tuple[str, str] | None = None,
     ) -> QuestionRecord:
-        """题目编辑：追加不可变新修订，并把 current_revision_id 指向它。"""
+        """题目编辑：追加不可变新修订，并把 current_revision_id 指向它。
+
+        - 内容修改（``knowledge_links=None``）：新修订**复制**旧正式关联；
+        - 明确改关联（提供整表行）：新修订写入**替换后**的关联，旧修订旧关联不动；
+        - 旧修订与旧关联不可改（``immutable_question_knowledge_links_*`` 触发器兜底）。
+        """
         question_id = _text(question_id, field="question_id")
         answer_state = _choice(answer_state, field="answer_state", allowed=ANSWER_STATES)
         content_json = json_fields.write_object(content, field="content_json")
         metadata_json = json_fields.write_object(metadata, field="metadata_json")
         content_fingerprint = _text(content_fingerprint, field="content_fingerprint")
+        rows = None if knowledge_links is None else _link_rows(
+            knowledge_links, field="knowledge_links"
+        )
         with self._write() as conn:
             row = self._require_question_row_in(conn, question_id)
             if row["status"] != "confirmed":
                 raise _conflict("已归档的题目不能再修改。", code="QUESTION_ARCHIVED")
             revision_count = self._revision_count_in(conn, question_id)
             self._check_revision(revision_count, expected_revision, what="题目")
+            previous_revision_id = row["current_revision_id"]
             revision_id = uuid.uuid4().hex
             conn.execute(
                 "INSERT INTO question_revisions (id, question_id, content_json, metadata_json, "
@@ -775,6 +1043,26 @@ class QuestionBankCatalog:
                     now_iso(),
                 ),
             )
+            if rows is None:
+                # 内容修改：复制旧正式关联（关联不是本次编辑目标，绝不丢失）
+                conn.execute(
+                    "INSERT INTO question_knowledge_links (question_revision_id, "
+                    "knowledge_point_id, knowledge_revision_id, subject_id_snapshot, "
+                    "knowledge_name_snapshot, role, created_at) "
+                    "SELECT ?, knowledge_point_id, knowledge_revision_id, "
+                    "subject_id_snapshot, knowledge_name_snapshot, role, created_at "
+                    "FROM question_knowledge_links WHERE question_revision_id = ?",
+                    (revision_id, previous_revision_id),
+                )
+            else:
+                self._insert_question_links_in(conn, revision_id, rows)
+            if derived_fingerprint is not None:
+                self.save_derived_fingerprint_in(
+                    conn,
+                    question_revision_id=revision_id,
+                    algorithm_version=derived_fingerprint[0],
+                    fingerprint=derived_fingerprint[1],
+                )
             conn.execute(
                 "UPDATE questions SET current_revision_id = ? WHERE id = ?",
                 (revision_id, question_id),
@@ -792,6 +1080,22 @@ class QuestionBankCatalog:
             if row["status"] != "archived":
                 conn.execute("UPDATE questions SET status = 'archived' WHERE id = ?", (question_id,))
             return self._question_record(conn, self._require_question_row_in(conn, question_id))
+
+    def question_knowledge_links(
+        self, question_id: str
+    ) -> list[QuestionKnowledgeLinkRecord]:
+        """读取题目**当前修订**的正式关联（历史修订的关联只在旧修订上可查）。"""
+        question_id = _text(question_id, field="question_id")
+        with self._read() as conn:
+            row = self._require_question_row_in(conn, question_id)
+            return self._question_link_records_in(conn, row["current_revision_id"])
+
+    def question_knowledge_links_in(
+        self, conn: sqlite3.Connection, question_revision_id: str
+    ) -> list[QuestionKnowledgeLinkRecord]:
+        return self._question_link_records_in(
+            conn, _text(question_revision_id, field="question_revision_id")
+        )
 
     # ------------------------------------------------- 确认入库（事务内接口）
 
@@ -818,6 +1122,12 @@ class QuestionBankCatalog:
             result=result,
             created_at=_stored_text(row["created_at"], field="question_submissions.created_at"),
         )
+
+    def get_submission(self, submission_id: str) -> SubmissionRecord | None:
+        """只读幂等记录（确认请求重放判定用；不存在返回 ``None``，不区分库损坏）。"""
+        submission_id = _text(submission_id, field="submission_id")
+        with self._read() as conn:
+            return self.submission_in(conn, submission_id)
 
     def save_submission_in(
         self,
@@ -849,9 +1159,13 @@ class QuestionBankCatalog:
         content_fingerprint: str,
         source_spans: Sequence[dict[str, Any]],
         import_id: str | None,
+        knowledge_links: Sequence[Mapping[str, Any]] = (),
+        derived_fingerprint: tuple[str, str] | None = None,
     ) -> QuestionRecord:
+        """确认入库的单事务接口：题目 + 首修订 + 来源 + 草稿关联冻结 + 派生指纹。"""
         owner_id = _text(owner_id, field="owner_id")
         answer_state = _choice(answer_state, field="answer_state", allowed=ANSWER_STATES)
+        rows = _link_rows(knowledge_links, field="knowledge_links")
         question_id = uuid.uuid4().hex
         revision_id = uuid.uuid4().hex
         now = now_iso()
@@ -873,8 +1187,180 @@ class QuestionBankCatalog:
                 now,
             ),
         )
+        self._insert_question_links_in(conn, revision_id, rows)
+        if derived_fingerprint is not None:
+            self.save_derived_fingerprint_in(
+                conn,
+                question_revision_id=revision_id,
+                algorithm_version=derived_fingerprint[0],
+                fingerprint=derived_fingerprint[1],
+            )
         self._insert_sources_in(conn, question_id, source_spans=source_spans, import_id=import_id)
         return self._question_record(conn, self._require_question_row_in(conn, question_id))
+
+    def create_import_in(
+        self,
+        conn: sqlite3.Connection,
+        *,
+        owner_id: str,
+        file_sha256: str,
+        original_blob_id: str,
+        uploaded_file_name: str,
+        uploaded_bytes: int,
+        state: str,
+        warnings: Sequence[str] = (),
+        import_id: str | None = None,
+    ) -> ImportRecord:
+        """在调用方事务内建导入行（生成发布路径与幂等确认共用同一写入形状）。"""
+        owner_id = _text(owner_id, field="owner_id")
+        file_sha256 = _text(file_sha256, field="file_sha256")
+        original_blob_id = _text(original_blob_id, field="original_blob_id")
+        uploaded_file_name = _text(uploaded_file_name, field="uploaded_file_name")
+        uploaded_bytes = _count(uploaded_bytes, field="uploaded_bytes", minimum=0)
+        state = _choice(state, field="state", allowed=IMPORT_STATES)
+        new_id = uuid.uuid4().hex if import_id is None else _text(import_id, field="import_id")
+        now = now_iso()
+        conn.execute(
+            "INSERT INTO question_imports (id, owner_id, file_sha256, original_blob_id, "
+            "uploaded_file_name, uploaded_bytes, state, revision, warnings_json, error_code, "
+            "created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, NULL, ?, ?)",
+            (
+                new_id,
+                owner_id,
+                file_sha256,
+                original_blob_id,
+                uploaded_file_name,
+                uploaded_bytes,
+                state,
+                json_fields.write_string_list(list(warnings), field="warnings_json"),
+                now,
+                now,
+            ),
+        )
+        return self._import_record(self._require_import_row_in(conn, new_id))
+
+    def create_drafts_in(
+        self, conn: sqlite3.Connection, import_id: str, drafts: Sequence[DraftInput]
+    ) -> list[DraftRecord]:
+        """在调用方事务内追加草稿（与导入行/关联/任务终态同事务提交）。"""
+        import_id = _text(import_id, field="import_id")
+        if isinstance(drafts, (str, bytes)) or not isinstance(drafts, Sequence):
+            raise _invalid("drafts 必须是 DraftInput 序列。")
+        prepared = [self._draft_insert_values(import_id, draft) for draft in drafts]
+        self._require_import_row_in(conn, import_id)
+        return self._insert_drafts_in(conn, prepared)
+
+    def save_import_provenance_in(
+        self,
+        conn: sqlite3.Connection,
+        *,
+        import_id: str,
+        source: str,
+        job_id: str | None = None,
+        model_snapshot: Mapping[str, Any] | None = None,
+    ) -> ImportProvenanceRecord:
+        """登记导入来源与（生成任务的）非敏感模型快照；同导入重复登记 → 409。"""
+        import_id = _text(import_id, field="import_id")
+        source = _choice(source, field="source", allowed=IMPORT_SOURCES)
+        job_id = _optional_text(job_id, field="job_id")
+        payload = json_fields.write_object(
+            dict(model_snapshot or {}), field="model_snapshot_json"
+        )
+        try:
+            conn.execute(
+                "INSERT INTO question_import_provenance (import_id, source, job_id, "
+                "model_snapshot_json, created_at) VALUES (?, ?, ?, ?, ?)",
+                (import_id, source, job_id, payload, now_iso()),
+            )
+        except sqlite3.IntegrityError as exc:
+            raise _conflict(
+                "该导入已登记过来源，不能重复登记。", code="IMPORT_PROVENANCE_DUPLICATE"
+            ) from exc
+        row = conn.execute(
+            "SELECT * FROM question_import_provenance WHERE import_id = ?", (import_id,)
+        ).fetchone()
+        assert row is not None
+        return self._provenance_record(row)
+
+    def get_import_provenance(self, import_id: str) -> ImportProvenanceRecord | None:
+        import_id = _text(import_id, field="import_id")
+        with self._read() as conn:
+            row = conn.execute(
+                "SELECT * FROM question_import_provenance WHERE import_id = ?", (import_id,)
+            ).fetchone()
+        return self._provenance_record(row) if row is not None else None
+
+    def save_derived_fingerprint_in(
+        self,
+        conn: sqlite3.Connection,
+        *,
+        question_revision_id: str,
+        algorithm_version: str,
+        fingerprint: str,
+    ) -> None:
+        """写版本化派生指纹（同修订同算法幂等；值不一致说明算法漂移，按损坏处理）。
+
+        只写 ``question_content_fingerprints``，**不改** ``question_revisions.content_fingerprint``
+        旧列：旧指纹是历史事实，派生指纹是可补算的新事实。
+        """
+        question_revision_id = _text(question_revision_id, field="question_revision_id")
+        algorithm_version = _text(algorithm_version, field="algorithm_version")
+        fingerprint = _text(fingerprint, field="fingerprint")
+        conn.execute(
+            "INSERT OR IGNORE INTO question_content_fingerprints "
+            "(question_revision_id, algorithm_version, fingerprint, created_at) "
+            "VALUES (?, ?, ?, ?)",
+            (question_revision_id, algorithm_version, fingerprint, now_iso()),
+        )
+        row = conn.execute(
+            "SELECT fingerprint FROM question_content_fingerprints "
+            "WHERE question_revision_id = ? AND algorithm_version = ?",
+            (question_revision_id, algorithm_version),
+        ).fetchone()
+        if row is None or row["fingerprint"] != fingerprint:
+            raise _corrupt(
+                f"题目修订 {question_revision_id} 的派生指纹（{algorithm_version}）已存在且不一致。"
+            )
+
+    def derived_fingerprint(
+        self, question_revision_id: str, *, algorithm_version: str
+    ) -> str | None:
+        question_revision_id = _text(question_revision_id, field="question_revision_id")
+        algorithm_version = _text(algorithm_version, field="algorithm_version")
+        with self._read() as conn:
+            row = conn.execute(
+                "SELECT fingerprint FROM question_content_fingerprints "
+                "WHERE question_revision_id = ? AND algorithm_version = ?",
+                (question_revision_id, algorithm_version),
+            ).fetchone()
+        return None if row is None else _stored_text(row["fingerprint"], field="fingerprint")
+
+    def revisions_missing_derived(
+        self, *, algorithm_version: str, limit: int = 100
+    ) -> list[tuple[str, dict[str, Any]]]:
+        """尚未登记该算法派生指纹的修订（``(revision_id, content)``，供显式补算）。"""
+        algorithm_version = _text(algorithm_version, field="algorithm_version")
+        limit = _count(limit, field="limit", minimum=1)
+        if limit > 500:
+            raise _invalid("limit 不能超过 500。")
+        with self._read() as conn:
+            rows = conn.execute(
+                "SELECT r.id AS id, r.content_json AS content_json FROM question_revisions AS r "
+                "WHERE NOT EXISTS (SELECT 1 FROM question_content_fingerprints AS f "
+                "WHERE f.question_revision_id = r.id AND f.algorithm_version = ?) "
+                "ORDER BY r.rowid ASC LIMIT ?",
+                (algorithm_version, limit),
+            ).fetchall()
+        result: list[tuple[str, dict[str, Any]]] = []
+        for row in rows:
+            content = json_fields.read_object(
+                row["content_json"], field="question_revisions.content_json"
+            )
+            assert content is not None
+            result.append(
+                (_stored_text(row["id"], field="question_revisions.id"), content)
+            )
+        return result
 
     def add_question_sources_in(
         self,
@@ -962,6 +1448,57 @@ class QuestionBankCatalog:
             row = self._job_row_in(conn, job_id)
         return self._job_record(row) if row is not None else None
 
+    def job_lease_identity(
+        self, job_id: str, *, now: str | None = None
+    ) -> JobLeaseIdentity | None:
+        """当前**有效**租约身份 ``(attempt, token)``；非 running / 无租约 / 已过期 → ``None``。
+
+        B2-RV05：执行器在开始一轮执行时取一次本身份，作为之后所有中间批提交的
+        零写入凭据（见 ``JobLeaseIdentity`` 与 ``record_organize_batch``）；
+        也可在批次之间做只读的"我还持有租约吗"预检，尽早停止已失权的执行轮。
+        """
+        job_id = _text(job_id, field="job_id")
+        with self._read() as conn:
+            row = self._job_row_in(conn, job_id)
+            if row is None:
+                raise _not_found("任务不存在。", code="JOB_NOT_FOUND")
+            return self._lease_identity_of_row(row, now=now)
+
+    @staticmethod
+    def _lease_identity_of_row(
+        row: sqlite3.Row, *, now: str | None
+    ) -> JobLeaseIdentity | None:
+        """从任务行取有效租约身份（只读纯函数；过期/非运行/无 token 一律 None）。"""
+        if row["state"] != "running":
+            return None
+        token = row["lease_token"]
+        if not isinstance(token, str) or not token:
+            return None
+        expires_at = row["lease_expires_at"]
+        if not isinstance(expires_at, str) or not expires_at:
+            return None
+        if not _task_lease_active(expires_at, now or now_iso()):
+            return None
+        return JobLeaseIdentity(
+            attempt=_stored_count(row["attempt"], field="question_jobs.attempt"),
+            token=token,
+        )
+
+    @staticmethod
+    def _requested_lease(
+        *, lease_attempt: int | None, lease_token: str | None
+    ) -> JobLeaseIdentity | None:
+        """调用方声明的租约身份；形状不完整 → ``None``（与任何有效租约都不相等 → 零写入）。"""
+        if (
+            not isinstance(lease_attempt, int)
+            or isinstance(lease_attempt, bool)
+            or lease_attempt < 1
+        ):
+            return None
+        if not isinstance(lease_token, str) or not lease_token:
+            return None
+        return JobLeaseIdentity(attempt=lease_attempt, token=lease_token)
+
     def update_job(
         self,
         job_id: str,
@@ -1046,14 +1583,25 @@ class QuestionBankCatalog:
         proposed_content: dict[str, Any] | None = None,
         source_block_ids: Sequence[str] = (),
         failure: dict[str, Any] | None = None,
+        lease_attempt: int | None = None,
+        lease_token: str | None = None,
+        now: str | None = None,
     ) -> tuple[JobRecord, SuggestionRecord | None, dict[str, Any] | None]:
-        """**单个短事务**提交一批的结果：先核对任务未取消、目标草稿修订未变，再写建议与进度。
+        """**单个短事务**提交一批的结果：先核**当前有效租约**与取消标志，再写建议与进度。
 
-        - 任务已取消 → 一个字节都不写，返回 ``(job, None, None)``；
-        - 建议与 ``checkpoint``（``nextBatchIndex`` / ``suggestionIds`` / ``failedBatches``）
-          同事务提交：崩溃只会重放该批，不会漏批或重复落建议；
+        B2-RV05 起，中间批提交必须带本执行轮的租约身份（``lease_attempt`` +
+        ``lease_token``；执行器在开始执行时经 ``job_lease_identity`` 取得）：
+
+        - 任务不存在 → 404（调用方错误，不静默）；
+        - 未提供租约 / 任务非 ``running`` / 已取消 / 租约被接管（attempt 或 token
+          不匹配）/ 租约已过期 → **一个字节都不写**（不落建议、不推进 checkpoint），
+          返回 ``(job, None, None)``；取消与失权一律优先于迟到批次；
+        - 校验通过 → 建议与 ``checkpoint``（``nextBatchIndex`` / ``suggestionIds`` /
+          ``failedBatches``）同事务提交：崩溃只会重放该批，不会漏批或重复落建议；
         - 草稿不存在 / 修订已变 → 该批建议丢弃，返回生效的失败记录（不写建议）；
         - 建议的 ``proposed_metadata`` 取事务内读到的当前草稿分类，避免跨事务读到旧值。
+
+        ``now`` 只供测试注入（模拟租约过期）；生产路径用统一时钟（``now_iso``）。
         """
         job_id = _text(job_id, field="job_id")
         batch_index = _count(batch_index, field="batch_index", minimum=0)
@@ -1063,8 +1611,18 @@ class QuestionBankCatalog:
         if proposed_content is not None and not isinstance(proposed_content, dict):
             raise _invalid("proposed_content 必须是 JSON 对象。")
         with self._write() as conn:
-            job = self._job_record(self._require_job_row_in(conn, job_id))
-            if job.state == "cancelled":
+            job_row = self._require_job_row_in(conn, job_id)
+            job = self._job_record(job_row)
+            if job.state == "cancelled" or _stored_flag(
+                job_row["cancel_requested"], field="question_jobs.cancel_requested"
+            ):
+                return job, None, None
+            requested = self._requested_lease(
+                lease_attempt=lease_attempt, lease_token=lease_token
+            )
+            # 未提供租约 → 视为无写入凭据（不是"与空租约相等"）；旧 attempt / 失权 /
+            # 过期同样零写入，新持有者不被覆盖。
+            if requested is None or self._lease_identity_of_row(job_row, now=now) != requested:
                 return job, None, None
             checkpoint = dict(job.checkpoint)
             raw_ids = checkpoint.get("suggestionIds")
@@ -1506,6 +2064,128 @@ class QuestionBankCatalog:
             "SELECT * FROM question_drafts WHERE import_id = ? ORDER BY rowid ASC", (import_id,)
         ).fetchall()
         return [self._draft_record(row) for row in rows]
+
+    # --------------------------------------------------- 内部：知识点关联
+
+    def _insert_question_links_in(
+        self,
+        conn: sqlite3.Connection,
+        question_revision_id: str,
+        rows: Sequence[Mapping[str, Any]],
+    ) -> None:
+        """在调用方事务内插入正式关联快照（题目首修订/新修订共用）。"""
+        if not rows:
+            return
+        now = now_iso()
+        conn.executemany(
+            "INSERT INTO question_knowledge_links (question_revision_id, knowledge_point_id, "
+            "knowledge_revision_id, subject_id_snapshot, knowledge_name_snapshot, role, "
+            "created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [
+                (
+                    question_revision_id,
+                    _text(row["knowledgePointId"], field="knowledgePointId"),
+                    _text(row["knowledgeRevisionId"], field="knowledgeRevisionId"),
+                    _text(row["subjectIdSnapshot"], field="subjectIdSnapshot"),
+                    _text(row["knowledgeNameSnapshot"], field="knowledgeNameSnapshot"),
+                    _choice(row["role"], field="role", allowed=KNOWLEDGE_LINK_ROLES),
+                    now,
+                )
+                for row in rows
+            ],
+        )
+
+    def _draft_link_records_in(
+        self, conn: sqlite3.Connection, draft_id: str
+    ) -> list[DraftKnowledgeLinkRecord]:
+        rows = conn.execute(
+            "SELECT * FROM question_draft_knowledge_links WHERE draft_id = ? "
+            "ORDER BY rowid ASC",
+            (draft_id,),
+        ).fetchall()
+        return [self._draft_link_record(row) for row in rows]
+
+    def _draft_link_record(self, row: sqlite3.Row) -> DraftKnowledgeLinkRecord:
+        role = row["role"]
+        if role not in KNOWLEDGE_LINK_ROLES:
+            raise _corrupt("题库数据损坏：草稿关联 role 不在枚举内。")
+        source = row["source"]
+        if source not in DRAFT_LINK_SOURCES:
+            raise _corrupt("题库数据损坏：草稿关联 source 不在枚举内。")
+        return DraftKnowledgeLinkRecord(
+            draft_id=_stored_text(row["draft_id"], field="draft_knowledge_links.draft_id"),
+            knowledge_point_id=_stored_text(
+                row["knowledge_point_id"], field="draft_knowledge_links.knowledge_point_id"
+            ),
+            knowledge_revision_id=_stored_text(
+                row["knowledge_revision_id"],
+                field="draft_knowledge_links.knowledge_revision_id",
+            ),
+            subject_id_snapshot=_stored_text(
+                row["subject_id_snapshot"], field="draft_knowledge_links.subject_id_snapshot"
+            ),
+            knowledge_name_snapshot=_stored_text(
+                row["knowledge_name_snapshot"],
+                field="draft_knowledge_links.knowledge_name_snapshot",
+            ),
+            role=role,
+            source=source,
+        )
+
+    def _question_link_records_in(
+        self, conn: sqlite3.Connection, question_revision_id: str
+    ) -> list[QuestionKnowledgeLinkRecord]:
+        rows = conn.execute(
+            "SELECT * FROM question_knowledge_links WHERE question_revision_id = ? "
+            "ORDER BY rowid ASC",
+            (question_revision_id,),
+        ).fetchall()
+        return [self._question_link_record(row) for row in rows]
+
+    def _question_link_record(self, row: sqlite3.Row) -> QuestionKnowledgeLinkRecord:
+        role = row["role"]
+        if role not in KNOWLEDGE_LINK_ROLES:
+            raise _corrupt("题库数据损坏：正式关联 role 不在枚举内。")
+        return QuestionKnowledgeLinkRecord(
+            question_revision_id=_stored_text(
+                row["question_revision_id"], field="question_knowledge_links.question_revision_id"
+            ),
+            knowledge_point_id=_stored_text(
+                row["knowledge_point_id"],
+                field="question_knowledge_links.knowledge_point_id",
+            ),
+            knowledge_revision_id=_stored_text(
+                row["knowledge_revision_id"],
+                field="question_knowledge_links.knowledge_revision_id",
+            ),
+            subject_id_snapshot=_stored_text(
+                row["subject_id_snapshot"],
+                field="question_knowledge_links.subject_id_snapshot",
+            ),
+            knowledge_name_snapshot=_stored_text(
+                row["knowledge_name_snapshot"],
+                field="question_knowledge_links.knowledge_name_snapshot",
+            ),
+            role=role,
+        )
+
+    def _provenance_record(self, row: sqlite3.Row) -> ImportProvenanceRecord:
+        source = row["source"]
+        if source not in IMPORT_SOURCES:
+            raise _corrupt("题库数据损坏：导入来源不在枚举内。")
+        snapshot = json_fields.read_object(
+            row["model_snapshot_json"], field="question_import_provenance.model_snapshot_json"
+        )
+        assert snapshot is not None
+        return ImportProvenanceRecord(
+            import_id=_stored_text(row["import_id"], field="question_import_provenance.import_id"),
+            source=source,
+            job_id=row["job_id"],
+            model_snapshot=snapshot,
+            created_at=_stored_text(
+                row["created_at"], field="question_import_provenance.created_at"
+            ),
+        )
 
     def _suggestion_record(self, row: sqlite3.Row) -> SuggestionRecord:
         state = row["state"]

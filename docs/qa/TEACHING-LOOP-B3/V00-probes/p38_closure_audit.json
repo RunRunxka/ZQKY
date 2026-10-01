@@ -1,0 +1,41 @@
+{
+  "probe": "p38_closure_audit",
+  "ledger": {
+    "diskOk": 163,
+    "diskTotal": 163,
+    "diskBad": [],
+    "r2ToFinalChanged": [
+      "docs/CURRENT_STATUS.md",
+      "docs/qa/TEACHING-LOOP-B3/EVIDENCE-COMMANDS.md",
+      "docs/qa/TEACHING-LOOP-B3/REPORT.md"
+    ],
+    "productChanged": [],
+    "finalEqualsR7": true,
+    "actualMaxRevision": 7,
+    "ok": true
+  },
+  "docAttribution": {
+    "claims": {
+      "evidence_final_claim_r": [
+        "6"
+      ],
+      "evidence_equivalence_r": [
+        "6"
+      ],
+      "evidence_ledger_max_r": [
+        "6"
+      ],
+      "report_frozen_at_r": [
+        "5"
+      ],
+      "report_docs_count": [
+        "两个"
+      ],
+      "status_ledger_max_r": [
+        "5"
+      ]
+    },
+    "ok": false
+  },
+  "verdict": "ledger_ok_attribution_lag"
+}

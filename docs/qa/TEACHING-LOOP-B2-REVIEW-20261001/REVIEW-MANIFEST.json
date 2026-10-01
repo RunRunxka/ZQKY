@@ -1,0 +1,123 @@
+{
+  "reviewDate": "2026-10-01",
+  "baseCommit": "0f4b8cb190c2265d819b90e5d6df4e3954ad1906",
+  "reviewedCandidate": "B2 r2",
+  "reviewedCandidateFileCount": 84,
+  "reviewedCandidateMismatchCount": 0,
+  "sourceManifestSha256": "0b6d1edfcf4a002342ac4000b5aa91b3ba8666d69e768972ad14385c62498ddc",
+  "existingTargetedTests": 126,
+  "existingTargetedTestExitCode": 0,
+  "diagnosticPrograms": 7,
+  "newFindings": {
+    "P1": 3,
+    "P2": 8
+  },
+  "productFilesModifiedByReview": false,
+  "artifactCount": 26,
+  "artifacts": [
+    {
+      "path": "docs/qa/TEACHING-LOOP-B2-REVIEW-20261001/REVIEW.md",
+      "sha256": "8609ee2925c939adc9ab4e7ea1c0223602075db767e3344a4558cde33e9f893a"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B2-REVIEW-20261001/EVIDENCE-COMMANDS.md",
+      "sha256": "1b8d8b56fd362a390db835f93bfa2e787e1074868812c1ebc8dcbfa3a75723aa"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B2-REVIEW-20261001/probes/papers_content_probe.py",
+      "sha256": "cd8256a50db370ab641ee9d705334c24c9cabe51ad4a2dfbe55f20708eea3dc0"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B2-REVIEW-20261001/probes/ui_job_probe.log",
+      "sha256": "bbaec65dd42b7363af513857ffd380214c89a9871b95398b1c411404c20421f6"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B2-REVIEW-20261001/probes/papers_content_probe.log",
+      "sha256": "ccff09347219599139571abc23bea07b871831f6f83f509d708b4f2d00bd6049"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B2-REVIEW-20261001/probes/ui_job_probe.json",
+      "sha256": "9fb845403f9bc48712c97cb7d02a2d1bfb3328f1353f6073c52b9c327fdc5132"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B2-REVIEW-20261001/probes/papers_content_probe.json",
+      "sha256": "ccef302cbd514315447a3b8411242ba7139c426491cb3b205e70fc5f1e20b6b4"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B2-REVIEW-20261001/probes/ui_job_probe.cjs",
+      "sha256": "4bcc6f9d763eb672ca20717f1d1ba83c94cba27014726ff77f37238a7b1b5ce0"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B2-REVIEW-20261001/probes/assessment_date_probe.py",
+      "sha256": "31db1364af59a736cddf99b109d22257e07980f95376f9bb652e424c99b20569"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B2-REVIEW-20261001/probes/question_model_probe.py",
+      "sha256": "540e718a19a94668ed9272f0240acc617f3fe6787d8acf6844b60567dbcef6d0"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B2-REVIEW-20261001/probes/assessment_date_probe.log",
+      "sha256": "16119c1458fbb90394525e5bb11af896c977a84ec4f34215455f4c11e5ec02cb"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B2-REVIEW-20261001/probes/question_model_probe.log",
+      "sha256": "3d3cb2f330e22a14be5babb9f849ba238b194fd9f1906d1f0cd340bf62b3e477"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B2-REVIEW-20261001/probes/assessment_date_probe.json",
+      "sha256": "4c88d3b4628a1261984705a9811420a288d8cae7a1339ff2feccf1a6992b34e9"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B2-REVIEW-20261001/probes/question_model_probe.json",
+      "sha256": "54d4081cea4739fb40b920f1ceac43799ef4b349e16e2b81336655b9bdf72d35"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B2-REVIEW-20261001/probes/question_lease_probe.py",
+      "sha256": "d8d69c0ce1dde3786f08ea45f1e4d40f176ba78b4874c595f44aa1d809134edb"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B2-REVIEW-20261001/probes/question_lease_probe.log",
+      "sha256": "4210ca0669be11e20967b97f354ebd0279bae662baa08e24d86d5e3248039d97"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B2-REVIEW-20261001/probes/question_jobs_probe.json",
+      "sha256": "89070bef1611ba9005f684909b67fe4bc263dbc5cff9da9bbc7f7a460834cf14"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B2-REVIEW-20261001/probes/question_lease_probe.json",
+      "sha256": "f75c081f61cdfce039682b7b033ac28ca288c003377ab05fc854b1478a7fa131"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B2-REVIEW-20261001/probes/question_jobs_probe-first.log",
+      "sha256": "b56e8352a1a454456b84851b8b6c133daa0ead2d8cecaf5dd0c4bfc4889528ff"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B2-REVIEW-20261001/probes/question_jobs_probe.py",
+      "sha256": "b2e1bea8377ffaadf88b4dcfcdec3f22421519f8a73886564fbbc1886b7fe8e7"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B2-REVIEW-20261001/probes/question_jobs_probe-first.json",
+      "sha256": "3becc30c067a4f4515423a54b6310cce190f0ed15351aa3055ccf51a8feba538"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B2-REVIEW-20261001/probes/papers_probe.py",
+      "sha256": "0109d339d0ed57e84c575ace15ab611fd82587be243e2048a96a61dc145545b4"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B2-REVIEW-20261001/probes/question_jobs_probe.log",
+      "sha256": "40ea089410c57cab7abb4dee362097bb6c5d119a5c1acb9cd2d92f1035cde4c3"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B2-REVIEW-20261001/probes/papers_probe.log",
+      "sha256": "51003d6beccc0cf7820f191804cafd71f17295b16f2394a833272320a1daa696"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B2-REVIEW-20261001/probes/papers_probe.json",
+      "sha256": "18dbd1303dc7ebf7a275ff9285af76524ecf24527a9e49a5ae282769ad4b6472"
+    },
+    {
+      "path": "docs/design/teaching-loop-v1/B3_总控启动提示词.md",
+      "sha256": "e3689a9df01618bd3e0b8b42679f5d429e80540355e33b865aef1b0583da1949"
+    }
+  ]
+}

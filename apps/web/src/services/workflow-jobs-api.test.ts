@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { API_BASE_PATH } from './api-client';
-import { cancelJob, fetchJob, observeJob, pollIntervalMs, retryJob } from './workflow-jobs-api';
+import {
+  cancelJob,
+  fetchJob,
+  observeJob,
+  pollIntervalMs,
+  retryJob,
+  retryObservationWindow,
+} from './workflow-jobs-api';
 
 const VIEW = {
   jobId: 'job-1',
@@ -97,5 +104,41 @@ describe('workflow-jobs-api', () => {
     expect(pollIntervalMs(0)).toBe(2000);
     expect(pollIntervalMs(29_999)).toBe(2000);
     expect(pollIntervalMs(30_000)).toBe(5000);
+  });
+  it('重试观察窗口 [N, N+1]：接受 queued(N)→终态(N+1)，拒绝 N+2（B3/G0）', async () => {
+    const states = [
+      { state: 'queued', attempt: 1 },
+      { state: 'running', attempt: 2 },
+      { state: 'succeeded', attempt: 2 },
+    ];
+    let index = 0;
+    const fetchMock = vi.fn(async () => {
+      const item = states[Math.min(index, states.length - 1)];
+      index += 1;
+      return { ok: true, status: 200, json: async () => ({ ...VIEW, ...item }) };
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const window = retryObservationWindow({ attempt: 1 });
+    const seen: string[] = [];
+    const final = await observeJob('teaching', 'job-1', {
+      ...window,
+      onUpdate: (view) => seen.push(`${view.state}@${view.attempt}`),
+      sleep: async () => undefined,
+    });
+    expect(seen).toEqual(['queued@1', 'running@2', 'succeeded@2']);
+    expect(final?.state).toBe('succeeded');
+    expect(window).toEqual({ minAttempt: 1, maxAttempt: 2 });
+  });
+
+  it('attempt 超出窗口（被更新的尝试接管）时停止观察并返回 null', async () => {
+    stubJson({ ...VIEW, state: 'succeeded', attempt: 3 });
+    const final = await observeJob('teaching', 'job-1', {
+      minAttempt: 1,
+      maxAttempt: 2,
+    });
+    expect(final).toBeNull();
+    stubJson({ ...VIEW, state: 'succeeded', attempt: 0 });
+    const older = await observeJob('teaching', 'job-1', { minAttempt: 1, maxAttempt: 2 });
+    expect(older).toBeNull();
   });
 });

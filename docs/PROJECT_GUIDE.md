@@ -487,3 +487,77 @@ README 做入口，PROJECT_GUIDE 管目标/架构/决定，STATUS 管进度/代�
 - **结构变更**：一律追加迁移（B1 为知识点库 `0002`+`0003`、教学库 `0002`）；B0 已登记声明与散列不得改写；
   启动门控的 `REQUIRED_TABLES` 只要求 B0 基础表，保证"尚未应用 B1 迁移"的合法旧库可启动。
   带 `adjust` 钩子的迁移必须保证"声明集合 = 全新库上实际执行的语句集合"（B0 曾因此漏执行索引，见 B0 证据）。
+
+## 13. 原卷、题库关联与施测的稳定决定（TEACHING-LOOP B2，2026-10-01）
+
+- **原卷以"完整题号 + 计分叶子"为骨架**：题号是完整路径（`16(1)`），同修订唯一；父子同卷、无环；
+  **只有叶子计分**（容器 `is_scored=0` 且无满分）；满分与总分一律 **Decimal 字符串**进入、服务端换算为
+  `×100` 整数单位，禁止浮点；确认闸门要求每个计分叶有至少一个同学科未归档知识点、叶子合计=总分>0、
+  **所有原文块已归属或有明确排除理由**、无未解决的 blocking 问题。
+- **确认即冻结**：确认后的修订及其题目、知识点关联、原文块归属、问题处置记录不可增删改
+  （DB 触发器 + 服务双保护，`UPDATE` 改归属与 `DELETE` 都覆盖）；**修改已确认卷 = 新建修订**，
+  旧修订与已建立的施测继续引用旧卷。
+- **分期 DDL（B2 不得越界）**：`paper_revisions.source_practice_revision_id` 与
+  `assessments.active_score_revision_id` 本批**只允许为空**（无外键、CHECK 拒绝非空），
+  由 B3/练习批次通过新迁移补齐外键与写入能力；`paper_revisions.source_file_id` 必须非空指向核验过的受管原件。
+  草稿总分允许 0（教师补分前），确认闸门要求 >0。
+- **AI 边界**：原卷知识点建议只做"关联已有知识点 / 提出待确认新知识点 / 提醒歧义"，不输出评分点、
+  不判断掌握；建议只进 `ai_proposals`（pending），应用前复核草稿编辑版本（过期即 stale）；
+  新知识点必须先走知识点库的候选确认，再单独绑定（**不宣称两库原子提交**）。
+- **题库关联**：草稿关联（`question_draft_knowledge_links`）与正式关联（`question_knowledge_links`，不可变）分离；
+  改内容创建新修订并**复制旧正式关联**，明确改关联才替换；旧 `knowledgeTags` 保持原义、不自动升级为正式关联；
+  历史未分类题可读并明确标注未正式关联。
+- **AI 补题**：`question:generate` 使用**独立 GenerateReply**（不复用 organizer 的 sourceBlockIds 解析器）；
+  冻结允许知识点/证据/题型/数量与模型指纹；产物是 `needs_review` 草稿批次并记录 AI 来源与生成来源，
+  教师审核确认后才入正式题库；`200 + failures 非空` 仍表示整批未确认。
+- **题库任务并入统一引擎**：组织与生成任务统一走 `JobEngine`（租约 90s/心跳 20s/attempt/取消/重试/
+  重启 `running → interrupted`），`question` 域纳入启动收敛，消除"组织器自管 running"的双执行者；
+  旧 URL、checkpoint（`contractVersion=2`）与响应形状保持兼容；旧语义 checkpoint 明确要求重选模型，
+  不得凭当前配置伪造冻结指纹。
+- **施测（T30-b）**：只用**已确认**的固定原卷修订（DB 触发器 + reader + 服务三重把关）；
+  参测姓名/学号从服务端 `students` 读取后冻结，不信任客户端快照；显式非空参测名单（空 → 422）；
+  `(施测, 学生, 人次)` 唯一、补考新增人次不覆盖首次；出勤 `present/absent/exempt` 与未来成绩状态分开。
+  **名单导入日 ≠ 真实入班日**：历史归属未覆盖施测日期时，教师显式确认本次班级并写入依据（`classConfirmed` +
+  `classConfirmationNote` 落库），**不自动修改归属历史**、不阻断"今日导入名单分析过去考试"的合法流程。
+- **知识点前端（F10-KP）**：`/knowledge-points` 是独立知识点库入口（与教材资料库 `/knowledge-bases` 不同）；
+  学科取自 `textbook-taxonomy` 的真实 `subjectId`；教材依据不可用时显示"暂不可用"，**不得显示成"没有依据"**；
+  AI 任务用公共 `workflow-jobs` 客户端显示六态并支持取消/重试；保存冲突保留编辑由教师处理。
+
+## 14. 成绩、公共任务语义与受控迁移的稳定决定（TEACHING-LOOP B3，2026-10-01）
+
+- **成绩只能来自教师提供的原始小题得分**（XLSX/CSV）：不调用大模型评分、不推断分数、不自动补分。
+  服务端读表用**公式视图 + data_only 缓存视图**（不计算公式）、保留**物理行列坐标**、超限明确报错、
+  **不静默截断**；原件为受管资产（`kind='score_sheet'`）。
+- **四个状态互不顶替**：0 = 显式记 0（`recorded`），空 = `missing`，缺考 = `absent`，免考 = `exempt`；
+  分数一律 **Decimal 文本 ↔ ×100 整数单位**（`scoreUnits`），禁止浮点。`recorded` 必须有分数，
+  非 `recorded` 必须没有分数。
+- **全矩阵 = 冻结参测人次集合 × 冻结原卷的固定计分叶集合**：缺行、缺列、未映射叶一律显式落 `missing`，
+  **绝不补 0**；总分只在该人次**全部 recorded** 时给出（`totalUnits`），否则为 null——有
+  missing/absent/exempt 的人次不展示总分，也不用 0 代替。确认必须**逐类承认**（逐班列举 absent 人次 +
+  missing 人次/单元数），承认内容与预览不一致 → 422 `SCORE_ACKNOWLEDGEMENT_MISMATCH`。
+- **三个版本权威互不替代**：`expectedImportRevision`（导入草稿锁：映射/行定位/单元格校正）、
+  `expectedAssessmentRevision`（施测锁：参测人次等）、`baseScoreRevisionId`（所基于的正式成绩版本；
+  首个版本为 null，修正时必须等于当前 active）。任一不符 → 409 + `currentRevision`，前端保留编辑。
+- **确认后不可变**：成绩修订及其矩阵行不可增删改（DB 触发器 + 服务）；封存闸门**按该修订自己的快照**
+  核完整性（人次 × 叶全覆盖，参数化于 `participant_snapshot_json`/`item_snapshot_json`）；
+  `assessments.active_score_revision_id` 只能指向**本施测已确认**修订（复合外键 + 触发器兜底）。
+  **修正 = 从不可变 base 复制全矩阵 + 修正当时参测快照 → 新完整版本**，审计（原值/新值/理由）落
+  `score_revision_corrections`；base 必须为当前 active；同一 `submissionId` 重放幂等。
+- **公共任务语义（G0）**：`POST /workflow-jobs/{id}/retry` 置 `queued` 后经唯一执行器注册表原子调度
+  （注册表导入失败阻断启动）；重试观察窗口 **[N, N+1]**，N+2 视为被接管；并发重复 retry 合法结果
+  ∈ {200, 409} 且**恰好执行一次**。发布失败用**本次执行开始时的原 JobLease** 收敛：请求过取消 → `cancelled`
+  优先，失权零写入，其余 → `failed`（保留域内错误码，跨域统一 `JOB_FAILED` + 已回滚说明）。
+  模型任务执行前比对**冻结指纹**（`sha256(modelId, protocol, baseHost, apiFormat)`，不含凭证）：
+  漂移 → `MODEL_CONFIG_DRIFT`；旧任务无指纹 → `MODEL_FINGERPRINT_MISSING`（要求新任务，不静默放行）。
+- **已确认关联发布复核**：原卷/题库确认在 `PublicationCoordinator` 内复核知识点身份/修订/学科/未归档
+  （归档 → `KNOWLEDGE_ARCHIVED`，无效 → `KNOWLEDGE_REFERENCE_INVALID`）；历史已确认关联保持可读。
+- **受控表重建**：SQLite 结构重建按官方流程（事务外关外键 → 单事务新建/拷贝/删旧/改名/恢复索引触发器 →
+  `foreign_key_check` 全读 + `integrity_check=ok` + 数据对账 → 登记；`finally` 恢复并核验 `foreign_keys=ON`，
+  失败回滚不登记可重跑）；不改写已登记迁移的声明与散列；不使用 `writable_schema`、不先改名旧表
+  （避免子表外键被重写）。
+- **成绩导入工作区（F20-I）**：0/missing/absent/exempt 显著区分（不只靠颜色）；异常显示原表物理地址；
+  409 保留编辑（提示刷新对照，不静默覆盖）、422 保留校对并定位行列；逻辑确认冻结 `submissionId` +
+  原 payload 到明确结果；切换/卸载使在途请求失效（操作身份 + 观察代次）。
+- **题库前端（F10-QB）**：知识点筛选/标注与**显式替换**（跨学科冲突不得静默继承）；旧 `knowledgeTags` 与
+  正式关联分区块呈现、不合并不丢弃；补题六态 + 取消 + 真实重试（[N, N+1] 窗口）；AI 来源与校对链
+  （pending/apply/reject/stale）可见；`200 + failures` 仍显示**整批未确认**，不得显示成功徽标。

@@ -87,6 +87,7 @@ export interface DraftView {
   missingAnswerAcknowledged: boolean;
   warnings: string[];
   duplicateOfQuestionId: string | null;
+  knowledgeLinks?: DraftKnowledgeLinkView[];
 }
 
 export interface SuggestionView {
@@ -124,12 +125,38 @@ export interface QuestionImportList {
   imports: QuestionImportSummary[];
 }
 
+/** 草稿的正式知识点关联（教师编辑；确认时写入正式题修订关联）。 */
+export interface DraftKnowledgeLinkView {
+  knowledgePointId: string;
+  knowledgeRevisionId: string;
+  knowledgeNameSnapshot: string;
+  subjectIdSnapshot: string;
+  role: 'primary' | 'secondary';
+  source: 'human' | 'ai';
+}
+
+export interface DraftKnowledgeLinkInput {
+  knowledgePointId: string;
+  role?: 'primary' | 'secondary';
+}
+
+/** 正式题修订的知识点关联（不可变修订上的快照；后端 `QuestionKnowledgeLinkView`，无 source 字段）。 */
+export interface QuestionKnowledgeLinkView {
+  knowledgePointId: string;
+  knowledgeRevisionId: string;
+  knowledgeNameSnapshot: string;
+  subjectIdSnapshot: string;
+  role: 'primary' | 'secondary';
+}
+
 export interface DraftPatchRequest {
   expectedRevision: number;
   content: QuestionContent;
   metadata: QuestionMetadata;
   reviewState?: DraftReviewState | null;
   missingAnswerAcknowledged?: boolean | null;
+  /** 提供即整表替换（空数组 = 清空）；缺省不动 */
+  knowledgeLinks?: DraftKnowledgeLinkInput[] | null;
 }
 
 export interface DraftSplitRequest {
@@ -143,14 +170,37 @@ export interface OrganizeBatchFailure {
   message: string;
 }
 
+/** 题库任务视图（B2 六态统一；attempt 由统一任务引擎维护）。 */
 export interface OrganizeJobView {
   jobId: string;
-  state: 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled';
+  state: 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled' | 'interrupted';
+  attempt?: number;
   suggestionCount: number;
   failedBatches: number;
   errorCode: string | null;
   suggestions: SuggestionView[];
   failures: OrganizeBatchFailure[];
+}
+
+/** AI 补题请求：冻结允许知识点/可选证据/题型/数量与模型指纹。 */
+export interface QuestionGenerationRequest {
+  modelProfileId: string;
+  subjectId?: string;
+  knowledgePointIds?: string[];
+  questionTypes?: QuestionType[];
+  difficulty?: Difficulty;
+  count?: number;
+  instructions?: string | null;
+  materials?: string[];
+}
+
+export interface GenerationJobView {
+  jobId: string;
+  state: 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled' | 'interrupted';
+  attempt?: number;
+  importId: string | null;
+  candidateCount: number;
+  errorCode: string | null;
 }
 
 export interface DuplicateResolution {
@@ -205,6 +255,8 @@ export interface QuestionDetail extends QuestionSummary {
   metadata: QuestionMetadata;
   sources: SourceSpan[];
   sourceImportId: string | null;
+  /** 正式知识点关联（修订快照；缺省空数组 = 未正式关联） */
+  knowledgeLinks?: QuestionKnowledgeLinkView[];
 }
 
 export interface QuestionList {
@@ -218,6 +270,8 @@ export interface QuestionPatchRequest {
   expectedRevision: number;
   content: QuestionContent;
   metadata: QuestionMetadata;
+  /** 提供即整表替换正式知识点关联；缺省 = 复制旧正式关联 */
+  knowledgeLinks?: DraftKnowledgeLinkInput[] | null;
 }
 
 export const QUESTION_TYPE_LABEL: Record<QuestionType, string> = {
@@ -248,4 +302,5 @@ export const ORGANIZE_STATE_LABEL: Record<OrganizeJobView['state'], string> = {
   succeeded: '已完成',
   failed: '失败',
   cancelled: '已取消',
+  interrupted: '已中断',
 };

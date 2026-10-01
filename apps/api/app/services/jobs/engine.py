@@ -44,6 +44,8 @@ logger = logging.getLogger(__name__)
 
 #: 非 AppError 的执行器失败对外的固定文案（堆栈与原始异常文本不落库）。
 INTERNAL_FAILURE_MESSAGE = "任务执行失败（内部错误）。"
+#: 发布阶段（含业务写入）失败时的固定文案；业务写入已随事务回滚，无半批。
+PUBLISH_FAILURE_MESSAGE = "任务结果发布失败，本次写入已回滚。"
 
 
 @dataclass(frozen=True)
@@ -105,6 +107,8 @@ class JobEngine:
         self._heavy: asyncio.Semaphore | None = None
         self._model: asyncio.Semaphore | None = None
         self._tasks: set[asyncio.Future[JobRecord]] = set()
+        #: (domain, job_id) → 在跑/已调度的任务；用于 retry 幂等与"是否已调度"判定
+        self._tracked: dict[tuple[str, str], asyncio.Future[JobRecord]] = {}
         self._active = 0
 
     # ------------------------------------------------------------ 查询
@@ -115,6 +119,11 @@ class JobEngine:
         if store is None:
             raise AppError(f"未知任务域：{domain!r}。", code="INVALID_REQUEST", status_code=422)
         return store
+
+    def is_tracking(self, domain: str, job_id: str) -> bool:
+        """该任务是否已在本引擎调度且尚未结束（retry 幂等判定）。"""
+        task = self._tracked.get((domain, job_id))
+        return task is not None and not task.done()
 
     @property
     def active_jobs(self) -> int:
@@ -186,6 +195,7 @@ class JobEngine:
             self.run_job(domain, job_id, executor, uses_model=uses_model)
         )
         self._tasks.add(task)
+        self._tracked[(domain, job_id)] = task
         task.add_done_callback(self._on_done)
         return task
 
@@ -199,6 +209,9 @@ class JobEngine:
         for task in list(self._tasks):
             if task.done():
                 self._tasks.discard(task)
+        for key, task in list(self._tracked.items()):
+            if task.done():
+                self._tracked.pop(key, None)
 
     # ------------------------------------------------------------ 内部
 
@@ -247,12 +260,31 @@ class JobEngine:
                 )
             if await context.cancellation_requested():
                 return store.mark_cancelled(frozen.job_id, lease)
-            return store.complete(
-                frozen.job_id,
-                lease,
-                result=outcome.result,
-                publish=outcome.publish,
-            )
+            try:
+                return store.complete(
+                    frozen.job_id,
+                    lease,
+                    result=outcome.result,
+                    publish=outcome.publish,
+                )
+            except (KeyboardInterrupt, SystemExit, asyncio.CancelledError):
+                raise
+            except BaseException as exc:
+                # 发布事务已整体回滚：用**本次执行开始时的原 JobLease** 在新短事务收敛
+                # 终态（取消优先、失权零写入），不留下永久 running 或业务半批（B3/G0）。
+                if isinstance(exc, AppError):
+                    code, message, retryable = exc.code, str(exc), exc.retryable
+                else:
+                    logger.warning(
+                        "任务发布失败（内部错误）：job=%s domain=%s kind=%s",
+                        frozen.job_id,
+                        frozen.domain,
+                        frozen.kind,
+                    )
+                    code, message, retryable = JOB_FAILED, PUBLISH_FAILURE_MESSAGE, False
+                return store.fail_if_current_lease(
+                    frozen.job_id, lease, code=code, message=message, retryable=retryable
+                )
         finally:
             if execution is not None:
                 await self._settle(execution)
@@ -352,6 +384,9 @@ class JobEngine:
 
     def _on_done(self, task: "asyncio.Future[JobRecord]") -> None:
         self._tasks.discard(task)
+        for key, tracked in list(self._tracked.items()):
+            if tracked is task:
+                self._tracked.pop(key, None)
         if not task.cancelled():
             # 取一次异常避免后台任务"未检索"告警；调用方仍可自行 await 取回。
             with contextlib.suppress(BaseException):
@@ -359,6 +394,7 @@ class JobEngine:
 
 
 __all__ = [
+    "PUBLISH_FAILURE_MESSAGE",
     "FrozenJob",
     "INTERNAL_FAILURE_MESSAGE",
     "JobContext",

@@ -2,6 +2,23 @@
 
 内容指纹的组成固定为 ``{type, 题干, 有序选项, 资产内容散列}``，**不含答案与解析**：
 同一题干不同答案视为冲突，进入重复校对，而不是自动当成两道题。
+
+派生指纹（B2，版本化）与旧 ``content_fingerprint`` **并存、互不改写**：
+
+- ``content_fingerprint`` 是历史事实，算法与组成一个字不动；旧 Markdown 题在新版本里
+  照样可读、可确认、可检索；
+- ``derived_content_fingerprint`` 是新事实，算法版本常量 ``derived-v1``，组成 =
+  旧内容指纹 + 共享材料（按序规范化文本）+ 富内容 JSON + 每份资产的**真实字节 sha256**；
+  写入 ``question_content_fingerprints``（``(question_revision_id, algorithm_version)`` 唯一），
+  重复计算幂等，补算绝不改写旧列；
+- **富内容权威规则**：当题目携带富内容（``rich_content`` 非空）时，**富内容是权威内容**，
+  Markdown 只是它的派生展示；派生指纹以富内容 JSON 为准，因此"富内容变了、Markdown 没变"
+  与"Markdown 变了、富内容没变"是两种不同变化。B2 只落地这条规则与指纹组成，
+  富内容的存储与渲染属后续批次；
+- 资产散列：``assetIds`` 里的 ``blobs/<64 位小写 hex>`` 键是内容寻址键，**键值本身即
+  写入时校验过的真实字节散列**（题库 blob 与受管资产存储都在写入/读取时重算）；
+  旧形状 id（非 ``blobs/`` 键，历史上无字节可读）沿用 ``asset_content_hash`` 占位散列，
+  不伪造真实字节。
 """
 
 from __future__ import annotations
@@ -9,7 +26,13 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections.abc import Mapping, Sequence
 from typing import Any
+
+#: 派生指纹算法版本；改变组成必须换版本号，历史行保留供比对
+DERIVED_ALGORITHM_VERSION = "derived-v1"
+
+_BLOB_ASSET_PATTERN = re.compile(r"blobs/([0-9a-f]{64})")
 
 _WHITESPACE_RUN = re.compile(r"[ \t\u3000]+")
 
@@ -41,6 +64,18 @@ def asset_content_hash(asset_id: str) -> str:
     return sha256_text(asset_id)
 
 
+def asset_byte_hash(asset_id: str) -> str:
+    """资产**真实字节** sha256：``blobs/<hex>`` 是内容寻址键，hex 即写入时校验过的散列。
+
+    非 ``blobs/`` 形状的旧 id 没有可读字节，退回 ``asset_content_hash`` 占位，
+    绝不把占位值冒充成真实字节散列（由调用方按需拒绝这类引用）。
+    """
+    match = _BLOB_ASSET_PATTERN.fullmatch(str(asset_id))
+    if match is not None:
+        return match.group(1)
+    return asset_content_hash(asset_id)
+
+
 def content_fingerprint(content: dict[str, Any]) -> str:
     payload = {
         "type": content.get("type"),
@@ -61,6 +96,44 @@ def content_fingerprint(content: dict[str, Any]) -> str:
 
 def canonical_json(payload: Any) -> str:
     return json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+
+
+def derived_content_fingerprint(
+    content: Mapping[str, Any],
+    *,
+    rich_content: Any = None,
+    materials: Sequence[str] = (),
+    asset_hashes: Mapping[str, str] | None = None,
+) -> str:
+    """版本化派生指纹（``derived-v1``）：旧内容指纹 + 共享材料 + 富内容 + 资产真实字节散列。
+
+    - ``content``：题库题面（Markdown 形状）；旧指纹 ``content_fingerprint(content)`` 是
+      派生输入之一，保证"只改题干/选项"同样改变派生值；
+    - ``rich_content``：存在即权威（见模块 docstring 的富内容权威规则），按规范 JSON 入散列；
+    - ``materials``：共享材料的**按序**规范化文本（同一材料重复出现也保留顺序）；
+    - ``asset_hashes``：``assetId -> 真实字节 sha256`` 的覆盖表；覆盖表里没有的 id 按
+      ``asset_byte_hash`` 解析（``blobs/<hex>`` 键即散列，其余为兼容占位）。
+      调用方拿到的是"已经校验过真实字节"的映射时应显式传入，避免二次读取。
+    """
+    asset_ids = [str(item) for item in content.get("assetIds") or []]
+    overrides = asset_hashes or {}
+    assets = [
+        {
+            "assetId": asset_id,
+            "sha256": str(overrides.get(asset_id) or asset_byte_hash(asset_id)),
+        }
+        for asset_id in asset_ids
+    ]
+    payload = {
+        "algorithmVersion": DERIVED_ALGORITHM_VERSION,
+        "contentFingerprint": content_fingerprint(dict(content)),
+        "richContent": rich_content if rich_content not in (None, {}, [], "") else None,
+        "materials": [
+            normalize_markdown(str(material)) for material in materials
+        ],
+        "assets": assets,
+    }
+    return sha256_text(canonical_json(payload))
 
 
 def request_fingerprint(payload: Any) -> str:

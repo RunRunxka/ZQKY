@@ -1,0 +1,67 @@
+{
+  "success": {
+    "error": null,
+    "rowsPreserved": [
+      {
+        "id": "i1",
+        "owner_id": "o1",
+        "amount": 10,
+        "note": "正常"
+      },
+      {
+        "id": "i2",
+        "owner_id": "o2",
+        "amount": 20,
+        "note": "正常"
+      }
+    ],
+    "hasCheck": true,
+    "hasForeignKey": true,
+    "indexes": [
+      "idx_items_owner"
+    ],
+    "registered": [
+      "v00_rebuild"
+    ],
+    "foreignKeys": 1
+  },
+  "fk_problem_row": {
+    "error": "AppError: 迁移 v00_rebuild：foreign_key_check 报告 1 处外键问题（首个：{'table': 'items', 'rowid': 3, 'parent': 'owners', 'fkid': 0}）；已回滚，未登记。",
+    "ddlUnchanged": true,
+    "rowsUnchanged": true,
+    "registeredBefore": [],
+    "registeredAfter": [],
+    "foreignKeys": 1
+  },
+  "verification_mismatch": {
+    "error": "AppError: 迁移 v00_rebuild：数据对账未通过（note 非空行数应为 0，不一致 2）。已回滚，未登记。",
+    "ddlUnchanged": true,
+    "registeredAfterFailure": [],
+    "foreignKeysAfterFailure": 1,
+    "retryError": null,
+    "rowsAfterRetry": [
+      {
+        "id": "i1",
+        "owner_id": "o1",
+        "amount": 10,
+        "note": "正常"
+      },
+      {
+        "id": "i2",
+        "owner_id": "o2",
+        "amount": 20,
+        "note": "正常"
+      }
+    ],
+    "registeredAfterRetry": [
+      "v00_rebuild"
+    ],
+    "foreignKeysAfterRetry": 1
+  },
+  "fingerprint": {
+    "variantChanged": true,
+    "sha": "34b69bcdc45af0ff"
+  },
+  "failures": [],
+  "verdict": "pass"
+}

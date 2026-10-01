@@ -1,0 +1,357 @@
+{
+  "probe": "p25_migrations",
+  "startedAt": 1790864093.942364,
+  "durationSeconds": 1.282,
+  "checks": [
+    {
+      "label": "B2 前缀迁移条数=5",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "0001_teaching_baseline",
+          "0002_teaching_business_tables",
+          "0003_teaching_paper_tables",
+          "0004_teaching_assessment_tables",
+          "0005_teaching_paper_revision_titles"
+        ],
+        "expected": [
+          "0001_teaching_baseline",
+          "0002_teaching_business_tables",
+          "0003_teaching_paper_tables",
+          "0004_teaching_assessment_tables",
+          "0005_teaching_paper_revision_titles"
+        ]
+      }
+    },
+    {
+      "label": "B2 旧库先应用 0001–0005",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "0001_teaching_baseline",
+          "0002_teaching_business_tables",
+          "0003_teaching_paper_tables",
+          "0004_teaching_assessment_tables",
+          "0005_teaching_paper_revision_titles"
+        ],
+        "expected": [
+          "0001_teaching_baseline",
+          "0002_teaching_business_tables",
+          "0003_teaching_paper_tables",
+          "0004_teaching_assessment_tables",
+          "0005_teaching_paper_revision_titles"
+        ]
+      }
+    },
+    {
+      "label": "B2 CHECK 拒绝 active 非空",
+      "ok": true,
+      "detail": "CHECK constraint failed: active_score_revision_id IS NULL"
+    },
+    {
+      "label": "种子后行数（participants/assessments/papers/revisions）",
+      "ok": true,
+      "detail": {
+        "actual": {
+          "participants": 2,
+          "assessments": 1,
+          "papers": 1,
+          "revisions": 2
+        },
+        "expected": {
+          "participants": 2,
+          "assessments": 1,
+          "papers": 1,
+          "revisions": 2
+        }
+      }
+    },
+    {
+      "label": "B2 登记散列含 0001–0005",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "0001",
+          "0002",
+          "0003",
+          "0004",
+          "0005"
+        ],
+        "expected": [
+          "0001",
+          "0002",
+          "0003",
+          "0004",
+          "0005"
+        ]
+      }
+    },
+    {
+      "label": "升级只应用 0006/0007",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "0006_teaching_score_tables",
+          "0007_teaching_assessment_active_score_fk"
+        ],
+        "expected": [
+          "0006_teaching_score_tables",
+          "0007_teaching_assessment_active_score_fk"
+        ]
+      }
+    },
+    {
+      "label": "全部既有表逐行保留",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "label": "FK check 空",
+      "ok": true,
+      "detail": {
+        "actual": [],
+        "expected": []
+      }
+    },
+    {
+      "label": "integrity_check=ok",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "ok"
+        ],
+        "expected": [
+          "ok"
+        ]
+      }
+    },
+    {
+      "label": "foreign_keys 恢复为 1",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "成绩/施测触发器全部在位",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "label": "0001–0005 登记散列逐字不变",
+      "ok": true,
+      "detail": {
+        "actual": {
+          "0001_teaching_baseline": "bf78fb3fb702b6f65f3d9802dfd9b53b6628d14e58d33380a9a7da8936b8612a",
+          "0002_teaching_business_tables": "a23c6c59982f7f57737f00e8cb815a471dd7de83e9de81abe78416fde8692f42",
+          "0003_teaching_paper_tables": "d948738226b3a3ff564dd9ba3e98fb71e04772339d1854540b7c466901bfdb5a",
+          "0004_teaching_assessment_tables": "5817a05f33a0b15bd5780b59aaa2c43a83a30833b429753d1e066595827a8f58",
+          "0005_teaching_paper_revision_titles": "a06f042ab0b769d4fec9e9a5f172a1e6a6d5f75875301b6a26517b0fa6756961"
+        },
+        "expected": {
+          "0001_teaching_baseline": "bf78fb3fb702b6f65f3d9802dfd9b53b6628d14e58d33380a9a7da8936b8612a",
+          "0002_teaching_business_tables": "a23c6c59982f7f57737f00e8cb815a471dd7de83e9de81abe78416fde8692f42",
+          "0003_teaching_paper_tables": "d948738226b3a3ff564dd9ba3e98fb71e04772339d1854540b7c466901bfdb5a",
+          "0004_teaching_assessment_tables": "5817a05f33a0b15bd5780b59aaa2c43a83a30833b429753d1e066595827a8f58",
+          "0005_teaching_paper_revision_titles": "a06f042ab0b769d4fec9e9a5f172a1e6a6d5f75875301b6a26517b0fa6756961"
+        }
+      }
+    },
+    {
+      "label": "assessments 恢复 (active_score_revision_id,id)→score_revisions 复合外键",
+      "ok": true,
+      "detail": [
+        {
+          "id": 0,
+          "seq": 0,
+          "table": "score_revisions",
+          "from": "active_score_revision_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE"
+        },
+        {
+          "id": 0,
+          "seq": 1,
+          "table": "score_revisions",
+          "from": "id",
+          "to": "assessment_id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE"
+        },
+        {
+          "id": 1,
+          "seq": 0,
+          "table": "paper_revisions",
+          "from": "paper_revision_id",
+          "to": "id",
+          "on_update": "NO ACTION",
+          "on_delete": "NO ACTION",
+          "match": "NONE"
+        }
+      ]
+    },
+    {
+      "label": "分期 CHECK（active 仅空）已移除",
+      "ok": true,
+      "detail": "CREATE TABLE \"assessments\" (\n    id TEXT PRIMARY KEY NOT NULL,\n    owner_id TEXT NOT NULL DEFAULT 'local',\n    paper_revision_id TEXT NOT NULL REFERENCES paper_revisions(id),\n    title TEXT NOT NULL,\n"
+    },
+    {
+      "label": "score_* 新表就位且为空",
+      "ok": true,
+      "detail": {
+        "actual": {
+          "score_imports": 0,
+          "score_import_rows": 0,
+          "score_revisions": 0,
+          "student_item_scores": 0,
+          "score_revision_corrections": 0
+        },
+        "expected": {
+          "score_imports": 0,
+          "score_import_rows": 0,
+          "score_revisions": 0,
+          "student_item_scores": 0,
+          "score_revision_corrections": 0
+        }
+      }
+    },
+    {
+      "label": "与 FROZEN_DIGESTS（0001/0002）一致",
+      "ok": true,
+      "detail": {
+        "actual": {
+          "0001_teaching_baseline": "bf78fb3fb702b6f65f3d9802dfd9b53b6628d14e58d33380a9a7da8936b8612a",
+          "0002_teaching_business_tables": "a23c6c59982f7f57737f00e8cb815a471dd7de83e9de81abe78416fde8692f42"
+        },
+        "expected": {
+          "0001_teaching_baseline": "bf78fb3fb702b6f65f3d9802dfd9b53b6628d14e58d33380a9a7da8936b8612a",
+          "0002_teaching_business_tables": "a23c6c59982f7f57737f00e8cb815a471dd7de83e9de81abe78416fde8692f42"
+        }
+      }
+    },
+    {
+      "label": "0001–0005 散列与正式库只读副本一致",
+      "ok": true,
+      "detail": {
+        "actual": {
+          "0001_teaching_baseline": "bf78fb3fb702b6f65f3d9802dfd9b53b6628d14e58d33380a9a7da8936b8612a",
+          "0002_teaching_business_tables": "a23c6c59982f7f57737f00e8cb815a471dd7de83e9de81abe78416fde8692f42",
+          "0003_teaching_paper_tables": "d948738226b3a3ff564dd9ba3e98fb71e04772339d1854540b7c466901bfdb5a",
+          "0004_teaching_assessment_tables": "5817a05f33a0b15bd5780b59aaa2c43a83a30833b429753d1e066595827a8f58",
+          "0005_teaching_paper_revision_titles": "a06f042ab0b769d4fec9e9a5f172a1e6a6d5f75875301b6a26517b0fa6756961"
+        },
+        "expected": {
+          "0001_teaching_baseline": "bf78fb3fb702b6f65f3d9802dfd9b53b6628d14e58d33380a9a7da8936b8612a",
+          "0002_teaching_business_tables": "a23c6c59982f7f57737f00e8cb815a471dd7de83e9de81abe78416fde8692f42",
+          "0003_teaching_paper_tables": "d948738226b3a3ff564dd9ba3e98fb71e04772339d1854540b7c466901bfdb5a",
+          "0004_teaching_assessment_tables": "5817a05f33a0b15bd5780b59aaa2c43a83a30833b429753d1e066595827a8f58",
+          "0005_teaching_paper_revision_titles": "a06f042ab0b769d4fec9e9a5f172a1e6a6d5f75875301b6a26517b0fa6756961"
+        }
+      }
+    },
+    {
+      "label": "升级库可用（施测读取 200）",
+      "ok": true,
+      "detail": {
+        "actual": 200,
+        "expected": 200
+      }
+    },
+    {
+      "label": "升级库上传成绩 201",
+      "ok": true,
+      "detail": {
+        "actual": 201,
+        "expected": 201
+      }
+    },
+    {
+      "label": "升级库自动映射 Q1",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "升级库确认链 200",
+      "ok": true,
+      "detail": {
+        "importId": "e26318226ac1415582a88364c05ee7a5",
+        "state": "confirmed",
+        "revisionId": "76fd951e55d24cf1831a61c20398d9fb",
+        "assessmentRevision": 1,
+        "activeScoreRevisionId": "76fd951e55d24cf1831a61c20398d9fb",
+        "replayed": false
+      }
+    },
+    {
+      "label": "B7 首版确认 200",
+      "ok": true,
+      "detail": {
+        "actual": 200,
+        "expected": 200
+      }
+    },
+    {
+      "label": "B7 新增人次 200",
+      "ok": true,
+      "detail": {
+        "actual": 200,
+        "expected": 200
+      }
+    },
+    {
+      "label": "历史修订仍 total=2（不受新增影响）",
+      "ok": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "label": "历史修订 missing 口径不变",
+      "ok": true,
+      "detail": {
+        "actual": [
+          1,
+          [
+            "1e1802a7a6294a98a8f07c2ace2f315e"
+          ]
+        ],
+        "expected": [
+          1,
+          [
+            "1e1802a7a6294a98a8f07c2ace2f315e"
+          ]
+        ]
+      }
+    },
+    {
+      "label": "历史修订未被判不全（读得到）",
+      "ok": true,
+      "detail": {
+        "actual": "confirmed",
+        "expected": "confirmed"
+      }
+    },
+    {
+      "label": "不含 G 的快照 + 对应矩阵 → 封存放行",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "label": "含 G 的快照 + 少 G 的矩阵 → SCORE_MATRIX_INCOMPLETE",
+      "ok": true,
+      "detail": "SCORE_MATRIX_INCOMPLETE"
+    }
+  ],
+  "failures": [],
+  "observations": [
+    "正式库登记（只读）：{\"0001_teaching_baseline\": \"bf78fb3fb702b6f65f3d9802dfd9b53b6628d14e58d33380a9a7da8936b8612a\", \"0002_teaching_business_tables\": \"a23c6c59982f7f57737f00e8cb815a471dd7de83e9de81abe78416fde8692f42\", \"0003_teaching_paper_tables\": \"d948738226b3a3ff564dd9ba3e98fb71e04772339d1854540b7c466901bfdb5a\", \"0004_teaching_assessment_tables\": \"5817a05f33a0b15bd5780b59aaa2c43a83a30833b429753d1e066595827a8f58\", \"0005_teaching_paper_revision_titles\": \"a06f042ab0b769d4fec9e9a5f172a1e6a6d5f75875301b6a26517b0fa6756961\", \"0006_teaching_score_tables\": \"94dbbae151c636397bb328adca26513e2af11712d644a2226d7a4bdb43ee558c\", \"0007_teaching_assessment_active_score_fk\": \"d550b603788885a47347039f5c96996d025e749f662bd629e2db06b76d291682\"}"
+  ]
+}

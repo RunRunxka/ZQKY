@@ -27,8 +27,15 @@ from __future__ import annotations
 import sqlite3
 
 from app.contracts.teaching_loop import SCHEMA_MIGRATION_DRIFT
+
+SCHEMA_REBUILD_FAILED = "SCHEMA_REBUILD_FAILED"
 from app.core.exceptions import AppError
-from app.core.migrations.base import Migration, StatementAdjust, statement_digest
+from app.core.migrations.base import (
+    Migration,
+    RebuildPlan,
+    StatementAdjust,
+    statement_digest,
+)
 from app.core.migrations import knowledge as _knowledge
 from app.core.migrations import question_bank as _question_bank
 from app.core.migrations import teaching as _teaching
@@ -41,6 +48,7 @@ __all__ = [
     "REGISTERED_MIGRATIONS",
     "REGISTRY_TABLE",
     "StatementAdjust",
+    "RebuildPlan",
     "apply_migrations",
     "applied_migrations",
     "pending_migrations",
@@ -128,19 +136,91 @@ def apply_migrations(connection: sqlite3.Connection, *, database: str) -> list[s
             if recorded != migration.sha256:
                 raise _drift_error(database, migration, recorded)
             continue
-        statements = (
-            tuple(migration.adjust(connection)) if migration.adjust else migration.statements
-        )
+        if migration.rebuild is not None:
+            _apply_rebuild(connection, migration)
+        else:
+            statements = (
+                tuple(migration.adjust(connection)) if migration.adjust else migration.statements
+            )
+            with transaction(connection, immediate=True) as tx:
+                for statement in statements:
+                    tx.execute(statement)
+                tx.execute(
+                    f"INSERT INTO {REGISTRY_TABLE} (id, sha256, applied_at) VALUES (?, ?, ?)",
+                    (migration.id, migration.sha256, now_iso()),
+                )
+        applied[migration.id] = migration.sha256
+        applied_now.append(migration.id)
+    return applied_now
+
+
+def _apply_rebuild(connection: sqlite3.Connection, migration: Migration) -> None:
+    """受控表重建（SQLite 官方流程）：事务外关外键 → 单事务重建与校验 → 登记提交。
+
+    - ``foreign_keys`` 是 no-op in transaction：必须在 BEGIN 之前关闭（本连接为
+      autocommit，``execute`` 立即生效），否则 ``DROP TABLE`` 会按旧表重写子表外键；
+    - 事务内先建临时新表、显式列拷贝、删旧表、改名为原名，再重建索引/触发器；
+    - **必须读取** ``PRAGMA foreign_key_check`` 的全部行与 ``PRAGMA integrity_check``
+      的返回值：任一外键问题行或非 ``ok`` 即失败回滚；
+    - 数据对账（``verifications``）任一计数非 0 失败回滚；
+    - ``finally`` 恢复 ``foreign_keys=ON`` 并核验；失败时迁移不登记，可重跑。
+    """
+    plan = migration.rebuild
+    assert plan is not None
+    connection.execute("PRAGMA foreign_keys = OFF")
+    try:
+        enabled = connection.execute("PRAGMA foreign_keys").fetchone()
+        if enabled is None or int(enabled[0]) != 0:
+            raise AppError(
+                f"迁移 {migration.id}：无法在事务外关闭 foreign_keys，拒绝重建表。",
+                code=SCHEMA_REBUILD_FAILED,
+                status_code=500,
+            )
         with transaction(connection, immediate=True) as tx:
-            for statement in statements:
+            tx.execute(plan.new_table_sql)
+            tx.execute(plan.copy_sql)
+            for statement in plan.drop_and_rename:
                 tx.execute(statement)
+            for statement in plan.restore:
+                tx.execute(statement)
+            fk_rows = tx.execute("PRAGMA foreign_key_check").fetchall()
+            if fk_rows:
+                first = dict(fk_rows[0]) if isinstance(fk_rows[0], sqlite3.Row) else fk_rows[0]
+                raise AppError(
+                    f"迁移 {migration.id}：foreign_key_check 报告 {len(fk_rows)} 处外键问题"
+                    f"（首个：{first}）；已回滚，未登记。",
+                    code=SCHEMA_REBUILD_FAILED,
+                    status_code=500,
+                )
+            integrity = [str(row[0]) for row in tx.execute("PRAGMA integrity_check")]
+            if integrity != ["ok"]:
+                raise AppError(
+                    f"迁移 {migration.id}：integrity_check 非 ok（{integrity[:3]}）；已回滚，未登记。",
+                    code=SCHEMA_REBUILD_FAILED,
+                    status_code=500,
+                )
+            for label, sql in plan.verifications:
+                row = tx.execute(sql).fetchone()
+                count = -1 if row is None else int(row[0])
+                if count != 0:
+                    raise AppError(
+                        f"迁移 {migration.id}：数据对账未通过（{label}，不一致 {count}）。已回滚，未登记。",
+                        code=SCHEMA_REBUILD_FAILED,
+                        status_code=500,
+                    )
             tx.execute(
                 f"INSERT INTO {REGISTRY_TABLE} (id, sha256, applied_at) VALUES (?, ?, ?)",
                 (migration.id, migration.sha256, now_iso()),
             )
-        applied[migration.id] = migration.sha256
-        applied_now.append(migration.id)
-    return applied_now
+    finally:
+        connection.execute("PRAGMA foreign_keys = ON")
+        restored = connection.execute("PRAGMA foreign_keys").fetchone()
+        if restored is None or int(restored[0]) != 1:
+            raise AppError(
+                f"迁移 {migration.id}：恢复 foreign_keys=ON 失败；连接不可信，请重启应用。",
+                code=SCHEMA_REBUILD_FAILED,
+                status_code=500,
+            )
 
 
 def pending_migrations(connection: sqlite3.Connection, *, database: str) -> list[str]:

@@ -11,6 +11,7 @@ import {
   type AnswerState,
   type Difficulty,
   type DraftReviewState,
+  type OrganizeJobView,
   type QuestionImportState,
   type QuestionLocatorView,
   type QuestionType,
@@ -33,9 +34,21 @@ export const ANSWER_STATE_LABEL: Record<AnswerState, string> = {
 
 export const EXTRACTION_METHOD_LABEL: Record<'rule' | 'ai' | 'manual', string> = {
   rule: '规则拆题',
-  ai: 'AI 整理',
+  ai: 'AI 候选（整理/补题）',
   manual: '人工拆分',
 };
+
+/** AI 候选的显式标识：来源是 AI（整理或补题），且必然还要人工校对。 */
+export const AI_CANDIDATE_CHIP = 'AI 候选（需人工校对）';
+
+/** 旧字段 knowledgeTags 的区块标题与边界说明（与正式关联分开呈现，不合并、不丢弃）。 */
+export const LEGACY_TAGS_TITLE = '历史知识点标签（旧字段）';
+export const LEGACY_TAGS_HINT =
+  '旧字段 knowledgeTags 与正式知识点关联分开保留：不合并、不丢弃，也不参与知识点筛选。';
+
+/** 200 + failures 的统一说法：整批未确认（不是部分成功）。 */
+export const CONFIRM_UNCONFIRMED_TITLE = '整批未确认';
+
 
 export const SUGGESTION_STATE_LABEL: Record<SuggestionState, string> = {
   pending: '待处理',
@@ -83,6 +96,21 @@ export function difficultyLabel(difficulty: Difficulty): string {
 
 export function organizeStateLabel(state: keyof typeof ORGANIZE_STATE_LABEL): string {
   return ORGANIZE_STATE_LABEL[state] ?? String(state);
+}
+
+/** 整理任务状态对应的既有 chip 修饰类（不新增颜色）：中断/失败用 amber，进行中用 blue。 */
+export function organizeStateChipClass(state: OrganizeJobView['state']): string {
+  switch (state) {
+    case 'succeeded':
+      return 'space-chip green';
+    case 'failed':
+    case 'interrupted':
+      return 'space-chip amber';
+    case 'running':
+      return 'space-chip blue';
+    default:
+      return 'space-chip';
+  }
 }
 
 function range(start: number | null, end: number | null, unit: string): string | null {

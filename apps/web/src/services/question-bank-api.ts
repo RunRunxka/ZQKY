@@ -11,15 +11,18 @@
  */
 
 import { apiRequest } from '@/services/api-client';
+import { isJobTerminal, type JobState, type JobView } from '@/contracts/teaching-loop';
 import type {
   ConfirmResult,
   DraftPatchRequest,
   DraftSplitRequest,
   DraftView,
+  GenerationJobView,
   OrganizeBatchFailure,
   OrganizeJobView,
   QuestionConfirmRequest,
   QuestionDetail,
+  QuestionGenerationRequest,
   QuestionImportDetail,
   QuestionImportList,
   QuestionList,
@@ -65,17 +68,43 @@ export interface QuestionQuery {
   editionId?: string;
   status?: QuestionStatus;
   q?: string;
+  /**
+   * 按**正式**知识点关联筛选（后端只匹配当前最新修订上的关联；历史修订不算当前归属）。
+   * B3/F10-QB 新增；缺省不筛。
+   */
+  knowledgePointId?: string;
   offset?: number;
   limit?: number;
 }
 
 /**
- * `organize` 的结果视图 = 冻结契约的 `OrganizeJobView`（含 `suggestions` 与 `failures`）。
+ * `organize` 的结果视图 = 冻结契约的 `OrganizeJobView`（六态 + `attempt`、`suggestions`、`failures`）。
  *
  * 保留 `normalizeOrganizeResult` 的原因：响应缺字段或形状不认识时必须显式失败
  * （不能让界面把未知响应当成功），也不能用假数据补齐。
  */
 export type OrganizeJobResult = OrganizeJobView;
+
+/** 六态白名单：服务端给出未知状态时按失败处理（不把未知当成功）。 */
+const ORGANIZE_JOB_STATES: readonly JobState[] = [
+  'queued',
+  'running',
+  'succeeded',
+  'failed',
+  'cancelled',
+  'interrupted',
+];
+
+function asJobState(value: unknown): OrganizeJobView['state'] {
+  return typeof value === 'string' && (ORGANIZE_JOB_STATES as readonly string[]).includes(value)
+    ? (value as OrganizeJobView['state'])
+    : 'failed';
+}
+
+/** 任务是否仍在进行（统一任务引擎接管后 POST 可能先返回 queued/running）。 */
+export function organizeJobPending(job: OrganizeJobView): boolean {
+  return !isJobTerminal(job.state);
+}
 
 /* ------------------------------------------------------------------ 查询串 */
 
@@ -213,26 +242,81 @@ export function normalizeOrganizeResult(raw: unknown): OrganizeJobResult {
       failures: [],
     };
   }
-  const rawSuggestions = Array.isArray(raw.suggestions) ? raw.suggestions : [];
-  const suggestions: SuggestionView[] = [];
-  for (const item of rawSuggestions) {
-    const parsed = asSuggestion(item);
-    if (parsed) suggestions.push(parsed);
-  }
-  const rawFailures = Array.isArray(raw.failures) ? raw.failures : [];
-  const failures: OrganizeBatchFailure[] = rawFailures.filter(isRecord).map((item) => ({
-    batchIndex: typeof item.batchIndex === 'number' ? item.batchIndex : -1,
-    code: typeof item.code === 'string' ? item.code : 'ORGANIZER_UNKNOWN',
-    message: typeof item.message === 'string' ? item.message : '',
-  }));
-  return {
+  const suggestions = asSuggestions(raw.suggestions) ?? [];
+  const failures = asFailures(raw.failures) ?? [];
+  const result: OrganizeJobResult = {
     jobId: typeof raw.jobId === 'string' ? raw.jobId : '',
-    state: (raw.state as OrganizeJobView['state']) ?? 'failed',
+    state: asJobState(raw.state),
     suggestionCount: typeof raw.suggestionCount === 'number' ? raw.suggestionCount : 0,
     failedBatches: typeof raw.failedBatches === 'number' ? raw.failedBatches : 0,
     errorCode: typeof raw.errorCode === 'string' ? raw.errorCode : null,
     suggestions,
     failures,
+  };
+  // attempt 由统一任务引擎维护（B2 六态）：响应带就保留，缺省不补 0（0 是真实尝试号）
+  if (typeof raw.attempt === 'number') result.attempt = raw.attempt;
+  return result;
+}
+
+/** 建议明细：字段不存在返回 null（保持「未提供」与「空数组」的差别）；形状不认识的条目丢弃。 */
+function asSuggestions(raw: unknown): SuggestionView[] | null {
+  if (!Array.isArray(raw)) return null;
+  const suggestions: SuggestionView[] = [];
+  for (const item of raw) {
+    const parsed = asSuggestion(item);
+    if (parsed) suggestions.push(parsed);
+  }
+  return suggestions;
+}
+
+function asFailures(raw: unknown): OrganizeBatchFailure[] | null {
+  if (!Array.isArray(raw)) return null;
+  return raw.filter(isRecord).map((item) => ({
+    batchIndex: typeof item.batchIndex === 'number' ? item.batchIndex : -1,
+    code: typeof item.code === 'string' ? item.code : 'ORGANIZER_UNKNOWN',
+    message: typeof item.message === 'string' ? item.message : '',
+  }));
+}
+
+/**
+ * 把公共任务视图（`GET /workflow-jobs/{id}?domain=question`）转换成整理视图的**可识别字段**。
+ *
+ * 纪律：只取服务端明确给出的字段（`result.suggestions` / `suggestionCount` / `failures` /
+ * `failedBatches` / `errorCode`）；没有的字段一律不写，界面保留上一份权威数据，
+ * 不猜造、不清零。`state` / `attempt` / `jobId` 始终来自任务视图；`view.error` 只在
+ * 整理视图还没有错误码时用于补充。
+ */
+export function organizeFieldsFromJobView(view: JobView): Partial<OrganizeJobResult> {
+  const patch: Partial<OrganizeJobResult> = {
+    jobId: view.jobId,
+    state: asJobState(view.state),
+  };
+  if (typeof view.attempt === 'number') patch.attempt = view.attempt;
+  const result = isRecord(view.result) ? view.result : null;
+  if (result) {
+    const suggestions = asSuggestions(result.suggestions);
+    if (suggestions) patch.suggestions = suggestions;
+    const failures = asFailures(result.failures);
+    if (failures) patch.failures = failures;
+    if (typeof result.suggestionCount === 'number') patch.suggestionCount = result.suggestionCount;
+    if (typeof result.failedBatches === 'number') patch.failedBatches = result.failedBatches;
+    if (typeof result.errorCode === 'string' || result.errorCode === null) {
+      patch.errorCode = typeof result.errorCode === 'string' ? result.errorCode : null;
+    }
+  }
+  return patch;
+}
+
+/** 用一次任务观察更新整理视图：状态/尝试号来自任务视图，其余字段只在服务端给出时更新。 */
+export function mergeOrganizeObservation(
+  current: OrganizeJobResult,
+  view: JobView,
+): OrganizeJobResult {
+  const patch = organizeFieldsFromJobView(view);
+  return {
+    ...current,
+    ...patch,
+    errorCode: patch.errorCode ?? current.errorCode ?? view.error?.code ?? null,
   };
 }
 
@@ -247,7 +331,94 @@ export function applyQuestionSuggestion(
   );
 }
 
-/* ------------------------------------------------------------------ 确认入库 */
+/* ------------------------------------------------------------------ AI 补题（生成） */
+
+/**
+ * 发起 AI 补题：`modelProfileId` 由调用方在**点击那一刻**冻结为当前聊天模型的 profile id
+ * （重试由后端沿用冻结输入与模型指纹，前端不换模型重发）。
+ *
+ * `202` 只代表任务被接受，绝不代表已生成草稿：结果经
+ * `GET /workflow-jobs/{jobId}?domain=question` 观察（六态 + `attempt`），
+ * 失败一律抛 `ApiError`，不降级为空批次或假成功。
+ */
+export function createQuestionGenerationJob(
+  body: QuestionGenerationRequest,
+): Promise<GenerationJobView> {
+  return apiRequest<unknown>('/question-generation-jobs', jsonInit('POST', body)).then(
+    normalizeGenerationResult,
+  );
+}
+
+/**
+ * 归一补题任务响应：`state` 只认六态白名单（未知按失败处理），`jobId`/`importId`/
+ * `candidateCount`/`errorCode` 形状不认识时给显式兜底。
+ * `attempt` 保留（含 0）：缺字段不补 0（0 是真实尝试号，不能与「缺省」混为一谈）。
+ */
+export function normalizeGenerationResult(raw: unknown): GenerationJobView {
+  if (!isRecord(raw)) {
+    return {
+      jobId: '',
+      state: 'failed',
+      importId: null,
+      candidateCount: 0,
+      errorCode: 'INVALID_RESPONSE',
+    };
+  }
+  const result: GenerationJobView = {
+    jobId: typeof raw.jobId === 'string' ? raw.jobId : '',
+    state: asJobState(raw.state),
+    importId: typeof raw.importId === 'string' && raw.importId ? raw.importId : null,
+    candidateCount: typeof raw.candidateCount === 'number' ? raw.candidateCount : 0,
+    errorCode: typeof raw.errorCode === 'string' && raw.errorCode ? raw.errorCode : null,
+  };
+  if (typeof raw.attempt === 'number') result.attempt = raw.attempt;
+  return result;
+}
+
+/**
+ * 把公共任务视图（`GET /workflow-jobs/{id}?domain=question`）转换成补题视图的**可识别字段**。
+ *
+ * 纪律：只取服务端明确给出的字段（`result.importId` / `result.candidateCount` /
+ * `result.errorCode`）；没有的字段一律不写，界面保留上一份权威数据，不猜造、不清零。
+ * 补题没有「批级部分结果」：`importId` 只在任务成功发布后由服务端给出。
+ */
+export function generationFieldsFromJobView(view: JobView): Partial<GenerationJobView> {
+  const patch: Partial<GenerationJobView> = {
+    jobId: view.jobId,
+    state: asJobState(view.state),
+  };
+  if (typeof view.attempt === 'number') patch.attempt = view.attempt;
+  const result = isRecord(view.result) ? view.result : null;
+  if (result) {
+    if (typeof result.importId === 'string' && result.importId) patch.importId = result.importId;
+    if (typeof result.candidateCount === 'number') {
+      patch.candidateCount = result.candidateCount;
+    }
+    if (typeof result.errorCode === 'string' || result.errorCode === null) {
+      patch.errorCode = typeof result.errorCode === 'string' ? result.errorCode : null;
+    }
+  }
+  return patch;
+}
+
+/**
+ * 用一次任务观察更新补题视图：状态/尝试号来自任务视图，其余字段只在服务端给出时更新；
+ * 上次的 `importId`/`candidateCount` 在任务视图没有结果时不回退、不清零。
+ */
+export function mergeGenerationObservation(
+  current: GenerationJobView | null,
+  view: JobView,
+): GenerationJobView | null {
+  if (!current) return null;
+  const patch = generationFieldsFromJobView(view);
+  return {
+    ...current,
+    ...patch,
+    errorCode: patch.errorCode ?? current.errorCode ?? view.error?.code ?? null,
+  };
+}
+
+
 
 /**
  * 确认入库（幂等 `submissionId`）。
@@ -277,6 +448,7 @@ export function listQuestions(
       editionId: query.editionId,
       status: query.status,
       q: query.q,
+      knowledgePointId: query.knowledgePointId,
       offset: query.offset,
       limit: query.limit,
     })}`,

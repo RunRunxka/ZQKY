@@ -1,0 +1,44 @@
+{
+  "results": [
+    {
+      "probe": "required-diagram-unreplaced",
+      "blocking": [
+        "UNSUPPORTED_OBJECT"
+      ],
+      "confirmedState": "confirmed",
+      "stemContent": {
+        "answerBlocks": [],
+        "assets": [],
+        "explanationBlocks": [],
+        "optionBlocks": {},
+        "origin": {
+          "originalAssetId": "8b6eb9748b0243e18169cea0b0896608",
+          "originalSha256": "d0a58af719c398040a08548b97fa3b0558d79c4ae561ddbfafc7fb0156ce5d5e",
+          "sourceLocator": {
+            "fileName": "critical-diagram.docx",
+            "parserVersion": "zqky-rich-v1"
+          }
+        },
+        "sharedMaterials": [],
+        "stemBlocks": [
+          {
+            "id": "p1",
+            "kind": "paragraph",
+            "text": "1.（5 分）Use the diagram to compute the shaded area."
+          }
+        ],
+        "version": 2
+      },
+      "originalMissingCriticalObjectHasNoReplacement": true
+    },
+    {
+      "probe": "empty-content-confirm",
+      "state": "confirmed",
+      "readerContent": {}
+    },
+    {
+      "evidenceDirectory": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b2-review-paper-content-4dt_x79f"
+    }
+  ],
+  "exitMeaning": "0 means reproduction completed"
+}

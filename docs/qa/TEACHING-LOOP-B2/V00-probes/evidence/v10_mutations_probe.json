@@ -1,0 +1,60 @@
+{
+ "probe": "v10_mutations_probe",
+ "results": [
+  {
+   "name": "V10.A0 变异后的 DDL 确实删掉了 ITEM_KNOWLEDGE_MISSING 分支",
+   "status": "PASS",
+   "detail": "原始 912 字节 → 变异 681 字节"
+  },
+  {
+   "name": "V10.A1 原始闸门拒绝「缺知识点」的确认（控制组）",
+   "status": "PASS",
+   "detail": "IntegrityError: ITEM_KNOWLEDGE_MISSING"
+  },
+  {
+   "name": "V10.A2 去掉该分支后同一数据被接受（V1.F3/V3.4 断言有牙齿）",
+   "status": "PASS",
+   "detail": "变异库接受了本应被拒的确认"
+  },
+  {
+   "name": "V10.B0 变异副本注入成功（源文件未被修改）",
+   "status": "PASS",
+   "detail": "delta_chars=38"
+  },
+  {
+   "name": "V10.B1 原始校验拒绝含 URL 的题干（控制组）",
+   "status": "PASS",
+   "detail": "AppError GENERATION_FORBIDDEN_REFERENCE"
+  },
+  {
+   "name": "V10.B2 禁用扫描后同一回复被放行（V5.6/7/8 断言有牙齿）",
+   "status": "PASS",
+   "detail": "candidates=1 error=None"
+  },
+  {
+   "name": "V10.C0 原始收敛域包含 question",
+   "status": "PASS",
+   "detail": "('knowledge', 'teaching', 'question')"
+  },
+  {
+   "name": "V10.C1 原始配置下 create_app 把 running 收敛为 interrupted（控制组）",
+   "status": "PASS",
+   "detail": "state=interrupted"
+  },
+  {
+   "name": "V10.C2 去掉 question 域后同一 running 任务不再收敛（V6.8 断言有牙齿）",
+   "status": "PASS",
+   "detail": "state=running"
+  },
+  {
+   "name": "V10.D1 变异实验后 83 个候选文件 sha256 与冻结记录 100% 一致（候选未污染）",
+   "status": "PASS",
+   "detail": "mismatch=[] files=83"
+  },
+  {
+   "name": "V10.D2 除 V00 探针外没有新增的未登记改动（候选文件之外零触碰）",
+   "status": "PASS",
+   "detail": "entries=82 offenders=[]"
+  }
+ ]
+}

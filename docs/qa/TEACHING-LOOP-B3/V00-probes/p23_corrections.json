@@ -1,0 +1,567 @@
+{
+  "probe": "p23_corrections",
+  "startedAt": 1790863947.9676533,
+  "durationSeconds": 1.349,
+  "checks": [
+    {
+      "label": "base 不存在 404",
+      "ok": true,
+      "detail": {
+        "actual": 404,
+        "expected": 404
+      }
+    },
+    {
+      "label": "base 不存在错误码",
+      "ok": true,
+      "detail": {
+        "actual": "SCORE_REVISION_NOT_FOUND",
+        "expected": "SCORE_REVISION_NOT_FOUND"
+      }
+    },
+    {
+      "label": "修正 200",
+      "ok": true,
+      "detail": {
+        "actual": 200,
+        "expected": 200
+      }
+    },
+    {
+      "label": "新版本 version=2",
+      "ok": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "label": "新版本 base=v1",
+      "ok": true,
+      "detail": {
+        "actual": "afe1138f860a46b3a35500d344078190",
+        "expected": "afe1138f860a46b3a35500d344078190"
+      }
+    },
+    {
+      "label": "active 指向新版本",
+      "ok": true,
+      "detail": {
+        "actual": "e4912644123643a092ee8b9956f7e13e",
+        "expected": "e4912644123643a092ee8b9956f7e13e"
+      }
+    },
+    {
+      "label": "修正 replayed=false",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "v2 total=4",
+      "ok": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "label": "v2 missingCellCount=0（B 已补齐）",
+      "ok": true,
+      "detail": {
+        "actual": 0,
+        "expected": 0
+      }
+    },
+    {
+      "label": "v2 B 的 Q3 = recorded 300",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "recorded",
+          300
+        ],
+        "expected": [
+          "recorded",
+          300
+        ]
+      }
+    },
+    {
+      "label": "v2 B.totalUnits=800",
+      "ok": true,
+      "detail": {
+        "actual": 800,
+        "expected": 800
+      }
+    },
+    {
+      "label": "v2 A.totalUnits 不变 900",
+      "ok": true,
+      "detail": {
+        "actual": 900,
+        "expected": 900
+      }
+    },
+    {
+      "label": "审计 1 条",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "审计原值/新值/理由/坐标",
+      "ok": true,
+      "detail": {
+        "actual": {
+          "participant_id": "8df87a0a670748d9a0bb1831d5693517",
+          "item_id": "it-corr-3",
+          "old_status": "missing",
+          "old_score_units": null,
+          "new_status": "recorded",
+          "new_score_units": 300,
+          "reason": true,
+          "seq": 1
+        },
+        "expected": {
+          "participant_id": "8df87a0a670748d9a0bb1831d5693517",
+          "item_id": "it-corr-3",
+          "old_status": "missing",
+          "old_score_units": null,
+          "new_status": "recorded",
+          "new_score_units": 300,
+          "reason": true,
+          "seq": 1
+        }
+      }
+    },
+    {
+      "label": "v1 仍是 4 人次快照",
+      "ok": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "label": "v1 missingCellCount=1（未被修正改写）",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "v1 B 的 Q3 仍 missing",
+      "ok": true,
+      "detail": {
+        "actual": "missing",
+        "expected": "missing"
+      }
+    },
+    {
+      "label": "v1 B.totalUnits 仍 null",
+      "ok": true,
+      "detail": {
+        "actual": null,
+        "expected": null
+      }
+    },
+    {
+      "label": "v1 仍触发 active 为 v2",
+      "ok": true,
+      "detail": {
+        "actual": "e4912644123643a092ee8b9956f7e13e",
+        "expected": "e4912644123643a092ee8b9956f7e13e"
+      }
+    },
+    {
+      "label": "过期 base 409",
+      "ok": true,
+      "detail": {
+        "actual": 409,
+        "expected": 409
+      }
+    },
+    {
+      "label": "过期 base 错误码",
+      "ok": true,
+      "detail": {
+        "actual": "SCORE_BASE_REVISION_CONFLICT",
+        "expected": "SCORE_BASE_REVISION_CONFLICT"
+      }
+    },
+    {
+      "label": "active 清空 → 409",
+      "ok": true,
+      "detail": {
+        "actual": 409,
+        "expected": 409
+      }
+    },
+    {
+      "label": "active 清空错误码",
+      "ok": true,
+      "detail": {
+        "actual": "SCORE_NO_BASE_REVISION",
+        "expected": "SCORE_NO_BASE_REVISION"
+      }
+    },
+    {
+      "label": "重复条目 → 422",
+      "ok": true,
+      "detail": {
+        "actual": 422,
+        "expected": 422
+      }
+    },
+    {
+      "label": "重复条目 错误码",
+      "ok": true,
+      "detail": {
+        "actual": "SCORE_CORRECTION_INVALID",
+        "expected": "SCORE_CORRECTION_INVALID"
+      }
+    },
+    {
+      "label": "重复条目 不新增修订",
+      "ok": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "label": "未变化值 → 422",
+      "ok": true,
+      "detail": {
+        "actual": 422,
+        "expected": 422
+      }
+    },
+    {
+      "label": "未变化值 错误码",
+      "ok": true,
+      "detail": {
+        "actual": "SCORE_CORRECTION_INVALID",
+        "expected": "SCORE_CORRECTION_INVALID"
+      }
+    },
+    {
+      "label": "未变化值 不新增修订",
+      "ok": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "label": "未知人次 → 422",
+      "ok": true,
+      "detail": {
+        "actual": 422,
+        "expected": 422
+      }
+    },
+    {
+      "label": "未知人次 错误码",
+      "ok": true,
+      "detail": {
+        "actual": "SCORE_PARTICIPANT_UNKNOWN",
+        "expected": "SCORE_PARTICIPANT_UNKNOWN"
+      }
+    },
+    {
+      "label": "未知人次 不新增修订",
+      "ok": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "label": "未知小题 → 422",
+      "ok": true,
+      "detail": {
+        "actual": 422,
+        "expected": 422
+      }
+    },
+    {
+      "label": "未知小题 错误码",
+      "ok": true,
+      "detail": {
+        "actual": "SCORE_ITEM_UNKNOWN",
+        "expected": "SCORE_ITEM_UNKNOWN"
+      }
+    },
+    {
+      "label": "未知小题 不新增修订",
+      "ok": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "label": "超满分 → 422",
+      "ok": true,
+      "detail": {
+        "actual": 422,
+        "expected": 422
+      }
+    },
+    {
+      "label": "超满分 错误码",
+      "ok": true,
+      "detail": {
+        "actual": "SCORE_CELL_OVER_MAX",
+        "expected": "SCORE_CELL_OVER_MAX"
+      }
+    },
+    {
+      "label": "超满分 不新增修订",
+      "ok": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "label": "recorded 缺 scoreText → 422",
+      "ok": true,
+      "detail": {
+        "actual": 422,
+        "expected": 422
+      }
+    },
+    {
+      "label": "recorded 缺 scoreText 错误码 INVALID_REQUEST",
+      "ok": true,
+      "detail": {
+        "actual": "INVALID_REQUEST",
+        "expected": "INVALID_REQUEST"
+      }
+    },
+    {
+      "label": "非 recorded 带 scoreText → 422",
+      "ok": true,
+      "detail": {
+        "actual": 422,
+        "expected": 422
+      }
+    },
+    {
+      "label": "非 recorded 带 scoreText 错误码 INVALID_REQUEST",
+      "ok": true,
+      "detail": {
+        "actual": "INVALID_REQUEST",
+        "expected": "INVALID_REQUEST"
+      }
+    },
+    {
+      "label": "补录 G 200",
+      "ok": true,
+      "detail": {
+        "actual": 200,
+        "expected": 200
+      }
+    },
+    {
+      "label": "含新参测人次时修正 200",
+      "ok": true,
+      "detail": {
+        "actual": 200,
+        "expected": 200
+      }
+    },
+    {
+      "label": "v3 快照 5 人次（含 G）",
+      "ok": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "label": "v3 快照人次含 G",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "v3 total=5",
+      "ok": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "label": "v3 A 的 Q1=150",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "recorded",
+          150
+        ],
+        "expected": [
+          "recorded",
+          150
+        ]
+      }
+    },
+    {
+      "label": "v3 G 三叶 missing（present 无数据）",
+      "ok": true,
+      "detail": {
+        "actual": "{'missing'}",
+        "expected": "{'missing'}"
+      }
+    },
+    {
+      "label": "v3 G totalUnits=null",
+      "ok": true,
+      "detail": {
+        "actual": null,
+        "expected": null
+      }
+    },
+    {
+      "label": "v2 仍 4 人次（不受新增 G 影响）",
+      "ok": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "label": "v2 missingCellCount=0",
+      "ok": true,
+      "detail": {
+        "actual": 0,
+        "expected": 0
+      }
+    },
+    {
+      "label": "同 submissionId 同载荷重放 200",
+      "ok": true,
+      "detail": {
+        "actual": 200,
+        "expected": 200
+      }
+    },
+    {
+      "label": "重放返回 v3",
+      "ok": true,
+      "detail": {
+        "actual": "e31534f8ab224cd5980a968238ef144f",
+        "expected": "e31534f8ab224cd5980a968238ef144f"
+      }
+    },
+    {
+      "label": "重放 replayed=true",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "重放不新增版本",
+      "ok": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "label": "同 submissionId 不同载荷 409",
+      "ok": true,
+      "detail": {
+        "actual": 409,
+        "expected": 409
+      }
+    },
+    {
+      "label": "同 submissionId 不同载荷错误码",
+      "ok": true,
+      "detail": {
+        "actual": "SUBMISSION_CONFLICT",
+        "expected": "SUBMISSION_CONFLICT"
+      }
+    },
+    {
+      "label": "并发双修正状态 ∈ {200,409}",
+      "ok": true,
+      "detail": {
+        "actual": [
+          200,
+          409
+        ],
+        "expected": [
+          200,
+          409
+        ]
+      }
+    },
+    {
+      "label": "恰好一个成功",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "失败方 409 错误码 ∈ {SCORE_BASE_REVISION_CONFLICT, SCORE_ASSESSMENT_REVISION_CONFLICT}",
+      "ok": true,
+      "detail": [
+        "SCORE_ASSESSMENT_REVISION_CONFLICT"
+      ]
+    },
+    {
+      "label": "并发后恰好新增 1 个版本 → 共 4",
+      "ok": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "label": "active=并发胜者",
+      "ok": true,
+      "detail": {
+        "actual": "826a1e17ed674d2e98ee104ed9542e98",
+        "expected": "826a1e17ed674d2e98ee104ed9542e98"
+      }
+    },
+    {
+      "label": "胜者写入的值 ∈ {100,50}（1 或 0.5）",
+      "ok": true,
+      "detail": {
+        "itemId": "it-corr-1",
+        "status": "recorded",
+        "scoreUnits": 100
+      }
+    },
+    {
+      "label": "并发修正审计 1 条",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    }
+  ],
+  "failures": [],
+  "observations": [
+    "并发结果=[(200, 'OK', '826a1e17ed674d2e98ee104ed9542e98'), (409, 'SCORE_ASSESSMENT_REVISION_CONFLICT', None)]，active=826a1e17ed674d2e98ee104ed9542e98"
+  ]
+}

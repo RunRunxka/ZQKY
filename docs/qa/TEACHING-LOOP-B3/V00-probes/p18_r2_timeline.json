@@ -1,0 +1,71 @@
+{
+  "note": "r2 冻结与本次窄复验的时间线：探针证据均早于 teaching.py 被业务段改写（19:35:56）。 另：p17 在 19:35:40 的原输出 JSON 已被 19:37 的重跑覆盖，本文件同时记录两次结果；p12 亦跑了两次（见 p12Runs）。",
+  "freezeR2": {
+    "path": "docs/qa/TEACHING-LOOP-B3/FROZEN-G0.json",
+    "mtime": "2026-10-01T19:31:40.720787"
+  },
+  "probeEvidence": [
+    {
+      "path": "docs/qa/TEACHING-LOOP-B3/V00-probes/p12_rv11_startup_repro.json",
+      "mtime": "2026-10-01T19:36:34.031541"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B3/V00-probes/p16_rv11_r2_migration.json",
+      "mtime": "2026-10-01T19:34:05.458347"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B3/V00-probes/p11_rv11_titles_migration.json",
+      "mtime": "2026-10-01T19:34:22.813492"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B3/V00-probes/p01_rv01_retry.json",
+      "mtime": "2026-10-01T19:35:18.034859"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B3/V00-probes/p13_publish_failure.json",
+      "mtime": "2026-10-01T19:35:25.566575"
+    }
+  ],
+  "movedFiles": [
+    {
+      "path": "apps/api/app/core/migrations/teaching.py",
+      "mtime": "2026-10-01T19:35:56.946992"
+    },
+    {
+      "path": "apps/api/app/contracts/scores.py",
+      "mtime": "2026-10-01T19:34:32.744059"
+    },
+    {
+      "path": "apps/api/app/services/tabular.py",
+      "mtime": "2026-10-01T19:32:16.647912"
+    },
+    {
+      "path": "apps/web/src/contracts/scores.ts",
+      "mtime": "2026-10-01T19:34:43.445347"
+    }
+  ],
+  "r2ManifestHashForTeachingPy": "f64815d15ac3bd99e2d97732edd468c2c08cdc2bf83b8b9fdc36c601978c6966",
+  "currentHashForTeachingPy": "84abbee70523dd67f555e752f95095c9f5c6a1444d3f3060f5553927b85c5808",
+  "p12Runs": [
+    {
+      "at": "2026-10-01T19:32:45",
+      "candidate": "r2 frozen (teaching.py hash f64815…)",
+      "result": "exit 0 / verdict pass（0005 已登记、title_snapshot 列已加）"
+    },
+    {
+      "at": "2026-10-01T19:36:34",
+      "candidate": "worktree after 19:35:56 move (0006/0007 业务迁移已在库)",
+      "result": "exit 0 / verdict pass（补充信息：r2 的 0005 修复在当前工作区仍在位）"
+    }
+  ],
+  "p17FingerprintRuns": [
+    {
+      "at": "2026-10-01T19:35:40",
+      "result": "106/106 一致、0 缺失、0 不一致（r2 冻结字节）"
+    },
+    {
+      "at": "2026-10-01T19:37",
+      "result": "105/106：仅 apps/api/app/core/migrations/teaching.py 与 r2 清单不一致（业务段 19:35:56 改写）"
+    }
+  ]
+}

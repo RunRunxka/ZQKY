@@ -136,7 +136,10 @@ def test_organize_uses_current_chat_profile_and_freezes_it(
     assert ORGANIZE_INSTRUCTION in call.messages[0].content
     assert harness.resolver.calls == [LOCAL_PROFILE]
 
-    checkpoint = harness.catalog.get_job(view["jobId"]).checkpoint
+    # B2：整理契约冻结在统一任务引擎的 frozen_input（checkpoint 只留进度）
+    record = harness.service.job_record(view["jobId"])
+    assert record.attempt == 1  # 经 JobEngine claim 执行
+    checkpoint = record.frozen_input
     assert checkpoint["contractVersion"] == ORGANIZE_CONTRACT_VERSION
     assert checkpoint["modelProfileId"] == LOCAL_PROFILE
     assert checkpoint["modelFingerprint"].startswith("sha256:")
@@ -171,8 +174,10 @@ def test_organize_uses_cloud_profile_like_local(harness: Harness) -> None:
     assert cloud_provider.calls[0].model_id == "gpt-5.2"
     assert cloud_provider.calls[0].model_profile_id == CLOUD_PROFILE
     assert harness.provider.calls == []  # 本地 profile 的 provider 一次都没调
-    checkpoint = harness.catalog.get_job(view["jobId"]).checkpoint
-    assert checkpoint["modelProfileId"] == CLOUD_PROFILE
+    record = harness.service.job_record(view["jobId"])
+    assert record.frozen_input["modelProfileId"] == CLOUD_PROFILE
+    assert record.model_snapshot["profileId"] == CLOUD_PROFILE
+    checkpoint = record.frozen_input
     assert "gpt-5.2" not in json.dumps(checkpoint, ensure_ascii=False)
 
 
@@ -264,7 +269,8 @@ async def test_recover_without_resolver_fails_job_honestly(harness: Harness) -> 
     draft = detail["drafts"][0]
     job = harness.catalog.create_job(
         kind="organize",
-        state="queued",
+        # B2：显式恢复只处理 interrupted/failed；造 running 行后先做启动收敛
+        state="running",
         checkpoint={
             "contractVersion": ORGANIZE_CONTRACT_VERSION,
             "modelProfileId": LOCAL_PROFILE,
@@ -286,6 +292,7 @@ async def test_recover_without_resolver_fails_job_honestly(harness: Harness) -> 
         },
     )
     harness.service.model_resolver = None
+    assert harness.service.job_engine.store("question").reconcile_interrupted() == [job.job_id]
     assert await harness.service.recover_organize_jobs() == 1
     failed = harness.catalog.get_job(job.job_id)
     assert failed.state == "failed"
@@ -331,8 +338,9 @@ def test_model_switch_during_run_does_not_affect_frozen_job(harness: Harness) ->
     assert cloud_provider.calls == []
     # 冻结解析只发生一次（在 organize 入口）
     assert harness.resolver.calls == [LOCAL_PROFILE]
-    checkpoint = harness.catalog.get_job(view["jobId"]).checkpoint
-    assert checkpoint["modelProfileId"] == LOCAL_PROFILE
+    record = harness.service.job_record(view["jobId"])
+    assert record.frozen_input["modelProfileId"] == LOCAL_PROFILE
+    assert record.model_snapshot["profileId"] == LOCAL_PROFILE
 
 
 # ------------------------------------------------------------- 6 崩溃与恢复
@@ -345,11 +353,13 @@ async def test_recover_resolves_frozen_profile_and_continues(harness: Harness) -
     draft_ids = [item["draftId"] for item in detail["drafts"][:2]]
     harness.provider.handler = crash_on(1)
 
-    with pytest.raises(RuntimeError):
-        await harness.service.organize(import_id, organize_body(draft_ids))
-    interrupted = running_job(harness)
-    job_id = interrupted.job_id
-    assert interrupted.checkpoint["nextBatchIndex"] == 1  # 第 0 批已提交
+    # B2：执行器抛出的未预期异常由统一引擎收尾为 failed（不再向上抛给调用方）
+    failed_view = await harness.service.organize(import_id, organize_body(draft_ids))
+    assert failed_view.state == "failed"
+    job_id = failed_view.jobId
+    crashed = harness.service.job_record(job_id)
+    assert crashed.error_code == "JOB_FAILED"
+    assert crashed.checkpoint["nextBatchIndex"] == 1  # 第 0 批已提交
 
     # 重启恢复：解析器换成记录型替身，仍按 checkpoint 的 profile id 解析
     replacement = FakeResolver({LOCAL_PROFILE: harness.handle(LOCAL_PROFILE)})
@@ -398,6 +408,7 @@ async def test_recover_fails_job_with_readable_reason_when_profile_gone(
     harness.service.model_resolver = FakeResolver(
         error=AppError("模型配置不存在。", code="MODEL_PROFILE_NOT_FOUND", status_code=404)
     )
+    assert harness.service.job_engine.store("question").reconcile_interrupted() == [job.job_id]
     assert await harness.service.recover_organize_jobs() == 1
 
     failed = harness.catalog.get_job(job.job_id)
@@ -454,6 +465,7 @@ async def test_legacy_checkpoint_is_not_auto_resumed_and_keeps_suggestions(
     before = harness.catalog.list_suggestions(organization_job_id=legacy.job_id)
     assert len(before) == 1
 
+    assert harness.service.job_engine.store("question").reconcile_interrupted() == [legacy.job_id]
     assert await harness.service.recover_organize_jobs() == 1
     stale = harness.catalog.get_job(legacy.job_id)
     assert stale.state == "failed"
@@ -1218,7 +1230,7 @@ def test_organize_include_unassigned_attaches_blocks(harness: Harness) -> None:
     unassigned_ids = {block["blockId"] for block in detail["unassignedBlocks"]}
     # 未归属块被挂到前一道所选草稿，来源仍可回溯
     assert suggested_blocks & unassigned_ids
-    assert "includeUnassigned" in harness.catalog.get_job(view["jobId"]).checkpoint
+    assert "includeUnassigned" in harness.service.job_record(view["jobId"]).frozen_input
 
 
 def test_organize_rejects_draft_from_other_import(harness: Harness) -> None:

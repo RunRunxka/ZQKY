@@ -10,6 +10,9 @@ RAG-QUALITY v1.1 起，**「按 profileId 解析出可调用的聊天模型」�
 
 from __future__ import annotations
 
+import hashlib
+import json
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from app.core.exceptions import AppError
@@ -88,6 +91,84 @@ def build_provider(connection: ModelConnection, config: LLMConfig, *, auth_servi
     elif backend == BACKEND_CODEBUDDY:
         pass  # API Key 通道由 config.apiKey 提供
     return provider
+
+
+#: 冻结模型快照核对失败：没有可核对的指纹（旧任务 / 无指纹快照）
+MODEL_FINGERPRINT_MISSING = "MODEL_FINGERPRINT_MISSING"
+#: 冻结模型快照与当前配置不一致（同 profile 被改过模型/地址/格式）
+MODEL_CONFIG_DRIFT = "MODEL_CONFIG_DRIFT"
+
+
+def model_fingerprint(
+    *, model_id: str, protocol: str, base_url: str, api_format: str
+) -> str:
+    """非敏感模型指纹：``sha256(modelId + protocol + baseUrl 主机名 + apiFormat)``。
+
+与题库 ``organizer.model_fingerprint`` **同一算法**（B3/G0 起本处为唯一实现，
+题库侧改为从这里导入）：绝不包含凭证、认证头、完整配置或 URL 路径/查询串，
+可安全写入 checkpoint、任务快照与日志。
+    """
+    from urllib.parse import urlsplit
+
+    host = urlsplit(base_url or "").hostname or ""
+    payload = {
+        "modelId": model_id or "",
+        "protocol": protocol or "",
+        "baseHost": host,
+        "apiFormat": api_format or "",
+    }
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return f"sha256:{hashlib.sha256(encoded.encode('utf-8')).hexdigest()}"
+
+
+def fingerprint_of_handle(handle: ChatModelHandle) -> str:
+    """按已解析句柄计算指纹（调用方记录来源与执行模型核对都用它）。"""
+    return model_fingerprint(
+        model_id=handle.model_id,
+        protocol=str(getattr(handle.config, "protocol", "") or ""),
+        base_url=str(getattr(handle.config, "baseUrl", "") or ""),
+        api_format=str(getattr(handle.config, "apiFormat", "") or ""),
+    )
+
+
+def resolve_frozen_model(
+    repo,
+    secrets: SecretStore,
+    model_snapshot: Mapping[str, object],
+    *,
+    auth_service=None,
+) -> ChatModelHandle:
+    """按**冻结快照**重新解析模型并核对真实配置指纹（B3/G0 · B2-RV04）。
+
+    - 快照取 ``profileId``（兼容 ``modelProfileId``）与 ``fingerprint``（兼容
+      ``modelFingerprint``）；任一缺失 → 422 ``MODEL_FINGERPRINT_MISSING``
+      （旧任务无法核对，要求新建任务，不静默放行）；
+    - 解析到句柄后按当前真实配置重算指纹；与冻结值不一致 → 409 ``MODEL_CONFIG_DRIFT``
+      （不静默换模型、不把新模型的输出记成旧来源）；
+    - 返回的句柄与冻结值一致，调用与来源记录使用同一个模型。
+    """
+    profile_id = str(
+        model_snapshot.get("profileId") or model_snapshot.get("modelProfileId") or ""
+    ).strip()
+    frozen = str(
+        model_snapshot.get("fingerprint") or model_snapshot.get("modelFingerprint") or ""
+    ).strip()
+    if not profile_id or not frozen:
+        raise AppError(
+            "任务缺少可核对的冻结模型指纹；请重新发起任务（旧任务不自动重放）。",
+            code=MODEL_FINGERPRINT_MISSING,
+            status_code=422,
+        )
+    handle = resolve_chat_model(repo, secrets, profile_id, auth_service=auth_service)
+    actual = fingerprint_of_handle(handle)
+    if actual != frozen:
+        raise AppError(
+            "模型配置自任务创建后已变化（同 profile 的模型/地址/格式与冻结指纹不一致）；"
+            "本次调用已停止，请重新发起任务。",
+            code=MODEL_CONFIG_DRIFT,
+            status_code=409,
+        )
+    return handle
 
 
 def supports_provider(connection: ModelConnection) -> bool:

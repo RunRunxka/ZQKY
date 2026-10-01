@@ -554,7 +554,13 @@ class JobStore:
         message: str,
         retryable: bool = False,
     ) -> JobRecord:
-        """租约有效 → ``failed`` + ``error_json``；失权 → 不写，返回当前记录。"""
+        """租约有效 → 收敛为终态；失权 → 不写，返回当前记录。
+
+        **取消优先（B3/G0）**：若任务已请求取消且租约仍归本次执行者，收敛为
+        ``cancelled`` 而不是 ``failed``（用户意图优先）；否则置 ``failed`` + ``error_json``。
+        整个判定与写入在同一短事务内以原 token/attempt 做 CAS，不读取"当前行 token"
+        伪装成本执行者租约，也不覆盖新持有者。
+        """
         job_id = _text(job_id, field="job_id")
         code = _text(code, field="code")
         message = _text(message, field="message")
@@ -567,6 +573,13 @@ class JobStore:
             record = self._require_record_in(conn, job_id)
             if not self._lease_matches(record, lease):
                 return record
+            if record.cancel_requested:
+                conn.execute(
+                    f"UPDATE {self._table} SET state = 'cancelled', finished_at = ?, "
+                    "lease_token = NULL, lease_expires_at = NULL, updated_at = ? WHERE id = ?",
+                    (now, now, job_id),
+                )
+                return self._require_record_in(conn, job_id)
             conn.execute(
                 f"UPDATE {self._table} SET state = 'failed', error_code = ?, "
                 "error_json = ?, finished_at = ?, lease_token = NULL, "

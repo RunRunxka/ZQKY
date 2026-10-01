@@ -880,3 +880,231 @@ describe('AI 整理：使用点击时的当前聊天模型（v1.1）', () => {
     expect(screen.getByRole('button', { name: '应用建议' })).toBeDisabled();
   });
 });
+
+/* ------------------------------------------------ 六态任务（B2：interrupted 与显式重试） */
+
+describe('整理任务六态：interrupted 横幅与显式重试（B2 / T50 兼容）', () => {
+  it('任务中断显示横幅；点「重试整理」按新 attempt 继续观察并收尾', async () => {    let jobReads = 0;
+    const fetchMock = router({
+      'POST /api/v1/question-imports/imp-1/organize': () =>
+        jsonResponse(true, 200, {
+          jobId: 'job-1',
+          state: 'running',
+          attempt: 1,
+          suggestionCount: 0,
+          failedBatches: 0,
+          errorCode: null,
+          suggestions: [],
+          failures: [],
+        }),
+      'GET /api/v1/workflow-jobs/job-1': () => {
+        jobReads += 1;
+        if (jobReads === 1) {
+          return jsonResponse(true, 200, {
+            jobId: 'job-1',
+            domain: 'question',
+            kind: 'organize',
+            attempt: 1,
+            state: 'interrupted',
+            result: null,
+            error: null,
+          });
+        }
+        return jsonResponse(true, 200, {
+          jobId: 'job-1',
+          domain: 'question',
+          kind: 'organize',
+          attempt: 2,
+          state: 'succeeded',
+          result: null,
+          error: null,
+        });
+      },
+      'POST /api/v1/workflow-jobs/job-1/retry': () =>
+        jsonResponse(true, 200, {
+          jobId: 'job-1',
+          domain: 'question',
+          kind: 'organize',
+          attempt: 2,
+          state: 'running',
+          result: null,
+          error: null,
+        }),
+    });
+
+    render(<ReviewWorkspace importId="imp-1" />);
+    fireEvent.click(await screen.findByRole('button', { name: /AI 整理草稿/ }));
+
+    // 第一次观察返回 interrupted（终态）：显示横幅并要求显式重试
+    const banner = await screen.findByTestId('qb-organizer-interrupted');
+    expect(banner).toHaveTextContent('整理已中断');
+    expect(calls(fetchMock, '/workflow-jobs/job-1?domain=question')).toHaveLength(1);
+
+    fireEvent.click(screen.getByRole('button', { name: /重试整理/ }));
+    await waitFor(() =>
+      expect(calls(fetchMock, '/workflow-jobs/job-1/retry', 'POST')).toHaveLength(1),
+    );
+    expect(bodyAt(fetchMock, '/workflow-jobs/job-1/retry', 'POST')).toEqual({
+      domain: 'question',
+    });
+    // 新尝试继续观察并到达终态：横幅消失，观察停在新 attempt 上
+    await waitFor(() =>
+      expect(screen.queryByTestId('qb-organizer-interrupted')).not.toBeInTheDocument(),
+    );
+    await waitFor(() =>
+      expect(calls(fetchMock, '/workflow-jobs/job-1?domain=question')).toHaveLength(2),
+    );
+    expect(calls(fetchMock, '/question-imports/imp-1/organize', 'POST')).toHaveLength(1);
+  });
+});
+
+/* -------------------------- F10-QB：知识点关联 / AI 来源 / 200+failures 呈现 */
+
+describe('F10-QB：关联字段级错误与 AI 来源标识', () => {
+  const PHYSICS_TAXONOMY = () =>
+    jsonResponse(true, 200, {
+      stages: [{ id: 'stage-j', label: '初中' }],
+      grades: [{ id: 'grade-7', label: '七年级', stageId: 'stage-j' }],
+      subjects: [
+        { id: 'math', label: '数学' },
+        { id: 'physics', label: '物理' },
+      ],
+      editions: [{ id: 'renjiao', label: '人教版' }],
+    });
+
+  it('跨学科编辑草稿且未处置旧关联：422 字段级错误显示到关联行，编辑内容保留', async () => {
+    const linked = draft({
+      revision: 5,
+      reviewState: 'reviewed',
+      knowledgeLinks: [
+        {
+          knowledgePointId: 'kp-1',
+          knowledgeRevisionId: 'kpr-1',
+          knowledgeNameSnapshot: '有理数',
+          subjectIdSnapshot: 'math',
+          role: 'primary',
+          source: 'human',
+        },
+      ],
+    });
+    const fetchMock = router({
+      'GET /api/v1/textbook-taxonomy': PHYSICS_TAXONOMY,
+      'GET /api/v1/question-imports/imp-1': () =>
+        jsonResponse(true, 200, detail({ drafts: [linked], reviewedCount: 1 })),
+      'PATCH /api/v1/question-drafts/d-1': () =>
+        jsonResponse(false, 422, {
+          code: 'KNOWLEDGE_REFERENCE_INVALID',
+          message: '改题目学科后不能继承与新学科不一致的旧知识点关联；请显式提供 knowledgeLinks。',
+          retryable: false,
+          details: {
+            issues: [
+              {
+                field: 'knowledgeLinks[0].knowledgePointId',
+                code: 'KNOWLEDGE_REFERENCE_INVALID',
+                message:
+                  '知识点 kp-1（有理数）属于学科 math，与新学科 physics 不一致；请显式替换或清空该关联。',
+              },
+            ],
+          },
+        }),
+    });
+    render(<ReviewWorkspace importId="imp-1" />);
+
+    const stem = (await screen.findByLabelText('题干')) as HTMLTextAreaElement;
+    fireEvent.change(stem, { target: { value: '我的改动' } });
+    fireEvent.change(screen.getByLabelText('学科'), { target: { value: 'physics' } });
+
+    // 保存前先说明会被 422 拒绝（不制造「会继承旧关联」的错觉）
+    expect(await screen.findByTestId('qb-knowledge-subject-change')).toHaveTextContent('422');
+    expect(screen.getByTestId('qb-knowledge-links-blocked')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '保存修改' }));
+
+    const rowIssue = await screen.findByTestId('qb-knowledge-link-issue-0');
+    expect(rowIssue).toHaveTextContent('kp-1');
+    expect(screen.getByText(/知识点关联校验失败（KNOWLEDGE_REFERENCE_INVALID）/)).toBeInTheDocument();
+    expect((screen.getByLabelText('题干') as HTMLTextAreaElement).value).toBe('我的改动');
+    // 未改动关联：请求体不能偷偷带 knowledgeLinks（否则等于静默清空/改写）
+    expect(bodyAt(fetchMock, '/question-drafts/d-1', 'PATCH')).not.toHaveProperty('knowledgeLinks');
+  });
+
+  it('AI 候选草稿在草稿条、编辑区与确认列表明确标识来源', async () => {
+    const aiDraft = draft({
+      extractionMethod: 'ai',
+      reviewState: 'reviewed',
+      revision: 5,
+      warnings: ['AI 补题候选：尚未入库，请逐题校对题干、答案与知识点后再确认。'],
+    });
+    router({
+      'GET /api/v1/question-imports/imp-1': () =>
+        jsonResponse(true, 200, detail({ drafts: [aiDraft], reviewedCount: 1 })),
+    });
+    render(<ReviewWorkspace importId="imp-1" />);
+
+    expect(await screen.findByTestId('qb-draft-ai-source')).toHaveTextContent('AI 候选（需人工校对）');
+    expect(screen.getByTestId('qb-draft-tab-ai-source')).toHaveTextContent('AI 候选');
+    expect(screen.getByTestId('qb-confirm-ai-count')).toHaveTextContent('含 AI 候选 1 道');
+    expect(screen.getByTestId('qb-confirm-ai-source-d-1')).toHaveTextContent('AI 候选（需人工校对）');
+  });
+
+  it('200 + failures：显示整批未确认、不显示成功徽标，重试复用同一提交标识', async () => {
+    let uuidCounter = 0;
+    vi.spyOn(crypto, 'randomUUID').mockImplementation(
+      () => `sub-${(uuidCounter += 1)}` as `${string}-${string}-${string}-${string}-${string}`,
+    );
+    const reviewed = draft({ revision: 5, reviewState: 'reviewed' });
+    const fetchMock = router({
+      'GET /api/v1/question-imports/imp-1': () =>
+        jsonResponse(true, 200, detail({ drafts: [reviewed], reviewedCount: 1 })),
+      'POST /api/v1/question-imports/imp-1/confirm': () =>
+        jsonResponse(true, 200, {
+          confirmedQuestionIds: [],
+          linkedQuestionIds: [],
+          skippedDraftIds: [],
+          failures: [
+            { draftId: 'd-1', code: 'DRAFT_NOT_REVIEWED', message: '草稿尚未标记为已校对。' },
+          ],
+        }),
+    });
+    render(<ReviewWorkspace importId="imp-1" />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /确认入库（1 道）/ }));
+
+    const unconfirmed = await screen.findByTestId('qb-confirm-unconfirmed');
+    expect(unconfirmed).toHaveTextContent('整批未确认');
+    expect(unconfirmed).toHaveTextContent('没有任何题目被入库');
+    expect(unconfirmed).toHaveTextContent('不会显示部分成功徽标');
+    expect(screen.queryByText(/本次已入库/)).not.toBeInTheDocument();
+
+    fireEvent.click(within(unconfirmed).getByRole('button', { name: /修正后重新提交/ }));
+    await waitFor(() =>
+      expect(calls(fetchMock, '/question-imports/imp-1/confirm', 'POST')).toHaveLength(2),
+    );
+    expect(bodyAt(fetchMock, '/question-imports/imp-1/confirm', 'POST', 1).submissionId).toBe(
+      'sub-1',
+    );
+    expect(screen.queryByText(/本次已入库/)).not.toBeInTheDocument();
+  });
+
+  it('建议过期（stale）：显示过期状态与原因，应用/忽略仍可操作', async () => {
+    // 目标草稿 revision 已被改动（4 ≠ 建议基准 3）→ 建议过期
+    const changed = draft({ revision: 4 });
+    router({
+      'GET /api/v1/question-imports/imp-1': () =>
+        jsonResponse(true, 200, detail({ drafts: [changed] })),
+      'POST /api/v1/question-imports/imp-1/organize': () =>
+        jsonResponse(true, 200, jobSucceeded()),
+    });
+    render(<ReviewWorkspace importId="imp-1" />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /AI 整理草稿/ }));
+
+    const stale = await screen.findByTestId('qb-suggestion-stale-sg-1');
+    expect(stale).toHaveTextContent('过期（stale）');
+    expect(stale).toHaveTextContent('基准 r3');
+    expect(stale).toHaveTextContent('r4');
+    expect(screen.getByTestId('qb-suggestion-chain')).toHaveTextContent('pending');
+    expect(screen.getByRole('button', { name: '应用建议' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '忽略' })).toBeEnabled();
+  });
+});

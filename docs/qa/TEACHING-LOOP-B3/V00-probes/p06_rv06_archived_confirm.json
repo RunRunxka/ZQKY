@@ -1,0 +1,54 @@
+{
+  "papers_control_confirmed_then_archived": {
+    "confirmStatus": 200,
+    "linksBeforeArchive": 4,
+    "archiveStatus": 200,
+    "linksAfterArchive": 4,
+    "namesAfterArchive": [
+      "一次函数"
+    ]
+  },
+  "papers_archived_confirm": {
+    "archiveStatus": 200,
+    "confirmStatus": 409,
+    "confirmCode": "KNOWLEDGE_ARCHIVED",
+    "issues": [
+      {
+        "field": "references[0].knowledgePointId",
+        "code": "KNOWLEDGE_ARCHIVED",
+        "message": "已归档知识点不能用于新引用；请先恢复或改选。"
+      }
+    ],
+    "confirmedRevisionsBefore": 0,
+    "confirmedRevisionsAfter": 0
+  },
+  "qb_control_confirmed_then_archived": {
+    "confirmStatus": 200,
+    "confirmedCount": 1,
+    "archiveStatus": 200,
+    "linksAfterArchive": [
+      {
+        "knowledgePointId": "0d3869dfbc4945078a0330da2bfc4ddb",
+        "knowledgeRevisionId": "9d6d1931ec7d4a71b34260b4695165ba",
+        "knowledgeNameSnapshot": "题库知识点",
+        "subjectIdSnapshot": "math",
+        "role": "primary"
+      }
+    ]
+  },
+  "qb_archived_confirm": {
+    "archiveStatus": 200,
+    "confirmStatus": 409,
+    "confirmCode": "KNOWLEDGE_ARCHIVED",
+    "issues": [
+      {
+        "field": "references[0].knowledgePointId",
+        "code": "KNOWLEDGE_ARCHIVED",
+        "message": "已归档知识点不能用于新引用；请先恢复或改选。"
+      }
+    ],
+    "questionsTotal": 1
+  },
+  "failures": [],
+  "verdict": "pass"
+}

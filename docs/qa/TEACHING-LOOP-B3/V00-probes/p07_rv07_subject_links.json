@@ -1,0 +1,54 @@
+{
+  "baseline": {
+    "subjectId": "math",
+    "revision": 1,
+    "knowledgeLinks": [
+      {
+        "knowledgePointId": "77cb8a287f2e4a8582888daa6d4eb394",
+        "role": "primary"
+      }
+    ]
+  },
+  "subject_change_without_links": {
+    "status": 422,
+    "code": "KNOWLEDGE_REFERENCE_INVALID",
+    "issues": [
+      {
+        "field": "knowledgeLinks[0].knowledgePointId",
+        "code": "KNOWLEDGE_REFERENCE_INVALID",
+        "message": "知识点 77cb8a287f2e4a8582888daa6d4eb394（一次函数）属于学科 math，与新学科 chinese 不一致；请显式替换或清空该关联。"
+      }
+    ],
+    "subjectAfter": "math",
+    "linksAfter": [
+      "77cb8a287f2e4a8582888daa6d4eb394"
+    ],
+    "revisionUnchanged": true
+  },
+  "subject_change_explicit_clear": {
+    "status": 200,
+    "subjectAfter": "chinese",
+    "linksAfter": []
+  },
+  "subject_change_explicit_replace": {
+    "status": 200,
+    "subjectAfter": "math",
+    "linksAfter": [
+      "77cb8a287f2e4a8582888daa6d4eb394"
+    ]
+  },
+  "explicit_wrong_subject_link": {
+    "status": 422,
+    "code": "KNOWLEDGE_SUBJECT_MISMATCH"
+  },
+  "same_subject_content_change": {
+    "status": 200,
+    "stem": "下列说法正确的是（ ）（修改后的题干）",
+    "linksAfter": [
+      "77cb8a287f2e4a8582888daa6d4eb394"
+    ],
+    "revisionAdvanced": true
+  },
+  "failures": [],
+  "verdict": "pass"
+}

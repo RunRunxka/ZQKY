@@ -1,0 +1,38 @@
+{
+  "probe": "p37_final_confirm_r7",
+  "checks": {
+    "finalRevision": "B3-final",
+    "finalDeclared": 163,
+    "diskOk": 163,
+    "diskBad": [],
+    "r2ToFinal": {
+      "added": [],
+      "removed": [],
+      "changed": [
+        "docs/CURRENT_STATUS.md",
+        "docs/qa/TEACHING-LOOP-B3/EVIDENCE-COMMANDS.md",
+        "docs/qa/TEACHING-LOOP-B3/REPORT.md"
+      ]
+    },
+    "r2ToFinalIsExactly3Docs": true,
+    "productTestScriptsChanged": [],
+    "finalEqualsR7": true,
+    "r7Revision": "B3-r7",
+    "revisionHistoryDeclaresDocsVsR2": [
+      "docs/CURRENT_STATUS.md",
+      "docs/qa/TEACHING-LOOP-B3/EVIDENCE-COMMANDS.md",
+      "docs/qa/TEACHING-LOOP-B3/REPORT.md"
+    ],
+    "revisionHistoryProductUnchanged": true,
+    "revisionHistoryHasR1R7": [
+      "B3-r1",
+      "B3-r2",
+      "B3-r3",
+      "B3-r4",
+      "B3-r5",
+      "B3-r6",
+      "B3-r7"
+    ]
+  },
+  "verdict": "pass"
+}

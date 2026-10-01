@@ -1,0 +1,543 @@
+{
+  "probe": "p21_failure_paths",
+  "startedAt": 1790863818.1913538,
+  "durationSeconds": 1.885,
+  "checks": [
+    {
+      "label": "上传成功且 missing=1",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "上传后 score_revisions=0",
+      "ok": true,
+      "detail": {
+        "actual": 0,
+        "expected": 0
+      }
+    },
+    {
+      "label": "missing cellCount=2 → 422",
+      "ok": true,
+      "detail": {
+        "actual": 422,
+        "expected": 422
+      }
+    },
+    {
+      "label": "missing cellCount=2 错误码",
+      "ok": true,
+      "detail": {
+        "actual": "SCORE_ACKNOWLEDGEMENT_MISMATCH",
+        "expected": "SCORE_ACKNOWLEDGEMENT_MISMATCH"
+      }
+    },
+    {
+      "label": "missing cellCount=2 带 issues 定位",
+      "ok": true,
+      "detail": [
+        {
+          "field": "cellCount",
+          "code": "SCORE_ACKNOWLEDGEMENT_MISMATCH",
+          "message": "承认 2 个 missing 单元，预览是 1 个。"
+        }
+      ]
+    },
+    {
+      "label": "missing cellCount=2 定位 field=cellCount",
+      "ok": true,
+      "detail": [
+        "cellCount"
+      ]
+    },
+    {
+      "label": "missing cellCount=2 确认后仍未写入修订",
+      "ok": true,
+      "detail": {
+        "actual": 0,
+        "expected": 0
+      }
+    },
+    {
+      "label": "missing 人次不含 B → 422",
+      "ok": true,
+      "detail": {
+        "actual": 422,
+        "expected": 422
+      }
+    },
+    {
+      "label": "missing 人次不含 B 错误码",
+      "ok": true,
+      "detail": {
+        "actual": "SCORE_ACKNOWLEDGEMENT_MISMATCH",
+        "expected": "SCORE_ACKNOWLEDGEMENT_MISMATCH"
+      }
+    },
+    {
+      "label": "missing 人次不含 B 带 issues 定位",
+      "ok": true,
+      "detail": [
+        {
+          "field": "participantIds",
+          "code": "SCORE_ACKNOWLEDGEMENT_MISMATCH",
+          "message": "missing 人次 84c86b17f5474d70b585918a5122ea62 未承认。"
+        },
+        {
+          "field": "participantIds",
+          "code": "SCORE_ACKNOWLEDGEMENT_MISMATCH",
+          "message": "承认的 missing 人次 nobody 与预览不符。"
+        }
+      ]
+    },
+    {
+      "label": "missing 人次不含 B 定位 field=participantIds",
+      "ok": true,
+      "detail": [
+        "participantIds",
+        "participantIds"
+      ]
+    },
+    {
+      "label": "missing 人次不含 B 确认后仍未写入修订",
+      "ok": true,
+      "detail": {
+        "actual": 0,
+        "expected": 0
+      }
+    },
+    {
+      "label": "absences 为空 → 422",
+      "ok": true,
+      "detail": {
+        "actual": 422,
+        "expected": 422
+      }
+    },
+    {
+      "label": "absences 为空 错误码",
+      "ok": true,
+      "detail": {
+        "actual": "SCORE_ACKNOWLEDGEMENT_MISMATCH",
+        "expected": "SCORE_ACKNOWLEDGEMENT_MISMATCH"
+      }
+    },
+    {
+      "label": "absences 为空 带 issues 定位",
+      "ok": true,
+      "detail": [
+        {
+          "field": "absences",
+          "code": "SCORE_ACKNOWLEDGEMENT_MISMATCH",
+          "message": "班级 a8fa0daebd914879826d5379a38ff349 的缺考人次未承认：18637df4340444e8a3d287054e5e640d。"
+        }
+      ]
+    },
+    {
+      "label": "absences 为空 定位 field=absences",
+      "ok": true,
+      "detail": [
+        "absences"
+      ]
+    },
+    {
+      "label": "absences 为空 确认后仍未写入修订",
+      "ok": true,
+      "detail": {
+        "actual": 0,
+        "expected": 0
+      }
+    },
+    {
+      "label": "previewVersion 过期 → 422",
+      "ok": true,
+      "detail": {
+        "actual": 422,
+        "expected": 422
+      }
+    },
+    {
+      "label": "previewVersion 过期 错误码",
+      "ok": true,
+      "detail": {
+        "actual": "SCORE_ACKNOWLEDGEMENT_MISMATCH",
+        "expected": "SCORE_ACKNOWLEDGEMENT_MISMATCH"
+      }
+    },
+    {
+      "label": "previewVersion 过期 带 issues 定位",
+      "ok": true,
+      "detail": [
+        {
+          "field": "previewVersion",
+          "code": "SCORE_ACKNOWLEDGEMENT_MISMATCH",
+          "message": "承认的是预览版本 1，当前预览版本是 0；请刷新预览。"
+        }
+      ]
+    },
+    {
+      "label": "previewVersion 过期 定位 field=previewVersion",
+      "ok": true,
+      "detail": [
+        "previewVersion"
+      ]
+    },
+    {
+      "label": "previewVersion 过期 确认后仍未写入修订",
+      "ok": true,
+      "detail": {
+        "actual": 0,
+        "expected": 0
+      }
+    },
+    {
+      "label": "import revision 409",
+      "ok": true,
+      "detail": {
+        "actual": 409,
+        "expected": 409
+      }
+    },
+    {
+      "label": "import revision 错误码",
+      "ok": true,
+      "detail": {
+        "actual": "SCORE_IMPORT_REVISION_CONFLICT",
+        "expected": "SCORE_IMPORT_REVISION_CONFLICT"
+      }
+    },
+    {
+      "label": "import revision details.currentRevision",
+      "ok": true,
+      "detail": {
+        "actual": 0,
+        "expected": 0
+      }
+    },
+    {
+      "label": "越界 PATCH 422",
+      "ok": true,
+      "detail": {
+        "actual": 422,
+        "expected": 422
+      }
+    },
+    {
+      "label": "越界错误码",
+      "ok": true,
+      "detail": {
+        "actual": "SCORE_CELL_OVER_MAX",
+        "expected": "SCORE_CELL_OVER_MAX"
+      }
+    },
+    {
+      "label": "越界 issue 带原表 row=2/column=C",
+      "ok": true,
+      "detail": [
+        {
+          "row": 2,
+          "column": "C",
+          "field": "itemColumns",
+          "code": "SCORE_CELL_OVER_MAX",
+          "message": "分数超过该小题满分（2 分）；请修正原表。"
+        }
+      ]
+    },
+    {
+      "label": "越界 PATCH 后 revision 不递增",
+      "ok": true,
+      "detail": {
+        "actual": 0,
+        "expected": 0
+      }
+    },
+    {
+      "label": "负数 PATCH 422",
+      "ok": true,
+      "detail": {
+        "actual": 422,
+        "expected": 422
+      }
+    },
+    {
+      "label": "负数错误码",
+      "ok": true,
+      "detail": {
+        "actual": "SCORE_CELL_INVALID",
+        "expected": "SCORE_CELL_INVALID"
+      }
+    },
+    {
+      "label": "负数 issue 带原表 row=3/column=C",
+      "ok": true,
+      "detail": [
+        {
+          "row": 3,
+          "column": "C",
+          "field": "itemColumns",
+          "code": "SCORE_CELL_INVALID",
+          "message": "分数不能为负数。"
+        }
+      ]
+    },
+    {
+      "label": "首次确认 200",
+      "ok": true,
+      "detail": {
+        "actual": 200,
+        "expected": 200
+      }
+    },
+    {
+      "label": "首次 replayed=false",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "一次确认后 score_revisions=1",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "重放 200",
+      "ok": true,
+      "detail": {
+        "actual": 200,
+        "expected": 200
+      }
+    },
+    {
+      "label": "重放 replayed=true",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "重放返回原修订",
+      "ok": true,
+      "detail": {
+        "actual": "4f1538e520944e61bab20549fb6a19cc",
+        "expected": "4f1538e520944e61bab20549fb6a19cc"
+      }
+    },
+    {
+      "label": "重放不新增版本",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "重放不改施测版本",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "换 submissionId 409",
+      "ok": true,
+      "detail": {
+        "actual": 409,
+        "expected": 409
+      }
+    },
+    {
+      "label": "换 submissionId 错误码",
+      "ok": true,
+      "detail": {
+        "actual": "SCORE_IMPORT_NOT_EDITABLE",
+        "expected": "SCORE_IMPORT_NOT_EDITABLE"
+      }
+    },
+    {
+      "label": "补录人次 200",
+      "ok": true,
+      "detail": {
+        "actual": 200,
+        "expected": 200
+      }
+    },
+    {
+      "label": "施测 revision 递增",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "assessment revision 409",
+      "ok": true,
+      "detail": {
+        "actual": 409,
+        "expected": 409
+      }
+    },
+    {
+      "label": "assessment revision 错误码",
+      "ok": true,
+      "detail": {
+        "actual": "SCORE_ASSESSMENT_REVISION_CONFLICT",
+        "expected": "SCORE_ASSESSMENT_REVISION_CONFLICT"
+      }
+    },
+    {
+      "label": "assessment revision details.currentRevision",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "确认未写入",
+      "ok": true,
+      "detail": {
+        "actual": 0,
+        "expected": 0
+      }
+    },
+    {
+      "label": "首版 base 不符 409",
+      "ok": true,
+      "detail": {
+        "actual": 409,
+        "expected": 409
+      }
+    },
+    {
+      "label": "首版 base 错误码",
+      "ok": true,
+      "detail": {
+        "actual": "SCORE_BASE_REVISION_CONFLICT",
+        "expected": "SCORE_BASE_REVISION_CONFLICT"
+      }
+    },
+    {
+      "label": "base 冲突带 issue 定位 baseScoreRevisionId",
+      "ok": true,
+      "detail": [
+        {
+          "field": "baseScoreRevisionId",
+          "code": "SCORE_BASE_REVISION_CONFLICT",
+          "message": "本次导入所基于的正式成绩版本已不是当前 active；请刷新后重试。"
+        }
+      ]
+    },
+    {
+      "label": "v1 确认 200",
+      "ok": true,
+      "detail": {
+        "actual": 200,
+        "expected": 200
+      }
+    },
+    {
+      "label": "I2 上传 200",
+      "ok": true,
+      "detail": {
+        "actual": 201,
+        "expected": 201
+      }
+    },
+    {
+      "label": "I2 base 自动=v1",
+      "ok": true,
+      "detail": {
+        "actual": "94fc9e6d1c3d493586d283ae56be16df",
+        "expected": "94fc9e6d1c3d493586d283ae56be16df"
+      }
+    },
+    {
+      "label": "v2 确认 200",
+      "ok": true,
+      "detail": {
+        "actual": 200,
+        "expected": 200
+      }
+    },
+    {
+      "label": "v2 与 v1 不同",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "I3 上传 201",
+      "ok": true,
+      "detail": {
+        "actual": 201,
+        "expected": 201
+      }
+    },
+    {
+      "label": "I3 base 自动=v2",
+      "ok": true,
+      "detail": {
+        "actual": "95abef41a8e844a3a70ea178b7953a90",
+        "expected": "95abef41a8e844a3a70ea178b7953a90"
+      }
+    },
+    {
+      "label": "确认 base 过期 409",
+      "ok": true,
+      "detail": {
+        "actual": 409,
+        "expected": 409
+      }
+    },
+    {
+      "label": "确认 base 过期错误码",
+      "ok": true,
+      "detail": {
+        "actual": "SCORE_BASE_REVISION_CONFLICT",
+        "expected": "SCORE_BASE_REVISION_CONFLICT"
+      }
+    },
+    {
+      "label": "v3 未写入（仍 2 个修订）",
+      "ok": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "label": "上传过期 base 409",
+      "ok": true,
+      "detail": {
+        "actual": 409,
+        "expected": 409
+      }
+    },
+    {
+      "label": "上传过期 base 错误码",
+      "ok": true,
+      "detail": {
+        "actual": "SCORE_BASE_REVISION_CONFLICT",
+        "expected": "SCORE_BASE_REVISION_CONFLICT"
+      }
+    }
+  ],
+  "failures": [],
+  "observations": [
+    "assessment 冲突 details={\"currentRevision\": 1}",
+    "首版 base 冲突 details={\"issues\": [{\"field\": \"baseScoreRevisionId\", \"code\": \"SCORE_BASE_REVISION_CONFLICT\", \"message\": \"本次导入所基于的正式成绩版本已不是当前 active；请刷新后重试。\"}]}"
+  ]
+}

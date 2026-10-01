@@ -1,7 +1,101 @@
 # 当前状态与实施主线
 
 <a id="current-batch"></a>
-## TEACHING-LOOP B1 当前批次（2026-09-30）——富内容基础 / 知识点后端 / 名单后端
+## TEACHING-LOOP B3 当前批次（2026-10-01，进行中）——G0 前置修复 / 成绩后端 T60 / 成绩导入工作区 F20-I / 题库前端 F10-QB
+
+用户授权 **B3 = G0（B2 审查前置修复）+ T60 + F20-I + F10-QB + CTRL**（原文见
+[B3 批次目录](qa/TEACHING-LOOP-B3/TASK-CARD.md)）；起点为 B2 r2 工作树（**84/84 一致、0 差异**，未提交）。
+**本批不提交、不推送；完成后停止，不自动启动 B4。**
+
+- **G0（已关闭，独立验收通过）**：B2 审查 11 项缺陷（[REVIEW](qa/TEACHING-LOOP-B2-REVIEW-20261001/REVIEW.md)）
+  + 已披露 publish 停滞项全部修复；`FROZEN-G0.json` r2 106 文件，r1→r2 差异恰 3 文件
+  （`core/migrations/teaching.py`、`test_b2_migrations.py`、`test_migrations.py`），r1 记录保留。
+  V00-G0 r1（RV01–RV10 + publish + RebuildPlan pass；RV11 迁移 fail）→ 修复 → r2 窄复验**全项 pass**
+  （[REPORT-01](qa/TEACHING-LOOP-B3/V00-G0-REPORT-01.md) → [REPORT-02](qa/TEACHING-LOOP-B3/V00-G0-REPORT-02.md)）。
+  关键修复：公共 retry 经执行器注册表真调度（注册表导入失败阻断启动）、发布异常按**原 JobLease**
+  收敛 failed/cancelled、冻结模型指纹（`MODEL_CONFIG_DRIFT`/`MODEL_FINGERPRINT_MISSING`）、知识点确认前
+  引用复核、结构化问题处置与受管资产内容接口、整理中间批租约 CAS、改题学科关联显式替换、
+  施测改日期重核归属、StrictMode hook 与操作身份、修订级标题快照（迁移 0005，回填来源标注）。
+  **口径更正**：并发重复 retry 合法结果 ∈ {200,409} 且**恰好执行一次**（V00 r2 采纳）。
+- **成绩契约（CTRL 冻结）**：`app/contracts/scores.py` + `apps/web/src/contracts/scores.ts`
+  （ScoreImportView/映射与单元格校正/承认范围/确认与修正请求/修订视图/只读矩阵分页/全部错误码；
+  `expectedImportRevision`/`expectedAssessmentRevision`/`baseScoreRevisionId` 三者语义互不替代）。
+  `app/services/tabular.py` 扩展 `read_score_sheet`（公式视图 + data_only 缓存视图、物理行列、超限报错不截断）。
+- **成绩迁移（CTRL，已施测）**：教学库 `0006_teaching_score_tables`（成绩四表 + 预览版本/快照列/修正审计 +
+  封存闸门按**该修订自己的**快照核完整性 + 已确认不可变触发器）与
+  `0007_teaching_assessment_active_score_fk`（受控重建 `assessments`：去分期 CHECK、恢复
+  `(active_score_revision_id,id)→score_revisions(id,assessment_id)` DEFERRABLE 复合外键、active 必须已确认）。
+  在全新库、含业务数据的 B2 旧库、正式库只读副本三条路径验证：数据逐行保留、`foreign_key_check` 空、
+  `integrity_check=ok`、触发器恢复、失败回滚可重跑；专项测试见 `tests/test_b3_score_migrations.py`（全绿）。
+- **业务段（进行中→已实现）**：T60 成绩后端（导入→预览→承认→确认→修正，全矩阵 = 冻结参测人次 × 固定计分叶；
+  33 例后端测试）、F20-I `/assessments` 五步工作区（40+ 例前端单测 + 真隔离浏览器链）、
+  F10-QB 题库增量（知识点筛选/旧标签分区/六态补题与真实重试/AI 校对链/`200+failures` 未确认语义，
+  159 例单测）。**CTRL 集成期修掉四件事**：`read_score_sheet` 逐格 `.cell()` 超线性（200×100 修复前
+  外推 >40 分钟 → 修复后 0.13s，规模基线 200×100 后端 2.13s，e2e 规模用例相应提升到 200×100）、
+  `ScoreImportPatchRequest` 并入冻结契约并删局部 dto、`AssessmentView.activeScoreRevisionId` 补进契约
+  与 TS 镜像（前端改用权威字段，缺失才回退推断）、导航单测清单同步。
+- **本地终验（本批，命令与证据见 [EVIDENCE-COMMANDS](qa/TEACHING-LOOP-B3/EVIDENCE-COMMANDS.md)）**：
+  后端全量 `uv run pytest tests -q` 1405 用例收集，一轮全绿、另两轮仅 R-19（台账既有间歇）；
+  `NODE_OPTIONS=--no-experimental-webstorage npm run check` 退出码 0（typecheck + lint 0 警告 +
+  **97 文件 / 927 单测** + build）；全量 e2e **149 passed / 1 failed**（唯一为台账 **R-14**，
+  隔离 `--repeat-each=3` **3/3 通过**，未改用例未放宽断言）；规模实测：读取 200×102 0.13s、
+  后端确认链 200×100 2.13s、浏览器 200×100 首屏 582ms / 翻页 529ms（r2 复测）。
+  **独立验收 V00-B3 判"可交付、无阻塞 fail"**：r1 全项 pass（A1–A5/B6–B7/C8–C10/D11）+ 7 条观察项；
+  r2 窄复验确认契约镜像 26↔26、产品零变化；收口确认定版 **163/163 自洽**（产品与测试/scripts 自 r2 起零字节变化）。
+  **冻结候选 `FROZEN-B3.json` 163 文件**（相对 G0：+57 / ~20 / -0）；逐次修订以冻结记录的
+  `revisionHistory` 字段为准（正文不硬编码定版 rN——本批曾因"记录回写 → 归因又落后"连续返工，B4 起按此口径）；
+  批次报告（含 B4 交接与如实边界）见 [REPORT](qa/TEACHING-LOOP-B3/REPORT.md)。
+- **本批边界（如实登记，不声称已通过）**：成绩导入预览的 missing/absent 明细由前端本地推导、
+  服务端 422 定位兜底（契约未暴露明细集合）；出勤冲突按"文件标记优先、不改施测快照"处理，
+  **没有独立的出勤校正端点**（校正路径 = 重传修正后的文件）；修正路径与确认路径的故障注入
+  未做真实浏览器链（仅单测）；F10-QB 全部用例为 stub 替身，无真实后端联调断言。
+- **未执行（not_run）**：真实模型调用、真实 Word/WPS 排版、真实 Qdrant、正式数据根迁移演练
+  （正式教学库为"已应用至 0005、无业务数据"的合法状态；0006/0007 在正式库副本上验证通过，正式应用在下次启动）；
+  台账 R-14/R-15/R-18/R-19 按既有口径；R-19 在 B3 全量运行中复现（**整文件 14/14 通过、单跑 3/3 失败**，
+  机制与基线树同：jieba 首次加载 ≈350ms 超过该用例 TTL 50ms），非本批引入，处置仍留测试稳定化批次。
+
+## TEACHING-LOOP B2 批次（2026-10-01，上一批）——原卷 / 题库增量 / 施测 / 知识点前端
+
+用户授权按 [多Agent实施任务计划书 v2.0 §二.3](design/teaching-loop-v1/多Agent实施任务计划书_v2.0.md)
+实施 **B2（CTRL + T40 + T50 + F10-KP 第一波；T30-b 第二波）**。起点 `main@0f4b8cb1`（B0+B1 已由用户提交）；
+开工核对 B1 r2 冻结记录 **95/95 一致、0 差异**。任务卡与证据见
+[B2 批次目录](qa/TEACHING-LOOP-B2/TASK-CARD.md)；本批完成后停止，不自动启动 B3。
+
+- **结构（追加式迁移，B0/B1 已登记散列零漂移）**：教学库 `0003_teaching_paper_tables`（设计四表 +
+  `paper_source_blocks`/`paper_issues`/`ai_proposals` + 确认闸门与确认后冻结/父子环/不可变触发器）、
+  `0004_teaching_assessment_tables`（设计三表 + 参测班级显式确认列 + 只用已确认卷与施测不换卷触发器）；
+  题库 `0004_question_knowledge_links`（设计关联表逐字 + 草稿关联/生成来源/版本化内容指纹）。
+  **分期偏差**：`source_practice_revision_id` 与 `active_score_revision_id` 本批只允许空（无未来表外键，
+  以 CHECK 拒绝非空）；`paper_revisions.source_file_id` 必须非空；草稿总分允许 0，确认闸门要求 >0 且等于叶子合计。
+- **契约（B2 冻结）**：`app/contracts/papers.py`（草稿整表 PATCH/确认/建议/视图，分值为十进制字符串×100）、
+  `app/contracts/assessments.py`（创建/补录人次/视图，"显式确认必须带依据"与 DB CHECK 对称）、
+  `app/schemas/question_bank.py`（任务六态 + attempt、草稿/正式知识点关联、生成请求与视图）；
+  前端镜像 `contracts/{papers,assessments,question-bank}.ts`。
+- **T40 原卷**：DOCX 导入（复用 T10 富解析 + 受管资产）→ 块/问题清单/规则拆题持久化 → 草稿整表校对
+  → 确认闸门（唯一题号/无环/仅叶子计分/知识点齐备/总分一致/块归属或排除/无 blocking issue）→
+  确认后不可增删改；AI 建议（`teaching:paper_mapping`）只进待确认；`ConfirmedPaperReader` 只放已确认修订。
+- **T50 题库增量**：草稿与正式知识点关联（改内容复制旧关联、改关联替换）、按知识点检索、AI 补题
+  （`question:generate` 独立 GenerateReply + 同库事务 + 待校对草稿链）、版本化派生指纹、
+  **组织器接入统一任务引擎**（六态/租约/取消/重启收敛；question 域纳入启动收敛后消除双执行者）。
+- **T30-b 施测**：只用已确认固定修订；参测姓名/学号服务端读取后冻结；空名单拒绝；班级范围与人次唯一；
+  历史归属未覆盖施测日 → 教师显式确认并落库依据（不阻断"今日导入名单分析过去考试"，不改归属历史）；
+  创建/班级/人次/幂等同库同事务。
+- **F10-KP 前端**：`/knowledge-points` 真实页面（学科筛选/父树/建立更新/别名/归档/教材依据/表格导入校对确认/
+  AI 候选六态与取消重试）+ 题库六态兼容修复（interrupted 横幅与显式 retry）。
+- **验证**：后端全量 `npm run test:api` **1296 passed**（B1 基线 1170 → +126）；`npm run check` 退出码 0
+  （typecheck + lint 0 警告 + unit **86 文件 / 799 例** + build）；全量 E2E 先 build 后 **147 passed / 0 failed**
+  （新页面 spec 首轮 5 失败→逐条修复，详见 [EVIDENCE-COMMANDS](qa/TEACHING-LOOP-B2/EVIDENCE-COMMANDS.md)）。
+- **独立验收 V00 r1**：指纹 **83/83 一致**；V1–V8、V10 **pass**（自建探针 87/59/44/32/32/14/33/9/11 例，含变异实验 3 处），
+  **V9 fail（2 处文档事实错误：`GENERATION_*` 错误码名、施测域 `CLASS_ARCHIVED` 状态码）**——已订正 `docs/API.md`；
+  7 条 observation 已登记（原卷域 publish 失败收尾留 B3 统一等）。修复后重新冻结 r2 并窄复验
+  （[V00-REPORT-01](qa/TEACHING-LOOP-B2/V00-REPORT-01.md) → [V00-REPORT-02](qa/TEACHING-LOOP-B2/V00-REPORT-02.md)）。
+- **未执行（not_run）**：真实模型调用（AI 建议/补题/候选全用受控替身）、真实 Word/WPS 排版、真实 Qdrant、
+  正式数据根迁移演练（正式库当前为"已应用 B2 迁移、无业务数据写入"的合法状态）；台账 R-14/R-15/R-18/R-19 按既有口径。
+- **下一批入口（B3，需另行授权）**：T60 成绩（成绩导入/确认/修正 + `active_score_revision_id` 外键补齐迁移）、
+  F20 名单/原卷/成绩前端、F10 题库新界面；练习批次需补 `source_practice_revision_id` 外键；**T30-b/T40 的固定修订
+  与参测快照契约已就绪**（交接见 [实施计划书 §二.3 B2 分期 DDL 交接](design/teaching-loop-v1/多Agent实施任务计划书_v2.0.md)）。
+
+## TEACHING-LOOP B1 批次（2026-09-30，上一批）——富内容基础 / 知识点后端 / 名单后端
 
 用户授权按 [多Agent实施任务计划书 v2.0 §二.3](design/teaching-loop-v1/多Agent实施任务计划书_v2.0.md)
 实施 **B1（CTRL + T10 + T20 + T30-a）**。起点为 B0 r2 工作树（B0 未提交交付；

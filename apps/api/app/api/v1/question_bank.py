@@ -24,10 +24,12 @@ from app.schemas.question_bank import (
     DraftPatchRequest,
     DraftSplitRequest,
     DraftView,
+    GenerationJobView,
     OrganizeJobView,
     OrganizeRequest,
     QuestionConfirmRequest,
     QuestionDetail,
+    QuestionGenerationRequest,
     QuestionImportCreate,
     QuestionImportDetail,
     QuestionImportList,
@@ -205,6 +207,21 @@ async def apply_question_suggestion(
     return await _run(service.apply_suggestion, suggestion_id, body)
 
 
+# --------------------------------------------------------------------------- AI 补题
+
+
+@router.post(
+    "/question-generation-jobs", status_code=status.HTTP_202_ACCEPTED
+)
+async def create_question_generation_job(
+    request: Request, body: QuestionGenerationRequest
+) -> GenerationJobView:
+    """AI 补题：202 只代表任务被接受；候选落在 ``needs_review`` 草稿批次里，
+    结果经 ``GET /workflow-jobs/{jobId}?domain=question`` 观察（六态 + attempt）。"""
+    service = _service(request)
+    return await service.create_generation_job(body)
+
+
 # ------------------------------------------------------------------------- 确认入库
 
 
@@ -231,6 +248,7 @@ async def list_questions(
     editionId: str | None = None,
     status: str | None = None,
     q: str | None = None,
+    knowledgePointId: str | None = None,
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=20, ge=1, le=200),
 ) -> QuestionList:
@@ -242,6 +260,7 @@ async def list_questions(
         edition_id=editionId,
         status=status,
         query=q,
+        knowledge_point_id=knowledgePointId,
         offset=offset,
         limit=limit,
     )
@@ -257,8 +276,11 @@ async def get_question(request: Request, question_id: str) -> QuestionDetail:
 async def patch_question(
     request: Request, question_id: str, body: QuestionPatchRequest
 ) -> QuestionDetail:
+    """改题 = 追加新修订；``knowledgeLinks`` 提供即整表替换（`[]` 清空），缺省复制旧正式关联。"""
     service = _service(request)
-    return await _run(service.patch_question, question_id, body)
+    return await _run(
+        service.patch_question, question_id, body, knowledge_links=body.knowledgeLinks
+    )
 
 
 @router.delete("/questions/{question_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -1,0 +1,100 @@
+{
+ "probe": "v9_docs_declarations_probe",
+ "results": [
+  {
+   "name": "V9.1 API.md B2 节声明的路由全部真实存在（方法与路径）",
+   "status": "PASS",
+   "detail": "declared=20 missing_in_code=[] actual_has=[('GET', '/api/v1/paper-proposals/{param}'), ('POST', '/api/v1/paper-proposals/{param}/apply'), ('POST', '/api/v1/paper-proposals/{param}/reject'), ('POST', '/api/v1/papers/{param}/knowledge-proposals')]"
+  },
+  {
+   "name": "V9.2 B2 新增路由（原卷/施测/生成）在文档里有对应声明",
+   "status": "PASS",
+   "detail": "undeclared_in_docs=[]"
+  },
+  {
+   "name": "V9.3 API.md 迁移 id `0003_teaching_paper_tables` 已登记",
+   "status": "PASS",
+   "detail": "{'teaching': ['0001_teaching_baseline', '0002_teaching_business_tables', '0003_teaching_paper_tables', '0004_teaching_assessment_tables'], 'question_bank': ['0001_question_bank_baseline', '0002_question_jobs_engine_columns', '0003_question_jobs_engine_state_index', '0004_question_knowledge_links']}"
+  },
+  {
+   "name": "V9.3 API.md 迁移 id `0004_teaching_assessment_tables` 已登记",
+   "status": "PASS",
+   "detail": "{'teaching': ['0001_teaching_baseline', '0002_teaching_business_tables', '0003_teaching_paper_tables', '0004_teaching_assessment_tables'], 'question_bank': ['0001_question_bank_baseline', '0002_question_jobs_engine_columns', '0003_question_jobs_engine_state_index', '0004_question_knowledge_links']}"
+  },
+  {
+   "name": "V9.3 API.md 迁移 id `0004_question_knowledge_links` 已登记",
+   "status": "PASS",
+   "detail": "{'teaching': ['0001_teaching_baseline', '0002_teaching_business_tables', '0003_teaching_paper_tables', '0004_teaching_assessment_tables'], 'question_bank': ['0001_question_bank_baseline', '0002_question_jobs_engine_columns', '0003_question_jobs_engine_state_index', '0004_question_knowledge_links']}"
+  },
+  {
+   "name": "V9.4 API.md 声明的触发器家族（文本）与真实触发器（展开后）一致",
+   "status": "PASS",
+   "detail": "doc_markers_ok=True concrete=20 missing=[]"
+  },
+  {
+   "name": "V9.5 文档声明的分期 CHECK 与 DDL 一致",
+   "status": "PASS",
+   "detail": "source_practice=True active_score=True"
+  },
+  {
+   "name": "V9.6 文档声明的 `paper_confirm` 无 PRACTICE_NOT_REVIEWED 分支",
+   "status": "PASS",
+   "detail": "ok"
+  },
+  {
+   "name": "V9.7 文档声明的「六态 + attempt」与代码一致",
+   "status": "PASS",
+   "detail": "organize=['cancelled', 'failed', 'interrupted', 'queued', 'running', 'succeeded'] generation=['cancelled', 'failed', 'interrupted', 'queued', 'running', 'succeeded']"
+  },
+  {
+   "name": "V9.8 文档声明的启动收敛含 question 域",
+   "status": "PASS",
+   "detail": "('knowledge', 'teaching', 'question')"
+  },
+  {
+   "name": "V9.9 API.md B2 节声明的错误码都能在代码里找到同名常量",
+   "status": "FAIL",
+   "detail": "doc_only=['GENERATION_INVALID_EVIDENCE', 'GENERATION_TRUNCATED', 'GENERATION_UNSAFE_REFERENCE']"
+  },
+  {
+   "name": "V9.P0 前置：学生建档 + 班级归档成功",
+   "status": "PASS",
+   "detail": "student=True archive=200"
+  },
+  {
+   "name": "V9.10 文档标注 CLASS_ARCHIVED 为 409，实测与代码一致",
+   "status": "FAIL",
+   "detail": "doc_409=True actual_status=422 actual_code=CLASS_ARCHIVED"
+  },
+  {
+   "name": "V9.11 ROUTES.md 与 navigation.ts 的 /knowledge-points 状态一致且页面存在",
+   "status": "PASS",
+   "detail": "routes_row=| `/knowledge-points` | 独立知识点库（学科筛选、父树、建立/更新、别名、归档、教材依据、表格导入校对确认、AI 候选） | 已实现（`r nav_status=ready page=True"
+  },
+  {
+   "name": "V9.12 PROJECT_GUIDE §13 声明的租约/心跳与代码一致（90s/≤20s 续租）",
+   "status": "PASS",
+   "detail": "lease_seconds_default=90 guide_mentions_90s=True"
+  },
+  {
+   "name": "V9.13 PROJECT_GUIDE §13 的稳定决定与代码行为一致（逐条核对）",
+   "status": "PASS",
+   "detail": "{'只允许为空的分期列': True, '确认即冻结/修改=新建修订': True, 'AI 补题独立 GenerateReply': True, '旧 checkpoint 需重选模型': True, '施测只用已确认修订 + 快照冻结': True, '教材依据不可用≠没有依据': True}"
+  },
+  {
+   "name": "V9.14 B2 任务卡的迁移 id/路由/六态声明与代码一致",
+   "status": "PASS",
+   "detail": "task card 关键事实齐全"
+  },
+  {
+   "name": "V9.15 apps/api/AGENTS.md 是否含 B2 结构声明（文档一致性，不计 fail）",
+   "status": "PASS",
+   "detail": "未含 B2 声明——见 observation"
+  },
+  {
+   "name": "OBS-AGENTS.md 未同步 B2",
+   "status": "OBSERVATION",
+   "detail": "apps/api/AGENTS.md 仍只有 B1 段落（「施测三表留 T30-b（依赖 T40 的 paper_revisions）」），B2 已落地 teaching 0003/0004 与 assessments；该文件不在 B2 任务卡的文件归属表内，属文档漂移而非产品不一致。"
+  }
+ ]
+}

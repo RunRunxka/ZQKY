@@ -28,6 +28,8 @@
 | `/space/cli-apps` | CLI 应用（本地模拟安装） | 已实现（`ready`） |
 | `/space/mcp`、`/space/skills` | 旧入口迁移 | 重定向 `/settings#mcp`、`/settings#skills` |
 | `/question-bank` | 题库（导入批次、已入库题目筛选/分页、导入入口） | 已实现（`ready`，RAG-REBUILD v1.0） |
+| `/knowledge-points` | 独立知识点库（学科筛选、父树、建立/更新、别名、归档、教材依据、表格导入校对确认、AI 候选） | 已实现（`ready`，TEACHING-LOOP B1 后端 + B2 前端） |
+| `/assessments` | 施测与成绩（五步：名单 → 原卷 → 施测 → 成绩 → 历史；成绩导入 upload/映射/校对/承认/确认、四态区分、修正与只读矩阵） | 已实现（`ready`，TEACHING-LOOP B3 / T60 + F20-I） |
 | `/question-bank/imports/[importId]` | 试题校对台：原文与草稿并排、未归属原文、拆分/合并、AI 整理建议、确认入库 | 已实现（`ready`） |
 | `/templates` | 模板中心 | 规划状态页 |
 | `/co-writer`、`/co-writer/[docId]` | 文档列表/编辑器；自动保存/版本恢复，AI 为显式模拟 | 入口 ready，完整交付待验收 |

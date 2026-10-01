@@ -1,0 +1,42 @@
+{
+  "probe": "p36_final_confirm",
+  "checks": {
+    "finalRevision": "B3-final",
+    "finalDeclared": 163,
+    "diskOk": 163,
+    "diskBad": [],
+    "r2ToFinal": {
+      "added": [],
+      "removed": [],
+      "changed": [
+        "docs/qa/TEACHING-LOOP-B3/EVIDENCE-COMMANDS.md",
+        "docs/qa/TEACHING-LOOP-B3/REPORT.md"
+      ]
+    },
+    "r2ToFinalProductChanged": [],
+    "r2ProductFilesUnchanged": {
+      "apps/web/src/contracts/scores.ts": true,
+      "apps/web/src/services/assessments-api.ts": true
+    },
+    "finalEqualsR4": true,
+    "r4Revision": "B3-r4",
+    "r2ToR3": {
+      "added": [],
+      "removed": [],
+      "changed": [
+        "docs/qa/TEACHING-LOOP-B3/EVIDENCE-COMMANDS.md",
+        "docs/qa/TEACHING-LOOP-B3/REPORT.md"
+      ]
+    },
+    "r3ToFinal": {
+      "added": [],
+      "removed": [],
+      "changed": [
+        "docs/qa/TEACHING-LOOP-B3/EVIDENCE-COMMANDS.md",
+        "docs/qa/TEACHING-LOOP-B3/REPORT.md"
+      ]
+    },
+    "r3ToFinalOnlyDocs": true
+  },
+  "verdict": "pass"
+}

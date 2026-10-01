@@ -1,0 +1,95 @@
+{
+ "probe": "r2_docs_delta_probe",
+ "results": [
+  {
+   "name": "r2.A1 API.md 声明的 5 个生成错误码在 generation.py 中都有同名常量",
+   "status": "PASS",
+   "detail": "[]"
+  },
+  {
+   "name": "r2.A2 r1 的 3 个旧名已从 API.md B2 节消失（订正生效）",
+   "status": "PASS",
+   "detail": "[]"
+  },
+  {
+   "name": "r2.A3 文档声明的 5 个码名 == 真 HTTP 实测码（V9/V5 复现过）",
+   "status": "PASS",
+   "detail": "与 V5.1–V5.8 实测一致"
+  },
+  {
+   "name": "r2.A4 施测域 CLASS_ARCHIVED 已标为 422 并注明名单域 409",
+   "status": "PASS",
+   "detail": "订正文本存在且 409 组不再含 CLASS_ARCHIVED"
+  },
+  {
+   "name": "r2.A5 两侧代码状态码与订正后文档一致（名单域 409 / 施测域 422）",
+   "status": "PASS",
+   "detail": "roster_409=True assessments_422=True"
+  },
+  {
+   "name": "r2.B1 CURRENT_STATUS 记录的 V00 r1 探针例数与我的 r1 证据逐一相符",
+   "status": "PASS",
+   "detail": "counts_present=['87/59/44/32/32/14/33/9/11'] fingerprint_present=True"
+  },
+  {
+   "name": "r2.B2 上述例数由 r1 证据 JSON 独立复算得到（不是我照抄文档）",
+   "status": "PASS",
+   "detail": "[87, 59, 44, 32, 32, 14, 33, 9, 11]"
+  },
+  {
+   "name": "r2.B3 CURRENT_STATUS 按 r1 结论口径登记 V9 两处 fail 已订正，并指向 V00-REPORT-02/TASK-CARD",
+   "status": "PASS",
+   "detail": "结论口径与链接存在"
+  },
+  {
+   "name": "OBS-STATUS 未深链 r1 报告（可经批次 README §6.1 到达）",
+   "status": "OBSERVATION",
+   "detail": "CURRENT_STATUS 的 V00 r1 段只深链 V00-REPORT-02 与 TASK-CARD，未深链 V00-REPORT-01；批次 README §6.1 已链接 r1 报告，结论文字也在状态页，故不影响可追溯性。"
+  },
+  {
+   "name": "r2.B6 批次 README §6.1–6.3 逐项复述 r1 结论与 7 条 observation 处置（可追溯）",
+   "status": "PASS",
+   "detail": "r1 结论与 observation 处置表存在（README 非候选文件，登记为批次证据）"
+  },
+  {
+   "name": "r2.B4 CURRENT_STATUS 的 not_run 与 B3 入口与 r1 报告一致（真实模型/排版/Qdrant/正式迁移 + T60/F20/F10）",
+   "status": "PASS",
+   "detail": "not_run 与下一批入口齐备"
+  },
+  {
+   "name": "r2.B5 CURRENT_STATUS 未把 V00 r1 的 observation 写成产品缺陷（措辞为「已登记」）",
+   "status": "PASS",
+   "detail": "措辞正确"
+  },
+  {
+   "name": "r2.C1 AGENTS.md 的 B2 迁移 id 与注册表一致",
+   "status": "PASS",
+   "detail": "registered=['0001_teaching_baseline', '0002_teaching_business_tables', '0003_teaching_paper_tables', '0004_teaching_assessment_tables', '0001_question_bank_baseline', '0002_question_jobs_engine_columns', '0003_question_jobs_engine_state_index', '0004_question_knowledge_links']"
+  },
+  {
+   "name": "r2.C2 AGENTS.md 的题库共享依赖说明与装配签名一致（knowledge_catalog/coordinator/job_engine）",
+   "status": "PASS",
+   "detail": "params=['catalog', 'coordinator', 'job_engine', 'knowledge_catalog', 'model_resolver', 'owner_id', 'parser', 'settings'] domains=('knowledge', 'teaching', 'question')"
+  },
+  {
+   "name": "r2.C3 AGENTS.md 声明「启动不自动重叫模型」与 V6 实测一致",
+   "status": "PASS",
+   "detail": "V6.8 实测：reconcile 后 provider 调用数不变"
+  },
+  {
+   "name": "r2.D1 TASK-CARD §11 登记 r1 observation（发布失败停 running / 错误码口径 / KnowledgePointView.id）",
+   "status": "PASS",
+   "detail": "三项 observation 均在 §11"
+  },
+  {
+   "name": "r2.D2 §11 未把 observation 写成「已修复」，并保留既有边界（正式关联无 source 列等）",
+   "status": "PASS",
+   "detail": "措辞与既有边界保留"
+  },
+  {
+   "name": "r2.D3 §11 明确处置归属（B3 统一/以 generation.py 为准），与 r1 报告建议一致",
+   "status": "PASS",
+   "detail": ""
+  }
+ ]
+}

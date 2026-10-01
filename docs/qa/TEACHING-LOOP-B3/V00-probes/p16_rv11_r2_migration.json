@@ -1,0 +1,217 @@
+{
+  "two_confirmed_children": {
+    "shape": "two_confirmed",
+    "preAddedTitleSnapshot": false,
+    "pendingBefore": [
+      "0005_teaching_paper_revision_titles",
+      "0006_teaching_score_tables",
+      "0007_teaching_assessment_active_score_fk"
+    ],
+    "applied": [
+      "0005_teaching_paper_revision_titles",
+      "0006_teaching_score_tables",
+      "0007_teaching_assessment_active_score_fk"
+    ],
+    "columns": [
+      "title_snapshot",
+      "title_snapshot_source"
+    ],
+    "revisions": [
+      {
+        "id": "rev-1",
+        "version": 1,
+        "state": "confirmed",
+        "total_score_units": 10,
+        "title_snapshot": "旧卷标题（当前值）",
+        "title_snapshot_source": "backfilled_from_paper"
+      },
+      {
+        "id": "rev-2",
+        "version": 2,
+        "state": "confirmed",
+        "total_score_units": 10,
+        "title_snapshot": "旧卷标题（当前值）",
+        "title_snapshot_source": "backfilled_from_paper"
+      },
+      {
+        "id": "rev-3",
+        "version": 3,
+        "state": "draft",
+        "total_score_units": 10,
+        "title_snapshot": "旧卷标题（当前值）",
+        "title_snapshot_source": "backfilled_from_paper"
+      }
+    ],
+    "childrenUnchanged": {
+      "items": true,
+      "knowledge": true,
+      "blocks": true,
+      "issues": true
+    },
+    "triggerVerbatim": true,
+    "registered0005ShaMatches": true,
+    "foreignKeys": 1,
+    "foreignKeyCheck": [],
+    "integrityCheck": [
+      "ok"
+    ],
+    "updateConfirmedStillBlocked": "IMMUTABLE_REVISION",
+    "insertConfirmedStillBlocked": "USE_CONFIRM_TRANSITION",
+    "freezeItemsStillBlocked": "IMMUTABLE_REVISION",
+    "appliedAgain": []
+  },
+  "draft_plus_confirmed": {
+    "shape": "draft_and_confirmed",
+    "preAddedTitleSnapshot": false,
+    "pendingBefore": [
+      "0005_teaching_paper_revision_titles",
+      "0006_teaching_score_tables",
+      "0007_teaching_assessment_active_score_fk"
+    ],
+    "applied": [
+      "0005_teaching_paper_revision_titles",
+      "0006_teaching_score_tables",
+      "0007_teaching_assessment_active_score_fk"
+    ],
+    "columns": [
+      "title_snapshot",
+      "title_snapshot_source"
+    ],
+    "revisions": [
+      {
+        "id": "rev-1",
+        "version": 1,
+        "state": "confirmed",
+        "total_score_units": 10,
+        "title_snapshot": "旧卷标题（当前值）",
+        "title_snapshot_source": "backfilled_from_paper"
+      },
+      {
+        "id": "rev-2",
+        "version": 2,
+        "state": "draft",
+        "total_score_units": 10,
+        "title_snapshot": "旧卷标题（当前值）",
+        "title_snapshot_source": "backfilled_from_paper"
+      }
+    ],
+    "childrenUnchanged": {
+      "items": true,
+      "knowledge": true,
+      "blocks": true,
+      "issues": true
+    },
+    "triggerVerbatim": true,
+    "registered0005ShaMatches": true,
+    "foreignKeys": 1,
+    "foreignKeyCheck": [],
+    "integrityCheck": [
+      "ok"
+    ],
+    "updateConfirmedStillBlocked": "IMMUTABLE_REVISION",
+    "insertConfirmedStillBlocked": "USE_CONFIRM_TRANSITION",
+    "freezeItemsStillBlocked": "IMMUTABLE_REVISION",
+    "appliedAgain": []
+  },
+  "partial_columns": {
+    "shape": "two_confirmed",
+    "preAddedTitleSnapshot": true,
+    "pendingBefore": [
+      "0005_teaching_paper_revision_titles",
+      "0006_teaching_score_tables",
+      "0007_teaching_assessment_active_score_fk"
+    ],
+    "applied": [
+      "0005_teaching_paper_revision_titles",
+      "0006_teaching_score_tables",
+      "0007_teaching_assessment_active_score_fk"
+    ],
+    "columns": [
+      "title_snapshot",
+      "title_snapshot_source"
+    ],
+    "revisions": [
+      {
+        "id": "rev-1",
+        "version": 1,
+        "state": "confirmed",
+        "total_score_units": 10,
+        "title_snapshot": "旧卷标题（当前值）",
+        "title_snapshot_source": "backfilled_from_paper"
+      },
+      {
+        "id": "rev-2",
+        "version": 2,
+        "state": "confirmed",
+        "total_score_units": 10,
+        "title_snapshot": "旧卷标题（当前值）",
+        "title_snapshot_source": "backfilled_from_paper"
+      },
+      {
+        "id": "rev-3",
+        "version": 3,
+        "state": "draft",
+        "total_score_units": 10,
+        "title_snapshot": "旧卷标题（当前值）",
+        "title_snapshot_source": "backfilled_from_paper"
+      }
+    ],
+    "childrenUnchanged": {
+      "items": true,
+      "knowledge": true,
+      "blocks": true,
+      "issues": true
+    },
+    "triggerVerbatim": true,
+    "registered0005ShaMatches": true,
+    "foreignKeys": 1,
+    "foreignKeyCheck": [],
+    "integrityCheck": [
+      "ok"
+    ],
+    "updateConfirmedStillBlocked": "IMMUTABLE_REVISION",
+    "insertConfirmedStillBlocked": "USE_CONFIRM_TRANSITION",
+    "freezeItemsStillBlocked": "IMMUTABLE_REVISION",
+    "appliedAgain": []
+  },
+  "declaration_invariance": {
+    "declaredTexts": [
+      "ALTER TABLE paper_revisions ADD COLUMN title_snapshot TEXT NOT NULL DEFAULT ''",
+      "ALTER TABLE paper_revisions ADD COLUMN title_snapshot_source TEXT NULL",
+      "UPDATE paper_revisions SET title_snapshot = (SELECT title FROM papers WHERE papers.id = paper_revisions.paper_id), title_snapshot_source = 'backfilled_from_paper' WHERE title_snapshot = ''"
+    ],
+    "equalsR1Texts": true,
+    "r1BackfillTextMatches": true,
+    "sha256": "a06f042ab0b769d4fec9e9a5f172a1e6a6d5f75875301b6a26517b0fa6756961"
+  },
+  "registered_same_digest_no_drift": {
+    "error": null,
+    "applied": [
+      "0006_teaching_score_tables",
+      "0007_teaching_assessment_active_score_fk"
+    ],
+    "hasTitleSnapshot": false
+  },
+  "bad_0006_rollback_and_rerun": {
+    "error": "OperationalError: no such table: v00_does_not_exist",
+    "appliedBeforeFailure": [],
+    "registered0005AfterFailure": true,
+    "registeredBadAfterFailure": false,
+    "backfilledAfterFailure": true,
+    "pendingAfterFailure": [
+      "9001_v00_bad"
+    ],
+    "retryApplied": [
+      "9001_v00_bad"
+    ],
+    "registeredBadAfterRetry": true,
+    "revisionsUnchangedByRetry": true
+  },
+  "failures": [
+    "two_confirmed_children: 回填/子行/触发器/完整性/幂等不变量不符",
+    "draft_plus_confirmed: 回填/子行/触发器/完整性/幂等不变量不符",
+    "partial_columns: 回填/子行/触发器/完整性/幂等不变量不符",
+    "F2: 已登记同散列的库报漂移或被重复执行"
+  ],
+  "verdict": "fail"
+}

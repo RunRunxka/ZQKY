@@ -1,0 +1,17 @@
+{
+  "legacyDb": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-v00-b3-saqfwacs\\rv11-startup-repro\\teaching\\teaching.sqlite3",
+  "startupError": null,
+  "dbState": {
+    "hasTitleSnapshot": true,
+    "registeredMigrations": [
+      "0001_teaching_baseline",
+      "0002_teaching_business_tables",
+      "0003_teaching_paper_tables",
+      "0004_teaching_assessment_tables",
+      "0005_teaching_paper_revision_titles",
+      "0006_teaching_score_tables",
+      "0007_teaching_assessment_active_score_fk"
+    ]
+  },
+  "verdict": "pass"
+}

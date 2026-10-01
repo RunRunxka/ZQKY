@@ -1,0 +1,41 @@
+[
+  {
+    "probe": "inconsistent_source_total",
+    "sourceTotalUnits": 900,
+    "calculatedTotalUnits": 600,
+    "uploadStatus": 201,
+    "confirmStatus": 200,
+    "warnings": [],
+    "issues": [],
+    "mapping": {
+      "workSheet": "成绩",
+      "headerRow": 1,
+      "studentNoColumn": "A",
+      "nameColumn": "B",
+      "itemColumns": [
+        {
+          "itemId": "it-total-1",
+          "column": "C"
+        },
+        {
+          "itemId": "it-total-2",
+          "column": "D"
+        },
+        {
+          "itemId": "it-total-3",
+          "column": "E"
+        }
+      ]
+    }
+  },
+  {
+    "probe": "mixed_attendance_correction",
+    "correctionStatus": 200,
+    "attendance": "absent",
+    "cellStates": [
+      "recorded",
+      "absent",
+      "absent"
+    ]
+  }
+]

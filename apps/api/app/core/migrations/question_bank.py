@@ -1,9 +1,11 @@
-"""题库库迁移（冻结基线 + 任务引擎增量，2026-09-30 B0 登记）。
+"""题库库迁移（冻结基线 + 任务引擎增量 + B2 知识点关联，2026-09-30 登记）。
 
 ``0001`` 与 RAG-REBUILD v1.0 的 ``app/repositories/question_bank/schema.py`` 逐字一致；
 ``0002`` 按计划书 §二.2 给既有 ``question_jobs`` 补齐任务引擎列（冻结输入、输入散列、
 attempt、租约、取消标志、结果、更新时间）。``ALTER TABLE`` 的幂等由 ``adjust`` 钩子
 按 ``PRAGMA table_info`` 过滤已存在的列；**声明语句集合**（散列对象）不含钩子结果。
+``0004``（B2）登记正式题修订—知识点关联（设计 ``sql/question_bank_extension.sql`` 逐字 +
+不可变触发器），并补齐设计未定义的草稿关联、生成来源与版本化内容指纹。
 """
 
 from __future__ import annotations
@@ -208,6 +210,67 @@ def _skip_existing_columns(connection: sqlite3.Connection) -> Sequence[str]:
     return tuple(statements)
 
 
+#: B2（0004）：正式关联表为设计 ``sql/question_bank_extension.sql`` 逐字（含不可变触发器）；
+#: 其余三张为设计未定义、由 B2 任务卡冻结补齐（草稿关联、生成来源、版本化派生指纹）。
+_B2_STATEMENTS: tuple[str, ...] = (
+    """
+    CREATE TABLE IF NOT EXISTS question_knowledge_links (
+        question_revision_id TEXT NOT NULL REFERENCES question_revisions(id),
+        knowledge_point_id TEXT NOT NULL,
+        knowledge_revision_id TEXT NOT NULL,
+        subject_id_snapshot TEXT NOT NULL,
+        knowledge_name_snapshot TEXT NOT NULL,
+        role TEXT NOT NULL CHECK(role IN ('primary','secondary')),
+        created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+        PRIMARY KEY(question_revision_id,knowledge_point_id)
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS ix_question_knowledge "
+    "ON question_knowledge_links(knowledge_point_id,question_revision_id)",
+    """
+    CREATE TRIGGER IF NOT EXISTS immutable_question_knowledge_links_update BEFORE UPDATE ON question_knowledge_links BEGIN SELECT RAISE(ABORT,'IMMUTABLE_REVISION'); END
+    """,
+    """
+    CREATE TRIGGER IF NOT EXISTS immutable_question_knowledge_links_delete BEFORE DELETE ON question_knowledge_links BEGIN SELECT RAISE(ABORT,'IMMUTABLE_REVISION'); END
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS question_draft_knowledge_links (
+        draft_id TEXT NOT NULL REFERENCES question_drafts(id),
+        knowledge_point_id TEXT NOT NULL,
+        knowledge_revision_id TEXT NOT NULL,
+        subject_id_snapshot TEXT NOT NULL,
+        knowledge_name_snapshot TEXT NOT NULL,
+        role TEXT NOT NULL CHECK(role IN ('primary','secondary')),
+        source TEXT NOT NULL CHECK(source IN ('human','ai')),
+        created_at TEXT NOT NULL,
+        PRIMARY KEY(draft_id, knowledge_point_id)
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_draft_knowledge "
+    "ON question_draft_knowledge_links(knowledge_point_id)",
+    """
+    CREATE TABLE IF NOT EXISTS question_import_provenance (
+        import_id TEXT PRIMARY KEY REFERENCES question_imports(id),
+        source TEXT NOT NULL CHECK(source IN ('upload','ai','rule','manual')),
+        job_id TEXT NULL,
+        model_snapshot_json TEXT NOT NULL DEFAULT '{}' CHECK(json_valid(model_snapshot_json)),
+        created_at TEXT NOT NULL
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS question_content_fingerprints (
+        question_revision_id TEXT NOT NULL REFERENCES question_revisions(id),
+        algorithm_version TEXT NOT NULL,
+        fingerprint TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        PRIMARY KEY(question_revision_id, algorithm_version)
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_question_fingerprint "
+    "ON question_content_fingerprints(fingerprint)",
+)
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(
         id="0001_question_bank_baseline",
@@ -224,5 +287,13 @@ MIGRATIONS: tuple[Migration, ...] = (
         id="0003_question_jobs_engine_state_index",
         description="question_jobs 补齐 (state, created_at) 索引（修复 0002 钩子漏执行；既有库由此补齐）",
         statements=_ENGINE_INDEX_STATEMENTS,
+    ),
+    Migration(
+        id="0004_question_knowledge_links",
+        description=(
+            "正式题修订—知识点关联（设计逐字 + 不可变触发器）+ 草稿关联、"
+            "生成来源与版本化内容指纹（B2 冻结补齐）"
+        ),
+        statements=_B2_STATEMENTS,
     ),
 )

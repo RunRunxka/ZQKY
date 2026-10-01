@@ -1,0 +1,41 @@
+{
+  "probe": "p32_fingerprint_r2",
+  "checks": {
+    "r2Declared": 163,
+    "r2Actual": 163,
+    "diskOk": 161,
+    "diskBad": [
+      {
+        "file": "docs/qa/TEACHING-LOOP-B3/EVIDENCE-COMMANDS.md",
+        "manifest": "187807c304fb408d",
+        "disk": "2f9abea89ab30d23"
+      },
+      {
+        "file": "docs/qa/TEACHING-LOOP-B3/REPORT.md",
+        "manifest": "e44cb5e71cb5e9e8",
+        "disk": "2e95eef85e77c8ef"
+      }
+    ],
+    "r1ToR2": {
+      "added": [],
+      "removed": [],
+      "changed": [
+        "apps/web/src/contracts/scores.ts",
+        "apps/web/src/services/assessments-api.ts"
+      ]
+    },
+    "productChanged": [
+      "apps/web/src/contracts/scores.ts",
+      "apps/web/src/services/assessments-api.ts"
+    ],
+    "staleSinceR1": [
+      "docs/qa/TEACHING-LOOP-B3/EVIDENCE-COMMANDS.md",
+      "docs/qa/TEACHING-LOOP-B3/REPORT.md"
+    ],
+    "b3ManifestEqualsR2": true,
+    "r2Revision": "B3-r2",
+    "b3Revision": "B3-final"
+  },
+  "productAllOk": true,
+  "verdict": "stale_docs_only"
+}

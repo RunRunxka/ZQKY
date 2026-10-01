@@ -1,0 +1,26 @@
+{
+  "r2": {
+    "fileCount": 106,
+    "listed": 106,
+    "hashedOk": 105,
+    "missing": [],
+    "mismatch": [
+      {
+        "path": "apps/api/app/core/migrations/teaching.py",
+        "want": "f64815d15ac3bd99e2d97732edd468c2c08cdc2bf83b8b9fdc36c601978c6966",
+        "got": "8bbc30e3c5bb2eef5a295dd0bd3b07c780ab8280c3a121c019a695a375657783"
+      }
+    ]
+  },
+  "diffR1ToR2": {
+    "added": [],
+    "removed": [],
+    "changed": [
+      "apps/api/app/core/migrations/teaching.py",
+      "apps/api/tests/test_b2_migrations.py",
+      "apps/api/tests/test_migrations.py"
+    ],
+    "unchangedCount": 103,
+    "equalsExpectedChanged": true
+  }
+}

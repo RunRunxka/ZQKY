@@ -210,10 +210,9 @@ def test_legacy_database_without_registry_is_adopted(tmp_path: Path) -> None:
         )
 
         applied = apply_migrations(connection, database="question_bank")
+        # 动态期望：当前登记的全部迁移（B2 起还会追加，不在用例里硬编码）
         assert applied == [
-            "0001_question_bank_baseline",
-            "0002_question_jobs_engine_columns",
-            "0003_question_jobs_engine_state_index",
+            migration.id for migration in REGISTERED_MIGRATIONS["question_bank"]
         ]
         row = connection.execute(
             "SELECT id, revision FROM question_imports WHERE id = 'imp-1'"
@@ -292,7 +291,8 @@ def test_existing_database_already_on_0002_gains_index_from_0003(
 
         monkeypatch.setitem(REGISTERED_MIGRATIONS, "question_bank", original)
         applied_again = apply_migrations(connection, database="question_bank")
-        assert applied_again == ["0003_question_jobs_engine_state_index"]
+        # 只要求 0003 在这轮被应用（后续迁移可追加）
+        assert "0003_question_jobs_engine_state_index" in applied_again
         after = _index_columns(connection, "question_jobs")
         assert any(columns == ["state", "created_at"] for columns in after.values()), after
         assert applied_migrations(connection)[engine_migration.id] == engine_migration.sha256
@@ -312,10 +312,14 @@ def test_adjust_hooks_execute_every_declared_statement(
                 monkeypatch.setitem(REGISTERED_MIGRATIONS, database, migrations[: index + 1])
                 if migrations[index].adjust is not None:
                     produced = tuple(migrations[index].adjust(connection))
-                    assert produced == migrations[index].statements, (
-                        database,
-                        migrations[index].id,
-                    )
+                    # 不变量（B0 缺陷类）：**每条声明语句都必须被执行**；
+                    # 钩子可以追加辅助语句（例如临时卸下触发器再恢复），但不能漏掉声明。
+                    missing = [
+                        statement
+                        for statement in migrations[index].statements
+                        if statement.strip() not in {item.strip() for item in produced}
+                    ]
+                    assert not missing, (database, migrations[index].id, missing)
                 apply_migrations(connection, database=database)
         finally:
             connection.close()

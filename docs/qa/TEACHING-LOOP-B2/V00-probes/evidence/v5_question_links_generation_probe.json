@@ -1,0 +1,165 @@
+{
+ "probe": "v5_question_links_generation_probe",
+ "results": [
+  {
+   "name": "V5.1 非法 JSON → GENERATION_INVALID_JSON 且零残留",
+   "status": "PASS",
+   "detail": "http=202 state=failed code=GENERATION_INVALID_JSON delta={'imports': 0, 'drafts': 0, 'provenance': 0, 'questions': 0, 'links': 0}"
+  },
+  {
+   "name": "V5.2 截断 → GENERATION_OUTPUT_TRUNCATED 且零残留",
+   "status": "PASS",
+   "detail": "http=202 state=failed code=GENERATION_OUTPUT_TRUNCATED delta={'imports': 0, 'drafts': 0, 'provenance': 0, 'questions': 0, 'links': 0}"
+  },
+  {
+   "name": "V5.3 数量不符 → GENERATION_CANDIDATE_COUNT_MISMATCH 且零残留",
+   "status": "PASS",
+   "detail": "http=202 state=failed code=GENERATION_CANDIDATE_COUNT_MISMATCH delta={'imports': 0, 'drafts': 0, 'provenance': 0, 'questions': 0, 'links': 0}"
+  },
+  {
+   "name": "V5.4 未知知识点 → GENERATION_UNKNOWN_KNOWLEDGE 且零残留",
+   "status": "PASS",
+   "detail": "http=202 state=failed code=GENERATION_UNKNOWN_KNOWLEDGE delta={'imports': 0, 'drafts': 0, 'provenance': 0, 'questions': 0, 'links': 0}"
+  },
+  {
+   "name": "V5.5 虚构证据 → GENERATION_UNKNOWN_EVIDENCE 且零残留",
+   "status": "PASS",
+   "detail": "http=202 state=failed code=GENERATION_UNKNOWN_EVIDENCE delta={'imports': 0, 'drafts': 0, 'provenance': 0, 'questions': 0, 'links': 0}"
+  },
+  {
+   "name": "V5.6 题干含 URL → GENERATION_FORBIDDEN_REFERENCE 且零残留",
+   "status": "PASS",
+   "detail": "http=202 state=failed code=GENERATION_FORBIDDEN_REFERENCE delta={'imports': 0, 'drafts': 0, 'provenance': 0, 'questions': 0, 'links': 0}"
+  },
+  {
+   "name": "V5.7 题干含绝对路径 → GENERATION_FORBIDDEN_REFERENCE 且零残留",
+   "status": "PASS",
+   "detail": "http=202 state=failed code=GENERATION_FORBIDDEN_REFERENCE delta={'imports': 0, 'drafts': 0, 'provenance': 0, 'questions': 0, 'links': 0}"
+  },
+  {
+   "name": "V5.8 题干含盘符路径 → GENERATION_FORBIDDEN_REFERENCE 且零残留",
+   "status": "PASS",
+   "detail": "http=202 state=failed code=GENERATION_FORBIDDEN_REFERENCE delta={'imports': 0, 'drafts': 0, 'provenance': 0, 'questions': 0, 'links': 0}"
+  },
+  {
+   "name": "V5.9 非法 assetId → GENERATION_ASSET_INVALID 且零残留",
+   "status": "PASS",
+   "detail": "http=202 state=failed code=GENERATION_ASSET_INVALID delta={'imports': 0, 'drafts': 0, 'provenance': 0, 'questions': 0, 'links': 0}"
+  },
+  {
+   "name": "V5.10 未登记资产 → GENERATION_ASSET_NOT_REGISTERED 且零残留",
+   "status": "PASS",
+   "detail": "http=202 state=failed code=GENERATION_ASSET_NOT_REGISTERED delta={'imports': 0, 'drafts': 0, 'provenance': 0, 'questions': 0, 'links': 0}"
+  },
+  {
+   "name": "V5.11 材料含 URL（输入闸门）→ GENERATION_MATERIAL_INVALID 且零残留",
+   "status": "PASS",
+   "detail": "http=422 state=None code=GENERATION_MATERIAL_INVALID delta={'imports': 0, 'drafts': 0, 'provenance': 0, 'questions': 0, 'links': 0}"
+  },
+  {
+   "name": "V5.12 知识点学科与 subjectId 不一致 → 422 KNOWLEDGE_SUBJECT_MISMATCH 且零上游调用",
+   "status": "PASS",
+   "detail": "422/KNOWLEDGE_SUBJECT_MISMATCH"
+  },
+  {
+   "name": "V5.13a 合法补题建任务返回 202",
+   "status": "PASS",
+   "detail": "202 {\"jobId\":\"00d083b5193d48ecac02b400f83f78ec\",\"state\":\"queued\",\"attempt\":0,\"importId\":null,\"candidateCount\":0,\"errorCode\":null}"
+  },
+  {
+   "name": "V5.13 合法补题 → succeeded 并返回批次 id 与候选数",
+   "status": "PASS",
+   "detail": "{'state': 'succeeded', 'attempt': 1}{'candidateCount': 1, 'importId': '8cbbfcffbefa46fab9c92e33db768bca'}"
+  },
+  {
+   "name": "V5.14 批次 state=needs_review，候选 extractionMethod=ai / reviewState=needs_review",
+   "status": "PASS",
+   "detail": "needs_review drafts=[('ai', 'needs_review')]"
+  },
+  {
+   "name": "V5.15 候选草稿带 AI 知识点关联（source=ai + 名称/学科快照）",
+   "status": "PASS",
+   "detail": "[['ai', 'math', '函数单调性']]"
+  },
+  {
+   "name": "V5.16 候选不自动进正式题目表（questions/links 均 +0）",
+   "status": "PASS",
+   "detail": "questions 0→0 links 0→0"
+  },
+  {
+   "name": "V5.17 生成原件来源 source=ai + job_id + 非敏感模型快照",
+   "status": "PASS",
+   "detail": "ai {'contractVersion': 1, 'fingerprint': 'sha256:b1e0743c9b419d8c116ad97f8b6fe6c6fc827ba51d922388a878b632839a1c06', 'profil"
+  },
+  {
+   "name": "V5.18 草稿关联提供即整表替换（A → B）",
+   "status": "PASS",
+   "detail": "200 ['cfa25e7d']"
+  },
+  {
+   "name": "V5.19 草稿关联可再替换为两条（primary+secondary）且 revision 前进",
+   "status": "PASS",
+   "detail": "200 rev=1→2"
+  },
+  {
+   "name": "V5.20 提供 [] 清空草稿关联",
+   "status": "PASS",
+   "detail": "200 []"
+  },
+  {
+   "name": "V5.21 关联变化强制回 needs_review（即使请求显式给 reviewed）",
+   "status": "PASS",
+   "detail": "200 needs_review"
+  },
+  {
+   "name": "V5.21b 内容/关联不变的第二次 PATCH 可标记 reviewed",
+   "status": "PASS",
+   "detail": "200 reviewed rev=4→5"
+  },
+  {
+   "name": "V5.22 确认入库成功",
+   "status": "PASS",
+   "detail": "200 {\"confirmedQuestionIds\":[\"46b1e6c67ae74d2087dccbc19a5adb07\"],\"linkedQuestionIds\":[],\"skippedDraftIds\":[],\"failures\":[]}"
+  },
+  {
+   "name": "V5.23 确认时把草稿关联冻结为正式关联（含 subject_id_snapshot/名称快照/角色）",
+   "status": "PASS",
+   "detail": "[('8f7ac7', 'primary', 'math'), ('cfa25e', 'secondary', 'math')]"
+  },
+  {
+   "name": "V5.24 GET /questions?knowledgePointId= 命中该题；未知知识点返回空",
+   "status": "PASS",
+   "detail": "hit=1 miss=0"
+  },
+  {
+   "name": "V5.25 改内容（缺省）→ 新修订并复制旧正式关联",
+   "status": "PASS",
+   "detail": "200 links=['8f7ac7', 'cfa25e']"
+  },
+  {
+   "name": "V5.26 显式提供 knowledgeLinks → 整表替换为新关联",
+   "status": "PASS",
+   "detail": "200 ['cfa25e']"
+  },
+  {
+   "name": "V5.27 旧修订的正式关联未被改动（2 条仍在），新修订只有 1 条",
+   "status": "PASS",
+   "detail": "old=2 new=['cfa25e']"
+  },
+  {
+   "name": "V5.28 直写 UPDATE question_knowledge_links 被拒",
+   "status": "PASS",
+   "detail": "IMMUTABLE_REVISION"
+  },
+  {
+   "name": "V5.29 直写 DELETE question_knowledge_links 被拒",
+   "status": "PASS",
+   "detail": "IMMUTABLE_REVISION"
+  },
+  {
+   "name": "V5.30 正式修订写入版本化派生指纹",
+   "status": "PASS",
+   "detail": "[('derived-v1', '95df43bd06b1')]"
+  }
+ ]
+}

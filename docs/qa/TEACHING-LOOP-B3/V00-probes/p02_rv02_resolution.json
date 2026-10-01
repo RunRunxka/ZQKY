@@ -1,0 +1,102 @@
+{
+  "import": {
+    "paperId": "839b50279a0a40ff92dc287506c15463",
+    "revisionId": "ab9e3fa4575e41dca14598b12bde253f",
+    "blockingIssues": [
+      {
+        "code": "UNSUPPORTED_OBJECT",
+        "status": "open",
+        "blockId": null,
+        "locator": {
+          "blockEnd": 12,
+          "blockStart": 12
+        }
+      }
+    ]
+  },
+  "control_unresolved_blocking": {
+    "status": 422,
+    "code": "ITEM_KNOWLEDGE_MISSING"
+  },
+  "caseA_arbitrary_json": {
+    "status": 422,
+    "code": "INVALID_REQUEST"
+  },
+  "caseA_missing_resolution": {
+    "status": 422,
+    "code": "PAPER_ISSUE_BLOCKING"
+  },
+  "caseB_exclude_content_loss": {
+    "status": 422,
+    "code": "PAPER_ISSUE_RESOLUTION_INVALID",
+    "firstIssueField": "kind"
+  },
+  "caseC_supplement_rejections": {
+    "emptyText": [
+      422,
+      "PAPER_ISSUE_RESOLUTION_INVALID"
+    ],
+    "nonParagraphTarget": [
+      422,
+      "PAPER_ISSUE_RESOLUTION_INVALID"
+    ],
+    "unmanagedKey": [
+      422,
+      "PAPER_ISSUE_RESOLUTION_INVALID"
+    ],
+    "absentManagedKey": [
+      422,
+      "PAPER_ISSUE_RESOLUTION_INVALID"
+    ]
+  },
+  "caseD_supplement_patch": {
+    "status": 200,
+    "code": null
+  },
+  "caseD_content_change": {
+    "beforeText": "智启课源 期中数学试卷",
+    "afterText": "智启课源 期中数学试卷\n补录：图中阴影部分由半圆与三角形组成（教师补录）。",
+    "dbTextHasSupplement": true,
+    "apiTextHasSupplement": true
+  },
+  "caseE_confirm_after_supplement": {
+    "status": 200,
+    "body": {
+      "state": "confirmed",
+      "scoredLeafCount": 4,
+      "totalScoreUnits": 2100
+    }
+  },
+  "caseF_empty_scored_stem": {
+    "patchStatus": 200,
+    "patchBody": null,
+    "confirmStatus": 422,
+    "code": "ITEM_STEM_MISSING",
+    "issues": [
+      {
+        "row": 5,
+        "column": "content",
+        "field": "content",
+        "code": "ITEM_STEM_MISSING",
+        "message": "题 18 是计分小题但没有实质题面（stemBlocks 为空或不含可见内容）；请补全题干后再确认。"
+      }
+    ]
+  },
+  "caseG_missing_material": {
+    "patchStatus": 200,
+    "patchBody": null,
+    "confirmStatus": 422,
+    "code": "ITEM_MATERIAL_MISSING",
+    "issues": [
+      {
+        "row": 5,
+        "column": "content",
+        "field": "content",
+        "code": "ITEM_MATERIAL_MISSING",
+        "message": "题 18 的题面引用了本修订不存在的共同材料/资产：['block-that-does-not-exist']；请补录必要共同材料后再确认。"
+      }
+    ]
+  },
+  "failures": [],
+  "verdict": "pass"
+}

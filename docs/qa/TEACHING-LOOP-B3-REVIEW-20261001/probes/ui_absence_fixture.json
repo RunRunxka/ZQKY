@@ -1,0 +1,170 @@
+{
+  "view": {
+    "importId": "856c0d99d3514d7a813839c77d9a6313",
+    "assessmentId": "8a919bf2b01b481e8e5fe5fa3a6e1350",
+    "assessmentTitle": "ui-absence 施测",
+    "state": "reviewing",
+    "revision": 0,
+    "previewVersion": 0,
+    "fileAsset": {
+      "assetId": "d7afef311c7c4afaa9019806ef4100ec",
+      "kind": "score_sheet",
+      "blobKey": "blobs/c6ad0f12e4651d91b7f940bc209a05efd8ad7b8fdfba4078e4f283e333abb326",
+      "sha256": "c6ad0f12e4651d91b7f940bc209a05efd8ad7b8fdfba4078e4f283e333abb326",
+      "mediaType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "byteSize": 4967,
+      "originalName": "scores.xlsx"
+    },
+    "mapping": {
+      "workSheet": "成绩",
+      "headerRow": 1,
+      "studentNoColumn": "A",
+      "nameColumn": "B",
+      "itemColumns": [
+        {
+          "itemId": "it-ui-absence-1",
+          "column": "C"
+        },
+        {
+          "itemId": "it-ui-absence-2",
+          "column": "D"
+        },
+        {
+          "itemId": "it-ui-absence-3",
+          "column": "E"
+        }
+      ]
+    },
+    "baseScoreRevisionId": null,
+    "warnings": [
+      "文件把参测人次 759b8b7b81e6406ebff66cfd2de55c55 记为缺考，施测快照仍是 present；成绩版本按文件记录，不改施测快照。",
+      "文件把参测人次 759b8b7b81e6406ebff66cfd2de55c55 记为缺考，施测快照仍是 present；成绩版本按文件记录，不改施测快照。"
+    ],
+    "issues": [],
+    "rowCount": 2,
+    "resolvedRowCount": 2,
+    "missingCellCount": 0,
+    "createdAt": "2026-10-01T14:53:15Z",
+    "updatedAt": "2026-10-01T14:53:15Z"
+  },
+  "rows": [
+    {
+      "rowNo": 2,
+      "participantId": "759b8b7b81e6406ebff66cfd2de55c55",
+      "participantName": "甲",
+      "candidates": [],
+      "cells": [
+        {
+          "row": 2,
+          "column": "C",
+          "text": "缺考",
+          "cachedText": "缺考",
+          "isFormula": false
+        },
+        {
+          "row": 2,
+          "column": "D",
+          "text": "",
+          "cachedText": "",
+          "isFormula": false
+        },
+        {
+          "row": 2,
+          "column": "E",
+          "text": "",
+          "cachedText": "",
+          "isFormula": false
+        }
+      ],
+      "issues": []
+    },
+    {
+      "rowNo": 3,
+      "participantId": "f065bf89ae734d59a535dcbc084b555b",
+      "participantName": "乙",
+      "candidates": [],
+      "cells": [
+        {
+          "row": 3,
+          "column": "C",
+          "text": "2",
+          "cachedText": "2",
+          "isFormula": false
+        },
+        {
+          "row": 3,
+          "column": "D",
+          "text": "3",
+          "cachedText": "3",
+          "isFormula": false
+        },
+        {
+          "row": 3,
+          "column": "E",
+          "text": "5",
+          "cachedText": "5",
+          "isFormula": false
+        }
+      ],
+      "issues": []
+    }
+  ],
+  "participants": [
+    {
+      "participantId": "f065bf89ae734d59a535dcbc084b555b",
+      "classId": "0414fe854e6e4aaa885cdf983b202efd",
+      "name": "乙",
+      "attendance": "present"
+    },
+    {
+      "participantId": "759b8b7b81e6406ebff66cfd2de55c55",
+      "classId": "0414fe854e6e4aaa885cdf983b202efd",
+      "name": "甲",
+      "attendance": "present"
+    }
+  ],
+  "leaves": [
+    {
+      "itemId": "it-ui-absence-1",
+      "questionNo": "Q1"
+    },
+    {
+      "itemId": "it-ui-absence-2",
+      "questionNo": "Q2"
+    },
+    {
+      "itemId": "it-ui-absence-3",
+      "questionNo": "Q3"
+    }
+  ],
+  "assessmentRevision": 0,
+  "rejected": {
+    "status": 422,
+    "body": {
+      "code": "SCORE_ACKNOWLEDGEMENT_MISMATCH",
+      "message": "承认范围与当前预览不一致；本次确认未写入，请刷新预览后逐类承认。",
+      "requestId": "fba8d98011d44da9bac72e4dcbf7ac27",
+      "retryable": false,
+      "details": {
+        "issues": [
+          {
+            "field": "missing",
+            "code": "SCORE_ACKNOWLEDGEMENT_MISMATCH",
+            "message": "当前预览没有 missing 单元格，不应携带 missing 承认。"
+          }
+        ]
+      }
+    }
+  },
+  "accepted": {
+    "status": 200,
+    "body": {
+      "importId": "856c0d99d3514d7a813839c77d9a6313",
+      "state": "confirmed",
+      "revisionId": "100622a05f0040d59de08a93044a924b",
+      "assessmentRevision": 1,
+      "activeScoreRevisionId": "100622a05f0040d59de08a93044a924b",
+      "replayed": false
+    }
+  }
+}

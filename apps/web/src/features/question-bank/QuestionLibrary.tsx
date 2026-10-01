@@ -1,17 +1,27 @@
 'use client';
 
 /**
- * 已入库题目列表：学科/年级/版本/状态/关键词筛选 + 分页；题型、题干预览、
- * 答案状态（缺失也照实显示）、难度与知识点标签；点击打开详情抽屉。
+ * 已入库题目列表：学科/年级/版本/状态/知识点/关键词筛选 + 分页；题型、题干预览、
+ * 答案状态（缺失也照实显示）、难度与历史知识点标签；点击打开详情抽屉。
+ *
+ * F10-QB 增量：
+ * - **知识点筛选**（后端只匹配当前最新修订上的正式关联；历史修订不算当前归属）；
+ * - AI 补题入口（六态任务面板，产物是待校对候选批次）；
+ * - 列表里的 `knowledgeTags` 明确标注为「历史标签（旧字段）」，与正式关联分开呈现
+ *   （正式关联在详情抽屉的「知识点关联」区块）。
  */
 
 import { useState } from 'react';
-import { Search } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Search, Sparkles } from 'lucide-react';
+import { Modal } from '@/components/ui/Modal';
 import type { QuestionStatus, QuestionSummary } from '@/contracts/question-bank';
 import { listQuestions, type QuestionQuery } from '@/services/question-bank-api';
 import { ErrorNotice } from './ErrorNotice';
+import { GenerationPanel } from './GenerationPanel';
 import { useAsyncResource } from './hooks';
 import { ANSWER_STATE_LABEL, difficultyLabel, formatDateTime, questionTypeLabel } from './labels';
+import { KnowledgePointSelect } from './KnowledgePointFields';
 import { QuestionDetailPanel } from './QuestionDetailPanel';
 import type { TaxonomyIndex } from './taxonomy';
 
@@ -22,6 +32,7 @@ interface Filters {
   gradeId: string;
   editionId: string;
   status: '' | QuestionStatus;
+  knowledgePointId: string;
   q: string;
 }
 
@@ -30,6 +41,7 @@ const EMPTY_FILTERS: Filters = {
   gradeId: '',
   editionId: '',
   status: '',
+  knowledgePointId: '',
   q: '',
 };
 
@@ -39,18 +51,28 @@ function queryOf(filters: Filters, offset: number): QuestionQuery {
     gradeId: filters.gradeId || undefined,
     editionId: filters.editionId || undefined,
     status: filters.status || undefined,
+    knowledgePointId: filters.knowledgePointId || undefined,
     q: filters.q || undefined,
     offset,
     limit: PAGE_SIZE,
   };
 }
 
-export function QuestionLibrary({ taxonomy }: { taxonomy: TaxonomyIndex }) {
+export function QuestionLibrary({
+  taxonomy,
+  onImportsChanged,
+}: {
+  taxonomy: TaxonomyIndex;
+  /** AI 补题发布候选批次后，通知父级刷新「导入批次」列表。 */
+  onImportsChanged?: () => void;
+}) {
+  const router = useRouter();
   const [draftFilters, setDraftFilters] = useState<Filters>(EMPTY_FILTERS);
   const [applied, setApplied] = useState<Filters>(EMPTY_FILTERS);
   const [offset, setOffset] = useState(0);
   const [openQuestionId, setOpenQuestionId] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
+  const [generationOpen, setGenerationOpen] = useState(false);
 
   const { state, reload } = useAsyncResource(
     (signal) => listQuestions(queryOf(applied, offset), signal),
@@ -64,6 +86,21 @@ export function QuestionLibrary({ taxonomy }: { taxonomy: TaxonomyIndex }) {
 
   return (
     <section className="qb-library" aria-label="已入库题目">
+      <div className="qb-library-head">
+        <p className="qb-hint">
+          题目列表来自后端；知识点筛选只匹配当前最新修订上的正式知识点关联，
+          历史修订与旧标签（knowledgeTags）不参与筛选。
+        </p>
+        <button
+          className="space-button primary"
+          data-testid="qb-generation-open"
+          onClick={() => setGenerationOpen(true)}
+        >
+          <Sparkles size={14} aria-hidden />
+          AI 补题
+        </button>
+      </div>
+
       <form
         className="qb-filters"
         onSubmit={(event) => {
@@ -77,7 +114,10 @@ export function QuestionLibrary({ taxonomy }: { taxonomy: TaxonomyIndex }) {
           value={draftFilters.subjectId}
           options={taxonomy.subjects}
           ready={taxonomy.ready}
-          onChange={(value) => setDraftFilters((prev) => ({ ...prev, subjectId: value }))}
+          onChange={(value) =>
+            // 学科变化：已选知识点可能属于旧学科（后端按学科建关联），清空避免筛出空列表
+            setDraftFilters((prev) => ({ ...prev, subjectId: value, knowledgePointId: '' }))
+          }
         />
         <TaxonomyFilter
           id="qb-filter-grade"
@@ -94,6 +134,17 @@ export function QuestionLibrary({ taxonomy }: { taxonomy: TaxonomyIndex }) {
           options={taxonomy.editions}
           ready={taxonomy.ready}
           onChange={(value) => setDraftFilters((prev) => ({ ...prev, editionId: value }))}
+        />
+        <KnowledgePointSelect
+          id="qb-filter-knowledge"
+          subjectId={draftFilters.subjectId}
+          value={draftFilters.knowledgePointId}
+          includeAll
+          allLabel="全部知识点"
+          testId="qb-library-knowledge-filter"
+          onChange={(value) =>
+            setDraftFilters((prev) => ({ ...prev, knowledgePointId: value }))
+          }
         />
         <label className="qb-field" htmlFor="qb-filter-status">
           状态
@@ -200,6 +251,23 @@ export function QuestionLibrary({ taxonomy }: { taxonomy: TaxonomyIndex }) {
           onChanged={() => setRefreshToken((value) => value + 1)}
         />
       )}
+
+      {generationOpen && (
+        <Modal title="AI 补题" onClose={() => setGenerationOpen(false)}>
+          <GenerationPanel
+            taxonomy={taxonomy}
+            onClose={() => setGenerationOpen(false)}
+            onPublished={() => {
+              setRefreshToken((value) => value + 1);
+              onImportsChanged?.();
+            }}
+            onOpenImport={(importId) => {
+              setGenerationOpen(false);
+              router.push(`/question-bank/imports/${importId}`);
+            }}
+          />
+        </Modal>
+      )}
     </section>
   );
 }
@@ -223,8 +291,11 @@ function QuestionRow({ question, onOpen }: { question: QuestionSummary; onOpen: 
       </div>
       <p className="qb-stem-preview">{question.stemPreview}</p>
       <div className="space-meta-row">
+        {question.knowledgeTags.length > 0 && (
+          <span className="qb-legacy-tags-label">历史标签（旧字段）</span>
+        )}
         {question.knowledgeTags.map((tag) => (
-          <span key={tag} className="space-chip">
+          <span key={tag} className="space-chip qb-legacy-tag">
             {tag}
           </span>
         ))}

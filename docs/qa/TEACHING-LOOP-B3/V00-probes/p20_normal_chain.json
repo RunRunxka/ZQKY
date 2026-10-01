@@ -1,0 +1,746 @@
+{
+  "probe": "p20_normal_chain",
+  "startedAt": 1790863704.2760963,
+  "durationSeconds": 1.217,
+  "checks": [
+    {
+      "label": "上传 201",
+      "ok": true,
+      "detail": {
+        "actual": 201,
+        "expected": 201
+      }
+    },
+    {
+      "label": "上传后 state=reviewing",
+      "ok": true,
+      "detail": {
+        "actual": "reviewing",
+        "expected": "reviewing"
+      }
+    },
+    {
+      "label": "rowCount=6",
+      "ok": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "label": "自动识别学号列=A",
+      "ok": true,
+      "detail": {
+        "actual": "A",
+        "expected": "A"
+      }
+    },
+    {
+      "label": "自动识别姓名列=B",
+      "ok": true,
+      "detail": {
+        "actual": "B",
+        "expected": "B"
+      }
+    },
+    {
+      "label": "自动映射计分列",
+      "ok": true,
+      "detail": {
+        "actual": [
+          [
+            "it-normal-1",
+            "C"
+          ],
+          [
+            "it-normal-2",
+            "D"
+          ],
+          [
+            "it-normal-3",
+            "E"
+          ]
+        ],
+        "expected": [
+          [
+            "it-normal-1",
+            "C"
+          ],
+          [
+            "it-normal-2",
+            "D"
+          ],
+          [
+            "it-normal-3",
+            "E"
+          ]
+        ]
+      }
+    },
+    {
+      "label": "resolvedRowCount=5（第 7 行未匹配）",
+      "ok": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "label": "上传时 missingCellCount=4",
+      "ok": true,
+      "detail": {
+        "actual": 4,
+        "expected": 4
+      }
+    },
+    {
+      "label": "未匹配行是阻断问题且带 rowNo",
+      "ok": true,
+      "detail": [
+        {
+          "row": 7,
+          "column": null,
+          "field": "participantId",
+          "code": "SCORE_ROW_UNRESOLVED",
+          "message": "该行的学号/姓名在本次施测的参测人次中找不到；请人工指定 participantId。"
+        }
+      ]
+    },
+    {
+      "label": "PATCH 指定人次 200",
+      "ok": true,
+      "detail": {
+        "actual": 200,
+        "expected": 200
+      }
+    },
+    {
+      "label": "PATCH 后 revision=1",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "PATCH 后 previewVersion=1",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "PATCH 后 resolvedRowCount=6",
+      "ok": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "label": "PATCH 后 missingCellCount 仍=1",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "PATCH 后 issues 空",
+      "ok": true,
+      "detail": {
+        "actual": [],
+        "expected": []
+      }
+    },
+    {
+      "label": "PATCH 单元格校正 200",
+      "ok": true,
+      "detail": {
+        "actual": 200,
+        "expected": 200
+      }
+    },
+    {
+      "label": "校正后 revision=2",
+      "ok": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "label": "校正后 previewVersion=2",
+      "ok": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "label": "校正后 missingCellCount 仍=1",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "行视图 F 的 Q1 文本",
+      "ok": true,
+      "detail": {
+        "actual": "1.5",
+        "expected": "1.5"
+      }
+    },
+    {
+      "label": "确认 200",
+      "ok": true,
+      "detail": {
+        "actual": 200,
+        "expected": 200
+      }
+    },
+    {
+      "label": "确认 state=confirmed",
+      "ok": true,
+      "detail": {
+        "actual": "confirmed",
+        "expected": "confirmed"
+      }
+    },
+    {
+      "label": "首个版本 revisionId 非空",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "activeScoreRevisionId=revisionId",
+      "ok": true,
+      "detail": {
+        "actual": "6403583d372c4923855af62f7e539627",
+        "expected": "6403583d372c4923855af62f7e539627"
+      }
+    },
+    {
+      "label": "assessmentRevision+1",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "replayed=false",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "修订历史 1 条",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "修订 state=confirmed",
+      "ok": true,
+      "detail": {
+        "actual": "confirmed",
+        "expected": "confirmed"
+      }
+    },
+    {
+      "label": "修订 version=1",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "修订来源批次",
+      "ok": true,
+      "detail": {
+        "actual": "849cf0cc86f8454786b4175d9a3c7645",
+        "expected": "849cf0cc86f8454786b4175d9a3c7645"
+      }
+    },
+    {
+      "label": "baseRevisionId=null（首个版本）",
+      "ok": true,
+      "detail": {
+        "actual": null,
+        "expected": null
+      }
+    },
+    {
+      "label": "participantSnapshot 6 人次",
+      "ok": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "label": "itemSnapshot 3 叶",
+      "ok": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "label": "itemSnapshot 满分与顺序",
+      "ok": true,
+      "detail": {
+        "actual": [
+          [
+            "Q1",
+            200
+          ],
+          [
+            "Q2",
+            300
+          ],
+          [
+            "Q3",
+            500
+          ]
+        ],
+        "expected": [
+          [
+            "Q1",
+            200
+          ],
+          [
+            "Q2",
+            300
+          ],
+          [
+            "Q3",
+            500
+          ]
+        ]
+      }
+    },
+    {
+      "label": "矩阵 200",
+      "ok": true,
+      "detail": {
+        "actual": 200,
+        "expected": 200
+      }
+    },
+    {
+      "label": "矩阵 total=6",
+      "ok": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "label": "矩阵 items=3",
+      "ok": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "label": "矩阵 missingCellCount=1",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "矩阵 missingParticipantIds=[B]",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "e4ab23d79b8849a49df42f1c84e4b61a"
+        ],
+        "expected": [
+          "e4ab23d79b8849a49df42f1c84e4b61a"
+        ]
+      }
+    },
+    {
+      "label": "矩阵 absentClassIds=[班级]",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "38f336178164467ea83bd942ff26f3e0"
+        ],
+        "expected": [
+          "38f336178164467ea83bd942ff26f3e0"
+        ]
+      }
+    },
+    {
+      "label": "矩阵含人次 A",
+      "ok": true,
+      "detail": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F"
+      ]
+    },
+    {
+      "label": "矩阵含人次 B",
+      "ok": true,
+      "detail": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F"
+      ]
+    },
+    {
+      "label": "矩阵含人次 C",
+      "ok": true,
+      "detail": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F"
+      ]
+    },
+    {
+      "label": "矩阵含人次 D",
+      "ok": true,
+      "detail": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F"
+      ]
+    },
+    {
+      "label": "矩阵含人次 E",
+      "ok": true,
+      "detail": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F"
+      ]
+    },
+    {
+      "label": "矩阵含人次 F",
+      "ok": true,
+      "detail": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F"
+      ]
+    },
+    {
+      "label": "A.totalUnits=900（2+2+5）",
+      "ok": true,
+      "detail": {
+        "actual": 900,
+        "expected": 900
+      }
+    },
+    {
+      "label": "A.totalMaxUnits=1000",
+      "ok": true,
+      "detail": {
+        "actual": 1000,
+        "expected": 1000
+      }
+    },
+    {
+      "label": "B.totalUnits=null（有 missing）",
+      "ok": true,
+      "detail": {
+        "actual": null,
+        "expected": null
+      }
+    },
+    {
+      "label": "B 三态 recorded/recorded/missing",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "recorded",
+          "recorded",
+          "missing"
+        ],
+        "expected": [
+          "recorded",
+          "recorded",
+          "missing"
+        ]
+      }
+    },
+    {
+      "label": "C.attendance=absent",
+      "ok": true,
+      "detail": {
+        "actual": "absent",
+        "expected": "absent"
+      }
+    },
+    {
+      "label": "C.totalUnits=null",
+      "ok": true,
+      "detail": {
+        "actual": null,
+        "expected": null
+      }
+    },
+    {
+      "label": "C 三叶全 absent",
+      "ok": true,
+      "detail": {
+        "actual": "{'absent'}",
+        "expected": "{'absent'}"
+      }
+    },
+    {
+      "label": "D 的 Q1 = recorded(0)",
+      "ok": true,
+      "detail": {
+        "actual": "recorded",
+        "expected": "recorded"
+      }
+    },
+    {
+      "label": "D 的 Q1 scoreUnits=0",
+      "ok": true,
+      "detail": {
+        "actual": 0,
+        "expected": 0
+      }
+    },
+    {
+      "label": "D.totalUnits=800（0+3+5）",
+      "ok": true,
+      "detail": {
+        "actual": 800,
+        "expected": 800
+      }
+    },
+    {
+      "label": "E.attendance=exempt",
+      "ok": true,
+      "detail": {
+        "actual": "exempt",
+        "expected": "exempt"
+      }
+    },
+    {
+      "label": "E.totalUnits=null",
+      "ok": true,
+      "detail": {
+        "actual": null,
+        "expected": null
+      }
+    },
+    {
+      "label": "E 三叶全 exempt",
+      "ok": true,
+      "detail": {
+        "actual": "{'exempt'}",
+        "expected": "{'exempt'}"
+      }
+    },
+    {
+      "label": "F.totalUnits=650（1.5+2+3）",
+      "ok": true,
+      "detail": {
+        "actual": 650,
+        "expected": 650
+      }
+    },
+    {
+      "label": "分页 rows/total/offset/limit",
+      "ok": true,
+      "detail": {
+        "actual": [
+          [
+            2,
+            6,
+            0,
+            2
+          ],
+          [
+            2,
+            6,
+            2,
+            2
+          ],
+          [
+            2,
+            6,
+            4,
+            2
+          ]
+        ],
+        "expected": [
+          [
+            2,
+            6,
+            0,
+            2
+          ],
+          [
+            2,
+            6,
+            2,
+            2
+          ],
+          [
+            2,
+            6,
+            4,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "label": "分页无重复覆盖全部 6 人",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "F"
+        ],
+        "expected": [
+          "A",
+          "B",
+          "C",
+          "D",
+          "E",
+          "F"
+        ]
+      }
+    },
+    {
+      "label": "确认后批次 state=confirmed",
+      "ok": true,
+      "detail": {
+        "actual": "confirmed",
+        "expected": "confirmed"
+      }
+    },
+    {
+      "label": "确认后批次 missingCellCount=1",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "确认后批次 resolvedRowCount=6",
+      "ok": true,
+      "detail": {
+        "actual": 6,
+        "expected": 6
+      }
+    },
+    {
+      "label": "student_item_scores 行数=6×3",
+      "ok": true,
+      "detail": {
+        "actual": 18,
+        "expected": 18
+      }
+    },
+    {
+      "label": "四态计数 recorded=11/missing=1/absent=3/exempt=3",
+      "ok": true,
+      "detail": {
+        "actual": {
+          "absent": 3,
+          "exempt": 3,
+          "missing": 1,
+          "recorded": 11
+        },
+        "expected": {
+          "recorded": 11,
+          "missing": 1,
+          "absent": 3,
+          "exempt": 3
+        }
+      }
+    },
+    {
+      "label": "确认摘要承认 cellCount=1",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "确认摘要承认缺考人次",
+      "ok": true,
+      "detail": {
+        "actual": [
+          [
+            "959e3c51822c437caebb9ad926372a4a"
+          ]
+        ],
+        "expected": [
+          [
+            "959e3c51822c437caebb9ad926372a4a"
+          ]
+        ]
+      }
+    },
+    {
+      "label": "D 的 Q1 在库中 score_units=0 且 status=recorded",
+      "ok": true,
+      "detail": {
+        "actual": [
+          {
+            "status": "recorded",
+            "score_units": 0
+          }
+        ],
+        "expected": [
+          {
+            "status": "recorded",
+            "score_units": 0
+          }
+        ]
+      }
+    }
+  ],
+  "failures": [],
+  "observations": []
+}

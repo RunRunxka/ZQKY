@@ -101,7 +101,10 @@ export function QuestionBankWorkspace() {
           {tab === 'imports' ? (
             <ImportBatchList refreshToken={refreshToken} />
           ) : (
-            <QuestionLibrary taxonomy={index} />
+            <QuestionLibrary
+              taxonomy={index}
+              onImportsChanged={() => setRefreshToken((value) => value + 1)}
+            />
           )}
         </div>
 

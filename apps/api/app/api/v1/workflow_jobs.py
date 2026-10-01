@@ -2,9 +2,9 @@
 
 | 方法与路径 | 说明 |
 | --- | --- |
-| GET `/api/v1/workflow-jobs/{jobId}?domain=knowledge\|question\|teaching` | `JobView` |
+| GET `/api/v1/workflow-jobs/{jobId}?domain=…`（domain ∈ knowledge/question/teaching） | `JobView` |
 | POST `/api/v1/workflow-jobs/{jobId}/cancel` | 协作式取消（幂等）；`queued` 立即取消 |
-| POST `/api/v1/workflow-jobs/{jobId}/retry` | 仅终态可重试；保留冻结输入与模型指纹 |
+| POST `/api/v1/workflow-jobs/{jobId}/retry` | 终态可重试（保留冻结输入与模型指纹）；重排后**经执行器注册表调度**；`queued` 且本进程未在跑（重启/调度异常遗留）时再次调用会补调度；`running` 仍 409 |
 
 任务结果与终态由各域在**所属业务库的同一事务**提交（见 `app/services/jobs`）；
 本路由只读视图、置取消标志与重新排队，不做任何生成工作。
@@ -79,4 +79,38 @@ async def cancel_workflow_job(
 async def retry_workflow_job(
     request: Request, job_id: str, payload: JobDomainRequest
 ) -> JobView:
-    return _store(request, payload.domain).retry(job_id).view()
+    """协作式重试：终态 → 重排队并经注册表调度；queued 且未调度 → 补调度（B3/G0）。
+
+    - 重复点击/并发重试：已在本引擎调度中的任务不重复入队（幂等返回当前视图）；
+    - 入队后调度异常或进程重启遗留的 `queued`：再次调用即补调度（显式动作，
+      **不**在启动时自动重放模型任务）；
+    - `running` 仍 409 `JOB_NOT_RETRYABLE`（由乐观锁与任务状态共同保证）。
+    """
+    domain = payload.domain
+    store = _store(request, domain)
+    registry, engine = _executors(request)
+    try:
+        record = store.retry(job_id)
+    except AppError as exc:
+        if exc.code != "JOB_NOT_RETRYABLE":
+            raise
+        current = store.get(job_id)
+        if current.state != "queued":
+            raise
+        # queued 且本进程未在跑：补调度（幂等），否则按原契约 409
+        if registry is None or not registry.has(domain, current.kind):
+            raise
+        if registry.schedule(engine, current):
+            return store.get(job_id).view()
+        raise
+    if registry is not None:
+        registry.schedule(engine, record)
+    return store.get(job_id).view()
+
+
+def _executors(request: Request):
+    """取执行器注册表与引擎；未装配（隔离测试）返回 (None, None)。"""
+    return (
+        getattr(request.app.state, "job_executors", None),
+        getattr(request.app.state, "job_engine", None),
+    )

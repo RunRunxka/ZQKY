@@ -1,0 +1,59 @@
+{
+  "probeRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b2-review-jobs-fannhjrf",
+  "archiveViaPublicApi": {
+    "statusCode": 200
+  },
+  "archivedKnowledgeConfirm": {
+    "statusCode": 200,
+    "body": {
+      "confirmedQuestionIds": [
+        "ba0cb93535e347398b97202fb2bba20d"
+      ],
+      "linkedQuestionIds": [],
+      "skippedDraftIds": [],
+      "failures": []
+    }
+  },
+  "subjectChangeWithoutLinkReplacement": {
+    "statusCode": 200,
+    "subjectId": "chinese",
+    "knowledgeLinks": [
+      {
+        "knowledgePointId": "51c83f14bc9d45599de5f7914e600863",
+        "knowledgeRevisionId": "db66b1bff53b4d0ea8d006b99412ed25",
+        "knowledgeNameSnapshot": "一次函数",
+        "subjectIdSnapshot": "math",
+        "role": "primary"
+      }
+    ]
+  },
+  "publicRetry": {
+    "statusCode": 200,
+    "retryState": "queued",
+    "pollStates": [
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued"
+    ],
+    "callsBefore": 1,
+    "callsAfter": 1,
+    "attemptAfter": 1
+  }
+}

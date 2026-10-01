@@ -13,7 +13,7 @@ import pytest
 
 from app.core.database_gate import DatabaseExpectation, verify_existing_databases
 from app.core.exceptions import AppError
-from app.core.migrations import apply_migrations
+from app.core.migrations import REGISTERED_MIGRATIONS, apply_migrations
 from app.core.sqlite import connect
 
 
@@ -113,10 +113,10 @@ def test_gate_is_read_only_on_healthy_database(tmp_path: Path) -> None:
     connection = connect(path)
     try:
         assert connection.execute("SELECT COUNT(*) FROM workflow_jobs").fetchone()[0] == 0
-        # B1 起教学库有两条登记迁移（0001 基础 + 0002 业务表）
+        # 动态期望：当前登记的全部迁移（后续批次继续追加，不改本用例）
         assert (
             connection.execute("SELECT COUNT(*) FROM schema_migrations").fetchone()[0]
-            == 2
+            == len(REGISTERED_MIGRATIONS["teaching"])
         )
     finally:
         connection.close()

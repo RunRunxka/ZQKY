@@ -1,0 +1,226 @@
+{
+  "probe": "p29_rv11_recheck",
+  "startedAt": 1790864629.1239953,
+  "durationSeconds": 0.94,
+  "checks": [
+    {
+      "label": "草稿旧库 pending=0005/0006/0007",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "0005_teaching_paper_revision_titles",
+          "0006_teaching_score_tables",
+          "0007_teaching_assessment_active_score_fk"
+        ],
+        "expected": [
+          "0005_teaching_paper_revision_titles",
+          "0006_teaching_score_tables",
+          "0007_teaching_assessment_active_score_fk"
+        ]
+      }
+    },
+    {
+      "label": "草稿旧库 applied=0005/0006/0007",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "0005_teaching_paper_revision_titles",
+          "0006_teaching_score_tables",
+          "0007_teaching_assessment_active_score_fk"
+        ],
+        "expected": [
+          "0005_teaching_paper_revision_titles",
+          "0006_teaching_score_tables",
+          "0007_teaching_assessment_active_score_fk"
+        ]
+      }
+    },
+    {
+      "label": "两列已加",
+      "ok": true,
+      "detail": [
+        "confirmed_at",
+        "created_at",
+        "id",
+        "paper_id",
+        "source_file_id",
+        "source_practice_revision_id",
+        "state",
+        "title_snapshot",
+        "title_snapshot_source",
+        "total_score_units",
+        "version"
+      ]
+    },
+    {
+      "label": "旧行回填 + 来源标注",
+      "ok": true,
+      "detail": [
+        {
+          "title_snapshot": "旧卷标题（当前值）",
+          "title_snapshot_source": "backfilled_from_paper"
+        },
+        {
+          "title_snapshot": "旧卷标题（当前值）",
+          "title_snapshot_source": "backfilled_from_paper"
+        }
+      ]
+    },
+    {
+      "label": "0005 登记散列一致",
+      "ok": true,
+      "detail": {
+        "actual": "a06f042ab0b769d4fec9e9a5f172a1e6a6d5f75875301b6a26517b0fa6756961",
+        "expected": "a06f042ab0b769d4fec9e9a5f172a1e6a6d5f75875301b6a26517b0fa6756961"
+      }
+    },
+    {
+      "label": "二次应用为空",
+      "ok": true,
+      "detail": {
+        "actual": [],
+        "expected": []
+      }
+    },
+    {
+      "label": "foreign_key_check 空",
+      "ok": true,
+      "detail": {
+        "actual": [],
+        "expected": []
+      }
+    },
+    {
+      "label": "integrity_check=ok",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "ok"
+        ],
+        "expected": [
+          "ok"
+        ]
+      }
+    },
+    {
+      "label": "含已确认修订旧库 applied=0005/0006/0007",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "0005_teaching_paper_revision_titles",
+          "0006_teaching_score_tables",
+          "0007_teaching_assessment_active_score_fk"
+        ],
+        "expected": [
+          "0005_teaching_paper_revision_titles",
+          "0006_teaching_score_tables",
+          "0007_teaching_assessment_active_score_fk"
+        ]
+      }
+    },
+    {
+      "label": "全部修订（含已确认）回填 + 来源标注",
+      "ok": true,
+      "detail": [
+        {
+          "title_snapshot": "旧卷标题（当前值）",
+          "title_snapshot_source": "backfilled_from_paper",
+          "state": "confirmed"
+        },
+        {
+          "title_snapshot": "旧卷标题（当前值）",
+          "title_snapshot_source": "backfilled_from_paper",
+          "state": "draft"
+        }
+      ]
+    },
+    {
+      "label": "paper_revisions 冻结触发器在位",
+      "ok": true,
+      "detail": [
+        "immutable_paper_revisions_delete",
+        "immutable_paper_revisions_update",
+        "no_direct_sealed_paper_revisions",
+        "paper_confirm"
+      ]
+    },
+    {
+      "label": "注入失败：迁移报错",
+      "ok": true,
+      "detail": "IntegrityError: BLOCKED"
+    },
+    {
+      "label": "注入失败：两列未加入（整体回滚）",
+      "ok": true,
+      "detail": [
+        "confirmed_at",
+        "created_at",
+        "id",
+        "paper_id",
+        "source_file_id",
+        "source_practice_revision_id",
+        "state",
+        "total_score_units",
+        "version"
+      ]
+    },
+    {
+      "label": "注入失败：0005 未登记",
+      "ok": true,
+      "detail": [
+        "0001_teaching_baseline",
+        "0002_teaching_business_tables",
+        "0003_teaching_paper_tables",
+        "0004_teaching_assessment_tables"
+      ]
+    },
+    {
+      "label": "注入失败：pending=0005/0006/0007",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "0005_teaching_paper_revision_titles",
+          "0006_teaching_score_tables",
+          "0007_teaching_assessment_active_score_fk"
+        ],
+        "expected": [
+          "0005_teaching_paper_revision_titles",
+          "0006_teaching_score_tables",
+          "0007_teaching_assessment_active_score_fk"
+        ]
+      }
+    },
+    {
+      "label": "移除触发器后重跑 applied=0005/0006/0007",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "0005_teaching_paper_revision_titles",
+          "0006_teaching_score_tables",
+          "0007_teaching_assessment_active_score_fk"
+        ],
+        "expected": [
+          "0005_teaching_paper_revision_titles",
+          "0006_teaching_score_tables",
+          "0007_teaching_assessment_active_score_fk"
+        ]
+      }
+    },
+    {
+      "label": "重跑后回填正确",
+      "ok": true,
+      "detail": [
+        {
+          "title_snapshot": "旧卷标题（当前值）",
+          "title_snapshot_source": "backfilled_from_paper"
+        },
+        {
+          "title_snapshot": "旧卷标题（当前值）",
+          "title_snapshot_source": "backfilled_from_paper"
+        }
+      ]
+    }
+  ],
+  "failures": [],
+  "observations": []
+}

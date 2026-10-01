@@ -1,0 +1,11 @@
+{
+  "probeRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b2-review-lease-a5jjm9fg",
+  "oldAttempt": 1,
+  "newAttempt": 2,
+  "staleBatchSuggestionCreated": false,
+  "suggestionsAfterStaleBatch": 0,
+  "liveAttempt": 2,
+  "checkpointAfterStaleBatch": {},
+  "interruptedBatchSuggestionCreated": false,
+  "finalState": "interrupted"
+}

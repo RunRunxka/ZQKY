@@ -1,0 +1,22 @@
+{
+  "receipt": {
+    "jobId": "fbbc2a7290be43848402bec838049989",
+    "state": "queued",
+    "attempt": 0,
+    "importId": null,
+    "candidateCount": 0,
+    "errorCode": null
+  },
+  "terminal": {
+    "jobId": "fbbc2a7290be43848402bec838049989",
+    "domain": "question",
+    "kind": "generate",
+    "attempt": 1,
+    "state": "succeeded",
+    "result": {
+      "candidateCount": 1,
+      "importId": "936a6fb9830340628fefefb0a5ced871"
+    },
+    "error": null
+  }
+}

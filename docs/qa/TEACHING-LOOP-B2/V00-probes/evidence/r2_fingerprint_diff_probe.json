@@ -1,0 +1,55 @@
+{
+ "probe": "r2_fingerprint_diff_probe",
+ "results": [
+  {
+   "name": "r2.0 记录头一致（revision=r2 / fileCount=84 / 起点 SHA 未变 / 无 postVerificationDocChanges）",
+   "status": "PASS",
+   "detail": "revision=r2 fileCount=84 base=0f4b8cb190c2265d819b90e5d6df4e3954ad1906 pvdc=None"
+  },
+  {
+   "name": "r2.1 r1 记录保留件存在且为 83 文件",
+   "status": "PASS",
+   "detail": "r1 fileCount=83 revision=r1"
+  },
+  {
+   "name": "r2.2 84 文件 sha256 复算 100% 一致（0 缺失 / 0 不一致）",
+   "status": "PASS",
+   "detail": "files=84 missing=[] mismatch=[]"
+  },
+  {
+   "name": "r2.3 实测差异集合 = 新增 1 + 修改 3 + 删除 0",
+   "status": "PASS",
+   "detail": "added=['apps/api/AGENTS.md'] removed=[] modified=['docs/API.md', 'docs/CURRENT_STATUS.md', 'docs/qa/TEACHING-LOOP-B2/TASK-CARD.md']"
+  },
+  {
+   "name": "r2.4 实测「修改」集合 == r2 记录 changedSincePrevious（逐项）",
+   "status": "PASS",
+   "detail": "declared=['docs/API.md', 'docs/CURRENT_STATUS.md', 'docs/qa/TEACHING-LOOP-B2/TASK-CARD.md'] measured=['docs/API.md', 'docs/CURRENT_STATUS.md', 'docs/qa/TEACHING-LOOP-B2/TASK-CARD.md']"
+  },
+  {
+   "name": "r2.5 r2 未声明未实测的额外变化（文件数 83→84 恰为 +1）",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "name": "r2.6 80 个未变文件在磁盘上与 r1 逐字节一致（r1 通过结论可直接复用）",
+   "status": "PASS",
+   "detail": "drift=[] unchanged=80"
+  },
+  {
+   "name": "r2.7 我 r1 期复算的 83 个散列 == r1 记录（V00 r1 结论的取证链条未断）",
+   "status": "PASS",
+   "detail": "diff=[]"
+  },
+  {
+   "name": "r2.8 产品/测试/脚本零变化（apps/** 仅新增 AGENTS.md；tests/**、scripts/** 未动）",
+   "status": "PASS",
+   "detail": "product_changes=[]"
+  },
+  {
+   "name": "r2.9 迁移/契约/main/CTRL 测试 8 个关键文件逐字节未变",
+   "status": "PASS",
+   "detail": "changed=[]"
+  }
+ ]
+}

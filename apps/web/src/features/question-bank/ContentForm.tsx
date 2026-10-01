@@ -431,7 +431,7 @@ export function ContentForm({
             onChange={(next) => setMetadata({ editionId: next })}
           />
           <label className="qb-field" htmlFor={`${idPrefix}-tags`}>
-            知识点标签
+            历史知识点标签（旧字段）
             <input
               id={`${idPrefix}-tags`}
               value={tagsToText(metadata.knowledgeTags)}
@@ -441,6 +441,10 @@ export function ContentForm({
             />
           </label>
         </div>
+        <p className="qb-hint">
+          旧字段 knowledgeTags 只是文本标签：不会创建正式知识点关联，也不参与知识点筛选；
+          正式关联在下方「知识点关联」区块维护，两者分开保留、不合并。
+        </p>
         {!taxonomy.ready && (
           <p className="qb-hint">
             分类字典未读取成功：可直接填写分类 id，或稍后重试读取字典后再选。

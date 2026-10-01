@@ -61,13 +61,29 @@ export interface ObserveJobOptions {
   /** 每当状态变化时回调（含首次与终态）。 */
   onUpdate?: (view: JobView) => void;
   /**
-   * 期望的 attempt；后端返回的 attempt 不同（任务已被重试/接管）时停止观察并返回 null，
-   * 避免旧页面把新一轮的结果当成本轮结果。
+   * 接受的**最小** attempt（重试收据的 N）：低于它视为旧尝试，停止观察并返回 null。
+   * 重试后的合法窗口是 [N, N+1]：重排队（N）→ claim（N+1）→ 终态（N+1）；
+   * attempt ≥ N+2 说明任务已被**更新的**尝试接管，同样返回 null（B3/G0 · B2-RV01/RV10）。
+   */
+  minAttempt?: number;
+  /** 接受的**最大** attempt；两者都不给表示不设防（旧调用方保持原行为）。 */
+  maxAttempt?: number;
+  /**
+   * 精确 attempt（兼容旧调用）：等价于 minAttempt = maxAttempt = expectedAttempt。
+   * 新代码请改用 `retryObservationWindow()` 或 min/max。
    */
   expectedAttempt?: number;
   /** 测试注入点：等待实现与计时来源。 */
   sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
   now?: () => number;
+}
+
+/** 重试收据：把 retry 响应（queued，attempt=N）冻结成观察窗口 [N, N+1]。 */
+export function retryObservationWindow(view: Pick<JobView, 'attempt'>): {
+  minAttempt: number;
+  maxAttempt: number;
+} {
+  return { minAttempt: view.attempt, maxAttempt: view.attempt + 1 };
 }
 
 function defaultSleep(ms: number, signal?: AbortSignal): Promise<void> {
@@ -99,6 +115,8 @@ export async function observeJob(
   options: ObserveJobOptions = {},
 ): Promise<JobView | null> {
   const { signal, onUpdate, expectedAttempt, sleep = defaultSleep, now = () => Date.now() } = options;
+  const minAttempt = expectedAttempt ?? options.minAttempt;
+  const maxAttempt = expectedAttempt ?? options.maxAttempt;
   const startedAt = now();
 
   for (;;) {
@@ -114,7 +132,11 @@ export async function observeJob(
       }
       throw error;
     }
-    if (expectedAttempt !== undefined && view.attempt !== expectedAttempt) {
+    if (
+      (minAttempt !== undefined && view.attempt < minAttempt) ||
+      (maxAttempt !== undefined && view.attempt > maxAttempt)
+    ) {
+      // 旧尝试或被更新的尝试：停止观察（不把别轮结果当本轮），但不取消任务
       return null;
     }
     onUpdate?.(view);

@@ -18,6 +18,7 @@ import type {
   DuplicateResolution,
   QuestionImportDetail,
 } from '@/contracts/question-bank';
+import { isJobTerminal } from '@/contracts/teaching-loop';
 import { ApiError } from '@/services/api-client';
 import { loadModelCatalog } from '@/services/model-settings-api';
 import {
@@ -25,9 +26,12 @@ import {
   confirmQuestionImport,
   getQuestionImport,
   mergeQuestionDrafts,
+  organizeJobPending,
   organizeQuestions,
+  mergeOrganizeObservation,
   type OrganizeJobResult,
 } from '@/services/question-bank-api';
+import { observeJob, retryJob, retryObservationWindow } from '@/services/workflow-jobs-api';
 import { fetchTextbookTaxonomy } from '@/services/textbook-api';
 import { ConfirmPanel, type ConfirmState } from './ConfirmPanel';
 import { DraftEditor } from './DraftEditor';
@@ -71,6 +75,27 @@ export function pickDraftId(detail: QuestionImportDetail, previous: string | nul
   const first =
     detail.drafts.find((draft) => draft.reviewState === 'needs_review') ?? detail.drafts[0];
   return first ? first.draftId : null;
+}
+
+/** 观察窗口：只接受 `[minAttempt, maxAttempt]` 内的 attempt（B3/G0 · B2-RV10）。 */
+export interface OrganizeObservationWindow {
+  minAttempt?: number;
+  maxAttempt?: number;
+}
+
+/** 精确窗口：接管 POST 返回的初始视图时只接受它自己的 attempt。 */
+export function exactAttemptWindow(attempt: number | undefined): OrganizeObservationWindow {
+  return typeof attempt === 'number' ? { minAttempt: attempt, maxAttempt: attempt } : {};
+}
+
+/**
+ * 重试收据 → 观察窗口 `[N, N+1]`（CTRL 冻结的 `retryObservationWindow`；
+ * attempt ≥ N+2 说明任务已被更新的尝试接管）。视图没有 attempt 时不设防（与既有语义一致）。
+ */
+export function retryAttemptWindow(view: { attempt?: number }): OrganizeObservationWindow {
+  return typeof view.attempt === 'number'
+    ? retryObservationWindow({ attempt: view.attempt })
+    : {};
 }
 
 export function ReviewWorkspace({ importId }: { importId: string }) {
@@ -143,6 +168,12 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
   const [organizeError, setOrganizeError] = useState<string | null>(null);
   const [job, setJob] = useState<OrganizeJobResult | null>(null);
   const [busySuggestionId, setBusySuggestionId] = useState<string | null>(null);
+  /** 统一任务引擎接管后：组织器任务可能先返回 queued/running，页面需要观察直到终态。 */
+  const [organizing, setOrganizing] = useState(false);
+  const [retryBusy, setRetryBusy] = useState(false);
+  const observationRef = useRef<AbortController | null>(null);
+  /** 观察代次（B3/G0 · B2-RV10）：切任务/卸载后，旧观察与旧重试的迟到响应一律不写状态。 */
+  const observationEpochRef = useRef(0);
 
   const [confirmBusy, setConfirmBusy] = useState(false);
   const [confirmState, setConfirmState] = useState<ConfirmState>({ phase: 'idle' });
@@ -172,6 +203,15 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
     void load(controller.signal);
     return () => controller.abort();
   }, [load]);
+
+  // 离开页面即停止观察整理任务（不取消任务；取消只走服务端取消语义）
+  useEffect(
+    () => () => {
+      observationEpochRef.current += 1; // 卸载后到达的响应不再写状态
+      observationRef.current?.abort();
+    },
+    [],
+  );
 
   const detail = state.phase === 'ready' ? state.detail : null;
   const drafts = detail?.drafts ?? [];
@@ -291,6 +331,10 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
       setJob(result);
       // 任务成功结束：解除冻结，下一次点击按届时的当前聊天模型发起新任务
       if (result.state === 'succeeded') setFrozenModel(null);
+      // 六态：queued/running 时继续观察（守卫 jobId + attempt），终态才收尾
+      if (organizeJobPending(result)) {
+        startOrganizing(result.jobId, exactAttemptWindow(result.attempt));
+      }
     } catch (cause) {
       const error = asApiError(cause);
       setOrganizeError(
@@ -300,6 +344,86 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
       );
     } finally {
       setOrganizeBusy(false);
+    }
+  }
+
+  /**
+   * 观察统一的整理任务（`GET /workflow-jobs/{id}?domain=question`）。
+   *
+   * - 守卫 `jobId` + attempt 窗口 + 观察代次：任务被重试/接管后不再把旧尝试的结果当本轮结果，
+   *   切换/重开任务或卸载后到达的观察结果与重试响应一律不写状态（B3/G0 · B2-RV10）；
+   * - 组件卸载即 abort（停止观察**不取消任务**；取消走服务端取消）；
+   * - 每一次观察到的状态都合并进本地整理视图：状态/尝试号取任务视图，
+   *   建议与失败批只在服务端明确给出时才更新（不猜造、不清零）。
+   */
+  function startOrganizing(jobId: string, window: OrganizeObservationWindow) {
+    observationRef.current?.abort();
+    const controller = new AbortController();
+    observationRef.current = controller;
+    const token = (observationEpochRef.current += 1);
+    setOrganizing(true);
+    void observeJob('question', jobId, {
+      signal: controller.signal,
+      minAttempt: window.minAttempt,
+      maxAttempt: window.maxAttempt,
+      onUpdate: (view) => {
+        if (token !== observationEpochRef.current) return;
+        if (view.jobId !== jobId) return;
+        setJob((prev) => (prev ? mergeOrganizeObservation(prev, view) : prev));
+      },
+    }).then(
+      (view) => {
+        if (token !== observationEpochRef.current) return;
+        if (controller.signal.aborted) return;
+        setOrganizing(false);
+        if (view === null) {
+          setPageNotice({
+            kind: 'info',
+            text: '该整理任务已被新的尝试接管，页面已停止显示旧尝试的结果；请刷新后再看最新建议。',
+          });
+          return;
+        }
+        if (view.state === 'succeeded') setFrozenModel(null);
+        // 终态后静默刷新批次：拿到最新的草稿与建议归属（失败只提示，不清空已显示数据）
+        void silentRefresh();
+      },
+      (cause: unknown) => {
+        if (token !== observationEpochRef.current) return;
+        if (controller.signal.aborted) return;
+        setOrganizing(false);
+        const error = asApiError(cause);
+        setOrganizeError(
+          `整理任务状态读取失败（${error.code}）：${error.message} 已显示的建议与草稿未被修改。`,
+        );
+      },
+    );
+  }
+
+  /** 中断/失败/取消后的显式重试：只对终态有效；后端保留冻结输入与模型指纹。 */
+  async function retryOrganize() {
+    const current = job;
+    if (!current || !current.jobId) return;
+    const token = observationEpochRef.current;
+    setRetryBusy(true);
+    setOrganizeError(null);
+    try {
+      const view = await retryJob('question', current.jobId);
+      // 迟到响应（期间已重开任务/卸载）不接管：当前视图保持新任务（B3/G0 · B2-RV10）
+      if (token !== observationEpochRef.current) return;
+      if (view.jobId !== current.jobId) return;
+      setJob((prev) => (prev ? mergeOrganizeObservation(prev, view) : prev));
+      // 新尝试仍在进行 → 继续观察（重试收据 → [N, N+1] 窗口）；已到终态则不必观察
+      if (!isJobTerminal(view.state)) {
+        startOrganizing(view.jobId, retryAttemptWindow(view));
+      }
+    } catch (cause) {
+      if (token !== observationEpochRef.current) return;
+      const error = asApiError(cause);
+      setOrganizeError(
+        `重试整理失败（${error.code}）：${error.message} 已生成的建议与草稿未被修改。`,
+      );
+    } finally {
+      setRetryBusy(false);
     }
   }
 
@@ -473,7 +597,14 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
                         {draft.content.stemMarkdown.slice(0, 40)}
                         {draft.content.stemMarkdown.length > 40 ? '…' : ''}
                       </span>
-                      <span className="space-chip">{reviewStateLabel(draft.reviewState)}</span>
+                      <span className="space-meta-row">
+                        <span className="space-chip">{reviewStateLabel(draft.reviewState)}</span>
+                        {draft.extractionMethod === 'ai' && (
+                          <span className="space-chip amber" data-testid="qb-draft-tab-ai-source">
+                            AI 候选
+                          </span>
+                        )}
+                      </span>
                     </button>
                   ))}
                 </nav>
@@ -549,15 +680,15 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
                     <div className="qb-actions">
                       <button
                         className="space-button primary"
-                        disabled={organizeBusy || !activeModel.available}
+                        disabled={organizeBusy || organizing || !activeModel.available}
                         onClick={() => void runOrganize()}
                       >
                         <Sparkles size={14} aria-hidden />
-                        {organizeBusy ? '整理中…' : 'AI 整理草稿'}
+                        {organizeBusy || organizing ? '整理中…' : 'AI 整理草稿'}
                       </button>
                       <button
                         className="space-button"
-                        disabled={organizeBusy}
+                        disabled={organizeBusy || organizing}
                         onClick={organizer.reload}
                       >
                         重新读取模型配置
@@ -565,7 +696,7 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
                       {frozenModel && canSwitchModel && (
                         <button
                           className="space-button"
-                          disabled={organizeBusy}
+                          disabled={organizeBusy || organizing}
                           onClick={useCurrentModelInstead}
                         >
                           改用当前聊天模型
@@ -590,8 +721,10 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
                     suggestions={job?.suggestions ?? []}
                     drafts={drafts}
                     busySuggestionId={busySuggestionId}
+                    retrying={retryBusy}
                     onApply={(suggestion) => void reviewSuggestion(suggestion.suggestionId, true)}
                     onIgnore={(suggestion) => void reviewSuggestion(suggestion.suggestionId, false)}
+                    onRetry={() => void retryOrganize()}
                   />
 
                   <MergePanel

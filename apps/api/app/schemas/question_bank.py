@@ -97,6 +97,22 @@ class QuestionLocatorView(_Frozen):
     blockEnd: int | None = None
 
 
+class DraftKnowledgeLinkView(_Frozen):
+    """草稿的正式知识点关联（教师编辑；确认时写入正式题修订关联）。"""
+
+    knowledgePointId: str
+    knowledgeRevisionId: str
+    knowledgeNameSnapshot: str
+    subjectIdSnapshot: str
+    role: Literal["primary", "secondary"]
+    source: Literal["human", "ai"]
+
+
+class DraftKnowledgeLinkInput(_Strict):
+    knowledgePointId: str = Field(min_length=1)
+    role: Literal["primary", "secondary"] = "primary"
+
+
 class DraftView(_Frozen):
     draftId: str
     importId: str
@@ -109,6 +125,7 @@ class DraftView(_Frozen):
     missingAnswerAcknowledged: bool
     warnings: list[str]
     duplicateOfQuestionId: str | None
+    knowledgeLinks: list[DraftKnowledgeLinkView] = Field(default_factory=list)
 
 
 class SuggestionView(_Frozen):
@@ -157,6 +174,8 @@ class DraftPatchRequest(_Strict):
     metadata: QuestionMetadata
     reviewState: DraftReviewState | None = None
     missingAnswerAcknowledged: bool | None = None
+    #: 提供即整表替换草稿的知识点关联（空数组 = 清空）；缺省不动
+    knowledgeLinks: list[DraftKnowledgeLinkInput] | None = Field(default=None, max_length=32)
 
 
 class DraftSplitRequest(_Strict):
@@ -183,14 +202,44 @@ class OrganizeBatchFailure(_Frozen):
 
 
 class OrganizeJobView(_Frozen):
+    """题库任务视图（B2 六态统一；``attempt`` 由统一任务引擎维护）。"""
+
     jobId: str
-    state: Literal["queued", "running", "succeeded", "failed", "cancelled"]
+    state: Literal[
+        "queued", "running", "succeeded", "failed", "cancelled", "interrupted"
+    ]
+    attempt: int = Field(default=0, ge=0)
     suggestionCount: int
     failedBatches: int
     errorCode: str | None
     # 建议明细与失败批原因：前端据此逐条「应用/忽略」，不用再猜建议 id
     suggestions: list[SuggestionView] = Field(default_factory=list)
     failures: list[OrganizeBatchFailure] = Field(default_factory=list)
+
+
+class QuestionGenerationRequest(_Strict):
+    """AI 补题：冻结允许知识点/可选证据/题型/数量与模型指纹；结果为待校对草稿批次。"""
+
+    modelProfileId: str = Field(min_length=1, max_length=128)
+    subjectId: str = Field(default="", max_length=64)
+    knowledgePointIds: list[str] = Field(default_factory=list, max_length=32)
+    questionTypes: list[QuestionType] = Field(default_factory=list, max_length=6)
+    difficulty: Difficulty = "unspecified"
+    count: int = Field(default=1, ge=1, le=10)
+    instructions: str | None = Field(default=None, max_length=2000)
+    #: 可选证据（受管资料块文本；不得是任意 URL/路径）
+    materials: list[str] = Field(default_factory=list, max_length=10)
+
+
+class GenerationJobView(_Frozen):
+    jobId: str
+    state: Literal[
+        "queued", "running", "succeeded", "failed", "cancelled", "interrupted"
+    ]
+    attempt: int = Field(default=0, ge=0)
+    importId: str | None = None
+    candidateCount: int = Field(default=0, ge=0)
+    errorCode: str | None = None
 
 
 class SuggestionApplyRequest(_Strict):
@@ -245,11 +294,22 @@ class QuestionSummary(_Frozen):
     confirmedAt: str
 
 
+class QuestionKnowledgeLinkView(_Frozen):
+    """正式题修订的知识点关联（不可变修订上的快照）。"""
+
+    knowledgePointId: str
+    knowledgeRevisionId: str
+    knowledgeNameSnapshot: str
+    subjectIdSnapshot: str
+    role: Literal["primary", "secondary"]
+
+
 class QuestionDetail(QuestionSummary):
     content: QuestionContent
     metadata: QuestionMetadata
     sources: list[SourceSpan]
     sourceImportId: str | None
+    knowledgeLinks: list[QuestionKnowledgeLinkView] = Field(default_factory=list)
 
 
 class QuestionList(_Frozen):
@@ -263,8 +323,15 @@ class QuestionPatchRequest(_Strict):
     expectedRevision: int = Field(ge=0)
     content: QuestionContent
     metadata: QuestionMetadata
+    #: 提供即整表替换正式知识点关联（空数组 = 清空）；缺省 = 复制旧正式关联
+    knowledgeLinks: list[DraftKnowledgeLinkInput] | None = Field(default=None, max_length=32)
 
 
+DraftView.model_rebuild()
+DraftPatchRequest.model_rebuild()
+OrganizeJobView.model_rebuild()
+QuestionGenerationRequest.model_rebuild()
+QuestionDetail.model_rebuild()
 QuestionConfirmRequest.model_rebuild()
 ConfirmResult.model_rebuild()
 QuestionImportDetail.model_rebuild()

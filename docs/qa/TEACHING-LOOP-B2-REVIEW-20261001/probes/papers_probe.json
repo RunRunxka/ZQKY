@@ -1,0 +1,58 @@
+{
+  "results": [
+    {
+      "probe": "unassigned-block-content",
+      "items": 0,
+      "blockKeys": [
+        "blockId",
+        "ordinal",
+        "kind",
+        "locator",
+        "disposition",
+        "itemId",
+        "excludeReason"
+      ],
+      "responseContainsOriginalText": false,
+      "dbContainsOriginalText": true
+    },
+    {
+      "probe": "blocking-bypass",
+      "blockingIssueCodes": [
+        "UNSUPPORTED_OBJECT"
+      ],
+      "itemContentUnchanged": true,
+      "resultState": "confirmed",
+      "resolvedPayload": [
+        {
+          "resolution_json": "{\"anything\":1}"
+        }
+      ]
+    },
+    {
+      "probe": "archive-then-confirm",
+      "confirmedState": "confirmed",
+      "archivedKnowledgeWasConfirmed": true
+    },
+    {
+      "probe": "old-revision-title-drift",
+      "confirmedRevisionSame": true,
+      "viewBefore": "Original Title",
+      "viewAfter": "NEW DRAFT Title",
+      "readerBefore": "Original Title",
+      "readerAfter": "NEW DRAFT Title"
+    },
+    {
+      "probe": "model-fingerprint-drift",
+      "frozenFingerprint": "sha256:a9e89f714da1d87c25d6085d1354f41188865024ffee0c88802064438607587a",
+      "actualFingerprint": "sha256:357a50b8e2a5d6fc6401025de617ec1d8606341ad89fc3df7418456271e1fa91",
+      "providerCalls": 1,
+      "actualProviderModelId": "DIFFERENT-MODEL",
+      "publishedFingerprint": "sha256:a9e89f714da1d87c25d6085d1354f41188865024ffee0c88802064438607587a",
+      "outcome": "accepted despite changed model"
+    },
+    {
+      "evidenceDirectory": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b2-review-papers-e8chp1to"
+    }
+  ],
+  "exitMeaning": "0 means reproduction completed"
+}

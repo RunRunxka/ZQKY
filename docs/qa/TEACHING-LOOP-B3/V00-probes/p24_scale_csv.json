@@ -1,0 +1,317 @@
+{
+  "probe": "p24_scale_csv",
+  "startedAt": 1790863998.99166,
+  "durationSeconds": 5.917,
+  "checks": [
+    {
+      "label": "read_score_sheet 200×100 在 10s 内",
+      "ok": true,
+      "detail": {
+        "seconds": 0.128
+      }
+    },
+    {
+      "label": "物理 max_row=201",
+      "ok": true,
+      "detail": {
+        "actual": 201,
+        "expected": 201
+      }
+    },
+    {
+      "label": "物理 max_column=102",
+      "ok": true,
+      "detail": {
+        "actual": 102,
+        "expected": 102
+      }
+    },
+    {
+      "label": "末行末列未被截断",
+      "ok": true,
+      "detail": {
+        "actual": [
+          201,
+          102,
+          "1"
+        ],
+        "expected": [
+          201,
+          102,
+          "1"
+        ]
+      }
+    },
+    {
+      "label": "首行首列（表头）",
+      "ok": true,
+      "detail": {
+        "actual": "学号",
+        "expected": "学号"
+      }
+    },
+    {
+      "label": "行数完整",
+      "ok": true,
+      "detail": {
+        "actual": 201,
+        "expected": 201
+      }
+    },
+    {
+      "label": "规模上传 201",
+      "ok": true,
+      "detail": {
+        "actual": 201,
+        "expected": 201
+      }
+    },
+    {
+      "label": "规模预览 resolvedRowCount=200",
+      "ok": true,
+      "detail": {
+        "actual": 200,
+        "expected": 200
+      }
+    },
+    {
+      "label": "规模预览 missingCellCount=0",
+      "ok": true,
+      "detail": {
+        "actual": 0,
+        "expected": 0
+      }
+    },
+    {
+      "label": "规模预览 rowCount=200",
+      "ok": true,
+      "detail": {
+        "actual": 200,
+        "expected": 200
+      }
+    },
+    {
+      "label": "规模确认 200",
+      "ok": true,
+      "detail": {
+        "actual": 200,
+        "expected": 200
+      }
+    },
+    {
+      "label": "规模矩阵 total=200",
+      "ok": true,
+      "detail": {
+        "actual": 200,
+        "expected": 200
+      }
+    },
+    {
+      "label": "规模矩阵 items=100",
+      "ok": true,
+      "detail": {
+        "actual": 100,
+        "expected": 100
+      }
+    },
+    {
+      "label": "规模矩阵首屏 50 行",
+      "ok": true,
+      "detail": {
+        "actual": 50,
+        "expected": 50
+      }
+    },
+    {
+      "label": "规模矩阵每人 totalUnits 非空（全 recorded）",
+      "ok": true,
+      "detail": {
+        "participantId": "b627b13ee85844e7a38624c3737d9797",
+        "studentId": "4c6438159ee44d2a916a379c419ce07a",
+        "studentNo": "0001",
+        "name": "S1",
+        "classId": "316f23a3a5734998be6e303e60d7cb73",
+        "attemptNo": 1,
+        "attendance": "present",
+        "totalUnits": 5000,
+        "totalMaxUnits": 10000
+      }
+    },
+    {
+      "label": "尾页 50 行",
+      "ok": true,
+      "detail": {
+        "actual": 50,
+        "expected": 50
+      }
+    },
+    {
+      "label": "四页无重复且覆盖全部 200 人次",
+      "ok": true,
+      "detail": {
+        "actual": 200,
+        "expected": 200
+      }
+    },
+    {
+      "label": "上传解析 < 30s",
+      "ok": true,
+      "detail": 1.0229052000067895
+    },
+    {
+      "label": "确认 < 30s",
+      "ok": true,
+      "detail": 0.9318602999992436
+    },
+    {
+      "label": "CSV 上传 201",
+      "ok": true,
+      "detail": {
+        "actual": 201,
+        "expected": 201
+      }
+    },
+    {
+      "label": "CSV 工作表名=CSV",
+      "ok": true,
+      "detail": {
+        "actual": "CSV",
+        "expected": "CSV"
+      }
+    },
+    {
+      "label": "CSV 自动映射 Q1..Q3",
+      "ok": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "label": "CSV missingCellCount=1",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "CSV 物理行号=文件行号（2/3/4）",
+      "ok": true,
+      "detail": {
+        "actual": [
+          2,
+          3,
+          4
+        ],
+        "expected": [
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    {
+      "label": "CSV 确认 200",
+      "ok": true,
+      "detail": {
+        "actual": 200,
+        "expected": 200
+      }
+    },
+    {
+      "label": "CSV 矩阵 A.totalUnits=900",
+      "ok": true,
+      "detail": {
+        "actual": 900,
+        "expected": 900
+      }
+    },
+    {
+      "label": "CSV 矩阵 B 的 Q3=missing",
+      "ok": true,
+      "detail": {
+        "actual": "missing",
+        "expected": "missing"
+      }
+    },
+    {
+      "label": "CSV 矩阵 C 全 absent",
+      "ok": true,
+      "detail": {
+        "actual": "{'absent'}",
+        "expected": "{'absent'}"
+      }
+    },
+    {
+      "label": "CSV 矩阵 missingCellCount=1",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "直读 2002 行 XLSX → TABLE_TOO_LARGE",
+      "ok": true,
+      "detail": {
+        "actual": "TABLE_TOO_LARGE",
+        "expected": "TABLE_TOO_LARGE"
+      }
+    },
+    {
+      "label": "直读 601 列 XLSX → TABLE_TOO_LARGE",
+      "ok": true,
+      "detail": {
+        "actual": "TABLE_TOO_LARGE",
+        "expected": "TABLE_TOO_LARGE"
+      }
+    },
+    {
+      "label": "直读 2002 行 CSV → TABLE_TOO_LARGE",
+      "ok": true,
+      "detail": {
+        "actual": "TABLE_TOO_LARGE",
+        "expected": "TABLE_TOO_LARGE"
+      }
+    },
+    {
+      "label": "直读 601 列 CSV → TABLE_TOO_LARGE",
+      "ok": true,
+      "detail": {
+        "actual": "TABLE_TOO_LARGE",
+        "expected": "TABLE_TOO_LARGE"
+      }
+    },
+    {
+      "label": "上传 2002 行 CSV → 422",
+      "ok": true,
+      "detail": {
+        "actual": 422,
+        "expected": 422
+      }
+    },
+    {
+      "label": "上传 2002 行 CSV 错误码",
+      "ok": true,
+      "detail": {
+        "actual": "TABLE_TOO_LARGE",
+        "expected": "TABLE_TOO_LARGE"
+      }
+    },
+    {
+      "label": "超限上传不落批次",
+      "ok": true,
+      "detail": {
+        "actual": 0,
+        "expected": 0
+      }
+    }
+  ],
+  "failures": [],
+  "observations": [
+    "read_score_sheet 200 行×100 叶（物理 201×102）耗时 0.128s",
+    "200×100 全链耗时：上传解析 1.023s、确认 0.932s、矩阵首屏 0.034s",
+    "上传超限响应：CSV 行数 2002 超过上限 2000；请拆分后重试。"
+  ]
+}

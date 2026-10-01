@@ -10,6 +10,7 @@ import { ShellScope } from './ShellScope';
 // （规划页自带壳），不再登记为独立模块根，避免双重壳。
 const independentRoots = new Set([
   '/knowledge-bases',
+  '/knowledge-points',
   '/books',
   '/courses',
   '/question-bank',

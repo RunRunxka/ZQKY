@@ -28,6 +28,7 @@ import logging
 import uuid
 from collections.abc import Callable, Sequence
 from dataclasses import replace
+from collections.abc import Mapping
 from typing import Any
 
 import anyio
@@ -89,7 +90,13 @@ from app.services.jobs.engine import FrozenJob, JobContext, JobEngine, JobOutcom
 from app.services.knowledge import imports as import_rules
 from app.services.knowledge import suggestions as suggestion_rules
 from app.services.knowledge.evidence import TextbookEvidenceReader
-from app.services.model_runtime import ChatModelHandle
+from app.services.model_runtime import (
+    MODEL_CONFIG_DRIFT,
+    MODEL_FINGERPRINT_MISSING,
+    ChatModelHandle,
+    fingerprint_of_handle,
+    resolve_frozen_model,
+)
 from app.services.publication import PublicationCoordinator
 from app.services.submissions.service import execute_command, make_command
 from app.services.tabular import SheetTable, read_table
@@ -107,6 +114,35 @@ CONFIRMABLE_STATES = frozenset({"uploaded", "reviewing"})
 EDITABLE_STATES = frozenset({"uploaded", "reviewing"})
 
 ChatModelResolver = Callable[..., ChatModelHandle]
+
+
+#: 缺可核对指纹 / 配置已漂移的可读文案（与 ``model_runtime.resolve_frozen_model``
+#: 和题库服务同一口径：错误码是契约，文案只影响可读性）
+MODEL_FINGERPRINT_MISSING_MESSAGE = (
+    "任务缺少可核对的冻结模型指纹；请重新发起任务（旧任务不自动重放）。"
+)
+MODEL_CONFIG_DRIFT_MESSAGE = (
+    "模型配置自任务创建后已变化（同 profile 的模型/地址/格式与冻结指纹不一致）；"
+    "本次调用已停止，请重新发起任务。"
+)
+
+
+def _build_frozen_model_resolver(
+    repo: Any | None, secrets: Any | None, auth_service: Any | None
+):
+    """共享 ``resolve_frozen_model`` 的注入适配（仓储 + 凭证齐备时返回可调用对象）。
+
+    与题库/原卷同一注入形参名（``model_config_repo`` / ``secret_store`` /
+    ``model_auth_service``）；缺失时服务用注入的 ``model_resolver`` 解析后按
+    ``fingerprint_of_handle`` 核对（判定与错误码一致）。
+    """
+    if repo is None or secrets is None:
+        return None
+
+    def resolve(snapshot: Mapping[str, Any]) -> ChatModelHandle:
+        return resolve_frozen_model(repo, secrets, snapshot, auth_service=auth_service)
+
+    return resolve
 
 
 async def _threaded(fn, /, *args: Any, **kwargs: Any):
@@ -162,6 +198,9 @@ class KnowledgeService:
         model_resolver: ChatModelResolver | None = None,
         job_engine: JobEngine | None = None,
         owner_id: str = DEFAULT_OWNER_ID,
+        model_config_repo: Any | None = None,
+        secret_store: Any | None = None,
+        model_auth_service: Any | None = None,
     ) -> None:
         self.catalog = catalog
         self.assets = asset_store
@@ -171,6 +210,11 @@ class KnowledgeService:
         self.model_resolver = model_resolver
         self.job_engine = job_engine
         self.owner_id = owner_id
+        # RV04（知识点侧）：仓储 + 凭证齐备时走共享 resolve_frozen_model；否则用注入的
+        # resolver 解析后按同一指纹算法核对（见 _resolve_frozen_handle）
+        self._frozen_model_resolver = _build_frozen_model_resolver(
+            model_config_repo, secret_store, model_auth_service
+        )
         self.subjects = SubjectRepository()
         self.points = KnowledgePointRepository()
         self.links = TextbookLinkRepository()
@@ -744,6 +788,21 @@ class KnowledgeService:
         )
         return record.view()
 
+    def register_job_executors(self, registry: Any) -> None:
+        """把知识点 AI 候选执行器注册进公共注册表（B3/G0 · B2-RV01）。
+
+        公共 ``POST /workflow-jobs/{id}/retry`` 经此调度；factory 只依赖任务行
+        （``frozen_input`` / ``model_snapshot``），重试**不重新冻结**输入与指纹，
+        执行体与首次调度完全同一份（``_suggestion_executor``）。未注册类型保持
+        ``queued``，用户可再次 retry（不伪造成功）。
+        """
+        registry.register(
+            "knowledge",
+            "suggestion",
+            uses_model=True,
+            factory=lambda _record: self._suggestion_executor,
+        )
+
     def suggestion_job_view(self, job_id: str) -> JobView:
         """按 id 读取候选任务视图（供隔离测试与恢复入口复用）。"""
         if self.job_engine is None:
@@ -785,12 +844,7 @@ class KnowledgeService:
         except Exception:  # noqa: BLE001 - 配置失效留给执行器报稳定错误码
             return snapshot
         if isinstance(handle, ChatModelHandle):
-            snapshot["fingerprint"] = suggestion_rules.model_fingerprint(
-                model_id=handle.model_id,
-                protocol=_protocol_value(handle.config.protocol),
-                base_url=handle.config.baseUrl,
-                api_format=handle.config.apiFormat or "",
-            )
+            snapshot["fingerprint"] = fingerprint_of_handle(handle)
         return snapshot
 
     async def _resolve_for_job(self, profile_id: str) -> ChatModelHandle:
@@ -826,11 +880,58 @@ class KnowledgeService:
             )
         return handle
 
-    async def _suggestion_executor(self, frozen: FrozenJob, ctx: JobContext) -> JobOutcome:
-        """执行器：事务外解析模型并调用；返回 ``publish`` 在知识点库同一事务写批次。"""
-        snapshot = frozen.model_snapshot if isinstance(frozen.model_snapshot, dict) else {}
-        profile_id = str(snapshot.get("profileId") or frozen.input.get("modelProfileId") or "")
+    async def _resolve_frozen_handle(self, snapshot: Any) -> ChatModelHandle:
+        """解析候选任务的模型并核对**冻结指纹**（B3/G0 v2 · B2-RV04 知识点侧）。
+
+        与题库服务同一口径：缺指纹 422 ``MODEL_FINGERPRINT_MISSING``、漂移 409
+        ``MODEL_CONFIG_DRIFT``，都在任何模型调用**之前**判定（零上游请求、零候选批次）。
+
+        - 注入仓储 + 凭证时直接走共享 ``resolve_frozen_model``（唯一实现）；
+        - 只注入 ``model_resolver`` 时先解析、再核对：解析失败保留既有可读错误码
+          （``MODEL_PROFILE_NOT_FOUND`` / ``MODEL_NOT_CONFIGURED`` /
+          ``UPSTREAM_UNAVAILABLE``），解析成功后再比对 ``fingerprint_of_handle``；
+          快照没有可核对指纹（创建时解析就失败的行）→ 422 ``MODEL_FINGERPRINT_MISSING``，
+          不静默放行；用户按可读错误重新发起候选即可。
+        """
+        payload = snapshot if isinstance(snapshot, Mapping) else {}
+        profile_id = str(
+            payload.get("profileId") or payload.get("modelProfileId") or ""
+        ).strip()
+        fingerprint = str(
+            payload.get("fingerprint") or payload.get("modelFingerprint") or ""
+        ).strip()
+        if self._frozen_model_resolver is not None:
+            # 共享实现（唯一口径）：缺指纹 422、漂移 409，都在任何模型调用之前
+            return await _threaded(
+                self._frozen_model_resolver,
+                {"profileId": profile_id, "fingerprint": fingerprint},
+            )
         handle = await self._resolve_for_job(profile_id)
+        if not fingerprint:
+            raise AppError(
+                MODEL_FINGERPRINT_MISSING_MESSAGE,
+                code=MODEL_FINGERPRINT_MISSING,
+                status_code=422,
+            )
+        if fingerprint_of_handle(handle) != fingerprint:
+            raise AppError(
+                MODEL_CONFIG_DRIFT_MESSAGE,
+                code=MODEL_CONFIG_DRIFT,
+                status_code=409,
+            )
+        return handle
+
+    async def _suggestion_executor(self, frozen: FrozenJob, ctx: JobContext) -> JobOutcome:
+        """执行器：事务外解析模型（并核对冻结指纹）后调用；发布与任务终态同事务。"""
+        snapshot = (
+            dict(frozen.model_snapshot) if isinstance(frozen.model_snapshot, dict) else {}
+        )
+        if not snapshot.get("profileId") and not snapshot.get("modelProfileId"):
+            # 历史行兼容：profile 冻结在输入里时照旧取用（指纹仍只信任务快照）
+            fallback = str(frozen.input.get("modelProfileId") or "").strip()
+            if fallback:
+                snapshot["profileId"] = fallback
+        handle = await self._resolve_frozen_handle(snapshot)
 
         request = LLMRequest(
             messages=[
@@ -859,11 +960,15 @@ class KnowledgeService:
             # 取消优先于迟到结果：不登记资产、不发布；引擎随后置 cancelled
             return JobOutcome(result={"cancelled": True, "candidateCount": 0}, publish=None)
 
-        # 事务外：模型原始输出登记为教学库受管资产（跨库逻辑引用，见任务卡 §8.3）
+        # 事务外：模型原始输出登记为教学库受管资产（跨库逻辑引用，见任务卡 §8.3）；
+        # 记录的模型身份取**本次实际执行**的句柄指纹（已与冻结值核对一致）
         original = json.dumps(
             {
                 "jobId": frozen.job_id,
-                "model": {"profileId": profile_id, "fingerprint": snapshot.get("fingerprint", "")},
+                "model": {
+                    "profileId": handle.profile_id,
+                    "fingerprint": fingerprint_of_handle(handle),
+                },
                 "candidates": raw_items,
             },
             ensure_ascii=False,
@@ -1087,12 +1192,19 @@ def build_knowledge_service(
     coordinator: PublicationCoordinator,
     model_resolver: ChatModelResolver | None = None,
     job_engine: JobEngine | None = None,
+    model_config_repo: Any | None = None,
+    secret_store: Any | None = None,
+    model_auth_service: Any | None = None,
 ) -> KnowledgeService:
     """装配入口（CTRL 在 ``main.py`` 调用）。
 
     ``evidence`` 允许为 ``None``（隔离环境/教材目录未装配）：此时任何 ``textbookEvidence``
     请求 503 ``TEXTBOOK_EVIDENCE_UNAVAILABLE``，只给 ``materials`` 的 AI 任务仍可用。
     ``model_resolver``/``job_engine`` 为 ``None`` 时 AI 候选 503，不返回假成功。
+
+    B3/G0 v2 追加注入（RV04）：``model_config_repo`` + ``secret_store``（+ ``model_auth_service``）
+    使候选执行器的冻结指纹核对走共享 ``resolve_frozen_model``；缺省时用 ``model_resolver``
+    解析后按 ``fingerprint_of_handle`` 核对（同一判定与错误码）。形参名与题库/原卷一致。
     """
     return KnowledgeService(
         catalog,
@@ -1102,6 +1214,9 @@ def build_knowledge_service(
         coordinator=coordinator,
         model_resolver=model_resolver,
         job_engine=job_engine,
+        model_config_repo=model_config_repo,
+        secret_store=secret_store,
+        model_auth_service=model_auth_service,
     )
 
 
@@ -1213,11 +1328,6 @@ def _validate_page(*, offset: int, limit: int) -> None:
         raise _field_error("limit 必须是不小于 1 的整数。", fields=["limit"])
     if limit > MAX_LIST_LIMIT:
         raise _field_error(f"limit 不能超过 {MAX_LIST_LIMIT}。", fields=["limit"])
-
-
-def _protocol_value(protocol: Any) -> str:
-    value = getattr(protocol, "value", None)
-    return str(value if value is not None else protocol or "")
 
 
 def _resolve_parent(

@@ -1,0 +1,165 @@
+{
+ "probe": "v4_papers_proposals_probe",
+ "results": [
+  {
+   "name": "V4.1 非法 JSON → 任务 failed 且零建议",
+   "status": "PASS",
+   "detail": "state=failed code=PAPER_PROPOSAL_INVALID proposals=0->0"
+  },
+  {
+   "name": "V4.2 截断（finishReason=length）→ 任务 failed 且零建议",
+   "status": "PASS",
+   "detail": "state=failed code=PAPER_PROPOSAL_INVALID proposals=0->0"
+  },
+  {
+   "name": "V4.3 JSON 非对象 → 任务 failed 且零建议",
+   "status": "PASS",
+   "detail": "state=failed code=PAPER_PROPOSAL_INVALID proposals=0->0"
+  },
+  {
+   "name": "V4.4 未知知识点id → 任务 failed 且零建议",
+   "status": "PASS",
+   "detail": "state=failed code=PAPER_PROPOSAL_INVALID proposals=0->0"
+  },
+  {
+   "name": "V4.5 未知题目id → 任务 failed 且零建议",
+   "status": "PASS",
+   "detail": "state=failed code=PAPER_PROPOSAL_INVALID proposals=0->0"
+  },
+  {
+   "name": "V4.6 证据越界 → 任务 failed 且零建议",
+   "status": "PASS",
+   "detail": "state=failed code=PAPER_PROPOSAL_INVALID proposals=0->0"
+  },
+  {
+   "name": "V4.7 既无既有知识点也无新候选 → 任务 failed 且零建议",
+   "status": "PASS",
+   "detail": "state=failed code=PAPER_PROPOSAL_INVALID proposals=0->0"
+  },
+  {
+   "name": "V4.8 建议任务已开始（模型调用已发生）",
+   "status": "PASS",
+   "detail": "waited=0.05s"
+  },
+  {
+   "name": "V4.9 建议期间草稿被改（revision 前进）",
+   "status": "PASS",
+   "detail": "rev 1 → 2"
+  },
+  {
+   "name": "V4.10a 发布期冻结失败：任务未 succeeded 且零建议（无半批结果）",
+   "status": "PASS",
+   "detail": "state=running code=None proposals=0"
+  },
+  {
+   "name": "V4.10b 登记边界核对：发布失败后任务停在 running（引擎按异常上抛、由重启收敛）",
+   "status": "PASS",
+   "detail": "state=running（README §5.3：publish 失败收尾只在 question 域）"
+  },
+  {
+   "name": "V4.10c 发布期 baseRevision 过期 → PAPER_PROPOSAL_STALE（真实发布回调抛出）",
+   "status": "PASS",
+   "detail": "AppError PAPER_PROPOSAL_STALE 409"
+  },
+  {
+   "name": "V4.10d 发布回滚后零建议写入",
+   "status": "PASS",
+   "detail": "0 → 0"
+  },
+  {
+   "name": "V4.11 合法建议 → 任务 succeeded 且建议仅进 ai_proposals(pending)",
+   "status": "PASS",
+   "detail": "state=succeeded proposals=1 {'baseRevision': 3, 'itemCount': 2, 'paperRevisionId': '18326bd1e4fd4c0bb83256568735b3f7', 'proposalId': 'fa1d103f3853467f8f4a7e761bd4a3ab'}"
+  },
+  {
+   "name": "V4.12 建议视图：既有知识点 + 新知识点候选 + 证据 + 不 stale",
+   "status": "PASS",
+   "detail": "[('00b679', '70e0c04b09e640aa8bea96165514bee2', None), ('92649f', None, 'V00-NEW-1')]"
+  },
+  {
+   "name": "V4.13 应用前 revision 变化 → 409 PAPER_PROPOSAL_STALE 且零写入",
+   "status": "PASS",
+   "detail": "PAPER_PROPOSAL_STALE 409"
+  },
+  {
+   "name": "V4.14 stale 拒绝后建议仍未应用",
+   "status": "PASS",
+   "detail": "pending"
+  },
+  {
+   "name": "V4.15 选择与建议内容不符 → 422 PAPER_PROPOSAL_INVALID 且可定位",
+   "status": "PASS",
+   "detail": "PAPER_PROPOSAL_INVALID {'issues': [{'row': 0, 'column': 'knowledgePointId', 'field': 'knowledgePointId', 'code': 'PAPER_PROPOSAL_INVALID', 'message': '选择与建议内容不一致（题目与知识点的对应关系不符）。'}]}"
+  },
+  {
+   "name": "V4.16 选择非计分容器 → 422 PAPER_PROPOSAL_INVALID",
+   "status": "PASS",
+   "detail": "PAPER_PROPOSAL_INVALID"
+  },
+  {
+   "name": "V4.17 应用后写入关联且 source=ai_confirmed/role=primary",
+   "status": "PASS",
+   "detail": "[('38b8f7', 'human', 'primary'), ('70e0c0', 'ai_confirmed', 'primary')]"
+  },
+  {
+   "name": "V4.18 应用后建议状态 applied 且重复应用被拒（409）",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "name": "V4.18b 重复应用 → 409 PAPER_PROPOSAL_INVALID",
+   "status": "PASS",
+   "detail": "PAPER_PROPOSAL_INVALID"
+  },
+  {
+   "name": "V4.19 新知识点候选不创建正式知识点（knowledge_points 计数不变）",
+   "status": "PASS",
+   "detail": "2 → 2"
+  },
+  {
+   "name": "V4.20 reject → 状态 rejected 且之后不能应用（409）",
+   "status": "PASS",
+   "detail": "rejected"
+  },
+  {
+   "name": "V4.21 已拒绝建议不能再应用（409）",
+   "status": "PASS",
+   "detail": "PAPER_PROPOSAL_INVALID"
+  },
+  {
+   "name": "V4.22 冻结输入含计分叶子白名单/允许知识点/模型指纹，且无凭证字样",
+   "status": "PASS",
+   "detail": "items=3 fp=sha256:b1e0743c9b419"
+  },
+  {
+   "name": "V4.23 reader：draft 修订 → 422 ASSESSMENT_PAPER_INVALID",
+   "status": "PASS",
+   "detail": "ASSESSMENT_PAPER_INVALID"
+  },
+  {
+   "name": "V4.24 reader：不存在的修订 → 404 PAPER_NOT_FOUND",
+   "status": "PASS",
+   "detail": "PAPER_NOT_FOUND"
+  },
+  {
+   "name": "V4.25 reader：返回真实标题/学科/总分/计分叶数（与库一致）",
+   "status": "PASS",
+   "detail": "V00 建议期间被改 math 1500 3"
+  },
+  {
+   "name": "V4.26 reader.read_current：确认后返回同一修订",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "name": "V4.27 reader 纵深防御：零总分「已确认」修订 → 422",
+   "status": "PASS",
+   "detail": "ASSESSMENT_PAPER_INVALID 422"
+  },
+  {
+   "name": "V4.28 reader 纵深防御：无计分叶「已确认」修订 → 422",
+   "status": "PASS",
+   "detail": "ASSESSMENT_PAPER_INVALID 422"
+  }
+ ]
+}

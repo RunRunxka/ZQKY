@@ -1,0 +1,75 @@
+{
+ "probe": "v6_question_job_engine_probe",
+ "results": [
+  {
+   "name": "V6.1 organize 返回六态视图 + attempt（succeeded，建议数 ≥1）",
+   "status": "PASS",
+   "detail": "{'jobId': '45f399778e414445b9b1780d477380ee', 'state': 'succeeded', 'attempt': 1, 'suggestionCount': 2, 'failedBatches': 0}"
+  },
+  {
+   "name": "V6.2 冻结输入含契约版本/模型 profile 与指纹/批次快照（checkpoint 冻结）",
+   "status": "PASS",
+   "detail": "contract=2 batches=2 fp=sha256:b1e0743c9"
+  },
+  {
+   "name": "V6.3 公共任务视图：状态在六态集合内且 attempt 一致",
+   "status": "PASS",
+   "detail": "succeeded attempt=1"
+  },
+  {
+   "name": "V6.4 model 名额上限 = 1：两个并发模型任务的模型调用严格串行（不重叠）",
+   "status": "PASS",
+   "detail": "max_concurrent=1 calls=4 trace=[('start', 1), ('end', 1), ('start', 2), ('end', 2), ('start', 3), ('end', 3), ('start', 4), ('end', 4)] states=['succeeded', 'succeeded']"
+  },
+  {
+   "name": "V6.5 queued 任务取消 → 立即 cancelled 且零上游调用",
+   "status": "PASS",
+   "detail": "200 cancelled"
+  },
+  {
+   "name": "V6.6 running 任务取消 → 终态 cancelled 且零建议落库（迟到结果不发布）",
+   "status": "PASS",
+   "detail": "cancel=running final=cancelled suggestions=0"
+  },
+  {
+   "name": "V6.7 取消只影响在飞调用：provider 调用数未额外增加",
+   "status": "PASS",
+   "detail": "8 → 8"
+  },
+  {
+   "name": "V6.8 重启收敛：running → interrupted 且不重叫模型",
+   "status": "PASS",
+   "detail": "reconciled=1 state=interrupted calls=9"
+  },
+  {
+   "name": "V6.9 重复 reconcile 幂等（第二次不再返回该任务）",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "name": "V6.10 显式 recover → succeeded 且 attempt 递增（保留冻结输入）",
+   "status": "PASS",
+   "detail": "recovered=3 state=succeeded attempt=2"
+  },
+  {
+   "name": "V6.11 旧语义 checkpoint → ORGANIZER_MODEL_RESELECT_REQUIRED 且 provider 零调用",
+   "status": "PASS",
+   "detail": "state=failed code=ORGANIZER_MODEL_RESELECT_REQUIRED calls+0"
+  },
+  {
+   "name": "V6.12 旧 checkpoint 不回写伪造指纹，只标记需重新选择模型",
+   "status": "PASS",
+   "detail": "{'needsModelReselection': True, 'contractVersion': None}"
+  },
+  {
+   "name": "V6.13 旧任务冻结输入未被改写（仍是旧语义）",
+   "status": "PASS",
+   "detail": "{'batches': [{'blockIds': ['b0'], 'draftId': 'd0', 'index': 0, 'inputText': '旧语义'}], 'contractVersion': 1, 'modelName': "
+  },
+  {
+   "name": "V6.14 显式 recover 对旧 checkpoint 也只标重选（不重叫模型）",
+   "status": "PASS",
+   "detail": "recovered=1 state=failed calls+0"
+  }
+ ]
+}

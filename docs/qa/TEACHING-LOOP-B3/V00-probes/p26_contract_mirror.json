@@ -1,0 +1,4427 @@
+{
+  "probe": "p26_contract_mirror",
+  "startedAt": 1790865053.4424012,
+  "durationSeconds": 0.489,
+  "checks": [
+    {
+      "label": "scores.ts 与 scores.py 的模型集合完全一致（r2）",
+      "ok": true,
+      "detail": {
+        "actual": [],
+        "expected": []
+      }
+    },
+    {
+      "label": "scores.ts 无多出的接口（r2）",
+      "ok": true,
+      "detail": {
+        "actual": [],
+        "expected": []
+      }
+    },
+    {
+      "label": "scores 模型集合一致",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "ScoreAbsenceAcknowledgement",
+          "ScoreCellPatch",
+          "ScoreCellValue",
+          "ScoreColumnMapping",
+          "ScoreCorrectionEntry",
+          "ScoreImportConfirmRequest",
+          "ScoreImportConfirmResult",
+          "ScoreImportList",
+          "ScoreImportPatchRequest",
+          "ScoreImportRowList",
+          "ScoreImportRowPatch",
+          "ScoreImportRowView",
+          "ScoreImportSummary",
+          "ScoreImportView",
+          "ScoreItemColumn",
+          "ScoreItemSnapshot",
+          "ScoreMatrixPage",
+          "ScoreMatrixParticipant",
+          "ScoreMatrixRow",
+          "ScoreMissingAcknowledgement",
+          "ScoreParticipantSnapshot",
+          "ScoreRawCellView",
+          "ScoreRevisionCorrectRequest",
+          "ScoreRevisionCorrectResult",
+          "ScoreRevisionList",
+          "ScoreRevisionView"
+        ],
+        "expected": [
+          "ScoreAbsenceAcknowledgement",
+          "ScoreCellPatch",
+          "ScoreCellValue",
+          "ScoreColumnMapping",
+          "ScoreCorrectionEntry",
+          "ScoreImportConfirmRequest",
+          "ScoreImportConfirmResult",
+          "ScoreImportList",
+          "ScoreImportPatchRequest",
+          "ScoreImportRowList",
+          "ScoreImportRowPatch",
+          "ScoreImportRowView",
+          "ScoreImportSummary",
+          "ScoreImportView",
+          "ScoreItemColumn",
+          "ScoreItemSnapshot",
+          "ScoreMatrixPage",
+          "ScoreMatrixParticipant",
+          "ScoreMatrixRow",
+          "ScoreMissingAcknowledgement",
+          "ScoreParticipantSnapshot",
+          "ScoreRawCellView",
+          "ScoreRevisionCorrectRequest",
+          "ScoreRevisionCorrectResult",
+          "ScoreRevisionList",
+          "ScoreRevisionView"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreAbsenceAcknowledgement 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "classId",
+          "participantIds"
+        ],
+        "expected": [
+          "classId",
+          "participantIds"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreAbsenceAcknowledgement.classId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreAbsenceAcknowledgement.classId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreAbsenceAcknowledgement.classId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreAbsenceAcknowledgement.participantIds 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreAbsenceAcknowledgement.participantIds 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreAbsenceAcknowledgement.participantIds 数组元素类型",
+      "ok": true,
+      "detail": {
+        "py": "array<string>",
+        "ts": "array<string>"
+      }
+    },
+    {
+      "label": "scores.ScoreCellPatch 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "column",
+          "row",
+          "text"
+        ],
+        "expected": [
+          "column",
+          "row",
+          "text"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreCellPatch.column 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreCellPatch.column 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreCellPatch.column 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreCellPatch.row 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreCellPatch.row 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreCellPatch.row 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreCellPatch.text 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreCellPatch.text 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreCellPatch.text 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreCellValue 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "itemId",
+          "scoreUnits",
+          "status"
+        ],
+        "expected": [
+          "itemId",
+          "scoreUnits",
+          "status"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreCellValue.itemId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreCellValue.itemId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreCellValue.itemId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreCellValue.scoreUnits 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreCellValue.scoreUnits 可空性",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreCellValue.scoreUnits 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreCellValue.status 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreCellValue.status 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreCellValue.status 类型（引用/枚举）",
+      "ok": true,
+      "detail": {
+        "actual": "enum:absent|exempt|missing|recorded",
+        "expected": "enum:absent|exempt|missing|recorded"
+      }
+    },
+    {
+      "label": "scores.ScoreColumnMapping 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "headerRow",
+          "itemColumns",
+          "nameColumn",
+          "studentNoColumn",
+          "workSheet"
+        ],
+        "expected": [
+          "headerRow",
+          "itemColumns",
+          "nameColumn",
+          "studentNoColumn",
+          "workSheet"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreColumnMapping.headerRow 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreColumnMapping.headerRow 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreColumnMapping.headerRow 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreColumnMapping.itemColumns 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreColumnMapping.itemColumns 数组元素类型",
+      "ok": true,
+      "detail": {
+        "actual": "ref:ScoreItemColumn",
+        "expected": "ref:ScoreItemColumn"
+      }
+    },
+    {
+      "label": "scores.ScoreColumnMapping.nameColumn 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreColumnMapping.nameColumn 可空性",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreColumnMapping.nameColumn 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreColumnMapping.studentNoColumn 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreColumnMapping.studentNoColumn 可空性",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreColumnMapping.studentNoColumn 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreColumnMapping.workSheet 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreColumnMapping.workSheet 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreColumnMapping.workSheet 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreCorrectionEntry 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "itemId",
+          "participantId",
+          "scoreText",
+          "status"
+        ],
+        "expected": [
+          "itemId",
+          "participantId",
+          "scoreText",
+          "status"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreCorrectionEntry.itemId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreCorrectionEntry.itemId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreCorrectionEntry.itemId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreCorrectionEntry.participantId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreCorrectionEntry.participantId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreCorrectionEntry.participantId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreCorrectionEntry.scoreText 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreCorrectionEntry.scoreText 可空性",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreCorrectionEntry.scoreText 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreCorrectionEntry.status 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreCorrectionEntry.status 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreCorrectionEntry.status 类型（引用/枚举）",
+      "ok": true,
+      "detail": {
+        "actual": "enum:absent|exempt|missing|recorded",
+        "expected": "enum:absent|exempt|missing|recorded"
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmRequest 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "absences",
+          "baseScoreRevisionId",
+          "expectedAssessmentRevision",
+          "expectedImportRevision",
+          "missing",
+          "previewVersion",
+          "submissionId"
+        ],
+        "expected": [
+          "absences",
+          "baseScoreRevisionId",
+          "expectedAssessmentRevision",
+          "expectedImportRevision",
+          "missing",
+          "previewVersion",
+          "submissionId"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmRequest.absences 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmRequest.absences 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmRequest.absences 数组元素类型",
+      "ok": true,
+      "detail": {
+        "actual": "ref:ScoreAbsenceAcknowledgement",
+        "expected": "ref:ScoreAbsenceAcknowledgement"
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmRequest.baseScoreRevisionId 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmRequest.baseScoreRevisionId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmRequest.baseScoreRevisionId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmRequest.expectedAssessmentRevision 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmRequest.expectedAssessmentRevision 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmRequest.expectedAssessmentRevision 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmRequest.expectedImportRevision 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmRequest.expectedImportRevision 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmRequest.expectedImportRevision 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmRequest.missing 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmRequest.missing 可空性",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmRequest.missing 类型（引用/枚举）",
+      "ok": true,
+      "detail": {
+        "actual": "ref:ScoreMissingAcknowledgement",
+        "expected": "ref:ScoreMissingAcknowledgement"
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmRequest.previewVersion 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmRequest.previewVersion 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmRequest.previewVersion 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmRequest.submissionId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmRequest.submissionId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmRequest.submissionId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmResult 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "activeScoreRevisionId",
+          "assessmentRevision",
+          "importId",
+          "replayed",
+          "revisionId",
+          "state"
+        ],
+        "expected": [
+          "activeScoreRevisionId",
+          "assessmentRevision",
+          "importId",
+          "replayed",
+          "revisionId",
+          "state"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmResult.activeScoreRevisionId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmResult.activeScoreRevisionId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmResult.activeScoreRevisionId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmResult.assessmentRevision 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmResult.assessmentRevision 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmResult.assessmentRevision 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmResult.importId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmResult.importId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmResult.importId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmResult.replayed 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmResult.replayed 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmResult.replayed 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "boolean",
+        "ts": "boolean"
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmResult.revisionId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmResult.revisionId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmResult.revisionId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmResult.state 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmResult.state 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportConfirmResult.state 类型（引用/枚举）",
+      "ok": true,
+      "detail": {
+        "actual": "enum:cancelled|confirmed|failed|reviewing|uploaded",
+        "expected": "enum:cancelled|confirmed|failed|reviewing|uploaded"
+      }
+    },
+    {
+      "label": "scores.ScoreImportList 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "items",
+          "limit",
+          "offset",
+          "total"
+        ],
+        "expected": [
+          "items",
+          "limit",
+          "offset",
+          "total"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreImportList.items 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportList.items 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportList.items 数组元素类型",
+      "ok": true,
+      "detail": {
+        "actual": "ref:ScoreImportSummary",
+        "expected": "ref:ScoreImportSummary"
+      }
+    },
+    {
+      "label": "scores.ScoreImportList.limit 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportList.limit 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportList.limit 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreImportList.offset 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportList.offset 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportList.offset 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreImportList.total 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportList.total 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportList.total 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreImportPatchRequest 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "expectedRevision",
+          "mapping",
+          "rows"
+        ],
+        "expected": [
+          "expectedRevision",
+          "mapping",
+          "rows"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreImportPatchRequest.expectedRevision 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportPatchRequest.expectedRevision 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportPatchRequest.expectedRevision 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreImportPatchRequest.mapping 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreImportPatchRequest.mapping 可空性",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreImportPatchRequest.mapping 类型（引用/枚举）",
+      "ok": true,
+      "detail": {
+        "actual": "ref:ScoreColumnMapping",
+        "expected": "ref:ScoreColumnMapping"
+      }
+    },
+    {
+      "label": "scores.ScoreImportPatchRequest.rows 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreImportPatchRequest.rows 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportPatchRequest.rows 数组元素类型",
+      "ok": true,
+      "detail": {
+        "actual": "ref:ScoreImportRowPatch",
+        "expected": "ref:ScoreImportRowPatch"
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowList 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "items",
+          "limit",
+          "offset",
+          "total"
+        ],
+        "expected": [
+          "items",
+          "limit",
+          "offset",
+          "total"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowList.items 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowList.items 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowList.items 数组元素类型",
+      "ok": true,
+      "detail": {
+        "actual": "ref:ScoreImportRowView",
+        "expected": "ref:ScoreImportRowView"
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowList.limit 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowList.limit 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowList.limit 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowList.offset 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowList.offset 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowList.offset 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowList.total 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowList.total 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowList.total 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowPatch 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "cells",
+          "participantId",
+          "rowNo"
+        ],
+        "expected": [
+          "cells",
+          "participantId",
+          "rowNo"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowPatch.cells 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowPatch.cells 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowPatch.cells 数组元素类型",
+      "ok": true,
+      "detail": {
+        "actual": "ref:ScoreCellPatch",
+        "expected": "ref:ScoreCellPatch"
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowPatch.participantId 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowPatch.participantId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowPatch.participantId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowPatch.rowNo 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowPatch.rowNo 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowPatch.rowNo 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowView 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "candidates",
+          "cells",
+          "issues",
+          "participantId",
+          "participantName",
+          "rowNo"
+        ],
+        "expected": [
+          "candidates",
+          "cells",
+          "issues",
+          "participantId",
+          "participantName",
+          "rowNo"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowView.candidates 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowView.candidates 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowView.candidates 数组元素类型",
+      "ok": true,
+      "detail": {
+        "py": "array<string>",
+        "ts": "array<string>"
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowView.cells 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowView.cells 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowView.cells 数组元素类型",
+      "ok": true,
+      "detail": {
+        "actual": "ref:ScoreRawCellView",
+        "expected": "ref:ScoreRawCellView"
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowView.issues 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowView.issues 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowView.issues 数组元素类型",
+      "ok": true,
+      "detail": {
+        "actual": "ref:ErrorIssue",
+        "expected": "ref:ErrorIssue"
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowView.participantId 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowView.participantId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowView.participantId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowView.participantName 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowView.participantName 可空性",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowView.participantName 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowView.rowNo 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowView.rowNo 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportRowView.rowNo 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreImportSummary 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "assessmentId",
+          "createdAt",
+          "importId",
+          "revision",
+          "rowCount",
+          "state",
+          "updatedAt"
+        ],
+        "expected": [
+          "assessmentId",
+          "createdAt",
+          "importId",
+          "revision",
+          "rowCount",
+          "state",
+          "updatedAt"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreImportSummary.assessmentId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportSummary.assessmentId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportSummary.assessmentId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreImportSummary.createdAt 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportSummary.createdAt 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportSummary.createdAt 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreImportSummary.importId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportSummary.importId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportSummary.importId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreImportSummary.revision 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportSummary.revision 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportSummary.revision 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreImportSummary.rowCount 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportSummary.rowCount 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportSummary.rowCount 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreImportSummary.state 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportSummary.state 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportSummary.state 类型（引用/枚举）",
+      "ok": true,
+      "detail": {
+        "actual": "enum:cancelled|confirmed|failed|reviewing|uploaded",
+        "expected": "enum:cancelled|confirmed|failed|reviewing|uploaded"
+      }
+    },
+    {
+      "label": "scores.ScoreImportSummary.updatedAt 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportSummary.updatedAt 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportSummary.updatedAt 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreImportView 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "assessmentId",
+          "assessmentTitle",
+          "baseScoreRevisionId",
+          "createdAt",
+          "fileAsset",
+          "importId",
+          "issues",
+          "mapping",
+          "missingCellCount",
+          "previewVersion",
+          "resolvedRowCount",
+          "revision",
+          "rowCount",
+          "state",
+          "updatedAt",
+          "warnings"
+        ],
+        "expected": [
+          "assessmentId",
+          "assessmentTitle",
+          "baseScoreRevisionId",
+          "createdAt",
+          "fileAsset",
+          "importId",
+          "issues",
+          "mapping",
+          "missingCellCount",
+          "previewVersion",
+          "resolvedRowCount",
+          "revision",
+          "rowCount",
+          "state",
+          "updatedAt",
+          "warnings"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.assessmentId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.assessmentId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.assessmentId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.assessmentTitle 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.assessmentTitle 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.assessmentTitle 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.baseScoreRevisionId 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.baseScoreRevisionId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.baseScoreRevisionId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.createdAt 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.createdAt 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.createdAt 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.fileAsset 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.fileAsset 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.fileAsset 类型（引用/枚举）",
+      "ok": true,
+      "detail": {
+        "actual": "ref:AssetRef",
+        "expected": "ref:AssetRef"
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.importId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.importId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.importId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.issues 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.issues 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.issues 数组元素类型",
+      "ok": true,
+      "detail": {
+        "actual": "ref:ErrorIssue",
+        "expected": "ref:ErrorIssue"
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.mapping 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.mapping 可空性",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.mapping 类型（引用/枚举）",
+      "ok": true,
+      "detail": {
+        "actual": "ref:ScoreColumnMapping",
+        "expected": "ref:ScoreColumnMapping"
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.missingCellCount 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.missingCellCount 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.missingCellCount 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.previewVersion 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.previewVersion 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.previewVersion 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.resolvedRowCount 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.resolvedRowCount 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.resolvedRowCount 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.revision 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.revision 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.revision 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.rowCount 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.rowCount 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.rowCount 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.state 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.state 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.state 类型（引用/枚举）",
+      "ok": true,
+      "detail": {
+        "actual": "enum:cancelled|confirmed|failed|reviewing|uploaded",
+        "expected": "enum:cancelled|confirmed|failed|reviewing|uploaded"
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.updatedAt 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.updatedAt 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.updatedAt 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.warnings 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.warnings 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreImportView.warnings 数组元素类型",
+      "ok": true,
+      "detail": {
+        "py": "array<string>",
+        "ts": "array<string>"
+      }
+    },
+    {
+      "label": "scores.ScoreItemColumn 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "column",
+          "itemId"
+        ],
+        "expected": [
+          "column",
+          "itemId"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreItemColumn.column 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreItemColumn.column 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreItemColumn.column 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreItemColumn.itemId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreItemColumn.itemId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreItemColumn.itemId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreItemSnapshot 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "itemId",
+          "itemPath",
+          "maxScoreUnits"
+        ],
+        "expected": [
+          "itemId",
+          "itemPath",
+          "maxScoreUnits"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreItemSnapshot.itemId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreItemSnapshot.itemId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreItemSnapshot.itemId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreItemSnapshot.itemPath 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreItemSnapshot.itemPath 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreItemSnapshot.itemPath 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreItemSnapshot.maxScoreUnits 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreItemSnapshot.maxScoreUnits 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreItemSnapshot.maxScoreUnits 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "absentClassIds",
+          "items",
+          "limit",
+          "missingCellCount",
+          "missingParticipantIds",
+          "offset",
+          "revision",
+          "rows",
+          "total"
+        ],
+        "expected": [
+          "absentClassIds",
+          "items",
+          "limit",
+          "missingCellCount",
+          "missingParticipantIds",
+          "offset",
+          "revision",
+          "rows",
+          "total"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.absentClassIds 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.absentClassIds 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.absentClassIds 数组元素类型",
+      "ok": true,
+      "detail": {
+        "py": "array<string>",
+        "ts": "array<string>"
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.items 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.items 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.items 数组元素类型",
+      "ok": true,
+      "detail": {
+        "actual": "ref:ScoreItemSnapshot",
+        "expected": "ref:ScoreItemSnapshot"
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.limit 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.limit 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.limit 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.missingCellCount 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.missingCellCount 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.missingCellCount 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.missingParticipantIds 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.missingParticipantIds 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.missingParticipantIds 数组元素类型",
+      "ok": true,
+      "detail": {
+        "py": "array<string>",
+        "ts": "array<string>"
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.offset 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.offset 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.offset 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.revision 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.revision 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.revision 类型（引用/枚举）",
+      "ok": true,
+      "detail": {
+        "actual": "ref:ScoreRevisionView",
+        "expected": "ref:ScoreRevisionView"
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.rows 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.rows 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.rows 数组元素类型",
+      "ok": true,
+      "detail": {
+        "actual": "ref:ScoreMatrixRow",
+        "expected": "ref:ScoreMatrixRow"
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.total 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.total 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixPage.total 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "attemptNo",
+          "attendance",
+          "classId",
+          "name",
+          "participantId",
+          "studentId",
+          "studentNo",
+          "totalMaxUnits",
+          "totalUnits"
+        ],
+        "expected": [
+          "attemptNo",
+          "attendance",
+          "classId",
+          "name",
+          "participantId",
+          "studentId",
+          "studentNo",
+          "totalMaxUnits",
+          "totalUnits"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.attemptNo 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.attemptNo 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.attemptNo 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.attendance 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.attendance 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.attendance 类型（引用/枚举）",
+      "ok": true,
+      "detail": {
+        "actual": "enum:absent|exempt|present",
+        "expected": "enum:absent|exempt|present"
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.classId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.classId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.classId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.name 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.name 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.name 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.participantId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.participantId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.participantId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.studentId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.studentId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.studentId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.studentNo 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.studentNo 可空性",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.studentNo 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.totalMaxUnits 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.totalMaxUnits 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.totalMaxUnits 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.totalUnits 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.totalUnits 可空性",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixParticipant.totalUnits 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixRow 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "cells",
+          "participant"
+        ],
+        "expected": [
+          "cells",
+          "participant"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixRow.cells 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixRow.cells 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixRow.cells 数组元素类型",
+      "ok": true,
+      "detail": {
+        "actual": "ref:ScoreCellValue",
+        "expected": "ref:ScoreCellValue"
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixRow.participant 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixRow.participant 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMatrixRow.participant 类型（引用/枚举）",
+      "ok": true,
+      "detail": {
+        "actual": "ref:ScoreMatrixParticipant",
+        "expected": "ref:ScoreMatrixParticipant"
+      }
+    },
+    {
+      "label": "scores.ScoreMissingAcknowledgement 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "cellCount",
+          "participantIds"
+        ],
+        "expected": [
+          "cellCount",
+          "participantIds"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreMissingAcknowledgement.cellCount 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMissingAcknowledgement.cellCount 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMissingAcknowledgement.cellCount 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreMissingAcknowledgement.participantIds 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMissingAcknowledgement.participantIds 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreMissingAcknowledgement.participantIds 数组元素类型",
+      "ok": true,
+      "detail": {
+        "py": "array<string>",
+        "ts": "array<string>"
+      }
+    },
+    {
+      "label": "scores.ScoreParticipantSnapshot 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "attemptNo",
+          "attendance",
+          "classId",
+          "name",
+          "participantId",
+          "studentId",
+          "studentNo"
+        ],
+        "expected": [
+          "attemptNo",
+          "attendance",
+          "classId",
+          "name",
+          "participantId",
+          "studentId",
+          "studentNo"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreParticipantSnapshot.attemptNo 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreParticipantSnapshot.attemptNo 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreParticipantSnapshot.attemptNo 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreParticipantSnapshot.attendance 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreParticipantSnapshot.attendance 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreParticipantSnapshot.attendance 类型（引用/枚举）",
+      "ok": true,
+      "detail": {
+        "actual": "enum:absent|exempt|present",
+        "expected": "enum:absent|exempt|present"
+      }
+    },
+    {
+      "label": "scores.ScoreParticipantSnapshot.classId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreParticipantSnapshot.classId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreParticipantSnapshot.classId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreParticipantSnapshot.name 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreParticipantSnapshot.name 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreParticipantSnapshot.name 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreParticipantSnapshot.participantId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreParticipantSnapshot.participantId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreParticipantSnapshot.participantId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreParticipantSnapshot.studentId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreParticipantSnapshot.studentId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreParticipantSnapshot.studentId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreParticipantSnapshot.studentNo 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreParticipantSnapshot.studentNo 可空性",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreParticipantSnapshot.studentNo 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreRawCellView 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "cachedText",
+          "column",
+          "isFormula",
+          "row",
+          "text"
+        ],
+        "expected": [
+          "cachedText",
+          "column",
+          "isFormula",
+          "row",
+          "text"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreRawCellView.cachedText 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreRawCellView.cachedText 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRawCellView.cachedText 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreRawCellView.column 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRawCellView.column 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRawCellView.column 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreRawCellView.isFormula 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreRawCellView.isFormula 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRawCellView.isFormula 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "boolean",
+        "ts": "boolean"
+      }
+    },
+    {
+      "label": "scores.ScoreRawCellView.row 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRawCellView.row 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRawCellView.row 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreRawCellView.text 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreRawCellView.text 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRawCellView.text 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectRequest 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "baseScoreRevisionId",
+          "corrections",
+          "expectedAssessmentRevision",
+          "reason",
+          "submissionId"
+        ],
+        "expected": [
+          "baseScoreRevisionId",
+          "corrections",
+          "expectedAssessmentRevision",
+          "reason",
+          "submissionId"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectRequest.baseScoreRevisionId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectRequest.baseScoreRevisionId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectRequest.baseScoreRevisionId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectRequest.corrections 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectRequest.corrections 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectRequest.corrections 数组元素类型",
+      "ok": true,
+      "detail": {
+        "actual": "ref:ScoreCorrectionEntry",
+        "expected": "ref:ScoreCorrectionEntry"
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectRequest.expectedAssessmentRevision 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectRequest.expectedAssessmentRevision 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectRequest.expectedAssessmentRevision 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectRequest.reason 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectRequest.reason 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectRequest.reason 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectRequest.submissionId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectRequest.submissionId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectRequest.submissionId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectResult 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "activeScoreRevisionId",
+          "assessmentRevision",
+          "baseRevisionId",
+          "replayed",
+          "revisionId",
+          "version"
+        ],
+        "expected": [
+          "activeScoreRevisionId",
+          "assessmentRevision",
+          "baseRevisionId",
+          "replayed",
+          "revisionId",
+          "version"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectResult.activeScoreRevisionId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectResult.activeScoreRevisionId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectResult.activeScoreRevisionId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectResult.assessmentRevision 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectResult.assessmentRevision 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectResult.assessmentRevision 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectResult.baseRevisionId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectResult.baseRevisionId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectResult.baseRevisionId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectResult.replayed 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectResult.replayed 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectResult.replayed 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "boolean",
+        "ts": "boolean"
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectResult.revisionId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectResult.revisionId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectResult.revisionId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectResult.version 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectResult.version 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionCorrectResult.version 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionList 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "items",
+          "total"
+        ],
+        "expected": [
+          "items",
+          "total"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionList.items 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionList.items 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionList.items 数组元素类型",
+      "ok": true,
+      "detail": {
+        "actual": "ref:ScoreRevisionView",
+        "expected": "ref:ScoreRevisionView"
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionList.total 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionList.total 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionList.total 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "assessmentId",
+          "baseRevisionId",
+          "confirmedAt",
+          "createdAt",
+          "itemSnapshot",
+          "participantSnapshot",
+          "revisionId",
+          "sourceImportId",
+          "state",
+          "version"
+        ],
+        "expected": [
+          "assessmentId",
+          "baseRevisionId",
+          "confirmedAt",
+          "createdAt",
+          "itemSnapshot",
+          "participantSnapshot",
+          "revisionId",
+          "sourceImportId",
+          "state",
+          "version"
+        ]
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.assessmentId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.assessmentId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.assessmentId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.baseRevisionId 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.baseRevisionId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.baseRevisionId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.confirmedAt 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.confirmedAt 可空性",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.confirmedAt 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.createdAt 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.createdAt 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.createdAt 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.itemSnapshot 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.itemSnapshot 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.itemSnapshot 数组元素类型",
+      "ok": true,
+      "detail": {
+        "actual": "ref:ScoreItemSnapshot",
+        "expected": "ref:ScoreItemSnapshot"
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.participantSnapshot 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.participantSnapshot 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.participantSnapshot 数组元素类型",
+      "ok": true,
+      "detail": {
+        "actual": "ref:ScoreParticipantSnapshot",
+        "expected": "ref:ScoreParticipantSnapshot"
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.revisionId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.revisionId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.revisionId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.sourceImportId 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.sourceImportId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.sourceImportId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.state 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.state 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.state 类型（引用/枚举）",
+      "ok": true,
+      "detail": {
+        "actual": "enum:confirmed|draft",
+        "expected": "enum:confirmed|draft"
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.version 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.version 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "scores.ScoreRevisionView.version 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "assessments-api.ts 无本地 ScoreImportPatchRequest 形状（r2）",
+      "ok": true,
+      "detail": [
+        "AssessmentQuery",
+        "ClassQuery",
+        "PaperQuery",
+        "ScoreImportCreateMeta",
+        "ScoreImportQuery",
+        "StudentQuery"
+      ]
+    },
+    {
+      "label": "assessments-api.ts 从 @/contracts/scores 再导出（r2）",
+      "ok": true,
+      "detail": "export type 语句"
+    },
+    {
+      "label": "assessments-api.ts 从 @/contracts/scores 导入该类型（r2）",
+      "ok": true,
+      "detail": "import 块"
+    },
+    {
+      "label": "ScoreStatus 枚举集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "absent",
+          "exempt",
+          "missing",
+          "recorded"
+        ],
+        "expected": [
+          "absent",
+          "exempt",
+          "missing",
+          "recorded"
+        ]
+      }
+    },
+    {
+      "label": "assessments 模型集合一致",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "AssessmentView"
+        ],
+        "expected": [
+          "AssessmentView"
+        ]
+      }
+    },
+    {
+      "label": "assessments.AssessmentView 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "activeScoreRevisionId",
+          "assessmentId",
+          "assessmentType",
+          "classIds",
+          "createdAt",
+          "heldOn",
+          "paperId",
+          "paperRevisionId",
+          "paperTitle",
+          "participantCount",
+          "revision",
+          "state",
+          "subjectId",
+          "title"
+        ],
+        "expected": [
+          "activeScoreRevisionId",
+          "assessmentId",
+          "assessmentType",
+          "classIds",
+          "createdAt",
+          "heldOn",
+          "paperId",
+          "paperRevisionId",
+          "paperTitle",
+          "participantCount",
+          "revision",
+          "state",
+          "subjectId",
+          "title"
+        ]
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.activeScoreRevisionId 可选性（py required=False ↔ ts optional=True）",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.activeScoreRevisionId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.activeScoreRevisionId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.assessmentId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.assessmentId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.assessmentId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.assessmentType 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.assessmentType 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.assessmentType 类型（引用/枚举）",
+      "ok": true,
+      "detail": {
+        "actual": "enum:exam|practice|quiz",
+        "expected": "enum:exam|practice|quiz"
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.classIds 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.classIds 数组元素类型",
+      "ok": true,
+      "detail": {
+        "py": "array<string>",
+        "ts": "array<string>"
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.createdAt 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.createdAt 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.createdAt 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.heldOn 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.heldOn 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.heldOn 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.paperId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.paperId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.paperId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.paperRevisionId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.paperRevisionId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.paperRevisionId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.paperTitle 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.paperTitle 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.paperTitle 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.participantCount 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.participantCount 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.revision 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.revision 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.revision 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "number(int)",
+        "ts": "number"
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.state 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.state 类型（引用/枚举）",
+      "ok": true,
+      "detail": {
+        "actual": "enum:archived|closed|open",
+        "expected": "enum:archived|closed|open"
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.subjectId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.subjectId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.subjectId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.title 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.title 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "assessments.AssessmentView.title 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "AssessmentView.activeScoreRevisionId 存在且可选/可空",
+      "ok": true,
+      "detail": {
+        "actual": {
+          "required": false,
+          "nullable": true
+        },
+        "expected": {
+          "required": false,
+          "nullable": true
+        }
+      }
+    },
+    {
+      "label": "question-bank 模型集合一致",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "QuestionKnowledgeLinkView"
+        ],
+        "expected": [
+          "QuestionKnowledgeLinkView"
+        ]
+      }
+    },
+    {
+      "label": "question-bank.QuestionKnowledgeLinkView 字段名集合",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "knowledgeNameSnapshot",
+          "knowledgePointId",
+          "knowledgeRevisionId",
+          "role",
+          "subjectIdSnapshot"
+        ],
+        "expected": [
+          "knowledgeNameSnapshot",
+          "knowledgePointId",
+          "knowledgeRevisionId",
+          "role",
+          "subjectIdSnapshot"
+        ]
+      }
+    },
+    {
+      "label": "question-bank.QuestionKnowledgeLinkView.knowledgeNameSnapshot 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "question-bank.QuestionKnowledgeLinkView.knowledgeNameSnapshot 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "question-bank.QuestionKnowledgeLinkView.knowledgeNameSnapshot 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "question-bank.QuestionKnowledgeLinkView.knowledgePointId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "question-bank.QuestionKnowledgeLinkView.knowledgePointId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "question-bank.QuestionKnowledgeLinkView.knowledgePointId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "question-bank.QuestionKnowledgeLinkView.knowledgeRevisionId 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "question-bank.QuestionKnowledgeLinkView.knowledgeRevisionId 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "question-bank.QuestionKnowledgeLinkView.knowledgeRevisionId 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    },
+    {
+      "label": "question-bank.QuestionKnowledgeLinkView.role 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "question-bank.QuestionKnowledgeLinkView.role 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "question-bank.QuestionKnowledgeLinkView.role 类型（引用/枚举）",
+      "ok": true,
+      "detail": {
+        "actual": "enum:primary|secondary",
+        "expected": "enum:primary|secondary"
+      }
+    },
+    {
+      "label": "question-bank.QuestionKnowledgeLinkView.subjectIdSnapshot 可选性（py required=True ↔ ts optional=False）",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "question-bank.QuestionKnowledgeLinkView.subjectIdSnapshot 可空性",
+      "ok": true,
+      "detail": {
+        "actual": false,
+        "expected": false
+      }
+    },
+    {
+      "label": "question-bank.QuestionKnowledgeLinkView.subjectIdSnapshot 类型类别",
+      "ok": true,
+      "detail": {
+        "py": "string",
+        "ts": "string"
+      }
+    }
+  ],
+  "failures": [],
+  "observations": [
+    "r1 的镜像差项 ScoreImportPatchRequest 已并入 contracts/scores.ts（第 127-131 行），web 端 services/assessments-api.ts 只再导出、不再持有第二份形状。",
+    "[已登记镜像偏差] scores.ScoreColumnMapping.itemColumns 可选性：后端 default_factory=list（可省略，按 0 个未映射叶处理）；TS 必填。方向为 TS 更严格，响应始终含该字段（非功能缺陷）。",
+    "scores 侧 Python 模型 26 个，TS 接口 26 个",
+    "[已登记镜像偏差] assessments.AssessmentView.classIds 可选性：后端 default_factory=list，响应始终含 classIds；TS 必填（TS 更严格，非功能缺陷）。",
+    "[已登记镜像偏差] assessments.AssessmentView.participantCount 可选性：后端默认 0，响应始终含 participantCount；TS 必填（同一类）。",
+    "[已登记镜像偏差] assessments.AssessmentView.state 可选性：后端默认 open，响应始终含 state；TS 必填（同一类）。",
+    "AssessmentView.activeScoreRevisionId（py）={'required': False, 'nullable': True, 'kind': 'string', 'annotation': 'str | None'}",
+    "QuestionKnowledgeLinkView（py）={\"knowledgePointId\": {\"required\": true, \"nullable\": false, \"kind\": \"string\", \"annotation\": \"<class 'str'>\"}, \"knowledgeRevisionId\": {\"required\": true, \"nullable\": false, \"kind\": \"string\", \"annotation\": \"<class 'str'>\"}, \"knowledgeNameSnapshot\": {\"required\": true, \"nullable\": false, \"kind\": \"string\", \"annotation\": \"<class 'str'>\"}, \"subjectIdSnapshot\": {\"required\": true, \"nullable\": false, \"kind\": \"string\", \"annotation\": \"<class 'str'>\"}, \"role\": {\"required\": true, \"nullable\": false, \"kind\": \"enum:primary|secondary\", \"annotation\": \"typing.Literal['primary', 'secondary']\"}}",
+    "QuestionKnowledgeLinkView（ts）={\"kind\": \"interface\", \"extends\": [], \"members\": [{\"name\": \"knowledgePointId\", \"optional\": false, \"type\": \"string\"}, {\"name\": \"knowledgeRevisionId\", \"optional\": false, \"type\": \"string\"}, {\"name\": \"knowledgeNameSnapshot\", \"optional\": false, \"type\": \"string\"}, {\"name\": \"subjectIdSnapshot\", \"optional\": false, \"type\": \"string\"}, {\"name\": \"role\", \"optional\": false, \"type\": \"'primary' | 'secondary'\"}]}"
+  ]
+}

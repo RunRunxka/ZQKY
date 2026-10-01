@@ -1,0 +1,440 @@
+{
+ "probe": "v1_migrations_probe",
+ "results": [
+  {
+   "name": "A1[teaching] 新库应用全部登记迁移",
+   "status": "PASS",
+   "detail": "applied=['0001_teaching_baseline', '0002_teaching_business_tables', '0003_teaching_paper_tables', '0004_teaching_assessment_tables']"
+  },
+  {
+   "name": "A2[teaching] 重复应用幂等（返回空）",
+   "status": "PASS",
+   "detail": "second apply == []"
+  },
+  {
+   "name": "A3[teaching] B2 新表齐备",
+   "status": "PASS",
+   "detail": "missing=[]"
+  },
+  {
+   "name": "A4[teaching] foreign_key_check 为空",
+   "status": "PASS",
+   "detail": "0 rows"
+  },
+  {
+   "name": "A5[teaching] quick_check ok",
+   "status": "PASS",
+   "detail": "ok"
+  },
+  {
+   "name": "A6[teaching] 登记行数 = 迁移条数",
+   "status": "PASS",
+   "detail": "4 rows"
+  },
+  {
+   "name": "A7[teaching] verify_migrations 不报漂移",
+   "status": "PASS",
+   "detail": "no drift"
+  },
+  {
+   "name": "A1[question_bank] 新库应用全部登记迁移",
+   "status": "PASS",
+   "detail": "applied=['0001_question_bank_baseline', '0002_question_jobs_engine_columns', '0003_question_jobs_engine_state_index', '0004_question_knowledge_links']"
+  },
+  {
+   "name": "A2[question_bank] 重复应用幂等（返回空）",
+   "status": "PASS",
+   "detail": "second apply == []"
+  },
+  {
+   "name": "A3[question_bank] B2 新表齐备",
+   "status": "PASS",
+   "detail": "missing=[]"
+  },
+  {
+   "name": "A4[question_bank] foreign_key_check 为空",
+   "status": "PASS",
+   "detail": "0 rows"
+  },
+  {
+   "name": "A5[question_bank] quick_check ok",
+   "status": "PASS",
+   "detail": "ok"
+  },
+  {
+   "name": "A6[question_bank] 登记行数 = 迁移条数",
+   "status": "PASS",
+   "detail": "4 rows"
+  },
+  {
+   "name": "A7[question_bank] verify_migrations 不报漂移",
+   "status": "PASS",
+   "detail": "no drift"
+  },
+  {
+   "name": "B1[teaching/B0] 旧库前置登记 = 前 1 条",
+   "status": "PASS",
+   "detail": "before=1 条"
+  },
+  {
+   "name": "B2[teaching/B0] 增量只应用 B2 迁移",
+   "status": "PASS",
+   "detail": "applied=['0002_teaching_business_tables', '0003_teaching_paper_tables', '0004_teaching_assessment_tables']"
+  },
+  {
+   "name": "B3[teaching/B0] 升级后 B2 表齐备",
+   "status": "PASS",
+   "detail": "missing=[]"
+  },
+  {
+   "name": "B4[teaching/B0] 升级后 foreign_key_check 为空",
+   "status": "PASS",
+   "detail": "0 rows"
+  },
+  {
+   "name": "B5[teaching/B0] 升级后再应用幂等",
+   "status": "PASS",
+   "detail": "third apply == []"
+  },
+  {
+   "name": "B1[teaching/B1] 旧库前置登记 = 前 3 条",
+   "status": "PASS",
+   "detail": "before=3 条"
+  },
+  {
+   "name": "B2[teaching/B1] 增量只应用 B2 迁移",
+   "status": "PASS",
+   "detail": "applied=['0004_teaching_assessment_tables']"
+  },
+  {
+   "name": "B3[teaching/B1] 升级后 B2 表齐备",
+   "status": "PASS",
+   "detail": "missing=[]"
+  },
+  {
+   "name": "B4[teaching/B1] 升级后 foreign_key_check 为空",
+   "status": "PASS",
+   "detail": "0 rows"
+  },
+  {
+   "name": "B5[teaching/B1] 升级后再应用幂等",
+   "status": "PASS",
+   "detail": "third apply == []"
+  },
+  {
+   "name": "B1[question_bank/B0] 旧库前置登记 = 前 1 条",
+   "status": "PASS",
+   "detail": "before=1 条"
+  },
+  {
+   "name": "B2[question_bank/B0] 增量只应用 B2 迁移",
+   "status": "PASS",
+   "detail": "applied=['0002_question_jobs_engine_columns', '0003_question_jobs_engine_state_index', '0004_question_knowledge_links']"
+  },
+  {
+   "name": "B3[question_bank/B0] 升级后 B2 表齐备",
+   "status": "PASS",
+   "detail": "missing=[]"
+  },
+  {
+   "name": "B4[question_bank/B0] 升级后 foreign_key_check 为空",
+   "status": "PASS",
+   "detail": "0 rows"
+  },
+  {
+   "name": "B5[question_bank/B0] 升级后再应用幂等",
+   "status": "PASS",
+   "detail": "third apply == []"
+  },
+  {
+   "name": "B1[question_bank/B1] 旧库前置登记 = 前 3 条",
+   "status": "PASS",
+   "detail": "before=3 条"
+  },
+  {
+   "name": "B2[question_bank/B1] 增量只应用 B2 迁移",
+   "status": "PASS",
+   "detail": "applied=['0004_question_knowledge_links']"
+  },
+  {
+   "name": "B3[question_bank/B1] 升级后 B2 表齐备",
+   "status": "PASS",
+   "detail": "missing=[]"
+  },
+  {
+   "name": "B4[question_bank/B1] 升级后 foreign_key_check 为空",
+   "status": "PASS",
+   "detail": "0 rows"
+  },
+  {
+   "name": "B5[question_bank/B1] 升级后再应用幂等",
+   "status": "PASS",
+   "detail": "third apply == []"
+  },
+  {
+   "name": "C1 中途失败抛错",
+   "status": "PASS",
+   "detail": "sqlite3.Error raised"
+  },
+  {
+   "name": "C2 失败迁移第一句已回滚（表不存在）",
+   "status": "PASS",
+   "detail": "has_table=False"
+  },
+  {
+   "name": "C3 失败迁移未写登记行",
+   "status": "PASS",
+   "detail": "['0004_teaching_assessment_tables']"
+  },
+  {
+   "name": "C4 失败后既有登记未损",
+   "status": "PASS",
+   "detail": "4 条"
+  },
+  {
+   "name": "D1[teaching/0001_teaching_baseline] 已登记散列 == 已验收记录",
+   "status": "PASS",
+   "detail": "bf78fb3fb702b6f6"
+  },
+  {
+   "name": "D1[question_bank/0001_question_bank_baseline] 已登记散列 == 已验收记录",
+   "status": "PASS",
+   "detail": "b7025e4ad9e2b042"
+  },
+  {
+   "name": "D1[question_bank/0002_question_jobs_engine_columns] 已登记散列 == 已验收记录",
+   "status": "PASS",
+   "detail": "61e5595258709835"
+  },
+  {
+   "name": "D1[question_bank/0003_question_jobs_engine_state_index] 已登记散列 == 已验收记录",
+   "status": "PASS",
+   "detail": "b4e4aa295b7bd8f0"
+  },
+  {
+   "name": "D2[teaching.py/_BASELINE_STATEMENTS] 声明语句与 B1 提交逐字一致",
+   "status": "PASS",
+   "detail": "old=bf78fb3fb702 new=bf78fb3fb702 len=6/6"
+  },
+  {
+   "name": "D2[teaching.py/_BUSINESS_STATEMENTS] 声明语句与 B1 提交逐字一致",
+   "status": "PASS",
+   "detail": "old=a23c6c59982f new=a23c6c59982f len=13/13"
+  },
+  {
+   "name": "D2[question_bank.py/_BASELINE_STATEMENTS] 声明语句与 B1 提交逐字一致",
+   "status": "PASS",
+   "detail": "old=b7025e4ad9e2 new=b7025e4ad9e2 len=17/17"
+  },
+  {
+   "name": "D2[question_bank.py/_ENGINE_STATEMENTS(派生)] 声明语句与 B1 提交逐字一致",
+   "status": "PASS",
+   "detail": "old=61e559525870 new=61e559525870 len=13/13"
+  },
+  {
+   "name": "D3[teaching/0001_teaching_baseline] 声明散列稳定（重复计算一致）",
+   "status": "PASS",
+   "detail": "bf78fb3fb702b6f6"
+  },
+  {
+   "name": "D3[teaching/0002_teaching_business_tables] 声明散列稳定（重复计算一致）",
+   "status": "PASS",
+   "detail": "a23c6c59982f7f57"
+  },
+  {
+   "name": "D3[teaching/0003_teaching_paper_tables] 声明散列稳定（重复计算一致）",
+   "status": "PASS",
+   "detail": "d948738226b3a3ff"
+  },
+  {
+   "name": "D3[question_bank/0001_question_bank_baseline] 声明散列稳定（重复计算一致）",
+   "status": "PASS",
+   "detail": "b7025e4ad9e2b042"
+  },
+  {
+   "name": "D3[question_bank/0002_question_jobs_engine_columns] 声明散列稳定（重复计算一致）",
+   "status": "PASS",
+   "detail": "61e5595258709835"
+  },
+  {
+   "name": "D3[question_bank/0003_question_jobs_engine_state_index] 声明散列稳定（重复计算一致）",
+   "status": "PASS",
+   "detail": "b4e4aa295b7bd8f0"
+  },
+  {
+   "name": "E1 source_practice_revision_id 非空被拒（分期 CHECK）",
+   "status": "PASS",
+   "detail": "IntegrityError: CHECK constraint failed: source_practice_revision_id IS NULL"
+  },
+  {
+   "name": "E2 source_file_id 为空被拒（NOT NULL）",
+   "status": "PASS",
+   "detail": "IntegrityError: NOT NULL constraint failed: paper_revisions.source_file_id"
+  },
+  {
+   "name": "E3 草稿 total_score_units=0 允许（分期容差）",
+   "status": "PASS",
+   "detail": "inserted"
+  },
+  {
+   "name": "E4 source_file_id 指向不存在资产被拒（外键）",
+   "status": "PASS",
+   "detail": "IntegrityError: FOREIGN KEY constraint failed"
+  },
+  {
+   "name": "E5 直接写入 confirmed 修订被拒（no_direct_sealed）",
+   "status": "PASS",
+   "detail": "IntegrityError: USE_CONFIRM_TRANSITION"
+  },
+  {
+   "name": "E6 assessments.active_score_revision_id 非空被拒（分期 CHECK）",
+   "status": "PASS",
+   "detail": "IntegrityError: CHECK constraint failed: active_score_revision_id IS NULL"
+  },
+  {
+   "name": "E7 foreign_key_check 仍为空",
+   "status": "PASS",
+   "detail": "0 rows"
+  },
+  {
+   "name": "F1 paper_confirm: 无计分小题 → NO_SCORED_ITEMS",
+   "status": "PASS",
+   "detail": "IntegrityError: NO_SCORED_ITEMS"
+  },
+  {
+   "name": "F2 paper_confirm: 总分不符 → PAPER_TOTAL_MISMATCH",
+   "status": "PASS",
+   "detail": "IntegrityError: PAPER_TOTAL_MISMATCH"
+  },
+  {
+   "name": "F3 paper_confirm: 计分叶缺知识点 → ITEM_KNOWLEDGE_MISSING",
+   "status": "PASS",
+   "detail": "IntegrityError: ITEM_KNOWLEDGE_MISSING"
+  },
+  {
+   "name": "F4 paper_confirm: 父容器计分 → SCORED_ITEM_MUST_BE_LEAF",
+   "status": "PASS",
+   "detail": "IntegrityError: SCORED_ITEM_MUST_BE_LEAF"
+  },
+  {
+   "name": "F5 paper_confirm: 合法草稿可确认",
+   "status": "PASS",
+   "detail": ""
+  },
+  {
+   "name": "F6 freeze_paper_items_update：改归属/题号被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "F7 freeze_paper_items_update：改 parent 归属被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "F8 freeze_paper_items_delete：删题被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "F9 freeze_paper_items_insert：插题被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "F10 freeze_paper_item_knowledge_update：改关联被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "F11 freeze_paper_item_knowledge_delete：删关联被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "F12 immutable_paper_revisions_update：改已确认修订被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "F13 freeze_paper_source_blocks_insert：插块被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "F14 freeze_paper_issues_insert：插问题被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "F15 草稿期块处置/问题状态可改（正向对照）",
+   "status": "PASS",
+   "detail": "ok"
+  },
+  {
+   "name": "F16 freeze_paper_source_blocks_update：确认后改处置被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "F17 freeze_paper_source_blocks_update：确认后改归属被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "F18 freeze_paper_source_blocks_delete：确认后删块被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "F19 freeze_paper_issues_update：确认后改问题被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "F20 freeze_paper_issues_delete：确认后删问题被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "F21 paper_cycle_update：父子成环被拒（ITEM_CYCLE）",
+   "status": "PASS",
+   "detail": "IntegrityError: ITEM_CYCLE"
+  },
+  {
+   "name": "F22 paper_items 自引用被拒（CHECK parent_item_id<>id）",
+   "status": "PASS",
+   "detail": "IntegrityError: ITEM_CYCLE"
+  },
+  {
+   "name": "F23 存在 paper_cycle_insert/update 两个触发器",
+   "status": "PASS",
+   "detail": "['paper_cycle_insert', 'paper_cycle_update']"
+  },
+  {
+   "name": "F24 assessment_confirmed_paper_insert：draft 修订被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: PAPER_NOT_CONFIRMED"
+  },
+  {
+   "name": "F25 assessment_paper_fixed：施测换卷被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: ASSESSMENT_PAPER_FIXED"
+  },
+  {
+   "name": "F26 class_confirmed=1 无依据被拒（CHECK）",
+   "status": "PASS",
+   "detail": "IntegrityError: CHECK constraint failed: class_confirmed=0 OR (class_confirmation_note IS NOT NULL AND length(trim(class_confirmation_note))"
+  },
+  {
+   "name": "F27 班级范围外参测被拒（复合外键）",
+   "status": "PASS",
+   "detail": "IntegrityError: FOREIGN KEY constraint failed"
+  },
+  {
+   "name": "F28 foreign_key_check 为空",
+   "status": "PASS",
+   "detail": "0 rows"
+  }
+ ]
+}

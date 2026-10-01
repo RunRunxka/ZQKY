@@ -1,0 +1,167 @@
+{
+  "probe": "p22_immutability_gate",
+  "startedAt": 1790863863.6543155,
+  "durationSeconds": 1.544,
+  "checks": [
+    {
+      "label": "确认后矩阵行数=3×3",
+      "ok": true,
+      "detail": {
+        "actual": 9,
+        "expected": 9
+      }
+    },
+    {
+      "label": "UPDATE 已确认修订 version → SCORE_REVISION_IMMUTABLE",
+      "ok": true,
+      "detail": "SCORE_REVISION_IMMUTABLE"
+    },
+    {
+      "label": "DELETE 已确认修订 → SCORE_REVISION_IMMUTABLE",
+      "ok": true,
+      "detail": "SCORE_REVISION_IMMUTABLE"
+    },
+    {
+      "label": "UPDATE 已确认矩阵行 → SCORE_REVISION_IMMUTABLE",
+      "ok": true,
+      "detail": "SCORE_REVISION_IMMUTABLE"
+    },
+    {
+      "label": "DELETE 已确认矩阵行 → SCORE_REVISION_IMMUTABLE",
+      "ok": true,
+      "detail": "SCORE_REVISION_IMMUTABLE"
+    },
+    {
+      "label": "INSERT 已确认矩阵行 → SCORE_REVISION_IMMUTABLE",
+      "ok": true,
+      "detail": "SCORE_REVISION_IMMUTABLE"
+    },
+    {
+      "label": "不可变尝试后修订仍在且 version 未变",
+      "ok": true,
+      "detail": {
+        "actual": [
+          {
+            "version": 1,
+            "state": "confirmed"
+          }
+        ],
+        "expected": [
+          {
+            "version": 1,
+            "state": "confirmed"
+          }
+        ]
+      }
+    },
+    {
+      "label": "不可变尝试后矩阵行数不变",
+      "ok": true,
+      "detail": {
+        "actual": 9,
+        "expected": 9
+      }
+    },
+    {
+      "label": "构造的不全草稿：快照 3 人次×3 叶、矩阵 8 行",
+      "ok": true,
+      "detail": {
+        "actual": {
+          "snapshot": 3,
+          "items": 3,
+          "cells": 8
+        },
+        "expected": {
+          "snapshot": 3,
+          "items": 3,
+          "cells": 8
+        }
+      }
+    },
+    {
+      "label": "不全矩阵确认 → SCORE_MATRIX_INCOMPLETE",
+      "ok": true,
+      "detail": "SCORE_MATRIX_INCOMPLETE"
+    },
+    {
+      "label": "闸门拒绝后草稿仍未确认",
+      "ok": true,
+      "detail": {
+        "actual": "draft",
+        "expected": "draft"
+      }
+    },
+    {
+      "label": "active 指向 draft → SCORE_REVISION_NOT_CONFIRMED",
+      "ok": true,
+      "detail": "SCORE_REVISION_NOT_CONFIRMED"
+    },
+    {
+      "label": "副本上闸门存在",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "副本上闸门已 DROP",
+      "ok": true,
+      "detail": {
+        "actual": 0,
+        "expected": 0
+      }
+    },
+    {
+      "label": "DROP 闸门后同一条不全确认 UPDATE 成功（反证闸门是拦截面）",
+      "ok": true,
+      "detail": null
+    },
+    {
+      "label": "副本上不全修订已变 confirmed",
+      "ok": true,
+      "detail": {
+        "actual": "confirmed",
+        "expected": "confirmed"
+      }
+    },
+    {
+      "label": "原库的不全修订仍是 draft（变异不外溢）",
+      "ok": true,
+      "detail": {
+        "actual": "draft",
+        "expected": "draft"
+      }
+    },
+    {
+      "label": "原库闸门仍在",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "服务层变异：闸门已删除",
+      "ok": true,
+      "detail": {
+        "actual": 0,
+        "expected": 0
+      }
+    },
+    {
+      "label": "变异确认写入了 5 行（少 1）",
+      "ok": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    }
+  ],
+  "failures": [],
+  "observations": [
+    "DB 副本变异位置：C:\\Users\\96022\\AppData\\Local\\Temp\\b3v00-mut-wa2dpy5y\\teaching.sqlite3",
+    "服务层变异结果：{\"status\": 200, \"droppedCell\": [\"fdcf3ac16e704899bb77ac13a6ce9e1e\", \"it-mutsvc-3\", \"missing\", null], \"body\": {\"importId\": \"ccbc44e055b64c51985f1814b7254c8c\", \"state\": \"confirmed\", \"revisionId\": \"121713ff16424b979663fc2a4ac2c1b0\", \"assessmentRevision\": 1, \"activeScoreRevisionId\": \"121713ff16424b979663fc2a4ac2c1b0\", \"replayed\": false}}",
+    "服务层不独立复核矩阵完整性：删掉闸门 + 仓储少写一格时确认仍成功（该修订 5 行，期望 6 行）；残余风险：任何绕过 build_preview 的未来写入路径只能靠 DB 闸门兜底（本批生产路径均从冻结快照生成完整矩阵）。"
+  ]
+}

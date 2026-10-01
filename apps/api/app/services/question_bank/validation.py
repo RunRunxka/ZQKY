@@ -7,10 +7,16 @@
 - ``fill_blank`` / ``short_answer`` 的答案必须给出 ``textMarkdown``；
 - 答案缺失（``answer`` 为空或全部字段为空）时必须显式确认"原文未提供答案"；
 - 答案缺失的题目可以入库，``answerState`` 保持 ``not_provided`` 并继续显示。
+
+草稿知识点关联（B2）：
+- 输入只带 ``knowledgePointId`` + ``role``；知识点身份/修订/名称/学科由服务层向
+  知识点库（只读）解析后补成**完整快照行**，本模块只做形状与去重校验；
+- 同一知识点在一次请求里重复出现 → 422 ``KNOWLEDGE_LINK_DUPLICATE``，不静默去重。
 """
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -19,6 +25,7 @@ from app.schemas.question_bank import QuestionAnswer, QuestionContent, QuestionM
 
 CHOICE_TYPES = frozenset({"single_choice", "multiple_choice"})
 TEXT_ANSWER_TYPES = frozenset({"fill_blank", "short_answer"})
+LINK_ROLES = frozenset({"primary", "secondary"})
 
 
 @dataclass(frozen=True)
@@ -126,3 +133,46 @@ def validate_for_confirm(
 
 def content_payload(content: QuestionContent) -> dict[str, Any]:
     return content.model_dump(mode="json")
+
+
+def parse_knowledge_links(raw: object) -> list[tuple[str, str]]:
+    """草稿关联输入 → ``[(knowledgePointId, role)]``；形状非法/重复一律 422。"""
+    if raw is None:
+        return []
+    if isinstance(raw, (str, bytes)) or not isinstance(raw, Sequence):
+        raise AppError(
+            "knowledgeLinks 必须是数组。",
+            code="KNOWLEDGE_LINK_INVALID",
+            status_code=422,
+        )
+    links: list[tuple[str, str]] = []
+    seen: set[str] = set()
+    for item in raw:
+        if isinstance(item, Mapping):
+            point_id = item.get("knowledgePointId")
+            role = item.get("role", "primary")
+        else:  # pydantic 模型（DraftKnowledgeLinkInput）同样接受
+            point_id = getattr(item, "knowledgePointId", None)
+            role = getattr(item, "role", "primary")
+        if not isinstance(point_id, str) or not point_id.strip():
+            raise AppError(
+                "knowledgeLinks 的 knowledgePointId 必须是非空字符串。",
+                code="KNOWLEDGE_LINK_INVALID",
+                status_code=422,
+            )
+        if not isinstance(role, str) or role not in LINK_ROLES:
+            raise AppError(
+                f"knowledgeLinks 的 role 必须是 {sorted(LINK_ROLES)} 之一。",
+                code="KNOWLEDGE_LINK_INVALID",
+                status_code=422,
+            )
+        point_id = point_id.strip()
+        if point_id in seen:
+            raise AppError(
+                f"knowledgeLinks 里同一知识点不允许重复：{point_id}。",
+                code="KNOWLEDGE_LINK_DUPLICATE",
+                status_code=422,
+            )
+        seen.add(point_id)
+        links.append((point_id, role))
+    return links

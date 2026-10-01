@@ -1,0 +1,598 @@
+/* 施测与成绩模块页面级样式（/assessments，TEACHING-LOOP B3 · F20-I）。
+   消费 globals.css 单一变量层（--font-ui/--font-display、--blue/--blue-soft、--surface/--ink/
+   --line/--muted/--danger、--radius-*、--space-*）与 space.css 的 .space-* 基础类；
+   作用域：全部选择器以 .assessments-page 起头，不新增主题色、不新增动画
+   （依赖全局 motion.css 的 prefers-reduced-motion / html[data-motion] 机制）。
+   布局：面板单列；矩阵/行列表允许自身横向滚动，保证 390px 视口页面级无横向溢出。 */
+
+.assessments-page .space-content {
+  min-width: 0;
+  max-width: 1180px;
+}
+
+.assessments-page .assessments-context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 16px;
+}
+
+.assessments-page .visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ===== 子面板与表单 ===== */
+
+.assessments-page .assessments-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.assessments-page .assessments-subpanel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  background: var(--bg);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.assessments-page .assessments-subpanel-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.assessments-page .assessments-subpanel-head h3,
+.assessments-page .assessments-subpanel-head h4 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.assessments-page .assessments-subpanel-head h5 {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink);
+}
+
+.assessments-page .assessments-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.assessments-page .assessments-meta {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.assessments-page .assessments-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.assessments-page .assessments-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: flex-end;
+  min-width: 0;
+}
+
+.assessments-page .assessments-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
+  color: var(--ink);
+  min-width: 0;
+}
+
+.assessments-page .assessments-field-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.assessments-page .assessments-field-static {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.assessments-page .assessments-input {
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  min-width: 0;
+}
+
+.assessments-page .assessments-input-narrow {
+  max-width: 120px;
+}
+
+.assessments-page .assessments-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ===== 列表与卡片 ===== */
+
+.assessments-page .assessments-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.assessments-page .assessments-list-item,
+.assessments-page .assessments-list-static {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  text-align: left;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 13px;
+  min-width: 0;
+}
+
+.assessments-page .assessments-list-item {
+  transition:
+    background-color 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1)),
+    border-color 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1));
+}
+
+.assessments-page .assessments-list-item:hover {
+  background: var(--surface);
+}
+
+.assessments-page .assessments-list-item.current {
+  border-color: #c3d7fd;
+  background: var(--blue-soft);
+  color: var(--blue-deep);
+}
+
+.assessments-page .assessments-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  transition:
+    background-color 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1)),
+    border-color 150ms var(--ease-standard, cubic-bezier(0, 0, 0.2, 1));
+}
+
+.assessments-page .assessments-card.current {
+  border-color: #c3d7fd;
+  background: var(--blue-soft);
+}
+
+.assessments-page .assessments-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13.5px;
+}
+
+.assessments-page .assessments-check {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.assessments-page .assessments-issue-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid #f2d9a4;
+  border-radius: var(--radius-sm);
+  background: #fdf6e7;
+  color: #7a5209;
+  font-size: 12.5px;
+  line-height: 1.7;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  overflow-wrap: anywhere;
+}
+
+/* ===== 参测人次 ===== */
+
+.assessments-page .assessments-participants {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.assessments-page .assessments-participants legend {
+  padding: 0 6px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.assessments-page .assessments-participant-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  border-bottom: 1px dashed var(--line);
+  padding-bottom: 6px;
+}
+
+.assessments-page .assessments-participant-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.assessments-page .assessments-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ===== 列映射 ===== */
+
+.assessments-page .assessments-mapping-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+
+.assessments-page .assessments-leaf-map {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  min-width: 0;
+}
+
+.assessments-page .assessments-leaf-map legend {
+  padding: 0 6px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/* ===== 四态徽章与图例（颜色 + 文案 + 字形，不只靠颜色） ===== */
+
+.assessments-page .score-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.assessments-page .score-status-glyph {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.assessments-page .score-status-recorded {
+  border-color: #c3d7fd;
+  background: var(--blue-soft);
+  color: var(--blue-deep);
+}
+
+.assessments-page .score-status-missing {
+  border-style: dashed;
+  border-color: #d8b45a;
+  background: #fdf6e7;
+  color: #7a5209;
+}
+
+.assessments-page .score-status-absent {
+  border-color: #c9c9c9;
+  background: #f2f2f2;
+  color: #444;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.assessments-page .score-status-exempt {
+  border-color: #b9c6e6;
+  background: #eef1fa;
+  color: #3d4a70;
+  font-style: italic;
+}
+
+.assessments-page .score-status-unparsed {
+  border-color: var(--danger);
+  background: #fdeceb;
+  color: var(--danger);
+}
+
+.assessments-page .score-legend {
+  list-style: none;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.assessments-page .score-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.assessments-page .score-legend-note {
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+.assessments-page .score-chip-danger {
+  border-color: #f3c2bd;
+  background: #fdeceb;
+  color: var(--danger);
+}
+
+/* ===== 成绩步骤与行校对 ===== */
+
+.assessments-page .score-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.assessments-page .score-step {
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--bg);
+}
+
+.assessments-page .score-step.current {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+  color: var(--blue-deep);
+  font-weight: 600;
+}
+
+.assessments-page .score-row-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.assessments-page .score-row {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.assessments-page .score-row-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.assessments-page .score-cell-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.assessments-page .score-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  min-width: 168px;
+}
+
+.assessments-page .score-cell.focused,
+.assessments-page .score-cell[data-issue='true'] {
+  border-color: var(--danger);
+  background: #fdeceb;
+}
+
+.assessments-page .score-cell-address {
+  font-size: 11.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.assessments-page .score-cell-note {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.5;
+  max-width: 220px;
+  overflow-wrap: anywhere;
+}
+
+/* ===== 承认与确认 ===== */
+
+.assessments-page .score-acknowledge {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.assessments-page .score-ack-group {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.assessments-page .score-confirm-summary {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.assessments-page .score-confirm-summary > div {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  font-size: 12.5px;
+  border-bottom: 1px dashed var(--line);
+  padding-bottom: 4px;
+}
+
+.assessments-page .score-confirm-summary dt {
+  color: var(--muted);
+}
+
+.assessments-page .score-confirm-summary dd {
+  margin: 0;
+  color: var(--ink);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+/* ===== 只读矩阵（自身横向滚动，不撑破 390px） ===== */
+
+.assessments-page .score-matrix-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  max-width: 100%;
+  /* 建立包含块：单元格内的 .visually-hidden 绝对定位元素否则会逃出滚动裁剪，
+     把整个文档的 scrollWidth 撑到表格全宽（100 叶真实链实测 7607 > 1440）。 */
+  position: relative;
+}
+
+.assessments-page .score-matrix {
+  border-collapse: collapse;
+  font-size: 12.5px;
+  min-width: 100%;
+  position: relative;
+}
+
+.assessments-page .score-matrix th,
+.assessments-page .score-matrix td {
+  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  padding: 6px 10px;
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.assessments-page .score-matrix thead th {
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.assessments-page .score-matrix tbody th {
+  font-weight: 600;
+  background: var(--bg);
+}
+
+.assessments-page .score-matrix tbody tr:last-child th,
+.assessments-page .score-matrix tbody tr:last-child td {
+  border-bottom: none;
+}
+
+@media (max-width: 960px) {
+  .assessments-page .assessments-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .assessments-page .score-cell {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .assessments-page .score-legend-note {
+    max-width: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .assessments-page .space-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .assessments-page .space-tabs button {
+    flex: 1 1 auto;
+    padding: 8px 10px;
+    white-space: nowrap;
+  }
+}

@@ -10,6 +10,10 @@ from collections.abc import Sequence
 from typing import Any
 
 from app.core.exceptions import AppError
+from app.repositories.question_bank.catalog import (
+    DraftKnowledgeLinkRecord,
+    QuestionKnowledgeLinkRecord,
+)
 from app.repositories.question_bank.records import (
     DraftRecord,
     ImportRecord,
@@ -19,6 +23,7 @@ from app.repositories.question_bank.records import (
     SuggestionRecord,
 )
 from app.schemas.question_bank import (
+    DraftKnowledgeLinkView,
     DraftView,
     OrganizeBatchFailure,
     OrganizeJobView,
@@ -26,6 +31,7 @@ from app.schemas.question_bank import (
     QuestionDetail,
     QuestionImportDetail,
     QuestionImportSummary,
+    QuestionKnowledgeLinkView,
     QuestionLocatorView,
     QuestionMetadata,
     QuestionSummary,
@@ -97,7 +103,32 @@ def source_block_view(record: SourceBlockRecord) -> SourceBlockView:
     )
 
 
-def draft_view(record: DraftRecord) -> DraftView:
+def draft_link_view(record: DraftKnowledgeLinkRecord) -> DraftKnowledgeLinkView:
+    return DraftKnowledgeLinkView(
+        knowledgePointId=record.knowledge_point_id,
+        knowledgeRevisionId=record.knowledge_revision_id,
+        knowledgeNameSnapshot=record.knowledge_name_snapshot,
+        subjectIdSnapshot=record.subject_id_snapshot,
+        role=record.role,  # type: ignore[arg-type]
+        source=record.source,  # type: ignore[arg-type]
+    )
+
+
+def question_link_view(
+    record: QuestionKnowledgeLinkRecord,
+) -> QuestionKnowledgeLinkView:
+    return QuestionKnowledgeLinkView(
+        knowledgePointId=record.knowledge_point_id,
+        knowledgeRevisionId=record.knowledge_revision_id,
+        knowledgeNameSnapshot=record.knowledge_name_snapshot,
+        subjectIdSnapshot=record.subject_id_snapshot,
+        role=record.role,  # type: ignore[arg-type]
+    )
+
+
+def draft_view(
+    record: DraftRecord, *, links: Sequence[DraftKnowledgeLinkRecord] = ()
+) -> DraftView:
     return DraftView(
         draftId=record.draft_id,
         importId=record.import_id,
@@ -110,6 +141,7 @@ def draft_view(record: DraftRecord) -> DraftView:
         missingAnswerAcknowledged=record.missing_answer_acknowledged,
         warnings=list(record.warnings),
         duplicateOfQuestionId=record.duplicate_of_question_id,
+        knowledgeLinks=[draft_link_view(link) for link in links],
     )
 
 
@@ -154,7 +186,9 @@ def import_detail(
     *,
     drafts: list[DraftRecord],
     unassigned: list[SourceBlockRecord],
+    links_by_draft: dict[str, list[DraftKnowledgeLinkRecord]] | None = None,
 ) -> QuestionImportDetail:
+    links = links_by_draft or {}
     summary = import_summary(
         record,
         draft_count=len(drafts),
@@ -163,7 +197,9 @@ def import_detail(
     )
     return QuestionImportDetail(
         **summary.model_dump(),
-        drafts=[draft_view(draft) for draft in drafts],
+        drafts=[
+            draft_view(draft, links=links.get(draft.draft_id, ())) for draft in drafts
+        ],
         unassignedBlocks=[source_block_view(block) for block in unassigned],
     )
 
@@ -195,7 +231,9 @@ def question_summary(record: QuestionRecord) -> QuestionSummary:
     )
 
 
-def question_detail(record: QuestionRecord) -> QuestionDetail:
+def question_detail(
+    record: QuestionRecord, *, links: Sequence[QuestionKnowledgeLinkRecord] = ()
+) -> QuestionDetail:
     summary = question_summary(record)
     spans: list[SourceSpan] = []
     for item in record.sources:
@@ -209,6 +247,7 @@ def question_detail(record: QuestionRecord) -> QuestionDetail:
         metadata=_metadata(record.metadata, where="题目"),
         sources=spans,
         sourceImportId=record.source_import_id,
+        knowledgeLinks=[question_link_view(link) for link in links],
     )
 
 
@@ -247,16 +286,23 @@ def organize_job_view(
     suggestions: Sequence[SuggestionRecord],
     suggestion_count: int,
 ) -> OrganizeJobView:
-    """整理任务视图：``suggestions`` 只含仍可处理的 ``pending`` 明细，``suggestionCount`` 仍是任务总数。"""
+    """整理任务视图：``suggestions`` 只含仍可处理的 ``pending`` 明细，``suggestionCount`` 仍是任务总数。
+
+    ``record`` 可以是题库目录的 ``JobRecord``，也可以是统一任务引擎（``JobStore``）的记录：
+    两者都提供 ``job_id`` / ``state`` / ``checkpoint`` / ``error_code``，引擎记录另有
+    ``attempt``（旧目录记录没有 attempt 列，按 0 显示）。
+    """
     raw_failures = record.checkpoint.get("failedBatches")
     if raw_failures is None:
         raw_failures = []
     if not isinstance(raw_failures, list):
         raise _corrupt("整理任务的 failedBatches 不是数组")
     failures = [organize_batch_failure(item) for item in raw_failures]
+    attempt = getattr(record, "attempt", 0)
     return OrganizeJobView(
         jobId=record.job_id,
         state=record.state,  # type: ignore[arg-type]
+        attempt=attempt if isinstance(attempt, int) and not isinstance(attempt, bool) else 0,
         suggestionCount=suggestion_count,
         failedBatches=len(failures),
         errorCode=record.error_code,

@@ -1,0 +1,225 @@
+{
+ "probe": "v3_papers_confirm_probe",
+ "results": [
+  {
+   "name": "V3.1 可确认草稿就绪（4 题 / 1500 单位 / 归属齐全）",
+   "status": "PASS",
+   "detail": "total=1500 items=4"
+  },
+  {
+   "name": "V3.2a 把 p3 改回 unassigned（前置补丁 200 且未 fork）",
+   "status": "PASS",
+   "detail": "200 rev=b1154f5d {\"paperId\":\"34d59447d9bf4afe8e76e6b5b51c1711\",\"paperRevisionId\":\"b1154f5d51014833912b434d25f885a0\",\"version\":1,\"state\":\""
+  },
+  {
+   "name": "V3.2 存在未归属块 → 422 PAPER_BLOCK_UNASSIGNED（带块序号定位）",
+   "status": "PASS",
+   "detail": "422/PAPER_BLOCK_UNASSIGNED still_draft=True rows=[3]"
+  },
+  {
+   "name": "V3.2b 复原 p3 归属（全表重发）（前置补丁 200 且未 fork）",
+   "status": "PASS",
+   "detail": "200 rev=b1154f5d {\"paperId\":\"34d59447d9bf4afe8e76e6b5b51c1711\",\"paperRevisionId\":\"b1154f5d51014833912b434d25f885a0\",\"version\":1,\"state\":\""
+  },
+  {
+   "name": "V3.4a 去掉 16(1) 的知识点（前置补丁 200 且未 fork）",
+   "status": "PASS",
+   "detail": "200 rev=b1154f5d {\"paperId\":\"34d59447d9bf4afe8e76e6b5b51c1711\",\"paperRevisionId\":\"b1154f5d51014833912b434d25f885a0\",\"version\":1,\"state\":\""
+  },
+  {
+   "name": "V3.4 计分叶缺知识点 → 422 ITEM_KNOWLEDGE_MISSING（逐题定位）",
+   "status": "PASS",
+   "detail": "422/ITEM_KNOWLEDGE_MISSING still_draft=True rows=[2]"
+  },
+  {
+   "name": "V3.4b 恢复知识点（前置补丁 200 且未 fork）",
+   "status": "PASS",
+   "detail": "200 rev=b1154f5d {\"paperId\":\"34d59447d9bf4afe8e76e6b5b51c1711\",\"paperRevisionId\":\"b1154f5d51014833912b434d25f885a0\",\"version\":1,\"state\":\""
+  },
+  {
+   "name": "V3.5a 全部改不计分（前置补丁 200 且未 fork）",
+   "status": "PASS",
+   "detail": "200 rev=b1154f5d {\"paperId\":\"34d59447d9bf4afe8e76e6b5b51c1711\",\"paperRevisionId\":\"b1154f5d51014833912b434d25f885a0\",\"version\":1,\"state\":\""
+  },
+  {
+   "name": "V3.5 无计分叶子 → 422 NO_SCORED_ITEMS",
+   "status": "PASS",
+   "detail": "422/NO_SCORED_ITEMS still_draft=True"
+  },
+  {
+   "name": "V3.5b 恢复计分（前置补丁 200 且未 fork）",
+   "status": "PASS",
+   "detail": "200 rev=b1154f5d {\"paperId\":\"34d59447d9bf4afe8e76e6b5b51c1711\",\"paperRevisionId\":\"b1154f5d51014833912b434d25f885a0\",\"version\":1,\"state\":\""
+  },
+  {
+   "name": "V3.6 草稿总分与叶子合计不符 → 422 PAPER_TOTAL_MISMATCH",
+   "status": "PASS",
+   "detail": "422/PAPER_TOTAL_MISMATCH still_draft=True"
+  },
+  {
+   "name": "V3.7 仍有 open 的 blocking 问题 → 422 PAPER_ISSUE_BLOCKING",
+   "status": "PASS",
+   "detail": "422/PAPER_ISSUE_BLOCKING still_draft=True"
+  },
+  {
+   "name": "V3.8 expectedRevision 过期 → 409 PAPER_REVISION_STALE + currentRevision",
+   "status": "PASS",
+   "detail": "409/PAPER_REVISION_STALE {'currentRevision': 7}"
+  },
+  {
+   "name": "V3.9a 闸门用例全部被拒且草稿仍可确认",
+   "status": "PASS",
+   "detail": "gate_ok=True state=draft"
+  },
+  {
+   "name": "V3.9 闸门全过 → 确认成功",
+   "status": "PASS",
+   "detail": "200 {\"paperId\":\"34d59447d9bf4afe8e76e6b5b51c1711\",\"paperRevisionId\":\"b1154f5d51014833912b434d25f885a0\",\"state\":\"confirmed\",\"totalScoreUnits\":1500,\"scoredLeafCount\":"
+  },
+  {
+   "name": "V3.10 同 submissionId 重放 → replayed=True 且结果一致",
+   "status": "PASS",
+   "detail": "200 {\"paperId\":\"34d59447d9bf4afe8e76e6b5b51c1711\",\"paperRevisionId\":\"b1154f5d51014833912b434d25f885a0\",\"state\":\"confirmed\",\"totalScoreUnits\":1500,\"scoredLeafCount\":"
+  },
+  {
+   "name": "V3.11 确认后 currentState=confirmed 且 papers.revision +1",
+   "status": "PASS",
+   "detail": "confirmed rev=8"
+  },
+  {
+   "name": "V3.12 同 submissionId 不同载荷 → 409（SUBMISSION_CONFLICT / 已确认）",
+   "status": "PASS",
+   "detail": "409/SUBMISSION_CONFLICT"
+  },
+  {
+   "name": "V3.13 新 submissionId 重复确认 → 409 PAPER_NOT_EDITABLE",
+   "status": "PASS",
+   "detail": "409/PAPER_NOT_EDITABLE"
+  },
+  {
+   "name": "V3.14 直写 UPDATE paper_items 题号被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "V3.15 直写 UPDATE paper_items 分值被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "V3.16 直写 DELETE paper_items 被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "V3.17 直写 INSERT paper_items 被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "V3.18 直写 UPDATE paper_item_knowledge 被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "V3.19 直写 DELETE paper_item_knowledge 被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "V3.20 直写 INSERT paper_item_knowledge 被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "V3.21 直写 UPDATE paper_source_blocks 归属被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "V3.22 直写 DELETE paper_source_blocks 被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "V3.23 直写 INSERT paper_source_blocks 被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "V3.24 直写 UPDATE paper_issues 被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "V3.25 直写 DELETE paper_issues 被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "V3.26 直写 INSERT paper_issues 被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "V3.27 直写 UPDATE 已确认修订（改总分）被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "V3.28 直写 UPDATE 已确认修订（改回 draft）被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "V3.29 直写 DELETE 已确认修订被拒",
+   "status": "PASS",
+   "detail": "IntegrityError: IMMUTABLE_REVISION"
+  },
+  {
+   "name": "V3.30 绕过尝试后旧修订逐字节未变",
+   "status": "PASS",
+   "detail": "e68af25d5fb8f41a"
+  },
+  {
+   "name": "V3.31 建班成功",
+   "status": "PASS",
+   "detail": "201 {\"id\":\"079d1015f7ab4270b600b62a02c0f31e\",\"code\":\"V00C1\",\"name\":\"高一(1)班\",\"schoolYear\":\"2026-2027\",\"gradeId\":\"senior-1\",\"s"
+  },
+  {
+   "name": "V3.32 建学生 + 归属成功",
+   "status": "PASS",
+   "detail": "201 {\"id\":\"0d1f3c7c7ef74b7faaf43b0b49d62d6f\",\"studentNo\":\"V0001\",\"name\":\"张伟\",\"status\":\"active\",\"revision\":0,\"memberships\":[{"
+  },
+  {
+   "name": "V3.33 旧修订可真实建立施测",
+   "status": "PASS",
+   "detail": "201 {\"assessment\":{\"assessmentId\":\"f597243d0d9048e9a83a5fcacfe6e2f3\",\"paperRevisionId\":\"b1154f5d51014833912b434d25f885a0\",\"paperId\":\"34d59447d9bf4afe8e76e6b5b51c1711\",\"paperTitle\":\"V00 待确认卷\",\"subjectId\":\""
+  },
+  {
+   "name": "V3.34 改已确认卷自动新建 draft 修订",
+   "status": "PASS",
+   "detail": "200 {\"paperId\":\"34d59447d9bf4afe8e76e6b5b51c1711\",\"paperRevisionId\":\"be854241847146be82b05ba2c95ed33e\",\"version\":2,\"state\":\"draft\",\"subjectId\":\"math\",\"title\":\"V00 待确认卷\",\"totalScoreUnits\":1500,\"totalScore\""
+  },
+  {
+   "name": "V3.35 旧修订（v1）逐字节未变",
+   "status": "PASS",
+   "detail": "e68af25d5fb8f41a"
+  },
+  {
+   "name": "V3.36 新草稿复制了旧内容（题数/总分一致）",
+   "status": "PASS",
+   "detail": "4"
+  },
+  {
+   "name": "V3.37 新修订块行独立复制且旧修订仍 confirmed",
+   "status": "PASS",
+   "detail": "new=13 old=13 state=confirmed"
+  },
+  {
+   "name": "V3.38 旧施测仍指旧修订（paper revision 未被改写）",
+   "status": "PASS",
+   "detail": "b1154f5d51014833912b434d25f885a0"
+  }
+ ]
+}

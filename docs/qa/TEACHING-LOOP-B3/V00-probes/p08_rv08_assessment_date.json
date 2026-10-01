@@ -1,0 +1,56 @@
+{
+  "create": {
+    "status": 201,
+    "heldOn": "2026-09-30",
+    "attemptNo": 1,
+    "classConfirmed": false,
+    "nameSnapshot": "张三",
+    "studentNoSnapshot": "0007"
+  },
+  "patch_invalid_date": {
+    "status": 422,
+    "code": "PARTICIPANT_CLASS_UNCONFIRMED",
+    "issues": [
+      {
+        "row": 0,
+        "column": "classId",
+        "field": "classId",
+        "code": "PARTICIPANT_CLASS_UNCONFIRMED",
+        "message": "张三（第 1 人次，班级 61d01a3ba7e245cc8d3ced50aeff9e3a，参测记录 6c6e2e219c6f48389357247838c23b45） 的班级归属未覆盖 2026-09-01；请重新确认本次班级并填写依据（classConfirmed=true + classConfirmationNote）后重试。"
+      }
+    ],
+    "heldOnAfter": "2026-09-30",
+    "participantCount": 1
+  },
+  "reconfirm": {
+    "status": 200,
+    "participantCount": 1,
+    "classConfirmed": true,
+    "note": "教师核对纸质签到表：该生当日确在班参加考试。",
+    "nameSnapshot": "张三",
+    "attemptNo": 1
+  },
+  "patch_after_reconfirm": {
+    "status": 200,
+    "heldOnAfter": "2026-09-01",
+    "participantSnapshots": [
+      {
+        "name": "张三",
+        "studentNo": "0007",
+        "attemptNo": 1
+      }
+    ],
+    "membershipsUnchanged": true,
+    "membershipRows": [
+      {
+        "id": "119e5b1a23744740bffe5bed0143e75c",
+        "class_id": "61d01a3ba7e245cc8d3ced50aeff9e3a",
+        "student_id": "91c9edbfb6054dffad0278b27572c050",
+        "joined_on": "2026-09-20",
+        "left_on": null
+      }
+    ]
+  },
+  "failures": [],
+  "verdict": "pass"
+}

@@ -86,7 +86,8 @@ def test_new_database_applies_b1_and_is_idempotent(tmp_path: Path) -> None:
         connection = connect(tmp_path / f"{database}.sqlite3")
         try:
             applied = apply_migrations(connection, database=database)
-            assert applied == B1_APPLIED[database]
+            # 动态期望：当前登记的全部迁移（后续批次继续追加，不改本用例）
+            assert applied == [migration.id for migration in REGISTERED_MIGRATIONS[database]]
             assert tables <= _tables(connection)
             assert apply_migrations(connection, database=database) == []
             assert applied_migrations(connection)[f"0002_{database}_business_tables"]
@@ -128,8 +129,8 @@ def test_legacy_b0_only_database_passes_gate_then_gains_b1_tables(
     ):
         connection = connect(path)
         try:
-            assert apply_migrations(connection, database=database) == B1_APPLIED[
-                database
+            assert apply_migrations(connection, database=database) == [
+                migration.id for migration in REGISTERED_MIGRATIONS[database]
             ][1:]
             assert tables <= _tables(connection)
         finally:

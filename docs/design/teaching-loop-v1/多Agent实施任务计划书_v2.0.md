@@ -88,7 +88,7 @@
 |---|---|---|
 | B0 | CTRL、T00 | 类型、错误、版本、任务、资产及迁移契约冻结 |
 | B1 | T10、T20、T30-a | 富内容基础、正式知识点、班级名单可用（施测契约冻结，真实创建留 B2 的 T30-b） |
-| B2 | T40、T50、F10 知识点部分 | 原卷可确认，题库关联及生成校对链可用 |
+| B2 | T40、T50、T30-b、F10-KP | **已交付（2026-10-01，未提交）**：原卷可真实确认、题库关联/生成/统一任务可用、施测在真实原卷上建立冻结参测快照、`/knowledge-points` 前端可用；共享迁移兼容并通过独立验收 |
 | B3 | T60、F20 导入部分、F10 题库部分 | 名单→原卷→成绩完成真实链路 |
 | B4 | T70、T80、F20 成绩部分 | 学情可复算，练习可审核及回流 |
 | B5 | T90、F30 学情部分、F10 练习部分 | AI 教案后端及练习前端可用 |
@@ -96,6 +96,20 @@
 | B7 | V00 独立验收 | 候选停止写入，逐项给出 pass/fail/not_run |
 
 不沿用旧“8 人、8 周”排期。实施进度按批次验收推进，失败修复形成新候选版本。用户启动提示词指定的批次及授权范围优先；当前默认启动范围为 B0。
+
+#### B2 分期 DDL 交接（2026-10-01 登记）
+
+B2 已登记：教学库 `0003_teaching_paper_tables`（papers/paper_revisions/paper_items/paper_item_knowledge + paper_source_blocks/paper_issues/ai_proposals + 确认冻结触发器）与 `0004_teaching_assessment_tables`（assessments/assessment_classes/assessment_participants + 参测班级显式确认列 + 只用已确认卷/不能换卷触发器）；题库 `0004_question_knowledge_links`。编号已占用，后续批次**不得改写**。
+
+**B2 的分期偏差（后续批次必须补齐）**：
+
+1. `paper_revisions.source_practice_revision_id`：B2 保留列但 `CHECK(... IS NULL)` 且无外键（`practice_revisions` 属练习批次）。练习落地时新增迁移：建 `practice_revisions` 后按受检流程重建 `paper_revisions`（SQLite 不能 ADD FK）→ 恢复设计 CHECK「原卷/练习二选一」并允许非空；届时回填 `source_practice_revision_id` 的写入路径。
+2. `assessments.active_score_revision_id`：B2 只允许空、无外键（`score_revisions` 属 B3/T60）。B3 新增迁移：建 `score_revisions`（含 `(id,assessment_id)` 唯一）后按受检流程重建 `assessments` → 恢复设计复合外键 `(active_score_revision_id,id) REFERENCES score_revisions(id,assessment_id) DEFERRABLE` 并放开非空。
+3. `paper_confirm` 触发器缺 `PRACTICE_NOT_REVIEWED` 分支（同因未来表）；练习批次一并补回。
+4. `paper_revisions.total_score_units` B2 允许 0（草稿容差），确认闸门（服务 + 触发器）要求 >0 且等于计分叶子合计；该口径保留，不需回改。
+5. B3 前置：固定 `paperRevisionId` 与参测快照已由 B2 落库（`assessment_participants` + `class_confirmed` 依据）；成绩导入接口以 `assessments.id` + 确认修订为前置；`score_revisions.participant_snapshot_json`（计划书 §二.2 补齐项）在 T60 迁移中登记。
+
+T30-b 已交付（施测真实创建 + 参测人次 + 只能使用已确认修订），其验收证据见 `docs/qa/TEACHING-LOOP-B2/`。
 
 #### 4. 每个 Agent 的交付格式
 

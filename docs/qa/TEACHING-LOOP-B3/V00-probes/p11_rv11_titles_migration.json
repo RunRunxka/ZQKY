@@ -1,0 +1,114 @@
+{
+  "revision_title_snapshot": {
+    "beforeTitle": "Original Title",
+    "afterTitle": "Original Title",
+    "paperTitleNow": "NEW DRAFT Title",
+    "revisions": [
+      {
+        "id": "aa7ed44201254efebe01a1ed945a31c6",
+        "state": "confirmed",
+        "title_snapshot": "Original Title",
+        "title_snapshot_source": "revision"
+      },
+      {
+        "id": "60555807d92e4c67b98c5e02880d82f9",
+        "state": "draft",
+        "title_snapshot": "NEW DRAFT Title",
+        "title_snapshot_source": "revision"
+      }
+    ]
+  },
+  "migration_backfill_drafts_only": {
+    "pendingBefore": [
+      "0005_teaching_paper_revision_titles",
+      "0006_teaching_score_tables",
+      "0007_teaching_assessment_active_score_fk"
+    ],
+    "applied": [
+      "0005_teaching_paper_revision_titles",
+      "0006_teaching_score_tables",
+      "0007_teaching_assessment_active_score_fk"
+    ],
+    "error": null,
+    "columnsAdded": [
+      "title_snapshot",
+      "title_snapshot_source"
+    ],
+    "rows": [
+      {
+        "id": "rev-1",
+        "state": "draft",
+        "title_snapshot": "旧卷标题（当前值）",
+        "title_snapshot_source": "backfilled_from_paper"
+      },
+      {
+        "id": "rev-2",
+        "state": "draft",
+        "title_snapshot": "旧卷标题（当前值）",
+        "title_snapshot_source": "backfilled_from_paper"
+      }
+    ],
+    "shaMatches": true,
+    "secondApplyNoop": true,
+    "foreignKeys": 1
+  },
+  "migration_backfill_with_confirmed_revision": {
+    "applied": [
+      "0005_teaching_paper_revision_titles",
+      "0006_teaching_score_tables",
+      "0007_teaching_assessment_active_score_fk"
+    ],
+    "error": null,
+    "columnsAdded": [
+      "title_snapshot",
+      "title_snapshot_source"
+    ],
+    "rows": [
+      {
+        "id": "rev-1",
+        "state": "confirmed",
+        "title_snapshot": "旧卷标题（当前值）",
+        "title_snapshot_source": "backfilled_from_paper"
+      },
+      {
+        "id": "rev-2",
+        "state": "draft",
+        "title_snapshot": "旧卷标题（当前值）",
+        "title_snapshot_source": "backfilled_from_paper"
+      }
+    ],
+    "registered": true
+  },
+  "migration_rollback": {
+    "error": "IntegrityError: BLOCKED",
+    "columnsAfterFailure": [],
+    "registered0005AfterFailure": false,
+    "pendingAfterFailure": [
+      "0005_teaching_paper_revision_titles",
+      "0006_teaching_score_tables",
+      "0007_teaching_assessment_active_score_fk"
+    ],
+    "retryApplied": [
+      "0005_teaching_paper_revision_titles",
+      "0006_teaching_score_tables",
+      "0007_teaching_assessment_active_score_fk"
+    ],
+    "rowsAfterRetry": [
+      {
+        "id": "rev-1",
+        "title_snapshot": "旧卷标题（当前值）",
+        "title_snapshot_source": "backfilled_from_paper"
+      },
+      {
+        "id": "rev-2",
+        "title_snapshot": "旧卷标题（当前值）",
+        "title_snapshot_source": "backfilled_from_paper"
+      }
+    ]
+  },
+  "failures": [
+    "B1: 0005 在纯草稿旧库上的回填/登记/幂等不符",
+    "C: 0005 失败未整体回滚或不可重跑"
+  ],
+  "verdict": "fail"
+}

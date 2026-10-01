@@ -1,0 +1,64 @@
+{
+  "unit_resolve_frozen_model": {
+    "matchOk": true,
+    "missingFingerprint": [
+      "MODEL_FINGERPRINT_MISSING",
+      422
+    ],
+    "missingProfileId": [
+      "MODEL_FINGERPRINT_MISSING",
+      422
+    ],
+    "drift": [
+      "MODEL_CONFIG_DRIFT",
+      409
+    ],
+    "credentialsInFingerprint": false,
+    "credentialsInErrors": false
+  },
+  "path_generate": {
+    "stateWhileWaitingSlot": "running",
+    "terminalState": "failed",
+    "errorCode": "MODEL_CONFIG_DRIFT",
+    "providerCalls": 0,
+    "imports": 0,
+    "provenance": 0
+  },
+  "path_organize": {
+    "stateBeforeRetry": "running",
+    "terminalState": "failed",
+    "errorCode": "MODEL_CONFIG_DRIFT",
+    "providerCalls": 0,
+    "suggestions": 0,
+    "checkpointNextBatchBefore": 1,
+    "checkpointNextBatchAfter": 1,
+    "frozenFingerprintKept": true
+  },
+  "path_paper_mapping": {
+    "stateWhileWaitingSlot": "running",
+    "terminalState": "failed",
+    "errorCode": "MODEL_CONFIG_DRIFT",
+    "providerCalls": 0,
+    "proposals": 0
+  },
+  "path_knowledge_suggestion": {
+    "stateWhileWaitingSlot": "running",
+    "terminalState": "failed",
+    "errorCode": "MODEL_CONFIG_DRIFT",
+    "providerCallsForTarget": 0,
+    "imports": 0
+  },
+  "legacy_missing_fingerprint": {
+    "dispatchStatus": 200,
+    "terminalState": "failed",
+    "errorCode": "MODEL_FINGERPRINT_MISSING",
+    "providerCallsDelta": 0
+  },
+  "credentials_boundary": {
+    "leakedRows": [],
+    "viewBlobHasKey": false,
+    "fingerprintNotKey": true
+  },
+  "failures": [],
+  "verdict": "pass"
+}

@@ -3,12 +3,17 @@
 /**
  * 确认入库面板：只收集 `reviewed` 草稿，`submissionId` 由父级生成并在失败重试时复用。
  * 服务端语义：HTTP 200 + `failures` 非空 = 整体不确认、逐条给原因（未登记提交，可重试）。
+ *
+ * 界面纪律（F10-QB）：
+ * - `failures` 非空时只显示「**整批未确认**」与逐条清单，**不显示成功徽标**、不出现
+ *   「已入库 N 道」；确认按钮保持可用（修正后复用同一提交标识重试）；
+ * - AI 候选草稿（`extractionMethod=ai`）逐条显式标识来源，说明仍需人工确认后才入库。
  */
 
 import type { ConfirmResult, DraftView, DuplicateResolution } from '@/contracts/question-bank';
 import { ApiError } from '@/services/api-client';
 import { confirmBlockers } from './draft-form';
-import { reviewStateLabel } from './labels';
+import { AI_CANDIDATE_CHIP, CONFIRM_UNCONFIRMED_TITLE, EXTRACTION_METHOD_LABEL, reviewStateLabel } from './labels';
 
 export type ConfirmState =
   | { phase: 'idle' }
@@ -44,6 +49,11 @@ export function ConfirmPanel({
       <header className="qb-source-head">
         <h2>确认入库</h2>
         <span className="space-chip blue">已校对 {reviewed.length} 道</span>
+        {reviewed.some((draft) => draft.extractionMethod === 'ai') && (
+          <span className="space-chip amber" data-testid="qb-confirm-ai-count">
+            含 AI 候选 {reviewed.filter((draft) => draft.extractionMethod === 'ai').length} 道（需人工确认）
+          </span>
+        )}
       </header>
 
       {reviewed.length === 0 ? (
@@ -60,6 +70,15 @@ export function ConfirmPanel({
                   <span className="space-chip">{draft.draftId}</span>
                   <span className="space-chip">修订 r{draft.revision}</span>
                   <span className="space-chip green">{reviewStateLabel(draft.reviewState)}</span>
+                  <span className="space-chip">{EXTRACTION_METHOD_LABEL[draft.extractionMethod]}</span>
+                  {draft.extractionMethod === 'ai' && (
+                    <span
+                      className="space-chip amber"
+                      data-testid={`qb-confirm-ai-source-${draft.draftId}`}
+                    >
+                      {AI_CANDIDATE_CHIP}
+                    </span>
+                  )}
                 </div>
                 <p className="qb-block-text">{draft.content.stemMarkdown.slice(0, 80)}</p>
                 {blockers.map((blocker) => (
@@ -109,9 +128,15 @@ export function ConfirmPanel({
       )}
 
       {state.phase === 'done' && state.result.failures.length > 0 && (
-        <div className="space-banner error" role="alert">
+        <div
+          className="space-banner error"
+          role="alert"
+          data-testid="qb-confirm-unconfirmed"
+        >
+          <strong>{CONFIRM_UNCONFIRMED_TITLE}</strong>
+          ：服务端逐条校验未通过（HTTP 200 + {state.result.failures.length} 条 failures），
           <strong>没有任何题目被入库</strong>
-          ：服务端逐条校验未通过，本次提交未登记，修正后可重试（复用同一提交标识）。
+          ，也不会显示部分成功徽标；本次提交未登记，修正后可复用同一提交标识重试。
           <ul className="qb-failure-list">
             {state.result.failures.map((failure) => (
               <li key={`${failure.draftId}-${failure.code}`}>
@@ -120,6 +145,9 @@ export function ConfirmPanel({
             ))}
           </ul>
           <div className="qb-actions">
+            <button className="space-button primary" onClick={onConfirm} disabled={busy}>
+              {busy ? '提交中…' : `修正后重新提交（${reviewed.length} 道）`}
+            </button>
             <button className="space-button" onClick={onReload} disabled={busy}>
               重新读取批次
             </button>

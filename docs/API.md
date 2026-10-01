@@ -489,3 +489,162 @@ npm run rag:quality       # 固定质量集（30 问：10 组 × 2 正向 + 1 �
 - 该模块是 T40/T50/T80 的复用基础；正式原卷确认与练习导出业务在相应批次实现。
 - 本模块新增错误码：`DOCUMENT_FILE_MISSING`(500)、`DOCUMENT_PARSE_FAILED`(422)、`RICH_IMAGE_UNSUPPORTED`(422)、
   `ASSET_NOT_FOUND`(422)、`FORMULA_CONVERSION_FAILED`(422)；资产层 `ASSET_MISSING`/`ASSET_CORRUPT` 原样传出。
+
+---
+
+## 教学闭环 B2 接口（2026-10-01）——原卷后端 / 题库增量 / 施测真实创建 / 知识点前端
+
+依据 [多 Agent 实施任务计划书 v2.0 §二.3](design/teaching-loop-v1/多Agent实施任务计划书_v2.0.md)
+实施 **B2（T40 + T50 + T30-b + F10-KP + CTRL）**。任务卡与证据见
+[B2 批次目录](qa/TEACHING-LOOP-B2/TASK-CARD.md)。新增前端页面 `/knowledge-points`（见 [ROUTES.md](ROUTES.md)）。
+
+结构与依赖（追加式迁移，B0/B1 已登记声明与散列不变）：
+
+| 库 | 迁移 | 内容 |
+| --- | --- | --- |
+| 教学库 | `0003_teaching_paper_tables` | `papers`/`paper_revisions`/`paper_items`/`paper_item_knowledge`（设计逐字）+ `paper_source_blocks`/`paper_issues`/`ai_proposals` + 触发器（`paper_cycle_*`、`paper_confirm`、`immutable_paper_revisions_*`、`no_direct_sealed_paper_revisions`、`freeze_paper_{items,item_knowledge,source_blocks,issues}_*`） |
+| 教学库 | `0004_teaching_assessment_tables` | `assessments`/`assessment_classes`/`assessment_participants` + 参测班级显式确认列 + `assessment_confirmed_paper_insert`/`assessment_paper_fixed` |
+| 题库 | `0004_question_knowledge_links` | `question_knowledge_links`（设计逐字 + 不可变触发器）+ `question_draft_knowledge_links`、`question_import_provenance`、`question_content_fingerprints` |
+
+**分期偏差（B2 冻结）**：`paper_revisions.source_practice_revision_id` 与 `assessments.active_score_revision_id`
+本批只允许为空（无未来表外键，CHECK 拒绝非空）；`paper_revisions.source_file_id` 必须非空；
+草稿 `total_score_units >= 0`，确认闸门要求 >0 且等于计分叶子合计；`paper_confirm` 无 `PRACTICE_NOT_REVIEWED` 分支。
+
+### 原卷（T40）
+
+| 方法与路径 | 说明 |
+| --- | --- |
+| POST `/api/v1/paper-imports` | multipart `file`(.docx)+`subjectId`+可选 `title`；T10 富解析 → 原文块/问题清单/规则拆题持久化；返回 `PaperImportView`(201) |
+| GET `/api/v1/papers` | 列表（`subjectId`/`status`/`q` + 分页） |
+| GET `/api/v1/papers/{id}` | 试卷概览（当前修订指针/状态/总分/计分叶/阻断问题数） |
+| PATCH `/api/v1/papers/{id}/draft` | **整表替换**草稿（items/blocks/issues，含知识关联）；`expectedRevision`=`papers.revision`；当前修订为 confirmed 时**自动新建 version+1 草稿**再应用 |
+| POST `/api/v1/papers/{id}/confirm` | 确认闸门（唯一题号/无环/仅叶子计分/知识点齐备/总分一致/块归属或排除/无 blocking issue）；`submissionId` 幂等；确认后不可增删改 |
+| GET `/api/v1/papers/{id}/revisions/{revisionId}/content` | 固定修订完整内容（items/blocks/issues） |
+| POST `/api/v1/papers/{id}/knowledge-proposals` | AI 知识点建议（`teaching:paper_mapping` 任务）→ `JobView`(202) |
+| GET `/api/v1/paper-proposals/{id}`、POST `…/apply`、POST `…/reject` | 建议读取（`stale` 实时计算）/应用（只应用已有知识点，核草稿版本）/拒绝 |
+
+分值一律**十进制字符串**（`maxScore`/`totalScore`，≤2 位小数）；服务端换算 `×100` 整数单位。
+错误码：`PAPER_NOT_FOUND`(404)、`PAPER_REVISION_STALE`/`PAPER_NOT_EDITABLE`(409)、`PAPER_CONFIRM_INVALID`/
+`PAPER_BLOCK_UNASSIGNED`/`PAPER_ISSUE_BLOCKING`/`PAPER_TOTAL_MISMATCH`/`NO_SCORED_ITEMS`/
+`ITEM_KNOWLEDGE_MISSING`/`SCORED_ITEM_MUST_BE_LEAF`/`ITEM_CYCLE`/`ITEM_PARENT_INVALID`/
+`ITEM_QUESTION_NO_DUPLICATE`/`ITEM_SCORE_INVALID`/`PAPER_BLOCK_INVALID`/
+`KNOWLEDGE_REFERENCE_INVALID`/`PAPER_IMPORT_PARSE_FAILED`/`PAPER_IMPORT_ASSET_INVALID`(422)、
+`UNSUPPORTED_DOCUMENT_FORMAT`(422)、`PAPER_PROPOSAL_STALE`(409)。
+
+### 题库增量（T50）
+
+| 方法与路径 | 变化 |
+| --- | --- |
+| PATCH `/api/v1/question-drafts/{id}` | 新增可选 `knowledgeLinks`（提供即整表替换，空数组清空）；内容或关联变化 `revision+1` 且回 `needs_review` |
+| POST `/api/v1/question-imports/{id}/confirm` | 草稿关联冻结为 `question_knowledge_links`（含学科与名称快照）；旧 `knowledgeTags` 保持原义 |
+| GET `/api/v1/questions?knowledgePointId=` | 按正式知识点筛选（只查最新修订） |
+| PATCH `/api/v1/questions/{id}` | 新增可选 `knowledgeLinks`；内容修改**复制旧正式关联**，明确改关联才替换（均产生新修订） |
+| POST `/api/v1/question-generation-jobs` | AI 补题（`question:generate`，独立 `GenerateReply`）→ `GenerationJobView`(202)；候选进既有校对确认链 |
+| 任务视图 | `OrganizeJobView`/`GenerationJobView` **六态 + `attempt`**（`interrupted` 可经 `/workflow-jobs/{id}?domain=question` 与显式 retry 处理；组织/生成统一走 JobEngine，启动收敛含 question 域） |
+
+错误码补充：`GENERATION_INVALID_JSON`、`GENERATION_OUTPUT_TRUNCATED`、`GENERATION_UNKNOWN_KNOWLEDGE`、
+`GENERATION_UNKNOWN_EVIDENCE`、`GENERATION_FORBIDDEN_REFERENCE`（均 422 级）、`KNOWLEDGE_REFERENCE_INVALID`(422)、
+`SERVICE_UNAVAILABLE`(503，模型/知识点库未装配)。
+
+### 施测（T30-b）
+
+| 方法与路径 | 说明 |
+| --- | --- |
+| GET/POST `/api/v1/assessments` | 列表（`subjectId`/`classId`/`state`）/创建（201，`submissionId` 幂等） |
+| GET `/api/v1/assessments/{id}` | 详情（含参测人次快照） |
+| PATCH `/api/v1/assessments/{id}` | 标题/类型/日期（`expectedRevision` 守卫；**不能换卷**） |
+| POST `/api/v1/assessments/{id}/participants` | 补录/补考新增人次（分配下一 `attemptNo`；不覆盖既有记录） |
+
+闸门：只用**已确认**原卷修订（reader + DB 触发器）；参测姓名/学号**服务端读取后冻结**；显式非空名单；
+`classIds` 存在且未归档、participant `classId` 必须在范围内；`(assessment, student, attempt)` 唯一；
+**归属未覆盖 `heldOn`** → 422 `PARTICIPANT_CLASS_UNCONFIRMED`（逐行定位），教师带 `classConfirmed` +
+`classConfirmationNote` 重提后冻结并保存依据（**不修改归属历史**）。
+错误码：`ASSESSMENT_NOT_FOUND`(404)、`ASSESSMENT_PAPER_INVALID`/`ASSESSMENT_HELD_ON_INVALID`/
+`PARTICIPANT_EMPTY`/`PARTICIPANT_INVALID`/`PARTICIPANT_CLASS_UNCONFIRMED`/`PARTICIPANT_CLASS_SCOPE`/
+`CLASS_ARCHIVED`(422，施测域；名单域的 `CLASS_ARCHIVED` 为 409)、
+`ASSESSMENT_PAPER_FIXED`/`ASSESSMENT_REVISION_STALE`/`PARTICIPANT_ATTEMPT_CONFLICT`(409)。
+`UnavailablePaperReader` 的 501 `PAPER_READER_UNAVAILABLE` 已由真实 adapter 取代。
+
+### 知识点前端（F10-KP）
+
+- `/knowledge-points`：学科筛选（取 `/textbook-taxonomy` 的真实 `subjectId`）、父树、建立/更新（`clearFields`）、
+  别名、归档/恢复、教材依据（**不可用显示"暂不可用"，不显示成"没有依据"**）、XLSX/CSV 预览/映射/行校对/整批确认、
+  AI 候选（`/workflow-jobs` 六态 + 取消/重试，轮询守卫 jobId/attempt）。
+- 题库页兼容：整理任务支持 `interrupted` 横幅与「重试整理」（经 `/workflow-jobs/{id}/retry` 后按新 attempt 继续观察）。
+
+### 新增依赖与命令
+
+无新增 Python 依赖（B1 的 openpyxl/math2docx 继续使用）。前端仍 `npm run dev/build/check`；E2E 先 `build` 再
+`npx playwright test`（隔离 5174）。
+
+## 教学闭环 B3 接口（2026-10-01）——G0 前置修复 / 成绩后端 T60 / 成绩导入工作区 F20-I / 题库前端 F10-QB
+
+### G0 公共语义修正（B2 审查 B2-RV01–11 + 已披露项）
+
+- **公共重试已调度**：`POST /workflow-jobs/{id}/retry` 置 `queued` 后经唯一执行器注册表
+  （`app/services/jobs/registry.py`）原子入队；registry 导入失败**阻断启动**（不再静默无执行器）。
+  重试语义：retry 收据 `attempt=N`，随后接受 `queued(N)→running/终态(N+1)`；前端观察窗口 [N, N+1]，
+  N+2 视为被接管。并发重复 retry 合法结果 ∈ {200, 409}，且**恰好执行一次**。
+- **发布失败收敛**：业务结果发布异常时，用本次执行开始时的原 JobLease 在新短事务 CAS 收敛
+  `failed`（`error.code` 保留域内错误码；跨域异常统一 `JOB_FAILED` + 已回滚说明）；请求过取消 →
+  `cancelled` 优先；失权零写入。三域（teaching/question/knowledge）一致。
+- **冻结模型指纹**：任务创建时冻结 `model_fingerprint = sha256(canonical{modelId, protocol, baseHost,
+  apiFormat})`（不含凭证）；执行前比对真实配置，漂移 → 409 `MODEL_CONFIG_DRIFT`；旧任务无指纹 →
+  422 `MODEL_FINGERPRINT_MISSING`（要求新任务，不静默放行）。
+- **知识点引用复核**（`app/services/knowledge_refs.py`）：原卷/题库确认在 `PublicationCoordinator`
+  内复核引用身份/修订/学科/未归档；归档 → 409 `KNOWLEDGE_ARCHIVED`，无效引用 →
+  422 `KNOWLEDGE_REFERENCE_INVALID`（`details.issues[].field`）。
+- **原文块与资产**：`PaperSourceBlockView.content` 返回持久化块正文；
+  `GET /papers/{paperId}/revisions/{revisionId}/assets/{assetId}/content` 只读该修订引用过的受管资产；
+  结构化问题处置（`supplement_text`/`supplement_asset`/`exclude`）；空题面 `ITEM_STEM_MISSING`、
+  缺必要共同材料 `ITEM_MATERIAL_MISSING`。
+- **修订级标题快照**：`paper_revisions.title_snapshot`（迁移 0005；旧数据回填来源标注
+  `backfilled_from_paper`，不声称还原原标题）；固定修订读取自己的快照。
+
+### 成绩迁移（0006 / 0007）
+
+- 0006 建 `score_imports` / `score_import_rows` / `score_revisions`（含 `participant_snapshot_json`、
+  `item_snapshot_json`）/ `student_item_scores` / `score_revision_corrections` + 封存闸门与不可变触发器；
+- 0007 受控重建 `assessments`：移除分期 CHECK，恢复
+  `(active_score_revision_id,id)→score_revisions(id,assessment_id)` DEFERRABLE 复合外键；
+  `active` 只允许指向本施测**已确认**修订（触发器 `SCORE_REVISION_NOT_CONFIRMED` 兜底）。
+  重建在含已确认卷/施测/参测数据的 B2 旧库上验证：数据逐行保留、`foreign_key_check` 空、
+  `integrity_check=ok`、触发器逐字恢复。
+
+### 成绩导入（T60）
+
+- `POST /assessments/{assessmentId}/score-imports`（multipart `file` + 可选 `workSheet`/
+  `baseScoreRevisionId`，XLSX/CSV）→ `ScoreImportView`；服务端用**公式视图 + 缓存值视图**读表、
+  保留物理行列、超限明确报错、不静默截断；原件为受管资产（`kind='score_sheet'`）。
+- `GET /score-imports?assessmentId=&offset=&limit=`、`GET /score-imports/{importId}`、
+  `GET /score-imports/{importId}/rows?offset=&limit=`。
+- `PATCH /score-imports/{importId}`（`ScoreImportPatchRequest`：mapping / 行定位 `participantId` /
+  单元格校正 `ScoreCellPatch`（原表行号+列字母））；每次生效递增 `revision` 与 `previewVersion`。
+- `POST /score-imports/{importId}/confirm`（`ScoreImportConfirmRequest`）→ `ScoreImportConfirmResult`。
+  三版本语义互不替代：`expectedImportRevision`（导入草稿锁）/`expectedAssessmentRevision`（施测锁）/
+  `baseScoreRevisionId`（所基于的正式版本；首个版本为 null）任一不符 → 409 明确错误码 + `currentRevision`。
+  承认内容必须与预览完全一致（逐班 absent 人次 + missing 人次/单元数）→ 否则 422
+  `SCORE_ACKNOWLEDGEMENT_MISMATCH`；同一 `submissionId` 重放返回原结果（`replayed=true`）。
+- `GET /assessments/{assessmentId}/score-revisions`、`GET /score-revisions/{revisionId}`、
+  `GET /score-revisions/{revisionId}/matrix?offset=&limit=`（`items` 不分页=固定计分叶；
+  `rows` 分页；`totalUnits` 仅在该人次全 recorded 时非空）。
+- `POST /assessments/{assessmentId}/score-revisions/correct`（`ScoreRevisionCorrectRequest`）：
+  base 必须等于当前 active；从不可变 base 复制全矩阵 + 修正当时参测快照生成新完整版本，
+  审计（原值/新值/理由）落 `score_revision_corrections`。
+- 分数一律 Decimal 文本 ↔ ×100 整数单位；0=recorded(0)、空=missing、缺考=absent、免考=exempt
+  四态不得互相顶替；全矩阵 = 冻结参测人次 × 固定计分叶，缺行缺列显式 missing、绝不补 0；
+  确认后不可变（DB 触发器 + 服务）。
+- 错误码：`SCORE_IMPORT_NOT_FOUND`/`SCORE_REVISION_NOT_FOUND`(404)；
+  `SCORE_IMPORT_NOT_EDITABLE`/`SCORE_REVISION_IMMUTABLE`/`SCORE_BASE_REVISION_CONFLICT`/
+  `SCORE_NO_BASE_REVISION`(409)；`SCORE_IMPORT_REVISION_CONFLICT`/`SCORE_ASSESSMENT_REVISION_CONFLICT`(409，
+  带 `currentRevision`)；`SCORE_MAPPING_INVALID`/`SCORE_ROW_UNRESOLVED`/`SCORE_ROW_DUPLICATE_PARTICIPANT`/
+  `SCORE_CELL_INVALID`/`SCORE_CELL_OVER_MAX`/`SCORE_ACKNOWLEDGEMENT_MISMATCH`/`SCORE_MATRIX_INCOMPLETE`/
+  `SCORE_PARTICIPANT_UNKNOWN`/`SCORE_ITEM_UNKNOWN`/`SCORE_CORRECTION_INVALID`(422，带行列定位)。
+
+### 成绩导入工作区（F20-I）与题库前端增量（F10-QB）
+
+- `/assessments` 五步工作区（名单 → 原卷 → 施测 → 成绩 → 历史）：成绩流
+  `upload → 映射 → 校对 → 预览承认 → 确认`；0/missing/absent/exempt 显著区分；异常显示原表物理地址；
+  409 保留编辑、422 保留校对；逻辑确认冻结 `submissionId` + 原 payload 到明确结果；切换/卸载使在途请求失效。
+- 题库：知识点筛选/标注与显式替换、旧 `knowledgeTags` 分区块呈现、补题六态（取消/真实重试 [N, N+1] 窗口）、
+  AI 来源与校对链（pending/apply/reject/stale）、`200 + failures` 仍显示**整批未确认**。

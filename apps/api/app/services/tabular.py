@@ -160,3 +160,219 @@ def read_table(
         code="UNSUPPORTED_DOCUMENT_FORMAT",
         status_code=422,
     )
+
+# --------------------------------------------------------------------------- 成绩原始读取（B3/T60）
+
+MAX_SCORE_ROWS = 2000
+MAX_SCORE_COLUMNS = 600
+
+
+@dataclass(frozen=True)
+class RawCell:
+    """带物理坐标与公式/缓存双视图的单元格（成绩权威输入，不做去空行/截列）。"""
+
+    row: int                 # 1 基物理行
+    column: int              # 1 基物理列
+    text: str                # 公式视图的文本（公式单元格为公式文本）
+    cached_text: str         # data_only 视图的文本（公式单元格为其缓存值；无缓存为 ""）
+    formula: str | None      # 公式文本（以 = 开头）或 None
+    data_type: str           # openpyxl cell.data_type：n/s/b/d/f/空
+    is_blank: bool           # 两个视图都为空白
+
+
+@dataclass(frozen=True)
+class RawSheet:
+    """保留物理空行空列的成绩工作表；``rows`` 的每个元素与物理行一一对应。"""
+
+    name: str
+    max_row: int
+    max_column: int
+    rows: list[list[RawCell]]     # rows[r-1][c-1] 对应物理 (r,c)
+
+
+def _grid_from_sheet(
+    sheet: object, *, max_row: int, max_column: int
+) -> list[list[tuple[object, str]]]:
+    """一次遍历物化 (value, data_type) 网格；缺位补 (None, "")。
+
+    read-only 工作表上 ``ws.cell(r,c)`` 每次调用都可能重扫整表（实测 51×102 → 211s），
+    ``iter_rows`` 才是线性读取路径。
+    """
+    grid: list[list[tuple[object, str]]] = [
+        [(None, "") for _ in range(max_column)] for _ in range(max_row)
+    ]
+    iterator = sheet.iter_rows(
+        min_row=1, max_row=max_row, min_col=1, max_col=max_column
+    )
+    for row_index, row in enumerate(iterator):
+        if row_index >= max_row:
+            break
+        for column_index, cell in enumerate(row):
+            if column_index >= max_column:
+                break
+            grid[row_index][column_index] = (
+                cell.value,
+                str(getattr(cell, "data_type", "") or ""),
+            )
+    return grid
+
+
+def _materialize_cell_rows(
+    formula_sheet: object,
+    cached_sheet: object,
+    *,
+    max_row: int,
+    max_column: int,
+) -> list[list[RawCell]]:
+    formula_grid = _grid_from_sheet(
+        formula_sheet, max_row=max_row, max_column=max_column
+    )
+    cached_grid = _grid_from_sheet(
+        cached_sheet, max_row=max_row, max_column=max_column
+    )
+    rows: list[list[RawCell]] = []
+    for row_index in range(max_row):
+        row_cells: list[RawCell] = []
+        for column_index in range(max_column):
+            formula_value, data_type = formula_grid[row_index][column_index]
+            cached_value = cached_grid[row_index][column_index][0]
+            text = _cell_to_text(formula_value) if formula_value is not None else ""
+            cached_text = (
+                _cell_to_text(cached_value) if cached_value is not None else ""
+            )
+            formula = (
+                text
+                if isinstance(formula_value, str) and formula_value.startswith("=")
+                else None
+            )
+            row_cells.append(
+                RawCell(
+                    row=row_index + 1,
+                    column=column_index + 1,
+                    text=text,
+                    cached_text=cached_text,
+                    formula=formula,
+                    data_type=data_type,
+                    is_blank=(formula_value is None and cached_value is None),
+                )
+            )
+        rows.append(row_cells)
+    return rows
+
+
+def _read_score_csv(
+    content: bytes, *, max_rows: int, max_columns: int
+) -> list[RawSheet]:
+    """CSV 成绩表：物理行号=文件行号（含空行），无公式视图，单表 ``name="CSV"``。"""
+    text = content.decode("utf-8-sig", errors="replace")
+    reader = csv.reader(io.StringIO(text, newline=""))
+    raw_rows = list(reader)
+    if len(raw_rows) > max_rows:
+        raise AppError(
+            f"CSV 行数 {len(raw_rows)} 超过上限 {max_rows}；请拆分后重试。",
+            code="TABLE_TOO_LARGE",
+            status_code=422,
+        )
+    width = max((len(row) for row in raw_rows), default=0)
+    if width > max_columns:
+        raise AppError(
+            f"CSV 列数 {width} 超过上限 {max_columns}；请拆分后重试。",
+            code="TABLE_TOO_LARGE",
+            status_code=422,
+        )
+    rows: list[list[RawCell]] = []
+    for row_index, record in enumerate(raw_rows, start=1):
+        row_cells: list[RawCell] = []
+        for column_index in range(1, width + 1):
+            value = record[column_index - 1] if column_index - 1 < len(record) else ""
+            text_value = value if value != "" else ""
+            row_cells.append(
+                RawCell(
+                    row=row_index,
+                    column=column_index,
+                    text=text_value,
+                    cached_text=text_value,
+                    formula=None,
+                    data_type="s" if text_value != "" else "",
+                    is_blank=text_value == "",
+                )
+            )
+        rows.append(row_cells)
+    return [RawSheet(name="CSV", max_row=len(raw_rows), max_column=width, rows=rows)]
+
+
+def read_score_sheet(
+    content: bytes,
+    *,
+    sheet_name: str | None = None,
+    max_rows: int = MAX_SCORE_ROWS,
+    max_columns: int = MAX_SCORE_COLUMNS,
+) -> list[RawSheet]:
+    """按**公式视图 + data_only 缓存视图**读取 XLSX/CSV（成绩导入专用）。
+
+    - 不计算公式、不调用 Excel：``data_only=True`` 读的是工作簿已有缓存值，缓存缺失即为 ""；
+    - 保留物理空行空列与真实行列坐标（错误定位必须指向原文件位置）；
+    - 行列或文件超限**明确报错**（不静默截断）；
+    - CSV（非 ZIP 内容）返回单张 ``name="CSV"`` 的工作表：无公式视图，物理行号即文件行号；
+    - 读取用 ``iter_rows`` 一次性物化（read-only 工作表上逐格 ``.cell()`` 会每格重扫整表，
+      实测 200×100 不可收敛），内存上限由 ``max_rows×max_columns`` 封顶。
+    """
+    if not content[:4] == b"PK\x03\x04":
+        return _read_score_csv(
+            content, max_rows=max_rows, max_columns=max_columns
+        )
+    try:
+        from openpyxl import load_workbook
+    except ImportError as exc:  # pragma: no cover
+        raise AppError(
+            "缺少表格解析依赖（openpyxl），无法读取 XLSX。",
+            code="TABLE_PARSER_UNAVAILABLE",
+            status_code=500,
+        ) from exc
+    try:
+        formula_book = load_workbook(io.BytesIO(content), read_only=True, data_only=False)
+        cached_book = load_workbook(io.BytesIO(content), read_only=True, data_only=True)
+    except Exception as exc:
+        raise AppError(
+            f"表格文件无法解析：{exc.__class__.__name__}。",
+            code="TABLE_PARSE_FAILED",
+            status_code=422,
+        ) from exc
+
+    sheets: list[RawSheet] = []
+    try:
+        for name in formula_book.sheetnames[:MAX_SHEETS]:
+            if sheet_name is not None and name != sheet_name:
+                continue
+            formula_sheet = formula_book[name]
+            cached_sheet = cached_book[name]
+            max_row = max(int(formula_sheet.max_row or 0), int(cached_sheet.max_row or 0))
+            max_column = max(
+                int(formula_sheet.max_column or 0), int(cached_sheet.max_column or 0)
+            )
+            if max_row > max_rows:
+                raise AppError(
+                    f"工作表「{name}」行数 {max_row} 超过上限 {max_rows}；请拆分后重试。",
+                    code="TABLE_TOO_LARGE",
+                    status_code=422,
+                )
+            if max_column > max_columns:
+                raise AppError(
+                    f"工作表「{name}」列数 {max_column} 超过上限 {max_columns}；请拆分后重试。",
+                    code="TABLE_TOO_LARGE",
+                    status_code=422,
+                )
+            rows = _materialize_cell_rows(
+                formula_sheet, cached_sheet, max_row=max_row, max_column=max_column
+            )
+            sheets.append(
+                RawSheet(name=name, max_row=max_row, max_column=max_column, rows=rows)
+            )
+    finally:
+        formula_book.close()
+        cached_book.close()
+    if not sheets:
+        raise AppError(
+            f"找不到工作表：{sheet_name}。", code="TABLE_SHEET_MISSING", status_code=422
+        )
+    return sheets

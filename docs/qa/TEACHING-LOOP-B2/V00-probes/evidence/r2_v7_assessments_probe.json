@@ -1,0 +1,170 @@
+{
+ "probe": "v7_assessments_probe",
+ "results": [
+  {
+   "name": "V7.1 T40 原卷确认成功（真实链路第一步）",
+   "status": "PASS",
+   "detail": "200 {\"paperId\":\"f28dabd36ff14d33b8fd7bacab5bfa64\",\"paperRevisionId\":\"40436b463b9545fab95e440067c16a44\",\"state\":\"confirmed\",\"totalScoreUnits\":1500,\"scoredLeafCount\":"
+  },
+  {
+   "name": "V7.2 建班成功",
+   "status": "PASS",
+   "detail": "201"
+  },
+  {
+   "name": "V7.3 名单导入（T30-a 真 API）返回预览行",
+   "status": "PASS",
+   "detail": "201 rows=2"
+  },
+  {
+   "name": "V7.4 名单确认建档 + 归属成功",
+   "status": "PASS",
+   "detail": "200 {\"importId\":\"261ce1bb42984304a08833dfa53d574f\",\"state\":\"confirmed\",\"applied\":[{\"rowNo\":1,\"studentId\":\"7d3cd4fc32224b6681ebbaee4cdc865d\",\"membershipId\":\"391f1f5314914313afdb3a7d17c98a77\",\"createdStuden"
+  },
+  {
+   "name": "V7.5 归属历史建立（2 行）",
+   "status": "PASS",
+   "detail": "2"
+  },
+  {
+   "name": "V7.6 名单→原卷确认→施测 真链路创建成功",
+   "status": "PASS",
+   "detail": "201 {\"assessment\":{\"assessmentId\":\"26a03b7d295b4d7cb4d3dc1b7897c6ea\",\"paperRevisionId\":\"40436b463b9545fab95e440067c16a44\",\"paperId\":\"f28dabd36ff14d33b8fd7bacab5bfa64\",\"paperTitle\":\"V00 待确认卷\",\"subjectId\":\""
+  },
+  {
+   "name": "V7.7 参测姓名/学号从服务端读取冻结（不信任客户端）",
+   "status": "PASS",
+   "detail": "[('张伟', 'V0001', 1), ('李娜', 'V0002', 1)]"
+  },
+  {
+   "name": "V7.8 同 submissionId 同载荷重放 → replayed=True 且不重复建",
+   "status": "PASS",
+   "detail": "201 replayed=True"
+  },
+  {
+   "name": "V7.9 同 submissionId 不同载荷 → 409 SUBMISSION_CONFLICT",
+   "status": "PASS",
+   "detail": "409/SUBMISSION_CONFLICT"
+  },
+  {
+   "name": "V7.10 draft 修订 → 422 ASSESSMENT_PAPER_INVALID",
+   "status": "PASS",
+   "detail": "422/ASSESSMENT_PAPER_INVALID"
+  },
+  {
+   "name": "V7.11 不存在的修订 → 422 ASSESSMENT_PAPER_INVALID",
+   "status": "PASS",
+   "detail": "422/ASSESSMENT_PAPER_INVALID"
+  },
+  {
+   "name": "V7.12 heldOn 非法日历日期 → 422 ASSESSMENT_HELD_ON_INVALID",
+   "status": "PASS",
+   "detail": "422/ASSESSMENT_HELD_ON_INVALID fields=['heldOn']"
+  },
+  {
+   "name": "V7.13 空 participants → 422（契约拒绝，不建零人施测）",
+   "status": "PASS",
+   "detail": "422/INVALID_REQUEST fields=[\"('participants',)\"]"
+  },
+  {
+   "name": "V7.14 班级不存在 → 422 PARTICIPANT_INVALID",
+   "status": "PASS",
+   "detail": "422/PARTICIPANT_INVALID fields=['classIds[0]']"
+  },
+  {
+   "name": "V7.15 行班级不在 classIds 范围内 → 422 PARTICIPANT_CLASS_SCOPE",
+   "status": "PASS",
+   "detail": "422/PARTICIPANT_CLASS_SCOPE fields=['classId']"
+  },
+  {
+   "name": "V7.16 classIds 重复 → 422（契约拒绝）",
+   "status": "PASS",
+   "detail": "422/INVALID_REQUEST fields=[\"('classIds',)\"]"
+  },
+  {
+   "name": "V7.17 学生不存在 → 422 PARTICIPANT_INVALID（逐行定位）",
+   "status": "PASS",
+   "detail": "422/PARTICIPANT_INVALID fields=['studentId']"
+  },
+  {
+   "name": "V7.18 客户端伪造姓名字段 → 422（extra=forbid，快照只从服务端读）",
+   "status": "PASS",
+   "detail": "422/INVALID_REQUEST fields=[\"('participants', 0, 'nameSnapshot')\"]"
+  },
+  {
+   "name": "V7.19 客户端伪造学号字段 → 422（extra=forbid）",
+   "status": "PASS",
+   "detail": "422/INVALID_REQUEST fields=[\"('participants', 0, 'studentNoSnapshot')\"]"
+  },
+  {
+   "name": "V7.20 学生转班成功（归属历史关闭旧行）",
+   "status": "PASS",
+   "detail": "200 {\"id\":\"d8d870e858ce409bbc2e8d4c659a4eed\",\"studentNo\":\"V0002\",\"name\":\"李娜\",\"status\":\"active\",\"revision\":1,\"memberships\":[{\"membershipId\":\"5f3168b3aa454aca9ae4c29b"
+  },
+  {
+   "name": "V7.21 归属未覆盖 heldOn → 422 PARTICIPANT_CLASS_UNCONFIRMED（逐行定位）",
+   "status": "PASS",
+   "detail": "422/PARTICIPANT_CLASS_UNCONFIRMED {'issues': [{'row': 0, 'column': 'classId', 'field': 'classId', 'code': 'PARTICIPANT_CLASS_UNCONFIRMED', 'message': '该生在该班的历史归属未覆盖 2026-10-02；请显式确认本次班级并填写依据（classConfirmed=true + classConfirmationNote）。'}]}"
+  },
+  {
+   "name": "V7.22 教师带依据显式确认后创建成功，且 class_confirmed 落库",
+   "status": "PASS",
+   "detail": "201 {\"assessment\":{\"assessmentId\":\"c57ced090aa7452e8545a7c78befb254\",\"paperRevisionId\":\"40436b463b9545fab95e440067c16a44\",\"paperId\":\"f28dabd36ff14d33b8fd7bacab5bfa64\",\"paperTitle\":\"V00 待确认卷\",\"subjectId\":\""
+  },
+  {
+   "name": "V7.23 归属历史逐行未被修改（不自动改历史）",
+   "status": "PASS",
+   "detail": "723084a77e0f854c == 723084a77e0f854c"
+  },
+  {
+   "name": "V7.24 classConfirmed=true 无依据 → 422（契约与 DB CHECK 对称）",
+   "status": "PASS",
+   "detail": "422/INVALID_REQUEST"
+  },
+  {
+   "name": "V7.25 同一学生跨班重复 → 422 PARTICIPANT_INVALID（要求人工选定）",
+   "status": "PASS",
+   "detail": "422/PARTICIPANT_INVALID {'issues': [{'row': 1, 'column': 'classId', 'field': 'classId', 'code': 'PARTICIPANT_INVALID', 'message': '同一学生不能在本次施测中跨班重复；请人工选定一个本次班级后重提。'}]}"
+  },
+  {
+   "name": "V7.26 (施测,学生,人次) 重复 → 409 PARTICIPANT_ATTEMPT_CONFLICT",
+   "status": "PASS",
+   "detail": "409/PARTICIPANT_ATTEMPT_CONFLICT {'issues': [{'row': 0, 'column': 'attemptNo', 'field': 'attemptNo', 'code': 'PARTICIPANT_ATTEMPT_CONFLICT', 'message': '该学生第 1 人次已存在；补考请新增下一人次，不覆盖首次记录。'}]}"
+  },
+  {
+   "name": "V7.27 补考缺省新增下一人次（attempt 2）",
+   "status": "PASS",
+   "detail": "200 {\"assessment\":{\"assessmentId\":\"26a03b7d295b4d7cb4d3dc1b7897c6ea\",\"paperRevisionId\":\"40436b463b9545fab95e440067c16a44\",\"paperId\":\"f28dabd36ff14d33b8fd7bacab5bfa64\",\"paperTitle\":\"V00 待确认卷\",\"subjectId\":\""
+  },
+  {
+   "name": "V7.28 补考只新增行：首次记录逐字节不变",
+   "status": "PASS",
+   "detail": "2 → 3"
+  },
+  {
+   "name": "V7.29 批量补录含非法行 → 422 且整批回滚（第一条也不落库）",
+   "status": "PASS",
+   "detail": "422/PARTICIPANT_INVALID rows=3"
+  },
+  {
+   "name": "V7.30 学生改名成功",
+   "status": "PASS",
+   "detail": "200 {\"id\":\"7d3cd4fc32224b6681ebbaee4cdc865d\",\"studentNo\":\"V0001\",\"name\":\"张伟（改名）\",\"status\":\"active\",\"revision\":1,\"memberships"
+  },
+  {
+   "name": "V7.31 改名后既有施测快照不变（仍为旧名）",
+   "status": "PASS",
+   "detail": "{'张伟', '李娜'}"
+  },
+  {
+   "name": "V7.32 PATCH 施测 → revision+1 且标题更新",
+   "status": "PASS",
+   "detail": "200 rev=1→2"
+  },
+  {
+   "name": "V7.33 PATCH 过期 → 409 ASSESSMENT_REVISION_STALE + currentRevision",
+   "status": "PASS",
+   "detail": "409/ASSESSMENT_REVISION_STALE {'currentRevision': 2}"
+  }
+ ]
+}

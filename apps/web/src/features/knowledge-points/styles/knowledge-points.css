@@ -1,0 +1,655 @@
+/* 知识点模块页面级样式（/knowledge-points）。
+   消费 globals.css 单一变量层：--font-ui/--font-display/--blue/--blue-soft、--surface/--ink/
+   --line/--danger、--radius-*、--space-*；与 space.css 共用 .space-* 基础类。
+   作用域：全部选择器以 .knowledge-points-page 起头；不新增主题色、不新增动画
+   （依赖全局 motion.css 的 prefers-reduced-motion / html[data-motion] 机制）。
+   布局：桌面双栏（列表 + 详情），≤960px 单列；所有可滚动/长文本容器带 min-width: 0，
+   保证 390px 视口无横向溢出。 */
+
+.knowledge-points-page .space-content {
+  min-width: 0;
+  max-width: 1180px;
+}
+
+.knowledge-points-page .kp-panel[hidden] {
+  display: none;
+}
+
+/* ===== 通用小块 ===== */
+
+.knowledge-points-page .kp-hint {
+  margin: 6px 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.knowledge-points-page .kp-warn-text {
+  color: #92610c;
+}
+
+.knowledge-points-page .kp-error-text {
+  margin: 4px 0;
+  color: var(--danger);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.knowledge-points-page .kp-dataflow-note {
+  margin: 6px 0;
+  padding: 6px 10px;
+  border-left: 2px solid var(--blue);
+  border-radius: var(--radius-sm);
+  background: var(--blue-soft);
+  color: var(--ink);
+  font-size: 12.5px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.knowledge-points-page .kp-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.knowledge-points-page .kp-issue-list {
+  list-style: none;
+  margin: 8px 0;
+  padding: 10px 12px;
+  border: 1px solid #f2d9a4;
+  border-radius: var(--radius-md);
+  background: #fdf6e7;
+  color: #7a5209;
+  font-size: 12.5px;
+  line-height: 1.7;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-wrap: anywhere;
+}
+
+.knowledge-points-page .kp-warning-list {
+  margin: 6px 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+/* ===== 表单 ===== */
+
+.knowledge-points-page .kp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
+  color: var(--ink);
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-field-inline {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.knowledge-points-page .kp-field-narrow {
+  max-width: 220px;
+}
+
+.knowledge-points-page .kp-field-label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.knowledge-points-page .kp-form input,
+.knowledge-points-page .kp-form textarea,
+.knowledge-points-page .kp-field input,
+.knowledge-points-page .kp-field textarea {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 13px;
+  font-family: var(--font-ui);
+}
+
+.knowledge-points-page .kp-form textarea {
+  resize: vertical;
+  line-height: 1.7;
+}
+
+.knowledge-points-page .kp-form-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-form-row > .kp-field {
+  flex: 1 1 240px;
+}
+
+.knowledge-points-page .kp-plan {
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  background: var(--surface);
+  font-size: 12.5px;
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-plan ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+/* ===== 列表 / 父树 ===== */
+
+.knowledge-points-page .kp-toolbar {
+  align-items: flex-end;
+}
+
+.knowledge-points-page .kp-search-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-search-form .space-search {
+  flex: 1 1 auto;
+  max-width: none;
+}
+
+.knowledge-points-page .kp-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-card {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  min-width: 0;
+  transition: border-color 150ms;
+}
+
+.knowledge-points-page .kp-card:hover {
+  border-color: var(--blue);
+}
+
+.knowledge-points-page .kp-card.current {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+}
+
+.knowledge-points-page .kp-card-main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.knowledge-points-page .kp-card-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.knowledge-points-page .kp-card-code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.knowledge-points-page .kp-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-tree-branch {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-tree-node {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-tree-node:hover {
+  background: var(--surface);
+}
+
+.knowledge-points-page .kp-tree-node.current {
+  background: var(--blue-soft);
+  border-color: #c3d7fd;
+}
+
+.knowledge-points-page .kp-tree-detached {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+  min-width: 0;
+}
+
+/* ===== 详情 ===== */
+
+.knowledge-points-page .kp-points-layout {
+  align-items: flex-start;
+}
+
+.knowledge-points-page .kp-detail-column {
+  flex: 1 1 420px;
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  background: var(--bg);
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-detail-head h2 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 6px;
+  overflow-wrap: anywhere;
+}
+
+.knowledge-points-page .kp-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.knowledge-points-page .kp-alias-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.knowledge-points-page .kp-alias-remove {
+  display: inline-flex;
+  align-items: center;
+  color: inherit;
+  opacity: 0.7;
+}
+
+.knowledge-points-page .kp-alias-remove:hover {
+  opacity: 1;
+}
+
+/* ===== 子面板（教材依据 / 映射 / 行校对 / AI 任务） ===== */
+
+.knowledge-points-page .kp-subpanel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg);
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-subpanel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-subpanel-head h3,
+.knowledge-points-page .kp-subpanel-head h4,
+.knowledge-points-page .kp-subpanel > h4 {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+/* ===== 教材依据 ===== */
+
+.knowledge-points-page .kp-link-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-link-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-link-title {
+  flex: 1 1 220px;
+  min-width: 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.knowledge-points-page .kp-link-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-link-form > .kp-field {
+  flex: 1 1 200px;
+}
+
+/* ===== 导入批次 ===== */
+
+.knowledge-points-page .kp-import-layout {
+  align-items: flex-start;
+}
+
+.knowledge-points-page .kp-import-rail {
+  flex: 0 0 250px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-import-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-import-card:hover {
+  border-color: var(--blue);
+}
+
+.knowledge-points-page .kp-import-card.current {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+}
+
+.knowledge-points-page .kp-import-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.knowledge-points-page .kp-import-review {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* AI 候选批次与人工表格导入明显区分（虚线蓝框 + 浅蓝底） */
+.knowledge-points-page .kp-import-review.ai {
+  border: 1px dashed var(--blue);
+  background: linear-gradient(0deg, rgba(37, 99, 235, 0.04), rgba(37, 99, 235, 0.04)), var(--bg);
+}
+
+.knowledge-points-page .kp-import-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-import-head h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.knowledge-points-page .kp-mapping-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-row-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-row-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-row-card.blocking {
+  border-color: #f2d9a4;
+  background: #fffdf6;
+}
+
+.knowledge-points-page .kp-row-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-row-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 6px 12px;
+  margin: 0;
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-row-fields > div {
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-row-fields dt {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.knowledge-points-page .kp-row-fields dd {
+  margin: 2px 0 0;
+  font-size: 12.5px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.knowledge-points-page .kp-confirm-summary {
+  margin: 6px 0;
+  padding-left: 18px;
+  max-height: 220px;
+  overflow: auto;
+  font-size: 12.5px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+/* ===== AI 候选 ===== */
+
+.knowledge-points-page .kp-suggestion {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-materials {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-material {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-material-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 12.5px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.knowledge-points-page .kp-evidence-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* ===== 响应式：桌面双栏 → 单列 ===== */
+
+@media (max-width: 960px) {
+  .knowledge-points-page .kp-points-layout,
+  .knowledge-points-page .kp-import-layout {
+    flex-direction: column;
+  }
+
+  .knowledge-points-page .kp-detail-column,
+  .knowledge-points-page .kp-import-rail {
+    flex: none;
+    width: 100%;
+  }
+
+  .knowledge-points-page .kp-import-rail {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 640px) {
+  .knowledge-points-page .space-content {
+    max-width: 100%;
+  }
+
+  .knowledge-points-page .kp-toolbar {
+    align-items: stretch;
+  }
+
+  .knowledge-points-page .kp-search-form {
+    flex: 1 1 100%;
+  }
+
+  .knowledge-points-page .kp-link-form > .kp-field,
+  .knowledge-points-page .kp-field-narrow {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+}

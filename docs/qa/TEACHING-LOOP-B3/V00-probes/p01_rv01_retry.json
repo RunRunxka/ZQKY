@@ -1,0 +1,63 @@
+{
+  "retry_to_terminal": {
+    "failedState": "failed",
+    "failedErrorCode": null,
+    "retryStatus": 200,
+    "receiptState": "queued",
+    "receiptAttempt": 1,
+    "terminalState": "succeeded",
+    "terminalAttempt": 2,
+    "providerCallsAfterFail": 1,
+    "providerCallsAfterRetry": 2
+  },
+  "queued_reschedule": {
+    "stateAfterStoreRetry": "queued",
+    "attemptAfterStoreRetry": 1,
+    "retryStatus": 200,
+    "terminalState": "succeeded",
+    "terminalAttempt": 2,
+    "callsBefore": 3,
+    "callsAfter": 4
+  },
+  "running_retry_409": {
+    "stateWhileGated": "running",
+    "retryStatus": 409,
+    "retryCode": "JOB_NOT_RETRYABLE"
+  },
+  "concurrent_retry": {
+    "statusCodes": [
+      200,
+      409
+    ],
+    "secondRequestPath": "rejected-running",
+    "attemptBefore": 1,
+    "attemptAfter": 2,
+    "terminalState": "succeeded",
+    "providerCallsBefore": 6,
+    "providerCallsAfter": 7
+  },
+  "registry_idempotent_schedule": {
+    "firstSchedule": true,
+    "secondSchedule": true,
+    "terminalState": "succeeded",
+    "terminalAttempt": 2,
+    "providerCallsDelta": 1
+  },
+  "repeat_click": {
+    "firstStatus": 200,
+    "secondStatus": 409,
+    "terminalState": "succeeded",
+    "attemptAfter": 2,
+    "providerCallsDelta": 1
+  },
+  "restart_queued": {
+    "stateAfterRestart": "queued",
+    "stateAfterWait": "queued",
+    "retryStatus": 200,
+    "terminalState": "succeeded",
+    "terminalAttempt": 2,
+    "providerCalls": 1
+  },
+  "failures": [],
+  "verdict": "pass"
+}

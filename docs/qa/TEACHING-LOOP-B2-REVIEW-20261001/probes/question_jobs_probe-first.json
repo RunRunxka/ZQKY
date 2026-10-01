@@ -1,0 +1,56 @@
+{
+  "probeRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b2-review-jobs-5a9zwnoj",
+  "archivedKnowledgeConfirm": {
+    "statusCode": 200,
+    "body": {
+      "confirmedQuestionIds": [
+        "078c4648821e4d8aaa14a06370207b4a"
+      ],
+      "linkedQuestionIds": [],
+      "skippedDraftIds": [],
+      "failures": []
+    }
+  },
+  "subjectChangeWithoutLinkReplacement": {
+    "statusCode": 200,
+    "subjectId": "chinese",
+    "knowledgeLinks": [
+      {
+        "knowledgePointId": "d0c62745620b45059c1369c34ba62563",
+        "knowledgeRevisionId": "85a27769b64641a396094922e5c17bea",
+        "knowledgeNameSnapshot": "一次函数",
+        "subjectIdSnapshot": "math",
+        "role": "primary"
+      }
+    ]
+  },
+  "publicRetry": {
+    "statusCode": 200,
+    "retryState": "queued",
+    "pollStates": [
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued",
+      "queued"
+    ],
+    "callsBefore": 1,
+    "callsAfter": 1,
+    "attemptAfter": 1
+  }
+}

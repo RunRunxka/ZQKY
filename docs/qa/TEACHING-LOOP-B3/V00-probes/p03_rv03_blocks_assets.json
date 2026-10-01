@@ -1,0 +1,73 @@
+{
+  "no_question_doc": {
+    "itemCount": 0,
+    "blockCount": 2,
+    "paragraphTexts": [
+      "这是一份没有题号的文档。"
+    ],
+    "tableCells": [
+      "甲",
+      "乙"
+    ],
+    "issues": [
+      "NO_ITEMS_DETECTED",
+      "PAPER_BLOCK_UNASSIGNED",
+      "PAPER_BLOCK_UNASSIGNED"
+    ]
+  },
+  "block_content_shape": {
+    "kinds": {
+      "paragraph": 9,
+      "image": 1,
+      "table": 1,
+      "formula": 2
+    },
+    "paragraphSample": {
+      "id": "p1",
+      "kind": "paragraph",
+      "text": "智启课源 期中数学试卷"
+    },
+    "formulaHasOmml": true,
+    "tableMergedColSpans": [
+      2,
+      1,
+      1
+    ],
+    "imageAssetId": "blobs/3e59d5b8805acbd8d11d144c6d28f4bbfa14a9197c17bc6016e9186191044c05"
+  },
+  "unassigned_block_view": {
+    "disposition": "unassigned",
+    "hasContent": true,
+    "text": "16.（12 分）阅读材料，完成下列小题。"
+  },
+  "asset_endpoint": {
+    "positive": [
+      200,
+      "image/png",
+      73,
+      "89504e470d0a1a0a"
+    ],
+    "illegalKey": [
+      422,
+      "INVALID_ASSET_KEY"
+    ],
+    "traversal": [
+      422,
+      "INVALID_ASSET_KEY"
+    ],
+    "unreferencedManagedKey": [
+      404,
+      "PAPER_ASSET_NOT_FOUND"
+    ],
+    "crossPaper": [
+      404,
+      "PAPER_ASSET_NOT_FOUND"
+    ],
+    "missingRevision": [
+      404,
+      "PAPER_REVISION_NOT_FOUND"
+    ]
+  },
+  "failures": [],
+  "verdict": "pass"
+}

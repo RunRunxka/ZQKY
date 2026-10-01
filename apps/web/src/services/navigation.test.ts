@@ -23,12 +23,14 @@ describe('导航注册表', () => {
     }
   });
 
-  it('教案工作台本地可用，学习问答、题库、资料库、书籍、课程与设置页已实现，其余均为规划中', () => {
+  it('教案工作台本地可用，学习问答、题库、知识点、施测与成绩、资料库、书籍、课程与设置页已实现，其余均为规划中', () => {
     const implemented = navigation.filter((item) => item.status !== 'planned');
     expect(implemented.map((item) => item.id)).toEqual([
       'chat',
       'lesson-plan',
       'question-bank',
+      'knowledge-points',
+      'assessments',
       'knowledge',
       'books',
       'courses',

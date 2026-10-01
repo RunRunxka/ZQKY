@@ -1,0 +1,40 @@
+{
+  "review": "TEACHING-LOOP B3 independent code review",
+  "date": "2026-10-01",
+  "head": "0f4b8cb190c2265d819b90e5d6df4e3954ad1906",
+  "branch": "main",
+  "candidateManifest": "docs/qa/TEACHING-LOOP-B3/FROZEN-B3.json",
+  "candidateManifestSha256": "eaa299cae59a4c5482bc1cea88dc8f6a670633d1e9f7139ec5783ca29816f298",
+  "candidateFilesChecked": 163,
+  "candidateDrift": [],
+  "findings": {
+    "P1": 2,
+    "P2": 8
+  },
+  "verification": {
+    "existingBackendSkipped": 1,
+    "existingBackendPassed": 89,
+    "frontendDiagnosticTests": 4
+  },
+  "files": {
+    "docs/qa/TEACHING-LOOP-B3-REVIEW-20261001/EVIDENCE-COMMANDS.md": "0dd9b5f5b3661b231ed3ef534b3f2dae33e67e81aaeebd5ed777731512143383",
+    "docs/qa/TEACHING-LOOP-B3-REVIEW-20261001/probes/jobs_late_failure_and_cancel.py": "92ef2fca38c259b5f1814a15993f32a81b5041cdd33622beea30804dce05f73d",
+    "docs/qa/TEACHING-LOOP-B3-REVIEW-20261001/probes/jobs_review_evidence.md": "ed9b37768caf4ae9b08ae08648dcb8a85a745e3bd6f9d6e1588cf1076fc6a251",
+    "docs/qa/TEACHING-LOOP-B3-REVIEW-20261001/probes/root_totals_attendance.json": "6bea12d9b88763665a92320e140b31c1172fc1cd0d2fb6df73a3da21f54eaa55",
+    "docs/qa/TEACHING-LOOP-B3-REVIEW-20261001/probes/root_totals_attendance.py": "57722d9b84c8dbe6e48df815d4b2284633ddaaf2dd5bb257470e1d6f03d44ce5",
+    "docs/qa/TEACHING-LOOP-B3-REVIEW-20261001/probes/scores_FINDINGS.md": "ac7694a7d9071a616edc7a155afd5fba2e85de4b72939f6296aa7373bc5aa45d",
+    "docs/qa/TEACHING-LOOP-B3-REVIEW-20261001/probes/scores_review_probe_output.jsonl": "4ea6be00c946e541006e8d8c65772e83e2356d3627c682d4a0093d7a73188946",
+    "docs/qa/TEACHING-LOOP-B3-REVIEW-20261001/probes/scores_review_probe.py": "f898240c2558225a521c634a10598d02f65b4915dbb5b5fc01a6d9b845c6363e",
+    "docs/qa/TEACHING-LOOP-B3-REVIEW-20261001/probes/ui_absence_fixture.json": "e4c7babefdf719f37659d64ec1577db5d12ab3fec3fd826804d6272fc464ee3c",
+    "docs/qa/TEACHING-LOOP-B3-REVIEW-20261001/probes/ui_absence_source.py": "34710eb89aa679903f54b1273b4a473e03846d1f69e4c654e10748459e0cbe46",
+    "docs/qa/TEACHING-LOOP-B3-REVIEW-20261001/probes/ui_acknowledgements.test.tsx": "b9fadad4649393b2f1b570a01ba1482bcdc6e4bc33b9fa1b77361ae529232d5d",
+    "docs/qa/TEACHING-LOOP-B3-REVIEW-20261001/probes/ui_assessment_late_create.test.tsx": "813c77e02dc7db6da356bd18e55ebe69b1fec78d11b74a06a4ffe09c0a7b45b9",
+    "docs/qa/TEACHING-LOOP-B3-REVIEW-20261001/probes/ui_FINDINGS.md": "f74219c89a52ac4d2483b746e306080a3f857bcad40ff87d9f49318c4531d13e",
+    "docs/qa/TEACHING-LOOP-B3-REVIEW-20261001/probes/ui_generation_fixture.json": "8d57f4d81a1c418bb3c75c15b8cdc6a9473c193f01587c22befe800bc95ee30c",
+    "docs/qa/TEACHING-LOOP-B3-REVIEW-20261001/probes/ui_generation_observation.test.tsx": "64e0eb0d64e1cdbb94809ea85fc6f359c9388b33ac75b6853cad6afb5b297913",
+    "docs/qa/TEACHING-LOOP-B3-REVIEW-20261001/probes/ui_generation_source.py": "e2bfca312e2a3d40d1875a7a3903f3321ea7f855fbb7898b58bff0b65dde42d2",
+    "docs/qa/TEACHING-LOOP-B3-REVIEW-20261001/probes/ui_vitest.config.ts": "a77b9f111cddf4cc4f7728c6ed5c443b6158f98e2c70e16e7ae957a4adb37b5c",
+    "docs/qa/TEACHING-LOOP-B3-REVIEW-20261001/REVIEW.md": "073997e2dce6d831d7c871ceb42cbd72919af366ece1301796eff048b6717c22"
+  },
+  "selfExcluded": true
+}

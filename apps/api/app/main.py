@@ -53,13 +53,17 @@ TEXTBOOK_STATE_KEYS = (
     "ingest_service", "index_service", "question_bank", "question_bank_service", "rag_v2",
     "knowledge", "teaching", "job_engine",
     "asset_store", "file_assets", "publication_coordinator", "textbook_evidence",
-    "knowledge_service", "roster_service",
+    "knowledge_service", "roster_service", "paper_service", "confirmed_paper_reader",
+    "assessment_service", "score_service", "job_executors",
 )
 
 #: 可选路由（模块缺失时只记录原因，不影响其他模块；并行开发期与裁剪部署都安全）
 OPTIONAL_ROUTERS = (
     ("app.api.v1.knowledge", "知识点"),
     ("app.api.v1.roster", "名单"),
+    ("app.api.v1.papers", "原卷"),
+    ("app.api.v1.assessments", "施测"),
+    ("app.api.v1.scores", "成绩"),
 )
 
 
@@ -81,7 +85,8 @@ JOB_KINDS: dict[str, frozenset[str]] = {
 }
 
 #: 启动时执行"遗留 running → interrupted"收敛的任务域（见 _build_job_engine 说明）。
-RECONCILE_DOMAINS: tuple[str, ...] = ("knowledge", "teaching")
+#: B2/T50 起题库任务已接入统一引擎（六态 + retry），因此一并收敛；不自动重叫模型。
+RECONCILE_DOMAINS: tuple[str, ...] = ("knowledge", "teaching", "question")
 
 
 def _database_expectations(settings: Settings) -> list[DatabaseExpectation]:
@@ -225,6 +230,12 @@ def _build_local_runtime(app: FastAPI, settings: Settings) -> None:
     _build_shared_services(app, settings)
     _build_knowledge_runtime(app)
     _build_roster_runtime(app)
+    _build_paper_runtime(app)
+    _build_assessment_runtime(app)
+    _build_score_runtime(app)
+    _build_question_bank_runtime(app, settings)
+    # 执行器注册必须在所有域服务构造之后：域服务在这里注册自己的 (domain, kind)
+    _build_executor_registry(app)
 
     if app.state.catalog is None:
         return
@@ -262,17 +273,30 @@ def _build_local_runtime(app: FastAPI, settings: Settings) -> None:
     # 教材定位与追问的唯一生产入口；旧四科 rag_engine 保留但不再被 /rag/* 调用。
     app.state.rag_service = app.state.rag_v2
 
-    if app.state.question_bank is not None:
-        try:
-            from app.services.question_bank.service import build_question_bank_service
-        except ImportError:  # pragma: no cover - 实现落地前
-            pass
-        else:
-            app.state.question_bank_service = build_question_bank_service(
-                app.state.question_bank,
-                settings,
-                model_resolver=_build_model_handle_resolver(app),
-            )
+
+def _build_executor_registry(app: FastAPI) -> None:
+    """任务执行器注册表（B3/G0 · B2-RV01）：公共 retry 的唯一调度路径。
+
+    域服务在装配后把自己已实现的 (domain, kind) 执行器注册进来；未注册的类型
+    保持 `queued`（用户可再次 retry），不伪造执行。
+    """
+    from app.services.jobs.registry import JobExecutorRegistry
+
+    registry = JobExecutorRegistry()
+    app.state.job_executors = registry
+    for key in (
+        "question_bank_service",
+        "knowledge_service",
+        "paper_service",
+        "assessment_service",
+    ):
+        service = getattr(app.state, key, None)
+        register = getattr(service, "register_job_executors", None)
+        if callable(register):
+            try:
+                register(registry)
+            except Exception:  # pragma: no cover - 注册失败不影响启动，但如实记录
+                logger.exception("%s 注册任务执行器失败", key)
 
 
 def _build_shared_services(app: FastAPI, settings: Settings) -> None:
@@ -328,6 +352,9 @@ def _build_knowledge_runtime(app: FastAPI) -> None:
         coordinator=app.state.publication_coordinator,
         model_resolver=_build_model_handle_resolver(app),
         job_engine=app.state.job_engine,
+        model_config_repo=app.state.model_config_repo,
+        secret_store=app.state.secret_store,
+        model_auth_service=app.state.model_auth_service,
     )
 
 
@@ -345,6 +372,98 @@ def _build_roster_runtime(app: FastAPI) -> None:
         asset_store=app.state.asset_store,
         file_assets=app.state.file_assets,
         job_engine=app.state.job_engine,
+    )
+
+
+def _build_question_bank_runtime(app: FastAPI, settings: Settings) -> None:
+    """题库存量服务（T50 起接入共享知识点库、发布协调器与统一任务引擎）。
+
+    必须在 ``_build_shared_services`` 之后装配：knowledge_catalog / coordinator 由那里提供；
+    缺任一依赖时服务仍可构造（对应能力返回 503），不伪造成功。
+    """
+    if app.state.question_bank is None:
+        return
+    try:
+        from app.services.question_bank.service import build_question_bank_service
+    except ImportError as exc:  # pragma: no cover - 实现落地前
+        logger.warning("题库服务缺失：%s", exc)
+        return
+    app.state.question_bank_service = build_question_bank_service(
+        app.state.question_bank,
+        settings,
+        model_resolver=_build_model_handle_resolver(app),
+        knowledge_catalog=app.state.knowledge,
+        coordinator=app.state.publication_coordinator,
+        job_engine=app.state.job_engine,
+        model_config_repo=app.state.model_config_repo,
+        secret_store=app.state.secret_store,
+        model_auth_service=app.state.model_auth_service,
+    )
+
+
+def _build_paper_runtime(app: FastAPI) -> None:
+    """原卷服务：教学库 + 受管资产 + 知识点库（跨库只读校验）+ 发布协调器 + 任务引擎。
+
+    同时暴露 ``confirmed_paper_reader``（T30-b 只用已确认修订的端口实现）。
+    """
+    if app.state.teaching is None or app.state.asset_store is None or app.state.file_assets is None:
+        return
+    try:
+        from app.services.papers.service import build_paper_service
+    except ImportError as exc:  # pragma: no cover - 实现落地前
+        logger.warning("原卷服务缺失：%s", exc)
+        return
+    app.state.paper_service = build_paper_service(
+        app.state.teaching,
+        asset_store=app.state.asset_store,
+        file_assets=app.state.file_assets,
+        knowledge_catalog=app.state.knowledge,
+        coordinator=app.state.publication_coordinator,
+        model_resolver=_build_model_handle_resolver(app),
+        job_engine=app.state.job_engine,
+        model_config_repo=app.state.model_config_repo,
+        secret_store=app.state.secret_store,
+        model_auth_service=app.state.model_auth_service,
+    )
+    app.state.confirmed_paper_reader = app.state.paper_service.confirmed_reader()
+
+
+def _build_assessment_runtime(app: FastAPI) -> None:
+    """施测服务（T30-b）：依赖原卷的真实 reader（未装配则留 None，路由 503）。"""
+    if app.state.teaching is None or app.state.confirmed_paper_reader is None:
+        return
+    try:
+        from app.services.assessments.service import build_assessment_service
+    except ImportError as exc:  # pragma: no cover - 实现落地前
+        logger.warning("施测服务缺失：%s", exc)
+        return
+    app.state.assessment_service = build_assessment_service(
+        app.state.teaching, reader=app.state.confirmed_paper_reader
+    )
+
+
+def _build_score_runtime(app: FastAPI) -> None:
+    """成绩服务（T60）：依赖施测服务、已确认原卷 reader、受管资产与发布协调器。"""
+    if (
+        app.state.teaching is None
+        or app.state.asset_store is None
+        or app.state.file_assets is None
+        or app.state.assessment_service is None
+        or app.state.confirmed_paper_reader is None
+    ):
+        return
+    try:
+        from app.services.scores import build_score_service
+    except ImportError as exc:  # pragma: no cover - 实现落地前
+        logger.warning("成绩服务缺失：%s", exc)
+        return
+    app.state.score_service = build_score_service(
+        app.state.teaching,
+        asset_store=app.state.asset_store,
+        file_assets=app.state.file_assets,
+        assessment_service=app.state.assessment_service,
+        paper_reader=app.state.confirmed_paper_reader,
+        publication_coordinator=app.state.publication_coordinator,
     )
 
 

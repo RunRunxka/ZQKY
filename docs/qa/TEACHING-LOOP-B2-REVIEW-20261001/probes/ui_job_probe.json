@@ -1,0 +1,31 @@
+{
+  "probe": "B2 UI task hook review",
+  "source": "apps/web/src/features/knowledge-points/hooks.ts",
+  "strictMode": {
+    "actual": [
+      {
+        "strict": false,
+        "view": "succeeded",
+        "terminalCalls": 1
+      },
+      {
+        "strict": true,
+        "view": "null",
+        "terminalCalls": 0
+      }
+    ],
+    "expected": {
+      "strict": true,
+      "view": "succeeded",
+      "terminalCalls": 1
+    },
+    "bugReproduced": true
+  },
+  "lateRetry": {
+    "beforeLateRetry": "new-B",
+    "afterLateRetry": "old-A",
+    "expectedAfterLateRetry": "new-B",
+    "bugReproduced": true
+  },
+  "executionSucceeded": true
+}

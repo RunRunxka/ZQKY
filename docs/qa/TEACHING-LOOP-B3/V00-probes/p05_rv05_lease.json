@@ -1,0 +1,48 @@
+{
+  "normal_path": {
+    "suggestions": 1,
+    "createdSuggestion": true,
+    "nextBatchIndex": 1,
+    "jobState": "running"
+  },
+  "stale_attempt": {
+    "newAttempt": 2,
+    "oldAttemptWrite": false,
+    "suggestionsBefore": 1,
+    "suggestionsAfter": 1,
+    "checkpointBefore": 1,
+    "checkpointAfter": 1
+  },
+  "token_mismatch": {
+    "write": false,
+    "suggestions": 0,
+    "nextBatchIndex": null
+  },
+  "expired_lease": {
+    "write": false,
+    "suggestions": 0
+  },
+  "terminal_late_batch": {
+    "interruptedState": "interrupted",
+    "writeAfterInterrupted": false,
+    "succeededState": "succeeded",
+    "writeAfterSucceeded": false,
+    "suggestionsE": 0,
+    "suggestionsF": 0
+  },
+  "cancel_first": {
+    "write": false,
+    "suggestions": 0,
+    "jobState": "running"
+  },
+  "no_lease_credentials": {
+    "write": false,
+    "suggestions": 0
+  },
+  "normal_two_batches": {
+    "suggestions": 2,
+    "nextBatchIndex": 2
+  },
+  "failures": [],
+  "verdict": "pass"
+}

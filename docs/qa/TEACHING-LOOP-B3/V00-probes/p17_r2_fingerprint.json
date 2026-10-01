@@ -1,0 +1,20 @@
+{
+  "r2": {
+    "fileCount": 106,
+    "listed": 106,
+    "hashedOk": 106,
+    "missing": [],
+    "mismatch": []
+  },
+  "diffR1ToR2": {
+    "added": [],
+    "removed": [],
+    "changed": [
+      "apps/api/app/core/migrations/teaching.py",
+      "apps/api/tests/test_b2_migrations.py",
+      "apps/api/tests/test_migrations.py"
+    ],
+    "unchangedCount": 103,
+    "equalsExpectedChanged": true
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "probeRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b2-review-lease-vfvan5gk",
+  "oldAttempt": 1,
+  "newAttempt": 2,
+  "staleBatchSuggestionCreated": true,
+  "suggestionsAfterStaleBatch": 1,
+  "liveAttempt": 2,
+  "checkpointAfterStaleBatch": {
+    "failedBatches": [],
+    "nextBatchIndex": 1,
+    "suggestionIds": [
+      "4a9ec8be47184a558c8886e1629fbc02"
+    ]
+  },
+  "interruptedBatchSuggestionCreated": true,
+  "finalState": "interrupted"
+}

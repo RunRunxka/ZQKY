@@ -1,0 +1,166 @@
+{
+  "probe": "p30_concurrency_corruption",
+  "startedAt": 1790864721.038163,
+  "durationSeconds": 1.808,
+  "checks": [
+    {
+      "label": "同 submissionId 并发：两响应都 200",
+      "ok": true,
+      "detail": {
+        "actual": [
+          200,
+          200
+        ],
+        "expected": [
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "label": "同 submissionId 并发：返回同一修订",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "同 submissionId 并发：只落 1 个修订",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "同 submissionId 并发：恰好一个真执行 + 一个重放",
+      "ok": true,
+      "detail": {
+        "actual": [
+          false,
+          true
+        ],
+        "expected": [
+          false,
+          true
+        ]
+      }
+    },
+    {
+      "label": "不同 submissionId 并发：状态 ∈ {200,409}",
+      "ok": true,
+      "detail": {
+        "actual": [
+          200,
+          409
+        ],
+        "expected": [
+          200,
+          409
+        ]
+      }
+    },
+    {
+      "label": "不同 submissionId 并发：恰好一个成功",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "不同 submissionId 并发：只落 1 个修订",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "损坏值确已落库（绕过 CHECK）",
+      "ok": true,
+      "detail": {
+        "actual": "{broken",
+        "expected": "{broken"
+      }
+    },
+    {
+      "label": "损坏 mapping_json → 500",
+      "ok": true,
+      "detail": {
+        "actual": 500,
+        "expected": 500
+      }
+    },
+    {
+      "label": "损坏 mapping_json 错误码",
+      "ok": true,
+      "detail": {
+        "actual": "SCORE_ROW_CORRUPT",
+        "expected": "SCORE_ROW_CORRUPT"
+      }
+    },
+    {
+      "label": "损坏 XLSX 上传 422",
+      "ok": true,
+      "detail": {
+        "actual": 422,
+        "expected": 422
+      }
+    },
+    {
+      "label": "损坏 XLSX 错误码",
+      "ok": true,
+      "detail": {
+        "actual": "TABLE_PARSE_FAILED",
+        "expected": "TABLE_PARSE_FAILED"
+      }
+    },
+    {
+      "label": "损坏 XLSX 不落批次",
+      "ok": true,
+      "detail": {
+        "actual": 1,
+        "expected": 1
+      }
+    },
+    {
+      "label": "恢复正常后确认 200",
+      "ok": true,
+      "detail": {
+        "actual": 200,
+        "expected": 200
+      }
+    },
+    {
+      "label": "确认修订读取正常（快照 2 人次）",
+      "ok": true,
+      "detail": {
+        "actual": 2,
+        "expected": 2
+      }
+    },
+    {
+      "label": "损坏快照确已落库（绕过 CHECK）",
+      "ok": true,
+      "detail": {
+        "actual": "not-json",
+        "expected": "not-json"
+      }
+    },
+    {
+      "label": "损坏快照 → 500",
+      "ok": true,
+      "detail": {
+        "actual": 500,
+        "expected": 500
+      }
+    }
+  ],
+  "failures": [],
+  "observations": [
+    "不同 submissionId 并发结果=[(200, 'OK'), (409, 'SCORE_IMPORT_NOT_EDITABLE')]",
+    "损坏快照响应={\"code\": \"SCORE_ROW_CORRUPT\", \"message\": \"教学库数据损坏：score_revisions.participant_snapshot_json 不是合法 JSON。\", \"requestId\": \"32038f38072a4c36b363b276e6a79726\", \"retryable\": false}"
+  ]
+}

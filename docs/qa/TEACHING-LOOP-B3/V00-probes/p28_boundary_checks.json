@@ -1,0 +1,175 @@
+{
+  "probe": "p28_boundary_checks",
+  "startedAt": 1790864543.3217916,
+  "durationSeconds": 0.136,
+  "checks": [
+    {
+      "label": "CSV 直读单表 name=CSV",
+      "ok": true,
+      "detail": {
+        "actual": [
+          "CSV"
+        ],
+        "expected": [
+          "CSV"
+        ]
+      }
+    },
+    {
+      "label": "CSV 物理行数=3",
+      "ok": true,
+      "detail": {
+        "actual": 3,
+        "expected": 3
+      }
+    },
+    {
+      "label": "CSV 物理列数=5",
+      "ok": true,
+      "detail": {
+        "actual": 5,
+        "expected": 5
+      }
+    },
+    {
+      "label": "CSV 无公式视图且末格空白",
+      "ok": true,
+      "detail": {
+        "actual": [
+          null,
+          true
+        ],
+        "expected": [
+          null,
+          true
+        ]
+      }
+    },
+    {
+      "label": "ScoreImportView 无 absent/missing 明细字段（只有汇总数字）",
+      "ok": true,
+      "detail": [
+        "assessment_id",
+        "assessment_title",
+        "base_score_revision_id",
+        "created_at",
+        "file_asset",
+        "import_id",
+        "issues",
+        "mapping",
+        "missing_cell_count",
+        "preview_version",
+        "resolved_row_count",
+        "revision",
+        "row_count",
+        "state",
+        "updated_at",
+        "warnings"
+      ]
+    },
+    {
+      "label": "ScoreImportView 只有 missingCellCount 汇总",
+      "ok": true,
+      "detail": {
+        "actual": true,
+        "expected": true
+      }
+    },
+    {
+      "label": "ScoreImportRowView 无行级状态/出勤分类字段",
+      "ok": true,
+      "detail": [
+        "candidates",
+        "cells",
+        "issues",
+        "participant_id",
+        "participant_name",
+        "row_no"
+      ]
+    },
+    {
+      "label": "前端本地推导 missing（deriveMissingAcknowledgement）",
+      "ok": true,
+      "detail": "ScoreImportReview.tsx"
+    },
+    {
+      "label": "前端本地推导缺考（groupAbsencesByClass）",
+      "ok": true,
+      "detail": "ScoreImportReview.tsx"
+    },
+    {
+      "label": "承认范围推导读取全部原表行（最多 20 页）",
+      "ok": true,
+      "detail": "hooks.ts loadAllImportRows"
+    },
+    {
+      "label": "422 兜底存在（SCORE_ACKNOWLEDGEMENT_MISMATCH 处理）",
+      "ok": true,
+      "detail": "ScoreImportReview.tsx"
+    },
+    {
+      "label": "路由表中无 attendance/correction 独立端点",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "label": "AssessmentUpdateRequest 无 attendance 字段",
+      "ok": true,
+      "detail": [
+        "assessment_type",
+        "expected_revision",
+        "held_on",
+        "title"
+      ]
+    },
+    {
+      "label": "人次维护只有 POST /assessments/{id}/participants（新增/补录）",
+      "ok": true,
+      "detail": [
+        "POST /assessments/{assessment_id}/participants"
+      ]
+    },
+    {
+      "label": "校正路径 = 修正原表后重新上传（新批次）",
+      "ok": true,
+      "detail": "ScorePanel.tsx"
+    },
+    {
+      "label": "服务端冲突文案指向校正原表/出勤（非独立端点）",
+      "ok": true,
+      "detail": "service.py / imports.py"
+    },
+    {
+      "label": "F10-QB 测试文件都在",
+      "ok": true,
+      "detail": {
+        "actual": [],
+        "expected": []
+      }
+    },
+    {
+      "label": "F10-QB 交互/API 用例全部 stub fetch",
+      "ok": true,
+      "detail": [
+        "GenerationPanel.test.tsx",
+        "KnowledgeLinksPanel.test.tsx",
+        "QuestionBankWorkspace.test.tsx",
+        "QuestionDetailLinks.test.tsx",
+        "ReviewWorkspace.test.tsx",
+        "jobs.test.tsx",
+        "question-bank-api.test.ts"
+      ]
+    },
+    {
+      "label": "F10-QB 测试无真后端/真浏览器链",
+      "ok": true,
+      "detail": "全部文件"
+    }
+  ],
+  "failures": [],
+  "observations": [
+    "assessments/scores 路由：[[\"GET\", \"/assessments\"], [\"POST\", \"/assessments\"], [\"GET\", \"/assessments/{assessment_id}\"], [\"PATCH\", \"/assessments/{assessment_id}\"], [\"POST\", \"/assessments/{assessment_id}/participants\"], [\"POST\", \"/assessments/{assessment_id}/score-imports\"], [\"GET\", \"/score-imports\"], [\"GET\", \"/score-imports/{import_id}\"], [\"GET\", \"/score-imports/{import_id}/rows\"], [\"PATCH\", \"/score-imports/{import_id}\"], [\"POST\", \"/score-imports/{import_id}/confirm\"], [\"GET\", \"/assessments/{assessment_id}/score-revisions\"], [\"GET\", \"/score-revisions/{revision_id}\"], [\"GET\", \"/score-revisions/{revision_id}/matrix\"], [\"POST\", \"/assessments/{assessment_id}/score-revisions/correct\"]]",
+    "stub fetch 的 F10-QB 测试（7）：GenerationPanel.test.tsx、KnowledgeLinksPanel.test.tsx、QuestionBankWorkspace.test.tsx、QuestionDetailLinks.test.tsx、ReviewWorkspace.test.tsx、jobs.test.tsx、question-bank-api.test.ts",
+    "零 mock 的纯函数测试（3）：generation-notice.test.ts、knowledge-links.test.ts、source-trace.test.ts"
+  ]
+}

@@ -119,9 +119,34 @@ const QUESTION_LIST: QuestionList = {
   limit: 20,
 };
 
+const POINTS = {
+  items: [
+    {
+      id: 'kp-m1',
+      subjectId: 'math',
+      code: 'M1',
+      name: '有理数',
+      description: '',
+      parentId: null,
+      parentCode: null,
+      sortOrder: 0,
+      status: 'active',
+      revision: 1,
+      revisionId: 'kpr-m1',
+      version: 1,
+      aliases: [],
+      createdAt: '2026-09-28T00:00:00Z',
+    },
+  ],
+  total: 1,
+  offset: 0,
+  limit: 200,
+};
+
 const defaultRoute = (url: string, init: RequestInit) => {
   const method = (init.method ?? 'GET').toUpperCase();
   if (url.endsWith('/textbook-taxonomy')) return jsonResponse(true, 200, TAXONOMY);
+  if (url.includes('/knowledge-points')) return jsonResponse(true, 200, POINTS);
   if (url.endsWith('/question-imports') && method === 'GET') {
     return jsonResponse(true, 200, { imports: [BATCH] });
   }
@@ -326,5 +351,39 @@ describe('题库首页：已入库题目', () => {
       expect(screen.queryByRole('dialog', { name: '题目详情' })).not.toBeInTheDocument(),
     );
     expect(document.activeElement).toBe(trigger);
+  });
+
+  it('按知识点筛选：选项来自知识点库在用列表，查询请求带 knowledgePointId', async () => {
+    const fetchMock = router();
+    render(<QuestionBankWorkspace />);
+    await screen.findByText('七年级数学题库.md');
+    fireEvent.click(screen.getByRole('tab', { name: '已入库题目' }));
+
+    const filter = await screen.findByLabelText('知识点');
+    await waitFor(() => expect((filter as HTMLSelectElement).disabled).toBe(false));
+    fireEvent.change(filter, { target: { value: 'kp-m1' } });
+    fireEvent.click(screen.getByRole('button', { name: /查询/ }));
+
+    await waitFor(() =>
+      expect(calls(fetchMock, '/questions?knowledgePointId=kp-m1')).toHaveLength(1),
+    );
+    // 旧标签仍照实显示，并标注为历史字段（与正式关联分开）
+    expect(screen.getByText('历史标签（旧字段）')).toBeInTheDocument();
+    expect(screen.getByText('有理数')).toHaveClass('qb-legacy-tag');
+  });
+
+  it('AI 补题入口打开补题面板（不在页面加载时调用模型）', async () => {
+    const fetchMock = router();
+    render(<QuestionBankWorkspace />);
+    await screen.findByText('七年级数学题库.md');
+    fireEvent.click(screen.getByRole('tab', { name: '已入库题目' }));
+
+    fireEvent.click(await screen.findByTestId('qb-generation-open'));
+
+    expect(await screen.findByTestId('qb-generation-panel')).toBeInTheDocument();
+    expect(
+      screen.getByText(/AI 补题只生成待校对草稿/),
+    ).toBeInTheDocument();
+    expect(calls(fetchMock, '/question-generation-jobs', 'POST')).toHaveLength(0);
   });
 });

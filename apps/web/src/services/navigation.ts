@@ -74,6 +74,26 @@ export const navigation: NavigationItem[] = [
     icon: FileQuestion,
   },
   {
+    // 独立知识点库（TEACHING-LOOP B1 后端 + B2 前端）：与「教材资料库」是两套数据。
+    id: 'knowledge-points',
+    label: '知识点',
+    path: '/knowledge-points',
+    status: 'ready',
+    position: 'main',
+    group: '教学工作台',
+    icon: BookOpen,
+  },
+  {
+    // 施测与成绩（TEACHING-LOOP B3 / T60 + F20-I）：五步工作区，成绩导入为真实后端。
+    id: 'assessments',
+    label: '施测与成绩',
+    path: '/assessments',
+    status: 'ready',
+    position: 'main',
+    group: '教学工作台',
+    icon: ClipboardList,
+  },
+  {
     id: 'co-writer',
     label: '协同写作',
     path: '/co-writer',

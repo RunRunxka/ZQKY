@@ -1,0 +1,47 @@
+{
+  "note": "审查目录 7 个探针的**逐字节副本**在本目录运行（未改动原目录）；修复后应‘缺陷不再复现’。",
+  "probes": {
+    "papers_probe.py": {
+      "exitCode": 1,
+      "defectReproduced": false,
+      "evidence": "papers_probe.log",
+      "firstFailure": "line 87 PaperDraftPatchRequest.model_validate({'resolution': {'anything': 1}}) 直接被 schema 拒绝（ValidationError: kind required / extra_forbidden）；此前已打印 block 视图含正文"
+    },
+    "papers_content_probe.py": {
+      "exitCode": 1,
+      "defectReproduced": false,
+      "evidence": "papers_content_probe.log",
+      "firstFailure": "line 53 同上：任意 JSON resolution 无法构造"
+    },
+    "question_jobs_probe.py": {
+      "exitCode": 1,
+      "defectReproduced": false,
+      "evidence": "question_jobs_probe.log",
+      "firstFailure": "line 56 归档后确认返回 409 KNOWLEDGE_ARCHIVED（原期望 200）"
+    },
+    "question_model_probe.py": {
+      "exitCode": 1,
+      "defectReproduced": false,
+      "evidence": "question_model_probe.log",
+      "firstFailure": "line 52 assert record.state == 'succeeded' 变为 'failed'（漂移被拒）"
+    },
+    "question_lease_probe.py": {
+      "exitCode": 0,
+      "defectReproduced": false,
+      "evidence": "question_lease_probe.json",
+      "firstFailure": "staleBatchSuggestionCreated=false / interruptedBatchSuggestionCreated=false / checkpoint={}"
+    },
+    "assessment_date_probe.py": {
+      "exitCode": 0,
+      "defectReproduced": false,
+      "evidence": "assessment_date_probe.json",
+      "firstFailure": "bugReproduced=false（改日期被 422 定位拒绝）"
+    },
+    "ui_job_probe.cjs": {
+      "exitCode": 0,
+      "defectReproduced": false,
+      "evidence": "ui_job_probe.log",
+      "firstFailure": "strictMode.bugReproduced=false、lateRetry.bugReproduced=false"
+    }
+  }
+}

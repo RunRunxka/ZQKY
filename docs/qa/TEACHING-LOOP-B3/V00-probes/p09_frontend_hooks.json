@@ -1,0 +1,89 @@
+{
+  "failures": [],
+  "window_accept_N_and_N1": {
+    "ok": true,
+    "detail": {
+      "accepted": 3,
+      "updates": [
+        2,
+        3
+      ]
+    }
+  },
+  "window_reject_N2": {
+    "ok": true,
+    "detail": {
+      "rejected": null
+    }
+  },
+  "window_reject_older": {
+    "ok": true,
+    "detail": {
+      "older": null
+    }
+  },
+  "window_exact_rejects_other_attempt": {
+    "ok": true,
+    "detail": {
+      "exactRejected": null
+    }
+  },
+  "terminal_stops_observation": {
+    "ok": true,
+    "detail": {
+      "state": "failed",
+      "requestsDelta": 1
+    }
+  },
+  "abort_returns_null": {
+    "ok": true,
+    "detail": {
+      "aborted": null
+    }
+  },
+  "strictmode_off": {
+    "ok": true,
+    "detail": {
+      "label": "succeeded:1",
+      "terminalCalls": 1
+    }
+  },
+  "strictmode_on": {
+    "ok": true,
+    "detail": {
+      "label": "succeeded:1",
+      "terminalCalls": 1
+    }
+  },
+  "late_retry_response_ignored": {
+    "ok": true,
+    "detail": {
+      "pendingDuringRetry": "retry",
+      "pendingAfterReset": "none",
+      "stateAfterAdoptB": "B:succeeded:3",
+      "stateAfterLateRetry": "B:succeeded:3"
+    }
+  },
+  "late_cancel_response_ignored": {
+    "ok": true,
+    "detail": {
+      "beforeLateCancel": "B:succeeded:3",
+      "afterLateCancel": "B:succeeded:3"
+    }
+  },
+  "late_failure_ignored": {
+    "ok": true,
+    "detail": {
+      "state": "B:succeeded",
+      "error": "none"
+    }
+  },
+  "observation_epoch_guards_stale_update": {
+    "ok": true,
+    "detail": {
+      "state": "B:5",
+      "terminals": []
+    }
+  },
+  "verdict": "pass"
+}

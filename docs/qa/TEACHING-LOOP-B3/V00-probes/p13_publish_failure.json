@@ -1,0 +1,130 @@
+{
+  "teaching": {
+    "app_error_publish": {
+      "state": "failed",
+      "errorCode": "V00_PUBLISH_FAIL",
+      "finishedAt": "2026-10-01T14:22:38Z",
+      "leaseCleared": true,
+      "probeRows": []
+    },
+    "internal_publish": {
+      "state": "failed",
+      "errorCode": "JOB_FAILED",
+      "errorMessage": "任务结果发布失败，本次写入已回滚。",
+      "fixedMessage": "任务结果发布失败，本次写入已回滚。",
+      "probeRows": []
+    },
+    "normal_publish": {
+      "state": "succeeded",
+      "result": {
+        "job": "f8ab62eb5fa74f3f9c9c4511cb27970e"
+      },
+      "probeRows": [
+        {
+          "id": "c",
+          "note": "正常"
+        }
+      ]
+    },
+    "cancel_priority": {
+      "completeCancelRaised": null,
+      "stateAfterComplete": "cancelled",
+      "stateAfterFailIfCurrentLease": "cancelled",
+      "errorCode": null
+    },
+    "lost_lease_zero_write": {
+      "newAttempt": 2,
+      "staleCallState": "running",
+      "currentState": "running",
+      "errorCode": null,
+      "attemptKept": true
+    },
+    "no_running_left": true
+  },
+  "question": {
+    "app_error_publish": {
+      "state": "failed",
+      "errorCode": "V00_PUBLISH_FAIL",
+      "finishedAt": "2026-10-01T14:22:38Z",
+      "leaseCleared": true,
+      "probeRows": []
+    },
+    "internal_publish": {
+      "state": "failed",
+      "errorCode": "JOB_FAILED",
+      "errorMessage": "任务结果发布失败，本次写入已回滚。",
+      "fixedMessage": "任务结果发布失败，本次写入已回滚。",
+      "probeRows": []
+    },
+    "normal_publish": {
+      "state": "succeeded",
+      "result": {
+        "job": "c82f841ba3d34c2e99916d77c36ca235"
+      },
+      "probeRows": [
+        {
+          "id": "c",
+          "note": "正常"
+        }
+      ]
+    },
+    "cancel_priority": {
+      "completeCancelRaised": null,
+      "stateAfterComplete": "cancelled",
+      "stateAfterFailIfCurrentLease": "cancelled",
+      "errorCode": null
+    },
+    "lost_lease_zero_write": {
+      "newAttempt": 2,
+      "staleCallState": "running",
+      "currentState": "running",
+      "errorCode": null,
+      "attemptKept": true
+    },
+    "no_running_left": true
+  },
+  "knowledge": {
+    "app_error_publish": {
+      "state": "failed",
+      "errorCode": "V00_PUBLISH_FAIL",
+      "finishedAt": "2026-10-01T14:22:39Z",
+      "leaseCleared": true,
+      "probeRows": []
+    },
+    "internal_publish": {
+      "state": "failed",
+      "errorCode": "JOB_FAILED",
+      "errorMessage": "任务结果发布失败，本次写入已回滚。",
+      "fixedMessage": "任务结果发布失败，本次写入已回滚。",
+      "probeRows": []
+    },
+    "normal_publish": {
+      "state": "succeeded",
+      "result": {
+        "job": "9ae1c04584cd42018ee468829a22054e"
+      },
+      "probeRows": [
+        {
+          "id": "c",
+          "note": "正常"
+        }
+      ]
+    },
+    "cancel_priority": {
+      "completeCancelRaised": null,
+      "stateAfterComplete": "cancelled",
+      "stateAfterFailIfCurrentLease": "cancelled",
+      "errorCode": null
+    },
+    "lost_lease_zero_write": {
+      "newAttempt": 2,
+      "staleCallState": "running",
+      "currentState": "running",
+      "errorCode": null,
+      "attemptKept": true
+    },
+    "no_running_left": true
+  },
+  "failures": [],
+  "verdict": "pass"
+}
