@@ -54,6 +54,10 @@ def verify_existing_database(expectation: DatabaseExpectation) -> None:
         _require_integrity(connection, path)
         _require_tables(connection, path, expectation.required_tables)
         verify_migrations(connection, database=expectation.database)
+        if expectation.database == "teaching":
+            from app.core.lesson_schema_gate import verify_registered_lesson_schema
+
+            verify_registered_lesson_schema(connection)
     except AppError:
         raise
     except sqlite3.Error as exc:

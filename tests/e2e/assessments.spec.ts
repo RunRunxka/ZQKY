@@ -15,11 +15,10 @@ import { test, expect, type Page, type Route } from '@playwright/test';
  * 浏览器在真实页面上完成 建班 → 选人次 → 选已确认原卷 → 建施测 → 上传 XLSX（Playwright
  * `setInputFiles` 生成的字节，不落盘）→ 映射 → 修正一格 → 承认 → 确认 → 历史矩阵读回。
  *
- * 为什么经 `page.route` 转发：Next 的同源代理目标在 **web server 启动时** 由
- * `ZQKY_API_ORIGIN` 固定（`apps/web/next.config.ts`，本任务不可写），无法在 spec 内改到
- * 临时端口；因此把浏览器发出的每个 `/api/v1/**` 请求**逐字节**转发给隔离后端
- * （含 multipart 原始体与查询串），响应原样回填。被替换的只有"网络路径"，业务数据全部来自
- * 真 FastAPI（无任何 fixture 数据冒充成功）。
+ * 隔离8001构建以 `ZQKY_API_ORIGIN` 固定Next同源代理，浏览器直接发送完整文件给真API。
+ * 未配置该构建时保留 `page.route` 动态转发兼容路径；文件用内存字节上传，避免Chromium
+ * 请求快照省略磁盘File内容。响应丢失只拦确认响应，实际业务提交仍由真实FastAPI完成。
+ * 业务数据全部来自真FastAPI，无任何fixture数据冒充成功。
  *
  * 数据准备：用后端自己的测试台 `tests.scores_support.ScoresHarness`（真库、真迁移、真确认
  * 触发器）在同一个临时数据根里种子一张**已确认原卷**（Q1=2、Q2=3、Q3=5）；班级/学生/施测/
@@ -35,9 +34,11 @@ interface Backend {
   dataDir: string;
   tmpRoot: string;
   child: ChildProcess;
+  closed: Promise<void>;
   logStream: fs.WriteStream;
   paper: { paperId: string; revisionId: string; title: string };
   scalePaper: { paperId: string; revisionId: string; title: string };
+  completePaperFile: string;
 }
 
 let backend: Backend | null = null;
@@ -47,7 +48,7 @@ function freePort(): Promise<number> {
   return new Promise((resolve, reject) => {
     const server = net.createServer();
     server.on('error', reject);
-    server.listen(0, '127.0.0.1', () => {
+    server.listen(8001, '127.0.0.1', () => {
       const address = server.address();
       const port = typeof address === 'object' && address ? address.port : 0;
       server.close(() => (port ? resolve(port) : reject(new Error('无法分配空闲端口'))));
@@ -97,10 +98,13 @@ async function waitForHealth(origin: string, timeoutMs: number): Promise<void> {
 }
 
 async function startBackend(): Promise<Backend> {
+  const port = await freePort();
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'zqky-f20i-'));
   const dataDir = path.join(tmpRoot, 'data');
-  const port = await freePort();
   const logFile = path.join(tmpRoot, 'api.log');
+  if (process.env.ZQKY_KEEP_TEST_DATA === '1') {
+    console.log(`[ZQKY_TEST_DATA_CREATED] ${JSON.stringify({ spec: 'assessments', tmpRoot, dataDir, apiLog: logFile })}`);
+  }
   const env: NodeJS.ProcessEnv = {
     ...process.env,
     ZQKY_DATA_DIR: dataDir,
@@ -124,6 +128,9 @@ async function startBackend(): Promise<Backend> {
       'REPO, ROOT = Path(sys.argv[1]), Path(sys.argv[2])',
       'sys.path.insert(0, str(REPO / "apps" / "api"))',
       'from tests.scores_support import ScoresHarness',
+      'sys.path.insert(0, str(REPO / "tests" / "fixtures"))',
+      'from teaching_loop_docx import build_complete_paper',
+      '(ROOT / "complete-paper.docx").write_bytes(build_complete_paper())',
       'with ScoresHarness(ROOT) as harness:',
       '    paper = harness.seed_confirmed_paper(',
       '        tag="f20i",',
@@ -161,7 +168,9 @@ async function startBackend(): Promise<Backend> {
   const { command, args } = uvArgs([
     'run',
     'uvicorn',
-    'app.main:app',
+    'teaching_loop_backend:app',
+    '--app-dir',
+    '../../tests/fixtures',
     '--host',
     '127.0.0.1',
     '--port',
@@ -171,19 +180,23 @@ async function startBackend(): Promise<Backend> {
   ]);
   const logStream = fs.createWriteStream(logFile, { flags: 'a' });
   const child = spawn(command, args, { cwd: API_DIR, env, windowsHide: true });
-  child.stdout?.pipe(logStream);
-  child.stderr?.pipe(logStream);
+  const closed = new Promise<void>((resolve) => child.once('close', () => resolve()));
+  child.stdout?.pipe(logStream, { end: false });
+  child.stderr?.pipe(logStream, { end: false });
   const origin = `http://127.0.0.1:${port}`;
+  const current = { origin, dataDir, tmpRoot, child, closed, logStream, paper: paper.paper, scalePaper: paper.scalePaper, completePaperFile: path.join(tmpRoot, 'complete-paper.docx') };
+  backend = current;
 
   try {
     await waitForHealth(origin, 180_000);
   } catch (cause) {
-    child.kill();
+    const startupLog = fs.existsSync(logFile) ? fs.readFileSync(logFile, 'utf8') : '';
+    await stopBackend();
     throw new Error(
-      `${String(cause)}\n--- api.log ---\n${fs.existsSync(logFile) ? fs.readFileSync(logFile, 'utf8') : ''}`,
+      `${String(cause)}\n--- api.log ---\n${startupLog}`,
     );
   }
-  return { origin, dataDir, tmpRoot, child, logStream, paper: paper.paper, scalePaper: paper.scalePaper };
+  return current;
 }
 
 function ensureBackend(): Promise<Backend> {
@@ -191,29 +204,56 @@ function ensureBackend(): Promise<Backend> {
   return backendPromise;
 }
 
-/** 关停隔离后端并清理临时目录；清理失败只记录，不让收尾拖垮用例结果。 */
+/** 等待自有后端和日志关闭；明确 opt-in 保留证据，默认清理本轮临时目录。 */
 async function stopBackend(): Promise<void> {
   const current = backend;
   backend = null;
   backendPromise = null;
   if (!current) return;
   try {
-    current.logStream.end();
-    if (process.platform === 'win32' && current.child.pid) {
-      spawnSync('taskkill', ['/pid', String(current.child.pid), '/T', '/F'], {
-        windowsHide: true,
-        encoding: 'utf8',
-      });
-    } else {
-      current.child.kill('SIGTERM');
+    if (current.child.exitCode === null && current.child.signalCode === null) {
+      if (process.platform === 'win32' && current.child.pid) {
+        spawnSync('taskkill', ['/pid', String(current.child.pid), '/T', '/F'], {
+          windowsHide: true,
+          encoding: 'utf8',
+        });
+      } else {
+        current.child.kill('SIGTERM');
+      }
     }
-  } catch {
-    // 关停失败不阻塞清理尝试
+    await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('Owned backend did not close within 30s')), 30_000);
+      current.closed.then(() => {
+        clearTimeout(timer);
+        resolve();
+      }, (cause) => {
+        clearTimeout(timer);
+        reject(cause);
+      });
+    });
+    await new Promise<void>((resolve, reject) => {
+      if (current.logStream.closed) return resolve();
+      current.logStream.once('close', () => resolve());
+      current.logStream.once('error', reject);
+      current.logStream.end();
+    });
+  } catch (cause) {
+    console.warn(`[assessments.spec] 自有后端或日志未完成关闭，保留临时目录：${current.tmpRoot}；${String(cause)}`);
+    return;
+  }
+  const resolved = path.resolve(current.tmpRoot);
+  const relative = path.relative(path.resolve(os.tmpdir()), resolved);
+  if (!relative || relative.startsWith('..') || path.isAbsolute(relative) || !path.basename(resolved).startsWith('zqky-f20i-')) {
+    throw new Error('Refusing to clean an unowned temporary directory');
+  }
+  if (process.env.ZQKY_KEEP_TEST_DATA === '1') {
+    console.log(`[ZQKY_TEST_DATA_RETAINED] ${JSON.stringify({ spec: 'assessments', tmpRoot: resolved, dataDir: current.dataDir, apiLog: path.join(resolved, 'api.log'), pid: current.child.pid, childClosed: true, logClosed: current.logStream.closed })}`);
+    return;
   }
   for (let attempt = 0; attempt < 6; attempt += 1) {
     await new Promise((resolve) => setTimeout(resolve, 400));
     try {
-      fs.rmSync(current.tmpRoot, { recursive: true, force: true });
+      fs.rmSync(resolved, { recursive: true, force: true });
       return;
     } catch {
       // Windows 上进程句柄释放有延迟：重试
@@ -229,6 +269,9 @@ test.afterAll(async () => {
 
 /** 把页面发出的 /api/v1/** 逐字节转发给隔离后端（业务数据全部来自它）。 */
 async function proxyApi(page: Page, origin: string) {
+  // 固定8001验收走真实Next同源代理；保留浏览器的文件上传字节，避免
+  // Chromium postDataBuffer 对磁盘File部件的省略。动态端口才使用下方转发。
+  if (process.env.ZQKY_API_ORIGIN === origin) return;
   await page.route('**/api/v1/**', async (route: Route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -568,13 +611,13 @@ test.describe('施测与成绩工作区（真隔离 FastAPI + 真实浏览器）
       mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       buffer: xlsx,
     });
-    await page.getByLabel('工作表名').fill(SHEET_NAME);
+    await page.getByLabel('工作表名', { exact: true }).fill(SHEET_NAME);
     await page.getByRole('button', { name: /上传并创建待校对批次/ }).click();
 
     // 映射：显式写原表列字母（不依赖自动映射），保存后服务端重算预览
     await expect(page.getByLabel('映射工作表名')).toHaveValue(SHEET_NAME, { timeout: 30_000 });
-    await page.getByLabel('学号列').fill('A');
-    await page.getByLabel('姓名列').fill('B');
+    await page.getByLabel('学号列', { exact: true }).fill('A');
+    await page.getByLabel('姓名列', { exact: true }).fill('B');
     await page.getByLabel('Q1 列字母').fill('C');
     await page.getByLabel('Q2 列字母').fill('D');
     await page.getByLabel('Q3 列字母').fill('E');
@@ -724,6 +767,129 @@ test.describe('施测与成绩工作区（真隔离 FastAPI + 真实浏览器）
 
     await page.screenshot({ path: testInfo.outputPath('assessments-history-1440.png'), fullPage: true });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  });
+
+  test('完整真实链：名单导入→富原卷校对确认→施测→成绩响应丢失重放→修正历史', async ({ page }, testInfo) => {
+    test.setTimeout(240_000);
+    const current = await ensureBackend(); backend = current;
+    const point = await api(current.origin, '/api/v1/knowledge-points', {
+      method: 'POST', body: JSON.stringify({ subjectId: 'math', code: 'COMPLETE-CHAIN', name: '完整链有理数' }),
+    });
+    expect(point.status).toBe(201);
+    const pointId = (point.body as {id: string}).id;
+    await gotoAssessments(page, current.origin);
+    await page.getByRole('button', { name: '新建班级', exact: true }).click();
+    await page.getByLabel('班级编码').fill('COMPLETE');
+    await page.getByLabel('班级名称').fill('完整导入班');
+    await page.getByLabel('学年').fill('2026');
+    await page.getByLabel('年级').fill('grade-1');
+    await page.getByRole('button', { name: '建立班级', exact: true }).click();
+    await page.getByLabel('名单文件').setInputFiles({ name: '完整名单.csv', mimeType: 'text/csv',
+      buffer: Buffer.from('\ufeff学号,姓名\n01001,全链甲\n01002,全链乙\n01003,全链丙\n01004,全链丁\n') });
+    await page.getByRole('button', { name: '上传名单', exact: true }).click();
+    // 名单沿用 T30-a 的数据行序号（不含表头）；成绩仍用原表物理坐标。
+    for (let row = 1; row <= 4; row += 1) await page.getByLabel(`第 ${row} 行处理`).selectOption('create');
+    await page.getByRole('button', { name: '保存映射与行决策', exact: true }).click();
+    await page.getByRole('button', { name: '确认名单', exact: true }).click();
+    await expect(page.getByTestId('roster-import-result')).toContainText('名单已确认');
+    await expect(page.getByText('学号 01001', { exact: true })).toBeVisible();
+
+    await page.getByRole('tab', { name: '2 原卷' }).click();
+    await page.getByLabel('原卷学科', { exact: true }).selectOption('math');
+    const paperBytes = fs.readFileSync(current.completePaperFile);
+    expect(paperBytes.length).toBeGreaterThan(0);
+    await page.getByLabel('原卷DOCX文件').setInputFiles({ name: '完整原卷.docx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      buffer: paperBytes });
+    await page.getByRole('button', { name: '上传原卷并校对', exact: true }).click();
+    await expect(page.getByLabel('原卷修订标题')).toBeVisible();
+    await page.getByLabel('原卷修订标题').fill('完整链固定原卷');
+    const source = page.getByRole('region', { name: '完整原文块' });
+    await expect(source).toContainText('原文合并表头');
+    await expect(source.locator('math[aria-label="原始公式"]').first()).toBeVisible();
+    await expect(source.getByRole('img').first()).toBeVisible();
+    for (const no of ['1','2','3']) await page.getByLabel(`题 ${no} 知识点`, {exact:true}).selectOption([pointId]);
+    await page.getByRole('button', { name: '保存原卷草稿', exact: true }).click();
+    await page.getByRole('button', { name: '确认原卷入库', exact: true }).click();
+    await expect(page.getByTestId('paper-confirm-result')).toContainText('已确认');
+    const selectedPaperText = await page.getByTestId('assessments-paper-selected').innerText();
+    expect(selectedPaperText).toContain('完整链固定原卷');
+    await page.screenshot({ path: testInfo.outputPath('complete-paper-1440.png'), fullPage: true });
+
+    await page.getByRole('tab', { name: '3 施测' }).click();
+    await page.getByLabel('施测标题').fill('完整链施测');
+    await page.getByLabel('施测日期').fill(todayIso());
+    await page.getByLabel('全链丙 出勤').selectOption('absent');
+    await page.getByRole('button', { name: '创建施测', exact: true }).click();
+    await expect(page.getByTestId('assessments-create-result')).toContainText('4 人次');
+    const assessmentId = await currentAssessmentId(page);
+
+    await page.getByRole('tab', { name: '4 成绩' }).click();
+    await page.getByLabel('成绩表格文件').setInputFiles({ name: '全链成绩.csv', mimeType: 'text/csv',
+      buffer: Buffer.from('\ufeff学号,姓名,1,2,3\n01001,全链甲,2,2,5\n01002,全链乙,2,3,\n01003,全链丙,缺考,,\n01004,全链丁,0,3,5\n') });
+    await page.getByRole('button', { name: /上传并创建待校对批次/ }).click();
+    await expect(page.getByTestId('score-cell-status-5-C')).toHaveAttribute('data-status', 'recorded');
+    await expect(page.getByTestId('score-cell-status-4-D')).toHaveAttribute('data-status', 'absent');
+    await page.getByTestId('score-goto-acknowledge').click();
+    await expect(page.getByTestId('score-ack-missing')).toContainText('1 个空白单元');
+    await page.getByLabel(/承认 .* 缺考 1 人次/).check();
+    await page.getByLabel(/承认空白 1 个单元覆盖 1 人次/).check();
+    await page.getByTestId('score-open-confirm').click();
+    const confirms: { input: unknown; result: { revisionId: string; replayed: boolean } }[] = [];
+    await page.route('**/api/v1/score-imports/*/confirm', async (route) => {
+      const request = route.request(); const url = new URL(request.url());
+      const response = await fetch(`${current.origin}${url.pathname}`, { method: 'POST',
+        headers: { 'content-type': 'application/json' }, body: request.postData() });
+      const text = await response.text();
+      expect(response.status).toBe(200);
+      confirms.push({ input: JSON.parse(request.postData() ?? '{}'), result: JSON.parse(text) });
+      if (confirms.length === 1) await route.abort('failed');
+      else await route.fulfill({ status: response.status, contentType: 'application/json', body: text });
+    });
+    const dialog = page.getByRole('dialog', { name: '确认成绩入库' });
+    await dialog.getByTestId('score-confirm-submit').click();
+    await expect(page.getByTestId('score-confirm-unknown')).toBeVisible();
+    await dialog.getByTestId('score-confirm-submit').click();
+    await expect(page.getByTestId('score-confirm-result')).toContainText('已确认（重放）');
+    await expect(page.getByTestId('score-confirm-result')).toContainText('本次未重复写入');
+    expect(confirms).toHaveLength(2); expect(confirms[1].input).toEqual(confirms[0].input);
+    expect(confirms[1].result).toMatchObject({ revisionId: confirms[0].result.revisionId, replayed: true });
+    const revisionId = confirms[0].result.revisionId;
+    const oldRevision = await api(current.origin, `/api/v1/score-revisions/${revisionId}`);
+    const oldMatrix = await api(current.origin, `/api/v1/score-revisions/${revisionId}/matrix`);
+    expect((oldRevision.body as { paperRevisionId: string }).paperRevisionId).toBeTruthy();
+    const assessment = await api(current.origin, `/api/v1/assessments/${assessmentId}`);
+    expect((oldRevision.body as { paperRevisionId: string }).paperRevisionId)
+      .toBe((assessment.body as {assessment:{paperRevisionId:string}}).assessment.paperRevisionId);
+    await page.getByRole('tab', { name: '5 历史' }).click();
+    await expect(page.getByTestId('assessments-matrix')).toBeVisible();
+    // 人次和叶子身份从权威矩阵获取，再通过页面控件修正。
+    const data = oldMatrix.body as {rows:{participant:{name:string;participantId:string}}[];items:{itemId:string;itemPath:string}[]};
+    await page.getByLabel('修正人次').selectOption(data.rows.find((row) => row.participant.name === '全链甲')!.participant.participantId);
+    await page.getByLabel('修正计分叶').selectOption(data.items.find((item) => item.itemPath === '1')!.itemId);
+    await page.getByLabel('修正分数').fill('1.5');
+    await page.getByRole('button', { name: '加入修正列表', exact: true }).click();
+    await page.getByLabel('修正理由').fill('教师复核原表，第一小题实际为1.5分');
+    await page.getByTestId('assessments-correct-submit').click();
+    await expect(page.getByTestId('assessments-correct-result')).toContainText('已生成新版本 v2');
+    expect((await api(current.origin, `/api/v1/score-revisions/${revisionId}`)).body).toEqual(oldRevision.body);
+    expect((await api(current.origin, `/api/v1/score-revisions/${revisionId}/matrix`)).body).toEqual(oldMatrix.body);
+    const history = await api(current.origin, `/api/v1/assessments/${assessmentId}/score-revisions`);
+    expect((history.body as {items:unknown[]}).items).toHaveLength(2);
+    await testInfo.attach('complete-chain-replay.json', { body: Buffer.from(JSON.stringify({ confirms, oldRevision:oldRevision.body, history:history.body }, null, 2)), contentType: 'application/json' });
+    for (const size of [{width:1440,height:900},{width:1920,height:1080},{width:390,height:844}]) {
+      await page.setViewportSize(size); await page.emulateMedia({ reducedMotion: 'reduce' });
+      await page.screenshot({ path:testInfo.outputPath(`complete-history-${size.width}.png`), fullPage:true });
+      const layout = await page.evaluate(() => ({ width: innerWidth, scrollWidth: document.documentElement.scrollWidth,
+        offenders: Array.from(document.querySelectorAll<HTMLElement>('.assessments-page *'))
+          .filter((el) => el.getBoundingClientRect().right > innerWidth + 1)
+          .map((el) => ({ tag:el.tagName, className:el.className, width:el.getBoundingClientRect().width,
+            right:el.getBoundingClientRect().right, text:el.textContent?.slice(0,80) })).slice(0,20) }));
+      console.log(`[complete-layout] ${JSON.stringify(layout)}`);
+      await testInfo.attach(`complete-layout-${size.width}.json`, {
+        contentType:'application/json',body:Buffer.from(JSON.stringify(layout,null,2)) });
+      expect(layout.scrollWidth <= layout.width).toBe(true);
+    }
   });
 
   test('规模实测：200 人次 × 100 叶（分页 50/页，记录首屏与翻页耗时）', async ({ page }, testInfo) => {

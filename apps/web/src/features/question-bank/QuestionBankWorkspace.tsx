@@ -8,6 +8,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Upload } from 'lucide-react';
 // 与既有内容页共享 space 设计语言（只读引入，不修改共享层）
 import '@/components/layout/space.css';
@@ -20,17 +21,23 @@ import { useAsyncResource } from './hooks';
 import { buildTaxonomyIndex } from './taxonomy';
 
 type Tab = 'imports' | 'library';
+export type QuestionBankTab = Tab | 'generation';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'imports', label: '导入批次' },
   { id: 'library', label: '已入库题目' },
 ];
 
-export function QuestionBankWorkspace() {
+export function QuestionBankWorkspace({ returnPracticeSetId, requestedTab }: {
+  returnPracticeSetId?: string;
+  requestedTab?: QuestionBankTab;
+} = {}) {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>('imports');
+  const [tab, setTab] = useState<Tab>(requestedTab === 'generation' ? 'library' : requestedTab ?? 'imports');
   const [importOpen, setImportOpen] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
+  const [generationRequested, setGenerationRequested] = useState(requestedTab === 'generation');
+  const returnQuery = returnPracticeSetId ? `?returnPracticeSetId=${encodeURIComponent(returnPracticeSetId)}` : '';
 
   const taxonomy = useAsyncResource(
     (signal) => fetchTextbookTaxonomy(signal),
@@ -41,16 +48,36 @@ export function QuestionBankWorkspace() {
     [taxonomy.state],
   );
 
-  // 校对页「查看已入库题目」跳回时用 hash 定位页签（hash 不参与服务端渲染）。
+  // 显式查询由薄路由校验；保留的客户端实例也须响应新导航意图。
+  // 没有查询时才兼容旧 fragment，浏览器地址不在渲染期间读取。
   useEffect(() => {
-    if (window.location.hash === '#library') setTab('library');
-  }, []);
+    if (requestedTab !== undefined) {
+      setTab(requestedTab === 'generation' ? 'library' : requestedTab);
+      setGenerationRequested(requestedTab === 'generation');
+      return;
+    }
+    const applyLegacyFragment = () => {
+      const fragment = window.location.hash;
+      setTab(fragment === '#library' || fragment === '#generation' ? 'library' : 'imports');
+      setGenerationRequested(fragment === '#generation');
+    };
+    applyLegacyFragment();
+    window.addEventListener('hashchange', applyLegacyFragment);
+    return () => window.removeEventListener('hashchange', applyLegacyFragment);
+  }, [requestedTab]);
+
+  function selectTab(nextTab: Tab) {
+    setTab(nextTab);
+    setGenerationRequested(false);
+    router.push(`/question-bank?tab=${nextTab}${returnPracticeSetId ? `&returnPracticeSetId=${encodeURIComponent(returnPracticeSetId)}` : ''}`, { scroll: false });
+  }
 
   return (
     <div className="space-page question-bank-page">
       <header className="space-header">
         <div className="space-header-row">
           <h1>题库</h1>
+          {returnPracticeSetId && <Link className="space-button" href={`/practices?practiceSetId=${encodeURIComponent(returnPracticeSetId)}`}>返回练习并重新选正式题</Link>}
           <div className="space-card-actions">
             <button className="space-button primary" onClick={() => setImportOpen(true)}>
               <Upload size={14} aria-hidden />
@@ -73,7 +100,7 @@ export function QuestionBankWorkspace() {
               aria-selected={tab === item.id}
               aria-controls={`qb-panel-${item.id}`}
               className={tab === item.id ? 'current' : ''}
-              onClick={() => setTab(item.id)}
+              onClick={() => selectTab(item.id)}
             >
               {item.label}
             </button>
@@ -102,6 +129,8 @@ export function QuestionBankWorkspace() {
             <ImportBatchList refreshToken={refreshToken} />
           ) : (
             <QuestionLibrary
+              initialGenerationOpen={generationRequested}
+              returnPracticeSetId={returnPracticeSetId}
               taxonomy={index}
               onImportsChanged={() => setRefreshToken((value) => value + 1)}
             />
@@ -121,7 +150,7 @@ export function QuestionBankWorkspace() {
           onImported={(importId) => {
             setImportOpen(false);
             setRefreshToken((value) => value + 1);
-            router.push(`/question-bank/imports/${importId}`);
+            router.push(`/question-bank/imports/${importId}${returnQuery}`);
           }}
         />
       )}

@@ -941,6 +941,8 @@ class KnowledgeService:
             maxOutputTokens=suggestion_rules.MAX_OUTPUT_TOKENS,
             params={},
         )
+        if await ctx.cancellation_requested():
+            return JobOutcome(result={"cancelled": True, "candidateCount": 0}, publish=None)
         response = await handle.provider.complete(handle.config, request)
         if response.finishReason == FINISH_LENGTH:
             raise AppError(

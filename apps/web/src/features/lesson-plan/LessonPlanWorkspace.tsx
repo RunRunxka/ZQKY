@@ -1,8 +1,11 @@
 'use client';
 import { useEffect, useLayoutEffect } from 'react';
 import { WorkspaceShell } from '@/components/layout/WorkspaceShell';
-import { LessonPlanProvider, useLessonEditor } from './model/EditorContext';
-import type { LessonPlanServices } from './model/types';
+import { useLessonEditor } from './model/EditorContext';
+import { DocumentGateway, type LessonWorkspaceProps } from './components/DocumentGateway';
+import { LeaveProtection } from './components/LeaveProtection';
+import { useLessonDocument } from './model/DocumentContext';
+import { useNavigationGuard } from '@/services/navigation-guard';
 import { OutlinePanel } from './components/OutlinePanel';
 import { EditorPanel } from './components/EditorPanel';
 import { ExportMenu } from './components/ExportMenu';
@@ -12,11 +15,12 @@ import { PreviewPane } from './components/PreviewPane';
 import './styles/lesson-plan.css';
 import './styles/lesson-visual.css';
 import './styles/print.css';
-export function LessonPlanWorkspace({ services }: { services?: LessonPlanServices }) {
+import './styles/server-session.css';
+export function LessonPlanWorkspace(props: LessonWorkspaceProps) {
   return (
-    <LessonPlanProvider services={services}>
+    <DocumentGateway {...props}>
       <LessonWorkspaceContent />
-    </LessonPlanProvider>
+    </DocumentGateway>
   );
 }
 /** 服务端没有 viewport；在客户端提交后、浏览器绘制前读取，避免首次进入平板时闪出展开态 */
@@ -24,6 +28,7 @@ const useViewportLayoutEffect = typeof window === 'undefined' ? useEffect : useL
 /** 768–1279px 容不下「编辑区 + 教案配置 + 预览」三栏并排：默认收起教案配置，展开入口留在编辑区顶部 */
 const COMPACT_LESSON_QUERY = '(max-width: 1279px)';
 function LessonWorkspaceContent() {
+  const doc = useLessonDocument(), navigation = useNavigationGuard();
   const {
     data,
     ready,
@@ -34,8 +39,8 @@ function LessonWorkspaceContent() {
     setCollapsed,
     setFocusMode,
     setModal,
-    flushDraft,
-    notice,
+    printSnapshot,
+    sourceLabel,
   } = useLessonEditor();
   useViewportLayoutEffect(() => {
     if (window.matchMedia(COMPACT_LESSON_QUERY).matches) setCollapsed(true);
@@ -44,8 +49,7 @@ function LessonWorkspaceContent() {
     <WorkspaceShell
       pageTitle="教案工作台"
       className={`lesson-workspace lesson-page ${collapsed ? 'outline-hidden' : ''} ${focusMode ? 'focus-mode' : ''} mobile-${mobileView}`}
-      beforeNavigate={flushDraft}
-      onNavigationError={notice}
+      beforeNavigate={navigation.hasProvider ? undefined : async () => { if (doc.leave.current && !(await doc.leave.current())) throw new Error('当前教案保持'); }}
       headerActions={
         <>
           {/* UX-REGRESSION-FIX v1：教案标题进入公共顶栏，与导出菜单**同一行**；
@@ -62,7 +66,8 @@ function LessonWorkspaceContent() {
           <EditorPanel />
           <OutlinePanel />
           <PreviewPane
-            data={data}
+            data={printSnapshot?.data ?? data}
+            sourceLabel={printSnapshot?.source ?? sourceLabel}
             fontSize={fontSize}
             focusMode={focusMode}
             onFocus={() => setFocusMode(!focusMode)}
@@ -70,6 +75,7 @@ function LessonWorkspaceContent() {
           />
           <MobileTabs />
           <EditorOverlays />
+          <LeaveProtection />
         </>
       ) : (
         <main className="status-page" role="status">

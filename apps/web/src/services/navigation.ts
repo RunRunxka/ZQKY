@@ -94,6 +94,14 @@ export const navigation: NavigationItem[] = [
     icon: ClipboardList,
   },
   {
+    id: 'learning-analysis', label: '学情分析', path: '/learning-analysis',
+    status: 'ready', position: 'main', group: '教学工作台', icon: GraduationCap,
+  },
+  {
+    id: 'practices', label: '针对练习', path: '/practices',
+    status: 'ready', position: 'main', group: '教学工作台', icon: ClipboardList,
+  },
+  {
     id: 'co-writer',
     label: '协同写作',
     path: '/co-writer',

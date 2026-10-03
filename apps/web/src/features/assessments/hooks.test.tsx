@@ -65,6 +65,7 @@ function importView(overrides: Partial<ScoreImportView> = {}): ScoreImportView {
     rowCount: 2,
     resolvedRowCount: 2,
     missingCellCount: 0,
+    requiredAcknowledgements: { absences: [], missing: null },
     createdAt: '2026-10-01T00:00:00Z',
     updatedAt: '2026-10-01T00:00:00Z',
     ...overrides,
@@ -171,16 +172,16 @@ describe('逻辑确认冻结：submissionId 与载荷在明确结果前不换', 
 
     const second = vi.fn().mockResolvedValue({ ok: 'replayed' });
     await act(async () => {
-      await latestSubmission!.submit({ note: '原始载荷' }, second);
+      await latestSubmission!.submit({ note: '刷新后被修改的载荷' }, second);
     });
     expect(second.mock.calls[0][0].submissionId).toBe(frozenId);
     expect(second.mock.calls[0][0].payload).toEqual({ note: '原始载荷' });
     expect(screen.getByTestId('submission')).toHaveTextContent('succeeded|replayed');
   });
 
-  it('载荷变化 = 新的逻辑确认：换 submissionId，不拿旧标识顶替', async () => {
+  it('明确失败后载荷变化 = 新的逻辑确认：换 submissionId', async () => {
     render(<SubmissionHarness />);
-    const first = vi.fn().mockRejectedValue(new ApiError('SERVICE_UNAVAILABLE', '断网', 0, true));
+    const first = vi.fn().mockRejectedValue(new ApiError('VALIDATION_ERROR', '校验未通过', 422, false));
     await act(async () => {
       await latestSubmission!.submit({ note: '旧载荷' }, first);
     });
@@ -191,6 +192,20 @@ describe('逻辑确认冻结：submissionId 与载荷在明确结果前不换', 
     });
     expect(second.mock.calls[0][0].submissionId).not.toBe(oldId);
     expect(second.mock.calls[0][0].payload).toEqual({ note: '新载荷' });
+  });
+
+  it('冻结复制嵌套载荷，调用方在途修改数组不会改变未知结果重试包', async () => {
+    render(<SubmissionHarness />);
+    let reject!: (error: ApiError) => void;
+    const first = vi.fn().mockReturnValue(new Promise((_, rejectPromise) => { reject = rejectPromise; }));
+    const original = { note: '原载荷', scopes: ['甲'] };
+    act(() => { void latestSubmission!.submit(original, first); });
+    original.scopes.push('乙');
+    await act(async () => { reject(new ApiError('SERVICE_UNAVAILABLE', '回执丢失', 0, true)); });
+    const second = vi.fn().mockResolvedValue({ ok: 'replayed' });
+    await act(async () => { await latestSubmission!.submit({ note: '新载荷' }, second); });
+    expect(second.mock.calls[0][0]).toEqual(first.mock.calls[0][0]);
+    expect(second.mock.calls[0][0].payload).toEqual({ note: '原载荷', scopes: ['甲'] });
   });
 
   it('在途重复点击不产生第二个请求；明确失败（409/422）后按钮解锁并可复用同一标识', async () => {

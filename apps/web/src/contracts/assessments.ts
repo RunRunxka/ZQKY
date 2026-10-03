@@ -36,6 +36,13 @@ export interface ParticipantAddRequest {
   participants: AssessmentParticipantInput[];
 }
 
+export interface ParticipantAttendanceRequest {
+  submissionId: string;
+  expectedRevision: number;
+  attendance: Attendance;
+  reason: string;
+}
+
 export interface AssessmentUpdateRequest {
   expectedRevision: number;
   title?: string | null;
@@ -96,4 +103,11 @@ export interface ParticipantMutationResult {
   assessment: AssessmentView;
   participants: AssessmentParticipantView[];
   replayed: boolean;
+  attendanceCorrection?: {
+    participantId: string;
+    previousAttendance: Attendance;
+    attendance: Attendance;
+    reason: string;
+    correctedAt: string;
+  } | null;
 }

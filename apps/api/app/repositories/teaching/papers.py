@@ -73,6 +73,14 @@ def _require_text(value: object, *, field: str) -> str:
     return value
 
 
+def _optional_text(value: object, *, field: str) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value:
+        raise _corrupt(f"教学库数据损坏：{field} 不是非空文本或空。")
+    return value
+
+
 def _row_text(row: sqlite3.Row, field: str) -> str:
     value = row[field]
     if not isinstance(value, str) or not value:
@@ -157,13 +165,14 @@ class RevisionRecord:
     revision_id: str
     paper_id: str
     version: int
-    source_file_id: str
+    source_file_id: str | None
     total_score_units: int
     state: str
     confirmed_at: str | None
     created_at: str
     title_snapshot: str
     title_snapshot_source: str
+    source_practice_revision_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -305,13 +314,14 @@ def _revision_record(row: sqlite3.Row) -> RevisionRecord:
         revision_id=_row_text(row, "id"),
         paper_id=_row_text(row, "paper_id"),
         version=version,
-        source_file_id=_row_text(row, "source_file_id"),
+        source_file_id=_optional_text(row["source_file_id"], field="source_file_id"),
         total_score_units=total,
         state=state,
         confirmed_at=confirmed_at,
         created_at=_row_text(row, "created_at"),
         title_snapshot=title_snapshot,
         title_snapshot_source=title_snapshot_source,
+        source_practice_revision_id=_optional_text(row["source_practice_revision_id"], field="source_practice_revision_id"),
     )
 
 
@@ -578,12 +588,13 @@ class PaperRepository:
         *,
         paper_id: str,
         version: int,
-        source_file_id: str,
+        source_file_id: str | None,
         total_score_units: int,
         title_snapshot: str,
         title_snapshot_source: str = "revision",
         state: str = "draft",
         revision_id: str | None = None,
+        source_practice_revision_id: str | None = None,
     ) -> RevisionRecord:
         """新建草稿修订；``title_snapshot`` 必填（B3/G0 · B2-RV11）。
 
@@ -608,12 +619,13 @@ class PaperRepository:
             "INSERT INTO paper_revisions (id, paper_id, version, source_file_id, "
             "source_practice_revision_id, total_score_units, state, confirmed_at, created_at, "
             "title_snapshot, title_snapshot_source) "
-            "VALUES (?, ?, ?, ?, NULL, ?, 'draft', NULL, ?, ?, ?)",
+            "VALUES (?, ?, ?, ?, ?, ?, 'draft', NULL, ?, ?, ?)",
             (
                 new_id,
                 _require_text(paper_id, field="paper_id"),
                 version,
-                _require_text(source_file_id, field="source_file_id"),
+                _require_text(source_file_id, field="source_file_id") if source_file_id is not None else None,
+                _require_text(source_practice_revision_id, field="source_practice_revision_id") if source_practice_revision_id is not None else None,
                 total_score_units,
                 now_iso(),
                 _require_text(title_snapshot, field="title_snapshot"),

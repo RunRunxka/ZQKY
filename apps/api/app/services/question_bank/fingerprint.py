@@ -32,6 +32,10 @@ from typing import Any
 #: 派生指纹算法版本；改变组成必须换版本号，历史行保留供比对
 DERIVED_ALGORITHM_VERSION = "derived-v1"
 
+# 去重只比较题面，不能复用含答案、来源和随机块 ID 的 derived-v1。
+# 新版本追加登记，历史 content_fingerprint / derived-v1 不改写。
+DUPLICATE_ALGORITHM_VERSION = "question-surface-v1"
+
 _BLOB_ASSET_PATTERN = re.compile(r"blobs/([0-9a-f]{64})")
 
 _WHITESPACE_RUN = re.compile(r"[ \t\u3000]+")
@@ -138,4 +142,88 @@ def derived_content_fingerprint(
 
 def request_fingerprint(payload: Any) -> str:
     """确认入库的请求指纹：只覆盖会影响结果的字段，保证同载荷重放命中同一条结果。"""
+    return sha256_text(canonical_json(payload))
+
+
+def duplicate_content_fingerprint(
+    content: Mapping[str, Any], *, asset_hashes: Mapping[str, str] | None = None
+) -> str:
+    """权威题面身份（question-surface-v1），纯计算、无文件或数据库 IO。
+
+    富内容存在时按有序材料/题干/选项的真实结构计算；块/材料 ID、来源、
+    答案、解析与教师专用图片不参与。图片取预检真实字节散列，历史修订取
+    已冻结声明/内容寻址键。普通段落投影与旧 Markdown 可比较；含表格、
+    公式、图片的权威结构不能被降级成旧 plain 文本后判为重复。
+    不同算法版本的散列不直接比较，缺新版本的旧题从冻结 content 只读重算。
+    """
+    overrides = asset_hashes or {}
+    rich = content.get("richContent")
+    rich = rich if isinstance(rich, Mapping) else None
+
+    def field(value: Mapping[str, Any], alias: str, default: Any = None) -> Any:
+        # 内部 QuestionContent.model_dump 的 RichContentV2 为 snake_case；HTTP 为 camelCase。
+        snake = re.sub(r"(?<!^)(?=[A-Z])", "_", alias).lower()
+        return value[alias] if alias in value else value.get(snake, default)
+
+    declarations = {
+        str(field(asset, "assetId")): str(asset.get("sha256"))
+        for asset in (rich.get("assets") or []) if isinstance(asset, Mapping)
+    } if rich else {}
+
+    def image_hash(asset_id: str) -> str:
+        if asset_id in overrides:
+            return str(overrides[asset_id])
+        if asset_id in declarations:
+            return declarations[asset_id]
+        if re.fullmatch(r"[0-9a-f]{64}", asset_id):
+            return asset_id
+        return asset_byte_hash(asset_id)
+
+    def blocks_identity(blocks: Sequence[Mapping[str, Any]]) -> Any:
+        # 等价普通段落保留旧 Markdown 判重语义，不让随机分块身份造新题。
+        if all(block.get("kind") == "paragraph" for block in blocks):
+            return {"kind": "markdown", "text": normalize_markdown(
+                "\n\n".join(str(block.get("text", "")) for block in blocks)
+            )}
+        result = []
+        for block in blocks:
+            kind = block.get("kind")
+            if kind == "paragraph":
+                result.append({"kind": kind, "text": normalize_markdown(str(block.get("text", "")))})
+            elif kind == "table":
+                result.append({"kind": kind, "columnCount": field(block, "columnCount"), "cells": [
+                    {"text": normalize_markdown(str(cell.get("text", ""))),
+                     "isHeader": bool(field(cell, "isHeader", False)),
+                     "rowSpan": field(cell, "rowSpan", 1), "colSpan": field(cell, "colSpan", 1)}
+                    for cell in block.get("cells") or []
+                ]})
+            elif kind == "formula":
+                result.append({"kind": kind, "latex": str(block.get("latex") or "").strip(),
+                               "ommlXml": str(field(block, "ommlXml") or "").strip()})
+            elif kind == "image":
+                result.append({"kind": kind, "sha256": image_hash(str(field(block, "assetId", ""))),
+                               "width": block.get("width", 0), "height": block.get("height", 0)})
+            else:
+                raise ValueError("未知权威题面块类型，不能降级为空内容判重")
+        return {"kind": "blocks", "blocks": result}
+
+    def markdown_identity(text: Any) -> dict[str, str]:
+        return {"kind": "markdown", "text": normalize_markdown(str(text or ""))}
+
+    options = content.get("options") or []
+    payload = {
+        "algorithmVersion": DUPLICATE_ALGORITHM_VERSION,
+        "type": content.get("type"),
+        "materials": [blocks_identity(material.get("blocks") or [])
+                      for material in field(rich, "sharedMaterials") or []] if rich else [],
+        "stem": blocks_identity(field(rich, "stemBlocks") or []) if rich
+                else markdown_identity(content.get("stemMarkdown")),
+        "options": [{"key": str(option.get("key", "")).strip(),
+                     "content": blocks_identity((field(rich, "optionBlocks") or {}).get(option.get("key")) or [])
+                     if rich else markdown_identity(option.get("textMarkdown"))}
+                    for option in options],
+        # rich 中图片已在实际题面块对应位置参与；答案/解析图不影响题面。
+        "plainAssets": [] if rich else [image_hash(str(asset_id))
+                                         for asset_id in content.get("assetIds") or []],
+    }
     return sha256_text(canonical_json(payload))

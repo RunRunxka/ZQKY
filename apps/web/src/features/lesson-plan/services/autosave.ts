@@ -49,5 +49,7 @@ export function createDraftWriter(
       });
     return running.then(() => flush());
   }
-  return { enqueue, flush, isPending: () => !!pending || !!running };
+  return { enqueue, flush, isPending: () => !!pending || !!running, isRunning: () => !!running,
+    discardPending() { if (running) return false; clearTimeout(timer); pending = undefined; return true; },
+  };
 }

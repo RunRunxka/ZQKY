@@ -130,7 +130,12 @@ function calls(fetchMock: ReturnType<typeof stubApi>, fragment: string, method?:
   });
 }
 
-function bodyAt(fetchMock: ReturnType<typeof stubApi>, fragment: string, method: string, index = 0) {
+function bodyAt(
+  fetchMock: ReturnType<typeof stubApi>,
+  fragment: string,
+  method: string,
+  index = 0,
+) {
   const matched = calls(fetchMock, fragment, method);
   return JSON.parse(String((matched[index]?.[1] as RequestInit).body)) as Record<string, unknown>;
 }
@@ -174,17 +179,23 @@ function router(overrides: Record<string, Handler> = {}) {
     const base = defaultRoute(url, init);
     if (base) return base;
     return jsonResponse(
-      { code: 'UNEXPECTED_TEST_REQUEST', message: `${method} ${url} 未在测试路由中声明`, retryable: false },
+      {
+        code: 'UNEXPECTED_TEST_REQUEST',
+        message: `${method} ${url} 未在测试路由中声明`,
+        retryable: false,
+      },
       500,
     );
   });
 }
 
-function renderPanel(overrides: {
-  onClose?: () => void;
-  onOpenImport?: (importId: string) => void;
-  onPublished?: () => void;
-} = {}) {
+function renderPanel(
+  overrides: {
+    onClose?: () => void;
+    onOpenImport?: (importId: string) => void;
+    onPublished?: () => void;
+  } = {},
+) {
   return render(
     <GenerationPanel
       taxonomy={TAXONOMY}
@@ -213,7 +224,17 @@ describe('AI 补题：入口校验与请求语义', () => {
   it('提交发送点击时冻结的 profile id、学科与知识点；queued 只显示排队中，不显示成功', async () => {
     const fetchMock = router({
       'POST /api/v1/question-generation-jobs': () =>
-        jsonResponse({ jobId: 'job-1', state: 'queued', attempt: 1, importId: null, candidateCount: 0, errorCode: null }, 202),
+        jsonResponse(
+          {
+            jobId: 'job-1',
+            state: 'queued',
+            attempt: 1,
+            importId: null,
+            candidateCount: 0,
+            errorCode: null,
+          },
+          202,
+        ),
       'GET /api/v1/workflow-jobs/job-1': () =>
         new Promise<Response>(() => {
           /* 保持排队观察中 */
@@ -225,7 +246,9 @@ describe('AI 补题：入口校验与请求语义', () => {
 
     fireEvent.click(screen.getByTestId('qb-generation-submit'));
 
-    await waitFor(() => expect(calls(fetchMock, '/question-generation-jobs', 'POST')).toHaveLength(1));
+    await waitFor(() =>
+      expect(calls(fetchMock, '/question-generation-jobs', 'POST')).toHaveLength(1),
+    );
     const body = bodyAt(fetchMock, '/question-generation-jobs', 'POST');
     expect(body.modelProfileId).toBe(CHAT_PROFILE_ID);
     expect(body.modelProfileId).not.toBe(CHAT_MODEL_ID);
@@ -250,14 +273,19 @@ describe('AI 补题：入口校验与请求语义', () => {
 
     fireEvent.click(screen.getByTestId('qb-generation-submit'));
 
-    expect(await screen.findByTestId('qb-generation-error')).toHaveTextContent('请先选择学科或至少一个知识点');
+    expect(await screen.findByTestId('qb-generation-error')).toHaveTextContent(
+      '请先选择学科或至少一个知识点',
+    );
     expect(calls(fetchMock, '/question-generation-jobs', 'POST')).toHaveLength(0);
   });
 
   it('模型目录读取失败：入口禁用并显示错误，不当作「没有可用模型」', async () => {
     const fetchMock = router({
       'GET /api/v1/model-catalog': () =>
-        jsonResponse({ code: 'SERVICE_UNAVAILABLE', message: '模型服务未装配。', retryable: true }, 503),
+        jsonResponse(
+          { code: 'SERVICE_UNAVAILABLE', message: '模型服务未装配。', retryable: true },
+          503,
+        ),
     });
     renderPanel();
 
@@ -269,11 +297,169 @@ describe('AI 补题：入口校验与请求语义', () => {
 });
 
 describe('AI 补题：六态、取消与真实重试', () => {
+  it('首次创建 queued@0 → running@1 → succeeded@1：显示候选入口并刷新一次批次列表', async () => {
+    let reads = 0;
+    let releaseTerminal!: () => void;
+    const terminalGate = new Promise<Response>((resolve) => {
+      releaseTerminal = () =>
+        resolve(
+          jsonResponse(
+            jobView({
+              state: 'succeeded',
+              attempt: 1,
+              result: { importId: 'imp-first', candidateCount: 1 },
+            }),
+          ),
+        );
+    });
+    router({
+      'POST /api/v1/question-generation-jobs': () =>
+        jsonResponse(
+          {
+            jobId: 'job-1',
+            state: 'queued',
+            attempt: 0,
+            importId: null,
+            candidateCount: 0,
+            errorCode: null,
+          },
+          202,
+        ),
+      'GET /api/v1/workflow-jobs/job-1': () => {
+        reads += 1;
+        return reads === 1 ? jsonResponse(jobView({ state: 'running', attempt: 1 })) : terminalGate;
+      },
+    });
+    const onOpenImport = vi.fn();
+    const onPublished = vi.fn();
+    renderPanel({ onOpenImport, onPublished });
+    await fillValidForm();
+    fireEvent.click(screen.getByTestId('qb-generation-submit'));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('qb-generation-state')).toHaveTextContent('整理中'),
+    );
+    expect(screen.getByTestId('qb-generation-attempt')).toHaveTextContent('第 1 次尝试');
+    expect(screen.queryByTestId('qb-generation-observe-notice')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('qb-generation-import')).not.toBeInTheDocument();
+    expect(onPublished).not.toHaveBeenCalled();
+    releaseTerminal();
+
+    expect(await screen.findByTestId('qb-generation-succeeded')).toHaveTextContent(
+      '生成 1 道待校对候选草稿',
+    );
+    expect(onPublished).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByTestId('qb-generation-import'));
+    expect(onOpenImport).toHaveBeenCalledWith('imp-first');
+  });
+
+  it('首次创建 queued@0 → failed@1 可见失败；真实重试 queued@1 → attempt 2 可打开候选', async () => {
+    let reads = 0;
+    const fetchMock = router({
+      'POST /api/v1/question-generation-jobs': () =>
+        jsonResponse(
+          {
+            jobId: 'job-1',
+            state: 'queued',
+            attempt: 0,
+            importId: null,
+            candidateCount: 0,
+            errorCode: null,
+          },
+          202,
+        ),
+      'GET /api/v1/workflow-jobs/job-1': () => {
+        reads += 1;
+        if (reads === 1) {
+          return jsonResponse({
+            ...jobView({ state: 'failed', attempt: 1 }),
+            error: { code: 'UPSTREAM_UNAVAILABLE', message: '模型服务不可用' },
+          });
+        }
+        if (reads === 2) return jsonResponse(jobView({ state: 'running', attempt: 2 }));
+        return jsonResponse(
+          jobView({
+            state: 'succeeded',
+            attempt: 2,
+            result: { importId: 'imp-retry', candidateCount: 1 },
+          }),
+        );
+      },
+      'POST /api/v1/workflow-jobs/job-1/retry': () =>
+        jsonResponse(jobView({ state: 'queued', attempt: 1 })),
+    });
+    const onPublished = vi.fn();
+    renderPanel({ onPublished });
+    await fillValidForm();
+    fireEvent.click(screen.getByTestId('qb-generation-submit'));
+
+    expect(await screen.findByTestId('qb-generation-failed')).toHaveTextContent(
+      '模型服务当前不可用',
+    );
+    expect(screen.queryByTestId('qb-generation-observe-notice')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('qb-generation-import')).not.toBeInTheDocument();
+    expect(screen.getByTestId('qb-generation-retry')).toBeEnabled();
+    expect(onPublished).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByTestId('qb-generation-retry'));
+
+    await screen.findByTestId('qb-generation-import');
+    expect(screen.getByTestId('qb-generation-attempt')).toHaveTextContent('第 2 次尝试');
+    expect(onPublished).toHaveBeenCalledTimes(1);
+    expect(calls(fetchMock, '/question-generation-jobs', 'POST')).toHaveLength(1);
+    expect(bodyAt(fetchMock, '/workflow-jobs/job-1/retry', 'POST')).toEqual({ domain: 'question' });
+  });
+
+  it('首次 queued@0 后 attempt 2 的候选不显示，并明确已被新尝试接管', async () => {
+    router({
+      'POST /api/v1/question-generation-jobs': () =>
+        jsonResponse(
+          {
+            jobId: 'job-1',
+            state: 'queued',
+            attempt: 0,
+            importId: null,
+            candidateCount: 0,
+            errorCode: null,
+          },
+          202,
+        ),
+      'GET /api/v1/workflow-jobs/job-1': () =>
+        jsonResponse(
+          jobView({
+            state: 'succeeded',
+            attempt: 2,
+            result: { importId: 'imp-other', candidateCount: 9 },
+          }),
+        ),
+    });
+    const onPublished = vi.fn();
+    renderPanel({ onPublished });
+    await fillValidForm();
+    fireEvent.click(screen.getByTestId('qb-generation-submit'));
+
+    expect(await screen.findByTestId('qb-generation-observe-notice')).toHaveTextContent(
+      '新的尝试接管',
+    );
+    expect(screen.queryByTestId('qb-generation-import')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('qb-generation-succeeded')).not.toBeInTheDocument();
+    expect(onPublished).not.toHaveBeenCalled();
+  });
+
   it('interrupted → 显式重试按 [N, N+1] 收敛成功并给出候选批次入口（不换模型）', async () => {
     let reads = 0;
     const fetchMock = router({
       'POST /api/v1/question-generation-jobs': () =>
-        jsonResponse({ jobId: 'job-1', state: 'running', attempt: 1, importId: null, candidateCount: 0, errorCode: null }, 202),
+        jsonResponse(
+          {
+            jobId: 'job-1',
+            state: 'running',
+            attempt: 1,
+            importId: null,
+            candidateCount: 0,
+            errorCode: null,
+          },
+          202,
+        ),
       'GET /api/v1/workflow-jobs/job-1': () => {
         reads += 1;
         if (reads === 1) {
@@ -308,7 +494,9 @@ describe('AI 补题：六态、取消与真实重试', () => {
     const succeeded = await screen.findByTestId('qb-generation-succeeded');
     expect(succeeded).toHaveTextContent('生成 2 道待校对候选草稿');
     expect(succeeded).toHaveTextContent('AI 候选不会自动入库');
-    await waitFor(() => expect(screen.getByTestId('qb-generation-state')).toHaveTextContent('已完成'));
+    await waitFor(() =>
+      expect(screen.getByTestId('qb-generation-state')).toHaveTextContent('已完成'),
+    );
     expect(screen.getByTestId('qb-generation-attempt')).toHaveTextContent('第 3 次尝试');
     expect(onPublished).toHaveBeenCalledTimes(1);
 
@@ -324,7 +512,17 @@ describe('AI 补题：六态、取消与真实重试', () => {
     let reads = 0;
     router({
       'POST /api/v1/question-generation-jobs': () =>
-        jsonResponse({ jobId: 'job-1', state: 'failed', attempt: 1, importId: null, candidateCount: 0, errorCode: 'UPSTREAM_UNAVAILABLE' }, 202),
+        jsonResponse(
+          {
+            jobId: 'job-1',
+            state: 'failed',
+            attempt: 1,
+            importId: null,
+            candidateCount: 0,
+            errorCode: 'UPSTREAM_UNAVAILABLE',
+          },
+          202,
+        ),
       'GET /api/v1/workflow-jobs/job-1': () => {
         reads += 1;
         if (reads <= 5) {
@@ -341,7 +539,9 @@ describe('AI 补题：六态、取消与真实重试', () => {
     await fillValidForm();
     fireEvent.click(screen.getByTestId('qb-generation-submit'));
 
-    expect(await screen.findByTestId('qb-generation-failed')).toHaveTextContent('模型服务当前不可用');
+    expect(await screen.findByTestId('qb-generation-failed')).toHaveTextContent(
+      '模型服务当前不可用',
+    );
     fireEvent.click(screen.getByTestId('qb-generation-retry'));
 
     await waitFor(() => expect(reads).toBeGreaterThanOrEqual(5));
@@ -353,10 +553,24 @@ describe('AI 补题：六态、取消与真实重试', () => {
   it('attempt 超出 [N, N+1]：停止显示旧尝试结果并说明被新尝试接管', async () => {
     router({
       'POST /api/v1/question-generation-jobs': () =>
-        jsonResponse({ jobId: 'job-1', state: 'failed', attempt: 1, importId: null, candidateCount: 0, errorCode: 'UPSTREAM_UNAVAILABLE' }, 202),
+        jsonResponse(
+          {
+            jobId: 'job-1',
+            state: 'failed',
+            attempt: 1,
+            importId: null,
+            candidateCount: 0,
+            errorCode: 'UPSTREAM_UNAVAILABLE',
+          },
+          202,
+        ),
       'GET /api/v1/workflow-jobs/job-1': () =>
         jsonResponse(
-          jobView({ state: 'succeeded', attempt: 4, result: { importId: 'imp-other', candidateCount: 5 } }),
+          jobView({
+            state: 'succeeded',
+            attempt: 4,
+            result: { importId: 'imp-other', candidateCount: 5 },
+          }),
         ),
       'POST /api/v1/workflow-jobs/job-1/retry': () =>
         jsonResponse(jobView({ state: 'queued', attempt: 2 })),
@@ -377,7 +591,17 @@ describe('AI 补题：六态、取消与真实重试', () => {
   it('取消：协作式取消后显示取消说明，不出现成功徽标', async () => {
     const fetchMock = router({
       'POST /api/v1/question-generation-jobs': () =>
-        jsonResponse({ jobId: 'job-1', state: 'running', attempt: 1, importId: null, candidateCount: 0, errorCode: null }, 202),
+        jsonResponse(
+          {
+            jobId: 'job-1',
+            state: 'running',
+            attempt: 1,
+            importId: null,
+            candidateCount: 0,
+            errorCode: null,
+          },
+          202,
+        ),
       'GET /api/v1/workflow-jobs/job-1': () =>
         new Promise<Response>(() => {
           /* 在途观察 */
@@ -390,8 +614,12 @@ describe('AI 补题：六态、取消与真实重试', () => {
     fireEvent.click(screen.getByTestId('qb-generation-submit'));
 
     fireEvent.click(await screen.findByTestId('qb-generation-cancel'));
-    await waitFor(() => expect(calls(fetchMock, '/workflow-jobs/job-1/cancel', 'POST')).toHaveLength(1));
-    expect(await screen.findByTestId('qb-generation-cancelled')).toHaveTextContent('不会生成任何批次或草稿');
+    await waitFor(() =>
+      expect(calls(fetchMock, '/workflow-jobs/job-1/cancel', 'POST')).toHaveLength(1),
+    );
+    expect(await screen.findByTestId('qb-generation-cancelled')).toHaveTextContent(
+      '不会生成任何批次或草稿',
+    );
     expect(screen.queryByTestId('qb-generation-succeeded')).not.toBeInTheDocument();
     expect(screen.queryByTestId('qb-generation-import')).not.toBeInTheDocument();
   });
@@ -400,7 +628,11 @@ describe('AI 补题：六态、取消与真实重试', () => {
     const fetchMock = router({
       'POST /api/v1/question-generation-jobs': () =>
         jsonResponse(
-          { code: 'KNOWLEDGE_POINT_ARCHIVED', message: '知识点已归档，不能用于补题：kp-1。', retryable: false },
+          {
+            code: 'KNOWLEDGE_POINT_ARCHIVED',
+            message: '知识点已归档，不能用于补题：kp-1。',
+            retryable: false,
+          },
           422,
         ),
     });
@@ -419,7 +651,17 @@ describe('AI 补题：六态、取消与真实重试', () => {
   it('任务进行中冻结模型：排队中不可重复发起，冻结提示说明重试不会换模型', async () => {
     const fetchMock = router({
       'POST /api/v1/question-generation-jobs': () =>
-        jsonResponse({ jobId: 'job-1', state: 'queued', attempt: 1, importId: null, candidateCount: 0, errorCode: null }, 202),
+        jsonResponse(
+          {
+            jobId: 'job-1',
+            state: 'queued',
+            attempt: 1,
+            importId: null,
+            candidateCount: 0,
+            errorCode: null,
+          },
+          202,
+        ),
       'GET /api/v1/workflow-jobs/job-1': () =>
         new Promise<Response>(() => {
           /* 仍在排队 */

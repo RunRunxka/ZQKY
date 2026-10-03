@@ -10,7 +10,7 @@
  * 绝不把失败降级为空列表或假成功。
  */
 
-import { apiRequest } from '@/services/api-client';
+import { apiRequest, apiRequestBlob } from '@/services/api-client';
 import { isJobTerminal, type JobState, type JobView } from '@/contracts/teaching-loop';
 import type {
   ConfirmResult,
@@ -458,6 +458,12 @@ export function listQuestions(
 
 export function getQuestion(id: string, signal?: AbortSignal): Promise<QuestionDetail> {
   return apiRequest<QuestionDetail>(`/questions/${encodeURIComponent(id)}`, { signal });
+}
+
+export async function getQuestionAsset(kind: 'draft' | 'question', id: string, assetId: string, signal?: AbortSignal): Promise<Blob> {
+  const path = kind === 'draft' ? 'question-drafts' : 'questions';
+  const result = await apiRequestBlob(`/${path}/${encodeURIComponent(id)}/assets/${encodeURIComponent(assetId)}/content`, { signal });
+  return result.blob;
 }
 
 export function patchQuestion(id: string, body: QuestionPatchRequest): Promise<QuestionDetail> {

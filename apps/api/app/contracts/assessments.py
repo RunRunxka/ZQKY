@@ -128,6 +128,22 @@ class AssessmentUpdateRequest(_Strict):
     held_on: str | None = Field(default=None, alias="heldOn", min_length=10, max_length=10)
 
 
+class ParticipantAttendanceRequest(_Strict):
+    """只校正当前参测人次出勤；旧成绩快照不可变。幂等重放先于CAS。"""
+
+    submission_id: str = Field(alias="submissionId", min_length=1, max_length=128)
+    expected_revision: int = Field(alias="expectedRevision", ge=0)
+    attendance: Attendance
+    reason: str = Field(min_length=1, max_length=500)
+
+    @field_validator("reason")
+    @classmethod
+    def require_reason(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("必须说明出勤校正依据")
+        return value.strip()
+
+
 # --------------------------------------------------------------------------- 视图
 
 
@@ -182,7 +198,18 @@ class AssessmentCreateResult(_Frozen):
     replayed: bool = False
 
 
+class ParticipantAttendanceCorrectionView(_Frozen):
+    participant_id: str = Field(alias="participantId")
+    previous_attendance: Attendance = Field(alias="previousAttendance")
+    attendance: Attendance
+    reason: str
+    corrected_at: str = Field(alias="correctedAt")
+
+
 class ParticipantMutationResult(_Frozen):
     assessment: AssessmentView
     participants: list[AssessmentParticipantView] = Field(default_factory=list)
     replayed: bool = False
+    attendance_correction: ParticipantAttendanceCorrectionView | None = Field(
+        default=None, alias="attendanceCorrection"
+    )

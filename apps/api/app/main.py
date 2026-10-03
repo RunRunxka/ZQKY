@@ -55,6 +55,8 @@ TEXTBOOK_STATE_KEYS = (
     "asset_store", "file_assets", "publication_coordinator", "textbook_evidence",
     "knowledge_service", "roster_service", "paper_service", "confirmed_paper_reader",
     "assessment_service", "score_service", "job_executors",
+    "analysis_service", "practice_service", "export_artifacts_service", "fixed_question_reader",
+    "lesson_plan_service", "lesson_generation_service",
 )
 
 #: 可选路由（模块缺失时只记录原因，不影响其他模块；并行开发期与裁剪部署都安全）
@@ -64,6 +66,11 @@ OPTIONAL_ROUTERS = (
     ("app.api.v1.papers", "原卷"),
     ("app.api.v1.assessments", "施测"),
     ("app.api.v1.scores", "成绩"),
+    ("app.api.v1.analysis", "学情"),
+    ("app.api.v1.practices", "练习"),
+    ("app.api.v1.export_artifacts", "导出产物"),
+    ("app.api.v1.lesson_plans", "教案"),
+    ("app.api.v1.lesson_sources", "固定教案来源"),
 )
 
 
@@ -234,10 +241,9 @@ def _build_local_runtime(app: FastAPI, settings: Settings) -> None:
     _build_assessment_runtime(app)
     _build_score_runtime(app)
     _build_question_bank_runtime(app, settings)
-    # 执行器注册必须在所有域服务构造之后：域服务在这里注册自己的 (domain, kind)
-    _build_executor_registry(app)
-
+    _build_b4_runtime(app)
     if app.state.catalog is None:
+        _build_executor_registry(app)
         return
     try:
         from app.providers.embeddings.ollama_embedding import OllamaEmbeddingProvider
@@ -252,6 +258,7 @@ def _build_local_runtime(app: FastAPI, settings: Settings) -> None:
         from app.services.textbook_index.service import IndexService
     except ImportError as exc:  # pragma: no cover - 实现落地前
         app.state.textbooks_error = f"教材入库/索引/RAG 实现缺失：{exc}"
+        _build_executor_registry(app)
         return
 
     provider = OllamaEmbeddingProvider(settings.embedding_base_url)
@@ -272,6 +279,41 @@ def _build_local_runtime(app: FastAPI, settings: Settings) -> None:
     )
     # 教材定位与追问的唯一生产入口；旧四科 rag_engine 保留但不再被 /rag/* 调用。
     app.state.rag_service = app.state.rag_v2
+    _build_lesson_runtime(app)
+    # B5 依赖生产 RAG 和固定来源；全部域服务构造后才登记唯一 retry 执行器。
+    _build_executor_registry(app)
+
+
+def _build_lesson_runtime(app: FastAPI) -> None:
+    """单一教学库教案、固定来源和真实模型执行器；缺依赖明确不可用。"""
+    required = ("teaching", "analysis_service", "knowledge", "publication_coordinator", "job_engine",
+                "rag_v2", "fixed_question_reader", "practice_service", "question_bank_service")
+    if any(getattr(app.state, key, None) is None for key in required):
+        return
+    try:
+        from app.services.lesson_generation.service import LessonGenerationService
+        from app.services.lesson_plans.service import LessonPlanService
+    except ImportError as exc:  # pragma: no cover - 并行实施期/裁剪部署
+        logger.warning("教案服务缺失：%s", exc)
+        return
+
+    def frozen_resolver(snapshot):
+        from app.services.model_runtime import resolve_frozen_model
+        return resolve_frozen_model(app.state.model_config_repo, app.state.secret_store, snapshot,
+                                    auth_service=app.state.model_auth_service)
+
+    generation = LessonGenerationService(
+        app.state.teaching, analysis_reader=app.state.analysis_service, knowledge_catalog=app.state.knowledge,
+        evidence_reader=app.state.rag_v2, fixed_question_reader=app.state.fixed_question_reader,
+        practice_reader=app.state.practice_service, model_resolver=_build_model_handle_resolver(app),
+        frozen_model_resolver=frozen_resolver, question_owner_id=app.state.question_bank_service.owner_id,
+    )
+    app.state.lesson_generation_service = generation
+    app.state.lesson_plan_service = LessonPlanService(
+        app.state.teaching, analysis_reader=app.state.analysis_service, knowledge_catalog=app.state.knowledge,
+        coordinator=app.state.publication_coordinator, job_engine=app.state.job_engine,
+        generation_service=generation, evidence_reader=app.state.rag_v2,
+    )
 
 
 def _build_executor_registry(app: FastAPI) -> None:
@@ -289,6 +331,9 @@ def _build_executor_registry(app: FastAPI) -> None:
         "knowledge_service",
         "paper_service",
         "assessment_service",
+        "analysis_service",
+        "practice_service",
+        "lesson_plan_service",
     ):
         service = getattr(app.state, key, None)
         register = getattr(service, "register_job_executors", None)
@@ -297,6 +342,42 @@ def _build_executor_registry(app: FastAPI) -> None:
                 register(registry)
             except Exception:  # pragma: no cover - 注册失败不影响启动，但如实记录
                 logger.exception("%s 注册任务执行器失败", key)
+
+
+def _build_b4_runtime(app: FastAPI) -> None:
+    """B4 single teaching authority, shared assets/jobs and fixed cross-bank readers."""
+    if any(getattr(app.state, key, None) is None for key in ('teaching', 'job_engine', 'asset_store', 'file_assets')):
+        return
+    from app.services.export_artifacts import ExportArtifactsService
+    app.state.export_artifacts_service = ExportArtifactsService(
+        app.state.teaching, assets=app.state.asset_store, file_assets=app.state.file_assets)
+    try:
+        from app.services.analysis.service import AnalysisService
+    except ImportError as exc:
+        logger.warning("学情服务缺失：%s", exc)
+        return
+    app.state.analysis_service = AnalysisService(
+        app.state.teaching, job_engine=app.state.job_engine, asset_store=app.state.asset_store)
+    if any(getattr(app.state, key, None) is None for key in ('question_bank', 'question_bank_service', 'knowledge', 'publication_coordinator', 'assessment_service')):
+        return
+    from app.services.question_bank.fixed import FixedQuestionReader
+    from app.services.question_bank.rich import read_asset as read_question_asset
+    app.state.fixed_question_reader = FixedQuestionReader(app.state.question_bank)
+    try:
+        from app.services.practices.service import PracticeService
+    except ImportError as exc:
+        logger.warning("练习服务缺失：%s", exc)
+        return
+    app.state.practice_service = PracticeService(
+        app.state.teaching, analysis_reader=app.state.analysis_service,
+        fixed_question_reader=app.state.fixed_question_reader, knowledge_catalog=app.state.knowledge,
+        coordinator=app.state.publication_coordinator, assets=app.state.asset_store,
+        question_asset_reader=lambda asset_id: read_question_asset(
+            asset_id, assets=app.state.asset_store, blobs=app.state.question_bank_service.blobs),
+        job_engine=app.state.job_engine, file_assets=app.state.file_assets,
+        assessment_service=app.state.assessment_service,
+        question_owner_id=app.state.question_bank_service.owner_id,
+    )
 
 
 def _build_shared_services(app: FastAPI, settings: Settings) -> None:

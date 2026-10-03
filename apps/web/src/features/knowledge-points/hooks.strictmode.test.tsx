@@ -85,6 +85,32 @@ afterEach(() => {
 
 /* ------------------------------------------------------------------ RV09 */
 
+describe('首次创建排队收据的执行尝试窗口', () => {
+  for (const state of ['succeeded', 'failed', 'cancelled', 'interrupted'] as const) {
+    it(`queued@0 接受 ${state}@1 并交付终态一次`, async () => {
+      stubFetch(() => jsonResponse(view({ jobId: 'initial', state, attempt: 1 })));
+      const onTerminal = vi.fn();
+      render(<StrictMode><Harness onTerminal={onTerminal} /></StrictMode>);
+      act(() => latest!.adopt(view({ jobId: 'initial', state: 'queued', attempt: 0 })));
+      await waitFor(() => expect(onTerminal).toHaveBeenCalledTimes(1));
+      await waitFor(() => expect(screen.getByTestId('state')).toHaveTextContent(`initial:${state}@1`));
+      expect(latest!.observationNotice).toBeNull();
+    });
+  }
+  it('queued@0 拒绝 attempt2 接管，running@1 拒绝 attempt2', async () => {
+    stubFetch(() => jsonResponse(view({ jobId: 'initial', state: 'succeeded', attempt: 2 })));
+    const onTerminal = vi.fn();
+    render(<Harness onTerminal={onTerminal} />);
+    act(() => latest!.adopt(view({ jobId: 'initial', state: 'queued', attempt: 0 })));
+    await waitFor(() => expect(latest!.observationNotice).toContain('接管'));
+    expect(onTerminal).not.toHaveBeenCalled();
+    act(() => latest!.adopt(view({ jobId: 'initial', state: 'running', attempt: 1 })));
+    await waitFor(() => expect(latest!.observationNotice).toContain('接管'));
+    expect(onTerminal).not.toHaveBeenCalled();
+    expect(screen.getByTestId('state')).toHaveTextContent('initial:running@1');
+  });
+});
+
 describe('B2-RV09：StrictMode 下任务 hook 不能永久失效', () => {
   for (const strict of [false, true]) {
     const label = strict ? 'StrictMode' : '普通模式对照';

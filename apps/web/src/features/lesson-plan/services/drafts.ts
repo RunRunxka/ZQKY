@@ -42,7 +42,7 @@ export function validateData(value: unknown): asserts value is LessonPlanData {
 export const localDraftRepository: DraftRepository = {
   load() {
     const raw = localStorage.getItem(KEY);
-    if (!raw) return null;
+    if (raw === null) return null;
     const parsed = JSON.parse(raw);
     if (parsed.schemaVersion !== 1) throw new Error('草稿版本不兼容，请先导出备份');
     validateData(parsed.data);

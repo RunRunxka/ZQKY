@@ -11,6 +11,7 @@
  */
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Plus, RefreshCw } from 'lucide-react';
 import type {
   ScoreCorrectionEntry,
@@ -136,22 +137,23 @@ export function HistoryPanel({
 
   async function submitCorrection() {
     setFormError(null);
+    const frozenPayload = submission.phase === 'unknown' ? submission.frozen?.payload : null;
     const assessmentRevision = detail.lastData?.assessment.revision;
-    if (!activeRevisionId || assessmentRevision === undefined || assessmentRevision === null) {
+    if (!frozenPayload && (!activeRevisionId || assessmentRevision === undefined || assessmentRevision === null)) {
       setFormError('缺少当前生效版本或施测版本，无法修正；请先刷新。');
       return;
     }
-    if (reason.trim() === '') {
+    if (!frozenPayload && reason.trim() === '') {
       setFormError('修正理由必填（审计保留原值/新值/理由/坐标）。');
       return;
     }
-    if (corrections.length === 0) {
+    if (!frozenPayload && corrections.length === 0) {
       setFormError('至少添加一条修正。');
       return;
     }
-    const payload: ScoreRevisionCorrectRequest = {
-      baseScoreRevisionId: activeRevisionId,
-      expectedAssessmentRevision: assessmentRevision,
+    const payload: ScoreRevisionCorrectRequest = frozenPayload ?? {
+      baseScoreRevisionId: activeRevisionId!,
+      expectedAssessmentRevision: assessmentRevision!,
       submissionId: '',
       reason: reason.trim(),
       corrections,
@@ -176,6 +178,7 @@ export function HistoryPanel({
     submission.error && submission.error.code.toUpperCase().includes('CONFLICT')
       ? submission.error
       : null;
+  const editingLocked = submission.busy || submission.phase === 'unknown';
 
   if (!assessmentId) {
     return (
@@ -243,6 +246,11 @@ export function HistoryPanel({
         <section className="assessments-subpanel" aria-label="只读成绩矩阵">
           <div className="assessments-subpanel-head">
             <h3>只读矩阵（{activeRevisionIdSafe}）</h3>
+            {assessmentId && revisions.state.phase === 'ready' && activeRevision?.assessmentId === assessmentId && (
+              <Link className="space-button" href={`/learning-analysis?assessmentId=${encodeURIComponent(assessmentId)}&scoreRevisionId=${encodeURIComponent(activeRevision.revisionId)}`}>
+                分析这份固定成绩
+              </Link>
+            )}
             <span className="assessments-hint" data-testid="assessments-matrix-page">
               第 {page + 1} 页 · 共 {totalRows} 人次 · 每页 {ROWS_PER_PAGE}
             </span>
@@ -357,6 +365,7 @@ export function HistoryPanel({
               <select
                 className="space-select"
                 aria-label="修正人次"
+                disabled={editingLocked}
                 value={participantId}
                 onChange={(event) => setParticipantId(event.target.value)}
               >
@@ -373,6 +382,7 @@ export function HistoryPanel({
               <select
                 className="space-select"
                 aria-label="修正计分叶"
+                disabled={editingLocked}
                 value={itemId}
                 onChange={(event) => setItemId(event.target.value)}
               >
@@ -389,6 +399,7 @@ export function HistoryPanel({
               <select
                 className="space-select"
                 aria-label="修正状态"
+                disabled={editingLocked}
                 value={status}
                 onChange={(event) => setStatus(event.target.value as ScoreStatus)}
               >
@@ -405,13 +416,14 @@ export function HistoryPanel({
                 <input
                   className="assessments-input assessments-input-narrow"
                   aria-label="修正分数"
+                  disabled={editingLocked}
                   value={scoreText}
                   onChange={(event) => setScoreText(event.target.value)}
                   placeholder="如 7.5"
                 />
               </label>
             )}
-            <button className="space-button" type="button" onClick={addCorrection}>
+            <button className="space-button" type="button" disabled={editingLocked} onClick={addCorrection}>
               <Plus size={13} aria-hidden /> 加入修正列表
             </button>
           </div>
@@ -431,6 +443,7 @@ export function HistoryPanel({
                   <button
                     className="space-button"
                     aria-label={`移除修正 ${entry.itemId}`}
+                    disabled={editingLocked}
                     onClick={() =>
                       setCorrections((prev) =>
                         prev.filter(
@@ -452,6 +465,7 @@ export function HistoryPanel({
             <input
               className="assessments-input"
               aria-label="修正理由"
+              disabled={editingLocked}
               value={reason}
               onChange={(event) => setReason(event.target.value)}
             />
@@ -462,7 +476,7 @@ export function HistoryPanel({
               className="space-button primary"
               data-testid="assessments-correct-submit"
               disabled={
-                submission.busy || corrections.length === 0 || reason.trim() === '' || !activeRevisionId
+                submission.busy || (submission.phase !== 'unknown' && (corrections.length === 0 || reason.trim() === '' || !activeRevisionId))
               }
               onClick={() => void submitCorrection()}
             >

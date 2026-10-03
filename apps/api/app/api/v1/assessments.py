@@ -31,6 +31,7 @@ from app.contracts.assessments import (
     AssessmentUpdateRequest,
     AssessmentView,
     ParticipantAddRequest,
+    ParticipantAttendanceRequest,
     ParticipantMutationResult,
 )
 from app.core.exceptions import AppError
@@ -114,6 +115,16 @@ async def add_participants(
 ) -> ParticipantMutationResult:
     service = _service(request)
     return await _run(service.add_participants, assessment_id, body)
+
+
+@router.patch("/assessments/{assessment_id}/participants/{participant_id}/attendance")
+async def correct_participant_attendance(
+    request: Request, assessment_id: str, participant_id: str,
+    body: ParticipantAttendanceRequest,
+) -> ParticipantMutationResult:
+    return await _run(
+        _service(request).correct_participant_attendance, assessment_id, participant_id, body
+    )
 
 
 __all__ = ["router"]

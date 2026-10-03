@@ -40,6 +40,10 @@ class SheetTable:
 
 
 def _cell_to_text(value: object) -> str:
+    return _full_cell_text(value)[:MAX_CELL_CHARS]
+
+
+def _full_cell_text(value: object) -> str:
     if value is None:
         return ""
     if isinstance(value, bool):
@@ -47,8 +51,7 @@ def _cell_to_text(value: object) -> str:
     if isinstance(value, float) and value.is_integer():
         # 数字学号在 XLSX 里常是数值：整数不写小数尾巴，避免 12.0 这类噪声
         return str(int(value))
-    text = str(value)
-    return text[:MAX_CELL_CHARS]
+    return str(value)
 
 
 def _normalize_headers(raw: list[str]) -> list[str]:
@@ -120,7 +123,8 @@ def read_xlsx(content: bytes, *, sheet_name: str | None = None) -> list[SheetTab
     return sheets
 
 
-def read_csv(content: bytes, *, name: str = "csv") -> SheetTable:
+def _decode_csv_text(content: bytes) -> str:
+    """严格解码共享策略；不能替换原字节后把乱码当成绩/身份依据。"""
     text: str | None = None
     for encoding in ("utf-8-sig", "utf-8", "gb18030"):
         try:
@@ -134,7 +138,11 @@ def read_csv(content: bytes, *, name: str = "csv") -> SheetTable:
             code="TABLE_PARSE_FAILED",
             status_code=422,
         )
-    reader = csv.reader(io.StringIO(text))
+    return text
+
+
+def read_csv(content: bytes, *, name: str = "csv") -> SheetTable:
+    reader = csv.reader(io.StringIO(_decode_csv_text(content)))
     rows: list[list[str]] = []
     for raw_row in reader:
         rows.append([_cell_to_text(cell) for cell in raw_row[:MAX_COLUMNS]])
@@ -165,6 +173,24 @@ def read_table(
 
 MAX_SCORE_ROWS = 2000
 MAX_SCORE_COLUMNS = 600
+MAX_SCORE_CELL_CHARS = 20000
+
+
+def _score_cell_text(value: object, *, sheet: str, row: int, column: int, view: str) -> str:
+    """成绩原值只保留完整文本或定位拒绝，不能截断后再作为权威输入。"""
+    text = _full_cell_text(value)
+    if len(text) > MAX_SCORE_CELL_CHARS:
+        from openpyxl.utils.cell import get_column_letter
+
+        column_name = get_column_letter(column)
+        raise AppError(
+            f"工作表「{sheet}」{column_name}{row} 的{view}文本超过{MAX_SCORE_CELL_CHARS}字符；原值未截断，请修正原表。",
+            code="TABLE_TOO_LARGE", status_code=422,
+            details={"sheet": sheet, "row": row, "column": column_name,
+                     "address": f"{column_name}{row}", "view": view,
+                     "actualLength": len(text), "maxLength": MAX_SCORE_CELL_CHARS},
+        )
+    return text
 
 
 @dataclass(frozen=True)
@@ -221,6 +247,7 @@ def _materialize_cell_rows(
     formula_sheet: object,
     cached_sheet: object,
     *,
+    sheet_name: str,
     max_row: int,
     max_column: int,
 ) -> list[list[RawCell]]:
@@ -236,10 +263,10 @@ def _materialize_cell_rows(
         for column_index in range(max_column):
             formula_value, data_type = formula_grid[row_index][column_index]
             cached_value = cached_grid[row_index][column_index][0]
-            text = _cell_to_text(formula_value) if formula_value is not None else ""
-            cached_text = (
-                _cell_to_text(cached_value) if cached_value is not None else ""
-            )
+            text = _score_cell_text(formula_value, sheet=sheet_name, row=row_index + 1,
+                                    column=column_index + 1, view="formula")
+            cached_text = _score_cell_text(cached_value, sheet=sheet_name, row=row_index + 1,
+                                           column=column_index + 1, view="cached")
             formula = (
                 text
                 if isinstance(formula_value, str) and formula_value.startswith("=")
@@ -264,9 +291,16 @@ def _read_score_csv(
     content: bytes, *, max_rows: int, max_columns: int
 ) -> list[RawSheet]:
     """CSV 成绩表：物理行号=文件行号（含空行），无公式视图，单表 ``name="CSV"``。"""
-    text = content.decode("utf-8-sig", errors="replace")
+    text = _decode_csv_text(content)
     reader = csv.reader(io.StringIO(text, newline=""))
-    raw_rows = list(reader)
+    try:
+        raw_rows = list(reader)
+    except csv.Error as exc:
+        raise AppError(
+            "CSV 字段或记录无法解析；原文未截断，请检查原文件。",
+            code="TABLE_PARSE_FAILED", status_code=422,
+            details={"sheet": "CSV", "row": max(1, reader.line_num)},
+        ) from exc
     if len(raw_rows) > max_rows:
         raise AppError(
             f"CSV 行数 {len(raw_rows)} 超过上限 {max_rows}；请拆分后重试。",
@@ -285,7 +319,8 @@ def _read_score_csv(
         row_cells: list[RawCell] = []
         for column_index in range(1, width + 1):
             value = record[column_index - 1] if column_index - 1 < len(record) else ""
-            text_value = value if value != "" else ""
+            text_value = _score_cell_text(value, sheet="CSV", row=row_index,
+                                          column=column_index, view="csv")
             row_cells.append(
                 RawCell(
                     row=row_index,
@@ -363,7 +398,7 @@ def read_score_sheet(
                     status_code=422,
                 )
             rows = _materialize_cell_rows(
-                formula_sheet, cached_sheet, max_row=max_row, max_column=max_column
+                formula_sheet, cached_sheet, sheet_name=name, max_row=max_row, max_column=max_column
             )
             sheets.append(
                 RawSheet(name=name, max_row=max_row, max_column=max_column, rows=rows)

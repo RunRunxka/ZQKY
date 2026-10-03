@@ -88,8 +88,8 @@ class JobExecutorRegistry:
                 status_code=503,
                 retryable=True,
             )
-        if is_tracking(record.domain, record.job_id):
-            return True
+        # tracking可能属于已提交终态、正在心跳cleanup的上一轮。
+        # 引擎按目标attempt去重，并将新queued轮串接至上一轮收尾之后。
         engine_schedule(
             record.domain,
             record.job_id,

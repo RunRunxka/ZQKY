@@ -29,15 +29,16 @@ const STEPS: { id: Step; label: string }[] = [
   { id: 'history', label: '5 历史' },
 ];
 
-export function AssessmentsWorkspace() {
-  const [step, setStep] = useState<Step>('roster');
+export function AssessmentsWorkspace({ initialAssessmentId, initialStep }: { initialAssessmentId?: string; initialStep?: 'score' | 'history' } = {}) {
+  const [step, setStep] = useState<Step>(initialStep ?? 'roster');
   /** 到过的步骤才挂载面板：没看过的重面板（大矩阵/大批次）不参与首屏渲染。 */
-  const [visited, setVisited] = useState<Set<Step>>(() => new Set<Step>(['roster']));
+  const [visited, setVisited] = useState<Set<Step>>(() => new Set<Step>([initialStep ?? 'roster']));
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [selectedClassName, setSelectedClassName] = useState<string | null>(null);
   const [selectedPaper, setSelectedPaper] = useState<SelectedPaper | null>(null);
-  const [selectedAssessmentId, setSelectedAssessmentId] = useState<string | null>(null);
+  const [selectedAssessmentId, setSelectedAssessmentId] = useState<string | null>(initialAssessmentId ?? null);
   const [refreshToken, setRefreshToken] = useState(0);
+  const [rosterRefreshToken, setRosterRefreshToken] = useState(0);
 
   function go(next: Step) {
     setVisited((prev) => (prev.has(next) ? prev : new Set(prev).add(next)));
@@ -100,6 +101,7 @@ export function AssessmentsWorkspace() {
             selectedClassId={selectedClassId}
             onSelectClass={(classId) => selectClass(classId)}
             refreshToken={refreshToken}
+            onChanged={() => setRosterRefreshToken((value) => value + 1)}
           />
           )}
         </section>
@@ -135,6 +137,7 @@ export function AssessmentsWorkspace() {
             onSelectAssessment={setSelectedAssessmentId}
             onOpenScore={() => go('score')}
             refreshToken={refreshToken}
+            rosterRefreshToken={rosterRefreshToken}
             onChanged={() => setRefreshToken((value) => value + 1)}
           />
           )}

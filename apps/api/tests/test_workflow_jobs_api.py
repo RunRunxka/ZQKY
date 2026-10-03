@@ -13,6 +13,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.main import create_app
+from app.services.jobs.registry import JobExecutorRegistry
 from tests.conftest import make_settings
 
 
@@ -20,6 +21,11 @@ from tests.conftest import make_settings
 def app_client(tmp_path: Path):
     app = create_app(make_settings(tmp_path / "data"))
     with TestClient(app, base_url="http://127.0.0.1:8001") as client:
+        # These B0 state-route fixtures intentionally have no executable export.
+        # B4 registers real exports; registered queued recovery is covered by the
+        # registry/API integration tests, while these assertions retain 409 for
+        # an unregistered queued job and frozen-input-only terminal retry.
+        app.state.job_executors = JobExecutorRegistry()
         yield app, client
 
 

@@ -43,6 +43,7 @@ export function ConfirmPanel({
 }) {
   const reviewed = drafts.filter((draft) => draft.reviewState === 'reviewed');
   const completed = state.phase === 'done' && state.result.failures.length === 0;
+  const unknown = state.phase === 'failed' && state.error.status === 0;
 
   return (
     <section className="qb-confirm" aria-label="确认入库">
@@ -93,7 +94,7 @@ export function ConfirmPanel({
                       id={`qb-dup-${draft.draftId}`}
                       className="space-select"
                       value={resolutions[draft.draftId]?.action ?? 'none'}
-                      disabled={busy || completed}
+                      disabled={busy || completed || unknown}
                       onChange={(event) =>
                         onResolutionChange(
                           draft.draftId,
@@ -122,9 +123,16 @@ export function ConfirmPanel({
 
       {state.phase === 'failed' && (
         <p className="space-banner error" role="alert">
-          确认请求失败（{state.error.code}）：{state.error.message} 没有任何题目被入库；
-          草稿与提交标识保留，修正后可直接重试。
+          {unknown ? '确认结果未知' : '确认请求失败'}（{state.error.code}）：{state.error.message}{' '}
+          {unknown
+            ? '未收到服务端回执，本次可能已经入库。原提交标识与完整载荷已冻结，请直接重试以读取原结果，或重新读取批次核对。'
+            : '服务端明确拒绝本次确认；草稿与提交标识保留，修正后可直接重试。'}
         </p>
+      )}
+      {unknown && (
+        <button className="space-button" onClick={onReload} disabled={busy}>
+          重新读取批次（保留冻结确认）
+        </button>
       )}
 
       {state.phase === 'done' && state.result.failures.length > 0 && (
@@ -181,10 +189,10 @@ export function ConfirmPanel({
       <div className="qb-actions">
         <button
           className="space-button primary"
-          disabled={busy || completed || reviewed.length === 0}
+          disabled={busy || completed || (!unknown && reviewed.length === 0)}
           onClick={onConfirm}
         >
-          {busy ? '提交中…' : `确认入库（${reviewed.length} 道）`}
+          {busy ? '提交中…' : unknown ? '重试原确认（结果未知）' : `确认入库（${reviewed.length} 道）`}
         </button>
         <span className="qb-hint">
           入库使用乐观锁与幂等提交：任一条校验失败则整体不确认，失败原因逐条列出。

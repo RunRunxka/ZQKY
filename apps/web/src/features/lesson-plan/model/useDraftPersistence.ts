@@ -10,18 +10,22 @@ export function useDraftPersistence(
   repository: DraftRepository,
   notice: (message: string) => void,
   onChange?: (draft: DraftEnvelope) => void,
+  enabled = true,
 ) {
   const [ready, setReady] = useState(false),
     [saveStatus, setSaveStatus] = useState('正在恢复草稿…'),
     [storageBlocked, setStorageBlocked] = useState(false);
   const writerRef = useRef<ReturnType<typeof createDraftWriter> | null>(null);
   const blockedRef = useRef(false);
+  const lastSaved = useRef<{ data: LessonState['data']; revision: number } | null>(null);
   useEffect(() => {
+    if (!enabled) return;
     let disposed = false;
     let unsubscribe: (() => void) | undefined;
     const writer = createDraftWriter(
       repository,
       (draft) => {
+        lastSaved.current = { data: structuredClone(draft.data), revision: draft.revision };
         if (!disposed && store.getState().revision === draft.revision)
           setSaveStatus('已保存到本机');
         try {
@@ -43,6 +47,7 @@ export function useDraftPersistence(
         const draft = await repository.load();
         if (disposed) return;
         if (draft) store.getState().hydrate(draft.data, draft.revision);
+        lastSaved.current = { data: structuredClone(store.getState().data), revision: store.getState().revision };
         setSaveStatus(draft ? '草稿已恢复' : '本地示例');
       } catch (error) {
         if (disposed) return;
@@ -78,7 +83,7 @@ export function useDraftPersistence(
       void writer.flush().catch(() => {});
       if (writerRef.current === writer) writerRef.current = null;
     };
-  }, [store, repository, notice, onChange]);
+  }, [store, repository, notice, onChange, enabled]);
   const flushDraft = useCallback(() => writerRef.current?.flush() ?? Promise.resolve(), []);
   const resumeStorage = useCallback(() => {
     blockedRef.current = false;
@@ -87,5 +92,8 @@ export function useDraftPersistence(
     setSaveStatus('保存中…');
     writerRef.current?.enqueue(makeEnvelope(s.data, s.revision));
   }, [store]);
-  return { ready, saveStatus, storageBlocked, resumeStorage, flushDraft };
+  return { ready, saveStatus, storageBlocked, resumeStorage, flushDraft, isPending: () => writerRef.current?.isPending() ?? false,
+    isRunning: () => writerRef.current?.isRunning() ?? false,
+    discardPending() { if (blockedRef.current || !lastSaved.current || !writerRef.current?.discardPending()) return false; blockedRef.current = true; store.getState().hydrate(structuredClone(lastSaved.current.data), lastSaved.current.revision); blockedRef.current = false; setSaveStatus('已放弃未保存本地编辑'); return true; },
+  };
 }

@@ -7,7 +7,6 @@ import { exportPdf } from '../services/export';
 import { validateData } from '../services/drafts';
 export function EditorOverlays() {
   const {
-    data,
     replace,
     toast,
     setToast,
@@ -20,6 +19,9 @@ export function EditorOverlays() {
     notice,
     selectSection,
     backup,
+    server,
+    beginPrint,
+    endPrint,
   } = useLessonEditor();
   return (
     <>
@@ -126,9 +128,9 @@ export function EditorOverlays() {
               <button
                 className="button primary"
                 onClick={() => {
-                  setModal(null);
+                  const snapshot = beginPrint(); setModal(null);
                   setTimeout(() => {
-                    exportPdf(data.title).catch(() => notice('打印窗口未能打开，请重试'));
+                    exportPdf(`${snapshot.data.title} · ${snapshot.source}`).catch(() => { endPrint(); notice('打印窗口未能打开，请重试'); });
                   }, 100);
                 }}
               >
@@ -139,7 +141,7 @@ export function EditorOverlays() {
           </>
         ) : null}
       </dialog>
-      {storageBlocked && (
+      {storageBlocked && !server && (
         <div className="storage-alert">
           原草稿读取失败，自动保存已暂停。
           <button

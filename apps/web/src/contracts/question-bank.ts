@@ -3,6 +3,8 @@
  * 与 `apps/api/app/schemas/question_bank.py` 一一对应；改任一侧必须同步另一侧。
  */
 
+import type { RichContentV2 } from '@/contracts/teaching-loop';
+
 export type QuestionType =
   | 'single_choice'
   | 'multiple_choice'
@@ -41,6 +43,8 @@ export interface QuestionContent {
   answer: QuestionAnswer | null;
   explanationMarkdown: string | null;
   assetIds: string[];
+  /** 存在时为权威内容；转为 Markdown 必须显式清空。 */
+  richContent?: RichContentV2 | null;
 }
 
 export interface QuestionMetadata {

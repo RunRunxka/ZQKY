@@ -16,8 +16,8 @@ REQUIRED_FEATURES = {
     "skills",
 }
 
-# RAG-REBUILD v1.0 起教材资料库与题库有真实存储实现；rag 仍按运行时状态动态报告。
-READY_FEATURES = {"model_settings", "chat", "textbook_repository", "question_bank"}
+# B5 正常四库装配含真实教案服务与执行器；缺少依赖时须动态 unavailable。
+READY_FEATURES = {"model_settings", "chat", "textbook_repository", "question_bank", "lesson_plan_ai_fill"}
 
 
 def test_capabilities_reports_feature_state(client):
@@ -43,3 +43,12 @@ def test_capabilities_does_not_claim_unimplemented_success(client):
         item["status"] for item in client.get("/api/v1/capabilities").json()["capabilities"]
     }
     assert statuses == {"planned", "ready", "unavailable"}
+
+
+def test_lesson_capability_does_not_claim_ready_when_real_service_is_missing(client, monkeypatch):
+    monkeypatch.setattr(client.app.state, "lesson_plan_service", None)
+    features = {item["feature"]: item for item in client.get("/api/v1/capabilities").json()["capabilities"]}
+    assert features["lesson_plan_ai_fill"]["status"] == "unavailable"
+    response = client.get("/api/v1/lesson-plans")
+    assert response.status_code == 503
+    assert response.json()["code"] == "SERVICE_UNAVAILABLE"

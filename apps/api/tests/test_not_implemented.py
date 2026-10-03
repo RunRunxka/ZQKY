@@ -6,7 +6,6 @@ import pytest
 
 FUTURE_ROUTES = [
     ("GET", "/api/v1/models"),
-    ("GET", "/api/v1/lesson-plans"),
     ("POST", "/api/v1/templates/inspect"),
     ("POST", "/api/v1/exports"),
 ]
@@ -29,3 +28,10 @@ def test_routes_outside_v1_return_404_envelope(client):
     body = response.json()
     assert body["code"] == "NOT_FOUND"
     assert body["requestId"]
+
+
+def test_lesson_plans_is_a_real_empty_owned_page_after_b5(client):
+    response = client.get("/api/v1/lesson-plans")
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("application/json")
+    assert response.json() == {"items": [], "total": 0, "offset": 0, "limit": 50}

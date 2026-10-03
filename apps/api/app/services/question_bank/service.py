@@ -65,7 +65,7 @@ from typing import Any, Callable, Iterator, Sequence
 from app.contracts.teaching_loop import ErrorIssue, error_details
 from app.core.exceptions import AppError
 from app.providers.llm.base import FINISH_LENGTH, LLMMessage, LLMRequest, LLMResponse
-from app.repositories.jobs.repository import JobLease, JobStore
+from app.repositories.jobs.repository import JobStore
 from app.repositories.question_bank.catalog import JobLeaseIdentity, QuestionBankCatalog
 from app.repositories.question_bank.records import (
     DraftInput,
@@ -101,7 +101,6 @@ from app.services.document_parsing.parser import (
     parse_document,
 )
 from app.services.jobs.engine import (
-    INTERNAL_FAILURE_MESSAGE,
     FrozenJob,
     JobContext,
     JobEngine,
@@ -120,8 +119,9 @@ from app.services.model_runtime import (
     fingerprint_of_handle,
     resolve_frozen_model,
 )
+from app.services.assets.store import AssetStore, is_managed_blob_key, is_sha256_hex
 from app.services.question_bank import fingerprint as fp
-from app.services.question_bank import generation, rules, validation, views
+from app.services.question_bank import generation, rich, rules, validation, views
 from app.services.question_bank.blobs import QuestionBlobStore
 from app.services.question_bank.organizer import (
     BATCH_LEVEL_ORGANIZER_ERRORS,
@@ -279,6 +279,7 @@ class QuestionBankService:
         self.owner_id = owner_id
         self.parser = parser
         self.blobs = QuestionBlobStore(settings.question_bank_root)
+        self.assets = AssetStore(settings.assets_root)
         # 模型解析器由外部注入；None 表示未装配（organize 直接 503，不建任务）
         self.model_resolver: ChatModelResolver | None = model_resolver
         self.knowledge_catalog = knowledge_catalog
@@ -744,9 +745,12 @@ class QuestionBankService:
         blocks = self.catalog.list_source_blocks(import_id)
         links = self.catalog.draft_knowledge_links_by_import(import_id)
         unassigned = [block for block in blocks if not self._is_assigned(block, drafts)]
-        return views.import_detail(
+        detail = views.import_detail(
             record, drafts=drafts, unassigned=unassigned, links_by_draft=links
         )
+        return detail.model_copy(update={
+            "drafts": [self._duplicate_preview(draft) for draft in detail.drafts],
+        })
 
     def list_imports(self, *, limit: int = DEFAULT_IMPORT_LIMIT) -> QuestionImportList:
         if limit < 1 or limit > MAX_IMPORT_LIMIT:
@@ -773,6 +777,8 @@ class QuestionBankService:
         record = self.catalog.get_draft(draft_id)
         if record is None:
             raise _not_found("草稿不存在。", code="DRAFT_NOT_FOUND")
+        rich.validate_projection(body.content, previous=record.content)
+        self._verify_new_assets(body.content, previous=record.content)
         content = body.content.model_dump(mode="json")
         link_rows: list[dict[str, str]] | None = None
         if body.knowledgeLinks is not None:
@@ -802,7 +808,40 @@ class QuestionBankService:
 
     def _draft_view(self, record: DraftRecord) -> DraftView:
         links = self.catalog.draft_knowledge_links(record.draft_id)
-        return views.draft_view(record, links=links)
+        return self._duplicate_preview(views.draft_view(record, links=links))
+
+    def _duplicate_questions(self, content: Mapping[str, Any], *, conn: Any = None) -> list[Any]:
+        """预览与确认共用权威题面口径；历史候选仅从冻结内容纯计算。"""
+        identity = fp.duplicate_content_fingerprint(content)
+        if conn is None:
+            candidates = self.catalog.find_questions_by_surface(
+                self.owner_id, algorithm_version=fp.DUPLICATE_ALGORITHM_VERSION, fingerprint=identity
+            )
+        else:
+            candidates = self.catalog.questions_by_surface_in(
+                conn, self.owner_id, algorithm_version=fp.DUPLICATE_ALGORITHM_VERSION, fingerprint=identity
+            )
+        return [question for question in candidates
+                if fp.duplicate_content_fingerprint(question.content) == identity]
+
+    def _duplicate_preview(self, draft: DraftView) -> DraftView:
+        # 已消费草稿保留其来源合并事实；其余草稿不沿用过时的 duplicate 指针。
+        if draft.reviewState == "excluded":
+            return draft
+        content = draft.content.model_dump(mode="json")
+        duplicates = self._duplicate_questions(content)
+        warnings = list(draft.warnings)
+        if duplicates:
+            warning = "权威题面与已有题目相同；答案和解析不作为新题条件，请复核后选择跳过或合并来源。"
+            if warning not in warnings:
+                warnings.append(warning)
+            if any(fp.canonical_json(question.content.get("answer")) != fp.canonical_json(content.get("answer"))
+                   for question in duplicates):
+                warnings.append("重复题的答案不同，需教师复核；已有题答案不会被本次确认覆盖，候选答案保留在草稿。")
+        return draft.model_copy(update={
+            "duplicateOfQuestionId": duplicates[0].question_id if duplicates else None,
+            "warnings": warnings,
+        })
 
     def split_draft(
         self,
@@ -822,6 +861,7 @@ class QuestionBankService:
                 f"草稿已被其他操作更新（当前 revision={target.revision}），请刷新后重试。",
                 code="REVISION_CONFLICT",
             )
+        self._require_markdown_operation(target, operation="拆分")
         blocks = self.catalog.list_source_blocks(import_id)
         lines = [
             line
@@ -882,6 +922,7 @@ class QuestionBankService:
                     f"草稿已被其他操作更新（当前 revision={draft.revision}），请刷新后重试。",
                     code="REVISION_CONFLICT",
                 )
+            self._require_markdown_operation(draft, operation="合并")
             chosen.append(draft)
         chosen.sort(key=lambda draft: self._draft_start(draft))
         merged_content = self._merge_content([draft.content for draft in chosen])
@@ -1014,7 +1055,8 @@ class QuestionBankService:
         return await model.provider.complete(model.config, request)
 
     async def _record_task_level_failure(
-        self, job_id: str, code: str, *, message: str | None = None
+        self, job_id: str, code: str, *, lease: JobLeaseIdentity,
+        message: str | None = None
     ) -> None:
         """任务级失败落库**前**的可读原因：写进 checkpoint 的 ``jobError``（旧界面语义）。
 
@@ -1022,16 +1064,10 @@ class QuestionBankService:
         两处同源，视图 ``errorCode`` 取引擎的错误码，界面文案不丢。
         ``message`` 由调用方给出时原样落库（如模型漂移的明确说明）。
         """
-        job = await _threaded(self.catalog.get_job, job_id)
-        if job is None:
-            return
-        checkpoint = dict(job.checkpoint)
-        checkpoint["jobError"] = {
-            "code": code,
-            "message": message or job_level_message(code),
-        }
         await _threaded(
-            self.catalog.update_job, job_id, checkpoint=checkpoint
+            self.catalog.record_organize_failure, job_id,
+            code=code, message=message or job_level_message(code),
+            lease_attempt=lease.attempt, lease_token=lease.token,
         )
 
     def _organize_contract(
@@ -1045,57 +1081,10 @@ class QuestionBankService:
         return None
 
     async def _run_engine_job(self, job_id: str, executor: Any) -> Any:
-        """经统一引擎执行一轮；发布/收尾阶段抛错时把回滚后的 running 行落 failed。
-
-        ``JobStore.complete`` 的契约是"publish 抛错 → 事务整体回滚 + 异常向上抛"：
-        业务写入确实零残留，但任务行会停在 ``running``。这里只在**非契约错误**
-        （``AppError`` 如 ``JOB_BUSY``/``LEASE_LOST`` 原样上抛）时做一次收尾，
-        使六态视图如实反映失败，而不是让界面一直轮询。
-        """
-        try:
-            return await self.job_engine.run_job(
-                "question", job_id, executor, uses_model=True
-            )
-        except AppError:
-            raise
-        except Exception:
-            try:
-                await _threaded(self._fail_job_after_publish_error, job_id)
-            except Exception:  # noqa: BLE001 - 收尾失败不掩盖原始异常
-                logger.exception("发布失败收尾失败：job=%s", job_id)
-            raise
-
-    def _fail_job_after_publish_error(self, job_id: str) -> None:
-        """把仍是本 worker 租约的 ``running`` 行落 ``failed``（不覆盖新持有者）。"""
-        record = self._store().get(job_id)
-        if record.state != "running" or not record.lease_token:
-            return
-        lease = JobLease(
-            job_id=record.job_id,
-            domain="question",
-            attempt=record.attempt,
-            token=record.lease_token,
-            expires_at=record.lease_expires_at or "",
+        """发布异常由唯一引擎用原 JobLease 收敛；域服务不冒用当前行租约。"""
+        return await self.job_engine.run_job(
+            "question", job_id, executor, uses_model=True
         )
-        self._store().fail_if_current_lease(
-            job_id,
-            lease,
-            code="JOB_FAILED",
-            message=INTERNAL_FAILURE_MESSAGE,
-        )
-
-    def _on_generation_task_done(self, job_id: str, task: Any) -> None:
-        """后台补题任务的收尾回调：发布阶段崩溃不留"永远 running"的行。"""
-        if task.cancelled():
-            return
-        error = task.exception()
-        if error is None or isinstance(error, AppError):
-            return
-        logger.warning("补题任务发布阶段失败：job=%s", job_id)
-        try:
-            self._fail_job_after_publish_error(job_id)
-        except Exception:  # noqa: BLE001 - 收尾失败不影响其它任务
-            logger.exception("补题发布失败收尾失败：job=%s", job_id)
 
     def _organize_executor_factory(self, *, model: ChatModelHandle | None):
         """构造执行器：``model`` 非空 = 点击时冻结的句柄；恢复路径传 ``None`` 重新解析。"""
@@ -1129,13 +1118,13 @@ class QuestionBankService:
                 except AppError as exc:
                     if exc.code in (MODEL_CONFIG_DRIFT, MODEL_FINGERPRINT_MISSING):
                         await self._record_task_level_failure(
-                            frozen.job_id, exc.code, message=str(exc)
+                            frozen.job_id, exc.code, lease=lease, message=str(exc)
                         )
                         raise AppError(
                             str(exc), code=exc.code, status_code=exc.status_code
                         ) from exc
                     code = job_level_error_code(exc.code)
-                    await self._record_task_level_failure(frozen.job_id, code)
+                    await self._record_task_level_failure(frozen.job_id, code, lease=lease)
                     raise AppError(
                         job_level_message(code), code=code, status_code=exc.status_code
                     ) from exc
@@ -1175,7 +1164,7 @@ class QuestionBankService:
                         continue
                     # 模型服务问题（认证/限流/网络/协议/配置）：整条任务失败
                     code = job_level_error_code(exc.code)
-                    await self._record_task_level_failure(frozen.job_id, code)
+                    await self._record_task_level_failure(frozen.job_id, code, lease=lease)
                     raise AppError(
                         job_level_message(code), code=code, status_code=exc.status_code
                     ) from exc
@@ -1348,6 +1337,14 @@ class QuestionBankService:
     def apply_suggestion(
         self, suggestion_id: str, body: SuggestionApplyRequest
     ) -> DraftView:
+        if body.accept:
+            suggestion = self.catalog.get_suggestion(suggestion_id)
+            draft = self.catalog.get_draft(suggestion.target_draft_id) if suggestion else None
+            if (
+                suggestion is not None and suggestion.state == "pending" and draft is not None
+                and draft.revision == body.expectedDraftRevision == suggestion.base_draft_revision
+            ):
+                self._require_markdown_operation(draft, operation="应用 AI 建议")
         warning = f"已应用 AI 建议 {suggestion_id}：内容需重新校对。"
         _suggestion, draft = self.catalog.apply_suggestion(
             suggestion_id,
@@ -1433,11 +1430,8 @@ class QuestionBankService:
             model_snapshot=generation.build_model_snapshot(handle),
             owner_id=self.owner_id,
         )
-        task = self.job_engine.schedule(
+        self.job_engine.schedule(
             "question", record.job_id, self._generation_executor(), uses_model=True
-        )
-        task.add_done_callback(
-            functools.partial(self._on_generation_task_done, record.job_id)
         )
         return self._generation_view(record)
 
@@ -1517,6 +1511,21 @@ class QuestionBankService:
                 ),
             }
         )
+        existing = self.catalog.get_submission(body.submissionId)
+        if existing is not None:
+            if existing.request_fingerprint != request_fingerprint:
+                raise _conflict("同一提交键已登记不同载荷的确认请求。", code="IDEMPOTENCY_CONFLICT")
+            return ConfirmResult.model_validate(existing.result)
+        # 真实字节与投影预检在发布锁和 SQL 写事务外；事务内只消费同一草稿版本的结果。
+        prepared: dict[str, tuple[int, tuple[str, str] | AppError]] = {}
+        for item in body.items:
+            draft = self.catalog.get_draft(item.draftId)
+            if draft is None or draft.import_id != body.importId or draft.revision != item.expectedDraftRevision:
+                continue
+            try:
+                prepared[draft.draft_id] = (draft.revision, self._derived_fingerprint(draft.content))
+            except AppError as exc:
+                prepared[draft.draft_id] = (draft.revision, exc)
         with self._publication("question.confirm"):
             # 幂等重放优先：同一 submissionId 的记录是既有事实，不再要求当时引用的
             # 知识点仍活跃（历史已确认关联不回溯重核）；只有真正要写的新确认才复核。
@@ -1529,10 +1538,11 @@ class QuestionBankService:
                     )
                 return ConfirmResult.model_validate(existing.result)
             self._recheck_confirm_links(body)
-            return self._confirm_in_transaction(body, request_fingerprint)
+            return self._confirm_in_transaction(body, request_fingerprint, prepared)
 
     def _confirm_in_transaction(
-        self, body: QuestionConfirmRequest, request_fingerprint: str
+        self, body: QuestionConfirmRequest, request_fingerprint: str,
+        prepared: Mapping[str, tuple[int, tuple[str, str] | AppError]],
     ) -> ConfirmResult:
         """确认入库的域内短事务（必须在 ``_publication`` 内、关联复核之后调用）。"""
         with self.catalog.write_transaction() as conn:
@@ -1547,7 +1557,7 @@ class QuestionBankService:
                     )
                 return ConfirmResult.model_validate(existing.result)
 
-            plan, failures = self._plan_confirm(conn, body)
+            plan, failures = self._plan_confirm(conn, body, prepared)
             if failures:
                 # 任一草稿不合法 -> 整体不确认；不写 submission，修正后可用同一提交键重试
                 return ConfirmResult(
@@ -1560,8 +1570,17 @@ class QuestionBankService:
             confirmed: list[str] = []
             linked: list[str] = []
             skipped: list[str] = []
+            created_by_draft: dict[str, str] = {}
             for step in plan:
                 draft = step["draft"]
+                if step["duplicateDraftId"] is not None:
+                    target_id = created_by_draft[step["duplicateDraftId"]]
+                    self.catalog.mark_draft_duplicate_in(
+                        conn, draft.draft_id, question_id=target_id,
+                        warning=f"已跳过：与本次先确认的题目 {target_id} 权威题面相同（不含答案与解析）。",
+                    )
+                    skipped.append(draft.draft_id)
+                    continue
                 if step["action"] in ("skip", "none") and step["duplicates"]:
                     target = step["duplicates"][0]["question"]
                     self.catalog.mark_draft_duplicate_in(
@@ -1608,9 +1627,15 @@ class QuestionBankService:
                     knowledge_links=self._frozen_link_rows(
                         self.catalog.draft_knowledge_links_in(conn, draft.draft_id)
                     ),
-                    derived_fingerprint=self._derived_fingerprint(step["content"]),
+                    derived_fingerprint=step["derivedFingerprint"],
+                )
+                self.catalog.save_derived_fingerprint_in(
+                    conn, question_revision_id=question.current_revision_id,
+                    algorithm_version=fp.DUPLICATE_ALGORITHM_VERSION,
+                    fingerprint=fp.duplicate_content_fingerprint(draft.content),
                 )
                 confirmed.append(question.question_id)
+                created_by_draft[draft.draft_id] = question.question_id
 
             result = ConfirmResult(
                 confirmedQuestionIds=confirmed,
@@ -1701,11 +1726,39 @@ class QuestionBankService:
 
     def get_question(self, question_id: str) -> QuestionDetail:
         record = self.catalog.get_question(question_id)
-        if record is None:
+        if record is None or record.owner_id != self.owner_id:
             raise _not_found("题目不存在。", code="QUESTION_NOT_FOUND")
         return views.question_detail(
             record, links=self.catalog.question_knowledge_links(question_id)
         )
+
+    def get_content_asset(self, kind: str, entity_id: str, asset_id: str) -> tuple[bytes, str]:
+        """只读该 owner 的当前草稿/题目修订实际引用的图片；不接受任意路径。"""
+        if not (is_managed_blob_key(asset_id) or is_sha256_hex(asset_id)):
+            raise AppError("资产键必须是受管 key 或兼容题库 SHA-256。", code="INVALID_ASSET_KEY", status_code=422)
+        if kind == "draft":
+            record = self.catalog.get_draft(entity_id)
+            imported = self.catalog.get_import(record.import_id) if record is not None else None
+            if imported is None or imported.owner_id != self.owner_id:
+                raise _not_found("草稿不存在。", code="DRAFT_NOT_FOUND")
+        elif kind == "question":
+            record = self.catalog.get_question(entity_id)
+            if record is None or record.owner_id != self.owner_id:
+                raise _not_found("题目不存在。", code="QUESTION_NOT_FOUND")
+        else:
+            raise _invalid("资产引用范围只能是 draft 或 question。")
+        content = validation.parse_content(record.content)
+        referenced = rich.image_ids(content.richContent) if content.richContent else set(content.assetIds)
+        if asset_id not in referenced:
+            raise _not_found("当前内容没有引用该图片。", code="QUESTION_ASSET_NOT_FOUND")
+        data, media_type = rich.read_asset(asset_id, assets=self.assets, blobs=self.blobs)
+        if content.richContent:
+            # 存储时已核验；每次只读再次核实际字节与当前修订的冻结声明。
+            declaration = next(item for item in content.richContent.assets if item.asset_id == asset_id)
+            digest = fp.asset_byte_hash(asset_id) if is_managed_blob_key(asset_id) else asset_id
+            if media_type == "application/octet-stream" or declaration.sha256 != digest or declaration.media_type != media_type:
+                raise AppError("当前修订的资产声明与真实字节不一致。", code="QUESTION_ASSET_CORRUPT", status_code=500)
+        return data, media_type
 
     def patch_question(
         self,
@@ -1725,32 +1778,40 @@ class QuestionBankService:
         HTTP 契约 ``QuestionPatchRequest`` 已有 ``knowledgeLinks`` 字段，路由原样透传。
         """
         record = self.catalog.get_question(question_id)
-        if record is None:
+        if record is None or record.owner_id != self.owner_id:
             raise _not_found("题目不存在。", code="QUESTION_NOT_FOUND")
+        rich.validate_projection(body.content, previous=record.content)
+        self._verify_new_assets(body.content, previous=record.content)
         content = body.content.model_dump(mode="json")
+        # 文件字节/派生指纹预检不持跨库发布锁；仅关联复核与域内提交在同一临界区。
+        derived_fingerprint = self._derived_fingerprint(body.content)
+        content_fingerprint = fp.content_fingerprint(content)
         link_rows: list[dict[str, str]] | None = None
-        if knowledge_links is not None:
-            parsed = validation.parse_knowledge_links(knowledge_links)
-            link_rows = self._link_rows(
-                parsed, subject_id=body.metadata.subjectId, source="human"
+        with self._publication("question.patch"):
+            if knowledge_links is not None:
+                parsed = validation.parse_knowledge_links(knowledge_links)
+                link_rows = self._link_rows(
+                    parsed, subject_id=body.metadata.subjectId, source="human"
+                )
+            else:
+                # 继承关联也会写入新修订，必须在提交前复核活跃状态与学科。
+                self._require_subject_change_links(
+                    links=self.catalog.question_knowledge_links(question_id),
+                    new_subject_id=body.metadata.subjectId,
+                    what="题目",
+                )
+            updated = self.catalog.patch_question(
+                question_id,
+                expected_revision=body.expectedRevision,
+                content=content,
+                metadata=body.metadata.model_dump(mode="json"),
+                answer_state=validation.answer_state_of(body.content),
+                content_fingerprint=content_fingerprint,
+                knowledge_links=link_rows,
+                derived_fingerprint=derived_fingerprint,
+                duplicate_fingerprint=(fp.DUPLICATE_ALGORITHM_VERSION,
+                                       fp.duplicate_content_fingerprint(content)),
             )
-        elif body.metadata.subjectId != str((record.metadata or {}).get("subjectId") or ""):
-            # 学科变化且未显式给关联：不得无条件复制与新学科冲突的旧正式关联（B2-RV07）
-            self._require_subject_change_links(
-                links=self.catalog.question_knowledge_links(question_id),
-                new_subject_id=body.metadata.subjectId,
-                what="题目",
-            )
-        updated = self.catalog.patch_question(
-            question_id,
-            expected_revision=body.expectedRevision,
-            content=content,
-            metadata=body.metadata.model_dump(mode="json"),
-            answer_state=validation.answer_state_of(body.content),
-            content_fingerprint=fp.content_fingerprint(content),
-            knowledge_links=link_rows,
-            derived_fingerprint=self._derived_fingerprint(body.content),
-        )
         return views.question_detail(
             updated, links=self.catalog.question_knowledge_links(question_id)
         )
@@ -1762,7 +1823,7 @@ class QuestionBankService:
         )
         written = 0
         for revision_id, content in missing:
-            value = fp.derived_content_fingerprint(content)
+            _, value = self._derived_fingerprint(content)
             with self.catalog.write_transaction() as conn:
                 self.catalog.save_derived_fingerprint_in(
                     conn,
@@ -1775,9 +1836,10 @@ class QuestionBankService:
 
     def delete_question(self, question_id: str, *, expected_revision: int | None = None) -> None:
         record = self.catalog.get_question(question_id)
-        if record is None:
+        if record is None or record.owner_id != self.owner_id:
             raise _not_found("题目不存在。", code="QUESTION_NOT_FOUND")
-        self.catalog.archive_question(question_id, expected_revision=expected_revision)
+        with self._publication("question.archive"):
+            self.catalog.archive_question(question_id, expected_revision=expected_revision)
 
     # ------------------------------------------------------------------ 内部
 
@@ -1796,21 +1858,55 @@ class QuestionBankService:
         ]
 
     @staticmethod
-    def _derived_fingerprint(content: Any) -> tuple[str, str]:
-        """版本化派生指纹（纯计算，事务内可安全调用；不读文件、不改旧指纹列）。"""
+    def _require_markdown_operation(record: DraftRecord, *, operation: str) -> None:
+        if record.content.get("richContent") is not None:
+            code = "QUESTION_RICH_CONTENT_EDIT_UNSUPPORTED"
+            message = f"当前{operation}流程按原文 Markdown 工作；请先明确 richContent=null 转为 Markdown，再执行{operation}。"
+            raise AppError(message, code=code, status_code=422, details=error_details(issues=[
+                ErrorIssue(field="content.richContent", code=code, message=message),
+            ]))
+
+    def _verify_new_assets(self, content: Any, *, previous: Mapping[str, Any]) -> None:
+        if content.richContent is not None:
+            rich.verify_assets(content, assets=self.assets, blobs=self.blobs)
+            return
+        old_ids = set(previous.get("assetIds") or [])
+        for asset_id in set(content.assetIds) - old_ids:
+            try:
+                _, media_type = rich.read_asset(asset_id, assets=self.assets, blobs=self.blobs)
+            except AppError as exc:
+                if exc.code in {"ASSET_MISSING", "QUESTION_BLOB_MISSING"}:
+                    raise AppError("新增图片必须引用已有真实字节。", code="QUESTION_ASSET_NOT_FOUND", status_code=422) from exc
+                raise
+            if media_type == "application/octet-stream":
+                raise AppError("新增图片字节类型无法识别。", code="QUESTION_ASSET_MEDIA_INVALID", status_code=422)
+
+    def _derived_fingerprint(self, content: Any) -> tuple[str, str]:
+        """事务外核验真实字节，既有 derived-v1 组成与旧内容指纹算法均保持不变。"""
         payload = content.model_dump(mode="json") if hasattr(content, "model_dump") else content
+        validated = validation.parse_content(payload)
+        asset_hashes = rich.verify_assets(validated, assets=self.assets, blobs=self.blobs)
+        if validated.richContent is None:
+            for asset_id in validated.assetIds:
+                if is_managed_blob_key(asset_id) or is_sha256_hex(asset_id):
+                    rich.read_asset(asset_id, assets=self.assets, blobs=self.blobs)
+                    asset_hashes[asset_id] = asset_id.split("/", 1)[-1]
+        rich_payload = validated.richContent.model_dump(mode="json", by_alias=True) if validated.richContent else None
+        materials = [rich.project_blocks(material.blocks) for material in validated.richContent.shared_materials] if validated.richContent else []
         return (
             fp.DERIVED_ALGORITHM_VERSION,
-            fp.derived_content_fingerprint(payload),
+            fp.derived_content_fingerprint(payload, rich_content=rich_payload, materials=materials, asset_hashes=asset_hashes),
         )
 
     def _plan_confirm(
-        self, conn, body: QuestionConfirmRequest
+        self, conn, body: QuestionConfirmRequest,
+        prepared: Mapping[str, tuple[int, tuple[str, str] | AppError]],
     ) -> tuple[list[dict[str, Any]], list[ConfirmFailure]]:
         resolutions = {item.draftId: item for item in body.duplicateResolutions}
         plan: list[dict[str, Any]] = []
         failures: list[ConfirmFailure] = []
         seen: set[str] = set()
+        new_surfaces: dict[str, str] = {}
         for item in body.items:
             draft_id = item.draftId
             if draft_id in seen:
@@ -1860,6 +1956,14 @@ class QuestionBankService:
                     ConfirmFailure(draftId=draft_id, code=exc.code, message=str(exc))
                 )
                 continue
+            checked = prepared.get(draft_id)
+            if checked is None or checked[0] != draft.revision:
+                failures.append(ConfirmFailure(draftId=draft_id, code="REVISION_CONFLICT",
+                                               message="草稿已变化；本次资产预检结果不再适用，请刷新后重试。"))
+                continue
+            if isinstance(checked[1], AppError):
+                failures.append(ConfirmFailure(draftId=draft_id, code=checked[1].code, message=str(checked[1])))
+                continue
             issue = validation.validate_for_confirm(
                 content=content,
                 review_state=draft.review_state,
@@ -1873,12 +1977,10 @@ class QuestionBankService:
 
             content_payload = content.model_dump(mode="json")
             fingerprint = fp.content_fingerprint(content_payload)
-            duplicates = [
-                {"question": question, "fingerprint": question.content_fingerprint}
-                for question in self.catalog.questions_by_fingerprint_in(
-                    conn, self.owner_id, fingerprint
-                )
-            ]
+            duplicates = [{"question": question} for question in
+                          self._duplicate_questions(content_payload, conn=conn)]
+            surface_fingerprint = fp.duplicate_content_fingerprint(content_payload)
+            duplicate_draft_id = new_surfaces.get(surface_fingerprint) if not duplicates else None
             resolution = resolutions.get(draft_id)
             action = resolution.action if resolution is not None else "none"
             target_question_id: str | None = None
@@ -1906,13 +2008,13 @@ class QuestionBankService:
                         )
                     )
                     continue
-            if action == "edit_as_new" and duplicates:
+            if action == "edit_as_new" and (duplicates or duplicate_draft_id):
                 failures.append(
                     ConfirmFailure(
                         draftId=draft_id,
                         code="DUPLICATE_UNRESOLVED",
                         message=(
-                            "内容与已有题目完全相同（指纹不含答案与解析）；"
+                            "权威题面与已有题目或本次其它题目相同（指纹不含答案与解析）；"
                             "edit_as_new 需要内容确实不同。"
                         ),
                     )
@@ -1923,11 +2025,15 @@ class QuestionBankService:
                     "draft": draft,
                     "content": content,
                     "fingerprint": fingerprint,
+                    "derivedFingerprint": checked[1],
                     "duplicates": duplicates,
+                    "duplicateDraftId": duplicate_draft_id,
                     "action": action,
                     "targetQuestionId": target_question_id,
                 }
             )
+            if not duplicates and duplicate_draft_id is None:
+                new_surfaces[surface_fingerprint] = draft_id
         return plan, failures
 
     def _parsed_blocks(self, parsed: ParsedDocument) -> list[SourceBlockInput]:

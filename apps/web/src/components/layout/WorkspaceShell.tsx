@@ -11,6 +11,7 @@ import {
 } from '@/services/navigation';
 import type { NavigationItem } from '@/contracts/navigation';
 import { useNavigationPreference } from './NavigationPreference';
+import { useNavigationGuard } from '@/services/navigation-guard';
 
 const mainGroups = groupMainNavigation();
 const bottomItems = navigation.filter((n) => n.position === 'bottom');
@@ -69,6 +70,7 @@ export function WorkspaceShell({
   onNavigationError?: (message: string) => void;
 }) {
   const { expanded, ready, toggle } = useNavigationPreference();
+  const { requestNavigation } = useNavigationGuard();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const mobileNavRef = useRef<HTMLDialogElement>(null);
   const mobileTriggerRef = useRef<HTMLButtonElement>(null);
@@ -102,8 +104,10 @@ export function WorkspaceShell({
   async function navigate(path: string) {
     if (path === pathname) return;
     try {
-      await beforeNavigate?.();
-      router.push(path);
+      await requestNavigation(async () => {
+        await beforeNavigate?.();
+        router.push(path);
+      });
     } catch {
       onNavigationError?.('草稿保存失败，请先备份后再离开页面。');
     }

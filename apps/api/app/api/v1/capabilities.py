@@ -102,6 +102,15 @@ async def capabilities(request: Request) -> CapabilitiesResponse:
         "status": CapabilityStatus.ready if rag["available"] else CapabilityStatus.unavailable,
         "detail": rag["detail"] + "仅表示工程运行能力；人工教学质量验收尚未完成。",
     }) if item.feature == "rag" else item for item in CAPABILITIES]
+    lesson = getattr(request.app.state, "lesson_plan_service", None)
+    generation = getattr(request.app.state, "lesson_generation_service", None)
+    registry = getattr(request.app.state, "job_executors", None)
+    lesson_ready = lesson is not None and generation is not None and registry is not None and registry.has("teaching", "lesson_generation")
+    items = [item.model_copy(update={
+        "status": CapabilityStatus.ready if lesson_ready else CapabilityStatus.unavailable,
+        "detail": ("后台教案保存与固定历史、固定学情驱动模型建议和教师选择应用已装配；须选择可用模型，人工教学质量尚未验收。"
+                   if lesson_ready else "后台教案运行依赖未装配；本地规则填充仍可独立使用。"),
+    }) if item.feature == "lesson_plan_ai_fill" else item for item in items]
     return CapabilitiesResponse(
         service=SERVICE_NAME,
         apiVersion=API_VERSION,

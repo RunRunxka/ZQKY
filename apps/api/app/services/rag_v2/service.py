@@ -40,9 +40,11 @@ from collections.abc import AsyncIterator, Callable, Sequence
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass, field
 
+from app.contracts.lesson_plans import LessonEvidenceRequest, LessonEvidenceView, MAX_SAFE_INTEGER
 from app.core.exceptions import AppError
 from app.repositories.textbook_catalog.catalog import TextbookCatalog
 from app.schemas.rag_v2 import (
+    EvidenceRef,
     RagExplainRequest,
     RagPoint,
     RagPresentation,
@@ -54,6 +56,7 @@ from app.schemas.textbook import TextbookSelection
 from app.services.rag_v2.evidence import (
     MAX_EVIDENCE_CHARS,
     MAX_EVIDENCE_ITEMS,
+    evidence_id,
     rebuild_evidence_refs,
     select_evidence,
 )
@@ -211,6 +214,63 @@ class RagV2Service:
                 "SERVICE_UNAVAILABLE", "教材原文访问未装配，无法读取教材原文。", 503, retryable=True
             )
         return self.texts
+
+    def prepare_selected_evidence(self, selection, slices) -> LessonEvidenceView:
+        """Derive references from teacher-selected spans of production source.
+
+        Selection/scope, original fingerprint, region and derived reference ID
+        are verified by the existing production RAG pipeline. This synchronous
+        reader is called in a bounded worker outside a publication/SQL lock.
+        """
+        request = LessonEvidenceRequest.model_validate({"selection": selection, "slices": list(slices)})
+        catalog = self._require_catalog()
+        source = self._source()
+        snapshot = resolve_scope(catalog, request.selection)
+        identities = [(item.document_revision_id, item.char_start, item.char_end) for item in request.slices]
+        if len(set(identities)) != len(identities) or sum(end-start for _, start, end in identities) > 16000:
+            raise _failure("LESSON_INVALID", "教材区间需唯一且总量不超过16000字符。", 422)
+        allowed = {item.documentRevisionId for item in snapshot.documents}
+        refs = []
+        for item in request.slices:
+            if item.document_revision_id not in allowed:
+                raise _failure("RAG_EVIDENCE_UNAVAILABLE", "所选区间不属于已核实教材范围。")
+            revision = catalog.get_revision(item.document_revision_id)
+            if revision is None:
+                raise _failure("RAG_EVIDENCE_UNAVAILABLE", "所选教材修订不可用。")
+            # ImmutableSource validates registered full-text SHA/length here.
+            text = source.read_normalized_text(revision)
+            if item.char_end > len(text):
+                raise _failure("RAG_EVIDENCE_UNAVAILABLE", "所选区间超出教材原文范围。")
+            refs.append(EvidenceRef(
+                evidenceId=evidence_id(revision.revision_id, item.char_start, item.char_end),
+                documentRevisionId=revision.revision_id,
+                normalizedTextSha256=revision.normalized_text_sha256,
+                charStart=item.char_start, charEnd=item.char_end,
+            ))
+        evidence = self.verify_selected_evidence(snapshot, refs)
+        return LessonEvidenceView(scopeSnapshot=snapshot, evidenceRefs=refs, evidence=evidence)
+
+    def verify_selected_evidence(self, scope_snapshot, evidence_refs) -> list[TextbookEvidence]:
+        """Rebuild selected references using current production scope/source."""
+        snapshot = ScopeSnapshot.model_validate(scope_snapshot)
+        raw_refs = list(evidence_refs)
+        if not 1 <= len(raw_refs) <= 6:
+            raise _failure("LESSON_INVALID", "请选择1至6段已核实教材依据。", 422)
+        for ref in raw_refs:
+            if isinstance(ref, dict) and any(type(ref.get(key)) is not int for key in ("charStart", "charEnd")):
+                raise _failure("LESSON_INVALID", "教材区间坐标须为整数。", 422)
+        refs = [EvidenceRef.model_validate(ref) for ref in raw_refs]
+        identities = [(ref.documentRevisionId, ref.charStart, ref.charEnd) for ref in refs]
+        if (len(set(identities)) != len(identities)
+            or any(ref.charEnd > MAX_SAFE_INTEGER or ref.charEnd-ref.charStart > 6000 for ref in refs)
+            or sum(ref.charEnd-ref.charStart for ref in refs) > 16000):
+            raise _failure("LESSON_INVALID", "教材依据需唯一、单段≤6000、合计≤16000字符。", 422)
+        catalog = self._require_catalog()
+        scope = verify_scope(catalog, snapshot)
+        evidence = rebuild_evidence_refs(catalog=catalog, scope=scope, refs=refs, texts=self._source())
+        if any(not (item.readable.text if item.readable is not None else item.text).strip() for item in evidence):
+            raise _failure("RAG_EVIDENCE_UNAVAILABLE", "所选教材区间没有可读正文。")
+        return evidence
 
     async def close(self) -> None:
         if self.closed:

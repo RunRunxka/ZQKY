@@ -13,7 +13,7 @@
  * 不再持有第二份形状。
  */
 
-import { apiRequest } from '@/services/api-client';
+import { apiRequest, apiRequestBlob } from '@/services/api-client';
 import type {
   AssessmentCreateRequest,
   AssessmentCreateResult,
@@ -22,20 +22,29 @@ import type {
   AssessmentUpdateRequest,
   AssessmentView,
   ParticipantAddRequest,
+  ParticipantAttendanceRequest,
   ParticipantMutationResult,
 } from '@/contracts/assessments';
-import type { ClassCreateRequest, ClassList, ClassView, StudentCreateRequest, StudentList, StudentView } from '@/contracts/roster';
+import type {
+  ClassCreateRequest, ClassList, ClassView, StudentCreateRequest, StudentList, StudentView,
+  MembershipTransferRequest, RosterImportView, RosterImportList, RosterImportPatchRequest,
+  RosterImportConfirmRequest, RosterImportConfirmResult,
+} from '@/contracts/roster';
 import type {
   PaperList,
   PaperRevisionContentView,
   PaperView,
+  PaperImportView, PaperDraftPatchRequest, PaperConfirmRequest, PaperConfirmResult,
+  PaperProposalJobRequest, PaperProposalView, PaperProposalDecisionRequest,
 } from '@/contracts/papers';
+import type { JobView } from '@/contracts/teaching-loop';
 import type {
   ScoreImportConfirmRequest,
   ScoreImportConfirmResult,
   ScoreImportList,
   ScoreImportRowList,
   ScoreImportPatchRequest,
+  ScoreImportRefreshRequest,
   ScoreImportView,
   ScoreMatrixPage,
   ScoreRevisionCorrectRequest,
@@ -112,6 +121,34 @@ export function listStudents(query: StudentQuery = {}, signal?: AbortSignal): Pr
 /** 建立学生身份；`classId` 给定时同时建立该班归属（学号按文本保存，保留前导零）。 */
 export function createStudent(body: StudentCreateRequest): Promise<StudentView> {
   return apiRequest<StudentView>('/students', jsonInit('POST', body));
+}
+
+export function transferStudent(studentId: string, body: MembershipTransferRequest): Promise<StudentView> {
+  return apiRequest<StudentView>(`/students/${encodeURIComponent(studentId)}/transfer`, jsonInit('POST', body));
+}
+
+export function createRosterImport(classId: string, file: File, meta: { sheetName?: string; mapping?: Record<string, string> } = {}, signal?: AbortSignal): Promise<RosterImportView> {
+  const form = new FormData();
+  form.append('file', file);
+  if (meta.sheetName) form.append('sheetName', meta.sheetName);
+  if (meta.mapping) form.append('mappingJson', JSON.stringify(meta.mapping));
+  return apiRequest<RosterImportView>(`/classes/${encodeURIComponent(classId)}/roster-imports`, { method: 'POST', body: form, signal });
+}
+
+export function listRosterImports(query: { classId?: string; state?: string; offset?: number; limit?: number } = {}, signal?: AbortSignal): Promise<RosterImportList> {
+  return apiRequest<RosterImportList>(`/roster-imports${assessmentsQuery(query)}`, { signal });
+}
+
+export function getRosterImport(importId: string, signal?: AbortSignal): Promise<RosterImportView> {
+  return apiRequest<RosterImportView>(`/roster-imports/${encodeURIComponent(importId)}`, { signal });
+}
+
+export function patchRosterImport(importId: string, body: RosterImportPatchRequest): Promise<RosterImportView> {
+  return apiRequest<RosterImportView>(`/roster-imports/${encodeURIComponent(importId)}`, jsonInit('PATCH', body));
+}
+
+export function confirmRosterImport(importId: string, body: RosterImportConfirmRequest): Promise<RosterImportConfirmResult> {
+  return apiRequest<RosterImportConfirmResult>(`/roster-imports/${encodeURIComponent(importId)}/confirm`, jsonInit('POST', body));
 }
 
 /* ------------------------------------------------------------------ 原卷（只读选用） */
@@ -215,6 +252,63 @@ export function addAssessmentParticipants(
 }
 
 /* ------------------------------------------------------------------ 成绩导入 */
+
+export function correctParticipantAttendance(
+  assessmentId: string,
+  participantId: string,
+  body: ParticipantAttendanceRequest,
+): Promise<ParticipantMutationResult> {
+  return apiRequest<ParticipantMutationResult>(
+    `/assessments/${encodeURIComponent(assessmentId)}/participants/${encodeURIComponent(participantId)}/attendance`,
+    jsonInit('PATCH', body),
+  );
+}
+
+export function createPaperImport(file: File, meta: { subjectId: string; title?: string }, signal?: AbortSignal): Promise<PaperImportView> {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('subjectId', meta.subjectId);
+  if (meta.title) form.append('title', meta.title);
+  return apiRequest<PaperImportView>('/paper-imports', { method: 'POST', body: form, signal });
+}
+
+export function patchPaperDraft(paperId: string, body: PaperDraftPatchRequest): Promise<PaperRevisionContentView> {
+  return apiRequest<PaperRevisionContentView>(`/papers/${encodeURIComponent(paperId)}/draft`, jsonInit('PATCH', body));
+}
+
+export function confirmPaper(paperId: string, body: PaperConfirmRequest): Promise<PaperConfirmResult> {
+  return apiRequest<PaperConfirmResult>(`/papers/${encodeURIComponent(paperId)}/confirm`, jsonInit('POST', body));
+}
+
+export function getPaperAsset(paperId: string, revisionId: string, assetId: string, signal?: AbortSignal) {
+  return apiRequestBlob(`/papers/${encodeURIComponent(paperId)}/revisions/${encodeURIComponent(revisionId)}/assets/${encodeURIComponent(assetId)}/content`, { signal });
+}
+
+export function createPaperProposal(paperId: string, body: PaperProposalJobRequest): Promise<JobView> {
+  return apiRequest<JobView>(`/papers/${encodeURIComponent(paperId)}/knowledge-proposals`, jsonInit('POST', body));
+}
+
+export function getPaperProposal(proposalId: string, signal?: AbortSignal): Promise<PaperProposalView> {
+  return apiRequest<PaperProposalView>(`/paper-proposals/${encodeURIComponent(proposalId)}`, { signal });
+}
+
+export function applyPaperProposal(proposalId: string, body: PaperProposalDecisionRequest): Promise<PaperRevisionContentView> {
+  return apiRequest<PaperRevisionContentView>(`/paper-proposals/${encodeURIComponent(proposalId)}/apply`, jsonInit('POST', body));
+}
+
+export function rejectPaperProposal(proposalId: string, body: PaperProposalDecisionRequest): Promise<PaperProposalView> {
+  return apiRequest<PaperProposalView>(`/paper-proposals/${encodeURIComponent(proposalId)}/reject`, jsonInit('POST', body));
+}
+
+export function refreshScoreImport(
+  importId: string,
+  body: ScoreImportRefreshRequest,
+): Promise<ScoreImportView> {
+  return apiRequest<ScoreImportView>(
+    `/score-imports/${encodeURIComponent(importId)}/refresh`,
+    jsonInit('POST', body),
+  );
+}
 
 export interface ScoreImportCreateMeta {
   /** 多工作表 XLSX 指定工作表名；缺省由服务端选用。 */

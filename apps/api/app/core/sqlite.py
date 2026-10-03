@@ -47,11 +47,13 @@ def transaction(
     connection.execute("BEGIN IMMEDIATE" if immediate else "BEGIN")
     try:
         yield connection
-    except BaseException:
-        connection.execute("ROLLBACK")
-        raise
-    else:
+        # DEFERRABLE foreign keys can reject COMMIT, after the body succeeded.
+        # That failure must release the transaction just like a body exception.
         connection.execute("COMMIT")
+    except BaseException:
+        if connection.in_transaction:
+            connection.execute("ROLLBACK")
+        raise
 
 
 @contextmanager

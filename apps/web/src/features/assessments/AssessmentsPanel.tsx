@@ -11,7 +11,7 @@
  *   `classConfirmed=true + classConfirmationNote` 重新提交；不自动改归属。
  */
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ClipboardList, RefreshCw } from 'lucide-react';
 import type {
   AssessmentCreateRequest,
@@ -31,6 +31,8 @@ import {
 import { useAsyncResource, useFrozenSubmission } from './hooks';
 import { assessmentStateLabel, assessmentTypeLabel, attendanceLabel, issueLocationLabel } from './labels';
 import type { SelectedPaper } from './PapersPanel';
+import { ParticipantAttendanceEditor } from './ParticipantAttendanceEditor';
+import { ParticipantAddPanel } from './ParticipantAddPanel';
 
 const TYPE_OPTIONS: { value: AssessmentType; label: string }[] = [
   { value: 'exam', label: '考试' },
@@ -65,6 +67,7 @@ export function AssessmentsPanel({
   onSelectAssessment,
   onOpenScore,
   refreshToken,
+  rosterRefreshToken = 0,
   onChanged,
 }: {
   selectedPaper: SelectedPaper | null;
@@ -74,6 +77,7 @@ export function AssessmentsPanel({
   onSelectAssessment: (assessmentId: string) => void;
   onOpenScore: () => void;
   refreshToken: number;
+  rosterRefreshToken?: number;
   onChanged: () => void;
 }) {
   const [title, setTitle] = useState('');
@@ -83,7 +87,12 @@ export function AssessmentsPanel({
   const [formError, setFormError] = useState<string | null>(null);
   const [classNote, setClassNote] = useState('');
   const [created, setCreated] = useState<AssessmentCreateResult | null>(null);
+  const [rosterNotice, setRosterNotice] = useState<string | null>(null);
   const submission = useFrozenSubmission<Record<string, unknown>, AssessmentCreateResult>();
+  const editingLocked = submission.busy || submission.phase === 'unknown';
+  const context = `${classId ?? ''}|${selectedPaper?.paperRevisionId ?? ''}|${selectedAssessmentId ?? ''}`;
+  const contextRef = useRef(context);
+  contextRef.current = context;
 
   const students = useAsyncResource(
     (signal) =>
@@ -92,6 +101,24 @@ export function AssessmentsPanel({
         : Promise.resolve({ items: [], total: 0, offset: 0, limit: 50 }),
     `assessments-step3-students|${classId ?? 'none'}`,
   );
+  // 名单步骤保持挂载；已确认的新增/导入/转班通知触发同 key 读回，保留合法人次草稿。
+  const reloadStudents = students.reload;
+  useEffect(() => {
+    reloadStudents();
+  }, [rosterRefreshToken, reloadStudents]);
+  const previousStudents = useRef<Map<string, StudentView>>(new Map());
+  useEffect(() => {
+    if (students.state.phase !== 'ready' || !students.lastData) return;
+    const nextIds = new Set(students.lastData.items.map((student) => student.id));
+    const removed = Array.from(previousStudents.current.values()).filter((student) => !nextIds.has(student.id));
+    if (removed.length > 0) {
+      setDrafts((previous) => Object.fromEntries(
+        Object.entries(previous).filter(([studentId]) => nextIds.has(studentId)),
+      ));
+      setRosterNotice(`名单已更新：${removed.map((student) => student.name).join('、')}已不在本班当前名单，已撤销其参测选择及人次草稿；其余选择、出勤和人次已保留。`);
+    }
+    previousStudents.current = new Map(students.lastData.items.map((student) => [student.id, student]));
+  }, [students.state, students.lastData]);
   const assessments = useAsyncResource(
     (signal) => listAssessments({ classId: classId ?? undefined, limit: 100 }, signal),
     `assessments-step3-list|${classId ?? 'all'}|${refreshToken}`,
@@ -146,34 +173,42 @@ export function AssessmentsPanel({
 
   async function submitCreate(confirmedIndexes: number[] = []) {
     setFormError(null);
-    if (!selectedPaper) {
+    const frozenPayload = submission.phase === 'unknown' ? submission.frozen?.payload : null;
+    if (!frozenPayload && !selectedPaper) {
       setFormError('还没有选定已确认原卷修订：请先在「原卷」步骤选用。');
       return;
     }
-    if (!classId) {
+    if (!frozenPayload && !classId) {
       setFormError('还没有选择班级：请先在「名单」步骤选择或建立班级。');
       return;
     }
-    if (participants.length === 0) {
+    if (!frozenPayload && students.state.phase !== 'ready') {
+      setFormError('参测名单正在读取或读取失败，请重试并核对名单后创建施测。');
+      return;
+    }
+    if (!frozenPayload && participants.length === 0) {
       setFormError('参测人次为空：请至少勾选一名学生（缺考也要按人次登记）。');
       return;
     }
     const note = confirmedIndexes.length > 0 ? classNote.trim() : null;
-    if (confirmedIndexes.length > 0 && !note) {
+    if (!frozenPayload && confirmedIndexes.length > 0 && !note) {
       setFormError('显式确认本次班级必须填写依据（classConfirmationNote）。');
       return;
     }
-    const payload = buildPayload(note, confirmedIndexes);
-    await submission.submit(payload, async (frozen) => {
-      const result = await createAssessment({
+    const payload = frozenPayload ?? buildPayload(note, confirmedIndexes);
+    const requestContext = contextRef.current;
+    const result = await submission.submit(payload, (frozen) =>
+      createAssessment({
         ...(frozen.payload as unknown as AssessmentCreateRequest),
         submissionId: frozen.submissionId,
-      });
+      }),
+    );
+    // submit 先验证挂载和操作代次；失效请求不能先改变父级选择。
+    if (result && contextRef.current === requestContext) {
       setCreated(result);
       onSelectAssessment(result.assessment.assessmentId);
       onChanged();
-      return result;
-    });
+    }
   }
 
   // 422 班级归属未确认：解析 issues[].row（0 基下标）定位到学生
@@ -205,6 +240,7 @@ export function AssessmentsPanel({
             <input
               className="assessments-input"
               aria-label="施测标题"
+              disabled={editingLocked}
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               required
@@ -215,6 +251,7 @@ export function AssessmentsPanel({
             <select
               className="space-select"
               aria-label="施测类型"
+              disabled={editingLocked}
               value={assessmentType}
               onChange={(event) => setAssessmentType(event.target.value as AssessmentType)}
             >
@@ -231,6 +268,7 @@ export function AssessmentsPanel({
               className="assessments-input"
               type="date"
               aria-label="施测日期"
+              disabled={editingLocked}
               value={heldOn}
               onChange={(event) => setHeldOn(event.target.value)}
               required
@@ -239,10 +277,17 @@ export function AssessmentsPanel({
           <span className="assessments-field-static">
             班级：{className ?? '（未选择）'} · 参测 {participants.length} 人次
           </span>
-          <button className="space-button primary" type="submit" disabled={submission.busy}>
+          <button className="space-button primary" type="submit" disabled={submission.busy || (submission.phase !== 'unknown' && students.state.phase !== 'ready')}>
             {submission.busy ? '创建中…' : '创建施测'}
           </button>
         </form>
+
+        <button className="space-button" disabled={!classId} onClick={students.reload}>刷新参测名单</button>
+        {students.state.phase === 'loading' && <p className="assessments-hint" role="status">正在刷新参测名单，已有合法人次草稿保留。</p>}
+        {students.state.phase === 'failed' && <p className="space-banner error" role="alert" data-testid="assessments-roster-error">
+          参测名单读取失败（{students.state.error.code}）：{students.state.error.message}。已有选择和人次草稿保留，请刷新参测名单对照。
+        </p>}
+        {rosterNotice && <p className="assessments-hint" role="status" data-testid="assessments-roster-notice">{rosterNotice}</p>}
 
         {studentItems.length === 0 && classId && students.state.phase === 'ready' && (
           <p className="assessments-hint" data-testid="assessments-step3-no-students">
@@ -262,6 +307,7 @@ export function AssessmentsPanel({
                       type="checkbox"
                       aria-label={`参测 ${student.name}`}
                       checked={draft.checked}
+                      disabled={editingLocked}
                       onChange={(event) =>
                         setDrafts((prev) => ({
                           ...prev,
@@ -282,7 +328,7 @@ export function AssessmentsPanel({
                       className="space-select"
                       aria-label={`${student.name} 出勤`}
                       value={draft.attendance}
-                      disabled={!draft.checked}
+                      disabled={!draft.checked || editingLocked}
                       onChange={(event) =>
                         setDrafts((prev) => ({
                           ...prev,
@@ -308,7 +354,7 @@ export function AssessmentsPanel({
                       min={1}
                       aria-label={`${student.name} 人次序号`}
                       value={draft.attemptNo}
-                      disabled={!draft.checked}
+                      disabled={!draft.checked || editingLocked}
                       onChange={(event) =>
                         setDrafts((prev) => ({
                           ...prev,
@@ -446,7 +492,8 @@ export function AssessmentsPanel({
             施测详情读取失败（{detail.state.error.code}）：{detail.state.error.message}
           </div>
         )}
-        {detail.lastData && <AssessmentDetail detail={detail.lastData} />}
+        {detail.lastData && <AssessmentDetail detail={detail.lastData}
+          onRefresh={detail.reload} onChanged={() => { detail.reload(); onChanged(); }} />}
         {selectedAssessmentId && !detail.lastData && detail.state.phase === 'loading' && (
           <div className="space-skeleton" style={{ height: 120 }} aria-hidden />
         )}
@@ -458,7 +505,11 @@ export function AssessmentsPanel({
   );
 }
 
-function AssessmentDetail({ detail }: { detail: AssessmentDetailView }) {
+function AssessmentDetail({ detail, onChanged, onRefresh }: {
+  detail: AssessmentDetailView;
+  onChanged: () => void;
+  onRefresh: () => void;
+}) {
   const { assessment, participants } = detail;
   return (
     <div className="assessments-detail" data-testid={`assessments-detail-${assessment.assessmentId}`}>
@@ -482,9 +533,16 @@ function AssessmentDetail({ detail }: { detail: AssessmentDetailView }) {
                 ? ` · 已显式确认班级${participant.classConfirmationNote ? `（${participant.classConfirmationNote}）` : ''}`
                 : ''}
             </span>
+            <ParticipantAttendanceEditor
+              key={`${assessment.assessmentId}|${participant.participantId}`}
+              assessmentId={assessment.assessmentId} participant={participant}
+              revision={assessment.revision} onChanged={onChanged} onRefresh={onRefresh}
+            />
           </li>
         ))}
       </ul>
+      <ParticipantAddPanel key={assessment.assessmentId} detail={detail}
+        onChanged={onChanged} onRefresh={onRefresh} />
     </div>
   );
 }

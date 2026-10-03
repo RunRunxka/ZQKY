@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from app.contracts.teaching_loop import RichContentV2
 
 QuestionType = Literal[
     "single_choice", "multiple_choice", "true_false", "fill_blank", "short_answer", "other"
@@ -55,6 +56,7 @@ class QuestionContent(_Strict):
     answer: QuestionAnswer | None = None
     explanationMarkdown: str | None = Field(default=None, max_length=20000)
     assetIds: list[str] = Field(default_factory=list, max_length=32)
+    richContent: RichContentV2 | None = None
 
     @field_validator("options")
     @classmethod

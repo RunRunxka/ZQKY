@@ -26,6 +26,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
+import sqlite3
 
 from app.contracts.assessments import ASSESSMENT_PAPER_INVALID
 from app.contracts.papers import PAPER_NOT_FOUND
@@ -70,6 +71,7 @@ class ConfirmedPaperSnapshot:
     title: str
     total_score_units: int
     items: tuple[ConfirmedPaperItem, ...]
+    source_practice_revision_id: str | None = None
 
     @property
     def scored_leaves(self) -> tuple[ConfirmedPaperItem, ...]:
@@ -126,13 +128,16 @@ class ConfirmedPaperReaderAdapter:
         """
         revision_id = _require_text(paper_revision_id, field="paperRevisionId")
         with self._catalog.read_connection() as conn:
-            revision = self._papers.get_revision_in(conn, revision_id)
-            if revision is None:
-                raise AppError(
-                    f"原卷修订不存在：{revision_id}。", code=PAPER_NOT_FOUND, status_code=404
-                )
-            paper = self._papers.get_paper_in(conn, revision.paper_id)
-            items = self._papers.list_items_in(conn, revision_id)
+            return self.read_in(conn, revision_id)
+
+    def read_in(self, conn: sqlite3.Connection, paper_revision_id: str) -> ConfirmedPaperSnapshot:
+        """同教学事务读新确认卷；复用全部确认/计分叶闸门。"""
+        revision_id = _require_text(paper_revision_id, field="paperRevisionId")
+        revision = self._papers.get_revision_in(conn, revision_id)
+        if revision is None:
+            raise AppError(f"原卷修订不存在：{revision_id}。", code=PAPER_NOT_FOUND, status_code=404)
+        paper = self._papers.get_paper_in(conn, revision.paper_id)
+        items = self._papers.list_items_in(conn, revision_id)
         if paper is None:  # pragma: no cover - 外键保证存在
             raise AppError(
                 "原卷修订关联的原卷缺失。", code=PAPER_NOT_FOUND, status_code=404
@@ -147,6 +152,7 @@ class ConfirmedPaperReaderAdapter:
             state=revision.state,
             total_score_units=revision.total_score_units,
             items=items,
+            source_practice_revision_id=revision.source_practice_revision_id,
         )
 
     def read_current(self, paper_id: str) -> ConfirmedPaperSnapshot:
@@ -169,6 +175,7 @@ class ConfirmedPaperReaderAdapter:
             state=summary.current_state or "draft",
             total_score_units=summary.total_score_units,
             items=items,
+            source_practice_revision_id=revision.source_practice_revision_id,
         )
 
     # ------------------------------------------------------------ 内部
@@ -184,6 +191,7 @@ class ConfirmedPaperReaderAdapter:
         state: str,
         total_score_units: int,
         items: list[ItemRecord],
+        source_practice_revision_id: str | None = None,
     ) -> ConfirmedPaperSnapshot:
         if state != "confirmed":
             raise _paper_invalid(
@@ -226,6 +234,7 @@ class ConfirmedPaperReaderAdapter:
             title=title,
             total_score_units=total_score_units,
             items=snapshot_items,
+            source_practice_revision_id=source_practice_revision_id,
         )
 
 

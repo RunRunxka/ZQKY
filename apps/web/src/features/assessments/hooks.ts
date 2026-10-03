@@ -13,7 +13,7 @@
  *   迟到的成功与失败一律不写状态；
  * - **逻辑确认冻结**（F20-I）：点确认即冻结 `submissionId` + 当时原样 payload，
  *   结果未知（拿不到响应）时重试必须复用同一 `submissionId` 与同一载荷；
- *   载荷变化属于新的逻辑确认，才允许换标识。
+ *   结果未知时锁定原包；只有已有明确结果后，载荷变化才可开启新的逻辑确认。
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -132,11 +132,39 @@ export function scoreFlowStep(
 
 export type SubmissionPhase = 'idle' | 'in-flight' | 'succeeded' | 'failed' | 'unknown';
 
+export interface SubmissionMetadata {
+  contextKey: string;
+  originalEditGeneration: number;
+  loadGeneration: string;
+}
+
 export interface FrozenSubmission<T> {
+  operationId: string;
   submissionId: string;
   payloadKey: string;
   /** 冻结时的原样载荷：重试必须原样重发，不得被后来的编辑偷换。 */
   payload: T;
+  metadata?: SubmissionMetadata;
+}
+
+export interface SubmissionReceipt<T, R> {
+  result: R;
+  operation: FrozenSubmission<T>;
+  /** Only the hook's mounted observation; consumers also check document/load identities. */
+  current: boolean;
+}
+
+function immutableSubmission<T>(value: FrozenSubmission<T>): FrozenSubmission<T> {
+  const copy = structuredClone(value);
+  const seen = new WeakSet<object>();
+  const freeze = (entry: unknown) => {
+    if (!entry || typeof entry !== 'object' || seen.has(entry)) return;
+    seen.add(entry);
+    Object.values(entry).forEach(freeze);
+    Object.freeze(entry);
+  };
+  freeze(copy);
+  return copy;
 }
 
 /** 稳定序列化：键排序后 JSON 化，保证「同载荷」判定与字段顺序无关。 */
@@ -170,6 +198,13 @@ export interface SubmissionController<T, R> {
   unknownNotice: string | null;
   /** 发起（或重试）当前逻辑确认；返回值：成功时的结果，否则 null。 */
   submit: (payload: T, run: (submission: FrozenSubmission<T>) => Promise<R>) => Promise<R | null>;
+  submitWithReceipt: (
+    payload: T,
+    run: (submission: FrozenSubmission<T>) => Promise<R>,
+    metadata: SubmissionMetadata,
+  ) => Promise<SubmissionReceipt<T, R> | null>;
+  /** Restore a validated recovery operation as unknown; never sends automatically. */
+  recoverFrozen: (operation: FrozenSubmission<T>) => boolean;
   /** 释放冻结（用户明确要形成新的逻辑确认时调用）。 */
   release: () => void;
 }
@@ -193,6 +228,7 @@ export function useFrozenSubmission<T, R>(): SubmissionController<T, R> {
   const epoch = useRef(0);
   const busyRef = useRef(false);
   const frozenRef = useRef<FrozenSubmission<T> | null>(null);
+  const unknownRef = useRef(false);
 
   useEffect(() => {
     // 每次 setup 恢复挂载标志：StrictMode 的 setup→cleanup→setup 不能永久失效（B2-RV09）
@@ -211,22 +247,35 @@ export function useFrozenSubmission<T, R>(): SubmissionController<T, R> {
   const release = useCallback(() => {
     epoch.current += 1; // 在途响应失效
     busyRef.current = false;
+    unknownRef.current = false;
     setFrozenSubmission(null);
     setPhase('idle');
     setUnknownNotice(null);
     setError(null);
   }, [setFrozenSubmission]);
 
-  const submit = useCallback(
-    async (payload: T, run: (submission: FrozenSubmission<T>) => Promise<R>): Promise<R | null> => {
+  const send = useCallback(
+    async (
+      payload: T,
+      run: (submission: FrozenSubmission<T>) => Promise<R>,
+      metadata?: SubmissionMetadata,
+    ): Promise<SubmissionReceipt<T, R> | null> => {
       if (busyRef.current) return null; // 在途重复点击：不再发第二个请求
       const payloadKey = stablePayloadKey(payload);
       const existing = frozenRef.current;
+      if (existing?.metadata && metadata && existing.metadata.contextKey !== metadata.contextKey) {
+        setError(new ApiError('SUBMISSION_CONTEXT_MISMATCH', '原操作属于另一个编辑上下文，请先恢复原操作。', 409, false));
+        return null;
+      }
+      const createSubmission = () => {
+        const id = crypto.randomUUID();
+        return immutableSubmission({ operationId: id, submissionId: id, payloadKey, payload, ...(metadata ? { metadata } : {}) });
+      };
       const submission: FrozenSubmission<T> =
-        existing && existing.payloadKey === payloadKey
+        existing && (unknownRef.current || existing.payloadKey === payloadKey)
           ? existing // 同一逻辑确认：复用冻结载荷与标识（结果未知后的重试）
-          : { submissionId: crypto.randomUUID(), payloadKey, payload };
-      if (!existing || existing.payloadKey !== payloadKey) {
+          : createSubmission();
+      if (submission !== existing) {
         setFrozenSubmission(submission);
       }
       const token = epoch.current;
@@ -236,15 +285,18 @@ export function useFrozenSubmission<T, R>(): SubmissionController<T, R> {
       setUnknownNotice(null);
       try {
         const payloadResult = await run(submission);
-        if (!mounted.current || token !== epoch.current) return null; // 迟到成功不写状态
+        const current = mounted.current && token === epoch.current;
+        const receipt = { result: payloadResult, operation: submission, current };
+        if (!current) return receipt; // receipt-only: no state write into another mounted context
         setResult(payloadResult);
         setPhase('succeeded');
+        unknownRef.current = false;
         // 明确成功：解锁并释放冻结（同一逻辑确认已经完成）
         epoch.current += 1;
         busyRef.current = false;
         setFrozenSubmission(null);
         setUnknownNotice(null);
-        return payloadResult;
+        return receipt;
       } catch (cause) {
         if (!mounted.current || token !== epoch.current) return null; // 迟到失败同样不写
         busyRef.current = false;
@@ -252,6 +304,7 @@ export function useFrozenSubmission<T, R>(): SubmissionController<T, R> {
         if (apiError.status === 0) {
           // 拿不到响应：服务端可能已写入也可能没有；不换标识，原样重试即幂等
           setPhase('unknown');
+          unknownRef.current = true;
           setUnknownNotice(
             `确认结果未知（${apiError.code}）：${apiError.message} 可能已写入也可能未写入；` +
               '请直接重试——同一个提交标识与原样载荷会按幂等处理，不会重复写入。',
@@ -259,6 +312,7 @@ export function useFrozenSubmission<T, R>(): SubmissionController<T, R> {
           return null;
         }
         setError(apiError);
+        unknownRef.current = false;
         setPhase('failed');
         setUnknownNotice(null);
         return null;
@@ -267,7 +321,36 @@ export function useFrozenSubmission<T, R>(): SubmissionController<T, R> {
     [setFrozenSubmission],
   );
 
-  return { frozen, phase, busy: phase === 'in-flight', result, error, unknownNotice, submit, release };
+  const submit = useCallback(async (payload: T, run: (operation: FrozenSubmission<T>) => Promise<R>) => {
+    const receipt = await send(payload, run);
+    return receipt?.current ? receipt.result : null;
+  }, [send]);
+
+  const submitWithReceipt = useCallback((payload: T, run: (operation: FrozenSubmission<T>) => Promise<R>, metadata: SubmissionMetadata) =>
+    send(payload, run, metadata), [send]);
+
+  const recoverFrozen = useCallback((operation: FrozenSubmission<T>): boolean => {
+    if (busyRef.current) return false;
+    const metadata = operation?.metadata;
+    if (!operation || typeof operation.submissionId !== 'string' || !operation.submissionId ||
+        operation.operationId !== operation.submissionId || operation.payloadKey !== stablePayloadKey(operation.payload) ||
+        !metadata || typeof metadata.contextKey !== 'string' || !metadata.contextKey ||
+        !Number.isSafeInteger(metadata.originalEditGeneration) || metadata.originalEditGeneration < 0 ||
+        typeof metadata.loadGeneration !== 'string' || !metadata.loadGeneration) return false;
+    const previous = frozenRef.current;
+    if (previous && (previous.submissionId !== operation.submissionId || previous.payloadKey !== operation.payloadKey ||
+        previous.operationId !== operation.operationId || previous.metadata?.contextKey !== metadata.contextKey ||
+        previous.metadata?.originalEditGeneration !== metadata.originalEditGeneration ||
+        previous.metadata?.loadGeneration !== metadata.loadGeneration)) return false;
+    setFrozenSubmission(previous ?? immutableSubmission(operation));
+    unknownRef.current = true;
+    setPhase('unknown');
+    setUnknownNotice('已恢复原操作，结果仍未知。请显式重试同一提交标识与原包。');
+    setError(null);
+    return true;
+  }, [setFrozenSubmission]);
+
+  return { frozen, phase, busy: phase === 'in-flight', result, error, unknownNotice, submit, submitWithReceipt, recoverFrozen, release };
 }
 
 /* ------------------------------------------------------------------ 校对草稿 */

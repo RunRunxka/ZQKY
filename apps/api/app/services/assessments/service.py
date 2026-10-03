@@ -65,6 +65,8 @@ from app.contracts.assessments import (
     AssessmentUpdateRequest,
     AssessmentView,
     ParticipantAddRequest,
+    ParticipantAttendanceRequest,
+    ParticipantAttendanceCorrectionView,
     ParticipantMutationResult,
 )
 from app.contracts.papers import PAPER_NOT_FOUND
@@ -447,6 +449,18 @@ class AssessmentService:
         result = AssessmentCreateResult.model_validate(outcome.result)
         return result.model_copy(update={"replayed": outcome.replayed})
 
+    def create_in(self, conn: sqlite3.Connection, payload: AssessmentCreateRequest) -> dict[str, Any]:
+        """B4 转换用：同调用方教学事务创建，复用 T30 全部名单与日期闸门。"""
+        if not conn.in_transaction or not callable(getattr(self._reader, "read_in", None)):
+            raise AppError("同事务原卷读取服务不可用。", code="SERVICE_UNAVAILABLE", status_code=503)
+        snapshot = self._reader.read_in(conn, payload.paper_revision_id)
+        paper = ConfirmedPaperRevisionView(
+            paperId=snapshot.paper_id, paperRevisionId=snapshot.paper_revision_id,
+            title=snapshot.title, subjectId=snapshot.subject_id,
+            totalScoreUnits=snapshot.total_score_units, scoredLeafCount=snapshot.scored_leaf_count,
+        )
+        return self._apply_create(conn, payload=payload, paper=paper, held_on=_require_held_on(payload.held_on))
+
     def _apply_create(
         self,
         conn: sqlite3.Connection,
@@ -547,6 +561,48 @@ class AssessmentService:
                 uncovered=uncovered,
                 cause="施测日期变更被拒绝（已整批回滚，日期未改变）",
             )
+
+    def correct_participant_attendance(
+        self, assessment_id: str, participant_id: str, payload: ParticipantAttendanceRequest
+    ) -> ParticipantMutationResult:
+        assessment_id = _text(assessment_id, field="assessmentId")
+        participant_id = _text(participant_id, field="participantId")
+        command = make_command(
+            operation="assessment.participant_attendance",
+            submission_id=payload.submission_id,
+            payload={"assessmentId": assessment_id, "participantId": participant_id,
+                     **payload.model_dump(by_alias=True)},
+            owner_id=self._owner_id,
+        )
+
+        def apply(conn: sqlite3.Connection) -> dict[str, Any]:
+            record = self._assessments.require_in(conn, assessment_id)
+            if record.revision != payload.expected_revision:
+                raise _stale(record.revision)
+            participant = self._assessments.require_participant_in(conn, participant_id)
+            if participant.assessment_id != assessment_id:
+                raise _invalid("参测人次不属于该施测。", fields=["participantId"])
+            # 校正依据/原值/新值随幂等结果保存；旧成绩的JSON快照不更新。
+            conn.execute(
+                "UPDATE assessment_participants SET attendance=? WHERE id=? AND assessment_id=?",
+                (payload.attendance, participant_id, assessment_id),
+            )
+            self._assessments.bump_revision_in(conn, assessment_id)
+            updated = self._assessments.require_in(conn, assessment_id)
+            current = self._assessments.require_participant_in(conn, participant_id)
+            return ParticipantMutationResult(
+                assessment=updated.view(), participants=[current.view()],
+                attendanceCorrection=ParticipantAttendanceCorrectionView(
+                    participantId=participant_id, previousAttendance=participant.attendance,
+                    attendance=payload.attendance, reason=payload.reason, correctedAt=now_iso(),
+                ),
+            ).model_dump(by_alias=True)
+
+        outcome = execute_command(
+            catalog=self._catalog, command=command, apply=apply, table="command_submissions"
+        )
+        result = ParticipantMutationResult.model_validate(outcome.result)
+        return result.model_copy(update={"replayed": outcome.replayed})
 
     # ---------------------------------------------------------------- 补录/补考
 

@@ -27,6 +27,7 @@ def test_env_overrides():
     assert settings.port == 8001
     assert settings.allowed_origins == frozenset({"http://127.0.0.1:5174"})
     assert settings.env == "test"
+    assert settings.credentials_file is None
 
 
 def test_rejects_non_loopback_host():

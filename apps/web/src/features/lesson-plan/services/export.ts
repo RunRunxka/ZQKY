@@ -50,8 +50,8 @@ export async function buildDocx(data: LessonPlanData) {
       mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     });
 }
-export async function exportDocx(data: LessonPlanData) {
-  download(await buildDocx(data), `教案-${safeName(data.title)}.docx`);
+export async function exportDocx(data: LessonPlanData, sourceLabel?: string) {
+  download(await buildDocx(data), `教案-${safeName(data.title)}${sourceLabel ? `-${safeName(sourceLabel)}` : ''}.docx`);
 }
 export async function exportPdf(title: string) {
   await document.fonts.ready;

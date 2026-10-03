@@ -20,7 +20,6 @@ import type {
   AssessmentType,
 } from '@/contracts/assessments';
 import type {
-  ScoreImportRowView,
   ScoreImportState,
   ScoreRevisionState,
 } from '@/contracts/scores';
@@ -87,7 +86,7 @@ export interface RawCellReading {
 }
 
 /**
- * 原表单元格的**本地只读预览**读法：
+ * 服务端有效状态优先；旧字段或纯原件展示使用本地只读读法：
  * 空白 → missing；数值（含 0）→ recorded；缺考/免考标记 → absent/exempt；其余 → unparsed。
  * 正式四态由服务端确认后的矩阵给出，这里绝不把未知文本当 0。
  */
@@ -95,7 +94,19 @@ export function rawCellReading(input: {
   text?: string;
   cachedText?: string;
   isFormula?: boolean;
+  effectiveStatus?: ScoreStatus | null;
+  scoreUnits?: number | null;
 }): RawCellReading {
+  if (input.effectiveStatus) {
+    return {
+      kind: input.effectiveStatus,
+      displayText: input.effectiveStatus === 'recorded'
+        ? input.scoreUnits === null || input.scoreUnits === undefined
+          ? '有效分数（未给分值）' : formatScoreUnits(input.scoreUnits)
+        : scoreStatusShort(input.effectiveStatus),
+      note: '服务端有效状态（已应用出勤与保存的校正）',
+    };
+  }
   const text = (input.text ?? '').trim();
   const cached = (input.cachedText ?? '').trim();
   if (input.isFormula) {
@@ -265,90 +276,6 @@ export interface ParticipantLite {
   classId: string;
   name: string;
   attendance: Attendance;
-}
-
-/**
- * 承认范围：逐班列举 absent 人次。
- * 口径与 T60 服务端一致：出勤快照为缺考的人次，**加上**原表行里写了缺考标记的人次
- * （服务端把这种行整体记为 absent，并在预览里给 warning）；exempt 不进 absences。
- */
-export function groupAbsencesByClass(
-  participants: readonly ParticipantLite[],
-  rows: readonly ScoreImportRowView[] = [],
-): { classId: string; participantIds: string[] }[] {
-  const byId = new Map(participants.map((participant) => [participant.participantId, participant]));
-  const absentIds = new Set(
-    participants
-      .filter((participant) => participant.attendance === 'absent')
-      .map((participant) => participant.participantId),
-  );
-  for (const row of rows) {
-    if (!row.participantId || !byId.has(row.participantId)) continue;
-    const hasMarker = (row.cells ?? []).some(
-      (cell) => rawCellReading(cell).kind === 'absent',
-    );
-    if (hasMarker) absentIds.add(row.participantId);
-  }
-  const byClass = new Map<string, string[]>();
-  for (const participantId of absentIds) {
-    const participant = byId.get(participantId);
-    if (!participant) continue;
-    const list = byClass.get(participant.classId) ?? [];
-    list.push(participantId);
-    byClass.set(participant.classId, list);
-  }
-  return [...byClass.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([classId, participantIds]) => ({
-      classId,
-      participantIds: [...participantIds].sort(),
-    }));
-}
-
-/** 该单元格是否算"已填"（不是 missing 缺口）：recorded / absent / exempt 都算已填。 */
-function cellFilled(cell: { text?: string; cachedText?: string; isFormula?: boolean }): boolean {
-  const kind = rawCellReading(cell).kind;
-  return kind === 'recorded' || kind === 'absent' || kind === 'exempt';
-}
-
-/**
- * missing 承认范围推导（本地预填；服务端 422 `SCORE_ACKNOWLEDGEMENT_MISMATCH` 才是最终口径）。
- *
- * - 只有 **出勤 = present** 的人次可能带 missing（absent/exempt 由出勤承认覆盖）；
- * - 每人次应有 `leafCount` 个有效叶；原表已填单元格数少于叶子数 → 差额即 missing 单元；
- * - 若服务端的 `missingCellCount` 大于本地推导（例如缺列/缺行无法逐人定位），单元数取服务端
- *   口径，并在无法逐人定位时保守列出全部 present 人次——由服务端校验并逐格定位。
- */
-export function deriveMissingAcknowledgement(
-  participants: readonly ParticipantLite[],
-  rows: readonly ScoreImportRowView[],
-  leafCount: number,
-  serverMissingCellCount: number,
-): { participantIds: string[]; cellCount: number } | null {
-  const present = participants.filter((participant) => participant.attendance === 'present');
-  const rowByParticipant = new Map<string, ScoreImportRowView>();
-  for (const row of rows) {
-    if (row.participantId) rowByParticipant.set(row.participantId, row);
-  }
-  const participantIds: string[] = [];
-  let deficit = 0;
-  if (leafCount > 0) {
-    for (const participant of present) {
-      const row = rowByParticipant.get(participant.participantId);
-      const filled = row ? (row.cells ?? []).filter(cellFilled).length : 0;
-      const gap = leafCount - Math.min(filled, leafCount);
-      if (gap > 0) {
-        participantIds.push(participant.participantId);
-        deficit += gap;
-      }
-    }
-  }
-  const cellCount = Math.max(deficit, serverMissingCellCount);
-  if (cellCount <= 0 && participantIds.length === 0) return null;
-  if (cellCount > 0 && participantIds.length === 0) {
-    return { participantIds: present.map((participant) => participant.participantId), cellCount };
-  }
-  return { participantIds, cellCount: Math.max(cellCount, 1) };
 }
 
 /** 只读矩阵一行的总分展示口径（只在全员 recorded 时展示，否则明确说明原因）。 */

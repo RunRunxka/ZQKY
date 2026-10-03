@@ -32,6 +32,7 @@ from app.contracts.scores import (
     ScoreImportConfirmRequest,
     ScoreImportConfirmResult,
     ScoreImportList,
+    ScoreImportRefreshRequest,
     ScoreImportRowList,
     ScoreImportView,
     ScoreMatrixPage,
@@ -180,6 +181,13 @@ async def confirm_score_import(
     return await _run(service.confirm_score_import, import_id, body)
 
 
+@router.post("/score-imports/{import_id}/refresh", response_model=ScoreImportView)
+async def refresh_score_import(
+    request: Request, import_id: str, body: ScoreImportRefreshRequest
+) -> ScoreImportView:
+    return await _run(_service(request).refresh_import, import_id, body)
+
+
 @router.get(
     "/assessments/{assessment_id}/score-revisions", response_model=ScoreRevisionList
 )
@@ -207,6 +215,10 @@ async def get_score_matrix(
     return await _run(service.get_score_matrix, revision_id, offset=offset, limit=limit)
 
 
+@router.post(
+    "/assessments/{assessment_id}/score-corrections",
+    response_model=ScoreRevisionCorrectResult,
+)
 @router.post(
     "/assessments/{assessment_id}/score-revisions/correct",
     response_model=ScoreRevisionCorrectResult,

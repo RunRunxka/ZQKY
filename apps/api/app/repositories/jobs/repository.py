@@ -284,6 +284,25 @@ class JobStore:
         job_id: str | None = None,
     ) -> JobRecord:
         """新建 ``queued`` 任务：冻结输入与模型指纹一并落库，``input_hash`` 取规范散列。"""
+        with self._catalog.write_transaction() as conn:
+            return self.create_in(
+                conn, kind=kind, frozen_input=frozen_input,
+                model_snapshot=model_snapshot, owner_id=owner_id, job_id=job_id,
+            )
+
+    def create_in(
+        self,
+        conn: sqlite3.Connection,
+        *,
+        kind: str,
+        frozen_input: dict[str, Any] | None = None,
+        model_snapshot: dict[str, Any] | None = None,
+        owner_id: str = "local",
+        job_id: str | None = None,
+    ) -> JobRecord:
+        """同所属库调用方事务创建；业务、任务、提交回执可一起回滚。"""
+        if not conn.in_transaction:
+            raise _invalid("create_in 必须在所属业务库写事务内调用。")
         if kind not in self._kinds:
             raise _invalid(f"未知任务类型：{kind!r}。")
         owner_id = _text(owner_id, field="owner_id")
@@ -298,8 +317,7 @@ class JobStore:
         new_id = uuid.uuid4().hex if job_id is None else _text(job_id, field="job_id")
         now = self._now()
         try:
-            with self._catalog.write_transaction() as conn:
-                conn.execute(
+            conn.execute(
                     f"INSERT INTO {self._table} "
                     "(id, owner_id, kind, state, frozen_input_json, input_hash, "
                     "model_snapshot_json, attempt, cancel_requested, checkpoint_json, "
@@ -315,8 +333,8 @@ class JobStore:
                         now,
                         now,
                     ),
-                )
-                return self._require_record_in(conn, new_id)
+            )
+            return self._require_record_in(conn, new_id)
         except sqlite3.IntegrityError as exc:
             raise _conflict("任务标识已存在。", code=JOB_ALREADY_EXISTS) from exc
 
@@ -356,9 +374,9 @@ class JobStore:
         - ``succeeded`` 不允许重新领取（结果已发布，需要重跑请走 retry 语义之外）。
         """
         job_id = _text(job_id, field="job_id")
-        now = self._now()
         with self._catalog.write_transaction() as conn:
             record = self._require_record_in(conn, job_id)
+            now = self._now()
             if record.state == "running" and _lease_active(
                 record.lease_expires_at, now
             ):
@@ -398,7 +416,7 @@ class JobStore:
         )
 
     def heartbeat(self, lease: JobLease) -> bool:
-        """续租：仅当 ``job_id + attempt + token`` 匹配且 state==running 才续期。
+        """续租：身份匹配且仍在有效期内的 running 租约才续期，过期不能复活。
 
         失权/任务不存在/租约形状不合法一律返回 ``False``（不得抛错），且不修改任何行。
         """
@@ -413,13 +431,13 @@ class JobStore:
             or not lease.token
         ):
             return False
-        now = self._now()
         with self._catalog.write_transaction() as conn:
+            now = self._now()
             row = self._row_in(conn, lease.job_id)
             if row is None:
                 return False
             record = self._record_from_row(row)
-            if not self._lease_matches(record, lease):
+            if not self._lease_matches(record, lease) or not _lease_active(record.lease_expires_at, now):
                 return False
             conn.execute(
                 f"UPDATE {self._table} SET lease_expires_at = ?, updated_at = ? "
@@ -438,6 +456,15 @@ class JobStore:
         """只读取消探测：标志已置或已是 ``cancelled`` 即视为已请求取消。"""
         record = self.get(job_id)
         return record.cancel_requested or record.state == "cancelled"
+
+    def execution_allowed(self, lease: JobLease) -> bool:
+        """只读执行前闸门：必须仍持原租约、running、未取消且未过期。"""
+        record = self.get(lease.job_id)
+        return (
+            self._lease_matches(record, lease)
+            and not record.cancel_requested
+            and _lease_active(record.lease_expires_at, self._now())
+        )
 
     def request_cancel(self, job_id: str) -> JobRecord:
         """协作式取消：``queued`` 立即置 ``cancelled``；``running`` 只置标志；
@@ -508,10 +535,10 @@ class JobStore:
         """
         job_id = _text(job_id, field="job_id")
         result_json = _dump_json(_json_object(result, field="result"), field="result")
-        now = self._now()
         with self._catalog.write_transaction() as conn:
             record = self._require_record_in(conn, job_id)
-            self._require_current_lease(record, lease)
+            now = self._now()
+            self._require_current_lease(record, lease, now=now)
             if record.cancel_requested:
                 conn.execute(
                     f"UPDATE {self._table} SET state = 'cancelled', finished_at = ?, "
@@ -533,10 +560,10 @@ class JobStore:
     def mark_cancelled(self, job_id: str, lease: JobLease) -> JobRecord:
         """租约仍有效才置 ``cancelled``；失权返回当前记录（不覆盖新持有者）。"""
         job_id = _text(job_id, field="job_id")
-        now = self._now()
         with self._catalog.write_transaction() as conn:
             record = self._require_record_in(conn, job_id)
-            if not self._lease_matches(record, lease):
+            now = self._now()
+            if not self._lease_matches(record, lease) or not _lease_active(record.lease_expires_at, now):
                 return record
             conn.execute(
                 f"UPDATE {self._table} SET state = 'cancelled', finished_at = ?, "
@@ -568,10 +595,10 @@ class JobStore:
             {"code": code, "message": message, "retryable": bool(retryable)},
             field="error",
         )
-        now = self._now()
         with self._catalog.write_transaction() as conn:
             record = self._require_record_in(conn, job_id)
-            if not self._lease_matches(record, lease):
+            now = self._now()
+            if not self._lease_matches(record, lease) or not _lease_active(record.lease_expires_at, now):
                 return record
             if record.cancel_requested:
                 conn.execute(
@@ -644,8 +671,8 @@ class JobStore:
         )
 
     @staticmethod
-    def _require_current_lease(record: JobRecord, lease: JobLease) -> None:
-        if not JobStore._lease_matches(record, lease):
+    def _require_current_lease(record: JobRecord, lease: JobLease, *, now: str) -> None:
+        if not JobStore._lease_matches(record, lease) or not _lease_active(record.lease_expires_at, now):
             raise _conflict(
                 "任务租约已失效，迟到结果不能发布。", code=LEASE_LOST
             )

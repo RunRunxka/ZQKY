@@ -31,6 +31,8 @@ export interface ScoreColumnMapping {
   headerRow?: number;
   studentNoColumn?: string | null;
   nameColumn?: string | null;
+  totalColumn?: string | null;
+  attendanceColumn?: string | null;
   itemColumns: ScoreItemColumn[];
 }
 
@@ -42,6 +44,11 @@ export interface ScoreRawCellView {
   /** data_only 缓存值文本 */
   cachedText?: string;
   isFormula?: boolean;
+  originalText?: string;
+  originalCachedText?: string;
+  correctedText?: string | null;
+  effectiveStatus?: ScoreStatus | null;
+  scoreUnits?: number | null;
 }
 
 export interface ScoreImportRowView {
@@ -67,6 +74,12 @@ export interface ScoreImportRowPatch {
   cells?: ScoreCellPatch[];
 }
 
+export interface ScoreImportRefreshRequest {
+  expectedImportRevision: number;
+  expectedAssessmentRevision: number;
+  baseScoreRevisionId: string | null;
+}
+
 export interface ScoreImportView {
   importId: string;
   assessmentId: string;
@@ -82,6 +95,11 @@ export interface ScoreImportView {
   rowCount: number;
   resolvedRowCount: number;
   missingCellCount: number;
+  /** 当前 previewVersion 有效矩阵的服务端权威范围；缺失时不能确认。 */
+  requiredAcknowledgements?: {
+    absences: ScoreAbsenceAcknowledgement[];
+    missing: ScoreMissingAcknowledgement | null;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -168,6 +186,8 @@ export interface ScoreItemSnapshot {
 export interface ScoreRevisionView {
   revisionId: string;
   assessmentId: string;
+  /** 固定施测与已封存矩阵共同约束的原卷修订。 */
+  paperRevisionId?: string;
   version: number;
   state: ScoreRevisionState;
   sourceImportId?: string | null;

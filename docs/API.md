@@ -1,6 +1,6 @@
 # 接口与模块边界
 
-更新：2026-10-01。本文维护现行接口契约；进度、代码审查缺陷与验收限制只维护在 [CURRENT_STATUS](CURRENT_STATUS.md)。前端 TypeScript 服务与真实 HTTP 接口分别列明。当前建设以 2026-09-29 起的教材 RAG 与教学闭环为主，接口声明不代表已通过所有业务验收。
+更新：2026-10-03。本文维护现行接口契约；进度、代码审查缺陷与验收限制只维护在 [CURRENT_STATUS](CURRENT_STATUS.md)。前端 TypeScript 服务与真实 HTTP 接口分别列明。当前建设以 2026-09-29 起的教材 RAG 与教学闭环为主，接口声明不代表已通过所有业务验收。
 
 **阅读顺序：** 本文按功能与交付批次保留契约来源。同一路径、字段或分期限制出现多次时，以后续章节明确的变更为准：RAG v2 及 RAG-QUALITY 取代旧四科 v1；B2 取代 B1 的施测占位；B3 取代 B2 的成绩指针仅空限制。B0–B3 的稳定契约继续有效，实现偏差与待修项见 CURRENT_STATUS。历史阶段编号和角色分工不构成当前执行、提交或部署授权。
 
@@ -73,7 +73,7 @@
 
 | 接口 | 用途 |
 | --- | --- |
-| `LessonPlanWorkspace({services?})` | 主工程嵌入教案编辑器 |
+| `LessonPlanWorkspace({services?,initialLessonPlanId?,initialRevisionId?,initialAnalysisRunId?,initialRouteError?})` | 主工程嵌入教案编辑器 |
 | `LessonPlanServices.fillProvider` | 可替换要求解析策略 |
 | `LessonPlanServices.repository` | 可替换草稿存储 |
 | `LessonPlanServices.onChange` | 持久化成功后的变化通知 |
@@ -82,11 +82,11 @@
 | `DraftRepository.save(envelope)` | 同步或异步保存，失败抛出/拒绝 |
 | `WorkspaceShell.beforeNavigate()` | 路由切换前等待模块保存，失败保持当前页 |
 
-教案数据类型在模块model/types.ts，跨模块NavigationItem在公共contracts。原 `window.__ZQKY_HOST__` 与导航CustomEvent不作为正式集成接口；导航由公共壳统一调用Next路由。
+教案正文v1/后台外层v2类型在公共contracts/lesson-plans.ts，模块model/types.ts兼容re-export；跨模块NavigationItem在公共contracts。原 `window.__ZQKY_HOST__` 与导航CustomEvent不作为正式集成接口；导航由公共壳统一调用Next路由。
 
-`DraftEnvelope={schemaVersion:1,revision:number,updatedAt:ISO UTC,data:LessonPlanData}`。字段和JSON格式与旧版兼容。传入自定义服务时保持引用稳定；服务端repository须自行绑定文档ID、会话和冲突语义，不能把本地revision直接当成跨用户授权依据。
+`DraftEnvelope={schemaVersion:1,revision:number,updatedAt:带时区ISO8601字符串,data:LessonPlanData}`。新本地稿通常写UTC；显式导入保留合法原时区与字符串拼写。字段和JSON格式与旧版兼容。传入自定义服务时保持引用稳定；服务端repository须自行绑定文档ID、会话和冲突语义，不能把本地revision直接当成跨用户授权依据。
 
-默认仅使用规则填充和本地存储，页面不请求后台。可选 `HttpFillProvider` 已保留，但没有默认启用。
+默认本地正文继续使用规则填充与旧草稿键；教师显式打开/创建后台教案后经FastAPI保存。可选旧 `HttpFillProvider` 已保留，真实固定学情建议走下文B5任务接口，不把旧provider当作后台实现。
 
 ## 后端已实现 HTTP 接口
 
@@ -95,7 +95,7 @@ FastAPI 服务位于 apps/api，仅监听 127.0.0.1:8000；浏览器经 Next 同
 | 方法与路径 | 状态 | 说明 |
 | --- | --- | --- |
 | GET `/api/v1/health` | 已实现 | 返回 `status/service/apiVersion/time`，不含配置内容 |
-| GET `/api/v1/capabilities` | 已实现 | 能力清单；`model_settings`、`chat`、`textbook_repository`、`question_bank` 为 `ready`，RAG 按运行时就绪状态为 `ready` / `unavailable`；教案真实 AI、组卷、模板、Agent/MCP/Skills 为 `planned`。清单不是全部教学闭环接口的索引 |
+| GET `/api/v1/capabilities` | 已实现 | 能力清单；`model_settings`、`chat`、`textbook_repository`、`question_bank` 为 `ready`，RAG 按运行时就绪状态为 `ready` / `unavailable`；教案真实AI按服务与lesson_generation执行器实际装配为ready/unavailable；组卷、模板、Agent/MCP/Skills为planned。清单不是全部教学闭环接口的索引 |
 | GET/POST `/api/v1/model-connections` | 已实现 | 连接列表/创建；非空 `apiKey` 经 SecretStore 持久化到 .env，响应只返回凭证状态和变量名，不回显 Key |
 | GET `/api/v1/model-catalog` | 已实现 | 一次读取带 revision 的连接/模型/默认模型目录 |
 | GET `/api/v1/model-connections/{id}/models` | 已实现 | 使用服务端凭证发现上游模型；不修改目录 |
@@ -139,7 +139,6 @@ FastAPI 服务位于 apps/api，仅监听 127.0.0.1:8000；浏览器经 Next 同
 | POST `/api/v1/templates/inspect` | DOCX 上传检查与临时上传 ID | D05–D07 |
 | POST/GET `/api/v1/exports`、cancel、artifacts | 渲染任务与受控下载 | D07 |
 | POST `/api/v1/lesson-plans/fill` | 生成填充建议 | 随 D08 评估 |
-| GET/POST/PUT `/api/v1/lesson-plans(/{id})` | 未来多教案服务端存储 | 未排期 |
 | Agent/MCP/Skills 执行相关 | 仅契约规划 | 历史 F 系列；当前未排期 |
 
 填充类接口实施时沿用既定约束：同源会话、JSON 请求、30 秒默认超时，校验 patch 与 warnings，不在错误后回退规则实现。
@@ -148,7 +147,7 @@ FastAPI 服务位于 apps/api，仅监听 127.0.0.1:8000；浏览器经 Next 同
 
 后续多用户/任务服务接入前，先确定用户和文档ID、鉴权、版本冲突、任务状态、数据保留及错误规范。FastAPI 已有接口由服务端声明；当前前端契约（`apps/web/src/contracts/api.ts`）为手写对齐，未宣称由 OpenAPI 生成。health、capabilities、模型管理和聊天为实际实现；其他功能以实际路由登记和能力状态为准。
 
-后续学情报告、教案调整与练习闭环依据 [教学闭环设计](design/teaching-loop-v1/README.md) 和 CURRENT_STATUS 排期细化；原项目规划仅作历史参考。模型密钥与数据库连接仅放服务端，浏览器不接收供应商凭证。
+学情报告和练习闭环现行接口见下文B4；后台教案和固定学情调整建议的候选接口见下文B5，独立验收与阶段门禁只看 CURRENT_STATUS。[教学闭环设计](design/teaching-loop-v1/README.md)与原项目规划区分现行契约和历史参考。模型密钥与数据库连接仅放服务端，浏览器不接收供应商凭证。
 
 ## 历史本地教材 RAG v1（已由 RAG v2 替代）
 
@@ -357,7 +356,7 @@ npm run rag:quality       # 固定质量集（30 问：10 组 × 2 正向 + 1 �
 依据 [教学闭环设计目录](design/teaching-loop-v1/README.md) 与
 [多 Agent 实施任务计划书 v2.0 §二.3](design/teaching-loop-v1/多Agent实施任务计划书_v2.0.md) 实施 B0
 （CTRL + T00）：冻结类型/错误/版本/任务/资产/迁移契约并落地公共基础。下表记录 B0 的基础结构；
-知识点、名单、原卷、施测、成绩与对应页面已由后续 B1–B3 增量实现。学情报告、教案升级与练习闭环仍属后续任务。
+知识点、名单、原卷、施测、成绩与对应页面由 B1–B3 增量实现。B4 学情与练习及B5后台教案候选接口见文末；独立验收状态见 CURRENT_STATUS。
 任务卡与逐项证据见 [B0 批次目录](qa/TEACHING-LOOP-B0/TASK-CARD.md)。
 
 ### 四库与迁移登记
@@ -383,13 +382,15 @@ npm run rag:quality       # 固定质量集（30 问：10 组 × 2 正向 + 1 �
 | --- | --- |
 | GET `/api/v1/workflow-jobs/{jobId}?domain=knowledge\|question\|teaching` | 返回 `JobView`；未知任务 404 `JOB_NOT_FOUND`；域非法 422；域未装配 503 |
 | POST `/api/v1/workflow-jobs/{jobId}/cancel`（body `{domain}`） | 协作式取消，幂等；`queued` 立即取消，`running` 置标志后不发布迟到结果 |
-| POST `/api/v1/workflow-jobs/{jobId}/retry`（body `{domain}`） | 仅终态 `failed/interrupted/cancelled` 可重试（保留冻结输入与模型指纹）；`queued/running` → 409 `JOB_NOT_RETRYABLE` |
+| POST `/api/v1/workflow-jobs/{jobId}/retry`（body `{domain}`） | 终态 `failed/interrupted/cancelled` 可重试（保留冻结输入与模型指纹）；已注册执行器的 `queued` 重复请求幂等补调度/返回当前视图，`running/succeeded` → 409 `JOB_NOT_RETRYABLE` |
 
 `JobView = {jobId, domain, kind, attempt, state, result, error}`；
 `state ∈ queued | running | succeeded | failed | cancelled | interrupted`。
 租约 90 秒、每 20 秒续租；**同时最多 2 个后台重任务，其中最多 1 个模型生成任务**；
 任务结果与终态在所属业务库的**同一事务**提交；页面停止观察不取消任务，只有 cancel 接口取消；
 重启不自动重跑中断的模型任务。
+
+G1修复后，claim/complete/fail/cancel在取得SQLite写锁并读当前行后采时；发布与终态写入在事务内核原attempt/token/取消/租约到期。已经到期的旧轮不能写业务、checkpoint或终态，心跳不能恢复旧授权。新queued轮在旧轮heartbeat收尾期间排队等待，重复retry只接受一次目标轮调度，旧tracking清理不删除新轮。租约时长不变。
 
 ### 提交幂等与错误详情
 
@@ -510,8 +511,8 @@ B1 仅冻结 `AssessmentCreateRequest`/`ParticipantSnapshot`/`ConfirmedPaperRevi
 
 **分期结构及后续覆盖**：B2 冻结时 `paper_revisions.source_practice_revision_id` 与 `assessments.active_score_revision_id`
 均只允许为空。B3 的 `0007` 已重建 `assessments`，恢复成绩指针复合外键并允许引用本施测已确认成绩；
-现行成绩语义见下文「成绩迁移」。练习来源指针仍只允许为空，`paper_confirm` 尚无 `PRACTICE_NOT_REVIEWED` 分支。
-`paper_revisions.source_file_id` 必须非空；草稿 `total_score_units >= 0`，确认闸门要求 >0 且等于计分叶子合计。
+现行成绩语义见下文「成绩迁移」。B4 的 `0008/0009` 先建练习修订，再受检重建原卷来源：文件/固定审核练习恰一非空，练习指针是真 FK，并核 owner/学科及确认内容映射；文件卷仍核原件与来源块。
+草稿 `total_score_units >= 0`，确认闸门要求 >0 且等于计分叶子合计；旧确认不可变与复合外键保留。迁移实际验收见 CURRENT_STATUS。
 
 ### 原卷（T40）
 
@@ -619,6 +620,11 @@ B1 仅冻结 `AssessmentCreateRequest`/`ParticipantSnapshot`/`ConfirmedPaperRevi
 - `POST /assessments/{assessmentId}/score-imports`（multipart `file` + 可选 `workSheet`/
   `baseScoreRevisionId`，XLSX/CSV）→ `ScoreImportView`；服务端用**公式视图 + 缓存值视图**读表、
   保留物理行列、超限明确报错、不静默截断；原件为受管资产（`kind='score_sheet'`）。
+- 成绩路径的单元格完整文本上限20,000字符；身份/出勤/总分/小题及XLSX公式/缓存视图使用同一完整转换后长度校验。
+  超限返回422 `TABLE_TOO_LARGE`，`details={sheet,row,column,address,view,actualLength,maxLength}`；
+  `row`为1基物理行、`column`为列字母，`view`为`formula`/`cached`/`csv`，不先截断再校验。
+  CSV解析器无法读取字段/记录时返回422 `TABLE_PARSE_FAILED`，`details={sheet:"CSV",row}`；
+  解析器不能给出可靠列时不伪造列号。拒绝不建立导入或正式成绩/矩阵，不修改原件。
 - `GET /score-imports?assessmentId=&offset=&limit=`、`GET /score-imports/{importId}`、
   `GET /score-imports/{importId}/rows?offset=&limit=`。
 - `PATCH /score-imports/{importId}`（`ScoreImportPatchRequest`：mapping / 行定位 `participantId` /
@@ -651,3 +657,84 @@ B1 仅冻结 `AssessmentCreateRequest`/`ParticipantSnapshot`/`ConfirmedPaperRevi
   409 保留编辑、422 保留校对；逻辑确认冻结 `submissionId` + 原 payload 到明确结果；切换/卸载使在途请求失效。
 - 题库：知识点筛选/标注与显式替换、旧 `knowledgeTags` 分区块呈现、补题六态（取消/真实重试 [N, N+1] 窗口）、
   AI 来源与校对链（pending/apply/reject/stale）、`200 + failures` 仍显示**整批未确认**。
+
+### B3 修复与补齐接口（2026-10-02）
+
+- `ScoreImportView.requiredAcknowledgements = {absences, missing}` 是当前 `previewVersion` 的权威有效全矩阵范围；前端直接展示并逐类承认，不从原件空格或当前名单推导。原件标记覆盖整人次时，其他空格不成为伪 missing。旧预览仍保持原冻结参测范围，施测变更会显示版本冲突。
+- `ScoreColumnMapping` 增加可选 `totalColumn`/`attendanceColumn`。列字母归一为大写后校验计分/身份/总分/出勤占用与重复。总分仅在所有叶 recorded 时精确校验；未完整时只提示。出勤与冻结参测不符时返回定位的 `SCORE_ATTENDANCE_MISMATCH`，不自动改出勤。`SCORE_TOTAL_MISMATCH` 同为 422。
+- `ScoreRawCellView` 同时返回 `originalText`、`originalCachedText`、`correctedText`、`effectiveStatus`、`scoreUnits`，保留公式与物理坐标。历史 `text` 字段继续提供有效文本；原始证据不被校正覆盖。改 sheet/表头/身份/计分映射都重新提取行，保留仍适用坐标的已确认校正。
+- `PATCH /assessments/{id}/participants/{participantId}/attendance`：`{submissionId, expectedRevision, attendance, reason}`，原因须非空；只改变指定人次的出勤，记录旧值/新值/理由/时间，递增施测版本，不改身份、归属及旧成绩快照。结果 `ParticipantMutationResult.attendanceCorrection` 返回审计。同键同包先重放，不因重放时版本已旧拒绝。
+- `POST /score-imports/{id}/refresh`：`{expectedImportRevision, expectedAssessmentRevision, baseScoreRevisionId}`。显式重新冻结当前参测/出勤，两个 CAS 都须匹配；base 必须仍是原预览基准且等于当前 active，不自动换 base。刷新递增导入修订/预览版本，保留适用人工校正，原承认失效。
+- `POST /assessments/{id}/score-corrections` 是设计路径；既有 `/score-revisions/correct` 保持兼容。严格区分 recorded 数字与其他三态文本；不合法返回 422 定位错误，不返回非契约 500。
+- `ScoreRevisionView.paperRevisionId` 必填，来自施测不可换卷的固定关系；数据库完整矩阵各行继续具有同固定卷复合约束。无需修改已登记0001–0007迁移。
+- 题库 `QuestionContent.richContent?: RichContentV2 | null`：富内容存在时为权威，Markdown 为派生投影。保留旧 rich 却改 Markdown 拒绝；转回纯文本必须明确提交 `richContent: null`。含 rich 的纯文本拆合/AI应用须先明确转换，避免静默丢图/表/公式。资产按块引用、拥有者与真实字节散列校验，派生指纹包含富内容和真实资产散列；旧纯 Markdown 路径兼容。
+- `GET /question-drafts/{id}/assets/{assetId}/content` 与 `GET /questions/{id}/assets/{assetId}/content`：只返回该对象实际引用且属于其导入/题目的受管图片，拒绝任意路径、跨对象和散列不符读取。前端从受控字节建立并释放 object URL。
+- F20 已接名单 CSV/XLSX 映射、逐行 link/create/ignore、批次恢复与转班；原卷 DOCX 上传、完整来源块、手工题面/容器叶子/满分/知识点、结构化补录或依据排除、确认和建议任务。既有施测参测补录与出勤校正独立操作；所有固定修订读取自己的标题。共享富内容渲染器与公共任务观察 hook 各只有一份。
+- 数字文本按 Decimal 的符号/系数/指数精确转换为百分之一分整数，不依赖全局运算精度。极端指数及超过两位有效小数返回定位 422；不会舍入为有效值或溢出 500。重复物理行指向同一人次时，两行都返回 `SCORE_ROW_DUPLICATE_PARTICIPANT` 并阻断确认，必须人工消歧。
+- 成绩 PATCH 在预计算前和短写事务内均核原预览的施测修订及 active/base。过期上下文返回 409、导入行与预览版本不变；采用新参测集合必须调用明确 refresh。
+- 正式题 PATCH 的资产/派生指纹预检在锁外；显式关联与继承到新修订的关联在同一 `PublicationCoordinator` 中复核并完成域提交。历史已确认关联只读；归档关联不能进入新修订，显式清空或替换后可提交。
+- 心跳只能续尚未到期的当前 running 租约；已经过期返回 false、零修改，不能重新授权旧批。首次知识点/题库/原卷任务的 queued 收据均接受一次 claim 的 N/N+1，running 只观察 N，N+2 拒绝。
+- G1题库查重追加 `question-surface-v1`，与已有`content_fingerprint`和`derived-v1`并存。富题面为权威，共同材料、题干、选项、公式/表格及真实图片字节参与题面身份；来源/随机块ID/答案不改变题面身份，答案差异仍显式进入冲突审核。预览、确认和显式去重采用相同口径；旧题缺新指纹时只读固定题面计算比较，不改写旧指纹。同包真正重复题保持原去重/审核语义，材料不同的两题可分别正式入库。
+- 所有逻辑确认在结果未知时保留提交标识及深复制的完整请求，写控件锁定、只读对照可用，重试原包优先于最新视图校验；成绩摘要也展示原冻结版本。题库 `status=0` 明示结果未知，不能声称零入库；只有明确 `200 + failures` 才释放原载荷供教师修正，并按既有未登记语义保留提交标识。
+
+## B4 学情、针对练习与受管导出
+
+以下接口已有源码实现，B4 是否已独立验收及门禁完成只看 [CURRENT_STATUS](CURRENT_STATUS.md)。Python `contracts/b4.py` 与 TypeScript `contracts/b4.ts` 对应；完整 DTO、成功/失败样例及发布端口见 [B4 契约](qa/TEACHING-LOOP-G1-RESUME-B4-20261002/B4-CONTRACT-v1.md)、v1.1/v1.2 修正及优先适用的 [v1.3 完整题号修正](qa/TEACHING-LOOP-G1-RESUME-B4-20261002/B4-CONTRACT-v1.3-ERRATA.md)。`PracticeNode.questionNo` 是完整最终题号，换序不自动改号。外部 camelCase，分页 `{items,total,offset,limit}`，offset≥0、limit 1～200。
+
+| 方法与路径（均为 `/api/v1`） | 输入与结果 |
+| --- | --- |
+| POST `/assessments/{id}/analysis-runs` | `{submissionId,scoreRevisionId,selectedParticipantIds,ruleCode:"any_loss_v1"}`；202 固定 run/score/paper/inputHash 与 teaching analysis 任务收据 |
+| GET `/analysis-runs` | 可选 `assessmentId/scoreRevisionId` + 分页 |
+| GET `/analysis-runs/{id}` | 固定来源、显式选人快照、知识点与六态任务、reportReady |
+| GET `/analysis-runs/{id}/classes`、`students`、`evidence` | 可选 `classId/participantId/knowledgePointId` + 分页；非 ready 不当空报告 |
+| POST/GET `/analysis-runs/{id}/notes` | 追加 `{submissionId,participantId?,knowledgePointId?,note}`；或分页只读备注 |
+| POST/GET `/practice-sets` | 建立 `{submissionId,analysisRunId,title,targetKnowledgePointIds,constraints}`；或 `analysisRunId` + 分页 |
+| GET `/practice-sets/{id}` | 当前草稿/审核版及固定修订历史 |
+| GET `/practice-sets/{id}/revisions/{revisionId}` | 固定快照，不替换为当前题库版本 |
+| POST `/practice-sets/{id}/suggestions` | `{expectedRevision,constraints}`；正式固定题、真实覆盖及缺口，不调用模型 |
+| PATCH `/practice-sets/{id}/draft` | `{submissionId,expectedRevision,items,constraints}`；submissionId必填1～128字符；显式节点来源、完整题号、计分叶、Decimal满分及正式KP |
+| POST `/practice-sets/{id}/review` | `{submissionId,expectedRevision}`；锁外预检、发布锁内复核、封存审核快照 |
+| POST `/practice-sets/{id}/revisions` | `{submissionId,sourceRevisionId}`；从固定审核版新建草稿，旧版不改 |
+| POST `/practice-sets/{id}/revisions/{revisionId}/exports` | `{submissionId,variant,assessmentId}`；202 export 收据；variant=student/teacher 时 assessmentId=null，score_template 须为本版实际转换施测 |
+| GET 同一 exports 路径 | 成功产物分页，metadata 含固定修订/真实名单施测/fileAsset/hash/字节数/下载 URL |
+| GET `/practice-sets/{id}/revisions/{revisionId}/assets/{sha}` | 仅该固定修订声明的受管图片 |
+| POST `/practice-sets/{id}/revisions/{revisionId}/assessments` | `{submissionId,title,heldOn,classIds,participants}`；同事务固定卷、真实 T30 参测与 provenance 映射，姓名学号服务端读取 |
+| GET `/export-artifacts/{id}`、`/{id}/download` | 元数据核同owner、固定审核版、任务succeeded；下载另核受管资产身份、实际hash与字节数后返回真实文件，no-store/nosniff |
+
+学情按该 confirmed score 自己的 participant/item 快照与完整四态矩阵冻结。recorded 包括 0；失分优先标需巩固，informationIncomplete 独立；分母为本 KP 至少一格 recorded 的被选唯一学生，0 分母 ratio=null。总分只在全部计分叶 recorded 时返回，不因多 KP 重复累加。旧快照没有班名时 `className=null` 并标“该成绩未记录班名”。ready 输入/结果/全题证据不可变，备注独立追加。
+
+练习选题约束不会自动放宽；题型未知的原卷仅在排原题比较中使用明确的未知规则，不伪造原题型。缺题需教师主动走现题库候选→人工保存→审核→正式确认，再重新选择。审核及子表封存，改动新草稿。学生 DOCX 不含答案解析，教师版标缺答案；模板在接受导出时冻结实际参测及固定卷叶映射，空白分数不补0。回流沿用 T60 确认新成绩，再创建 T70 新报告。
+
+题库与教学业务保留各自既有归属标识；标准装配显式将实际题库服务的 owner 注入练习固定题读取，建议、保存和审核复核使用相同的题库归属。单题读取、编辑与归档均拒绝其他归属题，返回 404 `QUESTION_NOT_FOUND`；不改写旧题的 owner，也不放宽固定修订读取器的精确归属判定。
+
+页面导航沿用真实题库确认接口，确认成功后返回 `/question-bank?tab=library`，带练习上下文时另带编码的 `returnPracticeSetId`。`tab`受限为`imports/library/generation`；显式查询优先，旧`#library/#generation`兼容。`generation`仅打开补题面板，教师仍须明确提交后才调用模型；无效或重复页面查询显示错误，不影响HTTP业务契约。
+
+分析和导出复用六态 JobEngine；计算/渲染/IO 在事务及发布锁外，结果与任务 succeeded 用原租约同事务 CAS。提交 `(owner,operation,submissionId)` 同包先重放、异包409；版本冲突409带依据，422定位 issues；失败不返回假产物。教学库新增 `0008/0009`；四库保持，跨题/KP为服务校验+固定快照，本段描述B4的0008/0009，B5追加结构见下文0010；验收状态以CURRENT_STATUS为准。`ZQKY_ENV=test` 下配置 credentials_file=None。
+
+2026-10-03 G2保存契约增量：草稿PATCH的operation为`practice.draft:{practiceSetId}`；同owner/operation/submissionId原包先于当前CAS/state/外部引用检查返回原`PracticeSetView`，标记`replayed=true`，不会改成最新稿。后续另存后重放旧包仍返回旧receipt，GET当前稿保持新版本。同身份异包409`SUBMISSION_CONFLICT`；新ID旧CAS409`REVISION_CONFLICT`/`details.currentRevision`；无ID422。没有旧无ID兼容分支。保存及原receipt同teaching事务；内部审核仅验证内容，不另造保存提交。此段描述当前实现契约，阶段验收以CURRENT_STATUS为准。
+
+## B5 后台教案与固定学情建议接口
+
+源码契约/路由与运行装配已建立；整体独立验收和适用门禁状态只看 [CURRENT_STATUS](CURRENT_STATUS.md)。Frozen Python/TS DTO、严格限制、12路由静态OpenAPI与示例见 [B5契约v1](qa/TEACHING-LOOP-G2-B5-20261003/B5-CONTRACT-v1.md)，追加只读来源口见 [CTRL补充契约](qa/TEACHING-LOOP-G2-B5-20261003/B5-CTRL-SOURCE-RUNTIME-DELTA-v1.md)。静态示例不是实跑收据。
+
+| 方法与路径（统一 /api/v1 前缀） | 真实服务用途 |
+| --- | --- |
+| GET/POST `/lesson-plans` | 分页后台教案 / 创建v1正文与明确班级学科、可空固定学情上下文 |
+| POST `/lesson-plans/import-local` | 教师主动导入完整合法DraftEnvelopeV1；旧键原字节保留 |
+| POST `/lesson-plans/evidence/verify` | 生产RagV2核选定原文区间、hash、scope并生成可核对固定refs |
+| GET `/lesson-plans/{id}` | 当前固定修订、server CAS与冻结上下文 |
+| PATCH `/lesson-plans/{id}/draft` | 幂等正文另存 / 同正文上下文来源意义去重 / CAS冲突保稿 |
+| GET `/lesson-plans/{id}/revisions`、`/{revisionId}` | 不可变历史分页 / 精确历史正文及独立审核状态 |
+| POST `/lesson-plans/{id}/proposals` | 单班级/KP、固定ready报告/教材refs及可选confirmed题/reviewed练习生成建议任务 |
+| GET `/lesson-plans/{id}/proposals/{proposalId}` | 精确候选、五整字段diff、四阶段分钟预算与来源 |
+| POST `/lesson-plans/{id}/proposals/{proposalId}/apply` | 教师选部分完整字段、当前base/CAS重新核对，单次终结并新修订 |
+| POST `/lesson-plans/{id}/proposals/{proposalId}/reject` | 幂等终结候选，不改正文 |
+| GET `/confirmed-question-revisions?subjectId=...&offset=0&limit=50` | 按真实题库owner分页读取confirmed固定revision ID；未知学科真实空集，依赖缺失503 |
+
+写操作皆有submissionId，保存/应用有expectedRevision，生成同时绑定baseRevisionId/baseServerRevision。成功原包重放在后来CAS/外部来源预检之前，异包409，版本冲突409保留details.currentRevision；教案请求非法422 VALIDATION_ERROR、业务422 LESSON_INVALID等、413超2MiB，错误不回显学生个人信息。没有归档/审核HTTP端点，保存不偷偷审核。
+
+正文仍11字段v1，ProcessItem仍id/stage/design/secondary；外层protocolVersion2、环节分钟为独立processMetadata。五个AI可改整字段为coreCompetencies/keyPoints/teachingDesign/process/exercises；教师标题/课时/课型/反思不属于patch。后台缓存按document ID新键，旧zhiqikeyuan:lesson-plan:v1不与后台共写。
+
+任务沿用teaching/lesson_generation与公共六态workflow-jobs观察/取消/显式retry。首次/重试均核冻结profile与指纹；只有候选发布与succeeded同事务，教师应用才另存正文。模型最终请求仅单班级/KP匿名固定计数与明确教学文本；已知个人信息在各来源和最终三协议wire阻断，不能据此宣称普遍匿名化或人工教学质量通过。输入128000 UTF-16/256KiB，输出256KiB/最多16384token，校验失败/截断/不可用不回退规则或静默裁切。
+
+教学库只追加0010的lesson_plans/lesson_plan_revisions/lesson_revision_reviews/lesson_generation_inputs/lesson_ai_proposals/lesson_proposal_decisions，真owner/基线/任务/报告FK、不可变trigger与CAS保护，0001～0009原声明保持。跨教材/KP/题库由生产读取口与固定快照验证，不伪造跨库FK；版本感知体检和全四库离线恢复包括新增表及受管资产。

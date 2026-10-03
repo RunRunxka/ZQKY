@@ -3,33 +3,43 @@
 /**
  * 第一步「名单」：选择/创建班级 + 查看与补充班级成员（参测人次从这里来）。
  *
- * 只做够用的小面板（完整名单导入工作区不在这里）：班级列表（`GET /classes`）、
- * 建立班级（`POST /classes`）、班级成员（`GET /classes/{id}/students`）、
- * 追加学生（`POST /students`，学号按文本保存、保留前导零）。
+ * 班级与成员、CSV/XLSX 名单校对确认、学生转班和归属历史。
  * 读取失败显示错误与重试入口，绝不显示成空名单。
  */
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { RefreshCw, UserPlus, Users } from 'lucide-react';
 import type { ClassView, StudentView } from '@/contracts/roster';
-import { createClass, createStudent, listClasses, listClassStudents } from '@/services/assessments-api';
+import {
+  createClass,
+  createStudent,
+  listClasses,
+  listClassStudents,
+  transferStudent,
+} from '@/services/assessments-api';
 import { fetchTextbookTaxonomy } from '@/services/textbook-api';
-import { useAsyncResource } from './hooks';
+import { asApiError, useAsyncResource } from './hooks';
+import { RosterImportPanel } from './RosterImportPanel';
 
 export function RosterPanel({
   selectedClassId,
   onSelectClass,
   refreshToken,
+  onChanged,
 }: {
   selectedClassId: string | null;
   onSelectClass: (classId: string) => void;
   refreshToken: number;
+  onChanged?: () => void;
 }) {
   const classes = useAsyncResource(
     (signal) => listClasses({ status: 'active', limit: 100 }, signal),
     `assessments-classes|${refreshToken}`,
   );
-  const taxonomy = useAsyncResource((signal) => fetchTextbookTaxonomy(signal), 'assessments-taxonomy');
+  const taxonomy = useAsyncResource(
+    (signal) => fetchTextbookTaxonomy(signal),
+    'assessments-taxonomy',
+  );
   const [refreshStudents, setRefreshStudents] = useState(0);
   const students = useAsyncResource(
     (signal) =>
@@ -51,10 +61,33 @@ export function RosterPanel({
   const [studentNo, setStudentNo] = useState('');
   const [studentBusy, setStudentBusy] = useState(false);
   const [studentError, setStudentError] = useState<string | null>(null);
+  const mounted = useRef(true);
+  const generation = useRef(0);
+  const contextClass = useRef(selectedClassId);
+  contextClass.current = selectedClassId;
+  useEffect(() => {
+    mounted.current = true;
+    setBusy(false);
+    setStudentBusy(false);
+    return () => {
+      mounted.current = false;
+      generation.current += 1;
+    };
+  }, [selectedClassId]);
+  const active = (token: number, classId: string | null) =>
+    mounted.current && token === generation.current && classId === contextClass.current;
 
   const grades = taxonomy.state.phase === 'ready' ? taxonomy.state.data.grades : [];
 
+  function rosterChanged() {
+    setRefreshStudents((value) => value + 1);
+    classes.reload();
+    onChanged?.();
+  }
+
   async function submitClass() {
+    const token = generation.current;
+    const classId = selectedClassId;
     setBusy(true);
     setFormError(null);
     try {
@@ -64,21 +97,25 @@ export function RosterPanel({
         schoolYear: schoolYear.trim(),
         gradeId: gradeId.trim(),
       });
+      if (!active(token, classId)) return;
       setCreateOpen(false);
       setCode('');
       setName('');
       classes.reload();
       onSelectClass(created.id);
     } catch (cause) {
+      if (!active(token, classId)) return;
       const error = cause as { code?: string; message?: string };
       setFormError(`建立班级失败（${error.code ?? 'UNKNOWN'}）：${error.message ?? '请求失败'}`);
     } finally {
-      setBusy(false);
+      if (active(token, classId)) setBusy(false);
     }
   }
 
   async function submitStudent() {
     if (!selectedClassId) return;
+    const token = generation.current;
+    const classId = selectedClassId;
     setStudentBusy(true);
     setStudentError(null);
     try {
@@ -87,17 +124,18 @@ export function RosterPanel({
         studentNo: studentNo.trim() === '' ? null : studentNo.trim(),
         classId: selectedClassId,
       });
+      if (!active(token, classId)) return;
       setStudentName('');
       setStudentNo('');
-      setRefreshStudents((value) => value + 1);
-      classes.reload();
+      rosterChanged();
     } catch (cause) {
+      if (!active(token, classId)) return;
       const error = cause as { code?: string; message?: string };
       setStudentError(
         `添加学生失败（${error.code ?? 'UNKNOWN'}）：${error.message ?? '请求失败'} 输入已保留，可重试。`,
       );
     } finally {
-      setStudentBusy(false);
+      if (active(token, classId)) setStudentBusy(false);
     }
   }
 
@@ -136,6 +174,7 @@ export function RosterPanel({
                 className="assessments-input"
                 aria-label="班级编码"
                 value={code}
+                disabled={busy}
                 onChange={(event) => setCode(event.target.value)}
                 required
               />
@@ -146,6 +185,7 @@ export function RosterPanel({
                 className="assessments-input"
                 aria-label="班级名称"
                 value={name}
+                disabled={busy}
                 onChange={(event) => setName(event.target.value)}
                 required
               />
@@ -156,6 +196,7 @@ export function RosterPanel({
                 className="assessments-input"
                 aria-label="学年"
                 value={schoolYear}
+                disabled={busy}
                 onChange={(event) => setSchoolYear(event.target.value)}
                 required
               />
@@ -168,6 +209,7 @@ export function RosterPanel({
                 aria-label="年级"
                 list="assessments-grade-options"
                 value={gradeId}
+                disabled={busy}
                 onChange={(event) => setGradeId(event.target.value)}
                 placeholder="年级 id（如 grade-1）"
                 required
@@ -259,11 +301,21 @@ export function RosterPanel({
           <>
             <ul className="assessments-list" aria-label="班级成员列表">
               {(students.lastData?.items ?? []).map((student: StudentView) => (
-                <li key={student.id} className="assessments-list-static" data-testid={`assessments-student-${student.id}`}>
+                <li
+                  key={student.id}
+                  className="assessments-list-static"
+                  data-testid={`assessments-student-${student.id}`}
+                >
                   <strong>{student.name}</strong>
                   <span className="assessments-meta">
                     学号 {student.studentNo ?? '（无，按姓名人工确认）'}
                   </span>
+                  {student.memberships?.map((membership) => (
+                    <span className="assessments-meta" key={membership.membershipId}>
+                      {membership.className}：{membership.joinedOn} —{' '}
+                      {membership.leftOn ?? '当前归属'}
+                    </span>
+                  ))}
                 </li>
               ))}
             </ul>
@@ -286,6 +338,7 @@ export function RosterPanel({
                   className="assessments-input"
                   aria-label="学生姓名"
                   value={studentName}
+                  disabled={studentBusy}
                   onChange={(event) => setStudentName(event.target.value)}
                   required
                 />
@@ -296,6 +349,7 @@ export function RosterPanel({
                   className="assessments-input"
                   aria-label="学生学号"
                   value={studentNo}
+                  disabled={studentBusy}
                   onChange={(event) => setStudentNo(event.target.value)}
                 />
               </label>
@@ -311,6 +365,165 @@ export function RosterPanel({
           </>
         )}
       </section>
+      {selectedClassId && (
+        <>
+          <RosterImportPanel
+            classId={selectedClassId}
+            onChanged={rosterChanged}
+          />
+          <MembershipTransferPanel
+            key={selectedClassId}
+            classId={selectedClassId}
+            classes={classItems}
+            students={students.lastData?.items ?? []}
+            onChanged={rosterChanged}
+          />
+        </>
+      )}
     </div>
+  );
+}
+
+function MembershipTransferPanel({
+  classId,
+  classes,
+  students,
+  onChanged,
+}: {
+  classId: string;
+  classes: ClassView[];
+  students: StudentView[];
+  onChanged: () => void;
+}) {
+  const [studentId, setStudentId] = useState('');
+  const [toClassId, setToClassId] = useState('');
+  const [movedOn, setMovedOn] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<StudentView | null>(null);
+  const mounted = useRef(true);
+  const generation = useRef(0);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      generation.current += 1;
+    };
+  }, []);
+  const selected = students.find((student) => student.id === studentId);
+
+  async function transfer() {
+    if (!selected || !toClassId || !movedOn || busy) return;
+    const token = generation.current;
+    setBusy(true);
+    setError(null);
+    try {
+      const updated = await transferStudent(selected.id, {
+        expectedStudentRevision: selected.revision,
+        fromClassId: classId,
+        toClassId,
+        movedOn,
+      });
+      if (!mounted.current || token !== generation.current) return;
+      setResult(updated);
+      onChanged();
+    } catch (cause) {
+      if (!mounted.current || token !== generation.current) return;
+      const apiError = asApiError(cause);
+      setError(
+        `转班失败（${apiError.code}）：${apiError.message} 日期与选择已保留。` +
+          (apiError.status === 0
+            ? '结果未知，请先刷新成员和归属历史对照。'
+            : '请核对学生最新版本后重试。'),
+      );
+    } finally {
+      if (mounted.current && token === generation.current) setBusy(false);
+    }
+  }
+
+  return (
+    <section className="assessments-subpanel" aria-label="学生转班">
+      <h3>学生转班与归属历史</h3>
+      <p className="assessments-hint">
+        转班按指定日期结束旧归属并建立新归属，保留旧班级历史；名单导入不会代替转班。
+      </p>
+      <div className="assessments-form">
+        <label className="assessments-field">
+          转班学生
+          <select
+            aria-label="转班学生"
+            value={studentId}
+            disabled={busy}
+            onChange={(event) => setStudentId(event.target.value)}
+          >
+            <option value="">请选择学生</option>
+            {students.map((student) => (
+              <option key={student.id} value={student.id}>
+                {student.name} · {student.studentNo ?? '无学号'}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="assessments-field">
+          目标班级
+          <select
+            aria-label="转入班级"
+            value={toClassId}
+            disabled={busy}
+            onChange={(event) => setToClassId(event.target.value)}
+          >
+            <option value="">请选择目标班级</option>
+            {classes
+              .filter((item) => item.id !== classId)
+              .map((item) => (
+                <option value={item.id} key={item.id}>
+                  {item.name}
+                </option>
+              ))}
+          </select>
+        </label>
+        <label className="assessments-field">
+          转班日期
+          <input
+            aria-label="转班日期"
+            className="assessments-input"
+            type="date"
+            value={movedOn}
+            disabled={busy}
+            onChange={(event) => setMovedOn(event.target.value)}
+          />
+        </label>
+        {selected && <span className="assessments-meta">学生版本 r{selected.revision}</span>}
+        <button
+          className="space-button"
+          disabled={busy || !selected || !toClassId || !movedOn}
+          onClick={() => void transfer()}
+        >
+          {busy ? '转班中…' : '确认转班'}
+        </button>
+      </div>
+      {error && (
+        <p role="alert" className="assessments-error">
+          {error}
+        </p>
+      )}
+      {result && (
+        <div role="status" data-testid="roster-transfer-result">
+          <strong>
+            {result.name} 已转班（版本 r{result.revision}）
+          </strong>
+          <ul className="assessments-list" aria-label="转班后的归属历史">
+            {result.memberships.map((membership) => (
+              <li key={membership.membershipId}>
+                {membership.className}：{membership.joinedOn} — {membership.leftOn ?? '当前归属'}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </section>
   );
 }

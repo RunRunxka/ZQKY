@@ -69,6 +69,7 @@ export function copyContent(content: QuestionContent): QuestionContent {
       : null,
     explanationMarkdown: content.explanationMarkdown,
     assetIds: [...content.assetIds],
+    ...(content.richContent === undefined ? {} : { richContent: content.richContent ? structuredClone(content.richContent) : null }),
   };
 }
 

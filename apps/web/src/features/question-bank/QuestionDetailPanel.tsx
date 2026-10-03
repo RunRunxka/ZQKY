@@ -12,7 +12,7 @@
  *   如实说明「AI 候选经人工校对确认后入库」；批次读不到时明确「无法核对」，不猜造。
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Modal } from '@/components/ui/Modal';
 import type { QuestionDetail } from '@/contracts/question-bank';
@@ -20,6 +20,7 @@ import { ApiError } from '@/services/api-client';
 import {
   deleteQuestion,
   getQuestion,
+  getQuestionAsset,
   getQuestionImport,
   patchQuestion,
 } from '@/services/question-bank-api';
@@ -37,11 +38,7 @@ import {
 import { ANSWER_STATE_LABEL, difficultyLabel, formatDateTime } from './labels';
 import { KnowledgeLinksPanel } from './KnowledgeLinksPanel';
 import { QuestionPreview } from './QuestionPreview';
-import {
-  aiSourceTraceOf,
-  aiSourceTraceText,
-  aiSourceTraceUnavailableText,
-} from './source-trace';
+import { aiSourceTraceOf, aiSourceTraceText, aiSourceTraceUnavailableText } from './source-trace';
 import type { TaxonomyIndex } from './taxonomy';
 
 type LoadState =
@@ -58,17 +55,23 @@ function formValueOf(detail: QuestionDetail): QuestionFormValue {
   };
 }
 
-export function QuestionDetailPanel({
-  questionId,
-  taxonomy,
-  onClose,
-  onChanged,
-}: {
+type QuestionDetailPanelProps = {
   questionId: string;
   taxonomy: TaxonomyIndex;
   onClose: () => void;
   onChanged: () => void;
-}) {
+};
+
+export function QuestionDetailPanel(props: QuestionDetailPanelProps) {
+  return <QuestionDetailSession key={props.questionId} {...props} />;
+}
+
+function QuestionDetailSession({
+  questionId,
+  taxonomy,
+  onClose,
+  onChanged,
+}: QuestionDetailPanelProps) {
   const [state, setState] = useState<LoadState>({ phase: 'loading' });
   const [value, setValue] = useState<QuestionFormValue | null>(null);
   const [linkDraft, setLinkDraft] = useState<KnowledgeLinkView[]>([]);
@@ -80,8 +83,27 @@ export function QuestionDetailPanel({
   const [conflict, setConflict] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [deleteArmed, setDeleteArmed] = useState(false);
+  const mountedRef = useRef(false);
+  const epochRef = useRef(0);
+  const writingRef = useRef(false);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      epochRef.current += 1;
+    };
+  }, []);
+  const active = useCallback(
+    (token: number) => mountedRef.current && token === epochRef.current,
+    [],
+  );
 
   const detail = state.phase === 'ready' ? state.detail : null;
+  const loadAsset = useCallback(
+    (assetId: string, signal: AbortSignal) =>
+      getQuestionAsset('question', questionId, assetId, signal),
+    [questionId],
+  );
   const linksRead = useMemo(
     () => readKnowledgeLinks(detail as unknown as Record<string, unknown> | null),
     [detail],
@@ -100,17 +122,20 @@ export function QuestionDetailPanel({
 
   const load = useCallback(
     async (signal?: AbortSignal) => {
+      const token = ++epochRef.current;
       setState({ phase: 'loading' });
       try {
         const next = await getQuestion(questionId, signal);
+        if (!active(token) || signal?.aborted) return null;
         setState({ phase: 'ready', detail: next });
         return next;
       } catch (cause) {
+        if (!active(token) || signal?.aborted) return null;
         setState({ phase: 'failed', error: asApiError(cause) });
         return null;
       }
     },
-    [questionId],
+    [questionId, active],
   );
 
   const syncLinks = useCallback((next: QuestionDetail) => {
@@ -140,13 +165,27 @@ export function QuestionDetailPanel({
     [detail, value, linksRead, linkDraft],
   );
 
+  async function refreshConflict(token: number) {
+    try {
+      const latest = await getQuestion(questionId);
+      if (!active(token)) return null;
+      setState({ phase: 'ready', detail: latest });
+      return latest;
+    } catch (cause) {
+      if (active(token)) setError(`服务端最新内容读取失败：${errorText(cause)} 你的编辑已保留。`);
+      return null;
+    }
+  }
+
   async function save() {
-    if (state.phase !== 'ready' || !value) return;
+    if (writingRef.current || state.phase !== 'ready' || !value) return;
     const issues = [...contentErrors(value.content), ...metadataErrors(value.metadata)];
     if (issues.length > 0) {
       setError(issues.join(' '));
       return;
     }
+    const token = ++epochRef.current;
+    writingRef.current = true;
     setBusy(true);
     setError(null);
     setConflict(null);
@@ -160,6 +199,7 @@ export function QuestionDetailPanel({
         // 只有用户显式改动过才整表替换；未改动时缺省 → 服务端沿用旧正式关联（不静默清空）
         knowledgeLinks: linksTouched ? linksToInputs(linkDraft) : undefined,
       });
+      if (!active(token)) return;
       setState({ phase: 'ready', detail: updated });
       setValue(formValueOf(updated));
       syncLinks(updated);
@@ -167,12 +207,14 @@ export function QuestionDetailPanel({
       setNotice(`已保存，当前修订 r${updated.revision}。`);
       onChanged();
     } catch (cause) {
+      if (!active(token)) return;
       const apiError = asApiError(cause);
       if (apiError.status === 409) {
         setConflict(
           `内容已在别处被修改（${apiError.code}）：${apiError.message} 你的修改已保留，下面是服务端最新内容。`,
         );
-        const latest = await load();
+        const latest = await refreshConflict(token);
+        if (!active(token)) return;
         if (latest) onChanged();
         return;
       }
@@ -199,31 +241,42 @@ export function QuestionDetailPanel({
       }
       setError(errorText(cause));
     } finally {
-      setBusy(false);
+      if (active(token)) {
+        writingRef.current = false;
+        setBusy(false);
+      }
     }
   }
 
   async function remove() {
-    if (state.phase !== 'ready') return;
+    if (writingRef.current || state.phase !== 'ready') return;
+    const token = ++epochRef.current;
+    writingRef.current = true;
     setBusy(true);
     setError(null);
     try {
       await deleteQuestion(questionId, state.detail.revision);
+      if (!active(token)) return;
       onChanged();
       onClose();
     } catch (cause) {
+      if (!active(token)) return;
       const apiError = asApiError(cause);
       if (apiError.status === 409) {
         setConflict(
           `内容已在别处被修改（${apiError.code}）：${apiError.message} 已重新读取服务端最新内容，请确认后重试。`,
         );
-        await load();
+        await refreshConflict(token);
+        if (!active(token)) return;
       } else {
         setError(errorText(cause));
       }
       setDeleteArmed(false);
     } finally {
-      setBusy(false);
+      if (active(token)) {
+        writingRef.current = false;
+        setBusy(false);
+      }
     }
   }
 
@@ -294,7 +347,12 @@ export function QuestionDetailPanel({
                 {editing && value && (
                   <>
                     <p className="qb-hint">服务端最新内容：</p>
-                    <QuestionPreview content={state.detail.content} compact />
+                    <QuestionPreview
+                      content={state.detail.content}
+                      compact
+                      loadAsset={loadAsset}
+                      assetScope={`${questionId}|${state.detail.revision}`}
+                    />
                     <div className="qb-actions">
                       <button
                         className="space-button primary"
@@ -384,7 +442,11 @@ export function QuestionDetailPanel({
               </>
             ) : (
               <>
-                <QuestionPreview content={state.detail.content} />
+                <QuestionPreview
+                  content={state.detail.content}
+                  loadAsset={loadAsset}
+                  assetScope={`${questionId}|${state.detail.revision}`}
+                />
                 <dl className="qb-meta-list">
                   <div>
                     <dt>分类</dt>

@@ -3,8 +3,8 @@
  *
  * 背景：C0 冻结契约已包含 `contracts/chat.ts`（v1 `RagTurnState`）与
  * `contracts/textbook.ts`，但**尚未**包含 `apps/api/app/schemas/rag_v2.py` 的
- * `ScopeSnapshot / EvidenceRef / TextbookEvidence / RagResultV2`。共享契约由总控独占
- * （本卡禁止修改 `contracts/**`），因此这里在 chat 模块内**逐字段镜像**后端 schema，
+ * `ScopeSnapshot / EvidenceRef / TextbookEvidence / RagResultV2`。B5由CTRL将五个复用证据类型迁入 `contracts/rag-v2.ts`，保持原字段并兼容re-export；
+ * 本模块继续保留原运行时校验，
  * 并在本文件用模块扩充（declaration merging）为消息补上 v2 落库字段。
  *
  * 边界：
@@ -15,34 +15,20 @@
 
 import type { AskUserInteraction, ChatMessage } from '@/contracts/chat';
 import type { LocatorView, TextbookSelection } from '@/contracts/textbook';
+import type { ScopeSnapshot, EvidenceRef, EvidenceReadable, TextbookEvidence } from '@/contracts/rag-v2';
+export type { ScopeDocument, ScopeSnapshot, EvidenceRef, EvidenceReadable, TextbookEvidence } from '@/contracts/rag-v2';
 
 /* ------------------------------------------------------------------ 冻结范围快照 */
 
-export interface ScopeDocument {
-  documentId: string;
-  documentRevisionId: string;
-  metadataRevisionId: string;
-}
+
 
 /** 服务端在定位时冻结的范围事实；客户端只回传，不构造判定。 */
-export interface ScopeSnapshot {
-  schemaVersion: 2;
-  selection: TextbookSelection;
-  documents: ScopeDocument[];
-  embeddingGenerationId: string;
-  scopeHash: string;
-}
+
 
 /* ------------------------------------------------------------------ 证据与结果 */
 
 /** 详解引用（/rag/explain/stream 的最小引用形状）。 */
-export interface EvidenceRef {
-  evidenceId: string;
-  documentRevisionId: string;
-  normalizedTextSha256: string;
-  charStart: number;
-  charEnd: number;
-}
+
 
 /**
  * 清洗后的可读派生文本（RAG-QUALITY v1.1 · PLAN §2.3）。
@@ -52,11 +38,7 @@ export interface EvidenceRef {
  * 回传/校验只用 `EvidenceRef` 的坐标字段（`evidenceId` + `documentRevisionId` +
  * `normalizedTextSha256` + `charStart/charEnd`）。旧历史消息允许缺失。
  */
-export interface EvidenceReadable {
-  version: 'rag-readable-v1' | 'rag-readable-v2';
-  text: string;
-  removedImageCount: number;
-}
+
 
 /** 首答呈现策略（后端 `presentation.version === 'compact-v1'` 表示已按首答预算收敛）。 */
 export interface RagPresentation {
@@ -67,21 +49,7 @@ export interface RagPresentation {
 }
 
 /** 教材原文证据（字段与后端 TextbookEvidence 一致，含来源定位）。 */
-export interface TextbookEvidence extends EvidenceRef {
-  documentId: string;
-  title: string;
-  editionLabel: string;
-  subjectLabel: string;
-  chapterPath: string[];
-  /** 可逐字验证的**封存原文切片**（不可变；含公式，历史数据可能含图片 Markdown） */
-  text: string;
-  originalFileSha256: string;
-  locator: LocatorView;
-  /** 教材已更新：该引用属于历史修订，必须明确标注且不隐藏 */
-  isSuperseded: boolean;
-  /** 新服务端必填的清洗派生文本；旧历史消息允许缺失（展示降级为 `text` 并明确标注） */
-  readable?: EvidenceReadable;
-}
+
 
 export type RagPointStatus = 'ok' | 'partial' | 'uncertain' | 'no_evidence';
 
@@ -277,7 +245,7 @@ export function isTextbookEvidence(value: unknown): value is TextbookEvidence {
     typeof value.originalFileSha256 === 'string' &&
     isLocatorView(value.locator) &&
     typeof value.isSuperseded === 'boolean' &&
-    (value.readable === undefined || isEvidenceReadable(value.readable))
+    (value.readable === undefined || value.readable === null || isEvidenceReadable(value.readable))
   );
 }
 

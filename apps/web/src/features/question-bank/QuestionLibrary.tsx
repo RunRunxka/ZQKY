@@ -11,7 +11,7 @@
  *   （正式关联在详情抽屉的「知识点关联」区块）。
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Sparkles } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
@@ -61,10 +61,14 @@ function queryOf(filters: Filters, offset: number): QuestionQuery {
 export function QuestionLibrary({
   taxonomy,
   onImportsChanged,
+  initialGenerationOpen = false,
+  returnPracticeSetId,
 }: {
   taxonomy: TaxonomyIndex;
   /** AI 补题发布候选批次后，通知父级刷新「导入批次」列表。 */
   onImportsChanged?: () => void;
+  initialGenerationOpen?: boolean;
+  returnPracticeSetId?: string;
 }) {
   const router = useRouter();
   const [draftFilters, setDraftFilters] = useState<Filters>(EMPTY_FILTERS);
@@ -72,7 +76,10 @@ export function QuestionLibrary({
   const [offset, setOffset] = useState(0);
   const [openQuestionId, setOpenQuestionId] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
-  const [generationOpen, setGenerationOpen] = useState(false);
+  const [generationOpen, setGenerationOpen] = useState(initialGenerationOpen);
+
+  // 新导航可到达仍挂载的题库；只同步变化的意图，保留筛选和教师关闭状态。
+  useEffect(() => setGenerationOpen(initialGenerationOpen), [initialGenerationOpen]);
 
   const { state, reload } = useAsyncResource(
     (signal) => listQuestions(queryOf(applied, offset), signal),
@@ -263,7 +270,7 @@ export function QuestionLibrary({
             }}
             onOpenImport={(importId) => {
               setGenerationOpen(false);
-              router.push(`/question-bank/imports/${importId}`);
+              router.push(`/question-bank/imports/${importId}${returnPracticeSetId ? `?returnPracticeSetId=${encodeURIComponent(returnPracticeSetId)}` : ''}`);
             }}
           />
         </Modal>

@@ -1,6 +1,6 @@
 # 后端开发规则
 
-更新：2026-10-01。先读根 AGENTS.md。本文件补充 apps/api 范围的规则；当前任务、审查缺陷与下一动作只看 `docs/CURRENT_STATUS.md`，历史阶段编号不构成当前实施授权。
+更新：2026-10-03。先读根 AGENTS.md。本文件补充 apps/api 范围的规则；当前任务、审查缺陷与下一动作只看 `docs/CURRENT_STATUS.md`，历史阶段编号不构成当前实施授权。
 
 - 后端是本机单用户服务，只监听 `127.0.0.1`：开发 8000，后端测试 8001；不允许配置对外地址（`Settings` 会拒绝非回环 host）。
 - 依赖只用 uv 管理：`pyproject.toml` + `uv.lock` 是唯一依赖来源；改依赖必须 `uv lock`/`uv add` 并记录版本。不把 Python 加入 npm workspaces。
@@ -8,8 +8,10 @@
   - 连接统一走 `app/core/sqlite.py`（外键、WAL、有限 `busy_timeout`；`busy_timeout` 先于 `journal_mode` 设置），不要在模块里各自 `sqlite3.connect`。
   - **迁移登记**：每库 `schema_migrations`，迁移清单在 `app/core/migrations/{textbooks,question_bank,knowledge,teaching}.py`（冻结基线 + 追加增量）。改动结构一律**新增迁移**，不得改写已登记 SQL（散列漂移会拒绝启动）；迁移内容由总控登记，实现者提供 SQL 建议。
   - **知识点与名单（B1）**：知识点库 `0002` 登记设计 5 表（`subjects`/`knowledge_points`/`knowledge_point_revisions`/`knowledge_aliases`/`textbook_knowledge_links`，含环检测与修订不可变触发器）与导入批次表（`knowledge_imports`/`knowledge_import_rows`），`0003` 补 `knowledge_imports.issues_json`（批次级问题独立落列）；教学库 `0002` 登记 `classes`/`students`/`class_memberships`（含 `ux_active_membership` 部分唯一索引）与名单批次表（`roster_imports`/`roster_import_rows`）。
-  - **原卷、施测与题库关联（B2）**：教学库 `0003` 登记原卷四表 + `paper_source_blocks`/`paper_issues`/`ai_proposals` 与确认冻结触发器，`0004` 登记施测三表 + 参测班级显式确认列 + 只用已确认卷/不能换卷触发器；题库 `0004` 登记 `question_knowledge_links`（含不可变触发器）+ 草稿关联/生成来源/版本化内容指纹。施测固定引用已确认原卷修订；姓名、学号与人次从服务端读取并冻结。`paper_revisions.source_file_id` 必须非空；草稿总分允许 0，确认闸门要求 >0 且等于计分叶子合计。
-  - **成绩与修订快照（B3）**：教学库 `0005` 增加原卷修订级标题快照，`0006` 增加成绩导入、正式修订、全矩阵与修正审计；`0007` 受控重建 `assessments`，恢复 `(active_score_revision_id,id)→score_revisions(id,assessment_id)` DEFERRABLE 复合外键，只能引用本施测已确认成绩。B2 的成绩指针仅空限制已被替代；`paper_revisions.source_practice_revision_id` 的仅空限制仍保留，练习转换外键尚未实施。
+  - **原卷、施测与题库关联（B2）**：教学库 `0003` 登记原卷四表 + `paper_source_blocks`/`paper_issues`/`ai_proposals` 与确认冻结触发器，`0004` 登记施测三表 + 参测班级显式确认列 + 只用已确认卷/不能换卷触发器；题库 `0004` 登记 `question_knowledge_links`（含不可变触发器）+ 草稿关联/生成来源/版本化内容指纹。施测固定引用已确认原卷修订；姓名、学号与人次从服务端读取并冻结。文件来源的 `paper_revisions.source_file_id` 必须非空；B4练习来源的例外与互斥来源闸门见下述0008/0009，不能放宽文件卷。草稿总分允许 0，确认闸门要求 >0 且等于计分叶子合计。
+  - **成绩与修订快照（B3）**：教学库 `0005` 增加原卷修订级标题快照，`0006` 增加成绩导入、正式修订、全矩阵与修正审计；`0007` 受控重建 `assessments`，恢复 `(active_score_revision_id,id)→score_revisions(id,assessment_id)` DEFERRABLE 复合外键，只能引用本施测已确认成绩。B2 的成绩指针仅空限制已被替代；B4已由追加0008/0009建立练习来源真外键与确认闸门，不能继续按B2仅空占位语义处理。
+  - **学情/练习/导出（B4）**：教学库追加 `0008` 登记固定学情证据、练习审核修订、转换来源与受管导出元数据；`0009` 经受检重建使原卷文件/练习来源恰一非空、练习指针真FK，并核同owner/学科/已审核版本与完整题叶映射。文件卷保留原件/来源块约束，原0001～0007声明不改。任务/发布/Blob与T10渲染器复用；分析/导出完成与所属业务元数据同事务，转换与原卷/施测/映射同teaching事务；题库实际owner显式注入而教学owner不改。
+  - **教案与固定建议（B5）**：在同一teaching库追加`0010`六个教案表，保留原九声明。v1正文保持，后台外层协议2；正文/输入/建议/终结决定不可变，current指针+CAS四列真FK，owner与proposal单次应用DB保护。版本感知结构检查仅对已登记0010生效，不能把新表加进B0 required拒绝合法B4库。公共事务须连COMMIT异常一起回滚；模型/原文IO仍在写事务与publication锁外。学情固定ready、单班KP，生成经生产RagV2与confirmed固定题/reviewed固定练习，模型只匿名白名单和可验证已知PII阻断。候选、任务成功同事务；保存/生成/应用/拒绝原包receipt优先于新CAS/外部事实，教师只选五整字段。是否独立验收与关闭只看CURRENT_STATUS。
   - **成绩规则**：只读教师 XLSX/CSV 小题得分，不调用模型评分。Decimal 文本换算为 `×100` 整数单位；有效 0、missing、absent、exempt 互不顶替。全矩阵以该成绩修订自己的参测人次和计分叶快照为依据；确认后不可变，修正建立新完整版本并留审计。导入草稿锁、施测锁和 active/base 成绩版本分别校验，不能互相替代。
   - **题库存量服务接入共享依赖**：`build_question_bank_service` 现在接收 `knowledge_catalog` / `coordinator` / `job_engine`（由 `main.py` 装配）；组织与生成任务统一走 JobEngine 六态，`RECONCILE_DOMAINS` 含 `question`；启动不自动重叫模型。
   - **启动门控语义**：`REQUIRED_TABLES` 只要求 B0 基础表——"尚未应用 B1 迁移"的合法旧库必须能启动；新结构由迁移保证（`tests/test_b1_migrations.py` 覆盖两条路径）。

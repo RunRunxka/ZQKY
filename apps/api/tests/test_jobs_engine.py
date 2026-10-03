@@ -833,13 +833,20 @@ async def test_engine_slot_wait_keeps_lease_and_blocks_takeover(tmp_path: Path) 
     assert store.get(second.job_id).attempt == 1
     assert entered == [first.job_id]
 
-    # 模拟长时间排队：任务钟前进 91s（远超 3s 租约），真实等待心跳周期（1s）
-    expiry_before = store.get(second.job_id).lease_expires_at
-    clock.advance(91)
-    await _wait_until(
-        lambda: store.get(second.job_id).lease_expires_at != expiry_before,
-        timeout=4.0,
-    )
+    # 总等待时间超过租约，但每次在到期前续期。一次跳到已过期不应再被心跳复活。
+    # 10次×2s的任务钟，真实等待每个心跳周期（1s），核验持续排队仍保留有效租约。
+    for _ in range(10):
+        expiry_before = [store.get(item.job_id).lease_expires_at for item in (first, second)]
+        clock.advance(2)
+        await _wait_until(
+            lambda: all((current := store.get(item.job_id)).state == "running"
+                        and current.attempt == 1 and current.lease_expires_at is not None
+                        and current.lease_expires_at > previous and current.lease_expires_at > clock.now()
+                        for item, previous in zip((first, second), expiry_before)),
+            timeout=4.0,
+        )
+        assert entered == [first.job_id]
+        assert not task_a.done() and not task_b.done()
     waiting = store.get(second.job_id)
     assert waiting.attempt == 1
     assert waiting.lease_expires_at is not None

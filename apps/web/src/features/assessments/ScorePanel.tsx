@@ -10,8 +10,9 @@
  * - 409/422 的处理在 review 组件里：保留编辑/校对并显式刷新对照。
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { RefreshCw, Upload } from 'lucide-react';
+import type { ErrorIssue } from '@/contracts/api';
 import type {
   ScoreColumnMapping,
   ScoreImportSummary,
@@ -26,9 +27,10 @@ import {
   listScoreImports,
   listScoreRevisions,
   patchScoreImport,
+  refreshScoreImport,
 } from '@/services/assessments-api';
-import { useAsyncResource } from './hooks';
-import { leafLabel, scoreImportStateChipClass, scoreImportStateLabel, scoredLeafItems } from './labels';
+import { asApiError, useAsyncResource } from './hooks';
+import { issueLocationLabel, leafLabel, scoreImportStateChipClass, scoreImportStateLabel, scoredLeafItems } from './labels';
 import { ScoreImportReview } from './ScoreImportReview';
 import { ScoreStatusLegend } from './ScoreStatusBadge';
 
@@ -39,6 +41,8 @@ interface MappingDraft {
   headerRow: number;
   studentNoColumn: string;
   nameColumn: string;
+  attendanceColumn: string;
+  totalColumn: string;
   itemColumns: Record<string, string>;
 }
 
@@ -47,6 +51,8 @@ const EMPTY_MAPPING: MappingDraft = {
   headerRow: 1,
   studentNoColumn: '',
   nameColumn: '',
+  attendanceColumn: '',
+  totalColumn: '',
   itemColumns: {},
 };
 
@@ -57,6 +63,8 @@ function mappingFromView(view: ScoreImportView | null): MappingDraft {
     headerRow: view.mapping.headerRow ?? 0,
     studentNoColumn: view.mapping.studentNoColumn ?? '',
     nameColumn: view.mapping.nameColumn ?? '',
+    attendanceColumn: view.mapping.attendanceColumn ?? '',
+    totalColumn: view.mapping.totalColumn ?? '',
     itemColumns: Object.fromEntries(
       view.mapping.itemColumns.map((entry) => [entry.itemId, entry.column]),
     ),
@@ -82,6 +90,16 @@ export function ScorePanel({
   const [mappingBusy, setMappingBusy] = useState(false);
   const [mappingError, setMappingError] = useState<string | null>(null);
   const [mappingNotice, setMappingNotice] = useState<string | null>(null);
+  const [mappingIssues, setMappingIssues] = useState<ErrorIssue[]>([]);
+  const mappingDirty = useRef(false);
+  const [mappingHasEdits, setMappingHasEdits] = useState(false);
+  const [savedMappingPreview, setSavedMappingPreview] = useState<{ revision: number; previewVersion: number } | null>(null);
+  const mappingGeneration = useRef(0);
+  const mappingBusyRef = useRef(false);
+  const [previewBusy, setPreviewBusy] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewNotice, setPreviewNotice] = useState<string | null>(null);
+  const operation = useRef({ mounted: false, epoch: 0 });
   const [uploadBusy, setUploadBusy] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -104,7 +122,39 @@ export function ScorePanel({
   const importSummaries: ScoreImportSummary[] = imports.lastData?.items ?? [];
 
   // 选中批次：用户选择优先（列表刷新期间不丢选择，避免校对面板被卸载）；否则用最新批次
-  const activeImportId = selectedImportId ?? importSummaries[0]?.importId ?? null;
+  const defaultImportId = importSummaries[0]?.importId ?? null;
+  const activeImportId = selectedImportId ?? defaultImportId;
+  useEffect(() => {
+    // 首次自动选择也固定身份：列表刷新不应短暂变成 none，误清在途后的新编辑。
+    if (selectedImportId === null && defaultImportId) setSelectedImportId(defaultImportId);
+  }, [selectedImportId, defaultImportId]);
+
+  useEffect(() => {
+    const operationState = operation.current;
+    operationState.mounted = true;
+    operationState.epoch += 1;
+    setMappingBusy(false);
+    mappingBusyRef.current = false;
+    mappingGeneration.current += 1;
+    setMappingHasEdits(false);
+    setSavedMappingPreview(null);
+    setMappingError(null);
+    setMappingIssues([]);
+    setMappingNotice(null);
+    setUploadBusy(false);
+    setPreviewBusy(false);
+    setPreviewError(null);
+    setPreviewNotice(null);
+    mappingDirty.current = false;
+    return () => {
+      operationState.mounted = false;
+      operationState.epoch += 1;
+    };
+  }, [assessmentId, activeImportId]);
+
+  function current(token: number): boolean {
+    return operation.current.mounted && operation.current.epoch === token;
+  }
 
   const importView = useAsyncResource(
     (signal) =>
@@ -112,6 +162,8 @@ export function ScorePanel({
     `assessments-score-import|${activeImportId ?? 'none'}`,
   );
   const view = importView.lastData;
+  const mappingPreviewPending = savedMappingPreview !== null && (!view ||
+    view.revision < savedMappingPreview.revision || view.previewVersion < savedMappingPreview.previewVersion);
 
   const revisions = useAsyncResource(
     (signal) =>
@@ -136,8 +188,15 @@ export function ScorePanel({
   const leafCount = leaves.length;
 
   useEffect(() => {
-    setMappingDraft(mappingFromView(importView.lastData ?? null));
-  }, [importView.lastData]);
+    if (!mappingDirty.current && !mappingPreviewPending) setMappingDraft(mappingFromView(importView.lastData ?? null));
+  }, [importView.lastData, mappingPreviewPending]);
+
+  function editMapping(update: (previous: MappingDraft) => MappingDraft) {
+    mappingDirty.current = true;
+    mappingGeneration.current += 1;
+    setMappingHasEdits(true);
+    setMappingDraft(update);
+  }
 
   function reloadAll() {
     setLocalRefresh((value) => value + 1);
@@ -159,12 +218,14 @@ export function ScorePanel({
       return;
     }
     setUploadBusy(true);
+    const token = operation.current.epoch;
     setUploadError(null);
     try {
       const created = await createScoreImport(assessmentId, file, {
         workSheet: workSheet.trim() || null,
         baseScoreRevisionId: baseSelection || null,
       });
+      if (!current(token)) return;
       setFile(null);
       setWorkSheet('');
       setBaseSelection('');
@@ -172,6 +233,7 @@ export function ScorePanel({
       reloadAll();
       onChanged();
     } catch (cause) {
+      if (!current(token)) return;
       const error = cause as { code?: string; message?: string; details?: { currentRevision?: number } };
       setUploadError(
         `上传失败（${error.code ?? 'UNKNOWN'}）：${error.message ?? '请求失败'}${
@@ -179,14 +241,17 @@ export function ScorePanel({
         } 已选文件保留，可直接重试。`,
       );
     } finally {
-      setUploadBusy(false);
+      if (current(token)) setUploadBusy(false);
     }
   }
 
   async function saveMapping() {
-    if (!view) return;
+    if (!view || mappingBusyRef.current) return;
+    const editGeneration = mappingGeneration.current;
     setMappingBusy(true);
+    const token = operation.current.epoch;
     setMappingError(null);
+    setMappingIssues([]);
     setMappingNotice(null);
     const itemColumns: ScoreItemColumn[] = Object.entries(mappingDraft.itemColumns)
       .filter(([, column]) => column.trim() !== '')
@@ -205,7 +270,9 @@ export function ScorePanel({
       setMappingError('学号列与姓名列至少提供一项（服务端口径）。');
       return;
     }
-    if (identities.some((column) => !COLUMN_PATTERN.test(column)) || invalidLeaf) {
+    const optionalColumns = [mappingDraft.attendanceColumn, mappingDraft.totalColumn]
+      .map((value) => value.trim().toUpperCase()).filter(Boolean);
+    if ([...identities, ...optionalColumns].some((column) => !COLUMN_PATTERN.test(column)) || invalidLeaf) {
       setMappingBusy(false);
       setMappingError('列必须写成原表列字母（如 A、D、AA），最多 3 个字符。');
       return;
@@ -216,23 +283,39 @@ export function ScorePanel({
       return;
     }
     const mapping: ScoreColumnMapping = {
+      ...(view.mapping ?? {}),
       workSheet: mappingDraft.workSheet.trim(),
       headerRow: mappingDraft.headerRow,
       studentNoColumn: mappingDraft.studentNoColumn.trim().toUpperCase() || null,
       nameColumn: mappingDraft.nameColumn.trim().toUpperCase() || null,
+      attendanceColumn: mappingDraft.attendanceColumn.trim().toUpperCase() || null,
+      totalColumn: mappingDraft.totalColumn.trim().toUpperCase() || null,
       itemColumns,
     };
+    mappingBusyRef.current = true;
     try {
       const next = await patchScoreImport(view.importId, {
         expectedRevision: view.revision,
         mapping,
       });
-      setMappingNotice(`已保存映射并重算行（批次 r${next.revision}，预览 v${next.previewVersion}）。`);
+      if (!current(token)) return;
+      const savedCurrentEdits = editGeneration === mappingGeneration.current;
+      setSavedMappingPreview({ revision: next.revision, previewVersion: next.previewVersion });
+      if (savedCurrentEdits) {
+        mappingDirty.current = false;
+        setMappingHasEdits(false);
+        setMappingDraft(mappingFromView(next));
+      }
+      setMappingNotice(`已保存映射并重算行（批次 r${next.revision}，预览 v${next.previewVersion}）。${
+        savedCurrentEdits ? '' : '请求开始后的新映射编辑已保留，仍需另行保存。'
+      }`);
       reloadAll();
       // 读回权威视图（同 key）：后续校对/确认必须用重算后的 revision 与 previewVersion
       importView.reload();
     } catch (cause) {
-      const error = cause as { code?: string; message?: string; status?: number; details?: { currentRevision?: number } };
+      if (!current(token)) return;
+      const error = cause as { code?: string; message?: string; status?: number; details?: { currentRevision?: number; issues?: ErrorIssue[] } };
+      setMappingIssues(error.details?.issues ?? []);
       if (error.status === 409) {
         setMappingError(
           `数据已变化，请刷新对照（当前版本 ${
@@ -243,7 +326,37 @@ export function ScorePanel({
         setMappingError(`保存映射失败（${error.code ?? 'UNKNOWN'}）：${error.message ?? '请求失败'}`);
       }
     } finally {
-      setMappingBusy(false);
+      if (current(token)) {
+        mappingBusyRef.current = false;
+        setMappingBusy(false);
+      }
+    }
+  }
+
+  async function rebuildPreview() {
+    const assessment = detail.lastData?.assessment;
+    if (!view || !assessment) return;
+    const token = operation.current.epoch;
+    setPreviewBusy(true);
+    setPreviewError(null);
+    setPreviewNotice(null);
+    try {
+      const next = await refreshScoreImport(view.importId, {
+        expectedImportRevision: view.revision,
+        expectedAssessmentRevision: assessment.revision,
+        baseScoreRevisionId: view.baseScoreRevisionId ?? null,
+      });
+      if (!current(token)) return;
+      setPreviewNotice(`已明确刷新预览（批次 r${next.revision}，预览 v${next.previewVersion}）；请重新核对并承认。`);
+      reloadForCompare();
+    } catch (cause) {
+      if (!current(token)) return;
+      const error = asApiError(cause);
+      setPreviewError(`刷新预览失败（${error.code}）：${error.message}${error.status === 409
+        ? ` 当前版本 ${error.details?.currentRevision ?? '未知'}，请刷新对照；当前编辑已保留。`
+        : '当前编辑已保留。'}`);
+    } finally {
+      if (current(token)) setPreviewBusy(false);
     }
   }
 
@@ -413,7 +526,7 @@ export function ScorePanel({
                   aria-label="映射工作表名"
                   value={mappingDraft.workSheet}
                   onChange={(event) =>
-                    setMappingDraft((prev) => ({ ...prev, workSheet: event.target.value }))
+                    editMapping((prev) => ({ ...prev, workSheet: event.target.value }))
                   }
                 />
               </label>
@@ -426,7 +539,7 @@ export function ScorePanel({
                   aria-label="表头行"
                   value={mappingDraft.headerRow}
                   onChange={(event) =>
-                    setMappingDraft((prev) => ({
+                    editMapping((prev) => ({
                       ...prev,
                       headerRow: Number(event.target.value) || 0,
                     }))
@@ -440,7 +553,7 @@ export function ScorePanel({
                   aria-label="学号列"
                   value={mappingDraft.studentNoColumn}
                   onChange={(event) =>
-                    setMappingDraft((prev) => ({ ...prev, studentNoColumn: event.target.value }))
+                    editMapping((prev) => ({ ...prev, studentNoColumn: event.target.value }))
                   }
                 />
               </label>
@@ -451,9 +564,21 @@ export function ScorePanel({
                   aria-label="姓名列"
                   value={mappingDraft.nameColumn}
                   onChange={(event) =>
-                    setMappingDraft((prev) => ({ ...prev, nameColumn: event.target.value }))
+                    editMapping((prev) => ({ ...prev, nameColumn: event.target.value }))
                   }
                 />
+              </label>
+              <label className="assessments-field">
+                <span>出勤列（可选）</span>
+                <input className="assessments-input assessments-input-narrow" aria-label="出勤列"
+                  value={mappingDraft.attendanceColumn} onChange={(event) =>
+                    editMapping((prev) => ({ ...prev, attendanceColumn: event.target.value }))} />
+              </label>
+              <label className="assessments-field">
+                <span>总分列（可选）</span>
+                <input className="assessments-input assessments-input-narrow" aria-label="总分列"
+                  value={mappingDraft.totalColumn} onChange={(event) =>
+                    editMapping((prev) => ({ ...prev, totalColumn: event.target.value }))} />
               </label>
             </div>
 
@@ -474,7 +599,7 @@ export function ScorePanel({
                     aria-label={`${leaf.questionNo} 列字母`}
                     value={mappingDraft.itemColumns[leaf.itemId] ?? ''}
                     onChange={(event) =>
-                      setMappingDraft((prev) => ({
+                      editMapping((prev) => ({
                         ...prev,
                         itemColumns: { ...prev.itemColumns, [leaf.itemId]: event.target.value },
                       }))
@@ -504,11 +629,31 @@ export function ScorePanel({
                 {mappingError}
               </p>
             )}
+            {mappingIssues.length > 0 && <ul className="assessments-issue-list" data-testid="assessments-mapping-issues">
+              {mappingIssues.map((issue, index) => <li key={index}>{issueLocationLabel(issue)}{issue.code}：{issue.message}</li>)}
+            </ul>}
             {mappingNotice && (
               <p className="space-banner info" role="status" data-testid="assessments-mapping-notice">
                 {mappingNotice}
               </p>
             )}
+            {mappingHasEdits && <p className="assessments-hint" data-testid="assessments-mapping-dirty">
+              映射有未保存修改，请先保存并读回权威预览，再确认成绩。
+            </p>}
+            {mappingPreviewPending && <p className="assessments-hint" data-testid="assessments-mapping-waiting-preview">
+              映射已保存，等待读回重算后的权威预览；读取失败时请刷新对照，再承认并确认成绩。
+            </p>}
+          </section>
+
+          <section className="assessments-subpanel" aria-label="明确刷新成绩预览">
+            <p className="assessments-hint">
+              出勤或参测人次校正后，先刷新对照读取当前施测，再明确刷新本预览并重新承认。
+              若正式成绩基准已变化，请新建导入批次；刷新不替换基准，也不清空未保存校对。
+            </p>
+            <button className="space-button" disabled={previewBusy || view.state === 'confirmed' || !detail.lastData}
+              onClick={() => void rebuildPreview()}>{previewBusy ? '刷新预览中…' : '明确刷新成绩预览'}</button>
+            {previewError && <p className="space-banner error" role="alert" data-testid="assessments-preview-error">{previewError}</p>}
+            {previewNotice && <p className="space-banner info" role="status" data-testid="assessments-preview-notice">{previewNotice}</p>}
           </section>
 
           <ScoreStatusLegend />
@@ -525,6 +670,7 @@ export function ScorePanel({
               attendance: participant.attendance,
             }))}
             assessmentRevision={detail.lastData?.assessment.revision ?? null}
+            mappingPending={mappingHasEdits || mappingBusy || mappingPreviewPending}
             onReload={reloadForCompare}
             onReloadAssessment={detail.reload}
             onChanged={onChanged}

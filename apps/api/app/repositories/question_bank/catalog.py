@@ -1007,6 +1007,7 @@ class QuestionBankCatalog:
         content_fingerprint: str,
         knowledge_links: Sequence[Mapping[str, Any]] | None = None,
         derived_fingerprint: tuple[str, str] | None = None,
+        duplicate_fingerprint: tuple[str, str] | None = None,
     ) -> QuestionRecord:
         """题目编辑：追加不可变新修订，并把 current_revision_id 指向它。
 
@@ -1062,6 +1063,11 @@ class QuestionBankCatalog:
                     question_revision_id=revision_id,
                     algorithm_version=derived_fingerprint[0],
                     fingerprint=derived_fingerprint[1],
+                )
+            if duplicate_fingerprint is not None:
+                self.save_derived_fingerprint_in(
+                    conn, question_revision_id=revision_id,
+                    algorithm_version=duplicate_fingerprint[0], fingerprint=duplicate_fingerprint[1],
                 )
             conn.execute(
                 "UPDATE questions SET current_revision_id = ? WHERE id = ?",
@@ -1413,6 +1419,34 @@ class QuestionBankCatalog:
             conn, _text(owner_id, field="owner_id"), _text(fingerprint, field="fingerprint")
         )
 
+    def questions_by_surface_in(
+        self, conn: sqlite3.Connection, owner_id: str, *, algorithm_version: str, fingerprint: str
+    ) -> list[QuestionRecord]:
+        """新算法精确匹配 + 未登记该版本的历史候选，服务从冻结内容纯计算复核。
+
+        只看同 owner 的 confirmed 当前修订，不拿旧指纹/其它算法值直接比较。
+        历史候选不补写、不做资产 IO，避免启动隐式迁移。
+        """
+        rows = conn.execute(
+            "SELECT q.* FROM questions AS q JOIN question_revisions AS r "
+            "ON r.id = q.current_revision_id LEFT JOIN question_content_fingerprints AS f "
+            "ON f.question_revision_id = r.id AND f.algorithm_version = ? "
+            "WHERE q.owner_id = ? AND q.status = 'confirmed' "
+            "AND (f.fingerprint = ? OR f.question_revision_id IS NULL) "
+            "ORDER BY q.created_at ASC, q.rowid ASC",
+            (_text(algorithm_version, field="algorithm_version"), _text(owner_id, field="owner_id"),
+             _text(fingerprint, field="fingerprint")),
+        ).fetchall()
+        return [self._question_record(conn, row) for row in rows]
+
+    def find_questions_by_surface(
+        self, owner_id: str, *, algorithm_version: str, fingerprint: str
+    ) -> list[QuestionRecord]:
+        with self._read() as conn:
+            return self.questions_by_surface_in(
+                conn, owner_id, algorithm_version=algorithm_version, fingerprint=fingerprint
+            )
+
     def has_any_question_in(self, conn: sqlite3.Connection, owner_id: str) -> bool:
         row = conn.execute(
             "SELECT 1 AS present FROM questions WHERE owner_id = ? LIMIT 1",
@@ -1524,6 +1558,36 @@ class QuestionBankCatalog:
             self._require_job_row_in(conn, job_id)
             if updates:
                 self._apply_updates(conn, "question_jobs", job_id, updates)
+            return self._job_record(self._job_row_in(conn, job_id))
+
+    def record_organize_failure(
+        self,
+        job_id: str,
+        *,
+        code: str,
+        message: str,
+        lease_attempt: int,
+        lease_token: str,
+        now: str | None = None,
+    ) -> JobRecord:
+        """失败原因的读改写也在同一短事务核原租约，迟到零写入。"""
+        with self._write() as conn:
+            row = self._require_job_row_in(conn, job_id)
+            job = self._job_record(row)
+            requested = self._requested_lease(
+                lease_attempt=lease_attempt, lease_token=lease_token
+            )
+            if (
+                requested is None
+                or self._lease_identity_of_row(row, now=now) != requested
+                or _stored_flag(row["cancel_requested"], field="question_jobs.cancel_requested")
+            ):
+                return job
+            checkpoint = dict(job.checkpoint)
+            checkpoint["jobError"] = {"code": code, "message": message}
+            self._apply_updates(conn, "question_jobs", job_id, {
+                "checkpoint_json": json_fields.write_object(checkpoint, field="checkpoint_json")
+            })
             return self._job_record(self._job_row_in(conn, job_id))
 
     def pending_jobs(

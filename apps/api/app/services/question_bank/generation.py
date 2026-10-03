@@ -624,6 +624,8 @@ class QuestionGenerationRunner:
             maxOutputTokens=self._output_budget(handle),
             params={},
         )
+        if await ctx.cancellation_requested():
+            return JobOutcome(result={"cancelled": True, "candidateCount": 0}, publish=None)
         response = await handle.provider.complete(handle.config, request)
         if response.finishReason == FINISH_LENGTH:
             raise _invalid(

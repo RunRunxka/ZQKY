@@ -11,15 +11,18 @@ import {
 import { useStore } from 'zustand';
 import { createLessonStore } from './store';
 import { useDraftPersistence } from './useDraftPersistence';
-import type { FillProposal, TextField, LessonPlanServices } from './types';
+import type { FillProposal, TextField, LessonPlanServices, LessonPlanData } from './types';
+import { useServerPersistence, type ServerBinding } from './useServerPersistence';
+import type { LessonRevisionView } from '@/contracts/lesson-plans';
 import { localDraftRepository, makeEnvelope } from '../services/drafts';
 import { RuleBasedFillProvider } from '../services/fill';
 import { download, exportDocx, safeName } from '../services/export';
 import { sections } from './sections';
 const fallbackProvider = new RuleBasedFillProvider();
 const emptyServices: LessonPlanServices = {};
-function useEditorController(services: LessonPlanServices) {
-  const [store] = useState(() => createLessonStore());
+export interface EditorMode { server?: ServerBinding; history?: LessonRevisionView }
+function useEditorController(services: LessonPlanServices, session: EditorMode) {
+  const [store] = useState(() => createLessonStore(session.history?.data ?? session.server?.view.currentRevision.data));
   const repository = services.repository ?? localDraftRepository,
     provider = services.fillProvider ?? fallbackProvider;
   const { data, set, replace, undo, redo, past, future, revision } = useStore(store);
@@ -37,15 +40,30 @@ function useEditorController(services: LessonPlanServices) {
     [proposal, setProposal] = useState<FillProposal | null>(null),
     [mode, setMode] = useState<'overwrite' | 'append'>('overwrite');
   const [modal, setModal] = useState<'new' | 'pdf' | null>(null);
+  const [printSnapshot, setPrintSnapshot] = useState<{ data: LessonPlanData; source: string } | null>(null);
   const dialog = useRef<HTMLDialogElement>(null),
     fileInput = useRef<HTMLInputElement>(null);
   const notice = useCallback((message: string) => setToast(message), []);
-  const { ready, saveStatus, storageBlocked, resumeStorage, flushDraft } = useDraftPersistence(
+  const local = useDraftPersistence(
     store,
     repository,
     notice,
     services.onChange,
+    !session.server && !session.history,
   );
+  const server = useServerPersistence(store, session.server);
+  const ready = session.history ? true : session.server ? server.ready : local.ready;
+  const saveStatus = session.history ? '固定历史只读' : session.server ? ({ idle: '后台稿有未保存编辑', saving: '正在保存后台稿', saved: '后台稿已保存', failed: '后台保存失败', conflict: '后台版本冲突', unknown: '后台操作结果未知', cache_error: '恢复缓存失败' }[server.syncState]) : local.saveStatus;
+  const storageBlocked = session.server ? server.syncState === 'cache_error' : local.storageBlocked;
+  const resumeStorage = local.resumeStorage;
+  const flushDraft = session.server ? server.flush : local.flushDraft;
+  const editingLocked = !!session.history || !!printSnapshot || (session.server && (server.exclusive || server.syncState === 'cache_error'));
+  const sourceLabel = session.history ? `历史固定 v${session.history.version} · ${session.history.revisionId}` : session.server ?
+    `${server.syncState === 'conflict' ? '冲突稿 · ' : ''}${server.dirty ? `未保存编辑 r${revision}，基于` : '后台固定'} v${server.cache?.serverRevision ?? session.server.view.revision} · ${server.cache?.serverRevisionId ?? session.server.view.currentRevisionId}` : `本地编辑 r${revision}`;
+  const editedSet: typeof set = (patch) => { if (!editingLocked) set(patch); };
+  const editedReplace = (next: LessonPlanData) => { if (!editingLocked) replace(next); };
+  const editedUndo = () => { if (!editingLocked) undo(); };
+  const editedRedo = () => { if (!editingLocked) redo(); };
   useEffect(() => {
     if (!toast) return;
     const id = setTimeout(() => setToast(''), 4500);
@@ -55,6 +73,7 @@ function useEditorController(services: LessonPlanServices) {
     if (modal) dialog.current?.showModal();
     else dialog.current?.close();
   }, [modal]);
+  useEffect(() => { const after = () => setPrintSnapshot(null); window.addEventListener('afterprint', after); return () => window.removeEventListener('afterprint', after); }, []);
   const selectSection = (id: string) => {
     setActive(id);
     setEditorTab('form');
@@ -77,13 +96,13 @@ function useEditorController(services: LessonPlanServices) {
     return 'field' in section && !!data[section.field].trim();
   };
   const completeCount = sections.filter((s) => completed(s.id)).length;
-  const updateText = (field: TextField, value: string) => set({ [field]: value });
+  const updateText = (field: TextField, value: string) => editedSet({ [field]: value });
   const updateProcess = (id: string, patch: Record<string, string>) =>
-    set({ process: data.process.map((p) => (p.id === id ? { ...p, ...patch } : p)) });
+    editedSet({ process: data.process.map((p) => (p.id === id ? { ...p, ...patch } : p)) });
   const reorder = (index: number, delta: number) => {
     const next = [...data.process];
     [next[index], next[index + delta]] = [next[index + delta], next[index]];
-    set({ process: next });
+    editedSet({ process: next });
   };
   const parse = async () => {
     setBusy(true);
@@ -102,7 +121,7 @@ function useEditorController(services: LessonPlanServices) {
     setExportOpen(false);
     setBusy(true);
     try {
-      await exportDocx(data);
+      await exportDocx(structuredClone(data), sourceLabel);
       notice('Word 文件已生成');
     } catch (e) {
       notice(`导出失败：${(e as Error).message}`);
@@ -115,17 +134,28 @@ function useEditorController(services: LessonPlanServices) {
       new Blob([JSON.stringify(makeEnvelope(data, revision), null, 2)], {
         type: 'application/json',
       }),
-      `教案-${safeName(data.title)}.json`,
+      `教案-${safeName(data.title)}-${safeName(sourceLabel)}.json`,
     );
     setExportOpen(false);
     notice('草稿备份已生成');
   };
   return {
     data,
-    set,
-    replace,
-    undo,
-    redo,
+    set: editedSet,
+    replace: editedReplace,
+    undo: editedUndo,
+    redo: editedRedo,
+    store,
+    server: session.server ? server : null,
+    history: session.history ?? null,
+    editingLocked: !!editingLocked,
+    sourceLabel,
+    printSnapshot,
+    beginPrint: () => { const snapshot = { data: structuredClone(data), source: sourceLabel }; setPrintSnapshot(snapshot); return snapshot; },
+    endPrint: () => setPrintSnapshot(null),
+    localPending: local.isPending,
+    localRunning: local.isRunning,
+    discardLocal: local.discardPending,
     past,
     future,
     revision,
@@ -179,11 +209,13 @@ const EditorContext = createContext<ReturnType<typeof useEditorController> | nul
 export function LessonPlanProvider({
   children,
   services = emptyServices,
+  session = {},
 }: {
   children: ReactNode;
   services?: LessonPlanServices;
+  session?: EditorMode;
 }) {
-  const editor = useEditorController(services);
+  const editor = useEditorController(services, session);
   return <EditorContext.Provider value={editor}>{children}</EditorContext.Provider>;
 }
 export function useLessonEditor() {

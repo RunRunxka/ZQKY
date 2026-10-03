@@ -43,6 +43,20 @@ from app.services.textbook_ingest.multipart import MultipartPart, parse_multipar
 
 router = APIRouter(tags=["question-bank"])
 
+
+@router.get('/question-drafts/{draft_id}/assets/{asset_id:path}/content')
+async def get_draft_asset(request: Request, draft_id: str, asset_id: str) -> Response:
+    service = _service(request)
+    data, media_type = await _run(service.get_content_asset, 'draft', draft_id, asset_id)
+    return Response(content=data, media_type=media_type)
+
+
+@router.get('/questions/{question_id}/assets/{asset_id:path}/content')
+async def get_question_asset(request: Request, question_id: str, asset_id: str) -> Response:
+    service = _service(request)
+    data, media_type = await _run(service.get_content_asset, 'question', question_id, asset_id)
+    return Response(content=data, media_type=media_type)
+
 #: multipart 头部/边界开销的宽松上界（超出此值在解析前直接 413）
 _MULTIPART_OVERHEAD = 4096
 

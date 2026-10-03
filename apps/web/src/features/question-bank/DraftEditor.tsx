@@ -11,9 +11,13 @@
  *   历史标签（旧字段 knowledgeTags）与正式关联分开呈现。
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DraftReviewState, DraftView, QuestionImportDetail } from '@/contracts/question-bank';
-import { patchQuestionDraft, splitQuestionDraft } from '@/services/question-bank-api';
+import {
+  getQuestionAsset,
+  patchQuestionDraft,
+  splitQuestionDraft,
+} from '@/services/question-bank-api';
 import { ContentForm, type QuestionFormValue } from './ContentForm';
 import {
   contentErrors,
@@ -33,6 +37,7 @@ import {
 } from './knowledge-links';
 import { EXTRACTION_METHOD_LABEL, AI_CANDIDATE_CHIP, reviewStateLabel } from './labels';
 import { KnowledgeLinksPanel } from './KnowledgeLinksPanel';
+import { QuestionPreview } from './QuestionPreview';
 import type { TaxonomyIndex } from './taxonomy';
 
 export function formValueOfDraft(draft: DraftView): QuestionFormValue {
@@ -53,28 +58,35 @@ const REVIEW_ACTIONS: { state: DraftReviewState; label: string }[] = [
   { state: 'excluded', label: '标记排除' },
 ];
 
-export function DraftEditor({
+type DraftEditorProps = {
+  importId: string;
+  draft: DraftView;
+  taxonomy: TaxonomyIndex;
+  onDraftUpdated: (draft: DraftView) => void;
+  onDetailReplaced: (detail: QuestionImportDetail) => void;
+  onReloadDraft: (draftId: string, isCurrent?: () => boolean) => Promise<DraftView | null>;
+};
+
+export function DraftEditor(props: DraftEditorProps) {
+  return <DraftEditorSession key={`${props.importId}|${props.draft.draftId}`} {...props} />;
+}
+
+function DraftEditorSession({
   importId,
   draft,
   taxonomy,
   onDraftUpdated,
   onDetailReplaced,
   onReloadDraft,
-}: {
-  importId: string;
-  draft: DraftView;
-  taxonomy: TaxonomyIndex;
-  /** 保存成功：把服务端权威草稿交回父级（父级据此更新列表与计数）。 */
-  onDraftUpdated: (draft: DraftView) => void;
-  /** 拆分成功：服务端返回整个导入详情，直接替换父级状态。 */
-  onDetailReplaced: (detail: QuestionImportDetail) => void;
-  /** 冲突时重新读取服务端最新草稿（供比较与「用我的修改重试」）。 */
-  onReloadDraft: (draftId: string) => Promise<DraftView | null>;
-}) {
+}: DraftEditorProps) {
   const [value, setValue] = useState<QuestionFormValue>(() => formValueOfDraft(draft));
-  const [dirty, setDirty] = useState(false);
+  const [dirty, setDirtyState] = useState(false);
+  const dirtyRef = useRef(false);
+  const setDirty = (next: boolean) => { dirtyRef.current = next; setDirtyState(next); };
   const [linkDraft, setLinkDraft] = useState<KnowledgeLinkView[]>(() => serverLinksOf(draft));
-  const [linksTouched, setLinksTouched] = useState(false);
+  const [linksTouched, setLinksTouchedState] = useState(false);
+  const linksTouchedRef = useRef(false);
+  const setLinksTouched = (next: boolean) => { linksTouchedRef.current = next; setLinksTouchedState(next); };
   const [linkIssues, setLinkIssues] = useState<LinkIssueLocation>(NO_LINK_ISSUES);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,15 +95,31 @@ export function DraftEditor({
   const [snapshot, setSnapshot] = useState<DraftView | null>(null);
   const [charOffset, setCharOffset] = useState('');
   const [splitError, setSplitError] = useState<string | null>(null);
+  const mountedRef = useRef(false);
+  const writeEpochRef = useRef(0);
+  const writingRef = useRef(false);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      writeEpochRef.current += 1;
+    };
+  }, []);
+  const active = (token: number) => mountedRef.current && token === writeEpochRef.current;
+  const loadAsset = useCallback(
+    (assetId: string, signal: AbortSignal) =>
+      getQuestionAsset('draft', draft.draftId, assetId, signal),
+    [draft.draftId],
+  );
 
   // 服务端内容更新且本地无未保存编辑时同步表单；有编辑时保留用户输入（冲突路径另行提示）。
   useEffect(() => {
-    if (!dirty) setValue(formValueOfDraft(draft));
+    if (!dirtyRef.current) setValue(formValueOfDraft(draft));
   }, [draft, dirty]);
 
   // 关联同理：用户没动过关联才跟随服务端（不覆盖用户正在编辑的关联）
   useEffect(() => {
-    if (!linksTouched) {
+    if (!linksTouchedRef.current) {
       setLinkDraft(serverLinksOf(draft));
       setLinkIssues(NO_LINK_ISSUES);
     }
@@ -126,13 +154,15 @@ export function DraftEditor({
     return snapshot ? snapshot.revision : draft.revision;
   }
 
-  async function handleWriteError(cause: unknown) {
+  async function handleWriteError(cause: unknown, token: number) {
+    if (!active(token)) return;
     const apiError = asApiError(cause);
     if (apiError.status === 409) {
       setConflict(
         `内容已在别处被修改（${apiError.code}）：${apiError.message} 你的编辑已保留，下面是服务端最新内容。`,
       );
-      const latest = await onReloadDraft(draft.draftId);
+      const latest = await onReloadDraft(draft.draftId, () => active(token));
+      if (!active(token)) return;
       setSnapshot(latest);
       return;
     }
@@ -154,11 +184,14 @@ export function DraftEditor({
     reviewState?: DraftReviewState;
     missingAnswerAcknowledged?: boolean;
   }) {
+    if (writingRef.current) return;
     const issues = [...contentErrors(value.content), ...metadataErrors(value.metadata)];
     if (issues.length > 0) {
       setError(issues.join(' '));
       return;
     }
+    const token = ++writeEpochRef.current;
+    writingRef.current = true;
     setBusy(true);
     setError(null);
     setNotice(null);
@@ -173,6 +206,7 @@ export function DraftEditor({
         // 只有用户显式改动过才整表替换；未改动时缺省 → 服务端不动旧关联（不静默清空）
         knowledgeLinks: linksTouched ? linksToInputs(linkDraft) : undefined,
       });
+      if (!active(token)) return;
       onDraftUpdated(updated);
       setValue(formValueOfDraft(updated));
       setDirty(false);
@@ -188,18 +222,24 @@ export function DraftEditor({
             : `已保存；服务端当前校对状态：${reviewStateLabel(updated.reviewState)}。`,
       );
     } catch (cause) {
-      await handleWriteError(cause);
+      await handleWriteError(cause, token);
     } finally {
-      setBusy(false);
+      if (active(token)) {
+        writingRef.current = false;
+        setBusy(false);
+      }
     }
   }
 
   async function split() {
+    if (writingRef.current) return;
     const offset = Number(charOffset);
     if (!Number.isInteger(offset) || offset < 1) {
       setSplitError('拆分位置需要是大于 0 的整数（以字符偏移计）。');
       return;
     }
+    const token = ++writeEpochRef.current;
+    writingRef.current = true;
     setBusy(true);
     setSplitError(null);
     setNotice(null);
@@ -208,6 +248,7 @@ export function DraftEditor({
         expectedRevision: expectedRevision(),
         charOffset: offset,
       });
+      if (!active(token)) return;
       onDetailReplaced(detail);
       setCharOffset('');
       setDirty(false);
@@ -215,18 +256,23 @@ export function DraftEditor({
       setConflict(null);
       setNotice('已按字符偏移拆分，原草稿标记为排除，请在左侧选择新草稿继续校对。');
     } catch (cause) {
+      if (!active(token)) return;
       const apiError = asApiError(cause);
       if (apiError.status === 409) {
         setConflict(
           `内容已在别处被修改（${apiError.code}）：${apiError.message} 拆分位置已保留，下面是服务端最新内容。`,
         );
-        const latest = await onReloadDraft(draft.draftId);
+        const latest = await onReloadDraft(draft.draftId, () => active(token));
+        if (!active(token)) return;
         setSnapshot(latest);
       } else {
         setSplitError(`拆分失败（${apiError.code}）：${apiError.message}`);
       }
     } finally {
-      setBusy(false);
+      if (active(token)) {
+        writingRef.current = false;
+        setBusy(false);
+      }
     }
   }
 
@@ -332,6 +378,15 @@ export function DraftEditor({
         </div>
       )}
 
+      <section className="qb-subpanel" aria-label="草稿内容预览">
+        <h3>内容预览</h3>
+        <QuestionPreview
+          content={value.content}
+          loadAsset={loadAsset}
+          assetScope={`${draft.draftId}|${draft.revision}`}
+        />
+      </section>
+
       <ContentForm
         value={value}
         onChange={update}
@@ -354,9 +409,7 @@ export function DraftEditor({
         idPrefix="qb-draft-links"
         newLinkSource="human"
         onAdd={(link) => patchLinks([...linkDraft, link])}
-        onRemove={(index) =>
-          patchLinks(linkDraft.filter((_, itemIndex) => itemIndex !== index))
-        }
+        onRemove={(index) => patchLinks(linkDraft.filter((_, itemIndex) => itemIndex !== index))}
         onRoleChange={(index, role) =>
           patchLinks(
             linkDraft.map((item, itemIndex) => (itemIndex === index ? { ...item, role } : item)),

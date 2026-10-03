@@ -118,7 +118,7 @@ class Settings:
             allowed_origins=origins,
             env=env.get("ZQKY_ENV", "development"),
             data_dir=data_dir,
-            credentials_file=REPO_ROOT / 'apps' / 'api' / '.env',
+            credentials_file=(None if env.get("ZQKY_ENV") == "test" else REPO_ROOT / 'apps' / 'api' / '.env'),
             qdrant_url=env.get("ZQKY_QDRANT_URL", DEFAULT_QDRANT_URL),
             embedding_base_url=env.get("ZQKY_EMBEDDING_BASE_URL", DEFAULT_EMBEDDING_BASE_URL),
             textbook_source_dir=Path(

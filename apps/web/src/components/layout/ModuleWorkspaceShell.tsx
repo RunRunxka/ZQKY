@@ -14,6 +14,8 @@ const independentRoots = new Set([
   '/books',
   '/courses',
   '/question-bank',
+  '/learning-analysis',
+  '/practices',
 ]);
 export function ModuleWorkspaceShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();

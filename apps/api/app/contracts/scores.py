@@ -68,6 +68,8 @@ SCORE_NO_BASE_REVISION = "SCORE_NO_BASE_REVISION"
 SCORE_PARTICIPANT_UNKNOWN = "SCORE_PARTICIPANT_UNKNOWN"
 SCORE_ITEM_UNKNOWN = "SCORE_ITEM_UNKNOWN"
 SCORE_CORRECTION_INVALID = "SCORE_CORRECTION_INVALID"
+SCORE_TOTAL_MISMATCH = "SCORE_TOTAL_MISMATCH"
+SCORE_ATTENDANCE_MISMATCH = "SCORE_ATTENDANCE_MISMATCH"
 ASSESSMENT_NOT_FOUND = "ASSESSMENT_NOT_FOUND"
 
 # --------------------------------------------------------------------------- 基类
@@ -106,6 +108,8 @@ class ScoreColumnMapping(_Strict):
         default=None, alias="studentNoColumn", max_length=3
     )
     name_column: str | None = Field(default=None, alias="nameColumn", max_length=3)
+    total_column: str | None = Field(default=None, alias="totalColumn", max_length=3)
+    attendance_column: str | None = Field(default=None, alias="attendanceColumn", max_length=3)
     item_columns: list[ScoreItemColumn] = Field(
         default_factory=list, alias="itemColumns"
     )
@@ -133,6 +137,11 @@ class ScoreRawCellView(_Frozen):
     text: str = ""
     cached_text: str = Field(default="", alias="cachedText")
     is_formula: bool = Field(default=False, alias="isFormula")
+    original_text: str = Field(default="", alias="originalText")
+    original_cached_text: str = Field(default="", alias="originalCachedText")
+    corrected_text: str | None = Field(default=None, alias="correctedText")
+    effective_status: ScoreStatus | None = Field(default=None, alias="effectiveStatus")
+    score_units: int | None = Field(default=None, alias="scoreUnits", ge=0)
 
 
 class ScoreImportRowView(_Frozen):
@@ -167,6 +176,14 @@ class ScoreImportPatchRequest(_Strict):
     rows: list[ScoreImportRowPatch] = Field(default_factory=list)
 
 
+class ScoreImportRefreshRequest(_Strict):
+    """明确重新冻结当前施测参测/出勤；不静默更换 active/base。"""
+
+    expected_import_revision: int = Field(alias="expectedImportRevision", ge=0)
+    expected_assessment_revision: int = Field(alias="expectedAssessmentRevision", ge=0)
+    base_score_revision_id: str | None = Field(default=None, alias="baseScoreRevisionId")
+
+
 class ScoreCellPatch(_Strict):
     """单元格校正：以 **原表坐标** 定位（行号 + 列字母），与题目映射无关。"""
 
@@ -192,6 +209,9 @@ class ScoreImportView(_Frozen):
     row_count: int = Field(alias="rowCount", ge=0)
     resolved_row_count: int = Field(alias="resolvedRowCount", ge=0)
     missing_cell_count: int = Field(alias="missingCellCount", ge=0)
+    required_acknowledgements: "ScorePreviewAcknowledgements" = Field(
+        alias="requiredAcknowledgements"
+    )
     created_at: str = Field(alias="createdAt")
     updated_at: str = Field(alias="updatedAt")
 
@@ -237,6 +257,13 @@ class ScoreMissingAcknowledgement(_Strict):
     cell_count: int = Field(alias="cellCount", ge=1)
 
 
+class ScorePreviewAcknowledgements(_Frozen):
+    """当前预览有效矩阵的权威承认范围，绑定该视图的 previewVersion。"""
+
+    absences: list[ScoreAbsenceAcknowledgement] = Field(default_factory=list)
+    missing: ScoreMissingAcknowledgement | None = None
+
+
 class ScoreImportConfirmRequest(_Strict):
     expected_import_revision: int = Field(alias="expectedImportRevision", ge=0)
     expected_assessment_revision: int = Field(alias="expectedAssessmentRevision", ge=0)
@@ -264,6 +291,7 @@ class ScoreImportConfirmResult(_Frozen):
 class ScoreRevisionView(_Frozen):
     revision_id: str = Field(alias="revisionId")
     assessment_id: str = Field(alias="assessmentId")
+    paper_revision_id: str = Field(alias="paperRevisionId")
     version: int = Field(ge=1)
     state: ScoreRevisionState
     source_import_id: str | None = Field(default=None, alias="sourceImportId")
@@ -381,4 +409,5 @@ class ScoreRevisionCorrectResult(_Frozen):
 
 
 ScoreImportRowPatch.model_rebuild()
+ScoreImportView.model_rebuild()
 ScoreRevisionView.model_rebuild()

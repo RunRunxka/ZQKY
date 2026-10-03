@@ -9,7 +9,7 @@
  *
  * - 六态显式：`queued → running → succeeded|failed|cancelled|interrupted`；只有服务端给出的
  *   终态才算结束——轮询仍在 `queued` 就是仍在排队，**不得**当作成功（B3/G0 · RV01）；
- * - 重试用 `retryObservationWindow(retryView)` 观察 `[N, N+1]`：接受重排 queued(N) →
+ * - 首次创建的 queued 收据与重试均观察 `[N, N+1]`：接受 queued(N) →
  *   running/终态(N+1)；attempt ≥ N+2 说明任务已被更新的尝试接管，停止观察并给可读说明；
  * - 显式操作（重试/取消）绑定 `{jobId, attempt, 观察代次}`：`reset` / 接管新任务 / 卸载都会让
  *   代次前进，迟到的成功与失败都不写状态（B2-RV10）；
@@ -43,7 +43,7 @@ interface ObservationWindow {
   maxAttempt?: number;
 }
 
-/** 精确窗口：接管 POST 返回的初始视图时只接受它自己的 attempt。 */
+/** 已 running 的收据只接受本次 attempt；终态收据直接结束观察。 */
 export function exactAttemptWindow(attempt: number | undefined): ObservationWindow {
   return typeof attempt === 'number' ? { minAttempt: attempt, maxAttempt: attempt } : {};
 }
@@ -53,9 +53,12 @@ export function exactAttemptWindow(attempt: number | undefined): ObservationWind
  * attempt ≥ N+2 说明被更新的尝试接管）；视图没有 attempt 时不设防。
  */
 export function retryAttemptWindow(view: { attempt?: number }): ObservationWindow {
-  return typeof view.attempt === 'number'
-    ? retryObservationWindow({ attempt: view.attempt })
-    : {};
+  return typeof view.attempt === 'number' ? retryObservationWindow({ attempt: view.attempt }) : {};
+}
+
+/** 创建收据仍在 queued 时，首次 claim 合法地将 attempt 从 N 推进到 N+1。 */
+function creationAttemptWindow(view: GenerationJobView): ObservationWindow {
+  return view.state === 'queued' ? retryAttemptWindow(view) : exactAttemptWindow(view.attempt);
 }
 
 /** 接管任务后 attempt 前进方向不合法（响应比本地还旧）时不得接管。 */
@@ -194,7 +197,7 @@ export function useQuestionJob(options: QuestionJobOptions = {}): QuestionJobCon
     [finishTerminal, store],
   );
 
-  /** 接管任务视图：`window` 由调用方按语义给出（初始 exact / 重试 [N, N+1]）。 */
+  /** 接管任务视图：queued 创建/重试 [N, N+1]，已 running 收据精确观察。 */
   const adoptJobView = useCallback(
     (next: GenerationJobView, window: ObservationWindow) => {
       setActionError(null);
@@ -215,9 +218,9 @@ export function useQuestionJob(options: QuestionJobOptions = {}): QuestionJobCon
     [beginEpoch, finishTerminal, store, watch],
   );
 
-  /** 接管创建接口返回的初始视图（202）：只接受它自己的 attempt。 */
+  /** 接管创建接口收据（202）：queued 接受首次 claim；running/终态沿用实际 attempt。 */
   const adopt = useCallback(
-    (next: GenerationJobView) => adoptJobView(next, exactAttemptWindow(next.attempt)),
+    (next: GenerationJobView) => adoptJobView(next, creationAttemptWindow(next)),
     [adoptJobView],
   );
 
@@ -259,9 +262,7 @@ export function useQuestionJob(options: QuestionJobOptions = {}): QuestionJobCon
           }
           adoptJobView(
             asGenerationView(receipt),
-            action === 'retry'
-              ? retryAttemptWindow(receipt)
-              : exactAttemptWindow(receipt.attempt),
+            action === 'retry' ? retryAttemptWindow(receipt) : exactAttemptWindow(receipt.attempt),
           );
         },
         (cause: unknown) => {
@@ -274,12 +275,14 @@ export function useQuestionJob(options: QuestionJobOptions = {}): QuestionJobCon
     [adoptJobView, asGenerationView, setPendingAction],
   );
 
-  const retry = useCallback(() => operate('retry', (jobId) => retryJob('question', jobId)), [
-    operate,
-  ]);
-  const cancel = useCallback(() => operate('cancel', (jobId) => cancelJob('question', jobId)), [
-    operate,
-  ]);
+  const retry = useCallback(
+    () => operate('retry', (jobId) => retryJob('question', jobId)),
+    [operate],
+  );
+  const cancel = useCallback(
+    () => operate('cancel', (jobId) => cancelJob('question', jobId)),
+    [operate],
+  );
 
   const reset = useCallback(() => {
     epoch.current += 1; // 在途观察与操作全部失效

@@ -20,6 +20,7 @@ export function NlFillPanel() {
     setMode,
     notice,
     parse,
+    server,
   } = useLessonEditor();
   return (
     <>
@@ -116,6 +117,7 @@ export function NlFillPanel() {
                   const next = mergeProposal(data, proposal.patch, mode);
                   validateData(next);
                   replace(next);
+                  server?.markRule();
                   setProposal(null);
                   notice('内容已填入，可以通过撤销恢复');
                 } catch (e) {

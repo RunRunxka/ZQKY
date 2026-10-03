@@ -90,6 +90,129 @@ afterEach(() => {
   latest = null;
 });
 
+describe('首次创建：真实 queued@0 收据的首次 claim 窗口', () => {
+  it('queued@0 → running@1 → succeeded@1 持续观察，终态携带候选批次', async () => {
+    let reads = 0;
+    let releaseTerminal!: () => void;
+    const terminalGate = new Promise<Response>((resolve) => {
+      releaseTerminal = () =>
+        resolve(
+          jsonResponse(
+            view({
+              jobId: 'job-1',
+              state: 'succeeded',
+              attempt: 1,
+              result: { importId: 'imp-first', candidateCount: 1 },
+            }),
+          ),
+        );
+    });
+    stubFetch(() => {
+      reads += 1;
+      return reads === 1
+        ? jsonResponse(view({ jobId: 'job-1', state: 'running', attempt: 1 }))
+        : terminalGate;
+    });
+    const onTerminal = vi.fn();
+    render(<Harness onTerminal={onTerminal} />);
+
+    act(() => latest!.adopt(generation({ attempt: 0 })));
+
+    await waitFor(() => expect(screen.getByTestId('state')).toHaveTextContent('running@1'));
+    expect(latest!.observing).toBe(true);
+    expect(latest!.observationNotice).toBeNull();
+    expect(onTerminal).not.toHaveBeenCalled();
+    await act(async () => releaseTerminal());
+    await waitFor(() => expect(onTerminal).toHaveBeenCalledTimes(1));
+    expect(latest!.view).toMatchObject({ state: 'succeeded', attempt: 1, importId: 'imp-first' });
+    expect(latest!.observing).toBe(false);
+  });
+
+  for (const state of ['succeeded', 'failed', 'cancelled', 'interrupted'] as const) {
+    it(`queued@0 → ${state}@1 收敛到真实终态，不误报接管`, async () => {
+      stubFetch(() =>
+        jsonResponse(
+          view({
+            jobId: 'job-1',
+            state,
+            attempt: 1,
+            result: state === 'succeeded' ? { importId: 'imp-first', candidateCount: 1 } : null,
+            error:
+              state === 'failed'
+                ? { code: 'UPSTREAM_UNAVAILABLE', message: '模型服务不可用' }
+                : null,
+          }),
+        ),
+      );
+      const onTerminal = vi.fn();
+      render(<Harness onTerminal={onTerminal} />);
+
+      act(() => latest!.adopt(generation({ attempt: 0 })));
+
+      await waitFor(() => {
+        expect(onTerminal).toHaveBeenCalledTimes(1);
+        expect(latest!.view).toMatchObject({
+          state,
+          attempt: 1,
+          importId: state === 'succeeded' ? 'imp-first' : null,
+          candidateCount: state === 'succeeded' ? 1 : 0,
+        });
+      });
+      expect(latest!.observationNotice).toBeNull();
+      expect(latest!.observing).toBe(false);
+      if (state === 'failed') expect(latest!.view?.errorCode).toBe('UPSTREAM_UNAVAILABLE');
+    });
+  }
+
+  it('queued@0 → succeeded@2 超出首次窗口，拒绝别轮候选', async () => {
+    stubFetch(() =>
+      jsonResponse(
+        view({
+          jobId: 'job-1',
+          state: 'succeeded',
+          attempt: 2,
+          result: { importId: 'imp-other', candidateCount: 9 },
+        }),
+      ),
+    );
+    const onTerminal = vi.fn();
+    render(<Harness onTerminal={onTerminal} />);
+
+    act(() => latest!.adopt(generation({ attempt: 0 })));
+
+    await waitFor(() => expect(latest!.observationNotice).toContain('接管'));
+    expect(latest!.view).toMatchObject({
+      state: 'queued',
+      attempt: 0,
+      importId: null,
+      candidateCount: 0,
+    });
+    expect(latest!.observing).toBe(false);
+    expect(onTerminal).not.toHaveBeenCalled();
+  });
+
+  it('已 running@1 的收据只观察 attempt 1，不接受新的 attempt 2', async () => {
+    stubFetch(() =>
+      jsonResponse(
+        view({
+          jobId: 'job-1',
+          state: 'succeeded',
+          attempt: 2,
+          result: { importId: 'imp-other', candidateCount: 9 },
+        }),
+      ),
+    );
+    const onTerminal = vi.fn();
+    render(<Harness onTerminal={onTerminal} />);
+
+    act(() => latest!.adopt(generation({ state: 'running', attempt: 1 })));
+
+    await waitFor(() => expect(latest!.observationNotice).toContain('接管'));
+    expect(latest!.view).toMatchObject({ state: 'running', attempt: 1, importId: null });
+    expect(onTerminal).not.toHaveBeenCalled();
+  });
+});
+
 describe('StrictMode：接管与观察不能永久失效', () => {
   for (const strict of [false, true]) {
     const label = strict ? 'StrictMode' : '普通模式对照';
@@ -104,7 +227,9 @@ describe('StrictMode：接管与观察不能永久失效', () => {
           <Harness onTerminal={onTerminal} />
         ),
       );
-      act(() => latest!.adopt(generation({ state: 'succeeded', importId: 'imp-9', candidateCount: 2 })));
+      act(() =>
+        latest!.adopt(generation({ state: 'succeeded', importId: 'imp-9', candidateCount: 2 })),
+      );
       expect(screen.getByTestId('state')).toHaveTextContent('job-1:succeeded@1');
       expect(onTerminal).toHaveBeenCalledTimes(1);
       expect(onTerminal.mock.calls[0][0]).toMatchObject({
@@ -185,7 +310,8 @@ describe('重试：retryObservationWindow [N, N+1]（RV01 语义）', () => {
       }
       if (url.includes('/workflow-jobs/job-1')) {
         reads += 1;
-        if (reads === 1) return jsonResponse(view({ jobId: 'job-1', state: 'running', attempt: 2 }));
+        if (reads === 1)
+          return jsonResponse(view({ jobId: 'job-1', state: 'running', attempt: 2 }));
         return jsonResponse(
           view({
             jobId: 'job-1',
@@ -199,7 +325,9 @@ describe('重试：retryObservationWindow [N, N+1]（RV01 语义）', () => {
     });
     const onTerminal = vi.fn();
     render(<Harness onTerminal={onTerminal} />);
-    act(() => latest!.adopt(generation({ state: 'interrupted', attempt: 1, errorCode: 'INTERRUPTED' })));
+    act(() =>
+      latest!.adopt(generation({ state: 'interrupted', attempt: 1, errorCode: 'INTERRUPTED' })),
+    );
     onTerminal.mockClear();
 
     await act(async () => {
@@ -276,6 +404,66 @@ describe('重试：retryObservationWindow [N, N+1]（RV01 语义）', () => {
 });
 
 describe('迟到响应不污染新任务（RV10）', () => {
+  for (const action of ['retry', 'cancel'] as const) {
+    for (const outcome of ['success', 'failure'] as const) {
+      for (const invalidation of ['switch', 'unmount'] as const) {
+        it(`${invalidation} 后旧 ${action} 的迟到 ${outcome} 不更新状态或终态回调`, async () => {
+          let release!: () => void;
+          const actionGate = new Promise<Response>((resolve) => {
+            release = () =>
+              resolve(
+                outcome === 'success'
+                  ? jsonResponse(
+                      view({
+                        jobId: 'job-old',
+                        state: action === 'cancel' ? 'cancelled' : 'queued',
+                        attempt: 1,
+                      }),
+                    )
+                  : jsonResponse({ code: 'REVISION_CONFLICT', message: '旧操作已失效' }, 409),
+              );
+          });
+          stubFetch((url) => (url.includes(`/job-old/${action}`) ? actionGate : pendingResponse()));
+          const onTerminal = vi.fn();
+          const ui = render(<Harness onTerminal={onTerminal} />);
+          act(() =>
+            latest!.adopt(
+              generation({
+                jobId: 'job-old',
+                state: action === 'cancel' ? 'running' : 'failed',
+                attempt: 1,
+              }),
+            ),
+          );
+          onTerminal.mockClear();
+          act(() => latest![action]());
+          expect(latest!.pending).toBe(action);
+
+          if (invalidation === 'switch') {
+            act(() => {
+              latest!.reset();
+              latest!.adopt(generation({ jobId: 'job-new', attempt: 0 }));
+            });
+          } else {
+            ui.unmount();
+          }
+          const before = latest!.view;
+          const pendingBefore = latest!.pending;
+
+          await act(async () => release());
+
+          expect(latest!.view).toBe(before);
+          expect(latest!.pending).toBe(pendingBefore);
+          expect(latest!.actionError).toBeNull();
+          expect(onTerminal).not.toHaveBeenCalled();
+          if (invalidation === 'switch') {
+            expect(screen.getByTestId('state')).toHaveTextContent('job-new:queued@0');
+          }
+        });
+      }
+    }
+  }
+
   it('reset/接管新任务后，迟到的旧 retry 成功不接管新任务', async () => {
     let releaseRetry!: (body: JobView) => void;
     const retryGate = new Promise<Response>((resolve) => {

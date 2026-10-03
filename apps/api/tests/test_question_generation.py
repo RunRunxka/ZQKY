@@ -1159,7 +1159,21 @@ def test_derived_fingerprint_is_versioned_and_does_not_rewrite_legacy_column(
         record.current_revision_id, algorithm_version=fp.DERIVED_ALGORITHM_VERSION
     )
     assert derived == fp.derived_content_fingerprint(record.content)
-    assert harness.row_count("question_content_fingerprints") == 1
+    # 两个版本各自登记；历史 derived-v1 及旧列仍保持原算法。
+    connection = sqlite3.connect(harness.catalog.db_path)
+    try:
+        versions = connection.execute(
+            "SELECT algorithm_version, COUNT(*) FROM question_content_fingerprints "
+            "WHERE question_revision_id = ? GROUP BY algorithm_version",
+            (record.current_revision_id,),
+        ).fetchall()
+    finally:
+        connection.close()
+    assert dict(versions) == {
+        fp.DERIVED_ALGORITHM_VERSION: 1,
+        fp.DUPLICATE_ALGORITHM_VERSION: 1,
+    }
+    assert harness.row_count("question_content_fingerprints") == 2
 
     # 派生指纹幂等；旧指纹列一字不动
     assert harness.catalog.derived_fingerprint(

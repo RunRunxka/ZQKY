@@ -17,6 +17,7 @@ import type {
   DraftView,
   DuplicateResolution,
   QuestionImportDetail,
+  QuestionConfirmRequest,
 } from '@/contracts/question-bank';
 import { isJobTerminal } from '@/contracts/teaching-loop';
 import { ApiError } from '@/services/api-client';
@@ -83,7 +84,7 @@ export interface OrganizeObservationWindow {
   maxAttempt?: number;
 }
 
-/** 精确窗口：接管 POST 返回的初始视图时只接受它自己的 attempt。 */
+/** running 视图已经进入执行尝试，只接受它自己的 attempt。 */
 export function exactAttemptWindow(attempt: number | undefined): OrganizeObservationWindow {
   return typeof attempt === 'number' ? { minAttempt: attempt, maxAttempt: attempt } : {};
 }
@@ -93,13 +94,26 @@ export function exactAttemptWindow(attempt: number | undefined): OrganizeObserva
  * attempt ≥ N+2 说明任务已被更新的尝试接管）。视图没有 attempt 时不设防（与既有语义一致）。
  */
 export function retryAttemptWindow(view: { attempt?: number }): OrganizeObservationWindow {
-  return typeof view.attempt === 'number'
-    ? retryObservationWindow({ attempt: view.attempt })
-    : {};
+  return typeof view.attempt === 'number' ? retryObservationWindow({ attempt: view.attempt }) : {};
 }
 
-export function ReviewWorkspace({ importId }: { importId: string }) {
+export function ReviewWorkspace({ importId, returnPracticeSetId }: { importId: string; returnPracticeSetId?: string }) {
+  return <ReviewSession key={importId} importId={importId} returnPracticeSetId={returnPracticeSetId} />;
+}
+
+function ReviewSession({ importId, returnPracticeSetId }: { importId: string; returnPracticeSetId?: string }) {
   const router = useRouter();
+  const mountedRef = useRef(false);
+  const loadEpochRef = useRef(0);
+  const writesRef = useRef({ merge: 0, suggestion: 0, confirm: 0, organize: 0, retry: 0 });
+  const active = useCallback(() => mountedRef.current, []);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      loadEpochRef.current += 1;
+    };
+  }, []);
   const [state, setState] = useState<LoadState>({ phase: 'loading' });
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
   const [pageNotice, setPageNotice] = useState<{ kind: 'error' | 'info'; text: string } | null>(
@@ -122,9 +136,7 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
   const currentModel: OrganizerChatModel = useMemo(() => {
     if (organizer.state.phase === 'failed') {
       const error = organizer.state.error;
-      return unavailableOrganizerModel(
-        organizerCatalogErrorReason(error.code, error.message),
-      );
+      return unavailableOrganizerModel(organizerCatalogErrorReason(error.code, error.message));
     }
     return pickOrganizerChatModel(organizerCatalog);
   }, [organizer.state, organizerCatalog]);
@@ -180,22 +192,29 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
   const [resolutions, setResolutions] = useState<Record<string, DuplicateResolution>>({});
   const submissionIdRef = useRef<string | null>(null);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
+  const frozenConfirmRef = useRef<QuestionConfirmRequest | null>(null);
+  const confirmWritingRef = useRef(false);
+  const confirmUnknownRef = useRef(false);
+  const confirmationLocked = confirmBusy || (confirmState.phase === 'failed' && confirmState.error.status === 0);
 
   const load = useCallback(
     async (signal?: AbortSignal) => {
+      const token = ++loadEpochRef.current;
       setState({ phase: 'loading' });
       try {
         const detail = await getQuestionImport(importId, signal);
+        if (!active() || token !== loadEpochRef.current || signal?.aborted) return null;
         setState({ phase: 'ready', detail });
         // 与详情同一次更新里选定默认草稿：避免先渲染「未选择」再补选造成闪烁
         setSelectedDraftId((previous) => pickDraftId(detail, previous));
         return detail;
       } catch (cause) {
+        if (!active() || token !== loadEpochRef.current || signal?.aborted) return null;
         setState({ phase: 'failed', error: asApiError(cause) });
         return null;
       }
     },
-    [importId],
+    [importId, active],
   );
 
   useEffect(() => {
@@ -228,37 +247,46 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
   }, [detail, selectedDraftId]);
 
   /** 静默刷新：保留当前视图，失败时明确提示而不是清空已显示的数据。 */
-  const silentRefresh = useCallback(async () => {
-    try {
-      const next = await getQuestionImport(importId);
-      setState({ phase: 'ready', detail: next });
-      setSelectedDraftId((previous) => pickDraftId(next, previous));
-      return next;
-    } catch (cause) {
-      const error = asApiError(cause);
-      setPageNotice({
-        kind: 'error',
-        text: `刷新批次失败（${error.code}）：${error.message} 页面仍显示上一次成功读取的数据。`,
-      });
-      return null;
-    }
-  }, [importId]);
+  const silentRefresh = useCallback(
+    async (isCurrent: () => boolean = active) => {
+      if (!active() || !isCurrent()) return null;
+      const token = ++loadEpochRef.current;
+      try {
+        const next = await getQuestionImport(importId);
+        if (!active() || !isCurrent() || token !== loadEpochRef.current) return null;
+        setState({ phase: 'ready', detail: next });
+        setSelectedDraftId((previous) => pickDraftId(next, previous));
+        return next;
+      } catch (cause) {
+        if (!active() || !isCurrent() || token !== loadEpochRef.current) return null;
+        const error = asApiError(cause);
+        setPageNotice({
+          kind: 'error',
+          text: `刷新批次失败（${error.code}）：${error.message} 页面仍显示上一次成功读取的数据。`,
+        });
+        return null;
+      }
+    },
+    [importId, active],
+  );
 
   const reloadDraft = useCallback(
-    async (draftId: string): Promise<DraftView | null> => {
-      const next = await silentRefresh();
+    async (draftId: string, isCurrent?: () => boolean): Promise<DraftView | null> => {
+      const next = await silentRefresh(isCurrent);
       return next?.drafts.find((draft) => draft.draftId === draftId) ?? null;
     },
     [silentRefresh],
   );
 
   function replaceDraft(draft: DraftView) {
+    if (!active() || draft.importId !== importId) return;
     setState((prev) =>
       prev.phase === 'ready' ? { phase: 'ready', detail: withDraft(prev.detail, draft) } : prev,
     );
   }
 
   async function mergeSelected() {
+    if (mergeBusy || confirmWritingRef.current || confirmUnknownRef.current) return;
     if (mergeSelection.length < 2) {
       setMergeError('至少选择两道草稿才能合并。');
       return;
@@ -276,26 +304,30 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
       }
       revisions[draftId] = draft.revision;
     }
+    const token = ++writesRef.current.merge;
+    const isCurrent = () => active() && token === writesRef.current.merge;
     setMergeBusy(true);
     setMergeError(null);
     setMergeNotice(null);
     try {
       const next = await mergeQuestionDrafts(importId, { expectedRevisions: revisions });
+      if (!isCurrent()) return;
       setState({ phase: 'ready', detail: next });
       setMergeSelection([]);
       setMergeNotice('已合并：原草稿被排除，合并结果需重新校对后再入库。');
     } catch (cause) {
+      if (!isCurrent()) return;
       const error = asApiError(cause);
       if (error.status === 409) {
         setMergeError(
           `合并冲突（${error.code}）：${error.message} 已保留你的选择，并重新读取服务端草稿供比较。`,
         );
-        await silentRefresh();
+        await silentRefresh(isCurrent);
       } else {
         setMergeError(`合并失败（${error.code}）：${error.message}`);
       }
     } finally {
-      setMergeBusy(false);
+      if (isCurrent()) setMergeBusy(false);
     }
   }
 
@@ -308,6 +340,7 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
    * - 失败保留已有建议与草稿，不发生任何自动重试（模型只在点击时被调用）。
    */
   async function runOrganize() {
+    if (organizeBusy || organizing || confirmWritingRef.current || confirmUnknownRef.current) return;
     const next = activeModel;
     if (!next || !next.available) {
       setOrganizeError(
@@ -316,6 +349,10 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
       return;
     }
     const useFrozen = frozenModel !== null;
+    const token = ++writesRef.current.organize;
+    const isCurrent = () => active() && token === writesRef.current.organize;
+    observationEpochRef.current += 1;
+    observationRef.current?.abort();
     setFrozenModel(next);
     setOrganizeBusy(true);
     setOrganizeError(null);
@@ -328,14 +365,21 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
         // 当前聊天模型 profile id（本地或云端均可）；绝不是模型名、不是空串
         modelProfileId: next.profileId,
       });
+      if (!isCurrent()) return;
       setJob(result);
       // 任务成功结束：解除冻结，下一次点击按届时的当前聊天模型发起新任务
       if (result.state === 'succeeded') setFrozenModel(null);
       // 六态：queued/running 时继续观察（守卫 jobId + attempt），终态才收尾
       if (organizeJobPending(result)) {
-        startOrganizing(result.jobId, exactAttemptWindow(result.attempt));
+        startOrganizing(
+          result.jobId,
+          result.state === 'queued'
+            ? retryAttemptWindow(result)
+            : exactAttemptWindow(result.attempt),
+        );
       }
     } catch (cause) {
+      if (!isCurrent()) return;
       const error = asApiError(cause);
       setOrganizeError(
         `AI 整理未完成（${error.code}）：${organizerFailureText(error.code, error.message)} ${
@@ -343,7 +387,7 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
         }草稿与既有建议未被修改。`,
       );
     } finally {
-      setOrganizeBusy(false);
+      if (isCurrent()) setOrganizeBusy(false);
     }
   }
 
@@ -367,12 +411,14 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
       minAttempt: window.minAttempt,
       maxAttempt: window.maxAttempt,
       onUpdate: (view) => {
+        if (!active()) return;
         if (token !== observationEpochRef.current) return;
         if (view.jobId !== jobId) return;
         setJob((prev) => (prev ? mergeOrganizeObservation(prev, view) : prev));
       },
     }).then(
       (view) => {
+        if (!active()) return;
         if (token !== observationEpochRef.current) return;
         if (controller.signal.aborted) return;
         setOrganizing(false);
@@ -385,9 +431,10 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
         }
         if (view.state === 'succeeded') setFrozenModel(null);
         // 终态后静默刷新批次：拿到最新的草稿与建议归属（失败只提示，不清空已显示数据）
-        void silentRefresh();
+        void silentRefresh(() => active() && token === observationEpochRef.current);
       },
       (cause: unknown) => {
+        if (!active()) return;
         if (token !== observationEpochRef.current) return;
         if (controller.signal.aborted) return;
         setOrganizing(false);
@@ -401,15 +448,18 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
 
   /** 中断/失败/取消后的显式重试：只对终态有效；后端保留冻结输入与模型指纹。 */
   async function retryOrganize() {
+    if (retryBusy || confirmWritingRef.current || confirmUnknownRef.current) return;
     const current = job;
     if (!current || !current.jobId) return;
     const token = observationEpochRef.current;
+    const requestToken = ++writesRef.current.retry;
+    const isCurrent = () => active() && requestToken === writesRef.current.retry;
     setRetryBusy(true);
     setOrganizeError(null);
     try {
       const view = await retryJob('question', current.jobId);
       // 迟到响应（期间已重开任务/卸载）不接管：当前视图保持新任务（B3/G0 · B2-RV10）
-      if (token !== observationEpochRef.current) return;
+      if (!isCurrent() || token !== observationEpochRef.current) return;
       if (view.jobId !== current.jobId) return;
       setJob((prev) => (prev ? mergeOrganizeObservation(prev, view) : prev));
       // 新尝试仍在进行 → 继续观察（重试收据 → [N, N+1] 窗口）；已到终态则不必观察
@@ -417,13 +467,13 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
         startOrganizing(view.jobId, retryAttemptWindow(view));
       }
     } catch (cause) {
-      if (token !== observationEpochRef.current) return;
+      if (!isCurrent() || token !== observationEpochRef.current) return;
       const error = asApiError(cause);
       setOrganizeError(
         `重试整理失败（${error.code}）：${error.message} 已生成的建议与草稿未被修改。`,
       );
     } finally {
-      setRetryBusy(false);
+      if (isCurrent()) setRetryBusy(false);
     }
   }
 
@@ -434,8 +484,15 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
   }
 
   async function reviewSuggestion(suggestionId: string, accept: boolean) {
+    if (busySuggestionId || confirmWritingRef.current || confirmUnknownRef.current) return;
     const suggestion = job?.suggestions.find((item) => item.suggestionId === suggestionId);
     if (!suggestion) return;
+    const token = ++writesRef.current.suggestion;
+    const observationToken = observationEpochRef.current;
+    const isCurrent = () =>
+      active() &&
+      token === writesRef.current.suggestion &&
+      observationToken === observationEpochRef.current;
     setBusySuggestionId(suggestionId);
     setOrganizeError(null);
     try {
@@ -443,6 +500,7 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
         expectedDraftRevision: suggestion.baseDraftRevision,
         accept,
       });
+      if (!isCurrent()) return;
       replaceDraft(updated);
       setSelectedDraftId(updated.draftId);
       setJob((prev) =>
@@ -464,12 +522,13 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
           : '已忽略该 AI 建议，草稿内容未改变。',
       });
     } catch (cause) {
+      if (!isCurrent()) return;
       const error = asApiError(cause);
       setOrganizeError(
         `${accept ? '应用' : '忽略'}建议失败（${error.code}）：${error.message} 草稿未被修改。`,
       );
     } finally {
-      setBusySuggestionId(null);
+      if (active() && token === writesRef.current.suggestion) setBusySuggestionId(null);
     }
   }
 
@@ -482,18 +541,22 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
   }
 
   async function confirm() {
+    if (confirmWritingRef.current) return;
     const reviewed = drafts.filter((draft) => draft.reviewState === 'reviewed');
-    if (reviewed.length === 0) {
+    if (!frozenConfirmRef.current && reviewed.length === 0) {
       setConfirmState({
         phase: 'failed',
-        error: new ApiError('NO_REVIEWED_DRAFTS', '还没有已校对的草稿。', 0, false),
+        error: new ApiError('NO_REVIEWED_DRAFTS', '还没有已校对的草稿。', 422, false),
       });
       return;
     }
+    const token = ++writesRef.current.confirm;
+    const isCurrent = () => active() && token === writesRef.current.confirm;
+    confirmWritingRef.current = true;
     setConfirmBusy(true);
     setPageNotice(null);
     try {
-      const result = await confirmQuestionImport(importId, {
+      const payload = frozenConfirmRef.current ?? structuredClone({
         submissionId: ensureSubmissionId(),
         importId,
         items: reviewed.map((draft) => ({
@@ -505,12 +568,25 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
           .map((draft) => resolutions[draft.draftId])
           .filter((item): item is DuplicateResolution => Boolean(item)),
       });
+      frozenConfirmRef.current = payload;
+      const result = await confirmQuestionImport(importId, payload);
+      if (!isCurrent()) return;
+      confirmUnknownRef.current = false;
+      // HTTP 200 + failures 明确未登记；允许修正草稿并沿用原提交标识重新构建载荷。
+      frozenConfirmRef.current = null;
       setConfirmState({ phase: 'done', result });
-      if (result.failures.length === 0) await silentRefresh();
+      if (result.failures.length === 0) await silentRefresh(isCurrent);
     } catch (cause) {
-      setConfirmState({ phase: 'failed', error: asApiError(cause) });
+      if (!isCurrent()) return;
+      const error = asApiError(cause);
+      confirmUnknownRef.current = error.status === 0;
+      if (error.status !== 0) frozenConfirmRef.current = null;
+      setConfirmState({ phase: 'failed', error });
     } finally {
-      setConfirmBusy(false);
+      if (isCurrent()) {
+        confirmWritingRef.current = false;
+        setConfirmBusy(false);
+      }
     }
   }
 
@@ -612,6 +688,7 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
                 <div className="qb-review-layout">
                   <SourcePane draft={selectedDraft} unassignedBlocks={detail.unassignedBlocks} />
                   {selectedDraft && (
+                    <fieldset disabled={confirmationLocked} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
                     <DraftEditor
                       key={selectedDraft.draftId}
                       importId={importId}
@@ -621,10 +698,12 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
                       onDetailReplaced={(next) => setState({ phase: 'ready', detail: next })}
                       onReloadDraft={reloadDraft}
                     />
+                    </fieldset>
                   )}
                 </div>
 
                 <section className="qb-tools" aria-label="整理与入库">
+                  <fieldset disabled={confirmationLocked} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
                   <div className="qb-subpanel">
                     <h2>AI 整理</h2>
                     <p className="qb-hint">
@@ -705,7 +784,8 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
                     </div>
                     {!activeModel.available && (
                       <p className="qb-hint">
-                        「AI 整理草稿」在聊天模型可用前不可点：请到「模型设置」选择并修复默认问答模型
+                        「AI
+                        整理草稿」在聊天模型可用前不可点：请到「模型设置」选择并修复默认问答模型
                         （本地或云端均可）；读取模型配置不会调用模型。
                       </p>
                     )}
@@ -742,6 +822,7 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
                     }
                     onMerge={() => void mergeSelected()}
                   />
+                  </fieldset>
 
                   <ConfirmPanel
                     drafts={drafts}
@@ -764,7 +845,7 @@ export function ReviewWorkspace({ importId }: { importId: string }) {
                       }))
                     }
                     onConfirm={() => void confirm()}
-                    onOpenLibrary={() => router.push('/question-bank#library')}
+                    onOpenLibrary={() => router.push(`/question-bank?tab=library${returnPracticeSetId ? `&returnPracticeSetId=${encodeURIComponent(returnPracticeSetId)}` : ''}`)}
                     onReload={() => void silentRefresh()}
                   />
                 </section>

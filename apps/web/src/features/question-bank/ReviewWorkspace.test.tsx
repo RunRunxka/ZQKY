@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import type {
   DraftView,
@@ -265,7 +265,7 @@ function stubApi(handler: Handler) {
 function calls(fetchMock: ReturnType<typeof stubApi>, fragment: string, method?: string) {
   return fetchMock.mock.calls.filter(([url, init]) => {
     const request = init as RequestInit | undefined;
-    return String(url).includes(fragment) && (!method || request?.method === method);
+    return String(url).includes(fragment) && (!method || (request?.method ?? 'GET') === method);
   });
 }
 
@@ -510,6 +510,51 @@ describe('草稿编辑：服务端状态与冲突', () => {
 });
 
 describe('确认入库', () => {
+  it.each([
+    [undefined, '/question-bank?tab=library'],
+    ['practice /+?', '/question-bank?tab=library&returnPracticeSetId=practice%20%2F%2B%3F'],
+  ])('正式确认后保留练习返回上下文 %s', async (returnPracticeSetId, expectedPath) => {
+    const reviewed = detail({ drafts: [draft({ reviewState: 'reviewed' })], reviewedCount: 1 });
+    router({
+      'GET /api/v1/question-imports/imp-1': () => jsonResponse(true, 200, reviewed),
+      'POST /api/v1/question-imports/imp-1/confirm': () => jsonResponse(true, 200, {
+        confirmedQuestionIds: ['q-1'], linkedQuestionIds: [], skippedDraftIds: [], failures: [],
+      }),
+    }, reviewed);
+    render(<ReviewWorkspace importId="imp-1" returnPracticeSetId={returnPracticeSetId} />);
+    fireEvent.click(await screen.findByRole('button', { name: /确认入库（1 道）/ }));
+    fireEvent.click(await screen.findByRole('button', { name: '查看已入库题目' }));
+    expect(pushMock).toHaveBeenCalledWith(expectedPath);
+  });
+
+  it('丢回执冻结完整确认包，刷新到新草稿修订仍原样重放且锁住编辑', async () => {
+    let reads = 0;
+    let requests = 0;
+    const fetchMock = router({
+      'GET /api/v1/question-imports/imp-1': () => jsonResponse(true, 200, detail({
+        drafts: [draft({ revision: ++reads === 1 ? 4 : 5, reviewState: 'reviewed' })], reviewedCount: 1,
+      })),
+      'POST /api/v1/question-imports/imp-1/confirm': () => ++requests === 1
+        ? Promise.reject(new TypeError('服务端已提交但回执丢失'))
+        : jsonResponse(true, 200, { confirmedQuestionIds: ['q-1'], linkedQuestionIds: [], skippedDraftIds: [], failures: [] }),
+    });
+    render(<ReviewWorkspace importId="imp-1" />);
+    fireEvent.click(await screen.findByRole('button', { name: '确认入库（1 道）' }));
+    await screen.findByText(/确认结果未知/);
+    expect(screen.getByRole('button', { name: '标记已校对' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '保存修改' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'AI 整理草稿' })).toBeDisabled();
+    expect(screen.queryByText(/没有任何题目被入库/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '重新读取批次（保留冻结确认）' }));
+    await waitFor(() => expect(reads).toBe(2));
+    await within(screen.getByRole('region', { name: '确认入库' })).findByText('修订 r5');
+    fireEvent.click(screen.getByRole('button', { name: '重试原确认（结果未知）' }));
+    await waitFor(() => expect(requests).toBe(2));
+    expect(bodyAt(fetchMock, '/confirm', 'POST', 1)).toEqual(bodyAt(fetchMock, '/confirm', 'POST', 0));
+    expect(bodyAt(fetchMock, '/confirm', 'POST', 1).items).toEqual([{ draftId: 'd-1', expectedDraftRevision: 4 }]);
+    await screen.findByText(/本次已入库 1 道题/);
+  });
+
   it('failures 逐条展示并说明没有任何题目被入库，重试复用同一 submissionId', async () => {
     let uuidCounter = 0;
     vi.spyOn(crypto, 'randomUUID').mockImplementation(
@@ -565,8 +610,7 @@ describe('确认入库', () => {
 describe('AI 整理：使用点击时的当前聊天模型（v1.1）', () => {
   it('请求体的 modelProfileId 是聊天模型 profile id，不是模型名、不是空串', async () => {
     const fetchMock = router({
-      'POST /api/v1/question-imports/imp-1/organize': () =>
-        jsonResponse(true, 200, jobSucceeded()),
+      'POST /api/v1/question-imports/imp-1/organize': () => jsonResponse(true, 200, jobSucceeded()),
     });
     render(<ReviewWorkspace importId="imp-1" />);
 
@@ -594,8 +638,7 @@ describe('AI 整理：使用点击时的当前聊天模型（v1.1）', () => {
           200,
           draft({ revision: 4, content: { ...CONTENT, stemMarkdown: '人工改过的题干' } }),
         ),
-      'POST /api/v1/question-imports/imp-1/organize': () =>
-        jsonResponse(true, 200, jobSucceeded()),
+      'POST /api/v1/question-imports/imp-1/organize': () => jsonResponse(true, 200, jobSucceeded()),
     });
     render(<ReviewWorkspace importId="imp-1" />);
 
@@ -668,11 +711,7 @@ describe('AI 整理：使用点击时的当前聊天模型（v1.1）', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /AI 整理草稿/ }));
     await waitFor(() => expect(calls(fetchMock, '/organize', 'POST')).toHaveLength(3));
-    expect(sentProfileIds(fetchMock)).toEqual([
-      CHAT_PROFILE_ID,
-      CHAT_PROFILE_ID,
-      CLOUD_PROFILE_ID,
-    ]);
+    expect(sentProfileIds(fetchMock)).toEqual([CHAT_PROFILE_ID, CHAT_PROFILE_ID, CLOUD_PROFILE_ID]);
   });
 
   it('模型失效（resolver 404）：提示修复且不自动换模型重发', async () => {
@@ -805,9 +844,13 @@ describe('AI 整理：使用点击时的当前聊天模型（v1.1）', () => {
   it('旧语义任务：提示重新选择模型，已生成的建议保留并可应用', async () => {
     router({
       'POST /api/v1/question-imports/imp-1/organize': () =>
-        jsonResponse(true, 200, jobFailed('ORGANIZER_MODEL_RESELECT_REQUIRED', {
-          suggestions: [SUGGESTION],
-        })),
+        jsonResponse(
+          true,
+          200,
+          jobFailed('ORGANIZER_MODEL_RESELECT_REQUIRED', {
+            suggestions: [SUGGESTION],
+          }),
+        ),
     });
     render(<ReviewWorkspace importId="imp-1" />);
 
@@ -845,8 +888,7 @@ describe('AI 整理：使用点击时的当前聊天模型（v1.1）', () => {
 
   it('应用建议带 expectedDraftRevision，忽略只提交 accept:false，草稿不被覆盖', async () => {
     const fetchMock = router({
-      'POST /api/v1/question-imports/imp-1/organize': () =>
-        jsonResponse(true, 200, jobSucceeded()),
+      'POST /api/v1/question-imports/imp-1/organize': () => jsonResponse(true, 200, jobSucceeded()),
       'POST /api/v1/question-suggestions/sg-1/apply': () =>
         jsonResponse(
           true,
@@ -884,7 +926,8 @@ describe('AI 整理：使用点击时的当前聊天模型（v1.1）', () => {
 /* ------------------------------------------------ 六态任务（B2：interrupted 与显式重试） */
 
 describe('整理任务六态：interrupted 横幅与显式重试（B2 / T50 兼容）', () => {
-  it('任务中断显示横幅；点「重试整理」按新 attempt 继续观察并收尾', async () => {    let jobReads = 0;
+  it('任务中断显示横幅；点「重试整理」按新 attempt 继续观察并收尾', async () => {
+    let jobReads = 0;
     const fetchMock = router({
       'POST /api/v1/question-imports/imp-1/organize': () =>
         jsonResponse(true, 200, {
@@ -1022,7 +1065,9 @@ describe('F10-QB：关联字段级错误与 AI 来源标识', () => {
 
     const rowIssue = await screen.findByTestId('qb-knowledge-link-issue-0');
     expect(rowIssue).toHaveTextContent('kp-1');
-    expect(screen.getByText(/知识点关联校验失败（KNOWLEDGE_REFERENCE_INVALID）/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/知识点关联校验失败（KNOWLEDGE_REFERENCE_INVALID）/),
+    ).toBeInTheDocument();
     expect((screen.getByLabelText('题干') as HTMLTextAreaElement).value).toBe('我的改动');
     // 未改动关联：请求体不能偷偷带 knowledgeLinks（否则等于静默清空/改写）
     expect(bodyAt(fetchMock, '/question-drafts/d-1', 'PATCH')).not.toHaveProperty('knowledgeLinks');
@@ -1041,10 +1086,14 @@ describe('F10-QB：关联字段级错误与 AI 来源标识', () => {
     });
     render(<ReviewWorkspace importId="imp-1" />);
 
-    expect(await screen.findByTestId('qb-draft-ai-source')).toHaveTextContent('AI 候选（需人工校对）');
+    expect(await screen.findByTestId('qb-draft-ai-source')).toHaveTextContent(
+      'AI 候选（需人工校对）',
+    );
     expect(screen.getByTestId('qb-draft-tab-ai-source')).toHaveTextContent('AI 候选');
     expect(screen.getByTestId('qb-confirm-ai-count')).toHaveTextContent('含 AI 候选 1 道');
-    expect(screen.getByTestId('qb-confirm-ai-source-d-1')).toHaveTextContent('AI 候选（需人工校对）');
+    expect(screen.getByTestId('qb-confirm-ai-source-d-1')).toHaveTextContent(
+      'AI 候选（需人工校对）',
+    );
   });
 
   it('200 + failures：显示整批未确认、不显示成功徽标，重试复用同一提交标识', async () => {
@@ -1092,8 +1141,7 @@ describe('F10-QB：关联字段级错误与 AI 来源标识', () => {
     router({
       'GET /api/v1/question-imports/imp-1': () =>
         jsonResponse(true, 200, detail({ drafts: [changed] })),
-      'POST /api/v1/question-imports/imp-1/organize': () =>
-        jsonResponse(true, 200, jobSucceeded()),
+      'POST /api/v1/question-imports/imp-1/organize': () => jsonResponse(true, 200, jobSucceeded()),
     });
     render(<ReviewWorkspace importId="imp-1" />);
 
@@ -1106,5 +1154,285 @@ describe('F10-QB：关联字段级错误与 AI 来源标识', () => {
     expect(screen.getByTestId('qb-suggestion-chain')).toHaveTextContent('pending');
     expect(screen.getByRole('button', { name: '应用建议' })).toBeEnabled();
     expect(screen.getByRole('button', { name: '忽略' })).toBeEnabled();
+  });
+});
+
+function deferredResponse() {
+  let resolve!: (response: Response) => void;
+  const promise = new Promise<Response>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
+
+describe('B3 整理首次排队的真实观察窗口', () => {
+  for (const terminal of ['succeeded', 'failed'] as const) {
+    it(`queued@0 → running@1 → ${terminal}@1 沿本轮观察，不误判接管`, async () => {
+      let reads = 0;
+      const fetchMock = router({
+        'POST /api/v1/question-imports/imp-1/organize': () =>
+          jsonResponse(true, 202, { ...jobSucceeded([]), state: 'queued', attempt: 0 }),
+        'GET /api/v1/workflow-jobs/job-1': () =>
+          jsonResponse(true, 200, {
+            jobId: 'job-1',
+            domain: 'question',
+            kind: 'organize',
+            attempt: 1,
+            state: ++reads === 1 ? 'running' : terminal,
+            result: { suggestions: terminal === 'succeeded' ? [SUGGESTION] : [], failures: [] },
+            error:
+              terminal === 'failed'
+                ? { code: 'MODEL_UNAVAILABLE', message: '模型故障', retryable: true }
+                : null,
+          }),
+      });
+      render(<ReviewWorkspace importId="imp-1" />);
+      fireEvent.click(await screen.findByRole('button', { name: /AI 整理草稿/ }));
+      await waitFor(() => expect(reads).toBe(2), { timeout: 3000 });
+      expect(screen.queryByText(/该整理任务已被新的尝试接管/)).not.toBeInTheDocument();
+      if (terminal === 'succeeded')
+        expect(await screen.findByRole('button', { name: '应用建议' })).toBeEnabled();
+      else
+        expect(await screen.findByText(/本次 AI 整理失败/)).toHaveTextContent('MODEL_UNAVAILABLE');
+      expect(calls(fetchMock, '/organize', 'POST')).toHaveLength(1);
+    });
+  }
+  for (const initial of ['queued', 'running'] as const) {
+    it(`${initial} 初始视图拒绝其他尝试的终态建议`, async () => {
+      router({
+        'POST /api/v1/question-imports/imp-1/organize': () =>
+          jsonResponse(true, 202, {
+            ...jobSucceeded([]),
+            state: initial,
+            attempt: initial === 'queued' ? 0 : 1,
+          }),
+        'GET /api/v1/workflow-jobs/job-1': () =>
+          jsonResponse(true, 200, {
+            jobId: 'job-1',
+            domain: 'question',
+            kind: 'organize',
+            state: 'succeeded',
+            attempt: 2,
+            result: { suggestions: [SUGGESTION], failures: [] },
+            error: null,
+          }),
+      });
+      render(<ReviewWorkspace importId="imp-1" />);
+      fireEvent.click(await screen.findByRole('button', { name: /AI 整理草稿/ }));
+      expect(await screen.findByText(/该整理任务已被新的尝试接管/)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: '应用建议' })).not.toBeInTheDocument();
+    });
+  }
+});
+
+describe('校对批次写入的对象与卸载守卫', () => {
+  for (const status of [200, 409]) {
+    for (const boundary of ['switch', 'unmount'] as const) {
+      it(`retry ${status} 迟到响应在 ${boundary} 后不接管整理观察`, async () => {
+        const pending = deferredResponse();
+        const fetchMock = router({
+          'POST /api/v1/question-imports/imp-1/organize': () =>
+            jsonResponse(true, 200, { ...jobSucceeded([]), state: 'interrupted', attempt: 1 }),
+          'POST /api/v1/workflow-jobs/job-1/retry': () => pending.promise,
+          'GET /api/v1/question-imports/imp-2': () =>
+            jsonResponse(true, 200, detail({ importId: 'imp-2' })),
+        });
+        const view = render(<ReviewWorkspace importId="imp-1" />);
+        fireEvent.click(await screen.findByRole('button', { name: /AI 整理草稿/ }));
+        fireEvent.click(await screen.findByRole('button', { name: '重试整理' }));
+        await waitFor(() =>
+          expect(calls(fetchMock, '/workflow-jobs/job-1/retry', 'POST')).toHaveLength(1),
+        );
+        if (boundary === 'switch') {
+          view.rerender(<ReviewWorkspace importId="imp-2" />);
+          await screen.findByLabelText('题干');
+        } else view.unmount();
+        await act(async () =>
+          pending.resolve(
+            status === 409
+              ? jsonResponse(false, 409, {
+                  code: 'REVISION_CONFLICT',
+                  message: '旧重试失败',
+                  retryable: false,
+                })
+              : jsonResponse(true, 200, {
+                  jobId: 'job-1',
+                  domain: 'question',
+                  kind: 'organize',
+                  state: 'queued',
+                  attempt: 1,
+                  result: null,
+                  error: null,
+                }),
+          ),
+        );
+        expect(calls(fetchMock, '/workflow-jobs/job-1?domain=question', 'GET')).toHaveLength(0);
+        if (boundary === 'switch') {
+          expect(screen.queryByText(/旧重试失败/)).not.toBeInTheDocument();
+          expect(screen.queryByTestId('qb-organizer-pending')).not.toBeInTheDocument();
+          expect(screen.getByRole('button', { name: /AI 整理草稿/ })).toBeEnabled();
+        }
+      });
+    }
+  }
+  it('重试queued@1仍接受本轮终态@2', async () => {
+    router({
+      'POST /api/v1/question-imports/imp-1/organize': () =>
+        jsonResponse(true, 200, { ...jobSucceeded([]), state: 'interrupted', attempt: 1 }),
+      'POST /api/v1/workflow-jobs/job-1/retry': () =>
+        jsonResponse(true, 200, {
+          jobId: 'job-1',
+          domain: 'question',
+          kind: 'organize',
+          state: 'queued',
+          attempt: 1,
+          result: null,
+          error: null,
+        }),
+      'GET /api/v1/workflow-jobs/job-1': () =>
+        jsonResponse(true, 200, {
+          jobId: 'job-1',
+          domain: 'question',
+          kind: 'organize',
+          state: 'succeeded',
+          attempt: 2,
+          result: { suggestions: [SUGGESTION], failures: [] },
+          error: null,
+        }),
+    });
+    render(<ReviewWorkspace importId="imp-1" />);
+    fireEvent.click(await screen.findByRole('button', { name: /AI 整理草稿/ }));
+    fireEvent.click(await screen.findByRole('button', { name: '重试整理' }));
+    expect(await screen.findByRole('button', { name: '应用建议' })).toBeEnabled();
+    expect(screen.queryByText(/该整理任务已被新的尝试接管/)).not.toBeInTheDocument();
+  });
+  for (const operation of ['merge', 'apply', 'ignore', 'confirm', 'organize'] as const) {
+    for (const status of [200, 409]) {
+      for (const boundary of ['switch', 'unmount'] as const) {
+        it(`${operation} ${status} 迟到响应在 ${boundary} 后不写新批次`, async () => {
+          const pending = deferredResponse();
+          const oldDetail = detail({
+            drafts: [draft({ reviewState: 'reviewed' }), draft({ draftId: 'd-2' })],
+            reviewedCount: 1,
+            draftCount: 2,
+          });
+          const newDetail = detail({
+            importId: 'imp-2',
+            uploadedFileName: '新批次.md',
+            drafts: [
+              draft({
+                draftId: 'new-d',
+                importId: 'imp-2',
+                content: { ...CONTENT, stemMarkdown: '新批次题面' },
+              }),
+            ],
+          });
+          const fetchMock = router({
+            'GET /api/v1/question-imports/imp-1': () => jsonResponse(true, 200, oldDetail),
+            'GET /api/v1/question-imports/imp-2': () => jsonResponse(true, 200, newDetail),
+            'POST /api/v1/question-imports/imp-1/organize': () =>
+              operation === 'organize' ? pending.promise : jsonResponse(true, 200, jobSucceeded()),
+            'POST /api/v1/question-imports/imp-1/merge': () => pending.promise,
+            'POST /api/v1/question-imports/imp-1/confirm': () => pending.promise,
+            'POST /api/v1/question-suggestions/sg-1/apply': () => pending.promise,
+          });
+          const view = render(<ReviewWorkspace importId="imp-1" />);
+          await screen.findByLabelText('题干');
+          if (operation === 'merge') {
+            const merge = screen.getByRole('region', { name: '合并草稿' });
+            for (const checkbox of within(merge).getAllByRole('checkbox'))
+              fireEvent.click(checkbox);
+            fireEvent.click(within(merge).getByRole('button', { name: /合并所选草稿/ }));
+          } else if (operation === 'confirm')
+            fireEvent.click(screen.getByRole('button', { name: /确认入库（1 道）/ }));
+          else {
+            fireEvent.click(screen.getByRole('button', { name: /AI 整理草稿/ }));
+            if (operation !== 'organize')
+              fireEvent.click(
+                await screen.findByRole('button', {
+                  name: operation === 'apply' ? '应用建议' : '忽略',
+                }),
+              );
+          }
+          const operationPath =
+            operation === 'merge' || operation === 'confirm' || operation === 'organize'
+              ? `/imp-1/${operation}`
+              : '/sg-1/apply';
+          await waitFor(() => expect(calls(fetchMock, operationPath, 'POST')).toHaveLength(1));
+          if (boundary === 'switch') {
+            view.rerender(<ReviewWorkspace importId="imp-2" />);
+            expect(await screen.findByLabelText('题干')).toHaveValue('新批次题面');
+            fireEvent.change(screen.getByLabelText('题干'), {
+              target: { value: '新批次未保存编辑' },
+            });
+          } else view.unmount();
+          const success =
+            operation === 'merge'
+              ? oldDetail
+              : operation === 'confirm'
+                ? {
+                    confirmedQuestionIds: ['q-old'],
+                    linkedQuestionIds: [],
+                    skippedDraftIds: [],
+                    failures: [],
+                  }
+                : operation === 'organize'
+                  ? { ...jobSucceeded([]), state: 'queued', attempt: 0 }
+                  : draft({ revision: 4, content: { ...CONTENT, stemMarkdown: '旧结果覆盖' } });
+          await act(async () =>
+            pending.resolve(
+              status === 409
+                ? jsonResponse(false, 409, {
+                    code: 'REVISION_CONFLICT',
+                    message: '旧结果失败',
+                    retryable: false,
+                  })
+                : jsonResponse(true, 200, success),
+            ),
+          );
+          expect(calls(fetchMock, '/question-imports/imp-1', 'GET')).toHaveLength(1);
+          expect(calls(fetchMock, '/workflow-jobs/', 'GET')).toHaveLength(0);
+          if (boundary === 'switch') {
+            expect(screen.getByLabelText('题干')).toHaveValue('新批次未保存编辑');
+            expect(
+              screen.queryByText(
+                /旧结果失败|旧结果覆盖|本次已入库|已合并：|已应用 AI 建议|已忽略该 AI 建议/,
+              ),
+            ).not.toBeInTheDocument();
+          }
+        });
+      }
+    }
+  }
+  it('草稿409读取中的切换不会让旧批次刷新覆盖新草稿', async () => {
+    const readback = deferredResponse();
+    let reads = 0;
+    router({
+      'GET /api/v1/question-imports/imp-1': () =>
+        ++reads === 1
+          ? jsonResponse(
+              true,
+              200,
+              detail({
+                drafts: [
+                  draft(),
+                  draft({ draftId: 'd-2', content: { ...CONTENT, stemMarkdown: '第二草稿' } }),
+                ],
+              }),
+            )
+          : readback.promise,
+      'PATCH /api/v1/question-drafts/d-1': () =>
+        jsonResponse(false, 409, { code: 'REVISION_CONFLICT', message: '冲突', retryable: false }),
+    });
+    render(<ReviewWorkspace importId="imp-1" />);
+    fireEvent.click(await screen.findByRole('button', { name: '保存修改' }));
+    await waitFor(() => expect(reads).toBe(2));
+    fireEvent.click(screen.getByRole('button', { name: /#2/ }));
+    fireEvent.change(screen.getByLabelText('题干'), { target: { value: '第二草稿新编辑' } });
+    await act(async () =>
+      readback.resolve(jsonResponse(true, 200, detail({ drafts: [draft({ revision: 9 })] }))),
+    );
+    expect(screen.getByLabelText('题干')).toHaveValue('第二草稿新编辑');
+    expect(screen.queryByText('修订 r9')).not.toBeInTheDocument();
   });
 });

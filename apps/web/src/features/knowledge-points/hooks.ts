@@ -112,7 +112,7 @@ export interface JobObservationWindow {
   maxAttempt?: number;
 }
 
-/** 精确窗口：非重试场景只接受当前 attempt（等价于旧 `expectedAttempt`）。 */
+/** running 视图已进入执行尝试，只接受当前 attempt。 */
 function exactWindow(attempt: number | undefined): JobObservationWindow {
   return typeof attempt === 'number' ? { minAttempt: attempt, maxAttempt: attempt } : {};
 }
@@ -254,9 +254,9 @@ export function useKnowledgeJob(options: KnowledgeJobOptions = {}): KnowledgeJob
     [apply, beginEpoch, watch],
   );
 
-  /** 接管新视图（POST 返回的初始视图）：只接受它自己的 attempt。 */
+  /** queued 收据尚未 claim，接受 N/N+1；running 则限定当前 attempt。 */
   const adopt = useCallback(
-    (next: JobView) => adoptWindow(next, exactWindow(next.attempt)),
+    (next: JobView) => adoptWindow(next, next.state === 'queued' ? retryObservationWindow(next) : exactWindow(next.attempt)),
     [adoptWindow],
   );
 

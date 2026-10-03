@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { startBookInterruptedRecovery, type BookRecoveryHandle } from './helpers/book-interrupted-recovery';
 
 /**
  * H1-BOOKS-COMMIT-SAFETY v1 浏览器回归（BOOKS-CS-FOLLOWUP v1 订正测试口径）：
@@ -237,7 +238,12 @@ test.describe('H1 书籍提交一致性（真实双标签页）', () => {
 
   test('双标签页并发写不同书：两边内容都在、无覆盖、结束后无悬挂锁', async ({ page, context }) => {
     test.setTimeout(180_000);
+    const testDeadline = Date.now() + test.info().timeout;
     const second = await context.newPage();
+    const recoveryHandles: BookRecoveryHandle[] = [];
+    let bodyComplete = false;
+    let hasPrimaryFailure = false;
+    let primaryFailure: unknown;
     try {
       // 两本**不同 bookId** 的书（各自生成中；第 2 页含 user_note 块）
       const bookA = await createGeneratingBook(page, '并发写书A', '甲书主题');
@@ -263,8 +269,19 @@ test.describe('H1 书籍提交一致性（真实双标签页）', () => {
         .toBe(noteB);
 
       // 两本书都生成完（生成期间的事件写入也不得覆盖人工笔记）
-      await expect(strip(page)).toHaveCount(0, { timeout: 120_000 });
-      await expect(strip(second)).toHaveCount(0, { timeout: 120_000 });
+      const deadline = Math.min(testDeadline, Date.now() + 120_000);
+      recoveryHandles.push(startBookInterruptedRecovery(page, { ...bookA, expectedNote: noteA, deadline }));
+      recoveryHandles.push(startBookInterruptedRecovery(second, { ...bookB, expectedNote: noteB, deadline }));
+      const [readyA, readyB] = await Promise.all([
+        recoveryHandles[0]!.result,
+        recoveryHandles[1]!.result,
+        (async () => {
+          await expect(strip(page)).toHaveCount(0, { timeout: 120_000 });
+          await expect(strip(second)).toHaveCount(0, { timeout: 120_000 });
+        })(),
+      ]);
+      expect(readyA.bookStatus).toBe('ready');
+      expect(readyB.bookStatus).toBe('ready');
 
       // 跨标签页复核：两边内容都还在（无覆盖、无半写）
       expect(await readStoredNote(second, bookA.bookId, bookA.pageId)).toBe(noteA);
@@ -277,8 +294,37 @@ test.describe('H1 书籍提交一致性（真实双标签页）', () => {
       // 收尾卫生：两个标签页都没有悬挂的集合锁
       await expectNoDanglingCollectionLock(page);
       await expectNoDanglingCollectionLock(second);
+      bodyComplete = true;
+    } catch (cause) {
+      hasPrimaryFailure = true;
+      primaryFailure = cause;
     } finally {
-      await second.close();
+      const cleanup = await Promise.allSettled(
+        recoveryHandles.map((handle) => Promise.resolve().then(() => handle.cleanup())),
+      );
+      const [closed] = await Promise.allSettled([(async () => {
+        await second.close();
+      })()]);
+      const failureDetails = (cause: unknown) => cause instanceof Error
+        ? { name: cause.name, message: cause.message, stack: cause.stack }
+        : { message: String(cause) };
+      const [attached] = await Promise.allSettled([test.info().attach('book-interrupted-recovery', {
+        body: JSON.stringify({
+          primaryFailure: hasPrimaryFailure ? failureDetails(primaryFailure) : null,
+          cleanup: cleanup.map((item) => item.status === 'fulfilled'
+            ? { status: item.status, value: item.value }
+            : { status: item.status, failure: failureDetails(item.reason) }),
+          closeFailure: closed.status === 'rejected' ? failureDetails(closed.reason) : null,
+        }),
+        contentType: 'application/json',
+      })]);
+      if (hasPrimaryFailure) throw primaryFailure;
+      for (const item of cleanup) if (item.status === 'rejected') throw item.reason;
+      if (closed.status === 'rejected') throw closed.reason;
+      if (attached.status === 'rejected') throw attached.reason;
+      if (bodyComplete) {
+        expect(cleanup.every((item) => item.status === 'fulfilled' && item.value.resourcesReleased)).toBe(true);
+      }
     }
   });
 

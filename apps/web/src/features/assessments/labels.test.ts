@@ -6,14 +6,11 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { ScoreImportRowView } from '@/contracts/scores';
 import {
   ABSENT_TOKENS,
   EXEMPT_TOKENS,
   cellValueText,
-  deriveMissingAcknowledgement,
   formatScoreUnits,
-  groupAbsencesByClass,
   issueLocationLabel,
   matrixRowTotalText,
   parseScoreText,
@@ -67,6 +64,14 @@ describe('原表单元格的本地读法（0 / missing / absent / exempt 严格�
     expect(reading.kind).toBe('recorded');
     expect(reading.displayText).toBe('0');
     expect(reading.note).toContain('显式 0');
+  });
+
+  it('服务端有效状态优先于原始空白，保持有效0和已覆盖的缺考/免考', () => {
+    expect(rawCellReading({ text: '', effectiveStatus: 'recorded', scoreUnits: 0 })).toMatchObject({
+      kind: 'recorded', displayText: '0',
+    });
+    expect(rawCellReading({ text: '', effectiveStatus: 'absent' }).kind).toBe('absent');
+    expect(rawCellReading({ text: '0', effectiveStatus: 'exempt' }).kind).toBe('exempt');
   });
 
   it('空白是 missing，绝不折算成 0', () => {
@@ -142,78 +147,4 @@ describe('物理定位与承认范围推导', () => {
     expect(issueLocationLabel({ code: 'X', message: 'y' })).toBe('');
   });
 
-  it('逐班列举 absent 人次：出勤快照 + 原表缺考标记（服务端口径）都要覆盖', () => {
-    const groups = groupAbsencesByClass(
-      [
-        { participantId: 'p-3', classId: 'c-b', name: '丙', attendance: 'absent' },
-        { participantId: 'p-1', classId: 'c-a', name: '甲', attendance: 'present' },
-        { participantId: 'p-2', classId: 'c-a', name: '乙', attendance: 'absent' },
-        { participantId: 'p-4', classId: 'c-a', name: '丁', attendance: 'exempt' },
-      ],
-      [row(4, 'p-1', ['缺考', '缺考', '缺考', '缺考'])],
-    );
-    expect(groups).toEqual([
-      { classId: 'c-a', participantIds: ['p-1', 'p-2'] },
-      { classId: 'c-b', participantIds: ['p-3'] },
-    ]);
-  });
-
-  function row(rowNo: number, participantId: string | null, texts: (string | null)[]): ScoreImportRowView {
-    return {
-      rowNo,
-      participantId,
-      participantName: null,
-      candidates: [],
-      cells: texts.map((text, index) => ({
-        row: rowNo,
-        column: String.fromCharCode(68 + index),
-        text: text ?? '',
-        cachedText: '',
-        isFormula: false,
-      })),
-      issues: [],
-    };
-  }
-
-  const participants = [
-    { participantId: 'p-1', classId: 'c-a', name: '甲', attendance: 'present' as const },
-    { participantId: 'p-2', classId: 'c-a', name: '乙', attendance: 'present' as const },
-    { participantId: 'p-3', classId: 'c-a', name: '丙', attendance: 'absent' as const },
-    { participantId: 'p-4', classId: 'c-a', name: '丁', attendance: 'exempt' as const },
-  ];
-
-  it('present 人次缺格 → missing 覆盖到人；absent/exempt 不进入 missing', () => {
-    const missing = deriveMissingAcknowledgement(
-      participants,
-      [row(2, 'p-1', ['4', '8', '6', '3']), row(3, 'p-2', ['4', '', '6', '3'])],
-      4,
-      1,
-    );
-    expect(missing).toEqual({ participantIds: ['p-2'], cellCount: 1 });
-  });
-
-  it('无法本地判读的文本按服务端口径算 missing 缺口（不谎报为已填）', () => {
-    const missing = deriveMissingAcknowledgement(
-      participants,
-      [row(2, 'p-1', ['4', '8', '6', '3']), row(3, 'p-2', ['4', '待补', '6', '3'])],
-      4,
-      1,
-    );
-    expect(missing).toEqual({ participantIds: ['p-2'], cellCount: 1 });
-  });
-
-  it('服务端口径大于本地推导时取服务端口径，且不谎报为 0', () => {
-    const missing = deriveMissingAcknowledgement(participants, [], 4, 8);
-    expect(missing).toEqual({ participantIds: ['p-1', 'p-2'], cellCount: 8 });
-  });
-
-  it('无 present 缺口且服务端计数为 0 → 不需要 missing 承认', () => {
-    const missing = deriveMissingAcknowledgement(
-      participants,
-      [row(2, 'p-1', ['4', '8', '6', '3']), row(3, 'p-2', ['0', '8', '6', '3'])],
-      4,
-      0,
-    );
-    expect(missing).toBeNull();
-  });
 });

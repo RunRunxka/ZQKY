@@ -115,9 +115,10 @@ def test_fresh_database_applies_b3_and_restores_active_score_fk(tmp_path: Path) 
     connection = connect(tmp_path / "teaching.sqlite3")
     try:
         applied = apply_migrations(connection, database="teaching")
-        assert applied[-2:] == [
+        assert applied[-5:] == [
             "0006_teaching_score_tables",
             "0007_teaching_assessment_active_score_fk",
+            "0008", "0009", "0010",
         ]
         names = {
             row[0]
@@ -291,6 +292,7 @@ def test_b2_database_upgrades_with_business_data_preserved(tmp_path: Path, monke
         assert apply_migrations(connection, database="teaching") == [
             "0006_teaching_score_tables",
             "0007_teaching_assessment_active_score_fk",
+            "0008", "0009", "0010",
         ]
         after = {
             table: [
@@ -355,7 +357,7 @@ def test_rebuild_verifications_fail_closed(tmp_path: Path, monkeypatch: pytest.M
         # 未登记，可重跑（修正版）
         monkeypatch.setitem(REGISTERED_MIGRATIONS, "teaching", full)
         assert apply_migrations(connection, database="teaching") == [
-            "0007_teaching_assessment_active_score_fk"
+            "0007_teaching_assessment_active_score_fk", "0008", "0009", "0010"
         ]
         assert connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
     finally:

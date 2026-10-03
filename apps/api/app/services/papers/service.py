@@ -1309,6 +1309,8 @@ class PaperService:
         返回新草稿与逐行 id 映射：客户端请求仍以旧修订的 itemId/blockId/issueId 表达时，
         由调用方经映射翻译到新草稿（同一份编辑意图，不要求客户端先刷新）。
         """
+        if source.source_practice_revision_id is not None:
+            raise AppError("请从固定练习审核版建立新草稿，再转换新原卷。", code="PRACTICE_PAPER_EDIT_REQUIRES_NEW_REVISION", status_code=422)
         version = self._papers.next_version_in(conn, paper.paper_id)
         draft = self._papers.create_revision_in(
             conn,

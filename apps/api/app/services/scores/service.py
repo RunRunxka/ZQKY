@@ -51,6 +51,7 @@ from app.contracts.scores import (
     ScoreImportConfirmRequest,
     ScoreImportConfirmResult,
     ScoreImportList,
+    ScoreImportRefreshRequest,
     ScoreImportRowList,
     ScoreImportRowView,
     ScoreImportSummary,
@@ -58,6 +59,8 @@ from app.contracts.scores import (
     ScoreItemSnapshot,
     ScoreMatrixPage,
     ScoreParticipantSnapshot,
+    ScorePreviewAcknowledgements,
+    ScoreMissingAcknowledgement,
     ScoreRawCellView,
     ScoreRevisionCorrectRequest,
     ScoreRevisionCorrectResult,
@@ -215,6 +218,14 @@ def _base_conflict(message: str, *, field: str = "baseScoreRevisionId") -> AppEr
     )
 
 
+def _check_preview_context(record: ScoreImportRecord, context: AssessmentContext) -> None:
+    """A normal edit may not replace the frozen assessment/base with a fresh one."""
+    if record.summary.get("assessmentRevision") != context.revision:
+        raise _assessment_conflict(context.revision)
+    if record.base_score_revision_id != context.active_score_revision_id:
+        raise _base_conflict("当前 active/base 已变化；校对未写入，请新建导入。")
+
+
 def _raise_cell_errors(preview: PreviewMatrix) -> None:
     """上传/校对阶段的**解析**错误一律 422（带原表物理 row/column），不静默落 missing。
 
@@ -363,6 +374,10 @@ class ScoreService:
         items = {item.item_id: item for item in snapshot.items}
 
         def path_of(item: Any) -> str:
+            # Practice nodes already carry the teacher's complete final number.
+            # File papers retain their existing hierarchical relative labels.
+            if getattr(snapshot, "source_practice_revision_id", None) is not None:
+                return item.question_no
             parts = [item.question_no]
             parent = item.parent_item_id
             seen: set[str] = set()
@@ -396,7 +411,7 @@ class ScoreService:
         if record.mapping is None:
             return None
         try:
-            return ScoreColumnMapping.model_validate(record.mapping)
+            return analysis.normalize_mapping(ScoreColumnMapping.model_validate(record.mapping))
         except Exception as exc:
             raise AppError(
                 f"教学库数据损坏：批次 {record.import_id} 的列映射结构不符。",
@@ -415,7 +430,7 @@ class ScoreService:
                 cells.setdefault(
                     letter, CellInput(row=row.row_no, column=letter, text="", blank=True)
                 )
-            for column in (mapping.student_no_column, mapping.name_column):
+            for column in (mapping.student_no_column, mapping.name_column, mapping.total_column, mapping.attendance_column):
                 if column:
                     cells.setdefault(
                         column.upper(),
@@ -656,6 +671,7 @@ class ScoreService:
         if sheet:
             payload["sheet"] = dict(sheet)
         if preview is not None:
+            payload["issues"] = [issue.model_dump(exclude_none=True) for issue in preview.blocking_issues]
             payload["preview"] = {
                 "participantCount": preview.participant_count,
                 "resolvedRowCount": sum(
@@ -721,7 +737,9 @@ class ScoreService:
             participants = self._participants(conn, record.assessment_id)
         mapping = self._mapping_of(record)
         preview: PreviewMatrix | None = None
-        if mapping is not None and record.state != "confirmed":
+        if (mapping is not None and record.state != "confirmed"
+                and record.summary.get("assessmentRevision") == context.revision
+                and record.base_score_revision_id == context.active_score_revision_id):
             preview = self._preview(
                 record,
                 mapping=mapping,
@@ -753,22 +771,26 @@ class ScoreService:
             _require_editable(record)
             _check_import_revision(record.revision, payload.expected_revision)
             context = self._assessment_context(conn, record.assessment_id)
+            _check_preview_context(record, context)
             participants = self._participants(conn, record.assessment_id)
         leaves = self._leaves(context.paper_revision_id)
         current_mapping = self._mapping_of(record)
-        new_mapping = payload.mapping if payload.mapping is not None else current_mapping
+        new_mapping = analysis.normalize_mapping(payload.mapping) if payload.mapping is not None else current_mapping
         sheet_meta = dict(self._sheet_meta(record))
         max_row, max_column = self._sheet_bounds(record)
 
         rebuild = False
         if payload.mapping is not None:
-            if payload.mapping.work_sheet != (record.work_sheet or ""):
+            if new_mapping.work_sheet != (record.work_sheet or ""):
                 rebuild = True
             elif current_mapping is None:
                 rebuild = True
+            elif new_mapping != current_mapping:
+                # 表头、身份/计分/元数据列都能改变有效物理行集合，必须从原件重提取。
+                rebuild = True
             else:
                 analysis.validate_mapping(
-                    payload.mapping,
+                    new_mapping,
                     sheet_name=str(sheet_meta.get("name") or record.work_sheet or ""),
                     max_row=max_row,
                     max_column=max_column,
@@ -776,7 +798,7 @@ class ScoreService:
                 )
         rebuild_warnings: list[str] = []
         if rebuild:
-            same_sheet = payload.mapping is not None and payload.mapping.work_sheet == (
+            same_sheet = new_mapping is not None and new_mapping.work_sheet == (
                 record.work_sheet or ""
             )
             base_rows, header_row, sheet_meta = self._rebuild_rows(
@@ -784,14 +806,14 @@ class ScoreService:
             )
             max_row, max_column = self._bounds_of(sheet_meta)
             if same_sheet:
-                # 同一工作表补映射：保留教师已做的行定位与按原表坐标的单元格校正
+                # 同表重建仅保留仍存在的物理行与坐标，不把被排除的旧表头复活。
                 base_rows = self._preserve_edits(record, base_rows)
             else:
                 rebuild_warnings.append(
                     "已切换工作表并按原件重建预览行；之前的行定位与单元格校正不再适用，请重新校对。"
                 )
         else:
-            header_row = int(sheet_meta.get("headerRow") or 1)
+            header_row = new_mapping.header_row if new_mapping is not None else int(sheet_meta.get("headerRow") or 1)
             base_rows = [self._as_payload(row) for row in record.rows]
 
         patched_rows = self._apply_row_patches(
@@ -857,12 +879,17 @@ class ScoreService:
         with self._catalog.write_transaction() as conn:
             current = self._scores.require_in(conn, import_id)
             _require_editable(current)
+            _check_import_revision(current.revision, payload.expected_revision)
+            fresh_context = self._assessment_context(conn, current.assessment_id)
+            _check_preview_context(current, fresh_context)
+            if fresh_context.revision != context.revision or fresh_context.paper_revision_id != context.paper_revision_id:
+                raise _assessment_conflict(fresh_context.revision)
             self._scores.apply_patch_in(
                 conn,
                 import_id,
                 expected_revision=payload.expected_revision,
                 mapping=(
-                    payload.mapping.model_dump(by_alias=True)
+                    new_mapping.model_dump(by_alias=True)
                     if payload.mapping is not None
                     else None
                 ),
@@ -870,6 +897,55 @@ class ScoreService:
                 replace_rows=final_rows if rebuild else None,
                 row_updates=None if rebuild else final_rows,
                 summary=summary,
+            )
+        return self.get_score_import(import_id)
+
+    def refresh_import(
+        self, import_id: str, payload: ScoreImportRefreshRequest
+    ) -> ScoreImportView:
+        """教师明确刷新施测上下文；原件、物理行、人工定位与格修正均保留。"""
+        import_id = _text(import_id, field="importId")
+        with self._catalog.read_connection() as conn:
+            record = self._scores.require_in(conn, import_id)
+            _require_editable(record)
+            _check_import_revision(record.revision, payload.expected_import_revision)
+            context = self._assessment_context(conn, record.assessment_id)
+            if context.revision != payload.expected_assessment_revision:
+                raise _assessment_conflict(context.revision)
+            if (payload.base_score_revision_id != record.base_score_revision_id
+                    or context.active_score_revision_id != record.base_score_revision_id):
+                raise _base_conflict("当前 active/base 成绩版本已变化；请新建导入，不能通过刷新更换 base。")
+            participants = self._participants(conn, record.assessment_id)
+        leaves = self._leaves(context.paper_revision_id)
+        mapping = self._mapping_of(record)
+        preview = self._preview(record, mapping=mapping, participants=participants, leaves=leaves)
+        if preview is not None:
+            _raise_cell_errors(preview)
+        warnings = list(preview.warnings) if preview is not None else ["还没有可用的列映射；请先指定身份与计分列。"]
+        summary = self._summary_payload(
+            context=context, sheet=self._sheet_meta(record), preview=preview,
+            warnings=warnings, base=record.base_score_revision_id, row_count=record.row_count,
+            sheet_warnings=self._sheet_warnings(record), item_ids=[leaf.item_id for leaf in leaves],
+            mapping_warnings=self._mapping_warnings(record, mapping=mapping, leaves=leaves),
+        )
+        rows = [RowPayload(
+            row_no=row.row_no, participant_id=row.participant_id, cells=row.cells,
+            issues=(preview.row_matches[row.row_no].issues
+                    if preview is not None and row.row_no in preview.row_matches else row.issues),
+        ) for row in record.rows]
+        with self._catalog.write_transaction() as conn:
+            current = self._scores.require_in(conn, import_id)
+            _require_editable(current)
+            _check_import_revision(current.revision, payload.expected_import_revision)
+            fresh_context = self._assessment_context(conn, current.assessment_id)
+            if fresh_context.revision != payload.expected_assessment_revision:
+                raise _assessment_conflict(fresh_context.revision)
+            if (current.base_score_revision_id != payload.base_score_revision_id
+                    or fresh_context.active_score_revision_id != payload.base_score_revision_id):
+                raise _base_conflict("刷新期间 active/base 成绩版本已变化；本次刷新未写入。")
+            self._scores.apply_patch_in(
+                conn, import_id, expected_revision=payload.expected_import_revision,
+                work_sheet=current.work_sheet, row_updates=rows, summary=summary,
             )
         return self.get_score_import(import_id)
 
@@ -1026,7 +1102,7 @@ class ScoreService:
         mapping: ScoreColumnMapping | None,
         leaves: Sequence[Leaf],
     ) -> tuple[list[RowPayload], int, dict[str, Any]]:
-        """换工作表/首次映射时按原件重读工作表并重建行（文件 IO 在事务外）。"""
+        """映射改变时按原件重读并重建有效物理行（文件 IO 在事务外）。"""
         _, file_assets = self._require_assets()
         asset = file_assets.get(record.file_asset_id)
         if asset is None:
@@ -1191,6 +1267,8 @@ class ScoreService:
 
         context = self._assessment_context(conn, record.assessment_id)
         if context.revision != payload.expected_assessment_revision:
+            raise _assessment_conflict(context.revision)
+        if record.summary.get("assessmentRevision") != context.revision:
             raise _assessment_conflict(context.revision)
         if context.paper_revision_id != paper_revision_id:
             raise AppError(
@@ -1643,7 +1721,7 @@ class ScoreService:
                 parsed = analysis.parse_score_text(
                     entry.score_text or "", max_units=item.max_score_units
                 )
-                if parsed.is_error:
+                if parsed.is_error or parsed.status != "recorded" or parsed.units is None:
                     raise _issues_error(
                         "修正的分数不合法。",
                         code=parsed.code or SCORE_CELL_INVALID,
@@ -1652,7 +1730,7 @@ class ScoreService:
                             _issue(
                                 None,
                                 code=parsed.code or SCORE_CELL_INVALID,
-                                message=parsed.message or "修正的分数不合法。",
+                                message=parsed.message or "recorded 修正必须填写数值分数；空白、缺考与免考应选择对应状态。",
                                 field="scoreText",
                             )
                         ],
@@ -1796,11 +1874,16 @@ class ScoreService:
                 "成绩批次关联的受管资产登记缺失。", code=_ASSET_MISSING, status_code=500
             )
         mapping = self._mapping_of(record)
+        stale = not frozen and (
+            record.summary.get("assessmentRevision") != context.revision
+            or record.base_score_revision_id != context.active_score_revision_id
+        )
+        use_stored_preview = frozen or stale
         preview: PreviewMatrix | None = None
         leaves: tuple[Leaf, ...] = ()
-        if mapping is not None and not frozen:
+        if mapping is not None and not use_stored_preview:
             leaves = self._leaves(context.paper_revision_id)
-        if frozen:
+        if use_stored_preview:
             stored_mapping_warnings = record.summary.get("mappingWarnings")
             mapping_warnings = (
                 tuple(
@@ -1820,26 +1903,22 @@ class ScoreService:
             + list(mapping_warnings)
             + list(record.warnings)
         )
-        if mapping is not None and not frozen:
+        if mapping is not None and not use_stored_preview:
             preview = self._preview(
                 record, mapping=mapping, participants=participants, leaves=leaves
             )
             assert preview is not None
             warnings.extend(preview.warnings)
-            if (
-                record.summary.get("assessmentRevision") != context.revision
-                or record.summary.get("baseScoreRevisionId")
-                != context.active_score_revision_id
-            ):
-                warnings.append(
-                    "施测或当前正式成绩版本已变化；确认前请刷新预览并重新校对。"
-                )
-        if frozen:
+        if stale:
+            warnings.append("施测或当前正式成绩版本已变化；当前仍展示原预览范围，请明确刷新并重新校对。")
+        if use_stored_preview:
             numbers = record.summary.get("preview")
             numbers = numbers if isinstance(numbers, dict) else {}
             resolved = int(numbers.get("resolvedRowCount") or 0)
             missing_cells = int(numbers.get("missingCellCount") or 0)
-            blocking: list[ErrorIssue] = []
+            blocking: list[ErrorIssue] = ([] if frozen else [
+                ErrorIssue.model_validate(issue) for issue in record.summary.get("issues", [])
+            ])
         else:
             resolved = (
                 sum(1 for pid in preview.row_participant.values() if pid is not None)
@@ -1848,6 +1927,30 @@ class ScoreService:
             )
             missing_cells = preview.missing_cell_count if preview is not None else 0
             blocking = list(preview.blocking_issues) if preview is not None else []
+        if stale:
+            code = (SCORE_ASSESSMENT_REVISION_CONFLICT
+                    if record.summary.get("assessmentRevision") != context.revision
+                    else SCORE_BASE_REVISION_CONFLICT)
+            blocking.append(_issue(None, code=code,
+                                   message="当前预览依据已变化；请明确刷新，active/base变化时须新建导入。",
+                                   field="expectedAssessmentRevision" if code == SCORE_ASSESSMENT_REVISION_CONFLICT else "baseScoreRevisionId"))
+        numbers = record.summary.get("preview") if use_stored_preview else None
+        if preview is not None:
+            absent_by_class = preview.absent_by_class
+            missing_ids = preview.missing_participant_ids
+        elif isinstance(numbers, dict):
+            absent_by_class = numbers.get("absentByClass") or {}
+            missing_ids = numbers.get("missingParticipantIds") or []
+        else:
+            absent_by_class, missing_ids = {}, []
+        required = ScorePreviewAcknowledgements(
+            absences=[
+                ScoreAbsenceAcknowledgement(classId=class_id, participantIds=list(ids))
+                for class_id, ids in sorted(absent_by_class.items()) if ids
+            ],
+            missing=(ScoreMissingAcknowledgement(participantIds=list(missing_ids), cellCount=missing_cells)
+                     if missing_cells else None),
+        )
         return ScoreImportView(
             importId=record.import_id,
             assessmentId=record.assessment_id,
@@ -1863,6 +1966,7 @@ class ScoreService:
             rowCount=record.row_count,
             resolvedRowCount=resolved,
             missingCellCount=missing_cells,
+            requiredAcknowledgements=required,
             createdAt=record.created_at,
             updatedAt=record.updated_at,
         )
@@ -1896,34 +2000,33 @@ class ScoreService:
         names: Mapping[str, str],
     ) -> ScoreImportRowView:
         cells: list[ScoreRawCellView] = []
+        match = preview.row_matches.get(row.row_no) if preview is not None else None
+        participant_id = (preview.row_participant.get(row.row_no)
+                          if preview is not None else row.participant_id)
         if mapping is not None:
             stored = {cell.column: cell for cell in row.cells}
-            for entry in mapping.item_columns:
-                letter = entry.column.upper()
+            columns = [(entry.column, entry.item_id) for entry in mapping.item_columns]
+            columns.extend((letter, None) for letter in (mapping.total_column, mapping.attendance_column) if letter)
+            for letter, item_id in columns:
                 cell = stored.get(letter)
                 if cell is not None:
-                    cells.append(cell.view())
+                    view = cell.view()
                 else:
-                    cells.append(
-                        ScoreRawCellView(
-                            row=row.row_no,
-                            column=letter,
-                            text="",
-                            cachedText="",
-                            isFormula=False,
-                        )
-                    )
-        match = preview.row_matches.get(row.row_no) if preview is not None else None
+                    view = ScoreRawCellView(row=row.row_no, column=letter,
+                                            text="", cachedText="", isFormula=False)
+                effective = (preview.cells.get((participant_id, item_id))
+                             if preview is not None and participant_id and item_id else None)
+                if effective is not None:
+                    view = view.model_copy(update={"effective_status": effective.status, "score_units": effective.units})
+                cells.append(view)
+        else:
+            # 尚无身份映射时仍暴露原表证据，教师才能完成手动映射；不伪造得分状态。
+            cells = [cell.view() for cell in row.cells]
         issues: list[ErrorIssue] = (
             list(match.issues) if match is not None else list(row.issues)
         )
         if preview is not None:
             issues.extend(issue for issue in preview.cell_errors if issue.row == row.row_no)
-        participant_id = (
-            preview.row_participant.get(row.row_no)
-            if preview is not None
-            else row.participant_id
-        )
         return ScoreImportRowView(
             rowNo=row.row_no,
             participantId=participant_id,

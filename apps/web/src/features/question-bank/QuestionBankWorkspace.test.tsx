@@ -7,6 +7,7 @@ import type {
   QuestionList,
 } from '@/contracts/question-bank';
 import { QuestionBankWorkspace } from './QuestionBankWorkspace';
+import QuestionBankPage from '@/app/question-bank/page';
 
 const { pushMock } = vi.hoisted(() => ({ pushMock: vi.fn() }));
 
@@ -191,6 +192,44 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   pushMock.mockReset();
+  window.history.replaceState(null, '', '/question-bank');
+});
+
+describe('题库导航意图', () => {
+  it('明确查询优先于旧fragment，同实例导航和手动页签保留编码的练习上下文', async () => {
+    router();
+    window.history.replaceState(null, '', '/question-bank#generation');
+    const view = render(<QuestionBankWorkspace requestedTab="imports" returnPracticeSetId="practice /+?" />);
+    await screen.findByText('七年级数学题库.md');
+    expect(screen.getByRole('tab', { name: '导入批次' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByTestId('qb-generation-panel')).not.toBeInTheDocument();
+    view.rerender(<QuestionBankWorkspace requestedTab="library" returnPracticeSetId="practice /+?" />);
+    await screen.findByText('下列各数中，是负数的有？');
+    expect(screen.getByRole('tab', { name: '已入库题目' })).toHaveAttribute('aria-selected', 'true');
+    fireEvent.click(screen.getByRole('tab', { name: '导入批次' }));
+    expect(pushMock).toHaveBeenLastCalledWith('/question-bank?tab=imports&returnPracticeSetId=practice%20%2F%2B%3F', { scroll: false });
+    expect(screen.getByRole('tab', { name: '导入批次' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('已挂载题库的新补题意图打开面板，保留筛选；关闭后同意图不会重开或调用模型', async () => {
+    const fetchMock = router();
+    const view = render(<QuestionBankWorkspace requestedTab="library" />);
+    await screen.findByText('下列各数中，是负数的有？');
+    fireEvent.change(screen.getByLabelText('关键词'), { target: { value: '保留筛选' } });
+    view.rerender(<QuestionBankWorkspace requestedTab="generation" />);
+    await screen.findByTestId('qb-generation-panel');
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'AI 补题' })).getByRole('button', { name: '关闭对话框' }));
+    view.rerender(<QuestionBankWorkspace requestedTab="generation" />);
+    expect(screen.queryByTestId('qb-generation-panel')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('关键词')).toHaveValue('保留筛选');
+    expect(calls(fetchMock, '/question-generation-jobs', 'POST')).toHaveLength(0);
+  });
+
+  it.each(['other', ['library', 'generation'], ' library'])('薄路由拒绝无效或重复的标签查询 %s', async (tab) => {
+    render(await QuestionBankPage({ searchParams: Promise.resolve({ tab }) }));
+    expect(screen.getByRole('alert')).toHaveTextContent('tab');
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+  });
 });
 
 describe('题库首页：导入批次', () => {

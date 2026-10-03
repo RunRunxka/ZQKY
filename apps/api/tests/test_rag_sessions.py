@@ -262,7 +262,14 @@ async def test_cancel_and_cross_session_cannot_revive_turn(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_ttl_memory_capacity_and_restart_are_explicit(tmp_path):
+async def test_ttl_memory_capacity_and_restart_are_explicit(tmp_path, monkeypatch):
+    # R-19：TTL行为用独立任务钟验证，不让jieba冷加载耗时消耗50ms测试TTL。
+    # 只替换service模块绑定；标准库time/asyncio时钟和真实检索执行均不变。
+    from types import SimpleNamespace
+    import app.services.rag_v2.service as service_module
+
+    task_clock = [1000.0]
+    monkeypatch.setattr(service_module, "time", SimpleNamespace(monotonic=lambda: task_clock[0]))
     env = make_env(tmp_path)
     service = env.make_service(max_turns=1, ttl=0.05)
     try:
@@ -271,7 +278,7 @@ async def test_ttl_memory_capacity_and_restart_are_explicit(tmp_path):
         with pytest.raises(AppError) as capacity:
             service.start(request(env, turn="turn-2"))
         assert capacity.value.code == "RAG_CAPACITY"
-        await asyncio.sleep(0.07)
+        task_clock[0] += 0.07
         with pytest.raises(AppError) as expired:
             service.start(request(env).model_copy(update={"afterEventId": 1}))
         assert expired.value.code == "RAG_TURN_EXPIRED"

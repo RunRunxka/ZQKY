@@ -1849,6 +1849,13 @@ def _verify_sqlite_integrity_and_foreign_keys(
                 raise BackupFailed(
                     f"恢复后的数据库外键校验失败：{db_path}（{len(violations)} 处）"
                 )
+            if relative == TEACHING_CATALOG_RESTORE:
+                from app.core.lesson_schema_gate import verify_registered_lesson_schema
+
+                try:
+                    verify_registered_lesson_schema(connection)
+                except AppError as exc:
+                    raise BackupFailed("恢复后的已登记B5教案结构体检失败。") from exc
         finally:
             connection.close()
 

@@ -780,3 +780,13 @@ MIGRATIONS: tuple[Migration, ...] = (
     ),
 )
 
+# B4 append only. The seven registered declarations and their digests stay intact.
+from app.core.migrations.b4 import migrations as _b4_migrations
+
+MIGRATIONS = MIGRATIONS + _b4_migrations(_PAPER_STATEMENTS, _ASSESSMENT_STATEMENTS + _SCORE_STATEMENTS)
+
+# B5 append only: the nine previously registered declarations stay intact.
+from app.core.migrations.lesson_plans import MIGRATION as _lesson_plans_migration
+
+MIGRATIONS = MIGRATIONS + (_lesson_plans_migration,)
+

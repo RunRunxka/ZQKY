@@ -24,12 +24,14 @@ export function PreviewPane({
   focusMode,
   onFocus,
   onPrint,
+  sourceLabel,
 }: {
   data: LessonPlanData;
   fontSize: number;
   focusMode: boolean;
   onFocus: () => void;
   onPrint: () => void;
+  sourceLabel?: string;
 }) {
   const pages = useMemo(() => paginate(data, fontSize), [data, fontSize]);
   const viewport = useRef<HTMLDivElement>(null);
@@ -216,7 +218,7 @@ export function PreviewPane({
                   </div>
                 )}
                 <footer className="paper-footer">
-                  <span>{data.title || '未命名教案'}</span>
+                  <span>{data.title || '未命名教案'}{sourceLabel ? ` · ${sourceLabel}` : ''}</span>
                   <span>
                     {index + 1} / {pages.length}
                   </span>

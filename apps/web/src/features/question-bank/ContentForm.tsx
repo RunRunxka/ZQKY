@@ -36,7 +36,7 @@ const DIFFICULTIES = Object.keys(DIFFICULTY_LABEL) as Difficulty[];
 export function ContentForm({
   value,
   onChange,
-  disabled = false,
+  disabled: parentDisabled = false,
   taxonomy,
   idPrefix,
 }: {
@@ -47,8 +47,10 @@ export function ContentForm({
   idPrefix: string;
 }) {
   const { content, metadata } = value;
+  const disabled = parentDisabled || Boolean(content.richContent);
 
   function setContent(patch: Partial<QuestionContent>) {
+    if (content.richContent && patch.richContent === undefined) return;
     onChange({ ...value, content: { ...content, ...patch } });
   }
 
@@ -66,6 +68,11 @@ export function ContentForm({
 
   return (
     <div className="qb-form">
+      {content.richContent && <div className="space-banner info" role="status">
+        当前题面使用富内容。转为文本编辑后，本次新修订将保留下面的文本并移除富内容；旧修订不变。
+        <button type="button" className="space-button" disabled={parentDisabled}
+          onClick={() => setContent({ richContent: null })}>明确转为 Markdown 编辑</button>
+      </div>}
       <div className="qb-form-grid">
         <label className="qb-field" htmlFor={`${idPrefix}-type`}>
           题型

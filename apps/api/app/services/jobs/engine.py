@@ -72,12 +72,15 @@ class JobOutcome:
 class JobContext:
     """执行器可用的协作式上下文：只暴露只读取消探测。"""
 
-    def __init__(self, store: JobStore, job_id: str) -> None:
+    def __init__(self, store: JobStore, job_id: str, lease: JobLease | None = None) -> None:
         self._store = store
         self._job_id = job_id
+        self._lease = lease
 
     async def cancellation_requested(self) -> bool:
         """是否已请求取消（本机单行读；执行器应周期性探测并尽快收尾）。"""
+        if self._lease is not None:
+            return not self._store.execution_allowed(self._lease)
         return self._store.cancel_requested(self._job_id)
 
 
@@ -109,6 +112,7 @@ class JobEngine:
         self._tasks: set[asyncio.Future[JobRecord]] = set()
         #: (domain, job_id) → 在跑/已调度的任务；用于 retry 幂等与"是否已调度"判定
         self._tracked: dict[tuple[str, str], asyncio.Future[JobRecord]] = {}
+        self._scheduled_attempts: dict[tuple[str, str], int] = {}
         self._active = 0
 
     # ------------------------------------------------------------ 查询
@@ -190,12 +194,34 @@ class JobEngine:
         *,
         uses_model: bool = False,
     ) -> "asyncio.Task[JobRecord]":
-        """后台调度一轮任务；返回值可 await/取消，异常仍可经 ``await`` 取回。"""
-        task = asyncio.ensure_future(
-            self.run_job(domain, job_id, executor, uses_model=uses_model)
-        )
+        """调度目标attempt；若上一轮仍收尾，则安排一次等待其退出的新轮。"""
+        key = (domain, job_id)
+        record = self.store(domain).get(job_id)
+        target_attempt = record.attempt + 1 if record.state == "queued" else record.attempt
+        previous = self._tracked.get(key)
+        if previous is not None and not previous.done():
+            if record.state != "queued" or self._scheduled_attempts.get(key) == target_attempt:
+                return previous  # type: ignore[return-value]
+
+        async def execute_scheduled() -> JobRecord:
+            if previous is not None and not previous.done():
+                try:
+                    await asyncio.shield(previous)
+                except asyncio.CancelledError:
+                    current_task = asyncio.current_task()
+                    if current_task is not None and current_task.cancelling():
+                        raise
+                except Exception:
+                    pass  # 旧轮错误已落库；只继续显式接受的新queued轮。
+            current = self.store(domain).get(job_id)
+            if current.state != "queued" or current.attempt + 1 != target_attempt:
+                return current  # 取消/重启/其他轮接管后，不能重新领取迟到的排队输入。
+            return await self.run_job(domain, job_id, executor, uses_model=uses_model)
+
+        task = asyncio.ensure_future(execute_scheduled())
         self._tasks.add(task)
-        self._tracked[(domain, job_id)] = task
+        self._tracked[key] = task
+        self._scheduled_attempts[key] = target_attempt
         task.add_done_callback(self._on_done)
         return task
 
@@ -212,6 +238,7 @@ class JobEngine:
         for key, task in list(self._tracked.items()):
             if task.done():
                 self._tracked.pop(key, None)
+                self._scheduled_attempts.pop(key, None)
 
     # ------------------------------------------------------------ 内部
 
@@ -223,9 +250,13 @@ class JobEngine:
         executor: JobExecutor,
         heartbeat: "asyncio.Future[None]",
     ) -> JobRecord:
-        context = JobContext(store, frozen.job_id)
+        context = JobContext(store, frozen.job_id, lease)
         execution: asyncio.Future[JobOutcome] | None = None
         try:
+            # 名额等待期间可发生取消/接管；取得名额后必须再核原租约，
+            # 不能让已取消任务进入执行器消耗唯一模型名额。
+            if await context.cancellation_requested():
+                return store.mark_cancelled(frozen.job_id, lease)
             execution = asyncio.ensure_future(executor(frozen, context))
             done, _pending = await asyncio.wait(
                 {heartbeat, execution}, return_when=asyncio.FIRST_COMPLETED
@@ -387,6 +418,7 @@ class JobEngine:
         for key, tracked in list(self._tracked.items()):
             if tracked is task:
                 self._tracked.pop(key, None)
+                self._scheduled_attempts.pop(key, None)
         if not task.cancelled():
             # 取一次异常避免后台任务"未检索"告警；调用方仍可自行 await 取回。
             with contextlib.suppress(BaseException):

@@ -22,6 +22,7 @@ from typing import Any
 
 from app.core.exceptions import AppError
 from app.schemas.question_bank import QuestionAnswer, QuestionContent, QuestionMetadata
+from app.services.question_bank.rich import validate_projection
 
 CHOICE_TYPES = frozenset({"single_choice", "multiple_choice"})
 TEXT_ANSWER_TYPES = frozenset({"fill_blank", "short_answer"})
@@ -36,13 +37,15 @@ class ValidationIssue:
 
 def parse_content(raw: object) -> QuestionContent:
     try:
-        return QuestionContent.model_validate(raw)
+        content = QuestionContent.model_validate(raw)
     except Exception as exc:  # noqa: BLE001 - pydantic 细节不外泄，只给出稳定错误码
         raise AppError(
             f"题目内容不符合题库契约：{exc.__class__.__name__}。",
             code="DRAFT_CONTENT_INVALID",
             status_code=422,
         ) from exc
+    validate_projection(content)
+    return content
 
 
 def parse_metadata(raw: object) -> QuestionMetadata:

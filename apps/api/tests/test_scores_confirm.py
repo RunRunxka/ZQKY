@@ -607,7 +607,7 @@ def test_absent_marker_from_file_is_kept_with_warning(
 def test_participant_added_after_preview_requires_refresh(
     harness: ScoresHarness, tmp_path: Path
 ) -> None:
-    """预览后新增补考人次：承认范围不再一致 → 422；重新校对后可确认，新人次落 missing。"""
+    """新增补考使旧预览失效：确认/PATCH拒绝；显式刷新后人工消歧，新人次落missing。"""
     scene = harness.create_scene(tag="added", students=[("甲", "0001")])
     view = harness.upload_scores(
         scene.assessment["assessmentId"],
@@ -633,23 +633,39 @@ def test_participant_added_after_preview_requires_refresh(
     new_participant = added.json()["participants"][0]["participantId"]
 
     stale = harness.confirm_import(view["importId"], _confirm_body(view, scene))
-    assert stale.status_code in (409, 422), stale.text
-    if stale.status_code == 409:
-        assert stale.json()["code"] == SCORE_ASSESSMENT_REVISION_CONFLICT
-    else:
-        assert stale.json()["code"] == SCORE_ACKNOWLEDGEMENT_MISMATCH
+    assert stale.status_code == 409, stale.text
+    assert stale.json()["code"] == SCORE_ASSESSMENT_REVISION_CONFLICT
 
     refreshed = harness.patch_import(
         view["importId"], {"expectedRevision": view["revision"], "rows": []}
     )
     assert refreshed.status_code == 422  # 空补丁不生效：退回并携带有效补丁
-    refreshed = harness.patch_import(
+    before_import = harness.raw_rows("SELECT * FROM score_imports")
+    before_rows = harness.raw_rows("SELECT * FROM score_import_rows")
+    stale_patch = harness.patch_import(
         view["importId"],
         {
             "expectedRevision": view["revision"],
             "rows": [{"rowNo": 2, "participantId": scene.participant_id("0001")}],
         },
     )
+    assert stale_patch.status_code == 409, stale_patch.text
+    assert stale_patch.json()["code"] == SCORE_ASSESSMENT_REVISION_CONFLICT
+    assert harness.raw_rows("SELECT * FROM score_imports") == before_import
+    assert harness.raw_rows("SELECT * FROM score_import_rows") == before_rows
+    assessment = harness.assessment(scene.assessment["assessmentId"])
+    refreshed = harness.client.post(f'/api/v1/score-imports/{view["importId"]}/refresh', json={
+        "expectedImportRevision": view["revision"],
+        "expectedAssessmentRevision": assessment["revision"],
+        "baseScoreRevisionId": view["baseScoreRevisionId"],
+    })
+    assert refreshed.status_code == 200, refreshed.text
+    assert refreshed.json()["revision"] == view["revision"] + 1
+    assert refreshed.json()["previewVersion"] == view["previewVersion"] + 1
+    refreshed = harness.patch_import(view["importId"], {
+        "expectedRevision": refreshed.json()["revision"],
+        "rows": [{"rowNo": 2, "participantId": scene.participant_id("0001")}],
+    })
     assert refreshed.status_code == 200, refreshed.text
     updated = refreshed.json()
     assert updated["missingCellCount"] == 3
@@ -673,6 +689,9 @@ def test_participant_added_after_preview_requires_refresh(
         if row["participant"]["participantId"] == new_participant
     )
     assert [cell["status"] for cell in added_row["cells"]] == ["missing"] * 3
+    original_row = next(row for row in matrix["rows"]
+                        if row["participant"]["participantId"] == scene.participant_id("0001"))
+    assert [cell["scoreUnits"] for cell in original_row["cells"]] == [200, 300, 500]
 
 
 def test_no_participants_is_incomplete(harness: ScoresHarness, tmp_path: Path) -> None:

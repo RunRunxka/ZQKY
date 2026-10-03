@@ -23,7 +23,7 @@ describe('导航注册表', () => {
     }
   });
 
-  it('教案工作台本地可用，学习问答、题库、知识点、施测与成绩、资料库、书籍、课程与设置页已实现，其余均为规划中', () => {
+  it('教案工作台本地可用，教学闭环与资源页已实现，其余均为规划中', () => {
     const implemented = navigation.filter((item) => item.status !== 'planned');
     expect(implemented.map((item) => item.id)).toEqual([
       'chat',
@@ -31,6 +31,8 @@ describe('导航注册表', () => {
       'question-bank',
       'knowledge-points',
       'assessments',
+      'learning-analysis',
+      'practices',
       'knowledge',
       'books',
       'courses',
@@ -107,6 +109,8 @@ describe('唯一主页与当前菜单解析（R-02/R-04）', () => {
     const desktopCases: [string, string | null][] = [
       ['/chat', 'chat'],
       ['/lesson-plans', 'lesson-plan'],
+      ['/learning-analysis', 'learning-analysis'],
+      ['/practices', 'practices'],
       // T4：书籍并入教材资料库（自身隐藏），页面级路径同样落到教材资料库
       ['/books', 'knowledge'],
       ['/books/x/pages/y', 'knowledge'],

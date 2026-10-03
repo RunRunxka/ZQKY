@@ -3,6 +3,7 @@ import { FilePenLine, Undo2, Redo2, PanelLeftClose, PanelLeftOpen, Sparkles } fr
 import { useLessonEditor } from '../model/EditorContext';
 import { FormPanel } from './FormPanel';
 import { NlFillPanel } from './NlFillPanel';
+import { ServerControls } from './ServerControls';
 export function EditorPanel() {
   const {
     undo,
@@ -14,6 +15,7 @@ export function EditorPanel() {
     collapsed,
     setCollapsed,
     completeCount,
+    editingLocked,
   } = useLessonEditor();
   return (
     <>
@@ -56,7 +58,7 @@ export function EditorPanel() {
             <button
               className="icon-button"
               aria-label="撤销"
-              disabled={!past.length}
+              disabled={!past.length || editingLocked}
               onClick={undo}
             >
               <Undo2 size={16} />
@@ -64,7 +66,7 @@ export function EditorPanel() {
             <button
               className="icon-button"
               aria-label="重做"
-              disabled={!future.length}
+              disabled={!future.length || editingLocked}
               onClick={redo}
             >
               <Redo2 size={16} />
@@ -72,7 +74,8 @@ export function EditorPanel() {
           </div>
         </div>
         <div className="editor-scroll">
-          {editorTab === 'form' ? <FormPanel /> : <NlFillPanel />}
+          <ServerControls />
+          <fieldset className="lesson-editor-fields" disabled={editingLocked}>{editorTab === 'form' ? <FormPanel /> : <NlFillPanel />}</fieldset>
         </div>
         <div className="editor-footer">
           <span>

@@ -10,7 +10,7 @@
  */
 
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import type { QuestionDetail, QuestionImportDetail } from '@/contracts/question-bank';
 import { QuestionDetailPanel } from './QuestionDetailPanel';
@@ -136,7 +136,12 @@ function calls(fetchMock: ReturnType<typeof stubApi>, fragment: string, method?:
   });
 }
 
-function bodyAt(fetchMock: ReturnType<typeof stubApi>, fragment: string, method: string, index = 0) {
+function bodyAt(
+  fetchMock: ReturnType<typeof stubApi>,
+  fragment: string,
+  method: string,
+  index = 0,
+) {
   const matched = calls(fetchMock, fragment, method);
   return JSON.parse(String((matched[index]?.[1] as RequestInit).body)) as Record<string, unknown>;
 }
@@ -177,7 +182,8 @@ function router(overrides: Record<string, Handler> = {}) {
       return jsonResponse(true, 200, detail());
     }
     if (url.includes('/api/v1/knowledge-points')) return jsonResponse(true, 200, POINTS);
-    if (url.includes('/api/v1/question-imports/imp-1')) return jsonResponse(true, 200, IMPORT_DETAIL);
+    if (url.includes('/api/v1/question-imports/imp-1'))
+      return jsonResponse(true, 200, IMPORT_DETAIL);
     return jsonResponse(false, 500, {
       code: 'UNEXPECTED_TEST_REQUEST',
       message: `${method} ${url} 未在测试路由中声明`,
@@ -348,7 +354,9 @@ describe('题目编辑：关联整表替换与 422 字段级错误', () => {
     expect(rowIssue).toHaveTextContent(conflictMessage);
     expect(within(dialog).getByTestId('qb-knowledge-link-issue-1')).toHaveTextContent('kp-2');
     expect((within(dialog).getByLabelText('学科') as HTMLSelectElement).value).toBe('physics');
-    expect(within(dialog).getByText(/知识点关联校验失败（KNOWLEDGE_REFERENCE_INVALID）/)).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(/知识点关联校验失败（KNOWLEDGE_REFERENCE_INVALID）/),
+    ).toBeInTheDocument();
     // 未改动关联：请求体不能偷偷带 knowledgeLinks（那会变成静默清空/改写）
     expect(bodyAt(fetchMock, '/questions/q-1', 'PATCH')).not.toHaveProperty('knowledgeLinks');
   });
@@ -426,4 +434,121 @@ describe('来源追溯：AI 候选确认路径', () => {
     expect(trace).toHaveTextContent('无法核对');
     expect(trace).not.toHaveTextContent('没有 AI 来源草稿');
   });
+});
+
+function deferredResponse() {
+  let resolve!: (response: Response) => void;
+  const promise = new Promise<Response>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
+
+describe('题目详情写入的对象与卸载守卫', () => {
+  for (const operation of ['save', 'delete'] as const) {
+    for (const status of [200, 409]) {
+      for (const boundary of ['switch', 'unmount'] as const) {
+        it(`${operation} ${status} 迟到响应在 ${boundary} 后不通知父级`, async () => {
+          const pending = deferredResponse();
+          const fetchMock = router({
+            'PATCH /api/v1/questions/q-1': () => pending.promise,
+            'DELETE /api/v1/questions/q-1': () => pending.promise,
+            'GET /api/v1/questions/q-2': () =>
+              jsonResponse(
+                true,
+                200,
+                detail({ questionId: 'q-2', content: { ...CONTENT, stemMarkdown: '新题目' } }),
+              ),
+          });
+          const onClose = vi.fn();
+          const onChanged = vi.fn();
+          const view = renderDetail(onClose, onChanged);
+          if (operation === 'save') {
+            await openEdit();
+            fireEvent.click(screen.getByRole('button', { name: '保存修改' }));
+          } else {
+            fireEvent.click(await screen.findByRole('button', { name: '归档删除…' }));
+            fireEvent.click(screen.getByRole('button', { name: '确认归档删除' }));
+          }
+          if (boundary === 'switch') {
+            view.rerender(
+              <QuestionDetailPanel
+                questionId="q-2"
+                taxonomy={TAXONOMY}
+                onClose={onClose}
+                onChanged={onChanged}
+              />,
+            );
+            await openEdit();
+            fireEvent.change(screen.getByLabelText('题干'), { target: { value: '新题目编辑' } });
+          } else view.unmount();
+          await act(async () =>
+            pending.resolve(
+              status === 409
+                ? jsonResponse(false, 409, {
+                    code: 'REVISION_CONFLICT',
+                    message: '旧题目响应',
+                    retryable: false,
+                  })
+                : jsonResponse(true, 200, detail({ revision: 4 })),
+            ),
+          );
+          expect(onClose).not.toHaveBeenCalled();
+          expect(onChanged).not.toHaveBeenCalled();
+          expect(calls(fetchMock, '/questions/q-1', 'GET')).toHaveLength(1);
+          if (boundary === 'switch') {
+            expect(screen.getByLabelText('题干')).toHaveValue('新题目编辑');
+            expect(screen.queryByText(/旧题目响应/)).not.toBeInTheDocument();
+          }
+        });
+      }
+    }
+    it(`${operation} 的409读回在对象切换后失效`, async () => {
+      const readback = deferredResponse();
+      let reads = 0;
+      router({
+        'GET /api/v1/questions/q-1': () =>
+          ++reads === 1 ? jsonResponse(true, 200, detail()) : readback.promise,
+        'GET /api/v1/questions/q-2': () => jsonResponse(true, 200, detail({ questionId: 'q-2' })),
+        'PATCH /api/v1/questions/q-1': () =>
+          jsonResponse(false, 409, {
+            code: 'REVISION_CONFLICT',
+            message: '冲突',
+            retryable: false,
+          }),
+        'DELETE /api/v1/questions/q-1': () =>
+          jsonResponse(false, 409, {
+            code: 'REVISION_CONFLICT',
+            message: '冲突',
+            retryable: false,
+          }),
+      });
+      const onChanged = vi.fn();
+      const onClose = vi.fn();
+      const view = renderDetail(onClose, onChanged);
+      if (operation === 'save') {
+        await openEdit();
+        fireEvent.click(screen.getByRole('button', { name: '保存修改' }));
+      } else {
+        fireEvent.click(await screen.findByRole('button', { name: '归档删除…' }));
+        fireEvent.click(screen.getByRole('button', { name: '确认归档删除' }));
+      }
+      await waitFor(() => expect(reads).toBe(2));
+      view.rerender(
+        <QuestionDetailPanel
+          questionId="q-2"
+          taxonomy={TAXONOMY}
+          onClose={onClose}
+          onChanged={onChanged}
+        />,
+      );
+      await openEdit();
+      fireEvent.change(screen.getByLabelText('题干'), { target: { value: '新编辑' } });
+      await act(async () => readback.resolve(jsonResponse(true, 200, detail({ revision: 9 }))));
+      expect(onChanged).not.toHaveBeenCalled();
+      expect(onClose).not.toHaveBeenCalled();
+      expect(screen.getByLabelText('题干')).toHaveValue('新编辑');
+      expect(screen.queryByText('修订 r9')).not.toBeInTheDocument();
+    });
+  }
 });

@@ -1,3 +1,5 @@
+import type { LessonPlanData, DraftEnvelope } from '@/contracts/lesson-plans';
+export type { LessonType, ProcessItem, LessonPlanData, DraftEnvelope } from '@/contracts/lesson-plans';
 export const lessonTypeLabels = {
   new: '新课',
   review: '复习课',
@@ -5,26 +7,6 @@ export const lessonTypeLabels = {
   experiment: '实验课',
   other: '其它',
 } as const;
-export type LessonType = keyof typeof lessonTypeLabels;
-export interface ProcessItem {
-  id: string;
-  stage: string;
-  design: string;
-  secondary: string;
-}
-export interface LessonPlanData {
-  title: string;
-  totalLessons: string;
-  currentLessonNo: string;
-  lessonTypes: LessonType[];
-  otherTypeText: string;
-  coreCompetencies: string;
-  keyPoints: string;
-  teachingDesign: string;
-  process: ProcessItem[];
-  exercises: string;
-  reflection: string;
-}
 export type TextField = Exclude<keyof LessonPlanData, 'lessonTypes' | 'process'>;
 export interface FillProposal {
   patch: Partial<LessonPlanData>;
@@ -34,12 +16,6 @@ export interface FillProposal {
 export interface FillProvider {
   id: string;
   parse(input: string, signal?: AbortSignal): Promise<FillProposal>;
-}
-export interface DraftEnvelope {
-  schemaVersion: 1;
-  revision: number;
-  updatedAt: string;
-  data: LessonPlanData;
 }
 export interface DraftRepository {
   load(): DraftEnvelope | null | Promise<DraftEnvelope | null>;

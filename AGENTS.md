@@ -6,11 +6,12 @@
 
 ## 1. 项目概述
 
-智启课源是面向教师的 AI 教学工作台。**2026-09-29 起的任务核心是教材 RAG 与教学闭环**：独立知识点库、原卷/名单/施测/成绩、知识点题库，后续学情分析、教案调整和练习回流。Next.js 是正式前端，FastAPI 是唯一业务后端。
+智启课源是面向教师的 AI 教学工作台。**2026-09-29 起的任务核心是教材 RAG 与教学闭环**：独立知识点库、原卷/名单/施测/成绩、知识点题库、固定成绩学情分析、针对练习回流和学情驱动教案调整。Next.js 是正式前端，FastAPI 是唯一业务后端。
 
-- **真实业务**：学习问答、模型连接、教材资料库/RAG、知识点、题库、名单、原卷、施测及成绩；已有实现偏差和验收边界只看 CURRENT_STATUS，不能将模块存在等同于全部可用。
+- **真实业务**：学习问答、模型连接、教材资料库/RAG、知识点、题库、名单、原卷、施测、成绩、学情报告及针对练习回流；已有实现偏差和验收边界只看 CURRENT_STATUS，不能将模块存在等同于全部可用。
 - **已有本地能力**：教案规则填充、编辑、草稿恢复和 Word/PDF 导出；书籍生成仍是明确标识的本地模拟。
-- **后续设计**：学情报告、学情驱动 AI 教案调整、针对练习与回流闭环；不得提前宣称实现。
+- **已有源码与验收边界**：学情报告、针对练习及回流已有实现，是否完成独立验收和阶段门禁只看 CURRENT_STATUS。
+- **教案建议边界**：后台教案与固定学情建议已有候选源码，AI只生成待教师选择的建议；实现偏差、独立验收与阶段门禁只看 CURRENT_STATUS，不得据源码存在宣称完成。
 - **规划根页**：协同写作、沉浸阅读、学习空间、智能组卷、模板中心。题库不再属于规划页。
 - **历史参考**：DeepTutor v1.6.5 固定提交 `42fab3cf…` 只读。保留当前 /chat 视觉基准、品牌和蓝色，不把旧全页面复刻路线或已移除模块当作当前任务。
 
@@ -36,12 +37,12 @@
 │   │   └── src/
 │   │       ├── app/              # 薄路由与布局（[planned] 为规划页捕获路由）
 │   │       ├── components/       # 公共壳（layout/）与通用控件（ui/）
-│   │       ├── features/         # 业务模块（chat / lesson-plan / textbook / knowledge-points / question-bank / assessments / books / courses / model-settings / settings）
+│   │       ├── features/         # 业务模块（chat / lesson-plan / textbook / knowledge-points / question-bank / assessments / learning-analysis / practices / books / courses / model-settings / settings）
 │   │       ├── services/         # API 客户端与本地仓储（不含 UI）
 │   │       ├── contracts/        # 跨模块共享类型
 │   │       └── styles/           # globals.css / motion.css 单一变量层
 │   └── api/                      # 真实业务后端（FastAPI，唯一业务后端）
-│       ├── app/api/v1/           # HTTP 路由（chat / rag / textbook_* / knowledge / roster / papers / assessments / scores / question_bank 等）
+│       ├── app/api/v1/           # HTTP 路由（chat / rag / textbook_* / knowledge / roster / papers / assessments / scores / question_bank / analysis / practices / export_artifacts 等）
 │       ├── app/providers/llm/    # 供应商适配（三协议）
 │       ├── app/services/         # 业务服务（含生产 rag_v2 与保留的历史 rag_engine）
 │       ├── app/schemas|contracts|repositories|core/

@@ -75,7 +75,9 @@ SELECT row_no, participant_id, raw_cells_json, issues_json
 
 _SELECT_REVISION = """
 SELECT id, assessment_id, version, source_import_id, base_revision_id, state,
-       participant_snapshot_json, item_snapshot_json, confirmed_at, created_at
+       participant_snapshot_json, item_snapshot_json, confirmed_at, created_at,
+       (SELECT paper_revision_id FROM assessments
+        WHERE assessments.id=score_revisions.assessment_id) AS paper_revision_id
   FROM score_revisions
 """
 
@@ -171,6 +173,9 @@ class RawCellRecord:
                 text=self.corrected_text,
                 cachedText=self.corrected_text,
                 isFormula=False,
+                originalText=self.text,
+                originalCachedText=self.cached_text,
+                correctedText=self.corrected_text,
             )
         return ScoreRawCellView(
             row=self.row,
@@ -178,6 +183,8 @@ class RawCellRecord:
             text=self.text,
             cachedText=self.cached_text,
             isFormula=self.is_formula,
+            originalText=self.text,
+            originalCachedText=self.cached_text,
         )
 
     def dump(self) -> dict[str, Any]:
@@ -296,6 +303,7 @@ class ScoreRevisionRecord:
 
     revision_id: str
     assessment_id: str
+    paper_revision_id: str
     version: int
     state: ScoreRevisionState
     source_import_id: str | None
@@ -309,6 +317,7 @@ class ScoreRevisionRecord:
         return ScoreRevisionView(
             revisionId=self.revision_id,
             assessmentId=self.assessment_id,
+            paperRevisionId=self.paper_revision_id,
             version=self.version,
             state=self.state,
             sourceImportId=self.source_import_id,
@@ -1137,6 +1146,7 @@ class ScoreRepository:
         return ScoreRevisionRecord(
             revision_id=row["id"],
             assessment_id=row["assessment_id"],
+            paper_revision_id=row["paper_revision_id"],
             version=version,
             state=state,  # type: ignore[arg-type]
             source_import_id=row["source_import_id"],

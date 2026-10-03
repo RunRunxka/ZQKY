@@ -471,6 +471,8 @@ class ProposalRunner:
             maxOutputTokens=MAX_OUTPUT_TOKENS,
             params={},
         )
+        if await ctx.cancellation_requested():
+            return JobOutcome(result={"cancelled": True, "proposalId": None, "itemCount": 0})
         response = await handle.provider.complete(handle.config, request)
         if response.finishReason == FINISH_LENGTH:
             raise proposal_invalid(

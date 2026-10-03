@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal, InvalidOperation
 from functools import lru_cache
 from typing import Any, Mapping, Sequence
@@ -35,6 +35,8 @@ from app.contracts.scores import (
     SCORE_MAPPING_INVALID,
     SCORE_ROW_DUPLICATE_PARTICIPANT,
     SCORE_ROW_UNRESOLVED,
+    SCORE_TOTAL_MISMATCH,
+    SCORE_ATTENDANCE_MISMATCH,
     ScoreColumnMapping,
     ScoreItemColumn,
 )
@@ -76,6 +78,8 @@ STUDENT_NO_HEADERS = frozenset(
     {"学号", "学生学号", "考生号", "考号", "学籍号", "studentno", "studentid"}
 )
 NAME_HEADERS = frozenset({"姓名", "学生姓名", "考生姓名", "名字", "name"})
+TOTAL_HEADERS = frozenset({"总分", "合计", "总成绩", "total", "totalscore"})
+ATTENDANCE_HEADERS = frozenset({"出勤", "考勤", "出勤状态", "attendance"})
 
 #: 阻断确认的问题码（预览可保存，但确认前必须消解）
 BLOCKING_ISSUE_CODES: frozenset[str] = frozenset(
@@ -86,6 +90,8 @@ BLOCKING_ISSUE_CODES: frozenset[str] = frozenset(
         SCORE_CELL_OVER_MAX,
         SCORE_MAPPING_INVALID,
         SCORE_ITEM_UNKNOWN,
+        SCORE_TOTAL_MISMATCH,
+        SCORE_ATTENDANCE_MISMATCH,
     }
 )
 
@@ -380,20 +386,36 @@ def parse_score_text(text: str, *, max_units: int) -> CellParse:
         return CellParse(
             status="missing", code=SCORE_CELL_INVALID, message="分数不能为负数。"
         )
-    scaled = value * 100
-    if scaled != scaled.to_integral_value():
-        return CellParse(
-            status="missing",
-            code=SCORE_CELL_INVALID,
-            message="分数最多两位小数；不四舍五入、不推断。",
-        )
-    units = int(scaled)
-    if units > max_units:
+    # Decimal arithmetic uses the process context: multiplication can round a
+    # long coefficient, overflow a large exponent, or underflow nonzero to 0.
+    # Compare against an exact tuple-built maximum before any integer expansion,
+    # then inspect coefficient/exponent directly to require exact cent units.
+    maximum = Decimal((0, Decimal(max_units).as_tuple().digits, -2))
+    if value > maximum:
         return CellParse(
             status="missing",
             code=SCORE_CELL_OVER_MAX,
             message=f"分数超过该小题满分（{max_units / 100:g} 分）；请修正原表。",
         )
+    if value.is_zero():
+        return CellParse(status="recorded", units=0)
+    parts = value.as_tuple()
+    shift = parts.exponent + 2
+    digits = parts.digits
+    if shift < 0 and (
+        -shift >= len(digits) or any(digit != 0 for digit in digits[shift:])
+    ):
+        return CellParse(
+            status="missing",
+            code=SCORE_CELL_INVALID,
+            message="分数最多两位小数；不四舍五入、不推断。",
+        )
+    exact_digits = digits[:shift] if shift < 0 else digits
+    units = 0
+    for digit in exact_digits:
+        units = units * 10 + digit
+    if shift > 0:
+        units *= 10**shift
     return CellParse(status="recorded", units=units)
 
 
@@ -440,11 +462,13 @@ def auto_map(grid: SheetGrid, leaves: Sequence[Leaf]) -> AutoMapping:
 
     student_no_column = _match_column(STUDENT_NO_HEADERS, "学号")
     name_column = _match_column(NAME_HEADERS, "姓名")
+    total_column = _match_column(TOTAL_HEADERS, "总分")
+    attendance_column = _match_column(ATTENDANCE_HEADERS, "出勤")
     if student_no_column is None and name_column is None:
         warnings.append("未识别到学号列或姓名列；请手动指定后才能定位人次。")
 
     identity_columns = {
-        column for column in (student_no_column, name_column) if column
+        column for column in (student_no_column, name_column, total_column, attendance_column) if column
     }
     leaf_index: dict[str, list[Leaf]] = {}
     for leaf in leaves:
@@ -485,13 +509,15 @@ def auto_map(grid: SheetGrid, leaves: Sequence[Leaf]) -> AutoMapping:
     )
     if unmapped_warning:
         warnings.append(unmapped_warning)
-    if student_no_column is None and name_column is None and not item_columns:
+    if student_no_column is None and name_column is None:
         return AutoMapping(mapping=None, warnings=tuple(warnings))
     mapping = ScoreColumnMapping(
         workSheet=grid.name,
         headerRow=header_row,
         studentNoColumn=student_no_column,
         nameColumn=name_column,
+        totalColumn=total_column,
+        attendanceColumn=attendance_column,
         itemColumns=item_columns,
     )
     return AutoMapping(mapping=mapping, warnings=tuple(warnings))
@@ -509,10 +535,25 @@ def unmapped_leaves_warning(*, leaf_count: int, mapped_count: int) -> str | None
 
 def identity_columns_of(mapping: ScoreColumnMapping) -> frozenset[str]:
     return frozenset(
-        column
+        column.strip().upper()
         for column in (mapping.student_no_column, mapping.name_column)
         if column
     )
+
+
+def normalize_mapping(mapping: ScoreColumnMapping) -> ScoreColumnMapping:
+    """校验、读取和持久化共用同一物理列身份；不在这里放宽非法列。"""
+    return mapping.model_copy(update={
+        "student_no_column": mapping.student_no_column.strip().upper() if mapping.student_no_column is not None else None,
+        "name_column": mapping.name_column.strip().upper() if mapping.name_column is not None else None,
+        "total_column": mapping.total_column.strip().upper() if mapping.total_column is not None else None,
+        "attendance_column": mapping.attendance_column.strip().upper() if mapping.attendance_column is not None else None,
+        "item_columns": [entry.model_copy(update={"column": entry.column.strip().upper()}) for entry in mapping.item_columns],
+    })
+
+
+def metadata_columns_of(mapping: ScoreColumnMapping) -> frozenset[str]:
+    return frozenset(column.strip().upper() for column in (mapping.total_column, mapping.attendance_column) if column)
 
 
 def validate_mapping(
@@ -524,6 +565,7 @@ def validate_mapping(
     leaves: Sequence[Leaf],
 ) -> None:
     """校验教师映射：列存在、计分叶属于本卷、无重复列/重复叶；否则 422 定位。"""
+    mapping = normalize_mapping(mapping)
     issues: list[ErrorIssue] = []
     if mapping.work_sheet != sheet_name:
         raise _mapping_invalid(
@@ -550,9 +592,12 @@ def validate_mapping(
             ],
         )
     leaf_by_id = {leaf.item_id: leaf for leaf in leaves}
+    reserved: dict[str, str] = {}
     for field_name, letter in (
         ("studentNoColumn", mapping.student_no_column),
         ("nameColumn", mapping.name_column),
+        ("totalColumn", mapping.total_column),
+        ("attendanceColumn", mapping.attendance_column),
     ):
         if letter is None:
             continue
@@ -574,19 +619,15 @@ def validate_mapping(
                     None,
                     code=SCORE_MAPPING_INVALID,
                     message=f"列 {letter} 超出工作表范围（最多 {max_column} 列）。",
+                    column=letter,
                     field=field_name,
                 )
             )
-    if mapping.student_no_column and mapping.student_no_column == mapping.name_column:
-        issues.append(
-            _issue(
-                None,
-                code=SCORE_MAPPING_INVALID,
-                message="学号列与姓名列不能是同一列。",
-                field="nameColumn",
-            )
-        )
-    identity = identity_columns_of(mapping)
+        if letter in reserved:
+            issues.append(_issue(None, code=SCORE_MAPPING_INVALID,
+                                 message=f"{field_name} 与 {reserved[letter]} 不能占用同一物理列。",
+                                 column=letter, field=field_name))
+        reserved[letter] = field_name
     seen_columns: dict[str, str] = {}
     seen_items: dict[str, str] = {}
     for entry in mapping.item_columns:
@@ -624,12 +665,12 @@ def validate_mapping(
                     field="itemColumns",
                 )
             )
-        if entry.column in identity:
+        if entry.column in reserved:
             issues.append(
                 _issue(
                     None,
                     code=SCORE_MAPPING_INVALID,
-                    message="计分列与身份列不能是同一列。",
+                    message="计分列与身份列、总分列或出勤列不能是同一列。",
                     column=entry.column,
                     field="itemColumns",
                 )
@@ -691,7 +732,8 @@ def extract_rows(
     数据行 = 身份列或已映射计分列至少有一格非空；纯备注/空行跳过（不制造幽灵行）。
     每行保留全部有内容的格 + 身份/计分列的空白占位（保证物理坐标可回溯）。
     """
-    interesting = set(identity_columns_of(mapping)) | {
+    mapping = normalize_mapping(mapping)
+    interesting = set(identity_columns_of(mapping)) | set(metadata_columns_of(mapping)) | {
         entry.column.upper() for entry in mapping.item_columns
     }
     rows: list[ExtractedRow] = []
@@ -1052,9 +1094,9 @@ def build_preview(
     rows: Sequence[RowInput],
 ) -> PreviewMatrix:
     """构建完整矩阵：冻结参测人次 × 固定计分叶；缺行/缺列/未映射叶显式 missing。"""
+    mapping = normalize_mapping(mapping)
     matches = match_rows(rows, mapping=mapping, participants=participants)
     row_by_no = {row.row_no: row for row in rows}
-    row_matches = {match.row_no: match for match in matches}
 
     issues_by_row: dict[int, list[ErrorIssue]] = {
         match.row_no: list(match.issues) for match in matches
@@ -1078,6 +1120,9 @@ def build_preview(
                 )
             )
 
+    # 合并跨行校验结果到实际返回的定位结果；确认与逐行视图必须消费同一份阻断问题。
+    matches = tuple(replace(match, issues=tuple(issues_by_row[match.row_no])) for match in matches)
+    row_matches = {match.row_no: match for match in matches}
     row_for_participant: dict[str, RowInput] = {}
     for match in matches:
         if match.participant_id and match.participant_id not in row_for_participant:
@@ -1098,6 +1143,29 @@ def build_preview(
     for participant in participants:
         row = row_for_participant.get(participant.participant_id)
         inputs = _cell_inputs(row, mapping) if row is not None else {}
+        declared_attendance: str | None = None
+        if row is not None and mapping.attendance_column:
+            letter = mapping.attendance_column
+            attendance_cell = row.cells.get(letter)
+            text = attendance_cell.text if attendance_cell is not None else ""
+            key = normalize_text(text)
+            if key:
+                declared_attendance = {
+                    "present": "present", "出勤": "present", "正常": "present",
+                    "absent": "absent", "缺考": "absent", "exempt": "exempt", "免考": "exempt",
+                }.get(key)
+                if declared_attendance is None:
+                    conflicts.append(_issue(row.row_no, code=SCORE_CELL_INVALID,
+                                            message="出勤列只接受 present/出勤/正常、absent/缺考、exempt/免考或空白。",
+                                            column=letter, field="attendanceColumn"))
+                elif declared_attendance != participant.attendance:
+                    conflicts.append(_issue(row.row_no, code=SCORE_ATTENDANCE_MISMATCH,
+                                            message="原表出勤与施测出勤不一致；请显式校正施测出勤并刷新预览。",
+                                            column=letter, field="attendanceColumn"))
+            elif attendance_cell is not None and attendance_cell.is_formula:
+                conflicts.append(_issue(row.row_no, code=SCORE_CELL_INVALID,
+                                        message="出勤公式单元格缺少有效缓存；请重算保存或填写明确状态。",
+                                        column=letter, field="attendanceColumn"))
         parsed: dict[str, CellParse] = {}
         for entry in mapping.item_columns:
             letter = entry.column.upper()
@@ -1138,6 +1206,10 @@ def build_preview(
             marker_statuses = set()
         if len(marker_statuses) == 1:
             marker = next(iter(marker_statuses))
+            if declared_attendance is not None and declared_attendance != marker:
+                conflicts.append(_issue(row.row_no if row else None, code=SCORE_CELL_INVALID,
+                                        message="出勤列与小题格中的缺考/免考标记不一致；请校正原表。",
+                                        column=mapping.attendance_column, field="attendanceColumn"))
             if asserted is not None and asserted != marker:
                 conflicts.append(
                     _issue(
@@ -1197,6 +1269,28 @@ def build_preview(
                 absent_by_class.setdefault(participant.class_id, [])
                 if participant.participant_id not in absent_by_class[participant.class_id]:
                     absent_by_class[participant.class_id].append(participant.participant_id)
+
+        if row is not None and mapping.total_column:
+            total_cell = row.cells.get(mapping.total_column)
+            if total_cell is not None and (not total_cell.blank or total_cell.is_formula):
+                total = parse_cell(total_cell, max_units=sum(leaf.max_score_units for leaf in leaves))
+                # 数值超过全卷满分仍是可核对的数值：按总分不符处理，不另设猜测上限。
+                over_total_max = total.code == SCORE_CELL_OVER_MAX
+                if ((total.is_error and not over_total_max)
+                        or (not total.is_error and (total.status != "recorded" or total.units is None))):
+                    parse_errors.append(_issue(row.row_no, code=SCORE_CELL_INVALID,
+                                               message=total.message or "总分列必须是数值或空白，不能用缺考/免考代替总分。",
+                                               column=mapping.total_column, field="totalColumn"))
+                else:
+                    effective = [cells[(participant.participant_id, leaf.item_id)] for leaf in leaves]
+                    if all(cell.status == "recorded" for cell in effective):
+                        computed = sum(cell.units or 0 for cell in effective)
+                        if over_total_max or total.units != computed:
+                            conflicts.append(_issue(row.row_no, code=SCORE_TOTAL_MISMATCH,
+                                                    message=f"原表总分 {total_cell.text} 与小题得分合计 {Decimal(computed) / 100} 不一致；请校正后确认。",
+                                                    column=mapping.total_column, field="totalColumn"))
+                    else:
+                        warnings.append(f"第 {row.row_no} 行含 missing/absent/exempt，无法核对 {mapping.total_column} 列原表总分；不会由总分补齐小题。")
 
     absent_participants = sorted(
         participant_id
