@@ -1,5 +1,6 @@
 'use client';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEntrance } from '@/components/motion/useEntrance';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Archive, ArrowLeft, ArrowRight, Layers, Loader2, Plus, Sparkles } from 'lucide-react';
@@ -20,6 +21,8 @@ import '@/components/layout/space.css';
 import '@/features/courses/courses.css';
 
 export function CoursesShelf() {
+  const entranceRef = useRef<HTMLDivElement>(null);
+  useEntrance(entranceRef, { preset: 'page' });
   const router = useRouter();
   const [courses, setCourses] = useState<StudyCourse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,8 +59,8 @@ export function CoursesShelf() {
   );
 
   return (
-    <div className="space-page courses-page">
-      <header className="space-header">
+    <div className="space-page courses-page" ref={entranceRef}>
+      <header className="space-header" data-motion-reveal>
         {/* UX-REGRESSION-FIX v1：课程列表同样提供固定指向教材资料库的返回入口 */}
         <div className="space-header-row">
           <Link className="space-back" href="/knowledge-bases">

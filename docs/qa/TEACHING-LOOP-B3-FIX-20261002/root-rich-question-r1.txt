@@ -1,0 +1,12 @@
+npm notice run zhiqikeyuan@0.2.0 npx
+npm notice run vitest run apps/web/src/features/question-bank/QuestionPreview.rich.test.tsx
+
+ RUN  v3.2.4 H:/备份xuexi/智启课源
+
+ ✓ apps/web/src/features/question-bank/QuestionPreview.rich.test.tsx (2 tests) 74ms
+
+ Test Files  1 passed (1)
+      Tests  2 passed (2)
+   Start at  13:06:28
+   Duration  1.12s (transform 73ms, setup 74ms, collect 256ms, tests 74ms, environment 245ms, prepare 50ms)
+

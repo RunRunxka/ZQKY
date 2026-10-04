@@ -1,8 +1,18 @@
 'use client';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEntrance } from '@/components/motion/useEntrance';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, BookMarked, FolderOpen, Info, Library, Loader2, Plus, Trash2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  BookMarked,
+  FolderOpen,
+  Info,
+  Library,
+  Loader2,
+  Plus,
+  Trash2,
+} from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import {
   COURSE_COLOR_DOT,
@@ -35,6 +45,7 @@ import '@/features/courses/courses.css';
 import { CourseSessions } from './CourseSessions';
 
 export function CourseDetail() {
+  const entranceRef = useRef<HTMLDivElement>(null);
   const params = useParams<{ courseId: string }>();
   const courseId = params?.courseId;
   const router = useRouter();
@@ -78,10 +89,15 @@ export function CourseDetail() {
     () => courses?.find((item) => item.id === courseId) ?? null,
     [courses, courseId],
   );
+  useEntrance(entranceRef, {
+    preset: 'page',
+    triggerKey: courseId ?? '',
+    enabled: Boolean(course),
+  });
 
   if (courses !== null && !course) {
     return (
-      <div className="space-page courses-page">
+      <div className="space-page courses-page" ref={entranceRef}>
         <div className="space-empty" style={{ marginTop: 80 }}>
           <strong>课程不存在或已被删除</strong>
           <span>它可能已被删除，或链接有误。</span>
@@ -96,7 +112,7 @@ export function CourseDetail() {
 
   if (!course) {
     return (
-      <div className="space-page courses-page">
+      <div className="space-page courses-page" ref={entranceRef}>
         <div className="space-banner" style={{ marginTop: 80 }}>
           正在读取课程…
         </div>
@@ -113,8 +129,8 @@ export function CourseDetail() {
   const directoryError = directories ? snapshotError(directories) : null;
 
   return (
-    <div className="space-page courses-page">
-      <header className="space-header">
+    <div className="space-page courses-page" ref={entranceRef}>
+      <header className="space-header" data-motion-reveal>
         <div className="space-header-row">
           <Link className="space-back" href="/courses">
             <ArrowLeft size={16} />
@@ -138,7 +154,9 @@ export function CourseDetail() {
                 }
               }}
             >
-              {busyAction === 'archive' ? <Loader2 size={14} className="space-spin" aria-hidden /> : null}
+              {busyAction === 'archive' ? (
+                <Loader2 size={14} className="space-spin" aria-hidden />
+              ) : null}
               {course.status === 'active' ? '归档' : '恢复'}
             </button>
             <button
@@ -180,7 +198,8 @@ export function CourseDetail() {
         <div className="space-banner info courses-note-banner" role="note">
           <Info size={14} aria-hidden />
           <span>
-            学习会话按课程 id 归属（旧会话未归属时保持未归属、不改写）；掌握度/题库/阅读聚合进度未接入，
+            学习会话按课程 id
+            归属（旧会话未归属时保持未归属、不改写）；掌握度/题库/阅读聚合进度未接入，
             以下大纲进度为学员手判。
           </span>
         </div>
@@ -197,7 +216,7 @@ export function CourseDetail() {
         )}
 
         {/* 大纲 */}
-        <section className="space-group">
+        <section className="space-group" data-motion-reveal>
           <div className="space-header-row">
             <h2 className="space-group-label">
               大纲（{summary.covered}/{summary.total} 已完成
@@ -209,7 +228,9 @@ export function CourseDetail() {
                 onClick={() => {
                   setSyllabusText(
                     course.syllabus
-                      .map((unit) => [unit.title, unit.topics.join(', ')].filter(Boolean).join(' | '))
+                      .map((unit) =>
+                        [unit.title, unit.topics.join(', ')].filter(Boolean).join(' | '),
+                      )
                       .join('\n'),
                   );
                   setEditingSyllabus((current) => !current);
@@ -240,7 +261,7 @@ export function CourseDetail() {
                 每行一个单元，格式「标题 | 主题1, 主题2」；保存会重建大纲（covered 重置为未完成）。
               </p>
               <textarea
-                className="space-search"
+                className="space-search courses-syllabus-text"
                 style={{ width: '100%', minHeight: 96 }}
                 aria-label="大纲文本"
                 value={syllabusText}
@@ -261,7 +282,9 @@ export function CourseDetail() {
                     }
                   }}
                 >
-                  {busyAction === 'syllabus' ? <Loader2 size={14} className="space-spin" aria-hidden /> : null}
+                  {busyAction === 'syllabus' ? (
+                    <Loader2 size={14} className="space-spin" aria-hidden />
+                  ) : null}
                   保存大纲
                 </button>
                 <button className="space-button" onClick={() => setEditingSyllabus(false)}>
@@ -300,7 +323,9 @@ export function CourseDetail() {
                         <span className="courses-unit-topics">{unit.topics.join(' · ')}</span>
                       )}
                     </span>
-                    {summary.next?.id === unit.id && <span className="space-chip blue">下一单元</span>}
+                    {summary.next?.id === unit.id && (
+                      <span className="space-chip blue">下一单元</span>
+                    )}
                     {unit.covered && <span className="space-chip green">已完成</span>}
                   </div>
                 </li>
@@ -340,7 +365,9 @@ export function CourseDetail() {
               {resources.map(({ resource, availability, href }) => {
                 const Icon = KIND_ICON[resource.kind];
                 const suffix =
-                  availability === 'unknown' ? '（目录读取失败，暂无法确认）' : '（不可用：目标已删除或未载入）';
+                  availability === 'unknown'
+                    ? '（目录读取失败，暂无法确认）'
+                    : '（不可用：目标已删除或未载入）';
                 return (
                   <li
                     className={`space-session-card courses-resource${availability !== 'available' ? ' is-unavailable' : ''}`}
@@ -349,7 +376,9 @@ export function CourseDetail() {
                     <div className="courses-resource-row">
                       <span className="courses-resource-kind">
                         <Icon size={14} strokeWidth={1.7} aria-hidden />
-                        <span className="courses-resource-kind-name">{COURSE_KIND_LABEL[resource.kind]}</span>
+                        <span className="courses-resource-kind-name">
+                          {COURSE_KIND_LABEL[resource.kind]}
+                        </span>
                       </span>
                       {availability === 'available' && href ? (
                         <Link className="courses-resource-label" href={href}>
@@ -382,8 +411,8 @@ export function CourseDetail() {
           )}
           <p className="space-footnote">
             新建关联设施：
-            <Link href="/knowledge-bases"> 教材资料库</Link> ·
-            <Link href="/books"> 书籍</Link>（创建后回到本页附加）。
+            <Link href="/knowledge-bases"> 教材资料库</Link> ·<Link href="/books"> 书籍</Link>
+            （创建后回到本页附加）。
           </p>
         </section>
 
@@ -457,7 +486,9 @@ function EditCourseForm({
             onSaved(updated.name);
           } catch (cause) {
             setError(
-              cause instanceof CourseValidationError ? cause.message : '保存失败，请检查输入后重试。',
+              cause instanceof CourseValidationError
+                ? cause.message
+                : '保存失败，请检查输入后重试。',
             );
           } finally {
             setSaving(false);
@@ -466,7 +497,12 @@ function EditCourseForm({
       >
         <label>
           名称
-          <input value={name} required maxLength={60} onChange={(event) => setName(event.target.value)} />
+          <input
+            value={name}
+            required
+            maxLength={60}
+            onChange={(event) => setName(event.target.value)}
+          />
         </label>
         <label>
           简介
@@ -599,7 +635,12 @@ function AddResourceForm({
                               disabled={attached}
                               onClick={() => {
                                 try {
-                                  attachCourseResource(course.id, item.kind, item.refId, item.label);
+                                  attachCourseResource(
+                                    course.id,
+                                    item.kind,
+                                    item.refId,
+                                    item.label,
+                                  );
                                   onAdded(item.label);
                                 } catch (cause) {
                                   setError(

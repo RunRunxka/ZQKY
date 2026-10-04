@@ -1,0 +1,193 @@
+{
+  "taskId": "B5-DOC-POSTAPPLY-v3",
+  "owner": "/root/b5_final_doc_audit",
+  "independent": true,
+  "status": "STOP_INDEPENDENT_EXACT_V3_LIVE_APPLICATION_AND_CLOSED_RECEIPT_ACCEPTED",
+  "createdAtUtc": "2026-10-03T14:18:58.350560+00:00",
+  "pythonPID": 16476,
+  "readonlyNarrowPostAuditElapsedMs": 11.84,
+  "acceptedExactLiveApplication": true,
+  "noP1P2": true,
+  "documents": [
+    {
+      "path": "docs/CURRENT_STATUS.md",
+      "approvedAfterSHA256": "7aaa2a7911e1428b7f72e7099cfc65f861451e3fe2fbe4718c9637da5abffe3c",
+      "liveSHA256": "7aaa2a7911e1428b7f72e7099cfc65f861451e3fe2fbe4718c9637da5abffe3c",
+      "exact": true
+    },
+    {
+      "path": "docs/NEXT_SESSION_START.md",
+      "approvedAfterSHA256": "8784da063506202538af1712dc0004fef0b52629ebbeced8a509a148b68bafde",
+      "liveSHA256": "8784da063506202538af1712dc0004fef0b52629ebbeced8a509a148b68bafde",
+      "exact": true
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/README.md",
+      "approvedAfterSHA256": "cd5c80a86cb1a18a57ea08b52a0b39ae0b1c2cdc0603c3eba3c7d2b47ed04975",
+      "liveSHA256": "cd5c80a86cb1a18a57ea08b52a0b39ae0b1c2cdc0603c3eba3c7d2b47ed04975",
+      "exact": true
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+      "approvedAfterSHA256": "8c4d5923cfafe959a648a92c2b655d9b2e2b9fc3b03c8f4fce679273ea8db9ba",
+      "liveSHA256": "8c4d5923cfafe959a648a92c2b655d9b2e2b9fc3b03c8f4fce679273ea8db9ba",
+      "exact": true
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md",
+      "approvedAfterSHA256": "ca5954375b11a030a5d012e90454c567debb86f7edc2258ddbb8587f505d15af",
+      "liveSHA256": "ca5954375b11a030a5d012e90454c567debb86f7edc2258ddbb8587f505d15af",
+      "exact": true
+    },
+    {
+      "path": "docs/README.md",
+      "approvedAfterSHA256": "e34069692d6b68bf14494feed204828bf4dd55c0cc387af35375b8914316a06f",
+      "liveSHA256": "e34069692d6b68bf14494feed204828bf4dd55c0cc387af35375b8914316a06f",
+      "exact": true
+    },
+    {
+      "path": "docs/qa/README.md",
+      "approvedAfterSHA256": "0414f07f04d2ab7507c3a567dfa67efe8bdd57d56a53ced3aa7ed9bc50e890ba",
+      "liveSHA256": "0414f07f04d2ab7507c3a567dfa67efe8bdd57d56a53ced3aa7ed9bc50e890ba",
+      "exact": true
+    }
+  ],
+  "manifestSHA256": "a670e7ef0fc1ecb4b280f44bc2def9f966a40f1a761477bb220614cfbbe061e2",
+  "approvalSHA256": "62b15785fdf871c6aea86a7d57c65c83fb6b5c0b2c9f87c9a102a13817637453",
+  "appliedReceipt": {
+    "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-APPLIED-v3-v1.json",
+    "sha256": "348b58c1cbc72d9404735d112f9e3c56021b7889ed3025489692fb722a71dafd",
+    "statusAtOriginalTimestamp": "EXACT_APPROVED_DOCUMENTS_APPLIED_CLOSURE_POST_AUDIT_PENDING",
+    "meaning": "Original apply receipt correctly captured a pending post-audit state; later source audit and closed receipt resolve it."
+  },
+  "closedReceipt": {
+    "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-CLOSED-r8-v1.json",
+    "sha256": "f0421215009bdd70aad586c70682808b9f6ac78bc476d74353ff51466988f7a4",
+    "status": "B5_CLOSED",
+    "candidateSHA256": "c33c85698ba2be8e6b08fe432305622bf3635a1bc5bb0cc515472996ebbe2007",
+    "buildId": "FVU-OXmtBh9WBSHehixfE"
+  },
+  "receiptReferenceSHAActualMatch": [
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v3/MANIFEST.json",
+      "sha256": "a670e7ef0fc1ecb4b280f44bc2def9f966a40f1a761477bb220614cfbbe061e2",
+      "actualSHAExact": true
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/b5-doc-audit/FINAL-v3.json",
+      "sha256": "62b15785fdf871c6aea86a7d57c65c83fb6b5c0b2c9f87c9a102a13817637453",
+      "actualSHAExact": true
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/AUDIT-B5-r8-post-doc-apply-v1.json",
+      "sha256": "f35dd4a4d0d539a934b31327803b69eb58d3693739c150990d07a297980e8cbb",
+      "actualSHAExact": true
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-RESOURCE-CLOSED-r8-v2.json",
+      "sha256": "7bdfa87281e2d6459542dbb15887d9353a0f722aadc6561d5eb221467d711d56",
+      "actualSHAExact": true
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/CANDIDATE-B5-r8.json",
+      "sha256": "c33c85698ba2be8e6b08fe432305622bf3635a1bc5bb0cc515472996ebbe2007",
+      "actualSHAExact": true
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-CLOSED-r8-git-status.bin",
+      "sha256": "68a274101539dd2dbccf2245b7358f5e8727311088bfbdf4df50ffecc55e6cc2",
+      "actualSHAExact": true
+    }
+  ],
+  "ROOTPostApplyPreservationAudit": {
+    "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/AUDIT-B5-r8-post-doc-apply-v1.json",
+    "sha256": "f35dd4a4d0d539a934b31327803b69eb58d3693739c150990d07a297980e8cbb",
+    "exit": 0,
+    "elapsedMs": 2377.16,
+    "allReportedDriftAndAddedListsEmpty": [
+      "sourceDrift",
+      "sourceAdded",
+      "qaDrift",
+      "qaAdded",
+      "contractDrift",
+      "buildDrift",
+      "buildAdded",
+      "protectedDrift",
+      "completedG2Drift",
+      "priorDrift"
+    ],
+    "baselineFrozenNextEnvBuildIdentityMatches": true,
+    "counts": {
+      "source": 938,
+      "executableQA": 3061,
+      "frozenContracts": 33,
+      "build": 2004,
+      "priorEvidence": 1702,
+      "history": 4136,
+      "G2Immutable": 589,
+      "G2ApprovedArchives": 2
+    },
+    "independentWholeSourceAuditRepeated": false
+  },
+  "closureBoundary": {
+    "ROOTClosureRecorded": true,
+    "ownPortsFromFinalRead": [],
+    "referencedSamplesRetained": 182,
+    "branch": "main",
+    "head": "6aeb57280f6a7e0d7391cad4d150745479ea58ec",
+    "GitWritesPushDeployNextPhase": false,
+    "userProcessTouched": false,
+    "allAuditorsSTOP": true,
+    "qualityPolicyNotRun": [
+      "paid supplier teaching quality",
+      "Word/WPS manual pagination and actual saved PDF",
+      "formal Qdrant6333",
+      "formal data migration",
+      "larger pressure/heavy backend scale flag omitted",
+      "r2 extra HTTP identity rejected blocked by policy no retry"
+    ],
+    "knownObservations": [
+      "RAG-REL",
+      "R-14",
+      "CV01-CV03",
+      "other cross-batch intermittent ledger"
+    ],
+    "waitForUserInstruction": true
+  },
+  "auditedInputSHA256": {
+    "docs/CURRENT_STATUS.md": "7aaa2a7911e1428b7f72e7099cfc65f861451e3fe2fbe4718c9637da5abffe3c",
+    "docs/NEXT_SESSION_START.md": "8784da063506202538af1712dc0004fef0b52629ebbeced8a509a148b68bafde",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/README.md": "cd5c80a86cb1a18a57ea08b52a0b39ae0b1c2cdc0603c3eba3c7d2b47ed04975",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md": "8c4d5923cfafe959a648a92c2b655d9b2e2b9fc3b03c8f4fce679273ea8db9ba",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md": "ca5954375b11a030a5d012e90454c567debb86f7edc2258ddbb8587f505d15af",
+    "docs/README.md": "e34069692d6b68bf14494feed204828bf4dd55c0cc387af35375b8914316a06f",
+    "docs/qa/README.md": "0414f07f04d2ab7507c3a567dfa67efe8bdd57d56a53ced3aa7ed9bc50e890ba",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v3/MANIFEST.json": "a670e7ef0fc1ecb4b280f44bc2def9f966a40f1a761477bb220614cfbbe061e2",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/b5-doc-audit/FINAL-v3.json": "62b15785fdf871c6aea86a7d57c65c83fb6b5c0b2c9f87c9a102a13817637453",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/AUDIT-B5-r8-post-doc-apply-v1.json": "f35dd4a4d0d539a934b31327803b69eb58d3693739c150990d07a297980e8cbb",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-RESOURCE-CLOSED-r8-v2.json": "7bdfa87281e2d6459542dbb15887d9353a0f722aadc6561d5eb221467d711d56",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/CANDIDATE-B5-r8.json": "c33c85698ba2be8e6b08fe432305622bf3635a1bc5bb0cc515472996ebbe2007",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-CLOSED-r8-git-status.bin": "68a274101539dd2dbccf2245b7358f5e8727311088bfbdf4df50ffecc55e6cc2",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v3/after/docs/CURRENT_STATUS.md": "7aaa2a7911e1428b7f72e7099cfc65f861451e3fe2fbe4718c9637da5abffe3c",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v3/after/docs/NEXT_SESSION_START.md": "8784da063506202538af1712dc0004fef0b52629ebbeced8a509a148b68bafde",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v3/after/docs/qa/TEACHING-LOOP-G2-B5-20261003/README.md": "cd5c80a86cb1a18a57ea08b52a0b39ae0b1c2cdc0603c3eba3c7d2b47ed04975",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v3/after/docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md": "8c4d5923cfafe959a648a92c2b655d9b2e2b9fc3b03c8f4fce679273ea8db9ba",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v3/after/docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md": "ca5954375b11a030a5d012e90454c567debb86f7edc2258ddbb8587f505d15af",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v3/after/docs/README.md": "e34069692d6b68bf14494feed204828bf4dd55c0cc387af35375b8914316a06f",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v3/after/docs/qa/README.md": "0414f07f04d2ab7507c3a567dfa67efe8bdd57d56a53ced3aa7ed9bc50e890ba",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-APPLIED-v3-v1.json": "348b58c1cbc72d9404735d112f9e3c56021b7889ed3025489692fb722a71dafd",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-CLOSED-r8-v1.json": "f0421215009bdd70aad586c70682808b9f6ac78bc476d74353ff51466988f7a4"
+  },
+  "inputDriftDuringNarrowPostAudit": [],
+  "permissionBoundary": {
+    "newWritableOnly": [
+      "b5-doc-audit/FINAL-APPLIED-v3.json",
+      "b5-doc-audit/FINAL-APPLIED-v3.md"
+    ],
+    "authorityProductQAOrOldEvidenceWritten": false,
+    "testsHTTPServiceDBGitActions": false,
+    "appMainImported": false,
+    "spawnAgents": false
+  },
+  "STOP": true
+}

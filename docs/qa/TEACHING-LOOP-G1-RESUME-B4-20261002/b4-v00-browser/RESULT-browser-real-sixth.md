@@ -1,0 +1,31 @@
+# B4-F-BROWSER real-sixth v1 — independent result
+
+Passed one actual full test, retries0. Child PID 536 exited0 after 24925 ms; test22.6s, reporter duration24169.938ms, outer session50029 completed with actual exit0. Root/user own service lifecycles; this agent did not start or stop listeners. All executable sources are stopped.
+
+Frozen candidate r17 SHA256 7ee8b05c5bdacd17c3410c08f6a31b026fbcf26a895f227c9e2cb877d8b792b1: 878 product sources /45 executable QA /5 contracts. Preaudit195ms and postaudit203ms both exit0, zero drift, exact original next-env. Build `Ji-Jz8X9yY2R_79JOPivD` /2007 files, identity SHA256 29252444df2d9fb4160c3f26b9d28baaf3b93271014a49f696883feb51ae8b93; exact root HTTP-ready binds user frontend5172, root backend27880, actual8001proxy and fresh seed SHA256 f230110e77a62f858f354ac5c270eaeea4206e1ca0bacebc0476a207947f35e8. Runtime actually v24.19.0; unchanged spec118 static matcher expressions, two polls, timeout and conditional fallback remain intact. Counts are not combined with earlier samples.
+
+The single run starts from real fixed-score history and explicit attempts, creates report and teacher note, observes1/2 formal-question shortage, manually generates and edits/reviews/confirms one question, returns through actual library to practice, saves two formal items, preserves edits during late save and replays the same frozen review packet after lost response. It then downloads student/teacher DOCX and actual-roster XLSX, converts that fixed practice to T30, uploads/matches/confirms T60, and creates a new T70 report. Old fixed score/matrix/evidence/practice API facts remain equal.
+
+Actual navigation is independently read from trace: `call@248` (`pw:api@188`, spec154) returns `isVisible=true` at4920.886→4922.945ms on `/question-bank?returnPracticeSetId=323afe686bc245f999f22f865d769da3#generation`. All three trace entries contain zero `qb-generation-open` clicks: the panel opened automatically. After actual View-library click `pw:api@244/call@300`, snapshot8417.111ms is canonical `?tab=library&returnPracticeSetId=323afe686bc245f999f22f865d769da3`, library selected/imports unselected, encoded return context retained. No fallback success is used to claim automatic opening.
+
+Both R11 selected-history checks really matched 已准备: initial `call@62/expect@73`2544.086→2547.372ms, returned `call@603/expect@458`18047.257→18050.523ms. Actual import GETs200 transition needs_review→confirmed; confirmation200 has failures[] and one question. Actual ControlledProvider calls=1; model request equals captured chain request. All17 synthetic name/studentNo/studentId/participantId probes are absent from model request and actual generation POST. This run uses manual generation.
+
+Trace ZIP SHA256 ab6cf7bf4d8e95e5e6e3e45c289b1c4d68db0adeb0b710af57fe2048dfaa4439 contains482 complete entries; every payload was decompressed and independently checked for full SHA, CRC and size, central/EOCD present. Two network streams have no API status≥400; chain records139 observed API boundaries. Three downloaded ZIP containers similarly match API metadata and managed stored bytes:
+
+- Student DOCX37639bytes/18entries, SHA256 a62c928bb60a3712313fa9cae3887b94174fb38d91b53c9485881dd8b780bc61. Teacher answer/explanation markers and manual explanation are absent from every uncompressed part.
+- Teacher DOCX37731bytes/18entries, SHA256 cd57ce326fbca85281d88f79c0a6b4ffd71077227ff603df1296e2e954ab757d. All three teacher markers are present. Both DOCX preserve actual image bytes/table/OMML, full16(1)/2 and2.50/2.00, shared material once.
+- Template XLSX6297bytes/10entries, SHA2568f283e64d31d17e3a011550467983d300617215597ea9016fcace9bf65a9d4c6; actual4 participants, leading-zero student-number strings, fixed two leaf headers and blank scores.
+
+Captured fourDB verifier actually exited0/141ms; four integrity checks ok/FK0, complete2 practice→paper mappings preserve full numbers16(1)/2, maxunits250/200 and exact rich content. Returned8 evidence cells match handwritten0/150,250/missing,absent/absent,250/200 facts and stored confirmed scores; old12 evidence remains. Other single offline child commands: verify305ms, fill292ms, pixels139ms, each exit0. Their frozen receipts did not record PID; none is invented. Read-only artifact reinspection193.212ms is separate from business-test count.
+
+All17 PNGs were actually viewed. Captured desktop/mobile rich content, saved full numbering/scoring and visible focus show no new defect; keyboard screenshot shows white selected-history 已准备 text on blue. Actual computed normal motion150ms running, reduced1e-05s/no active animation/stable next frame, visible2pxsolid focus; rendered changed RGB pixels3371/3367. Coverage remains bounded: conversion390 captures roster rather than mobile export controls; returned390 captures upper evidence rather than returned history. Root's additional mobile visual is separate evidence.
+
+Actual `Close context pw:api@532`24190.888→24202.777ms, contextfixture531 and AfterHooks528 complete without error; request/page fixtures also end. There are no distinct page.close/request.dispose events, so closure is scoped to completed fixtures/context. Child naturally exited; Windows exclusive-open verified trace and merged/raw stdout/stderr are closed. All new/old temporary roots, raw results and first failures are retained.
+
+Primary evidence: `RESULT-browser-real-sixth.json`, `browser-real-sixth-evidence-read.json`, `browser-real-sixth-closure-read.json`, `browser-real-sixth-visual-read.json`, raw `browser-real-sixth-command.json/stdout/stderr.log`, and exact artifact chain:
+
+`H:\备份xuexi\智启课源\docs\qa\TEACHING-LOOP-G1-RESUME-B4-20261002\b4-v00-browser\browser-artifacts-real-sixth\real-browser-真实-history→明确-03476-下载→转换→T60→新T70；晚响应-未知原包-三视口\chain.json`
+
+Chain SHA256 8fd7953622dd0c1d680f4e2fca20a39023edec674b83201c2e3007df8e8d49e0. All prior actual first failures and successful older samples remain unchanged. Full original E2E/chat gates belong to subsequent CTRL/P executions.
+
+The separate planned task-card save was automatically rejected before execution with “blocked by policy”; no more specific reason was supplied. It was not retried or written by another tool/agent. Existing cards and HTTP-ready were used under CTRL's explicit subsequent authorization; actual browser command was accepted and completed.

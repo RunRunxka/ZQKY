@@ -1,0 +1,2712 @@
+{
+  "capturedAt": "2026-10-02T16:26:47.715751+00:00",
+  "status": "PAUSED_BY_USER_B4_NOT_CLOSED",
+  "owner": "/root CTRL",
+  "userInstruction": "先暂停，记录好情况写好文档后续接着做",
+  "currentDynamicClosure": {
+    "capturedAt": "2026-10-02T16:17:13.4744275+00:00",
+    "stage": "PAUSED_BY_USER_B4_NOT_CLOSED",
+    "reason": "先暂停，记录好情况写好文档后续接着做",
+    "streamPid": 23268,
+    "streamActualSessionExit": 0,
+    "streamReceiptStatus": "complete",
+    "streamReceiptExit": 0,
+    "streamOriginalFixtureFinallyReturned": true,
+    "streamStoppedAt": "2026-10-03T00:15:00.783117+08:00",
+    "streamGracefulStopRequested": true,
+    "streamLogBytes": 647,
+    "streamLogExclusiveReadSucceeded": true,
+    "streamLogSHA256": "38f77dc3881d90144a625d937d9844f047fd64fbb73543dec13116555fb54821",
+    "ports8001_8002Free": true,
+    "listenerSnapshot": [
+      {
+        "LocalAddress": "127.0.0.1",
+        "LocalPort": 5174,
+        "OwningProcess": 5172
+      }
+    ],
+    "userFrontend": {
+      "pid": 5172,
+      "creationDate": "2026-10-02T23:46:46.5737930+08:00",
+      "commandLine": "\"C:\\Program Files\\nodejs\\node.exe\" scripts/run-web.mjs start 5174",
+      "kept": true,
+      "userOwned": true,
+      "noAgentLifecycleAction": true
+    },
+    "recentClosedPidObservations": [
+      {
+        "pid": 23268,
+        "exists": false,
+        "commandLine": null
+      },
+      {
+        "pid": 27880,
+        "exists": false,
+        "commandLine": null
+      },
+      {
+        "pid": 11984,
+        "exists": false,
+        "commandLine": null
+      },
+      {
+        "pid": 17920,
+        "exists": false,
+        "commandLine": null
+      },
+      {
+        "pid": 27244,
+        "exists": false,
+        "commandLine": null
+      },
+      {
+        "pid": 24640,
+        "exists": false,
+        "commandLine": null
+      },
+      {
+        "pid": 23380,
+        "exists": false,
+        "commandLine": null
+      },
+      {
+        "pid": 28092,
+        "exists": false,
+        "commandLine": null
+      },
+      {
+        "pid": 536,
+        "exists": false,
+        "commandLine": null
+      },
+      {
+        "pid": 28208,
+        "exists": false,
+        "commandLine": null
+      }
+    ],
+    "streamOuterRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-stream-first-osjh6eaz",
+    "streamOuterRootExists": true,
+    "streamNestedRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-stream-first-osjh6eaz\\zqky-chat-test-fhc80vjr",
+    "streamNestedRootExists": true,
+    "original14ChatExecuted": false,
+    "testsLaunchedAfterPause": false,
+    "repairImplementedAfterPause": false,
+    "cleanupPerformed": false
+  },
+  "streamActualFinal": {
+    "pid": 23268,
+    "status": "complete",
+    "exit": 0,
+    "startedAt": "2026-10-02T16:07:58.881587+00:00",
+    "stoppedAt": "2026-10-02T16:15:00.783117+00:00",
+    "originalFixtureFinallyReturned": true,
+    "gracefulStopRequested": true,
+    "logsClosed": true,
+    "logSHA256": "38f77dc3881d90144a625d937d9844f047fd64fbb73543dec13116555fb54821",
+    "sampleRetained": true
+  },
+  "registeredTopLevelCount": 82,
+  "sampleRootRegistry": [
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-analysis-first-e8104f9465db472c915b69c26c2368f3",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-analysis/pytest-first-complete-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-analysis-first-e8104f9465db472c915b69c26c2368f3\\bootstrap"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-analysis/pytest-first-receipt.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-analysis-first-e8104f9465db472c915b69c26c2368f3\\bootstrap"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-analysis-lineage-first-706648a35c2c49c1935bd0dbc7c67e74",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-analysis/lineage-first-receipt.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-analysis-lineage-first-706648a35c2c49c1935bd0dbc7c67e74\\bootstrap"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-analysis/lineage-first-receipt.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-analysis-lineage-first-706648a35c2c49c1935bd0dbc7c67e74\\textbook-source"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-analysis-pytest-final-7a19667f68f04622ac4979af742fdb10",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-analysis/pytest-final-receipt.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-analysis-pytest-final-7a19667f68f04622ac4979af742fdb10\\textbook-source"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-analysis/pytest-final-receipt.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-analysis-pytest-final-7a19667f68f04622ac4979af742fdb10\\bootstrap"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-analysis-pytest-final-r2-31c7af788d24404a991c0405c991e884",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-analysis/pytest-final-r2-receipt.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-analysis-pytest-final-r2-31c7af788d24404a991c0405c991e884\\bootstrap"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-analysis/pytest-final-r2-receipt.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-analysis-pytest-final-r2-31c7af788d24404a991c0405c991e884\\textbook-source"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-analysis-pytest-r2-3c07522b256747f498bf29dc5be22e7c",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-analysis/pytest-r2-receipt.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-analysis-pytest-r2-3c07522b256747f498bf29dc5be22e7c\\bootstrap"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-analysis-pytest-r3-8685bb02f0574afaa445bb4cb9c50bca",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-analysis/pytest-r3-receipt.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-analysis-pytest-r3-8685bb02f0574afaa445bb4cb9c50bca\\bootstrap"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-analysis-pytest-r4-8df727c2cbc04eb29a519668dc5cd17d",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-analysis/pytest-r4-receipt.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-analysis-pytest-r4-8df727c2cbc04eb29a519668dc5cd17d\\bootstrap"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-analysis-pytest-r5-460b05b844c24cbb8754ff6c25f4e181",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-analysis/pytest-r5-receipt.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-analysis-pytest-r5-460b05b844c24cbb8754ff6c25f4e181\\textbook-source"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-analysis/pytest-r5-receipt.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-analysis-pytest-r5-460b05b844c24cbb8754ff6c25f4e181\\bootstrap"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-analysis-pytest-r6-59131ef8770a4eef87415f3e3549c1a6",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-analysis/pytest-r6-receipt.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-analysis-pytest-r6-59131ef8770a4eef87415f3e3549c1a6\\textbook-source"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-analysis/pytest-r6-receipt.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-analysis-pytest-r6-59131ef8770a4eef87415f3e3549c1a6\\bootstrap"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-analysis-pytest-v1.3-2830d157f0b648a798a2064da0258a7e",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-analysis/pytest-v1.3-receipt.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-analysis-pytest-v1.3-2830d157f0b648a798a2064da0258a7e\\textbook-source"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-analysis/pytest-v1.3-receipt.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-analysis-pytest-v1.3-2830d157f0b648a798a2064da0258a7e\\bootstrap"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-check-nav-final-first-f1tm59__",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/check-nav-final-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-check-nav-final-first-f1tm59__\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/check-nav-final-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-check-nav-final-first-f1tm59__\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/check-nav-final-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-check-nav-final-first-f1tm59__"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-check-ui-final-first-_8ugqct_",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/check-ui-final-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-check-ui-final-first-_8ugqct_\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/check-ui-final-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-check-ui-final-first-_8ugqct_\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/check-ui-final-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-check-ui-final-first-_8ugqct_"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-check-ui-fixed-first-6slh_vg8",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/check-ui-fixed-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-check-ui-fixed-first-6slh_vg8\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/check-ui-fixed-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-check-ui-fixed-first-6slh_vg8\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/check-ui-fixed-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-check-ui-fixed-first-6slh_vg8"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-check-v14-first-rpd47gyq",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/check-v14-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-check-v14-first-rpd47gyq\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/check-v14-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-check-v14-first-rpd47gyq\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/check-v14-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-check-v14-first-rpd47gyq"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "rootGateReceiptSnapshot.checkV14First.sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-check-v14-first-rpd47gyq"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "receiptIndex.entries[26].selectedFields.sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-check-v14-first-rpd47gyq"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-check-v14-second-cb2ffw9g",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/check-v14-second-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-check-v14-second-cb2ffw9g\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/check-v14-second-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-check-v14-second-cb2ffw9g\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/check-v14-second-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-check-v14-second-cb2ffw9g"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "rootGateReceiptSnapshot.checkV14Second.sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-check-v14-second-cb2ffw9g"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "receiptIndex.entries[27].selectedFields.sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-check-v14-second-cb2ffw9g"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-check-v14-third-i1wcbaed",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/check-v14-third-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-check-v14-third-i1wcbaed\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/check-v14-third-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-check-v14-third-i1wcbaed\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/check-v14-third-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-check-v14-third-i1wcbaed"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-full-api-first-_t7137xd",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-api-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-full-api-first-_t7137xd\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-api-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-full-api-first-_t7137xd\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-api-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-full-api-first-_t7137xd"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "receiptIndex.entries[28].selectedFields.sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-full-api-first-_t7137xd"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-full-api-owner-first-gurbj0h8",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-api-owner-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-full-api-owner-first-gurbj0h8\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-api-owner-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-full-api-owner-first-gurbj0h8\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-api-owner-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-full-api-owner-first-gurbj0h8"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-full-api-v14-first-icivzla3",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-api-v14-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-full-api-v14-first-icivzla3\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-api-v14-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-full-api-v14-first-icivzla3\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-api-v14-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-full-api-v14-first-icivzla3"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "rootGateReceiptSnapshot.fullAPIv14First.sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-full-api-v14-first-icivzla3"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "receiptIndex.entries[29].selectedFields.sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-full-api-v14-first-icivzla3"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-full-e2e-real-first-liw8m0mh",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-e2e-real-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-full-e2e-real-first-liw8m0mh\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-e2e-real-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-full-e2e-real-first-liw8m0mh\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-e2e-real-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-full-e2e-real-first-liw8m0mh"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/FULL-E2E-REAL-FIRST-RESOURCES.json",
+          "field": "runner.sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-full-e2e-real-first-liw8m0mh"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-full-e2e-real-fixed-first-s84utr2l",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-e2e-real-fixed-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-full-e2e-real-fixed-first-s84utr2l\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-e2e-real-fixed-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-full-e2e-real-fixed-first-s84utr2l\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-e2e-real-fixed-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-full-e2e-real-fixed-first-s84utr2l"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_full_E2E_complete_exit1_final_closure_pending",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-mobile-visual-first-vyvx6xx0",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/mobile-visual-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-mobile-visual-first-vyvx6xx0\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/mobile-visual-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-mobile-visual-first-vyvx6xx0\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/mobile-visual-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-mobile-visual-first-vyvx6xx0"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-mobile-visual-fixed-first-dryousrt",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/mobile-visual-fixed-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-mobile-visual-fixed-first-dryousrt\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/mobile-visual-fixed-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-mobile-visual-fixed-first-dryousrt\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/mobile-visual-fixed-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-mobile-visual-fixed-first-dryousrt"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-mobile-visual-nav-final-first-6cwo52e2",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/mobile-visual-nav-final-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-mobile-visual-nav-final-first-6cwo52e2\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/mobile-visual-nav-final-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-mobile-visual-nav-final-first-6cwo52e2\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/mobile-visual-nav-final-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-mobile-visual-nav-final-first-6cwo52e2"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-nav-r3-fix-first-lsf4t7ug",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/nav-r3-fix-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-nav-r3-fix-first-lsf4t7ug\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/nav-r3-fix-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-nav-r3-fix-first-lsf4t7ug\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/nav-r3-fix-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-nav-r3-fix-first-lsf4t7ug"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-owner-author-first-il1nuibx",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/owner-author-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-owner-author-first-il1nuibx\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/owner-author-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-owner-author-first-il1nuibx\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/owner-author-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-owner-author-first-il1nuibx"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-r06-controlled-first-j4c10z13",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/r06-controlled-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r06-controlled-first-j4c10z13\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/r06-controlled-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r06-controlled-first-j4c10z13\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/r06-controlled-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r06-controlled-first-j4c10z13"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-r09-r09-first-1ba835b02d0d47679592a2ce676f03ee",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/r09-first-receipt.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r09-r09-first-1ba835b02d0d47679592a2ce676f03ee\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/r09-first-receipt.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r09-r09-first-1ba835b02d0d47679592a2ce676f03ee\\global-app"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/r09-first-receipt.json",
+          "field": "runRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r09-r09-first-1ba835b02d0d47679592a2ce676f03ee"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-r09-r09-fixed-first-be0ec87e2a3d47fa8428cf8369f8a822",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/r09-fixed-first-receipt.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r09-r09-fixed-first-be0ec87e2a3d47fa8428cf8369f8a822\\global-app"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/r09-fixed-first-receipt.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r09-r09-fixed-first-be0ec87e2a3d47fa8428cf8369f8a822\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/r09-fixed-first-receipt.json",
+          "field": "runRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r09-r09-fixed-first-be0ec87e2a3d47fa8428cf8369f8a822"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-r10-r10-first-02d7c3dc2c47468683430b747183c80e",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/r10-first-receipt.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r10-r10-first-02d7c3dc2c47468683430b747183c80e\\global-app"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/r10-first-receipt.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r10-r10-first-02d7c3dc2c47468683430b747183c80e\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/r10-first-receipt.json",
+          "field": "runRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r10-r10-first-02d7c3dc2c47468683430b747183c80e"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-r10-r10-fixed-first-70e7bcad94cf4ea1b49b8064cdf89414",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/r10-fixed-first-receipt.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r10-r10-fixed-first-70e7bcad94cf4ea1b49b8064cdf89414\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/r10-fixed-first-receipt.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r10-r10-fixed-first-70e7bcad94cf4ea1b49b8064cdf89414\\global-app"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/r10-fixed-first-receipt.json",
+          "field": "runRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r10-r10-fixed-first-70e7bcad94cf4ea1b49b8064cdf89414"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-r11-final-first-135aj4ao",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/r11-final-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r11-final-first-135aj4ao\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/r11-final-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r11-final-first-135aj4ao\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/r11-final-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r11-final-first-135aj4ao"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-r11-first-48fr7gb0",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/r11-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r11-first-48fr7gb0\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/r11-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r11-first-48fr7gb0\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/r11-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r11-first-48fr7gb0"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-r11-fixed-first-dr8f79m9",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/r11-fixed-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r11-fixed-first-dr8f79m9\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/r11-fixed-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r11-fixed-first-dr8f79m9\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/r11-fixed-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r11-fixed-first-dr8f79m9"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-r13-nav-author-first-ox_ftlfg",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/r13-nav-author-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r13-nav-author-first-ox_ftlfg\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/r13-nav-author-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r13-nav-author-first-ox_ftlfg\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/r13-nav-author-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r13-nav-author-first-ox_ftlfg"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-r13-nav-green-first-wsi_8ilc",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/r13-nav-green-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r13-nav-green-first-wsi_8ilc\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/r13-nav-green-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r13-nav-green-first-wsi_8ilc\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/r13-nav-green-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r13-nav-green-first-wsi_8ilc"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-r13-nav-green-fixed-first-61xejxgs",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/r13-nav-green-fixed-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r13-nav-green-fixed-first-61xejxgs\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/r13-nav-green-fixed-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r13-nav-green-fixed-first-61xejxgs\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/r13-nav-green-fixed-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r13-nav-green-fixed-first-61xejxgs"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-r13-nav-red-first-hj_ng2um",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/r13-nav-red-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r13-nav-red-first-hj_ng2um\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/r13-nav-red-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r13-nav-red-first-hj_ng2um\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/r13-nav-red-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r13-nav-red-first-hj_ng2um"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-shared-export-access-first-vx0y2zvv",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/shared-export-access-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-shared-export-access-first-vx0y2zvv\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/shared-export-access-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-shared-export-access-first-vx0y2zvv\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/shared-export-access-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-shared-export-access-first-vx0y2zvv"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "receiptIndex.entries[30].selectedFields.sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-shared-export-access-first-vx0y2zvv"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-shared-foundation-r3-2lhgs0jz",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/shared-foundation-r3-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-shared-foundation-r3-2lhgs0jz\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/shared-foundation-r3-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-shared-foundation-r3-2lhgs0jz\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/shared-foundation-r3-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-shared-foundation-r3-2lhgs0jz"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "receiptIndex.entries[31].selectedFields.sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-shared-foundation-r3-2lhgs0jz"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-shared-v13-first-evxvqnxj",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/shared-v13-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-shared-v13-first-evxvqnxj\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/shared-v13-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-shared-v13-first-evxvqnxj\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/shared-v13-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-shared-v13-first-evxvqnxj"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "receiptIndex.entries[32].selectedFields.sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-shared-v13-first-evxvqnxj"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-shared-v13-second-mnggxabo",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/shared-v13-second-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-shared-v13-second-mnggxabo\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/shared-v13-second-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-shared-v13-second-mnggxabo\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/shared-v13-second-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-shared-v13-second-mnggxabo"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "receiptIndex.entries[33].selectedFields.sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-shared-v13-second-mnggxabo"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-shared-v14-first-g_u7164b",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/shared-v14-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-shared-v14-first-g_u7164b\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/shared-v14-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-shared-v14-first-g_u7164b\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/shared-v14-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-shared-v14-first-g_u7164b"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "receiptIndex.entries[34].selectedFields.sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-shared-v14-first-g_u7164b"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-stream-first-osjh6eaz",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/stream-api-first.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-stream-first-osjh6eaz\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/stream-api-first.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-stream-first-osjh6eaz\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/stream-api-first.json",
+          "field": "dataDir",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-stream-first-osjh6eaz\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/stream-api-first.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-stream-first-osjh6eaz"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_stream_starting_no_final_release",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-t80-2jdyn_h6",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-practices/fifth-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-t80-2jdyn_h6\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-practices/fifth-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-t80-2jdyn_h6\\empty-textbooks"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-t80-55_ka1ro",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-practices/first-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-t80-55_ka1ro\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-practices/first-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-t80-55_ka1ro\\empty-textbooks"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-t80-8luza32r",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-practices/third-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-t80-8luza32r\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-practices/third-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-t80-8luza32r\\empty-textbooks"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-t80-_51kzy23",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-practices/ninth-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-t80-_51kzy23\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-practices/ninth-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-t80-_51kzy23\\empty-textbooks"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-t80-afr0qk40",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-practices/seventh-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-t80-afr0qk40\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-practices/seventh-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-t80-afr0qk40\\empty-textbooks"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-t80-gyn3jlfm",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-practices/sixth-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-t80-gyn3jlfm\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-practices/sixth-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-t80-gyn3jlfm\\empty-textbooks"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-t80-l96riqoj",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-practices/fourth-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-t80-l96riqoj\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-practices/fourth-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-t80-l96riqoj\\empty-textbooks"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-t80-mv5coej0",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-practices/second-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-t80-mv5coej0\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-practices/second-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-t80-mv5coej0\\empty-textbooks"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-t80-xcjllvnv",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-practices/eighth-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-t80-xcjllvnv\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-practices/eighth-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-t80-xcjllvnv\\empty-textbooks"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-t80-zmzfajy5",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-practices/tenth-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-t80-zmzfajy5\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-practices/tenth-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-t80-zmzfajy5\\empty-textbooks"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-ui-author-first-kr9jlddk",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/ui-author-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-ui-author-first-kr9jlddk\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/ui-author-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-ui-author-first-kr9jlddk\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/ui-author-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-ui-author-first-kr9jlddk"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-v00-0wcy3811",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/browser-real-fifth-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-0wcy3811\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/browser-real-fifth-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-0wcy3811\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/seed-real-fifth-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-0wcy3811\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/seed-real-fifth-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-0wcy3811\\empty-textbooks"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-v00-650zrqob",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "blockedCleanup.inputTargets[1]",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-650zrqob"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/fe-second-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-650zrqob\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/fe-second-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-650zrqob\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/resources-second.json",
+          "field": "inputTargets[1]",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-650zrqob"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "blocked_cleanup_retained_no_delete_or_bypass",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-v00-6u5_y_yd",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/types-first-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-6u5_y_yd\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/types-first-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-6u5_y_yd\\empty-textbooks"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-v00-83ui02u7",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/browser-real-fourth-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-83ui02u7\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/browser-real-fourth-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-83ui02u7\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/seed-real-fourth-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-83ui02u7\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/seed-real-fourth-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-83ui02u7\\empty-textbooks"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-v00-a-4fc60882e3eb4eee85a858bf9e4a1499",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "receiptIndex.entries[38].selectedFields.dataRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-a-4fc60882e3eb4eee85a858bf9e4a1499"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "receiptIndex.entries[44].selectedFields.dataRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-a-4fc60882e3eb4eee85a858bf9e4a1499"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "receiptIndex.entries[46].selectedFields.dataRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-a-4fc60882e3eb4eee85a858bf9e4a1499"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/run-second/receipt.json",
+          "field": "dataRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-a-4fc60882e3eb4eee85a858bf9e4a1499"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-v00-a-68f9e5181e9345e6888f6c9e9222cfbd",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "receiptIndex.entries[36].selectedFields.dataRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-a-68f9e5181e9345e6888f6c9e9222cfbd"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "receiptIndex.entries[39].selectedFields.dataRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-a-68f9e5181e9345e6888f6c9e9222cfbd"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "receiptIndex.entries[40].selectedFields.dataRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-a-68f9e5181e9345e6888f6c9e9222cfbd"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/run-first/receipt.json",
+          "field": "dataRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-a-68f9e5181e9345e6888f6c9e9222cfbd"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-v00-a-9279a7dc79b0432d87e013b750e160f8",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "receiptIndex.entries[37].selectedFields.dataRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-a-9279a7dc79b0432d87e013b750e160f8"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "receiptIndex.entries[41].selectedFields.dataRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-a-9279a7dc79b0432d87e013b750e160f8"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "receiptIndex.entries[43].selectedFields.dataRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-a-9279a7dc79b0432d87e013b750e160f8"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/run-fixed-first/receipt.json",
+          "field": "dataRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-a-9279a7dc79b0432d87e013b750e160f8"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-v00-a58xyb5t",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/browser-real-third-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-a58xyb5t\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/browser-real-third-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-a58xyb5t\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/seed-real-third-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-a58xyb5t\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/seed-real-third-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-a58xyb5t\\empty-textbooks"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-v00-e85_79ll",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/fe-ui-fixed-first-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-e85_79ll\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/fe-ui-fixed-first-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-e85_79ll\\empty-textbooks"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-v00-hfjs_jp7",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "blockedCleanup.inputTargets[0]",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-hfjs_jp7"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/resources-second.json",
+          "field": "inputTargets[0]",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-hfjs_jp7"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/types-second-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-hfjs_jp7\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/types-second-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-hfjs_jp7\\empty-textbooks"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "blocked_cleanup_retained_no_delete_or_bypass",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-v00-jjraqnst",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/browser-real-second-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-jjraqnst\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/browser-real-second-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-jjraqnst\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/seed-real-second-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-jjraqnst\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/seed-real-second-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-jjraqnst\\empty-textbooks"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-v00-kng2qqno",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/fe-third-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-kng2qqno\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/fe-third-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-kng2qqno\\empty-textbooks"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-v00-p-commit-diagnostic-f17ebade0bec4c2da00f1e3bde75df5a",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "independentScopes.P.commitDiagnostic.runRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-p-commit-diagnostic-f17ebade0bec4c2da00f1e3bde75df5a"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "receiptIndex.entries[68].selectedFields.runRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-p-commit-diagnostic-f17ebade0bec4c2da00f1e3bde75df5a"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/commit-diagnostic-receipt.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-p-commit-diagnostic-f17ebade0bec4c2da00f1e3bde75df5a\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/commit-diagnostic-receipt.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-p-commit-diagnostic-f17ebade0bec4c2da00f1e3bde75df5a\\global-app"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/commit-diagnostic-receipt.json",
+          "field": "runRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-p-commit-diagnostic-f17ebade0bec4c2da00f1e3bde75df5a"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-v00-p-diagnostic-3c5ec23caccb43bebfe6040127918f65",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "independentScopes.P.diagnostic.runRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-p-diagnostic-3c5ec23caccb43bebfe6040127918f65"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "receiptIndex.entries[73].selectedFields.runRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-p-diagnostic-3c5ec23caccb43bebfe6040127918f65"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/diagnostic-receipt.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-p-diagnostic-3c5ec23caccb43bebfe6040127918f65\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/diagnostic-receipt.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-p-diagnostic-3c5ec23caccb43bebfe6040127918f65\\global-app"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/diagnostic-receipt.json",
+          "field": "runRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-p-diagnostic-3c5ec23caccb43bebfe6040127918f65"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-v00-p-first-2eeb20c6edfd4718ab858c85e7c385ef",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "independentScopes.P.first.runRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-p-first-2eeb20c6edfd4718ab858c85e7c385ef"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "receiptIndex.entries[77].selectedFields.runRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-p-first-2eeb20c6edfd4718ab858c85e7c385ef"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/first-receipt.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-p-first-2eeb20c6edfd4718ab858c85e7c385ef\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/first-receipt.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-p-first-2eeb20c6edfd4718ab858c85e7c385ef\\global-app"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/first-receipt.json",
+          "field": "runRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-p-first-2eeb20c6edfd4718ab858c85e7c385ef"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-v00-p-fixed-first-009e2be429874854ba0632c946df8f2c",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "independentScopes.P.fixedFirst.runRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-p-fixed-first-009e2be429874854ba0632c946df8f2c"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "receiptIndex.entries[78].selectedFields.runRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-p-fixed-first-009e2be429874854ba0632c946df8f2c"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/fixed-first-receipt.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-p-fixed-first-009e2be429874854ba0632c946df8f2c\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/fixed-first-receipt.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-p-fixed-first-009e2be429874854ba0632c946df8f2c\\global-app"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/fixed-first-receipt.json",
+          "field": "runRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-p-fixed-first-009e2be429874854ba0632c946df8f2c"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-v00-p-owner-fixed-first-1cfa88dbf3d045eda2e636ed62ea0d28",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/owner-fixed-first-receipt.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-p-owner-fixed-first-1cfa88dbf3d045eda2e636ed62ea0d28\\global-app"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/owner-fixed-first-receipt.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-p-owner-fixed-first-1cfa88dbf3d045eda2e636ed62ea0d28\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/owner-fixed-first-receipt.json",
+          "field": "runRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-p-owner-fixed-first-1cfa88dbf3d045eda2e636ed62ea0d28"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-v00-p-owner-fixed-second-04455bc077de4eb0949cfe965a9dc45d",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/owner-fixed-second-receipt.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-p-owner-fixed-second-04455bc077de4eb0949cfe965a9dc45d\\global-app"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/owner-fixed-second-receipt.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-p-owner-fixed-second-04455bc077de4eb0949cfe965a9dc45d\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/owner-fixed-second-receipt.json",
+          "field": "runRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-p-owner-fixed-second-04455bc077de4eb0949cfe965a9dc45d"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-v00-qkmpfnp4",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/browser-real-sixth-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-qkmpfnp4\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/browser-real-sixth-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-qkmpfnp4\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/seed-real-sixth-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-qkmpfnp4\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/seed-real-sixth-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-qkmpfnp4\\empty-textbooks"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_sixth_seed_browser_retained_API_closed",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-v00-ssyc3aiq",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/browser-real-first-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-ssyc3aiq\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/browser-real-first-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-ssyc3aiq\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/seed-real-first-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-ssyc3aiq\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/seed-real-first-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-ssyc3aiq\\empty-textbooks"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-v00-ytw_oy5n",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/fe-fixed-first-command.json",
+          "field": "environment.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-ytw_oy5n\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/fe-fixed-first-command.json",
+          "field": "environment.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-ytw_oy5n\\empty-textbooks"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-b4-workflow-fixture-adapt-first-5wbkcpbs",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/workflow-fixture-adapt-first-command.json",
+          "field": "env.ZQKY_DATA_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-workflow-fixture-adapt-first-5wbkcpbs\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/workflow-fixture-adapt-first-command.json",
+          "field": "env.ZQKY_TEXTBOOK_SOURCE_DIR",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-workflow-fixture-adapt-first-5wbkcpbs\\empty-textbooks"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/workflow-fixture-adapt-first-command.json",
+          "field": "sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-workflow-fixture-adapt-first-5wbkcpbs"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-analysis/RESOURCE-AUDIT.json",
+          "field": "receiptIndex.entries[35].selectedFields.sampleRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-workflow-fixture-adapt-first-5wbkcpbs"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "owned_new_sample_retained_historical_receipts",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-f10-real-6BBw8R",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/FULL-E2E-REAL-FIRST-RESOURCES.json",
+          "field": "resources[2].createdMarker.tmpRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-6BBw8R"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/FULL-E2E-REAL-FIRST-RESOURCES.json",
+          "field": "resources[2].createdMarker.dataDir",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-6BBw8R\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/FULL-E2E-REAL-FIRST-RESOURCES.json",
+          "field": "resources[2].retainedMarker.tmpRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-6BBw8R"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/FULL-E2E-REAL-FIRST-RESOURCES.json",
+          "field": "resources[2].retainedMarker.dataDir",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-6BBw8R\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-e2e-real-first.log",
+          "field": "line145.tmpRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-6BBw8R"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-e2e-real-first.log",
+          "field": "line145.dataDir",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-6BBw8R\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-e2e-real-first.log",
+          "field": "line146.tmpRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-6BBw8R"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-e2e-real-first.log",
+          "field": "line146.dataDir",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-6BBw8R\\data"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "P_CREATED_RETAINED_fixture_metadata",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-f10-real-T3x3id",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-e2e-real-fixed-first.log",
+          "field": "line142.tmpRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-T3x3id"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-e2e-real-fixed-first.log",
+          "field": "line142.dataDir",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-T3x3id\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-e2e-real-fixed-first.log",
+          "field": "line144.tmpRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-T3x3id"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-e2e-real-fixed-first.log",
+          "field": "line144.dataDir",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-T3x3id\\data"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "P_CREATED_RETAINED_fixture_metadata",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-f10-real-jIlDRs",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/FULL-E2E-REAL-FIRST-RESOURCES.json",
+          "field": "resources[1].createdMarker.tmpRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-jIlDRs"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/FULL-E2E-REAL-FIRST-RESOURCES.json",
+          "field": "resources[1].createdMarker.dataDir",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-jIlDRs\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/FULL-E2E-REAL-FIRST-RESOURCES.json",
+          "field": "resources[1].retainedMarker.tmpRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-jIlDRs"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/FULL-E2E-REAL-FIRST-RESOURCES.json",
+          "field": "resources[1].retainedMarker.dataDir",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-jIlDRs\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-e2e-real-first.log",
+          "field": "line138.tmpRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-jIlDRs"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-e2e-real-first.log",
+          "field": "line138.dataDir",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-jIlDRs\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-e2e-real-first.log",
+          "field": "line139.tmpRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-jIlDRs"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-e2e-real-first.log",
+          "field": "line139.dataDir",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-jIlDRs\\data"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "P_CREATED_RETAINED_fixture_metadata",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-f20i-0iG2Lv",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-e2e-real-fixed-first.log",
+          "field": "line8.tmpRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-0iG2Lv"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-e2e-real-fixed-first.log",
+          "field": "line8.dataDir",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-0iG2Lv\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-e2e-real-fixed-first.log",
+          "field": "line24.tmpRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-0iG2Lv"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-e2e-real-fixed-first.log",
+          "field": "line24.dataDir",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-0iG2Lv\\data"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "P_CREATED_RETAINED_fixture_metadata",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    },
+    {
+      "path": "C:/Users/96022/AppData/Local/Temp/zqky-f20i-sPgYwW",
+      "sources": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/full-e2e-real-first-assessments-resource.json",
+          "field": "createdMarker.tmpRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-sPgYwW"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/full-e2e-real-first-assessments-resource.json",
+          "field": "createdMarker.dataDir",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-sPgYwW\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/full-e2e-real-first-assessments-resource.json",
+          "field": "retainedMarker.tmpRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-sPgYwW"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/full-e2e-real-first-assessments-resource.json",
+          "field": "retainedMarker.dataDir",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-sPgYwW\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/FULL-E2E-REAL-FIRST-RESOURCES.json",
+          "field": "resources[0].createdMarker.tmpRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-sPgYwW"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/FULL-E2E-REAL-FIRST-RESOURCES.json",
+          "field": "resources[0].createdMarker.dataDir",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-sPgYwW\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/FULL-E2E-REAL-FIRST-RESOURCES.json",
+          "field": "resources[0].retainedMarker.tmpRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-sPgYwW"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-practices/FULL-E2E-REAL-FIRST-RESOURCES.json",
+          "field": "resources[0].retainedMarker.dataDir",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-sPgYwW\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-e2e-real-first.log",
+          "field": "line8.tmpRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-sPgYwW"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-e2e-real-first.log",
+          "field": "line8.dataDir",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-sPgYwW\\data"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-e2e-real-first.log",
+          "field": "line24.tmpRoot",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-sPgYwW"
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-root/full-e2e-real-first.log",
+          "field": "line24.dataDir",
+          "originalRegisteredPath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-sPgYwW\\data"
+        }
+      ],
+      "existsAtRead": true,
+      "existenceOnly": "Checked registered top-level root metadata only; no child enumeration/data/log/database reads",
+      "disposition": "Retain as requested; absence, if any, is an observation and no deletion by this reviewer",
+      "classification": "P_CREATED_RETAINED_fixture_metadata",
+      "retentionProtected": true,
+      "retentionProtectionReason": "User/CTRL explicitly requires new system roots retained; no cleanup permission or attempt by reviewer",
+      "protected1150BaselineClaim": false,
+      "existsAtPause": true,
+      "pauseObservationScope": "Registered top-level existence only; no child enumeration, data or database reads"
+    }
+  ],
+  "streamNestedSample": {
+    "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-stream-first-osjh6eaz\\zqky-chat-test-fhc80vjr",
+    "exists": true,
+    "retained": true,
+    "countedSeparatelyFromTopLevel82": true
+  },
+  "historicalResourcePrep": {
+    "path": "b4-v00-analysis/RESOURCE-PREP-R17.json",
+    "status": "PREPARATION_NOT_FINAL_RESOURCE_CLOSURE",
+    "notOverwritten": true,
+    "receiptIndexCount": 365,
+    "limits": "Historical receipt observations are retained; current stream final closure comes from CTRL above"
+  },
+  "policyRejections": {
+    "twoEmptyRoots": {
+      "task": "B4-V00-F v1.1 resources",
+      "action": "Remove-Item -LiteralPath $resolved -Recurse -Force",
+      "inputTargets": [
+        "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-hfjs_jp7",
+        "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-650zrqob"
+      ],
+      "outcome": "automatic approval rejected entire command before execution",
+      "returnedReason": "blocked by policy",
+      "specificReason": null,
+      "commandExecuted": false,
+      "deleted": false,
+      "readOnlyLaterObservation": {
+        "bothExist": true,
+        "entriesInEach": [
+          "empty-textbooks"
+        ]
+      },
+      "disposition": "CTRL clarified user requires test temporary roots retained; no further deletion attempts or alternate tools/commands",
+      "ownChildren": {
+        "typesSecondPID": 1756,
+        "typesSecondExited": true,
+        "FEsecondPID": 22888,
+        "FEsecondExited": true
+      },
+      "oldSixRootsTouched": false,
+      "firstTypeTempPreserved": true,
+      "serviceOrBrowserStarted": false
+    },
+    "sixthPlannedTaskCardWrite": {
+      "targets": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/BROWSER-real-sixth-TASK-CARD.md",
+          "existsAtRead": false
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/BROWSER-real-sixth-TASK-CARD.json",
+          "existsAtRead": false
+        }
+      ],
+      "outcome": "CreateProcess rejected before launch: blocked by policy",
+      "source": "CTRL dispatch message + actual RESULT-browser-real-sixth blockedTaskCardWrite field",
+      "parentAttestedCommandNotExecuted": true,
+      "notBypassed": true,
+      "notRecreatedByReviewer": true,
+      "distinction": "Legitimate RESULT-browser-real-sixth MD/JSON/evidence/closure/visual metadata were separately authorized business-result writes and already exist; not the rejected planned taskcard."
+    }
+  },
+  "frontendPolicyBoundary": "Initial frontend start rejected blocked by policy; user alone manually started; never retry or bypass/stop/restart user frontend",
+  "sourceReferences": {
+    "b4-v00-analysis/RESOURCE-PREP-R17.md": "a570d17357ea478111dd6f64bace55c638c531f85747975daef0b782707ddc3d",
+    "b4-v00-analysis/RESOURCE-PREP-R17.json": "8084294a6746500819988fc7d601963a22d1cb760cdcbc7888d91fe6241e79fb",
+    "b4-root/PAUSE-RESOURCE-CLOSURE.json": "a888015e7c3a6000b597a50323597419f85826471dc6794535e91bbc73521036",
+    "b4-root/stream-api-first-pause-stop-request.json": "4df42df105995cca97ee4aae51e14fb563e247cb57f9acb98a0d63e439667623",
+    "b4-root/stream-api-first.json": "0002a8566bb1b884ba1ab35181f2b059d1387e9d3686a42a984609f8d0497c79",
+    "b4-root/stream-api-first.log": "38f77dc3881d90144a625d937d9844f047fd64fbb73543dec13116555fb54821",
+    "b4-root/browser-api-real-sixth-released.json": "548e65197c15596a32405ca5eb1a0171fc7d88fb2409f2174cd1a6a58685fa6d",
+    "b4-root/browser-api-real-fifth-released.json": "af371117dacc8e0638ad6aeea8c40a47d8156e60d0fdd62c96acb068308fd4c8",
+    "b4-v00-practices/FULL-E2E-REAL-FIXED-FIRST-RESOURCES.json": "8426df481fa37eb9c91cc2ef58e78d82ebe4cce736e4a73f31374d6076c49e2c",
+    "b4-v00-practices/FULL-E2E-REAL-FIXED-FIRST-RESULT.md": "9aeec3a92b5f357f407207db3e273a0d0b7cb7216763ce8653120347b84e23d8"
+  },
+  "original14ChatExecuted": false,
+  "testsExecutedAfterPause": false,
+  "productOrExecutableQaEditedAfterPause": false,
+  "rootsDeletedAfterPause": false,
+  "formalEnvOrDataInspectedAtPause": false,
+  "oldSixRejectedRootsTouched": false,
+  "resourceMeaning": "Current owned-resource shutdown and retained-sample inventory only; not B4 acceptance or future port identity guarantee"
+}

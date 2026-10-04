@@ -1,0 +1,1097 @@
+[
+  {
+    "name": "unclaimed-expiry",
+    "domain": "teaching",
+    "second": 3,
+    "cancel": false,
+    "state": "running",
+    "attempt": 1,
+    "checkpoint": "{\"position\":7,\"fixed\":\"old\"}",
+    "expiry": "2026-10-02T00:00:03Z",
+    "error": "LEASE_LOST",
+    "business": []
+  },
+  {
+    "name": "unclaimed-expiry",
+    "domain": "question",
+    "second": 3,
+    "cancel": false,
+    "state": "running",
+    "attempt": 1,
+    "checkpoint": "{\"position\":7,\"fixed\":\"old\"}",
+    "expiry": "2026-10-02T00:00:03Z",
+    "error": "LEASE_LOST",
+    "business": []
+  },
+  {
+    "name": "unclaimed-expiry",
+    "domain": "knowledge",
+    "second": 3,
+    "cancel": false,
+    "state": "running",
+    "attempt": 1,
+    "checkpoint": "{\"position\":7,\"fixed\":\"old\"}",
+    "expiry": "2026-10-02T00:00:03Z",
+    "error": "LEASE_LOST",
+    "business": []
+  },
+  {
+    "name": "unclaimed-expiry",
+    "domain": "teaching",
+    "second": 4,
+    "cancel": false,
+    "state": "running",
+    "attempt": 1,
+    "checkpoint": "{\"position\":7,\"fixed\":\"old\"}",
+    "expiry": "2026-10-02T00:00:03Z",
+    "error": "LEASE_LOST",
+    "business": []
+  },
+  {
+    "name": "unclaimed-expiry",
+    "domain": "question",
+    "second": 4,
+    "cancel": false,
+    "state": "running",
+    "attempt": 1,
+    "checkpoint": "{\"position\":7,\"fixed\":\"old\"}",
+    "expiry": "2026-10-02T00:00:03Z",
+    "error": "LEASE_LOST",
+    "business": []
+  },
+  {
+    "name": "unclaimed-expiry",
+    "domain": "knowledge",
+    "second": 4,
+    "cancel": false,
+    "state": "running",
+    "attempt": 1,
+    "checkpoint": "{\"position\":7,\"fixed\":\"old\"}",
+    "expiry": "2026-10-02T00:00:03Z",
+    "error": "LEASE_LOST",
+    "business": []
+  },
+  {
+    "name": "unclaimed-expiry",
+    "domain": "teaching",
+    "second": 3,
+    "cancel": true,
+    "state": "running",
+    "attempt": 1,
+    "checkpoint": "{\"position\":7,\"fixed\":\"old\"}",
+    "expiry": "2026-10-02T00:00:03Z",
+    "error": "LEASE_LOST",
+    "business": []
+  },
+  {
+    "name": "unclaimed-expiry",
+    "domain": "question",
+    "second": 3,
+    "cancel": true,
+    "state": "running",
+    "attempt": 1,
+    "checkpoint": "{\"position\":7,\"fixed\":\"old\"}",
+    "expiry": "2026-10-02T00:00:03Z",
+    "error": "LEASE_LOST",
+    "business": []
+  },
+  {
+    "name": "unclaimed-expiry",
+    "domain": "knowledge",
+    "second": 3,
+    "cancel": true,
+    "state": "running",
+    "attempt": 1,
+    "checkpoint": "{\"position\":7,\"fixed\":\"old\"}",
+    "expiry": "2026-10-02T00:00:03Z",
+    "error": "LEASE_LOST",
+    "business": []
+  },
+  {
+    "name": "unclaimed-expiry",
+    "domain": "teaching",
+    "second": 4,
+    "cancel": true,
+    "state": "running",
+    "attempt": 1,
+    "checkpoint": "{\"position\":7,\"fixed\":\"old\"}",
+    "expiry": "2026-10-02T00:00:03Z",
+    "error": "LEASE_LOST",
+    "business": []
+  },
+  {
+    "name": "unclaimed-expiry",
+    "domain": "question",
+    "second": 4,
+    "cancel": true,
+    "state": "running",
+    "attempt": 1,
+    "checkpoint": "{\"position\":7,\"fixed\":\"old\"}",
+    "expiry": "2026-10-02T00:00:03Z",
+    "error": "LEASE_LOST",
+    "business": []
+  },
+  {
+    "name": "unclaimed-expiry",
+    "domain": "knowledge",
+    "second": 4,
+    "cancel": true,
+    "state": "running",
+    "attempt": 1,
+    "checkpoint": "{\"position\":7,\"fixed\":\"old\"}",
+    "expiry": "2026-10-02T00:00:03Z",
+    "error": "LEASE_LOST",
+    "business": []
+  },
+  {
+    "name": "sqlite-wait-expiry",
+    "operation": "complete",
+    "cancel": false,
+    "beforeSecond": 2,
+    "afterSecond": 4,
+    "expiry": "2026-10-02T00:00:03Z",
+    "rowUnchanged": true,
+    "callbackCalls": [],
+    "workerClockReads": [
+      [
+        "independent-waiting-writer",
+        4
+      ]
+    ]
+  },
+  {
+    "name": "sqlite-wait-expiry",
+    "operation": "fail",
+    "cancel": false,
+    "beforeSecond": 2,
+    "afterSecond": 4,
+    "expiry": "2026-10-02T00:00:03Z",
+    "rowUnchanged": true,
+    "callbackCalls": [],
+    "workerClockReads": [
+      [
+        "independent-waiting-writer",
+        4
+      ]
+    ]
+  },
+  {
+    "name": "sqlite-wait-expiry",
+    "operation": "cancel",
+    "cancel": false,
+    "beforeSecond": 2,
+    "afterSecond": 4,
+    "expiry": "2026-10-02T00:00:03Z",
+    "rowUnchanged": true,
+    "callbackCalls": [],
+    "workerClockReads": [
+      [
+        "independent-waiting-writer",
+        4
+      ]
+    ]
+  },
+  {
+    "name": "sqlite-wait-expiry",
+    "operation": "heartbeat",
+    "cancel": false,
+    "beforeSecond": 2,
+    "afterSecond": 4,
+    "expiry": "2026-10-02T00:00:03Z",
+    "rowUnchanged": true,
+    "callbackCalls": [],
+    "workerClockReads": [
+      [
+        "independent-waiting-writer",
+        4
+      ]
+    ]
+  },
+  {
+    "name": "sqlite-wait-expiry",
+    "operation": "complete",
+    "cancel": true,
+    "beforeSecond": 2,
+    "afterSecond": 4,
+    "expiry": "2026-10-02T00:00:03Z",
+    "rowUnchanged": true,
+    "callbackCalls": [],
+    "workerClockReads": [
+      [
+        "independent-waiting-writer",
+        4
+      ]
+    ]
+  },
+  {
+    "name": "sqlite-wait-expiry",
+    "operation": "fail",
+    "cancel": true,
+    "beforeSecond": 2,
+    "afterSecond": 4,
+    "expiry": "2026-10-02T00:00:03Z",
+    "rowUnchanged": true,
+    "callbackCalls": [],
+    "workerClockReads": [
+      [
+        "independent-waiting-writer",
+        4
+      ]
+    ]
+  },
+  {
+    "name": "sqlite-wait-expiry",
+    "operation": "cancel",
+    "cancel": true,
+    "beforeSecond": 2,
+    "afterSecond": 4,
+    "expiry": "2026-10-02T00:00:03Z",
+    "rowUnchanged": true,
+    "callbackCalls": [],
+    "workerClockReads": [
+      [
+        "independent-waiting-writer",
+        4
+      ]
+    ]
+  },
+  {
+    "name": "sqlite-wait-expiry",
+    "operation": "heartbeat",
+    "cancel": true,
+    "beforeSecond": 2,
+    "afterSecond": 4,
+    "expiry": "2026-10-02T00:00:03Z",
+    "rowUnchanged": true,
+    "callbackCalls": [],
+    "workerClockReads": [
+      [
+        "independent-waiting-writer",
+        4
+      ]
+    ]
+  },
+  {
+    "name": "claim-after-lock",
+    "oldAttempt": 1,
+    "newAttempt": 2,
+    "newExpiry": "2026-10-02T00:00:07Z",
+    "ttl": 3
+  },
+  {
+    "name": "engine-read-then-expiry",
+    "state": "running",
+    "attempt": 1,
+    "result": null,
+    "error": null,
+    "checkpoint": {
+      "position": 7,
+      "fixed": "old"
+    },
+    "business": []
+  },
+  {
+    "name": "live-cancel-wins",
+    "operation": "complete",
+    "state": "cancelled",
+    "callbackCalls": []
+  },
+  {
+    "name": "live-cancel-wins",
+    "operation": "fail",
+    "state": "cancelled",
+    "callbackCalls": []
+  },
+  {
+    "name": "identity-cas",
+    "operation": "complete",
+    "identity": "token",
+    "rowUnchanged": true,
+    "business": []
+  },
+  {
+    "name": "identity-cas",
+    "operation": "fail",
+    "identity": "token",
+    "rowUnchanged": true,
+    "business": []
+  },
+  {
+    "name": "identity-cas",
+    "operation": "cancel",
+    "identity": "token",
+    "rowUnchanged": true,
+    "business": []
+  },
+  {
+    "name": "identity-cas",
+    "operation": "heartbeat",
+    "identity": "token",
+    "rowUnchanged": true,
+    "business": []
+  },
+  {
+    "name": "identity-cas",
+    "operation": "complete",
+    "identity": "attempt",
+    "rowUnchanged": true,
+    "business": []
+  },
+  {
+    "name": "identity-cas",
+    "operation": "fail",
+    "identity": "attempt",
+    "rowUnchanged": true,
+    "business": []
+  },
+  {
+    "name": "identity-cas",
+    "operation": "cancel",
+    "identity": "attempt",
+    "rowUnchanged": true,
+    "business": []
+  },
+  {
+    "name": "identity-cas",
+    "operation": "heartbeat",
+    "identity": "attempt",
+    "rowUnchanged": true,
+    "business": []
+  },
+  {
+    "name": "identity-cas",
+    "operation": "complete",
+    "identity": "takeover",
+    "rowUnchanged": true,
+    "business": []
+  },
+  {
+    "name": "identity-cas",
+    "operation": "fail",
+    "identity": "takeover",
+    "rowUnchanged": true,
+    "business": []
+  },
+  {
+    "name": "identity-cas",
+    "operation": "cancel",
+    "identity": "takeover",
+    "rowUnchanged": true,
+    "business": []
+  },
+  {
+    "name": "identity-cas",
+    "operation": "heartbeat",
+    "identity": "takeover",
+    "rowUnchanged": true,
+    "business": []
+  },
+  {
+    "name": "asgi-retry-cleanup",
+    "firstEnd": "failed",
+    "nextEnd": "success",
+    "httpReceipts": [
+      {
+        "jobId": "aa886385f38340bdbdabffecf617d01c",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "aa886385f38340bdbdabffecf617d01c",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "aa886385f38340bdbdabffecf617d01c",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      }
+    ],
+    "attempts": [
+      1,
+      2
+    ],
+    "finalState": "succeeded",
+    "finalAttempt": 2,
+    "business": [
+      [
+        1,
+        "published-attempt-two"
+      ]
+    ],
+    "frozenInputUnchanged": true
+  },
+  {
+    "name": "asgi-retry-cleanup",
+    "firstEnd": "internal_error",
+    "nextEnd": "success",
+    "httpReceipts": [
+      {
+        "jobId": "af7fd4be62a0492391872495cbfd2119",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "af7fd4be62a0492391872495cbfd2119",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "af7fd4be62a0492391872495cbfd2119",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      }
+    ],
+    "attempts": [
+      1,
+      2
+    ],
+    "finalState": "succeeded",
+    "finalAttempt": 2,
+    "business": [
+      [
+        1,
+        "published-attempt-two"
+      ]
+    ],
+    "frozenInputUnchanged": true
+  },
+  {
+    "name": "asgi-retry-cleanup",
+    "firstEnd": "cancelled",
+    "nextEnd": "success",
+    "httpReceipts": [
+      {
+        "jobId": "a2f44d78a6764ba1ae1bb5b6c8dedbda",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "a2f44d78a6764ba1ae1bb5b6c8dedbda",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "a2f44d78a6764ba1ae1bb5b6c8dedbda",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      }
+    ],
+    "attempts": [
+      1,
+      2
+    ],
+    "finalState": "succeeded",
+    "finalAttempt": 2,
+    "business": [
+      [
+        1,
+        "published-attempt-two"
+      ]
+    ],
+    "frozenInputUnchanged": true
+  },
+  {
+    "name": "asgi-retry-cleanup",
+    "firstEnd": "interrupted",
+    "nextEnd": "success",
+    "httpReceipts": [
+      {
+        "jobId": "c32cc4150fa740eebb06fc0be087cfc2",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "c32cc4150fa740eebb06fc0be087cfc2",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "c32cc4150fa740eebb06fc0be087cfc2",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      }
+    ],
+    "attempts": [
+      1,
+      2
+    ],
+    "finalState": "succeeded",
+    "finalAttempt": 2,
+    "business": [
+      [
+        1,
+        "published-attempt-two"
+      ]
+    ],
+    "frozenInputUnchanged": true
+  },
+  {
+    "name": "asgi-retry-cleanup",
+    "firstEnd": "failed",
+    "nextEnd": "failure",
+    "httpReceipts": [
+      {
+        "jobId": "fed89f6e84b543ec821f9d83372ae88d",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "fed89f6e84b543ec821f9d83372ae88d",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "fed89f6e84b543ec821f9d83372ae88d",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      }
+    ],
+    "attempts": [
+      1,
+      2
+    ],
+    "finalState": "failed",
+    "finalAttempt": 2,
+    "business": [],
+    "frozenInputUnchanged": true
+  },
+  {
+    "name": "asgi-retry-cleanup",
+    "firstEnd": "internal_error",
+    "nextEnd": "failure",
+    "httpReceipts": [
+      {
+        "jobId": "9ac450c0802c499f8518711ba9538016",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "9ac450c0802c499f8518711ba9538016",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "9ac450c0802c499f8518711ba9538016",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      }
+    ],
+    "attempts": [
+      1,
+      2
+    ],
+    "finalState": "failed",
+    "finalAttempt": 2,
+    "business": [],
+    "frozenInputUnchanged": true
+  },
+  {
+    "name": "asgi-retry-cleanup",
+    "firstEnd": "cancelled",
+    "nextEnd": "failure",
+    "httpReceipts": [
+      {
+        "jobId": "f0d10817b5244b6cbe08786e85d6e85b",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "f0d10817b5244b6cbe08786e85d6e85b",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "f0d10817b5244b6cbe08786e85d6e85b",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      }
+    ],
+    "attempts": [
+      1,
+      2
+    ],
+    "finalState": "failed",
+    "finalAttempt": 2,
+    "business": [],
+    "frozenInputUnchanged": true
+  },
+  {
+    "name": "asgi-retry-cleanup",
+    "firstEnd": "interrupted",
+    "nextEnd": "failure",
+    "httpReceipts": [
+      {
+        "jobId": "73c61ff9e5a345459fde964868522f62",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "73c61ff9e5a345459fde964868522f62",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "73c61ff9e5a345459fde964868522f62",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      }
+    ],
+    "attempts": [
+      1,
+      2
+    ],
+    "finalState": "failed",
+    "finalAttempt": 2,
+    "business": [],
+    "frozenInputUnchanged": true
+  },
+  {
+    "name": "asgi-retry-cleanup",
+    "firstEnd": "failed",
+    "nextEnd": "cancel_before_start",
+    "httpReceipts": [
+      {
+        "jobId": "e2cd2ea0778d4bd9b7cd35cf3c38fc8b",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "e2cd2ea0778d4bd9b7cd35cf3c38fc8b",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "e2cd2ea0778d4bd9b7cd35cf3c38fc8b",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      }
+    ],
+    "attempts": [
+      1
+    ],
+    "finalState": "cancelled",
+    "finalAttempt": 1,
+    "business": [],
+    "frozenInputUnchanged": true
+  },
+  {
+    "name": "asgi-retry-cleanup",
+    "firstEnd": "internal_error",
+    "nextEnd": "cancel_before_start",
+    "httpReceipts": [
+      {
+        "jobId": "d0811d55adbc465cbd609b914563c907",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "d0811d55adbc465cbd609b914563c907",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "d0811d55adbc465cbd609b914563c907",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      }
+    ],
+    "attempts": [
+      1
+    ],
+    "finalState": "cancelled",
+    "finalAttempt": 1,
+    "business": [],
+    "frozenInputUnchanged": true
+  },
+  {
+    "name": "asgi-retry-cleanup",
+    "firstEnd": "cancelled",
+    "nextEnd": "cancel_before_start",
+    "httpReceipts": [
+      {
+        "jobId": "bf1ec7abcc3047e7b33f76b0e349bea2",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "bf1ec7abcc3047e7b33f76b0e349bea2",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "bf1ec7abcc3047e7b33f76b0e349bea2",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      }
+    ],
+    "attempts": [
+      1
+    ],
+    "finalState": "cancelled",
+    "finalAttempt": 1,
+    "business": [],
+    "frozenInputUnchanged": true
+  },
+  {
+    "name": "asgi-retry-cleanup",
+    "firstEnd": "interrupted",
+    "nextEnd": "cancel_before_start",
+    "httpReceipts": [
+      {
+        "jobId": "c6680b2aba174609803ed20b624c70a3",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "c6680b2aba174609803ed20b624c70a3",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "c6680b2aba174609803ed20b624c70a3",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      }
+    ],
+    "attempts": [
+      1
+    ],
+    "finalState": "cancelled",
+    "finalAttempt": 1,
+    "business": [],
+    "frozenInputUnchanged": true
+  },
+  {
+    "name": "asgi-retry-cleanup",
+    "firstEnd": "failed",
+    "nextEnd": "restart_before_start",
+    "httpReceipts": [
+      {
+        "jobId": "208ab321b2dc4c34a6420cd7517f792b",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "208ab321b2dc4c34a6420cd7517f792b",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "208ab321b2dc4c34a6420cd7517f792b",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      }
+    ],
+    "attempts": [
+      1,
+      2
+    ],
+    "finalState": "succeeded",
+    "finalAttempt": 2,
+    "business": [
+      [
+        1,
+        "published-attempt-two"
+      ]
+    ],
+    "frozenInputUnchanged": true
+  },
+  {
+    "name": "asgi-retry-cleanup",
+    "firstEnd": "internal_error",
+    "nextEnd": "restart_before_start",
+    "httpReceipts": [
+      {
+        "jobId": "ad4e5042c7ff4577a7557ebe99650ac0",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "ad4e5042c7ff4577a7557ebe99650ac0",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "ad4e5042c7ff4577a7557ebe99650ac0",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      }
+    ],
+    "attempts": [
+      1,
+      2
+    ],
+    "finalState": "succeeded",
+    "finalAttempt": 2,
+    "business": [
+      [
+        1,
+        "published-attempt-two"
+      ]
+    ],
+    "frozenInputUnchanged": true
+  },
+  {
+    "name": "asgi-retry-cleanup",
+    "firstEnd": "cancelled",
+    "nextEnd": "restart_before_start",
+    "httpReceipts": [
+      {
+        "jobId": "9d92ddde890a430eb76947423297a1b0",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "9d92ddde890a430eb76947423297a1b0",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "9d92ddde890a430eb76947423297a1b0",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      }
+    ],
+    "attempts": [
+      1,
+      2
+    ],
+    "finalState": "succeeded",
+    "finalAttempt": 2,
+    "business": [
+      [
+        1,
+        "published-attempt-two"
+      ]
+    ],
+    "frozenInputUnchanged": true
+  },
+  {
+    "name": "asgi-retry-cleanup",
+    "firstEnd": "interrupted",
+    "nextEnd": "restart_before_start",
+    "httpReceipts": [
+      {
+        "jobId": "6a6fa6590cb84a4292dc885c1c7f6b15",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "6a6fa6590cb84a4292dc885c1c7f6b15",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      },
+      {
+        "jobId": "6a6fa6590cb84a4292dc885c1c7f6b15",
+        "domain": "teaching",
+        "kind": "export",
+        "attempt": 1,
+        "state": "queued",
+        "result": null,
+        "error": null
+      }
+    ],
+    "attempts": [
+      1,
+      2
+    ],
+    "finalState": "succeeded",
+    "finalAttempt": 2,
+    "business": [
+      [
+        1,
+        "published-attempt-two"
+      ]
+    ],
+    "frozenInputUnchanged": true
+  }
+]

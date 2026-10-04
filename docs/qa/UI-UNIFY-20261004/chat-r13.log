@@ -1,0 +1,116 @@
+npm notice run zhiqikeyuan@0.2.0 test:chat
+npm notice run node scripts/test-chat.mjs
+▲ Next.js 16.3.4 (Turbopack)
+✓ Running next.config.ts took 22ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 531ms
+  Running TypeScript ...
+  Finished TypeScript in 1870ms ...
+  Collecting page data using 19 workers ...
+  Generating static pages using 19 workers (0/17) ...
+  Generating static pages using 19 workers (4/17) 
+  Generating static pages using 19 workers (8/17) 
+  Generating static pages using 19 workers (12/17) 
+✓ Generating static pages using 19 workers (17/17) in 354ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /[planned]
+├ ƒ /assessments
+├ ○ /books
+├ ƒ /books/[bookId]
+├ ƒ /books/[bookId]/pages/[pageId]
+├ ○ /chat
+├ ƒ /chat/[sessionId]
+├ ○ /courses
+├ ƒ /courses/[courseId]
+├ ○ /icon.svg
+├ ○ /knowledge-bases
+├ ƒ /knowledge-bases/[kbName]
+├ ƒ /knowledge-bases/libraries/[libraryId]
+├ ○ /knowledge-points
+├ ƒ /learning-analysis
+├ ƒ /lesson-plans
+├ ○ /mcp
+├ ƒ /practices
+├ ƒ /question-bank
+├ ƒ /question-bank/imports/[importId]
+├ ○ /settings
+└ ○ /skills
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+(node:32264) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[WebServer] 2026-10-04 18:33:49,542 INFO zhiqikeyuan.api ��˷���������127.0.0.1:8001��env=test��
+[WebServer] (node:22644) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 14 tests using 1 worker
+
+(node:14980) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:14980) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(node:14980) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] 2026-10-04 18:33:52,732 INFO httpx2 HTTP Request: POST http://127.0.0.1:8002/v1/chat/completions "HTTP/1.0 200 OK"
+  ok  1 tests\integration\chat-live.spec.ts:4:3 › 教学问答模型 经真实代理在最后分块释放前显示中文 (1.7s)
+[WebServer] 2026-10-04 18:33:53,908 INFO httpx2 HTTP Request: POST http://127.0.0.1:8002/v1/responses "HTTP/1.0 200 OK"
+  ok  2 tests\integration\chat-live.spec.ts:4:3 › Responses 模型 经真实代理在最后分块释放前显示中文 (766ms)
+[WebServer] 2026-10-04 18:33:54,781 INFO httpx2 HTTP Request: POST http://127.0.0.1:8002/v1/messages "HTTP/1.0 200 OK"
+  ok  3 tests\integration\chat-live.spec.ts:4:3 › Anthropic 模型 经真实代理在最后分块释放前显示中文 (857ms)
+[WebServer] 2026-10-04 18:33:55,314 INFO httpx2 HTTP Request: POST http://127.0.0.1:8002/v1/chat/completions "HTTP/1.0 200 OK"
+  ok  4 tests\integration\chat-live.spec.ts:21:1 › 停止关闭实际上游，新会话无晚到文本 (834ms)
+[WebServer] 2026-10-04 18:33:56,202 INFO httpx2 HTTP Request: POST http://127.0.0.1:8002/v1/chat/completions "HTTP/1.0 200 OK"
+  ok  5 tests\integration\chat-live.spec.ts:34:1 › 长回答 Markdown 公式与响应式布局 (1.1s)
+[WebServer] 2026-10-04 18:33:57,448 INFO httpx2 HTTP Request: GET http://127.0.0.1:8002/v1/models "HTTP/1.0 200 OK"
+[WebServer] 2026-10-04 18:33:57,561 INFO httpx HTTP Request: GET http://127.0.0.1:11434/api/tags "HTTP/1.1 200 OK"
+[WebServer] 2026-10-04 18:33:57,561 INFO httpx HTTP Request: GET http://127.0.0.1:11434/api/tags "HTTP/1.1 200 OK"
+[WebServer] 2026-10-04 18:33:57,571 INFO httpx HTTP Request: GET http://127.0.0.1:11434/api/show "HTTP/1.1 405 Method Not Allowed"
+[WebServer] 2026-10-04 18:33:57,571 INFO httpx HTTP Request: GET http://127.0.0.1:11434/api/show "HTTP/1.1 405 Method Not Allowed"
+[WebServer] 2026-10-04 18:33:57,631 INFO httpx HTTP Request: POST http://127.0.0.1:11434/api/show "HTTP/1.1 200 OK"
+[WebServer] 2026-10-04 18:33:57,631 INFO httpx HTTP Request: POST http://127.0.0.1:11434/api/show "HTTP/1.1 200 OK"
+[WebServer] 2026-10-04 18:33:57,642 INFO httpx HTTP Request: GET http://127.0.0.1:11434/api/show "HTTP/1.1 405 Method Not Allowed"
+[WebServer] 2026-10-04 18:33:57,642 INFO httpx HTTP Request: GET http://127.0.0.1:11434/api/show "HTTP/1.1 405 Method Not Allowed"
+[WebServer] 2026-10-04 18:33:57,693 INFO httpx HTTP Request: POST http://127.0.0.1:11434/api/show "HTTP/1.1 200 OK"
+[WebServer] 2026-10-04 18:33:57,695 INFO httpx HTTP Request: POST http://127.0.0.1:11434/api/show "HTTP/1.1 200 OK"
+[WebServer] 2026-10-04 18:34:01,344 INFO httpx HTTP Request: GET http://127.0.0.1:11434/api/tags "HTTP/1.1 200 OK"
+[WebServer] 2026-10-04 18:34:01,357 INFO httpx HTTP Request: GET http://127.0.0.1:11434/api/tags "HTTP/1.1 200 OK"
+[WebServer] 2026-10-04 18:34:01,366 INFO httpx HTTP Request: GET http://127.0.0.1:11434/api/show "HTTP/1.1 405 Method Not Allowed"
+[WebServer] 2026-10-04 18:34:01,369 INFO httpx HTTP Request: GET http://127.0.0.1:11434/api/show "HTTP/1.1 405 Method Not Allowed"
+[WebServer] 2026-10-04 18:34:01,378 INFO httpx HTTP Request: POST http://127.0.0.1:11434/api/show "HTTP/1.1 200 OK"
+[WebServer] 2026-10-04 18:34:01,381 INFO httpx HTTP Request: POST http://127.0.0.1:11434/api/show "HTTP/1.1 200 OK"
+[WebServer] 2026-10-04 18:34:01,391 INFO httpx HTTP Request: GET http://127.0.0.1:11434/api/show "HTTP/1.1 405 Method Not Allowed"
+[WebServer] 2026-10-04 18:34:01,400 INFO httpx HTTP Request: GET http://127.0.0.1:11434/api/show "HTTP/1.1 405 Method Not Allowed"
+[WebServer] 2026-10-04 18:34:01,414 INFO httpx HTTP Request: POST http://127.0.0.1:11434/api/show "HTTP/1.1 200 OK"
+[WebServer] 2026-10-04 18:34:01,418 INFO httpx HTTP Request: POST http://127.0.0.1:11434/api/show "HTTP/1.1 200 OK"
+  ok  6 tests\integration\chat-live.spec.ts:65:1 › 模型发现追加、默认模型同步、表单冲突保留 (5.2s)
+[WebServer] 2026-10-04 18:34:02,763 INFO httpx2 HTTP Request: POST http://127.0.0.1:8002/v1/chat/completions "HTTP/1.0 200 OK"
+  ok  7 tests\integration\chat-reasoning.spec.ts:4:3 › 教学问答模型：推理先显示，正文出现后折叠，公式与恢复正常 (2.1s)
+[WebServer] 2026-10-04 18:34:04,891 INFO httpx2 HTTP Request: POST http://127.0.0.1:8002/v1/responses "HTTP/1.0 200 OK"
+  ok  8 tests\integration\chat-reasoning.spec.ts:4:3 › Responses 模型：推理先显示，正文出现后折叠，公式与恢复正常 (2.1s)
+[WebServer] 2026-10-04 18:34:07,008 INFO httpx2 HTTP Request: POST http://127.0.0.1:8002/v1/messages "HTTP/1.0 200 OK"
+  ok  9 tests\integration\chat-reasoning.spec.ts:4:3 › Anthropic 模型：推理先显示，正文出现后折叠，公式与恢复正常 (2.1s)
+[WebServer] 2026-10-04 18:34:09,152 INFO httpx2 HTTP Request: POST http://127.0.0.1:8002/v1/chat/completions "HTTP/1.0 200 OK"
+  ok 10 tests\integration\chat-reasoning.spec.ts:56:1 › 正文公式：text.delta 原文逐字保留并在流中、终态及刷新后渲染 (2.0s)
+[WebServer] 2026-10-04 18:34:11,214 INFO httpx2 HTTP Request: POST http://127.0.0.1:8002/v1/chat/completions "HTTP/1.0 200 OK"
+post-answer reasoning follow sample {"top":268,"height":180,"total":448,"gap":0}
+  ok 11 tests\integration\chat-reasoning.spec.ts:143:1 › 正文开始后推理继续增量：用户重开后仍跟随，手动上滚不被抢占 (7.5s)
+[WebServer] 2026-10-04 18:34:18,686 INFO httpx2 HTTP Request: POST http://127.0.0.1:8002/v1/chat/completions "HTTP/1.0 200 OK"
+synthetic perf sample {"target":20000,"result":{"chars":21020,"frameCount":769,"frameP50":5.599999999999909,"frameP95":5.699999999999818,"frameMax":44.5,"over50":0,"longTasks":0,"longTaskMax":0,"firstVisibleMs":60.100000001490116,"katex":80,"katexErrors":0,"streamMs":2.922}}
+  ok 12 tests\integration\chat-reasoning.spec.ts:199:3 › 性能：20k 推理 + 正文公式受控流 (5.1s)
+[WebServer] 2026-10-04 18:34:23,821 INFO httpx2 HTTP Request: POST http://127.0.0.1:8002/v1/chat/completions "HTTP/1.0 200 OK"
+synthetic perf sample {"target":50000,"result":{"chars":52568,"frameCount":944,"frameP50":5.599999999999454,"frameP95":5.699999999999818,"frameMax":39,"over50":0,"longTasks":0,"longTaskMax":0,"firstVisibleMs":62.899999998509884,"katex":80,"katexErrors":0,"streamMs":4.391}}
+  ok 13 tests\integration\chat-reasoning.spec.ts:199:3 › 性能：50k 推理 + 正文公式受控流 (6.2s)
+[WebServer] 2026-10-04 18:34:29,987 INFO httpx2 HTTP Request: POST http://127.0.0.1:8002/v1/chat/completions "HTTP/1.0 200 OK"
+reasoning follow samples {"stage":"uninterrupted-follow","samples":[{"inner":{"top":46,"height":180,"total":226,"gap":0},"outer":{"top":0,"height":493,"total":493,"gap":0},"latestText":true},{"inner":{"top":46,"height":180,"total":226,"gap":0},"outer":{"top":0,"height":493,"total":493,"gap":0},"latestText":true},{"inner":{"top":70,"height":180,"total":250,"gap":0},"outer":{"top":0,"height":493,"total":493,"gap":0},"latestText":true},{"inner":{"top":70,"height":180,"total":250,"gap":0},"outer":{"top":0,"height":493,"total":493,"gap":0},"latestText":true},{"inner":{"top":95,"height":180,"total":275,"gap":0},"outer":{"top":0,"height":493,"total":493,"gap":0},"latestText":true},{"inner":{"top":95,"height":180,"total":275,"gap":0},"outer":{"top":0,"height":493,"total":493,"gap":0},"latestText":true},{"inner":{"top":120,"height":180,"total":300,"gap":0},"outer":{"top":0,"height":493,"total":493,"gap":0},"latestText":true},{"inner":{"top":120,"height":180,"total":300,"gap":0},"outer":{"top":0,"height":493,"total":493,"gap":0},"latestText":true},{"inner":{"top":120,"height":180,"total":300,"gap":0},"outer":{"top":0,"height":493,"total":493,"gap":0},"latestText":true},{"inner":{"top":144,"height":180,"total":324,"gap":0},"outer":{"top":0,"height":493,"total":493,"gap":0},"latestText":true},{"inner":{"top":144,"height":180,"total":324,"gap":0},"outer":{"top":0,"height":493,"total":493,"gap":0},"latestText":true},{"inner":{"top":169,"height":180,"total":349,"gap":0},"outer":{"top":0,"height":493,"total":493,"gap":0},"latestText":true},{"inner":{"top":194,"height":180,"total":374,"gap":0},"outer":{"top":0,"height":493,"total":493,"gap":0},"latestText":true},{"inner":{"top":194,"height":180,"total":374,"gap":0},"outer":{"top":0,"height":493,"total":493,"gap":0},"latestText":true},{"inner":{"top":218,"height":180,"total":398,"gap":0},"outer":{"top":0,"height":493,"total":493,"gap":0},"latestText":true},{"inner":{"top":218,"height":180,"total":398,"gap":0},"outer":{"top":0,"height":493,"total":493,"gap":0},"latestText":true},{"inner":{"top":243,"height":180,"total":423,"gap":0},"outer":{"top":0,"height":493,"total":493,"gap":0},"latestText":true},{"inner":{"top":243,"height":180,"total":423,"gap":0},"outer":{"top":0,"height":493,"total":493,"gap":0},"latestText":true}]}
+reasoning follow sample {"stage":"after user wheel","pausedAt":123,"pausedAfter":{"top":123,"total":472,"bottomGap":169}}
+reasoning follow sample {"stage":"user returned to latest","resumed":{"top":292,"total":472,"bottomGap":0},"outer":{"top":0,"height":493,"total":493}}
+  ok 14 tests\integration\chat-reasoning.spec.ts:277:1 › 推理滚动：流式跟随、主动上滚暂停与回到底部恢复 (7.3s)
+
+  14 passed (57.8s)

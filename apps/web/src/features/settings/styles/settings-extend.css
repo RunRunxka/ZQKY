@@ -143,7 +143,18 @@
 /* ===== 外观开关行（§8.1 #5）：参考 Toggle 的轨道视觉，checkbox 本体仍可聚焦 */
 
 .settings-page .settings-toggle {
+  position: relative;
   gap: 12px;
+}
+
+.settings-page .settings-toggle > input {
+  position: absolute;
+  left: 0;
+  width: 34px;
+  height: 18px;
+  margin: 0;
+  opacity: 0;
+  z-index: 1;
 }
 
 .settings-page .settings-toggle-track {
@@ -324,5 +335,142 @@
 
   .extension-manager .extension-card {
     flex-direction: column;
+  }
+}
+
+/* 设置文档：索引属于 chrome，配置正文使用白色实底分区。 */
+.settings-page {
+  --page-content-width: 960px;
+  --page-gutter: 32px;
+  background: var(--canvas, var(--surface));
+}
+
+.settings-page .settings-index {
+  padding: var(--space-5) var(--space-4);
+  background: color-mix(in srgb, var(--bg) 88%, var(--surface));
+}
+
+.settings-page .settings-index h1 {
+  font-size: var(--font-size-title, 24px);
+  line-height: 1.3;
+}
+
+.settings-page .settings-index a {
+  min-height: 64px;
+  padding: var(--space-3);
+}
+
+.settings-page .settings-nav-text {
+  font-size: var(--font-size-body, 14px);
+  line-height: 1.5;
+}
+
+.settings-page .settings-nav-text small {
+  font-size: var(--font-size-caption, 12px);
+  line-height: 1.5;
+}
+
+.settings-page .settings-document {
+  padding: var(--page-gutter);
+  padding-bottom: 75vh;
+}
+
+.settings-page .settings-document > section {
+  width: 100%;
+  max-width: var(--page-content-width);
+  margin: 0 auto var(--space-5);
+  padding: var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  box-shadow: var(--shadow-card);
+  scroll-margin-top: var(--page-gutter);
+}
+
+.settings-page .settings-document > section > h2 {
+  font-family: var(--font-display);
+  font-size: var(--font-size-title, 24px);
+  line-height: 1.3;
+  margin-bottom: var(--space-4);
+}
+
+.settings-page .settings-search {
+  margin-bottom: var(--space-4);
+}
+
+.settings-page .settings-search input {
+  min-height: var(--control-height, 36px);
+  margin: 0;
+  padding: 6px 34px 6px 12px;
+  font-size: var(--font-size-control, 13px);
+}
+
+.settings-page .settings-search > button {
+  width: var(--control-height-compact, 32px);
+  height: var(--control-height-compact, 32px);
+  right: 2px;
+}
+
+.settings-page .settings-toggle {
+  min-height: var(--touch-target, 44px);
+  align-items: center;
+}
+
+.settings-page .extension-manager .settings-toolbar :is(input, button),
+.settings-page .extension-manager .extension-card button {
+  min-height: var(--control-height, 36px);
+  font-size: var(--font-size-control, 13px);
+}
+
+.settings-page .extension-manager .extension-card {
+  margin: var(--space-3) 0;
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+}
+
+@media (max-width: 1279px) {
+  .settings-page {
+    --page-gutter: 24px;
+  }
+}
+
+@media (max-width: 767px) {
+  .settings-page {
+    --page-gutter: 16px;
+  }
+
+  .settings-page .settings-index {
+    padding: 8px 16px;
+    border-right: 0;
+  }
+
+  .settings-page .settings-index a,
+  .settings-page .settings-search input {
+    min-height: var(--touch-target, 44px);
+  }
+
+  .settings-page .settings-search {
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+
+  .settings-page .settings-search > button {
+    width: var(--touch-target, 44px);
+    height: var(--touch-target, 44px);
+    right: 0;
+  }
+
+  .settings-page .settings-search input {
+    padding-right: 44px;
+  }
+
+  .settings-page .settings-document > section {
+    padding: var(--space-4);
+  }
+
+  .settings-page .extension-manager .settings-toolbar :is(input, button),
+  .settings-page .extension-manager .extension-card button,
+  .settings-page .extension-manager :is(button, input:not([type='checkbox']):not([type='radio'])) {
+    min-height: var(--touch-target, 44px);
   }
 }

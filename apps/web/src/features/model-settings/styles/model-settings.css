@@ -99,9 +99,9 @@
   background: white;
 }
 .model-search input {
-  border: 0 !important;
+  border: 0;
   background: transparent;
-  padding: 10px 0 !important;
+  padding: 10px 0;
   min-width: 0;
   outline-offset: 0;
 }
@@ -471,5 +471,88 @@
   }
   .settings-default-card {
     padding: 20px;
+  }
+}
+
+/* 仅作用于模型工作区，不改变聊天中复用的模型选择器。 */
+.model-settings .settings-page-head {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.model-settings .settings-page-head h1 {
+  font-family: var(--font-display);
+  font-size: var(--font-size-section, 16px);
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  margin: var(--space-2) 0;
+}
+
+.model-settings .settings-scroll {
+  min-width: 0;
+}
+
+.model-settings .settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.model-settings :is(.settings-form label, .settings-hint, .settings-feedback) {
+  font-size: var(--font-size-control, 13px);
+  line-height: 1.7;
+}
+
+.model-settings .model-search {
+  min-height: var(--control-height, 36px);
+  border-radius: var(--radius-sm);
+}
+
+.model-settings .model-search input {
+  height: calc(var(--control-height, 36px) - 2px);
+  padding: 6px 0;
+  border: 0;
+  font-size: var(--font-size-control, 13px);
+}
+
+.model-settings .settings-form :is(input:not([type='checkbox']), select),
+.model-settings .button {
+  min-height: var(--control-height, 36px);
+  font-size: var(--font-size-control, 13px);
+}
+
+.model-settings :is(.settings-default-card, .settings-empty-state) {
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+}
+
+.model-settings .settings-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.model-settings .settings-feedback {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+@media (max-width: 767px) {
+  .model-settings .settings-field-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .model-settings .model-search,
+  .model-settings .settings-form :is(input:not([type='checkbox']), select),
+  .model-settings .button {
+    min-height: var(--touch-target, 44px);
+  }
+
+  .model-settings .model-search input {
+    height: calc(var(--touch-target, 44px) - 2px);
   }
 }

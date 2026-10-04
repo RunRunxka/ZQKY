@@ -189,3 +189,35 @@
     min-width: 0;
   }
 }
+
+.embedding-panel .embedding-section {
+  padding: var(--space-4);
+  gap: var(--space-3);
+}
+
+.embedding-panel .embedding-section h3 {
+  font-size: var(--font-size-section, 16px);
+  line-height: 1.5;
+}
+
+.embedding-panel :is(.textbook-hint, .textbook-field, .embedding-error) {
+  font-size: var(--font-size-caption, 12px);
+  line-height: 1.7;
+}
+
+.embedding-panel .textbook-field :is(input, select) {
+  min-height: var(--control-height, 36px);
+  padding: 6px 12px;
+  font-size: var(--font-size-control, 13px);
+}
+
+.embedding-panel :is(.embedding-model-head strong, .embedding-subhead) {
+  font-size: var(--font-size-body, 14px);
+}
+
+@media (max-width: 767px) {
+  .embedding-panel .textbook-field :is(input, select),
+  .embedding-panel .space-button {
+    min-height: var(--touch-target, 44px);
+  }
+}

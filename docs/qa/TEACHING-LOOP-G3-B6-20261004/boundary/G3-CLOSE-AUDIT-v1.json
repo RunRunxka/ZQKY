@@ -1,0 +1,470 @@
+{
+  "task": "G3-CLOSE-AUDIT/v1",
+  "owner": "g3_boundary_review",
+  "at": "2026-10-04T13:52:25.505357+08:00",
+  "status": "INDEPENDENT_G3_CLOSE_ELIGIBLE_CTRL_PENDING_CLOSE",
+  "blockingProductDefects": [],
+  "technicalRequiredGatesSatisfied": true,
+  "g3AuthorityStateChangedByAuditor": false,
+  "candidate": "CANDIDATE-G3-r2-qa5.json",
+  "candidateSHA": "1ef1756283abc1fda103c2263c3a49034c5d3ffec4f06669c0735488134efcbb",
+  "head": "6cb6a40db890390f0261d547213e319040f64785",
+  "branch": "main",
+  "buildId": "q84e_pxQoZ2_nwnws9QiI",
+  "nextEnvOriginalBytesExact": true,
+  "nextEnvSHA": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc",
+  "currentMappedPreservation": {
+    "sourceFiles": {
+      "count": 941,
+      "drift": []
+    },
+    "executableQaFiles": {
+      "count": 3136,
+      "drift": []
+    },
+    "sharedContractFiles": {
+      "count": 33,
+      "drift": []
+    },
+    "buildFiles": {
+      "count": 2161,
+      "drift": []
+    }
+  },
+  "rootPreservationReceiptSHA": "00bdb6cb9cdca43eaed9a694d595859944a53ec80d3d347f9b75cae6e94e0e6b",
+  "originalE2EConfigPackageLockFiles": {
+    "package-lock.json": "45042c44cbb9723c89fd21d3eee6363d38644ff37d55688ea72aa18a58b30143",
+    "package.json": "546b651fc8b606034b7fae0b717682d22ce28c46306747cd52be4140c0dd2034",
+    "playwright.config.ts": "dd32a2826a686f95a13b8b4b12c756af3beca26c0bdfe8673cc740485cfa9df0",
+    "tests/e2e/assessments.spec.ts": "62a1c32ff1b1a869375cda0ae40c79ebebe8f026bc268b8defb520e037eee913",
+    "tests/e2e/books-commit-safety.spec.ts": "b36e6b41fa441a0972d172b632464b085561e0afdb6546d0b88475e8ceae27f9",
+    "tests/e2e/books-courses.spec.ts": "ccc0e8a73ff830d1931dbc72eea9b195b48613831985db7e3981f9c373f49328",
+    "tests/e2e/books-harden.spec.ts": "0361711b39ef74e32d4b61e44f08d183ba8d885b21f6aea947771648f32da557",
+    "tests/e2e/books-pipeline.spec.ts": "2dad42df19a6d17879e9b1e143be6d3c7ba6eec2b309f859dc03e71ffd07f10d",
+    "tests/e2e/chat-composer-boundaries.spec.ts": "c7b64b2f48bc4405719d183920f8585c7861a6b7a92911e25aa2129b8f6f0aec",
+    "tests/e2e/chat-composer.spec.ts": "31c54732b751cc3dfe19ca968eb836994ee63b3b4b45136e51f9a702dd04e718",
+    "tests/e2e/chat-context-budget.spec.ts": "cdc53f3234a330ee59e4c09f89178930eed1d80e5aee0b696570baa86946e827",
+    "tests/e2e/chat-deeplink.spec.ts": "7e43f0a9962a7febf2e76c12cfea846baf190a2f4262593be87671fc9dd8e493",
+    "tests/e2e/chat-home.spec.ts": "78e4d370d21ff04c4899a23aa6c70ea8469feba937d9b71390152799e516fa0b",
+    "tests/e2e/chat.spec.ts": "0ecbc852b8816a05f9290d7c3927581886739735f996af72c37abee53ea5aefb",
+    "tests/e2e/course-resource-faults.spec.ts": "2e33556296aee6006ae1701ee72b6f599bbf6ffeb1188eea7e30a39e6d3d4844",
+    "tests/e2e/course-sessions.spec.ts": "05f9c00dc662f1898034727c589d0e09c081a561024899dd2fdb81a6eec4e39e",
+    "tests/e2e/knowledge-points.spec.ts": "59ec01fe4aa88b5b63c0713235a7bf5c0ac8655d18a9086cc999c02525c63640",
+    "tests/e2e/lesson-plan.spec.ts": "4cc5547138034d2bf5adf4a4a5d26d3de49427691af54c7d157e4da761fa9699",
+    "tests/e2e/model-settings-nesting.spec.ts": "7c8958fc6dd1b98ec453ed59b8de3b074eec3ccb5fedf39ceabb46225a92d384",
+    "tests/e2e/model-settings.spec.ts": "51415f54844f1a3bdf7ea19bcfb6df79f2efe1aa0b8bc42f7e93e077da7a1e7e",
+    "tests/e2e/navigation.spec.ts": "294e784e7da93e3efbd467d96952688c4c88c74a13e84d64a2a998e76a7562fb",
+    "tests/e2e/replica-settings.spec.ts": "12d25a1024fcdc66f90c62c6d6149e35f6e9dee5cf3274396604c7d9284af258",
+    "tests/e2e/settings.spec.ts": "4341d78adcb4bc75cddbc7d6be8cff9a5ea6f3fa114cd70496170fda9cee82f2",
+    "tests/e2e/shell-home-nav.spec.ts": "86039c72d60043d21ddeae4a0f876ecf51c8f8c55ebbca6fab272ea7f5618a44",
+    "tests/e2e/sidebar-chat-fixes.spec.ts": "0231c1dfb582af271e05d9dda8f9071d0bf44c94553ab9fe1b6b02518ed51b06",
+    "tests/e2e/sidebar-transition.spec.ts": "6ecbf593c0006dc922fdffddbdad0fd130e16f7e42dda12c28511eb07885b10a",
+    "tests/e2e/helpers/book-interrupted-recovery.ts": "73a6eb0837350896b40e864743ae5c1baa4f4453825d0eb3a46a1eddc2000087",
+    "tests/e2e/question-bank-real.spec.ts": "6308d92fce1364a33cafb2ec6412c15026438da3d83275b469e039fd4934fa38"
+  },
+  "originalE2ESpecCount": 24,
+  "originalRootE2EAndConfigPackageLockFilesUnchanged": true,
+  "completeSecond153": {
+    "receipt": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/g3-e2e-full-r2-qa5-node24-second-command.json",
+    "receiptSHA": "83111c8b4d5e119703fb60410ccae9ef2eb60cfa4cb2237c9820ad6f367017a6",
+    "resultsSHA": "a1e2694512e080f4f75dd3d53d1a866ce2c823f434435063979ae43af53d1304",
+    "xmlSHA": "d401b9ff0d0242b1a96611385aa1de446e54d53b46caaf298bb7818a3d2758d8",
+    "stats": {
+      "startTime": "2026-10-04T05:32:01.886Z",
+      "duration": 393607.979,
+      "expected": 153,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "specCount": 153,
+    "testCount": 153,
+    "resultCount": 153,
+    "allPassed": true,
+    "retryHistogram": {
+      "0": 153
+    },
+    "allTestsOneResult": true,
+    "projectRetries": 0,
+    "repeatEach": 1,
+    "errors": [],
+    "sourceBeforeAfterCandidateExact": true,
+    "qaBeforeAfterCandidateExact": true,
+    "xml": {
+      "id": "",
+      "name": "",
+      "tests": "153",
+      "failures": "0",
+      "skipped": "0",
+      "errors": "0",
+      "time": "393.607979"
+    },
+    "noAggregationWithFirstOrDiagnostic": true
+  },
+  "gates": [
+    {
+      "label": "g3-check-r2-first",
+      "receipt": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/g3-check-r2-first-command.json",
+      "receiptSHA": "5366b6cfc6b81244bd806a386e490874faa1decd465b767bbd719646fbf3afae",
+      "logSHA": "2fb62b5f8af2588c0a70dbc016819848ce40b5d24c433e55cfebffcc900e358b",
+      "pid": 23040,
+      "exitCode": 0,
+      "elapsedMs": 105047.583,
+      "passedTests": 1281,
+      "kind": "typecheck/lint0/unit121files/build",
+      "sourceCount": 941,
+      "sourceMapsExactCurrentCandidate": true,
+      "qaCount": 3133,
+      "qaBeforeAfterExact": true,
+      "candidateSHA": "5c6d32de1fa71d5ca1a31b95228ad260026d2d7aec229640150c1d39e67a6053",
+      "childClosed": true,
+      "logsClosed": true
+    },
+    {
+      "label": "g3-original-required-r2",
+      "receipt": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/g3-original-required-r2-command.json",
+      "receiptSHA": "56aa288f06bf504cff18a16e9057fef0bbc2fc8ae848b4b1314e061309231bf7",
+      "logSHA": "bffbbdc2a22b6a3175db764fa5e0b7acee8eeb2e5404a998287978deb1c882d1",
+      "pid": 14024,
+      "exitCode": 0,
+      "elapsedMs": 4064.218,
+      "passedTests": 2,
+      "kind": "original-required;4filtered-skips",
+      "sourceCount": 941,
+      "sourceMapsExactCurrentCandidate": true,
+      "qaCount": 3134,
+      "qaBeforeAfterExact": true,
+      "candidateSHA": "80bc5a40d08c81a0b6cb5d62e19d4267ccf3c56e0c1d2c776fe89ce839860d22",
+      "childClosed": true,
+      "logsClosed": true
+    },
+    {
+      "label": "g3-v00-unit-r2",
+      "receipt": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/g3-v00-unit-r2-command.json",
+      "receiptSHA": "d738d666c5c05ef5f38767a32ee658853054153a3e42ab50c83a179093923521",
+      "logSHA": "f7bfd14e38546e844a514cd2c988afa7c9acfc6ff102b1889509865f2621de00",
+      "pid": 16652,
+      "exitCode": 0,
+      "elapsedMs": 5644.926,
+      "passedTests": 15,
+      "kind": "controlled-components",
+      "sourceCount": 941,
+      "sourceMapsExactCurrentCandidate": true,
+      "qaCount": 3134,
+      "qaBeforeAfterExact": true,
+      "candidateSHA": "80bc5a40d08c81a0b6cb5d62e19d4267ccf3c56e0c1d2c776fe89ce839860d22",
+      "childClosed": true,
+      "logsClosed": true
+    },
+    {
+      "label": "g3-boundary-eight-r2",
+      "receipt": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/g3-boundary-eight-r2-command.json",
+      "receiptSHA": "2076d4baba693ad7c951460da97c20ace8acf42d1f38b226442fc0b9186ef80f",
+      "logSHA": "a13b0807ee37241d5c35ead1c6a613811f41a67bc125fdbcf3a954f5cd87e43a",
+      "pid": 25060,
+      "exitCode": 0,
+      "elapsedMs": 4353.012,
+      "passedTests": 8,
+      "kind": "controlled-product-components/hook",
+      "sourceCount": 941,
+      "sourceMapsExactCurrentCandidate": true,
+      "qaCount": 3134,
+      "qaBeforeAfterExact": true,
+      "candidateSHA": "80bc5a40d08c81a0b6cb5d62e19d4267ccf3c56e0c1d2c776fe89ce839860d22",
+      "childClosed": true,
+      "logsClosed": true
+    },
+    {
+      "label": "g3-prior27-r2",
+      "receipt": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/g3-prior27-r2-command.json",
+      "receiptSHA": "c0e5edd6329dc9d915e60ed8596e1375d4a3d0368553b7278c67420021c5713b",
+      "logSHA": "28689968fe0d2f1336f7e53ad2c2b22b38114bc482620a8826ec90b1554e4c44",
+      "pid": 21000,
+      "exitCode": 0,
+      "elapsedMs": 7154.447,
+      "passedTests": 27,
+      "kind": "prior-related-regression",
+      "sourceCount": 941,
+      "sourceMapsExactCurrentCandidate": true,
+      "qaCount": 3134,
+      "qaBeforeAfterExact": true,
+      "candidateSHA": "80bc5a40d08c81a0b6cb5d62e19d4267ccf3c56e0c1d2c776fe89ce839860d22",
+      "childClosed": true,
+      "logsClosed": true
+    },
+    {
+      "label": "g3-browser-r2-qa5-node24",
+      "receipt": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/g3-browser-r2-qa5-node24-command.json",
+      "receiptSHA": "16f294acbe058122adbbb2fe8cf9a3f162d00380c4b6fb8c90524d3281e2e11b",
+      "logSHA": "d0a218616e58a37025a47f9149e264e8859e45b067fc107039804b8101a8638b",
+      "pid": 23212,
+      "exitCode": 0,
+      "elapsedMs": 43797.925,
+      "passedTests": 14,
+      "kind": "true-browser/real-Next/isolated-real-FastAPI",
+      "sourceCount": 941,
+      "sourceMapsExactCurrentCandidate": true,
+      "qaCount": 3136,
+      "qaBeforeAfterExact": true,
+      "candidateSHA": "1ef1756283abc1fda103c2263c3a49034c5d3ffec4f06669c0735488134efcbb",
+      "childClosed": true,
+      "logsClosed": true
+    },
+    {
+      "label": "g3-e2e-full-r2-qa5-node24-second",
+      "receipt": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/g3-e2e-full-r2-qa5-node24-second-command.json",
+      "receiptSHA": "83111c8b4d5e119703fb60410ccae9ef2eb60cfa4cb2237c9820ad6f367017a6",
+      "logSHA": "7640be73b228e45bc6fb764504ee3968c47177274d9e757e1cb96c5317a190ce",
+      "pid": 26492,
+      "exitCode": 0,
+      "elapsedMs": 394353.994,
+      "passedTests": 153,
+      "kind": "original-complete-e2e-single-run",
+      "sourceCount": 941,
+      "sourceMapsExactCurrentCandidate": true,
+      "qaCount": 3136,
+      "qaBeforeAfterExact": true,
+      "candidateSHA": "1ef1756283abc1fda103c2263c3a49034c5d3ffec4f06669c0735488134efcbb",
+      "childClosed": true,
+      "logsClosed": true
+    }
+  ],
+  "controlledComponentsNotTrueBrowser": true,
+  "sourceOriginalFirstFailureProbeSHA": "bfc96c302b1ccb2581c11b6a6c9101389821d0d3de9844ff8e18c14f1420099d",
+  "componentDynamicReviewSHA": "00c58bf503703903ab6df25411b2d5580dd6fc946ccc5de6372d9c7d597387b7",
+  "sourceStaticReviewSHA": "fcc8e28d5668ed19527729640c9487dde12dd18b3180fa60d0857de9102bcce5",
+  "true14": {
+    "resultsSHA": "2923e847191d94a114c60e9bb05f83c325d304239b679f967c892ed5da5a0ba5",
+    "stats": {
+      "startTime": "2026-10-04T05:21:58.757Z",
+      "duration": 43045.007,
+      "expected": 14,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "singleResultsRetry0": true,
+    "validTraces": [
+      {
+        "path": "H:/备份xuexi/智启课源/docs/qa/TEACHING-LOOP-G3-B6-20261004/v00/results/run-g3-r2-qa5-node24/browser-artifacts/g3-G3-R02-real-duplicate-c-adb9b-a-single-whole-content-edit/trace.zip",
+        "SHA": "d6692d5c3eb17d449f558ca850fe1de108b3372bc5ec88a546a3d671e953a2c0",
+        "entries": 58,
+        "CRC": "PASS"
+      },
+      {
+        "path": "H:/备份xuexi/智启课源/docs/qa/TEACHING-LOOP-G3-B6-20261004/v00/results/run-g3-r2-qa5-node24/browser-artifacts/g3-G3-R02-genuine-concurre-b6a15--before-history-replacement/trace.zip",
+        "SHA": "ec5131e95760488768c3f889b9f874980c9a3bc4669c24ae3a478be10b0ab6f3",
+        "entries": 52,
+        "CRC": "PASS"
+      },
+      {
+        "path": "H:/备份xuexi/智启课源/docs/qa/TEACHING-LOOP-G3-B6-20261004/v00/results/run-g3-r2-qa5-node24/browser-artifacts/g3-G3-R02-actual-successfu-3cd88--and-permits-explicit-retry/trace.zip",
+        "SHA": "fd7ed8d30423b07c2e24055114ac7c7fdea0f070fcaf320c5da42b56881750f8",
+        "entries": 49,
+        "CRC": "PASS"
+      },
+      {
+        "path": "H:/备份xuexi/智启课源/docs/qa/TEACHING-LOOP-G3-B6-20261004/v00/results/run-g3-r2-qa5-node24/browser-artifacts/g3-G3-R02-late-real-copy-A-4e6a0-eplace-B-or-its-copy-intent/trace.zip",
+        "SHA": "424ff1251510b15b61efee3c8cc78af95d8911e2a732d5f5d3c5ecea167cf551",
+        "entries": 54,
+        "CRC": "PASS"
+      },
+      {
+        "path": "H:/备份xuexi/智启课源/docs/qa/TEACHING-LOOP-G3-B6-20261004/v00/results/run-g3-r2-qa5-node24/browser-artifacts/g3-G3-R01-real-public-navi-28d9b--complete-fixed-backend-390/trace.zip",
+        "SHA": "750eecab4c82c6bf9319d917264c0d683e0eed4c6b9c5cf87d9927eec7fe0d7f",
+        "entries": 52,
+        "CRC": "PASS"
+      },
+      {
+        "path": "H:/备份xuexi/智启课源/docs/qa/TEACHING-LOOP-G3-B6-20261004/v00/results/run-g3-r2-qa5-node24/browser-artifacts/g3-G3-R02-real-delayed-his-105e3-t-recopy-undo-redo-save-390/trace.zip",
+        "SHA": "51ed6bdaaeac50eab21a4adb3e3f1bfbf0b97394bf3017ae2a3cc15612344b15",
+        "entries": 65,
+        "CRC": "PASS"
+      },
+      {
+        "path": "H:/备份xuexi/智启课源/docs/qa/TEACHING-LOOP-G3-B6-20261004/v00/results/run-g3-r2-qa5-node24/browser-artifacts/g3-G3-R01-real-public-navi-b6143-complete-fixed-backend-1024/trace.zip",
+        "SHA": "98616799a540d2cad5f82b6c4a2a8e5cdcb031e5a1bc3ab51832dfff7caaefb3",
+        "entries": 50,
+        "CRC": "PASS"
+      },
+      {
+        "path": "H:/备份xuexi/智启课源/docs/qa/TEACHING-LOOP-G3-B6-20261004/v00/results/run-g3-r2-qa5-node24/browser-artifacts/g3-G3-R02-real-delayed-his-5d611--recopy-undo-redo-save-1024/trace.zip",
+        "SHA": "fb976042f55397aa22cdb3862b782de368a840682b8eb3165a017283c935ae89",
+        "entries": 68,
+        "CRC": "PASS"
+      },
+      {
+        "path": "H:/备份xuexi/智启课源/docs/qa/TEACHING-LOOP-G3-B6-20261004/v00/results/run-g3-r2-qa5-node24/browser-artifacts/g3-G3-R01-real-public-navi-05791-complete-fixed-backend-1440/trace.zip",
+        "SHA": "3c7aea619540e6b1e990053d9c42ffb7e85a81820091c5a08328bf16ecd8a507",
+        "entries": 50,
+        "CRC": "PASS"
+      },
+      {
+        "path": "H:/备份xuexi/智启课源/docs/qa/TEACHING-LOOP-G3-B6-20261004/v00/results/run-g3-r2-qa5-node24/browser-artifacts/g3-G3-R02-real-delayed-his-24522--recopy-undo-redo-save-1440/trace.zip",
+        "SHA": "c5587f9758047cd50e594deefe5e26c52020e7b9692459e6f0408de42502c854",
+        "entries": 70,
+        "CRC": "PASS"
+      },
+      {
+        "path": "H:/备份xuexi/智启课源/docs/qa/TEACHING-LOOP-G3-B6-20261004/v00/results/run-g3-r2-qa5-node24/browser-artifacts/g3-G3-R01-real-public-navi-dbb7f-complete-fixed-backend-1920/trace.zip",
+        "SHA": "b08f29a9ea5e2d830237d5f5c64e718bae2d7082d3536009ea34a9ff18b5905a",
+        "entries": 50,
+        "CRC": "PASS"
+      },
+      {
+        "path": "H:/备份xuexi/智启课源/docs/qa/TEACHING-LOOP-G3-B6-20261004/v00/results/run-g3-r2-qa5-node24/browser-artifacts/g3-G3-R02-real-delayed-his-5a46d--recopy-undo-redo-save-1920/trace.zip",
+        "SHA": "2901fde5efb663771f3db827f966280e2dacbb5168a8ca2e5cb8212c0a60d312",
+        "entries": 70,
+        "CRC": "PASS"
+      },
+      {
+        "path": "H:/备份xuexi/智启课源/docs/qa/TEACHING-LOOP-G3-B6-20261004/v00/results/run-g3-r2-qa5-node24/browser-artifacts/source-late-G3-source-real-0eb84-ut-hidden-cache-or-revision/trace.zip",
+        "SHA": "23f77be9b2949e750945f219c2b45e363995e5db17509112866f26fc6eed8d94",
+        "entries": 71,
+        "CRC": "PASS"
+      },
+      {
+        "path": "H:/备份xuexi/智启课源/docs/qa/TEACHING-LOOP-G3-B6-20261004/v00/results/run-g3-r2-qa5-node24/browser-artifacts/source-late-G3-source-real-a2bf4-e-session-source-edit-saves/trace.zip",
+        "SHA": "82063f3d42091b17a3a0cc575525cf8b80aabeb8a2b968776a51924bf2b8f175",
+        "entries": 74,
+        "CRC": "PASS"
+      }
+    ],
+    "independentV00FullJsonReviewSHA": "1e1944fd3ade2f193e93b7fe8f8b0833330ed850bec9d6440f54b5ad1cd36711",
+    "screenshotsViewedByV00": 21,
+    "screenshotsViewedByThisCloseAuditor": 0,
+    "fullJsonAndTraceCRCReadByThisCloseAuditor": true
+  },
+  "api": {
+    "bindingSHA": "60afa0b4f61a4ef127fa1a661971ec908546cdd016d1cbd7029044b54b51b9c6",
+    "backendFileCount": 410,
+    "currentDrift": [],
+    "priorSameSourceRuns": [
+      {
+        "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/b5-api-full-prebuild-v1-command.json",
+        "SHA": "320036a1860faa1c40a3a76d4894d17fede5a4599f0de4700706c0b932f2943f",
+        "backendFileCount": 410,
+        "exactBeforeAfter": true,
+        "pid": 21200,
+        "exitCode": 0,
+        "elapsedMs": 392504.479,
+        "junit": [
+          {
+            "name": "pytest",
+            "errors": "0",
+            "failures": "0",
+            "skipped": "1",
+            "tests": "1919",
+            "time": "391.287",
+            "timestamp": "2026-10-03T18:30:56.555749+08:00",
+            "hostname": "ASUSA-XIAOHU"
+          }
+        ],
+        "independentCurrent410ByteMatch": true,
+        "independentPriorBeforeAfter410Exact": true
+      },
+      {
+        "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/b5-v00-prebuild-v1-api-first-command.json",
+        "SHA": "b13833fb13db73bdc7108e47b8cd7c5883067ee86e85162034516d6c36bd6d30",
+        "backendFileCount": 410,
+        "exactBeforeAfter": true,
+        "pid": 20076,
+        "exitCode": 0,
+        "elapsedMs": 40948.122,
+        "junit": [
+          {
+            "name": "pytest",
+            "errors": "0",
+            "failures": "0",
+            "skipped": "0",
+            "tests": "42",
+            "time": "40.552",
+            "timestamp": "2026-10-03T18:33:21.409878+08:00",
+            "hostname": "ASUSA-XIAOHU"
+          }
+        ],
+        "independentCurrent410ByteMatch": true,
+        "independentPriorBeforeAfter410Exact": true
+      }
+    ],
+    "thisBatchFullApiRerun": false,
+    "counts": "prior1918passed+1existing-heavy-skip and independent42; not current-batch executions"
+  },
+  "chat14": {
+    "thisBatchExecuted": false,
+    "reason": "No public shell/navigation service/chat module/protocol change; impact decision retained; not reported as current rerun"
+  },
+  "oldQa": {
+    "openingFileCount": 9196,
+    "actualChangedPaths": [
+      "docs/qa/README.md"
+    ],
+    "allowedIndexDelta": [
+      {
+        "path": "docs/qa/README.md",
+        "expected": "8becda34a47e56737b9883f33c7d4772fec9dc97edf6363e7f7337e3b472caeb",
+        "actual": "618700e40faa66bc2f3d49d1d9b3b705f97cfa47c67519e52bc34728acaceaf4"
+      }
+    ],
+    "unexpectedDrift": []
+  },
+  "preservedFailedAndDiagnosticRuns": [
+    {
+      "run": "full153-first",
+      "pid": 21988,
+      "exitCode": 1,
+      "stats": {
+        "startTime": "2026-10-04T05:23:18.753Z",
+        "duration": 387532.924,
+        "expected": 152,
+        "skipped": 0,
+        "unexpected": 1,
+        "flaky": 0
+      },
+      "resultsSHA": "0e35284e3ddcea193b2157e5519d6cbbbede07131f3bd06af2f08a3656c8ece5",
+      "classification": "hydration mandatory JS chunk net::ERR_NO_BUFFER_SPACE; no confirmed keyboard product defect; retained failure not passed gate"
+    },
+    {
+      "run": "original-keyboard-case-fresh-process-diagnostic",
+      "stats": {
+        "startTime": "2026-10-04T05:31:29.608Z",
+        "duration": 1712.505,
+        "expected": 1,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "resultsSHA": "48b37ee4650c4b16e05641b247ba55ef6c0e4e6fce8484f2d2b70c3a9b26a54b",
+      "classification": "diagnostic1only; not combined with first152 into153"
+    },
+    {
+      "run": "true14-qa4-node26-first",
+      "classification": "14timeouts retained; 13 trace merge/archive teardown and last source clock control pause timeout; Node24 runner/clock r5 exact delta independently reviewed without removing assertions/trace"
+    }
+  ],
+  "limitations": [
+    "CV01-03/R14/RAG-REL preserved; one green run does not prove permanently green",
+    "B6 not started by this auditor and not accepted by G3 closure",
+    "No paid real model/teacher teaching quality/manual WPS/PDF/formal6333/migration-scale claim",
+    "V00 visual observations scoped to21actualPNG; existing local-mode wording retained as B6 UX observation, no global visual PASS",
+    "Source navigation delayed actual success; does not claim final navigation failure/cancellation"
+  ],
+  "activity": {
+    "qaExecutedByThisAudit": false,
+    "newProbeFiles": false,
+    "productWrites": false,
+    "authorityDocWrites": false,
+    "oldQaWrites": false,
+    "gitWrites": false,
+    "serviceStartsOrStops": false,
+    "httpRetries": false,
+    "b6Started": false,
+    "allowedNewFiles": [
+      "boundary/G3-CLOSE-AUDIT-v1.md",
+      "boundary/G3-CLOSE-AUDIT-v1.json"
+    ]
+  },
+  "stop": true,
+  "report": "docs/qa/TEACHING-LOOP-G3-B6-20261004/boundary/G3-CLOSE-AUDIT-v1.md",
+  "reportSHA": "afdb36fb666c90c88fbe4cb56fcabe5dbc0aae7a6edd3b6256e40039c2d45623"
+}

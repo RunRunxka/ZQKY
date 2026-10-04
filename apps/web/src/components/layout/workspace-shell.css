@@ -30,6 +30,7 @@
     grid-column: 2;
   }
 }
+
 @media screen {
   .app-shell.module-workspace-shell {
     grid-template-rows: minmax(0, 1fr);
@@ -165,7 +166,6 @@
     max-height: none;
     height: 100dvh;
     color: var(--ink);
-    animation: workspace-drawer-in 200ms ease-out;
   }
   .unified-shell .mobile-nav-panel::backdrop {
     background: #16233c66;
@@ -223,7 +223,7 @@
   }
   @media (max-width: 767px) {
     .app-shell.module-workspace-shell {
-      grid-template-rows: 59px minmax(0, 1fr);
+      grid-template-rows: 56px minmax(0, 1fr);
     }
     .module-workspace-shell > .app-header {
       display: flex;
@@ -239,14 +239,6 @@
       display: none;
     }
   }
-  @keyframes workspace-drawer-in {
-    from {
-      transform: translateX(-100%);
-    }
-    to {
-      transform: translateX(0);
-    }
-  }
   @media (prefers-reduced-motion: reduce) {
     .unified-shell .mobile-nav-panel {
       animation: none;
@@ -254,5 +246,91 @@
   }
   html[data-motion='reduced'] .unified-shell .mobile-nav-panel {
     animation: none;
+  }
+}
+
+/* A quiet blue-grey frame around solid, readable work surfaces. */
+@media screen {
+  .unified-shell {
+    background: var(--canvas);
+  }
+  .unified-shell > .global-nav {
+    background: #eef3fb;
+    border-right: 1px solid var(--line);
+  }
+  .unified-shell :is(.app-header, .mobile-nav-panel) {
+    background: var(--bg);
+  }
+  .unified-shell > .app-header {
+    border-bottom-color: var(--line);
+  }
+  .unified-shell :is(.global-nav, .mobile-nav-panel) .global-nav-item.current {
+    background: #e4edff;
+    color: var(--blue-deep);
+  }
+  .unified-shell :is(.global-nav, .mobile-nav-panel) .global-nav-item:hover:not(.current) {
+    background: #e7edf6;
+  }
+  .unified-shell :is(.nav-toggle, .mobile-nav-toggle, .icon-button) {
+    border-radius: var(--radius-sm);
+  }
+  .unified-shell .mobile-nav-panel {
+    box-shadow: var(--shadow-pop);
+  }
+  .unified-shell .mobile-nav-panel::backdrop {
+    backdrop-filter: blur(4px);
+  }
+  .unified-shell .status-page {
+    width: min(660px, calc(100% - 64px));
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: var(--bg);
+    padding: 32px;
+    box-shadow: var(--shadow-card);
+    overflow-wrap: anywhere;
+    align-self: start;
+    justify-self: center;
+    margin: 32px auto;
+  }
+  .unified-shell .status-page h1 {
+    font-size: var(--font-size-title);
+  }
+  .unified-shell .status-page p {
+    font-size: var(--font-size-body);
+  }
+}
+@supports (backdrop-filter: blur(12px)) {
+  @media screen {
+    .unified-shell > .global-nav {
+      background: rgb(238 243 251 / 88%);
+      backdrop-filter: blur(12px);
+    }
+    .unified-shell :is(.app-header, .mobile-nav-panel) {
+      background: rgb(255 255 255 / 94%);
+      backdrop-filter: blur(12px);
+    }
+  }
+}
+@media screen and (max-width: 767px) {
+  .unified-shell > .app-header {
+    min-height: 56px;
+    height: 56px;
+    padding-inline: 16px;
+    gap: 8px;
+  }
+  .unified-shell .mobile-nav-toggle {
+    width: var(--touch-target);
+    height: var(--touch-target);
+  }
+  .unified-shell .mobile-nav-panel :is(.global-nav-item, .icon-button) {
+    min-height: var(--touch-target);
+  }
+  .unified-shell .mobile-nav-panel .icon-button {
+    width: var(--touch-target);
+  }
+  .unified-shell .status-page {
+    width: calc(100% - 32px);
+    padding: 24px;
+    margin-top: 24px;
   }
 }

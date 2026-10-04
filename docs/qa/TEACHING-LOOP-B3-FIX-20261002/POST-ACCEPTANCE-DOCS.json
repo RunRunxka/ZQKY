@@ -1,0 +1,58 @@
+{
+  "checkedAt": "2026-10-02T06:28:17.358066+00:00",
+  "scope": "root-owned authoritative docs outside 168 product candidate; after product and full gates; no product mutation",
+  "files": [
+    {
+      "path": "docs/API.md",
+      "headSha256": "e446eda7be6c8a913eee3eeddc34920428f38c4eba4c4bb0db8ad222ae60537d",
+      "diskSha256": "0180669c3182de5f571aa39e98ee1ff3605bb5bc23caf1c9686db4eb2549d90e"
+    },
+    {
+      "path": "docs/CURRENT_STATUS.md",
+      "headSha256": "a2051a123dfac22c95b3128709881b263dbc383b51bbacf340e1d713ca1ba86f",
+      "diskSha256": "d8e4610f4ecf76869d77482cd9bf2d34a17857c223b6b330bd17c24e2bb55678"
+    },
+    {
+      "path": "docs/NEXT_SESSION_START.md",
+      "headSha256": "d262950d83a63d382e2b89c392b13c14621072d1baa7becd24a1b1ce2ad9a7cd",
+      "diskSha256": "25cc332f3e1c2f126f0a00e972e7cd6828777f8ac9419d39a82378cbd033a99b"
+    },
+    {
+      "path": "docs/PROJECT_GUIDE.md",
+      "headSha256": "9c7204be520110257606fda85bdb3fc9cb7da449b07f575c18cb91ba0c6292b9",
+      "diskSha256": "05768e7620f5bd30546f0cf151d3f9fe1c680bb0f00bbdb89c011e01ec269434"
+    },
+    {
+      "path": "docs/ROUTES.md",
+      "headSha256": "2f01fa163a7f0c38c6413ec4f53c016b60bba565958870a2b051ea315f5cf8e6",
+      "diskSha256": "24c598e7794940b0172e20e69a3421c15eaab84d3dad9d6dab1c6ba2bc78c32f"
+    },
+    {
+      "path": "docs/design/teaching-loop-v1/多Agent实施任务计划书_v2.0.md",
+      "headSha256": "97f544066784ffdf40ec5810ba2aeebf5b23c2a244258089aa56c7ffdee41bd3",
+      "diskSha256": "e82da82bc91cafabc63c3a2a1b2ee03fdb43651329f04a00889f659eb2b02060"
+    }
+  ],
+  "rootEvidence": [
+    {
+      "path": "docs/qa/TEACHING-LOOP-B3-FIX-20261002/REPORT.md",
+      "diskSha256": "b2097b8908299dcfabf4d34c6dab586d566ecca321c84ed31c0ffe9724ce695e"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B3-FIX-20261002/EVIDENCE-COMMANDS.md",
+      "diskSha256": "88106761b141078808a805e1432a1f3cbbd0fdcf1ef9d83e457f12994947e972"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B3-FIX-20261002/G0-CLOSE-MATRIX.md",
+      "diskSha256": "bf427c272ccad97724795d7cfb28bcc335056e218c49aac3ed45d3cce407cf04"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B3-FIX-20261002/README.md",
+      "diskSha256": "3c9ba26076dc1765d8abc92d3867bf18ccf5a368ac6929432dbc41aad8e9cb67"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-B3-FIX-20261002/TASK-CARD.md",
+      "diskSha256": "060683b2da59ff7d05d899daacaa1e66ddf2f8804ea6d45c4b3264963943f0ee"
+    }
+  ]
+}

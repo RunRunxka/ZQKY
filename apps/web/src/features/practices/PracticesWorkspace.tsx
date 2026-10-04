@@ -1,0 +1,175 @@
+'use client';
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEntrance } from '@/components/motion/useEntrance';
+import { GuardedLink, useNavigationGuard } from '@/services/navigation-guard';
+import type { MutableRefObject } from 'react';
+import type { PracticeEditingHandle } from './session';
+import './styles.css';
+import type { PracticeSetView, PracticeRevisionView, PracticeRevisionRequest, PracticeConversionReceipt } from '@/contracts/b4';
+import { b4Api } from '@/services/teaching-loop-b4-api';
+import { useAsyncResource, useFrozenSubmission } from '@/features/assessments/hooks';
+import { ReadNotice, SubmissionNotice, Pagination, RichReview, scoreText } from '@/features/learning-analysis/ui';
+import { CreatePracticeForm } from './CreatePracticeForm';
+import { PracticeEditor } from './PracticeEditor';
+import { PracticeExports } from './PracticeExports';
+import { PracticeConversion } from './PracticeConversion';
+import '@/components/layout/space.css';
+import '@/features/learning-analysis/styles.css';
+
+export interface PracticesWorkspaceProps {
+  initialPracticeSetId?: string | null;
+  initialPracticeRevisionId?: string | null;
+  initialAnalysisRunId?: string | null;
+  services?: typeof b4Api;
+}
+
+export function PracticesWorkspace({ initialPracticeSetId = null, initialPracticeRevisionId = null, initialAnalysisRunId = null, services = b4Api }: PracticesWorkspaceProps) {
+  const pageRef = useRef<HTMLDivElement>(null);
+  useEntrance(pageRef, { preset: 'page' });
+  const [setId, setSetId] = useState(initialPracticeSetId);
+  const editing = useRef<PracticeEditingHandle | null>(null);
+  const navigationGuard = useNavigationGuard();
+  const pendingLeave = useRef<{ resolve: (allowed: boolean) => void } | null>(null);
+  const [leaveOpen, setLeaveOpen] = useState(false);
+  const [leaveBusy, setLeaveBusy] = useState(false);
+  const [leaveNotice, setLeaveNotice] = useState('');
+  const leaveDialog = useRef<HTMLDialogElement>(null);
+  const askLeave = useCallback((): Promise<boolean> => {
+    const handle = editing.current;
+    if (!handle || (!handle.dirty && !handle.busy && !handle.unknown)) return Promise.resolve(true);
+    if (pendingLeave.current) return Promise.resolve(false);
+    setLeaveNotice(handle.busy ? '操作仍在进行，请先取消离开并等待结果。' : handle.unknown ? '操作结果未知，请留在原练习并恢复原操作；不能直接放弃或当作已保存。' : '此练习有未保存输入，请明确处理后离开。');
+    setLeaveOpen(true);
+    return new Promise((resolve) => { pendingLeave.current = { resolve }; });
+  }, []);
+  const finishLeave = useCallback((allowed: boolean) => {
+    pendingLeave.current?.resolve(allowed); pendingLeave.current = null;
+    setLeaveOpen(false); setLeaveBusy(false);
+    const dialog = leaveDialog.current;
+    if (typeof dialog?.close === 'function') dialog.close();
+    else dialog?.removeAttribute('open');
+  }, []);
+  useEffect(() => navigationGuard.register('practice-workspace', askLeave), [navigationGuard, askLeave]);
+  useEffect(() => () => { pendingLeave.current?.resolve(false); pendingLeave.current = null; }, []);
+  useEffect(() => {
+    if (!leaveOpen) return;
+    const dialog = leaveDialog.current;
+    if (!dialog) return;
+    if (typeof dialog.showModal === 'function' && !dialog.open) dialog.showModal();
+    else dialog.setAttribute('open', '');
+    dialog.querySelector<HTMLButtonElement>('button')?.focus();
+  }, [leaveOpen]);
+  async function switchWithin(action: () => void) { if (await askLeave()) action(); }
+  async function chooseLeave(choice: 'save' | 'keep' | 'discard') {
+    const handle = editing.current;
+    if (!handle) { finishLeave(true); return; }
+    if (handle.busy || handle.unknown) { setLeaveNotice('请先取消离开并等待或重试原操作，当前内容保持。'); return; }
+    setLeaveBusy(true);
+    try {
+      const allowed = choice === 'save' ? await handle.save() : choice === 'keep' ? handle.keep() : handle.discard();
+      if (allowed) finishLeave(true);
+      else { setLeaveNotice('操作未完成，输入和原练习保持。请取消离开，在工作区处理错误或未知结果。'); setLeaveBusy(false); }
+    } catch { setLeaveNotice('处理失败，原练习与输入保持，请取消离开后重试。'); setLeaveBusy(false); }
+  }
+
+  const [fixedId, setFixedId] = useState(initialPracticeRevisionId);
+  const [offset, setOffset] = useState(0);
+  const [authoritative, setAuthoritative] = useState<PracticeSetView | null>(null);
+  const [locks, setLocks] = useState({ create: false, workspace: false });
+  const locked = Object.values(locks).some(Boolean);
+  const createLock = useCallback((value: boolean) => setLocks((previous) => previous.create === value ? previous : { ...previous, create: value }), []);
+  const workspaceLock = useCallback((value: boolean) => setLocks((previous) => previous.workspace === value ? previous : { ...previous, workspace: value }), []);
+  const list = useAsyncResource((signal) => services.listPractices({ analysisRunId: initialAnalysisRunId ?? undefined, offset, limit: 20 }, signal), `practices-list|${initialAnalysisRunId}|${offset}`);
+  const source = useAsyncResource((signal) => initialAnalysisRunId && !setId ? services.getAnalysisRun(initialAnalysisRunId, signal) : Promise.resolve(null), `practices-create-source|${initialAnalysisRunId}|${setId}`);
+  const current = useAsyncResource((signal) => setId ? services.getPractice(setId, signal) : Promise.resolve(null), `practices-current|${setId}`);
+  const fixed = useAsyncResource((signal) => setId && fixedId ? services.getPracticeRevision(setId, fixedId, signal) : Promise.resolve(null), `practices-fixed|${setId}|${fixedId}`);
+  const remote = current.lastData;
+  const local = authoritative?.practiceSetId === setId ? authoritative : null;
+  const view = local && (!remote || local.revision >= remote.revision) ? local : remote;
+  const revision = fixedId ? fixed.lastData : view?.currentRevision;
+  function saved(next: PracticeSetView) {
+    if (next.practiceSetId !== setId) return;
+    setAuthoritative((previous) => previous?.practiceSetId === next.practiceSetId && (previous.revision > next.revision || (previous.revision === next.revision && previous.currentRevision.practiceRevisionId !== next.currentRevision.practiceRevisionId)) ? previous : next); list.reload();
+  }
+  return <div ref={pageRef} className="space-page practices-page"><header className="space-header" data-motion-reveal><h1>针对练习</h1><p className="space-description">依据固定学情报告选正式题，复核计分结构并独立审核，导出后转换施测，再用新成绩回流。</p></header><main className="space-content">
+    {!setId && initialPracticeRevisionId && <p className="space-banner error" role="alert">固定练习修订需要对应练习ID，入口不完整，不会猜测当前练习。</p>}
+    {!setId && initialAnalysisRunId && <><ReadNotice resource={source} label="练习来源报告" />{source.lastData && <CreatePracticeForm run={source.lastData} services={services} onLocked={createLock} onCreated={(next) => { setAuthoritative(next); setSetId(next.practiceSetId); setFixedId(null); list.reload(); }} />}</>}
+    <section className="b4-section" aria-label="练习列表" data-motion-reveal><h2>练习列表</h2><ReadNotice resource={list} label="练习列表" />
+      {list.state.phase === 'ready' && list.lastData?.items.length === 0 && <p>还没有练习。请从已准备好的学情报告明确选择目标知识点。</p>}
+      <div className="b4-list">{list.lastData?.items.map((item) => <button className={`space-button${setId === item.practiceSetId ? ' primary' : ''}`} key={item.practiceSetId} disabled={locked} onClick={() => void switchWithin(() => { setSetId(item.practiceSetId); setFixedId(null); setAuthoritative(null); })}>
+        {item.title}<span className="b4-meta">练习 {item.practiceSetId} · {item.currentRevision.state === 'reviewed' ? '已审核' : '草稿'} · 来源报告 {item.analysisRunId}</span>
+      </button>)}</div><Pagination page={list.lastData} offset={offset} onOffset={setOffset} disabled={locked} />
+      <GuardedLink className="space-button" href="/learning-analysis">选择学情报告创建练习</GuardedLink>
+    </section>
+    {setId && <ReadNotice resource={current} label="所选练习" />}
+    {setId && fixedId && <ReadNotice resource={fixed} label="固定练习修订" />}
+    {view && view.practiceSetId === setId && <>
+      <div className="b4-chain"><GuardedLink href={`/learning-analysis?runId=${encodeURIComponent(view.analysisRunId)}`}>来源报告 {view.analysisRunId}</GuardedLink><span>→ 练习 {view.practiceSetId}</span><span>{revision ? `${revision.state === 'reviewed' ? '审核' : '草稿'} v${revision.version} · ${revision.practiceRevisionId}` : '读取修订中'}</span></div>
+      <section className="b4-section" aria-label="练习修订历史"><h2>固定修订历史</h2><div className="b4-actions"><button className="space-button" disabled={locked} onClick={() => void switchWithin(() => setFixedId(null))}>当前工作区</button><button className="space-button" disabled={locked} onClick={current.reload}>刷新服务器练习</button></div>
+        <div className="b4-list">{view.revisions.map((item) => <button className="space-button" disabled={locked} key={item.practiceRevisionId} onClick={() => void switchWithin(() => setFixedId(item.practiceRevisionId))}>v{item.version} · {item.state === 'reviewed' ? '已审核，只读' : '草稿'}<span className="b4-meta">{item.practiceRevisionId} · {item.reviewedAt ?? item.createdAt}</span></button>)}</div>
+      </section>
+      {revision && revision.practiceSetId !== setId && <p className="space-banner error" role="alert">修订归属与当前练习不一致，未显示其他练习内容。</p>}
+      {revision && revision.practiceSetId === setId && <PracticePane key={`${setId}|${fixedId ?? 'current'}`} view={view} revision={revision} services={services} onSaved={saved} onNewDraft={(next) => { saved(next); setFixedId(null); }} onLocked={workspaceLock} sessionHandle={editing} editable={!fixedId && revision.state === 'draft'} />}
+    </>}
+    {leaveOpen && <dialog ref={leaveDialog} className="practice-leave-dialog" aria-label="处理未保存练习" onCancel={(event) => { event.preventDefault(); if (!leaveBusy) finishLeave(false); }}>
+      <h2>离开当前练习前</h2><p role="status">{leaveNotice}</p>
+      <p>保留恢复稿后，返回此练习会恢复分值、选题、节点和约束；固定历史只读。明确放弃才删除此练习恢复稿。</p>
+      <div className="b4-actions"><button className="space-button" disabled={leaveBusy} onClick={() => finishLeave(false)}>取消并继续编辑</button>
+        <button className="space-button primary" disabled={leaveBusy || editing.current?.busy || editing.current?.unknown} onClick={() => void chooseLeave('save')}>保存成功后离开</button>
+        <button className="space-button" disabled={leaveBusy || editing.current?.busy || editing.current?.unknown} onClick={() => void chooseLeave('keep')}>保留恢复稿并离开</button>
+        <button className="space-button" disabled={leaveBusy || editing.current?.busy || editing.current?.unknown} onClick={() => void chooseLeave('discard')}>明确放弃修改并离开</button></div>
+    </dialog>}
+  </main></div>;
+}
+
+function PracticePane({ view, revision, services, onSaved, onNewDraft, onLocked, sessionHandle, editable }: {
+  view: PracticeSetView; revision: PracticeRevisionView; services: typeof b4Api;
+  onSaved: (view: PracticeSetView) => void; onNewDraft: (view: PracticeSetView) => void; onLocked: (locked: boolean) => void; sessionHandle: MutableRefObject<PracticeEditingHandle | null>; editable: boolean;
+}) {
+  const [converted, setConverted] = useState<PracticeConversionReceipt | null>(null);
+  const [locks, setLocks] = useState({ editor: false, exports: false, conversion: false, copy: false });
+  const editorLock = useCallback((value: boolean) => setLocks((previous) => previous.editor === value ? previous : { ...previous, editor: value }), []);
+  const exportsLock = useCallback((value: boolean) => setLocks((previous) => previous.exports === value ? previous : { ...previous, exports: value }), []);
+  const conversionLock = useCallback((value: boolean) => setLocks((previous) => previous.conversion === value ? previous : { ...previous, conversion: value }), []);
+  const copy = useFrozenSubmission<PracticeRevisionRequest, PracticeSetView>();
+  const anyLocked = Object.values(locks).some(Boolean) || copy.busy || copy.phase === 'unknown';
+  useEffect(() => { onLocked(anyLocked); return () => onLocked(false); }, [anyLocked, onLocked]);
+  async function newDraft() {
+    const result = await copy.submit({ submissionId: '', sourceRevisionId: revision.practiceRevisionId }, (frozen) => services.createPracticeRevision(view.practiceSetId, { ...frozen.payload, submissionId: frozen.submissionId }));
+    if (result) onNewDraft(result);
+  }
+  return <>
+    <section className="b4-section" aria-label="固定练习概要"><h2>{revision.title}</h2><p>目标：{revision.targetKnowledgePoints.map((point) => point.name).join('、')}</p><p className="b4-meta">来源报告 {revision.analysisRunId} · 练习修订 {revision.practiceRevisionId} · 后端总分 {scoreText(revision.totalScoreUnits)}分</p></section>
+    {editable && <PracticeEditor view={view} services={services} onSaved={onSaved} onLocked={editorLock} sessionHandle={sessionHandle} />}
+    <PracticeContents revision={revision} services={services} />
+    {revision.state === 'reviewed' && <>
+      <section className="b4-section" aria-label="从审核版建立草稿"><h2>审核版只读</h2><p className="b4-hint">修改需要从此固定版本建立新草稿，旧导出与施测继续使用旧内容。</p><SubmissionNotice submission={copy} /><button className="space-button" disabled={copy.busy || locks.exports || locks.conversion} onClick={() => void newDraft()}>{copy.phase === 'unknown' ? '重试原新草稿提交' : '从此审核版建立新草稿'}</button></section>
+      <PracticeConversion key={`conversion|${revision.practiceRevisionId}`} revision={revision} services={services} onLocked={conversionLock} onConverted={setConverted} />
+      <PracticeExports key={`exports|${revision.practiceRevisionId}`} revision={revision} services={services} convertedAssessmentId={converted?.practiceRevisionId === revision.practiceRevisionId ? converted.assessmentId : null} onLocked={exportsLock} />
+    </>}
+    {!editable && revision.state === 'draft' && <p className="b4-hint">此处查看固定草稿。请点击“当前工作区”编辑当前草稿，不会改写历史修订。</p>}
+  </>;
+}
+
+function PracticeContents({ revision, services }: { revision: PracticeRevisionView; services: typeof b4Api }) {
+  return <section className="b4-section" aria-label="服务端完整练习审阅"><h2>完整题目与计分叶审阅</h2>
+    <p className="b4-hint">{revision.state === 'reviewed' ? '固定审核内容' : '服务端已保存内容'}；新编辑需保存后在这里复核。共同材料、父子题、答案解析与受管图片保持来源。</p>
+    {revision.items.length === 0 && <p>尚无服务端题面快照。请先保存合法草稿，再审阅完整题面并独立审核。</p>}
+    {revision.items.map((item) => <FixedItemContent key={item.practiceItemId} revision={revision} item={item} services={services} />)}
+  </section>;
+}
+
+function FixedItemContent({ revision, item, services }: { revision: PracticeRevisionView; item: PracticeRevisionView['items'][number]; services: typeof b4Api }) {
+  const loadAsset = useCallback(async (assetId: string, signal: AbortSignal) => {
+    const declaration = item.content.assets.find((asset) => asset.assetId === assetId);
+    if (!declaration) throw new Error('图片未在此固定修订中声明。');
+    return (await services.getPracticeAsset(revision.practiceSetId, revision.practiceRevisionId, declaration.sha256, signal)).blob;
+  }, [item.content.assets, revision.practiceSetId, revision.practiceRevisionId, services]);
+  return <details><summary>{item.questionNo} · {item.isScored ? `计分叶，满分${scoreText(item.maxScoreUnits)}分` : '父题 / 材料，不计分'} · {item.knowledgePoints.map((point) => point.name).join('、')}</summary>
+    <span className="b4-meta">题修订 {item.questionRevisionId} · 节点 {item.nodeKey} · 父题 {item.parentItemId ?? '无'} · 来源 {item.reason}</span><RichReview content={item.content} loadAsset={loadAsset} assetScope={`${revision.practiceRevisionId}|${item.practiceItemId}`} />
+    <p className="b4-meta">固定知识点：{item.knowledgePoints.map((point) => `${point.name}（${point.knowledgeRevisionId}）`).join('、')}</p>
+  </details>;
+}
+
+export default PracticesWorkspace;

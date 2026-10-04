@@ -522,3 +522,65 @@
 }
 
 /* spinner 复用 space.css 的 .space-spin（space-rotate 0.9s linear infinite），不重复定义。 */
+
+/* 历史兼容页只调整呈现，状态与只读入口保持原有语义。 */
+.kb-page {
+  --page-content-width: 960px;
+}
+
+.kb-page :is(.space-persona-card, .space-cli-card, .space-session-card) {
+  background: var(--bg);
+  box-shadow: var(--shadow-card);
+}
+
+.kb-page :is(.space-card-title, .kb-index-title, .kb-group-title) {
+  font-size: var(--font-size-body, 14px);
+  line-height: 1.5;
+}
+
+.kb-page :is(.kb-group-desc, .kb-engine-count, .kb-tab-count) {
+  font-size: var(--font-size-caption, 12px);
+  line-height: 1.6;
+}
+
+.kb-page .kb-library-link {
+  padding: 14px 16px;
+}
+
+.kb-page .kb-banner-actions .space-button {
+  min-height: var(--control-height-compact, 32px);
+  padding: 5px 10px;
+}
+
+.kb-detail .space-session-card {
+  padding: 16px;
+}
+
+@media (max-width: 767px) {
+  .kb-page .space-tabs {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .kb-page .space-tabs button {
+    flex-shrink: 0;
+    min-height: var(--touch-target, 44px);
+  }
+
+  .kb-page .kb-banner-actions {
+    flex-wrap: wrap;
+  }
+
+  .kb-page .kb-banner-actions .space-button {
+    min-height: var(--touch-target, 44px);
+  }
+
+  .kb-detail .kb-row-actions {
+    opacity: 1;
+  }
+
+  .kb-detail .icon-button {
+    width: var(--touch-target, 44px);
+    height: var(--touch-target, 44px);
+  }
+}

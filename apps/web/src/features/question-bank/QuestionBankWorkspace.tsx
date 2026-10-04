@@ -6,7 +6,8 @@
  * 真实数据全部来自 FastAPI（`/api/v1/...`）。
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEntrance } from '@/components/motion/useEntrance';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Upload } from 'lucide-react';
@@ -32,12 +33,17 @@ export function QuestionBankWorkspace({ returnPracticeSetId, requestedTab }: {
   returnPracticeSetId?: string;
   requestedTab?: QuestionBankTab;
 } = {}) {
+  const pageRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const [tab, setTab] = useState<Tab>(requestedTab === 'generation' ? 'library' : requestedTab ?? 'imports');
   const [importOpen, setImportOpen] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
   const [generationRequested, setGenerationRequested] = useState(requestedTab === 'generation');
   const returnQuery = returnPracticeSetId ? `?returnPracticeSetId=${encodeURIComponent(returnPracticeSetId)}` : '';
+
+  useEntrance(pageRef, { preset: 'page' });
+  useEntrance(panelRef, { preset: 'panel', triggerKey: tab });
 
   const taxonomy = useAsyncResource(
     (signal) => fetchTextbookTaxonomy(signal),
@@ -73,8 +79,8 @@ export function QuestionBankWorkspace({ returnPracticeSetId, requestedTab }: {
   }
 
   return (
-    <div className="space-page question-bank-page">
-      <header className="space-header">
+    <div ref={pageRef} className="space-page question-bank-page">
+      <header className="space-header" data-motion-reveal>
         <div className="space-header-row">
           <h1>题库</h1>
           {returnPracticeSetId && <Link className="space-button" href={`/practices?practiceSetId=${encodeURIComponent(returnPracticeSetId)}`}>返回练习并重新选正式题</Link>}
@@ -91,7 +97,7 @@ export function QuestionBankWorkspace({ returnPracticeSetId, requestedTab }: {
       </header>
 
       <main className="space-content">
-        <div className="space-tabs" role="tablist" aria-label="题库视图">
+        <div className="space-tabs" role="tablist" aria-label="题库视图" data-motion-reveal>
           {TABS.map((item) => (
             <button
               key={item.id}
@@ -120,6 +126,7 @@ export function QuestionBankWorkspace({ returnPracticeSetId, requestedTab }: {
         )}
 
         <div
+          ref={panelRef}
           id={`qb-panel-${tab}`}
           role="tabpanel"
           aria-labelledby={`qb-tab-${tab}`}

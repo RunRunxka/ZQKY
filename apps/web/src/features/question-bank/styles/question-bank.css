@@ -2,7 +2,11 @@
    消费 globals.css 单一变量层：--font-ui/--font-display/--font-mono、--blue/--blue-soft、
    --surface/--ink/--line、--radius-*、--space-*；与 space.css 共用 .space-* 基础类。
    作用域：全部选择器以 .question-bank-page 起头。
-   减少动画：不新增动画，依赖全局 motion.css 的 prefers-reduced-motion / html[data-motion] 机制。 */
+   减少动画：公共 useEntrance 遵守全局 motion.css 的 prefers-reduced-motion / html[data-motion] 机制。 */
+
+.question-bank-page {
+  --page-content-width: 1240px;
+}
 
 .question-bank-page .space-content {
   min-width: 0;
@@ -12,7 +16,7 @@
   align-items: flex-start;
 }
 
-.qb-panel-body {
+.question-bank-page .qb-panel-body {
   min-width: 0;
 }
 
@@ -218,7 +222,7 @@
 
 /* ===== 校对页布局 ===== */
 .question-bank-page .qb-review-content {
-  max-width: min(1240px, 100%);
+  min-width: 0;
 }
 
 .question-bank-page .qb-back {
@@ -823,5 +827,143 @@
 
   .question-bank-page .qb-pagination {
     justify-content: space-between;
+  }
+}
+
+/* ===== 统一工作面与校对节奏 ===== */
+.question-bank-page .qb-library-head {
+  margin-bottom: var(--space-4);
+}
+
+.question-bank-page .qb-filters {
+  padding: var(--space-4);
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+}
+
+.question-bank-page .qb-filters > .qb-field {
+  flex: 1 1 150px;
+  min-width: 0;
+}
+
+.question-bank-page .qb-filter-keyword {
+  max-width: none;
+}
+
+.question-bank-page .qb-review-layout {
+  gap: var(--space-5);
+}
+
+.question-bank-page .qb-source-section,
+.question-bank-page .qb-editor,
+.question-bank-page .qb-subpanel,
+.question-bank-page .qb-organize,
+.question-bank-page .qb-confirm,
+.question-bank-page .qb-question-card {
+  padding: var(--space-5);
+  background: var(--bg);
+}
+
+.question-bank-page .qb-import-card {
+  padding: var(--space-4) var(--space-5);
+}
+
+.question-bank-page .qb-list,
+.question-bank-page .qb-editor,
+.question-bank-page .qb-form {
+  gap: var(--space-4);
+}
+
+.question-bank-page .qb-draft-strip {
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.question-bank-page .qb-draft-tab {
+  padding: var(--space-3) var(--space-4);
+  min-height: 88px;
+}
+
+.question-bank-page .qb-tools {
+  margin-top: var(--space-5);
+  gap: var(--space-5);
+}
+
+.question-bank-page .qb-tools > fieldset {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.question-bank-page .qb-source-head h2,
+.question-bank-page .qb-editor-head h2,
+.question-bank-page .qb-subpanel h2,
+.question-bank-page .qb-organize h2,
+.question-bank-page .qb-confirm h2,
+.question-bank-page .qb-links h2 {
+  font-size: var(--font-size-section, 16px);
+  line-height: 1.5;
+}
+
+.question-bank-page .qb-hint,
+.question-bank-page .qb-warnings,
+.question-bank-page .qb-warning-list,
+.question-bank-page .qb-file-line,
+.question-bank-page .qb-snapshot-line {
+  font-size: var(--font-size-caption, 12px);
+  line-height: 1.65;
+}
+
+.question-bank-page .qb-field {
+  gap: 6px;
+  font-size: var(--font-size-control, 13px);
+}
+
+.question-bank-page .qb-field input:not([type='checkbox']):not([type='radio']),
+.question-bank-page .qb-field select {
+  min-height: var(--control-height, 36px);
+  padding: 8px 12px;
+  font-size: var(--font-size-control, 13px);
+}
+
+.question-bank-page .qb-field textarea {
+  padding: var(--space-3);
+  font-size: var(--font-size-body, 14px);
+}
+
+.question-bank-page .qb-actions {
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+@media (max-width: 900px) {
+  .question-bank-page .qb-review-layout {
+    gap: var(--space-4);
+  }
+}
+
+@media (max-width: 640px) {
+  .question-bank-page .qb-source-section,
+  .question-bank-page .qb-editor,
+  .question-bank-page .qb-subpanel,
+  .question-bank-page .qb-organize,
+  .question-bank-page .qb-confirm,
+  .question-bank-page .qb-question-card,
+  .question-bank-page .qb-import-card {
+    padding: var(--space-4);
+  }
+
+  .question-bank-page .qb-filters > .qb-field {
+    flex-basis: 100%;
+  }
+}
+
+@media (max-width: 767px) {
+  .question-bank-page .qb-field input:not([type='checkbox']):not([type='radio']),
+  .question-bank-page .qb-field select,
+  .question-bank-page .qb-check {
+    min-height: var(--touch-target, 44px);
   }
 }

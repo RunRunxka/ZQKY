@@ -1,0 +1,109 @@
+{
+  "dataRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-g1-browser-eda5b37d224f4458b9c63233d81e0c51\\data",
+  "readOnly": true,
+  "checks": [
+    {
+      "path": "textbooks/catalog.sqlite3",
+      "integrityRows": [
+        [
+          "ok"
+        ]
+      ],
+      "foreignKeyRows": []
+    },
+    {
+      "path": "question-bank/question-bank.sqlite3",
+      "integrityRows": [
+        [
+          "ok"
+        ]
+      ],
+      "foreignKeyRows": []
+    },
+    {
+      "path": "knowledge/knowledge.sqlite3",
+      "integrityRows": [
+        [
+          "ok"
+        ]
+      ],
+      "foreignKeyRows": []
+    },
+    {
+      "path": "teaching/teaching.sqlite3",
+      "integrityRows": [
+        [
+          "ok"
+        ]
+      ],
+      "foreignKeyRows": []
+    }
+  ],
+  "revision": [
+    [
+      "bbe7c4fadbe74bbc8fce13aa3c3274e9",
+      "confirmed"
+    ]
+  ],
+  "matrix": [
+    [
+      "9468205aa20542aba5a31f1d8e70f5e2",
+      "it-g1browser-1",
+      "recorded",
+      0
+    ],
+    [
+      "9468205aa20542aba5a31f1d8e70f5e2",
+      "it-g1browser-2",
+      "recorded",
+      300
+    ],
+    [
+      "9468205aa20542aba5a31f1d8e70f5e2",
+      "it-g1browser-3",
+      "recorded",
+      500
+    ],
+    [
+      "9f23e91bf94843ca9f032772f131b0ca",
+      "it-g1browser-1",
+      "recorded",
+      100
+    ],
+    [
+      "9f23e91bf94843ca9f032772f131b0ca",
+      "it-g1browser-2",
+      "recorded",
+      200
+    ],
+    [
+      "9f23e91bf94843ca9f032772f131b0ca",
+      "it-g1browser-3",
+      "recorded",
+      500
+    ],
+    [
+      "c10fcace600f4d2bad3448150d24e059",
+      "it-g1browser-1",
+      "recorded",
+      200
+    ],
+    [
+      "c10fcace600f4d2bad3448150d24e059",
+      "it-g1browser-2",
+      "recorded",
+      300
+    ],
+    [
+      "c10fcace600f4d2bad3448150d24e059",
+      "it-g1browser-3",
+      "recorded",
+      500
+    ]
+  ],
+  "participantTotals": {
+    "丁": 800,
+    "丙": 1000,
+    "甲": 800
+  }
+}

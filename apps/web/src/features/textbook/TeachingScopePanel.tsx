@@ -253,7 +253,7 @@ export function TeachingScopePanel({ taxonomy }: { taxonomy: TaxonomyIndex }) {
   })();
 
   return (
-    <section className="textbook-scope" aria-labelledby="textbook-scope-heading">
+    <section className="textbook-scope" aria-labelledby="textbook-scope-heading" data-motion-reveal>
       <div className="textbook-scope-head">
         <h2 id="textbook-scope-heading" className="textbook-scope-title">
           <BookOpenCheck size={16} aria-hidden />

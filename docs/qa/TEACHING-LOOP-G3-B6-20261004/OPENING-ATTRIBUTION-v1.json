@@ -1,0 +1,469 @@
+{
+  "task": "G3-OPENING-ATTRIBUTION-v1",
+  "sourceFilesDrift": [],
+  "executableQaDrift": [],
+  "sharedContractsDrift": [],
+  "priorEvidenceDrift": [],
+  "buildDriftCount": 73,
+  "nonDevBuildDrift": [],
+  "allBuildDriftUnderDev": true,
+  "buildId": "FVU-OXmtBh9WBSHehixfE",
+  "rewrites": {
+    "beforeFiles": [],
+    "afterFiles": [
+      {
+        "source": "/api/v1/:path*",
+        "destination": "http://127.0.0.1:8001/api/v1/:path*",
+        "regex": "^/api/v1(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$"
+      }
+    ],
+    "fallback": []
+  },
+  "nextEnvSHA": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc",
+  "classification": "pre-existing development cache differences; production files captured in original candidate still exactly match; external actor not inferred",
+  "devFiles": [
+    {
+      "path": "apps/web/.next/dev/build-manifest.json",
+      "beforeExpectedSHA": "d60b057675eeeaa30088f56bcb2331bfe49550e53e3340e98ca0cc3156ea10e7",
+      "openingSHA": "06e0985297861009c6c1c1d6fac86262883acf53396031673e324c8c4c4c53a8",
+      "modifiedAtUTC": "2026-10-03T16:03:58.325488+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/fallback-build-manifest.json",
+      "beforeExpectedSHA": "d6d59c4e1094a490555192f79b8d29cf5d318e8a4cb73c182cbce2b34cc97af2",
+      "openingSHA": "2ce8cf3f9ba1a3ed13f1ec9b97a8ae7b1a54242440dab4b0f9aceff763b0eefd",
+      "modifiedAtUTC": "2026-10-03T16:03:58.327489+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/logs/next-development.log",
+      "beforeExpectedSHA": "d1c1c08a26c89881da36a469262620020135752e9d32e424711ca74e3461e890",
+      "openingSHA": "2d02907c62d5d7fdad298e9a3264ed547780726ecc7f8232d2c1608b521e44df",
+      "modifiedAtUTC": "2026-10-03T16:03:41.064126+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/prerender-manifest.json",
+      "beforeExpectedSHA": "220a43300137d99c6afa39b89f09915bbec77d993de845a1a1f5b4bdf9c2be60",
+      "openingSHA": "7c1387e63028c27b311890c4d00e4ab5ad74a641916f3e872f4e8c545c5328df",
+      "modifiedAtUTC": "2026-10-03T16:01:09.456607+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app/[planned]/page.js",
+      "beforeExpectedSHA": "80cdf881a64d2a9d02b3453309bce7c1fe734eb6a6073b06b5092c85e2e58949",
+      "openingSHA": "4522e71d12941f428512f81fa5150caac5c8f45a15ca2cd8d9c512024e243d68",
+      "modifiedAtUTC": "2026-10-03T15:25:04.341513+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app/[planned]/page_client-reference-manifest.js",
+      "beforeExpectedSHA": "21b20a6d9510d4ecc4f8cc4e2098118007c0a51225eb19e3b3657486dfa87c8d",
+      "openingSHA": "a9700f8f72e4fb04c878d6f41dd9a946520224a9432ddcf92b09bf6bd9ca2291",
+      "modifiedAtUTC": "2026-10-03T15:25:04.328012+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app/_not-found/page.js",
+      "beforeExpectedSHA": "af8522a8dc6f9b6f5048363cee3e7662a719be5fed3b73b4777d99acdc716310",
+      "openingSHA": "b5fd19900337117483a4a7fa04fb9846b19cbc565e0ed72ca587b0b614fd8edd",
+      "modifiedAtUTC": "2026-10-03T15:25:04.368514+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app/_not-found/page_client-reference-manifest.js",
+      "beforeExpectedSHA": "4b521bb007776e50b82ca8fc015ddfa703537c96531c77999c370a7e1e0e0afa",
+      "openingSHA": "1fa8e82b09087c681c90c95b67c7af74b057a2b6be0b2866ad89e04eeba9f93f",
+      "modifiedAtUTC": "2026-10-03T15:25:04.327012+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app/assessments/page.js",
+      "beforeExpectedSHA": "02845d4d410c5a87ac5c6d8409a01b733fe8a4a1469c2861273bb0f2de3cf9ec",
+      "openingSHA": "adf43a06e1d9d78e9c3cac7f63a6081a289fec8a3345acb19d1fc7f59029886b",
+      "modifiedAtUTC": "2026-10-03T15:25:04.375514+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app/assessments/page_client-reference-manifest.js",
+      "beforeExpectedSHA": "687fa8cc6e7430d1530757f432ac71ebd0e44fbc1096f3c10c6dd360e7f96dcd",
+      "openingSHA": "80e1f7449ee984ab74f997512f91fc8899ede515eb8b58f2d3f5b96aed153678",
+      "modifiedAtUTC": "2026-10-03T15:25:04.379016+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app/books/page.js",
+      "beforeExpectedSHA": "9be59194173b6e017e7bc23821a9fbc0e19b84606995eaa5bad753ebbf1c10fc",
+      "openingSHA": "8ca6a4de4949a0f7bcb0bd4385ccc18a0c55fcbb7133fa7d08b40e9f68dde75e",
+      "modifiedAtUTC": "2026-10-03T15:25:04.379016+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app/books/page_client-reference-manifest.js",
+      "beforeExpectedSHA": "e0136af140d16d2998faf652d2dec292e285dea4d548446df7360381014354d0",
+      "openingSHA": "9f3e789aa1072b2d5dab2287b37f5aa50b90a3275fedcd6d2282c6751f6c24b3",
+      "modifiedAtUTC": "2026-10-03T15:25:04.377517+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app/chat/page.js",
+      "beforeExpectedSHA": "25ea0752d6aa3246aedc00e4eae13953441de7d9a93b923132275f647dcb0dae",
+      "openingSHA": "649945067e760dd2fec25e255c118ce8164882441425b2ce176dfed1850a8b8b",
+      "modifiedAtUTC": "2026-10-03T15:25:04.245903+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app/chat/page_client-reference-manifest.js",
+      "beforeExpectedSHA": "41203620727718e0684f071c3497f92346b3b61afdfcf20c456abbacb4ffa386",
+      "openingSHA": "000843f60718ebc7bbbcf6c6943640a3e06fedf884cb9e9532304d646e999dbe",
+      "modifiedAtUTC": "2026-10-03T15:25:04.309011+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app/courses/page.js",
+      "beforeExpectedSHA": "f624347431e9407144e0e02347779baeeedfc933a379f29cb3bda7e3ff09edff",
+      "openingSHA": "6759356ac7d7754f4a19bf2179ac808bec900bf0d0588c846a30fbf83c3785ef",
+      "modifiedAtUTC": "2026-10-03T15:25:04.340513+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app/courses/page_client-reference-manifest.js",
+      "beforeExpectedSHA": "8f23354e52b32bf74bb9c8ea52a320c4b6929563cea5509cd1687ab0f308f503",
+      "openingSHA": "c4662fd82f32e1ff390f541b00f8bca449177e74ec1c9bf422503d9efd02c888",
+      "modifiedAtUTC": "2026-10-03T15:25:04.369514+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app/knowledge-bases/libraries/[libraryId]/page.js",
+      "beforeExpectedSHA": "0cdefd5168f734f920c97cbab8c2d350bd442c348a3ca36a8166c26b256a3a6e",
+      "openingSHA": "01f9047189415ba354978a7158505f48be3637bffea60418383ecd9249dcfbb0",
+      "modifiedAtUTC": "2026-10-03T15:25:04.372014+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app/knowledge-bases/libraries/[libraryId]/page_client-reference-manifest.js",
+      "beforeExpectedSHA": "54af5b691eb6fbdcdcdbc30cf7c5129bd034e38e4c7de35d6ce399ca2e2e262e",
+      "openingSHA": "799511437dfde09d7e516df25b64de5398d347660bae6533618227ee9cd6e9a3",
+      "modifiedAtUTC": "2026-10-03T15:25:04.374014+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app/knowledge-bases/page.js",
+      "beforeExpectedSHA": "a4b06c524299986bdd146442ae9d0043edc6b51002132dd6ba10bc1d7fcc5290",
+      "openingSHA": "eae61534e19c51e3cf15cb402a9a19e5595f4eef5da9fff942aa7d51c88312d4",
+      "modifiedAtUTC": "2026-10-03T15:25:04.376517+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app/knowledge-bases/page_client-reference-manifest.js",
+      "beforeExpectedSHA": "62f330d35a28bd66b52acc99eccd1dcc1b55abd9e55b2c92cb36402f59e16b3a",
+      "openingSHA": "ab51757122e5a798d488ad5831aafe7bf67ed079ee7aa967c198f62bede30ea8",
+      "modifiedAtUTC": "2026-10-03T15:25:04.339513+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app/knowledge-points/page.js",
+      "beforeExpectedSHA": "0b83f9e19dc9968e895d0c34e93b24037a8745754d5a4f3c1444add4f7ca0272",
+      "openingSHA": "6db21a242dece036898c3e3b54491da39e04a00c0a4121baa93f7fb1d13afc98",
+      "modifiedAtUTC": "2026-10-03T15:25:04.376517+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app/knowledge-points/page_client-reference-manifest.js",
+      "beforeExpectedSHA": "cd8c3be7a235cea41acf664bf08ab820ffcdcc4468c761d8f7531d0146f06926",
+      "openingSHA": "22aef2bf3e114cfb30f66219f671fd51ded95d2696da80a988edfccd22f48b78",
+      "modifiedAtUTC": "2026-10-03T15:25:04.370014+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app/lesson-plans/page.js",
+      "beforeExpectedSHA": "0e4929ce5db0d5a126f70c8dde1728c7b77f51ea61750c877aae9729564a37fa",
+      "openingSHA": "87d93f817ff052fd9a9f9cac1ee83c92d6bd2fed84dd78c6237471493745a800",
+      "modifiedAtUTC": "2026-10-03T15:25:04.341513+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app/lesson-plans/page_client-reference-manifest.js",
+      "beforeExpectedSHA": "7b5e80e86fabb26e8f09dd90d2a5baa38d0cd9a5e70687d94f61c16ea9649c63",
+      "openingSHA": "5e30bd08092e33896bafd08788274b053a05ae66c107a88c0655da8a8476b8d7",
+      "modifiedAtUTC": "2026-10-03T15:25:04.339513+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app/page.js",
+      "beforeExpectedSHA": "62215351d133a3a44135b750daa326479d41c14fbf2f93baf1297437aaf715fa",
+      "openingSHA": "c9779648363c10a8ff00fe69fd6cf7a703d2969fb73d1ea73aa448a230cc1da6",
+      "modifiedAtUTC": "2026-10-03T15:25:01.361467+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app/page_client-reference-manifest.js",
+      "beforeExpectedSHA": "80cf373e8e355169f7e45df5ec710ed84e3029ba7cb035ee5c5459c9bf3036f1",
+      "openingSHA": "642406a197391ada20040d082e92ac0d4f81f2e757367a46907e5aca5f7f88da",
+      "modifiedAtUTC": "2026-10-03T15:25:01.358466+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app/question-bank/page.js",
+      "beforeExpectedSHA": "cdadcf19743af02bea1f42d199f2e5948c8ad309cd462c82021130520516d818",
+      "openingSHA": "d492984b8b0672c5b1cacaf20833c4ddd5cd65c1d4f3441b630f41bd5192ef12",
+      "modifiedAtUTC": "2026-10-03T15:25:04.371514+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app/question-bank/page_client-reference-manifest.js",
+      "beforeExpectedSHA": "2205adccdd820d749f4a38c3701f9f546dddfb43e26200b01f7dee2454125074",
+      "openingSHA": "d9286be84e01487de4ad18843191e1af7efc016bae80708bdf15051d9f735cbc",
+      "modifiedAtUTC": "2026-10-03T15:25:04.337512+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app/settings/page.js",
+      "beforeExpectedSHA": "f69949a9e8270b125b5a268fa07af2736459e7d05364ca24b5e6c1aa4df84248",
+      "openingSHA": "430a65e35be3ca484cb70ff1a38dfc9abb5d754437c62ece7702d01c35349e73",
+      "modifiedAtUTC": "2026-10-03T15:25:04.339013+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app/settings/page_client-reference-manifest.js",
+      "beforeExpectedSHA": "a52709afdad4df84cb72d4a6e33f0c7fbed191f73abf66bd04f2c403f3c19468",
+      "openingSHA": "6b4a69501716fa6bbd7d95a62b7fa9c8d700efdd182494c54d48f4c557008780",
+      "modifiedAtUTC": "2026-10-03T15:25:04.340513+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/app-paths-manifest.json",
+      "beforeExpectedSHA": "858b94f8e7aad93a6379f7fa61774817039e0fff3d59da1759d19714e5d3af0d",
+      "openingSHA": "c94b18bf7156a8af0ce1fa4dbaf783065effc98f909b8f44514c1b66fc33c26b",
+      "modifiedAtUTC": "2026-10-03T16:03:58.323988+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/chunks/ssr/[root-of-the-server]__03-4v_1._.js",
+      "beforeExpectedSHA": "71529ccea1d28f15998d99815deac0200299d8e018909260bcc3c81adba26efe",
+      "openingSHA": "923798ed26d42541e115db3b4abb096c0271c4ce3b7894e678a12fa15e4c10ea",
+      "modifiedAtUTC": "2026-10-03T15:25:04.246902+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/chunks/ssr/[root-of-the-server]__03-4v_1._.js.map",
+      "beforeExpectedSHA": "3231624e5bda343507ca7c0718d36cf953ed06bbf967b425d195ea23b82b6f53",
+      "openingSHA": "0d18343f09ad11356b1b9c53ea0f3864bfe7b4d0473b275f37126e9aa5b098cd",
+      "modifiedAtUTC": "2026-10-03T15:25:04.311512+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/chunks/ssr/[root-of-the-server]__1slcnjk._.js",
+      "beforeExpectedSHA": "19d8bafdf08cf1c6724f02e5671d45eab6d8b9eef432c437c814a0f909c074b9",
+      "openingSHA": "f2fdc75ebeb22be1d250ba9dda6729bd43d58741bc5fe502a9ed383d435f7c55",
+      "modifiedAtUTC": "2026-10-03T15:25:04.378517+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/chunks/ssr/[root-of-the-server]__1slcnjk._.js.map",
+      "beforeExpectedSHA": "a1f8911721ee4474232ea447240c0fa611ae4bfad29c8c223151fa2234404fff",
+      "openingSHA": "ab297c650e4af9871da487a725e818cda704b8a264f08fb71f2b4e0a5b71883f",
+      "modifiedAtUTC": "2026-10-03T15:25:04.338012+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/chunks/ssr/[root-of-the-server]__1wxilbd._.js",
+      "beforeExpectedSHA": "d82db4ff634cb15e378cfa880ca22409765308ce7c9d51e3d9f57e526da0fcd8",
+      "openingSHA": "d42602d673eacf7d07aef3753750def3b8904c15e1316112832bcb697090c8f5",
+      "modifiedAtUTC": "2026-10-03T15:25:04.341013+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/chunks/ssr/[root-of-the-server]__1wxilbd._.js.map",
+      "beforeExpectedSHA": "216a1664749dbc7c1bc6f756333913c541e9a08d75a5c27126251554ccb8908f",
+      "openingSHA": "dbf897b9813f0bdf04ae7ebc6765976da3d8f266341e0ce3a4a3c48a39a1ef0d",
+      "modifiedAtUTC": "2026-10-03T15:25:04.338012+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/chunks/ssr/node_modules_next_dist_0ln3sgh._.js",
+      "beforeExpectedSHA": "a4ca780b4425cb2d6dcc323709ff0a01b1a13c9f8f0bb3edf9cdbf87455f9755",
+      "openingSHA": "b5809269e9e7935e5456672d881d2d347decafe9be939a5d2979d07578dba9dc",
+      "modifiedAtUTC": "2026-10-03T15:25:04.373014+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/chunks/ssr/node_modules_next_dist_0ln3sgh._.js.map",
+      "beforeExpectedSHA": "9ba8fb130337e6c87c3d3a696666eb4f5313dbc90f6a9992b4658c80d7745432",
+      "openingSHA": "cf8c202dbbf8684b1a77000452afcaae5342c5d202f51bdc2292b627b4bdce6d",
+      "modifiedAtUTC": "2026-10-03T15:25:04.378017+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/middleware-build-manifest.js",
+      "beforeExpectedSHA": "20fd5c2213dc72151077f3a94af803fca1251b5bc275ee5f856f73602173ad2c",
+      "openingSHA": "8bef55c4b4dfb38c4a55287efeb0e57a10f501fde5e0e088ac69567e128cb59e",
+      "modifiedAtUTC": "2026-10-03T16:03:58.326488+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/next-font-manifest.js",
+      "beforeExpectedSHA": "cdb70a1e4515efa6136fb8bff96007f20fae0b2ef48ec00ffa0d8b734c57a360",
+      "openingSHA": "8709e8fe7f791c8e12975ac4987d60a42971bd5c2ddd46edc4878dc483e5f24c",
+      "modifiedAtUTC": "2026-10-03T16:03:58.329489+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/next-font-manifest.json",
+      "beforeExpectedSHA": "7d9c67c5876780c9cd81c215029a70b7df6164587dbb2f326250574edc2a0622",
+      "openingSHA": "61370b09f1d9ddd52637c55deb18a92c142c91b016d28271b9f694198b917a67",
+      "modifiedAtUTC": "2026-10-03T16:03:58.328989+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/server/pages-manifest.json",
+      "beforeExpectedSHA": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "openingSHA": "2854a7329f8b9a283b869c91960e741c0b81408dc56dfaed550fc358e7f18800",
+      "modifiedAtUTC": "2026-10-03T16:03:41.276599+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/apps_web_07cjmyn._.js",
+      "beforeExpectedSHA": "e3d7bd78e1af513a756d54085c73875c956a1aafd50762e70ae3bc85108eae1b",
+      "openingSHA": "6ff299000d2e796d568e323547f987ef700e7b38d5df406286a966f15ff2384b",
+      "modifiedAtUTC": "2026-10-03T15:25:04.377017+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/apps_web_09lxiwh._.js",
+      "beforeExpectedSHA": "251323d10d0ed1826f06dac51219a486ffaa4fd682c1e7c70d4e0112bec62204",
+      "openingSHA": "f71655410a1c133fcb1f06481cf4d51641f789872ee1ae8a374710cc0d05785b",
+      "modifiedAtUTC": "2026-10-03T15:25:04.332012+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/apps_web_0k447k3._.js",
+      "beforeExpectedSHA": "bb1eb9268838fa687d0b35e54cccb59131cc7a8eb9c37b3a5035b6acf91dae95",
+      "openingSHA": "5c26af2e36a38e135e8a40543d224f871556f9ca2c1def9da9d17ac047d98b53",
+      "modifiedAtUTC": "2026-10-03T15:25:04.372014+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/apps_web_0sm7fjv._.js",
+      "beforeExpectedSHA": "b6e9139f0cee095d6305380af140f33b79e6044c80ffc072249bab3d56946de2",
+      "openingSHA": "9c6c673c089b0fc20e8fce3a36b49bac3394514ec311110034f3ddd7ff310166",
+      "modifiedAtUTC": "2026-10-03T15:25:04.371514+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/apps_web_0uh79qg._.js",
+      "beforeExpectedSHA": "35c14f5b4fb50c8147f8513aab673795536f2276d9e5df3ed53bf2c37b3888c1",
+      "openingSHA": "30bc78c5ef8d09e44bbf9c295c662317f0cefc76279c61afb881bc4945ffc982",
+      "modifiedAtUTC": "2026-10-03T15:25:04.337512+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/apps_web_18x7jxu._.js",
+      "beforeExpectedSHA": "35c14f5b4fb50c8147f8513aab673795536f2276d9e5df3ed53bf2c37b3888c1",
+      "openingSHA": "30bc78c5ef8d09e44bbf9c295c662317f0cefc76279c61afb881bc4945ffc982",
+      "modifiedAtUTC": "2026-10-03T15:25:04.331513+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/apps_web_1gy0uo1._.js",
+      "beforeExpectedSHA": "7476b4f50f8e7d4f9d4860aaaf0361de758d3f3e00128d5925ea809faf83591d",
+      "openingSHA": "90d9d167825d01653c1531652c5cae38ca49eeda76ebe577780e684bc7cab5dd",
+      "modifiedAtUTC": "2026-10-03T15:25:04.370513+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/apps_web_1hmr_7i._.js",
+      "beforeExpectedSHA": "0931917e5b22ec59380dbb0b320cf62ad89bde3efc603559ab9f223e06402fec",
+      "openingSHA": "cdd846c28104cf022f5b4dcfedc6425cc93200fa580fc92822899fb71da0712b",
+      "modifiedAtUTC": "2026-10-03T15:25:04.379016+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/apps_web_1oijiw5._.js",
+      "beforeExpectedSHA": "7aac578181700040b0743ec96012858717816ac0f5e82331dc1feb4977eca7bb",
+      "openingSHA": "d11f38867008c6a5f7a3e91871658f6bf650d6f97d832f4b9312e321784a8d4d",
+      "modifiedAtUTC": "2026-10-03T15:25:04.255403+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/apps_web_1tc36lr._.js",
+      "beforeExpectedSHA": "4df13a6a09a7a674101b94965bb9fe5b96f831fe08e41178d3384e39b39a3427",
+      "openingSHA": "17230dd7a25e082b1469a6da5968f29a98954e21369a8602f512e92418bdaade",
+      "modifiedAtUTC": "2026-10-03T15:25:04.335012+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/apps_web_1up3pco._.js",
+      "beforeExpectedSHA": "10c79abf61a227bae2207011739c86dcbde43c983e68d820d4984bcac0aaca67",
+      "openingSHA": "3d7a895b6588beb17b6e4801d54b3ae51e7541c2021e0cf3ac7a090bf327521b",
+      "modifiedAtUTC": "2026-10-03T15:25:04.370014+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/apps_web_20wl_c3._.js",
+      "beforeExpectedSHA": "d0144482e040451f85203fb23f060d0f38355befcd2d7a1d980f6a02eb5ef170",
+      "openingSHA": "69f2221849a337f27d288aca55fb176b5165d0be1f25d02598b646f2dca62a92",
+      "modifiedAtUTC": "2026-10-03T15:25:04.373514+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/apps_web_219uq1s._.js",
+      "beforeExpectedSHA": "35c14f5b4fb50c8147f8513aab673795536f2276d9e5df3ed53bf2c37b3888c1",
+      "openingSHA": "30bc78c5ef8d09e44bbf9c295c662317f0cefc76279c61afb881bc4945ffc982",
+      "modifiedAtUTC": "2026-10-03T15:25:01.357466+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/apps_web_src_0buj18q._.css",
+      "beforeExpectedSHA": "fe1183806e25890df96bbd25366a8bab53d84b035785f7aeb93d24675f877e38",
+      "openingSHA": "d53d5d65c4ab78749c3181a30966e0c38d027ac0881b93d9a74dd4da3490c6a4",
+      "modifiedAtUTC": "2026-10-03T15:25:01.357466+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/apps_web_src_0buj18q._.css.map",
+      "beforeExpectedSHA": "69ce61c8ec78d2122d0c6fc204231303c9608e0c5ee2cd5571f3de5f1b069577",
+      "openingSHA": "17c2b9172c1c9adb4769a06b2b9e27eabbb9f6b8ba3397e9fc9dcda8492e612b",
+      "modifiedAtUTC": "2026-10-03T15:25:01.359467+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/apps_web_src_0jyrbx0._.js",
+      "beforeExpectedSHA": "3c7a16f099ef955e9e1cc3562d3e3bcb0575342cb1155275420fd4c0cb266fef",
+      "openingSHA": "d9ecafda83c20435df0b006f6b331fef1f4446f1de8fa2dcd44f2a2822ddd283",
+      "modifiedAtUTC": "2026-10-03T15:25:04.374514+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/apps_web_src_0jyrbx0._.js.map",
+      "beforeExpectedSHA": "dc83e7705f59086e49bc45a9204bbd7b8a660631578e907f59a55d192005aed2",
+      "openingSHA": "6984dfe68b3a692cf59cf95bc3e0134c317f4b7b087c654c4ccdd7920176b497",
+      "modifiedAtUTC": "2026-10-03T15:25:04.338512+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/apps_web_src_1nwx1hf._.js",
+      "beforeExpectedSHA": "247bfd9fa0a8e3e5f38c30901bc1783a6c007afe124693ed9639755adfdd5cc5",
+      "openingSHA": "db667408d43519749b25a8edbd709ffa5bc1a206d0f69aa78bc48d9988921206",
+      "modifiedAtUTC": "2026-10-03T15:25:04.309011+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/apps_web_src_1nwx1hf._.js.map",
+      "beforeExpectedSHA": "8133e08c2647b8e1ddf12378ad99a0225d11fec7363411fe7c9bdf96413cbee0",
+      "openingSHA": "bddafdb95c9e1684848728ad1597da04ecb1f0d06eb49f3c2ad2b120d93d550f",
+      "modifiedAtUTC": "2026-10-03T15:25:04.309511+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/apps_web_src_1vk3535._.js",
+      "beforeExpectedSHA": "73e01660017284206d0f6b4af599724e00a59100345250ed76cddd662e61525d",
+      "openingSHA": "4ddb576e4dc09d563feb241d1a09612992dbc5507fff4562fbdbf73c3502e210",
+      "modifiedAtUTC": "2026-10-03T15:25:04.370014+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/apps_web_src_1vk3535._.js.map",
+      "beforeExpectedSHA": "64b8317e852709ff7ed7d7ddb8bd89ba532863c1e746c6e1ad5de16103728e31",
+      "openingSHA": "762c306c72651d26fafe42beafa55eeec06e51402dd1404c865e4bd6d50b633b",
+      "modifiedAtUTC": "2026-10-03T15:25:04.373014+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/apps_web_src_styles_globals_css_1igg3k2._.single.css",
+      "beforeExpectedSHA": "0de5d5eaed2522a935f3a3b016dc30566f7057ed3e699b252177b78ebf2d8c2b",
+      "openingSHA": "fca006ef338f6c1dec43097ba6ac365e41c4d451815195efeaf4d402e5e5c638",
+      "modifiedAtUTC": "2026-10-03T15:25:01.355467+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/apps_web_src_styles_globals_css_1igg3k2._.single.css.map",
+      "beforeExpectedSHA": "13a374eafce732d12d98099ef24f748f907b6cf0f044429ab260a1357ef49839",
+      "openingSHA": "73854c0b0d8efa48b49fad2ac08e7527d0446d8ff851cb3b0a71f345acee6470",
+      "modifiedAtUTC": "2026-10-03T15:25:01.360966+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/node_modules_next_dist_shared_lib_0c-iiom._.js",
+      "beforeExpectedSHA": "fcbdcfb012fab3c4bcfdf313f983cabc84d29e9f8cd2c0a9c713ff2de2be68fd",
+      "openingSHA": "92d152367bb2e89d2e45467191c4860dae229a0e5482081fd8f00b0a52349980",
+      "modifiedAtUTC": "2026-10-03T16:03:41.160150+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/node_modules_next_dist_shared_lib_0c-iiom._.js.map",
+      "beforeExpectedSHA": "26b0aaca9af030f82b34536e1f8fed39ed2791dc21634f5c74379234cba6eb30",
+      "openingSHA": "8c74088f20dd018daf88f5302d5e07701261e0e09667737dfb1a1ba6fb71d357",
+      "modifiedAtUTC": "2026-10-03T16:03:41.160150+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/node_modules_next_dist_shared_lib_1-1urvf._.js",
+      "beforeExpectedSHA": "85d3ebcafe02e9dafd25866e1368a1de947340c3091bec58e973b8466215eb8c",
+      "openingSHA": "c78088e2b4995531753a27068062b52fa28f1481e4564c2d37b06833751dcbd5",
+      "modifiedAtUTC": "2026-10-03T16:03:41.254596+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/chunks/node_modules_next_dist_shared_lib_1-1urvf._.js.map",
+      "beforeExpectedSHA": "a29044c11de149499a13f7d86ec67eaa95fec6c5d383ce0a3dc78cb1c06f3ae2",
+      "openingSHA": "d870682bd0d9f4ab6ba9c325c2c06cda44677371444b48cefae09e28e8a55627",
+      "modifiedAtUTC": "2026-10-03T16:03:41.256096+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/static/development/_buildManifest.js",
+      "beforeExpectedSHA": "db136d6b95d1c6754588d4f54abc94bc25a185fe86015b4c74c37897ae9c4413",
+      "openingSHA": "dfa227b429505e3bda705d12c28b87216a7087920db3e782631398b942b35e4d",
+      "modifiedAtUTC": "2026-10-03T16:03:41.258596+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/types/routes.d.ts",
+      "beforeExpectedSHA": "f94c32fefe28c5ae65133d15bf18c8cf5e609d6ae443f6b4aa8d98ef7c881b18",
+      "openingSHA": "77e1765c89e4fb776924a807cfb79cbbd1ca9f7faf8f72d0463258cd04510d8d",
+      "modifiedAtUTC": "2026-10-03T16:01:09.492846+00:00"
+    },
+    {
+      "path": "apps/web/.next/dev/types/validator.ts",
+      "beforeExpectedSHA": "fcb7fbd1ccb3cca3d4ae04133d545526f24b48b57442741e7374029a844b8035",
+      "openingSHA": "34e83943450ad88db762734bbb6e0831ea47df28a61c254c5acc5dc04f8b9332",
+      "modifiedAtUTC": "2026-10-03T16:01:09.493846+00:00"
+    }
+  ],
+  "oldCandidateHeadUnchanged": "6aeb57280f6a7e0d7391cad4d150745479ea58ec",
+  "currentHead": "6cb6a40db890390f0261d547213e319040f64785",
+  "agentGitWrites": false,
+  "serviceSnapshot": "opening root read-only port inventory returned []",
+  "openingVerificationFirstAssertion": "failed on pre-existing development build drift; retained in OPENING-FIVE-GROUPS-v1.json, not silently dropped"
+}

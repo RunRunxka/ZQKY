@@ -7,7 +7,8 @@
  * 书籍/课程入口（`.kb-library-links`）保留，桌面侧栏没有这两个顶级项时的稳定可达路径。
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+import { useEntrance } from '@/components/motion/useEntrance';
 import Link from 'next/link';
 import { BookMarked, ChevronRight, GraduationCap, ListChecks, Upload } from 'lucide-react';
 // 与既有内容页共享 space 设计语言（只读引入，不修改共享层）
@@ -27,6 +28,8 @@ import { buildTaxonomyIndex } from './taxonomy';
 type Tab = LibraryKind | 'history';
 
 export function TextbookWorkspace() {
+  const entranceRef = useRef<HTMLDivElement>(null);
+  useEntrance(entranceRef, { preset: 'page' });
   const [tab, setTab] = useState<Tab>('base');
   const [importOpen, setImportOpen] = useState(false);
   const [jobsOpen, setJobsOpen] = useState(false);
@@ -46,8 +49,8 @@ export function TextbookWorkspace() {
   ];
 
   return (
-    <div className="space-page textbook-page">
-      <header className="space-header">
+    <div className="space-page textbook-page" ref={entranceRef}>
+      <header className="space-header" data-motion-reveal>
         <div className="space-header-row">
           <h1>教材资料库</h1>
           <div className="space-card-actions">
@@ -71,7 +74,7 @@ export function TextbookWorkspace() {
         <TeachingScopePanel taxonomy={index} />
 
         {/* 书籍/课程入口（T4）：桌面侧栏没有这两个顶级项，这里提供稳定可达路径 */}
-        <nav className="kb-library-links" aria-label="教材内容阅读">
+        <nav className="kb-library-links" aria-label="教材内容阅读" data-motion-reveal>
           <Link className="kb-library-link" href="/books">
             <span className="kb-library-link-icon" aria-hidden>
               <BookMarked size={18} />
@@ -94,7 +97,7 @@ export function TextbookWorkspace() {
           </Link>
         </nav>
 
-        <div className="space-tabs" role="tablist" aria-label="教材视图">
+        <div className="space-tabs" role="tablist" aria-label="教材视图" data-motion-reveal>
           {tabs.map((item) => (
             <button
               key={item.id}

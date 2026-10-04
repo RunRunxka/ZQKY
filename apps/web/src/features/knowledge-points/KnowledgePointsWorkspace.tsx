@@ -9,7 +9,8 @@
  * 任务状态与资料输入不会因为切换页签被清空。
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
+import { useEntrance } from '@/components/motion/useEntrance';
 import type { KnowledgePointStatus, KnowledgePointView } from '@/contracts/knowledge';
 import '@/components/layout/space.css';
 import '@/features/knowledge-points/styles/knowledge-points.css';
@@ -36,6 +37,10 @@ export function KnowledgePointsWorkspace({
   /** 测试注入点：透传给 AI 候选任务的 `observeJob`。 */
   polling?: Pick<ObserveJobOptions, 'sleep' | 'now'>;
 } = {}) {
+  const pageRef = useRef<HTMLDivElement>(null);
+  const pointsPanelRef = useRef<HTMLElement>(null);
+  const importsPanelRef = useRef<HTMLElement>(null);
+  const suggestionPanelRef = useRef<HTMLElement>(null);
   const taxonomy = useAsyncResource((signal) => fetchTextbookTaxonomy(signal), 'kp-taxonomy');
   const subjects = taxonomy.state.phase === 'ready' ? taxonomy.state.data.subjects : [];
 
@@ -48,6 +53,11 @@ export function KnowledgePointsWorkspace({
   const [createOpen, setCreateOpen] = useState(false);
   const [selectedImportId, setSelectedImportId] = useState<string | null>(null);
   const [importRefresh, setImportRefresh] = useState(0);
+
+  useEntrance(pageRef, { preset: 'page' });
+  useEntrance(pointsPanelRef, { preset: 'panel', enabled: tab === 'points' });
+  useEntrance(importsPanelRef, { preset: 'panel', enabled: tab === 'imports' });
+  useEntrance(suggestionPanelRef, { preset: 'panel', enabled: tab === 'suggestion' });
 
   const rememberPoint = useCallback((next: KnowledgePointView) => {
     // 只有内容真正变化时才更新，避免 effect → setState → 渲染 的循环。
@@ -69,8 +79,8 @@ export function KnowledgePointsWorkspace({
   }
 
   return (
-    <div className="space-page knowledge-points-page">
-      <header className="space-header">
+    <div ref={pageRef} className="space-page knowledge-points-page">
+      <header className="space-header" data-motion-reveal>
         <h1>知识点</h1>
         <p className="space-description">
           知识点是学科内的稳定身份（编码唯一、内容按修订追加）；可人工建立、表格导入或由 AI
@@ -79,7 +89,7 @@ export function KnowledgePointsWorkspace({
       </header>
 
       <main className="space-content">
-        <div className="space-tabs" role="tablist" aria-label="知识点视图">
+        <div className="space-tabs" role="tablist" aria-label="知识点视图" data-motion-reveal>
           {TABS.map((item) => (
             <button
               key={item.id}
@@ -96,6 +106,7 @@ export function KnowledgePointsWorkspace({
         </div>
 
         <section
+          ref={pointsPanelRef}
           role="tabpanel"
           id="kp-panel-points"
           aria-labelledby="kp-tab-points"
@@ -148,6 +159,7 @@ export function KnowledgePointsWorkspace({
         </section>
 
         <section
+          ref={importsPanelRef}
           role="tabpanel"
           id="kp-panel-imports"
           aria-labelledby="kp-tab-imports"
@@ -166,6 +178,7 @@ export function KnowledgePointsWorkspace({
         </section>
 
         <section
+          ref={suggestionPanelRef}
           role="tabpanel"
           id="kp-panel-suggestion"
           aria-labelledby="kp-tab-suggestion"

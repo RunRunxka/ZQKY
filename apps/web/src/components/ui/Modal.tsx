@@ -1,6 +1,7 @@
 'use client';
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { X } from 'lucide-react';
+import { useEntrance } from '@/components/motion/useEntrance';
 import './modal.css';
 
 export function Modal({
@@ -13,15 +14,19 @@ export function Modal({
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [opened, setOpened] = useState(false);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null;
     const dialog = ref.current;
     dialog?.showModal();
+    setOpened(true);
     return () => {
       dialog?.close();
       previous?.focus();
     };
   }, []);
+  useEntrance(bodyRef, { preset: 'modal', enabled: opened });
   return (
     <dialog
       ref={ref}
@@ -35,7 +40,7 @@ export function Modal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="workspace-modal-body">
+      <div className="workspace-modal-body" ref={bodyRef}>
         <header>
           <h2>{title}</h2>
           <button className="icon-button" aria-label="关闭对话框" onClick={onClose}>

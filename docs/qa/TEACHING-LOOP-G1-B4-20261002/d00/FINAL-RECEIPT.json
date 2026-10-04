@@ -1,0 +1,12 @@
+{
+  "authorityCount": 44,
+  "authorityDrift": [],
+  "reportSHA256": "76df6c2f82ae318617ee54da379ef619f97db09a504bc1c2e609818d66fbdf56",
+  "reportMatchesFinalSummary": true,
+  "objectiveComplete": false,
+  "G1": "incomplete",
+  "B4": "not_started",
+  "D00": "facts_verified_only",
+  "applicationExecution": false,
+  "resultSHA256": "30bc66f51423c1955b5956656fb166dbb5acf69e55a98df87327c87490918fe6"
+}

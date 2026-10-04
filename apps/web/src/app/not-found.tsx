@@ -7,9 +7,9 @@ export const metadata: Metadata = { title: '智启课源 · 页面不存在' };
 export default function NotFound() {
   return (
     <StatusShell pageTitle="页面不存在">
-      <h1>页面不存在</h1>
-      <p>这个地址没有对应的页面，可能是链接已过期或输入有误。</p>
-      <HomeReturnLink />
+      <h1 data-motion-reveal>页面不存在</h1>
+      <p data-motion-reveal>这个地址没有对应的页面，可能是链接已过期或输入有误。</p>
+      <div data-motion-reveal><HomeReturnLink /></div>
     </StatusShell>
   );
 }

@@ -12,6 +12,21 @@
   align-items: flex-start;
 }
 
+/* 教材工作区：页头与内容消费同一宽度，正式数据卡片保持实底。 */
+.textbook-page {
+  --page-content-width: 960px;
+}
+
+.textbook-page :is(.space-card-title, .textbook-document-head strong, .textbook-history-body strong) {
+  font-size: var(--font-size-body, 14px);
+  line-height: 1.5;
+}
+
+.textbook-page :is(.textbook-hint, .textbook-file-line, .textbook-history-body span) {
+  font-size: var(--font-size-caption, 12px);
+  line-height: 1.7;
+}
+
 /* ===== 书籍/课程入口（沿用既有 .kb-library-links 结构，e2e 依赖该 class 名） ===== */
 .textbook-page .kb-library-links {
   display: grid;
@@ -291,7 +306,7 @@
   color: var(--muted);
 }
 
-.textbook-page .textbook-field input,
+.textbook-page .textbook-field input:where(:not([type='checkbox']):not([type='radio'])),
 .textbook-page .textbook-field select,
 .textbook-page .textbook-field textarea {
   width: 100%;
@@ -618,6 +633,50 @@
   overflow-wrap: anywhere;
 }
 
+.textbook-page .textbook-check > input[type='checkbox'] {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  accent-color: var(--blue);
+}
+
+.textbook-page .textbook-grade-options .textbook-check {
+  white-space: nowrap;
+}
+
+.textbook-page :is(.textbook-scope, .textbook-document-item, .space-persona-card) {
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+}
+
+.textbook-page .textbook-document-item {
+  gap: var(--space-3);
+}
+
+.textbook-page .textbook-scope-title {
+  font-size: var(--font-size-section, 16px);
+}
+
+.textbook-page .kb-library-link {
+  padding: 14px 16px;
+  background: var(--bg);
+}
+
+.textbook-page .textbook-field :is(input:not([type='checkbox']), select),
+.textbook-page .textbook-filter .space-select {
+  min-height: var(--control-height, 36px);
+  padding: 6px 12px;
+  font-size: var(--font-size-control, 13px);
+}
+
+.textbook-page .textbook-source-text {
+  padding: var(--space-4);
+  font-size: var(--font-size-control, 13px);
+  line-height: 1.8;
+}
+
 /* ===== 手机视口（390）：收紧留白，保证不横向溢出 ===== */
 @media (max-width: 640px) {
   .textbook-page .space-tabs {
@@ -653,7 +712,7 @@
 
   /* 任教范围：收紧留白，操作行与卡片不挤出视口 */
   .textbook-page .textbook-scope {
-    padding: 12px 12px 10px;
+    padding: 16px;
   }
 
   .textbook-page .textbook-scope-actions {
@@ -662,5 +721,18 @@
 
   .textbook-page .textbook-scope-item {
     padding: 10px;
+  }
+
+  .textbook-page :is(.textbook-document-item, .space-persona-card) {
+    padding: 16px;
+  }
+
+}
+
+@media (max-width: 767px) {
+  .textbook-page .textbook-field :is(input:not([type='checkbox']), select),
+  .textbook-page .textbook-filter .space-select,
+  .textbook-page .textbook-check {
+    min-height: var(--touch-target, 44px);
   }
 }

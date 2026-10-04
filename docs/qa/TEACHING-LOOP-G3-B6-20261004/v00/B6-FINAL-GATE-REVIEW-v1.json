@@ -1,0 +1,782 @@
+{
+  "task": "B6-FINAL-GATE-REVIEW-v1",
+  "reviewer": "/root/g3_v00 independent final gate reviewer",
+  "result": "PASS_LIMITED_B6_FINAL_GATES",
+  "candidateSHA": "f79ac91201f3d5ecedab2cf01ea92a2ebc0b6d794e7fa18ebf9e3796e0e54db9",
+  "candidate": {
+    "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/CANDIDATE-B6-r1.json",
+    "SHA256": "f79ac91201f3d5ecedab2cf01ea92a2ebc0b6d794e7fa18ebf9e3796e0e54db9",
+    "bytes": 1305275
+  },
+  "productOrigin": {
+    "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/CANDIDATE-B6-R01-r2-built.json",
+    "SHA256": "530005e154a3620f4d0fc6a0a3ade36c35bbd2f8316a91b71e65b1e007a8deb0",
+    "bytes": 1042344
+  },
+  "buildId": "LkFgY8qsEnCOUbC11Dm1T",
+  "at": "2026-10-04T07:34:24.380740+00:00",
+  "stop": true,
+  "scope": "必要技术门禁与教学质量验收准备的有限终审；供ROOT形成限定关闭收据，原B6/B7总体及真人/live/原生Word-WPS/RAG-REL未关闭。",
+  "candidateChecks": {
+    "groups": {
+      "sourceFiles": {
+        "count": 942,
+        "currentSHARecomputed": true,
+        "drift": []
+      },
+      "executableQaFiles": {
+        "count": 3464,
+        "currentSHARecomputed": true,
+        "drift": []
+      },
+      "sharedContractFiles": {
+        "count": 33,
+        "currentSHARecomputed": true,
+        "drift": []
+      },
+      "buildFiles": {
+        "count": 2161,
+        "currentSHARecomputed": true,
+        "drift": []
+      },
+      "frozenB6ArtifactFiles": {
+        "count": 1056,
+        "currentSHARecomputed": true,
+        "drift": []
+      }
+    },
+    "sameProductContractBuildAsExecutionOrigin": true,
+    "original3136ExecutableQAPreserved": true,
+    "frozenThreeLaneMaterialCount": 1056,
+    "complementGateArtifacts": {
+      "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/B6-GATE-ARTIFACTS-before-close-v1.json",
+      "SHA256": "38dff6f54e65d5e10da693033cc4a485bce002bd9d022101444883d878cca8a2",
+      "bytes": 22484
+    },
+    "complementGateArtifactCount": 91,
+    "complementCurrentSHARecomputed": true,
+    "complementDrift": [],
+    "head": "6cb6a40db890390f0261d547213e319040f64785",
+    "branch": "main",
+    "nextEnvSHA": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc",
+    "originalPlanTaskPreservation": {
+      "current": {
+        "path": "docs/design/teaching-loop-v1/多Agent实施任务计划书_v2.0.md",
+        "SHA256": "d00a142962fb59c05d8db24a03764d7420380b70dadffbb57db1c0dc8787939f",
+        "bytes": 84738
+      },
+      "openingOriginal": {
+        "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/opening-documents/docs/design/teaching-loop-v1/多Agent实施任务计划书_v2.0.md",
+        "SHA256": "62e2af22e330777b5d9f05e99d9fe6da501cdc883c764d79bbfee81099f0d51e",
+        "bytes": 65519
+      },
+      "originalBytes": 65519,
+      "originalSHA256": "62e2af22e330777b5d9f05e99d9fe6da501cdc883c764d79bbfee81099f0d51e",
+      "strippedSHA256": "62e2af22e330777b5d9f05e99d9fe6da501cdc883c764d79bbfee81099f0d51e",
+      "strippedBytes": 65519,
+      "additiveCheckpointCount": 22,
+      "openingStatusCount": 1,
+      "exactOriginalPreserved": true,
+      "fileWritten": false
+    },
+    "ROOTpreservation": {
+      "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/B6-PRESERVATION-before-close-v1.json",
+      "SHA256": "10059ecc73e7da45725298039b6482d488b9f3e0ebc9866af622fb966fcb978b",
+      "bytes": 1244
+    },
+    "oldQA9196UnexpectedDrift": [],
+    "oldQAAllowedIndexDelta": [
+      {
+        "path": "docs/qa/README.md",
+        "expected": "8becda34a47e56737b9883f33c7d4772fec9dc97edf6363e7f7337e3b472caeb",
+        "actual": "6d8d6c8d719d4d0b267183dc7d1af9d5fe4fa0ee6014d9844bbdf31b0e83d227"
+      }
+    ]
+  },
+  "sixCompleteGates": {
+    "index": {
+      "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/B6-FULL-GATES-RECEIPTS-v1.json",
+      "SHA256": "eb1794f3b2a90842046e314bb0e7a91f725b7c1590e20093b4f734ab2218997e",
+      "bytes": 4110
+    },
+    "count": 6,
+    "noPooling": true,
+    "rows": [
+      {
+        "label": "b6-check-r01-r2-qa3-first",
+        "result": "actualpass",
+        "caseCount": 1286,
+        "receipt": {
+          "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/b6-check-r01-r2-qa3-first-command.json",
+          "SHA256": "b875cc32de17d4645d29320d8748e3c54f88877fc91e4e833e534bcdf65bdd37",
+          "bytes": 1426487
+        },
+        "log": {
+          "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/b6-check-r01-r2-qa3-first.log",
+          "SHA256": "21d32b22fc08dd5c9b353cd11cc6d7363735b99ef1da04d7a628c58910e7fcc6",
+          "bytes": 22624
+        },
+        "command": [
+          "npm.cmd",
+          "run",
+          "check"
+        ],
+        "pid": 16920,
+        "runnerPID": 23316,
+        "elapsedMs": 105612.417,
+        "exitCode": 0,
+        "candidateAtExecution": "docs/qa/TEACHING-LOOP-G3-B6-20261004/CANDIDATE-B6-R01-r2-qa3.json",
+        "candidateSHAAtExecution": "a03ca240b84d0f16761b26897d94bdbb55483d6b8d64cecc0c986e3acff70021",
+        "product942BeforeAfterExact": true,
+        "sourceMapKeyCount": 942,
+        "additionalOwnQA": {},
+        "old3136QABeforeAfterExact": true,
+        "nextEnvExact": true,
+        "childClosed": true,
+        "logsClosed": true,
+        "sampleRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-g3-ctrl-b6-check-r01-r2-qa3-first-g__9rh_a",
+        "sampleRetained": true
+      },
+      {
+        "label": "b6-g3-boundary-eight-built",
+        "result": "actualpass",
+        "caseCount": 8,
+        "receipt": {
+          "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/b6-g3-boundary-eight-built-command.json",
+          "SHA256": "f1ec99aaf7834da8902773979ecf1e1276615c0952c26d92c0d35c4abefa9701",
+          "bytes": 1426493
+        },
+        "log": {
+          "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/b6-g3-boundary-eight-built.log",
+          "SHA256": "c37639b1b42308f0459ba7a1a7b53e6478feddfb448462257a4756c506b2f623",
+          "bytes": 23443
+        },
+        "command": [
+          "npm.cmd",
+          "run",
+          "test:unit",
+          "--",
+          "--config",
+          "docs/qa/TEACHING-LOOP-G3-B6-20261004/boundary/vitest.config.ts",
+          "--reporter=verbose"
+        ],
+        "pid": 23936,
+        "runnerPID": 1168,
+        "elapsedMs": 3162.138,
+        "exitCode": 0,
+        "candidateAtExecution": "docs/qa/TEACHING-LOOP-G3-B6-20261004/CANDIDATE-B6-R01-r2-built.json",
+        "candidateSHAAtExecution": "530005e154a3620f4d0fc6a0a3ade36c35bbd2f8316a91b71e65b1e007a8deb0",
+        "product942BeforeAfterExact": true,
+        "sourceMapKeyCount": 942,
+        "additionalOwnQA": {},
+        "old3136QABeforeAfterExact": true,
+        "nextEnvExact": true,
+        "childClosed": true,
+        "logsClosed": true,
+        "sampleRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-g3-ctrl-b6-g3-boundary-eight-built-zmyizpa7",
+        "sampleRetained": true
+      },
+      {
+        "label": "b6-g3-v00-fifteen-built",
+        "result": "actualpass",
+        "caseCount": 15,
+        "receipt": {
+          "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/b6-g3-v00-fifteen-built-command.json",
+          "SHA256": "e5d62ddb9505eab8833a112a47a58eb0a4074b9a237f7d94d81cf23b7f10a71f",
+          "bytes": 1426480
+        },
+        "log": {
+          "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/b6-g3-v00-fifteen-built.log",
+          "SHA256": "6a24895c3e3f2848872a0b267a65d2cb6bec9d4fc8b46982636465e1276cc146",
+          "bytes": 3843
+        },
+        "command": [
+          "npm.cmd",
+          "run",
+          "test:unit",
+          "--",
+          "--config",
+          "docs/qa/TEACHING-LOOP-G3-B6-20261004/v00/unit/vitest.config.ts",
+          "--reporter=verbose"
+        ],
+        "pid": 3652,
+        "runnerPID": 4628,
+        "elapsedMs": 5098.214,
+        "exitCode": 0,
+        "candidateAtExecution": "docs/qa/TEACHING-LOOP-G3-B6-20261004/CANDIDATE-B6-R01-r2-built.json",
+        "candidateSHAAtExecution": "530005e154a3620f4d0fc6a0a3ade36c35bbd2f8316a91b71e65b1e007a8deb0",
+        "product942BeforeAfterExact": true,
+        "sourceMapKeyCount": 942,
+        "additionalOwnQA": {},
+        "old3136QABeforeAfterExact": true,
+        "nextEnvExact": true,
+        "childClosed": true,
+        "logsClosed": true,
+        "sampleRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-g3-ctrl-b6-g3-v00-fifteen-built-zyi5snv1",
+        "sampleRetained": true
+      },
+      {
+        "label": "b6-source-independent-built-r2",
+        "result": "actualpass",
+        "caseCount": 8,
+        "receipt": {
+          "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/b6-source-independent-built-r2-command.json",
+          "SHA256": "824b4da83dab7707a92eb84ec7db1a5ef927782d6e9e9882b92e560fb77e9362",
+          "bytes": 1427165
+        },
+        "log": {
+          "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/b6-source-independent-built-r2.log",
+          "SHA256": "80e5083680a7c7b9b215950d61514dfd8214c41074088aabb401bd5eeba4a9e2",
+          "bytes": 2385
+        },
+        "command": [
+          "npm.cmd",
+          "run",
+          "test:unit",
+          "--",
+          "--config",
+          "docs/qa/TEACHING-LOOP-G3-B6-20261004/b6-exports/review-source/vitest.config.ts",
+          "--reporter=verbose"
+        ],
+        "pid": 23012,
+        "runnerPID": 3732,
+        "elapsedMs": 2078.647,
+        "exitCode": 0,
+        "candidateAtExecution": "docs/qa/TEACHING-LOOP-G3-B6-20261004/CANDIDATE-B6-R01-r2-built.json",
+        "candidateSHAAtExecution": "530005e154a3620f4d0fc6a0a3ade36c35bbd2f8316a91b71e65b1e007a8deb0",
+        "product942BeforeAfterExact": true,
+        "sourceMapKeyCount": 944,
+        "additionalOwnQA": {
+          "docs/qa/TEACHING-LOOP-G3-B6-20261004/b6-exports/review-source/metadata-required.test.tsx": "ca149188acd9dea30b2ffb544a45497972c8e26ca0c5cfdddb79b887701cfcf8",
+          "docs/qa/TEACHING-LOOP-G3-B6-20261004/b6-exports/review-source/vitest.config.ts": "4bce21167586fca40b52835261d3d01054af5b96ca7b526d64fc748694c16a1c"
+        },
+        "old3136QABeforeAfterExact": true,
+        "nextEnvExact": true,
+        "childClosed": true,
+        "logsClosed": true,
+        "sampleRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-g3-ctrl-b6-source-independent-built-r2-_zr5hia9",
+        "sampleRetained": true
+      },
+      {
+        "label": "b6-g3-browser-r01-r2-first",
+        "result": "actualpass",
+        "caseCount": 14,
+        "receipt": {
+          "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/b6-g3-browser-r01-r2-first-command.json",
+          "SHA256": "ee389a192eef19bdc0e2388084a4534847c31c102f2cd1acdbe091f08f2f4c60",
+          "bytes": 1426572
+        },
+        "log": {
+          "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/b6-g3-browser-r01-r2-first.log",
+          "SHA256": "84d733e56f36fef82ccc43e90d61cd534c97f2d065ebcbad8a066a077cd0a6ea",
+          "bytes": 3058
+        },
+        "command": [
+          "C:/Users/96022/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node.exe",
+          "node_modules/@playwright/test/cli.js",
+          "test",
+          "--config",
+          "docs/qa/TEACHING-LOOP-G3-B6-20261004/v00/browser/external.config.ts"
+        ],
+        "pid": 25240,
+        "runnerPID": 24588,
+        "elapsedMs": 49437.732,
+        "exitCode": 0,
+        "candidateAtExecution": "docs/qa/TEACHING-LOOP-G3-B6-20261004/CANDIDATE-B6-R01-r2-built.json",
+        "candidateSHAAtExecution": "530005e154a3620f4d0fc6a0a3ade36c35bbd2f8316a91b71e65b1e007a8deb0",
+        "product942BeforeAfterExact": true,
+        "sourceMapKeyCount": 942,
+        "additionalOwnQA": {},
+        "old3136QABeforeAfterExact": true,
+        "nextEnvExact": true,
+        "childClosed": true,
+        "logsClosed": true,
+        "sampleRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-g3-ctrl-b6-g3-browser-r01-r2-first-5xdet7mg",
+        "sampleRetained": true
+      },
+      {
+        "label": "b6-e2e-full-r01-r2-first",
+        "result": "actualpass",
+        "caseCount": 153,
+        "receipt": {
+          "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/b6-e2e-full-r01-r2-first-command.json",
+          "SHA256": "a673e4c30593206b287846549b4b0763da4dfdfc39e62758c9d9cf41d328804d",
+          "bytes": 1426561
+        },
+        "log": {
+          "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/b6-e2e-full-r01-r2-first.log",
+          "SHA256": "48b4f19c2f3b9a9f5734014af13f9b78b4f4f786a1a86fc6288ae31aed910095",
+          "bytes": 31239
+        },
+        "command": [
+          "C:/Users/96022/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node.exe",
+          "node_modules/@playwright/test/cli.js",
+          "test",
+          "--config",
+          "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/e2e.external.config.ts"
+        ],
+        "pid": 4676,
+        "runnerPID": 19104,
+        "elapsedMs": 395901.975,
+        "exitCode": 0,
+        "candidateAtExecution": "docs/qa/TEACHING-LOOP-G3-B6-20261004/CANDIDATE-B6-R01-r2-built.json",
+        "candidateSHAAtExecution": "530005e154a3620f4d0fc6a0a3ade36c35bbd2f8316a91b71e65b1e007a8deb0",
+        "product942BeforeAfterExact": true,
+        "sourceMapKeyCount": 942,
+        "additionalOwnQA": {},
+        "old3136QABeforeAfterExact": true,
+        "nextEnvExact": true,
+        "childClosed": true,
+        "logsClosed": true,
+        "sampleRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-g3-ctrl-b6-e2e-full-r01-r2-first-_i6fqklu",
+        "sampleRetained": true
+      }
+    ]
+  },
+  "fullOriginal153": {
+    "result": "actualpass",
+    "uniqueCases": 153,
+    "originalSpecCount": 24,
+    "singleResultEach": true,
+    "retry0EveryCase": true,
+    "expected153": true,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0,
+    "globalErrors": [],
+    "caseErrors": [],
+    "JSON": {
+      "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/e2e-b6-r01-r2-built-node24-first/results.json",
+      "SHA256": "687c0fb38b359d0ed954eafefe1a869f4bb60113bf0a0e36fb6cd89340a50b53",
+      "bytes": 311141
+    },
+    "XML": {
+      "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/e2e-b6-r01-r2-built-node24-first/results.xml",
+      "SHA256": "c1900853603e81a0cefb99c97eb4c3d27fbb10c342781bf094e25c381cd14ad8",
+      "bytes": 38220
+    },
+    "xmlCaseCount": 153,
+    "xmlSuiteCount": 24,
+    "xmlFailuresErrorsSkipped": 0,
+    "originalSpecSHAExactG3ExecutionBuiltCurrent": true,
+    "perSpec": [
+      {
+        "path": "tests/e2e/assessments.spec.ts",
+        "SHA256": "62a1c32ff1b1a869375cda0ae40c79ebebe8f026bc268b8defb520e037eee913",
+        "actualCaseCount": 4,
+        "allSinglePassedRetry0": true,
+        "XMLcountExact": true
+      },
+      {
+        "path": "tests/e2e/books-commit-safety.spec.ts",
+        "SHA256": "b36e6b41fa441a0972d172b632464b085561e0afdb6546d0b88475e8ceae27f9",
+        "actualCaseCount": 6,
+        "allSinglePassedRetry0": true,
+        "XMLcountExact": true
+      },
+      {
+        "path": "tests/e2e/books-courses.spec.ts",
+        "SHA256": "ccc0e8a73ff830d1931dbc72eea9b195b48613831985db7e3981f9c373f49328",
+        "actualCaseCount": 7,
+        "allSinglePassedRetry0": true,
+        "XMLcountExact": true
+      },
+      {
+        "path": "tests/e2e/books-harden.spec.ts",
+        "SHA256": "0361711b39ef74e32d4b61e44f08d183ba8d885b21f6aea947771648f32da557",
+        "actualCaseCount": 6,
+        "allSinglePassedRetry0": true,
+        "XMLcountExact": true
+      },
+      {
+        "path": "tests/e2e/books-pipeline.spec.ts",
+        "SHA256": "2dad42df19a6d17879e9b1e143be6d3c7ba6eec2b309f859dc03e71ffd07f10d",
+        "actualCaseCount": 14,
+        "allSinglePassedRetry0": true,
+        "XMLcountExact": true
+      },
+      {
+        "path": "tests/e2e/chat-composer-boundaries.spec.ts",
+        "SHA256": "c7b64b2f48bc4405719d183920f8585c7861a6b7a92911e25aa2129b8f6f0aec",
+        "actualCaseCount": 1,
+        "allSinglePassedRetry0": true,
+        "XMLcountExact": true
+      },
+      {
+        "path": "tests/e2e/chat-composer.spec.ts",
+        "SHA256": "31c54732b751cc3dfe19ca968eb836994ee63b3b4b45136e51f9a702dd04e718",
+        "actualCaseCount": 2,
+        "allSinglePassedRetry0": true,
+        "XMLcountExact": true
+      },
+      {
+        "path": "tests/e2e/chat-context-budget.spec.ts",
+        "SHA256": "cdc53f3234a330ee59e4c09f89178930eed1d80e5aee0b696570baa86946e827",
+        "actualCaseCount": 4,
+        "allSinglePassedRetry0": true,
+        "XMLcountExact": true
+      },
+      {
+        "path": "tests/e2e/chat-deeplink.spec.ts",
+        "SHA256": "7e43f0a9962a7febf2e76c12cfea846baf190a2f4262593be87671fc9dd8e493",
+        "actualCaseCount": 7,
+        "allSinglePassedRetry0": true,
+        "XMLcountExact": true
+      },
+      {
+        "path": "tests/e2e/chat-home.spec.ts",
+        "SHA256": "78e4d370d21ff04c4899a23aa6c70ea8469feba937d9b71390152799e516fa0b",
+        "actualCaseCount": 4,
+        "allSinglePassedRetry0": true,
+        "XMLcountExact": true
+      },
+      {
+        "path": "tests/e2e/chat.spec.ts",
+        "SHA256": "0ecbc852b8816a05f9290d7c3927581886739735f996af72c37abee53ea5aefb",
+        "actualCaseCount": 4,
+        "allSinglePassedRetry0": true,
+        "XMLcountExact": true
+      },
+      {
+        "path": "tests/e2e/course-resource-faults.spec.ts",
+        "SHA256": "2e33556296aee6006ae1701ee72b6f599bbf6ffeb1188eea7e30a39e6d3d4844",
+        "actualCaseCount": 9,
+        "allSinglePassedRetry0": true,
+        "XMLcountExact": true
+      },
+      {
+        "path": "tests/e2e/course-sessions.spec.ts",
+        "SHA256": "05f9c00dc662f1898034727c589d0e09c081a561024899dd2fdb81a6eec4e39e",
+        "actualCaseCount": 11,
+        "allSinglePassedRetry0": true,
+        "XMLcountExact": true
+      },
+      {
+        "path": "tests/e2e/knowledge-points.spec.ts",
+        "SHA256": "59ec01fe4aa88b5b63c0713235a7bf5c0ac8655d18a9086cc999c02525c63640",
+        "actualCaseCount": 9,
+        "allSinglePassedRetry0": true,
+        "XMLcountExact": true
+      },
+      {
+        "path": "tests/e2e/lesson-plan.spec.ts",
+        "SHA256": "4cc5547138034d2bf5adf4a4a5d26d3de49427691af54c7d157e4da761fa9699",
+        "actualCaseCount": 9,
+        "allSinglePassedRetry0": true,
+        "XMLcountExact": true
+      },
+      {
+        "path": "tests/e2e/model-settings-nesting.spec.ts",
+        "SHA256": "7c8958fc6dd1b98ec453ed59b8de3b074eec3ccb5fedf39ceabb46225a92d384",
+        "actualCaseCount": 4,
+        "allSinglePassedRetry0": true,
+        "XMLcountExact": true
+      },
+      {
+        "path": "tests/e2e/model-settings.spec.ts",
+        "SHA256": "51415f54844f1a3bdf7ea19bcfb6df79f2efe1aa0b8bc42f7e93e077da7a1e7e",
+        "actualCaseCount": 8,
+        "allSinglePassedRetry0": true,
+        "XMLcountExact": true
+      },
+      {
+        "path": "tests/e2e/navigation.spec.ts",
+        "SHA256": "294e784e7da93e3efbd467d96952688c4c88c74a13e84d64a2a998e76a7562fb",
+        "actualCaseCount": 7,
+        "allSinglePassedRetry0": true,
+        "XMLcountExact": true
+      },
+      {
+        "path": "tests/e2e/question-bank-real.spec.ts",
+        "SHA256": "6308d92fce1364a33cafb2ec6412c15026438da3d83275b469e039fd4934fa38",
+        "actualCaseCount": 2,
+        "allSinglePassedRetry0": true,
+        "XMLcountExact": true
+      },
+      {
+        "path": "tests/e2e/replica-settings.spec.ts",
+        "SHA256": "12d25a1024fcdc66f90c62c6d6149e35f6e9dee5cf3274396604c7d9284af258",
+        "actualCaseCount": 1,
+        "allSinglePassedRetry0": true,
+        "XMLcountExact": true
+      },
+      {
+        "path": "tests/e2e/settings.spec.ts",
+        "SHA256": "4341d78adcb4bc75cddbc7d6be8cff9a5ea6f3fa114cd70496170fda9cee82f2",
+        "actualCaseCount": 1,
+        "allSinglePassedRetry0": true,
+        "XMLcountExact": true
+      },
+      {
+        "path": "tests/e2e/shell-home-nav.spec.ts",
+        "SHA256": "86039c72d60043d21ddeae4a0f876ecf51c8f8c55ebbca6fab272ea7f5618a44",
+        "actualCaseCount": 24,
+        "allSinglePassedRetry0": true,
+        "XMLcountExact": true
+      },
+      {
+        "path": "tests/e2e/sidebar-chat-fixes.spec.ts",
+        "SHA256": "0231c1dfb582af271e05d9dda8f9071d0bf44c94553ab9fe1b6b02518ed51b06",
+        "actualCaseCount": 5,
+        "allSinglePassedRetry0": true,
+        "XMLcountExact": true
+      },
+      {
+        "path": "tests/e2e/sidebar-transition.spec.ts",
+        "SHA256": "6ecbf593c0006dc922fdffddbdad0fd130e16f7e42dda12c28511eb07885b10a",
+        "actualCaseCount": 4,
+        "allSinglePassedRetry0": true,
+        "XMLcountExact": true
+      }
+    ],
+    "originalTemplateAndTools": [
+      {
+        "path": "apps/web/public/templates/lesson-plan-template.docx",
+        "currentSHA": "62104c96436f4d6d30498dc5a040674a10986dbf8327252324de73ee9a050588",
+        "builtSHA": "62104c96436f4d6d30498dc5a040674a10986dbf8327252324de73ee9a050588",
+        "g3SHA": "62104c96436f4d6d30498dc5a040674a10986dbf8327252324de73ee9a050588",
+        "equalAll": true
+      },
+      {
+        "path": "assets/templates/source/manifest.json",
+        "currentSHA": "aefc0af0f3e0a858f8fa221b2769c74e0f1f78aa2a54b5aab7da0651751d6c75",
+        "builtSHA": "aefc0af0f3e0a858f8fa221b2769c74e0f1f78aa2a54b5aab7da0651751d6c75",
+        "g3SHA": "aefc0af0f3e0a858f8fa221b2769c74e0f1f78aa2a54b5aab7da0651751d6c75",
+        "equalAll": true
+      },
+      {
+        "path": "assets/templates/source/teacher-standard.docx",
+        "currentSHA": "f51bae6b1cae0cce1072650a7ffdef07fb12708c5502eb36b70910c4276fa164",
+        "builtSHA": "f51bae6b1cae0cce1072650a7ffdef07fb12708c5502eb36b70910c4276fa164",
+        "g3SHA": "f51bae6b1cae0cce1072650a7ffdef07fb12708c5502eb36b70910c4276fa164",
+        "equalAll": true
+      },
+      {
+        "path": "scripts/build-template.mjs",
+        "currentSHA": "67a88d6773308667efebcf443a293caa04461c0237c0dd01ae4a9beb366c3566",
+        "builtSHA": "67a88d6773308667efebcf443a293caa04461c0237c0dd01ae4a9beb366c3566",
+        "g3SHA": "67a88d6773308667efebcf443a293caa04461c0237c0dd01ae4a9beb366c3566",
+        "equalAll": true
+      },
+      {
+        "path": "scripts/verify-template.mjs",
+        "currentSHA": "bc936a94d80316bd4ccaf2be0bb3c3abcd5dace9fdd216ff41c9534ee6af8dcc",
+        "builtSHA": "bc936a94d80316bd4ccaf2be0bb3c3abcd5dace9fdd216ff41c9534ee6af8dcc",
+        "g3SHA": "bc936a94d80316bd4ccaf2be0bb3c3abcd5dace9fdd216ff41c9534ee6af8dcc",
+        "equalAll": true
+      },
+      {
+        "path": "教师备课教案模板.docx",
+        "currentSHA": "f51bae6b1cae0cce1072650a7ffdef07fb12708c5502eb36b70910c4276fa164",
+        "builtSHA": "f51bae6b1cae0cce1072650a7ffdef07fb12708c5502eb36b70910c4276fa164",
+        "g3SHA": "f51bae6b1cae0cce1072650a7ffdef07fb12708c5502eb36b70910c4276fa164",
+        "equalAll": true
+      }
+    ],
+    "independentOtherReviewer": {
+      "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/v00/B6-FULL153-RECEIPT-REVIEW-v1.json",
+      "SHA256": "20289f1f2b5efdaa00282176f50ddda83116a3479ba2bc1c8809407c1ba6e6ba",
+      "bytes": 117219
+    },
+    "tracePolicy": "original retain-on-failure unchanged; this passing whole153 contains no trace.zip, not claimed trace:on for153",
+    "successfulCaseTracesPresent": 0,
+    "noPooling": true
+  },
+  "signedCurrentBuiltReviews": [
+    {
+      "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/b6-exports/review-source/G3-BROWSER-B6-REVIEW-v1.json",
+      "SHA256": "b0cc514817711a4b609790a9d47fcde46ed5768c9856ef90d8d3132dda6073b2",
+      "bytes": 41054
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/b6-exports/review-source/UI-r9-REVIEW-v1.json",
+      "SHA256": "a884adce8508377824522b0896411bcc892d001dc458447d8e27be5b6d9c32f7",
+      "bytes": 8419
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/b6-exports/review-source/RESULT-built-v2.json",
+      "SHA256": "f4326bba343a2aa900a4c80c33295c57095d2f936f9c1107432ff068665a7c1f",
+      "bytes": 15101
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/b6-exports/review-quality/RESULT-v1.json",
+      "SHA256": "893c52b9b2476a161204deaede4ee8ef1ee205795e77358fe1ac13e8ab014f7e",
+      "bytes": 91004
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/b6-quality/integration-export-independent-v2.json",
+      "SHA256": "e519fba0865a5c0de84a53a32b6d2fb4d6d03267eab8554353e6572ae57152dd",
+      "bytes": 172371
+    }
+  ],
+  "source8ReceiptScope": "sourceBefore/After contain944 keys:942 final product entries exact plus2 explicitly declared ownQA entries also byte exact; never equate the entire944-key map with942-key candidate.",
+  "qualityAndExports": {
+    "quality15": "15手写匿名oracle/真实应用技术结构与15DOCX结构独立签核；单例1次/合计15 fixture transport调用，真实模型/外网0；真人评分仍空。",
+    "export4": "4 current fixed DOCX/4实际PDF 共13页已有独立structure与逐页actualview；现有模板/导出器保留。实际导出发生于q84e旧构建，此最终源映射不冒称新Lk构建实际重跑导出。",
+    "sourceEpochRepair": "B6-R01 metadata/source pending owner分离r2独立8及真实UI/fullG3重验通过；所有新源守卫独立反例首败保存。",
+    "providerUsage": "input/output usage null; no actual billable/live consumption claim",
+    "nativeWordWPS": "not_run; no bundled LibreOffice; user WPS untouched",
+    "teacherReview": "teacher_review_pending",
+    "liveRun": "awaiting explicit profile/model/case-count/budget; missing scope executor exits without network",
+    "RAG_REL": "OPEN"
+  },
+  "backendExistingBinding": {
+    "receipt": {
+      "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/G3-API-UNCHANGED-BINDING-v1.json",
+      "SHA256": "60afa0b4f61a4ef127fa1a661971ec908546cdd016d1cbd7029044b54b51b9c6",
+      "bytes": 50296
+    },
+    "currentFileCount": 410,
+    "currentDrift": [],
+    "freshApiFullRerun": false,
+    "priorCounts": "prior full1918pass+1existing skip / independent42; not new executed tests",
+    "priorSkipBoundary": "one pre-existing heavy-scale skipped in prior1919; not counted as pressure passed",
+    "thisBatchRealBusiness": "new B6/G3 real FastAPI business calls are independently evidenced by actual current built UI/gate14/integration receipts"
+  },
+  "resources": {
+    "snapshot": {
+      "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/B6-RESOURCES-before-close-v2.json",
+      "SHA256": "d20d34eeebe968f734db78b467357d48e6ed97e04344b33f5fb79552f8e68208",
+      "bytes": 658
+    },
+    "snapshotFacts": {
+      "at": "2026-10-04T15:19:00.2114897+08:00",
+      "frontendStatus": "closed",
+      "apiStatus": "closed",
+      "frontendChildClosed": true,
+      "frontendLogsClosed": true,
+      "apiServerClosed": true,
+      "apiWatcherClosed": true,
+      "apiTransportRestored": true,
+      "apiLogClosed": true,
+      "apiSampleRetained": true,
+      "apiSampleRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b5-runtime-b6-shared-r1-1u2lhqlp",
+      "remainingOwnedProcesses": [],
+      "listeners": [],
+      "automationBrowsersObserved": [],
+      "userProcessActions": false,
+      "unknownProcessesTerminated": false,
+      "temporaryDataDeleted": false,
+      "HTTPIdentityProbe": "not_run_no_retry"
+    },
+    "guardedStopEvidence": [
+      {
+        "receipt": {
+          "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/b6-front-r01-r2-final-stop-request.json",
+          "SHA256": "b9e2a4ba2039f1450e002fe593819e94de6e507e34d24a6b5efb01486df1bd0f",
+          "bytes": 463
+        },
+        "pid": 26480,
+        "guarded": true,
+        "created": "2026-10-04T14:51:56.1240830+08:00",
+        "exactCommandMatch": true,
+        "birthTicksMatch": true
+      },
+      {
+        "receipt": {
+          "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/b6-shared-r1-before-full153-stop-request.json",
+          "SHA256": "28d455fb732c83d25526cec105447044e7fb0b4bfe44f5af58fb4b4f899abef7",
+          "bytes": 627
+        },
+        "pid": 4056,
+        "guarded": true,
+        "created": "2026-10-04T13:54:54.2451250+08:00",
+        "exactCommandMatch": true,
+        "birthTicksMatch": true
+      }
+    ],
+    "reviewerOSOrServiceActions": false,
+    "reviewerHTTPIdentityProbe": false,
+    "r7BirthGuardLimit": "r7 own CLI Popen PID/command/parent-child guard recorded but OS birth absent; do not generalize ROOT service guards to that interrupted collector."
+  },
+  "preservedFirstFailures": [
+    {
+      "sourcePreflight": {
+        "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/B6-SOURCE-PREFLIGHT-FIRST-FAIL-v1.json",
+        "SHA256": "45d0b9bfe58bd8d6ade3989e5d21b1aa6f3920206518e17c67223bd588bdf7ec",
+        "bytes": 1020
+      },
+      "kind": "actual tool transcript only, no runner receipt, missing nonexistent source-loading.test.tsx during sourceBefore",
+      "cases": 0,
+      "PID": null,
+      "toolWallSeconds": 0.1553109,
+      "countsTowardAcceptance": false,
+      "correction": "Original RESULT-built-v2 guessed missing candidate path; current explicit tool transcript corrects cause without editing old leaf."
+    },
+    {
+      "kind": "Independent source QA r1 S03 business fail and QA2 fireEvent.toggle setupfail, QA3 S03 fail preserved; r2 same correct8 complete success."
+    },
+    {
+      "kind": "Fullcheck first failure and old close-wait diagnosis preserved; authorized two existing QA waits retain15 original assertions; successful complete1286 new round only."
+    },
+    {
+      "kind": "UIr7 wrong collection/interrupted15, UIr8 verify adoption timing fail; newr9 one complete success preserves all5field/teacher6/context/history assertions."
+    },
+    {
+      "kind": "Export r1 pagination extraction and r2 invalid80UTF16 otherTypeText fixture failures; r3 four complete legal cases only; native Word/WPS rendering not_run."
+    },
+    {
+      "kind": "Quality independent reader order/content-projection failures and author Provider count corrigendum retained; final full15 independent audit signed."
+    },
+    {
+      "kind": "Historical G3 Node26 archive, import/clock preparation errors and prior full153 ERR_NO_BUFFER_SPACE remain; current complete153/14 do not erase or splice older results."
+    },
+    {
+      "kind": "Original14 offline-reader preparation mistakes explicitly recorded in G3-BROWSER-B6-REVIEW-v1; no product/QA/browser rerun."
+    }
+  ],
+  "openObservations": [
+    "CV01–03",
+    "books R14 intermittent ledger remains; this single153 green does not establish invariant green",
+    "OBS-LP-MODE-LABEL: backend mode judged by fixed identity and save ACK; old OutlinePanel local wording remains observation",
+    "RAG-REL OPEN"
+  ],
+  "not_run": [
+    {
+      "item": "原B6/B7总体关闭",
+      "reason": "本次只完成用户附件限定剩余技术集成与教学质量验收准备，不能据技术包推断原阶段总体完成。"
+    },
+    {
+      "item": "真人教师教学质量评分",
+      "reason": "反馈/rubric已准备，所有真人分数与reviewer/verdict保留空值。"
+    },
+    {
+      "item": "真实模型live运行与实机RAG相关性验收",
+      "reason": "缺明确profile/model/数量/预算；不读取正式.env或联网替代授权。"
+    },
+    {
+      "item": "原生Word/WPS版式",
+      "reason": "结构/XML与实际PDF分列，无bundledLO/nativeOffice渲染；未操作用户WPS。"
+    },
+    {
+      "item": "正式Qdrant/正式迁移/新增超范围压力",
+      "reason": "本批使用受控RAG/Transport替身与隔离SQLite/Blob；旧重型skip未被计算成压测PASS。"
+    },
+    {
+      "item": "专项14chat新跑/全站视觉",
+      "reason": "没有公共chat/shell源改动，仅基础chat在原153本轮实际运行；专项chat已有同源证据引用，视觉仅实际已审截图。"
+    },
+    {
+      "item": "关闭后的最终权威文档后验",
+      "reason": "ROOT须先依据本签收形成有限关闭与文档追加，再由独立文档卡对FINAL-DOCS-READY后验；本报告不预签未来文件。"
+    }
+  ],
+  "authorityAndOriginalState": {
+    "G3": "already closed historical receipt preserved",
+    "originalPlanB6B7Overall": "not_claimed_closed",
+    "finalDocuments": "pending ROOT closure and independent post-close audit",
+    "gitWrites": false
+  },
+  "reviewExecution": {
+    "kind": "inline read-only filesystem/JSON/XML/hash audit; not QA/business execution",
+    "pid": 23992,
+    "startedAt": "2026-10-04T07:34:23.290686+00:00",
+    "elapsedMs": 1091.316,
+    "appImports": 0,
+    "networkRequests": 0,
+    "serviceActions": 0,
+    "executableQAChanges": 0,
+    "threeLaneChanges": 0,
+    "writes": "only v00/B6-FINAL-GATE-REVIEW-v1.md/json new non-executable leaves"
+  }
+}

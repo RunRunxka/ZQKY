@@ -1,0 +1,40 @@
+{
+  "taskId": "B5-V00-QA-v11",
+  "capturedAtUtc": "2026-10-03T13:11:03.736950+00:00",
+  "r6SHA": "3194fc7ded43e84f6e05275825639b5f0a0581888d1458d2292df5f55ea9a213",
+  "product938": {
+    "count": 938,
+    "drift": []
+  },
+  "oldQA2762": {
+    "count": 2762,
+    "drift": []
+  },
+  "frozen33": {
+    "count": 33,
+    "drift": []
+  },
+  "build2004": {
+    "count": 2004,
+    "drift": []
+  },
+  "buildId": "zmNsDUHtq1oRmN-ixNctj",
+  "oldV1toV10Raw212": {
+    "count": 212,
+    "drift": []
+  },
+  "oldManifest": {
+    "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/b5-v00/v10/QA-MANIFEST-v10.json",
+    "sha256": "bf99137807d5442b74a5b42a8f8593ec257f88a673e12f42faea4d2e4d6929cb"
+  },
+  "exactDelta": {
+    "test": "Removing only new real React import and reversible global React line restores old v10 complete raw bytes. All 8 names/body/oracle/assert/fake/deferred/cleanup preserved.",
+    "config": "Replacing only /v11/unit/ with /v10/unit/ restores old config complete raw bytes. Original19 includes and JSX runtime/setup/budget unchanged.",
+    "testRawRestorationMatches": true,
+    "configRawRestorationMatches": true
+  },
+  "runtime": "not_run",
+  "http": "not_run",
+  "git": "not_run",
+  "serviceActions": "not_run"
+}

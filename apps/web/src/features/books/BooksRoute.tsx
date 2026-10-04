@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEntrance } from '@/components/motion/useEntrance';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
@@ -95,8 +96,16 @@ interface PageRuntime {
   generatingBlockTitle: string | null;
 }
 
-function readPages(book: ReplicaBook): { id: string; blocks: { status?: string; title?: string; failure?: unknown }[] }[] {
-  return (book as unknown as { pages?: { id: string; blocks: { status?: string; title?: string; failure?: unknown }[] }[] }).pages ?? [];
+function readPages(
+  book: ReplicaBook,
+): { id: string; blocks: { status?: string; title?: string; failure?: unknown }[] }[] {
+  return (
+    (
+      book as unknown as {
+        pages?: { id: string; blocks: { status?: string; title?: string; failure?: unknown }[] }[];
+      }
+    ).pages ?? []
+  );
 }
 
 function pageRuntimeOf(book: ReplicaBook): (pageId: string) => PageRuntime {
@@ -116,14 +125,20 @@ function pageRuntimeOf(book: ReplicaBook): (pageId: string) => PageRuntime {
       else if (status === 'generating' && !generating) generating = block.title ?? '本页内容';
     }
     if (generating) return { status: 'generating', generatingBlockTitle: generating };
-    if (hasError) return { status: readyCount > 0 ? 'partial' : 'error', generatingBlockTitle: null };
+    if (hasError)
+      return { status: readyCount > 0 ? 'partial' : 'error', generatingBlockTitle: null };
     if (readyCount === blocks.length) return { status: 'ready', generatingBlockTitle: null };
     return { status: 'pending', generatingBlockTitle: null };
   };
 }
 
 /** 完成章数 = 该章所有页 ready（partial 计入完成语义由卡片显示另行说明，章完成只数全 ready） */
-function chapterProgress(book: ReplicaBook): { doneChapters: number; totalChapters: number; donePages: number; totalPages: number } {
+function chapterProgress(book: ReplicaBook): {
+  doneChapters: number;
+  totalChapters: number;
+  donePages: number;
+  totalPages: number;
+} {
   const runtimeOf = pageRuntimeOf(book);
   let doneChapters = 0;
   let donePages = 0;
@@ -157,6 +172,8 @@ export function BooksRoute() {
 }
 
 function BookLibrary() {
+  const entranceRef = useRef<HTMLDivElement>(null);
+  useEntrance(entranceRef, { preset: 'page' });
   const router = useRouter();
   const [books, setBooks] = useState<ReplicaBook[]>([]);
   const [query, setQuery] = useState('');
@@ -191,8 +208,8 @@ function BookLibrary() {
   const active = books.filter((book) => book.status !== 'archived');
 
   return (
-    <div className="space-page books-page">
-      <header className="space-header">
+    <div className="space-page books-page" ref={entranceRef}>
+      <header className="space-header" data-motion-reveal>
         {/* UX-REGRESSION-FIX v1：书籍已并入教材资料库，列表页提供固定指向 /knowledge-bases
             的返回入口（不依赖 history.back，直接深链打开也能返回） */}
         <div className="space-header-row">
@@ -237,9 +254,15 @@ function BookLibrary() {
       <main className="space-content">
         <div className="space-meta-row" role="note">
           <span className="space-chip">共 {books.length} 本</span>
-          <span className="space-chip">进行中 {active.filter((book) => book.status !== 'ready').length}</span>
-          <span className="space-chip">可阅读 {active.filter((book) => book.status === 'ready').length}</span>
-          <span className="space-chip">章节 {books.reduce((sum, book) => sum + book.chapters.length, 0)}</span>
+          <span className="space-chip">
+            进行中 {active.filter((book) => book.status !== 'ready').length}
+          </span>
+          <span className="space-chip">
+            可阅读 {active.filter((book) => book.status === 'ready').length}
+          </span>
+          <span className="space-chip">
+            章节 {books.reduce((sum, book) => sum + book.chapters.length, 0)}
+          </span>
         </div>
         {notice && (
           <div className="space-banner info" role="status">
@@ -255,7 +278,11 @@ function BookLibrary() {
         {loading ? (
           <div aria-hidden>
             {[0, 1].map((index) => (
-              <div className="space-skeleton" key={index} style={{ height: 76, marginBottom: 10 }} />
+              <div
+                className="space-skeleton"
+                key={index}
+                style={{ height: 76, marginBottom: 10 }}
+              />
             ))}
           </div>
         ) : books.length === 0 ? (
@@ -291,7 +318,10 @@ function BookLibrary() {
             </div>
             <div className="space-card-grid">
               {filtered.map((book) => {
-                const generating = book.status === 'compiling' || book.status === 'paused' || book.status === 'error';
+                const generating =
+                  book.status === 'compiling' ||
+                  book.status === 'paused' ||
+                  book.status === 'error';
                 const progress = generating ? chapterProgress(book) : null;
                 const pages =
                   book.status === 'ready'
@@ -311,7 +341,11 @@ function BookLibrary() {
                         : '查看';
                 return (
                   <article className="space-persona-card" key={book.id}>
-                    <Link className="space-card-link" href={`/books/${book.id}`} aria-label={`打开书籍 ${book.title}`}>
+                    <Link
+                      className="space-card-link"
+                      href={`/books/${book.id}`}
+                      aria-label={`打开书籍 ${book.title}`}
+                    >
                       <div className="space-card-title">
                         <BookMarked size={15} aria-hidden />
                         {book.title}
@@ -345,11 +379,14 @@ function BookLibrary() {
                       </div>
                       {book.status === 'ready' && (
                         <div className="space-reading-bar" aria-label={`阅读进度 ${percent}%`}>
-                          <div className="space-reading-bar-fill" style={{ width: `${percent}%` }} />
+                          <div
+                            className="space-reading-bar-fill"
+                            style={{ width: `${percent}%` }}
+                          />
                         </div>
                       )}
-                      <span className="space-footnote">
-                        <Clock size={11} aria-hidden style={{ marginRight: 4, verticalAlign: -1 }} />
+                      <span className="space-footnote books-card-updated">
+                        <Clock size={11} aria-hidden />
                         更新于 {new Date(book.updatedAt).toLocaleString('zh-CN')}
                       </span>
                     </Link>
@@ -386,7 +423,10 @@ function BookLibrary() {
                           </button>
                         </>
                       ) : (
-                        <button className="space-button danger" onClick={() => setPendingDeleteId(book.id)}>
+                        <button
+                          className="space-button danger"
+                          onClick={() => setPendingDeleteId(book.id)}
+                        >
                           删除
                         </button>
                       )}
@@ -418,7 +458,13 @@ function BookLibrary() {
   );
 }
 
-function CreateBookForm({ onClose, onCreated }: { onClose: () => void; onCreated: (id: string) => void }) {
+function CreateBookForm({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (id: string) => void;
+}) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -444,7 +490,9 @@ function CreateBookForm({ onClose, onCreated }: { onClose: () => void; onCreated
               setError(result.message || '创建失败，请重试。');
             } catch (cause) {
               setError(
-                cause instanceof BookValidationError ? cause.message : '创建失败，请检查输入后重试。',
+                cause instanceof BookValidationError
+                  ? cause.message
+                  : '创建失败，请检查输入后重试。',
               );
             } finally {
               setSubmitting(false);
@@ -493,11 +541,17 @@ function CreateBookForm({ onClose, onCreated }: { onClose: () => void; onCreated
 }
 
 function BookWorkspace({ bookId, pageId }: { bookId: string; pageId?: string }) {
+  const entranceRef = useRef<HTMLDivElement>(null);
+  useEntrance(entranceRef, { preset: 'page', triggerKey: bookId });
   const router = useRouter();
   const [books, setBooks] = useState<ReplicaBook[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [runUi, setRunUi] = useState<RunUiState>({ pausing: false, resuming: false, retrying: false });
+  const [runUi, setRunUi] = useState<RunUiState>({
+    pausing: false,
+    resuming: false,
+    retrying: false,
+  });
   const [tick, setTick] = useState(0);
   const scenarioRef = useRef<BookRunScenario>({});
   const scenarioBookRef = useRef<string | null>(null);
@@ -567,7 +621,13 @@ function BookWorkspace({ bookId, pageId }: { bookId: string; pageId?: string }) 
   // 自动续读：就绪书未带页码时跳转当前页；扩展到 compiling/paused/error（生成中直接进入阅读器）
   useEffect(() => {
     if (!book || pageId) return;
-    if (book.status !== 'ready' && book.status !== 'compiling' && book.status !== 'paused' && book.status !== 'error') return;
+    if (
+      book.status !== 'ready' &&
+      book.status !== 'compiling' &&
+      book.status !== 'paused' &&
+      book.status !== 'error'
+    )
+      return;
     const firstPageId =
       book.reading.currentPageId ?? book.chapters.flatMap((chapter) => chapter.pageIds)[0] ?? null;
     if (firstPageId) router.replace(`/books/${bookId}/pages/${firstPageId}`);
@@ -592,8 +652,8 @@ function BookWorkspace({ bookId, pageId }: { bookId: string; pageId?: string }) 
   // 读取失败时书籍数据保持 null（不做任何写入），因此这里必须与"尚未读到数据"区分开。
   if (books === null && error) {
     return (
-      <div className="space-page books-page">
-        <div className="space-content" style={{ marginTop: 80 }}>
+      <div className="space-page books-page" ref={entranceRef}>
+        <div className="space-content" style={{ marginTop: 80 }} data-motion-reveal>
           <div className="space-banner error" role="alert">
             <div className="space-banner-row">
               <span>书籍目录读取失败：{error}</span>
@@ -619,8 +679,8 @@ function BookWorkspace({ bookId, pageId }: { bookId: string; pageId?: string }) 
 
   if (books !== null && !book) {
     return (
-      <div className="space-page books-page">
-        <div className="space-empty" style={{ marginTop: 80 }}>
+      <div className="space-page books-page" ref={entranceRef}>
+        <div className="space-empty" style={{ marginTop: 80 }} data-motion-reveal>
           <strong>书籍「{bookId}」不存在</strong>
           <span>它可能已被删除，或链接有误。</span>
           <Link className="space-button" href="/books">
@@ -634,7 +694,7 @@ function BookWorkspace({ bookId, pageId }: { bookId: string; pageId?: string }) 
 
   if (!book) {
     return (
-      <div className="space-page books-page">
+      <div className="space-page books-page" ref={entranceRef}>
         <div className="books-loading" style={{ marginTop: 80 }} role="status">
           <Loader2 size={14} className="space-spin" aria-hidden />
           正在读取书籍…
@@ -778,14 +838,12 @@ function readRunMeta(book: ReplicaBook): {
 } | null {
   const raw = (
     book as unknown as {
-      run?:
-        | {
-            startedAt?: number;
-            pauseKind?: 'user' | 'provider';
-            pauseReason?: string;
-            failure?: { kind: string; message: string };
-          }
-        | null;
+      run?: {
+        startedAt?: number;
+        pauseKind?: 'user' | 'provider';
+        pauseReason?: string;
+        failure?: { kind: string; message: string };
+      } | null;
     }
   ).run;
   if (!raw || typeof raw.startedAt !== 'number') return null;
@@ -806,11 +864,13 @@ function ProposalView({
   onNotice: (value: string | null) => void;
   notice: string | null;
 }) {
+  const entranceRef = useRef<HTMLDivElement>(null);
+  useEntrance(entranceRef, { preset: 'page', triggerKey: book.id });
   const [confirming, setConfirming] = useState(false);
   const proposal = book.proposal;
   return (
-    <div className="space-page books-page">
-      <header className="space-header">
+    <div className="space-page books-page" ref={entranceRef}>
+      <header className="space-header" data-motion-reveal>
         <div className="space-header-row">
           <Link className="space-back" href="/books">
             <ArrowLeft size={16} />
@@ -907,7 +967,19 @@ function ScenarioSettings({
       ...(storageFailure ? { storageFailureAt: { pageIndex: storagePageIndex } } : {}),
       ...(storageFailureOnFinish ? { storageFailureOnFinish: true } : {}),
     };
-  }, [bookId, scenarioRef, scenarioBookRef, failBlocks, failPages, failPagesCount, providerPause, providerPauseCount, storageFailure, storagePageIndex, storageFailureOnFinish]);
+  }, [
+    bookId,
+    scenarioRef,
+    scenarioBookRef,
+    failBlocks,
+    failPages,
+    failPagesCount,
+    providerPause,
+    providerPauseCount,
+    storageFailure,
+    storagePageIndex,
+    storageFailureOnFinish,
+  ]);
 
   return (
     <div className="book-pipeline-scenario">
@@ -958,7 +1030,9 @@ function ScenarioSettings({
               min={2}
               max={10}
               value={providerPauseCount}
-              onChange={(event) => setProviderPauseCount(Math.max(2, Number(event.target.value) || 2))}
+              onChange={(event) =>
+                setProviderPauseCount(Math.max(2, Number(event.target.value) || 2))
+              }
               aria-label="供应商暂停阈值"
             />
             页失败）
@@ -975,7 +1049,9 @@ function ScenarioSettings({
               min={0}
               max={50}
               value={storagePageIndex}
-              onChange={(event) => setStoragePageIndex(Math.max(0, Number(event.target.value) || 0))}
+              onChange={(event) =>
+                setStoragePageIndex(Math.max(0, Number(event.target.value) || 0))
+              }
               aria-label="存储失败页序"
             />
             页写入失败）
@@ -1006,13 +1082,15 @@ function SpineView({
   onNotice: (value: string | null) => void;
   notice: string | null;
 }) {
+  const entranceRef = useRef<HTMLDivElement>(null);
+  useEntrance(entranceRef, { preset: 'page', triggerKey: book.id });
   const [confirming, setConfirming] = useState(false);
   const scenarioRef = useRef<BookRunScenario>({});
   const scenarioBookRef = useRef<string | null>(null);
 
   return (
-    <div className="space-page books-page">
-      <header className="space-header">
+    <div className="space-page books-page" ref={entranceRef}>
+      <header className="space-header" data-motion-reveal>
         <div className="space-header-row">
           <Link className="space-back" href="/books">
             <ArrowLeft size={16} />
@@ -1020,18 +1098,25 @@ function SpineView({
           </Link>
         </div>
         <h1>{book.title}</h1>
-        <p className="space-description">大纲已登记（模拟）；确认后由本地模拟执行器逐章逐块异步编译。</p>
+        <p className="space-description">
+          大纲已登记（模拟）；确认后由本地模拟执行器逐章逐块异步编译。
+        </p>
       </header>
       <main className="space-content">
         <div className="space-banner info" role="note">
-          编译未接入模型：确认大纲后由本地模拟执行器逐章逐块生成（每章 2 页模拟内容），期间可暂停、可恢复，并清空阅读进度重新开始。
+          编译未接入模型：确认大纲后由本地模拟执行器逐章逐块生成（每章 2
+          页模拟内容），期间可暂停、可恢复，并清空阅读进度重新开始。
         </div>
         {notice && (
           <div className="space-banner info" role="status">
             {notice}
           </div>
         )}
-        <ScenarioSettings bookId={book.id} scenarioRef={scenarioRef} scenarioBookRef={scenarioBookRef} />
+        <ScenarioSettings
+          bookId={book.id}
+          scenarioRef={scenarioRef}
+          scenarioBookRef={scenarioBookRef}
+        />
         {confirming && (
           <div className="books-loading" role="status">
             <Loader2 size={14} className="space-spin" aria-hidden />
@@ -1072,7 +1157,8 @@ function SpineView({
                   setConfirming(false);
                   return;
                 }
-                const scenario = scenarioBookRef.current === book.id ? scenarioRef.current : undefined;
+                const scenario =
+                  scenarioBookRef.current === book.id ? scenarioRef.current : undefined;
                 const handle = await startRun(book.id, { scenario, source: 'user' });
                 onNotice(
                   handle
@@ -1121,16 +1207,18 @@ function ReaderLayout({
   onResume: () => void;
   onRetryRun: () => void;
 }) {
+  const entranceRef = useRef<HTMLDivElement>(null);
+  useEntrance(entranceRef, { preset: 'page', triggerKey: `${book.id}:${pageId ?? ''}` });
   const [exporting, setExporting] = useState(false);
   const pages = book.chapters.flatMap((chapter) => chapter.pageIds);
   const index = pageId ? pages.indexOf(pageId) : -1;
-  const page = pageId ? pages[index] ?? null : null;
+  const page = pageId ? (pages[index] ?? null) : null;
 
   if (!pageId || !page) {
     // 深链页码无效：提示并回有效页
     return (
-      <div className="space-page books-page">
-        <div className="space-empty" style={{ marginTop: 80 }}>
+      <div className="space-page books-page" ref={entranceRef}>
+        <div className="space-empty" style={{ marginTop: 80 }} data-motion-reveal>
           <strong>章节页不存在或已被重建</strong>
           <span>书籍可能已重新编译，旧页码失效。</span>
           <Link className="space-button" href={`/books/${book.id}`}>
@@ -1154,13 +1242,13 @@ function ReaderLayout({
           : null;
   const showStrip =
     (stripPhase !== null && (working || remoteLease)) ||
-    (stripPhase === 'interrupted') ||
+    stripPhase === 'interrupted' ||
     book.status === 'paused';
   const stripChapters = deriveStripChapters(book, book.chapters, runtimeOf);
 
   return (
-    <div className="space-page books-page">
-      <header className="space-header">
+    <div className="space-page books-page books-reader-page" ref={entranceRef}>
+      <header className="space-header" data-motion-reveal>
         <div className="space-header-row">
           <Link className="space-back" href="/books">
             <ArrowLeft size={16} />
@@ -1215,7 +1303,8 @@ function ReaderLayout({
         <h1>{book.title}</h1>
         <p className="space-description">
           {/* 整轮失败的原因只在下方横幅里呈现一次（那里带「重试生成」入口），此处不重复长文案 */}
-          阅读进度 {readingPercent(book)}% · 已读 {book.reading.visitedPageIds.length}/{pages.length} 页
+          阅读进度 {readingPercent(book)}% · 已读 {book.reading.visitedPageIds.length}/
+          {pages.length} 页
           {book.status === 'archived' && (
             <span className="space-chip" style={{ marginLeft: 8 }}>
               已归档（可读）
@@ -1245,7 +1334,9 @@ function ReaderLayout({
                 )}
                 {runUi.retrying ? '正在重试…' : '重试生成'}
               </button>
-              <span className="space-footnote">从断点续跑（已完成页不重复生成）；也可用「重建书籍」整本重新模拟编译。</span>
+              <span className="space-footnote">
+                从断点续跑（已完成页不重复生成）；也可用「重建书籍」整本重新模拟编译。
+              </span>
             </span>
           </div>
         )}
@@ -1339,8 +1430,7 @@ function BookSidebar({
                 )}
                 {bookmarked && (
                   <span className="books-bookmark-mark" aria-label="已加书签" title="已加书签">
-                    <Bookmark size={10} aria-hidden />
-                    签
+                    <Bookmark size={10} aria-hidden />签
                   </span>
                 )}
               </Link>

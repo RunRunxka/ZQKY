@@ -30,24 +30,26 @@
      - --font-mono      代码与等宽：代码块、章节序号
      局部例外：公式（KaTeX）保留其自带的 KaTeX_* 字体族（需要专用字形）；
      图标为 SVG，不受字体族影响。 */
-  --font-ui: 'Chat Geist', 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', 'Noto Sans SC',
-    Arial, sans-serif;
-  --font-display: 'Chat Lora', 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', STSong, SimSun,
-    Georgia, serif;
+  --font-ui:
+    'Chat Geist', 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', 'Noto Sans SC', Arial,
+    sans-serif;
+  --font-display:
+    'Chat Lora', 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', STSong, SimSun, Georgia, serif;
   --font-ui-serif: var(--font-display);
   --font-document: 'SimSun', 'Songti SC', STSong, 'Noto Serif SC', serif;
   --font-mono: 'Cascadia Mono', Consolas, 'JetBrains Mono', 'SFMono-Regular', Menlo, monospace;
   /* 色板（沿用既有蓝色主题，变量即唯一来源） */
   --bg: #fff;
-  --surface: #f7f7f7;
-  --ink: #0d0d0d;
-  --muted: #6e6e6e;
-  --line: #e5e5e5;
+  --surface: #f5f8fc;
+  --canvas: var(--surface);
+  --ink: #172033;
+  --muted: #5f6b7b;
+  --line: #dde5ef;
   --blue: #2563eb;
   --blue-soft: #eff5ff;
   --blue-deep: #1d4ed8;
-  --green: #33876b;
-  --danger: #d92d20;
+  --green: #28765c;
+  --danger: #c62d21;
   --preview: #eceef1;
   /* 兼容别名：--serif 现等于文档内容族（历史规则不必同时改名） */
   --serif: var(--font-document);
@@ -56,17 +58,26 @@
   --radius-md: 12px;
   --radius-lg: 14px;
   --radius-pill: 999px;
-  --shadow-card: 0 6px 20px -12px rgba(0, 0, 0, 0.25);
-  --shadow-pop: 0 10px 28px rgba(0, 0, 0, 0.09);
+  --shadow-card: 0 4px 18px -10px rgba(32, 57, 92, 0.16);
+  --shadow-pop: 0 12px 36px -8px rgba(32, 57, 92, 0.16);
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
   --space-5: 24px;
   --space-6: 32px;
+  --font-size-title: 24px;
+  --font-size-section: 16px;
+  --font-size-body: 14px;
+  --font-size-caption: 12px;
+  --font-size-control: 13px;
+  --control-height: 36px;
+  --control-height-compact: 32px;
+  --touch-target: 44px;
+  --page-gutter: 32px;
   font-family: var(--font-ui);
-  color: #0d0d0d;
-  background: #fff;
+  color: var(--ink);
+  background: var(--canvas);
   font-synthesis: none;
   font-size: 14px;
 }
@@ -227,9 +238,9 @@ small {
   justify-content: center;
   gap: 8px;
   min-height: 36px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 8px 13px;
-  font-size: 12px;
+  font-size: var(--font-size-control);
   font-weight: 500;
   white-space: nowrap;
 }
@@ -564,7 +575,7 @@ small {
 @media (max-width: 767px) {
   .app-shell:not(.lesson-workspace) {
     grid-template-columns: 1fr;
-    grid-template-rows: 59px 1fr;
+    grid-template-rows: 56px 1fr;
   }
   .app-shell:not(.lesson-workspace) .global-nav {
     display: none;

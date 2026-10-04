@@ -1,0 +1,238 @@
+npm notice run zhiqikeyuan@0.2.0 check
+npm notice run npm run typecheck && npm run lint && npm run test:unit && npm run build
+npm notice run zhiqikeyuan@0.2.0 typecheck
+npm notice run npm run typecheck --workspace=@zqky/web
+npm notice run @zqky/web@0.2.0 typecheck
+npm notice run next typegen && tsc --noEmit
+Generating route types...
+✓ Types generated successfully
+npm notice run zhiqikeyuan@0.2.0 lint
+npm notice run eslint apps/web/src tests scripts --max-warnings=0
+npm notice run zhiqikeyuan@0.2.0 test:unit
+npm notice run vitest run
+
+ RUN  v3.2.4 H:/备份xuexi/智启课源
+
+ ✓ apps/web/src/features/practices/g2-session.test.tsx (15 tests) 1311ms
+ ✓ apps/web/src/features/lesson-plan/g3-source-session.test.tsx (5 tests) 1376ms
+   ✓ G3 source callbacks belong to the session that started them > late report cannot clear restored BASE context or rearm saving; a fresh teacher selection remains usable  512ms
+   ✓ G3 source callbacks belong to the session that started them > recovery-key deletion failure keeps the source operation paused until an explicit save  375ms
+ ✓ apps/web/src/features/lesson-plan/b6-source-loading.test.tsx (5 tests) 998ms
+ ✓ apps/web/src/features/assessments/PaperImportReview.test.tsx (11 tests) 1009ms
+ ✓ apps/web/src/features/assessments/ScorePanel.test.tsx (15 tests) 976ms
+ ✓ apps/web/src/features/chat/ChatWorkspace.rag.test.tsx (4 tests) 870ms
+   ✓ 教材入口与 v2 追问/详解界面 > 真实范围随请求发送；结果结构化展示、卡片可答并确认；终态后可发起详解  607ms
+ ✓ apps/web/src/features/model-settings/ModelSettingsPanel.review.test.tsx (12 tests) 831ms
+ ✓ apps/web/src/features/question-bank/QuestionDetailLinks.test.tsx (19 tests) 945ms
+ ✓ apps/web/src/features/assessments/AssessmentsWorkspace.test.tsx (3 tests) 548ms
+ ✓ apps/web/src/features/question-bank/QuestionBankWorkspace.test.tsx (14 tests) 621ms
+ ✓ apps/web/src/features/textbook/LibraryDetailSection.test.tsx (11 tests) 628ms
+ ✓ apps/web/src/features/question-bank/ReviewWorkspace.test.tsx (60 tests) 10686ms
+   ✓ B3 整理首次排队的真实观察窗口 > queued@0 → running@1 → succeeded@1 沿本轮观察，不误判接管  2107ms
+   ✓ B3 整理首次排队的真实观察窗口 > queued@0 → running@1 → failed@1 沿本轮观察，不误判接管  2122ms
+ ✓ apps/web/src/features/lesson-plan/g3-history-copy.test.tsx (7 tests) 545ms
+ ✓ apps/web/src/features/chat/model/artifact.test.ts (10 tests) 1699ms
+   ✓ S4 能力模拟闭环：阶段序列与结构化产物 > visualize auto 路由：mermaid/chartjs 解析与产物 kind 对应  372ms
+   ✓ S4 能力模拟闭环：阶段序列与结构化产物 > visualize svg 显式模式与阶段（analyzing→generating→reviewing）；普通对话轮无产物  310ms
+ ✓ apps/web/src/features/assessments/RosterImportPanel.test.tsx (17 tests) 729ms
+ ✓ apps/web/src/features/practices/PracticesWorkspace.test.tsx (10 tests) 541ms
+ ✓ apps/web/src/features/learning-analysis/LearningAnalysisWorkspace.test.tsx (7 tests) 554ms
+ ✓ apps/web/src/features/textbook/ImportPanel.test.tsx (8 tests) 686ms
+   ✓ 导入面板 > 按 IMPORT_STATE_LABEL 轮询阶段直到终态，并展示解析预览  407ms
+ ✓ apps/web/src/features/assessments/ScoreImportReview.test.tsx (10 tests) 609ms
+ ✓ apps/web/src/features/books/PageReader.test.tsx (25 tests) 606ms
+ ✓ apps/web/src/features/question-bank/DraftEditor.guard.test.tsx (12 tests) 433ms
+ ✓ apps/web/src/features/chat/model/composer-snapshot.test.ts (3 tests) 813ms
+   ✓ S2 输入区：完整配置快照 > 发送时冻结能力/人设/知识/引用/附件（深拷贝，后续编辑不影响已冻结快照）  409ms
+   ✓ S2 输入区：完整配置快照 > 模拟服务按快照复述能力与配置，并如实说明附件未读取内容  401ms
+ ✓ apps/web/src/features/lesson-plan/model/server-session.test.tsx (11 tests) 732ms
+   ✓ F30-L server session author checks > unknown replay preserves complete original HTTP and first metadata, never clears inflight3  679ms
+ ✓ apps/web/src/features/chat/Message.compact-rag.test.tsx (15 tests) 313ms
+ ✓ apps/web/src/components/layout/WorkspaceShell.test.tsx (6 tests) 377ms
+ ✓ apps/web/src/features/chat/ChatWorkspace.unmount.test.tsx (2 tests) 274ms
+ ✓ apps/web/src/features/textbook/TeachingScopePanel.test.tsx (8 tests) 444ms
+ ✓ apps/web/src/features/knowledge-points/ImportReviewPanel.test.tsx (9 tests) 291ms
+ ✓ apps/web/src/features/question-bank/GenerationPanel.test.tsx (12 tests) 635ms
+ ✓ apps/web/src/features/chat/ExtensionPicker.test.tsx (6 tests) 509ms
+ ✓ apps/web/src/features/knowledge-points/PointDetailPanel.test.tsx (8 tests) 301ms
+ ✓ apps/web/src/features/question-bank/jobs.test.tsx (25 tests) 591ms
+ ✓ apps/web/src/services/books-store.test.ts (18 tests) 294ms
+ ✓ apps/web/src/features/knowledge-points/SuggestionPanel.test.tsx (7 tests) 377ms
+ ✓ apps/web/src/features/assessments/ParticipantAddPanel.test.tsx (6 tests) 316ms
+ ✓ apps/web/src/features/assessments/AssessmentsPanel.test.tsx (7 tests) 355ms
+ ✓ apps/web/src/features/model-settings/embedding/EmbeddingPanel.test.tsx (5 tests) 223ms
+ ✓ apps/web/src/features/textbook/JobsPanel.test.tsx (4 tests) 426ms
+ ✓ apps/web/src/features/model-settings/ModelSettingsPanel.test.tsx (5 tests) 248ms
+ ✓ apps/web/src/features/knowledge-points/KnowledgePointsWorkspace.test.tsx (3 tests) 286ms
+ ✓ apps/web/src/features/textbook/TextbookWorkspace.test.tsx (5 tests) 258ms
+ ✓ apps/web/src/features/chat/model/rag-delivery.test.ts (7 tests) 380ms
+ ✓ apps/web/src/features/knowledge-points/hooks.strictmode.test.tsx (15 tests) 318ms
+ ✓ apps/web/src/features/chat/AskUserCard.test.tsx (11 tests) 156ms
+ ✓ apps/web/src/features/chat/CapabilityMenu.test.tsx (6 tests) 169ms
+ ✓ apps/web/src/features/knowledge-points/PointBrowser.test.tsx (3 tests) 168ms
+ ✓ apps/web/src/features/chat/model/ask-flow.test.ts (5 tests) 314ms
+ ✓ apps/web/src/components/motion/useEntrance.test.tsx (7 tests) 183ms
+ ✓ apps/web/src/features/chat/model/ask-user.test.ts (23 tests) 325ms
+ ✓ apps/web/src/features/knowledge-points/CreatePointDialog.test.tsx (3 tests) 145ms
+ ✓ apps/web/src/features/chat/Message.rag.test.tsx (5 tests) 131ms
+ ✓ apps/web/src/features/assessments/ParticipantAttendanceEditor.test.tsx (5 tests) 180ms
+ ✓ apps/web/src/features/question-bank/ImportQuestionPanel.test.tsx (4 tests) 142ms
+ ✓ apps/web/src/components/ui/RichContentRenderer.test.tsx (8 tests) 183ms
+ ✓ apps/web/src/features/books/BookGenerationStrip.test.tsx (11 tests) 110ms
+ ✓ apps/web/src/features/question-bank/KnowledgeLinksPanel.test.tsx (11 tests) 130ms
+ ✓ apps/web/src/features/chat/model/chat-service.test.ts (4 tests) 327ms
+ ✓ apps/web/src/features/chat/ReasoningDisclosure.test.tsx (4 tests) 106ms
+ ✓ apps/web/src/features/chat/StreamingMarkdown.test.tsx (6 tests) 90ms
+ ✓ apps/web/src/features/chat/InfoPanel.test.tsx (5 tests) 98ms
+ ✓ apps/web/src/features/chat/AnswerMarkdown.test.tsx (3 tests) 72ms
+ ✓ apps/web/src/features/knowledge-points/ImportPanel.test.tsx (2 tests) 58ms
+ ✓ apps/web/src/features/books/BooksRoute.test.tsx (2 tests) 92ms
+ ✓ apps/web/src/features/question-bank/QuestionPreview.rich.test.tsx (2 tests) 79ms
+ ✓ apps/web/src/features/textbook/HistoryRegistrations.test.tsx (3 tests) 68ms
+ ✓ apps/web/src/features/assessments/hooks.test.tsx (16 tests) 67ms
+ ✓ apps/web/src/services/collection-lock.test.ts (7 tests) 83ms
+ ✓ apps/web/src/features/chat/message-duration.test.tsx (5 tests) 53ms
+ ✓ apps/web/src/features/chat/model/rag-explain.test.ts (7 tests) 83ms
+ ✓ apps/web/src/features/chat/Message.test.tsx (2 tests) 59ms
+ ✓ apps/web/src/features/lesson-plan/model/g3-persistence.test.tsx (13 tests) 46ms
+ ✓ apps/web/src/features/chat/model/request-budget.test.ts (17 tests) 50ms
+ ✓ apps/web/src/features/lesson-plan/model/lesson-operation.test.tsx (5 tests) 28ms
+ ✓ apps/web/src/features/chat/model/store.test.ts (11 tests) 19ms
+ ✓ apps/web/src/services/navigation-guard.test.tsx (7 tests) 25ms
+ ✓ apps/web/src/features/assessments/hooks.frozen-operation.test.tsx (7 tests) 19ms
+ ✓ apps/web/src/features/chat/model/text-projection.test.ts (75 tests) 15ms
+ ✓ apps/web/src/features/chat/model/extensions-snapshot.test.ts (13 tests) 19ms
+ ✓ apps/web/src/features/chat/model/course-context.test.ts (5 tests) 16ms
+ ✓ apps/web/src/features/chat/model/mock-mode.test.ts (12 tests) 18ms
+ ✓ apps/web/src/features/chat/model/rag-service.test.ts (9 tests) 14ms
+ ✓ apps/web/src/services/use-workflow-job.test.tsx (4 tests) 16ms
+ ✓ apps/web/src/services/question-bank-api.test.ts (31 tests) 10ms
+ ✓ apps/web/src/features/chat/model/lifecycle.test.ts (5 tests) 14ms
+ ✓ apps/web/src/services/books-store.harden.test.ts (15 tests) 12ms
+ ✓ apps/web/src/features/lesson-plan/lesson-workspace.test.tsx (96 tests) 12354ms
+   ✓ F30-L actual workspace author UI checks > standalone shell decision saves failure in place and permits cancelling without losing input  384ms
+   ✓ F30-L actual workspace author UI checks > internal document switch cancel/keep/restore uses each independent server key  520ms
+   ✓ F30-L actual workspace author UI checks > fixed history is readonly and copying becomes undoable current edit after latest read  314ms
+   ✓ F30-L v5 local navigation flush protects the actual serial writer > opening a backend document from local mode first persists the local draft without a manual leave promise  446ms
+   ✓ F30-L v5 local navigation flush protects the actual serial writer > late local flush cannot navigate after the workspace has adopted another document identity  333ms
+   ✓ F30-L v5 local navigation flush protects the actual serial writer > a failed local flush protects original input until explicit keep  326ms
+   ✓ F30-L v5 local navigation flush protects the actual serial writer > a failed local flush protects original input until explicit discard  480ms
+   ✓ F30-L v5 local navigation flush protects the actual serial writer > a failed local flush protects original input until explicit cancel  341ms
+   ✓ F30-L v5 local navigation flush protects the actual serial writer > corrupt legacy bytes block automatic flush and cannot be replaced by a navigation attempt  413ms
+   ✓ F30-L v5 local navigation flush protects the actual serial writer > printing begun while local flush is pending keeps the frozen print context and cancels navigation  540ms
+ ✓ apps/web/src/services/course-session.test.ts (8 tests) 10ms
+ ✓ apps/web/src/services/knowledge-points-api.test.ts (14 tests) 8ms
+ ✓ apps/web/src/services/courses-store.test.ts (10 tests) 9ms
+ ✓ apps/web/src/services/assessments-api.test.ts (14 tests) 6ms
+ ✓ apps/web/src/services/textbook-api.test.ts (23 tests) 8ms
+ ✓ apps/web/src/services/knowledge-ingest.test.ts (8 tests) 9ms
+ ✓ apps/web/src/features/chat/model/message-projection.test.ts (18 tests) 7ms
+ ✓ apps/web/src/services/chat-repository.test.ts (4 tests) 7ms
+ ✓ apps/web/src/features/knowledge-points/tree.test.ts (4 tests) 7ms
+ ✓ apps/web/src/services/navigation.test.ts (13 tests) 6ms
+ ✓ apps/web/src/features/chat/model/taught-scope.test.ts (3 tests) 6ms
+ ✓ apps/web/src/services/knowledge-catalog.test.ts (10 tests) 5ms
+ ✓ apps/web/src/features/lesson-plan/services/lesson-plan.test.ts (11 tests) 5ms
+ ✓ apps/web/src/features/lesson-plan/services/autosave.test.ts (4 tests) 5ms
+ ✓ apps/web/src/features/chat/model/trace-timing.test.ts (4 tests) 6ms
+ ✓ apps/web/src/services/api-client.test.ts (13 tests) 5ms
+ ✓ apps/web/src/features/chat/model/markdown-segments.test.ts (11 tests) 6ms
+ ✓ apps/web/src/features/question-bank/model-profile.test.ts (10 tests) 5ms
+ ✓ apps/web/src/services/workflow-jobs-api.test.ts (8 tests) 5ms
+ ✓ apps/web/src/features/knowledge-points/point-form.test.ts (9 tests) 5ms
+ ✓ apps/web/src/features/question-bank/draft-form.test.ts (9 tests) 4ms
+ ✓ apps/web/src/features/question-bank/organizer-notice.test.ts (9 tests) 3ms
+ ✓ apps/web/src/features/chat/model/rag-history.test.ts (3 tests) 6ms
+ ✓ apps/web/src/services/extension-catalog.test.ts (3 tests) 3ms
+ ✓ apps/web/src/features/assessments/labels.test.ts (13 tests) 4ms
+ ✓ apps/web/src/services/capability-catalog.test.ts (8 tests) 3ms
+ ✓ apps/web/src/features/question-bank/knowledge-links.test.ts (12 tests) 3ms
+ ✓ apps/web/src/services/doc-attachments.test.ts (8 tests) 3ms
+ ✓ apps/web/src/services/local-collection.test.ts (4 tests) 3ms
+ ✓ apps/web/src/features/textbook/labels.test.ts (11 tests) 3ms
+ ✓ apps/web/src/features/question-bank/source-trace.test.ts (3 tests) 2ms
+ ✓ apps/web/src/features/chat/model/context-budget.test.ts (6 tests) 3ms
+ ✓ apps/web/src/services/chat-sse.test.ts (5 tests) 2ms
+ ✓ apps/web/src/features/question-bank/generation-notice.test.ts (5 tests) 2ms
+ ✓ apps/web/src/features/question-bank/no-rag-status-dependency.test.ts (1 test) 2ms
+ ✓ apps/web/src/services/book-generation.test.ts (35 tests) 79800ms
+   ✓ book-generation 执行器 > 正常路径：逐页逐块事件推进到 ready；进度非同步一次性完成  1088ms
+   ✓ book-generation 执行器 > getRun 同书返回同一执行器（不重复启动）；非 compiling 返回 null  1084ms
+   ✓ book-generation 执行器 > 用户暂停：页/块复位 pending，执行器停止；恢复后从断点续跑  2758ms
+   ✓ book-generation 执行器 > 刷新中断续跑：stopRun 保留断点；模块重建后从检查点续跑（已完成页不重复生成）  1116ms
+   ✓ book-generation 执行器 > 块失败一次后重试即成功（failBlockIds）  1103ms
+   ✓ book-generation 执行器 > storageFailureAt：写入失败走真实抛错路径并落 error（kind storage），不谎报已保存  1116ms
+   ✓ book-generation 执行器 > stop 后迟到回调被丢弃（删除书籍后不复活记录）  403ms
+   ✓ book-generation 执行器 > 租约：运行中 live 且 mine；心跳推进；结束后释放；不同书可并行各自执行  3209ms
+   ✓ book-generation 执行器 > 失去所有权：执行器立即收尾、停止续租，且不动别人的租约记录，之后可恢复  9733ms
+   ✓ book-generation 执行器 > regeneratePage 执行器路径：重建整页并保留 user_note 内容与块身份  1087ms
+   ✓ book-generation 注入语义修复（H1 v2 总控裁定 A1/A2/A4） > 只开启"模拟供应商连续失败暂停"（未开整页失败）也会真的暂停（开关不是静默无操作）  1114ms
+   ✓ book-generation 注入语义修复（H1 v2 总控裁定 A1/A2/A4） > 整页失败注入是一次性：首轮失败后保持中断（compiling），恢复即成功且不重复注入  1116ms
+   ✓ book-generation 注入语义修复（H1 v2 总控裁定 A1/A2/A4） > 无 run 记录的已就绪书（演示书/旧四态数据）可重试与整页重生成：补检查点且不改书籍状态  1179ms
+   ✓ book-generation 注入语义修复（H1 v2 总控裁定 A1/A2/A4） > 块内容版本真实写入：作答版本关系不是死代码（同内容同版本，异版本不匹配）  1086ms
+   ✓ H1-BOOKS-HARDEN v1 缺陷回归（原探针断言反转） > M22-01 删除运行中的书：执行器、心跳、监听与租约统一收尾（不残留 running/续租）  1239ms
+   ✓ H1-BOOKS-HARDEN v1 缺陷回归（原探针断言反转） > M22-01 存储读取被拒：执行器收尾（不残留 running/心跳/租约），恢复后可从断点继续生成  3379ms
+   ✓ H1-BOOKS-HARDEN v1 缺陷回归（原探针断言反转） > M22-02 单块重试：结果为 completed 且列出真实写入的块；同页重复请求复用同一 Promise  1103ms
+   ✓ H1-BOOKS-HARDEN v1 缺陷回归（原探针断言反转） > M22-02 整页重生成中重试单块：在途整页操作覆盖该块，复用同一 Promise（不留半生成页）  1284ms
+   ✓ H1-BOOKS-HARDEN v1 缺陷回归（原探针断言反转） > M22-02 整页请求取代单块在途操作：旧操作终态 superseded，页最终完整 ready  1287ms
+   ✓ H1-BOOKS-HARDEN v1 缺陷回归（原探针断言反转） > M22-05 最终完成写入失败：不假报完成，落 kind storage 失败并可重试完成（一次性注入）  1113ms
+   ✓ H1-BOOKS-HARDEN v1 缺陷回归（原探针断言反转） > A1 挑刺：修复期间书籍变为不可写（归档）→ 不得报 completed，块不计入写入结果  1100ms
+   ✓ BOOKS-CS-FOLLOWUP v1 回归（控制操作分支、修复收尾、启动去重） > F7 复位提交成功后计划读取被拒：修复 Promise 在限定时间内以 failed 收尾、注册项清理且可再次发起  1287ms
+   ✓ 写冲突预算重试（集成决策，BOOKS-CS-FOLLOWUP v1） > 其他标签页短暂持锁：flush 在预算内重试，生成最终完成而不是被判存储失败  4368ms
+   ✓ 写冲突预算重试（集成决策，BOOKS-CS-FOLLOWUP v1） > 持锁耗尽预算：如实终止（不静默成功、不无限等待），不留句柄与租约，释放后可恢复完成  36085ms
+ ✓ apps/web/src/features/chat/model/rag-evidence-null.test.ts (3 tests) 1ms
+
+ Test Files  123 passed (123)
+      Tests  1299 passed (1299)
+   Start at  18:12:15
+   Duration  81.04s (transform 3.01s, setup 7.88s, collect 16.91s, tests 132.29s, environment 35.03s, prepare 5.95s)
+
+npm notice run zhiqikeyuan@0.2.0 build
+npm notice run npm run build --workspace=@zqky/web
+npm notice run @zqky/web@0.2.0 build
+npm notice run next build
+▲ Next.js 16.3.4 (Turbopack)
+✓ Running next.config.ts took 22ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 1570ms
+  Running TypeScript ...
+  Finished TypeScript in 1795ms ...
+  Collecting page data using 19 workers ...
+  Generating static pages using 19 workers (0/17) ...
+  Generating static pages using 19 workers (4/17) 
+  Generating static pages using 19 workers (8/17) 
+  Generating static pages using 19 workers (12/17) 
+✓ Generating static pages using 19 workers (17/17) in 354ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /[planned]
+├ ƒ /assessments
+├ ○ /books
+├ ƒ /books/[bookId]
+├ ƒ /books/[bookId]/pages/[pageId]
+├ ○ /chat
+├ ƒ /chat/[sessionId]
+├ ○ /courses
+├ ƒ /courses/[courseId]
+├ ○ /icon.svg
+├ ○ /knowledge-bases
+├ ƒ /knowledge-bases/[kbName]
+├ ƒ /knowledge-bases/libraries/[libraryId]
+├ ○ /knowledge-points
+├ ƒ /learning-analysis
+├ ƒ /lesson-plans
+├ ○ /mcp
+├ ƒ /practices
+├ ƒ /question-bank
+├ ƒ /question-bank/imports/[importId]
+├ ○ /settings
+└ ○ /skills
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

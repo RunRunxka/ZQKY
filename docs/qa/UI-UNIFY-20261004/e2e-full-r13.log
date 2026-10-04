@@ -1,0 +1,4063 @@
+npm notice run zhiqikeyuan@0.2.0 test:e2e
+npm notice run playwright test --output=docs/qa/UI-UNIFY-20261004/e2e-full-r13 --reporter=list,json
+(node:31804) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[WebServer] (node:4668) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 174 tests using 1 worker
+
+(node:29852) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:29852) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(node:29852) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ok   1 tests\e2e\assessments.spec.ts:502:3 › 施测与成绩工作区（真隔离 FastAPI + 真实浏览器） › 空态/错误恢复/键盘/减少动画与 390px：真实后端，无横向溢出 (3.9s)
+  ok   2 tests\e2e\assessments.spec.ts:557:3 › 施测与成绩工作区（真隔离 FastAPI + 真实浏览器） › 五步真实链：建班/选人次 → 选原卷 → 建施测 → 上传/映射/校对 → 承认 → 确认 → 历史矩阵 (3.9s)
+[complete-layout] {"width":1440,"scrollWidth":1440,"offenders":[]}
+[complete-layout] {"width":1920,"scrollWidth":1920,"offenders":[]}
+[complete-layout] {"width":390,"scrollWidth":390,"offenders":[{"tag":"TABLE","className":"score-matrix","width":753.578125,"right":787.578125,"text":"成绩只读矩阵（分页）人次出勤1满分 22满分 33满分 5总分全链丁学号 01004 · 人次 1出勤●0 分（有效分数（recorded））●3 分（有效分数"},{"tag":"THEAD","className":"","width":753.078125,"right":787.078125,"text":"人次出勤1满分 22满分 33满分 5总分"},{"tag":"TR","className":"","width":753.078125,"right":787.078125,"text":"人次出勤1满分 22满分 33满分 5总分"},{"tag":"TH","className":"","width":83,"right":467.484375,"text":"3满分 5"},{"tag":"SPAN","className":"assessments-meta","width":58,"right":454.984375,"text":"满分 5"},{"tag":"TH","className":"","width":319.59375,"right":787.078125,"text":"总分"},{"tag":"TBODY","className":"","width":753.078125,"right":787.078125,"text":"全链丁学号 01004 · 人次 1出勤●0 分（有效分数（recorded））●3 分（有效分数（recorded））●5 分（有效分数（recorded））"},{"tag":"TR","className":"","width":753.078125,"right":787.078125,"text":"全链丁学号 01004 · 人次 1出勤●0 分（有效分数（recorded））●3 分（有效分数（recorded））●5 分（有效分数（recorded））"},{"tag":"TD","className":"","width":83,"right":467.484375,"text":"●5 分（有效分数（recorded））"},{"tag":"SPAN","className":"score-status score-status-recorded","width":52.390625,"right":449.375,"text":"●5 分（有效分数（recorded））"},{"tag":"SPAN","className":"score-status-glyph","width":7.1875,"right":413.171875,"text":"●"},{"tag":"SPAN","className":"score-status-text","width":22.203125,"right":440.375,"text":"5 分"},{"tag":"SPAN","className":"visually-hidden","width":1,"right":405.984375,"text":"（有效分数（recorded））"},{"tag":"TD","className":"","width":319.59375,"right":787.078125,"text":"8 / 10 分"},{"tag":"TR","className":"","width":753.078125,"right":787.078125,"text":"全链丙学号 01003 · 人次 1缺考✕缺考（缺考（absent））✕缺考（缺考（absent））✕缺考（缺考（absent））不展示总分（共 10 分；该人"},{"tag":"TD","className":"","width":83,"right":467.484375,"text":"✕缺考（缺考（absent））"},{"tag":"SPAN","className":"score-status score-status-absent","width":56,"right":452.984375,"text":"✕缺考（缺考（absent））"},{"tag":"SPAN","className":"score-status-glyph","width":9,"right":414.984375,"text":"✕"},{"tag":"SPAN","className":"score-status-text","width":24,"right":443.984375,"text":"缺考"},{"tag":"SPAN","className":"visually-hidden","width":1,"right":405.984375,"text":"（缺考（absent））"}]}
+  ok   3 tests\e2e\assessments.spec.ts:772:3 › 施测与成绩工作区（真隔离 FastAPI + 真实浏览器） › 完整真实链：名单导入→富原卷校对确认→施测→成绩响应丢失重放→修正历史 (3.7s)
+[scale] 班级 + 200 名学生耗时 2313ms
+[scale] 建施测耗时累计 2341ms
+[scale] 上传（528526 字节）返回，累计 2970ms
+[scale] 上传解析完成，累计 2971ms
+[scale] 映射重算完成，累计 3518ms（missing=0 resolved=200）
+[scale] 确认返回 200，累计 4108ms
+[scale] 准备完成：assessment=1748743221854048893cdbfbcd01c1cf import=91632bf2aa8e4b31a70106f3a4ef5c9f 人次=200 叶=100
+[scale] 200 人次 × 100 叶：矩阵首屏（第 1 页 50 行）557ms；翻页 587ms
+[scale] 溢出诊断 {"scrollWidth":1440,"innerWidth":1440,"offenders":["TABLE.score-matrix right=8301 w=8023","THEAD.- right=8301 w=8023","TR.- right=8301 w=8023","TH.- right=1467 w=77","SPAN.assessments-meta right=1455 w=52","TH.- right=1544 w=77"],"chain":["TABLE.score-matrix w=8023 scrollW=8023 display=table overflowX=visible minW=100%","DIV.score-matrix-wrap w=1106 scrollW=8023 display=block overflowX=auto minW=auto","SECTION.assessments-subpanel w=1156 scrollW=1154 display=flex overflowX=visible minW=0px","DIV.assessments-panel w=1156 scrollW=1156 display=flex overflowX=visible minW=0px","SECTION.- w=1156 scrollW=1156 display=block overflowX=visible minW=0px","MAIN.space-content w=1156 scrollW=1156 display=block overflowX=visible minW=0px","DIV.space-page assessments-page w=1220 scrollW=1220 display=flex overflowX=visible minW=0px","DIV.module-workspace-content w=1220 scrollW=1220 display=block overflowX=auto minW=0px","DIV.app-shell unified-shell module-workspace-shell nav-expanded w=1440 scrollW=1440 display=grid overflowX=clip minW=0px","BODY.- w=1440 scrollW=1440 display=block overflowX=visible minW=0px","HTML.- w=1440 scrollW=1440 display=block overflowX=visible minW=0px"],"positioned":["SPAN.visually-hidden position=absolute w=1 left=298","SPAN.visually-hidden position=absolute w=1 left=572","SPAN.visually-hidden position=absolute w=1 left=869","SPAN.visually-hidden position=absolute w=1 left=1140","DIV.score-matrix-wrap position=relative w=1106 left=277","TABLE.score-matrix position=relative w=8023 left=278","CAPTION.visually-hidden position=absolute w=1 left=277","SPAN.visually-hidden position=absolute w=1 left=482","SPAN.visually-hidden position=absolute w=1 left=559","SPAN.visually-hidden position=absolute w=1 left=636","SPAN.visually-hidden position=absolute w=1 left=714","SPAN.visually-hidden position=absolute w=1 left=791"],"htmlWithTable":1440,"htmlWithoutTable":1440}
+  ok   4 tests\e2e\assessments.spec.ts:895:3 › 施测与成绩工作区（真隔离 FastAPI + 真实浏览器） › 规模实测：200 人次 × 100 叶（分页 50/页，记录首屏与翻页耗时） (7.2s)
+  ok   5 tests\e2e\books-commit-safety.spec.ts:144:3 › H1 书籍提交一致性（真实双标签页） › 另一标签页持有写锁：创建如实失败并保留输入，释放后重试成功 (2.9s)
+  ok   6 tests\e2e\books-commit-safety.spec.ts:192:3 › H1 书籍提交一致性（真实双标签页） › 同一本书不同页并发写：后写者胜但不损坏其他页；结束后无悬挂锁 (1.1s)
+  ok   7 tests\e2e\books-commit-safety.spec.ts:239:3 › H1 书籍提交一致性（真实双标签页） › 双标签页并发写不同书：两边内容都在、无覆盖、结束后无悬挂锁 (22.5s)
+  ok   8 tests\e2e\books-commit-safety.spec.ts:331:3 › H1 书籍提交一致性（真实双标签页） › 另一标签页持写锁：暂停如实失败且不显示「已暂停」；释放后暂停成功并在刷新后保持 (9.2s)
+  ok   9 tests\e2e\books-commit-safety.spec.ts:372:3 › H1 书籍提交一致性（真实双标签页） › 生成与人工编辑并发：另一标签页写笔记，生成完成后笔记仍在且生成结果完整 (16.9s)
+  ok  10 tests\e2e\books-commit-safety.spec.ts:420:3 › H1 书籍提交一致性（真实双标签页） › 持有写锁时删除与其后操作都不假成功；释放后可正常删除 (2.9s)
+  ok  11 tests\e2e\books-courses.spec.ts:11:1 › 书籍列表：演示载入幂等、新建草稿与统计 (981ms)
+  ok  12 tests\e2e\books-courses.spec.ts:48:1 › 书籍状态机：确认提案→确认大纲→模拟编译进入阅读器 (16.6s)
+  ok  13 tests\e2e\books-courses.spec.ts:74:1 › 就绪书阅读器：续读定位、书签、键盘翻页、无效页码与重建 (3.7s)
+  ok  14 tests\e2e\books-courses.spec.ts:116:1 › 阅读器练习块：本地判定正确/错误 (1.1s)
+  ok  15 tests\e2e\books-courses.spec.ts:128:1 › 课程：演示载入、大纲勾选与编辑重置、资源附加与不可用态、归档 (1.4s)
+  ok  16 tests\e2e\books-courses.spec.ts:178:1 › 课程新建与导航显示：书籍可见、课程按参考隐藏 (1.1s)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/teaching-settings Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-libraries?kind=base Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-libraries?kind=personal Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-taxonomy Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/teaching-settings Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-libraries?kind=base Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-libraries?kind=personal Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-taxonomy Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/teaching-settings Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-libraries?kind=base Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-libraries?kind=personal Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-taxonomy Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/teaching-settings Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-libraries?kind=base Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-libraries?kind=personal Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-taxonomy Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok  17 tests\e2e\books-courses.spec.ts:208:1 › 教材资料库 ↔ 书籍/课程：完整往返路径、返回入口与唯一当前项（UX-REGRESSION-FIX v1） (2.9s)
+  ok  18 tests\e2e\books-harden.spec.ts:73:3 › H1 书籍加固（HARDEN v1） › 首次读取目录失败：错误可见 + 重试读取成功并清除旧错误（含 390 窄视口不溢出） (920ms)
+  ok  19 tests\e2e\books-harden.spec.ts:112:3 › H1 书籍加固（HARDEN v1） › 双标签页失权：第一标签页停止并提示、不再续租；释放所有权后可继续生成 (19.7s)
+  ok  20 tests\e2e\books-harden.spec.ts:162:3 › H1 书籍加固（HARDEN v1） › 生成中删除：租约立即释放且不再续租，迟到事件不复活 (2.8s)
+  ok  21 tests\e2e\books-harden.spec.ts:197:3 › H1 书籍加固（HARDEN v1） › 笔记与 contenteditable 内 ←/→ 不翻页；普通阅读仍可翻页 (1.0s)
+  ok  22 tests\e2e\books-harden.spec.ts:234:3 › H1 书籍加固（HARDEN v1） › 最终完成写入失败：不假报完成，卡片显示生成失败，「重试生成」后真正完成 (17.4s)
+  ok  23 tests\e2e\books-harden.spec.ts:273:3 › H1 书籍加固（HARDEN v1） › 同一 tick 连点「强制重新生成」：互斥生效，页最终完整且无残留错误提示 (4.6s)
+  ok  24 tests\e2e\books-pipeline.spec.ts:77:3 › H1 书籍生成流水线 › 正常生成：活动条可观察、生成中可阅读已完成内容、完成后可阅读 (16.8s)
+  ok  25 tests\e2e\books-pipeline.spec.ts:121:3 › H1 书籍生成流水线 › 用户暂停与恢复：paused 不自动续跑，恢复后继续到完成 (16.9s)
+  ok  26 tests\e2e\books-pipeline.spec.ts:148:3 › H1 书籍生成流水线 › 模拟供应商连续失败暂停：文案明确为本地模拟，不宣称真实上游故障 (1.2s)
+  ok  27 tests\e2e\books-pipeline.spec.ts:158:3 › H1 书籍生成流水线 › 刷新中断：compiling 自动从断点续跑，已完成内容保留（对照 maybe_resume_on_open） (17.7s)
+  ok  28 tests\e2e\books-pipeline.spec.ts:174:3 › H1 书籍生成流水线 › 双标签页同书：只允许一个执行器，第二个标签页只读显示 (979ms)
+  ok  29 tests\e2e\books-pipeline.spec.ts:189:3 › H1 书籍生成流水线 › 块失败与重试：单块失败如实呈现，重试即成功且不重建整本 (17.1s)
+  ok  30 tests\e2e\books-pipeline.spec.ts:216:3 › H1 书籍生成流水线 › 整页重生成保留用户笔记与块身份（演示就绪书本无 run 记录，也必须真的重生成） (4.9s)
+  ok  31 tests\e2e\books-pipeline.spec.ts:240:3 › H1 书籍生成流水线 › 整页失败：如实显示页失败与「已中断」，点「继续生成」后一次性注入不再失败并完成 (17.7s)
+  ok  32 tests\e2e\books-pipeline.spec.ts:261:3 › H1 书籍生成流水线 › 本地存储写入失败：如实显示整轮失败原因与「重试生成」，重试后续跑完成（不谎报已保存） (16.9s)
+  ok  33 tests\e2e\books-pipeline.spec.ts:282:3 › H1 书籍生成流水线 › 生成期间的笔记与书签不被生成事件覆盖 (16.7s)
+  ok  34 tests\e2e\books-pipeline.spec.ts:296:3 › H1 书籍生成流水线 › 生成中删除书籍：不复活，迟到事件不重建 (3.6s)
+  ok  35 tests\e2e\books-pipeline.spec.ts:313:3 › H1 书籍生成流水线 › 未完成书的 Markdown 导出如实标注，不伪装完整成书 (1.0s)
+  ok  36 tests\e2e\books-pipeline.spec.ts:327:3 › H1 书籍生成流水线 › 窄视口 390：活动条与暂停可用，无页面级横向溢出 (528ms)
+  ok  37 tests\e2e\books-pipeline.spec.ts:344:3 › H1 书籍生成流水线 › 窄视口 390：展开浮层完整可用且不产生页面级溢出 (807ms)
+  ok  38 tests\e2e\chat-composer-boundaries.spec.ts:3:1 › R20 真实模式粘贴附件必须先说明不支持，不得静默发出纯文字请求 (474ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok  39 tests\e2e\chat-composer.spec.ts:3:1 › 语音入口：明确未接入状态与演示转写，不采集音频 (516ms)
+  ok  40 tests\e2e\chat-composer.spec.ts:12:1 › 真实模式：能力菜单列出目录但非对话能力禁用并标注未接入 (364ms)
+  ok  41 tests\e2e\chat-context-budget.spec.ts:140:3 › 请求预算（课程块 + 历史 + 当前问题） › 课程轮：system 课程块在最前、总字符不超预算、每条不超后端单条上限 (875ms)
+  ok  42 tests\e2e\chat-context-budget.spec.ts:159:3 › 请求预算（课程块 + 历史 + 当前问题） › UI 粘贴超长大纲标题：报文仍合规、免责句仍在，课程原始数据未被改写 (1.2s)
+  ok  43 tests\e2e\chat-context-budget.spec.ts:197:3 › 请求预算（课程块 + 历史 + 当前问题） › 当前问题放不下：不发任何请求、输入框内容仍在、提示可读；课程块放不下时如实提示；改短后成功 (999ms)
+  ok  44 tests\e2e\chat-context-budget.spec.ts:235:3 › 请求预算（课程块 + 历史 + 当前问题） › 上游错误后忙态回到可重试、无残留空占位；重试报文同样合规 (921ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok  45 tests\e2e\chat-deeplink.spec.ts:23:1 › 深链定位到指定会话并显示历史 (391ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok  46 tests\e2e\chat-deeplink.spec.ts:46:1 › 无效会话 id 显示明确的不可用状态，且不自动打开最近会话 (466ms)
+  ok  47 tests\e2e\chat-deeplink.spec.ts:116:1 › R17：深链进入后新建对话不被 URL 回跳 (753ms)
+  ok  48 tests\e2e\chat-deeplink.spec.ts:128:1 › R17：深链进入后切换其他会话不被 URL 回跳 (466ms)
+  ok  49 tests\e2e\chat-deeplink.spec.ts:141:1 › 选择会话后地址同步，刷新后仍显示所选会话 (686ms)
+  ok  50 tests\e2e\chat-deeplink.spec.ts:159:1 › 后退返回上一个会话，前进回到切换后的会话 (513ms)
+  ok  51 tests\e2e\chat-deeplink.spec.ts:180:1 › 新建对话后地址指向新会话，刷新不回跳且无不存在提示 (1.6s)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/capabilities Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/rag/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok  52 tests\e2e\chat-home.spec.ts:59:3 › 主页复刻 1440：发送、恢复、菜单和工作区可达 (2.1s)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/capabilities Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/rag/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok  53 tests\e2e\chat-home.spec.ts:59:3 › 主页复刻 1920：发送、恢复、菜单和工作区可达 (2.1s)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/capabilities Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/rag/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok  54 tests\e2e\chat-home.spec.ts:59:3 › 主页复刻 390：发送、恢复、菜单和工作区可达 (1.4s)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/capabilities Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/rag/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/capabilities Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/rag/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/capabilities Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/rag/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok  55 tests\e2e\chat-home.spec.ts:125:1 › 动态球、侧栏、工作区退出中断与减少动画 (3.9s)
+  ok  56 tests\e2e\chat.spec.ts:64:1 › 发送消息后流式回答可见，标注模型与用量，历史在刷新后恢复 (598ms)
+  ok  57 tests\e2e\chat.spec.ts:88:1 › 发送中显示停止按钮且禁止重复发送 (418ms)
+  ok  58 tests\e2e\chat.spec.ts:104:1 › 发送前 HTTP 错误（如未配置凭证）展示准确原因，用户消息保留且可重试 (396ms)
+  ok  59 tests\e2e\chat.spec.ts:127:1 › 未配置任何模型时提示先去设置而不是假对话 (435ms)
+  ok  60 tests\e2e\course-resource-faults.spec.ts:64:5 › R-11 课程资源目录故障 › JSON 损坏：课程正文与大纲保留，资源区显示错误与重试 (289ms)
+  ok  61 tests\e2e\course-resource-faults.spec.ts:64:5 › R-11 课程资源目录故障 › 结构非法（合法 JSON 非数组）：课程正文与大纲保留，资源区显示错误与重试 (302ms)
+  ok  62 tests\e2e\course-resource-faults.spec.ts:85:3 › R-11 课程资源目录故障 › 存储读取被拒：同样显示错误且不覆盖数据 (295ms)
+  ok  63 tests\e2e\course-resource-faults.spec.ts:104:3 › R-11 课程资源目录故障 › 目标已删除：仍显示“不可用：目标已删除或未载入”，不作为错误 (283ms)
+  ok  64 tests\e2e\course-resource-faults.spec.ts:112:3 › R-11 课程资源目录故障 › 故障 → 重试仍失败 → 数据修复 → 重试恢复可用（不清数据） (329ms)
+  ok  65 tests\e2e\course-resource-faults.spec.ts:139:3 › R-11 课程资源目录故障 › 添加资源面板在故障时显示错误与重试，不崩溃 (294ms)
+  ok  66 tests\e2e\course-resource-faults.spec.ts:152:3 › R-11 课程资源目录故障 › 正常资源仍可添加、打开与解除关联，刷新后正确 (660ms)
+  ok  67 tests\e2e\course-resource-faults.spec.ts:172:3 › R-11 课程资源目录故障 › 知识目录失败不阻断其他目录候选（书籍/笔记本仍可选） (293ms)
+  ok  68 tests\e2e\course-resource-faults.spec.ts:203:3 › R-11 课程资源目录故障 › 手机视口：故障态仍可读、公共壳与返回入口保留 (290ms)
+  ok  69 tests\e2e\course-sessions.spec.ts:135:3 › 课程学习会话闭环 › 两个课程各自创建与恢复会话，互不串位；课程上下文随请求发送 (2.2s)
+  ok  70 tests\e2e\course-sessions.spec.ts:194:3 › 课程学习会话闭环 › 普通旧会话兼容：未归属不出现在课程列表，聊天页正常且不被改写 (875ms)
+  ok  71 tests\e2e\course-sessions.spec.ts:237:3 › 课程学习会话闭环 › 同一 tick 连点「新建学习会话」只产生一条会话；写入失败保留页面状态并可重试 (1.0s)
+  ok  72 tests\e2e\course-sessions.spec.ts:291:3 › 课程学习会话闭环 › 刷新、前进后退与课程↔聊天往返：归属与历史保持 (1.1s)
+  ok  73 tests\e2e\course-sessions.spec.ts:311:3 › 课程学习会话闭环 › 课程修改后新轮用新快照，旧轮重试保持旧快照 (2.0s)
+  ok  74 tests\e2e\course-sessions.spec.ts:346:3 › 课程学习会话闭环 › 课程删除后：历史会话与消息保留、归属不改写、如实提示且按普通问答发送 (1.5s)
+  ok  75 tests\e2e\course-sessions.spec.ts:376:3 › 课程学习会话闭环 › 归档课程：会话区只读（新建禁用），既有会话仍可打开且历史保留 (863ms)
+  ok  76 tests\e2e\course-sessions.spec.ts:427:3 › 课程学习会话闭环 › 流式中切换会话：目标会话不被污染，迟到回答被丢弃 (5.7s)
+  ok  77 tests\e2e\course-sessions.spec.ts:475:3 › 课程学习会话闭环 › 跨任务二次点击（保存已提交、导航卸载前）不会创建第二条课程会话 (803ms)
+  ok  78 tests\e2e\course-sessions.spec.ts:494:3 › 课程学习会话闭环 › 会话列表读取失败：显示错误与重试（不显示空态），重试成功后恢复 (681ms)
+  ok  79 tests\e2e\course-sessions.spec.ts:520:3 › 课程学习会话闭环 › 三视口无横向溢出、键盘可创建会话、减少动画下仍可用 (916ms)
+  ok  80 tests\e2e\knowledge-points.spec.ts:486:3 › 知识点页 › 页面加载、页签与列表；侧栏当前项唯一高亮为「知识点」 (339ms)
+  ok  81 tests\e2e\knowledge-points.spec.ts:510:3 › 知识点页 › 列表筛选：关键字与状态过滤走服务端参数，空结果给空态而非错误 (519ms)
+  ok  82 tests\e2e\knowledge-points.spec.ts:537:3 › 知识点页 › 建立知识点 → 对话框关闭、列表出现新条目并选中详情 (827ms)
+  ok  83 tests\e2e\knowledge-points.spec.ts:562:3 › 知识点页 › 表格导入：上传 → 预览行校对 → 整批确认；响应丢失后同标识重试命中「已确认（重放）」 (2.1s)
+  ok  84 tests\e2e\knowledge-points.spec.ts:629:3 › 知识点页 › AI 候选：进行中/中断/重试/成功四态展示 → 成功后切到候选批次 (6.7s)
+  ok  85 tests\e2e\knowledge-points.spec.ts:694:3 › 知识点页 › 409 冲突：提示当前版本并刷新，用户输入保留 (596ms)
+  ok  86 tests\e2e\knowledge-points.spec.ts:717:3 › 知识点页 › 键盘可达与对话框 Esc：Tab 到主要控件，Esc 关闭并回落到打开按钮 (345ms)
+  ok  87 tests\e2e\knowledge-points.spec.ts:741:3 › 知识点页 › 三视口无横向溢出；390px 页面级溢出 ≤1px (1.3s)
+  ok  88 tests\e2e\knowledge-points.spec.ts:777:3 › 知识点页 › prefers-reduced-motion 下过渡被压制（全局 motion.css 生效） (309ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok  89 tests\e2e\lesson-plan.spec.ts:14:1 › 根路由跳转学习问答，教案直达与草稿刷新恢复，无客户端初始化错误 (1.5s)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok  90 tests\e2e\lesson-plan.spec.ts:33:1 › 路由切换立即保存，返回恢复；其他页面不继承教案打印样式 (680ms)
+  ok  91 tests\e2e\lesson-plan.spec.ts:53:1 › 规则确认、撤销重做、环节排序及增删 (978ms)
+  ok  92 tests\e2e\lesson-plan.spec.ts:80:1 › JSON备份导入、Word结构和PDF打印导出 (1.8s)
+  ok  93 tests\e2e\lesson-plan.spec.ts:123:1 › 长文和长二次备课在大字号下无溢出，文本不丢失 (641ms)
+  ok  94 tests\e2e\lesson-plan.spec.ts:168:1 › 桌面、平板和手机布局及未知路由 (672ms)
+  ok  95 tests\e2e\lesson-plan.spec.ts:188:1 › 损坏草稿不会被自动覆盖 (1.2s)
+  ok  96 tests\e2e\lesson-plan.spec.ts:196:1 › 无面包屑直接标题、编辑→配置→预览顺序与唯一折叠按钮 (1.6s)
+  ok  97 tests\e2e\lesson-plan.spec.ts:314:1 › 教案标题与导出菜单同一顶栏，四视口不重叠不溢出（UX-REGRESSION-FIX v1） (932ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok  98 tests\e2e\model-settings-nesting.spec.ts:74:3 › 模型管理嵌套交互 › 详情内打开二级面板后 Escape：只关最内层，详情保留 (830ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok  99 tests\e2e\model-settings-nesting.spec.ts:89:3 › 模型管理嵌套交互 › 详情有未保存修改时，经二级面板 Escape 返回不丢草稿 (986ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 100 tests\e2e\model-settings-nesting.spec.ts:99:3 › 模型管理嵌套交互 › 详情有未保存修改时直接关闭：先确认再丢弃 (1.2s)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 101 tests\e2e\model-settings-nesting.spec.ts:109:3 › 模型管理嵌套交互 › 关闭详情后焦点回到触发卡片 (612ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 102 tests\e2e\model-settings.spec.ts:142:3 › 模型管理 contract-v1 › 供应商卡片打开详情，模型与参数可见 (588ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 103 tests\e2e\model-settings.spec.ts:157:3 › 模型管理 contract-v1 › 发现列表只追加且显示来源 (800ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 104 tests\e2e\model-settings.spec.ts:170:3 › 模型管理 contract-v1 › 发现接口失败时给出错误并可重试，不冒充空列表 (802ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 105 tests\e2e\model-settings.spec.ts:181:3 › 模型管理 contract-v1 › 无模型列表接口的供应商明确说明需手工添加 (943ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 106 tests\e2e\model-settings.spec.ts:211:3 › 模型管理 contract-v1 › 打开卡片不切换默认模型，用于问答才触发默认写入 (906ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 107 tests\e2e\model-settings.spec.ts:229:3 › 模型管理 contract-v1 › 手机视口详情可滚动且无横向溢出 (521ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 108 tests\e2e\model-settings.spec.ts:240:3 › 模型管理 contract-v1 › 1920 视口供应商网格与详情 (397ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 109 tests\e2e\model-settings.spec.ts:249:3 › 模型管理 contract-v1 › 供应商目录读取失败不阻塞已有连接展示 (302ms)
+  ok 110 tests\e2e\navigation.spec.ts:13:1 › 全部登记路由可直达并刷新，规划页内容统一且无假提交 (813ms)
+  ok 111 tests\e2e\navigation.spec.ts:27:1 › 导航可访问名称在收起、展开与底部入口保持一致 (783ms)
+  ok 112 tests\e2e\navigation.spec.ts:54:1 › 教案编辑后经新规划入口往返不丢草稿 (463ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/question-imports Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-taxonomy Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 113 tests\e2e\navigation.spec.ts:67:1 › 手机导航抽屉显示全部入口与规划标记，可进入规划页 (994ms)
+  ok 114 tests\e2e\navigation.spec.ts:101:1 › 未知路径仍显示404而不是伪业务页面 (252ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/teaching-settings Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-libraries?kind=base Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-libraries?kind=personal Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-taxonomy Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/teaching-settings Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-libraries?kind=base Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-libraries?kind=personal Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-taxonomy Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 115 tests\e2e\navigation.spec.ts:106:1 › 教材资料库页提供书籍与课程直达入口（T4：桌面侧栏不再有书籍顶级项） (410ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/teaching-settings Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-libraries?kind=base Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-libraries?kind=personal Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-taxonomy Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/teaching-settings Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-libraries?kind=base Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-libraries?kind=personal Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-taxonomy Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/teaching-settings Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-libraries?kind=base Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-libraries?kind=personal Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-taxonomy Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 116 tests\e2e\navigation.spec.ts:123:1 › 教材资料库页入口在三种视口下不产生横向溢出 (400ms)
+  ok 117 tests\e2e\question-bank-real.spec.ts:212:1 › 真实 AI 补题 queued@0→attempt 1→人工校对确认→知识点检索 (5.4s)
+  ok 118 tests\e2e\question-bank-real.spec.ts:359:1 › 真实公共 retry：首次失败可见，queued(N)→succeeded(N+1)只调用一次 (3.9s)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-providers Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 119 tests\e2e\settings.spec.ts:4:1 › 设置页在后端不可用时展示准确错误与重试入口 (373ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-providers Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 120 tests\e2e\shell-home-nav.spec.ts:17:3 › R-02 唯一主页 /chat › 品牌按钮返回 /chat 且可访问名称与主页一致 (408ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 121 tests\e2e\shell-home-nav.spec.ts:25:3 › R-02 唯一主页 /chat › 手机头部品牌按钮同样返回 /chat (403ms)
+  ok 122 tests\e2e\shell-home-nav.spec.ts:35:3 › R-02 唯一主页 /chat › 404 与规划页的返回入口都指向 /chat (335ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 123 tests\e2e\shell-home-nav.spec.ts:42:3 › R-02 唯一主页 /chat › 标题不再把教案工作台当作全站主页 (423ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 124 tests\e2e\shell-home-nav.spec.ts:64:5 › R-04 每个已实现路由都有唯一当前菜单 › /chat 桌面侧栏当前项为「学习问答」 (330ms)
+  ok 125 tests\e2e\shell-home-nav.spec.ts:64:5 › R-04 每个已实现路由都有唯一当前菜单 › /lesson-plans 桌面侧栏当前项为「教案工作台」 (345ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/question-imports Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-taxonomy Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 126 tests\e2e\shell-home-nav.spec.ts:64:5 › R-04 每个已实现路由都有唯一当前菜单 › /question-bank 桌面侧栏当前项为「题库」 (274ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/teaching-settings Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-libraries?kind=base Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-libraries?kind=personal Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-taxonomy Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 127 tests\e2e\shell-home-nav.spec.ts:64:5 › R-04 每个已实现路由都有唯一当前菜单 › /knowledge-bases 桌面侧栏当前项为「教材资料库」 (280ms)
+  ok 128 tests\e2e\shell-home-nav.spec.ts:64:5 › R-04 每个已实现路由都有唯一当前菜单 › /books 桌面侧栏当前项为「教材资料库」 (277ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-providers Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 129 tests\e2e\shell-home-nav.spec.ts:64:5 › R-04 每个已实现路由都有唯一当前菜单 › /settings 桌面侧栏当前项为「设置」 (275ms)
+  ok 130 tests\e2e\shell-home-nav.spec.ts:81:5 › R-04 每个已实现路由都有唯一当前菜单 › 规划页 /co-writer 桌面侧栏当前项为「协同写作」 (258ms)
+  ok 131 tests\e2e\shell-home-nav.spec.ts:81:5 › R-04 每个已实现路由都有唯一当前菜单 › 规划页 /reading 桌面侧栏当前项为「沉浸阅读」 (257ms)
+  ok 132 tests\e2e\shell-home-nav.spec.ts:81:5 › R-04 每个已实现路由都有唯一当前菜单 › 规划页 /space 桌面侧栏当前项为「学习空间」 (257ms)
+  ok 133 tests\e2e\shell-home-nav.spec.ts:81:5 › R-04 每个已实现路由都有唯一当前菜单 › 规划页 /papers 桌面侧栏当前项为「智能组卷」 (256ms)
+  ok 134 tests\e2e\shell-home-nav.spec.ts:95:5 › R-04 每个已实现路由都有唯一当前菜单 › 隐藏直达页 /courses 标记可见父菜单「教材资料库」 (246ms)
+  ok 135 tests\e2e\shell-home-nav.spec.ts:102:3 › R-04 每个已实现路由都有唯一当前菜单 › 书籍并入教材资料库：桌面侧栏无书籍顶级项，书籍/课程深层路由仍唯一高亮 (447ms)
+  ok 136 tests\e2e\shell-home-nav.spec.ts:120:3 › R-04 每个已实现路由都有唯一当前菜单 › 详情页保持父级当前菜单（唯一） (230ms)
+  ok 137 tests\e2e\shell-home-nav.spec.ts:125:3 › R-04 每个已实现路由都有唯一当前菜单 › 手机抽屉标记隐藏项自身且仍唯一 (268ms)
+  ok 138 tests\e2e\shell-home-nav.spec.ts:137:3 › R-04 每个已实现路由都有唯一当前菜单 › 手机抽屉仍有书籍与课程入口，/books 时高亮书籍自身 (485ms)
+  ok 139 tests\e2e\shell-home-nav.spec.ts:154:3 › R-06 404/错误页统一公共壳 › 未知路径 404 保留公共壳、导航与唯一当前项 (299ms)
+  ok 140 tests\e2e\shell-home-nav.spec.ts:164:3 › R-06 404/错误页统一公共壳 › 独立模块内未知深层路径也恰好一层壳 (231ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 141 tests\e2e\shell-home-nav.spec.ts:170:3 › R-06 404/错误页统一公共壳 › 404 返回入口可用 (633ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-providers Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 142 tests\e2e\shell-home-nav.spec.ts:178:3 › 折叠保持与手机抽屉 › 折叠偏好跨页保持一致（含 404 与独立模块） (577ms)
+  ok 143 tests\e2e\shell-home-nav.spec.ts:188:3 › 折叠保持与手机抽屉 › 手机抽屉焦点圈定、Escape 关闭并返回触发按钮 (299ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/teaching-settings Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-libraries?kind=base Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-libraries?kind=personal Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-taxonomy Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/question-imports Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-taxonomy Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-providers Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 144 tests\e2e\sidebar-chat-fixes.spec.ts:16:1 › 全站侧栏图标、宽度和当前菜单一致，折叠偏好跨路由保留 (2.1s)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-providers Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 145 tests\e2e\sidebar-chat-fixes.spec.ts:69:3 › 手机抽屉焦点、遮罩、关闭与当前菜单 /chat (1.6s)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-providers Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 146 tests\e2e\sidebar-chat-fixes.spec.ts:69:3 › 手机抽屉焦点、遮罩、关闭与当前菜单 /lesson-plans (1.6s)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/teaching-settings Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-libraries?kind=base Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-libraries?kind=personal Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-taxonomy Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-providers Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 147 tests\e2e\sidebar-chat-fixes.spec.ts:69:3 › 手机抽屉焦点、遮罩、关闭与当前菜单 /knowledge-bases (1.5s)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 148 tests\e2e\sidebar-chat-fixes.spec.ts:109:1 › 聊天不再提供模拟模式，也不创建模拟数据库 (330ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-providers Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-providers Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 149 tests\e2e\sidebar-transition.spec.ts:52:3 › 软导航全程侧栏不跳变，样式跟随学习问答 1440 (2.9s)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-providers Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-providers Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 150 tests\e2e\sidebar-transition.spec.ts:52:3 › 软导航全程侧栏不跳变，样式跟随学习问答 1920 (2.9s)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-providers Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 151 tests\e2e\sidebar-transition.spec.ts:122:1 › 各板块使用同一折叠时长并响应减少动画 (713ms)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-providers Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 152 tests\e2e\sidebar-transition.spec.ts:133:1 › 手机跨板块打开抽屉，菜单字体和尺寸沿用学习问答 (2.3s)
+  ok 153 tests\e2e\ui-motion.spec.ts:142:1 › 公共 Modal 入场中 Escape、快速重开与焦点恢复，不创建书籍 (753ms)
+  ok 154 tests\e2e\ui-motion.spec.ts:184:1 › 手机抽屉响应 system/app 减少动画，恢复时不补播，重开仍入场 (1.1s)
+  ok 155 tests\e2e\ui-motion.spec.ts:245:1 › 抽屉入场中键盘导航到施测，单壳、焦点与滚动锁正确清理 (534ms)
+  ok 156 tests\e2e\ui-resource-visual.spec.ts:72:3 › 资源详情视觉：1440，本地演示与失败替身 (4.0s)
+  ok 157 tests\e2e\ui-resource-visual.spec.ts:72:3 › 资源详情视觉：1920，本地演示与失败替身 (4.2s)
+  ok 158 tests\e2e\ui-resource-visual.spec.ts:72:3 › 资源详情视觉：1024，本地演示与失败替身 (4.0s)
+  ok 159 tests\e2e\ui-resource-visual.spec.ts:72:3 › 资源详情视觉：390，本地演示与失败替身 (3.8s)
+  ok 160 tests\e2e\ui-textbook-visual.spec.ts:99:3 › 教材列表、详情、长原文和分类冲突保留输入 1440 (1.6s)
+  ok 161 tests\e2e\ui-textbook-visual.spec.ts:99:3 › 教材列表、详情、长原文和分类冲突保留输入 1920 (1.8s)
+  ok 162 tests\e2e\ui-textbook-visual.spec.ts:99:3 › 教材列表、详情、长原文和分类冲突保留输入 1024 (1.6s)
+  ok 163 tests\e2e\ui-textbook-visual.spec.ts:99:3 › 教材列表、详情、长原文和分类冲突保留输入 390 (1.5s)
+  ok 164 tests\e2e\ui-unification.spec.ts:30:3 › 全站视觉基础：1440，空态与失败可见、排版对齐 (8.9s)
+  ok 165 tests\e2e\ui-unification.spec.ts:30:3 › 全站视觉基础：1920，空态与失败可见、排版对齐 (9.2s)
+  ok 166 tests\e2e\ui-unification.spec.ts:30:3 › 全站视觉基础：1024，空态与失败可见、排版对齐 (9.0s)
+  ok 167 tests\e2e\ui-unification.spec.ts:30:3 › 全站视觉基础：390，空态与失败可见、排版对齐 (8.5s)
+  ok 168 tests\e2e\ui-unification.spec.ts:94:1 › 700px 手机布局的可见输入与下拉保持44px触控高度 (814ms)
+  ok 169 tests\e2e\ui-unification.spec.ts:141:1 › 应用减少动画实时停止GSAP，抽屉关闭与焦点不等待动画 (802ms)
+  ok 170 tests\e2e\ui-workflow-visual.spec.ts:212:3 › 教学闭环有数据视觉夹具：1440，固定依据、完整题面与只读历史 (1.9s)
+  ok 171 tests\e2e\ui-workflow-visual.spec.ts:212:3 › 教学闭环有数据视觉夹具：1920，固定依据、完整题面与只读历史 (2.0s)
+  ok 172 tests\e2e\ui-workflow-visual.spec.ts:212:3 › 教学闭环有数据视觉夹具：1024，固定依据、完整题面与只读历史 (1.8s)
+  ok 173 tests\e2e\ui-workflow-visual.spec.ts:212:3 › 教学闭环有数据视觉夹具：390，固定依据、完整题面与只读历史 (1.9s)
+(node:31160) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:31160) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(node:31160) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-providers Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-providers Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-providers Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-catalog Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/model-providers Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-models Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/embedding-profiles Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/textbook-index/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 174 tests\e2e\replica-settings.spec.ts:3:1 › 设置内扩展管理、兼容入口与减少动画 (1.8s)
+
+  174 passed (7.9m)

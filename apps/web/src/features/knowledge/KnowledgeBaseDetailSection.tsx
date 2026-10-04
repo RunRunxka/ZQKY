@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEntrance } from '@/components/motion/useEntrance';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 // 复用 space 设计语言的样式；直达路由也需要加载（不能只依赖 SpaceMain 的引入）
@@ -111,6 +112,7 @@ function formatSize(size: number | undefined): string {
 }
 
 export function KnowledgeBaseDetailSection() {
+  const entranceRef = useRef<HTMLDivElement>(null);
   const params = useParams<{ kbName: string }>();
   const kbName = decodeURIComponent(params.kbName);
   const [kbs, setKbs] = useState<KnowledgeEntry[] | null>(null);
@@ -133,6 +135,7 @@ export function KnowledgeBaseDetailSection() {
 
   const kb = useMemo(() => kbs?.find((entry) => entry.name === kbName) ?? null, [kbs, kbName]);
   const kbId = kb?.id ?? null;
+  useEntrance(entranceRef, { preset: 'page', triggerKey: kbName, enabled: Boolean(kb) });
 
   // 刷新恢复：挂载后对处于 parsing/indexing 的文档重新挂载模拟推进。
   // 仅在对应 KB 的 id 变化时执行，避免与 subscribeKnowledge 的每次刷新重复启动。
@@ -142,7 +145,7 @@ export function KnowledgeBaseDetailSection() {
 
   if (kbs !== null && !kb) {
     return (
-      <div className="space-page kb-page kb-detail">
+      <div className="space-page kb-page kb-detail" ref={entranceRef}>
         <div className="space-empty" style={{ marginTop: 80 }}>
           <strong>知识库「{kbName}」不存在</strong>
           <span>它可能已被删除，或链接有误。</span>
@@ -158,7 +161,7 @@ export function KnowledgeBaseDetailSection() {
   if (!kb) {
     // kbs 仍为 null 时可能是读取中，也可能是读取失败：失败必须如实提示，不能停在“读取中”
     return (
-      <div className="space-page kb-page kb-detail">
+      <div className="space-page kb-page kb-detail" ref={entranceRef}>
         {error ? (
           <div className="space-banner error" role="alert" style={{ marginTop: 80 }}>
             {error}
@@ -176,8 +179,8 @@ export function KnowledgeBaseDetailSection() {
   const StatusIcon = KB_STATUS_ICON[summary.status];
 
   return (
-    <div className="space-page kb-page kb-detail">
-      <header className="space-header">
+    <div className="space-page kb-page kb-detail" ref={entranceRef}>
+      <header className="space-header" data-motion-reveal>
         <div className="space-header-row">
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0 }}>
             <span className="kb-head-icon" aria-hidden>

@@ -20,12 +20,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="zh-CN">
       <body>
-        <MotionPreference />
-        <NavigationPreference>
-          <NavigationGuardProvider>
-            <ModuleWorkspaceShell>{children}</ModuleWorkspaceShell>
-          </NavigationGuardProvider>
-        </NavigationPreference>
+        <MotionPreference>
+          <NavigationPreference>
+            <NavigationGuardProvider>
+              <ModuleWorkspaceShell>{children}</ModuleWorkspaceShell>
+            </NavigationGuardProvider>
+          </NavigationPreference>
+        </MotionPreference>
       </body>
     </html>
   );

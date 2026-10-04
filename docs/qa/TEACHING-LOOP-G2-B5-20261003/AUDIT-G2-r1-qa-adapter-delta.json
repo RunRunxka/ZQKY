@@ -1,0 +1,26 @@
+{
+  "capturedAtUtc": "2026-10-03T05:48:54.142798+00:00",
+  "version": "G2-r1",
+  "candidateSHA": "454e7bde71864cc4c3e0a276e921ce6537f7dbe9630473936f3b2f541def830e",
+  "sourceDrift": [],
+  "sourceAdded": [],
+  "qaDrift": [
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/candidate.py",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/run_command.py"
+  ],
+  "qaAdded": [],
+  "contractDrift": [],
+  "buildDrift": [],
+  "buildAdded": [],
+  "protectedDrift": [],
+  "priorDrift": [],
+  "baselineMatches": true,
+  "nextEnvMatches": true,
+  "buildIdentityMatches": true,
+  "sourceCount": 886,
+  "qaCount": 287,
+  "buildCount": 2007,
+  "historicalCount": 4136,
+  "elapsedMs": 1366.147,
+  "exitCode": 1
+}

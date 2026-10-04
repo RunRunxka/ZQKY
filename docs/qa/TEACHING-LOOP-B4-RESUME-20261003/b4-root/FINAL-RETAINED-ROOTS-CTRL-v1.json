@@ -1,0 +1,124 @@
+{
+  "capturedAt": "2026-10-03T03:05:24.330446+00:00",
+  "rootCount": 15,
+  "roots": [
+    {
+      "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-chat-resume-first-gw887xuv",
+      "exists": true,
+      "retained": true,
+      "receipt": "docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-root\\chat-resume-first-command.json"
+    },
+    {
+      "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-full-e2e-resume-first-hfm1e33_",
+      "exists": true,
+      "retained": true,
+      "receipt": "docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-root\\full-e2e-resume-first-command.json"
+    },
+    {
+      "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-qa-lint-busy-fixed-first-wily40fl",
+      "exists": true,
+      "retained": true,
+      "receipt": "docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-root\\qa-lint-busy-fixed-first-command.json"
+    },
+    {
+      "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-qa-lint-first-vqjtqs8s",
+      "exists": true,
+      "retained": true,
+      "receipt": "docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-root\\qa-lint-first-command.json"
+    },
+    {
+      "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-qa-lint-fixed-first-6xn8vu7j",
+      "exists": true,
+      "retained": true,
+      "receipt": "docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-root\\qa-lint-fixed-first-command.json"
+    },
+    {
+      "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-qa-lint-metadata-fixed-first-qne3bvrp",
+      "exists": true,
+      "retained": true,
+      "receipt": "docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-root\\qa-lint-metadata-fixed-first-command.json"
+    },
+    {
+      "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-qa-types-busy-fixed-first-epk19bx3",
+      "exists": true,
+      "retained": true,
+      "receipt": "docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-root\\qa-types-busy-fixed-first-command.json"
+    },
+    {
+      "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-qa-types-first-yp_d8yij",
+      "exists": true,
+      "retained": true,
+      "receipt": "docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-root\\qa-types-first-command.json"
+    },
+    {
+      "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-qa-types-fixed-first-48anct7f",
+      "exists": true,
+      "retained": true,
+      "receipt": "docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-root\\qa-types-fixed-first-command.json"
+    },
+    {
+      "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-qa-types-metadata-fixed-first-a03s1_29",
+      "exists": true,
+      "retained": true,
+      "receipt": "docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-root\\qa-types-metadata-fixed-first-command.json"
+    },
+    {
+      "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r14-independent-first-hilt3szg",
+      "exists": true,
+      "retained": true,
+      "receipt": "docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-root\\r14-independent-first-command.json"
+    },
+    {
+      "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r14-independent-fixed-first-yuigilwk",
+      "exists": true,
+      "retained": true,
+      "receipt": "docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-root\\r14-independent-fixed-first-command.json"
+    },
+    {
+      "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-stream-20261003-chat-first-irenjzcm",
+      "exists": true,
+      "retained": true,
+      "receipt": "docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-root\\stream-chat-first.json"
+    },
+    {
+      "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-1O808m",
+      "exists": true,
+      "retained": true,
+      "receipt": "full-e2e complete CREATED/RETAINED pair"
+    },
+    {
+      "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-3IX8Q3",
+      "exists": true,
+      "retained": true,
+      "receipt": "full-e2e complete CREATED/RETAINED pair"
+    }
+  ],
+  "fullApiPairs": {
+    "assessments": {
+      "spec": "assessments",
+      "tmpRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-1O808m",
+      "dataDir": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-1O808m\\data",
+      "apiLog": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-1O808m\\api.log",
+      "pid": 13884,
+      "childClosed": true,
+      "logClosed": true
+    },
+    "question-bank-real": {
+      "spec": "question-bank-real",
+      "tmpRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-3IX8Q3",
+      "dataDir": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-3IX8Q3\\data",
+      "apiLog": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-3IX8Q3\\api.log",
+      "pid": 13688,
+      "childClosed": true,
+      "logClosed": true
+    }
+  },
+  "streamNestedModelSample": {
+    "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-stream-20261003-chat-first-irenjzcm\\zqky-chat-test-mtwfre0o",
+    "retained": true
+  },
+  "oldSixDeniedRootsAction": "none",
+  "formalDataCredentialsAction": "none",
+  "deletionAction": "none",
+  "exit": 0
+}

@@ -1,0 +1,18 @@
+{
+  "task": "G3-BOUNDARY-v1",
+  "at": "2026-10-04T13:10:56.045976+08:00",
+  "state": "STOP_AFTER_COMPONENT_DYNAMIC_REVIEW",
+  "candidateSHA": "80bc5a40d08c81a0b6cb5d62e19d4267ccf3c56e0c1d2c776fe89ce839860d22",
+  "newReports": {
+    "DYNAMIC-FACTS-r2-v1.json": "206e34f8cc19535a900341e25601630c0573b6f3321a780991208284ebb13e8f",
+    "DYNAMIC-REVIEW-r2-v1.md": "351400da63a3b0408f4a87c100f7abea54c628c0b769684769f86824c5566c0c",
+    "DYNAMIC-REVIEW-r2-v1.json": "00c58bf503703903ab6df25411b2d5580dd6fc946ccc5de6372d9c7d597387b7"
+  },
+  "preservedBoundaryQA": {
+    "session-boundary.test.tsx": "377bd497211e7dd633edeb3aa3b3fa9999b8a1d15ffac3b6b54a1e2513d267ac",
+    "source-callback-boundary.test.tsx": "bfc96c302b1ccb2581c11b6a6c9101389821d0d3de9844ff8e18c14f1420099d",
+    "source-intent-recovery-boundary.test.tsx": "204b4d09a16ff6d385bfdeb888ce5bf37f068b6e9e36b761071d46c58484771f",
+    "workspace-source-discard-boundary.test.tsx": "8b68be843345166c267f08c7e9f2a11ddd8b50cba3d46364129e4141433301fd"
+  },
+  "next": "wait ROOT true browser outcome; controlled components do not close G3"
+}

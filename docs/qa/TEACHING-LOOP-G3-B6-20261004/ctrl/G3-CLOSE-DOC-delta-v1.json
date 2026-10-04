@@ -1,0 +1,29 @@
+{
+  "at": "2026-10-04T13:52:47.526153+08:00",
+  "changes": [
+    {
+      "path": "docs/CURRENT_STATUS.md",
+      "beforeSHA": "756ec63c59d45c805b226c0990982c73163d6f9be035234bf1a5ee1bf4a07587",
+      "afterSHA": "690c1b2979a78408fdff79c76f4c7d265e3698cc1965363b3b30c18fa4074360",
+      "insertionOnly": false,
+      "currentLiveSectionRefreshed": true,
+      "beforeSnapshot": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/G3-CLOSE-DOC-before-v1/docs/CURRENT_STATUS.md"
+    },
+    {
+      "path": "docs/NEXT_SESSION_START.md",
+      "beforeSHA": "46bdf2fdb92d48497f1da2c7703918d9f7c7ea7ac84d6f951c4fc352415eb67b",
+      "afterSHA": "91a461650fba6b72aa1c0415f5def284d5933e57ec4fea4fa7db29a7222a9076",
+      "insertionOnly": true,
+      "currentLiveSectionRefreshed": false,
+      "beforeSnapshot": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/G3-CLOSE-DOC-before-v1/docs/NEXT_SESSION_START.md"
+    },
+    {
+      "path": "docs/design/teaching-loop-v1/多Agent实施任务计划书_v2.0.md",
+      "beforeSHA": "dc8ec2d722f0cb8b599b02e4525fbe762fbc947f9349a95f53dcff4dc2d63811",
+      "afterSHA": "7ad50d29fb4795d13bdfc43f78d4bc311f56138dd0ac1d9c5424fc1c62d9243b",
+      "insertionOnly": true,
+      "currentLiveSectionRefreshed": false,
+      "beforeSnapshot": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/G3-CLOSE-DOC-before-v1/docs/design/teaching-loop-v1/多Agent实施任务计划书_v2.0.md"
+    }
+  ]
+}

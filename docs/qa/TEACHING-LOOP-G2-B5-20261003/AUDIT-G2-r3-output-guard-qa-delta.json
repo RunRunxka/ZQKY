@@ -1,0 +1,28 @@
+{
+  "capturedAtUtc": "2026-10-03T06:29:17.756068+00:00",
+  "version": "G2-r3",
+  "candidateSHA": "4cb87b15870799f638c6c48527f8fbed34013ac9c9a74a41ec09d27e42168034",
+  "sourceDrift": [],
+  "sourceAdded": [],
+  "qaDrift": [
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/chat.external.config.ts",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/e2e.external.config.ts",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/visual.external.config.ts",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/g2-v00/browser/external.config.ts"
+  ],
+  "qaAdded": [],
+  "contractDrift": [],
+  "buildDrift": [],
+  "buildAdded": [],
+  "protectedDrift": [],
+  "priorDrift": [],
+  "baselineMatches": true,
+  "nextEnvMatches": true,
+  "buildIdentityMatches": true,
+  "sourceCount": 886,
+  "qaCount": 304,
+  "buildCount": 2007,
+  "historicalCount": 4136,
+  "elapsedMs": 1406.837,
+  "exitCode": 1
+}

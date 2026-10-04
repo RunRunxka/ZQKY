@@ -1,0 +1,3522 @@
+{
+  "task": "B6-FULL153-RECEIPT-REVIEW-v1",
+  "taskCardSHA": "232d439e1922e7974a84a9fe3558354c43677c3555a99536d5ca409e8007459a",
+  "reviewer": "/root/g3_boundary_review",
+  "recordedAt": "2026-10-04T07:25:53.015Z",
+  "result": "PASS_FULL153_SOURCE_AND_RECEIPT",
+  "scope": "本轮原完整24spec/153实际门禁的独立只读来源与收据审查；不是QA重跑或最终文档关闭",
+  "candidate": {
+    "path": "CANDIDATE-B6-R01-r2-built.json",
+    "sha256": "530005e154a3620f4d0fc6a0a3ade36c35bbd2f8316a91b71e65b1e007a8deb0",
+    "sourceCount": 942,
+    "oldExecutableQaCount": 3136,
+    "buildId": "LkFgY8qsEnCOUbC11Dm1T",
+    "proxy": "http://127.0.0.1:8001/api/v1/:path*",
+    "nextEnvSha256": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc",
+    "current942Drift": [],
+    "head": "6cb6a40db890390f0261d547213e319040f64785"
+  },
+  "command": {
+    "path": "ctrl/b6-e2e-full-r01-r2-first-command.json",
+    "sha256": "a673e4c30593206b287846549b4b0763da4dfdfc39e62758c9d9cf41d328804d",
+    "command": [
+      "C:/Users/96022/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node.exe",
+      "node_modules/@playwright/test/cli.js",
+      "test",
+      "--config",
+      "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/e2e.external.config.ts"
+    ],
+    "runnerPID": 19104,
+    "pid": 4676,
+    "exitCode": 0,
+    "elapsedMs": 395901.975,
+    "startedAt": "2026-10-04T07:02:58.287906+00:00",
+    "finishedAt": "2026-10-04T07:09:34.485362+00:00",
+    "childClosed": true,
+    "logsClosed": true,
+    "sampleRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-g3-ctrl-b6-e2e-full-r01-r2-first-_i6fqklu",
+    "sampleRetained": true,
+    "logSHA": "48b4f19c2f3b9a9f5734014af13f9b78b4f4f786a1a86fc6288ae31aed910095",
+    "actualLogSHA": "48b4f19c2f3b9a9f5734014af13f9b78b4f4f786a1a86fc6288ae31aed910095",
+    "nextEnvBeforeSHA": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc",
+    "nextEnvAfterSHA": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc"
+  },
+  "resultFiles": {
+    "json": {
+      "path": "e2e-b6-r01-r2-built-node24-first/results.json",
+      "sha256": "687c0fb38b359d0ed954eafefe1a869f4bb60113bf0a0e36fb6cd89340a50b53",
+      "stats": {
+        "startTime": "2026-10-04T07:02:59.301Z",
+        "duration": 395134.425,
+        "expected": 153,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "errors": []
+    },
+    "xml": {
+      "path": "e2e-b6-r01-r2-built-node24-first/results.xml",
+      "sha256": "c1900853603e81a0cefb99c97eb4c3d27fbb10c342781bf094e25c381cd14ad8",
+      "testcases": 153,
+      "testsuites": 24,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "log": {
+      "path": "ctrl/b6-e2e-full-r01-r2-first.log",
+      "sha256": "48b4f19c2f3b9a9f5734014af13f9b78b4f4f786a1a86fc6288ae31aed910095",
+      "finalText": "153 passed (6.6m)"
+    }
+  },
+  "caseChecks": {
+    "testCount": 153,
+    "specCount": 24,
+    "allExpected": true,
+    "allSinglePassedRetry0": true,
+    "resultCount": 153,
+    "resultErrors": 0,
+    "sourceBeforeVsBuilt": {
+      "missing": [],
+      "extra": [],
+      "changed": []
+    },
+    "sourceAfterVsBuilt": {
+      "missing": [],
+      "extra": [],
+      "changed": []
+    },
+    "qaBeforeVsBuilt": {
+      "missing": [],
+      "extra": [],
+      "changed": []
+    },
+    "qaAfterVsBuilt": {
+      "missing": [],
+      "extra": [],
+      "changed": []
+    },
+    "qaVsG3": {
+      "missing": [],
+      "extra": [],
+      "changed": []
+    },
+    "uniqueCaseIds": 153,
+    "jsonXmlEverySpecCountEqual": true,
+    "perSpec": [
+      {
+        "file": "assessments.spec.ts",
+        "tests": 4,
+        "xml": {
+          "file": "assessments.spec.ts",
+          "tests": 4,
+          "failures": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      },
+      {
+        "file": "books-commit-safety.spec.ts",
+        "tests": 6,
+        "xml": {
+          "file": "books-commit-safety.spec.ts",
+          "tests": 6,
+          "failures": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      },
+      {
+        "file": "books-courses.spec.ts",
+        "tests": 7,
+        "xml": {
+          "file": "books-courses.spec.ts",
+          "tests": 7,
+          "failures": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      },
+      {
+        "file": "books-harden.spec.ts",
+        "tests": 6,
+        "xml": {
+          "file": "books-harden.spec.ts",
+          "tests": 6,
+          "failures": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      },
+      {
+        "file": "books-pipeline.spec.ts",
+        "tests": 14,
+        "xml": {
+          "file": "books-pipeline.spec.ts",
+          "tests": 14,
+          "failures": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      },
+      {
+        "file": "chat-composer-boundaries.spec.ts",
+        "tests": 1,
+        "xml": {
+          "file": "chat-composer-boundaries.spec.ts",
+          "tests": 1,
+          "failures": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      },
+      {
+        "file": "chat-composer.spec.ts",
+        "tests": 2,
+        "xml": {
+          "file": "chat-composer.spec.ts",
+          "tests": 2,
+          "failures": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      },
+      {
+        "file": "chat-context-budget.spec.ts",
+        "tests": 4,
+        "xml": {
+          "file": "chat-context-budget.spec.ts",
+          "tests": 4,
+          "failures": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      },
+      {
+        "file": "chat-deeplink.spec.ts",
+        "tests": 7,
+        "xml": {
+          "file": "chat-deeplink.spec.ts",
+          "tests": 7,
+          "failures": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      },
+      {
+        "file": "chat-home.spec.ts",
+        "tests": 4,
+        "xml": {
+          "file": "chat-home.spec.ts",
+          "tests": 4,
+          "failures": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      },
+      {
+        "file": "chat.spec.ts",
+        "tests": 4,
+        "xml": {
+          "file": "chat.spec.ts",
+          "tests": 4,
+          "failures": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      },
+      {
+        "file": "course-resource-faults.spec.ts",
+        "tests": 9,
+        "xml": {
+          "file": "course-resource-faults.spec.ts",
+          "tests": 9,
+          "failures": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      },
+      {
+        "file": "course-sessions.spec.ts",
+        "tests": 11,
+        "xml": {
+          "file": "course-sessions.spec.ts",
+          "tests": 11,
+          "failures": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      },
+      {
+        "file": "knowledge-points.spec.ts",
+        "tests": 9,
+        "xml": {
+          "file": "knowledge-points.spec.ts",
+          "tests": 9,
+          "failures": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      },
+      {
+        "file": "lesson-plan.spec.ts",
+        "tests": 9,
+        "xml": {
+          "file": "lesson-plan.spec.ts",
+          "tests": 9,
+          "failures": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      },
+      {
+        "file": "model-settings-nesting.spec.ts",
+        "tests": 4,
+        "xml": {
+          "file": "model-settings-nesting.spec.ts",
+          "tests": 4,
+          "failures": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      },
+      {
+        "file": "model-settings.spec.ts",
+        "tests": 8,
+        "xml": {
+          "file": "model-settings.spec.ts",
+          "tests": 8,
+          "failures": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      },
+      {
+        "file": "navigation.spec.ts",
+        "tests": 7,
+        "xml": {
+          "file": "navigation.spec.ts",
+          "tests": 7,
+          "failures": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      },
+      {
+        "file": "question-bank-real.spec.ts",
+        "tests": 2,
+        "xml": {
+          "file": "question-bank-real.spec.ts",
+          "tests": 2,
+          "failures": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      },
+      {
+        "file": "replica-settings.spec.ts",
+        "tests": 1,
+        "xml": {
+          "file": "replica-settings.spec.ts",
+          "tests": 1,
+          "failures": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      },
+      {
+        "file": "settings.spec.ts",
+        "tests": 1,
+        "xml": {
+          "file": "settings.spec.ts",
+          "tests": 1,
+          "failures": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      },
+      {
+        "file": "shell-home-nav.spec.ts",
+        "tests": 24,
+        "xml": {
+          "file": "shell-home-nav.spec.ts",
+          "tests": 24,
+          "failures": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      },
+      {
+        "file": "sidebar-chat-fixes.spec.ts",
+        "tests": 5,
+        "xml": {
+          "file": "sidebar-chat-fixes.spec.ts",
+          "tests": 5,
+          "failures": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      },
+      {
+        "file": "sidebar-transition.spec.ts",
+        "tests": 4,
+        "xml": {
+          "file": "sidebar-transition.spec.ts",
+          "tests": 4,
+          "failures": 0,
+          "skipped": 0,
+          "errors": 0
+        }
+      }
+    ]
+  },
+  "caseFacts": [
+    {
+      "specFile": "assessments.spec.ts",
+      "path": "assessments.spec.ts / 施测与成绩工作区（真隔离 FastAPI + 真实浏览器） / 空态/错误恢复/键盘/减少动画与 390px：真实后端，无横向溢出",
+      "specId": "8ea4daa14b82f1edf62d-b60efd9adceb32b8de7d",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 4059,
+          "startTime": "2026-10-04T07:03:00.993Z"
+        }
+      ]
+    },
+    {
+      "specFile": "assessments.spec.ts",
+      "path": "assessments.spec.ts / 施测与成绩工作区（真隔离 FastAPI + 真实浏览器） / 五步真实链：建班/选人次 → 选原卷 → 建施测 → 上传/映射/校对 → 承认 → 确认 → 历史矩阵",
+      "specId": "8ea4daa14b82f1edf62d-cec5398f2c506a0bbf4b",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 4411,
+          "startTime": "2026-10-04T07:03:05.219Z"
+        }
+      ]
+    },
+    {
+      "specFile": "assessments.spec.ts",
+      "path": "assessments.spec.ts / 施测与成绩工作区（真隔离 FastAPI + 真实浏览器） / 完整真实链：名单导入→富原卷校对确认→施测→成绩响应丢失重放→修正历史",
+      "specId": "8ea4daa14b82f1edf62d-c5c2af156195f03ebf6c",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 3660,
+          "startTime": "2026-10-04T07:03:09.641Z"
+        }
+      ]
+    },
+    {
+      "specFile": "assessments.spec.ts",
+      "path": "assessments.spec.ts / 施测与成绩工作区（真隔离 FastAPI + 真实浏览器） / 规模实测：200 人次 × 100 叶（分页 50/页，记录首屏与翻页耗时）",
+      "specId": "8ea4daa14b82f1edf62d-2f61ba13bb79f2e142ea",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 10997,
+          "startTime": "2026-10-04T07:03:13.311Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-commit-safety.spec.ts",
+      "path": "books-commit-safety.spec.ts / H1 书籍提交一致性（真实双标签页） / 另一标签页持有写锁：创建如实失败并保留输入，释放后重试成功",
+      "specId": "ff0d34ed03a7b2369d46-f988db49dfd41f26c866",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 2674,
+          "startTime": "2026-10-04T07:03:24.566Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-commit-safety.spec.ts",
+      "path": "books-commit-safety.spec.ts / H1 书籍提交一致性（真实双标签页） / 同一本书不同页并发写：后写者胜但不损坏其他页；结束后无悬挂锁",
+      "specId": "ff0d34ed03a7b2369d46-af362ffee5d3c12abc94",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 975,
+          "startTime": "2026-10-04T07:03:27.249Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-commit-safety.spec.ts",
+      "path": "books-commit-safety.spec.ts / H1 书籍提交一致性（真实双标签页） / 双标签页并发写不同书：两边内容都在、无覆盖、结束后无悬挂锁",
+      "specId": "ff0d34ed03a7b2369d46-e9d47102291671075256",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 21068,
+          "startTime": "2026-10-04T07:03:28.235Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-commit-safety.spec.ts",
+      "path": "books-commit-safety.spec.ts / H1 书籍提交一致性（真实双标签页） / 另一标签页持写锁：暂停如实失败且不显示「已暂停」；释放后暂停成功并在刷新后保持",
+      "specId": "ff0d34ed03a7b2369d46-7ff13e31eef5518d632c",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 8475,
+          "startTime": "2026-10-04T07:03:49.314Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-commit-safety.spec.ts",
+      "path": "books-commit-safety.spec.ts / H1 书籍提交一致性（真实双标签页） / 生成与人工编辑并发：另一标签页写笔记，生成完成后笔记仍在且生成结果完整",
+      "specId": "ff0d34ed03a7b2369d46-d1cc7be58c7a088ccfbe",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 16841,
+          "startTime": "2026-10-04T07:03:57.800Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-commit-safety.spec.ts",
+      "path": "books-commit-safety.spec.ts / H1 书籍提交一致性（真实双标签页） / 持有写锁时删除与其后操作都不假成功；释放后可正常删除",
+      "specId": "ff0d34ed03a7b2369d46-ca7664c172880e1469a2",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 2763,
+          "startTime": "2026-10-04T07:04:14.655Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-courses.spec.ts",
+      "path": "books-courses.spec.ts / 书籍列表：演示载入幂等、新建草稿与统计",
+      "specId": "d2c0d6f511a580d631bf-0fb1f9fe151e0c5a8f84",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 595,
+          "startTime": "2026-10-04T07:04:17.463Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-courses.spec.ts",
+      "path": "books-courses.spec.ts / 书籍状态机：确认提案→确认大纲→模拟编译进入阅读器",
+      "specId": "d2c0d6f511a580d631bf-1f8ce653281d25e20f25",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 16424,
+          "startTime": "2026-10-04T07:04:18.069Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-courses.spec.ts",
+      "path": "books-courses.spec.ts / 就绪书阅读器：续读定位、书签、键盘翻页、无效页码与重建",
+      "specId": "d2c0d6f511a580d631bf-ef4ff1f58804c4e0b61c",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 2796,
+          "startTime": "2026-10-04T07:04:34.505Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-courses.spec.ts",
+      "path": "books-courses.spec.ts / 阅读器练习块：本地判定正确/错误",
+      "specId": "d2c0d6f511a580d631bf-e457c4a7e1c1a4c77625",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 535,
+          "startTime": "2026-10-04T07:04:37.311Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-courses.spec.ts",
+      "path": "books-courses.spec.ts / 课程：演示载入、大纲勾选与编辑重置、资源附加与不可用态、归档",
+      "specId": "d2c0d6f511a580d631bf-4c703ba83275a6ec41d5",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 723,
+          "startTime": "2026-10-04T07:04:37.857Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-courses.spec.ts",
+      "path": "books-courses.spec.ts / 课程新建与导航显示：书籍可见、课程按参考隐藏",
+      "specId": "d2c0d6f511a580d631bf-595954f7be108c61bd0e",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 699,
+          "startTime": "2026-10-04T07:04:38.590Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-courses.spec.ts",
+      "path": "books-courses.spec.ts / 教材资料库 ↔ 书籍/课程：完整往返路径、返回入口与唯一当前项（UX-REGRESSION-FIX v1）",
+      "specId": "d2c0d6f511a580d631bf-bab87682f80255d723d5",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 1023,
+          "startTime": "2026-10-04T07:04:39.299Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-harden.spec.ts",
+      "path": "books-harden.spec.ts / H1 书籍加固（HARDEN v1） / 首次读取目录失败：错误可见 + 重试读取成功并清除旧错误（含 390 窄视口不溢出）",
+      "specId": "5f9937302d3fe39d7c4c-eb01bc1ffc105458ee1d",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 439,
+          "startTime": "2026-10-04T07:04:40.352Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-harden.spec.ts",
+      "path": "books-harden.spec.ts / H1 书籍加固（HARDEN v1） / 双标签页失权：第一标签页停止并提示、不再续租；释放所有权后可继续生成",
+      "specId": "5f9937302d3fe39d7c4c-76c6195217f46d9bf7ac",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 19613,
+          "startTime": "2026-10-04T07:04:40.801Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-harden.spec.ts",
+      "path": "books-harden.spec.ts / H1 书籍加固（HARDEN v1） / 生成中删除：租约立即释放且不再续租，迟到事件不复活",
+      "specId": "5f9937302d3fe39d7c4c-21ce15cde6c9dca5bdec",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 2460,
+          "startTime": "2026-10-04T07:05:00.427Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-harden.spec.ts",
+      "path": "books-harden.spec.ts / H1 书籍加固（HARDEN v1） / 笔记与 contenteditable 内 ←/→ 不翻页；普通阅读仍可翻页",
+      "specId": "5f9937302d3fe39d7c4c-ef4f8ae94b9e0661b120",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 590,
+          "startTime": "2026-10-04T07:05:02.896Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-harden.spec.ts",
+      "path": "books-harden.spec.ts / H1 书籍加固（HARDEN v1） / 最终完成写入失败：不假报完成，卡片显示生成失败，「重试生成」后真正完成",
+      "specId": "5f9937302d3fe39d7c4c-12fd84024b68f2003e07",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 17332,
+          "startTime": "2026-10-04T07:05:03.496Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-harden.spec.ts",
+      "path": "books-harden.spec.ts / H1 书籍加固（HARDEN v1） / 同一 tick 连点「强制重新生成」：互斥生效，页最终完整且无残留错误提示",
+      "specId": "5f9937302d3fe39d7c4c-345c1fccb44170b24b39",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 4434,
+          "startTime": "2026-10-04T07:05:20.838Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-pipeline.spec.ts",
+      "path": "books-pipeline.spec.ts / H1 书籍生成流水线 / 正常生成：活动条可观察、生成中可阅读已完成内容、完成后可阅读",
+      "specId": "f31b2af767a4f1ca6927-c5a8c5e95bdbd8d6240e",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 16657,
+          "startTime": "2026-10-04T07:05:25.310Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-pipeline.spec.ts",
+      "path": "books-pipeline.spec.ts / H1 书籍生成流水线 / 用户暂停与恢复：paused 不自动续跑，恢复后继续到完成",
+      "specId": "f31b2af767a4f1ca6927-2cea0de5fb46317e0c10",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 16709,
+          "startTime": "2026-10-04T07:05:41.976Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-pipeline.spec.ts",
+      "path": "books-pipeline.spec.ts / H1 书籍生成流水线 / 模拟供应商连续失败暂停：文案明确为本地模拟，不宣称真实上游故障",
+      "specId": "f31b2af767a4f1ca6927-9da06762c74fde8935f9",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 1001,
+          "startTime": "2026-10-04T07:05:58.695Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-pipeline.spec.ts",
+      "path": "books-pipeline.spec.ts / H1 书籍生成流水线 / 刷新中断：compiling 自动从断点续跑，已完成内容保留（对照 maybe_resume_on_open）",
+      "specId": "f31b2af767a4f1ca6927-05a6eec0c79f6b6c3f68",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 17506,
+          "startTime": "2026-10-04T07:05:59.706Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-pipeline.spec.ts",
+      "path": "books-pipeline.spec.ts / H1 书籍生成流水线 / 双标签页同书：只允许一个执行器，第二个标签页只读显示",
+      "specId": "f31b2af767a4f1ca6927-8ce4b690bf142ea3eab8",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 796,
+          "startTime": "2026-10-04T07:06:17.224Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-pipeline.spec.ts",
+      "path": "books-pipeline.spec.ts / H1 书籍生成流水线 / 块失败与重试：单块失败如实呈现，重试即成功且不重建整本",
+      "specId": "f31b2af767a4f1ca6927-ea1a0da018df9651ea36",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 16935,
+          "startTime": "2026-10-04T07:06:18.029Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-pipeline.spec.ts",
+      "path": "books-pipeline.spec.ts / H1 书籍生成流水线 / 整页重生成保留用户笔记与块身份（演示就绪书本无 run 记录，也必须真的重生成）",
+      "specId": "f31b2af767a4f1ca6927-ed05fdd54bf456ec89c5",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 4502,
+          "startTime": "2026-10-04T07:06:34.974Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-pipeline.spec.ts",
+      "path": "books-pipeline.spec.ts / H1 书籍生成流水线 / 整页失败：如实显示页失败与「已中断」，点「继续生成」后一次性注入不再失败并完成",
+      "specId": "f31b2af767a4f1ca6927-826544eabdbcf6e50e16",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 17674,
+          "startTime": "2026-10-04T07:06:39.485Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-pipeline.spec.ts",
+      "path": "books-pipeline.spec.ts / H1 书籍生成流水线 / 本地存储写入失败：如实显示整轮失败原因与「重试生成」，重试后续跑完成（不谎报已保存）",
+      "specId": "f31b2af767a4f1ca6927-e5829f78a2531ad58014",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 16733,
+          "startTime": "2026-10-04T07:06:57.169Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-pipeline.spec.ts",
+      "path": "books-pipeline.spec.ts / H1 书籍生成流水线 / 生成期间的笔记与书签不被生成事件覆盖",
+      "specId": "f31b2af767a4f1ca6927-d00c1c61b81a4f4caa01",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 16472,
+          "startTime": "2026-10-04T07:07:13.915Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-pipeline.spec.ts",
+      "path": "books-pipeline.spec.ts / H1 书籍生成流水线 / 生成中删除书籍：不复活，迟到事件不重建",
+      "specId": "f31b2af767a4f1ca6927-4d61c7f999441aeeba4a",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 3460,
+          "startTime": "2026-10-04T07:07:30.397Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-pipeline.spec.ts",
+      "path": "books-pipeline.spec.ts / H1 书籍生成流水线 / 未完成书的 Markdown 导出如实标注，不伪装完整成书",
+      "specId": "f31b2af767a4f1ca6927-b7d3c64a60477fea737a",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 688,
+          "startTime": "2026-10-04T07:07:33.866Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-pipeline.spec.ts",
+      "path": "books-pipeline.spec.ts / H1 书籍生成流水线 / 窄视口 390：活动条与暂停可用，无页面级横向溢出",
+      "specId": "f31b2af767a4f1ca6927-6e28d4ffa283de610106",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 649,
+          "startTime": "2026-10-04T07:07:34.563Z"
+        }
+      ]
+    },
+    {
+      "specFile": "books-pipeline.spec.ts",
+      "path": "books-pipeline.spec.ts / H1 书籍生成流水线 / 窄视口 390：展开浮层完整可用且不产生页面级溢出",
+      "specId": "f31b2af767a4f1ca6927-d4f3893bc6ebcd8606c1",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 637,
+          "startTime": "2026-10-04T07:07:35.222Z"
+        }
+      ]
+    },
+    {
+      "specFile": "chat-composer-boundaries.spec.ts",
+      "path": "chat-composer-boundaries.spec.ts / R20 真实模式粘贴附件必须先说明不支持，不得静默发出纯文字请求",
+      "specId": "fc9fa55a79d643092fcf-7d5a0e720a5d31684cf5",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 491,
+          "startTime": "2026-10-04T07:07:35.892Z"
+        }
+      ]
+    },
+    {
+      "specFile": "chat-composer.spec.ts",
+      "path": "chat-composer.spec.ts / 语音入口：明确未接入状态与演示转写，不采集音频",
+      "specId": "405fa2c3d7e237ed7daf-e685aca6246639253fd6",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 598,
+          "startTime": "2026-10-04T07:07:36.418Z"
+        }
+      ]
+    },
+    {
+      "specFile": "chat-composer.spec.ts",
+      "path": "chat-composer.spec.ts / 真实模式：能力菜单列出目录但非对话能力禁用并标注未接入",
+      "specId": "405fa2c3d7e237ed7daf-7dbdda3aaeec81cd65a9",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 451,
+          "startTime": "2026-10-04T07:07:37.025Z"
+        }
+      ]
+    },
+    {
+      "specFile": "chat-context-budget.spec.ts",
+      "path": "chat-context-budget.spec.ts / 请求预算（课程块 + 历史 + 当前问题） / 课程轮：system 课程块在最前、总字符不超预算、每条不超后端单条上限",
+      "specId": "a60dcbe8d836ef3aafc3-784aae0ff9462b8969b6",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 716,
+          "startTime": "2026-10-04T07:07:37.501Z"
+        }
+      ]
+    },
+    {
+      "specFile": "chat-context-budget.spec.ts",
+      "path": "chat-context-budget.spec.ts / 请求预算（课程块 + 历史 + 当前问题） / UI 粘贴超长大纲标题：报文仍合规、免责句仍在，课程原始数据未被改写",
+      "specId": "a60dcbe8d836ef3aafc3-638366770813db76bf9f",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 828,
+          "startTime": "2026-10-04T07:07:38.226Z"
+        }
+      ]
+    },
+    {
+      "specFile": "chat-context-budget.spec.ts",
+      "path": "chat-context-budget.spec.ts / 请求预算（课程块 + 历史 + 当前问题） / 当前问题放不下：不发任何请求、输入框内容仍在、提示可读；课程块放不下时如实提示；改短后成功",
+      "specId": "a60dcbe8d836ef3aafc3-49981cabb5113f1c78dc",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 893,
+          "startTime": "2026-10-04T07:07:39.064Z"
+        }
+      ]
+    },
+    {
+      "specFile": "chat-context-budget.spec.ts",
+      "path": "chat-context-budget.spec.ts / 请求预算（课程块 + 历史 + 当前问题） / 上游错误后忙态回到可重试、无残留空占位；重试报文同样合规",
+      "specId": "a60dcbe8d836ef3aafc3-c385fab65565c5a75d75",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 770,
+          "startTime": "2026-10-04T07:07:39.967Z"
+        }
+      ]
+    },
+    {
+      "specFile": "chat-deeplink.spec.ts",
+      "path": "chat-deeplink.spec.ts / 深链定位到指定会话并显示历史",
+      "specId": "58f1b101af075f8cdfb2-d40a9de398c5a484ded6",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 484,
+          "startTime": "2026-10-04T07:07:40.771Z"
+        }
+      ]
+    },
+    {
+      "specFile": "chat-deeplink.spec.ts",
+      "path": "chat-deeplink.spec.ts / 无效会话 id 显示明确的不可用状态，且不自动打开最近会话",
+      "specId": "58f1b101af075f8cdfb2-28166861e99c79576353",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 450,
+          "startTime": "2026-10-04T07:07:41.265Z"
+        }
+      ]
+    },
+    {
+      "specFile": "chat-deeplink.spec.ts",
+      "path": "chat-deeplink.spec.ts / R17：深链进入后新建对话不被 URL 回跳",
+      "specId": "58f1b101af075f8cdfb2-29ddbddafe486488fc9a",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 627,
+          "startTime": "2026-10-04T07:07:41.724Z"
+        }
+      ]
+    },
+    {
+      "specFile": "chat-deeplink.spec.ts",
+      "path": "chat-deeplink.spec.ts / R17：深链进入后切换其他会话不被 URL 回跳",
+      "specId": "58f1b101af075f8cdfb2-5f3225ee6643e27e26a0",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 614,
+          "startTime": "2026-10-04T07:07:42.361Z"
+        }
+      ]
+    },
+    {
+      "specFile": "chat-deeplink.spec.ts",
+      "path": "chat-deeplink.spec.ts / 选择会话后地址同步，刷新后仍显示所选会话",
+      "specId": "58f1b101af075f8cdfb2-28aebf1d79d94f476f27",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 717,
+          "startTime": "2026-10-04T07:07:42.986Z"
+        }
+      ]
+    },
+    {
+      "specFile": "chat-deeplink.spec.ts",
+      "path": "chat-deeplink.spec.ts / 后退返回上一个会话，前进回到切换后的会话",
+      "specId": "58f1b101af075f8cdfb2-6e9747f8fda03746b61f",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 666,
+          "startTime": "2026-10-04T07:07:43.712Z"
+        }
+      ]
+    },
+    {
+      "specFile": "chat-deeplink.spec.ts",
+      "path": "chat-deeplink.spec.ts / 新建对话后地址指向新会话，刷新不回跳且无不存在提示",
+      "specId": "58f1b101af075f8cdfb2-13d1ee0eec150ce2812b",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 1454,
+          "startTime": "2026-10-04T07:07:44.388Z"
+        }
+      ]
+    },
+    {
+      "specFile": "chat-home.spec.ts",
+      "path": "chat-home.spec.ts / 主页复刻 1440：发送、恢复、菜单和工作区可达",
+      "specId": "43b1239c426ad7c86df2-476da041025dbea98bb5",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 2222,
+          "startTime": "2026-10-04T07:07:45.883Z"
+        }
+      ]
+    },
+    {
+      "specFile": "chat-home.spec.ts",
+      "path": "chat-home.spec.ts / 主页复刻 1920：发送、恢复、菜单和工作区可达",
+      "specId": "43b1239c426ad7c86df2-f2b60dd390157dfe7d72",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 2290,
+          "startTime": "2026-10-04T07:07:48.116Z"
+        }
+      ]
+    },
+    {
+      "specFile": "chat-home.spec.ts",
+      "path": "chat-home.spec.ts / 主页复刻 390：发送、恢复、菜单和工作区可达",
+      "specId": "43b1239c426ad7c86df2-0cc0cec85d2309129ccf",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 1768,
+          "startTime": "2026-10-04T07:07:50.417Z"
+        }
+      ]
+    },
+    {
+      "specFile": "chat-home.spec.ts",
+      "path": "chat-home.spec.ts / 动态球、侧栏、工作区退出中断与减少动画",
+      "specId": "43b1239c426ad7c86df2-008cb3360f6e378fad69",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 4205,
+          "startTime": "2026-10-04T07:07:52.196Z"
+        }
+      ]
+    },
+    {
+      "specFile": "chat.spec.ts",
+      "path": "chat.spec.ts / 发送消息后流式回答可见，标注模型与用量，历史在刷新后恢复",
+      "specId": "6dac514d5d837ca37b9e-db152a810448dc85e6ec",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 713,
+          "startTime": "2026-10-04T07:07:56.443Z"
+        }
+      ]
+    },
+    {
+      "specFile": "chat.spec.ts",
+      "path": "chat.spec.ts / 发送中显示停止按钮且禁止重复发送",
+      "specId": "6dac514d5d837ca37b9e-8d0297dfc45e85721e91",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 503,
+          "startTime": "2026-10-04T07:07:57.166Z"
+        }
+      ]
+    },
+    {
+      "specFile": "chat.spec.ts",
+      "path": "chat.spec.ts / 发送前 HTTP 错误（如未配置凭证）展示准确原因，用户消息保留且可重试",
+      "specId": "6dac514d5d837ca37b9e-cb3cf8768f02d9bc902a",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 473,
+          "startTime": "2026-10-04T07:07:57.679Z"
+        }
+      ]
+    },
+    {
+      "specFile": "chat.spec.ts",
+      "path": "chat.spec.ts / 未配置任何模型时提示先去设置而不是假对话",
+      "specId": "6dac514d5d837ca37b9e-6bfa10e662d0815cf544",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 407,
+          "startTime": "2026-10-04T07:07:58.162Z"
+        }
+      ]
+    },
+    {
+      "specFile": "course-resource-faults.spec.ts",
+      "path": "course-resource-faults.spec.ts / R-11 课程资源目录故障 / JSON 损坏：课程正文与大纲保留，资源区显示错误与重试",
+      "specId": "114069c5bece0220757d-6d8247ffd2a1f9f448be",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 357,
+          "startTime": "2026-10-04T07:07:58.614Z"
+        }
+      ]
+    },
+    {
+      "specFile": "course-resource-faults.spec.ts",
+      "path": "course-resource-faults.spec.ts / R-11 课程资源目录故障 / 结构非法（合法 JSON 非数组）：课程正文与大纲保留，资源区显示错误与重试",
+      "specId": "114069c5bece0220757d-b54765eed005d2d9a3fb",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 358,
+          "startTime": "2026-10-04T07:07:58.980Z"
+        }
+      ]
+    },
+    {
+      "specFile": "course-resource-faults.spec.ts",
+      "path": "course-resource-faults.spec.ts / R-11 课程资源目录故障 / 存储读取被拒：同样显示错误且不覆盖数据",
+      "specId": "114069c5bece0220757d-47ba8512b9c250f2eb72",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 349,
+          "startTime": "2026-10-04T07:07:59.349Z"
+        }
+      ]
+    },
+    {
+      "specFile": "course-resource-faults.spec.ts",
+      "path": "course-resource-faults.spec.ts / R-11 课程资源目录故障 / 目标已删除：仍显示“不可用：目标已删除或未载入”，不作为错误",
+      "specId": "114069c5bece0220757d-86d31b27ee66d02b0354",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 344,
+          "startTime": "2026-10-04T07:07:59.708Z"
+        }
+      ]
+    },
+    {
+      "specFile": "course-resource-faults.spec.ts",
+      "path": "course-resource-faults.spec.ts / R-11 课程资源目录故障 / 故障 → 重试仍失败 → 数据修复 → 重试恢复可用（不清数据）",
+      "specId": "114069c5bece0220757d-0b4ed120338589ef8544",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 409,
+          "startTime": "2026-10-04T07:08:00.063Z"
+        }
+      ]
+    },
+    {
+      "specFile": "course-resource-faults.spec.ts",
+      "path": "course-resource-faults.spec.ts / R-11 课程资源目录故障 / 添加资源面板在故障时显示错误与重试，不崩溃",
+      "specId": "114069c5bece0220757d-fea9a10db82a51326562",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 375,
+          "startTime": "2026-10-04T07:08:00.481Z"
+        }
+      ]
+    },
+    {
+      "specFile": "course-resource-faults.spec.ts",
+      "path": "course-resource-faults.spec.ts / R-11 课程资源目录故障 / 正常资源仍可添加、打开与解除关联，刷新后正确",
+      "specId": "114069c5bece0220757d-cea83cf0dce4a07dd17c",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 484,
+          "startTime": "2026-10-04T07:08:00.867Z"
+        }
+      ]
+    },
+    {
+      "specFile": "course-resource-faults.spec.ts",
+      "path": "course-resource-faults.spec.ts / R-11 课程资源目录故障 / 知识目录失败不阻断其他目录候选（书籍/笔记本仍可选）",
+      "specId": "114069c5bece0220757d-c1fc6090375986800c10",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 350,
+          "startTime": "2026-10-04T07:08:01.361Z"
+        }
+      ]
+    },
+    {
+      "specFile": "course-resource-faults.spec.ts",
+      "path": "course-resource-faults.spec.ts / R-11 课程资源目录故障 / 手机视口：故障态仍可读、公共壳与返回入口保留",
+      "specId": "114069c5bece0220757d-6ac1ad0c1a98a2e311c9",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 365,
+          "startTime": "2026-10-04T07:08:01.721Z"
+        }
+      ]
+    },
+    {
+      "specFile": "course-sessions.spec.ts",
+      "path": "course-sessions.spec.ts / 课程学习会话闭环 / 两个课程各自创建与恢复会话，互不串位；课程上下文随请求发送",
+      "specId": "d57d1e99f59e1616cede-11386e04e49ed20ff768",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 1629,
+          "startTime": "2026-10-04T07:08:02.120Z"
+        }
+      ]
+    },
+    {
+      "specFile": "course-sessions.spec.ts",
+      "path": "course-sessions.spec.ts / 课程学习会话闭环 / 普通旧会话兼容：未归属不出现在课程列表，聊天页正常且不被改写",
+      "specId": "d57d1e99f59e1616cede-2def56418682e7a981db",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 747,
+          "startTime": "2026-10-04T07:08:03.758Z"
+        }
+      ]
+    },
+    {
+      "specFile": "course-sessions.spec.ts",
+      "path": "course-sessions.spec.ts / 课程学习会话闭环 / 同一 tick 连点「新建学习会话」只产生一条会话；写入失败保留页面状态并可重试",
+      "specId": "d57d1e99f59e1616cede-01962ed8d72c3f651b71",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 896,
+          "startTime": "2026-10-04T07:08:04.515Z"
+        }
+      ]
+    },
+    {
+      "specFile": "course-sessions.spec.ts",
+      "path": "course-sessions.spec.ts / 课程学习会话闭环 / 刷新、前进后退与课程↔聊天往返：归属与历史保持",
+      "specId": "d57d1e99f59e1616cede-a5159ad7ce7f73d53d13",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 959,
+          "startTime": "2026-10-04T07:08:05.420Z"
+        }
+      ]
+    },
+    {
+      "specFile": "course-sessions.spec.ts",
+      "path": "course-sessions.spec.ts / 课程学习会话闭环 / 课程修改后新轮用新快照，旧轮重试保持旧快照",
+      "specId": "d57d1e99f59e1616cede-8bd004a248ed0220ad88",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 1180,
+          "startTime": "2026-10-04T07:08:06.389Z"
+        }
+      ]
+    },
+    {
+      "specFile": "course-sessions.spec.ts",
+      "path": "course-sessions.spec.ts / 课程学习会话闭环 / 课程删除后：历史会话与消息保留、归属不改写、如实提示且按普通问答发送",
+      "specId": "d57d1e99f59e1616cede-255fd011f6c7c5b6f2c9",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 1193,
+          "startTime": "2026-10-04T07:08:07.577Z"
+        }
+      ]
+    },
+    {
+      "specFile": "course-sessions.spec.ts",
+      "path": "course-sessions.spec.ts / 课程学习会话闭环 / 归档课程：会话区只读（新建禁用），既有会话仍可打开且历史保留",
+      "specId": "d57d1e99f59e1616cede-02e8bb56fe165b46d5a5",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 726,
+          "startTime": "2026-10-04T07:08:08.781Z"
+        }
+      ]
+    },
+    {
+      "specFile": "course-sessions.spec.ts",
+      "path": "course-sessions.spec.ts / 课程学习会话闭环 / 流式中切换会话：目标会话不被污染，迟到回答被丢弃",
+      "specId": "d57d1e99f59e1616cede-e1c1482a61f93270ec66",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 5748,
+          "startTime": "2026-10-04T07:08:09.516Z"
+        }
+      ]
+    },
+    {
+      "specFile": "course-sessions.spec.ts",
+      "path": "course-sessions.spec.ts / 课程学习会话闭环 / 跨任务二次点击（保存已提交、导航卸载前）不会创建第二条课程会话",
+      "specId": "d57d1e99f59e1616cede-528c5a0d54eff4587493",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 627,
+          "startTime": "2026-10-04T07:08:15.273Z"
+        }
+      ]
+    },
+    {
+      "specFile": "course-sessions.spec.ts",
+      "path": "course-sessions.spec.ts / 课程学习会话闭环 / 会话列表读取失败：显示错误与重试（不显示空态），重试成功后恢复",
+      "specId": "d57d1e99f59e1616cede-6b0156ad0561324601b7",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 494,
+          "startTime": "2026-10-04T07:08:15.910Z"
+        }
+      ]
+    },
+    {
+      "specFile": "course-sessions.spec.ts",
+      "path": "course-sessions.spec.ts / 课程学习会话闭环 / 三视口无横向溢出、键盘可创建会话、减少动画下仍可用",
+      "specId": "d57d1e99f59e1616cede-a87b73eff5d583cfa89c",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 797,
+          "startTime": "2026-10-04T07:08:16.413Z"
+        }
+      ]
+    },
+    {
+      "specFile": "knowledge-points.spec.ts",
+      "path": "knowledge-points.spec.ts / 知识点页 / 页面加载、页签与列表；侧栏当前项唯一高亮为「知识点」",
+      "specId": "d85861b3e463c71a59f3-662dfb74a38e87edea74",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 418,
+          "startTime": "2026-10-04T07:08:17.253Z"
+        }
+      ]
+    },
+    {
+      "specFile": "knowledge-points.spec.ts",
+      "path": "knowledge-points.spec.ts / 知识点页 / 列表筛选：关键字与状态过滤走服务端参数，空结果给空态而非错误",
+      "specId": "d85861b3e463c71a59f3-5b8971854031cfd6bf8d",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 437,
+          "startTime": "2026-10-04T07:08:17.680Z"
+        }
+      ]
+    },
+    {
+      "specFile": "knowledge-points.spec.ts",
+      "path": "knowledge-points.spec.ts / 知识点页 / 建立知识点 → 对话框关闭、列表出现新条目并选中详情",
+      "specId": "d85861b3e463c71a59f3-a2feffd3866c10844f5f",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 490,
+          "startTime": "2026-10-04T07:08:18.127Z"
+        }
+      ]
+    },
+    {
+      "specFile": "knowledge-points.spec.ts",
+      "path": "knowledge-points.spec.ts / 知识点页 / 表格导入：上传 → 预览行校对 → 整批确认；响应丢失后同标识重试命中「已确认（重放）」",
+      "specId": "d85861b3e463c71a59f3-f63368945b5ae2dbfa65",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 727,
+          "startTime": "2026-10-04T07:08:18.627Z"
+        }
+      ]
+    },
+    {
+      "specFile": "knowledge-points.spec.ts",
+      "path": "knowledge-points.spec.ts / 知识点页 / AI 候选：进行中/中断/重试/成功四态展示 → 成功后切到候选批次",
+      "specId": "d85861b3e463c71a59f3-c050ecf5699faa771a63",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 6342,
+          "startTime": "2026-10-04T07:08:19.364Z"
+        }
+      ]
+    },
+    {
+      "specFile": "knowledge-points.spec.ts",
+      "path": "knowledge-points.spec.ts / 知识点页 / 409 冲突：提示当前版本并刷新，用户输入保留",
+      "specId": "d85861b3e463c71a59f3-253a02fd7e6c9f1cb834",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 510,
+          "startTime": "2026-10-04T07:08:25.715Z"
+        }
+      ]
+    },
+    {
+      "specFile": "knowledge-points.spec.ts",
+      "path": "knowledge-points.spec.ts / 知识点页 / 键盘可达与对话框 Esc：Tab 到主要控件，Esc 关闭并回落到打开按钮",
+      "specId": "d85861b3e463c71a59f3-6704318ec6b175db3749",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 431,
+          "startTime": "2026-10-04T07:08:26.235Z"
+        }
+      ]
+    },
+    {
+      "specFile": "knowledge-points.spec.ts",
+      "path": "knowledge-points.spec.ts / 知识点页 / 三视口无横向溢出；390px 页面级溢出 ≤1px",
+      "specId": "d85861b3e463c71a59f3-26a19b427b72e02a9d99",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 978,
+          "startTime": "2026-10-04T07:08:26.675Z"
+        }
+      ]
+    },
+    {
+      "specFile": "knowledge-points.spec.ts",
+      "path": "knowledge-points.spec.ts / 知识点页 / prefers-reduced-motion 下过渡被压制（全局 motion.css 生效）",
+      "specId": "d85861b3e463c71a59f3-c1cb91af37c1e257e4c9",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 382,
+          "startTime": "2026-10-04T07:08:27.663Z"
+        }
+      ]
+    },
+    {
+      "specFile": "lesson-plan.spec.ts",
+      "path": "lesson-plan.spec.ts / 根路由跳转学习问答，教案直达与草稿刷新恢复，无客户端初始化错误",
+      "specId": "cd2b02dbf493935c9faa-d8aed3fc57544b6708be",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 1535,
+          "startTime": "2026-10-04T07:08:28.487Z"
+        }
+      ]
+    },
+    {
+      "specFile": "lesson-plan.spec.ts",
+      "path": "lesson-plan.spec.ts / 路由切换立即保存，返回恢复；其他页面不继承教案打印样式",
+      "specId": "cd2b02dbf493935c9faa-dd8e1a5072929ee07017",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 702,
+          "startTime": "2026-10-04T07:08:30.033Z"
+        }
+      ]
+    },
+    {
+      "specFile": "lesson-plan.spec.ts",
+      "path": "lesson-plan.spec.ts / 规则确认、撤销重做、环节排序及增删",
+      "specId": "cd2b02dbf493935c9faa-1011bae28cd3831c9d21",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 827,
+          "startTime": "2026-10-04T07:08:30.745Z"
+        }
+      ]
+    },
+    {
+      "specFile": "lesson-plan.spec.ts",
+      "path": "lesson-plan.spec.ts / JSON备份导入、Word结构和PDF打印导出",
+      "specId": "cd2b02dbf493935c9faa-3da8b0f92de411be2bf1",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 1929,
+          "startTime": "2026-10-04T07:08:31.582Z"
+        }
+      ]
+    },
+    {
+      "specFile": "lesson-plan.spec.ts",
+      "path": "lesson-plan.spec.ts / 长文和长二次备课在大字号下无溢出，文本不丢失",
+      "specId": "cd2b02dbf493935c9faa-af2031d4c0c99f57ed82",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 781,
+          "startTime": "2026-10-04T07:08:33.521Z"
+        }
+      ]
+    },
+    {
+      "specFile": "lesson-plan.spec.ts",
+      "path": "lesson-plan.spec.ts / 桌面、平板和手机布局及未知路由",
+      "specId": "cd2b02dbf493935c9faa-c37b79131f8229ce08c4",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 862,
+          "startTime": "2026-10-04T07:08:34.314Z"
+        }
+      ]
+    },
+    {
+      "specFile": "lesson-plan.spec.ts",
+      "path": "lesson-plan.spec.ts / 损坏草稿不会被自动覆盖",
+      "specId": "cd2b02dbf493935c9faa-4b2a7273f4b10754b63d",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 1236,
+          "startTime": "2026-10-04T07:08:35.186Z"
+        }
+      ]
+    },
+    {
+      "specFile": "lesson-plan.spec.ts",
+      "path": "lesson-plan.spec.ts / 无面包屑直接标题、编辑→配置→预览顺序与唯一折叠按钮",
+      "specId": "cd2b02dbf493935c9faa-e70410c4f35cadc17f1e",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 1651,
+          "startTime": "2026-10-04T07:08:36.432Z"
+        }
+      ]
+    },
+    {
+      "specFile": "lesson-plan.spec.ts",
+      "path": "lesson-plan.spec.ts / 教案标题与导出菜单同一顶栏，四视口不重叠不溢出（UX-REGRESSION-FIX v1）",
+      "specId": "cd2b02dbf493935c9faa-91828ecbdd83f788b3ea",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 1111,
+          "startTime": "2026-10-04T07:08:38.093Z"
+        }
+      ]
+    },
+    {
+      "specFile": "model-settings-nesting.spec.ts",
+      "path": "model-settings-nesting.spec.ts / 模型管理嵌套交互 / 详情内打开二级面板后 Escape：只关最内层，详情保留",
+      "specId": "5a89402f81fef56d6110-c86b80dac523ec6a2e29",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 484,
+          "startTime": "2026-10-04T07:08:39.239Z"
+        }
+      ]
+    },
+    {
+      "specFile": "model-settings-nesting.spec.ts",
+      "path": "model-settings-nesting.spec.ts / 模型管理嵌套交互 / 详情有未保存修改时，经二级面板 Escape 返回不丢草稿",
+      "specId": "5a89402f81fef56d6110-f418a4da95b6e1d879c4",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 526,
+          "startTime": "2026-10-04T07:08:39.732Z"
+        }
+      ]
+    },
+    {
+      "specFile": "model-settings-nesting.spec.ts",
+      "path": "model-settings-nesting.spec.ts / 模型管理嵌套交互 / 详情有未保存修改时直接关闭：先确认再丢弃",
+      "specId": "5a89402f81fef56d6110-c5251c98d35225e499d3",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 507,
+          "startTime": "2026-10-04T07:08:40.268Z"
+        }
+      ]
+    },
+    {
+      "specFile": "model-settings-nesting.spec.ts",
+      "path": "model-settings-nesting.spec.ts / 模型管理嵌套交互 / 关闭详情后焦点回到触发卡片",
+      "specId": "5a89402f81fef56d6110-cd2821ab1fc2b3eaa433",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 446,
+          "startTime": "2026-10-04T07:08:40.784Z"
+        }
+      ]
+    },
+    {
+      "specFile": "model-settings.spec.ts",
+      "path": "model-settings.spec.ts / 模型管理 contract-v1 / 供应商卡片打开详情，模型与参数可见",
+      "specId": "64ee1c6ad3eff8e52c60-45fe25e783a10a55f7b8",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 463,
+          "startTime": "2026-10-04T07:08:41.269Z"
+        }
+      ]
+    },
+    {
+      "specFile": "model-settings.spec.ts",
+      "path": "model-settings.spec.ts / 模型管理 contract-v1 / 发现列表只追加且显示来源",
+      "specId": "64ee1c6ad3eff8e52c60-ff2ec763d8a0840b5a32",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 453,
+          "startTime": "2026-10-04T07:08:41.741Z"
+        }
+      ]
+    },
+    {
+      "specFile": "model-settings.spec.ts",
+      "path": "model-settings.spec.ts / 模型管理 contract-v1 / 发现接口失败时给出错误并可重试，不冒充空列表",
+      "specId": "64ee1c6ad3eff8e52c60-d61618d2e299beded6c4",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 430,
+          "startTime": "2026-10-04T07:08:42.203Z"
+        }
+      ]
+    },
+    {
+      "specFile": "model-settings.spec.ts",
+      "path": "model-settings.spec.ts / 模型管理 contract-v1 / 无模型列表接口的供应商明确说明需手工添加",
+      "specId": "64ee1c6ad3eff8e52c60-81a4317be0b828044e15",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 437,
+          "startTime": "2026-10-04T07:08:42.643Z"
+        }
+      ]
+    },
+    {
+      "specFile": "model-settings.spec.ts",
+      "path": "model-settings.spec.ts / 模型管理 contract-v1 / 打开卡片不切换默认模型，用于问答才触发默认写入",
+      "specId": "64ee1c6ad3eff8e52c60-29f3e8a2d4ca859adf94",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 433,
+          "startTime": "2026-10-04T07:08:43.090Z"
+        }
+      ]
+    },
+    {
+      "specFile": "model-settings.spec.ts",
+      "path": "model-settings.spec.ts / 模型管理 contract-v1 / 手机视口详情可滚动且无横向溢出",
+      "specId": "64ee1c6ad3eff8e52c60-08ffc8225159fd0db597",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 438,
+          "startTime": "2026-10-04T07:08:43.533Z"
+        }
+      ]
+    },
+    {
+      "specFile": "model-settings.spec.ts",
+      "path": "model-settings.spec.ts / 模型管理 contract-v1 / 1920 视口供应商网格与详情",
+      "specId": "64ee1c6ad3eff8e52c60-1be2ac7b58250add571f",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 438,
+          "startTime": "2026-10-04T07:08:43.983Z"
+        }
+      ]
+    },
+    {
+      "specFile": "model-settings.spec.ts",
+      "path": "model-settings.spec.ts / 模型管理 contract-v1 / 供应商目录读取失败不阻塞已有连接展示",
+      "specId": "64ee1c6ad3eff8e52c60-095d28dcc4e3b740dc3f",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 352,
+          "startTime": "2026-10-04T07:08:44.431Z"
+        }
+      ]
+    },
+    {
+      "specFile": "navigation.spec.ts",
+      "path": "navigation.spec.ts / 全部登记路由可直达并刷新，规划页内容统一且无假提交",
+      "specId": "5d2868f7d23420c27cca-cb18ddb58fe492db8a6a",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 1073,
+          "startTime": "2026-10-04T07:08:44.817Z"
+        }
+      ]
+    },
+    {
+      "specFile": "navigation.spec.ts",
+      "path": "navigation.spec.ts / 导航可访问名称在收起、展开与底部入口保持一致",
+      "specId": "5d2868f7d23420c27cca-97197b83c1b39291bd22",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 904,
+          "startTime": "2026-10-04T07:08:45.899Z"
+        }
+      ]
+    },
+    {
+      "specFile": "navigation.spec.ts",
+      "path": "navigation.spec.ts / 教案编辑后经新规划入口往返不丢草稿",
+      "specId": "5d2868f7d23420c27cca-2cab81df178669e3c596",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 540,
+          "startTime": "2026-10-04T07:08:46.813Z"
+        }
+      ]
+    },
+    {
+      "specFile": "navigation.spec.ts",
+      "path": "navigation.spec.ts / 手机导航抽屉显示全部入口与规划标记，可进入规划页",
+      "specId": "5d2868f7d23420c27cca-de0566c7df56f42dc571",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 1173,
+          "startTime": "2026-10-04T07:08:47.363Z"
+        }
+      ]
+    },
+    {
+      "specFile": "navigation.spec.ts",
+      "path": "navigation.spec.ts / 未知路径仍显示404而不是伪业务页面",
+      "specId": "5d2868f7d23420c27cca-8e70a3056fc8eb8c728d",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 307,
+          "startTime": "2026-10-04T07:08:48.545Z"
+        }
+      ]
+    },
+    {
+      "specFile": "navigation.spec.ts",
+      "path": "navigation.spec.ts / 教材资料库页提供书籍与课程直达入口（T4：桌面侧栏不再有书籍顶级项）",
+      "specId": "5d2868f7d23420c27cca-8819c8ff0acd3f88f785",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 491,
+          "startTime": "2026-10-04T07:08:48.862Z"
+        }
+      ]
+    },
+    {
+      "specFile": "navigation.spec.ts",
+      "path": "navigation.spec.ts / 教材资料库页入口在三种视口下不产生横向溢出",
+      "specId": "5d2868f7d23420c27cca-02a24efbfa1d9f4dd544",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 485,
+          "startTime": "2026-10-04T07:08:49.361Z"
+        }
+      ]
+    },
+    {
+      "specFile": "question-bank-real.spec.ts",
+      "path": "question-bank-real.spec.ts / 真实 AI 补题 queued@0→attempt 1→人工校对确认→知识点检索",
+      "specId": "920dc6dd732e26aa981a-4c9780844278b6550135",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 5954,
+          "startTime": "2026-10-04T07:08:49.882Z"
+        }
+      ]
+    },
+    {
+      "specFile": "question-bank-real.spec.ts",
+      "path": "question-bank-real.spec.ts / 真实公共 retry：首次失败可见，queued(N)→succeeded(N+1)只调用一次",
+      "specId": "920dc6dd732e26aa981a-10bedbba06436a77398a",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 3972,
+          "startTime": "2026-10-04T07:08:55.847Z"
+        }
+      ]
+    },
+    {
+      "specFile": "replica-settings.spec.ts",
+      "path": "replica-settings.spec.ts / 设置内扩展管理、兼容入口与减少动画",
+      "specId": "a54036235ab7affca102-5d7c7667f021f0de4a18",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 1811,
+          "startTime": "2026-10-04T07:09:31.881Z"
+        }
+      ]
+    },
+    {
+      "specFile": "settings.spec.ts",
+      "path": "settings.spec.ts / 设置页在后端不可用时展示准确错误与重试入口",
+      "specId": "d877ffdf71ec720167ae-2c0c8db033def9ee0d74",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 403,
+          "startTime": "2026-10-04T07:09:00.089Z"
+        }
+      ]
+    },
+    {
+      "specFile": "shell-home-nav.spec.ts",
+      "path": "shell-home-nav.spec.ts / R-02 唯一主页 /chat / 品牌按钮返回 /chat 且可访问名称与主页一致",
+      "specId": "791f785a15172788b3a2-3c706f3673a443172f37",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 455,
+          "startTime": "2026-10-04T07:09:00.524Z"
+        }
+      ]
+    },
+    {
+      "specFile": "shell-home-nav.spec.ts",
+      "path": "shell-home-nav.spec.ts / R-02 唯一主页 /chat / 手机头部品牌按钮同样返回 /chat",
+      "specId": "791f785a15172788b3a2-486ea244b5abfbbbb86e",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 476,
+          "startTime": "2026-10-04T07:09:00.990Z"
+        }
+      ]
+    },
+    {
+      "specFile": "shell-home-nav.spec.ts",
+      "path": "shell-home-nav.spec.ts / R-02 唯一主页 /chat / 404 与规划页的返回入口都指向 /chat",
+      "specId": "791f785a15172788b3a2-99f9064bef396f89d05c",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 421,
+          "startTime": "2026-10-04T07:09:01.476Z"
+        }
+      ]
+    },
+    {
+      "specFile": "shell-home-nav.spec.ts",
+      "path": "shell-home-nav.spec.ts / R-02 唯一主页 /chat / 标题不再把教案工作台当作全站主页",
+      "specId": "791f785a15172788b3a2-3cf126d1c6b0fa783ef1",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 471,
+          "startTime": "2026-10-04T07:09:01.906Z"
+        }
+      ]
+    },
+    {
+      "specFile": "shell-home-nav.spec.ts",
+      "path": "shell-home-nav.spec.ts / R-04 每个已实现路由都有唯一当前菜单 / /chat 桌面侧栏当前项为「学习问答」",
+      "specId": "791f785a15172788b3a2-554313c4d89cd329bb8c",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 382,
+          "startTime": "2026-10-04T07:09:02.386Z"
+        }
+      ]
+    },
+    {
+      "specFile": "shell-home-nav.spec.ts",
+      "path": "shell-home-nav.spec.ts / R-04 每个已实现路由都有唯一当前菜单 / /lesson-plans 桌面侧栏当前项为「教案工作台」",
+      "specId": "791f785a15172788b3a2-97eeca7bc1752b54a681",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 399,
+          "startTime": "2026-10-04T07:09:02.777Z"
+        }
+      ]
+    },
+    {
+      "specFile": "shell-home-nav.spec.ts",
+      "path": "shell-home-nav.spec.ts / R-04 每个已实现路由都有唯一当前菜单 / /question-bank 桌面侧栏当前项为「题库」",
+      "specId": "791f785a15172788b3a2-0497ef047d306cdeef73",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 424,
+          "startTime": "2026-10-04T07:09:03.185Z"
+        }
+      ]
+    },
+    {
+      "specFile": "shell-home-nav.spec.ts",
+      "path": "shell-home-nav.spec.ts / R-04 每个已实现路由都有唯一当前菜单 / /knowledge-bases 桌面侧栏当前项为「教材资料库」",
+      "specId": "791f785a15172788b3a2-59f25960bc8048189ea9",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 334,
+          "startTime": "2026-10-04T07:09:03.619Z"
+        }
+      ]
+    },
+    {
+      "specFile": "shell-home-nav.spec.ts",
+      "path": "shell-home-nav.spec.ts / R-04 每个已实现路由都有唯一当前菜单 / /books 桌面侧栏当前项为「教材资料库」",
+      "specId": "791f785a15172788b3a2-91246f084a6a4b0e5486",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 310,
+          "startTime": "2026-10-04T07:09:03.962Z"
+        }
+      ]
+    },
+    {
+      "specFile": "shell-home-nav.spec.ts",
+      "path": "shell-home-nav.spec.ts / R-04 每个已实现路由都有唯一当前菜单 / /settings 桌面侧栏当前项为「设置」",
+      "specId": "791f785a15172788b3a2-67ae93711f3f24eab7e4",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 345,
+          "startTime": "2026-10-04T07:09:04.281Z"
+        }
+      ]
+    },
+    {
+      "specFile": "shell-home-nav.spec.ts",
+      "path": "shell-home-nav.spec.ts / R-04 每个已实现路由都有唯一当前菜单 / 规划页 /co-writer 桌面侧栏当前项为「协同写作」",
+      "specId": "791f785a15172788b3a2-ab7987240ab778d8289e",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 322,
+          "startTime": "2026-10-04T07:09:04.636Z"
+        }
+      ]
+    },
+    {
+      "specFile": "shell-home-nav.spec.ts",
+      "path": "shell-home-nav.spec.ts / R-04 每个已实现路由都有唯一当前菜单 / 规划页 /reading 桌面侧栏当前项为「沉浸阅读」",
+      "specId": "791f785a15172788b3a2-f10f771e42189dcc033b",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 309,
+          "startTime": "2026-10-04T07:09:04.968Z"
+        }
+      ]
+    },
+    {
+      "specFile": "shell-home-nav.spec.ts",
+      "path": "shell-home-nav.spec.ts / R-04 每个已实现路由都有唯一当前菜单 / 规划页 /space 桌面侧栏当前项为「学习空间」",
+      "specId": "791f785a15172788b3a2-17aed091ae777f54b032",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 326,
+          "startTime": "2026-10-04T07:09:05.286Z"
+        }
+      ]
+    },
+    {
+      "specFile": "shell-home-nav.spec.ts",
+      "path": "shell-home-nav.spec.ts / R-04 每个已实现路由都有唯一当前菜单 / 规划页 /papers 桌面侧栏当前项为「智能组卷」",
+      "specId": "791f785a15172788b3a2-192fbc6dfd5458e4d744",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 319,
+          "startTime": "2026-10-04T07:09:05.622Z"
+        }
+      ]
+    },
+    {
+      "specFile": "shell-home-nav.spec.ts",
+      "path": "shell-home-nav.spec.ts / R-04 每个已实现路由都有唯一当前菜单 / 隐藏直达页 /courses 标记可见父菜单「教材资料库」",
+      "specId": "791f785a15172788b3a2-0b668d046c678c6620f6",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 302,
+          "startTime": "2026-10-04T07:09:05.951Z"
+        }
+      ]
+    },
+    {
+      "specFile": "shell-home-nav.spec.ts",
+      "path": "shell-home-nav.spec.ts / R-04 每个已实现路由都有唯一当前菜单 / 书籍并入教材资料库：桌面侧栏无书籍顶级项，书籍/课程深层路由仍唯一高亮",
+      "specId": "791f785a15172788b3a2-3449a763aa97456e41aa",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 555,
+          "startTime": "2026-10-04T07:09:06.262Z"
+        }
+      ]
+    },
+    {
+      "specFile": "shell-home-nav.spec.ts",
+      "path": "shell-home-nav.spec.ts / R-04 每个已实现路由都有唯一当前菜单 / 详情页保持父级当前菜单（唯一）",
+      "specId": "791f785a15172788b3a2-740c50910796b2756d20",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 301,
+          "startTime": "2026-10-04T07:09:06.827Z"
+        }
+      ]
+    },
+    {
+      "specFile": "shell-home-nav.spec.ts",
+      "path": "shell-home-nav.spec.ts / R-04 每个已实现路由都有唯一当前菜单 / 手机抽屉标记隐藏项自身且仍唯一",
+      "specId": "791f785a15172788b3a2-5fe5bca26255b6ae5bba",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 350,
+          "startTime": "2026-10-04T07:09:07.138Z"
+        }
+      ]
+    },
+    {
+      "specFile": "shell-home-nav.spec.ts",
+      "path": "shell-home-nav.spec.ts / R-04 每个已实现路由都有唯一当前菜单 / 手机抽屉仍有书籍与课程入口，/books 时高亮书籍自身",
+      "specId": "791f785a15172788b3a2-258177cbe93dbbe4a191",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 574,
+          "startTime": "2026-10-04T07:09:07.496Z"
+        }
+      ]
+    },
+    {
+      "specFile": "shell-home-nav.spec.ts",
+      "path": "shell-home-nav.spec.ts / R-06 404/错误页统一公共壳 / 未知路径 404 保留公共壳、导航与唯一当前项",
+      "specId": "791f785a15172788b3a2-6520d6b83745d21941b8",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 350,
+          "startTime": "2026-10-04T07:09:08.081Z"
+        }
+      ]
+    },
+    {
+      "specFile": "shell-home-nav.spec.ts",
+      "path": "shell-home-nav.spec.ts / R-06 404/错误页统一公共壳 / 独立模块内未知深层路径也恰好一层壳",
+      "specId": "791f785a15172788b3a2-cedc39aedf760f9e4d04",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 297,
+          "startTime": "2026-10-04T07:09:08.443Z"
+        }
+      ]
+    },
+    {
+      "specFile": "shell-home-nav.spec.ts",
+      "path": "shell-home-nav.spec.ts / R-06 404/错误页统一公共壳 / 404 返回入口可用",
+      "specId": "791f785a15172788b3a2-f07e7731b1ddd8498bbb",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 464,
+          "startTime": "2026-10-04T07:09:08.749Z"
+        }
+      ]
+    },
+    {
+      "specFile": "shell-home-nav.spec.ts",
+      "path": "shell-home-nav.spec.ts / 折叠保持与手机抽屉 / 折叠偏好跨页保持一致（含 404 与独立模块）",
+      "specId": "791f785a15172788b3a2-74349ddf06e50e24eeca",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 679,
+          "startTime": "2026-10-04T07:09:09.223Z"
+        }
+      ]
+    },
+    {
+      "specFile": "shell-home-nav.spec.ts",
+      "path": "shell-home-nav.spec.ts / 折叠保持与手机抽屉 / 手机抽屉焦点圈定、Escape 关闭并返回触发按钮",
+      "specId": "791f785a15172788b3a2-032b407a77625be817c5",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 457,
+          "startTime": "2026-10-04T07:09:09.911Z"
+        }
+      ]
+    },
+    {
+      "specFile": "sidebar-chat-fixes.spec.ts",
+      "path": "sidebar-chat-fixes.spec.ts / 全站侧栏图标、宽度和当前菜单一致，折叠偏好跨路由保留",
+      "specId": "df270274a7bbbccf0da2-7286a2e96d5ced5b5e7b",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 2519,
+          "startTime": "2026-10-04T07:09:10.413Z"
+        }
+      ]
+    },
+    {
+      "specFile": "sidebar-chat-fixes.spec.ts",
+      "path": "sidebar-chat-fixes.spec.ts / 手机抽屉焦点、遮罩、关闭与当前菜单 /chat",
+      "specId": "df270274a7bbbccf0da2-8bdce22d6566ccaf55e7",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 1823,
+          "startTime": "2026-10-04T07:09:12.942Z"
+        }
+      ]
+    },
+    {
+      "specFile": "sidebar-chat-fixes.spec.ts",
+      "path": "sidebar-chat-fixes.spec.ts / 手机抽屉焦点、遮罩、关闭与当前菜单 /lesson-plans",
+      "specId": "df270274a7bbbccf0da2-84fe8e635c93d2b63200",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 1895,
+          "startTime": "2026-10-04T07:09:14.774Z"
+        }
+      ]
+    },
+    {
+      "specFile": "sidebar-chat-fixes.spec.ts",
+      "path": "sidebar-chat-fixes.spec.ts / 手机抽屉焦点、遮罩、关闭与当前菜单 /knowledge-bases",
+      "specId": "df270274a7bbbccf0da2-f5ea7a68fcc7a5f7bf1c",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 1625,
+          "startTime": "2026-10-04T07:09:16.679Z"
+        }
+      ]
+    },
+    {
+      "specFile": "sidebar-chat-fixes.spec.ts",
+      "path": "sidebar-chat-fixes.spec.ts / 聊天不再提供模拟模式，也不创建模拟数据库",
+      "specId": "df270274a7bbbccf0da2-a27209513d6983d92b22",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 375,
+          "startTime": "2026-10-04T07:09:18.314Z"
+        }
+      ]
+    },
+    {
+      "specFile": "sidebar-transition.spec.ts",
+      "path": "sidebar-transition.spec.ts / 软导航全程侧栏不跳变，样式跟随学习问答 1440",
+      "specId": "414ace5a4db8bfafaf5f-9d64a120f30b4fc171ba",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 3309,
+          "startTime": "2026-10-04T07:09:18.722Z"
+        }
+      ]
+    },
+    {
+      "specFile": "sidebar-transition.spec.ts",
+      "path": "sidebar-transition.spec.ts / 软导航全程侧栏不跳变，样式跟随学习问答 1920",
+      "specId": "414ace5a4db8bfafaf5f-69bf3c311e4d6b2aaf6e",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 3352,
+          "startTime": "2026-10-04T07:09:22.040Z"
+        }
+      ]
+    },
+    {
+      "specFile": "sidebar-transition.spec.ts",
+      "path": "sidebar-transition.spec.ts / 各板块使用同一折叠时长并响应减少动画",
+      "specId": "414ace5a4db8bfafaf5f-aa9effbc81b63fe38065",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 831,
+          "startTime": "2026-10-04T07:09:25.402Z"
+        }
+      ]
+    },
+    {
+      "specFile": "sidebar-transition.spec.ts",
+      "path": "sidebar-transition.spec.ts / 手机跨板块打开抽屉，菜单字体和尺寸沿用学习问答",
+      "specId": "414ace5a4db8bfafaf5f-8895191782fe768bfbd9",
+      "ok": true,
+      "expectedStatus": "passed",
+      "status": "expected",
+      "results": [
+        {
+          "status": "passed",
+          "retry": 0,
+          "errors": [],
+          "duration": 2486,
+          "startTime": "2026-10-04T07:09:26.244Z"
+        }
+      ]
+    }
+  ],
+  "sourceGroups": {
+    "current942ZeroDrift": true,
+    "original24Specs": [
+      {
+        "path": "tests/e2e/assessments.spec.ts",
+        "currentSHA": "62a1c32ff1b1a869375cda0ae40c79ebebe8f026bc268b8defb520e037eee913",
+        "runSHA": "62a1c32ff1b1a869375cda0ae40c79ebebe8f026bc268b8defb520e037eee913",
+        "builtSHA": "62a1c32ff1b1a869375cda0ae40c79ebebe8f026bc268b8defb520e037eee913",
+        "g3SHA": "62a1c32ff1b1a869375cda0ae40c79ebebe8f026bc268b8defb520e037eee913",
+        "equalAll": true
+      },
+      {
+        "path": "tests/e2e/books-commit-safety.spec.ts",
+        "currentSHA": "b36e6b41fa441a0972d172b632464b085561e0afdb6546d0b88475e8ceae27f9",
+        "runSHA": "b36e6b41fa441a0972d172b632464b085561e0afdb6546d0b88475e8ceae27f9",
+        "builtSHA": "b36e6b41fa441a0972d172b632464b085561e0afdb6546d0b88475e8ceae27f9",
+        "g3SHA": "b36e6b41fa441a0972d172b632464b085561e0afdb6546d0b88475e8ceae27f9",
+        "equalAll": true
+      },
+      {
+        "path": "tests/e2e/books-courses.spec.ts",
+        "currentSHA": "ccc0e8a73ff830d1931dbc72eea9b195b48613831985db7e3981f9c373f49328",
+        "runSHA": "ccc0e8a73ff830d1931dbc72eea9b195b48613831985db7e3981f9c373f49328",
+        "builtSHA": "ccc0e8a73ff830d1931dbc72eea9b195b48613831985db7e3981f9c373f49328",
+        "g3SHA": "ccc0e8a73ff830d1931dbc72eea9b195b48613831985db7e3981f9c373f49328",
+        "equalAll": true
+      },
+      {
+        "path": "tests/e2e/books-harden.spec.ts",
+        "currentSHA": "0361711b39ef74e32d4b61e44f08d183ba8d885b21f6aea947771648f32da557",
+        "runSHA": "0361711b39ef74e32d4b61e44f08d183ba8d885b21f6aea947771648f32da557",
+        "builtSHA": "0361711b39ef74e32d4b61e44f08d183ba8d885b21f6aea947771648f32da557",
+        "g3SHA": "0361711b39ef74e32d4b61e44f08d183ba8d885b21f6aea947771648f32da557",
+        "equalAll": true
+      },
+      {
+        "path": "tests/e2e/books-pipeline.spec.ts",
+        "currentSHA": "2dad42df19a6d17879e9b1e143be6d3c7ba6eec2b309f859dc03e71ffd07f10d",
+        "runSHA": "2dad42df19a6d17879e9b1e143be6d3c7ba6eec2b309f859dc03e71ffd07f10d",
+        "builtSHA": "2dad42df19a6d17879e9b1e143be6d3c7ba6eec2b309f859dc03e71ffd07f10d",
+        "g3SHA": "2dad42df19a6d17879e9b1e143be6d3c7ba6eec2b309f859dc03e71ffd07f10d",
+        "equalAll": true
+      },
+      {
+        "path": "tests/e2e/chat-composer-boundaries.spec.ts",
+        "currentSHA": "c7b64b2f48bc4405719d183920f8585c7861a6b7a92911e25aa2129b8f6f0aec",
+        "runSHA": "c7b64b2f48bc4405719d183920f8585c7861a6b7a92911e25aa2129b8f6f0aec",
+        "builtSHA": "c7b64b2f48bc4405719d183920f8585c7861a6b7a92911e25aa2129b8f6f0aec",
+        "g3SHA": "c7b64b2f48bc4405719d183920f8585c7861a6b7a92911e25aa2129b8f6f0aec",
+        "equalAll": true
+      },
+      {
+        "path": "tests/e2e/chat-composer.spec.ts",
+        "currentSHA": "31c54732b751cc3dfe19ca968eb836994ee63b3b4b45136e51f9a702dd04e718",
+        "runSHA": "31c54732b751cc3dfe19ca968eb836994ee63b3b4b45136e51f9a702dd04e718",
+        "builtSHA": "31c54732b751cc3dfe19ca968eb836994ee63b3b4b45136e51f9a702dd04e718",
+        "g3SHA": "31c54732b751cc3dfe19ca968eb836994ee63b3b4b45136e51f9a702dd04e718",
+        "equalAll": true
+      },
+      {
+        "path": "tests/e2e/chat-context-budget.spec.ts",
+        "currentSHA": "cdc53f3234a330ee59e4c09f89178930eed1d80e5aee0b696570baa86946e827",
+        "runSHA": "cdc53f3234a330ee59e4c09f89178930eed1d80e5aee0b696570baa86946e827",
+        "builtSHA": "cdc53f3234a330ee59e4c09f89178930eed1d80e5aee0b696570baa86946e827",
+        "g3SHA": "cdc53f3234a330ee59e4c09f89178930eed1d80e5aee0b696570baa86946e827",
+        "equalAll": true
+      },
+      {
+        "path": "tests/e2e/chat-deeplink.spec.ts",
+        "currentSHA": "7e43f0a9962a7febf2e76c12cfea846baf190a2f4262593be87671fc9dd8e493",
+        "runSHA": "7e43f0a9962a7febf2e76c12cfea846baf190a2f4262593be87671fc9dd8e493",
+        "builtSHA": "7e43f0a9962a7febf2e76c12cfea846baf190a2f4262593be87671fc9dd8e493",
+        "g3SHA": "7e43f0a9962a7febf2e76c12cfea846baf190a2f4262593be87671fc9dd8e493",
+        "equalAll": true
+      },
+      {
+        "path": "tests/e2e/chat-home.spec.ts",
+        "currentSHA": "78e4d370d21ff04c4899a23aa6c70ea8469feba937d9b71390152799e516fa0b",
+        "runSHA": "78e4d370d21ff04c4899a23aa6c70ea8469feba937d9b71390152799e516fa0b",
+        "builtSHA": "78e4d370d21ff04c4899a23aa6c70ea8469feba937d9b71390152799e516fa0b",
+        "g3SHA": "78e4d370d21ff04c4899a23aa6c70ea8469feba937d9b71390152799e516fa0b",
+        "equalAll": true
+      },
+      {
+        "path": "tests/e2e/chat.spec.ts",
+        "currentSHA": "0ecbc852b8816a05f9290d7c3927581886739735f996af72c37abee53ea5aefb",
+        "runSHA": "0ecbc852b8816a05f9290d7c3927581886739735f996af72c37abee53ea5aefb",
+        "builtSHA": "0ecbc852b8816a05f9290d7c3927581886739735f996af72c37abee53ea5aefb",
+        "g3SHA": "0ecbc852b8816a05f9290d7c3927581886739735f996af72c37abee53ea5aefb",
+        "equalAll": true
+      },
+      {
+        "path": "tests/e2e/course-resource-faults.spec.ts",
+        "currentSHA": "2e33556296aee6006ae1701ee72b6f599bbf6ffeb1188eea7e30a39e6d3d4844",
+        "runSHA": "2e33556296aee6006ae1701ee72b6f599bbf6ffeb1188eea7e30a39e6d3d4844",
+        "builtSHA": "2e33556296aee6006ae1701ee72b6f599bbf6ffeb1188eea7e30a39e6d3d4844",
+        "g3SHA": "2e33556296aee6006ae1701ee72b6f599bbf6ffeb1188eea7e30a39e6d3d4844",
+        "equalAll": true
+      },
+      {
+        "path": "tests/e2e/course-sessions.spec.ts",
+        "currentSHA": "05f9c00dc662f1898034727c589d0e09c081a561024899dd2fdb81a6eec4e39e",
+        "runSHA": "05f9c00dc662f1898034727c589d0e09c081a561024899dd2fdb81a6eec4e39e",
+        "builtSHA": "05f9c00dc662f1898034727c589d0e09c081a561024899dd2fdb81a6eec4e39e",
+        "g3SHA": "05f9c00dc662f1898034727c589d0e09c081a561024899dd2fdb81a6eec4e39e",
+        "equalAll": true
+      },
+      {
+        "path": "tests/e2e/knowledge-points.spec.ts",
+        "currentSHA": "59ec01fe4aa88b5b63c0713235a7bf5c0ac8655d18a9086cc999c02525c63640",
+        "runSHA": "59ec01fe4aa88b5b63c0713235a7bf5c0ac8655d18a9086cc999c02525c63640",
+        "builtSHA": "59ec01fe4aa88b5b63c0713235a7bf5c0ac8655d18a9086cc999c02525c63640",
+        "g3SHA": "59ec01fe4aa88b5b63c0713235a7bf5c0ac8655d18a9086cc999c02525c63640",
+        "equalAll": true
+      },
+      {
+        "path": "tests/e2e/lesson-plan.spec.ts",
+        "currentSHA": "4cc5547138034d2bf5adf4a4a5d26d3de49427691af54c7d157e4da761fa9699",
+        "runSHA": "4cc5547138034d2bf5adf4a4a5d26d3de49427691af54c7d157e4da761fa9699",
+        "builtSHA": "4cc5547138034d2bf5adf4a4a5d26d3de49427691af54c7d157e4da761fa9699",
+        "g3SHA": "4cc5547138034d2bf5adf4a4a5d26d3de49427691af54c7d157e4da761fa9699",
+        "equalAll": true
+      },
+      {
+        "path": "tests/e2e/model-settings-nesting.spec.ts",
+        "currentSHA": "7c8958fc6dd1b98ec453ed59b8de3b074eec3ccb5fedf39ceabb46225a92d384",
+        "runSHA": "7c8958fc6dd1b98ec453ed59b8de3b074eec3ccb5fedf39ceabb46225a92d384",
+        "builtSHA": "7c8958fc6dd1b98ec453ed59b8de3b074eec3ccb5fedf39ceabb46225a92d384",
+        "g3SHA": "7c8958fc6dd1b98ec453ed59b8de3b074eec3ccb5fedf39ceabb46225a92d384",
+        "equalAll": true
+      },
+      {
+        "path": "tests/e2e/model-settings.spec.ts",
+        "currentSHA": "51415f54844f1a3bdf7ea19bcfb6df79f2efe1aa0b8bc42f7e93e077da7a1e7e",
+        "runSHA": "51415f54844f1a3bdf7ea19bcfb6df79f2efe1aa0b8bc42f7e93e077da7a1e7e",
+        "builtSHA": "51415f54844f1a3bdf7ea19bcfb6df79f2efe1aa0b8bc42f7e93e077da7a1e7e",
+        "g3SHA": "51415f54844f1a3bdf7ea19bcfb6df79f2efe1aa0b8bc42f7e93e077da7a1e7e",
+        "equalAll": true
+      },
+      {
+        "path": "tests/e2e/navigation.spec.ts",
+        "currentSHA": "294e784e7da93e3efbd467d96952688c4c88c74a13e84d64a2a998e76a7562fb",
+        "runSHA": "294e784e7da93e3efbd467d96952688c4c88c74a13e84d64a2a998e76a7562fb",
+        "builtSHA": "294e784e7da93e3efbd467d96952688c4c88c74a13e84d64a2a998e76a7562fb",
+        "g3SHA": "294e784e7da93e3efbd467d96952688c4c88c74a13e84d64a2a998e76a7562fb",
+        "equalAll": true
+      },
+      {
+        "path": "tests/e2e/question-bank-real.spec.ts",
+        "currentSHA": "6308d92fce1364a33cafb2ec6412c15026438da3d83275b469e039fd4934fa38",
+        "runSHA": "6308d92fce1364a33cafb2ec6412c15026438da3d83275b469e039fd4934fa38",
+        "builtSHA": "6308d92fce1364a33cafb2ec6412c15026438da3d83275b469e039fd4934fa38",
+        "g3SHA": "6308d92fce1364a33cafb2ec6412c15026438da3d83275b469e039fd4934fa38",
+        "equalAll": true
+      },
+      {
+        "path": "tests/e2e/replica-settings.spec.ts",
+        "currentSHA": "12d25a1024fcdc66f90c62c6d6149e35f6e9dee5cf3274396604c7d9284af258",
+        "runSHA": "12d25a1024fcdc66f90c62c6d6149e35f6e9dee5cf3274396604c7d9284af258",
+        "builtSHA": "12d25a1024fcdc66f90c62c6d6149e35f6e9dee5cf3274396604c7d9284af258",
+        "g3SHA": "12d25a1024fcdc66f90c62c6d6149e35f6e9dee5cf3274396604c7d9284af258",
+        "equalAll": true
+      },
+      {
+        "path": "tests/e2e/settings.spec.ts",
+        "currentSHA": "4341d78adcb4bc75cddbc7d6be8cff9a5ea6f3fa114cd70496170fda9cee82f2",
+        "runSHA": "4341d78adcb4bc75cddbc7d6be8cff9a5ea6f3fa114cd70496170fda9cee82f2",
+        "builtSHA": "4341d78adcb4bc75cddbc7d6be8cff9a5ea6f3fa114cd70496170fda9cee82f2",
+        "g3SHA": "4341d78adcb4bc75cddbc7d6be8cff9a5ea6f3fa114cd70496170fda9cee82f2",
+        "equalAll": true
+      },
+      {
+        "path": "tests/e2e/shell-home-nav.spec.ts",
+        "currentSHA": "86039c72d60043d21ddeae4a0f876ecf51c8f8c55ebbca6fab272ea7f5618a44",
+        "runSHA": "86039c72d60043d21ddeae4a0f876ecf51c8f8c55ebbca6fab272ea7f5618a44",
+        "builtSHA": "86039c72d60043d21ddeae4a0f876ecf51c8f8c55ebbca6fab272ea7f5618a44",
+        "g3SHA": "86039c72d60043d21ddeae4a0f876ecf51c8f8c55ebbca6fab272ea7f5618a44",
+        "equalAll": true
+      },
+      {
+        "path": "tests/e2e/sidebar-chat-fixes.spec.ts",
+        "currentSHA": "0231c1dfb582af271e05d9dda8f9071d0bf44c94553ab9fe1b6b02518ed51b06",
+        "runSHA": "0231c1dfb582af271e05d9dda8f9071d0bf44c94553ab9fe1b6b02518ed51b06",
+        "builtSHA": "0231c1dfb582af271e05d9dda8f9071d0bf44c94553ab9fe1b6b02518ed51b06",
+        "g3SHA": "0231c1dfb582af271e05d9dda8f9071d0bf44c94553ab9fe1b6b02518ed51b06",
+        "equalAll": true
+      },
+      {
+        "path": "tests/e2e/sidebar-transition.spec.ts",
+        "currentSHA": "6ecbf593c0006dc922fdffddbdad0fd130e16f7e42dda12c28511eb07885b10a",
+        "runSHA": "6ecbf593c0006dc922fdffddbdad0fd130e16f7e42dda12c28511eb07885b10a",
+        "builtSHA": "6ecbf593c0006dc922fdffddbdad0fd130e16f7e42dda12c28511eb07885b10a",
+        "g3SHA": "6ecbf593c0006dc922fdffddbdad0fd130e16f7e42dda12c28511eb07885b10a",
+        "equalAll": true
+      }
+    ],
+    "original24Group": "sourceFiles, not old executableQaFiles; source index contains product and current repo tests",
+    "templatesAndBuildTools": [
+      {
+        "path": "apps/web/public/templates/lesson-plan-template.docx",
+        "currentSHA": "62104c96436f4d6d30498dc5a040674a10986dbf8327252324de73ee9a050588",
+        "builtSHA": "62104c96436f4d6d30498dc5a040674a10986dbf8327252324de73ee9a050588",
+        "g3SHA": "62104c96436f4d6d30498dc5a040674a10986dbf8327252324de73ee9a050588",
+        "equalAll": true
+      },
+      {
+        "path": "assets/templates/source/manifest.json",
+        "currentSHA": "aefc0af0f3e0a858f8fa221b2769c74e0f1f78aa2a54b5aab7da0651751d6c75",
+        "builtSHA": "aefc0af0f3e0a858f8fa221b2769c74e0f1f78aa2a54b5aab7da0651751d6c75",
+        "g3SHA": "aefc0af0f3e0a858f8fa221b2769c74e0f1f78aa2a54b5aab7da0651751d6c75",
+        "equalAll": true
+      },
+      {
+        "path": "assets/templates/source/teacher-standard.docx",
+        "currentSHA": "f51bae6b1cae0cce1072650a7ffdef07fb12708c5502eb36b70910c4276fa164",
+        "builtSHA": "f51bae6b1cae0cce1072650a7ffdef07fb12708c5502eb36b70910c4276fa164",
+        "g3SHA": "f51bae6b1cae0cce1072650a7ffdef07fb12708c5502eb36b70910c4276fa164",
+        "equalAll": true
+      },
+      {
+        "path": "scripts/build-template.mjs",
+        "currentSHA": "67a88d6773308667efebcf443a293caa04461c0237c0dd01ae4a9beb366c3566",
+        "builtSHA": "67a88d6773308667efebcf443a293caa04461c0237c0dd01ae4a9beb366c3566",
+        "g3SHA": "67a88d6773308667efebcf443a293caa04461c0237c0dd01ae4a9beb366c3566",
+        "equalAll": true
+      },
+      {
+        "path": "scripts/verify-template.mjs",
+        "currentSHA": "bc936a94d80316bd4ccaf2be0bb3c3abcd5dace9fdd216ff41c9534ee6af8dcc",
+        "builtSHA": "bc936a94d80316bd4ccaf2be0bb3c3abcd5dace9fdd216ff41c9534ee6af8dcc",
+        "g3SHA": "bc936a94d80316bd4ccaf2be0bb3c3abcd5dace9fdd216ff41c9534ee6af8dcc",
+        "equalAll": true
+      },
+      {
+        "path": "教师备课教案模板.docx",
+        "currentSHA": "f51bae6b1cae0cce1072650a7ffdef07fb12708c5502eb36b70910c4276fa164",
+        "builtSHA": "f51bae6b1cae0cce1072650a7ffdef07fb12708c5502eb36b70910c4276fa164",
+        "g3SHA": "f51bae6b1cae0cce1072650a7ffdef07fb12708c5502eb36b70910c4276fa164",
+        "equalAll": true
+      }
+    ],
+    "old3136ExactG3AndBuilt": true
+  },
+  "sixBindings": {
+    "path": "ctrl/B6-FULL-GATES-RECEIPTS-v1.json",
+    "sha256": "eb1794f3b2a90842046e314bb0e7a91f725b7c1590e20093b4f734ab2218997e",
+    "candidate942AndOld3136AllMatch": true,
+    "receipts": [
+      {
+        "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/b6-check-r01-r2-qa3-first-command.json",
+        "sha256": "b875cc32de17d4645d29320d8748e3c54f88877fc91e4e833e534bcdf65bdd37",
+        "bindingExpectedSHA": "b875cc32de17d4645d29320d8748e3c54f88877fc91e4e833e534bcdf65bdd37",
+        "shaEqual": true,
+        "pid": 16920,
+        "elapsedMs": 105612.417,
+        "exitCode": 0,
+        "childClosed": true,
+        "logsClosed": true,
+        "candidate": "docs/qa/TEACHING-LOOP-G3-B6-20261004/CANDIDATE-B6-R01-r2-qa3.json",
+        "candidateSHA": "a03ca240b84d0f16761b26897d94bdbb55483d6b8d64cecc0c986e3acff70021",
+        "sourceBeforeVsBuilt": {
+          "missing": [],
+          "extra": [],
+          "changed": []
+        },
+        "sourceAfterVsBuilt": {
+          "missing": [],
+          "extra": [],
+          "changed": []
+        },
+        "qaBeforeVsBuilt": {
+          "missing": [],
+          "extra": [],
+          "changed": []
+        },
+        "qaAfterVsBuilt": {
+          "missing": [],
+          "extra": [],
+          "changed": []
+        },
+        "changedSources": [],
+        "changedQA": [],
+        "logSHA": "21d32b22fc08dd5c9b353cd11cc6d7363735b99ef1da04d7a628c58910e7fcc6",
+        "actualLogSHA": "21d32b22fc08dd5c9b353cd11cc6d7363735b99ef1da04d7a628c58910e7fcc6",
+        "logMatches": true,
+        "nextEnvBeforeSHA": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc",
+        "nextEnvAfterSHA": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc"
+      },
+      {
+        "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/b6-g3-boundary-eight-built-command.json",
+        "sha256": "f1ec99aaf7834da8902773979ecf1e1276615c0952c26d92c0d35c4abefa9701",
+        "bindingExpectedSHA": "f1ec99aaf7834da8902773979ecf1e1276615c0952c26d92c0d35c4abefa9701",
+        "shaEqual": true,
+        "pid": 23936,
+        "elapsedMs": 3162.138,
+        "exitCode": 0,
+        "childClosed": true,
+        "logsClosed": true,
+        "candidate": "docs/qa/TEACHING-LOOP-G3-B6-20261004/CANDIDATE-B6-R01-r2-built.json",
+        "candidateSHA": "530005e154a3620f4d0fc6a0a3ade36c35bbd2f8316a91b71e65b1e007a8deb0",
+        "sourceBeforeVsBuilt": {
+          "missing": [],
+          "extra": [],
+          "changed": []
+        },
+        "sourceAfterVsBuilt": {
+          "missing": [],
+          "extra": [],
+          "changed": []
+        },
+        "qaBeforeVsBuilt": {
+          "missing": [],
+          "extra": [],
+          "changed": []
+        },
+        "qaAfterVsBuilt": {
+          "missing": [],
+          "extra": [],
+          "changed": []
+        },
+        "changedSources": [],
+        "changedQA": [],
+        "logSHA": "c37639b1b42308f0459ba7a1a7b53e6478feddfb448462257a4756c506b2f623",
+        "actualLogSHA": "c37639b1b42308f0459ba7a1a7b53e6478feddfb448462257a4756c506b2f623",
+        "logMatches": true,
+        "nextEnvBeforeSHA": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc",
+        "nextEnvAfterSHA": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc"
+      },
+      {
+        "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/b6-g3-v00-fifteen-built-command.json",
+        "sha256": "e5d62ddb9505eab8833a112a47a58eb0a4074b9a237f7d94d81cf23b7f10a71f",
+        "bindingExpectedSHA": "e5d62ddb9505eab8833a112a47a58eb0a4074b9a237f7d94d81cf23b7f10a71f",
+        "shaEqual": true,
+        "pid": 3652,
+        "elapsedMs": 5098.214,
+        "exitCode": 0,
+        "childClosed": true,
+        "logsClosed": true,
+        "candidate": "docs/qa/TEACHING-LOOP-G3-B6-20261004/CANDIDATE-B6-R01-r2-built.json",
+        "candidateSHA": "530005e154a3620f4d0fc6a0a3ade36c35bbd2f8316a91b71e65b1e007a8deb0",
+        "sourceBeforeVsBuilt": {
+          "missing": [],
+          "extra": [],
+          "changed": []
+        },
+        "sourceAfterVsBuilt": {
+          "missing": [],
+          "extra": [],
+          "changed": []
+        },
+        "qaBeforeVsBuilt": {
+          "missing": [],
+          "extra": [],
+          "changed": []
+        },
+        "qaAfterVsBuilt": {
+          "missing": [],
+          "extra": [],
+          "changed": []
+        },
+        "changedSources": [],
+        "changedQA": [],
+        "logSHA": "6a24895c3e3f2848872a0b267a65d2cb6bec9d4fc8b46982636465e1276cc146",
+        "actualLogSHA": "6a24895c3e3f2848872a0b267a65d2cb6bec9d4fc8b46982636465e1276cc146",
+        "logMatches": true,
+        "nextEnvBeforeSHA": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc",
+        "nextEnvAfterSHA": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc"
+      },
+      {
+        "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/b6-source-independent-built-r2-command.json",
+        "sha256": "824b4da83dab7707a92eb84ec7db1a5ef927782d6e9e9882b92e560fb77e9362",
+        "bindingExpectedSHA": "824b4da83dab7707a92eb84ec7db1a5ef927782d6e9e9882b92e560fb77e9362",
+        "shaEqual": true,
+        "pid": 23012,
+        "elapsedMs": 2078.647,
+        "exitCode": 0,
+        "childClosed": true,
+        "logsClosed": true,
+        "candidate": "docs/qa/TEACHING-LOOP-G3-B6-20261004/CANDIDATE-B6-R01-r2-built.json",
+        "candidateSHA": "530005e154a3620f4d0fc6a0a3ade36c35bbd2f8316a91b71e65b1e007a8deb0",
+        "sourceBeforeVsBuilt": {
+          "missing": [],
+          "extra": [
+            "docs/qa/TEACHING-LOOP-G3-B6-20261004/b6-exports/review-source/metadata-required.test.tsx",
+            "docs/qa/TEACHING-LOOP-G3-B6-20261004/b6-exports/review-source/vitest.config.ts"
+          ],
+          "changed": []
+        },
+        "sourceAfterVsBuilt": {
+          "missing": [],
+          "extra": [
+            "docs/qa/TEACHING-LOOP-G3-B6-20261004/b6-exports/review-source/metadata-required.test.tsx",
+            "docs/qa/TEACHING-LOOP-G3-B6-20261004/b6-exports/review-source/vitest.config.ts"
+          ],
+          "changed": []
+        },
+        "qaBeforeVsBuilt": {
+          "missing": [],
+          "extra": [],
+          "changed": []
+        },
+        "qaAfterVsBuilt": {
+          "missing": [],
+          "extra": [],
+          "changed": []
+        },
+        "changedSources": [],
+        "changedQA": [],
+        "logSHA": "80e5083680a7c7b9b215950d61514dfd8214c41074088aabb401bd5eeba4a9e2",
+        "actualLogSHA": "80e5083680a7c7b9b215950d61514dfd8214c41074088aabb401bd5eeba4a9e2",
+        "logMatches": true,
+        "nextEnvBeforeSHA": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc",
+        "nextEnvAfterSHA": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc"
+      },
+      {
+        "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/b6-g3-browser-r01-r2-first-command.json",
+        "sha256": "ee389a192eef19bdc0e2388084a4534847c31c102f2cd1acdbe091f08f2f4c60",
+        "bindingExpectedSHA": "ee389a192eef19bdc0e2388084a4534847c31c102f2cd1acdbe091f08f2f4c60",
+        "shaEqual": true,
+        "pid": 25240,
+        "elapsedMs": 49437.732,
+        "exitCode": 0,
+        "childClosed": true,
+        "logsClosed": true,
+        "candidate": "docs/qa/TEACHING-LOOP-G3-B6-20261004/CANDIDATE-B6-R01-r2-built.json",
+        "candidateSHA": "530005e154a3620f4d0fc6a0a3ade36c35bbd2f8316a91b71e65b1e007a8deb0",
+        "sourceBeforeVsBuilt": {
+          "missing": [],
+          "extra": [],
+          "changed": []
+        },
+        "sourceAfterVsBuilt": {
+          "missing": [],
+          "extra": [],
+          "changed": []
+        },
+        "qaBeforeVsBuilt": {
+          "missing": [],
+          "extra": [],
+          "changed": []
+        },
+        "qaAfterVsBuilt": {
+          "missing": [],
+          "extra": [],
+          "changed": []
+        },
+        "changedSources": [],
+        "changedQA": [],
+        "logSHA": "84d733e56f36fef82ccc43e90d61cd534c97f2d065ebcbad8a066a077cd0a6ea",
+        "actualLogSHA": "84d733e56f36fef82ccc43e90d61cd534c97f2d065ebcbad8a066a077cd0a6ea",
+        "logMatches": true,
+        "nextEnvBeforeSHA": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc",
+        "nextEnvAfterSHA": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc"
+      },
+      {
+        "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/b6-e2e-full-r01-r2-first-command.json",
+        "sha256": "a673e4c30593206b287846549b4b0763da4dfdfc39e62758c9d9cf41d328804d",
+        "bindingExpectedSHA": "a673e4c30593206b287846549b4b0763da4dfdfc39e62758c9d9cf41d328804d",
+        "shaEqual": true,
+        "pid": 4676,
+        "elapsedMs": 395901.975,
+        "exitCode": 0,
+        "childClosed": true,
+        "logsClosed": true,
+        "candidate": "docs/qa/TEACHING-LOOP-G3-B6-20261004/CANDIDATE-B6-R01-r2-built.json",
+        "candidateSHA": "530005e154a3620f4d0fc6a0a3ade36c35bbd2f8316a91b71e65b1e007a8deb0",
+        "sourceBeforeVsBuilt": {
+          "missing": [],
+          "extra": [],
+          "changed": []
+        },
+        "sourceAfterVsBuilt": {
+          "missing": [],
+          "extra": [],
+          "changed": []
+        },
+        "qaBeforeVsBuilt": {
+          "missing": [],
+          "extra": [],
+          "changed": []
+        },
+        "qaAfterVsBuilt": {
+          "missing": [],
+          "extra": [],
+          "changed": []
+        },
+        "changedSources": [],
+        "changedQA": [],
+        "logSHA": "48b4f19c2f3b9a9f5734014af13f9b78b4f4f786a1a86fc6288ae31aed910095",
+        "actualLogSHA": "48b4f19c2f3b9a9f5734014af13f9b78b4f4f786a1a86fc6288ae31aed910095",
+        "logMatches": true,
+        "nextEnvBeforeSHA": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc",
+        "nextEnvAfterSHA": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc"
+      }
+    ],
+    "additionalIndependentOwnQa": [
+      {
+        "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/b6-exports/review-source/metadata-required.test.tsx",
+        "currentSHA": "ca149188acd9dea30b2ffb544a45497972c8e26ca0c5cfdddb79b887701cfcf8",
+        "beforeSHA": "ca149188acd9dea30b2ffb544a45497972c8e26ca0c5cfdddb79b887701cfcf8",
+        "afterSHA": "ca149188acd9dea30b2ffb544a45497972c8e26ca0c5cfdddb79b887701cfcf8",
+        "equalCurrentBeforeAfter": true,
+        "scope": "额外独立审核 QA，不属于 built942 产品/原源码"
+      },
+      {
+        "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/b6-exports/review-source/vitest.config.ts",
+        "currentSHA": "4bce21167586fca40b52835261d3d01054af5b96ca7b526d64fc748694c16a1c",
+        "beforeSHA": "4bce21167586fca40b52835261d3d01054af5b96ca7b526d64fc748694c16a1c",
+        "afterSHA": "4bce21167586fca40b52835261d3d01054af5b96ca7b526d64fc748694c16a1c",
+        "equalCurrentBeforeAfter": true,
+        "scope": "额外独立审核 QA，不属于 built942 产品/原源码"
+      }
+    ],
+    "note": "Source8独立收据含942候选项+2本审核QA，已分列；942子映射精确匹配，2额外QA before/after/current相等，未将944键全文误称942键全等"
+  },
+  "config": {
+    "path": "ctrl/e2e.external.config.ts",
+    "sha256": "d4fb858a548d6710ccf54482db094d324c343327141300c9c8fefa6b066a663b",
+    "inheritsRootConfig": true,
+    "testDir": "tests/e2e",
+    "workers": 1,
+    "retries": 0,
+    "fullyParallel": false,
+    "webServer": "undefined; existing ROOT owned front used",
+    "freshOutputGuard": true,
+    "noTestAssertionAdaptation": true
+  },
+  "limits": [
+    "完整153基础chat不等于14专项chat，本批无公共chat/shell改动，专项14仅原同源引用。",
+    "R14跨批间歇观察保持，当前单轮通过不证明恒绿或触发根因关闭。",
+    "本报告没有真人教学评价、真实模型质量、Word/WPS排版、正式Qdrant/迁移或额外压力结论。",
+    "单轮153不与旧失败或诊断拼绿；原QA断言字节未改。",
+    "最终文档审计另待FINAL-DOCS-READY，此报告不预签其PASS。"
+  ],
+  "executedQA": false,
+  "applicationImported": false,
+  "networkRequests": 0,
+  "serviceActions": 0,
+  "gitWrites": false,
+  "inputWrites": false,
+  "writes": [
+    "v00/B6-FULL153-RECEIPT-REVIEW-v1.md",
+    "v00/B6-FULL153-RECEIPT-REVIEW-v1.json"
+  ],
+  "stop": true
+}

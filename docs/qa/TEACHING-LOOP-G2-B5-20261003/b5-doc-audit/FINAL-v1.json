@@ -1,0 +1,1547 @@
+{
+  "taskId": "B5-DOC-FINAL-APPROVAL-v1",
+  "owner": "/root/b5_final_doc_audit",
+  "independent": true,
+  "participatedInProductImplementation": false,
+  "status": "STOP_INDEPENDENT_APPROVED_TO_APPLY_EXACT_7_DOCUMENTS",
+  "createdAtUtc": "2026-10-03T14:11:31.973692+00:00",
+  "pythonPID": 13192,
+  "readonlySealingElapsedMs": 1697.332,
+  "approvedToApplyExact": true,
+  "noP1P2": true,
+  "manifestPath": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/MANIFEST.json",
+  "manifestSHA256": "1a73b1ccaef5522d095ac0cf5e64dfd0ed48684cbe2c9d7fd3fec30509e324e3",
+  "candidatePath": "docs/qa/TEACHING-LOOP-G2-B5-20261003/CANDIDATE-B5-r8.json",
+  "candidateSHA256": "c33c85698ba2be8e6b08fe432305622bf3635a1bc5bb0cc515472996ebbe2007",
+  "candidateBuildId": "FVU-OXmtBh9WBSHehixfE",
+  "documents": [
+    {
+      "path": "docs/CURRENT_STATUS.md",
+      "beforePath": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/before/docs/CURRENT_STATUS.md",
+      "beforeSHA": "0cc491e288c1c1488eec7c073c201f67de697c6b49ab3b19dd3dbb1d17e051c5",
+      "afterPath": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/after/docs/CURRENT_STATUS.md",
+      "afterSHA": "75e6206f27eba3b64ad5a8cbbc39a6fc2f25723005c2baa285945a4829a86919",
+      "afterBytes": 18273,
+      "beforeActualSHA": "0cc491e288c1c1488eec7c073c201f67de697c6b49ab3b19dd3dbb1d17e051c5",
+      "liveActualSHA": "0cc491e288c1c1488eec7c073c201f67de697c6b49ab3b19dd3dbb1d17e051c5",
+      "afterActualSHA": "75e6206f27eba3b64ad5a8cbbc39a6fc2f25723005c2baa285945a4829a86919",
+      "afterActualBytes": 18273,
+      "exact": true
+    },
+    {
+      "path": "docs/NEXT_SESSION_START.md",
+      "beforePath": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/before/docs/NEXT_SESSION_START.md",
+      "beforeSHA": "3850504bbe5a87562902bafb9429d8507159ba8f8aa6e288f521a508f269bf4a",
+      "afterPath": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/after/docs/NEXT_SESSION_START.md",
+      "afterSHA": "8784da063506202538af1712dc0004fef0b52629ebbeced8a509a148b68bafde",
+      "afterBytes": 2337,
+      "beforeActualSHA": "3850504bbe5a87562902bafb9429d8507159ba8f8aa6e288f521a508f269bf4a",
+      "liveActualSHA": "3850504bbe5a87562902bafb9429d8507159ba8f8aa6e288f521a508f269bf4a",
+      "afterActualSHA": "8784da063506202538af1712dc0004fef0b52629ebbeced8a509a148b68bafde",
+      "afterActualBytes": 2337,
+      "exact": true
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/README.md",
+      "beforePath": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/before/docs/qa/TEACHING-LOOP-G2-B5-20261003/README.md",
+      "beforeSHA": "9906b60153e14a1abf2d344da0ab19164f3fa17dd6431d85395bc868bd7a9c63",
+      "afterPath": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/after/docs/qa/TEACHING-LOOP-G2-B5-20261003/README.md",
+      "afterSHA": "d4f18ac49106bde0762053c0d5c45ffc9a820ecd9e7f0e806335bad7260bdb38",
+      "afterBytes": 1802,
+      "beforeActualSHA": "9906b60153e14a1abf2d344da0ab19164f3fa17dd6431d85395bc868bd7a9c63",
+      "liveActualSHA": "9906b60153e14a1abf2d344da0ab19164f3fa17dd6431d85395bc868bd7a9c63",
+      "afterActualSHA": "d4f18ac49106bde0762053c0d5c45ffc9a820ecd9e7f0e806335bad7260bdb38",
+      "afterActualBytes": 1802,
+      "exact": true
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+      "beforePath": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/before/docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+      "beforeSHA": "04c573266b6336ab07ae9535b0a1151bb69c29fd37fdcebd5ce6c6b7ad67c94b",
+      "afterPath": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/after/docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+      "afterSHA": "96ef7443d091096c72f91d23b01e38fea3cb037d84cab70756084e864865cc61",
+      "afterBytes": 11466,
+      "beforeActualSHA": "04c573266b6336ab07ae9535b0a1151bb69c29fd37fdcebd5ce6c6b7ad67c94b",
+      "liveActualSHA": "04c573266b6336ab07ae9535b0a1151bb69c29fd37fdcebd5ce6c6b7ad67c94b",
+      "afterActualSHA": "96ef7443d091096c72f91d23b01e38fea3cb037d84cab70756084e864865cc61",
+      "afterActualBytes": 11466,
+      "exact": true
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md",
+      "beforePath": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/before/docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md",
+      "beforeSHA": "f3547a5d4130c69cdb25f5ededf4de72fbb56fa031350f25e4d5072d68742c43",
+      "afterPath": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/after/docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md",
+      "afterSHA": "5f9668c63f16325b5a854e2a05f9b7e3099803ca486be2e64216eb6236557ac4",
+      "afterBytes": 5089,
+      "beforeActualSHA": "f3547a5d4130c69cdb25f5ededf4de72fbb56fa031350f25e4d5072d68742c43",
+      "liveActualSHA": "f3547a5d4130c69cdb25f5ededf4de72fbb56fa031350f25e4d5072d68742c43",
+      "afterActualSHA": "5f9668c63f16325b5a854e2a05f9b7e3099803ca486be2e64216eb6236557ac4",
+      "afterActualBytes": 5089,
+      "exact": true
+    },
+    {
+      "path": "docs/README.md",
+      "beforePath": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/before/docs/README.md",
+      "beforeSHA": "a51ff63dab460bf87791d25d4184698d8b6f8e0013336b6e5714124fc7681b07",
+      "afterPath": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/after/docs/README.md",
+      "afterSHA": "e34069692d6b68bf14494feed204828bf4dd55c0cc387af35375b8914316a06f",
+      "afterBytes": 2739,
+      "beforeActualSHA": "a51ff63dab460bf87791d25d4184698d8b6f8e0013336b6e5714124fc7681b07",
+      "liveActualSHA": "a51ff63dab460bf87791d25d4184698d8b6f8e0013336b6e5714124fc7681b07",
+      "afterActualSHA": "e34069692d6b68bf14494feed204828bf4dd55c0cc387af35375b8914316a06f",
+      "afterActualBytes": 2739,
+      "exact": true
+    },
+    {
+      "path": "docs/qa/README.md",
+      "beforePath": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/before/docs/qa/README.md",
+      "beforeSHA": "eb682796f78ccf7860d9da32dcbd2ec9bb07161bba2b1066a1218132ea7e1eed",
+      "afterPath": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/after/docs/qa/README.md",
+      "afterSHA": "0414f07f04d2ab7507c3a567dfa67efe8bdd57d56a53ced3aa7ed9bc50e890ba",
+      "afterBytes": 3292,
+      "beforeActualSHA": "eb682796f78ccf7860d9da32dcbd2ec9bb07161bba2b1066a1218132ea7e1eed",
+      "liveActualSHA": "eb682796f78ccf7860d9da32dcbd2ec9bb07161bba2b1066a1218132ea7e1eed",
+      "afterActualSHA": "0414f07f04d2ab7507c3a567dfa67efe8bdd57d56a53ced3aa7ed9bc50e890ba",
+      "afterActualBytes": 3292,
+      "exact": true
+    }
+  ],
+  "approvedDocuments": [
+    {
+      "path": "docs/CURRENT_STATUS.md",
+      "afterSHA256": "75e6206f27eba3b64ad5a8cbbc39a6fc2f25723005c2baa285945a4829a86919"
+    },
+    {
+      "path": "docs/NEXT_SESSION_START.md",
+      "afterSHA256": "8784da063506202538af1712dc0004fef0b52629ebbeced8a509a148b68bafde"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/README.md",
+      "afterSHA256": "d4f18ac49106bde0762053c0d5c45ffc9a820ecd9e7f0e806335bad7260bdb38"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+      "afterSHA256": "96ef7443d091096c72f91d23b01e38fea3cb037d84cab70756084e864865cc61"
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md",
+      "afterSHA256": "5f9668c63f16325b5a854e2a05f9b7e3099803ca486be2e64216eb6236557ac4"
+    },
+    {
+      "path": "docs/README.md",
+      "afterSHA256": "e34069692d6b68bf14494feed204828bf4dd55c0cc387af35375b8914316a06f"
+    },
+    {
+      "path": "docs/qa/README.md",
+      "afterSHA256": "0414f07f04d2ab7507c3a567dfa67efe8bdd57d56a53ced3aa7ed9bc50e890ba"
+    }
+  ],
+  "approvalMeaning": "Independent approval is for these prospective seven exact afterbyte documents only. LIVE remained the manifest beforebytes during audit. ROOT alone applies these bytes, records B5 closure, and verifies the post-apply exact hashes. This reviewer neither applies documents nor declares that LIVE already closed.",
+  "findings": [
+    {
+      "id": "DOC-FINAL-v1-P3-01",
+      "priority": "P3",
+      "path": "docs/CURRENT_STATUS.md",
+      "proposedAfterLine": 127,
+      "fact": "The CV01~03 pipe row is separated from the preceding issue table by a blank line and may render as a standalone pipe paragraph. Its observation and evidence remain readable and accurate.",
+      "requiredBeforeExactApply": false,
+      "recommendation": "Optional later formatting correction can move it inside the same table under a new documented exact-byte revision. It does not block approval of original v1 seven afterbytes."
+    }
+  ],
+  "documentCoverage": {
+    "allSevenReadCompletely": true,
+    "historyVsLatestExplicit": true,
+    "matrixR01ThroughR08FinalCorrectBehaviorClosed": true,
+    "minimumNine": [
+      {
+        "id": "G2",
+        "minimum": "R01 dirty全离开路径、R02原包与代次、R03真实receipt重放及各必要门禁；与旧B4关闭分开",
+        "finalCoverage": "引用已核准G2关闭收据/原正确行为，保留其589+2原件，不重写为B5的新结果"
+      },
+      {
+        "id": "B5-storage",
+        "minimum": "真实保存/导入/历史、owner/FK/CAS、同包并发/异包409/后期旧receipt、来源意义A→B→A/同正文去重、坏稿不空覆盖",
+        "finalCoverage": "独立42真实API及最终稳定候选410绑定；浏览器双标签、unknown、新输入/迟到ACK；不靠源码存在代替"
+      },
+      {
+        "id": "B5-AI",
+        "minimum": "最终三协议序列化wire不发学生身份/单班固定统计、生产Rag/固定题练习、fingerprint、严格metadata、六态/租约/取消/restart/retry/发布原子性",
+        "finalCoverage": "42 API/作者144/独立27和最终browser手写oracle分列；替身只能证明技术链，不能教学质量"
+      },
+      {
+        "id": "B5-apply",
+        "minimum": "五整字段仅选部分、教师六/未选不变、候选首次应用/拒绝终结、原包replay、undo另存新版本/历史不变",
+        "finalCoverage": "最终browser完整新8/11字段Word JSON及原固定对象SQL/四GET后验，不能拼旧r5与新r8"
+      },
+      {
+        "id": "B5-local",
+        "minimum": "旧键完整保留、600ms串行/快速导航flush/失败明确重试/损坏暂停/refresh、规则警告确认、undo/redo、JSON/template Word/print",
+        "finalCoverage": "R07与R08修后原27、修后原完整153及独立browser；明确原151/2、19/8、26/1和preflight0原失败未删除"
+      },
+      {
+        "id": "B5-export-visual",
+        "minimum": "中文全部11字段、长正文/长secondary/特殊公式/模板hash、真实下载内容、100ms打印来源冻结、390/1024/1440/reduced-motion/键盘焦点实际证据",
+        "finalCoverage": "独立实际结构与动态断言、原图逐图审阅分列；PDF保存/WPS人工没有执行就明确not_run"
+      },
+      {
+        "id": "B5-migration-recovery",
+        "minimum": "append0010、新库/有数据B4/注入回滚重跑/真FK/旧9hash、全四库六表/教案输入候选决策历史/资产恢复逐项",
+        "finalCoverage": "ROOT实际restore1与fullAPI的实际演练 + independent retained16库/2blob/56文件只读，不能声称独立全restore runtime；正式数据未执行"
+      },
+      {
+        "id": "B5-engineering",
+        "minimum": "稳定产品check与新build、完整API、适用原153、公共变更所需14chat；单轮计数/exit/用时/skip/首败/同字节绑定",
+        "finalCoverage": "1256当前check/27与9383061、新FVU2004；API1918+1/42精确410未重跑；r8browser/153/14实际结果齐全后才能关闭"
+      },
+      {
+        "id": "B5-close",
+        "minimum": "自有进程/端口/连接/contexts退出、用户进程保留/TEMP保留，源/QA/33/2004/591原G2/4136历史/nextenv零漂移，精确文档后验",
+        "finalCoverage": "所有资源闭合后的实际快照及 proposed exact afterbytes/manifest审批；live文档只按核准字节apply，无Git"
+      }
+    ],
+    "rootOnlyFinalClosure": true,
+    "STOPAtB5NoNextStageNoGit": true
+  },
+  "relativeMarkdownLinks": {
+    "count": 140,
+    "missing": [],
+    "allResolvedFromLogicalLiveParent": true,
+    "networkRequests": 0,
+    "entries": [
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "PROJECT_GUIDE",
+        "target": "PROJECT_GUIDE.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\PROJECT_GUIDE.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "文档索引",
+        "target": "README.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\README.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "整理前状态快照",
+        "target": "archive/snapshots/20261001-docs-focus/docs/CURRENT_STATUS.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\archive\\snapshots\\20261001-docs-focus\\docs\\CURRENT_STATUS.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "G2→B5报告",
+        "target": "qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\REPORT.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "B5关闭矩阵",
+        "target": "qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\B5-CLOSE-MATRIX.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "B5-r8",
+        "target": "qa/TEACHING-LOOP-G2-B5-20261003/CANDIDATE-B5-r8.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\CANDIDATE-B5-r8.json",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "G2关闭",
+        "target": "qa/TEACHING-LOOP-G2-B5-20261003/ctrl/G2-CLOSED-r4-v1.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\ctrl\\G2-CLOSED-r4-v1.json",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "资源终审",
+        "target": "qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-RESOURCE-CLOSED-r8-v2.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\ctrl\\B5-RESOURCE-CLOSED-r8-v2.json",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "保全",
+        "target": "qa/TEACHING-LOOP-G2-B5-20261003/AUDIT-B5-r8-final-preservation-v1.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\AUDIT-B5-r8-final-preservation-v1.json",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "before快照",
+        "target": "qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/before/docs/CURRENT_STATUS.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\ctrl\\B5-DOC-CLOSE-CANDIDATE-v1\\before\\docs\\CURRENT_STATUS.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "PROJECT_GUIDE",
+        "target": "PROJECT_GUIDE.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\PROJECT_GUIDE.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "历史关闭矩阵",
+        "target": "qa/TEACHING-LOOP-B3-FIX-20261002/G0-CLOSE-MATRIX.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B3-FIX-20261002\\G0-CLOSE-MATRIX.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "原审查",
+        "target": "qa/TEACHING-LOOP-B3-FIX-REVIEW-20261002/REVIEW.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B3-FIX-REVIEW-20261002\\REVIEW.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "八项矩阵",
+        "target": "qa/TEACHING-LOOP-G1-B4-20261002/G1-CLOSE-MATRIX.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-B4-20261002\\G1-CLOSE-MATRIX.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "关闭报告",
+        "target": "qa/TEACHING-LOOP-G1-RESUME-B4-20261002/G1-REPORT.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-RESUME-B4-20261002\\G1-REPORT.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "原REVIEW",
+        "target": "qa/TEACHING-LOOP-B4-REVIEW-20261003/REVIEW.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-REVIEW-20261003\\REVIEW.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "批次报告",
+        "target": "qa/RAG-QUALITY-v1/README.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\RAG-QUALITY-v1\\README.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "原批规格",
+        "target": "archive/snapshots/20261001-docs-focus/docs/PLAN.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\archive\\snapshots\\20261001-docs-focus\\docs\\PLAN.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "B0",
+        "target": "qa/TEACHING-LOOP-B0/README.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B0\\README.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "B1",
+        "target": "qa/TEACHING-LOOP-B1/README.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B1\\README.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "B2",
+        "target": "qa/TEACHING-LOOP-B2/README.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B2\\README.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "B2 审查",
+        "target": "qa/TEACHING-LOOP-B2-REVIEW-20261001/REVIEW.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B2-REVIEW-20261001\\REVIEW.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "原交付",
+        "target": "qa/TEACHING-LOOP-B3/REPORT.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B3\\REPORT.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "后续审查",
+        "target": "qa/TEACHING-LOOP-B3-REVIEW-20261001/REVIEW.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B3-REVIEW-20261001\\REVIEW.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "本批报告",
+        "target": "qa/TEACHING-LOOP-B3-FIX-20261002/REPORT.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B3-FIX-20261002\\REPORT.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "命令",
+        "target": "qa/TEACHING-LOOP-B3-FIX-20261002/EVIDENCE-COMMANDS.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B3-FIX-20261002\\EVIDENCE-COMMANDS.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "首败",
+        "target": "qa/TEACHING-LOOP-B3-FIX-20261002/ROOT-FIRST-FAILURES.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B3-FIX-20261002\\ROOT-FIRST-FAILURES.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "审查与证据",
+        "target": "qa/TEACHING-LOOP-B3-FIX-REVIEW-20261002/REVIEW.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B3-FIX-REVIEW-20261002\\REVIEW.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "下一阶段提示词",
+        "target": "design/teaching-loop-v1/B4_总控启动提示词.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\design\\teaching-loop-v1\\B4_总控启动提示词.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "状态报告",
+        "target": "qa/TEACHING-LOOP-G1-B4-20261002/REPORT.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-B4-20261002\\REPORT.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "八项与阶段矩阵",
+        "target": "qa/TEACHING-LOOP-G1-B4-20261002/G1-CLOSE-MATRIX.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-B4-20261002\\G1-CLOSE-MATRIX.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "审查",
+        "target": "qa/TEACHING-LOOP-G1-REVIEW-20261002/REVIEW.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-REVIEW-20261002\\REVIEW.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "续验提示词",
+        "target": "design/teaching-loop-v1/G1续验与B4启动提示词_20261002.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\design\\teaching-loop-v1\\G1续验与B4启动提示词_20261002.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "暂停交接",
+        "target": "qa/TEACHING-LOOP-G1-RESUME-B4-20261002/B4-PAUSE-HANDOFF.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-RESUME-B4-20261002\\B4-PAUSE-HANDOFF.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "B4报告",
+        "target": "qa/TEACHING-LOOP-G1-RESUME-B4-20261002/B4-REPORT.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-RESUME-B4-20261002\\B4-REPORT.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "今日报告",
+        "target": "qa/TEACHING-LOOP-B4-RESUME-20261003/REPORT.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\REPORT.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "今日矩阵",
+        "target": "qa/TEACHING-LOOP-B4-RESUME-20261003/CLOSE-MATRIX.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\CLOSE-MATRIX.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "审查",
+        "target": "qa/TEACHING-LOOP-B4-REVIEW-20261003/REVIEW.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-REVIEW-20261003\\REVIEW.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "G2+B5提示词",
+        "target": "design/teaching-loop-v1/B5_总控启动提示词_20261003.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\design\\teaching-loop-v1\\B5_总控启动提示词_20261003.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "报告",
+        "target": "qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\REPORT.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "B5矩阵",
+        "target": "qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\B5-CLOSE-MATRIX.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "本次记录",
+        "target": "qa/DOCS-FOCUS-20261001/README.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\DOCS-FOCUS-20261001\\README.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "RAG 质量报告",
+        "target": "qa/RAG-QUALITY-v1/README.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\RAG-QUALITY-v1\\README.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "本轮只读调查",
+        "target": "qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-v00-browser/R14-STATIC-FIRST-FAILURE.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-RESUME-B4-20261002\\b4-v00-browser\\R14-STATIC-FIRST-FAILURE.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "旧证据",
+        "target": "archive/pre-20260929/qa/UX-PERF-CLOSEOUT-20260923/r14/REPRO-EVIDENCE.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\archive\\pre-20260929\\qa\\UX-PERF-CLOSEOUT-20260923\\r14\\REPRO-EVIDENCE.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "逐图报告",
+        "target": "qa/TEACHING-LOOP-G2-B5-20261003/b5-v00/results/CHAT-R8-VISUAL-v1.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\b5-v00\\results\\CHAT-R8-VISUAL-v1.md",
+        "exists": true
+      },
+      {
+        "document": "docs/CURRENT_STATUS.md",
+        "label": "归档索引",
+        "target": "archive/README.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\archive\\README.md",
+        "exists": true
+      },
+      {
+        "document": "docs/NEXT_SESSION_START.md",
+        "label": "CURRENT_STATUS",
+        "target": "CURRENT_STATUS.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\CURRENT_STATUS.md",
+        "exists": true
+      },
+      {
+        "document": "docs/NEXT_SESSION_START.md",
+        "label": "PROJECT_GUIDE",
+        "target": "PROJECT_GUIDE.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\PROJECT_GUIDE.md",
+        "exists": true
+      },
+      {
+        "document": "docs/NEXT_SESSION_START.md",
+        "label": "本批报告",
+        "target": "qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\REPORT.md",
+        "exists": true
+      },
+      {
+        "document": "docs/NEXT_SESSION_START.md",
+        "label": "B5-r8",
+        "target": "qa/TEACHING-LOOP-G2-B5-20261003/CANDIDATE-B5-r8.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\CANDIDATE-B5-r8.json",
+        "exists": true
+      },
+      {
+        "document": "docs/NEXT_SESSION_START.md",
+        "label": "B5矩阵",
+        "target": "qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\B5-CLOSE-MATRIX.md",
+        "exists": true
+      },
+      {
+        "document": "docs/NEXT_SESSION_START.md",
+        "label": "before",
+        "target": "qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/before/docs/NEXT_SESSION_START.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\ctrl\\B5-DOC-CLOSE-CANDIDATE-v1\\before\\docs\\NEXT_SESSION_START.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/README.md",
+        "label": "最终报告",
+        "target": "REPORT.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\REPORT.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/README.md",
+        "label": "B5矩阵",
+        "target": "B5-CLOSE-MATRIX.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\B5-CLOSE-MATRIX.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/README.md",
+        "label": "G2矩阵原件",
+        "target": "G2-CLOSE-MATRIX.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\G2-CLOSE-MATRIX.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/README.md",
+        "label": "原授权",
+        "target": "ctrl/USER-REQUEST.original.txt",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\ctrl\\USER-REQUEST.original.txt",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/README.md",
+        "label": "任务卡原件",
+        "target": "TASK-CARDS.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\TASK-CARDS.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/README.md",
+        "label": "CURRENT_STATUS",
+        "target": "../../CURRENT_STATUS.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\CURRENT_STATUS.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/README.md",
+        "label": "B5-r8",
+        "target": "CANDIDATE-B5-r8.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\CANDIDATE-B5-r8.json",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/README.md",
+        "label": "资源终审",
+        "target": "ctrl/B5-RESOURCE-CLOSED-r8-v2.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\ctrl\\B5-RESOURCE-CLOSED-r8-v2.json",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/README.md",
+        "label": "保全",
+        "target": "AUDIT-B5-r8-final-preservation-v1.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\AUDIT-B5-r8-final-preservation-v1.json",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/README.md",
+        "label": "精确文档清单",
+        "target": "ctrl/B5-DOC-CLOSE-CANDIDATE-v1/MANIFEST.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\ctrl\\B5-DOC-CLOSE-CANDIDATE-v1\\MANIFEST.json",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+        "label": "候选",
+        "target": "CANDIDATE-B5-r8.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\CANDIDATE-B5-r8.json",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+        "label": "B5矩阵",
+        "target": "B5-CLOSE-MATRIX.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\B5-CLOSE-MATRIX.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+        "label": "G2已关闭收据",
+        "target": "ctrl/G2-CLOSED-r4-v1.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\ctrl\\G2-CLOSED-r4-v1.json",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+        "label": "check1256",
+        "target": "ctrl/b5-check-prebuild-v6-first-command.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\ctrl\\b5-check-prebuild-v6-first-command.json",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+        "label": "新构建/实际代理",
+        "target": "ctrl/B5-R08-BUILD-BINDING-v1.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\ctrl\\B5-R08-BUILD-BINDING-v1.json",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+        "label": "API410精确原前后绑定",
+        "target": "ctrl/B5-R8-API-EXACT-BINDING-v1.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\ctrl\\B5-R8-API-EXACT-BINDING-v1.json",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+        "label": "独立27",
+        "target": "b5-v00/results/EXEC-r8-unit-second-INDEPENDENT-v1.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\b5-v00\\results\\EXEC-r8-unit-second-INDEPENDENT-v1.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+        "label": "完整8独立",
+        "target": "b5-v00/results/EXEC-r8-browser-first-v2.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\b5-v00\\results\\EXEC-r8-browser-first-v2.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+        "label": "fresh188附件",
+        "target": "b5-v00/results/R8-FULL-FIELD-ARTIFACT-AUDIT-v3.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\b5-v00\\results\\R8-FULL-FIELD-ARTIFACT-AUDIT-v3.json",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+        "label": "固定4业务读取",
+        "target": "b5-v00/results/R8-BROWSER-FIXED-READ-v1.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\b5-v00\\results\\R8-BROWSER-FIXED-READ-v1.json",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+        "label": "原153独立",
+        "target": "b5-review/E2E-R8-INDEPENDENT-v1.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\b5-review\\E2E-R8-INDEPENDENT-v1.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+        "label": "原153执行",
+        "target": "ctrl/b5-e2e-full-r8-first-command.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\ctrl\\b5-e2e-full-r8-first-command.json",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+        "label": "聊天14独立",
+        "target": "b5-v00/results/CHAT-R8-INDEPENDENT-v1.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\b5-v00\\results\\CHAT-R8-INDEPENDENT-v1.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+        "label": "26逐图",
+        "target": "b5-v00/results/CHAT-R8-VISUAL-v1.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\b5-v00\\results\\CHAT-R8-VISUAL-v1.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+        "label": "实际四库恢复",
+        "target": "ctrl/B5-RECOVERY-PROOF-v1.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\ctrl\\B5-RECOVERY-PROOF-v1.json",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+        "label": "独立16库只读核查",
+        "target": "b5-v00/results/RECOVERY-READ-AUDIT-v1.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\b5-v00\\results\\RECOVERY-READ-AUDIT-v1.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+        "label": "资源终审",
+        "target": "ctrl/B5-RESOURCE-CLOSED-r8-v2.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\ctrl\\B5-RESOURCE-CLOSED-r8-v2.json",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+        "label": "资源独立",
+        "target": "b5-review/RESOURCE-R8-INDEPENDENT-v1.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\b5-review\\RESOURCE-R8-INDEPENDENT-v1.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+        "label": "最终保全",
+        "target": "AUDIT-B5-r8-final-preservation-v1.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\AUDIT-B5-r8-final-preservation-v1.json",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+        "label": "未执行HTTP政策收据",
+        "target": "ctrl/B5-R2-EXTRA-IDENTITY-POLICY-v1.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\ctrl\\B5-R2-EXTRA-IDENTITY-POLICY-v1.json",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+        "label": "精确文档清单",
+        "target": "ctrl/B5-DOC-CLOSE-CANDIDATE-v1/MANIFEST.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\ctrl\\B5-DOC-CLOSE-CANDIDATE-v1\\MANIFEST.json",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+        "label": "本报告整理前原字节",
+        "target": "ctrl/B5-DOC-CLOSE-CANDIDATE-v1/before/docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\ctrl\\B5-DOC-CLOSE-CANDIDATE-v1\\before\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\REPORT.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md",
+        "label": "B5-r8",
+        "target": "CANDIDATE-B5-r8.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\CANDIDATE-B5-r8.json",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md",
+        "label": "G2已批准关闭",
+        "target": "ctrl/G2-CLOSED-r4-v1.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\ctrl\\G2-CLOSED-r4-v1.json",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md",
+        "label": "独立42API",
+        "target": "b5-v00/results/EXEC-FIRST-ROUNDS-v1.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\b5-v00\\results\\EXEC-FIRST-ROUNDS-v1.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md",
+        "label": "410源前后绑定",
+        "target": "ctrl/B5-R8-API-EXACT-BINDING-v1.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\ctrl\\B5-R8-API-EXACT-BINDING-v1.json",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md",
+        "label": "新8",
+        "target": "b5-v00/results/EXEC-r8-browser-first-v2.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\b5-v00\\results\\EXEC-r8-browser-first-v2.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md",
+        "label": "原27同字节",
+        "target": "b5-v00/results/EXEC-r8-unit-second-INDEPENDENT-v1.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\b5-v00\\results\\EXEC-r8-unit-second-INDEPENDENT-v1.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md",
+        "label": "原153",
+        "target": "b5-review/E2E-R8-INDEPENDENT-v1.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\b5-review\\E2E-R8-INDEPENDENT-v1.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md",
+        "label": "静态",
+        "target": "b5-review/R08-STATIC-v1.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\b5-review\\R08-STATIC-v1.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md",
+        "label": "实际restore",
+        "target": "ctrl/B5-RECOVERY-PROOF-v1.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\ctrl\\B5-RECOVERY-PROOF-v1.json",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md",
+        "label": "独立16库只读",
+        "target": "b5-v00/results/RECOVERY-READ-AUDIT-v1.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\b5-v00\\results\\RECOVERY-READ-AUDIT-v1.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md",
+        "label": "26聊天逐图",
+        "target": "b5-v00/results/CHAT-R8-VISUAL-v1.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\b5-v00\\results\\CHAT-R8-VISUAL-v1.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md",
+        "label": "资源v2",
+        "target": "ctrl/B5-RESOURCE-CLOSED-r8-v2.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\ctrl\\B5-RESOURCE-CLOSED-r8-v2.json",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md",
+        "label": "独立资源",
+        "target": "b5-review/RESOURCE-R8-INDEPENDENT-v1.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\b5-review\\RESOURCE-R8-INDEPENDENT-v1.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md",
+        "label": "保全",
+        "target": "AUDIT-B5-r8-final-preservation-v1.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\AUDIT-B5-r8-final-preservation-v1.json",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md",
+        "label": "before/after清单",
+        "target": "ctrl/B5-DOC-CLOSE-CANDIDATE-v1/MANIFEST.json",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\ctrl\\B5-DOC-CLOSE-CANDIDATE-v1\\MANIFEST.json",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md",
+        "label": "整理前快照",
+        "target": "ctrl/B5-DOC-CLOSE-CANDIDATE-v1/before/docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\ctrl\\B5-DOC-CLOSE-CANDIDATE-v1\\before\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\B5-CLOSE-MATRIX.md",
+        "exists": true
+      },
+      {
+        "document": "docs/README.md",
+        "label": "根 AGENTS",
+        "target": "../AGENTS.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\AGENTS.md",
+        "exists": true
+      },
+      {
+        "document": "docs/README.md",
+        "label": "CURRENT_STATUS",
+        "target": "CURRENT_STATUS.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\CURRENT_STATUS.md",
+        "exists": true
+      },
+      {
+        "document": "docs/README.md",
+        "label": "PROJECT_GUIDE",
+        "target": "PROJECT_GUIDE.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\PROJECT_GUIDE.md",
+        "exists": true
+      },
+      {
+        "document": "docs/README.md",
+        "label": "教学闭环设计",
+        "target": "design/teaching-loop-v1/README.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\design\\teaching-loop-v1\\README.md",
+        "exists": true
+      },
+      {
+        "document": "docs/README.md",
+        "label": "v2.0 详细实施计划",
+        "target": "design/teaching-loop-v1/多Agent实施任务计划书_v2.0.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\design\\teaching-loop-v1\\多Agent实施任务计划书_v2.0.md",
+        "exists": true
+      },
+      {
+        "document": "docs/README.md",
+        "label": "API",
+        "target": "API.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\API.md",
+        "exists": true
+      },
+      {
+        "document": "docs/README.md",
+        "label": "ROUTES",
+        "target": "ROUTES.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\ROUTES.md",
+        "exists": true
+      },
+      {
+        "document": "docs/README.md",
+        "label": "B4后续代码审查",
+        "target": "qa/TEACHING-LOOP-B4-REVIEW-20261003/REVIEW.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-REVIEW-20261003\\REVIEW.md",
+        "exists": true
+      },
+      {
+        "document": "docs/README.md",
+        "label": "原B4矩阵",
+        "target": "qa/TEACHING-LOOP-B4-RESUME-20261003/CLOSE-MATRIX.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\CLOSE-MATRIX.md",
+        "exists": true
+      },
+      {
+        "document": "docs/README.md",
+        "label": "G2+B5总控提示词",
+        "target": "design/teaching-loop-v1/B5_总控启动提示词_20261003.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\design\\teaching-loop-v1\\B5_总控启动提示词_20261003.md",
+        "exists": true
+      },
+      {
+        "document": "docs/README.md",
+        "label": "本批记录",
+        "target": "qa/TEACHING-LOOP-G2-B5-20261003/README.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\README.md",
+        "exists": true
+      },
+      {
+        "document": "docs/README.md",
+        "label": "PLAN",
+        "target": "PLAN.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\PLAN.md",
+        "exists": true
+      },
+      {
+        "document": "docs/README.md",
+        "label": "当前接手文本",
+        "target": "NEXT_SESSION_START.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\NEXT_SESSION_START.md",
+        "exists": true
+      },
+      {
+        "document": "docs/README.md",
+        "label": "昨日B4暂停交接",
+        "target": "qa/TEACHING-LOOP-G1-RESUME-B4-20261002/B4-PAUSE-HANDOFF.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-RESUME-B4-20261002\\B4-PAUSE-HANDOFF.md",
+        "exists": true
+      },
+      {
+        "document": "docs/README.md",
+        "label": "协作模板",
+        "target": "MULTI_AGENT_COLLABORATION_PROPOSAL.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\MULTI_AGENT_COLLABORATION_PROPOSAL.md",
+        "exists": true
+      },
+      {
+        "document": "docs/README.md",
+        "label": "QA 索引",
+        "target": "qa/README.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\README.md",
+        "exists": true
+      },
+      {
+        "document": "docs/README.md",
+        "label": "归档",
+        "target": "archive/README.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\archive\\README.md",
+        "exists": true
+      },
+      {
+        "document": "docs/README.md",
+        "label": "B4每日批",
+        "target": "qa/TEACHING-LOOP-B4-RESUME-20261003/README.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\README.md",
+        "exists": true
+      },
+      {
+        "document": "docs/README.md",
+        "label": "B4-REVIEW",
+        "target": "qa/TEACHING-LOOP-B4-REVIEW-20261003/README.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-REVIEW-20261003\\README.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/README.md",
+        "label": "CURRENT_STATUS",
+        "target": "../CURRENT_STATUS.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\CURRENT_STATUS.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/README.md",
+        "label": "报告",
+        "target": "RAG-QUALITY-v1/README.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\RAG-QUALITY-v1\\README.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/README.md",
+        "label": "报告",
+        "target": "TEACHING-LOOP-B0/README.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B0\\README.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/README.md",
+        "label": "报告",
+        "target": "TEACHING-LOOP-B1/README.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B1\\README.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/README.md",
+        "label": "报告",
+        "target": "TEACHING-LOOP-B2/README.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B2\\README.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/README.md",
+        "label": "审查",
+        "target": "TEACHING-LOOP-B2-REVIEW-20261001/REVIEW.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B2-REVIEW-20261001\\REVIEW.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/README.md",
+        "label": "交付",
+        "target": "TEACHING-LOOP-B3/REPORT.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B3\\REPORT.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/README.md",
+        "label": "审查",
+        "target": "TEACHING-LOOP-B3-REVIEW-20261001/REVIEW.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B3-REVIEW-20261001\\REVIEW.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/README.md",
+        "label": "交付",
+        "target": "TEACHING-LOOP-B3-FIX-20261002/REPORT.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B3-FIX-20261002\\REPORT.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/README.md",
+        "label": "审查",
+        "target": "TEACHING-LOOP-B3-FIX-REVIEW-20261002/REVIEW.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B3-FIX-REVIEW-20261002\\REVIEW.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/README.md",
+        "label": "历史报告",
+        "target": "TEACHING-LOOP-G1-B4-20261002/REPORT.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-B4-20261002\\REPORT.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/README.md",
+        "label": "审查",
+        "target": "TEACHING-LOOP-G1-REVIEW-20261002/REVIEW.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-REVIEW-20261002\\REVIEW.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/README.md",
+        "label": "G1关闭",
+        "target": "TEACHING-LOOP-G1-RESUME-B4-20261002/G1-REPORT.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-RESUME-B4-20261002\\G1-REPORT.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/README.md",
+        "label": "B4矩阵",
+        "target": "TEACHING-LOOP-G1-RESUME-B4-20261002/B4-CLOSE-MATRIX.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-RESUME-B4-20261002\\B4-CLOSE-MATRIX.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/README.md",
+        "label": "暂停交接",
+        "target": "TEACHING-LOOP-G1-RESUME-B4-20261002/B4-PAUSE-HANDOFF.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-RESUME-B4-20261002\\B4-PAUSE-HANDOFF.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/README.md",
+        "label": "今日批次",
+        "target": "TEACHING-LOOP-B4-RESUME-20261003/README.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\README.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/README.md",
+        "label": "审查与证据",
+        "target": "TEACHING-LOOP-B4-REVIEW-20261003/REVIEW.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-REVIEW-20261003\\REVIEW.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/README.md",
+        "label": "本批记录",
+        "target": "TEACHING-LOOP-G2-B5-20261003/README.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G2-B5-20261003\\README.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/README.md",
+        "label": "记录",
+        "target": "DOCS-FOCUS-20261001/README.md",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\qa\\DOCS-FOCUS-20261001\\README.md",
+        "exists": true
+      },
+      {
+        "document": "docs/qa/README.md",
+        "label": "历史归档",
+        "target": "../archive/pre-20260929/qa/",
+        "resolved": "H:\\备份xuexi\\智启课源\\docs\\archive\\pre-20260929\\qa",
+        "exists": true
+      }
+    ]
+  },
+  "manifestEvidence": [
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/CANDIDATE-B5-r8.json",
+      "SHA": "c33c85698ba2be8e6b08fe432305622bf3635a1bc5bb0cc515472996ebbe2007",
+      "actualSHA": "c33c85698ba2be8e6b08fe432305622bf3635a1bc5bb0cc515472996ebbe2007",
+      "exact": true
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-R08-BUILD-BINDING-v1.json",
+      "SHA": "e999ba0faa3e594901c035e4a72b27b516bb0c20f13419ef3fca4be8bde9ea94",
+      "actualSHA": "e999ba0faa3e594901c035e4a72b27b516bb0c20f13419ef3fca4be8bde9ea94",
+      "exact": true
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-R8-API-EXACT-BINDING-v1.json",
+      "SHA": "d6d5031242cc704002067368a814696d56eb3b02fd99fed84ab96450be00fa0d",
+      "actualSHA": "d6d5031242cc704002067368a814696d56eb3b02fd99fed84ab96450be00fa0d",
+      "exact": true
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/b5-v00/results/EXEC-r8-unit-second-INDEPENDENT-v1.json",
+      "SHA": "4cf6e4d0888c29bde689d349364668ff4122ec1dbcca721991711390648441b4",
+      "actualSHA": "4cf6e4d0888c29bde689d349364668ff4122ec1dbcca721991711390648441b4",
+      "exact": true
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/b5-v00/results/EXEC-r8-browser-first-v2.json",
+      "SHA": "c87067b46bed02243df03265d119202722548ad15e2c019e6585a6fdc136b121",
+      "actualSHA": "c87067b46bed02243df03265d119202722548ad15e2c019e6585a6fdc136b121",
+      "exact": true
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/b5-v00/results/R8-FULL-FIELD-ARTIFACT-AUDIT-v3.json",
+      "SHA": "7cbfc2bd2db24dd610df841ee83b62fb4aab1b83b7533cf9092d7fec312bdc03",
+      "actualSHA": "7cbfc2bd2db24dd610df841ee83b62fb4aab1b83b7533cf9092d7fec312bdc03",
+      "exact": true
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/b5-review/E2E-R8-INDEPENDENT-v1.json",
+      "SHA": "8d9bcaa1bf5db764ce6ff41e0081b13eff820411e7d4871721197ce88f4edfe3",
+      "actualSHA": "8d9bcaa1bf5db764ce6ff41e0081b13eff820411e7d4871721197ce88f4edfe3",
+      "exact": true
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/b5-v00/results/CHAT-R8-INDEPENDENT-v1.json",
+      "SHA": "125d6b48a56188f1590cbd6438f9bca9c77932eb9edf73784e1ce1aa51f78363",
+      "actualSHA": "125d6b48a56188f1590cbd6438f9bca9c77932eb9edf73784e1ce1aa51f78363",
+      "exact": true
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/b5-v00/results/CHAT-R8-VISUAL-v1.json",
+      "SHA": "b28e568e971f4064096ac4a61c360dbbbed88c5967a75e559d32d340332ccf89",
+      "actualSHA": "b28e568e971f4064096ac4a61c360dbbbed88c5967a75e559d32d340332ccf89",
+      "exact": true
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-RESOURCE-CLOSED-r8-v2.json",
+      "SHA": "7bdfa87281e2d6459542dbb15887d9353a0f722aadc6561d5eb221467d711d56",
+      "actualSHA": "7bdfa87281e2d6459542dbb15887d9353a0f722aadc6561d5eb221467d711d56",
+      "exact": true
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/b5-review/RESOURCE-R8-INDEPENDENT-v1.json",
+      "SHA": "eb61d70a009a46f8d7fec96e633dfc837366324d577badb76159be217e804274",
+      "actualSHA": "eb61d70a009a46f8d7fec96e633dfc837366324d577badb76159be217e804274",
+      "exact": true
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/AUDIT-B5-r8-final-preservation-v1.json",
+      "SHA": "bf11ab7428919873854e555e4e164e2d8aacf118dcd50de22b1d968020d4abc1",
+      "actualSHA": "bf11ab7428919873854e555e4e164e2d8aacf118dcd50de22b1d968020d4abc1",
+      "exact": true
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-RECOVERY-PROOF-v1.json",
+      "SHA": "630803abbe23bd7b619a50e9d310527e6455c5bc4004b6356f8039e7fea5b726",
+      "actualSHA": "630803abbe23bd7b619a50e9d310527e6455c5bc4004b6356f8039e7fea5b726",
+      "exact": true
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/b5-v00/results/RECOVERY-READ-AUDIT-v1.json",
+      "SHA": "dac2eb1398cad787d0fccc95f917256b348799c2679a7a1d63bd6dc3a57c4a72",
+      "actualSHA": "dac2eb1398cad787d0fccc95f917256b348799c2679a7a1d63bd6dc3a57c4a72",
+      "exact": true
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/G2-CLOSED-r4-v1.json",
+      "SHA": "a0be17fadcae62193aaed25443e59272ea03d43f9e3df847714e673f7dc7baa3",
+      "actualSHA": "a0be17fadcae62193aaed25443e59272ea03d43f9e3df847714e673f7dc7baa3",
+      "exact": true
+    }
+  ],
+  "freshReadOnlyHashAudit": {
+    "sourceFiles": {
+      "fileCount": 938,
+      "drift": []
+    },
+    "executableQaFiles": {
+      "fileCount": 3061,
+      "drift": []
+    },
+    "sharedContractFiles": {
+      "fileCount": 33,
+      "drift": []
+    },
+    "buildFiles": {
+      "fileCount": 2004,
+      "drift": []
+    },
+    "priorEvidence": {
+      "fileCount": 1702,
+      "drift": []
+    },
+    "g2Direct589": {
+      "fileCount": 589,
+      "drift": []
+    },
+    "g2ApprovedArchive2": {
+      "fileCount": 2,
+      "drift": []
+    },
+    "history4136": {
+      "fileCount": 4136,
+      "drift": []
+    },
+    "apiBackendExact410": {
+      "fileCount": 410,
+      "drift": []
+    }
+  },
+  "stableContractDocumentsSameAsPREPv5": {
+    "AGENTS.md": "6592c88db03db8704ff2a1ddeab1f71ccaeaa3211ed1c5b5e1fa6285cd7a12ec",
+    "apps/web/src/features/lesson-plan/AGENTS.md": "be2d4ad37c8f456da31f9b078af55973d5e522af11cfb15305af08322f7e6d83",
+    "docs/modules/lesson-plan/README.md": "d08557f01f8910f152eda59c6942aff6b53a215bbd43392199bb306f4e5fc39f",
+    "docs/API.md": "063d95af752aa592809957c0a8367f973f2a199b573b74f9758e229e0c4bd0a7",
+    "docs/ROUTES.md": "862ad5af7ff54c0693bd8d696b8bce1212ad70aac79b0df8785bb396990b00a5",
+    "docs/PROJECT_GUIDE.md": "e4466e6e57c66b002943e23dbbb6e010ea84f985293300d8fa9a86ab71bd85a1"
+  },
+  "nextEnvSHA256": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc",
+  "engineeringBinding": {
+    "check": {
+      "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/b5-check-prebuild-v6-first-command.json",
+      "pid": 22916,
+      "exit": 0,
+      "elapsedMs": 107857.642,
+      "unitFiles": 118,
+      "unitTests": 1256,
+      "typecheck": "passed",
+      "lintWarnings": 0,
+      "build": "passed",
+      "source938BeforeAfterExactFinal": true,
+      "executableQA3061BeforeAfterExactFinal": true,
+      "logsClosed": true,
+      "nextEnvRestoredExact": true
+    },
+    "unit27": {
+      "pid": 27472,
+      "elapsedMs": 5529.201,
+      "passed": 27,
+      "originalSingleRound": true,
+      "R07R08CorrectBehavior": true,
+      "independentReceiptRead": true
+    },
+    "browser8": {
+      "pid": 18596,
+      "elapsedMs": 43533.495,
+      "passed": 8,
+      "originalSingleRound": true,
+      "retry": 0,
+      "independentReceipt": "b5-v00/results/EXEC-r8-browser-first-v2.json"
+    },
+    "e2e153": {
+      "pid": 13224,
+      "elapsedMs": 367124.838,
+      "specs": 24,
+      "passed": 153,
+      "skip": 0,
+      "retry": 0,
+      "flaky": 0,
+      "independentReceipt": "b5-review/E2E-R8-INDEPENDENT-v1.json"
+    },
+    "chat14": {
+      "pid": 29548,
+      "elapsedMs": 42953.884,
+      "specs": 2,
+      "passed": 14,
+      "skip": 0,
+      "retry": 0,
+      "flaky": 0,
+      "independentReceipt": "b5-v00/results/CHAT-R8-INDEPENDENT-v1.json"
+    },
+    "fullAPIAndIndependent42": {
+      "rerunAfterR08": false,
+      "scopeFiles": 410,
+      "rows": [
+        {
+          "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/b5-api-full-prebuild-v1-command.json",
+          "SHA": "320036a1860faa1c40a3a76d4894d17fede5a4599f0de4700706c0b932f2943f",
+          "backendFileCount": 410,
+          "exactBeforeAfter": true,
+          "pid": 21200,
+          "exitCode": 0,
+          "elapsedMs": 392504.479,
+          "junit": [
+            {
+              "name": "pytest",
+              "errors": "0",
+              "failures": "0",
+              "skipped": "1",
+              "tests": "1919",
+              "time": "391.287",
+              "timestamp": "2026-10-03T18:30:56.555749+08:00",
+              "hostname": "ASUSA-XIAOHU"
+            }
+          ],
+          "directBeforeAfter410Verified": true,
+          "currentFinalCandidate410Verified": true
+        },
+        {
+          "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/b5-v00-prebuild-v1-api-first-command.json",
+          "SHA": "b13833fb13db73bdc7108e47b8cd7c5883067ee86e85162034516d6c36bd6d30",
+          "backendFileCount": 410,
+          "exactBeforeAfter": true,
+          "pid": 20076,
+          "exitCode": 0,
+          "elapsedMs": 40948.122,
+          "junit": [
+            {
+              "name": "pytest",
+              "errors": "0",
+              "failures": "0",
+              "skipped": "0",
+              "tests": "42",
+              "time": "40.552",
+              "timestamp": "2026-10-03T18:33:21.409878+08:00",
+              "hostname": "ASUSA-XIAOHU"
+            }
+          ],
+          "directBeforeAfter410Verified": true,
+          "currentFinalCandidate410Verified": true
+        }
+      ],
+      "fullPassed": 1918,
+      "existingHeavyScaleSkip": 1,
+      "independentPassed": 42
+    }
+  },
+  "separateAcceptanceColumns": {
+    "technicalEngineering": "passed with the explicitly preserved original backend heavy-scale skip",
+    "independentBusiness": "27/8/153/14 new complete single rounds; API42 prior execution exact final410 binding",
+    "artifactsAndVisual": "22 B5 and26 chat actual image views;4 DOCX structural downloads/4 frozen print snapshots/6 complete public JSON/20 immutable revisions/fresh188 plus8 pointers",
+    "recoveryAuthorRuntime": "ROOT actual four-database restore1 and fullAPI runtime exercise",
+    "recoveryIndependent": "read16 retained actual before/after SQLite databases,2 blobs and56 fileSHA; not independent rerunning the whole restore",
+    "qualityAndFormalServicesNotRun": [
+      "real paid-provider teaching quality",
+      "Word/WPS long-document pagination",
+      "actual saved PDF",
+      "formal Qdrant6333",
+      "formal data-root migration",
+      "pressure beyond available baseline"
+    ]
+  },
+  "policyNotRun": {
+    "extraR2HTTPIdentity": "blocked by policy; retained original not_run receipt; no retries via other command/tool/port/Agent",
+    "originalApprovedBrowserFlow": "original planned complete8 was separately authorized; actual-served-build facts are offline original trace HTML/static bytes, not an extra HTTP identity request",
+    "thisReviewerHTTPRequests": 0
+  },
+  "firstFailureTransparency": {
+    "r1ThroughR7AndOriginal151of153API1912_5_1Unit19_8Then26_1Kept": true,
+    "R8EnvironmentPreflightZeroTestsKept": true,
+    "nonexecutingArtifactAuditV1V2PredicateCorrectionsKeptV3FullRecompute": true,
+    "originalEvidenceNotRewritten": true,
+    "notSplicingPartialRounds": true
+  },
+  "resourceConclusion": {
+    "finalV2Path": "ctrl/B5-RESOURCE-CLOSED-r8-v2.json",
+    "finalV2SHA256": "7bdfa87281e2d6459542dbb15887d9353a0f722aadc6561d5eb221467d711d56",
+    "servicesClosed": 10,
+    "commandsComplete": 72,
+    "logsExclusiveReadAndDisposed": 81,
+    "referencedOSTEMPKept": 182,
+    "testPortsFree": 3,
+    "remainingOwnedProcesses": 0,
+    "allV00STOP": true,
+    "SQLiteAndFileConnectionsClosed": true,
+    "userProcessesTouched": false,
+    "earlierIndependentResourceSnapshotWasPendingOfflineV00": "Earlier independent resource snapshot was not alone sufficient for offline SQLite closure. Later V00 receipts and final resourcev2 explicitly resolve that pending state.",
+    "controlledFrontendChildExit1ManagerExit0Transparent": true
+  },
+  "permissionBoundary": {
+    "writesOnly": [
+      "b5-doc-audit/FINAL-v1.json",
+      "b5-doc-audit/FINAL-v1.md"
+    ],
+    "authorityDocsWritten": false,
+    "proposedAfterDocsWritten": false,
+    "productWritten": false,
+    "executableQAWritten": false,
+    "oldEvidenceWritten": false,
+    "testsRun": false,
+    "HTTP": false,
+    "serviceActions": false,
+    "DBConnections": false,
+    "appMainImported": false,
+    "GitActions": false,
+    "spawnAgents": false,
+    "productionMergeOracle": false,
+    "formalEnvDataCredentialsRead": false
+  },
+  "auditedInputSHA256": {
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/MANIFEST.json": "1a73b1ccaef5522d095ac0cf5e64dfd0ed48684cbe2c9d7fd3fec30509e324e3",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/CANDIDATE-B5-r8.json": "c33c85698ba2be8e6b08fe432305622bf3635a1bc5bb0cc515472996ebbe2007",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/before/docs/CURRENT_STATUS.md": "0cc491e288c1c1488eec7c073c201f67de697c6b49ab3b19dd3dbb1d17e051c5",
+    "docs/CURRENT_STATUS.md": "0cc491e288c1c1488eec7c073c201f67de697c6b49ab3b19dd3dbb1d17e051c5",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/after/docs/CURRENT_STATUS.md": "75e6206f27eba3b64ad5a8cbbc39a6fc2f25723005c2baa285945a4829a86919",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/before/docs/NEXT_SESSION_START.md": "3850504bbe5a87562902bafb9429d8507159ba8f8aa6e288f521a508f269bf4a",
+    "docs/NEXT_SESSION_START.md": "3850504bbe5a87562902bafb9429d8507159ba8f8aa6e288f521a508f269bf4a",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/after/docs/NEXT_SESSION_START.md": "8784da063506202538af1712dc0004fef0b52629ebbeced8a509a148b68bafde",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/before/docs/qa/TEACHING-LOOP-G2-B5-20261003/README.md": "9906b60153e14a1abf2d344da0ab19164f3fa17dd6431d85395bc868bd7a9c63",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/README.md": "9906b60153e14a1abf2d344da0ab19164f3fa17dd6431d85395bc868bd7a9c63",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/after/docs/qa/TEACHING-LOOP-G2-B5-20261003/README.md": "d4f18ac49106bde0762053c0d5c45ffc9a820ecd9e7f0e806335bad7260bdb38",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/before/docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md": "04c573266b6336ab07ae9535b0a1151bb69c29fd37fdcebd5ce6c6b7ad67c94b",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md": "04c573266b6336ab07ae9535b0a1151bb69c29fd37fdcebd5ce6c6b7ad67c94b",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/after/docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md": "96ef7443d091096c72f91d23b01e38fea3cb037d84cab70756084e864865cc61",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/before/docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md": "f3547a5d4130c69cdb25f5ededf4de72fbb56fa031350f25e4d5072d68742c43",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md": "f3547a5d4130c69cdb25f5ededf4de72fbb56fa031350f25e4d5072d68742c43",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/after/docs/qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md": "5f9668c63f16325b5a854e2a05f9b7e3099803ca486be2e64216eb6236557ac4",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/before/docs/README.md": "a51ff63dab460bf87791d25d4184698d8b6f8e0013336b6e5714124fc7681b07",
+    "docs/README.md": "a51ff63dab460bf87791d25d4184698d8b6f8e0013336b6e5714124fc7681b07",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/after/docs/README.md": "e34069692d6b68bf14494feed204828bf4dd55c0cc387af35375b8914316a06f",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/before/docs/qa/README.md": "eb682796f78ccf7860d9da32dcbd2ec9bb07161bba2b1066a1218132ea7e1eed",
+    "docs/qa/README.md": "eb682796f78ccf7860d9da32dcbd2ec9bb07161bba2b1066a1218132ea7e1eed",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/after/docs/qa/README.md": "0414f07f04d2ab7507c3a567dfa67efe8bdd57d56a53ced3aa7ed9bc50e890ba",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-R08-BUILD-BINDING-v1.json": "e999ba0faa3e594901c035e4a72b27b516bb0c20f13419ef3fca4be8bde9ea94",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-R8-API-EXACT-BINDING-v1.json": "d6d5031242cc704002067368a814696d56eb3b02fd99fed84ab96450be00fa0d",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/b5-v00/results/EXEC-r8-unit-second-INDEPENDENT-v1.json": "4cf6e4d0888c29bde689d349364668ff4122ec1dbcca721991711390648441b4",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/b5-v00/results/EXEC-r8-browser-first-v2.json": "c87067b46bed02243df03265d119202722548ad15e2c019e6585a6fdc136b121",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/b5-v00/results/R8-FULL-FIELD-ARTIFACT-AUDIT-v3.json": "7cbfc2bd2db24dd610df841ee83b62fb4aab1b83b7533cf9092d7fec312bdc03",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/b5-review/E2E-R8-INDEPENDENT-v1.json": "8d9bcaa1bf5db764ce6ff41e0081b13eff820411e7d4871721197ce88f4edfe3",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/b5-v00/results/CHAT-R8-INDEPENDENT-v1.json": "125d6b48a56188f1590cbd6438f9bca9c77932eb9edf73784e1ce1aa51f78363",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/b5-v00/results/CHAT-R8-VISUAL-v1.json": "b28e568e971f4064096ac4a61c360dbbbed88c5967a75e559d32d340332ccf89",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-RESOURCE-CLOSED-r8-v2.json": "7bdfa87281e2d6459542dbb15887d9353a0f722aadc6561d5eb221467d711d56",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/b5-review/RESOURCE-R8-INDEPENDENT-v1.json": "eb61d70a009a46f8d7fec96e633dfc837366324d577badb76159be217e804274",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/AUDIT-B5-r8-final-preservation-v1.json": "bf11ab7428919873854e555e4e164e2d8aacf118dcd50de22b1d968020d4abc1",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-RECOVERY-PROOF-v1.json": "630803abbe23bd7b619a50e9d310527e6455c5bc4004b6356f8039e7fea5b726",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/b5-v00/results/RECOVERY-READ-AUDIT-v1.json": "dac2eb1398cad787d0fccc95f917256b348799c2679a7a1d63bd6dc3a57c4a72",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/G2-CLOSED-r4-v1.json": "a0be17fadcae62193aaed25443e59272ea03d43f9e3df847714e673f7dc7baa3",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/b5-check-prebuild-v6-first-command.json": "b5cc7852b40cee9804d75224e2e221aa208ac2fdfea410dc04bdde31dfd6c14f",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/b5-api-full-prebuild-v1-command.json": "320036a1860faa1c40a3a76d4894d17fede5a4599f0de4700706c0b932f2943f",
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/b5-v00-prebuild-v1-api-first-command.json": "b13833fb13db73bdc7108e47b8cd7c5883067ee86e85162034516d6c36bd6d30"
+  },
+  "inputDriftDuringSealing": [],
+  "STOP": true
+}

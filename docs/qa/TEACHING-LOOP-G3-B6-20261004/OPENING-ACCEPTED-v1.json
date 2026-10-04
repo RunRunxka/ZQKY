@@ -1,0 +1,16 @@
+{
+  "task": "G3-OPENING-ACCEPTED-v1",
+  "acceptedAt": "2026-10-04T12:33:22.173937+08:00",
+  "result": "ACCEPTED_WITH_DECLARED_PREEXISTING_DEV_CACHE_DIFFERENCES",
+  "baselineSHA": "d3ac03b27a241199a2c1affecc9d48f6b7b0dbb464728b1498b7d46041063e76",
+  "oldCandidateSHA": "c33c85698ba2be8e6b08fe432305622bf3635a1bc5bb0cc515472996ebbe2007",
+  "head": "6cb6a40db890390f0261d547213e319040f64785",
+  "oldCandidateHead": "6aeb57280f6a7e0d7391cad4d150745479ea58ec",
+  "differenceAttribution": "73 pre-existing .next/dev cache files; no source/QA/contracts/prior/production build drift",
+  "formalBuildId": "FVU-OXmtBh9WBSHehixfE",
+  "oldQaCount": 9196,
+  "originalNextEnvBytesSaved": "ctrl/next-env.opening.bin",
+  "sourceWriteRelease": true,
+  "oldQAWriteRelease": false,
+  "gitWrites": false
+}

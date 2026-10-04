@@ -1,5 +1,6 @@
 'use client';
 import { useMemo, useRef, useState } from 'react';
+import { useEntrance } from '@/components/motion/useEntrance';
 import { Check, ChevronRight, CircleHelp, Plus, Search, Settings2, Star, Zap } from 'lucide-react';
 import {
   type ModelConnectionView,
@@ -66,10 +67,12 @@ function connectionDirty(connection: ModelConnectionView, draft: ConnectionDraft
 }
 
 export function ModelSettingsPanel() {
+  const entranceRef = useRef<HTMLElement>(null);
   const { catalog, error, loading, refresh } = useModelCatalog();
   const { directory, error: directoryError, refresh: refreshDirectory } = useProviderDirectory();
   const [query, setQuery] = useState('');
   const [section, setSection] = useState<'models' | 'connections' | 'defaults'>('models');
+  useEntrance(entranceRef, { preset: 'panel', triggerKey: section, enabled: Boolean(catalog) });
   const [overlay, setOverlay] = useState<Overlay | null>(null);
   const [child, setChild] = useState<ChildOverlay | null>(null);
   const [draft, setDraft] = useState<ConnectionDraft | null>(null);
@@ -292,7 +295,7 @@ export function ModelSettingsPanel() {
 
   if (!catalog)
     return (
-      <main className="model-settings settings-loading">
+      <main className="model-settings settings-loading" ref={entranceRef}>
         <h1>模型管理</h1>
         {loading ? (
           <p role="status">正在读取模型设置…</p>
@@ -324,7 +327,7 @@ export function ModelSettingsPanel() {
   });
 
   return (
-    <main className="model-settings">
+    <main className="model-settings" ref={entranceRef}>
       <aside className="settings-navigation">
         <span className="settings-eyebrow">工作台设置</span>
         <h2>模型管理</h2>

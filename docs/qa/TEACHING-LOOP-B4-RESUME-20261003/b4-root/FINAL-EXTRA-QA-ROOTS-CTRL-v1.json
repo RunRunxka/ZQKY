@@ -1,0 +1,32 @@
+{
+  "capturedAt": "2026-10-03T03:13:28.151864+00:00",
+  "additionalQARootCount": 3,
+  "roots": [
+    {
+      "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r14-p-type-v11-uj84wpjo",
+      "receipt": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-v00-e2e\\R14-QA-TYPE-v11-command.json",
+      "receiptSHA256": "3c6490cdb79d0ca98608fac8fc1aad65b4376dbcfdf1f1c4ac2b64ac6b47d7bd",
+      "exists": true,
+      "retained": true
+    },
+    {
+      "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r14-p-meta-v12-types-dymawtvs",
+      "receipt": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-v00-e2e\\R14-QA-METADATA-v12-types-command.json",
+      "receiptSHA256": "1e1d19357259590892bad76d314a3d00f123b429686c7c075aaba1b637ec6b97",
+      "exists": true,
+      "retained": true
+    },
+    {
+      "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r14-p-meta-v12-lint-poai7h30",
+      "receipt": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-v00-e2e\\R14-QA-METADATA-v12-lint-command.json",
+      "receiptSHA256": "33113abeec981455bdc936fa04754621bff127f86162afad6f32ab0badb3b87f",
+      "exists": true,
+      "retained": true
+    }
+  ],
+  "rootLauncherAndApiCount": 15,
+  "totalConfirmedTopLevelRoots": 18,
+  "nestedModelSampleSeparatelyRetained": true,
+  "noDeletion": true,
+  "exit": 0
+}

@@ -1,10 +1,14 @@
 'use client';
+import { useRef } from 'react';
 import { FilePenLine, Undo2, Redo2, PanelLeftClose, PanelLeftOpen, Sparkles } from 'lucide-react';
+import { useEntrance } from '@/components/motion/useEntrance';
 import { useLessonEditor } from '../model/EditorContext';
 import { FormPanel } from './FormPanel';
 import { NlFillPanel } from './NlFillPanel';
 import { ServerControls } from './ServerControls';
 export function EditorPanel() {
+  const entranceRef = useRef<HTMLElement>(null);
+  useEntrance(entranceRef, { preset: 'page' });
   const {
     undo,
     redo,
@@ -19,8 +23,8 @@ export function EditorPanel() {
   } = useLessonEditor();
   return (
     <>
-      <main className="editor-panel">
-        <div className="editor-heading">
+      <main ref={entranceRef} className="editor-panel">
+        <div className="editor-heading" data-motion-reveal>
           <div>
             <div className="eyebrow">LESSON PLANNER</div>
             <h1>把教学思路，写进课堂。</h1>
@@ -39,7 +43,7 @@ export function EditorPanel() {
             {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
           </button>
         </div>
-        <div className="editor-tabs">
+        <div className="editor-tabs" data-motion-reveal>
           <button
             className={editorTab === 'form' ? 'active' : ''}
             onClick={() => setEditorTab('form')}

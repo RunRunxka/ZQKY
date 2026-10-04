@@ -1,0 +1,25 @@
+{
+  "capturedAt": "2026-10-03T03:03:45.7747568Z",
+  "checkedOwnedPids": [
+    4784,
+    11524,
+    7588,
+    13884,
+    13688,
+    21412,
+    22384,
+    7756,
+    16748,
+    14860,
+    16548,
+    22516
+  ],
+  "allCheckedGone": true,
+  "ports8001and8002Free": true,
+  "frontendPid": 21816,
+  "frontendCreationUtcTicks": 639265864014910140,
+  "frontendCommandLine": "\"C:\\Program Files\\nodejs\\node.exe\" scripts/run-web.mjs start 5174",
+  "frontendOwner": "user",
+  "noFrontendLifecycle": true,
+  "noDeletion": true
+}

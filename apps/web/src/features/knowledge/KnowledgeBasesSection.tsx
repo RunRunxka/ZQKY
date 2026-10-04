@@ -1,5 +1,6 @@
 'use client';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEntrance } from '@/components/motion/useEntrance';
 import Link from 'next/link';
 // 复用 space 设计语言的样式；直达路由也需要加载（不能只依赖 SpaceMain 的引入）
 import '@/components/layout/space.css';
@@ -112,6 +113,8 @@ const ENGINE_TAB_COUNT =
   ENGINE_GROUPS.reduce((sum, group) => sum + group.engines.length, 0) + EXTERNAL_SOURCES.length;
 
 export function KnowledgeBasesSection() {
+  const entranceRef = useRef<HTMLDivElement>(null);
+  useEntrance(entranceRef, { preset: 'page' });
   const [kbs, setKbs] = useState<KnowledgeEntry[]>([]);
   const [tab, setTab] = useState<'bases' | 'engines'>('bases');
   const [query, setQuery] = useState('');
@@ -144,8 +147,8 @@ export function KnowledgeBasesSection() {
   }, [kbs, query]);
 
   return (
-    <div className="space-page kb-page">
-      <header className="space-header">
+    <div className="space-page kb-page" ref={entranceRef}>
+      <header className="space-header" data-motion-reveal>
         <div className="space-header-row">
           <h1>教材资料库</h1>
           <div className="space-card-actions">

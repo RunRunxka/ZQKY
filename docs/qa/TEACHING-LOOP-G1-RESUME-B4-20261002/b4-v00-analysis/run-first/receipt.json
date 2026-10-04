@@ -1,0 +1,32 @@
+{
+  "task": "B4-V00-A v1",
+  "run": "first",
+  "startedAt": "2026-10-02T12:18:27.7405525Z",
+  "completedAt": "2026-10-02T12:18:30.8089702Z",
+  "exitCode": 1,
+  "executable": "H:\\备份xuexi\\智启课源\\apps\\api\\.venv\\Scripts\\python.exe",
+  "argv": [
+    "-B",
+    "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-RESUME-B4-20261002\\b4-v00-analysis\\probe_analysis.py",
+    "--candidate",
+    "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-RESUME-B4-20261002\\CANDIDATE-b4-a1.json",
+    "--data-root",
+    "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-a-68f9e5181e9345e6888f6c9e9222cfbd",
+    "--output",
+    "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-RESUME-B4-20261002\\b4-v00-analysis\\run-first\\probe"
+  ],
+  "launcherPid": 13776,
+  "probePid": 6224,
+  "elapsedMs": 1701,
+  "hasExited": true,
+  "candidatePath": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-RESUME-B4-20261002\\CANDIDATE-b4-a1.json",
+  "candidateSha256": "95e10b6cb927422688a21a163477e275dc70619c99dff9f4a2c06a1e87ae50af",
+  "dataRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-a-68f9e5181e9345e6888f6c9e9222cfbd",
+  "credentialsFile": null,
+  "emptyTextbookSource": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-v00-a-68f9e5181e9345e6888f6c9e9222cfbd\\empty-source",
+  "stdout": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-RESUME-B4-20261002\\b4-v00-analysis\\run-first\\stdout.log",
+  "stderr": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-RESUME-B4-20261002\\b4-v00-analysis\\run-first\\stderr.log",
+  "output": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-RESUME-B4-20261002\\b4-v00-analysis\\run-first\\probe",
+  "listeningServicesStarted": 0,
+  "dataRetained": true
+}

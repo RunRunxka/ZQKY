@@ -163,7 +163,8 @@ describe('Embedding 面板', () => {
     expect(screen.getByText('Embedding 模型')).toBeInTheDocument();
     expect(screen.getByText('非 Embedding 模型')).toBeInTheDocument();
     expect(screen.getByText(/本机地址：http:\/\/127\.0\.0\.1:11434/)).toBeInTheDocument();
-    expect(await screen.findByRole('radio', { name: /bge-m3 · 1024 维/ })).toBeChecked();
+    // The radio mounts before the profile-selection effect commits its initial value.
+    await waitFor(() => expect(screen.getByRole('radio', { name: /bge-m3 · 1024 维/ })).toBeChecked());
   });
 
   it('Qdrant 不可用如实显示原因，不显示为可用', async () => {

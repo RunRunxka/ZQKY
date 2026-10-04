@@ -39,7 +39,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 14.5px;
+  font-size: var(--font-size-body, 14px);
   font-weight: 600;
   color: var(--ink);
 }
@@ -64,7 +64,7 @@
   gap: 10px;
   flex-wrap: wrap;
   color: var(--muted);
-  font-size: 10.5px;
+  font-size: var(--font-size-caption, 12px);
 }
 
 .courses-card-footer .courses-card-materials {
@@ -270,9 +270,76 @@
   opacity: 1;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 767px) {
   /* 触屏无 hover：移除钮常显，避免不可达 */
   .courses-resource-remove {
     opacity: 1;
+  }
+}
+
+/* 大纲、会话与资料保持一条阅读轴，数据分区采用实底卡片。 */
+.courses-page {
+  --page-content-width: 960px;
+}
+
+.courses-page .space-persona-card {
+  padding: 20px;
+  background: var(--bg);
+  box-shadow: var(--shadow-card);
+}
+
+.courses-page .space-content > section.space-group {
+  margin-top: var(--space-5);
+  padding: var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--bg);
+  box-shadow: var(--shadow-card);
+}
+
+.courses-page .space-group-label {
+  font-size: var(--font-size-section, 16px);
+  line-height: 1.5;
+}
+
+.courses-page .courses-syllabus-text {
+  max-width: none;
+}
+
+.courses-page :is(.courses-unit, .courses-resource) {
+  min-height: 56px;
+  padding: 12px 14px;
+}
+
+.courses-page :is(.courses-unit-title, .courses-resource-label) {
+  font-size: var(--font-size-body, 14px);
+}
+
+.courses-page :is(.courses-unit-topics, .courses-resource-kind-name, .courses-resource-suffix) {
+  font-size: var(--font-size-caption, 12px);
+}
+
+.courses-page .courses-resource-remove {
+  min-width: var(--control-height-compact, 32px);
+  min-height: var(--control-height-compact, 32px);
+}
+
+@media (max-width: 767px) {
+  .courses-page .space-content > section.space-group,
+  .courses-page .space-persona-card {
+    padding: var(--space-4);
+  }
+
+  .courses-page .courses-resource-row {
+    flex-wrap: wrap;
+  }
+
+  .courses-page .courses-resource-label {
+    flex-basis: calc(100% - 56px);
+  }
+
+  .courses-page .courses-resource-remove {
+    min-width: var(--touch-target, 44px);
+    min-height: var(--touch-target, 44px);
   }
 }

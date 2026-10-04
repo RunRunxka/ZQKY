@@ -1,0 +1,12 @@
+{
+  "version": "g1-resume-r4",
+  "count": 826,
+  "productDrift": [],
+  "added": [],
+  "executableQaCount": 24,
+  "qaDrift": [],
+  "qaAdded": [],
+  "protectedEvidenceCount": 815,
+  "protectedDrift": [],
+  "nextEnvMatchesOriginal": true
+}

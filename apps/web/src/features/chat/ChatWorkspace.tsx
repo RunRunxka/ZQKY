@@ -15,6 +15,7 @@ import {
   X,
 } from 'lucide-react';
 import { WorkspaceShell } from '@/components/layout/WorkspaceShell';
+import { useEntrance } from '@/components/motion/useEntrance';
 import { Modal } from '@/components/ui/Modal';
 import { ChatProvider, useChatSession, useChatStore } from './model/ChatContext';
 import {
@@ -156,6 +157,8 @@ function ChatPage({
 }) {
   const store = useChatStore();
   const chatSession = useChatSession();
+  const entranceRef = useRef<HTMLDivElement>(null);
+  useEntrance(entranceRef, { preset: 'page', enabled: store.ready });
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const media = window.matchMedia('(max-width: 760px)');
@@ -847,9 +850,9 @@ function ChatPage({
         if (!results.every(Boolean)) throw new Error('unsaved');
       }}
     >
-      <div className={`chat-page ${panelView !== null ? 'info-open' : ''}`}>
+      <div ref={entranceRef} className={`chat-page ${panelView !== null ? 'info-open' : ''}`}>
         <section className={`chat-main ${hasMessages ? '' : 'chat-welcome'}`}>
-          <header className="chat-toolbar">
+          <header className="chat-toolbar" data-motion-reveal>
             <span className="chat-title">{activeTitle}</span>
 
             <span className="chat-flex-spacer" />
@@ -1018,7 +1021,7 @@ function ChatPage({
             }}
           >
             {!hasMessages && (
-              <div className="chat-empty">
+              <div className="chat-empty" data-motion-reveal>
                 <span className="chat-empty-mark">
                   <BookOpen size={25} />
                 </span>

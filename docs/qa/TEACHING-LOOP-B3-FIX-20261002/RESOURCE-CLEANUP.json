@@ -1,0 +1,47 @@
+{
+  "checkedAt": "2026-10-02T06:19:28.1751188Z",
+  "nextEnvRestoredExactOriginalBytes": true,
+  "nextEnvSha256": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc",
+  "browser": "root-owned IAB tab closed; viewport reset; user tabs untouched",
+  "retainedTemporaryRoots": [
+    {
+      "record": "root-api-final-r4-temp.txt",
+      "absolutePath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-root-api-final-r4-134bed18-18ff-4bd2-92ab-6cc9ec88b0a2",
+      "exists": true,
+      "disposition": "retained_after_tool_policy_rejection"
+    },
+    {
+      "record": "root-api-final-temp.txt",
+      "absolutePath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-root-api-final-37250f0a-c038-42e6-9230-5a8a263a61b4",
+      "exists": true,
+      "disposition": "retained_after_tool_policy_rejection"
+    },
+    {
+      "record": "root-api-narrow-temp.txt",
+      "absolutePath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-root-api-failure-narrow-8e6065b4-680f-4888-953e-670b2dee7c8e",
+      "exists": true,
+      "disposition": "retained_after_tool_policy_rejection"
+    },
+    {
+      "record": "root-api-r4-narrow-temp.txt",
+      "absolutePath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-root-api-r4-narrow-4e342daa-5c3f-4d09-8970-fb54936d9433",
+      "exists": true,
+      "disposition": "retained_after_tool_policy_rejection"
+    },
+    {
+      "record": "root-boundaries-final-temp.txt",
+      "absolutePath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-root-boundaries-final-978e245a-92f2-4edd-851e-e75bbd81ec3b",
+      "exists": true,
+      "disposition": "retained_after_tool_policy_rejection"
+    },
+    {
+      "record": "root-boundaries-temp.txt",
+      "absolutePath": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-root-boundaries-ca5176cf-e045-456e-8372-5ee0efda9e23",
+      "exists": true,
+      "disposition": "retained_after_tool_policy_rejection"
+    }
+  ],
+  "listenersAfter": [],
+  "unknownProcessesStopped": false,
+  "cleanupRejection": "exec_command rejected recursive deletion of six recorded root-owned temporary directories: blocked by policy; no approval request or alternate deletion attempted"
+}

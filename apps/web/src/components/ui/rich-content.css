@@ -1,0 +1,12 @@
+.rich-content { min-width: 0; overflow-wrap: anywhere; color: var(--ink); line-height: 1.7; }
+.rich-content p { margin: 0.35em 0; white-space: pre-wrap; }
+.rich-content img { max-width: 100%; height: auto; object-fit: contain; }
+.rich-content pre { white-space: pre-wrap; overflow-wrap: anywhere; font-family: var(--font-mono); }
+.rich-content .rich-table-scroll { overflow-x: auto; max-width: 100%; }
+.rich-content table { border-collapse: collapse; }
+.rich-content th, .rich-content td { border: 1px solid var(--line); padding: 6px 10px; min-width: 60px; }
+.rich-content th { background: var(--surface); }
+.rich-content .katex-display { overflow-x: auto; overflow-y: hidden; max-width: 100%; }
+.rich-content .rich-formula { overflow-x: auto; max-width: 100%; }
+.rich-content math { margin: 0.5em 0; font-size: 1.15em; }
+.rich-content section { border-left: 2px solid var(--line); padding-left: 10px; margin-bottom: 12px; }

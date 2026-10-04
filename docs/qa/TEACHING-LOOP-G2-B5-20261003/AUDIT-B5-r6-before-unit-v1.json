@@ -1,0 +1,39 @@
+{
+  "capturedAtUtc": "2026-10-03T13:06:33.930758+00:00",
+  "version": "B5-r6",
+  "candidateSHA": "3194fc7ded43e84f6e05275825639b5f0a0581888d1458d2292df5f55ea9a213",
+  "sourceDrift": [],
+  "sourceAdded": [],
+  "qaDrift": [],
+  "qaAdded": [],
+  "contractDrift": [],
+  "buildDrift": [],
+  "buildAdded": [],
+  "protectedDrift": [],
+  "completedG2Drift": [],
+  "priorDrift": [],
+  "authorityPreservation": {
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/README.md": {
+      "approvedSHA": "3b9a37b43253932b8d6861c3aee92e62520eacc3f8ac62d78ab138216cf7e680",
+      "archive": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/G2-DOC-CLOSE-CANDIDATE-v2/after/docs/qa/TEACHING-LOOP-G2-B5-20261003/README.md",
+      "currentSHA": "c4ca8f18a8eab6b5bd9f2c1fd9feb9627b7f1a224a80e5eae467b82d0514180b"
+    },
+    "docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md": {
+      "approvedSHA": "522f24b833204b810db385ebe94c3add10491c6aaf6f30e90f24ea082ecbcf8c",
+      "archive": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/G2-DOC-CLOSE-CANDIDATE-v2/after/docs/qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md",
+      "currentSHA": "a13b30742e49a69967b10fc314422fe4b095e0544d334b90abe5659a23d18798"
+    }
+  },
+  "immutableG2Count": 589,
+  "baselineMatches": true,
+  "frozenContractMatches": true,
+  "nextEnvMatches": true,
+  "buildIdentityMatches": true,
+  "sourceCount": 938,
+  "qaCount": 2762,
+  "buildCount": 2004,
+  "historicalCount": 4136,
+  "completedG2Count": 591,
+  "elapsedMs": 2201.325,
+  "exitCode": 0
+}

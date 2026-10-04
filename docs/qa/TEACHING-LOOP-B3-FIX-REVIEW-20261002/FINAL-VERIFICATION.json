@@ -1,0 +1,19 @@
+{
+  "head": "6aeb57280f6a7e0d7391cad4d150745479ea58ec",
+  "branch": "main",
+  "headUnchanged": true,
+  "branchUnchanged": true,
+  "frozenCount": 168,
+  "frozenMismatches": [],
+  "reviewedFrozenSha256": "baf41fd68cbde4340288a5f51d68843cc60351809259122e810a10ccba4df34f",
+  "frozenManifestUnchanged": true,
+  "nextEnvSha256": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc",
+  "nextEnvUnchanged": true,
+  "checkedLocalLinks": 147,
+  "linkFailures": [],
+  "documentationDiffCheckExitCode": 0,
+  "documentationDiffCheckOutput": "",
+  "wholeWorkspaceDiffCheckExitCode": 0,
+  "wholeWorkspaceDiffCheckOutput": "",
+  "scope": "Review evidence and next-stage documentation only. No product fix, B4, commit, push, deployment or temp-directory deletion."
+}

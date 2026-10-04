@@ -3,17 +3,18 @@
   max-height: 85dvh;
   padding: 0;
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   color: var(--ink);
-  background: white;
-  box-shadow: 0 24px 100px #14244233;
+  background: var(--bg);
+  box-shadow: var(--shadow-pop);
 }
 .workspace-modal::backdrop {
-  background: #15233855;
+  background: #17203355;
   backdrop-filter: blur(3px);
 }
 .workspace-modal-body {
-  padding: 24px;
+  padding: var(--space-5);
+  line-height: 1.6;
 }
 .workspace-modal-body > header {
   display: flex;
@@ -23,17 +24,31 @@
   margin-bottom: 20px;
 }
 .workspace-modal-body > header h2 {
-  font-size: 18px;
+  font-family: var(--font-display);
+  font-size: var(--font-size-section);
   margin: 0;
 }
 .workspace-modal-body input:not([type='checkbox']),
 .workspace-modal-body select,
 .workspace-modal-body textarea {
   width: 100%;
+  min-height: var(--control-height);
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 10px 12px;
-  background: white;
+  background: var(--bg);
+}
+
+@media (max-width: 767px) {
+  .workspace-modal-body {
+    padding: var(--space-4);
+  }
+  .workspace-modal-body :is(button, input:not([type='checkbox']), select) {
+    min-height: var(--touch-target);
+  }
+  .workspace-modal-body .icon-button {
+    width: var(--touch-target);
+  }
 }
 .workspace-modal-body footer {
   display: flex;

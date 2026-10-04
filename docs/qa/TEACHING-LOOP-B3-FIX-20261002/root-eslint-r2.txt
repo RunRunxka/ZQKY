@@ -1,0 +1,2 @@
+npm notice run zhiqikeyuan@0.2.0 npx
+npm notice run eslint apps/web/src/components/ui/RichContentRenderer.tsx tests/e2e/question-bank-real.spec.ts tests/e2e/assessments.spec.ts --max-warnings=0

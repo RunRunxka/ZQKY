@@ -1,5 +1,6 @@
 'use client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEntrance } from '@/components/motion/useEntrance';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Bookmark, ChevronLeft, ChevronRight, Copy, Loader2, RefreshCcw } from 'lucide-react';
@@ -148,6 +149,8 @@ function readBookmarked(bookId: string, pageId: string): boolean {
 
 /** 阅读器：Block 分发渲染（对照参考 BlockRenderer 的 14 类本地形态）+ 翻页/键盘/书签/已读登记 */
 export function PageReader({ book, pageId }: { book: ReplicaBook; pageId: string }) {
+  const entranceRef = useRef<HTMLElement>(null);
+  useEntrance(entranceRef, { preset: 'panel', triggerKey: `${book.id}:${pageId}` });
   const router = useRouter();
   const pages = useMemo(
     () => book.chapters.flatMap((chapter) => chapter.pageIds),
@@ -316,7 +319,7 @@ export function PageReader({ book, pageId }: { book: ReplicaBook; pageId: string
   const archivedNote = '已归档（只读）：生成、重试与重新生成入口已禁用以保持归档内容不被改写；如需继续编辑，请先在书籍列表取消归档。';
 
   return (
-    <article className="books-reader">
+    <article className="books-reader" ref={entranceRef}>
       <div className="space-session-top" style={{ marginBottom: 10 }}>
         <span className="space-chip">{chapter ? chapter.title : '章节'}</span>
         <span className="space-chip">
@@ -623,7 +626,7 @@ function BookBlockView({
             </button>
           </span>
         </div>
-        <pre className="books-code" style={{ margin: 0, padding: '10px 12px', borderRadius: 10, overflowX: 'auto', background: 'rgba(0,0,0,0.05)', fontSize: 13 }}>
+        <pre className="books-code">
           <code>{block.content}</code>
         </pre>
       </div>

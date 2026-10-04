@@ -1,0 +1,148 @@
+{
+  "trace": "e2e-full-r12\\lesson-plan-无面包屑直接标题、编辑→配置→预览顺序与唯一折叠按钮\\trace.zip",
+  "sha256": "2a98ab529c1ebc08cb3b06ce4a1c920f38e57ef764863d3484a062566b95bbf0",
+  "note": "Normal ZIP directory could not be read; only intact local ZIP entries were extracted.",
+  "records": [
+    {
+      "entry": "test.trace",
+      "record": {
+        "type": "after",
+        "callId": "expect@33",
+        "endTime": 374748.01,
+        "annotations": [],
+        "error": {
+          "name": "",
+          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('textbox', { name: '课题', exact: true })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('textbox', { name: '课题', exact: true })\u001b[22m\n",
+          "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoBeVisible\u001b[2m(\u001b[22m\u001b[2m)\u001b[22m failed\n\nLocator: getByRole('textbox', { name: '课题', exact: true })\nExpected: visible\nTimeout: 10000ms\nError: element(s) not found\n\nCall log:\n\u001b[2m  - Expect \"toBeVisible\" with timeout 10000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('textbox', { name: '课题', exact: true })\u001b[22m\n\n    at H:\\备份xuexi\\智启课源\\tests\\e2e\\lesson-plan.spec.ts:198:72"
+        }
+      }
+    },
+    {
+      "entry": "0-trace.trace",
+      "record": {
+        "type": "event",
+        "time": 364648.759,
+        "class": "BrowserContext",
+        "method": "pageError",
+        "params": {
+          "error": {
+            "error": {
+              "message": "Failed to read the 'localStorage' property from 'Window': Access is denied for this document.",
+              "stack": "SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.\n    at <anonymous>:7:5\n    at <anonymous>:8:7",
+              "name": "SecurityError"
+            }
+          }
+        },
+        "pageId": "page@f6c6bb8c1558e7b97001543ddbaa770c"
+      }
+    },
+    {
+      "entry": "0-trace.trace",
+      "record": {
+        "type": "console",
+        "messageType": "error",
+        "text": "Failed to load resource: net::ERR_NO_BUFFER_SPACE",
+        "args": [],
+        "location": {
+          "url": "http://127.0.0.1:5174/_next/static/chunks/2swebjxnqdpk6.js",
+          "lineNumber": 0,
+          "columnNumber": 0
+        },
+        "time": 364664.845,
+        "pageId": "page@f6c6bb8c1558e7b97001543ddbaa770c"
+      }
+    },
+    {
+      "entry": "0-trace.trace",
+      "record": {
+        "type": "after",
+        "callId": "call@5062",
+        "endTime": 374745.006,
+        "error": {
+          "name": "Expect",
+          "message": "Expect failed"
+        },
+        "result": {
+          "matches": false,
+          "log": [
+            "  - Expect \"toBeVisible\" with timeout 10000ms",
+            "  - waiting for getByRole('textbox', { name: '课题', exact: true })"
+          ],
+          "errorMessage": "Error: element(s) not found",
+          "timedOut": true
+        },
+        "afterSnapshot": "after@call@5062"
+      }
+    },
+    {
+      "entry": "0-trace.network",
+      "record": {
+        "type": "resource-snapshot",
+        "snapshot": {
+          "pageref": "page@f6c6bb8c1558e7b97001543ddbaa770c",
+          "startedDateTime": "2026-10-04T10:21:22.151Z",
+          "time": -1,
+          "request": {
+            "method": "GET",
+            "url": "http://127.0.0.1:5174/_next/static/chunks/2swebjxnqdpk6.js",
+            "httpVersion": "HTTP/1.1",
+            "cookies": [],
+            "headers": [
+              {
+                "name": "sec-ch-ua-platform",
+                "value": "\"Windows\""
+              },
+              {
+                "name": "Referer",
+                "value": "http://127.0.0.1:5174/lesson-plans"
+              },
+              {
+                "name": "User-Agent",
+                "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0"
+              },
+              {
+                "name": "sec-ch-ua",
+                "value": "\"Chromium\";v=\"154\", \"Microsoft Edge\";v=\"154\", \"Not A(Brand\";v=\"99\""
+              },
+              {
+                "name": "Accept-Language",
+                "value": "en-US"
+              },
+              {
+                "name": "sec-ch-ua-mobile",
+                "value": "?0"
+              }
+            ],
+            "queryString": [],
+            "headersSize": -1,
+            "bodySize": 0
+          },
+          "response": {
+            "status": -1,
+            "statusText": "",
+            "httpVersion": "HTTP/1.1",
+            "cookies": [],
+            "headers": [],
+            "content": {
+              "size": -1,
+              "mimeType": "x-unknown"
+            },
+            "headersSize": -1,
+            "bodySize": -1,
+            "redirectURL": "",
+            "_transferSize": -1,
+            "_failureText": "net::ERR_NO_BUFFER_SPACE"
+          },
+          "cache": {},
+          "timings": {
+            "send": -1,
+            "wait": -1,
+            "receive": -1
+          },
+          "_frameref": "frame@8145e4ae403c8d2d6336c0dfb9f17ffc",
+          "_monotonicTime": 364662.941
+        }
+      }
+    }
+  ]
+}

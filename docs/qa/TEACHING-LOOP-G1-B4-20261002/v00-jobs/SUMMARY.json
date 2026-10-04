@@ -1,0 +1,36 @@
+{
+  "task": "G1-V00-JOBS",
+  "version": "v1",
+  "status": "pass",
+  "candidate": "g1-r1",
+  "branch": "main",
+  "head": "6aeb57280f6a7e0d7391cad4d150745479ea58ec",
+  "tests": 52,
+  "failed": 0,
+  "errors": 0,
+  "skipped": 0,
+  "exitCode": 0,
+  "elapsedSeconds": 6.507257299999765,
+  "receiptGroups": {
+    "unclaimed-expiry": 12,
+    "sqlite-wait-expiry": 8,
+    "claim-after-lock": 1,
+    "engine-read-then-expiry": 1,
+    "live-cancel-wins": 2,
+    "identity-cas": 12,
+    "asgi-retry-cleanup": 16
+  },
+  "candidateCount": 825,
+  "candidateChanged": 0,
+  "protectedEvidenceCount": 629,
+  "protectedEvidenceChanged": 0,
+  "firstFailure": null,
+  "listenerStarted": false,
+  "resources": {
+    "dataRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-g1-v00-jobs-34w2girq",
+    "connections": "closed in finally",
+    "workerThreads": "all joined",
+    "engines": "shutdown awaited",
+    "temporaryData": "retained, no recursive deletion"
+  }
+}

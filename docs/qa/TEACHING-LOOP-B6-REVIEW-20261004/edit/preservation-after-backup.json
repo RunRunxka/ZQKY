@@ -1,0 +1,75 @@
+{
+  "utc": "2026-10-04T07:51:33.6386067Z",
+  "head": "6cb6a40db890390f0261d547213e319040f64785",
+  "branch": "main",
+  "files": {
+    "apps/web/src/features/lesson-plan/model/server-session.test.tsx": {
+      "before": "2567D5DFB4406BE9D54F7EFA450CE3CAF9B3CCA9DBCDAAF335F8955A49584A53",
+      "after": "2567D5DFB4406BE9D54F7EFA450CE3CAF9B3CCA9DBCDAAF335F8955A49584A53",
+      "same": true
+    },
+    "apps/web/src/features/lesson-plan/model/useServerPersistence.ts": {
+      "before": "4CB06C213E8A07091A510D5697E3207D373D657704274E81D9D5B943C2D1D961",
+      "after": "4CB06C213E8A07091A510D5697E3207D373D657704274E81D9D5B943C2D1D961",
+      "same": true
+    },
+    "apps/web/src/features/lesson-plan/lesson-workspace.test.tsx": {
+      "before": "24EF1E1EE92C05E6230302F4F9FA2E10306D62F45A952A1FF27D5EA1E447C896",
+      "after": "24EF1E1EE92C05E6230302F4F9FA2E10306D62F45A952A1FF27D5EA1E447C896",
+      "same": true
+    },
+    "apps/web/src/features/lesson-plan/model/EditorContext.tsx": {
+      "before": "6B49D5531CF54844C6FBCEB9EE043FC7DCF9E2D6EA883F490088F553D2A0F7E0",
+      "after": "6B49D5531CF54844C6FBCEB9EE043FC7DCF9E2D6EA883F490088F553D2A0F7E0",
+      "same": true
+    },
+    "apps/web/src/features/lesson-plan/components/DocumentGateway.tsx": {
+      "before": "5FB0C0C479D9D64CAA9915B78DD0EDE3C5A1043AD25A39C9EEE758735A06C75F",
+      "after": "5FB0C0C479D9D64CAA9915B78DD0EDE3C5A1043AD25A39C9EEE758735A06C75F",
+      "same": true
+    },
+    "apps/web/src/features/lesson-plan/g3-source-session.test.tsx": {
+      "before": "BB023997679377FABA4BDFB6B14B9EF3C0997000A177CF4ECA527178497815A3",
+      "after": "BB023997679377FABA4BDFB6B14B9EF3C0997000A177CF4ECA527178497815A3",
+      "same": true
+    },
+    "apps/web/src/features/lesson-plan/components/ServerControls.tsx": {
+      "before": "60DFEEB82F50404326796EA8D333693C1DE6748F04109DD954AFBFCAE52D9DBE",
+      "after": "60DFEEB82F50404326796EA8D333693C1DE6748F04109DD954AFBFCAE52D9DBE",
+      "same": true
+    },
+    "apps/web/src/features/lesson-plan/model/lesson-operation.test.tsx": {
+      "before": "D3B774A996AD49ED142C2F4FD7233F82FF4280DDF44A5E9CEF10D9C1D110886B",
+      "after": "D3B774A996AD49ED142C2F4FD7233F82FF4280DDF44A5E9CEF10D9C1D110886B",
+      "same": true
+    },
+    "apps/web/src/features/lesson-plan/model/g3-persistence.test.tsx": {
+      "before": "10EBA94A65BF33B4781796B5BE436A900C3F19921589400AA90FFD62E2BA7523",
+      "after": "10EBA94A65BF33B4781796B5BE436A900C3F19921589400AA90FFD62E2BA7523",
+      "same": true
+    },
+    "apps/web/src/features/lesson-plan/g3-history-copy.test.tsx": {
+      "before": "B1BE449914B19C9E368E02EC489B89D3F54C24C27CC580B22732886CFC56A39A",
+      "after": "B1BE449914B19C9E368E02EC489B89D3F54C24C27CC580B22732886CFC56A39A",
+      "same": true
+    },
+    "apps/web/src/features/lesson-plan/components/LeaveProtection.tsx": {
+      "before": "6FA64D6EF42B6E24E56C2B9F10079FBD337D0999687875CD4DF7DCA98A866E77",
+      "after": "6FA64D6EF42B6E24E56C2B9F10079FBD337D0999687875CD4DF7DCA98A866E77",
+      "same": true
+    },
+    "apps/web/src/features/lesson-plan/components/DocumentsPanel.tsx": {
+      "before": "D766B73FF2852432CDD3883F236935959FD7DDD3C779B11AEE388985D2E99E45",
+      "after": "D766B73FF2852432CDD3883F236935959FD7DDD3C779B11AEE388985D2E99E45",
+      "same": true
+    }
+  },
+  "productDeltaCount": 0,
+  "writtenScope": "docs/qa/TEACHING-LOOP-B6-REVIEW-20261004/edit/",
+  "existingEditor": "137/137 pass single new run",
+  "g3FullBody": "5/5 pass single new run",
+  "probeQAFirst": "React preparation error kept",
+  "probeQA2": "1 expected behavior fail / 1 control pass",
+  "probeQA3": "1 expected behavior fail / 2 control+backup pass",
+  "finding": "EDIT-R01 P2 inherited cache write retry UI gap"
+}

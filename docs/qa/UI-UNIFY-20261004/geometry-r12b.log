@@ -1,0 +1,114 @@
+(node:32476) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+[WebServer] (node:2592) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 4 tests using 1 worker
+
+(node:31488) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:31488) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(node:31488) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/capabilities Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/rag/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 1 tests\e2e\chat-home.spec.ts:59:3 › 主页复刻 1440：发送、恢复、菜单和工作区可达 (2.3s)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/capabilities Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/rag/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 2 tests\e2e\chat-home.spec.ts:59:3 › 主页复刻 1920：发送、恢复、菜单和工作区可达 (2.3s)
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/capabilities Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Failed to proxy http://127.0.0.1:8001/api/v1/rag/status Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+[WebServer] Error: connect ECONNREFUSED 127.0.0.1:8001
+[WebServer]     at <unknown> (Error: connect ECONNREFUSED 127.0.0.1:8001) {
+[WebServer]   errno: -4078,
+[WebServer]   code: 'ECONNREFUSED',
+[WebServer]   syscall: 'connect',
+[WebServer]   address: '127.0.0.1',
+[WebServer]   port: 8001
+[WebServer] }
+  ok 3 tests\e2e\chat-home.spec.ts:59:3 › 主页复刻 390：发送、恢复、菜单和工作区可达 (1.7s)
+  ok 4 tests\e2e\lesson-plan.spec.ts:314:1 › 教案标题与导出菜单同一顶栏，四视口不重叠不溢出（UX-REGRESSION-FIX v1） (1.2s)
+
+  4 passed (10.6s)

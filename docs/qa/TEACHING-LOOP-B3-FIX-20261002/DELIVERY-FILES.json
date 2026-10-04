@@ -1,0 +1,460 @@
+{
+  "initialUserChange": "apps/web/next-env.d.ts: restored exactly; excluded from root source ownership",
+  "taskCard": "TASK-CARD.md exact ownership and v1-v7",
+  "sourceAndAuthorityFileCountIncludingUserFile": 90,
+  "files": [
+    {
+      "path": "apps/api/app/api/v1/assessments.py",
+      "sha256": "bad40493b55628d2636913093b690a1a84427d4a5e27c18fe88fb015755f2eaa",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/api/app/api/v1/question_bank.py",
+      "sha256": "50ce5d89f2f86efd9fdad9770c888a9cc17a0b4e67e2d95c0cef10880875c8c0",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/api/app/api/v1/scores.py",
+      "sha256": "c09de8767985239580b419feca59f7ad5edd30fb374304b68104d633b3fd651f",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/api/app/contracts/assessments.py",
+      "sha256": "f34be1c550088a451e82a85232f37f3dde0165a85ddbbbf5973bac2678d27737",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/api/app/contracts/scores.py",
+      "sha256": "239e9511bae9ff87eb561226cc5218e4a564874560fcf819a69988c51fedc018",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/api/app/repositories/jobs/repository.py",
+      "sha256": "f58cb7fbfe87aa701a469c87670b9c57b60eaaacc648435f62e06792d0ce5c48",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/api/app/repositories/question_bank/catalog.py",
+      "sha256": "9485a9206d41f13815bfdae88ab97d9be3bcba3c847d595d16a9e9ca305b3ffd",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/api/app/repositories/teaching/scores.py",
+      "sha256": "35f5daa285a20181b0fe75a24e06694975ce293db3ab2909add4490fb9b1a524",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/api/app/schemas/question_bank.py",
+      "sha256": "08191731903dd51fb30061cc954659fdf3cb152994be14d22b369a6d8b74fd49",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/api/app/services/assessments/service.py",
+      "sha256": "d3fb88d80acf775770adf3646eeb530bf88cf2fa1688bca91649ff8aff7f4ece",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/api/app/services/jobs/engine.py",
+      "sha256": "dacba49360261ec9eecb9651d59e6da627f6b415af79d9a0136b48065d76b01f",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/api/app/services/knowledge/service.py",
+      "sha256": "9b82d021c8b7e024a84900f19a255e6f0dd437df99f684beec7c05bf6482efc2",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/api/app/services/papers/proposals.py",
+      "sha256": "719b75a2afe722edf94f525a0ea4c90b843003ed5705f4d14b1a13aae3546e11",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/api/app/services/question_bank/generation.py",
+      "sha256": "f973d2b2d475d130103b2d99ad67f21cfa09d8f0ab6956ca4a8f724a52f70ac9",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/api/app/services/question_bank/rich.py",
+      "sha256": "313d20d9e77f7f8dd9b6cb9a952a571eadb69eb4c3e2d4174afd6bc6fd58c239",
+      "origin": "new"
+    },
+    {
+      "path": "apps/api/app/services/question_bank/service.py",
+      "sha256": "cb3e614d850607aa14078b7333e99dbdd835402d3b1f5eb4761406f982bd982e",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/api/app/services/question_bank/validation.py",
+      "sha256": "736ff6e170e0e1cc28b2fbec0a6d5c09ad7ebc64093d196814d8316066a47fe4",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/api/app/services/scores/imports.py",
+      "sha256": "e73336979a15e0f7245b2d62e3803e685fd40253155ee7ee1b92b6b27627c393",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/api/app/services/scores/service.py",
+      "sha256": "14076db1c4c656b72657f81c51d0a5bfa0ad296088b82cd457cb62396b0ce970",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/api/app/services/tabular.py",
+      "sha256": "35492e67f3bc989fd1e777cae5da3f68f02a330a2a0083512d3276d47ab0f573",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/api/tests/test_b3_migration_failure_stages.py",
+      "sha256": "f93431abc11c5ce2014970628d4b3852cc8bc9b2b6089c8415002cb28bcdfe11",
+      "origin": "new"
+    },
+    {
+      "path": "apps/api/tests/test_b3_review_job_fixes.py",
+      "sha256": "d9bf301060c86bab299b02d38ea934f9993d06f87342ea17f74a5af1b14d4168",
+      "origin": "new"
+    },
+    {
+      "path": "apps/api/tests/test_b3_review_score_fixes.py",
+      "sha256": "a7beb8a54089e892fcff80b8f2270724d21847a2d0a59792e377d34cfa24d677",
+      "origin": "new"
+    },
+    {
+      "path": "apps/api/tests/test_jobs_engine.py",
+      "sha256": "4705bfa78fbfa070774c9dabdfb718710b9a9aac0186565deb16417f212d45ae",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/api/tests/test_participant_attendance.py",
+      "sha256": "2bf1859c027989bfb087fda74ec5e7eb7548db97c65389d1c2fcdb8b5aadc52a",
+      "origin": "new"
+    },
+    {
+      "path": "apps/api/tests/test_question_publication_boundaries.py",
+      "sha256": "31178d579e3a450d1e5c6d7565d2f9365deea01d5e21c66f1381b51f9468de73",
+      "origin": "new"
+    },
+    {
+      "path": "apps/api/tests/test_question_rich_content.py",
+      "sha256": "6735864ff082c22387da16557be94621b8d99659a4aeacf9d1631eb2898c733e",
+      "origin": "new"
+    },
+    {
+      "path": "apps/api/tests/test_rag_sessions.py",
+      "sha256": "c21a55df3c6434354835c8492a2a571e8e17a00b00c7e359a42f32e30c41cf90",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/api/tests/test_score_precision_exact.py",
+      "sha256": "589f804729fc3a6d1c9da7c1979157236f735ba3454799d17607af1d850f9c73",
+      "origin": "new"
+    },
+    {
+      "path": "apps/api/tests/test_score_preview_boundaries.py",
+      "sha256": "151589e4db1f88918d9ce85c721846d8931fde1c28f82b8501d3178d02c22bff",
+      "origin": "new"
+    },
+    {
+      "path": "apps/api/tests/test_scores_confirm.py",
+      "sha256": "dc9bcfb3876d4c90de8c3160c64782eae9d1137f272239d4b4b887f87165c5e7",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/next-env.d.ts",
+      "sha256": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc",
+      "origin": "preserved_user_change"
+    },
+    {
+      "path": "apps/web/src/components/ui/RichContentRenderer.test.tsx",
+      "sha256": "2f488835d1a12f46ba7a514bf3bf57a22e33f462b72bde6b9f80d2a597fdeddc",
+      "origin": "new"
+    },
+    {
+      "path": "apps/web/src/components/ui/RichContentRenderer.tsx",
+      "sha256": "e1eed0f117c221ed9617db803fe8fb10eab2da2b4e8401d15646df8d248675d2",
+      "origin": "new"
+    },
+    {
+      "path": "apps/web/src/components/ui/rich-content.css",
+      "sha256": "159aec52c2c8c38cab344fefbb0d235ce139dc64493df077c5551bbb26b29762",
+      "origin": "new"
+    },
+    {
+      "path": "apps/web/src/contracts/assessments.ts",
+      "sha256": "598930d81471b138939ae555d9c8faa2836d246e50a059116683a6c150ed6b62",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/contracts/question-bank.ts",
+      "sha256": "ed8f353f3afab4c64eddb2217e2343b5f4a7866e5d6f3c9bf5b050ea908d8059",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/contracts/scores.ts",
+      "sha256": "e0d6bd80776febcd651ac6af4e39646e9e8dc9573f3160fde0c165f18e5634b0",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/features/assessments/AssessmentsPanel.test.tsx",
+      "sha256": "5d56de570857c40e04a00226f11e34f573f484b46b69659650501a6d65ab950a",
+      "origin": "new"
+    },
+    {
+      "path": "apps/web/src/features/assessments/AssessmentsPanel.tsx",
+      "sha256": "0962d416049dcbe2b3f564a434ee5dd8370e007e03cc711d3d0fa8290a726048",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/features/assessments/HistoryPanel.tsx",
+      "sha256": "565e2d3c7992ad42820f4fa57ad85478eea8bf9c8ed13b2ce81a3b91299d4a25",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/features/assessments/PaperImportReview.test.tsx",
+      "sha256": "81c3d3dfdd0cfc973d4176c52a907c6b79dbacbdb105ed65c23b661b493d3e03",
+      "origin": "new"
+    },
+    {
+      "path": "apps/web/src/features/assessments/PaperImportReview.tsx",
+      "sha256": "7bd9964d39f2dea113239d622371ce3e71027f0e96174079d215db0a0d11f2d1",
+      "origin": "new"
+    },
+    {
+      "path": "apps/web/src/features/assessments/PapersPanel.tsx",
+      "sha256": "473801831fbb6482af347e6635dd78918d0442e3d1eb97105155eb42ee9c6617",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/features/assessments/ParticipantAddPanel.test.tsx",
+      "sha256": "b6208fb80de4ad93e846da95fe3309bd7a310b01ab01499d614306d78e349d17",
+      "origin": "new"
+    },
+    {
+      "path": "apps/web/src/features/assessments/ParticipantAddPanel.tsx",
+      "sha256": "cd9b9f59b251aeaacd7b733155ee9d1f2b854605e9a5f1191281f241a65ca3ea",
+      "origin": "new"
+    },
+    {
+      "path": "apps/web/src/features/assessments/ParticipantAttendanceEditor.test.tsx",
+      "sha256": "aa517070b87a28d017b0e4a9939f9e94eed2b9bc02d9dd956831c3429c4c0607",
+      "origin": "new"
+    },
+    {
+      "path": "apps/web/src/features/assessments/ParticipantAttendanceEditor.tsx",
+      "sha256": "814c84cd580f13b9af76e968380ce1a3e30e3ee0ff9109ef6ab0239078a1938c",
+      "origin": "new"
+    },
+    {
+      "path": "apps/web/src/features/assessments/RosterImportPanel.test.tsx",
+      "sha256": "3562183e4fc063fb5dd935702a2be1d9d1e49f123577bcddfc4d15860c5b6ec1",
+      "origin": "new"
+    },
+    {
+      "path": "apps/web/src/features/assessments/RosterImportPanel.tsx",
+      "sha256": "ac5e86e163dfd33ac9dd99530f7ed4f50b6a3ec85be94129d9f88cd5b03d3ca7",
+      "origin": "new"
+    },
+    {
+      "path": "apps/web/src/features/assessments/RosterPanel.tsx",
+      "sha256": "a4dc3a8e6d3940ca82b8b73978a9990f06b305fc73e6217e3ca60cba00fc2091",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/features/assessments/ScoreImportReview.test.tsx",
+      "sha256": "596980caab080044cf5c6cb707d599cfde4dfc56590748d52cbdbcca9a088c3c",
+      "origin": "new"
+    },
+    {
+      "path": "apps/web/src/features/assessments/ScoreImportReview.tsx",
+      "sha256": "8ff947214290d71663abd426feb67f3f954851090d1a3c4ec35026d97b5ac438",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/features/assessments/ScorePanel.test.tsx",
+      "sha256": "fa54a2f0daf4efdfe21043556026a88d924f137a5e2e0c5dacabf2f28d00eb49",
+      "origin": "new"
+    },
+    {
+      "path": "apps/web/src/features/assessments/ScorePanel.tsx",
+      "sha256": "6159a0f4d99bba8e2a16bc212d73f906fb59178a249d1addb3cff87b51854c9e",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/features/assessments/hooks.test.tsx",
+      "sha256": "521abb89d5d4f910bfd9c910bfbf92d9f0810b1d0eb26a1f1242c5f091e26711",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/features/assessments/hooks.ts",
+      "sha256": "3ad0804d4e97ba117005389a08e8ca22f88db83238b74a76455adf8af190f33c",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/features/assessments/labels.test.ts",
+      "sha256": "87ca960e629cc428d9dcb463f49a30a9ae50dd6c9a591d9b5ca1afc8a3238128",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/features/assessments/labels.ts",
+      "sha256": "ce869b87f097fd5ddb2d2b163107b1bdef99d5bb1a5704df2e3f333083a008f0",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/features/assessments/styles/assessments.css",
+      "sha256": "87a779b1dd13f62a893e93794b37acd3fceb9e36b8423629cbd7541433c13138",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/features/knowledge-points/hooks.strictmode.test.tsx",
+      "sha256": "763bc741c75e878a31707c819242795d80e5b504db67e2c4905dcb83d4ff5633",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/features/knowledge-points/hooks.ts",
+      "sha256": "a6f5758923c400a8d849955c6574bc62cc5079450b80e23a60f582495b5ddadb",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/ConfirmPanel.tsx",
+      "sha256": "fee54691ca3eaa771edb91be54507e8f9eb6325332d42b08185336d4f2058ac2",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/ContentForm.tsx",
+      "sha256": "9f62c8d1e3f8b2b29a04a9064a75e81f6aee378383e383e4671a0c59bc2bc654",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/DraftEditor.guard.test.tsx",
+      "sha256": "fc3b4c90d648a7675792ac0fbd7fa92b5a13ea66b288aa21e029f71f2edb4d5b",
+      "origin": "new"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/DraftEditor.tsx",
+      "sha256": "1f3b1f06688f808cd29203b154e7844bdcd085a70436f35b59323e321dfa2564",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/GenerationPanel.test.tsx",
+      "sha256": "58f2ef01aad89a65e41782864216e0a586e523ec14fb868e2099aaf88174e0f7",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/QuestionDetailLinks.test.tsx",
+      "sha256": "53099922bf989192b1d1d6b3c3c5b2d9bd6aa1810f70e43386ea0b073a042e11",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/QuestionDetailPanel.tsx",
+      "sha256": "89246b21b519f0b39a898f1f025ef6fd817c0739e638b42f7b448a291ce393f2",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/QuestionPreview.rich.test.tsx",
+      "sha256": "ddaa7eeae6bb252c402dd2ae8e49576f3915fd72108386ccdffb62f474bfbb59",
+      "origin": "new"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/QuestionPreview.tsx",
+      "sha256": "90cf4a4cfd0f1343c82f79420ab01390328ad3727f5ea016e9ef2381ac552537",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/ReviewWorkspace.test.tsx",
+      "sha256": "bf397d68269e10c79b890bd5adbde54a88260365da8316c8c5d384c0fbcd7650",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/ReviewWorkspace.tsx",
+      "sha256": "3e532d4e192f4b4d737075f96e01ebc51faa5ab246dd3f61a0dfe0f62064d500",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/draft-form.ts",
+      "sha256": "a17f887e3574e800b3c20cc9e6d1e0fb8527ef33657ee9ce2c9bc13cfbc3555c",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/jobs.test.tsx",
+      "sha256": "bdf2bb75d747da0567704f60e1f72fa37a778f0da93b6458c5eeba7debed8b9d",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/jobs.ts",
+      "sha256": "0d82fc284187c8c61ae2f92ec9a660de35ba35b50351bb8a0b5e635dbde89d12",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/services/assessments-api.ts",
+      "sha256": "a4999e7fad5925a299000c995971a85f710d3c591a9aa7bf506dd2d9d1bebe6c",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/services/question-bank-api.ts",
+      "sha256": "8d38fb405770c175336112ceb73b01fbe0225572d358b60ae6e820851bc22f8c",
+      "origin": "modified"
+    },
+    {
+      "path": "apps/web/src/services/use-workflow-job.test.tsx",
+      "sha256": "fdc4ec158c8ff85e6010692c7d7e8782d7ad9ab97c24ab700085a2b0fccf72f0",
+      "origin": "new"
+    },
+    {
+      "path": "apps/web/src/services/use-workflow-job.ts",
+      "sha256": "cd5ea25402821a45c85af0b93f004de80df5443d45a101a202ac9627c152d890",
+      "origin": "new"
+    },
+    {
+      "path": "docs/API.md",
+      "sha256": "0180669c3182de5f571aa39e98ee1ff3605bb5bc23caf1c9686db4eb2549d90e",
+      "origin": "modified"
+    },
+    {
+      "path": "docs/CURRENT_STATUS.md",
+      "sha256": "d8e4610f4ecf76869d77482cd9bf2d34a17857c223b6b330bd17c24e2bb55678",
+      "origin": "modified"
+    },
+    {
+      "path": "docs/NEXT_SESSION_START.md",
+      "sha256": "25cc332f3e1c2f126f0a00e972e7cd6828777f8ac9419d39a82378cbd033a99b",
+      "origin": "modified"
+    },
+    {
+      "path": "docs/PROJECT_GUIDE.md",
+      "sha256": "05768e7620f5bd30546f0cf151d3f9fe1c680bb0f00bbdb89c011e01ec269434",
+      "origin": "modified"
+    },
+    {
+      "path": "docs/ROUTES.md",
+      "sha256": "24c598e7794940b0172e20e69a3421c15eaab84d3dad9d6dab1c6ba2bc78c32f",
+      "origin": "modified"
+    },
+    {
+      "path": "docs/design/teaching-loop-v1/多Agent实施任务计划书_v2.0.md",
+      "sha256": "e82da82bc91cafabc63c3a2a1b2ee03fdb43651329f04a00889f659eb2b02060",
+      "origin": "modified"
+    },
+    {
+      "path": "tests/e2e/assessments.spec.ts",
+      "sha256": "8abb8f4adcc3c9f9c28fa9ec0f09a88fdca906a73bd098d9c859a8260642affc",
+      "origin": "modified"
+    },
+    {
+      "path": "tests/e2e/question-bank-real.spec.ts",
+      "sha256": "34dedc6f6daf6eb944c69937707bbe30db89a51e76a946812a0bb0ba0e8f6137",
+      "origin": "new"
+    },
+    {
+      "path": "tests/fixtures/teaching_loop_backend.py",
+      "sha256": "958e97bd8258a162580bb4d584245a66986280402bfe4395eae62769a5c09631",
+      "origin": "new"
+    },
+    {
+      "path": "tests/fixtures/teaching_loop_docx.py",
+      "sha256": "ee4eb09e00f1c921ef787bc3223e8642e8db4dc71c18595f082241ef2bdac4da",
+      "origin": "new"
+    }
+  ],
+  "newBatchEvidence": "docs/qa/TEACHING-LOOP-B3-FIX-20261002/; root and independent evidence preserved",
+  "oldEvidenceModified": false,
+  "checkedAt": "2026-10-02T06:28:17.371587+00:00"
+}

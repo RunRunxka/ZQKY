@@ -1,0 +1,98 @@
+ M apps/api/app/api/v1/assessments.py
+ M apps/api/app/api/v1/question_bank.py
+ M apps/api/app/api/v1/scores.py
+ M apps/api/app/contracts/assessments.py
+ M apps/api/app/contracts/scores.py
+ M apps/api/app/repositories/jobs/repository.py
+ M apps/api/app/repositories/question_bank/catalog.py
+ M apps/api/app/repositories/teaching/scores.py
+ M apps/api/app/schemas/question_bank.py
+ M apps/api/app/services/assessments/service.py
+ M apps/api/app/services/jobs/engine.py
+ M apps/api/app/services/knowledge/service.py
+ M apps/api/app/services/papers/proposals.py
+ M apps/api/app/services/question_bank/generation.py
+ M apps/api/app/services/question_bank/service.py
+ M apps/api/app/services/question_bank/validation.py
+ M apps/api/app/services/scores/imports.py
+ M apps/api/app/services/scores/service.py
+ M apps/api/app/services/tabular.py
+ M apps/api/tests/test_jobs_engine.py
+ M apps/api/tests/test_rag_sessions.py
+ M apps/api/tests/test_scores_confirm.py
+ M apps/web/next-env.d.ts
+ M apps/web/src/contracts/assessments.ts
+ M apps/web/src/contracts/question-bank.ts
+ M apps/web/src/contracts/scores.ts
+ M apps/web/src/features/assessments/AssessmentsPanel.tsx
+ M apps/web/src/features/assessments/HistoryPanel.tsx
+ M apps/web/src/features/assessments/PapersPanel.tsx
+ M apps/web/src/features/assessments/RosterPanel.tsx
+ M apps/web/src/features/assessments/ScoreImportReview.tsx
+ M apps/web/src/features/assessments/ScorePanel.tsx
+ M apps/web/src/features/assessments/hooks.test.tsx
+ M apps/web/src/features/assessments/hooks.ts
+ M apps/web/src/features/assessments/labels.test.ts
+ M apps/web/src/features/assessments/labels.ts
+ M apps/web/src/features/assessments/styles/assessments.css
+ M apps/web/src/features/knowledge-points/hooks.strictmode.test.tsx
+ M apps/web/src/features/knowledge-points/hooks.ts
+ M apps/web/src/features/question-bank/ConfirmPanel.tsx
+ M apps/web/src/features/question-bank/ContentForm.tsx
+ M apps/web/src/features/question-bank/DraftEditor.tsx
+ M apps/web/src/features/question-bank/GenerationPanel.test.tsx
+ M apps/web/src/features/question-bank/QuestionDetailLinks.test.tsx
+ M apps/web/src/features/question-bank/QuestionDetailPanel.tsx
+ M apps/web/src/features/question-bank/QuestionPreview.tsx
+ M apps/web/src/features/question-bank/ReviewWorkspace.test.tsx
+ M apps/web/src/features/question-bank/ReviewWorkspace.tsx
+ M apps/web/src/features/question-bank/draft-form.ts
+ M apps/web/src/features/question-bank/jobs.test.tsx
+ M apps/web/src/features/question-bank/jobs.ts
+ M apps/web/src/services/assessments-api.ts
+ M apps/web/src/services/question-bank-api.ts
+ M docs/API.md
+ M docs/CURRENT_STATUS.md
+ M docs/NEXT_SESSION_START.md
+ M docs/PLAN.md
+ M docs/PROJECT_GUIDE.md
+ M docs/README.md
+ M docs/ROUTES.md
+ M docs/design/teaching-loop-v1/README.md
+ M docs/design/teaching-loop-v1/多Agent实施任务计划书_v2.0.md
+ M docs/qa/README.md
+ M tests/e2e/assessments.spec.ts
+?? apps/api/app/services/question_bank/rich.py
+?? apps/api/tests/test_b3_migration_failure_stages.py
+?? apps/api/tests/test_b3_review_job_fixes.py
+?? apps/api/tests/test_b3_review_score_fixes.py
+?? apps/api/tests/test_participant_attendance.py
+?? apps/api/tests/test_question_publication_boundaries.py
+?? apps/api/tests/test_question_rich_content.py
+?? apps/api/tests/test_score_precision_exact.py
+?? apps/api/tests/test_score_preview_boundaries.py
+?? apps/web/src/components/ui/RichContentRenderer.test.tsx
+?? apps/web/src/components/ui/RichContentRenderer.tsx
+?? apps/web/src/components/ui/rich-content.css
+?? apps/web/src/features/assessments/AssessmentsPanel.test.tsx
+?? apps/web/src/features/assessments/PaperImportReview.test.tsx
+?? apps/web/src/features/assessments/PaperImportReview.tsx
+?? apps/web/src/features/assessments/ParticipantAddPanel.test.tsx
+?? apps/web/src/features/assessments/ParticipantAddPanel.tsx
+?? apps/web/src/features/assessments/ParticipantAttendanceEditor.test.tsx
+?? apps/web/src/features/assessments/ParticipantAttendanceEditor.tsx
+?? apps/web/src/features/assessments/RosterImportPanel.test.tsx
+?? apps/web/src/features/assessments/RosterImportPanel.tsx
+?? apps/web/src/features/assessments/ScoreImportReview.test.tsx
+?? apps/web/src/features/assessments/ScorePanel.test.tsx
+?? apps/web/src/features/question-bank/DraftEditor.guard.test.tsx
+?? apps/web/src/features/question-bank/QuestionPreview.rich.test.tsx
+?? apps/web/src/services/use-workflow-job.test.tsx
+?? apps/web/src/services/use-workflow-job.ts
+?? docs/design/teaching-loop-v1/B4_总控启动提示词.md
+?? docs/qa/TEACHING-LOOP-B3-FIX-20261002/
+?? docs/qa/TEACHING-LOOP-B3-FIX-REVIEW-20261002/
+?? docs/qa/TEACHING-LOOP-G1-B4-20261002/
+?? tests/e2e/question-bank-real.spec.ts
+?? tests/fixtures/teaching_loop_backend.py
+?? tests/fixtures/teaching_loop_docx.py

@@ -1,0 +1,14 @@
+{
+  "capturedAt": "2026-10-02T16:19:10.8389688+08:00",
+  "stoppedBackendPid": 4844,
+  "commandLine": "\"C:\\Users\\96022\\AppData\\Roaming\\uv\\python\\cpython-3.12-windows-x86_64-none\\python.exe\"  -m uvicorn teaching_loop_backend:app --app-dir tests/fixtures --host 127.0.0.1 --port 8001 --log-level info",
+  "portsAfter": [],
+  "browserStarted": false,
+  "frontendStart": "blocked_by_policy",
+  "browserAndE2E": "not_run",
+  "browserDataRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-g1-browser-eda5b37d224f4458b9c63233d81e0c51\\data",
+  "temporaryData": "retained as evidence; no deletion attempted",
+  "oldSixDirectories": "untouched; no retry of rejected deletion",
+  "B4": "not_started",
+  "gitWriteOperations": "none"
+}

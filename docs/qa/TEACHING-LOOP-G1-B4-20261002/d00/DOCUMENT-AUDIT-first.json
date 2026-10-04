@@ -1,0 +1,615 @@
+{
+  "task": "G1-D00 v1",
+  "capturedAt": "2026-10-02T08:47:17.666214+00:00",
+  "documents": [
+    {
+      "path": "docs/qa/TEACHING-LOOP-G1-B4-20261002/REPORT.md",
+      "sha256": "74e945ec11005ae87774185b5347487447d6740d044d3d6202d79f71c225e8ad",
+      "localLinks": [
+        {
+          "target": "../../CURRENT_STATUS.md",
+          "exists": true
+        },
+        {
+          "target": "BASELINE.json",
+          "exists": true
+        },
+        {
+          "target": "initial-git-status.txt",
+          "exists": true
+        },
+        {
+          "target": "CANDIDATE-g1-r2.json",
+          "exists": true
+        },
+        {
+          "target": "AUDIT-g1-r2.json",
+          "exists": true
+        },
+        {
+          "target": "G1-CLOSE-MATRIX.md",
+          "exists": true
+        },
+        {
+          "target": "INDEPENDENT-RESULTS.md",
+          "exists": true
+        },
+        {
+          "target": "v00-jobs/RESULT.md",
+          "exists": true
+        },
+        {
+          "target": "v00-score-qb/RESULT.md",
+          "exists": true
+        },
+        {
+          "target": "v00-fe/RESULT.md",
+          "exists": true
+        },
+        {
+          "target": "v00-fe/real-api-third.log",
+          "exists": true
+        },
+        {
+          "target": "v00-fe/real-api-receipts.json",
+          "exists": true
+        },
+        {
+          "target": "root/closed-data-check.json",
+          "exists": true
+        },
+        {
+          "target": "root/g1-check-first.log",
+          "exists": true
+        },
+        {
+          "target": "root/g1-api-first.log",
+          "exists": true
+        },
+        {
+          "target": "g1-score/RESULT.md",
+          "exists": true
+        },
+        {
+          "target": "g1-qb/RESULT.md",
+          "exists": true
+        },
+        {
+          "target": "g1-fe/RESULT.md",
+          "exists": true
+        },
+        {
+          "target": "root/jobs-first.log",
+          "exists": true
+        },
+        {
+          "target": "root/omml-r3.log",
+          "exists": true
+        },
+        {
+          "target": "EVIDENCE-COMMANDS.md",
+          "exists": true
+        },
+        {
+          "target": "ROOT-FIRST-FAILURES.md",
+          "exists": true
+        },
+        {
+          "target": "RESOURCES.json",
+          "exists": true
+        },
+        {
+          "target": "root/hardware.json",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G1-B4-20261002/G1-CLOSE-MATRIX.md",
+      "sha256": "56b451f56446f662b33df3c3c322700db90cb27f99410bff006a598aa1f2669c",
+      "localLinks": [
+        {
+          "target": "v00-fe/RESULT.md",
+          "exists": true
+        },
+        {
+          "target": "v00-score-qb/RESULT.md",
+          "exists": true
+        },
+        {
+          "target": "v00-jobs/RESULT.md",
+          "exists": true
+        },
+        {
+          "target": "EVIDENCE-COMMANDS.md",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G1-B4-20261002/INDEPENDENT-RESULTS.md",
+      "sha256": "0c127b72c6f12f46923aa02ac23bf175a5d07e30795129c271766ea17683e759",
+      "localLinks": [
+        {
+          "target": "v00-jobs/RESULT.md",
+          "exists": true
+        },
+        {
+          "target": "v00-jobs/ADDENDUM-r2.md",
+          "exists": true
+        },
+        {
+          "target": "v00-score-qb/RESULT.md",
+          "exists": true
+        },
+        {
+          "target": "v00-score-qb/accepted-v2.log",
+          "exists": true
+        },
+        {
+          "target": "v00-score-qb/accepted-v2.xml",
+          "exists": true
+        },
+        {
+          "target": "v00-fe/RESULT.md",
+          "exists": true
+        },
+        {
+          "target": "v00-fe/component-third.log",
+          "exists": true
+        },
+        {
+          "target": "v00-fe/real-api-third.log",
+          "exists": true
+        },
+        {
+          "target": "v00-fe/real-api-receipts.json",
+          "exists": true
+        },
+        {
+          "target": "root/closed-data-check.json",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G1-B4-20261002/EVIDENCE-COMMANDS.md",
+      "sha256": "554d3b3b7abd38bc6607da6aeaad18c196c4fb1fca55016ca673fbf8ee93eba0",
+      "localLinks": [
+        {
+          "target": "root/jobs-first.log",
+          "exists": true
+        },
+        {
+          "target": "root/jobs-first.xml",
+          "exists": true
+        },
+        {
+          "target": "root/omml-r3.log",
+          "exists": true
+        },
+        {
+          "target": "root/g1-typecheck-first.log",
+          "exists": true
+        },
+        {
+          "target": "root/g1-lint-first.log",
+          "exists": true
+        },
+        {
+          "target": "root/g1-check-first.log",
+          "exists": true
+        },
+        {
+          "target": "root/g1-api-first.log",
+          "exists": true
+        },
+        {
+          "target": "CANDIDATE-g1-r1.json",
+          "exists": true
+        },
+        {
+          "target": "AUDIT-g1-r1.json",
+          "exists": true
+        },
+        {
+          "target": "CANDIDATE-g1-r2.json",
+          "exists": true
+        },
+        {
+          "target": "AUDIT-g1-r2.json",
+          "exists": true
+        },
+        {
+          "target": "root/browser-seed.log",
+          "exists": true
+        },
+        {
+          "target": "root/browser-seed.json",
+          "exists": true
+        },
+        {
+          "target": "root/browser-api.log",
+          "exists": true
+        },
+        {
+          "target": "RESOURCES.json",
+          "exists": true
+        },
+        {
+          "target": "v00-fe/real-api-third-command.json",
+          "exists": true
+        },
+        {
+          "target": "v00-fe/real-api-third.log",
+          "exists": true
+        },
+        {
+          "target": "v00-fe/real-api-receipts.json",
+          "exists": true
+        },
+        {
+          "target": "root/closed-check-accepted.log",
+          "exists": true
+        },
+        {
+          "target": "root/closed-data-check.json",
+          "exists": true
+        },
+        {
+          "target": "g1-fe/RESULT.md",
+          "exists": true
+        },
+        {
+          "target": "g1-score/RESULT.md",
+          "exists": true
+        },
+        {
+          "target": "g1-qb/COMMANDS.md",
+          "exists": true
+        },
+        {
+          "target": "v00-fe/RESULT.md",
+          "exists": true
+        },
+        {
+          "target": "v00-jobs/RESULT.md",
+          "exists": true
+        },
+        {
+          "target": "v00-score-qb/COMMANDS.md",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G1-B4-20261002/ROOT-FIRST-FAILURES.md",
+      "sha256": "2bc3845fa29dcbd8afde16be45bf3b530dda8a5a4b5712a44ae675ab641f9565",
+      "localLinks": [
+        {
+          "target": "root/closed-check-first.log",
+          "exists": true
+        },
+        {
+          "target": "root/closed-check-first-source.py",
+          "exists": true
+        },
+        {
+          "target": "root/closed-check-final.log",
+          "exists": true
+        },
+        {
+          "target": "root/closed-check-second-source.py",
+          "exists": true
+        },
+        {
+          "target": "root/closed-check-accepted.log",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "path": "docs/CURRENT_STATUS.md",
+      "sha256": "f9f2d155efb63678d04d7821b0cc394c0896b7b3c30afdb13a9a2a03cf81d4f3",
+      "localLinks": [
+        {
+          "target": "PROJECT_GUIDE.md",
+          "exists": true
+        },
+        {
+          "target": "README.md",
+          "exists": true
+        },
+        {
+          "target": "archive/snapshots/20261001-docs-focus/docs/CURRENT_STATUS.md",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-G1-B4-20261002/REPORT.md",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-G1-B4-20261002/TASK-CARD.md",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-G1-B4-20261002/BASELINE.json",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-B3-FIX-20261002/BASELINE.json",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-G1-B4-20261002/CANDIDATE-g1-r2.json",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-G1-B4-20261002/AUDIT-g1-r2.json",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-B3-FIX-20261002/REPORT.md",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-G1-B4-20261002/EVIDENCE-COMMANDS.md",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-G1-B4-20261002/G1-CLOSE-MATRIX.md",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-G1-B4-20261002/INDEPENDENT-RESULTS.md",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-G1-B4-20261002/G1-CLOSE-MATRIX.md",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-G1-B4-20261002/RESOURCES.json",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-B3-FIX-20261002/G0-CLOSE-MATRIX.md",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-B3-FIX-REVIEW-20261002/REVIEW.md",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-G1-B4-20261002/G1-CLOSE-MATRIX.md",
+          "exists": true
+        },
+        {
+          "target": "qa/RAG-QUALITY-v1/README.md",
+          "exists": true
+        },
+        {
+          "target": "archive/snapshots/20261001-docs-focus/docs/PLAN.md",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-B0/README.md",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-B1/README.md",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-B2/README.md",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-B2-REVIEW-20261001/REVIEW.md",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-B3/REPORT.md",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-B3-REVIEW-20261001/REVIEW.md",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-B3-FIX-20261002/REPORT.md",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-B3-FIX-20261002/EVIDENCE-COMMANDS.md",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-B3-FIX-20261002/ROOT-FIRST-FAILURES.md",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-B3-FIX-REVIEW-20261002/REVIEW.md",
+          "exists": true
+        },
+        {
+          "target": "design/teaching-loop-v1/B4_总控启动提示词.md",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-G1-B4-20261002/REPORT.md",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-G1-B4-20261002/G1-CLOSE-MATRIX.md",
+          "exists": true
+        },
+        {
+          "target": "qa/DOCS-FOCUS-20261001/README.md",
+          "exists": true
+        },
+        {
+          "target": "qa/RAG-QUALITY-v1/README.md",
+          "exists": true
+        },
+        {
+          "target": "archive/pre-20260929/qa/UX-PERF-CLOSEOUT-20260923/r14/REPRO-EVIDENCE.md",
+          "exists": true
+        },
+        {
+          "target": "archive/README.md",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "path": "docs/API.md",
+      "sha256": "f542f523f60a9f07a1827aafc819d45badd499e22a7d39f411447a492a2d0512",
+      "localLinks": [
+        {
+          "target": "CURRENT_STATUS.md",
+          "exists": true
+        },
+        {
+          "target": "CURRENT_STATUS.md",
+          "exists": true
+        },
+        {
+          "target": "archive/History.md#source-4",
+          "exists": true
+        },
+        {
+          "target": "design/teaching-loop-v1/README.md",
+          "exists": true
+        },
+        {
+          "target": "archive/pre-20260929/qa/RAG-REBUILD-v1/README.md",
+          "exists": true
+        },
+        {
+          "target": "design/teaching-loop-v1/README.md",
+          "exists": true
+        },
+        {
+          "target": "design/teaching-loop-v1/多Agent实施任务计划书_v2.0.md",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-B0/TASK-CARD.md",
+          "exists": true
+        },
+        {
+          "target": "design/teaching-loop-v1/多Agent实施任务计划书_v2.0.md",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-B1/TASK-CARD.md",
+          "exists": true
+        },
+        {
+          "target": "design/teaching-loop-v1/多Agent实施任务计划书_v2.0.md",
+          "exists": true
+        },
+        {
+          "target": "qa/TEACHING-LOOP-B2/TASK-CARD.md",
+          "exists": true
+        },
+        {
+          "target": "ROUTES.md",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "path": "docs/qa/README.md",
+      "sha256": "392343bac367e948cf501655125c339d6d76ca0a1f8684090bf1fcd65c52e526",
+      "localLinks": [
+        {
+          "target": "../CURRENT_STATUS.md",
+          "exists": true
+        },
+        {
+          "target": "RAG-QUALITY-v1/README.md",
+          "exists": true
+        },
+        {
+          "target": "TEACHING-LOOP-B0/README.md",
+          "exists": true
+        },
+        {
+          "target": "TEACHING-LOOP-B1/README.md",
+          "exists": true
+        },
+        {
+          "target": "TEACHING-LOOP-B2/README.md",
+          "exists": true
+        },
+        {
+          "target": "TEACHING-LOOP-B2-REVIEW-20261001/REVIEW.md",
+          "exists": true
+        },
+        {
+          "target": "TEACHING-LOOP-B3/REPORT.md",
+          "exists": true
+        },
+        {
+          "target": "TEACHING-LOOP-B3-REVIEW-20261001/REVIEW.md",
+          "exists": true
+        },
+        {
+          "target": "TEACHING-LOOP-B3-FIX-20261002/REPORT.md",
+          "exists": true
+        },
+        {
+          "target": "TEACHING-LOOP-B3-FIX-REVIEW-20261002/REVIEW.md",
+          "exists": true
+        },
+        {
+          "target": "TEACHING-LOOP-G1-B4-20261002/REPORT.md",
+          "exists": true
+        },
+        {
+          "target": "DOCS-FOCUS-20261001/README.md",
+          "exists": true
+        },
+        {
+          "target": "../archive/pre-20260929/qa/",
+          "exists": true
+        }
+      ]
+    },
+    {
+      "path": "docs/qa/TEACHING-LOOP-G1-B4-20261002/d00/RESULT.md",
+      "sha256": "30bc66f51423c1955b5956656fb166dbb5acf69e55a98df87327c87490918fe6",
+      "localLinks": [
+        {
+          "target": "EVIDENCE-AUDIT.json",
+          "exists": true
+        },
+        {
+          "target": "COMMANDS.md",
+          "exists": true
+        },
+        {
+          "target": "RESOURCE-AUDIT.json",
+          "exists": true
+        },
+        {
+          "target": "DOCUMENT-AUDIT.json",
+          "exists": false
+        }
+      ]
+    }
+  ],
+  "brokenLocalLinks": [
+    {
+      "source": "docs/qa/TEACHING-LOOP-G1-B4-20261002/d00/RESULT.md",
+      "target": "DOCUMENT-AUDIT.json"
+    }
+  ],
+  "fixedIssue": "missing root/omml-first.log now explicitly documented; no fabricated log",
+  "browserAndE2E": "not_run",
+  "G1": "not_complete",
+  "B4": "not_started",
+  "applicationExecution": false
+}

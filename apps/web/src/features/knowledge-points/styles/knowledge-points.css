@@ -1,14 +1,17 @@
 /* 知识点模块页面级样式（/knowledge-points）。
    消费 globals.css 单一变量层：--font-ui/--font-display/--blue/--blue-soft、--surface/--ink/
    --line/--danger、--radius-*、--space-*；与 space.css 共用 .space-* 基础类。
-   作用域：全部选择器以 .knowledge-points-page 起头；不新增主题色、不新增动画
-   （依赖全局 motion.css 的 prefers-reduced-motion / html[data-motion] 机制）。
+   作用域：全部选择器以 .knowledge-points-page 起头；动画使用公共 useEntrance，
+   遵守全局 motion.css 的 prefers-reduced-motion / html[data-motion] 机制。
    布局：桌面双栏（列表 + 详情），≤960px 单列；所有可滚动/长文本容器带 min-width: 0，
    保证 390px 视口无横向溢出。 */
 
+.knowledge-points-page {
+  --page-content-width: 1240px;
+}
+
 .knowledge-points-page .space-content {
   min-width: 0;
-  max-width: 1180px;
 }
 
 .knowledge-points-page .kp-panel[hidden] {
@@ -651,5 +654,146 @@
   .knowledge-points-page .kp-field-narrow {
     flex: 1 1 100%;
     max-width: none;
+  }
+}
+
+/* ===== 统一工作区：清晰的筛选面、列表与详情层级 ===== */
+.knowledge-points-page .kp-points-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.8fr) minmax(0, 1.2fr);
+  gap: var(--space-5);
+}
+
+.knowledge-points-page .kp-browser {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-toolbar {
+  margin: 0;
+  padding: var(--space-4);
+  gap: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+}
+
+.knowledge-points-page .kp-toolbar .space-segment button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.knowledge-points-page .kp-search-form {
+  gap: var(--space-2);
+  flex-basis: 100%;
+}
+
+.knowledge-points-page .kp-field-inline > .kp-field-label,
+.knowledge-points-page .kp-search-form > .space-button {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.knowledge-points-page .kp-field-inline > :is(input, select),
+.knowledge-points-page .kp-search-form > input {
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-detail,
+.knowledge-points-page .kp-import-review,
+.knowledge-points-page .kp-subpanel {
+  padding: var(--space-5);
+  gap: var(--space-3);
+}
+
+.knowledge-points-page .kp-detail-column > .space-empty {
+  min-height: 220px;
+  display: flex;
+  justify-content: center;
+  padding: var(--space-5);
+  background: var(--bg);
+}
+
+.knowledge-points-page .kp-card,
+.knowledge-points-page .kp-import-card {
+  padding: var(--space-4);
+  gap: var(--space-2);
+}
+
+.knowledge-points-page .kp-detail-head h2,
+.knowledge-points-page .kp-subpanel-head h3,
+.knowledge-points-page .kp-subpanel-head h4,
+.knowledge-points-page .kp-import-head h3 {
+  font-size: var(--font-size-section, 16px);
+  line-height: 1.5;
+}
+
+.knowledge-points-page .kp-hint,
+.knowledge-points-page .kp-field-label,
+.knowledge-points-page .kp-warning-list,
+.knowledge-points-page .kp-row-fields dt {
+  font-size: var(--font-size-caption, 12px);
+  line-height: 1.65;
+}
+
+.knowledge-points-page .kp-field {
+  gap: 6px;
+  font-size: var(--font-size-control, 13px);
+}
+
+.knowledge-points-page .kp-field input:not([type='checkbox']),
+.knowledge-points-page .kp-field select,
+.knowledge-points-page .kp-form input:not([type='checkbox']) {
+  min-height: var(--control-height, 36px);
+  padding: 8px 12px;
+  font-size: var(--font-size-control, 13px);
+}
+
+.knowledge-points-page .kp-form textarea,
+.knowledge-points-page .kp-field textarea {
+  min-height: 96px;
+  padding: var(--space-3);
+  font-size: var(--font-size-body, 14px);
+}
+
+.knowledge-points-page .kp-tree-node {
+  min-height: var(--control-height, 36px);
+}
+
+@media (max-width: 960px) {
+  .knowledge-points-page .kp-points-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+  }
+}
+
+@media (max-width: 640px) {
+  .knowledge-points-page .kp-detail,
+  .knowledge-points-page .kp-import-review,
+  .knowledge-points-page .kp-subpanel {
+    padding: var(--space-4);
+  }
+}
+
+@media (max-width: 767px) {
+  .knowledge-points-page .space-search,
+  .knowledge-points-page .kp-field input:not([type='checkbox']),
+  .knowledge-points-page .kp-field select,
+  .knowledge-points-page .kp-form input:not([type='checkbox']),
+  .knowledge-points-page .kp-tree-node,
+  .knowledge-points-page .kp-card,
+  .knowledge-points-page .kp-import-card,
+  .knowledge-points-page .kp-alias-remove {
+    min-height: var(--touch-target, 44px);
+  }
+
+  .knowledge-points-page .kp-alias-remove {
+    min-width: var(--touch-target, 44px);
+    justify-content: center;
   }
 }

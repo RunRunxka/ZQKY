@@ -1,0 +1,413 @@
+/* 屏幕编辑控件与教学闭环信息的统一排版；纸面、分页和打印保持原有规则。 */
+@media screen {
+  .lesson-page .app-header {
+    background: var(--bg);
+    border-bottom-color: var(--line);
+  }
+  .lesson-page .header-actions {
+    gap: 12px;
+  }
+  .lesson-page .save-status {
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .lesson-page :is(.editor-panel, .outline-panel) {
+    color: var(--ink);
+    font-size: 14px;
+  }
+  .lesson-page .outline-panel {
+    background: color-mix(in srgb, var(--surface) 70%, var(--bg));
+    padding: 20px 16px;
+  }
+  .lesson-page .outline-heading {
+    font-size: 16px;
+    margin-bottom: 16px;
+  }
+  .lesson-page .segmented {
+    padding: 4px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    margin-bottom: 24px;
+  }
+  .lesson-page .segmented button {
+    min-height: 32px;
+    padding: 4px 0;
+    font-size: 12px;
+    border-radius: var(--radius-sm);
+  }
+  .lesson-page .section-nav-item {
+    min-height: 36px;
+    padding: 10px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .lesson-page .section-nav-item.active {
+    color: var(--blue);
+  }
+  .lesson-page
+    :is(.sidebar-section-label, .outline-note, .import-link, .local-mode, .setting-note) {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  .lesson-page .outline-note {
+    white-space: normal;
+    align-items: flex-start;
+    margin-left: 7px;
+  }
+  .lesson-page .outline-note .small-dot {
+    flex-shrink: 0;
+    margin-top: 8px;
+  }
+  .lesson-page
+    :is(
+      .sidebar-section-label > span,
+      .small-badge,
+      .template-card-caption,
+      .template-card-caption small,
+      .local-mode small
+    ) {
+    font-size: 12px;
+  }
+  .lesson-page .template-card {
+    border-radius: var(--radius-md);
+    border-color: color-mix(in srgb, var(--blue) 18%, var(--line));
+  }
+  .lesson-page .template-card-caption {
+    gap: 8px;
+    background: var(--bg);
+    line-height: 1.6;
+  }
+  .lesson-page .style-settings h3 {
+    font-size: 16px;
+    margin-bottom: 20px;
+  }
+  .lesson-page .editor-panel {
+    background: var(--bg);
+  }
+  .lesson-page .editor-heading {
+    padding: 24px 24px 20px;
+  }
+  .lesson-page .eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.09em;
+    color: var(--muted);
+  }
+  .lesson-page .editor-heading h1 {
+    color: var(--ink);
+    font-size: 20px;
+    line-height: 1.5;
+  }
+  .lesson-page .editor-tabs {
+    gap: 16px;
+    padding: 0 24px;
+  }
+  .lesson-page .editor-tabs > button {
+    min-height: 44px;
+    padding: 0 0 12px;
+    font-size: 14px;
+  }
+  .lesson-page .editor-tabs > button > span {
+    font-size: 12px;
+    padding: 2px 4px;
+    border-radius: 4px;
+  }
+  .lesson-page .history-actions {
+    margin-top: 0;
+    gap: 2px;
+  }
+  .lesson-page :is(.history-actions, .process-row-actions, .preview-controls) .icon-button {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+  }
+  .lesson-page .editor-scroll {
+    padding: 0 24px;
+  }
+  .lesson-page .form-section {
+    padding: 24px 0;
+    border-bottom-color: var(--line);
+  }
+  .lesson-page .form-section-heading {
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .lesson-page .form-section-heading h2 {
+    font-size: 16px;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .lesson-page .form-section-heading p {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .lesson-page .form-section-heading .section-icon {
+    background: var(--blue-soft);
+    color: var(--blue);
+    border-radius: var(--radius-sm);
+  }
+  .lesson-page .field {
+    margin-bottom: 16px;
+  }
+  .lesson-page .field-label {
+    font-size: 14px;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .lesson-page
+    :is(
+      .field-label small,
+      .textarea-meta,
+      .validation-message,
+      .editor-footer,
+      .input-suffix > span
+    ) {
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .lesson-page :is(.field-label small, .textarea-meta, .editor-footer, .input-suffix > span) {
+    color: var(--muted);
+  }
+  .lesson-page
+    :is(.editor-panel, .outline-panel)
+    :is(input:not([type='checkbox']):not([type='file']):not([type='range']), textarea, select) {
+    min-height: 36px;
+    border-color: var(--line);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .lesson-page :is(.editor-panel, .outline-panel) textarea {
+    padding: 8px 10px;
+    line-height: 1.8;
+    min-height: 96px;
+  }
+  .lesson-page .input-suffix > span {
+    top: 9px;
+  }
+  .lesson-page .type-chip {
+    min-height: 32px;
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .lesson-page :is(.process-editor, .proposal-field, .pdf-options) {
+    border-radius: var(--radius-md);
+    background: var(--surface);
+  }
+  .lesson-page .process-editor {
+    padding: 14px;
+    border-color: var(--line);
+  }
+  .lesson-page
+    :is(
+      .process-editor-top,
+      .add-stage,
+      .fill-label,
+      .fill-label button,
+      .fill-disclaimer,
+      .fill-warnings
+    ) {
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .lesson-page .add-stage {
+    min-height: 36px;
+    border-radius: var(--radius-sm);
+  }
+  .lesson-page .button {
+    min-height: 36px;
+    padding: 7px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .lesson-page .export-menu {
+    border-radius: var(--radius-lg);
+    background: var(--bg);
+    box-shadow: var(--shadow-pop);
+  }
+  .lesson-page .export-menu button {
+    min-height: 36px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+  }
+  .lesson-page .export-menu small {
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .lesson-page :is(.fill-panel h2, .proposal-title h3) {
+    font-size: 16px;
+  }
+  .lesson-page :is(.fill-panel > p, .proposal-field strong, .proposal-field p) {
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--muted);
+  }
+  .lesson-page .proposal-field strong {
+    color: var(--ink);
+  }
+  .lesson-page :is(.preview-toolbar, .preview-bottom) {
+    background: color-mix(in srgb, var(--bg) 78%, var(--surface));
+    border-color: var(--line);
+    gap: 8px;
+  }
+  .lesson-page
+    :is(
+      .preview-title,
+      .preview-title .small-badge,
+      .zoom-label,
+      .preview-bottom,
+      .preview-bottom > span,
+      .page-switch
+    ) {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .lesson-page .lesson-server-controls {
+    gap: 12px;
+    margin: 20px 0 4px;
+    font-size: 14px;
+  }
+  .lesson-page .lesson-provenance {
+    align-items: flex-start;
+    gap: 6px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    line-height: 1.7;
+  }
+  .lesson-page .lesson-provenance > span {
+    font-weight: 600;
+    color: var(--ink);
+    width: 100%;
+  }
+  .lesson-page :is(.lesson-provenance small, .lesson-help, .lesson-document-item small) {
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--muted);
+  }
+  .lesson-page .lesson-server-panel {
+    border-radius: var(--radius-md);
+    background: var(--bg);
+  }
+  .lesson-page .lesson-server-panel > summary {
+    min-height: 44px;
+    padding: 12px 14px;
+    font-size: 16px;
+    line-height: 1.5;
+    border-radius: var(--radius-md);
+  }
+  .lesson-page .lesson-server-panel[open] > summary {
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+  }
+  .lesson-page .lesson-panel-body {
+    padding: 16px 14px;
+    gap: 16px;
+    line-height: 1.7;
+  }
+  .lesson-page .lesson-panel-body label {
+    gap: 8px;
+    font-size: 14px;
+  }
+  .lesson-page :is(.lesson-panel-body fieldset, .lesson-diff-columns > div, .lesson-document-item) {
+    border-radius: var(--radius-sm);
+  }
+  .lesson-page .lesson-panel-body fieldset {
+    padding: 12px;
+    gap: 10px;
+  }
+  .lesson-page .lesson-panel-body pre {
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    font-size: 12px;
+  }
+  .lesson-page :is(.lesson-actions, .lesson-sync-actions) {
+    gap: 8px;
+  }
+  .lesson-page .lesson-document-item {
+    padding: 10px;
+    font-size: 14px;
+  }
+  .lesson-page .lesson-document-list {
+    gap: 8px;
+  }
+}
+@media screen and (min-width: 1600px) {
+  .lesson-page .editor-heading {
+    padding: 28px 28px 24px;
+  }
+  .lesson-page :is(.editor-tabs, .editor-scroll) {
+    padding-left: 28px;
+    padding-right: 28px;
+  }
+}
+@media screen and (max-width: 767px) {
+  .app-shell.lesson-workspace.unified-shell,
+  .app-shell.lesson-workspace.unified-shell:is(.nav-expanded, .outline-hidden) {
+    grid-template-rows: 56px minmax(0, 1fr) 54px;
+  }
+  .lesson-page .editor-heading {
+    padding: 20px 20px 16px;
+  }
+  .lesson-page :is(.editor-tabs, .editor-scroll) {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  .lesson-page .editor-tabs {
+    gap: 12px;
+  }
+  .lesson-page :is(.button, .type-chip, .export-menu button, .mobile-tabs button, .add-stage) {
+    min-height: 44px;
+  }
+  .lesson-page :is(.history-actions, .process-row-actions, .preview-controls) .icon-button {
+    width: 44px;
+    height: 44px;
+  }
+  .lesson-page
+    :is(.editor-panel, .outline-panel)
+    :is(input:not([type='checkbox']):not([type='file']):not([type='range']), select) {
+    min-height: 44px;
+  }
+  .lesson-page .input-suffix > span {
+    top: 13px;
+  }
+  .lesson-page .header-actions .button {
+    min-height: 44px;
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+  .lesson-page .lesson-page-title {
+    font-size: 18px;
+  }
+  .lesson-page .preview-toolbar {
+    height: auto;
+    min-height: 56px;
+    flex-wrap: wrap;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+  .lesson-page .preview-bottom {
+    height: auto;
+    min-height: 44px;
+    flex-wrap: wrap;
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+  .lesson-page .editor-footer {
+    padding: 10px 20px;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+  }
+}

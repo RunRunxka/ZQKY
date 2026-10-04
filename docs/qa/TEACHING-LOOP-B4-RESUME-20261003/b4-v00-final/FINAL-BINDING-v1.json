@@ -1,0 +1,1539 @@
+{
+  "task": "B4-R21-FINAL-BINDING v1",
+  "reviewer": "F /root/g1_v00_fe",
+  "capturedAt": "2026-10-03T03:19:48.637962+00:00",
+  "status": "PASS_CURRENT_R21_EXECUTION_GATES_AND_SOURCE_BINDING",
+  "closureAuthority": "CTRL; this report does not close B4, authorize B5, or claim evergreen stability.",
+  "roleBoundary": "F independently read actual P/CTRL reports, raw JSON/XML/logs, two original trace ZIPs, filesystem hashes, immutable SQLite and live process/port identities. R14 actual behavior was executed by P; F authored its helper and does not present that authorship as independent behavior execution.",
+  "candidate": {
+    "path": "H:/备份xuexi/智启课源/docs/qa/TEACHING-LOOP-B4-RESUME-20261003/CANDIDATE-r21.json",
+    "sha256": "e558dfbf4af33790328c7c036edfee0aa38c1371da5cb65f6ac8c448ba7c4d39",
+    "source": 879,
+    "executableQA": 53,
+    "sharedContracts": 5,
+    "build": 2007,
+    "protectedHistorical": 3043,
+    "priorDaily": 191
+  },
+  "independentFrozenSnapshot": {
+    "capturedAt": "2026-10-03T03:14:01.029441+00:00",
+    "candidateSHA256": "e558dfbf4af33790328c7c036edfee0aa38c1371da5cb65f6ac8c448ba7c4d39",
+    "groups": {
+      "source": {
+        "count": 879,
+        "missing": [],
+        "drift": []
+      },
+      "qa": {
+        "count": 53,
+        "missing": [],
+        "drift": []
+      },
+      "contract": {
+        "count": 5,
+        "missing": [],
+        "drift": []
+      },
+      "build": {
+        "count": 2007,
+        "missing": [],
+        "drift": []
+      },
+      "protected": {
+        "count": 3043,
+        "missing": [],
+        "drift": []
+      },
+      "priorDaily": {
+        "count": 191,
+        "missing": [],
+        "drift": []
+      }
+    },
+    "sourceAdded": [],
+    "qaAdded": [],
+    "buildAdded": [],
+    "nextEnvBytes": 296,
+    "nextEnvSHA256": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc",
+    "buildId": "Ji-Jz8X9yY2R_79JOPivD",
+    "head": "6aeb57280f6a7e0d7391cad4d150745479ea58ec",
+    "elapsedMs": 992.509,
+    "exit": 0
+  },
+  "actualGatePrePost": {
+    "AUDIT-r21-full-e2e-before.json": {
+      "sha256": "5a4f9167325ba5e30130b8dba6ac10bc64a4bafa359e0f431240e66eb146e8b3",
+      "keys": [
+        "capturedAt",
+        "version",
+        "candidateSHA256",
+        "branch",
+        "head",
+        "sourceCount",
+        "qaCount",
+        "contractCount",
+        "buildCount",
+        "protectedCount",
+        "sourceDrift",
+        "sourceAdded",
+        "qaDrift",
+        "qaAdded",
+        "sharedContractDrift",
+        "buildDrift",
+        "buildAdded",
+        "protectedDrift",
+        "nextEnvMatchesOriginal",
+        "baselineIdentityMatches",
+        "protectedCountMatches",
+        "nextEnvFrozenSHAMatches",
+        "priorDailyEvidenceCount",
+        "priorDailyEvidenceDrift",
+        "buildIdentityMatches",
+        "elapsedMs",
+        "exit"
+      ],
+      "data": {
+        "capturedAt": "2026-10-03T02:49:36.623627+00:00",
+        "version": "r21",
+        "candidateSHA256": "e558dfbf4af33790328c7c036edfee0aa38c1371da5cb65f6ac8c448ba7c4d39",
+        "branch": "main",
+        "head": "6aeb57280f6a7e0d7391cad4d150745479ea58ec",
+        "sourceCount": 879,
+        "qaCount": 53,
+        "contractCount": 5,
+        "buildCount": 2007,
+        "protectedCount": 3043,
+        "sourceDrift": [],
+        "sourceAdded": [],
+        "qaDrift": [],
+        "qaAdded": [],
+        "sharedContractDrift": [],
+        "buildDrift": [],
+        "buildAdded": [],
+        "protectedDrift": [],
+        "nextEnvMatchesOriginal": true,
+        "baselineIdentityMatches": true,
+        "protectedCountMatches": true,
+        "nextEnvFrozenSHAMatches": true,
+        "priorDailyEvidenceCount": 191,
+        "priorDailyEvidenceDrift": [],
+        "buildIdentityMatches": true,
+        "elapsedMs": 1165.448,
+        "exit": 0
+      }
+    },
+    "AUDIT-r21-full-e2e-after.json": {
+      "sha256": "62e780e0f29f0fbba7a19963346900742ec58b7651d13d4f4257389803fd66e0",
+      "keys": [
+        "capturedAt",
+        "version",
+        "candidateSHA256",
+        "branch",
+        "head",
+        "sourceCount",
+        "qaCount",
+        "contractCount",
+        "buildCount",
+        "protectedCount",
+        "sourceDrift",
+        "sourceAdded",
+        "qaDrift",
+        "qaAdded",
+        "sharedContractDrift",
+        "buildDrift",
+        "buildAdded",
+        "protectedDrift",
+        "nextEnvMatchesOriginal",
+        "baselineIdentityMatches",
+        "protectedCountMatches",
+        "nextEnvFrozenSHAMatches",
+        "priorDailyEvidenceCount",
+        "priorDailyEvidenceDrift",
+        "buildIdentityMatches",
+        "elapsedMs",
+        "exit"
+      ],
+      "data": {
+        "capturedAt": "2026-10-03T03:01:35.776170+00:00",
+        "version": "r21",
+        "candidateSHA256": "e558dfbf4af33790328c7c036edfee0aa38c1371da5cb65f6ac8c448ba7c4d39",
+        "branch": "main",
+        "head": "6aeb57280f6a7e0d7391cad4d150745479ea58ec",
+        "sourceCount": 879,
+        "qaCount": 53,
+        "contractCount": 5,
+        "buildCount": 2007,
+        "protectedCount": 3043,
+        "sourceDrift": [],
+        "sourceAdded": [],
+        "qaDrift": [],
+        "qaAdded": [],
+        "sharedContractDrift": [],
+        "buildDrift": [],
+        "buildAdded": [],
+        "protectedDrift": [],
+        "nextEnvMatchesOriginal": true,
+        "baselineIdentityMatches": true,
+        "protectedCountMatches": true,
+        "nextEnvFrozenSHAMatches": true,
+        "priorDailyEvidenceCount": 191,
+        "priorDailyEvidenceDrift": [],
+        "buildIdentityMatches": true,
+        "elapsedMs": 1172.344,
+        "exit": 0
+      }
+    },
+    "AUDIT-r21-r21-p-full-after.json": {
+      "sha256": "dcec8bbd4a35001a5f2155984f21bd97feca21f431aa815d23c17335a4069b79",
+      "keys": [
+        "capturedAt",
+        "version",
+        "candidateSHA256",
+        "branch",
+        "head",
+        "sourceCount",
+        "qaCount",
+        "contractCount",
+        "buildCount",
+        "protectedCount",
+        "sourceDrift",
+        "sourceAdded",
+        "qaDrift",
+        "qaAdded",
+        "sharedContractDrift",
+        "buildDrift",
+        "buildAdded",
+        "protectedDrift",
+        "nextEnvMatchesOriginal",
+        "baselineIdentityMatches",
+        "protectedCountMatches",
+        "nextEnvFrozenSHAMatches",
+        "priorDailyEvidenceCount",
+        "priorDailyEvidenceDrift",
+        "buildIdentityMatches",
+        "elapsedMs",
+        "exit"
+      ],
+      "data": {
+        "capturedAt": "2026-10-03T02:59:34.202992+00:00",
+        "version": "r21",
+        "candidateSHA256": "e558dfbf4af33790328c7c036edfee0aa38c1371da5cb65f6ac8c448ba7c4d39",
+        "branch": "main",
+        "head": "6aeb57280f6a7e0d7391cad4d150745479ea58ec",
+        "sourceCount": 879,
+        "qaCount": 53,
+        "contractCount": 5,
+        "buildCount": 2007,
+        "protectedCount": 3043,
+        "sourceDrift": [],
+        "sourceAdded": [],
+        "qaDrift": [],
+        "qaAdded": [],
+        "sharedContractDrift": [],
+        "buildDrift": [],
+        "buildAdded": [],
+        "protectedDrift": [],
+        "nextEnvMatchesOriginal": true,
+        "baselineIdentityMatches": true,
+        "protectedCountMatches": true,
+        "nextEnvFrozenSHAMatches": true,
+        "priorDailyEvidenceCount": 191,
+        "priorDailyEvidenceDrift": [],
+        "buildIdentityMatches": true,
+        "elapsedMs": 1198.133,
+        "exit": 0
+      }
+    }
+  },
+  "commonScopes": {
+    "frontend": {
+      "count": 451,
+      "scopeSHA256": "b9b099a75edeb12769171290daac6c619f58377da00684a818f1a0b5d3c49686",
+      "sameR17": true
+    },
+    "backend": {
+      "oldIncludingGuide": 368,
+      "oldAPI": 360,
+      "oldFixtures": 8,
+      "actualBusinessCommonCount": 367,
+      "scopeSHA256": "78b5dc70bab432fdbfac6a84f08051c8a76f39db591d353d357248fde7a3b1c9",
+      "excludedChangedGuide": "apps/api/AGENTS.md",
+      "sameR9R10R17R21": true
+    },
+    "T70Author14": {
+      "count": 14,
+      "productOrProductTest": 13,
+      "executableQA": 1,
+      "scopeSHA256": "ea99e058b717355bb50001e13c4438439c114669bac6fe24df94e361ff212fa0",
+      "allSame": true
+    },
+    "browserQA15": {
+      "count": 15,
+      "scopeSHA256": "cbcdbb465170538600877ab9fe4200f69d05b1822db9c91fd6eb9a931cecebca",
+      "allSame": true
+    },
+    "P64QA4": {
+      "count": 4,
+      "scopeSHA256": "4808921a471b3ee677afda6da4743f044b0d05363845071003bb50b444cd8853",
+      "allSame": true
+    }
+  },
+  "candidateChanges": {
+    "r20ToR21": {
+      "files": {
+        "changed": [
+          "tests/e2e/helpers/book-interrupted-recovery.ts"
+        ],
+        "added": [],
+        "removed": []
+      },
+      "executableQaFiles": {
+        "changed": [
+          "docs/qa/TEACHING-LOOP-B4-RESUME-20261003/b4-root/candidate.py"
+        ],
+        "added": [],
+        "removed": []
+      },
+      "sharedContractFiles": {
+        "changed": [],
+        "added": [],
+        "removed": []
+      },
+      "buildFiles": {
+        "changed": [],
+        "added": [],
+        "removed": []
+      }
+    },
+    "r17ToR21": {
+      "files": {
+        "changed": [
+          "AGENTS.md",
+          "apps/api/AGENTS.md",
+          "tests/e2e/books-commit-safety.spec.ts"
+        ],
+        "added": [
+          "tests/e2e/helpers/book-interrupted-recovery.ts"
+        ],
+        "removed": []
+      },
+      "executableQaFiles": {
+        "changed": [],
+        "added": [
+          "docs/qa/TEACHING-LOOP-B4-RESUME-20261003/b4-chat.external.config.ts",
+          "docs/qa/TEACHING-LOOP-B4-RESUME-20261003/b4-e2e.external.config.ts",
+          "docs/qa/TEACHING-LOOP-B4-RESUME-20261003/b4-root/candidate.py",
+          "docs/qa/TEACHING-LOOP-B4-RESUME-20261003/b4-root/run_check.py",
+          "docs/qa/TEACHING-LOOP-B4-RESUME-20261003/b4-root/stream_backend_keep.py",
+          "docs/qa/TEACHING-LOOP-B4-RESUME-20261003/b4-root/stream_service.py",
+          "docs/qa/TEACHING-LOOP-B4-RESUME-20261003/b4-v00-e2e/r14-recovery.spec.ts",
+          "docs/qa/TEACHING-LOOP-B4-RESUME-20261003/r14.external.config.ts"
+        ],
+        "removed": []
+      },
+      "sharedContractFiles": {
+        "changed": [],
+        "added": [],
+        "removed": []
+      },
+      "buildFromActualIdentity": {
+        "changed": [],
+        "added": [],
+        "removed": []
+      }
+    }
+  },
+  "buildBinding": {
+    "oldIdentitySHA256": "29252444df2d9fb4160c3f26b9d28baaf3b93271014a49f696883feb51ae8b93",
+    "id": "Ji-Jz8X9yY2R_79JOPivD",
+    "all2007SameOriginal": true,
+    "actualFileApiRewrites": [
+      {
+        "source": "/api/v1/:path*",
+        "destination": "http://127.0.0.1:8001/api/v1/:path*",
+        "regex": "^/api/v1(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$"
+      }
+    ],
+    "nextEnvOriginalByteEqual": true,
+    "nextEnvBytes": 296,
+    "nextEnvSHA256": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc",
+    "noHTTPPerformed": true
+  },
+  "inheritedActualSingleRuns": {
+    "check": {
+      "candidateSHA256": "7ee8b05c5bdacd17c3410c08f6a31b026fbcf26a895f227c9e2cb877d8b792b1",
+      "pid": 23380,
+      "exit": 0,
+      "elapsedMs": 104383.649,
+      "passed": 1110,
+      "skip": 0,
+      "notReexecuted": true,
+      "unitFiles": 111,
+      "common451FE": true,
+      "typeLintBuildPassed": true
+    },
+    "API": {
+      "candidateSHA256": "ba5f0470d7ee7503e384cb68a39a9fdbf47a83745f54e9a9e96aa70feab739ba",
+      "pid": 17280,
+      "exit": 0,
+      "elapsedMs": 272077.419,
+      "passed": 1698,
+      "skip": 1,
+      "notReexecuted": true,
+      "warning": 1,
+      "actualBusinessBECommon367": true
+    },
+    "T70A8": {
+      "candidateSHA256": "665d4857d7da692c753b813a99f028eaab082b6f32bbd3f48c6171e8bfd4e26b",
+      "cases": 8,
+      "HTTP": 165,
+      "pid": 19808,
+      "exit": 0,
+      "elapsedMs": 14468.063,
+      "author13ProductPlus1QACommon": true,
+      "notReexecuted": true
+    },
+    "T80P64": {
+      "candidateSHA256": "0ff66980996772ac8c991afa94cabe7984e3e99c44c3cf61571056c9e3e2b49b",
+      "cases": 64,
+      "pass": 64,
+      "fail": 0,
+      "skip": 0,
+      "exit": 0,
+      "pid": 27360,
+      "elapsedMs": 81904,
+      "processStreamsClosed": true,
+      "QA4AndBusinessCommon": true,
+      "notReexecuted": true
+    },
+    "B4Browser6": {
+      "candidateSHA256": "7ee8b05c5bdacd17c3410c08f6a31b026fbcf26a895f227c9e2cb877d8b792b1",
+      "singleRun": 1,
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "retry": 0,
+      "childPid": 536,
+      "childExit": 0,
+      "outerExit": 0,
+      "elapsedMs": 24925,
+      "QA15Common": true,
+      "chainSHA256": "8fd7953622dd0c1d680f4e2fca20a39023edec674b83201c2e3007df8e8d49e0",
+      "stages": [
+        "fixed score history click and explicit attempts",
+        "ready report and teacher note",
+        "formal question shortfall and manual controlled generation",
+        "actual human editing/review/confirm/library/return",
+        "two frozen formal questions, late-save edit preservation and unknown review replay",
+        "student and teacher DOCX, actual frozen-roster XLSX downloads",
+        "same fixed practice conversion to actual T30",
+        "uploaded XLSX mapped and confirmed T60",
+        "new ready T70 report plus 8 real evidence cells and preserved old facts"
+      ],
+      "generationFallbackClicks": 0,
+      "libraryAriaSelected": true,
+      "traceEntries": 482,
+      "fourDB": {
+        "integrity": "ok",
+        "foreignKeyViolations": 0,
+        "completeMappings": 2,
+        "fullQuestionNumbers": [
+          "16(1)",
+          "2"
+        ],
+        "maxScoreUnits": [
+          250,
+          200
+        ],
+        "paperPracticeContentEqual": true,
+        "returnedEvidence": 8,
+        "oldEvidence": 12,
+        "managedAssetsEqualAPIAndDownload": true,
+        "capturedVerification": "four-db-lineage-verification.json"
+      },
+      "static118NotActualAssertCount": true,
+      "notReexecuted": true
+    }
+  },
+  "inheritedRunsNotReexecuted": true,
+  "r21StrictStaticSingleRuns": [
+    {
+      "label": "qa-types-busy-fixed-first",
+      "count": 1,
+      "pid": 11532,
+      "exit": 0,
+      "elapsedMs": 725.347,
+      "actualLogBytes": 0,
+      "childStreamsLogClosed": true
+    },
+    {
+      "label": "qa-lint-busy-fixed-first",
+      "count": 1,
+      "pid": 12016,
+      "exit": 0,
+      "elapsedMs": 1221.149,
+      "actualLogBytes": 0,
+      "childStreamsLogClosed": true
+    }
+  ],
+  "actualChat": {
+    "candidateExecuted": "r20",
+    "tests": 14,
+    "attempts": 14,
+    "passed": 14,
+    "retry": 0,
+    "skip": 0,
+    "exit": 0,
+    "outerMs": 43832.314,
+    "specs": "6 live + 8 reasoning",
+    "sameFrozenChatSpecFixtureConfigAnd451Frontend": true,
+    "reportSHA256": "a86f94bc528c5d8b60b72c64a912328e76bb99cf63e634d9045d81c55a580d62",
+    "independentActualReportSHA256": "43d880e52abbdff5cd1bdd19f45ab3c49b656dd01c7033d13e33bee9d03d22fa",
+    "runtimeAssertionCount": null,
+    "performanceScope": "Local 20k/50k streaming and frame/long-task observations; no SLA or real upstream LLM-quality claim.",
+    "visualScope": "A's separate26PNG scope and CTRL's3 exact captures are retained. Pixel observations CV01/02/03 remain scoped observations; whole-chat visual PASS is not asserted."
+  },
+  "actualR14TwoUI": {
+    "singleRunCount": 1,
+    "cases": 2,
+    "attempts": 2,
+    "passed": 2,
+    "retry": 0,
+    "skip": 0,
+    "childExit": 0,
+    "outerExit": 0,
+    "outerMs": 38236.733,
+    "reportMs": 37528.767,
+    "terminalFacts": [
+      {
+        "path": "docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-v00-e2e\\R14-FIXED-FIRST-NORMAL-FACTS.json",
+        "sha256": "2b7b2e70ed901a5796ecdb366cc292f81956e909af5c221e7f88392970579eb0",
+        "scenario": "normal",
+        "bookId": "bk-mursj3ga-gypmdd",
+        "runId": "run-mursj3ix-kiwnk2",
+        "bookStatus": "ready",
+        "runStatus": "finished",
+        "sameRun": true,
+        "samePageIDs": true,
+        "noteUnchanged": true,
+        "sameBookIDs": true,
+        "all8PagesReady": true,
+        "continueClicks": 0,
+        "trustedClicks": 0,
+        "beforeStatus": "compiling",
+        "beforeRunStatus": "running",
+        "locks": {
+          "held": 0,
+          "pending": 0,
+          "legacyLock": null
+        },
+        "cleanup": {
+          "bookId": "bk-mursj3ga-gypmdd",
+          "continueAttempts": 0,
+          "continueClicks": 0,
+          "observerDisconnected": true,
+          "timerCleared": true,
+          "listenersRemoved": true,
+          "contextClosed": false,
+          "resourcesReleased": true,
+          "resultStatus": "ready",
+          "failure": null,
+          "cleanupErrors": []
+        },
+        "completedBeforeDeadline": true
+      },
+      {
+        "path": "docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-v00-e2e\\R14-FIXED-FIRST-PAGE-FAILURE-FACTS.json",
+        "sha256": "b6ef5b2b22a579e49e5c5b23cfb7697d259137d98d8f64474befbbfca9482186",
+        "scenario": "page-failure",
+        "bookId": "bk-mursjgi6-w31rrv",
+        "runId": "run-mursjgls-1g5dhk",
+        "bookStatus": "ready",
+        "runStatus": "finished",
+        "sameRun": true,
+        "samePageIDs": true,
+        "noteUnchanged": true,
+        "sameBookIDs": true,
+        "all8PagesReady": true,
+        "continueClicks": 1,
+        "trustedClicks": 1,
+        "beforeStatus": "compiling",
+        "beforeRunStatus": "stopped",
+        "locks": {
+          "held": 0,
+          "pending": 0,
+          "legacyLock": null
+        },
+        "cleanup": {
+          "bookId": "bk-mursjgi6-w31rrv",
+          "continueAttempts": 1,
+          "continueClicks": 1,
+          "observerDisconnected": true,
+          "timerCleared": true,
+          "listenersRemoved": true,
+          "contextClosed": false,
+          "resourcesReleased": true,
+          "resultStatus": "ready",
+          "failure": null,
+          "cleanupErrors": []
+        },
+        "completedBeforeDeadline": true
+      }
+    ],
+    "zipOracle": [
+      {
+        "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\r14-fixed-first\\artifacts\\r14-recovery-R14独立整页故障：真实UI注入与保存笔记，一次继续后ready及无悬挂锁\\trace.zip",
+        "sha256": "2ecd49f126adffa287d3396b70b85d295cd68788dac7ad860a537ddff708699a",
+        "entryCount": 182,
+        "allEntryRead": true,
+        "crcFailure": null,
+        "entryManifestSHA256": "630bbe26ea12f063fc398870b0c744ee2c16263a2f042ae8e1b78259d861deb8",
+        "elapsedMs": 80.857
+      },
+      {
+        "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\r14-fixed-first\\artifacts\\r14-recovery-R14独立正常生成：真实笔记保留，零次继续，最终ready及无悬挂锁\\trace.zip",
+        "sha256": "78aaa76d5a6c03ec2b27fe1d258a3a9c2b213b701f0f35be9659d6fb23376508",
+        "entryCount": 159,
+        "allEntryRead": true,
+        "crcFailure": null,
+        "entryManifestSHA256": "1404563e20ccc7b774fad6fead366320ff3ae74401aa178c6c4a0317b307a3c6",
+        "elapsedMs": 65.095
+      }
+    ],
+    "reportAndTraceBinding": {
+      "factBindings": [
+        {
+          "scenario": "normal",
+          "reportAttachmentEqualFactsFile": true,
+          "reportFactsSHA256": "2b7b2e70ed901a5796ecdb366cc292f81956e909af5c221e7f88392970579eb0",
+          "resultDurationMs": 16829,
+          "title": "R14独立正常生成：真实笔记保留，零次继续，最终ready及无悬挂锁"
+        },
+        {
+          "scenario": "page-failure",
+          "reportAttachmentEqualFactsFile": true,
+          "reportFactsSHA256": "b6ef5b2b22a579e49e5c5b23cfb7697d259137d98d8f64474befbbfca9482186",
+          "resultDurationMs": 18194,
+          "title": "R14独立整页故障：真实UI注入与保存笔记，一次继续后ready及无悬挂锁"
+        }
+      ],
+      "expectRecords": [
+        {
+          "scenario": "normal",
+          "actualCompletedExpectRecords": 44,
+          "allCompletedNoError": true
+        },
+        {
+          "scenario": "page-failure",
+          "actualCompletedExpectRecords": 59,
+          "allCompletedNoError": true
+        }
+      ],
+      "contexts": [
+        {
+          "scenario": "normal",
+          "closeCompleted": true,
+          "closeCallId": "pw:api@109"
+        },
+        {
+          "scenario": "page-failure",
+          "closeCompleted": true,
+          "closeCallId": "pw:api@121"
+        }
+      ],
+      "runtimeRecordsAreNotStaticMatcherCounts": true
+    },
+    "actualCompletedExpectRecords": {
+      "normal": 44,
+      "pageFailure": 59
+    },
+    "countsBoundary": "103 actual completed trace Expect call records are not the static60 expressions and are not added to153 cases.",
+    "budgets": "Original shared120000ms completion deadline and180000ms scenario budget preserved; one real Continue only. No sleeps/reloads/retry/timeout relaxation.",
+    "visualScope": "CTRL actually viewed6 original PNG; F independently checked raw attachment identity, trace records, entry bytes and CRC. No broad screenshot PASS is inferred."
+  },
+  "actualFullE2E": {
+    "specs": 24,
+    "cases": 153,
+    "attempts": 153,
+    "passed": 153,
+    "retry": 0,
+    "skipped": 0,
+    "flaky": 0,
+    "errors": [],
+    "perFile": {
+      "assessments.spec.ts": 4,
+      "books-commit-safety.spec.ts": 6,
+      "books-courses.spec.ts": 7,
+      "books-harden.spec.ts": 6,
+      "books-pipeline.spec.ts": 14,
+      "chat-composer-boundaries.spec.ts": 1,
+      "chat-composer.spec.ts": 2,
+      "chat-context-budget.spec.ts": 4,
+      "chat-deeplink.spec.ts": 7,
+      "chat-home.spec.ts": 4,
+      "chat.spec.ts": 4,
+      "course-resource-faults.spec.ts": 9,
+      "course-sessions.spec.ts": 11,
+      "knowledge-points.spec.ts": 9,
+      "lesson-plan.spec.ts": 9,
+      "model-settings-nesting.spec.ts": 4,
+      "model-settings.spec.ts": 8,
+      "navigation.spec.ts": 7,
+      "question-bank-real.spec.ts": 2,
+      "replica-settings.spec.ts": 1,
+      "settings.spec.ts": 1,
+      "shell-home-nav.spec.ts": 24,
+      "sidebar-chat-fixes.spec.ts": 5,
+      "sidebar-transition.spec.ts": 4
+    },
+    "caseManifestSHA256": "71a67ee304dd0d75bbf78b3b6f9494bb11b87c88c158587e984cef9f3afd8b9c",
+    "xmlNamesWithSuitePathExactlyEqual": true,
+    "reportMs": 370811.109,
+    "receipt": {
+      "label": "full-e2e-resume-first",
+      "command": [
+        "C:/Users/96022/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node.exe",
+        "node_modules/@playwright/test/cli.js",
+        "test",
+        "--config",
+        "docs/qa/TEACHING-LOOP-B4-RESUME-20261003/b4-e2e.external.config.ts"
+      ],
+      "cwd": "H:\\备份xuexi\\智启课源",
+      "env": {
+        "ZQKY_DATA_DIR": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-full-e2e-resume-first-hfm1e33_\\data",
+        "ZQKY_ENV": "test",
+        "PYTHONUTF8": "1",
+        "PYTHONIOENCODING": "utf-8",
+        "ZQKY_QDRANT_URL": "http://127.0.0.1:16333",
+        "ZQKY_EMBEDDING_BASE_URL": "http://127.0.0.1:9",
+        "ZQKY_TEXTBOOK_SOURCE_DIR": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-full-e2e-resume-first-hfm1e33_\\empty-textbooks",
+        "NODE_OPTIONS": "--no-experimental-webstorage",
+        "PYTHONPATH": "H:\\备份xuexi\\智启课源\\apps\\api",
+        "ZQKY_KEEP_TEST_DATA": "1"
+      },
+      "sampleRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-full-e2e-resume-first-hfm1e33_",
+      "settingsCredentialsFile": null,
+      "startedAt": "2026-10-03T02:52:46.521175+00:00",
+      "branch": "main",
+      "head": "6aeb57280f6a7e0d7391cad4d150745479ea58ec",
+      "candidate": "docs/qa/TEACHING-LOOP-B4-RESUME-20261003/CANDIDATE-r21.json",
+      "candidateSHA256": "e558dfbf4af33790328c7c036edfee0aa38c1371da5cb65f6ac8c448ba7c4d39",
+      "evidence": {
+        "config": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-e2e.external.config.ts",
+        "runVariable": "ZQKY_B4_QA_RUN",
+        "run": "resume-first",
+        "outputDirectory": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-e2e-resume-first"
+      },
+      "status": "complete",
+      "pid": 4784,
+      "exit": 0,
+      "childExit": 0,
+      "childClosed": true,
+      "stdoutClosed": true,
+      "logsClosed": true,
+      "wallTimeMs": 371554.846,
+      "finishedAt": "2026-10-03T02:58:58.147515+00:00",
+      "logSHA256": "e907fcd583650b66398e0c103ddb2da07cfa98aed73b0fb0adbf10db02070fb6",
+      "samplePreserved": true,
+      "descendantClosure": "requires independent owned-service and port audit"
+    },
+    "resultSHA256": "e391c73771744802b5a7f02f53ae18e0ebedb08ed7773ed02d10d96dd998e4d3",
+    "xmlSHA256": "1369b4c5f10cbc9ad29f44dec7879dc78a0072a655d51ac080870d0666a2b4d3",
+    "resourceEvents": [
+      {
+        "event": "[ZQKY_TEST_DATA_CREATED]",
+        "value": {
+          "spec": "assessments",
+          "tmpRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-1O808m",
+          "dataDir": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-1O808m\\data",
+          "apiLog": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-1O808m\\api.log"
+        }
+      },
+      {
+        "event": "[ZQKY_TEST_DATA_RETAINED]",
+        "value": {
+          "spec": "assessments",
+          "tmpRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-1O808m",
+          "dataDir": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-1O808m\\data",
+          "apiLog": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-1O808m\\api.log",
+          "pid": 13884,
+          "childClosed": true,
+          "logClosed": true
+        }
+      },
+      {
+        "event": "[ZQKY_TEST_DATA_CREATED]",
+        "value": {
+          "spec": "question-bank-real",
+          "tmpRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-3IX8Q3",
+          "dataDir": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-3IX8Q3\\data",
+          "apiLog": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-3IX8Q3\\api.log"
+        }
+      },
+      {
+        "event": "[ZQKY_TEST_DATA_RETAINED]",
+        "value": {
+          "spec": "question-bank-real",
+          "tmpRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-3IX8Q3",
+          "dataDir": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-3IX8Q3\\data",
+          "apiLog": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-3IX8Q3\\api.log",
+          "pid": 13688,
+          "childClosed": true,
+          "logClosed": true
+        }
+      }
+    ],
+    "target": {
+      "file": "books-commit-safety.spec.ts",
+      "title": "双标签页并发写不同书：两边内容都在、无覆盖、结束后无悬挂锁",
+      "suitePath": [
+        "books-commit-safety.spec.ts",
+        "H1 书籍提交一致性（真实双标签页）"
+      ],
+      "durationMs": 20624,
+      "timeout": 180000,
+      "retry": 0
+    },
+    "runtimeAssertionCount": null,
+    "runtimeAssertionCountReason": "Reporter JSON has no assertion steps, and retain-on-failure leaves no passed ZIP traces."
+  },
+  "actualFullTarget": {
+    "primaryFailure": null,
+    "cleanup": [
+      {
+        "status": "fulfilled",
+        "value": {
+          "bookId": "bk-mursrubq-22coeg",
+          "continueAttempts": 0,
+          "continueClicks": 0,
+          "observerDisconnected": true,
+          "timerCleared": true,
+          "listenersRemoved": true,
+          "contextClosed": false,
+          "resourcesReleased": true,
+          "resultStatus": "ready",
+          "failure": null,
+          "cleanupErrors": []
+        }
+      },
+      {
+        "status": "fulfilled",
+        "value": {
+          "bookId": "bk-mursrxlv-eifrqt",
+          "continueAttempts": 0,
+          "continueClicks": 0,
+          "observerDisconnected": true,
+          "timerCleared": true,
+          "listenersRemoved": true,
+          "contextClosed": false,
+          "resourcesReleased": true,
+          "resultStatus": "ready",
+          "failure": null,
+          "cleanupErrors": []
+        }
+      }
+    ],
+    "closeFailure": null,
+    "basis": "Original JSON attachment decoded; actual target20624ms passed. Source keeps49 original expect expressions, other5 original callbacks, two120000 strip waits, two30000 polls and180000 case. Full pass JSON supplies no assertion-step transcript."
+  },
+  "fullSampleAndArtifacts": {
+    "resources": [
+      {
+        "spec": "assessments",
+        "exactCreatedRetainedPair": true,
+        "rootPreserved": true,
+        "fileCount": 14,
+        "allByteSizeAndSHAEqual": true,
+        "filesManifestSHA256": "e29b1289acef056930ec68bf3ad115370715f7794b5d4536313b2358bfa0b071",
+        "databaseCount": 4,
+        "closeMethod": "taskkill /pid recorded-ownedPID /T /F; awaited child close and log stream close; no graceful or clean server-exit-code claim"
+      },
+      {
+        "spec": "question-bank-real",
+        "exactCreatedRetainedPair": true,
+        "rootPreserved": true,
+        "fileCount": 9,
+        "allByteSizeAndSHAEqual": true,
+        "filesManifestSHA256": "cb64770f9384e14ee0797ed4e56b94cbb14f3115397fa4dee225fdc4156c3750",
+        "databaseCount": 4,
+        "closeMethod": "taskkill /pid recorded-ownedPID /T /F; awaited child close and log stream close; no graceful or clean server-exit-code claim"
+      }
+    ],
+    "artifactCount": 58,
+    "allByteSizeAndSHAEqual": true,
+    "zipTraceCount": 0,
+    "passedTracePolicy": "retain-on-failure; no passed step transcript invented",
+    "artifactManifestSHA256": "93170b4dc57c5db4a289afdadeca3df5319df9bf3ea45e3e89f40f63d23f2f6b",
+    "resourceManifestSHA256": "0c5d1dddcfb891e2f8aba09a9cbba196fd4c385986fd1f061186bf2599b36b50"
+  },
+  "databases": [
+    {
+      "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-1O808m\\data\\knowledge\\knowledge.sqlite3",
+      "bytes": 159744,
+      "sha256": "8fc088c0331561fff844ca0b31dbec8473b8f78b153f5b0557294f264e9dab65",
+      "readOnly": true,
+      "immutable": true,
+      "connectionClosed": true,
+      "bytesUnchanged": true,
+      "quickCheck": [
+        "ok"
+      ],
+      "fkViolationCount": 0,
+      "tableCount": 10,
+      "tableCountsSHA256": "59baa9de7177bffdf49d47baafdda631b5bf2fc26ecbe667f89e974ced603564"
+    },
+    {
+      "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-1O808m\\data\\question-bank\\question-bank.sqlite3",
+      "bytes": 176128,
+      "sha256": "3eeca33ac9bcf7bb50fe13579cc5d3569c881bb1245e6b02d9b562fd4a83ba10",
+      "readOnly": true,
+      "immutable": true,
+      "connectionClosed": true,
+      "bytesUnchanged": true,
+      "quickCheck": [
+        "ok"
+      ],
+      "fkViolationCount": 0,
+      "tableCount": 14,
+      "tableCountsSHA256": "0541e0da0edd36701c31355ef020b81e974b827b0e55adc757e964ca10b22653"
+    },
+    {
+      "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-1O808m\\data\\teaching\\teaching.sqlite3",
+      "bytes": 9347072,
+      "sha256": "1241370410cc936f692cc1551fa47919b5b0e1d7690f9cac5a215fd2d182aa54",
+      "readOnly": true,
+      "immutable": true,
+      "connectionClosed": true,
+      "bytesUnchanged": true,
+      "quickCheck": [
+        "ok"
+      ],
+      "fkViolationCount": 0,
+      "tableCount": 40,
+      "tableCountsSHA256": "259daca99d2645f4d76e2c353dacd68ee186d3e7677143625e46a8eefed624bf"
+    },
+    {
+      "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-1O808m\\data\\textbooks\\catalog.sqlite3",
+      "bytes": 192512,
+      "sha256": "bccc4934f02303792f3758a1ae9b58537e28b85335280726e6a75541e01a39ff",
+      "readOnly": true,
+      "immutable": true,
+      "connectionClosed": true,
+      "bytesUnchanged": true,
+      "quickCheck": [
+        "ok"
+      ],
+      "fkViolationCount": 0,
+      "tableCount": 16,
+      "tableCountsSHA256": "1e58dffdb48b2fc1ddc5242a6f674535f23298401f30d1ece26d1b5e0c391b37"
+    },
+    {
+      "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-3IX8Q3\\data\\knowledge\\knowledge.sqlite3",
+      "bytes": 159744,
+      "sha256": "2a55c1dd4fb7c853b68e1f8c7ff94e65e2d2affb64fb1493b1091fc8a2d7bf00",
+      "readOnly": true,
+      "immutable": true,
+      "connectionClosed": true,
+      "bytesUnchanged": true,
+      "quickCheck": [
+        "ok"
+      ],
+      "fkViolationCount": 0,
+      "tableCount": 10,
+      "tableCountsSHA256": "59baa9de7177bffdf49d47baafdda631b5bf2fc26ecbe667f89e974ced603564"
+    },
+    {
+      "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-3IX8Q3\\data\\question-bank\\question-bank.sqlite3",
+      "bytes": 176128,
+      "sha256": "a43464fe5c0887beb61439f12948a7efa22090560c82b90221dd721b8149da40",
+      "readOnly": true,
+      "immutable": true,
+      "connectionClosed": true,
+      "bytesUnchanged": true,
+      "quickCheck": [
+        "ok"
+      ],
+      "fkViolationCount": 0,
+      "tableCount": 14,
+      "tableCountsSHA256": "14d87d1d8332d9b0ac6569543750877098e721aeefb640eda41bb1650c8ac103"
+    },
+    {
+      "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-3IX8Q3\\data\\teaching\\teaching.sqlite3",
+      "bytes": 671744,
+      "sha256": "f5f92103089ad702e567fcaf85955b63b0160188d0ccc375a82f90091638e774",
+      "readOnly": true,
+      "immutable": true,
+      "connectionClosed": true,
+      "bytesUnchanged": true,
+      "quickCheck": [
+        "ok"
+      ],
+      "fkViolationCount": 0,
+      "tableCount": 40,
+      "tableCountsSHA256": "374594144137196816ff828b561133e8187cb69bce6a90013ef96a20a6f27763"
+    },
+    {
+      "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-3IX8Q3\\data\\textbooks\\catalog.sqlite3",
+      "bytes": 192512,
+      "sha256": "0e91d24311128797eaaf28fb89f503b1a3ef6c97ef3bfc8bb3e99d49975e9677",
+      "readOnly": true,
+      "immutable": true,
+      "connectionClosed": true,
+      "bytesUnchanged": true,
+      "quickCheck": [
+        "ok"
+      ],
+      "fkViolationCount": 0,
+      "tableCount": 16,
+      "tableCountsSHA256": "1e58dffdb48b2fc1ddc5242a6f674535f23298401f30d1ece26d1b5e0c391b37"
+    }
+  ],
+  "fullPFinalStoppedReport": {
+    "manifest": {
+      "sha256": "1a21a076c745c8698b65c5ac4b38d6627f9e5dbb1fa29e9df3362d5497f5f773",
+      "fileCount": 98,
+      "allByteSizeAndSHAEqual": true,
+      "noExecutableSourceWrites": true,
+      "originalReceiptsUnmodified": true,
+      "originalRawOutputUnmodified": true
+    },
+    "resultSHA256": "b5e1302caec65fdc20792ea1708ca649229df977b105551c601a3bc677072838",
+    "mdSHA256": "e3f168b0dd3cffaf1adf4c2ce08db601e22cf54373c4ad9c49d43fc2eb0fa903",
+    "authorReportedStoppedBeforeFinalBinding": true,
+    "result": {
+      "task": "B4-E2E-20261003 v1.3",
+      "status": "PASS_CURRENT_SINGLE_ORIGINAL_FULL153_GATE",
+      "candidate": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\CANDIDATE-r21.json",
+      "candidateSHA256": "e558dfbf4af33790328c7c036edfee0aa38c1371da5cb65f6ac8c448ba7c4d39",
+      "singleRunLabel": "full-e2e-resume-first",
+      "counts": {
+        "specs": 24,
+        "cases": 153,
+        "attempts": 153,
+        "passed": 153,
+        "failed": 0,
+        "retry": 0,
+        "skipped": 0,
+        "flaky": 0,
+        "globalErrors": [],
+        "junit": {
+          "id": "",
+          "name": "",
+          "tests": "153",
+          "failures": "0",
+          "skipped": "0",
+          "errors": "0",
+          "time": "370.811109"
+        }
+      },
+      "wallTimeMs": 371554.846,
+      "outerExit": 0,
+      "childExit": 0,
+      "reruns": 0,
+      "sourceQAContractBuildProtectedPriorDrift": 0,
+      "caseScopeMatchesBothPreservedOriginalFullResults": true,
+      "targetCasePassed": true,
+      "targetBothReadyAndCleanupReleased": true,
+      "targetContinueCounts": [
+        0,
+        0
+      ],
+      "runtimeAssertionCount": null,
+      "runtimeAssertionCountReason": "unavailable; original JSON has no steps, passed traces not retained; do not substitute static matcher counts",
+      "passedTraceCount": 0,
+      "artifactCounts": {
+        ".json": 4,
+        ".png": 48,
+        ".docx": 1,
+        ".pdf": 2,
+        ".log": 2,
+        ".xml": 1
+      },
+      "retainedApiSamples": 2,
+      "databaseCount": 8,
+      "immutableQuickCheckOKCount": 8,
+      "managedBlobCount": 8,
+      "allSampleBytesUnchangedAfterRead": true,
+      "supplementalAuthorStaticRootCount": 3,
+      "combinedTodayDistinctTopLevelRootCount": 18,
+      "nestedModelRootCount": 1,
+      "cliWorkerApiPIDsGone": [
+        4784,
+        11524,
+        7588,
+        13884,
+        13688
+      ],
+      "api8001and8002Free": true,
+      "userFrontendPID": 21816,
+      "userFrontendIdentityPreserved": true,
+      "backendShutdown": "Owned Windows taskkill /T /F followed by awaited child/log close; not graceful.",
+      "historicalFirstFailuresPreserved": true,
+      "evidence": [
+        {
+          "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-v00-e2e\\FULL-E2E-RESUME-FIRST-SUMMARY.json",
+          "bytes": 18919,
+          "sha256": "5557fa6b945667e8472e5a84aaae488367758dc74b88353a34e84f0c4cf91581"
+        },
+        {
+          "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-v00-e2e\\FULL-E2E-RESUME-FIRST-RESOURCES.json",
+          "bytes": 25546,
+          "sha256": "0c5d1dddcfb891e2f8aba09a9cbba196fd4c385986fd1f061186bf2599b36b50"
+        },
+        {
+          "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-v00-e2e\\FULL-E2E-RESUME-FIRST-ARTIFACTS.json",
+          "bytes": 19833,
+          "sha256": "93170b4dc57c5db4a289afdadeca3df5319df9bf3ea45e3e89f40f63d23f2f6b"
+        },
+        {
+          "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-v00-e2e\\FULL-E2E-RESUME-FIRST-CASES.json",
+          "bytes": 226799,
+          "sha256": "e1bf1b30eb2642af464d36b6aaccc99e696cb3132eeb98f603209ab642f55bb9"
+        },
+        {
+          "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-v00-e2e\\FULL-E2E-RESUME-FIRST-TARGET-FACTS.json",
+          "bytes": 613,
+          "sha256": "d38cf78b6d61450bbd9a647afa75fdf10ea092cccfd96db885d39735e1ed140f"
+        },
+        {
+          "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-v00-e2e\\FULL-E2E-RESUME-FIRST-LIFECYCLE.json",
+          "bytes": 2259,
+          "sha256": "f9f5c2d57ec1b83c60477aaa7bef2321041833fa4a39ca53df0228cef8b1a377"
+        },
+        {
+          "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-v00-e2e\\FULL-E2E-RESUME-FIRST-SUPPLEMENTAL-ROOTS.json",
+          "bytes": 4271,
+          "sha256": "208f0f6ea47781a49b7972554db324ee4203a95a5c2f2a2619ce098ccfef571b"
+        },
+        {
+          "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-root\\full-e2e-resume-first-command.json",
+          "bytes": 2127,
+          "sha256": "e13f23e14d54fcb3f88e9c0c8cc59da0e995e99a8c0060855e40da972f888b6e"
+        },
+        {
+          "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-root\\full-e2e-resume-first.log",
+          "bytes": 31423,
+          "sha256": "e907fcd583650b66398e0c103ddb2da07cfa98aed73b0fb0adbf10db02070fb6"
+        },
+        {
+          "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-e2e-resume-first\\results.json",
+          "bytes": 312359,
+          "sha256": "e391c73771744802b5a7f02f53ae18e0ebedb08ed7773ed02d10d96dd998e4d3"
+        },
+        {
+          "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-e2e-resume-first\\results.xml",
+          "bytes": 38201,
+          "sha256": "1369b4c5f10cbc9ad29f44dec7879dc78a0072a655d51ac080870d0666a2b4d3"
+        },
+        {
+          "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\AUDIT-r21-r21-p-full-before.json",
+          "bytes": 819,
+          "sha256": "22e28bff98a967a51106d0010683fd9d9df80d0628c4dbef9c79a6c95bf40859"
+        },
+        {
+          "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\AUDIT-r21-r21-p-full-after.json",
+          "bytes": 819,
+          "sha256": "dcec8bbd4a35001a5f2155984f21bd97feca21f431aa815d23c17335a4069b79"
+        }
+      ],
+      "scope": "Only this frozen full gate. Separate R14 2UI and chat14 results are not added to 153 counts; CTRL handles final independent binding and B4 closure.",
+      "readyAt": "2026-10-03T03:15:01.715765+00:00",
+      "executableSourceWritingStopped": true
+    }
+  },
+  "lifecycle": {
+    "independentLiveCimAndPorts": {
+      "capturedAt": "2026-10-03T03:05:08.0415248Z",
+      "pids": [
+        {
+          "pid": 4784,
+          "alive": false,
+          "commandLine": null
+        },
+        {
+          "pid": 11524,
+          "alive": false,
+          "commandLine": null
+        },
+        {
+          "pid": 7588,
+          "alive": false,
+          "commandLine": null
+        },
+        {
+          "pid": 13884,
+          "alive": false,
+          "commandLine": null
+        },
+        {
+          "pid": 13688,
+          "alive": false,
+          "commandLine": null
+        },
+        {
+          "pid": 21412,
+          "alive": false,
+          "commandLine": null
+        },
+        {
+          "pid": 22384,
+          "alive": false,
+          "commandLine": null
+        },
+        {
+          "pid": 7756,
+          "alive": false,
+          "commandLine": null
+        },
+        {
+          "pid": 16748,
+          "alive": false,
+          "commandLine": null
+        },
+        {
+          "pid": 14860,
+          "alive": false,
+          "commandLine": null
+        },
+        {
+          "pid": 16548,
+          "alive": false,
+          "commandLine": null
+        },
+        {
+          "pid": 22516,
+          "alive": false,
+          "commandLine": null
+        }
+      ],
+      "frontendPid": 21816,
+      "frontendAlive": true,
+      "frontendCreationUtcTicks": 639265864014910100,
+      "frontendCommandLine": "\"C:\\Program Files\\nodejs\\node.exe\" scripts/run-web.mjs start 5174",
+      "apiListeners": [],
+      "noLifecycleAction": true
+    },
+    "independentExclusiveLogs": {
+      "capturedAt": "2026-10-03T03:18:36.3569540Z",
+      "logs": [
+        {
+          "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-root\\full-e2e-resume-first.log",
+          "bytes": 31423,
+          "exclusiveReadOpened": true,
+          "exclusiveReadClosed": true,
+          "sha256": "e907fcd583650b66398e0c103ddb2da07cfa98aed73b0fb0adbf10db02070fb6"
+        },
+        {
+          "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f20i-1O808m\\api.log",
+          "bytes": 96,
+          "exclusiveReadOpened": true,
+          "exclusiveReadClosed": true,
+          "sha256": "e503d672becfc1b132328f11a21285cfa2643ca03d0dec87e4658bc3121e83d2"
+        },
+        {
+          "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-f10-real-3IX8Q3\\api.log",
+          "bytes": 96,
+          "exclusiveReadOpened": true,
+          "exclusiveReadClosed": true,
+          "sha256": "fe185cf93de96d4d276b0ec175d3126f3afc7a87a88dd76da1d76b2c122e1d83"
+        }
+      ],
+      "supplementalPids": [
+        {
+          "pid": 22020,
+          "alive": false
+        },
+        {
+          "pid": 22136,
+          "alive": false
+        },
+        {
+          "pid": 6936,
+          "alive": false
+        }
+      ],
+      "action": "read-only/exclusive-read/close; no lifecycle"
+    },
+      "retainedRoots": {
+        "FDirectExistsProof": {
+          "capturedAt": "2026-10-03T03:23:54.099081+00:00",
+          "distinctTopLevelRootCount": 18,
+          "topLevelRootsAllExist": true,
+          "nestedModelRootCount": 1,
+          "nestedModelExists": true,
+          "noDirectoryContentsRead": true,
+          "noDeleteMoveOrCreate": true
+        },
+        "topLevel18": true,
+      "nestedModel1": true,
+      "supplemental3AuthorStaticOnly": true,
+      "sourceReceipt": {
+        "capturedAt": "2026-10-03T03:15:01.715765+00:00",
+        "task": "FULL resource closure supplemental author-selfcheck roots",
+        "supplementalRootCount": 3,
+        "roots": [
+          {
+            "receipt": {
+              "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-v00-e2e\\R14-QA-TYPE-v11-command.json",
+              "bytes": 4716,
+              "sha256": "3c6490cdb79d0ca98608fac8fc1aad65b4376dbcfdf1f1c4ac2b64ac6b47d7bd"
+            },
+            "label": "r14-p-type-v11-first",
+            "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r14-p-type-v11-uj84wpjo",
+            "existsNow": true,
+            "retained": true,
+            "dataDirectoryExists": false,
+            "emptyTextbooksDirectoryExists": true,
+            "pid": 22020,
+            "pidGoneInReadOnlyCIM": true,
+            "exit": 0,
+            "wallTimeMs": 696.532,
+            "childExited": true,
+            "stdoutPipeClosed": true,
+            "stderrPipeClosed": true,
+            "oldReceiptsUnmodified": true,
+            "role": "Earlier author static selfcheck only; app.main never imported and data directory never initialized; not additional full-E2E case or runtime acceptance"
+          },
+          {
+            "receipt": {
+              "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-v00-e2e\\R14-QA-METADATA-v12-types-command.json",
+              "bytes": 4625,
+              "sha256": "1e1d19357259590892bad76d314a3d00f123b429686c7c075aaba1b637ec6b97"
+            },
+            "label": "r14-p-metadata-v12-types-first",
+            "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r14-p-meta-v12-types-dymawtvs",
+            "existsNow": true,
+            "retained": true,
+            "dataDirectoryExists": false,
+            "emptyTextbooksDirectoryExists": true,
+            "pid": 22136,
+            "pidGoneInReadOnlyCIM": true,
+            "exit": 0,
+            "wallTimeMs": 785.902,
+            "childExited": true,
+            "stdoutPipeClosed": true,
+            "stderrPipeClosed": true,
+            "oldReceiptsUnmodified": true,
+            "role": "Earlier author static selfcheck only; app.main never imported and data directory never initialized; not additional full-E2E case or runtime acceptance"
+          },
+          {
+            "receipt": {
+              "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-v00-e2e\\R14-QA-METADATA-v12-lint-command.json",
+              "bytes": 4376,
+              "sha256": "33113abeec981455bdc936fa04754621bff127f86162afad6f32ab0badb3b87f"
+            },
+            "label": "r14-p-metadata-v12-lint-first",
+            "path": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-r14-p-meta-v12-lint-poai7h30",
+            "existsNow": true,
+            "retained": true,
+            "dataDirectoryExists": false,
+            "emptyTextbooksDirectoryExists": true,
+            "pid": 6936,
+            "pidGoneInReadOnlyCIM": true,
+            "exit": 0,
+            "wallTimeMs": 1246.303,
+            "childExited": true,
+            "stdoutPipeClosed": true,
+            "stderrPipeClosed": true,
+            "oldReceiptsUnmodified": true,
+            "role": "Earlier author static selfcheck only; app.main never imported and data directory never initialized; not additional full-E2E case or runtime acceptance"
+          }
+        ],
+        "ctrlRetainedRootsReceipt": {
+          "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-root\\FINAL-RETAINED-ROOTS-CTRL-v1.json",
+          "bytes": 5110,
+          "sha256": "e595e503f33ff5b2a3eab2214eda3553e916cce423e1f64528f5cc2a2b2fe13a"
+        },
+        "ctrlTopLevelRootCount": 15,
+        "ctrlTopLevelRootsIndependentlyExistNow": true,
+        "combinedDistinctTopLevelRootCount": 18,
+        "nestedModelRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b4-stream-20261003-chat-first-irenjzcm\\zqky-chat-test-mtwfre0o",
+        "nestedModelRootExistsNow": true,
+        "nestedModelRootCount": 1,
+        "deletionAction": "none",
+        "oldSixDeniedRootsAction": "none",
+        "old83RootsAction": "none",
+        "formalDataCredentialsAction": "none",
+        "testsRerun": false,
+        "executableSourcesChanged": false,
+        "offlineSupplementCollectionFirstError": {
+          "exit": 1,
+          "error": "AssertionError at initial check requiring data subdirectory",
+          "cause": "Static tsc/lint never imported app.main or initialized data; all three actual OS roots and empty-textbooks exist. No output written before failure, no source or sample mutation, no test rerun."
+        }
+      }
+    },
+    "apiCloseMethod": "Original owned Windows API fixtures taskkill /T /F then awaited child/log close; not graceful.",
+    "streamCloseMethod": "CTRL-owned chat stream stopFile followed original finally/exit0; no lifecycle action by F.",
+    "FResourcesOwned": []
+  },
+  "firstFailurePreservation": {
+    "oldR17Full153": {
+      "passed": 152,
+      "failed": 1,
+      "path": "docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/b4-e2e-real-fixed-first/results.json"
+    },
+    "r20R14UI": {
+      "passed": 1,
+      "failed": 1,
+      "path": "docs/qa/TEACHING-LOOP-B4-RESUME-20261003/r14-first/results.json",
+      "faultTerminalAssertionsUnexecuted": true
+    },
+    "oldProtected3043AndPrior191Unchanged": true,
+    "readonlyPreparationErrors": [
+      {
+        "chunk": "f7223e",
+        "exit": 1,
+        "error": "FileNotFoundError baseline path day root, later rg located actual b4-root/BASELINE.json",
+        "businessExecuted": false,
+        "sourceWritten": false
+      },
+      {
+        "chunk": "88c30b",
+        "exit": 1,
+        "error": "KeyError T70Author14 contains1 QA runner; corrected union source+QA+contract map",
+        "businessExecuted": false,
+        "sourceWritten": false
+      },
+      {
+        "chunk": "b68e64",
+        "exit": 1,
+        "error": "KeyError old r17 candidate lacksbuildFiles; now uses original BUILD-IDENTITY.files, no reportwritten on errors",
+        "businessExecuted": false,
+        "sourceWritten": false
+      }
+    ],
+    "currentAdditionalReadonlyCollectionErrors": [
+      {
+        "chunk": "49e44c",
+        "exit": 1,
+        "error": "FileNotFoundError: b4-root/AUDIT-r21-full-e2e-after.json; rg found real batch-root path.",
+        "testExecuted": false,
+        "sourceOrSampleWritten": false
+      },
+      {
+        "chunk": "2a1b41",
+        "exit": 1,
+        "error": "rg requested nonexistent b4-root/audit.py; existing frozen audit tool is candidate.py.",
+        "testExecuted": false,
+        "sourceOrSampleWritten": false
+      },
+      {
+        "chunk": "59be36",
+        "exit": 1,
+        "error": "Readonly inventory included nonexistent .github; rg exit2/CalledProcessError. Actual manifest hash scan completed first; corrected directory enumeration uses only existing directories.",
+        "testExecuted": false,
+        "sourceOrSampleWritten": false
+      },
+      {
+        "chunk": "b5a6ad",
+        "exit": 1,
+        "error": "Readonly XML title oracle compared bare title to JUnit suite-prefixed name; AssertionError. Correct recursive suite-path comparison subsequently exactly matched153 records.",
+        "testExecuted": false,
+        "sourceOrSampleWritten": false
+      },
+      {
+        "tool": "functions.exec",
+        "error": "JSON.parse of truncated readonly stdout (max_output_tokens1500) raised SyntaxError Unexpected token W. Underlying reader had not written reports; subsequent compact/full-budget output parsed correctly.",
+        "testExecuted": false,
+        "sourceOrSampleWritten": false
+      }
+    ],
+    "PReadonlyCollectionErrors": "P *.db empty enumeration and assumed static data-subdirectory errors retained in final SUMMARY/SUPPLEMENTAL; no business rerun or sample writes.",
+    "oldFailedRunsAreNotReclassified": true
+  },
+  "authorityObservation": {
+    "path": "ROOT-FIRST-FAILURES.md",
+    "capturedSHA256": "dfd9dca3a02fe2986d40069578d06fb77f1657ba1173bf056f48db1c4c604987",
+    "finding": "Opening sentence still says today business regression not yet executed, while its own later r20 entry and actual r21 results show execution.",
+    "reportedToCTRL": true,
+    "owner": "CTRL/A authority documentation",
+    "executionGateImpact": "None; execution and raw first-failure identities are independently verified.",
+    "closureNeeds": "CTRL should synchronize this sentence before its final authority close."
+  },
+  "evidence": [
+    {
+      "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-v00-final\\COMMON-SOURCE-PREP-v1.md",
+      "bytes": 2614,
+      "sha256": "031938583334f9b5ce65ccb9ac2df379fa0292db9901af5f8c2a5f0722635032"
+    },
+    {
+      "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-v00-final\\COMMON-SOURCE-PREP-v1.json",
+      "bytes": 18180,
+      "sha256": "a78bb249fd3e230abe229f9dabd1a5a93bad553ae70b19207fbba82108b77ae2"
+    },
+    {
+      "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-v00-chat\\CHAT-ACTUAL-v1.md",
+      "bytes": 4179,
+      "sha256": "06b9093fb2c6f153405637662be49de908c1da241aa72dbd683c8b5a80a7e94e"
+    },
+    {
+      "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-v00-chat\\CHAT-ACTUAL-v1.json",
+      "bytes": 44460,
+      "sha256": "43d880e52abbdff5cd1bdd19f45ab3c49b656dd01c7033d13e33bee9d03d22fa"
+    },
+    {
+      "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-v00-e2e\\FULL-E2E-RESUME-FIRST-RESULT.md",
+      "bytes": 4281,
+      "sha256": "e3f168b0dd3cffaf1adf4c2ce08db601e22cf54373c4ad9c49d43fc2eb0fa903"
+    },
+    {
+      "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-v00-e2e\\FULL-E2E-RESUME-FIRST-RESULT.json",
+      "bytes": 5624,
+      "sha256": "b5e1302caec65fdc20792ea1708ca649229df977b105551c601a3bc677072838"
+    },
+    {
+      "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-v00-e2e\\FULL-E2E-RESUME-FIRST-REPORT-MANIFEST.json",
+      "bytes": 30945,
+      "sha256": "1a21a076c745c8698b65c5ac4b38d6627f9e5dbb1fa29e9df3362d5497f5f773"
+    },
+    {
+      "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-v00-e2e\\FULL-E2E-RESUME-FIRST-SUMMARY.json",
+      "bytes": 18919,
+      "sha256": "5557fa6b945667e8472e5a84aaae488367758dc74b88353a34e84f0c4cf91581"
+    },
+    {
+      "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-v00-e2e\\FULL-E2E-RESUME-FIRST-SUPPLEMENTAL-ROOTS.json",
+      "bytes": 4271,
+      "sha256": "208f0f6ea47781a49b7972554db324ee4203a95a5c2f2a2619ce098ccfef571b"
+    },
+    {
+      "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-v00-e2e\\R14-FIXED-FIRST-RESULT.md",
+      "bytes": 4780,
+      "sha256": "b2db97a4d935e4544a9351346f501fb70f23df2c8cce053a40692ab231c4f16c"
+    },
+    {
+      "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-root\\FINAL-RETAINED-ROOTS-CTRL-v1.json",
+      "bytes": 5110,
+      "sha256": "e595e503f33ff5b2a3eab2214eda3553e916cce423e1f64528f5cc2a2b2fe13a"
+    },
+    {
+      "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\b4-root\\CHAT-VISUAL-SCOPE-CTRL-v1.json",
+      "bytes": 1639,
+      "sha256": "9d31614d2f16f0a64fa6511c703517f0c3f30995a3b351055c880cbf2d244b14"
+    },
+    {
+      "path": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-B4-RESUME-20261003\\ROOT-FIRST-FAILURES.md",
+      "bytes": 4249,
+      "sha256": "dfd9dca3a02fe2986d40069578d06fb77f1657ba1173bf056f48db1c4c604987"
+    }
+  ],
+  "noActions": {
+    "testsReexecuted": false,
+    "browserOrHTTP": false,
+    "serviceLifecycle": false,
+    "sourceOrExecutableQAWritten": false,
+    "formalEnvDataCredentialsRead": false,
+    "tempDeleted": false,
+    "gitMutation": false,
+    "authorityDocumentsWritten": false
+  },
+  "limits": [
+    "Counts remain per actual single run: twoUI2, chat14 and full153 are separate.",
+    "Current gate PASS is not a guarantee that historical R14 never recurs.",
+    "Full48PNG are hashed and retained, not all manually viewed by F.",
+    "Original retain-on-failure leaves zero full passed trace ZIP; no runtime assertion count is invented.",
+    "367 business backend common files exclude the changed API AGENTS guide; do not describe368 as business sources.",
+    "Existing teaching-loop browser/API/check evidence is source-bound, not rerun as r21."
+  ]
+}

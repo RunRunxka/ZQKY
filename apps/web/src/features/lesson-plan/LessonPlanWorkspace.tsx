@@ -16,6 +16,7 @@ import './styles/lesson-plan.css';
 import './styles/lesson-visual.css';
 import './styles/print.css';
 import './styles/server-session.css';
+import './styles/lesson-refined.css';
 export function LessonPlanWorkspace(props: LessonWorkspaceProps) {
   return (
     <DocumentGateway {...props}>

@@ -1,13 +1,16 @@
 /* 施测与成绩模块页面级样式（/assessments，TEACHING-LOOP B3 · F20-I）。
    消费 globals.css 单一变量层（--font-ui/--font-display、--blue/--blue-soft、--surface/--ink/
    --line/--muted/--danger、--radius-*、--space-*）与 space.css 的 .space-* 基础类；
-   作用域：全部选择器以 .assessments-page 起头，不新增主题色、不新增动画
-   （依赖全局 motion.css 的 prefers-reduced-motion / html[data-motion] 机制）。
+   作用域：全部选择器以 .assessments-page 起头，面板动画走公共 useEntrance，
+   遵守全局 motion.css 的 prefers-reduced-motion / html[data-motion] 机制。
    布局：面板单列；矩阵/行列表允许自身横向滚动，保证 390px 视口页面级无横向溢出。 */
+
+.assessments-page {
+  --page-content-width: 1240px;
+}
 
 .assessments-page .space-content {
   min-width: 0;
-  max-width: 1180px;
 }
 
 .assessments-page .assessments-context {
@@ -600,5 +603,113 @@
     flex: 1 1 auto;
     padding: 8px 10px;
     white-space: nowrap;
+  }
+}
+
+/* ===== 固定上下文、分步工作面与易读矩阵 ===== */
+.assessments-page .assessments-context {
+  padding: var(--space-3) var(--space-4);
+  margin: var(--space-4) 0 var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+}
+
+.assessments-page .assessments-context .space-chip {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.assessments-page .assessments-panel {
+  gap: var(--space-5);
+}
+
+.assessments-page .assessments-subpanel {
+  padding: var(--space-5);
+  gap: var(--space-4);
+}
+
+.assessments-page .assessments-subpanel-head h3,
+.assessments-page .assessments-subpanel-head h4 {
+  font-size: var(--font-size-section, 16px);
+  line-height: 1.5;
+}
+
+.assessments-page .assessments-hint,
+.assessments-page .assessments-meta,
+.assessments-page .score-cell-address,
+.assessments-page .score-cell-note {
+  font-size: var(--font-size-caption, 12px);
+  line-height: 1.65;
+}
+
+.assessments-page .assessments-field {
+  gap: 6px;
+  font-size: var(--font-size-control, 13px);
+}
+
+.assessments-page .assessments-form,
+.assessments-page .assessments-mapping-grid {
+  gap: var(--space-3) var(--space-4);
+}
+
+.assessments-page .assessments-input,
+.assessments-page .assessments-field .space-select {
+  min-height: var(--control-height, 36px);
+  padding: 8px 12px;
+  font-size: var(--font-size-control, 13px);
+}
+
+.assessments-page textarea.assessments-input {
+  min-height: 88px;
+  line-height: 1.65;
+}
+
+.assessments-page .assessments-list {
+  gap: var(--space-2);
+}
+
+.assessments-page .assessments-list-item,
+.assessments-page .assessments-list-static,
+.assessments-page .assessments-card,
+.assessments-page .score-row,
+.assessments-page .score-ack-group {
+  padding: var(--space-3) var(--space-4);
+}
+
+.assessments-page .score-matrix-wrap {
+  background: var(--bg);
+  overscroll-behavior-x: contain;
+}
+
+.assessments-page .score-matrix {
+  font-size: var(--font-size-control, 13px);
+  font-variant-numeric: tabular-nums;
+}
+
+.assessments-page .score-matrix th,
+.assessments-page .score-matrix td {
+  padding: 10px 12px;
+}
+
+.assessments-page .score-matrix tbody tr:hover td {
+  background: var(--blue-soft);
+}
+
+@media (max-width: 640px) {
+  .assessments-page .assessments-subpanel {
+    padding: var(--space-4);
+  }
+}
+
+@media (max-width: 767px) {
+  .assessments-page .assessments-input,
+  .assessments-page .assessments-field input:not([type='checkbox']):not([type='radio']),
+  .assessments-page .assessments-field select,
+  .assessments-page .assessments-field .space-select,
+  .assessments-page .assessments-check,
+  .assessments-page .assessments-list-item {
+    min-height: var(--touch-target, 44px);
   }
 }

@@ -1,0 +1,19 @@
+{
+  "authorityDocumentDeltas": {
+    "docs/qa/README.md": {
+      "beforeSha256": "0414f07f04d2ab7507c3a567dfa67efe8bdd57d56a53ced3aa7ed9bc50e890ba",
+      "afterSha256": "8becda34a47e56737b9883f33c7d4772fec9dc97edf6363e7f7337e3b472caeb",
+      "reason": "本审查主动更新现行QA索引；历史QA原件不改。"
+    }
+  },
+  "externalHeadChange": {
+    "beforeHead": "6aeb57280f6a7e0d7391cad4d150745479ea58ec",
+    "afterHead": "6cb6a40db890390f0261d547213e319040f64785",
+    "directParent": "6aeb57280f6a7e0d7391cad4d150745479ea58ec",
+    "author": "RunRunxka",
+    "committedAt": "2026-10-03T23:07:17+08:00",
+    "subject": "更新教案模块和QA文档，修复备份验证及E2E测试，增强书籍提交一致性测试",
+    "trackedChangedFiles": 114,
+    "attribution": "本审查未执行Git写入；只读核查观察到外部HEAD前移，候选五分组字节保持，未撤销或覆盖。"
+  }
+}

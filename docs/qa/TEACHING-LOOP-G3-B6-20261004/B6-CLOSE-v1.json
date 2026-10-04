@@ -1,0 +1,137 @@
+{
+  "at": "2026-10-04T15:35:08.237026+08:00",
+  "task": "LIMITED_B6_INTEGRATION_AND_QUALITY_PREPARATION",
+  "result": "CLOSED_LIMITED_TECHNICAL_AND_PREPARATION",
+  "G3": "CLOSED_HISTORICAL_RECEIPT_UNCHANGED",
+  "originalB6B7Overall": "NOT_CLAIMED_CLOSED",
+  "candidate": "docs/qa/TEACHING-LOOP-G3-B6-20261004/CANDIDATE-B6-r1.json",
+  "candidateSHA": "f79ac91201f3d5ecedab2cf01ea92a2ebc0b6d794e7fa18ebf9e3796e0e54db9",
+  "counts": {
+    "sourceCount": 942,
+    "executableQaCount": 3464,
+    "sharedContractCount": 33,
+    "buildCount": 2161,
+    "frozenB6ArtifactCount": 1056
+  },
+  "buildId": "LkFgY8qsEnCOUbC11Dm1T",
+  "actualRewrites": {
+    "beforeFiles": [],
+    "afterFiles": [
+      {
+        "source": "/api/v1/:path*",
+        "destination": "http://127.0.0.1:8001/api/v1/:path*",
+        "regex": "^/api/v1(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$"
+      }
+    ],
+    "fallback": []
+  },
+  "commands": {
+    "b6-check-r01-r2-qa3-first": {
+      "pid": 16920,
+      "elapsedMs": 105612.417,
+      "SHA": "b875cc32de17d4645d29320d8748e3c54f88877fc91e4e833e534bcdf65bdd37",
+      "singleCompleteRound": true
+    },
+    "b6-g3-boundary-eight-built": {
+      "pid": 23936,
+      "elapsedMs": 3162.138,
+      "SHA": "f1ec99aaf7834da8902773979ecf1e1276615c0952c26d92c0d35c4abefa9701",
+      "singleCompleteRound": true
+    },
+    "b6-g3-v00-fifteen-built": {
+      "pid": 3652,
+      "elapsedMs": 5098.214,
+      "SHA": "e5d62ddb9505eab8833a112a47a58eb0a4074b9a237f7d94d81cf23b7f10a71f",
+      "singleCompleteRound": true
+    },
+    "b6-source-independent-built-r2": {
+      "pid": 23012,
+      "elapsedMs": 2078.647,
+      "SHA": "824b4da83dab7707a92eb84ec7db1a5ef927782d6e9e9882b92e560fb77e9362",
+      "singleCompleteRound": true
+    },
+    "b6-g3-browser-r01-r2-first": {
+      "pid": 25240,
+      "elapsedMs": 49437.732,
+      "SHA": "ee389a192eef19bdc0e2388084a4534847c31c102f2cd1acdbe091f08f2f4c60",
+      "singleCompleteRound": true
+    },
+    "b6-e2e-full-r01-r2-first": {
+      "pid": 4676,
+      "elapsedMs": 395901.975,
+      "SHA": "a673e4c30593206b287846549b4b0763da4dfdfc39e62758c9d9cf41d328804d",
+      "singleCompleteRound": true
+    }
+  },
+  "executed": {
+    "checkUnit": 1286,
+    "newActualUI": 1,
+    "actualFourViewportRegression": 14,
+    "originalFullE2E": 153,
+    "independentSource": 8,
+    "originalIndependent": 15,
+    "independentBoundary": 8,
+    "anonymousQualityCases": 15,
+    "DOCXActualSamples": 4,
+    "PDFActualSamples": 4,
+    "PDFActualPages": 13,
+    "realModelCalls": 0
+  },
+  "evidence": {
+    "b6-integration/RESULT-final-v1.md": "7ed6e5372e9ecebdb7c7d1b46be2eee396c8d480fc45dbc08f06d201d472c673",
+    "b6-quality/RESULT-v1.md": "fc130de233c56361d3666075382e567469a88ec9520a580c16b4725eec604d89",
+    "b6-quality/RESULT-CORRIGENDUM-v1.md": "e2feea1b9b3087a510abe3383d5b82c54b0e3bd61ec0445bdb9ffaf6cf02b7b2",
+    "b6-quality/integration-export-independent-v2.md": "f710464a7509090ea0f7e23fe29f026bf16b9f43cc1cbb78e8bad58e6eaf460b",
+    "b6-exports/review-quality/RESULT-v1.md": "74fc05ee6178fe82c4dad73aa41422ebc8a22b6ff04df58c73965b8bb812797f",
+    "b6-exports/review-source/RESULT-built-v2.md": "d6192a2b011da40d9c47a38e40bc6f2644d147f7bb4317e4971b59a387249659",
+    "b6-exports/review-source/UI-r9-REVIEW-v1.md": "07f3c1e61a1088db6d76f32e7e4f070357880823e8771536c41f7b949d025bcd",
+    "b6-exports/review-source/G3-BROWSER-B6-REVIEW-v1.md": "00e2f452b5d894ffa225fc09002e5113f73dd7e243f61f7d3622e587b90fc476",
+    "v00/B6-FINAL-GATE-REVIEW-v1.md": "2371ebec537fb9c634005e92f46d9a55525ec7c235cac4ebc081c2e0ad834f5c",
+    "v00/B6-FULL153-RECEIPT-REVIEW-v1.md": "aa46e25f9968026e239960781b55305931847f92d8f5cf4d108ac042842086ef",
+    "v00/B6-FULL153-RECEIPT-REVIEW-v1.json": "20289f1f2b5efdaa00282176f50ddda83116a3479ba2bc1c8809407c1ba6e6ba",
+    "b6-quality/B6-CHECK-QA-WAIT-REVIEW-v1.md": "923ccd7751ff0dd2d5251a9b2a824467baf59b601f10a4601039a1238cf95665",
+    "b6-quality/B6-DOC-SCOPE-REVIEW-v1.md": "07fabe1482b03928c61196980f424d826b4ed0b7674beb458d282448818e5206",
+    "B6-RECOVERY-REFERENCE-v2.md": "2bfacdf04a746b3004c9d7a7fcb93d3b1e863cd709ed32d3592e9816d4366517",
+    "ctrl/B6-MATERIALS-SAME-SOURCE-v1.json": "b171c0dc8f3c49b25c9a3dff6ccc7e1606312cfffeace447a493d821ec87fc11",
+    "ctrl/B6-SERVICE-SOURCE-ATTRIBUTION-v1.json": "2e3defabfff3a951eb95777b9eed32149efd64d5730a4183200f9b9dde0794d4",
+    "RAG-REL-REVIEW-CARD-v1.md": "a4cfe016a66c73e3001dba92e58d8d1826e81e09ba6c310db3fb7b820f9875f3"
+  },
+  "independentFinalGate": {
+    "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/v00/B6-FINAL-GATE-REVIEW-v1.json",
+    "SHA": "1f446736af8968c2850a3cd51b35d53162801b03ac39f327663af0f1198a44c2"
+  },
+  "preservation": {
+    "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/B6-PRESERVATION-before-close-v1.json",
+    "SHA": "10059ecc73e7da45725298039b6482d488b9f3e0ebc9866af622fb966fcb978b"
+  },
+  "resources": {
+    "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/B6-RESOURCES-before-close-v2.json",
+    "SHA": "d20d34eeebe968f734db78b467357d48e6ed97e04344b33f5fb79552f8e68208"
+  },
+  "originalPlan": {
+    "path": "docs/qa/TEACHING-LOOP-G3-B6-20261004/ctrl/B6-PLAN-ORIGINAL-before-close-v2.json",
+    "SHA": "faff34024863deea53d9a99c681314008f05f1e1da216546db8bc4acdeb1245c",
+    "originalTasksAndPseudocodePreserved": true
+  },
+  "newVersusPrior": "New endpoint/15 cases/four q84e exports/new built UI+14+153; unchanged backend410/exporter43/recovery exact same-source reuse, not new runs",
+  "quality": "PREPARATION_COMPLETE; live_run awaiting explicit profile/model/case count/budget; teacher_review_pending",
+  "nativeWordWPS": "not_run: bundled LibreOffice resolver unavailable; structure/PDF do not prove native layout",
+  "otherNotRun": [
+    "real6333",
+    "formalMigration",
+    "extraHeavyPressure",
+    "chat14SpecialThisBatch_noChatOrShellImpact"
+  ],
+  "retained": [
+    "RAG-REL OPEN",
+    "CV01-03",
+    "cross-batch R14",
+    "OBS-LP-MODE-LABEL",
+    "all first failures",
+    "all temporary data"
+  ],
+  "oldRejectedExtraHTTP": "not_run_no_retry",
+  "gitWrites": false,
+  "deployment": false,
+  "nextBatchStarted": false
+}

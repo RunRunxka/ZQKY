@@ -431,6 +431,15 @@
 
 /* ===== 整轮失败（error）横幅：原因 + 「重试生成」（对照参考 can_resume 含 ERROR） ===== */
 
+@media (max-width: 767px) {
+  .books-page .book-pipeline-strip-toggle,
+  .books-page .book-pipeline-scenario-toggle,
+  .books-page .book-pipeline-scenario-row input[type='number'],
+  .books-page .book-pipeline-scenario .space-toggle {
+    min-height: var(--touch-target, 44px);
+  }
+}
+
 .book-pipeline-error-text {
   display: block;
 }

@@ -1,0 +1,84 @@
+{
+  "Timestamp": "2026-10-04T18:40:33.6254260+08:00",
+  "Branch": "main",
+  "Head": "6cb6a40db890390f0261d547213e319040f64785",
+  "Source": {
+    "Manifest": "source-r11.json",
+    "ManifestSha256": "505CFF428B02D2AE948B87BBCEE206DA7F308501FED59F1161635DD6A139B2D3",
+    "Count": 472,
+    "Drift": 0
+  },
+  "Check": {
+    "Log": "check-r12.log",
+    "Passed": true,
+    "UnitFiles": 123,
+    "UnitTests": 1299,
+    "VitestExecutionMaxConcurrency": 4,
+    "VitestExecutionMinConcurrency": 1,
+    "AssertionsAndTimeoutsUnchanged": true
+  },
+  "Full": {
+    "Json": "e2e-full-r13.json",
+    "Sha256": "E93EEE9250D2F19320ABBF73EA558A18FDC5EA518EA6CF4CAD83CA341F995D4C",
+    "Stats": {
+      "startTime": "2026-10-04T10:25:22.494Z",
+      "duration": 473572.668,
+      "expected": 174,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "Attempts": 174,
+    "NonZeroRetries": 0,
+    "ReporterErrors": 0,
+    "BuildId": "sK12YpQMdEQz48UC-e0Hx",
+    "NewUIPngCount": 156
+  },
+  "Chat": {
+    "Json": "chat-r13.json",
+    "Sha256": "17165F68D9AB5D1ABC7E877FAC7EE7D5FD7549C677CAF0F2D9F03E0831F3DAD3",
+    "Stats": {
+      "startTime": "2026-10-04T10:33:47.362Z",
+      "duration": 57786.352,
+      "expected": 14,
+      "skipped": 0,
+      "unexpected": 0,
+      "flaky": 0
+    },
+    "Attempts": 14,
+    "NonZeroRetries": 0,
+    "ReporterErrors": 0,
+    "BuildId": "8poFqRffbOe-w2FM8T0jy"
+  },
+  "NextEnv": {
+    "OriginalSha256": "0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC",
+    "RestoredSha256": "0F70629890B72A0A82E91972CC032C04B658B26C265373CB711CF576BFBF8FCC",
+    "ByteExact": true
+  },
+  "Status": {
+    "OriginalSha256": "58A2A73BB08D830760A47EAA328226CAF78C7F36AE36BA35097BB0392924FCF3",
+    "CurrentSha256": "77F5D402B29B049533B7609EAC3BA13C132A118A94102E27BFBE5E62F1A8A58A",
+    "OriginalBytes": 46441,
+    "InsertBytes": 1579,
+    "PrefixBytes": 30,
+    "OriginalBodyByteExact": true
+  },
+  "TestPortListeners": [],
+  "FirstFailuresRetained": [
+    "ui-expanded-r4",
+    "e2e-full-r8",
+    "check-r9",
+    "check-r10",
+    "check-r11",
+    "e2e-full-r12"
+  ],
+  "NotRun": [
+    "backend pytest: no backend change",
+    "real model teaching quality",
+    "teacher review",
+    "Word/WPS native layout",
+    "forced global-error browser screenshot",
+    "all pages by all business states Cartesian product"
+  ],
+  "Notes": "Reporter zero errors is distinct from proxy/service logs. No automatic Git commit, branch change, push, deployment or next batch; existing B6 review/B7/RAG gates retained."
+}

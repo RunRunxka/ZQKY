@@ -1,0 +1,50 @@
+{
+  "task": "G3-CLOSE-v1",
+  "at": "2026-10-04T13:52:47.526153+08:00",
+  "result": "G3_CLOSED_TECHNICAL",
+  "candidate": "CANDIDATE-G3-r2-qa5.json",
+  "evidence": {
+    "boundary/G3-CLOSE-AUDIT-v1.md": "afdb36fb666c90c88fbe4cb56fcabe5dbc0aae7a6edd3b6256e40039c2d45623",
+    "boundary/G3-CLOSE-AUDIT-v1.json": "e5e137807d5963d45508a5db8daeaa24c6693efda6b60a2778188e6976a286b1",
+    "v00/G3-FINAL-V00-v1.md": "ff369491afcaa3c508300eeccfd76e7b5a9f7fc52fa2d0644925d63ddca6eaeb",
+    "v00/G3-FINAL-V00-v1.json": "bb674553bf04be2dfa41d5900f9efc360b53515a37be179a1994794f980cbdb6",
+    "CANDIDATE-G3-r2-qa5.json": "1ef1756283abc1fda103c2263c3a49034c5d3ffec4f06669c0735488134efcbb",
+    "ctrl/g3-e2e-full-r2-qa5-node24-second-command.json": "83111c8b4d5e119703fb60410ccae9ef2eb60cfa4cb2237c9820ad6f367017a6",
+    "e2e-g3-r2-qa5-node24-second/results.json": "a1e2694512e080f4f75dd3d53d1a866ce2c823f434435063979ae43af53d1304",
+    "ctrl/G3-PRESERVATION-after-full153-v1.json": "00bdb6cb9cdca43eaed9a694d595859944a53ec80d3d347f9b75cae6e94e0e6b",
+    "v00/BROWSER-RESULT-r2-qa5.md": "691505726accfbe19f6a18f34f5a9bc02b660189a8f75ab15330be738c3f9655",
+    "ctrl/G3-API-UNCHANGED-BINDING-v1.json": "60afa0b4f61a4ef127fa1a661971ec908546cdd016d1cbd7029044b54b51b9c6",
+    "ctrl/G3-TECH-SOURCE-BINDING-before153-v1.json": "1d990718a14dbcb725f1b6e1628196ff3fb33fc941ec9e1dff377f3f7d083522"
+  },
+  "fixedIssues": [
+    "B5F-R01 / G3-R01",
+    "B5F-R02 / G3-R02"
+  ],
+  "executed": {
+    "check": "121 files / 1281 unit / type / lint0 / build",
+    "originalRequired": 2,
+    "independentUnit": 15,
+    "independentBoundary": 8,
+    "priorRegression": 27,
+    "realBrowser": 14,
+    "originalFullE2E": 153
+  },
+  "originalRequiredFilteredNotRun": 4,
+  "originalFullE2ESingleRun": true,
+  "originalFullE2EPID": 26492,
+  "originalFullE2EElapsedMs": 394353.994,
+  "backend": "prior same-source 410 exact; 1918 pass + 1 existing heavy skip and 42 independent; not rerun",
+  "chat14": "not_run_this_batch: no shared shell/navigation/chat changes; prior same-source evidence",
+  "retained": [
+    "all first failures",
+    "CV01-03",
+    "cross-batch R-14",
+    "RAG-REL",
+    "ERR_NO_BUFFER_SPACE environment observation",
+    "OBS-LP-MODE-LABEL"
+  ],
+  "oldRejectedExtraHTTP": "not_run_no_retry",
+  "B6": "authorized limited remainder may start only after this closure",
+  "quality": "live_run awaiting explicit inputs; teacher_review_pending; original B7 not closed",
+  "gitWrites": false
+}

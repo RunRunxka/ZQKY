@@ -3,21 +3,24 @@
    原为学习空间样式，学习空间移除后保留为内容页共享基础（space-* 类名沿用）。 */
 
 .space-page {
+  --page-gutter: 32px;
   min-height: 100vh;
-  background: var(--bg);
+  background: var(--canvas);
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 24px 20px 60px;
+  padding: 32px var(--page-gutter) 60px;
+  color: var(--ink);
+  line-height: 1.6;
 }
 
 .space-header {
   width: 100%;
-  max-width: 960px;
+  max-width: var(--page-content-width, 960px);
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: 22px;
+  margin-bottom: var(--space-5);
 }
 
 .space-header-row {
@@ -48,7 +51,7 @@
 /* 标题展示字体（对照 /chat 标题与参考 SpaceMain 的 serif 标题） */
 .space-header h1 {
   font-family: var(--font-display);
-  font-size: 24px;
+  font-size: var(--font-size-title);
   font-weight: 600;
   line-height: 1.25;
   letter-spacing: -0.01em;
@@ -56,12 +59,14 @@
 
 .space-description {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--font-size-control);
+  line-height: 1.7;
+  max-width: 80ch;
 }
 
 .space-content {
   width: 100%;
-  max-width: 960px;
+  max-width: var(--page-content-width, 960px);
 }
 
 /* ===== 仪表盘 ===== */
@@ -198,14 +203,15 @@
 .space-toolbar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-3);
   flex-wrap: wrap;
-  margin-bottom: 14px;
+  margin-bottom: var(--space-4);
 }
 
 .space-search {
   flex: 1 1 220px;
-  min-width: 180px;
+  min-width: min(180px, 100%);
+  min-height: var(--control-height);
   max-width: 340px;
   padding: 7px 12px;
   border: 1px solid var(--line);
@@ -214,6 +220,7 @@
 }
 
 .space-select {
+  min-height: var(--control-height);
   padding: 7px 10px;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
@@ -228,6 +235,7 @@
 }
 
 .space-segment button {
+  min-height: var(--control-height);
   padding: 6px 12px;
   font-size: 13px;
   color: var(--muted);
@@ -270,6 +278,16 @@
   align-items: center;
   gap: 10px;
   justify-content: space-between;
+}
+
+.space-banner-row > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.space-banner-row > .space-button {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .space-skeleton {
@@ -356,12 +374,16 @@
 .space-button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  min-height: var(--control-height);
   gap: 6px;
   padding: 7px 14px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--line);
   background: var(--bg);
-  font-size: 13px;
+  font-size: var(--font-size-control);
+  font-weight: 500;
+  line-height: 1.4;
 }
 
 .space-button:hover {
@@ -669,7 +691,7 @@
   padding: 8px 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  font-size: 13.5px;
+  font-size: var(--font-size-body);
   background: var(--bg);
   color: var(--ink);
 }
@@ -701,8 +723,9 @@
 }
 
 .space-tabs button {
+  min-height: var(--control-height);
   padding: 8px 18px;
-  font-size: 13.5px;
+  font-size: var(--font-size-control);
   color: var(--muted);
   background: var(--bg);
 }
@@ -746,5 +769,88 @@
     width: 100%;
     flex-direction: row;
     flex-wrap: wrap;
+  }
+}
+
+/* Shared screen rhythm; document/print surfaces retain their own styles. */
+@media screen {
+  .space-page :is(.space-tile, .space-empty, .space-session-card, .space-card) {
+    background: var(--bg);
+  }
+  .space-page :is(.space-tile, .space-session-card, .space-card) {
+    box-shadow: var(--shadow-card);
+  }
+  .space-page .space-empty {
+    padding: var(--space-6) var(--space-5);
+    font-size: var(--font-size-body);
+  }
+  .space-page .space-empty strong {
+    font-size: var(--font-size-section);
+  }
+  .space-page .space-group-label {
+    font-size: var(--font-size-section);
+  }
+  .space-page :is(.space-meta-row, .space-chip, .space-footnote, .space-form-error) {
+    font-size: var(--font-size-caption);
+  }
+  .space-page :is(.space-search, .space-select, .space-form input:not([type='checkbox'])) {
+    font-size: var(--font-size-body);
+    color: var(--ink);
+    min-height: var(--control-height);
+  }
+  .space-page :is(input, select, textarea) {
+    min-width: 0;
+  }
+  .space-page :is(.space-header, .space-content) {
+    min-width: 0;
+  }
+  .space-page .space-toolbar > * {
+    max-width: 100%;
+  }
+  .space-page :is(.space-tiles, .space-card-actions, .space-form-footer) {
+    gap: var(--space-3);
+  }
+  .space-page :is(.space-tile-number, .space-meta-row) {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media screen and (max-width: 1279px) {
+  .space-page {
+    --page-gutter: 24px;
+  }
+}
+@media screen and (max-width: 767px) {
+  .space-page {
+    --page-gutter: 16px;
+    padding-top: 24px;
+  }
+  .space-page
+    :is(
+      .space-button,
+      .space-tabs button,
+      .space-segment button,
+      .space-search,
+      .space-select,
+      .space-back,
+      .space-form input:not([type='checkbox'])
+    ) {
+    min-height: var(--touch-target);
+  }
+  .space-page .space-header-row {
+    align-items: flex-start;
+  }
+  .space-page .space-search {
+    max-width: none;
+    flex-basis: 100%;
+  }
+  .space-page :is(.space-tabs, .space-segment) {
+    max-width: 100%;
+  }
+  .space-page .space-tabs button {
+    padding-inline: 12px;
+  }
+  .space-page .space-empty {
+    padding: 24px 16px;
   }
 }

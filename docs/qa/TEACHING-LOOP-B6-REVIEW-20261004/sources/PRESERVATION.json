@@ -1,0 +1,80 @@
+{
+  "capturedAtUtc": "2026-10-04T07:50:32.01564Z",
+  "head": "6cb6a40db890390f0261d547213e319040f64785",
+  "product": [
+    {
+      "path": "apps/web/src/features/lesson-plan/components/SourcePanel.tsx",
+      "sha256": "bb4399c57492ea1a7b96ded0dc79a9f1aab5e648417ea2618fd83aa1aad1d9c8"
+    },
+    {
+      "path": "apps/web/src/features/lesson-plan/b6-source-loading.test.tsx",
+      "sha256": "f5abdabc0aec0183cf3dc69833578faab6072db94f39531c6d28f62f44b74d74"
+    },
+    {
+      "path": "apps/web/src/services/lesson-plan-sources-api.ts",
+      "sha256": "218700e6f2f12d32c77752753a3ad965a3e06fd3ffce1119b303c46279503158"
+    }
+  ],
+  "reviewFiles": [
+    {
+      "path": "B5r8-to-current.diff.txt",
+      "sha256": "f666385c78556466951c3c4e4f5628bcac286f2abb2aa2024108fe42e1ca4742"
+    },
+    {
+      "path": "baseline-SourcePanel.tsx",
+      "sha256": "f6f5c610a36d2a67470c8fb9ba6ba8adfec660b787a836b596d4252ced7cac2e"
+    },
+    {
+      "path": "COMMAND-baseline-r1.json",
+      "sha256": "4bb6973b0ad6c178a5b05e895fc70bb4d583bc236d59addac2e15372ca7c53ee"
+    },
+    {
+      "path": "COMMAND-baseline-r2.json",
+      "sha256": "391e8795033438a27e735ceda71c8051dc539cf939ea5a614bd3a904cdfcc749"
+    },
+    {
+      "path": "COMMAND-r1.json",
+      "sha256": "34b4c529cfa4c91557caae026f07bec869f066d9e0b617f3c37f48a78e1eaa87"
+    },
+    {
+      "path": "REVIEW.md",
+      "sha256": "57e573113b6c47c5aa69419b4ef809c8333198f05bf4277c9b2a879ef7ec4d8d"
+    },
+    {
+      "path": "run-baseline-r1.json",
+      "sha256": "8c7c43628c5084bea7e0507f2cb385f4e9bf7a3f4d7820997e2cdcf0043e0061"
+    },
+    {
+      "path": "run-baseline-r1.log",
+      "sha256": "1dcc59396c9bc3acab61aa5301bdcbe92c2924ffc900c0962e3c06584baf08d4"
+    },
+    {
+      "path": "run-baseline-r2.json",
+      "sha256": "ba53c3415f0c730ba1cea1638241bc7b75a321253f44f3a4a11f16b59a0a99c1"
+    },
+    {
+      "path": "run-baseline-r2.log",
+      "sha256": "9cce22e61fd985ece3d9801c02281763dc368149a68cce4f5e0e764c790bedf7"
+    },
+    {
+      "path": "run-r1.json",
+      "sha256": "7927f1fc656e786f0c45e065863d7954d2de37973f1b164d2fced6ee5b7511e2"
+    },
+    {
+      "path": "run-r1.log",
+      "sha256": "6222b615f3b6b1017453ad471574cc7b27afe533c408b19c85096868b738940e"
+    },
+    {
+      "path": "source-intent.test.tsx",
+      "sha256": "88880573a32ae5e94081db74820e8dfec9fe8f10a338ab134df7a4ce08c69228"
+    },
+    {
+      "path": "vitest.baseline.config.ts",
+      "sha256": "3b9e10fc20407725c519bda45f477706a4dbc056738ef35f791bbecd8fdc9127"
+    },
+    {
+      "path": "vitest.config.ts",
+      "sha256": "4ac47ade22cfc5e11eeb621a95654e4e4f90d07095ec7aed146ee2ef5bebeff3"
+    }
+  ]
+}

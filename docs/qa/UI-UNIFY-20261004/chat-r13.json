@@ -1,0 +1,586 @@
+{
+  "config": {
+    "configFile": "H:\\备份xuexi\\智启课源\\playwright.chat.config.ts",
+    "rootDir": "H:/备份xuexi/智启课源/tests/integration",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "H:/备份xuexi/智启课源/test-results/chat-integration",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "H:/备份xuexi/智启课源/tests/integration",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 45000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "test-results/chat-integration.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "runAgents": "none",
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.58.2",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "chat-live.spec.ts",
+      "file": "chat-live.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "教学问答模型 经真实代理在最后分块释放前显示中文",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1729,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T10:33:51.429Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "05903b8016c1b47b706e-d86ee46ab06fa5001995",
+          "file": "chat-live.spec.ts",
+          "line": 4,
+          "column": 3
+        },
+        {
+          "title": "Responses 模型 经真实代理在最后分块释放前显示中文",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 766,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T10:33:53.329Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "05903b8016c1b47b706e-23b7afd4603416c9bca5",
+          "file": "chat-live.spec.ts",
+          "line": 4,
+          "column": 3
+        },
+        {
+          "title": "Anthropic 模型 经真实代理在最后分块释放前显示中文",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 857,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T10:33:54.106Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "05903b8016c1b47b706e-2d432a5fedfde47f0aec",
+          "file": "chat-live.spec.ts",
+          "line": 4,
+          "column": 3
+        },
+        {
+          "title": "停止关闭实际上游，新会话无晚到文本",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 834,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T10:33:54.969Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "05903b8016c1b47b706e-2f1e590056f16f054cdf",
+          "file": "chat-live.spec.ts",
+          "line": 21,
+          "column": 1
+        },
+        {
+          "title": "长回答 Markdown 公式与响应式布局",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1056,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T10:33:55.809Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "05903b8016c1b47b706e-f2075ec3eaab8218058f",
+          "file": "chat-live.spec.ts",
+          "line": 34,
+          "column": 1
+        },
+        {
+          "title": "模型发现追加、默认模型同步、表单冲突保留",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5193,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T10:33:56.870Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "05903b8016c1b47b706e-803f6b43124c905bd88d",
+          "file": "chat-live.spec.ts",
+          "line": 65,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "chat-reasoning.spec.ts",
+      "file": "chat-reasoning.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "教学问答模型：推理先显示，正文出现后折叠，公式与恢复正常",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2113,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T10:34:02.096Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5c988721aa3c742a2515-5329d2381542e8efac19",
+          "file": "chat-reasoning.spec.ts",
+          "line": 4,
+          "column": 3
+        },
+        {
+          "title": "Responses 模型：推理先显示，正文出现后折叠，公式与恢复正常",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2114,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T10:34:04.215Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5c988721aa3c742a2515-5ff24ffdf1c778caeda5",
+          "file": "chat-reasoning.spec.ts",
+          "line": 4,
+          "column": 3
+        },
+        {
+          "title": "Anthropic 模型：推理先显示，正文出现后折叠，公式与恢复正常",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2148,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T10:34:06.335Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5c988721aa3c742a2515-04370a2f4d7eb82af879",
+          "file": "chat-reasoning.spec.ts",
+          "line": 4,
+          "column": 3
+        },
+        {
+          "title": "正文公式：text.delta 原文逐字保留并在流中、终态及刷新后渲染",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2039,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T10:34:08.488Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5c988721aa3c742a2515-bbcec821bc1bbebb1eac",
+          "file": "chat-reasoning.spec.ts",
+          "line": 56,
+          "column": 1
+        },
+        {
+          "title": "正文开始后推理继续增量：用户重开后仍跟随，手动上滚不被抢占",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7463,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "post-answer reasoning follow sample {\"top\":268,\"height\":180,\"total\":448,\"gap\":0}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T10:34:10.534Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5c988721aa3c742a2515-54bab4063c07a190f07e",
+          "file": "chat-reasoning.spec.ts",
+          "line": 143,
+          "column": 1
+        },
+        {
+          "title": "性能：20k 推理 + 正文公式受控流",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 5131,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "synthetic perf sample {\"target\":20000,\"result\":{\"chars\":21020,\"frameCount\":769,\"frameP50\":5.599999999999909,\"frameP95\":5.699999999999818,\"frameMax\":44.5,\"over50\":0,\"longTasks\":0,\"longTaskMax\":0,\"firstVisibleMs\":60.100000001490116,\"katex\":80,\"katexErrors\":0,\"streamMs\":2.922}}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T10:34:18.003Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5c988721aa3c742a2515-67aefbe811e33d016f98",
+          "file": "chat-reasoning.spec.ts",
+          "line": 199,
+          "column": 3
+        },
+        {
+          "title": "性能：50k 推理 + 正文公式受控流",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 6162,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "synthetic perf sample {\"target\":50000,\"result\":{\"chars\":52568,\"frameCount\":944,\"frameP50\":5.599999999999454,\"frameP95\":5.699999999999818,\"frameMax\":39,\"over50\":0,\"longTasks\":0,\"longTaskMax\":0,\"firstVisibleMs\":62.899999998509884,\"katex\":80,\"katexErrors\":0,\"streamMs\":4.391}}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T10:34:23.139Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5c988721aa3c742a2515-ef0750c60805def221a2",
+          "file": "chat-reasoning.spec.ts",
+          "line": 199,
+          "column": 3
+        },
+        {
+          "title": "推理滚动：流式跟随、主动上滚暂停与回到底部恢复",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 45000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 7280,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "reasoning follow samples {\"stage\":\"uninterrupted-follow\",\"samples\":[{\"inner\":{\"top\":46,\"height\":180,\"total\":226,\"gap\":0},\"outer\":{\"top\":0,\"height\":493,\"total\":493,\"gap\":0},\"latestText\":true},{\"inner\":{\"top\":46,\"height\":180,\"total\":226,\"gap\":0},\"outer\":{\"top\":0,\"height\":493,\"total\":493,\"gap\":0},\"latestText\":true},{\"inner\":{\"top\":70,\"height\":180,\"total\":250,\"gap\":0},\"outer\":{\"top\":0,\"height\":493,\"total\":493,\"gap\":0},\"latestText\":true},{\"inner\":{\"top\":70,\"height\":180,\"total\":250,\"gap\":0},\"outer\":{\"top\":0,\"height\":493,\"total\":493,\"gap\":0},\"latestText\":true},{\"inner\":{\"top\":95,\"height\":180,\"total\":275,\"gap\":0},\"outer\":{\"top\":0,\"height\":493,\"total\":493,\"gap\":0},\"latestText\":true},{\"inner\":{\"top\":95,\"height\":180,\"total\":275,\"gap\":0},\"outer\":{\"top\":0,\"height\":493,\"total\":493,\"gap\":0},\"latestText\":true},{\"inner\":{\"top\":120,\"height\":180,\"total\":300,\"gap\":0},\"outer\":{\"top\":0,\"height\":493,\"total\":493,\"gap\":0},\"latestText\":true},{\"inner\":{\"top\":120,\"height\":180,\"total\":300,\"gap\":0},\"outer\":{\"top\":0,\"height\":493,\"total\":493,\"gap\":0},\"latestText\":true},{\"inner\":{\"top\":120,\"height\":180,\"total\":300,\"gap\":0},\"outer\":{\"top\":0,\"height\":493,\"total\":493,\"gap\":0},\"latestText\":true},{\"inner\":{\"top\":144,\"height\":180,\"total\":324,\"gap\":0},\"outer\":{\"top\":0,\"height\":493,\"total\":493,\"gap\":0},\"latestText\":true},{\"inner\":{\"top\":144,\"height\":180,\"total\":324,\"gap\":0},\"outer\":{\"top\":0,\"height\":493,\"total\":493,\"gap\":0},\"latestText\":true},{\"inner\":{\"top\":169,\"height\":180,\"total\":349,\"gap\":0},\"outer\":{\"top\":0,\"height\":493,\"total\":493,\"gap\":0},\"latestText\":true},{\"inner\":{\"top\":194,\"height\":180,\"total\":374,\"gap\":0},\"outer\":{\"top\":0,\"height\":493,\"total\":493,\"gap\":0},\"latestText\":true},{\"inner\":{\"top\":194,\"height\":180,\"total\":374,\"gap\":0},\"outer\":{\"top\":0,\"height\":493,\"total\":493,\"gap\":0},\"latestText\":true},{\"inner\":{\"top\":218,\"height\":180,\"total\":398,\"gap\":0},\"outer\":{\"top\":0,\"height\":493,\"total\":493,\"gap\":0},\"latestText\":true},{\"inner\":{\"top\":218,\"height\":180,\"total\":398,\"gap\":0},\"outer\":{\"top\":0,\"height\":493,\"total\":493,\"gap\":0},\"latestText\":true},{\"inner\":{\"top\":243,\"height\":180,\"total\":423,\"gap\":0},\"outer\":{\"top\":0,\"height\":493,\"total\":493,\"gap\":0},\"latestText\":true},{\"inner\":{\"top\":243,\"height\":180,\"total\":423,\"gap\":0},\"outer\":{\"top\":0,\"height\":493,\"total\":493,\"gap\":0},\"latestText\":true}]}\n"
+                    },
+                    {
+                      "text": "reasoning follow sample {\"stage\":\"after user wheel\",\"pausedAt\":123,\"pausedAfter\":{\"top\":123,\"total\":472,\"bottomGap\":169}}\n"
+                    },
+                    {
+                      "text": "reasoning follow sample {\"stage\":\"user returned to latest\",\"resumed\":{\"top\":292,\"total\":472,\"bottomGap\":0},\"outer\":{\"top\":0,\"height\":493,\"total\":493}}\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-04T10:34:29.307Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5c988721aa3c742a2515-4f8b12ed1ca2220af2be",
+          "file": "chat-reasoning.spec.ts",
+          "line": 277,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-04T10:33:47.362Z",
+    "duration": 57786.352,
+    "expected": 14,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

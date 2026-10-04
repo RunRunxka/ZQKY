@@ -14,6 +14,7 @@ const independentRoots = new Set([
   '/books',
   '/courses',
   '/question-bank',
+  '/assessments',
   '/learning-analysis',
   '/practices',
 ]);

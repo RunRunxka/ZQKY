@@ -1,0 +1,81 @@
+{
+  "capturedAt": "2026-10-02T08:47:40.495177+00:00",
+  "status": "incomplete_awaiting_frontend_external_state",
+  "objectiveComplete": false,
+  "branch": "main",
+  "head": "6aeb57280f6a7e0d7391cad4d150745479ea58ec",
+  "stagedFiles": [],
+  "candidateVersion": "g1-r2",
+  "candidateCount": 826,
+  "candidateManifestSHA256": "9471f43eb5ba9cde9d79ab65b84f5cf1fcd607729b1ad2388d2bfde5c78a072b",
+  "sourceDrift": [],
+  "protectedEvidenceCount": 629,
+  "protectedEvidenceDrift": [],
+  "nextEnvMatchesOriginal": true,
+  "nextEnvSHA256": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc",
+  "productFilesChangedFromStart": 13,
+  "testFilesChangedFromStart": 8,
+  "G1": {
+    "eightIndependentCorrectBehaviors": "pass",
+    "overallGate": "incomplete",
+    "check": {
+      "exitCode": 0,
+      "unitFiles": 109,
+      "unitPassed": 1088
+    },
+    "api": {
+      "exitCode": 0,
+      "passed": 1599,
+      "skipped": 1
+    },
+    "scoreSpecialist": {
+      "passed": 169,
+      "skipped": 0,
+      "scale200x100": "pass"
+    },
+    "independentSingleRuns": [
+      {
+        "xml": "v00-jobs/independent-first.xml",
+        "passed": 52,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "xml": "v00-score-qb/accepted-v2.xml",
+        "passed": 53,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "xml": "v00-fe/component-third.xml",
+        "passed": 20,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "xml": "v00-fe/real-api-third.xml",
+        "passed": 1,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ],
+    "actualBrowser": "not_run",
+    "e2e": "not_run",
+    "affectedChatBrowserRegression": "not_run"
+  },
+  "B4": "not_started",
+  "approvalRejection": {
+    "action": "Start isolated Next frontend on 127.0.0.1:5174",
+    "reason": "blocked by policy",
+    "bypassed": false
+  },
+  "resources": "RESOURCES.json",
+  "report": "REPORT.md",
+  "reportSHA256": "76df6c2f82ae318617ee54da379ef619f97db09a504bc1c2e609818d66fbdf56",
+  "authorityDocuments": "AUTHORITY-DOCUMENTS.json",
+  "gitWriteOperations": "none"
+}

@@ -7,6 +7,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEntrance } from '@/components/motion/useEntrance';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Sparkles } from 'lucide-react';
@@ -102,6 +103,7 @@ export function ReviewWorkspace({ importId, returnPracticeSetId }: { importId: s
 }
 
 function ReviewSession({ importId, returnPracticeSetId }: { importId: string; returnPracticeSetId?: string }) {
+  const pageRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const mountedRef = useRef(false);
   const loadEpochRef = useRef(0);
@@ -115,6 +117,7 @@ function ReviewSession({ importId, returnPracticeSetId }: { importId: string; re
     };
   }, []);
   const [state, setState] = useState<LoadState>({ phase: 'loading' });
+  useEntrance(pageRef, { preset: 'page', triggerKey: importId, enabled: state.phase === 'ready' });
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
   const [pageNotice, setPageNotice] = useState<{ kind: 'error' | 'info'; text: string } | null>(
     null,
@@ -591,8 +594,8 @@ function ReviewSession({ importId, returnPracticeSetId }: { importId: string; re
   }
 
   return (
-    <div className="space-page question-bank-page">
-      <header className="space-header">
+    <div ref={pageRef} className="space-page question-bank-page">
+      <header className="space-header" data-motion-reveal>
         <Link className="space-back qb-back" href="/question-bank">
           <ArrowLeft size={14} aria-hidden />
           返回题库
@@ -656,7 +659,7 @@ function ReviewSession({ importId, returnPracticeSetId }: { importId: string; re
               </div>
             ) : (
               <>
-                <nav className="qb-draft-strip" aria-label="草稿列表">
+                <nav className="qb-draft-strip" aria-label="草稿列表" data-motion-reveal>
                   {drafts.map((draft, position) => (
                     <button
                       key={draft.draftId}
@@ -685,7 +688,7 @@ function ReviewSession({ importId, returnPracticeSetId }: { importId: string; re
                   ))}
                 </nav>
 
-                <div className="qb-review-layout">
+                <div className="qb-review-layout" data-motion-reveal>
                   <SourcePane draft={selectedDraft} unassignedBlocks={detail.unassignedBlocks} />
                   {selectedDraft && (
                     <fieldset disabled={confirmationLocked} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>

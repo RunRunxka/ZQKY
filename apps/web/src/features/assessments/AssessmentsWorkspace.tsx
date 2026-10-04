@@ -10,7 +10,8 @@
  * 真实数据全部来自 FastAPI（名单/原卷/施测/成绩端点）；本页不伪造任何"已入库"状态。
  */
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { useEntrance } from '@/components/motion/useEntrance';
 import '@/components/layout/space.css';
 import '@/features/assessments/styles/assessments.css';
 import { RosterPanel } from './RosterPanel';
@@ -30,6 +31,12 @@ const STEPS: { id: Step; label: string }[] = [
 ];
 
 export function AssessmentsWorkspace({ initialAssessmentId, initialStep }: { initialAssessmentId?: string; initialStep?: 'score' | 'history' } = {}) {
+  const pageRef = useRef<HTMLDivElement>(null);
+  const rosterPanelRef = useRef<HTMLElement>(null);
+  const paperPanelRef = useRef<HTMLElement>(null);
+  const assessmentPanelRef = useRef<HTMLElement>(null);
+  const scorePanelRef = useRef<HTMLElement>(null);
+  const historyPanelRef = useRef<HTMLElement>(null);
   const [step, setStep] = useState<Step>(initialStep ?? 'roster');
   /** 到过的步骤才挂载面板：没看过的重面板（大矩阵/大批次）不参与首屏渲染。 */
   const [visited, setVisited] = useState<Set<Step>>(() => new Set<Step>([initialStep ?? 'roster']));
@@ -39,6 +46,13 @@ export function AssessmentsWorkspace({ initialAssessmentId, initialStep }: { ini
   const [selectedAssessmentId, setSelectedAssessmentId] = useState<string | null>(initialAssessmentId ?? null);
   const [refreshToken, setRefreshToken] = useState(0);
   const [rosterRefreshToken, setRosterRefreshToken] = useState(0);
+
+  useEntrance(pageRef, { preset: 'page' });
+  useEntrance(rosterPanelRef, { preset: 'panel', enabled: step === 'roster' });
+  useEntrance(paperPanelRef, { preset: 'panel', enabled: step === 'paper' });
+  useEntrance(assessmentPanelRef, { preset: 'panel', enabled: step === 'assessment' });
+  useEntrance(scorePanelRef, { preset: 'panel', enabled: step === 'score' });
+  useEntrance(historyPanelRef, { preset: 'panel', enabled: step === 'history' });
 
   function go(next: Step) {
     setVisited((prev) => (prev.has(next) ? prev : new Set(prev).add(next)));
@@ -51,8 +65,8 @@ export function AssessmentsWorkspace({ initialAssessmentId, initialStep }: { ini
   }
 
   return (
-    <div className="space-page assessments-page">
-      <header className="space-header">
+    <div ref={pageRef} className="space-page assessments-page">
+      <header className="space-header" data-motion-reveal>
         <h1>施测与成绩</h1>
         <p className="space-description">
           按「名单 → 原卷 → 施测 → 成绩 → 历史」完成一次真实测评闭环：成绩只接受教师原始
@@ -61,7 +75,7 @@ export function AssessmentsWorkspace({ initialAssessmentId, initialStep }: { ini
       </header>
 
       <main className="space-content">
-        <nav className="space-tabs" role="tablist" aria-label="施测与成绩步骤">
+        <nav className="space-tabs" role="tablist" aria-label="施测与成绩步骤" data-motion-reveal>
           {STEPS.map((entry) => (
             <button
               key={entry.id}
@@ -78,7 +92,7 @@ export function AssessmentsWorkspace({ initialAssessmentId, initialStep }: { ini
           ))}
         </nav>
 
-        <div className="assessments-context" aria-live="polite">
+        <div className="assessments-context" aria-live="polite" data-motion-reveal>
           <span className="space-chip">
             班级：{selectedClassName ?? selectedClassId ?? '未选择'}
           </span>
@@ -91,6 +105,7 @@ export function AssessmentsWorkspace({ initialAssessmentId, initialStep }: { ini
         </div>
 
         <section
+          ref={rosterPanelRef}
           role="tabpanel"
           id="assessments-panel-roster"
           aria-labelledby="assessments-tab-roster"
@@ -107,6 +122,7 @@ export function AssessmentsWorkspace({ initialAssessmentId, initialStep }: { ini
         </section>
 
         <section
+          ref={paperPanelRef}
           role="tabpanel"
           id="assessments-panel-paper"
           aria-labelledby="assessments-tab-paper"
@@ -122,6 +138,7 @@ export function AssessmentsWorkspace({ initialAssessmentId, initialStep }: { ini
         </section>
 
         <section
+          ref={assessmentPanelRef}
           role="tabpanel"
           id="assessments-panel-assessment"
           aria-labelledby="assessments-tab-assessment"
@@ -144,6 +161,7 @@ export function AssessmentsWorkspace({ initialAssessmentId, initialStep }: { ini
         </section>
 
         <section
+          ref={scorePanelRef}
           role="tabpanel"
           id="assessments-panel-score"
           aria-labelledby="assessments-tab-score"
@@ -166,6 +184,7 @@ export function AssessmentsWorkspace({ initialAssessmentId, initialStep }: { ini
         </section>
 
         <section
+          ref={historyPanelRef}
           role="tabpanel"
           id="assessments-panel-history"
           aria-labelledby="assessments-tab-history"

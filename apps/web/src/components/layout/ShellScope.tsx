@@ -1,6 +1,7 @@
 'use client';
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, useRef, type ReactNode } from 'react';
 import { WorkspaceShell } from './WorkspaceShell';
+import { useEntrance } from '@/components/motion/useEntrance';
 
 /**
  * 公共壳的提供状态（R-06）。
@@ -22,7 +23,13 @@ export function ShellScope({ provided, children }: { provided: boolean; children
  */
 export function StatusShell({ pageTitle, children }: { pageTitle: string; children: ReactNode }) {
   const provided = useContext(ShellProvidedContext);
-  const content = <main className="status-page">{children}</main>;
+  const ref = useRef<HTMLElement>(null);
+  useEntrance(ref, { preset: 'page', triggerKey: pageTitle });
+  const content = (
+    <main className="status-page" ref={ref}>
+      {children}
+    </main>
+  );
   if (provided) return content;
   return <WorkspaceShell pageTitle={pageTitle}>{content}</WorkspaceShell>;
 }

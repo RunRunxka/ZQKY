@@ -1,13 +1,17 @@
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { WorkspaceShell } from './WorkspaceShell';
+import { ModuleWorkspaceShell } from './ModuleWorkspaceShell';
 import { NavigationPreference, useNavigationPreference } from './NavigationPreference';
 import { navigation } from '@/services/navigation';
 
-const { push } = vi.hoisted(() => ({ push: vi.fn() }));
+const { push, location } = vi.hoisted(() => ({
+  push: vi.fn(),
+  location: { pathname: '/lesson-plans' },
+}));
 vi.mock('next/navigation', () => ({
-  usePathname: () => '/lesson-plans',
+  usePathname: () => location.pathname,
   useRouter: () => ({ push }),
 }));
 
@@ -23,6 +27,8 @@ function renderShell() {
 
 describe('WorkspaceShell 导航', () => {
   beforeEach(() => {
+    location.pathname = '/lesson-plans';
+    push.mockClear();
     localStorage.removeItem('zhiqikeyuan:nav-expanded');
     HTMLDialogElement.prototype.showModal = function () {
       this.open = true;
@@ -35,6 +41,25 @@ describe('WorkspaceShell 导航', () => {
       .mockReturnValue({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() });
   });
   afterEach(cleanup);
+
+  it('施测工作区保留内容并提供唯一公共导航，可返回学习问答', async () => {
+    location.pathname = '/assessments';
+    render(
+      <NavigationPreference>
+        <ModuleWorkspaceShell>
+          <main>成绩校对内容</main>
+        </ModuleWorkspaceShell>
+      </NavigationPreference>,
+    );
+    expect(screen.getByText('成绩校对内容')).toBeVisible();
+    expect(screen.getAllByRole('navigation', { name: '项目功能导航' })).toHaveLength(1);
+    expect(screen.getByRole('button', { name: '施测与成绩' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    fireEvent.click(screen.getByRole('button', { name: '学习问答' }));
+    await waitFor(() => expect(push).toHaveBeenCalledWith('/chat'));
+  });
 
   it('渲染全部登记入口（隐藏项除外），规划中模块的可访问名称统一携带状态', () => {
     renderShell();

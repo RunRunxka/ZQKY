@@ -1,0 +1,7 @@
+{
+  "command": "node docs/qa/TEACHING-LOOP-G1-RESUME-B4-20261002/audit/verify_supplement.mjs",
+  "exitCode": 0,
+  "elapsedMs": 138,
+  "capturedAt": "2026-10-02T17:40:20.5940306+08:00",
+  "kind": "static follow-up verification of actual corrected QA receipts; no checks rerun by auditor"
+}

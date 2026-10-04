@@ -1,0 +1,644 @@
+{
+  "task": "B6-QUALITY-v1",
+  "pid": 24108,
+  "durationMs": 7884.848,
+  "caseCount": 15,
+  "technicalStructurePassed": 15,
+  "teacherReviewStatus": "teacher_review_pending",
+  "liveStatus": "live_run待输入",
+  "dataRoot": "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b5-b6-quality-offline-third-nfyoaa05\\data",
+  "settingsCredentialsFile": null,
+  "tcpListenersStarted": 0,
+  "providerHTTPTransportSubstitutedOnly": true,
+  "caseSpecsSHA": "353e56e4f756403b8fb724b73613a2138d9d8a71ca460b3df6143e597497dd55",
+  "seedHelperSHA": "e6698fa29e7b3112225d7e679ec320c78eef39b9eab8be71e03a8bffbb73d03e",
+  "promptVersion": "lesson_generation.SYSTEM_PROMPT@sha256:8bc95fe6117ac09601851bd6aa2d19338d9de31f9196fe1e7ed71df746489af8",
+  "results": [
+    {
+      "caseId": "C01",
+      "expectedSHA": "a8aec261cccc4063a5dbf3b9d4d2f0d49331dd60d663a61332743ac122bc526a",
+      "caseHash": "43ff33b1fa452b318a2e15c270f3d22bf4302a3872667d8b9093765665025d77",
+      "hashes": {
+        "case.json": "43ff33b1fa452b318a2e15c270f3d22bf4302a3872667d8b9093765665025d77",
+        "source-snapshots.json": "8b24c204401b90c2f9bde26f5f0dabf93390ae884d84ab80bcc3097f3bd0d9b4",
+        "input.json": "9c6ec978a0795a6507fae5046d6a2119b3634590519023a55c62bc9ec87c46eb",
+        "input-frozen.json": "3d4e78fda4f52d364a994b112d48282159a0634e90f1ff6d7da3c80d82965230",
+        "wire.json": "dbb3517f3466d15513493916798c5b91035bf658d2f092d7cefeb32dcf8d8120",
+        "original-lesson.json": "3dc6f4d1157e28f7a43d6d0b56601103352f4cb1dd273340a4aa98f703538efc",
+        "candidate.json": "b7d55bd6e10eaad68273becb93cb5ed0074ef5a57cef233817f2e271d7fec949",
+        "selected-fields.json": "b846e9d404106781a2821b353a4c5b834f78802b07b4d2ef89335af138576231",
+        "applied-result.json": "21ec3db259bc9ebb9dcd2d3992e193779895872da00dee87dccb745194873992",
+        "fixed-export-input.json": "64b8704cfe8a76dafef523d9c6122bd5a90a8cc1c5a88aa08ad6b2622d7b2c78"
+      },
+      "rawSHA": "ccf7a8ae68ee582ca3db92093c08d6b727cb490352efe15e3ceb3392dab8a441",
+      "modelFingerprint": "sha256:089d61e50cc6effd281832f34260a5ffd297fea51bbfd8e9a20c7939a0db7ab9",
+      "promptVersion": "lesson_generation.SYSTEM_PROMPT@sha256:8bc95fe6117ac09601851bd6aa2d19338d9de31f9196fe1e7ed71df746489af8",
+      "durationMs": 409.533,
+      "usage": {
+        "inputTokens": null,
+        "outputTokens": null,
+        "reason": "offline HTTP reply has no actual billable model usage"
+      },
+      "failure": null,
+      "providerTransportCalls": 1,
+      "technicalStructure": "PASS",
+      "qualityVerdict": "teacher_review_pending",
+      "liveStatus": "live_run待输入",
+      "materialCase": "positive",
+      "requestedClaimSupported": true,
+      "coverageGap": null,
+      "shortcomings": [
+        "Transport reply is handwritten fixture, not real AI teaching-quality evidence",
+        "Human must judge facts interpretation, relevance, activities and feasibility",
+        "RAG-REL remains OPEN; selected-evidence structural verification is not search refusal quality"
+      ],
+      "docxStatus": "pending_existing_exporter",
+      "humanScores": null
+    },
+    {
+      "caseId": "C02",
+      "expectedSHA": "ac6deb8e69f07398e55ae868f1d8e7b22efcfce72243530f0d9083f4bbfb63ac",
+      "caseHash": "b929d25df718e8f8df71179fbe3e86d47076a20a1b06960bad9343cc5bd9d0e3",
+      "hashes": {
+        "case.json": "b929d25df718e8f8df71179fbe3e86d47076a20a1b06960bad9343cc5bd9d0e3",
+        "source-snapshots.json": "b857bf5e385540e96274b25d85c90a763178d9f39dd35e5ca5961c64cb87bea4",
+        "input.json": "bf2713f0108acd7a178608defbce8c0aed71d24bbf7da8df5198a9992c908e45",
+        "input-frozen.json": "ef9b08debf9dc66aa75f40f31e7d986a4690f64d751fb0309ca2d8b9dfb72fe7",
+        "wire.json": "dbb3517f3466d15513493916798c5b91035bf658d2f092d7cefeb32dcf8d8120",
+        "original-lesson.json": "2113bf48d34d8034163e0434be2c154b5f86475d67579d75d1563345726dd70b",
+        "candidate.json": "58c9a731c0d75fbe7ac5033ab7fdfb5f5fc23e9601bac76dc5d998ea08b36050",
+        "selected-fields.json": "b846e9d404106781a2821b353a4c5b834f78802b07b4d2ef89335af138576231",
+        "applied-result.json": "7cc2708855ec6317ebdd10620cf902e2ef92111e3c1fae25c8c9402cda316aa3",
+        "fixed-export-input.json": "56e6c7c6240b22c3d5d15d293045d07cc0118e5afe0b3c071b36eebfad85ab69"
+      },
+      "rawSHA": "ccf7a8ae68ee582ca3db92093c08d6b727cb490352efe15e3ceb3392dab8a441",
+      "modelFingerprint": "sha256:089d61e50cc6effd281832f34260a5ffd297fea51bbfd8e9a20c7939a0db7ab9",
+      "promptVersion": "lesson_generation.SYSTEM_PROMPT@sha256:8bc95fe6117ac09601851bd6aa2d19338d9de31f9196fe1e7ed71df746489af8",
+      "durationMs": 409.118,
+      "usage": {
+        "inputTokens": null,
+        "outputTokens": null,
+        "reason": "offline HTTP reply has no actual billable model usage"
+      },
+      "failure": null,
+      "providerTransportCalls": 1,
+      "technicalStructure": "PASS",
+      "qualityVerdict": "teacher_review_pending",
+      "liveStatus": "live_run待输入",
+      "materialCase": "positive",
+      "requestedClaimSupported": true,
+      "coverageGap": null,
+      "shortcomings": [
+        "Transport reply is handwritten fixture, not real AI teaching-quality evidence",
+        "Human must judge facts interpretation, relevance, activities and feasibility",
+        "RAG-REL remains OPEN; selected-evidence structural verification is not search refusal quality"
+      ],
+      "docxStatus": "pending_existing_exporter",
+      "humanScores": null
+    },
+    {
+      "caseId": "C03",
+      "expectedSHA": "d3fd179f057081993e89a0a630758ade93b6c04b5ac7e48088449c88154b14ab",
+      "caseHash": "7fe9fc13a4614c8941e72ee5e9da1690591bcda0f1653110bf1c47d2c84e2785",
+      "hashes": {
+        "case.json": "7fe9fc13a4614c8941e72ee5e9da1690591bcda0f1653110bf1c47d2c84e2785",
+        "source-snapshots.json": "e2a1a4a06678866ee616fc1cbad4400b93c9db9081754f8d0172eb255582f7e6",
+        "input.json": "142227cb98742328499a09db7bf2d686e6626abe8f508f38270623dbaa1da846",
+        "input-frozen.json": "54273161ff6cabd5b1e43f32406483616f635053e820aaffe2d4922439f28c87",
+        "wire.json": "df3359c87a5f564fb0f112b53ebfe68e059b8ec150353aa21928460ed01c5426",
+        "original-lesson.json": "98e22eb22e8e22937da48aef72291943c1f8fb3b6c331a62af437da733d75858",
+        "candidate.json": "adc2258df905a25da93d37115e389c31a951649d8a9be22b0601e0a279aaa2da",
+        "selected-fields.json": "b846e9d404106781a2821b353a4c5b834f78802b07b4d2ef89335af138576231",
+        "applied-result.json": "675ec3b4b23914920396c1c9126b06bcdac4e88a9302762fa78436e46320cb20",
+        "fixed-export-input.json": "12e8b4ca9e1302f7625eb1113550246a770cb97d2af7ec08cded147cee18ba68"
+      },
+      "rawSHA": "d1cb9e1f89b167969ba2a8424134b9af5bfb05b982c8610d7e96bc195093f4de",
+      "modelFingerprint": "sha256:089d61e50cc6effd281832f34260a5ffd297fea51bbfd8e9a20c7939a0db7ab9",
+      "promptVersion": "lesson_generation.SYSTEM_PROMPT@sha256:8bc95fe6117ac09601851bd6aa2d19338d9de31f9196fe1e7ed71df746489af8",
+      "durationMs": 409.401,
+      "usage": {
+        "inputTokens": null,
+        "outputTokens": null,
+        "reason": "offline HTTP reply has no actual billable model usage"
+      },
+      "failure": null,
+      "providerTransportCalls": 1,
+      "technicalStructure": "PASS",
+      "qualityVerdict": "teacher_review_pending",
+      "liveStatus": "live_run待输入",
+      "materialCase": "positive",
+      "requestedClaimSupported": true,
+      "coverageGap": null,
+      "shortcomings": [
+        "Transport reply is handwritten fixture, not real AI teaching-quality evidence",
+        "Human must judge facts interpretation, relevance, activities and feasibility",
+        "RAG-REL remains OPEN; selected-evidence structural verification is not search refusal quality"
+      ],
+      "docxStatus": "pending_existing_exporter",
+      "humanScores": null
+    },
+    {
+      "caseId": "C04",
+      "expectedSHA": "5539fb1937234829144c235a1a5f1aabe4bff94be7de96dc20d8ac5575f6bd8c",
+      "caseHash": "ceb8253a106170c1487273f60b18ea3ef409c7470a3591b244019fbdaa98c913",
+      "hashes": {
+        "case.json": "ceb8253a106170c1487273f60b18ea3ef409c7470a3591b244019fbdaa98c913",
+        "source-snapshots.json": "2c35db310acb62c325085751d56cce45763f15084fd54ce9939c3bb4392141f1",
+        "input.json": "d1d72b2c309d80aeeeacc6d2f800f28e31a08ad26fa03ff9543e48d67ae5d3df",
+        "input-frozen.json": "2f5cc08536c3166eeed8d40077f1c70802f1ed11caca7775c8b559c6a0f5dfd4",
+        "wire.json": "f3f37caadd049e01622b411439011b3d972653613bdfb7b39f76ebb351563f21",
+        "original-lesson.json": "ff45f99d1e2c488ac9863096892b762d63c8244901307a8199fc00450673c603",
+        "candidate.json": "3bba9e060ccfa35f93c5e4276cb080eb0d17dc0c5febc4c90ffe4c113f721ed8",
+        "selected-fields.json": "b846e9d404106781a2821b353a4c5b834f78802b07b4d2ef89335af138576231",
+        "applied-result.json": "bd7e6cdc372b1e448c7b05a077e3c33cb32ab8891fc8f45b2961088f347322d6",
+        "fixed-export-input.json": "147029a8682a989477a65d02d858614fc5e4774b8605b62347e1a7591caa9985"
+      },
+      "rawSHA": "2d4f3a28a7ed9ab5a2d6a77f0934cbe711ea9a2e9b6069bd64bae9180e6c71f3",
+      "modelFingerprint": "sha256:089d61e50cc6effd281832f34260a5ffd297fea51bbfd8e9a20c7939a0db7ab9",
+      "promptVersion": "lesson_generation.SYSTEM_PROMPT@sha256:8bc95fe6117ac09601851bd6aa2d19338d9de31f9196fe1e7ed71df746489af8",
+      "durationMs": 419.72,
+      "usage": {
+        "inputTokens": null,
+        "outputTokens": null,
+        "reason": "offline HTTP reply has no actual billable model usage"
+      },
+      "failure": null,
+      "providerTransportCalls": 1,
+      "technicalStructure": "PASS",
+      "qualityVerdict": "teacher_review_pending",
+      "liveStatus": "live_run待输入",
+      "materialCase": "positive",
+      "requestedClaimSupported": true,
+      "coverageGap": null,
+      "shortcomings": [
+        "Transport reply is handwritten fixture, not real AI teaching-quality evidence",
+        "Human must judge facts interpretation, relevance, activities and feasibility",
+        "RAG-REL remains OPEN; selected-evidence structural verification is not search refusal quality"
+      ],
+      "docxStatus": "pending_existing_exporter",
+      "humanScores": null
+    },
+    {
+      "caseId": "C05",
+      "expectedSHA": "eaf045822b7bc1088f2aaf4b717b76e099c5f2d68106f54fe6b0dc15dc631c5d",
+      "caseHash": "98113c8c0b4478da5e0a3747b4d194a7bf2ebb07d0168f002fd3ebb846f90a75",
+      "hashes": {
+        "case.json": "98113c8c0b4478da5e0a3747b4d194a7bf2ebb07d0168f002fd3ebb846f90a75",
+        "source-snapshots.json": "3a07ad17ff0aeb6f6c11413bba40da84c38a6577f6f0305b22d5498da1a2a9e7",
+        "input.json": "72abc24a95bf0b48d1462661ee4ac0bd5971426eca136fb8c31608b2ea6bcf0d",
+        "input-frozen.json": "af3a38b9ee010e1dce009660c5f5919d9e32fbea92eb67816e02d1e5d9fc794c",
+        "wire.json": "8a24906ce54763df46922249bc69f18d1f9bd4477ed90b57fb63074ac019ca87",
+        "original-lesson.json": "5e13f8c722f003b65f1df8e1b34784be0035a39432d02bf72597503747a523a8",
+        "candidate.json": "3f614309f183630658e2ad5d0690ce3238f4f6d9e046634301ddc08325043fb8",
+        "selected-fields.json": "b846e9d404106781a2821b353a4c5b834f78802b07b4d2ef89335af138576231",
+        "applied-result.json": "6af9af835328555794e0171efce36538f72aacb411655a798dc72f9d0311f969",
+        "fixed-export-input.json": "64ace0fcfa6efbe28ebf0d88bac6a4fc2917ebbab7027f01fdc8dc834e568064"
+      },
+      "rawSHA": "df69dbf573fb9ec16f017b1df12a321399bbdcdcdedb7acf49b4509d99bf2fb2",
+      "modelFingerprint": "sha256:089d61e50cc6effd281832f34260a5ffd297fea51bbfd8e9a20c7939a0db7ab9",
+      "promptVersion": "lesson_generation.SYSTEM_PROMPT@sha256:8bc95fe6117ac09601851bd6aa2d19338d9de31f9196fe1e7ed71df746489af8",
+      "durationMs": 416.024,
+      "usage": {
+        "inputTokens": null,
+        "outputTokens": null,
+        "reason": "offline HTTP reply has no actual billable model usage"
+      },
+      "failure": null,
+      "providerTransportCalls": 1,
+      "technicalStructure": "PASS",
+      "qualityVerdict": "teacher_review_pending",
+      "liveStatus": "live_run待输入",
+      "materialCase": "positive",
+      "requestedClaimSupported": true,
+      "coverageGap": null,
+      "shortcomings": [
+        "Transport reply is handwritten fixture, not real AI teaching-quality evidence",
+        "Human must judge facts interpretation, relevance, activities and feasibility",
+        "RAG-REL remains OPEN; selected-evidence structural verification is not search refusal quality"
+      ],
+      "docxStatus": "pending_existing_exporter",
+      "humanScores": null
+    },
+    {
+      "caseId": "C06",
+      "expectedSHA": "dce908b01e2f145b08a39f7d85ba6b0998e604eb1d028b0c1997a598a6b34f4e",
+      "caseHash": "923e3f82a5781d5880fa8e7293d77784b93a8e25bd49ac8025794a768ced86a5",
+      "hashes": {
+        "case.json": "923e3f82a5781d5880fa8e7293d77784b93a8e25bd49ac8025794a768ced86a5",
+        "source-snapshots.json": "a7c0da32a54bb693f209c1d35b22f3050d8e1e48471421b81aace1a62a1ef80c",
+        "input.json": "f2170e735afc480027b23da8e2fed9da28c2fe4d47d6b93686d7ebbbc71183aa",
+        "input-frozen.json": "8411e863ba4ac9cd03cf4d636a1ee82113ac6e8d3aad0e15d2b9a594905f93fa",
+        "wire.json": "dbb3517f3466d15513493916798c5b91035bf658d2f092d7cefeb32dcf8d8120",
+        "original-lesson.json": "f53118d6f5c5a2b208de73aa2d465bd01a488d06e23baab6a28d514f27923d3c",
+        "candidate.json": "f42726c22254fe690ea4f875214d3ba2a202499dbf56fd7c57a81b1875ffc5f7",
+        "selected-fields.json": "b846e9d404106781a2821b353a4c5b834f78802b07b4d2ef89335af138576231",
+        "applied-result.json": "d6f811263ec1b1f686e2733768348f5f2607174a2b825dba1c8e6d46b22af8df",
+        "fixed-export-input.json": "4bc076568fe7e1eb34088e3c1aae5a56e4fbd4419c89f583c64b649eec4285d2"
+      },
+      "rawSHA": "09d290626bf6fa0e58a38661a07bdf20d09e48e65c4c037c24559d2b2f36e93a",
+      "modelFingerprint": "sha256:089d61e50cc6effd281832f34260a5ffd297fea51bbfd8e9a20c7939a0db7ab9",
+      "promptVersion": "lesson_generation.SYSTEM_PROMPT@sha256:8bc95fe6117ac09601851bd6aa2d19338d9de31f9196fe1e7ed71df746489af8",
+      "durationMs": 469.307,
+      "usage": {
+        "inputTokens": null,
+        "outputTokens": null,
+        "reason": "offline HTTP reply has no actual billable model usage"
+      },
+      "failure": null,
+      "providerTransportCalls": 1,
+      "technicalStructure": "PASS",
+      "qualityVerdict": "teacher_review_pending",
+      "liveStatus": "live_run待输入",
+      "materialCase": "positive",
+      "requestedClaimSupported": true,
+      "coverageGap": null,
+      "shortcomings": [
+        "Transport reply is handwritten fixture, not real AI teaching-quality evidence",
+        "Human must judge facts interpretation, relevance, activities and feasibility",
+        "RAG-REL remains OPEN; selected-evidence structural verification is not search refusal quality"
+      ],
+      "docxStatus": "pending_existing_exporter",
+      "humanScores": null
+    },
+    {
+      "caseId": "C07",
+      "expectedSHA": "a0079e41543c1697996da086ee8bde9a4330c812cb2620d1603476db63c09443",
+      "caseHash": "76b766b9d3d90e8591d64f0cff24dbeaddcc326a9ab83882b0e2bf4337f1d9a8",
+      "hashes": {
+        "case.json": "76b766b9d3d90e8591d64f0cff24dbeaddcc326a9ab83882b0e2bf4337f1d9a8",
+        "source-snapshots.json": "296b5fc0903cca92a76e178c5c2e8334d5447e0356df7e7c075106196d8c3eeb",
+        "input.json": "90e36a248c375821cad6b006a3cd6c0639fb4736457964a260c81e5259ffa15a",
+        "input-frozen.json": "0dfff647b1a4ead819934c12263bed4fcb389b20eba96c163dc42dec357f4b09",
+        "wire.json": "a259955c447bd788d568c8ce9bd6581f6f18359edfb7a1056d7e7fba595482c6",
+        "original-lesson.json": "ff91c087ab1446366412acab6e162f505d22b6eeee7e3c1cf7248b94a0b955b2",
+        "candidate.json": "aa51f138fe17ff85b8671629f2a3486d55c68a89dd45a179afd23fae0a2f000b",
+        "selected-fields.json": "b846e9d404106781a2821b353a4c5b834f78802b07b4d2ef89335af138576231",
+        "applied-result.json": "b4f9ba6aa6a982fc4475e6984b0ac89114690447090b582106bf74f02c2fb30d",
+        "fixed-export-input.json": "48fe21a2ccf1abce85377c49369b56250adc1e96de87d92318fc4d85351c1827"
+      },
+      "rawSHA": "63972c72f7b90266b170a9414109b41ee41c6dff8abfa063a0fb4405ffc56d66",
+      "modelFingerprint": "sha256:089d61e50cc6effd281832f34260a5ffd297fea51bbfd8e9a20c7939a0db7ab9",
+      "promptVersion": "lesson_generation.SYSTEM_PROMPT@sha256:8bc95fe6117ac09601851bd6aa2d19338d9de31f9196fe1e7ed71df746489af8",
+      "durationMs": 416.551,
+      "usage": {
+        "inputTokens": null,
+        "outputTokens": null,
+        "reason": "offline HTTP reply has no actual billable model usage"
+      },
+      "failure": null,
+      "providerTransportCalls": 1,
+      "technicalStructure": "PASS",
+      "qualityVerdict": "teacher_review_pending",
+      "liveStatus": "live_run待输入",
+      "materialCase": "positive",
+      "requestedClaimSupported": true,
+      "coverageGap": null,
+      "shortcomings": [
+        "Transport reply is handwritten fixture, not real AI teaching-quality evidence",
+        "Human must judge facts interpretation, relevance, activities and feasibility",
+        "RAG-REL remains OPEN; selected-evidence structural verification is not search refusal quality"
+      ],
+      "docxStatus": "pending_existing_exporter",
+      "humanScores": null
+    },
+    {
+      "caseId": "C08",
+      "expectedSHA": "bab93e41c8605ba414ee0d8d622dcb6397bf21430cd2ab64aa4609268fb0385a",
+      "caseHash": "9571b8e0194071531656245b1dc71f7d9c44234a7e7ac1199eafe8aaeadb1cf0",
+      "hashes": {
+        "case.json": "9571b8e0194071531656245b1dc71f7d9c44234a7e7ac1199eafe8aaeadb1cf0",
+        "source-snapshots.json": "e13edcdb056cf3d516c7d55a62d5f111bb82cf18bb6f09bdb4ccb1cb1c71adc7",
+        "input.json": "0a74695aadaf118f1ab7d938f716ea502322905f75b14cf9a8ddcf43133507d4",
+        "input-frozen.json": "e7b8dad6b7e15e82716ff626e04a3d27320b88193b07464566e68155f38a1957",
+        "wire.json": "dbb3517f3466d15513493916798c5b91035bf658d2f092d7cefeb32dcf8d8120",
+        "original-lesson.json": "67fac40c7d193a26b492e355710ba59e560c69ed36c90f89e8147347f7b8873f",
+        "candidate.json": "71cf193faadf1118970228e75080b0dca3b4e6fcafef1d29949801d3d14b0f9d",
+        "selected-fields.json": "b846e9d404106781a2821b353a4c5b834f78802b07b4d2ef89335af138576231",
+        "applied-result.json": "eba2dc4683305e674309f50ca62bd95819a54b0c7e57eeab5ac555ef94a9dea8",
+        "fixed-export-input.json": "c8664348d294350bac276736d5d00be2e266739e78e4df188162b96de519f0a2"
+      },
+      "rawSHA": "32e36bdbe7f78e7cfec727285cf72df592b0c2b6a5c6046586bf6b4b2ff201cf",
+      "modelFingerprint": "sha256:089d61e50cc6effd281832f34260a5ffd297fea51bbfd8e9a20c7939a0db7ab9",
+      "promptVersion": "lesson_generation.SYSTEM_PROMPT@sha256:8bc95fe6117ac09601851bd6aa2d19338d9de31f9196fe1e7ed71df746489af8",
+      "durationMs": 421.785,
+      "usage": {
+        "inputTokens": null,
+        "outputTokens": null,
+        "reason": "offline HTTP reply has no actual billable model usage"
+      },
+      "failure": null,
+      "providerTransportCalls": 1,
+      "technicalStructure": "PASS",
+      "qualityVerdict": "teacher_review_pending",
+      "liveStatus": "live_run待输入",
+      "materialCase": "positive",
+      "requestedClaimSupported": true,
+      "coverageGap": null,
+      "shortcomings": [
+        "Transport reply is handwritten fixture, not real AI teaching-quality evidence",
+        "Human must judge facts interpretation, relevance, activities and feasibility",
+        "RAG-REL remains OPEN; selected-evidence structural verification is not search refusal quality"
+      ],
+      "docxStatus": "pending_existing_exporter",
+      "humanScores": null
+    },
+    {
+      "caseId": "C09",
+      "expectedSHA": "0f6bcee7982a8cf6c123f053c7ec7a8526e243dfac5cbcb8a6a938d5c96e2d6f",
+      "caseHash": "09e9a523f13bde4c4597466f400ee2e9752c012e80b960ea9a81a65c4f99c7e6",
+      "hashes": {
+        "case.json": "09e9a523f13bde4c4597466f400ee2e9752c012e80b960ea9a81a65c4f99c7e6",
+        "source-snapshots.json": "b57b8cd0069d0c999706954e01c46022875dedeae65b726cefd2a82d383a4947",
+        "input.json": "b163a50e07a0ed65221ec884277d92c0b6d21b4fdf1ec1e4e30bb8b26cd6cb37",
+        "input-frozen.json": "c748667b9b1e04b407d9efe3d30f7a29d6a5d9e966dd888df33cb4e5c0c0c6fb",
+        "wire.json": "2229105c266cf0456299c17345711ffb8609eb6f71b9907d4d2e6ff0229480a6",
+        "original-lesson.json": "8d68101b6ff1041a5cf9b5f1bdb495a15188fc7c5220cfc0c78f6e2b07790c2c",
+        "candidate.json": "14a175e6a2d9123de47e342d59a8c96ad74fef2573f4901149ba534ff4efb8eb",
+        "selected-fields.json": "b846e9d404106781a2821b353a4c5b834f78802b07b4d2ef89335af138576231",
+        "applied-result.json": "908c1c9459218e0d4be2db1efafcabeffcc4fdecde1e71d1d402b73c42fd8173",
+        "fixed-export-input.json": "46b4ea57a73dc438e8da9fae698babe61686593d383e1a4f18a760260f822ef5"
+      },
+      "rawSHA": "7e36285d8e9dca5bce91cdd7b9edbaf8fad2cc79546ac20959d29ebcd8dd474c",
+      "modelFingerprint": "sha256:089d61e50cc6effd281832f34260a5ffd297fea51bbfd8e9a20c7939a0db7ab9",
+      "promptVersion": "lesson_generation.SYSTEM_PROMPT@sha256:8bc95fe6117ac09601851bd6aa2d19338d9de31f9196fe1e7ed71df746489af8",
+      "durationMs": 439.797,
+      "usage": {
+        "inputTokens": null,
+        "outputTokens": null,
+        "reason": "offline HTTP reply has no actual billable model usage"
+      },
+      "failure": null,
+      "providerTransportCalls": 1,
+      "technicalStructure": "PASS",
+      "qualityVerdict": "teacher_review_pending",
+      "liveStatus": "live_run待输入",
+      "materialCase": "positive",
+      "requestedClaimSupported": true,
+      "coverageGap": {
+        "items": [],
+        "requestedCount": 1,
+        "selectedCount": 0,
+        "coverage": {
+          "dc6a7966ce9a4eca8f1962d71a1bf09e": 0
+        },
+        "gaps": [
+          "目标知识点无符合约束的题目：dc6a7966ce9a4eca8f1962d71a1bf09e",
+          "题量缺口：1；请显式补题审核或调整约束。"
+        ]
+      },
+      "shortcomings": [
+        "Transport reply is handwritten fixture, not real AI teaching-quality evidence",
+        "Human must judge facts interpretation, relevance, activities and feasibility",
+        "RAG-REL remains OPEN; selected-evidence structural verification is not search refusal quality"
+      ],
+      "docxStatus": "pending_existing_exporter",
+      "humanScores": null
+    },
+    {
+      "caseId": "C10",
+      "expectedSHA": "c06215c6e58cdb3b47a3cb239a9f699d7050855664de3530028bde949917c18d",
+      "caseHash": "b55e268a0e719fe6fcb087824ab14c97521658cede4525aa78dcc959561517eb",
+      "hashes": {
+        "case.json": "b55e268a0e719fe6fcb087824ab14c97521658cede4525aa78dcc959561517eb",
+        "source-snapshots.json": "dc424e94c6d3a03d94d851e40393c3ce48932033d8bc4899ab9a41271128da5d",
+        "input.json": "5511ca0e5791cfcdd95fa05b5d8bcb5d7c0d5df1bda1ab32131e830d6e8c8097",
+        "input-frozen.json": "9a359b39dadbc55de10f38c7f2d86ec2c9e6d5436224b1b716f3f54d7cd2de34",
+        "wire.json": "dbb3517f3466d15513493916798c5b91035bf658d2f092d7cefeb32dcf8d8120",
+        "original-lesson.json": "c7cf36538abdb67b02f25f46d9ce35730f63a0c12dc448c2478e3b85f3812f6c",
+        "candidate.json": "7d455452c8f7d6f109606624170f7d526aa7ae3c0687e99c294c28960be0e24a",
+        "selected-fields.json": "6f1342170bc0c04157bb644db2f0d8dba261dfc204dde64d8842e0b8ed3cc2c8",
+        "applied-result.json": "4eab5d05718b7524f3f7d54313194f0693ee753083f13b317431ad5e9b17ce1d",
+        "fixed-export-input.json": "95e0646e643a0a35028193b7ba08a5184d25113dc5dd9a7453580a2049441929"
+      },
+      "rawSHA": "ccf7a8ae68ee582ca3db92093c08d6b727cb490352efe15e3ceb3392dab8a441",
+      "modelFingerprint": "sha256:089d61e50cc6effd281832f34260a5ffd297fea51bbfd8e9a20c7939a0db7ab9",
+      "promptVersion": "lesson_generation.SYSTEM_PROMPT@sha256:8bc95fe6117ac09601851bd6aa2d19338d9de31f9196fe1e7ed71df746489af8",
+      "durationMs": 431.969,
+      "usage": {
+        "inputTokens": null,
+        "outputTokens": null,
+        "reason": "offline HTTP reply has no actual billable model usage"
+      },
+      "failure": null,
+      "providerTransportCalls": 1,
+      "technicalStructure": "PASS",
+      "qualityVerdict": "teacher_review_pending",
+      "liveStatus": "live_run待输入",
+      "materialCase": "positive",
+      "requestedClaimSupported": true,
+      "coverageGap": null,
+      "shortcomings": [
+        "Transport reply is handwritten fixture, not real AI teaching-quality evidence",
+        "Human must judge facts interpretation, relevance, activities and feasibility",
+        "RAG-REL remains OPEN; selected-evidence structural verification is not search refusal quality"
+      ],
+      "docxStatus": "pending_existing_exporter",
+      "humanScores": null
+    },
+    {
+      "caseId": "C11",
+      "expectedSHA": "79d72c0529c2594ec80d57329f1c9f0cd58d1dc39eed6b4d73ad0213c7b76322",
+      "caseHash": "631bd8b0df9462a69146d35c2c11a9a40803f5823f21084e9e3ae1b1981783f1",
+      "hashes": {
+        "case.json": "631bd8b0df9462a69146d35c2c11a9a40803f5823f21084e9e3ae1b1981783f1",
+        "source-snapshots.json": "8ef0333097e075d9d508e9a5084e026bfe3cb0aca5adeccdbbdf532207baaf65",
+        "input.json": "faf95ed57c3ea68e7fa9afdbcc9680837ab94d75de38aad5d34df16755c0a0a9",
+        "input-frozen.json": "adf5b679e7e1dbd6517996cd6dcf0f5b6667f7d9dd216f94c9f366f3d3368b69",
+        "wire.json": "5843b55dc49c3ed79e3532265f0d0c80962d8d6d765262b3dcd87bb52bf566c9",
+        "original-lesson.json": "8fc3d6da9e00ab142df00d55e9a6dad11271e00c4149abeea302c6405ad9938b",
+        "candidate.json": "0a8e734b3aacacf007fe1bb48e0db44c3917b3977082ac38510028d9b0bc3768",
+        "selected-fields.json": "b846e9d404106781a2821b353a4c5b834f78802b07b4d2ef89335af138576231",
+        "applied-result.json": "9a0af3838ed22833adbe3807bc298282b7eacc5c4c3704e8060112787b026d67",
+        "fixed-export-input.json": "4c87c362cf4d2f48c1e23d5fb32e84348982e1107861853ab122e6659f5eb990"
+      },
+      "rawSHA": "ede1a8dc5c0aa27dea665a40c69f377f66cbf2e9106cb68902369cd33e7bd725",
+      "modelFingerprint": "sha256:089d61e50cc6effd281832f34260a5ffd297fea51bbfd8e9a20c7939a0db7ab9",
+      "promptVersion": "lesson_generation.SYSTEM_PROMPT@sha256:8bc95fe6117ac09601851bd6aa2d19338d9de31f9196fe1e7ed71df746489af8",
+      "durationMs": 473.524,
+      "usage": {
+        "inputTokens": null,
+        "outputTokens": null,
+        "reason": "offline HTTP reply has no actual billable model usage"
+      },
+      "failure": null,
+      "providerTransportCalls": 1,
+      "technicalStructure": "PASS",
+      "qualityVerdict": "teacher_review_pending",
+      "liveStatus": "live_run待输入",
+      "materialCase": "boundary",
+      "requestedClaimSupported": true,
+      "coverageGap": null,
+      "shortcomings": [
+        "Transport reply is handwritten fixture, not real AI teaching-quality evidence",
+        "Human must judge facts interpretation, relevance, activities and feasibility",
+        "RAG-REL remains OPEN; selected-evidence structural verification is not search refusal quality"
+      ],
+      "docxStatus": "pending_existing_exporter",
+      "humanScores": null
+    },
+    {
+      "caseId": "C12",
+      "expectedSHA": "91f104266f113dc5d802fdb0ed502a843d232129f1d5ac4fc42fc27c2229f066",
+      "caseHash": "762c8d9790b8f24ce943e65e92e911a1057d75a5131fc9042aef14124e8ad500",
+      "hashes": {
+        "case.json": "762c8d9790b8f24ce943e65e92e911a1057d75a5131fc9042aef14124e8ad500",
+        "source-snapshots.json": "787ffd6b908d3a652416532a4481e0d152183409259cfb9c783d1ec55090aa9c",
+        "input.json": "496ac02af424675e3ebbcade584f07ff6519cc400411473980a2d2cdc204a377",
+        "input-frozen.json": "5a52c3cf73f51605247e37909c01cc81918fb62513a062f549cdf988c4c6ea55",
+        "wire.json": "89f7925c175d81f5d84c807da2c4eccb988b7c086a2b3fa0ee40b65bfb9f43c8",
+        "original-lesson.json": "c19fcd2c46590bf17d103190153ac6e44f3e28720745ba48d474e2488bbbac0c",
+        "candidate.json": "f9beb4ddaa2003a25389dbe1a23bc013ce0c83517b7f34041808f420361e3d2d",
+        "selected-fields.json": "b846e9d404106781a2821b353a4c5b834f78802b07b4d2ef89335af138576231",
+        "applied-result.json": "0d25759ecd13dd33a67e269c8a720dd6800e259ffce76501e9496879909c793d",
+        "fixed-export-input.json": "75d919c376cf4e6bf2ba1dd5921201465d8a751b8e0626fff66007924645a9f4"
+      },
+      "rawSHA": "32f74c9d68d2d6398994a0544bd0f56cc204f95230630810ca5ef0b6d616a1d4",
+      "modelFingerprint": "sha256:089d61e50cc6effd281832f34260a5ffd297fea51bbfd8e9a20c7939a0db7ab9",
+      "promptVersion": "lesson_generation.SYSTEM_PROMPT@sha256:8bc95fe6117ac09601851bd6aa2d19338d9de31f9196fe1e7ed71df746489af8",
+      "durationMs": 437.639,
+      "usage": {
+        "inputTokens": null,
+        "outputTokens": null,
+        "reason": "offline HTTP reply has no actual billable model usage"
+      },
+      "failure": null,
+      "providerTransportCalls": 1,
+      "technicalStructure": "PASS",
+      "qualityVerdict": "teacher_review_pending",
+      "liveStatus": "live_run待输入",
+      "materialCase": "out_of_scope",
+      "requestedClaimSupported": false,
+      "coverageGap": null,
+      "shortcomings": [
+        "Transport reply is handwritten fixture, not real AI teaching-quality evidence",
+        "Human must judge facts interpretation, relevance, activities and feasibility",
+        "RAG-REL remains OPEN; selected-evidence structural verification is not search refusal quality"
+      ],
+      "docxStatus": "pending_existing_exporter",
+      "humanScores": null
+    },
+    {
+      "caseId": "C13",
+      "expectedSHA": "4fe7b21f8b948353a5c4fb76d74a3065b76dc2ce82924650c60609ca603343dc",
+      "caseHash": "e7655d9829085cf07ff41e2840a262b8b591cef178c013aeedc9683c34598f4e",
+      "hashes": {
+        "case.json": "e7655d9829085cf07ff41e2840a262b8b591cef178c013aeedc9683c34598f4e",
+        "source-snapshots.json": "4fb62f601ed646f06badcd55ef24108b779401bf0cd8baa213317d8f0ad8cdd2",
+        "input.json": "40a7438b1789132135acec1b60bece49cba31aed207667d2278a89aadee0eef3",
+        "input-frozen.json": "4e1da74429032b9f32c16109b3205598a6aee491546d6e8eee90802d434f7219",
+        "wire.json": "28a3212a8ed7793d3aebff3a5c47adc1c5f5a64afa20b000da67b139c463ff1f",
+        "original-lesson.json": "469af9ace8c2bd53e56e484cea4ce6535e31ae344b5f456148d2c6d32cd24eaf",
+        "candidate.json": "d959f6e4c30e08dace3d4612571cf27cb53c42278ec38eee82e5504266c66dd4",
+        "selected-fields.json": "b846e9d404106781a2821b353a4c5b834f78802b07b4d2ef89335af138576231",
+        "applied-result.json": "25410bbb96e53f597ed1011db4e1f8ffba3273ce1bee16865cca3198efffc364",
+        "fixed-export-input.json": "504a889184d50182f7fb7e13d4ed2b1c85937dd83977f0df0c69d054b1259303"
+      },
+      "rawSHA": "c6676145bb6f92dbe19ce70cc76c8114a2d14985dd63287b2285499a35d69759",
+      "modelFingerprint": "sha256:089d61e50cc6effd281832f34260a5ffd297fea51bbfd8e9a20c7939a0db7ab9",
+      "promptVersion": "lesson_generation.SYSTEM_PROMPT@sha256:8bc95fe6117ac09601851bd6aa2d19338d9de31f9196fe1e7ed71df746489af8",
+      "durationMs": 429.582,
+      "usage": {
+        "inputTokens": null,
+        "outputTokens": null,
+        "reason": "offline HTTP reply has no actual billable model usage"
+      },
+      "failure": null,
+      "providerTransportCalls": 1,
+      "technicalStructure": "PASS",
+      "qualityVerdict": "teacher_review_pending",
+      "liveStatus": "live_run待输入",
+      "materialCase": "no_claim_evidence",
+      "requestedClaimSupported": false,
+      "coverageGap": null,
+      "shortcomings": [
+        "Transport reply is handwritten fixture, not real AI teaching-quality evidence",
+        "Human must judge facts interpretation, relevance, activities and feasibility",
+        "RAG-REL remains OPEN; selected-evidence structural verification is not search refusal quality"
+      ],
+      "docxStatus": "pending_existing_exporter",
+      "humanScores": null
+    },
+    {
+      "caseId": "C14",
+      "expectedSHA": "37b999bcb8e4bad548a23b3b208a4c96d7095ab0bda8eeea6996eb7feb586f3c",
+      "caseHash": "a9e7dc7121c50f5407a5908087ac7a739f6229b67eb06385b05dabe0567ddbd3",
+      "hashes": {
+        "case.json": "a9e7dc7121c50f5407a5908087ac7a739f6229b67eb06385b05dabe0567ddbd3",
+        "source-snapshots.json": "a101efd994544fcc5b32d1e5c6ff62441d6689bc8f39dbfd72cbedd2a233858e",
+        "input.json": "2889fc46ea7c20a7149c2cb99939eb071b39e25295a0d943798a371bf4f4cf48",
+        "input-frozen.json": "c1fce4dc5b36c724028153ac194c67b23ecd05105fc5eed9b25273774172bba2",
+        "wire.json": "af1e7146dd1609903b5e4ac3249afc44ff5cd24463156f4c74c339d55804a169",
+        "original-lesson.json": "c74ef505c753bf12c9cc9e92909f432cf089607e9725c8b5fc5bd4ccbe87a45a",
+        "candidate.json": "b6be85858c1bd557eea59f5bf8ef474f29c1451f819b43e7a91f7f7d5157fc7c",
+        "selected-fields.json": "b846e9d404106781a2821b353a4c5b834f78802b07b4d2ef89335af138576231",
+        "applied-result.json": "0ed150d462d1175738278636ba671ed8f992c24fb516f7311083bf757a8f0a32",
+        "fixed-export-input.json": "5b676af62580616cf0d93c1ef4e8a7902814dd3d0c391c997715a2088285410e"
+      },
+      "rawSHA": "463288142263fa3e5687f9d4a9d49353d54eb905e8f541de5215ae608948de10",
+      "modelFingerprint": "sha256:089d61e50cc6effd281832f34260a5ffd297fea51bbfd8e9a20c7939a0db7ab9",
+      "promptVersion": "lesson_generation.SYSTEM_PROMPT@sha256:8bc95fe6117ac09601851bd6aa2d19338d9de31f9196fe1e7ed71df746489af8",
+      "durationMs": 479.007,
+      "usage": {
+        "inputTokens": null,
+        "outputTokens": null,
+        "reason": "offline HTTP reply has no actual billable model usage"
+      },
+      "failure": null,
+      "providerTransportCalls": 1,
+      "technicalStructure": "PASS",
+      "qualityVerdict": "teacher_review_pending",
+      "liveStatus": "live_run待输入",
+      "materialCase": "positive",
+      "requestedClaimSupported": true,
+      "coverageGap": null,
+      "shortcomings": [
+        "Transport reply is handwritten fixture, not real AI teaching-quality evidence",
+        "Human must judge facts interpretation, relevance, activities and feasibility",
+        "RAG-REL remains OPEN; selected-evidence structural verification is not search refusal quality"
+      ],
+      "docxStatus": "pending_existing_exporter",
+      "humanScores": null
+    },
+    {
+      "caseId": "C15",
+      "expectedSHA": "fb7a46f33275ac096f7bc20603f731f0b0b43d8c2719e450824cde1d65dac227",
+      "caseHash": "ad1a8baf2ec23971b314e807029b640c727b016c12aed3aa13054b314b04d4cc",
+      "hashes": {
+        "case.json": "ad1a8baf2ec23971b314e807029b640c727b016c12aed3aa13054b314b04d4cc",
+        "source-snapshots.json": "b026d13f22e4585565a668d72017849dc4b848df9038c70366a8e80010651df8",
+        "input.json": "a63747a5f73a04bc3e5ae7669dbaa1f93c37f491ed80abd0527751d57d465d64",
+        "input-frozen.json": "1a8580ec50052c3866910fa7dba815bc4df1505093721342ed524edd061f70d7",
+        "wire.json": "a7fecc902ea0fbf69c63869a74092a700c21fb41476dc99a2282e4c158281d08",
+        "original-lesson.json": "23d418477e74c5b937e4e1f92e24d93c9f2e59b74bf4559bc490592a7b161101",
+        "candidate.json": "c1149289743b478e135a4da3b813547eaa216912f1701dd41ec5ee50e366bc4d",
+        "selected-fields.json": "b846e9d404106781a2821b353a4c5b834f78802b07b4d2ef89335af138576231",
+        "applied-result.json": "97ac9701cdfee232705df503cfbf595290445a9fd316d89833d23c332323b281",
+        "fixed-export-input.json": "7f32cea897218eca6bf5becb400b4d1cbb5a302c6f58ce3cffa41a55c97e9560"
+      },
+      "rawSHA": "bfb0c41c6a31a20c2c3bfe944e0e20139e3b43d5d3b20043b40730c8a9252979",
+      "modelFingerprint": "sha256:089d61e50cc6effd281832f34260a5ffd297fea51bbfd8e9a20c7939a0db7ab9",
+      "promptVersion": "lesson_generation.SYSTEM_PROMPT@sha256:8bc95fe6117ac09601851bd6aa2d19338d9de31f9196fe1e7ed71df746489af8",
+      "durationMs": 549.584,
+      "usage": {
+        "inputTokens": null,
+        "outputTokens": null,
+        "reason": "offline HTTP reply has no actual billable model usage"
+      },
+      "failure": null,
+      "providerTransportCalls": 1,
+      "technicalStructure": "PASS",
+      "qualityVerdict": "teacher_review_pending",
+      "liveStatus": "live_run待输入",
+      "materialCase": "positive",
+      "requestedClaimSupported": true,
+      "coverageGap": null,
+      "shortcomings": [
+        "Transport reply is handwritten fixture, not real AI teaching-quality evidence",
+        "Human must judge facts interpretation, relevance, activities and feasibility",
+        "RAG-REL remains OPEN; selected-evidence structural verification is not search refusal quality"
+      ],
+      "docxStatus": "pending_existing_exporter",
+      "humanScores": null
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+npm notice run zhiqikeyuan@0.2.0 npx
+npm notice run vitest run apps/web/src/components/ui/RichContentRenderer.test.tsx apps/web/src/features/question-bank/QuestionPreview.rich.test.tsx
+
+ RUN  v3.2.4 H:/备份xuexi/智启课源
+
+ ✓ apps/web/src/features/question-bank/QuestionPreview.rich.test.tsx (2 tests) 74ms
+ ✓ apps/web/src/components/ui/RichContentRenderer.test.tsx (4 tests) 117ms
+
+ Test Files  2 passed (2)
+      Tests  6 passed (6)
+   Start at  13:09:03
+   Duration  1.17s (transform 89ms, setup 112ms, collect 469ms, tests 190ms, environment 486ms, prepare 110ms)
+

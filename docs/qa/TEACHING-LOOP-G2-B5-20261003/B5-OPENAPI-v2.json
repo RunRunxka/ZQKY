@@ -1,0 +1,4866 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "B5 lesson plans static wire contract",
+    "version": "1.0.0",
+    "description": "Schemas and fabricated examples, not an implemented API or acceptance result."
+  },
+  "paths": {
+    "/api/v1/lesson-plans": {
+      "get": {
+        "operationId": "lesson_get_lesson_plans",
+        "summary": "B5 static contract; implementation pending",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_LessonSummary_"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "lessonPlanId": "lesson-demo",
+                      "subjectId": "math",
+                      "classId": "class-demo",
+                      "revision": 1,
+                      "currentRevisionId": "revision-demo",
+                      "title": "一次函数复习",
+                      "source": "manual",
+                      "analysisRunId": "run-demo",
+                      "updatedAt": "2026-10-03T04:00:00Z"
+                    }
+                  ],
+                  "total": 1,
+                  "offset": 0,
+                  "limit": 50
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "NOT_FOUND",
+                  "message": "所选资源不可用",
+                  "requestId": "request-demo",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "REVISION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "REVISION_CONFLICT",
+                  "message": "后台教案已有新版本",
+                  "requestId": "request-demo",
+                  "retryable": false,
+                  "details": {
+                    "currentRevision": 2,
+                    "fields": [
+                      "expectedRevision"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "LESSON_REQUEST_TOO_LARGE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "LESSON_REQUEST_TOO_LARGE",
+                  "message": "请求超过2 MiB，请保留原稿",
+                  "requestId": "request-demo",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "LESSON_PROPOSAL_INVALID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "LESSON_PROPOSAL_INVALID",
+                  "message": "候选分钟合计不等于课时",
+                  "requestId": "request-demo",
+                  "retryable": false,
+                  "details": {
+                    "issues": [
+                      {
+                        "field": "budget.stages",
+                        "code": "DURATION_MISMATCH",
+                        "message": "请核对课时预算"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "SERVICE_UNAVAILABLE",
+                  "message": "教案服务未装配",
+                  "requestId": "request-demo",
+                  "retryable": true
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "subjectId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "classId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      },
+      "post": {
+        "operationId": "lesson_post_lesson_plans",
+        "summary": "B5 static contract; implementation pending",
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LessonView"
+                },
+                "example": {
+                  "protocolVersion": 2,
+                  "lessonPlanId": "lesson-demo",
+                  "subjectId": "math",
+                  "classId": "class-demo",
+                  "revision": 1,
+                  "currentRevisionId": "revision-demo",
+                  "currentRevision": {
+                    "protocolVersion": 2,
+                    "lessonPlanId": "lesson-demo",
+                    "revisionId": "revision-demo",
+                    "version": 1,
+                    "data": {
+                      "title": "一次函数复习",
+                      "totalLessons": "1",
+                      "currentLessonNo": "1",
+                      "lessonTypes": [
+                        "review"
+                      ],
+                      "otherTypeText": "",
+                      "coreCompetencies": "用函数解释变量关系",
+                      "keyPoints": "一次函数斜率",
+                      "teachingDesign": "先观察再验证",
+                      "process": [
+                        {
+                          "id": "teacher-stage-1",
+                          "stage": "复习",
+                          "design": "比较两条直线",
+                          "secondary": "保留教师批注"
+                        }
+                      ],
+                      "exercises": "解释 y=2x+1 的意义",
+                      "reflection": "教师课后填写"
+                    },
+                    "contentHash": "2222222222222222222222222222222222222222222222222222222222222222",
+                    "source": "manual",
+                    "contextSnapshot": {
+                      "subjectId": "math",
+                      "classId": "class-demo",
+                      "classNameAtSave": "示例班",
+                      "analysis": {
+                        "analysisRunId": "run-demo",
+                        "inputHash": "1111111111111111111111111111111111111111111111111111111111111111",
+                        "scoreRevisionId": "score-demo",
+                        "paperRevisionId": "paper-demo",
+                        "className": null,
+                        "classNameNote": "当时未记录",
+                        "knowledgePoints": [
+                          {
+                            "knowledgePointId": "kp-demo",
+                            "knowledgeRevisionId": "kr-demo",
+                            "name": "一次函数",
+                            "role": "primary"
+                          }
+                        ]
+                      }
+                    },
+                    "analysisRunId": "run-demo",
+                    "acceptedProposalId": null,
+                    "importEnvelope": null,
+                    "selectedFields": [],
+                    "processMetadata": [],
+                    "reviewState": "unreviewed",
+                    "createdAt": "2026-10-03T04:00:00Z"
+                  },
+                  "replayed": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "NOT_FOUND",
+                  "message": "所选资源不可用",
+                  "requestId": "request-demo",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "REVISION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "REVISION_CONFLICT",
+                  "message": "后台教案已有新版本",
+                  "requestId": "request-demo",
+                  "retryable": false,
+                  "details": {
+                    "currentRevision": 2,
+                    "fields": [
+                      "expectedRevision"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "LESSON_REQUEST_TOO_LARGE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "LESSON_REQUEST_TOO_LARGE",
+                  "message": "请求超过2 MiB，请保留原稿",
+                  "requestId": "request-demo",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "LESSON_PROPOSAL_INVALID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "LESSON_PROPOSAL_INVALID",
+                  "message": "候选分钟合计不等于课时",
+                  "requestId": "request-demo",
+                  "retryable": false,
+                  "details": {
+                    "issues": [
+                      {
+                        "field": "budget.stages",
+                        "code": "DURATION_MISMATCH",
+                        "message": "请核对课时预算"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "SERVICE_UNAVAILABLE",
+                  "message": "教案服务未装配",
+                  "requestId": "request-demo",
+                  "retryable": true
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LessonCreateRequest"
+              },
+              "example": {
+                "submissionId": "create-demo",
+                "subjectId": "math",
+                "classId": "class-demo",
+                "data": {
+                  "title": "一次函数复习",
+                  "totalLessons": "1",
+                  "currentLessonNo": "1",
+                  "lessonTypes": [
+                    "review"
+                  ],
+                  "otherTypeText": "",
+                  "coreCompetencies": "用函数解释变量关系",
+                  "keyPoints": "一次函数斜率",
+                  "teachingDesign": "先观察再验证",
+                  "process": [
+                    {
+                      "id": "teacher-stage-1",
+                      "stage": "复习",
+                      "design": "比较两条直线",
+                      "secondary": "保留教师批注"
+                    }
+                  ],
+                  "exercises": "解释 y=2x+1 的意义",
+                  "reflection": "教师课后填写"
+                },
+                "context": {
+                  "analysisRunId": "run-demo",
+                  "selectedKnowledgePointIds": [
+                    "kp-demo"
+                  ]
+                },
+                "source": "manual"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lesson-plans/import-local": {
+      "post": {
+        "operationId": "lesson_post_lesson_plans_import_local",
+        "summary": "B5 static contract; implementation pending",
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LessonView"
+                },
+                "example": {
+                  "protocolVersion": 2,
+                  "lessonPlanId": "lesson-demo",
+                  "subjectId": "math",
+                  "classId": "class-demo",
+                  "revision": 1,
+                  "currentRevisionId": "revision-demo",
+                  "currentRevision": {
+                    "protocolVersion": 2,
+                    "lessonPlanId": "lesson-demo",
+                    "revisionId": "revision-demo",
+                    "version": 1,
+                    "data": {
+                      "title": "一次函数复习",
+                      "totalLessons": "1",
+                      "currentLessonNo": "1",
+                      "lessonTypes": [
+                        "review"
+                      ],
+                      "otherTypeText": "",
+                      "coreCompetencies": "用函数解释变量关系",
+                      "keyPoints": "一次函数斜率",
+                      "teachingDesign": "先观察再验证",
+                      "process": [
+                        {
+                          "id": "teacher-stage-1",
+                          "stage": "复习",
+                          "design": "比较两条直线",
+                          "secondary": "保留教师批注"
+                        }
+                      ],
+                      "exercises": "解释 y=2x+1 的意义",
+                      "reflection": "教师课后填写"
+                    },
+                    "contentHash": "2222222222222222222222222222222222222222222222222222222222222222",
+                    "source": "import_local",
+                    "contextSnapshot": {
+                      "subjectId": "math",
+                      "classId": "class-demo",
+                      "classNameAtSave": "示例班",
+                      "analysis": {
+                        "analysisRunId": "run-demo",
+                        "inputHash": "1111111111111111111111111111111111111111111111111111111111111111",
+                        "scoreRevisionId": "score-demo",
+                        "paperRevisionId": "paper-demo",
+                        "className": null,
+                        "classNameNote": "当时未记录",
+                        "knowledgePoints": [
+                          {
+                            "knowledgePointId": "kp-demo",
+                            "knowledgeRevisionId": "kr-demo",
+                            "name": "一次函数",
+                            "role": "primary"
+                          }
+                        ]
+                      }
+                    },
+                    "analysisRunId": "run-demo",
+                    "acceptedProposalId": null,
+                    "importEnvelope": {
+                      "schemaVersion": 1,
+                      "revision": 7,
+                      "updatedAt": "2026-10-03T12:00:00+08:00",
+                      "data": {
+                        "title": "一次函数复习",
+                        "totalLessons": "1",
+                        "currentLessonNo": "1",
+                        "lessonTypes": [
+                          "review"
+                        ],
+                        "otherTypeText": "",
+                        "coreCompetencies": "用函数解释变量关系",
+                        "keyPoints": "一次函数斜率",
+                        "teachingDesign": "先观察再验证",
+                        "process": [
+                          {
+                            "id": "teacher-stage-1",
+                            "stage": "复习",
+                            "design": "比较两条直线",
+                            "secondary": "保留教师批注"
+                          }
+                        ],
+                        "exercises": "解释 y=2x+1 的意义",
+                        "reflection": "教师课后填写"
+                      }
+                    },
+                    "selectedFields": [],
+                    "processMetadata": [],
+                    "reviewState": "unreviewed",
+                    "createdAt": "2026-10-03T04:00:00Z"
+                  },
+                  "replayed": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "NOT_FOUND",
+                  "message": "所选资源不可用",
+                  "requestId": "request-demo",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "REVISION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "REVISION_CONFLICT",
+                  "message": "后台教案已有新版本",
+                  "requestId": "request-demo",
+                  "retryable": false,
+                  "details": {
+                    "currentRevision": 2,
+                    "fields": [
+                      "expectedRevision"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "LESSON_REQUEST_TOO_LARGE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "LESSON_REQUEST_TOO_LARGE",
+                  "message": "请求超过2 MiB，请保留原稿",
+                  "requestId": "request-demo",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "LESSON_PROPOSAL_INVALID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "LESSON_PROPOSAL_INVALID",
+                  "message": "候选分钟合计不等于课时",
+                  "requestId": "request-demo",
+                  "retryable": false,
+                  "details": {
+                    "issues": [
+                      {
+                        "field": "budget.stages",
+                        "code": "DURATION_MISMATCH",
+                        "message": "请核对课时预算"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "SERVICE_UNAVAILABLE",
+                  "message": "教案服务未装配",
+                  "requestId": "request-demo",
+                  "retryable": true
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LessonImportRequest"
+              },
+              "example": {
+                "submissionId": "import-demo",
+                "subjectId": "math",
+                "classId": "class-demo",
+                "draft": {
+                  "schemaVersion": 1,
+                  "revision": 7,
+                  "updatedAt": "2026-10-03T12:00:00+08:00",
+                  "data": {
+                    "title": "一次函数复习",
+                    "totalLessons": "1",
+                    "currentLessonNo": "1",
+                    "lessonTypes": [
+                      "review"
+                    ],
+                    "otherTypeText": "",
+                    "coreCompetencies": "用函数解释变量关系",
+                    "keyPoints": "一次函数斜率",
+                    "teachingDesign": "先观察再验证",
+                    "process": [
+                      {
+                        "id": "teacher-stage-1",
+                        "stage": "复习",
+                        "design": "比较两条直线",
+                        "secondary": "保留教师批注"
+                      }
+                    ],
+                    "exercises": "解释 y=2x+1 的意义",
+                    "reflection": "教师课后填写"
+                  }
+                },
+                "context": {
+                  "analysisRunId": "run-demo",
+                  "selectedKnowledgePointIds": [
+                    "kp-demo"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lesson-plans/{id}": {
+      "get": {
+        "operationId": "lesson_get_lesson_plans__id",
+        "summary": "B5 static contract; implementation pending",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LessonView"
+                },
+                "example": {
+                  "protocolVersion": 2,
+                  "lessonPlanId": "lesson-demo",
+                  "subjectId": "math",
+                  "classId": "class-demo",
+                  "revision": 1,
+                  "currentRevisionId": "revision-demo",
+                  "currentRevision": {
+                    "protocolVersion": 2,
+                    "lessonPlanId": "lesson-demo",
+                    "revisionId": "revision-demo",
+                    "version": 1,
+                    "data": {
+                      "title": "一次函数复习",
+                      "totalLessons": "1",
+                      "currentLessonNo": "1",
+                      "lessonTypes": [
+                        "review"
+                      ],
+                      "otherTypeText": "",
+                      "coreCompetencies": "用函数解释变量关系",
+                      "keyPoints": "一次函数斜率",
+                      "teachingDesign": "先观察再验证",
+                      "process": [
+                        {
+                          "id": "teacher-stage-1",
+                          "stage": "复习",
+                          "design": "比较两条直线",
+                          "secondary": "保留教师批注"
+                        }
+                      ],
+                      "exercises": "解释 y=2x+1 的意义",
+                      "reflection": "教师课后填写"
+                    },
+                    "contentHash": "2222222222222222222222222222222222222222222222222222222222222222",
+                    "source": "manual",
+                    "contextSnapshot": {
+                      "subjectId": "math",
+                      "classId": "class-demo",
+                      "classNameAtSave": "示例班",
+                      "analysis": {
+                        "analysisRunId": "run-demo",
+                        "inputHash": "1111111111111111111111111111111111111111111111111111111111111111",
+                        "scoreRevisionId": "score-demo",
+                        "paperRevisionId": "paper-demo",
+                        "className": null,
+                        "classNameNote": "当时未记录",
+                        "knowledgePoints": [
+                          {
+                            "knowledgePointId": "kp-demo",
+                            "knowledgeRevisionId": "kr-demo",
+                            "name": "一次函数",
+                            "role": "primary"
+                          }
+                        ]
+                      }
+                    },
+                    "analysisRunId": "run-demo",
+                    "acceptedProposalId": null,
+                    "importEnvelope": null,
+                    "selectedFields": [],
+                    "processMetadata": [],
+                    "reviewState": "unreviewed",
+                    "createdAt": "2026-10-03T04:00:00Z"
+                  },
+                  "replayed": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "NOT_FOUND",
+                  "message": "所选资源不可用",
+                  "requestId": "request-demo",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "REVISION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "REVISION_CONFLICT",
+                  "message": "后台教案已有新版本",
+                  "requestId": "request-demo",
+                  "retryable": false,
+                  "details": {
+                    "currentRevision": 2,
+                    "fields": [
+                      "expectedRevision"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "LESSON_REQUEST_TOO_LARGE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "LESSON_REQUEST_TOO_LARGE",
+                  "message": "请求超过2 MiB，请保留原稿",
+                  "requestId": "request-demo",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "LESSON_PROPOSAL_INVALID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "LESSON_PROPOSAL_INVALID",
+                  "message": "候选分钟合计不等于课时",
+                  "requestId": "request-demo",
+                  "retryable": false,
+                  "details": {
+                    "issues": [
+                      {
+                        "field": "budget.stages",
+                        "code": "DURATION_MISMATCH",
+                        "message": "请核对课时预算"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "SERVICE_UNAVAILABLE",
+                  "message": "教案服务未装配",
+                  "requestId": "request-demo",
+                  "retryable": true
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/lesson-plans/{id}/draft": {
+      "patch": {
+        "operationId": "lesson_patch_lesson_plans__id__draft",
+        "summary": "B5 static contract; implementation pending",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LessonView"
+                },
+                "example": {
+                  "protocolVersion": 2,
+                  "lessonPlanId": "lesson-demo",
+                  "subjectId": "math",
+                  "classId": "class-demo",
+                  "revision": 1,
+                  "currentRevisionId": "revision-demo",
+                  "currentRevision": {
+                    "protocolVersion": 2,
+                    "lessonPlanId": "lesson-demo",
+                    "revisionId": "revision-demo",
+                    "version": 1,
+                    "data": {
+                      "title": "一次函数复习",
+                      "totalLessons": "1",
+                      "currentLessonNo": "1",
+                      "lessonTypes": [
+                        "review"
+                      ],
+                      "otherTypeText": "",
+                      "coreCompetencies": "用函数解释变量关系",
+                      "keyPoints": "一次函数斜率",
+                      "teachingDesign": "先观察再验证",
+                      "process": [
+                        {
+                          "id": "teacher-stage-1",
+                          "stage": "复习",
+                          "design": "比较两条直线",
+                          "secondary": "保留教师批注"
+                        }
+                      ],
+                      "exercises": "解释 y=2x+1 的意义",
+                      "reflection": "教师课后填写"
+                    },
+                    "contentHash": "2222222222222222222222222222222222222222222222222222222222222222",
+                    "source": "manual",
+                    "contextSnapshot": {
+                      "subjectId": "math",
+                      "classId": "class-demo",
+                      "classNameAtSave": "示例班",
+                      "analysis": {
+                        "analysisRunId": "run-demo",
+                        "inputHash": "1111111111111111111111111111111111111111111111111111111111111111",
+                        "scoreRevisionId": "score-demo",
+                        "paperRevisionId": "paper-demo",
+                        "className": null,
+                        "classNameNote": "当时未记录",
+                        "knowledgePoints": [
+                          {
+                            "knowledgePointId": "kp-demo",
+                            "knowledgeRevisionId": "kr-demo",
+                            "name": "一次函数",
+                            "role": "primary"
+                          }
+                        ]
+                      }
+                    },
+                    "analysisRunId": "run-demo",
+                    "acceptedProposalId": null,
+                    "importEnvelope": null,
+                    "selectedFields": [],
+                    "processMetadata": [],
+                    "reviewState": "unreviewed",
+                    "createdAt": "2026-10-03T04:00:00Z"
+                  },
+                  "replayed": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "NOT_FOUND",
+                  "message": "所选资源不可用",
+                  "requestId": "request-demo",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "REVISION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "REVISION_CONFLICT",
+                  "message": "后台教案已有新版本",
+                  "requestId": "request-demo",
+                  "retryable": false,
+                  "details": {
+                    "currentRevision": 2,
+                    "fields": [
+                      "expectedRevision"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "LESSON_REQUEST_TOO_LARGE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "LESSON_REQUEST_TOO_LARGE",
+                  "message": "请求超过2 MiB，请保留原稿",
+                  "requestId": "request-demo",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "LESSON_PROPOSAL_INVALID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "LESSON_PROPOSAL_INVALID",
+                  "message": "候选分钟合计不等于课时",
+                  "requestId": "request-demo",
+                  "retryable": false,
+                  "details": {
+                    "issues": [
+                      {
+                        "field": "budget.stages",
+                        "code": "DURATION_MISMATCH",
+                        "message": "请核对课时预算"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "SERVICE_UNAVAILABLE",
+                  "message": "教案服务未装配",
+                  "requestId": "request-demo",
+                  "retryable": true
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LessonSaveRequest"
+              },
+              "example": {
+                "submissionId": "save-demo",
+                "expectedRevision": 1,
+                "data": {
+                  "title": "一次函数复习",
+                  "totalLessons": "1",
+                  "currentLessonNo": "1",
+                  "lessonTypes": [
+                    "review"
+                  ],
+                  "otherTypeText": "",
+                  "coreCompetencies": "用函数解释变量关系",
+                  "keyPoints": "一次函数斜率",
+                  "teachingDesign": "先观察再验证",
+                  "process": [
+                    {
+                      "id": "teacher-stage-1",
+                      "stage": "复习",
+                      "design": "比较两条直线",
+                      "secondary": "保留教师批注"
+                    }
+                  ],
+                  "exercises": "解释 y=2x+1 的意义",
+                  "reflection": "教师课后填写"
+                },
+                "context": {
+                  "analysisRunId": "run-demo",
+                  "selectedKnowledgePointIds": [
+                    "kp-demo"
+                  ]
+                },
+                "source": "rule"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lesson-plans/{id}/revisions": {
+      "get": {
+        "operationId": "lesson_get_lesson_plans__id__revisions",
+        "summary": "B5 static contract; implementation pending",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_LessonRevisionSummary_"
+                },
+                "example": {
+                  "items": [
+                    {
+                      "lessonPlanId": "lesson-demo",
+                      "revisionId": "revision-demo",
+                      "version": 1,
+                      "title": "一次函数复习",
+                      "contentHash": "2222222222222222222222222222222222222222222222222222222222222222",
+                      "source": "manual",
+                      "analysisRunId": "run-demo",
+                      "acceptedProposalId": null,
+                      "selectedFields": [],
+                      "reviewState": "unreviewed",
+                      "createdAt": "2026-10-03T04:00:00Z"
+                    }
+                  ],
+                  "total": 1,
+                  "offset": 0,
+                  "limit": 50
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "NOT_FOUND",
+                  "message": "所选资源不可用",
+                  "requestId": "request-demo",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "REVISION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "REVISION_CONFLICT",
+                  "message": "后台教案已有新版本",
+                  "requestId": "request-demo",
+                  "retryable": false,
+                  "details": {
+                    "currentRevision": 2,
+                    "fields": [
+                      "expectedRevision"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "LESSON_REQUEST_TOO_LARGE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "LESSON_REQUEST_TOO_LARGE",
+                  "message": "请求超过2 MiB，请保留原稿",
+                  "requestId": "request-demo",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "LESSON_PROPOSAL_INVALID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "LESSON_PROPOSAL_INVALID",
+                  "message": "候选分钟合计不等于课时",
+                  "requestId": "request-demo",
+                  "retryable": false,
+                  "details": {
+                    "issues": [
+                      {
+                        "field": "budget.stages",
+                        "code": "DURATION_MISMATCH",
+                        "message": "请核对课时预算"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "SERVICE_UNAVAILABLE",
+                  "message": "教案服务未装配",
+                  "requestId": "request-demo",
+                  "retryable": true
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/lesson-plans/{id}/revisions/{revisionId}": {
+      "get": {
+        "operationId": "lesson_get_lesson_plans__id__revisions__revisionId",
+        "summary": "B5 static contract; implementation pending",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LessonRevisionView"
+                },
+                "example": {
+                  "protocolVersion": 2,
+                  "lessonPlanId": "lesson-demo",
+                  "revisionId": "revision-demo",
+                  "version": 1,
+                  "data": {
+                    "title": "一次函数复习",
+                    "totalLessons": "1",
+                    "currentLessonNo": "1",
+                    "lessonTypes": [
+                      "review"
+                    ],
+                    "otherTypeText": "",
+                    "coreCompetencies": "用函数解释变量关系",
+                    "keyPoints": "一次函数斜率",
+                    "teachingDesign": "先观察再验证",
+                    "process": [
+                      {
+                        "id": "teacher-stage-1",
+                        "stage": "复习",
+                        "design": "比较两条直线",
+                        "secondary": "保留教师批注"
+                      }
+                    ],
+                    "exercises": "解释 y=2x+1 的意义",
+                    "reflection": "教师课后填写"
+                  },
+                  "contentHash": "2222222222222222222222222222222222222222222222222222222222222222",
+                  "source": "manual",
+                  "contextSnapshot": {
+                    "subjectId": "math",
+                    "classId": "class-demo",
+                    "classNameAtSave": "示例班",
+                    "analysis": {
+                      "analysisRunId": "run-demo",
+                      "inputHash": "1111111111111111111111111111111111111111111111111111111111111111",
+                      "scoreRevisionId": "score-demo",
+                      "paperRevisionId": "paper-demo",
+                      "className": null,
+                      "classNameNote": "当时未记录",
+                      "knowledgePoints": [
+                        {
+                          "knowledgePointId": "kp-demo",
+                          "knowledgeRevisionId": "kr-demo",
+                          "name": "一次函数",
+                          "role": "primary"
+                        }
+                      ]
+                    }
+                  },
+                  "analysisRunId": "run-demo",
+                  "acceptedProposalId": null,
+                  "importEnvelope": null,
+                  "selectedFields": [],
+                  "processMetadata": [],
+                  "reviewState": "unreviewed",
+                  "createdAt": "2026-10-03T04:00:00Z"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "NOT_FOUND",
+                  "message": "所选资源不可用",
+                  "requestId": "request-demo",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "REVISION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "REVISION_CONFLICT",
+                  "message": "后台教案已有新版本",
+                  "requestId": "request-demo",
+                  "retryable": false,
+                  "details": {
+                    "currentRevision": 2,
+                    "fields": [
+                      "expectedRevision"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "LESSON_REQUEST_TOO_LARGE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "LESSON_REQUEST_TOO_LARGE",
+                  "message": "请求超过2 MiB，请保留原稿",
+                  "requestId": "request-demo",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "LESSON_PROPOSAL_INVALID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "LESSON_PROPOSAL_INVALID",
+                  "message": "候选分钟合计不等于课时",
+                  "requestId": "request-demo",
+                  "retryable": false,
+                  "details": {
+                    "issues": [
+                      {
+                        "field": "budget.stages",
+                        "code": "DURATION_MISMATCH",
+                        "message": "请核对课时预算"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "SERVICE_UNAVAILABLE",
+                  "message": "教案服务未装配",
+                  "requestId": "request-demo",
+                  "retryable": true
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "revisionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/lesson-plans/evidence/verify": {
+      "post": {
+        "operationId": "lesson_post_lesson_plans_evidence_verify",
+        "summary": "B5 static contract; implementation pending",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LessonEvidenceView"
+                },
+                "example": {
+                  "scopeSnapshot": {
+                    "schemaVersion": 2,
+                    "selection": {
+                      "gradeId": "grade-8",
+                      "subjectId": "math",
+                      "editionId": "edition-demo",
+                      "documentIds": [
+                        "textbook-demo"
+                      ]
+                    },
+                    "documents": [
+                      {
+                        "documentId": "textbook-demo",
+                        "documentRevisionId": "textbook-revision-demo",
+                        "metadataRevisionId": "metadata-demo"
+                      }
+                    ],
+                    "embeddingGenerationId": "embedding-demo",
+                    "scopeHash": "3333333333333333333333333333333333333333333333333333333333333333"
+                  },
+                  "evidenceRefs": [
+                    {
+                      "evidenceId": "evidence-demo",
+                      "documentRevisionId": "textbook-revision-demo",
+                      "normalizedTextSha256": "4444444444444444444444444444444444444444444444444444444444444444",
+                      "charStart": 0,
+                      "charEnd": 8
+                    }
+                  ],
+                  "evidence": [
+                    {
+                      "evidenceId": "evidence-demo",
+                      "documentRevisionId": "textbook-revision-demo",
+                      "normalizedTextSha256": "4444444444444444444444444444444444444444444444444444444444444444",
+                      "charStart": 0,
+                      "charEnd": 8,
+                      "documentId": "textbook-demo",
+                      "title": "示例教材",
+                      "editionLabel": "示例版本",
+                      "subjectLabel": "数学",
+                      "chapterPath": [
+                        "一次函数"
+                      ],
+                      "text": "一次函数示例原文",
+                      "originalFileSha256": "5555555555555555555555555555555555555555555555555555555555555555",
+                      "locator": {
+                        "kind": "markdown",
+                        "lineStart": 1,
+                        "lineEnd": 2,
+                        "pageStart": null,
+                        "pageEnd": null,
+                        "blockStart": null,
+                        "blockEnd": null
+                      },
+                      "isSuperseded": false,
+                      "readable": null
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "NOT_FOUND",
+                  "message": "所选资源不可用",
+                  "requestId": "request-demo",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "REVISION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "REVISION_CONFLICT",
+                  "message": "后台教案已有新版本",
+                  "requestId": "request-demo",
+                  "retryable": false,
+                  "details": {
+                    "currentRevision": 2,
+                    "fields": [
+                      "expectedRevision"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "LESSON_REQUEST_TOO_LARGE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "LESSON_REQUEST_TOO_LARGE",
+                  "message": "请求超过2 MiB，请保留原稿",
+                  "requestId": "request-demo",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "LESSON_PROPOSAL_INVALID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "LESSON_PROPOSAL_INVALID",
+                  "message": "候选分钟合计不等于课时",
+                  "requestId": "request-demo",
+                  "retryable": false,
+                  "details": {
+                    "issues": [
+                      {
+                        "field": "budget.stages",
+                        "code": "DURATION_MISMATCH",
+                        "message": "请核对课时预算"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "SERVICE_UNAVAILABLE",
+                  "message": "教案服务未装配",
+                  "requestId": "request-demo",
+                  "retryable": true
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LessonEvidenceRequest"
+              },
+              "example": {
+                "selection": {
+                  "gradeId": "grade-8",
+                  "subjectId": "math",
+                  "editionId": "edition-demo",
+                  "documentIds": [
+                    "textbook-demo"
+                  ]
+                },
+                "slices": [
+                  {
+                    "documentRevisionId": "textbook-revision-demo",
+                    "charStart": 0,
+                    "charEnd": 8
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lesson-plans/{id}/proposals": {
+      "post": {
+        "operationId": "lesson_post_lesson_plans__id__proposals",
+        "summary": "B5 static contract; implementation pending",
+        "responses": {
+          "202": {
+            "description": "Accepted job",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LessonGenerationReceipt"
+                },
+                "example": {
+                  "lessonPlanId": "lesson-demo",
+                  "inputHash": "6666666666666666666666666666666666666666666666666666666666666666",
+                  "job": {
+                    "jobId": "job-demo",
+                    "domain": "teaching",
+                    "kind": "lesson_generation",
+                    "attempt": 0,
+                    "state": "queued",
+                    "result": null,
+                    "error": null
+                  },
+                  "replayed": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "NOT_FOUND",
+                  "message": "所选资源不可用",
+                  "requestId": "request-demo",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "REVISION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "REVISION_CONFLICT",
+                  "message": "后台教案已有新版本",
+                  "requestId": "request-demo",
+                  "retryable": false,
+                  "details": {
+                    "currentRevision": 2,
+                    "fields": [
+                      "expectedRevision"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "LESSON_REQUEST_TOO_LARGE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "LESSON_REQUEST_TOO_LARGE",
+                  "message": "请求超过2 MiB，请保留原稿",
+                  "requestId": "request-demo",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "LESSON_PROPOSAL_INVALID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "LESSON_PROPOSAL_INVALID",
+                  "message": "候选分钟合计不等于课时",
+                  "requestId": "request-demo",
+                  "retryable": false,
+                  "details": {
+                    "issues": [
+                      {
+                        "field": "budget.stages",
+                        "code": "DURATION_MISMATCH",
+                        "message": "请核对课时预算"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "SERVICE_UNAVAILABLE",
+                  "message": "教案服务未装配",
+                  "requestId": "request-demo",
+                  "retryable": true
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LessonGenerateRequest"
+              },
+              "example": {
+                "submissionId": "generate-demo",
+                "baseRevisionId": "revision-demo",
+                "baseServerRevision": 1,
+                "analysisRunId": "run-demo",
+                "classId": "class-demo",
+                "selectedKnowledgePointIds": [
+                  "kp-demo"
+                ],
+                "requirements": "增加比较与解释活动",
+                "durationMinutes": 40,
+                "modelProfileId": "profile-demo",
+                "scopeSnapshot": {
+                  "schemaVersion": 2,
+                  "selection": {
+                    "gradeId": "grade-8",
+                    "subjectId": "math",
+                    "editionId": "edition-demo",
+                    "documentIds": [
+                      "textbook-demo"
+                    ]
+                  },
+                  "documents": [
+                    {
+                      "documentId": "textbook-demo",
+                      "documentRevisionId": "textbook-revision-demo",
+                      "metadataRevisionId": "metadata-demo"
+                    }
+                  ],
+                  "embeddingGenerationId": "embedding-demo",
+                  "scopeHash": "3333333333333333333333333333333333333333333333333333333333333333"
+                },
+                "evidenceRefs": [
+                  {
+                    "evidenceId": "evidence-demo",
+                    "documentRevisionId": "textbook-revision-demo",
+                    "normalizedTextSha256": "4444444444444444444444444444444444444444444444444444444444444444",
+                    "charStart": 0,
+                    "charEnd": 8
+                  }
+                ],
+                "questionRevisionIds": [],
+                "practiceRevisionIds": []
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lesson-plans/{id}/proposals/{proposalId}": {
+      "get": {
+        "operationId": "lesson_get_lesson_plans__id__proposals__proposalId",
+        "summary": "B5 static contract; implementation pending",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LessonProposalView"
+                },
+                "example": {
+                  "protocolVersion": 2,
+                  "lessonPlanId": "lesson-demo",
+                  "proposalId": "proposal-demo",
+                  "jobId": "job-demo",
+                  "baseRevisionId": "revision-demo",
+                  "baseServerRevision": 1,
+                  "inputHash": "6666666666666666666666666666666666666666666666666666666666666666",
+                  "modelFingerprint": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+                  "state": "pending",
+                  "patch": {
+                    "coreCompetencies": null,
+                    "keyPoints": "比较函数关系",
+                    "teachingDesign": null,
+                    "process": [
+                      {
+                        "id": "stable-1",
+                        "stage": "导入",
+                        "design": "观察、讨论并说明依据",
+                        "secondary": ""
+                      },
+                      {
+                        "id": "stable-2",
+                        "stage": "探究",
+                        "design": "观察、讨论并说明依据",
+                        "secondary": ""
+                      },
+                      {
+                        "id": "stable-3",
+                        "stage": "练习",
+                        "design": "观察、讨论并说明依据",
+                        "secondary": ""
+                      },
+                      {
+                        "id": "stable-4",
+                        "stage": "总结",
+                        "design": "观察、讨论并说明依据",
+                        "secondary": ""
+                      }
+                    ],
+                    "exercises": null
+                  },
+                  "budget": {
+                    "durationMinutes": 40,
+                    "stages": [
+                      {
+                        "processId": "stable-1",
+                        "phase": "introduction",
+                        "minutes": 10,
+                        "knowledgeAliases": [
+                          "K1"
+                        ],
+                        "activity": "比较并解释",
+                        "check": "写出关系与理由",
+                        "evidenceAliases": [
+                          "E1"
+                        ]
+                      },
+                      {
+                        "processId": "stable-2",
+                        "phase": "exploration",
+                        "minutes": 10,
+                        "knowledgeAliases": [
+                          "K1"
+                        ],
+                        "activity": "比较并解释",
+                        "check": "写出关系与理由",
+                        "evidenceAliases": [
+                          "E1"
+                        ]
+                      },
+                      {
+                        "processId": "stable-3",
+                        "phase": "practice",
+                        "minutes": 10,
+                        "knowledgeAliases": [
+                          "K1"
+                        ],
+                        "activity": "比较并解释",
+                        "check": "写出关系与理由",
+                        "evidenceAliases": [
+                          "E1"
+                        ]
+                      },
+                      {
+                        "processId": "stable-4",
+                        "phase": "conclusion",
+                        "minutes": 10,
+                        "knowledgeAliases": [
+                          "K1"
+                        ],
+                        "activity": "比较并解释",
+                        "check": "写出关系与理由",
+                        "evidenceAliases": [
+                          "E1"
+                        ]
+                      }
+                    ]
+                  },
+                  "evidence": [
+                    {
+                      "alias": "E1",
+                      "kind": "textbook",
+                      "referenceId": "evidence-demo",
+                      "title": "示例教材",
+                      "sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+                      "locator": {
+                        "charStart": 0,
+                        "charEnd": 8
+                      },
+                      "text": "一次函数示例原文"
+                    }
+                  ],
+                  "generationSource": {
+                    "analysis": {
+                      "analysisRunId": "run-demo",
+                      "inputHash": "1111111111111111111111111111111111111111111111111111111111111111",
+                      "scoreRevisionId": "score-demo",
+                      "paperRevisionId": "paper-demo",
+                      "className": null,
+                      "classNameNote": "当时未记录",
+                      "knowledgePoints": [
+                        {
+                          "knowledgePointId": "kp-demo",
+                          "knowledgeRevisionId": "kr-demo",
+                          "name": "一次函数",
+                          "role": "primary"
+                        }
+                      ]
+                    },
+                    "classId": "class-demo",
+                    "selectedKnowledgePoints": [
+                      {
+                        "knowledgePointId": "kp-demo",
+                        "knowledgeRevisionId": "kr-demo",
+                        "name": "一次函数",
+                        "role": "primary"
+                      }
+                    ],
+                    "modelProfileId": "profile-demo",
+                    "scopeSnapshot": {
+                      "schemaVersion": 2,
+                      "selection": {
+                        "gradeId": "grade-8",
+                        "subjectId": "math",
+                        "editionId": "edition-demo",
+                        "documentIds": [
+                          "textbook-demo"
+                        ]
+                      },
+                      "documents": [
+                        {
+                          "documentId": "textbook-demo",
+                          "documentRevisionId": "textbook-revision-demo",
+                          "metadataRevisionId": "metadata-demo"
+                        }
+                      ],
+                      "embeddingGenerationId": "embedding-demo",
+                      "scopeHash": "3333333333333333333333333333333333333333333333333333333333333333"
+                    },
+                    "evidenceRefs": [
+                      {
+                        "evidenceId": "evidence-demo",
+                        "documentRevisionId": "textbook-revision-demo",
+                        "normalizedTextSha256": "4444444444444444444444444444444444444444444444444444444444444444",
+                        "charStart": 0,
+                        "charEnd": 8
+                      }
+                    ],
+                    "requirements": "增加比较与解释活动"
+                  },
+                  "selectedFields": [],
+                  "acceptedRevisionId": null,
+                  "createdAt": "2026-10-03T04:01:00Z",
+                  "decidedAt": null,
+                  "replayed": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "NOT_FOUND",
+                  "message": "所选资源不可用",
+                  "requestId": "request-demo",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "REVISION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "REVISION_CONFLICT",
+                  "message": "后台教案已有新版本",
+                  "requestId": "request-demo",
+                  "retryable": false,
+                  "details": {
+                    "currentRevision": 2,
+                    "fields": [
+                      "expectedRevision"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "LESSON_REQUEST_TOO_LARGE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "LESSON_REQUEST_TOO_LARGE",
+                  "message": "请求超过2 MiB，请保留原稿",
+                  "requestId": "request-demo",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "LESSON_PROPOSAL_INVALID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "LESSON_PROPOSAL_INVALID",
+                  "message": "候选分钟合计不等于课时",
+                  "requestId": "request-demo",
+                  "retryable": false,
+                  "details": {
+                    "issues": [
+                      {
+                        "field": "budget.stages",
+                        "code": "DURATION_MISMATCH",
+                        "message": "请核对课时预算"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "SERVICE_UNAVAILABLE",
+                  "message": "教案服务未装配",
+                  "requestId": "request-demo",
+                  "retryable": true
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "proposalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/lesson-plans/{id}/proposals/{proposalId}/apply": {
+      "post": {
+        "operationId": "lesson_post_lesson_plans__id__proposals__proposalId__apply",
+        "summary": "B5 static contract; implementation pending",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LessonView"
+                },
+                "example": {
+                  "protocolVersion": 2,
+                  "lessonPlanId": "lesson-demo",
+                  "subjectId": "math",
+                  "classId": "class-demo",
+                  "revision": 2,
+                  "currentRevisionId": "revision-applied-demo",
+                  "currentRevision": {
+                    "protocolVersion": 2,
+                    "lessonPlanId": "lesson-demo",
+                    "revisionId": "revision-applied-demo",
+                    "version": 2,
+                    "data": {
+                      "title": "一次函数复习",
+                      "totalLessons": "1",
+                      "currentLessonNo": "1",
+                      "lessonTypes": [
+                        "review"
+                      ],
+                      "otherTypeText": "",
+                      "coreCompetencies": "用函数解释变量关系",
+                      "keyPoints": "一次函数斜率",
+                      "teachingDesign": "先观察再验证",
+                      "process": [
+                        {
+                          "id": "stable-1",
+                          "stage": "导入",
+                          "design": "观察、讨论并说明依据",
+                          "secondary": ""
+                        },
+                        {
+                          "id": "stable-2",
+                          "stage": "探究",
+                          "design": "观察、讨论并说明依据",
+                          "secondary": ""
+                        },
+                        {
+                          "id": "stable-3",
+                          "stage": "练习",
+                          "design": "观察、讨论并说明依据",
+                          "secondary": ""
+                        },
+                        {
+                          "id": "stable-4",
+                          "stage": "总结",
+                          "design": "观察、讨论并说明依据",
+                          "secondary": ""
+                        }
+                      ],
+                      "exercises": "解释 y=2x+1 的意义",
+                      "reflection": "教师课后填写"
+                    },
+                    "contentHash": "8888888888888888888888888888888888888888888888888888888888888888",
+                    "source": "ai_applied",
+                    "contextSnapshot": {
+                      "subjectId": "math",
+                      "classId": "class-demo",
+                      "classNameAtSave": "示例班",
+                      "analysis": {
+                        "analysisRunId": "run-demo",
+                        "inputHash": "1111111111111111111111111111111111111111111111111111111111111111",
+                        "scoreRevisionId": "score-demo",
+                        "paperRevisionId": "paper-demo",
+                        "className": null,
+                        "classNameNote": "当时未记录",
+                        "knowledgePoints": [
+                          {
+                            "knowledgePointId": "kp-demo",
+                            "knowledgeRevisionId": "kr-demo",
+                            "name": "一次函数",
+                            "role": "primary"
+                          }
+                        ]
+                      }
+                    },
+                    "analysisRunId": "run-demo",
+                    "acceptedProposalId": "proposal-demo",
+                    "importEnvelope": null,
+                    "selectedFields": [
+                      "process"
+                    ],
+                    "processMetadata": [
+                      {
+                        "processId": "stable-1",
+                        "phase": "introduction",
+                        "minutes": 10,
+                        "knowledgeAliases": [
+                          "K1"
+                        ],
+                        "activity": "比较并解释",
+                        "check": "写出关系与理由",
+                        "evidenceAliases": [
+                          "E1"
+                        ]
+                      },
+                      {
+                        "processId": "stable-2",
+                        "phase": "exploration",
+                        "minutes": 10,
+                        "knowledgeAliases": [
+                          "K1"
+                        ],
+                        "activity": "比较并解释",
+                        "check": "写出关系与理由",
+                        "evidenceAliases": [
+                          "E1"
+                        ]
+                      },
+                      {
+                        "processId": "stable-3",
+                        "phase": "practice",
+                        "minutes": 10,
+                        "knowledgeAliases": [
+                          "K1"
+                        ],
+                        "activity": "比较并解释",
+                        "check": "写出关系与理由",
+                        "evidenceAliases": [
+                          "E1"
+                        ]
+                      },
+                      {
+                        "processId": "stable-4",
+                        "phase": "conclusion",
+                        "minutes": 10,
+                        "knowledgeAliases": [
+                          "K1"
+                        ],
+                        "activity": "比较并解释",
+                        "check": "写出关系与理由",
+                        "evidenceAliases": [
+                          "E1"
+                        ]
+                      }
+                    ],
+                    "reviewState": "unreviewed",
+                    "createdAt": "2026-10-03T04:00:00Z"
+                  },
+                  "replayed": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "NOT_FOUND",
+                  "message": "所选资源不可用",
+                  "requestId": "request-demo",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "REVISION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "REVISION_CONFLICT",
+                  "message": "后台教案已有新版本",
+                  "requestId": "request-demo",
+                  "retryable": false,
+                  "details": {
+                    "currentRevision": 2,
+                    "fields": [
+                      "expectedRevision"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "LESSON_REQUEST_TOO_LARGE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "LESSON_REQUEST_TOO_LARGE",
+                  "message": "请求超过2 MiB，请保留原稿",
+                  "requestId": "request-demo",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "LESSON_PROPOSAL_INVALID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "LESSON_PROPOSAL_INVALID",
+                  "message": "候选分钟合计不等于课时",
+                  "requestId": "request-demo",
+                  "retryable": false,
+                  "details": {
+                    "issues": [
+                      {
+                        "field": "budget.stages",
+                        "code": "DURATION_MISMATCH",
+                        "message": "请核对课时预算"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "SERVICE_UNAVAILABLE",
+                  "message": "教案服务未装配",
+                  "requestId": "request-demo",
+                  "retryable": true
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "proposalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LessonApplyRequest"
+              },
+              "example": {
+                "submissionId": "apply-demo",
+                "expectedRevision": 1,
+                "baseRevisionId": "revision-demo",
+                "selectedFields": [
+                  "process"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/lesson-plans/{id}/proposals/{proposalId}/reject": {
+      "post": {
+        "operationId": "lesson_post_lesson_plans__id__proposals__proposalId__reject",
+        "summary": "B5 static contract; implementation pending",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LessonProposalView"
+                },
+                "example": {
+                  "protocolVersion": 2,
+                  "lessonPlanId": "lesson-demo",
+                  "proposalId": "proposal-demo",
+                  "jobId": "job-demo",
+                  "baseRevisionId": "revision-demo",
+                  "baseServerRevision": 1,
+                  "inputHash": "6666666666666666666666666666666666666666666666666666666666666666",
+                  "modelFingerprint": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+                  "state": "rejected",
+                  "patch": {
+                    "coreCompetencies": null,
+                    "keyPoints": "比较函数关系",
+                    "teachingDesign": null,
+                    "process": [
+                      {
+                        "id": "stable-1",
+                        "stage": "导入",
+                        "design": "观察、讨论并说明依据",
+                        "secondary": ""
+                      },
+                      {
+                        "id": "stable-2",
+                        "stage": "探究",
+                        "design": "观察、讨论并说明依据",
+                        "secondary": ""
+                      },
+                      {
+                        "id": "stable-3",
+                        "stage": "练习",
+                        "design": "观察、讨论并说明依据",
+                        "secondary": ""
+                      },
+                      {
+                        "id": "stable-4",
+                        "stage": "总结",
+                        "design": "观察、讨论并说明依据",
+                        "secondary": ""
+                      }
+                    ],
+                    "exercises": null
+                  },
+                  "budget": {
+                    "durationMinutes": 40,
+                    "stages": [
+                      {
+                        "processId": "stable-1",
+                        "phase": "introduction",
+                        "minutes": 10,
+                        "knowledgeAliases": [
+                          "K1"
+                        ],
+                        "activity": "比较并解释",
+                        "check": "写出关系与理由",
+                        "evidenceAliases": [
+                          "E1"
+                        ]
+                      },
+                      {
+                        "processId": "stable-2",
+                        "phase": "exploration",
+                        "minutes": 10,
+                        "knowledgeAliases": [
+                          "K1"
+                        ],
+                        "activity": "比较并解释",
+                        "check": "写出关系与理由",
+                        "evidenceAliases": [
+                          "E1"
+                        ]
+                      },
+                      {
+                        "processId": "stable-3",
+                        "phase": "practice",
+                        "minutes": 10,
+                        "knowledgeAliases": [
+                          "K1"
+                        ],
+                        "activity": "比较并解释",
+                        "check": "写出关系与理由",
+                        "evidenceAliases": [
+                          "E1"
+                        ]
+                      },
+                      {
+                        "processId": "stable-4",
+                        "phase": "conclusion",
+                        "minutes": 10,
+                        "knowledgeAliases": [
+                          "K1"
+                        ],
+                        "activity": "比较并解释",
+                        "check": "写出关系与理由",
+                        "evidenceAliases": [
+                          "E1"
+                        ]
+                      }
+                    ]
+                  },
+                  "evidence": [
+                    {
+                      "alias": "E1",
+                      "kind": "textbook",
+                      "referenceId": "evidence-demo",
+                      "title": "示例教材",
+                      "sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+                      "locator": {
+                        "charStart": 0,
+                        "charEnd": 8
+                      },
+                      "text": "一次函数示例原文"
+                    }
+                  ],
+                  "generationSource": {
+                    "analysis": {
+                      "analysisRunId": "run-demo",
+                      "inputHash": "1111111111111111111111111111111111111111111111111111111111111111",
+                      "scoreRevisionId": "score-demo",
+                      "paperRevisionId": "paper-demo",
+                      "className": null,
+                      "classNameNote": "当时未记录",
+                      "knowledgePoints": [
+                        {
+                          "knowledgePointId": "kp-demo",
+                          "knowledgeRevisionId": "kr-demo",
+                          "name": "一次函数",
+                          "role": "primary"
+                        }
+                      ]
+                    },
+                    "classId": "class-demo",
+                    "selectedKnowledgePoints": [
+                      {
+                        "knowledgePointId": "kp-demo",
+                        "knowledgeRevisionId": "kr-demo",
+                        "name": "一次函数",
+                        "role": "primary"
+                      }
+                    ],
+                    "modelProfileId": "profile-demo",
+                    "scopeSnapshot": {
+                      "schemaVersion": 2,
+                      "selection": {
+                        "gradeId": "grade-8",
+                        "subjectId": "math",
+                        "editionId": "edition-demo",
+                        "documentIds": [
+                          "textbook-demo"
+                        ]
+                      },
+                      "documents": [
+                        {
+                          "documentId": "textbook-demo",
+                          "documentRevisionId": "textbook-revision-demo",
+                          "metadataRevisionId": "metadata-demo"
+                        }
+                      ],
+                      "embeddingGenerationId": "embedding-demo",
+                      "scopeHash": "3333333333333333333333333333333333333333333333333333333333333333"
+                    },
+                    "evidenceRefs": [
+                      {
+                        "evidenceId": "evidence-demo",
+                        "documentRevisionId": "textbook-revision-demo",
+                        "normalizedTextSha256": "4444444444444444444444444444444444444444444444444444444444444444",
+                        "charStart": 0,
+                        "charEnd": 8
+                      }
+                    ],
+                    "requirements": "增加比较与解释活动"
+                  },
+                  "selectedFields": [],
+                  "acceptedRevisionId": null,
+                  "createdAt": "2026-10-03T04:01:00Z",
+                  "decidedAt": "2026-10-03T04:02:00Z",
+                  "replayed": false
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "NOT_FOUND",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "NOT_FOUND",
+                  "message": "所选资源不可用",
+                  "requestId": "request-demo",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "REVISION_CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "REVISION_CONFLICT",
+                  "message": "后台教案已有新版本",
+                  "requestId": "request-demo",
+                  "retryable": false,
+                  "details": {
+                    "currentRevision": 2,
+                    "fields": [
+                      "expectedRevision"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "LESSON_REQUEST_TOO_LARGE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "LESSON_REQUEST_TOO_LARGE",
+                  "message": "请求超过2 MiB，请保留原稿",
+                  "requestId": "request-demo",
+                  "retryable": false
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "LESSON_PROPOSAL_INVALID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "LESSON_PROPOSAL_INVALID",
+                  "message": "候选分钟合计不等于课时",
+                  "requestId": "request-demo",
+                  "retryable": false,
+                  "details": {
+                    "issues": [
+                      {
+                        "field": "budget.stages",
+                        "code": "DURATION_MISMATCH",
+                        "message": "请核对课时预算"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorEnvelope"
+                },
+                "example": {
+                  "code": "SERVICE_UNAVAILABLE",
+                  "message": "教案服务未装配",
+                  "requestId": "request-demo",
+                  "retryable": true
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          {
+            "name": "proposalId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LessonRejectRequest"
+              },
+              "example": {
+                "submissionId": "reject-demo"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ErrorDetails": {
+        "additionalProperties": false,
+        "description": "错误信封 details 的冻结形状。\n\n- 版本冲突（409）：``current_revision``（camelCase ``currentRevision``）。\n- 行列错误（422）：``issues``；简单字段错误可只用 ``fields``（既有约定）。",
+        "properties": {
+          "currentRevision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Currentrevision"
+          },
+          "issues": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ErrorIssue"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Issues"
+          },
+          "fields": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Fields"
+          }
+        },
+        "title": "ErrorDetails",
+        "type": "object"
+      },
+      "ErrorIssue": {
+        "additionalProperties": false,
+        "description": "422 行列错误中的单条问题：定位到原行/原列，不回显请求内容。",
+        "properties": {
+          "row": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Row"
+          },
+          "column": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Column"
+          },
+          "field": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Field"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorIssue",
+        "type": "object"
+      },
+      "ApiErrorEnvelope": {
+        "additionalProperties": false,
+        "description": "统一错误信封；与 ``app/schemas/errors.py`` 的响应体逐字段一致。",
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "requestId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Requestid"
+          },
+          "retryable": {
+            "default": false,
+            "title": "Retryable",
+            "type": "boolean"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ErrorDetails"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ApiErrorEnvelope",
+        "type": "object"
+      },
+      "LessonSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "lessonPlanId": {
+            "title": "Lessonplanid",
+            "type": "string"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "classId": {
+            "title": "Classid",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "currentRevisionId": {
+            "title": "Currentrevisionid",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "manual",
+              "rule",
+              "import_local",
+              "ai_applied"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "analysisRunId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analysisrunid"
+          },
+          "updatedAt": {
+            "title": "Updatedat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "lessonPlanId",
+          "subjectId",
+          "classId",
+          "revision",
+          "currentRevisionId",
+          "title",
+          "source",
+          "analysisRunId",
+          "updatedAt"
+        ],
+        "title": "LessonSummary",
+        "type": "object"
+      },
+      "Page_LessonSummary_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/LessonSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "offset",
+          "limit"
+        ],
+        "title": "Page[LessonSummary]",
+        "type": "object"
+      },
+      "AnalysisContextSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "analysisRunId": {
+            "title": "Analysisrunid",
+            "type": "string"
+          },
+          "inputHash": {
+            "title": "Inputhash",
+            "type": "string"
+          },
+          "scoreRevisionId": {
+            "title": "Scorerevisionid",
+            "type": "string"
+          },
+          "paperRevisionId": {
+            "title": "Paperrevisionid",
+            "type": "string"
+          },
+          "className": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Classname"
+          },
+          "classNameNote": {
+            "title": "Classnamenote",
+            "type": "string"
+          },
+          "knowledgePoints": {
+            "items": {
+              "$ref": "#/components/schemas/FixedKnowledge"
+            },
+            "title": "Knowledgepoints",
+            "type": "array"
+          }
+        },
+        "required": [
+          "analysisRunId",
+          "inputHash",
+          "scoreRevisionId",
+          "paperRevisionId",
+          "className",
+          "classNameNote",
+          "knowledgePoints"
+        ],
+        "title": "AnalysisContextSnapshot",
+        "type": "object"
+      },
+      "DraftEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "schemaVersion": {
+            "const": 1,
+            "title": "Schemaversion",
+            "type": "integer"
+          },
+          "revision": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "updatedAt": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Updatedat",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/LessonPlanData"
+          }
+        },
+        "required": [
+          "schemaVersion",
+          "revision",
+          "updatedAt",
+          "data"
+        ],
+        "title": "DraftEnvelope",
+        "type": "object"
+      },
+      "FixedKnowledge": {
+        "additionalProperties": false,
+        "properties": {
+          "knowledgePointId": {
+            "title": "Knowledgepointid",
+            "type": "string"
+          },
+          "knowledgeRevisionId": {
+            "title": "Knowledgerevisionid",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "role": {
+            "default": "primary",
+            "enum": [
+              "primary",
+              "secondary"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "knowledgePointId",
+          "knowledgeRevisionId",
+          "name"
+        ],
+        "title": "FixedKnowledge",
+        "type": "object"
+      },
+      "LessonContextSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "classId": {
+            "title": "Classid",
+            "type": "string"
+          },
+          "classNameAtSave": {
+            "title": "Classnameatsave",
+            "type": "string"
+          },
+          "analysis": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisContextSnapshot"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "subjectId",
+          "classId",
+          "classNameAtSave",
+          "analysis"
+        ],
+        "title": "LessonContextSnapshot",
+        "type": "object"
+      },
+      "LessonPlanData": {
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "maxLength": 80,
+            "title": "Title",
+            "type": "string"
+          },
+          "totalLessons": {
+            "maxLength": 100000,
+            "title": "Totallessons",
+            "type": "string"
+          },
+          "currentLessonNo": {
+            "maxLength": 100000,
+            "title": "Currentlessonno",
+            "type": "string"
+          },
+          "lessonTypes": {
+            "items": {
+              "enum": [
+                "new",
+                "review",
+                "exercise",
+                "experiment",
+                "other"
+              ],
+              "type": "string"
+            },
+            "maxItems": 100000,
+            "title": "Lessontypes",
+            "type": "array"
+          },
+          "otherTypeText": {
+            "maxLength": 80,
+            "title": "Othertypetext",
+            "type": "string"
+          },
+          "coreCompetencies": {
+            "maxLength": 100000,
+            "title": "Corecompetencies",
+            "type": "string"
+          },
+          "keyPoints": {
+            "maxLength": 100000,
+            "title": "Keypoints",
+            "type": "string"
+          },
+          "teachingDesign": {
+            "maxLength": 100000,
+            "title": "Teachingdesign",
+            "type": "string"
+          },
+          "process": {
+            "items": {
+              "$ref": "#/components/schemas/ProcessItem"
+            },
+            "maxItems": 100,
+            "title": "Process",
+            "type": "array"
+          },
+          "exercises": {
+            "maxLength": 100000,
+            "title": "Exercises",
+            "type": "string"
+          },
+          "reflection": {
+            "maxLength": 100000,
+            "title": "Reflection",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "totalLessons",
+          "currentLessonNo",
+          "lessonTypes",
+          "otherTypeText",
+          "coreCompetencies",
+          "keyPoints",
+          "teachingDesign",
+          "process",
+          "exercises",
+          "reflection"
+        ],
+        "title": "LessonPlanData",
+        "type": "object"
+      },
+      "LessonRevisionView": {
+        "additionalProperties": false,
+        "properties": {
+          "protocolVersion": {
+            "const": 2,
+            "default": 2,
+            "title": "Protocolversion",
+            "type": "integer"
+          },
+          "lessonPlanId": {
+            "title": "Lessonplanid",
+            "type": "string"
+          },
+          "revisionId": {
+            "title": "Revisionid",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "data": {
+            "$ref": "#/components/schemas/LessonPlanData"
+          },
+          "contentHash": {
+            "title": "Contenthash",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "manual",
+              "rule",
+              "import_local",
+              "ai_applied"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "contextSnapshot": {
+            "$ref": "#/components/schemas/LessonContextSnapshot"
+          },
+          "analysisRunId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analysisrunid"
+          },
+          "acceptedProposalId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acceptedproposalid"
+          },
+          "importEnvelope": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DraftEnvelope"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "selectedFields": {
+            "items": {
+              "enum": [
+                "coreCompetencies",
+                "keyPoints",
+                "teachingDesign",
+                "process",
+                "exercises"
+              ],
+              "type": "string"
+            },
+            "title": "Selectedfields",
+            "type": "array"
+          },
+          "processMetadata": {
+            "items": {
+              "$ref": "#/components/schemas/StageMetadata"
+            },
+            "title": "Processmetadata",
+            "type": "array"
+          },
+          "reviewState": {
+            "enum": [
+              "unreviewed",
+              "reviewed"
+            ],
+            "title": "Reviewstate",
+            "type": "string"
+          },
+          "createdAt": {
+            "title": "Createdat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "lessonPlanId",
+          "revisionId",
+          "version",
+          "data",
+          "contentHash",
+          "source",
+          "contextSnapshot",
+          "analysisRunId",
+          "acceptedProposalId",
+          "importEnvelope",
+          "selectedFields",
+          "processMetadata",
+          "reviewState",
+          "createdAt"
+        ],
+        "title": "LessonRevisionView",
+        "type": "object"
+      },
+      "ProcessItem": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "maxLength": 100000,
+            "title": "Id",
+            "type": "string"
+          },
+          "stage": {
+            "maxLength": 120,
+            "title": "Stage",
+            "type": "string"
+          },
+          "design": {
+            "maxLength": 100000,
+            "title": "Design",
+            "type": "string"
+          },
+          "secondary": {
+            "maxLength": 100000,
+            "title": "Secondary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "stage",
+          "design",
+          "secondary"
+        ],
+        "title": "ProcessItem",
+        "type": "object"
+      },
+      "StageMetadata": {
+        "additionalProperties": false,
+        "properties": {
+          "processId": {
+            "maxLength": 100000,
+            "minLength": 1,
+            "title": "Processid",
+            "type": "string"
+          },
+          "phase": {
+            "enum": [
+              "introduction",
+              "exploration",
+              "practice",
+              "conclusion"
+            ],
+            "title": "Phase",
+            "type": "string"
+          },
+          "minutes": {
+            "maximum": 180,
+            "minimum": 1,
+            "title": "Minutes",
+            "type": "integer"
+          },
+          "knowledgeAliases": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Knowledgealiases",
+            "type": "array"
+          },
+          "activity": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Activity",
+            "type": "string"
+          },
+          "check": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Check",
+            "type": "string"
+          },
+          "evidenceAliases": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 31,
+            "minItems": 1,
+            "title": "Evidencealiases",
+            "type": "array"
+          }
+        },
+        "required": [
+          "processId",
+          "phase",
+          "minutes",
+          "knowledgeAliases",
+          "activity",
+          "check",
+          "evidenceAliases"
+        ],
+        "title": "StageMetadata",
+        "type": "object"
+      },
+      "LessonView": {
+        "additionalProperties": false,
+        "properties": {
+          "protocolVersion": {
+            "const": 2,
+            "default": 2,
+            "title": "Protocolversion",
+            "type": "integer"
+          },
+          "lessonPlanId": {
+            "title": "Lessonplanid",
+            "type": "string"
+          },
+          "subjectId": {
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "classId": {
+            "title": "Classid",
+            "type": "string"
+          },
+          "revision": {
+            "title": "Revision",
+            "type": "integer"
+          },
+          "currentRevisionId": {
+            "title": "Currentrevisionid",
+            "type": "string"
+          },
+          "currentRevision": {
+            "$ref": "#/components/schemas/LessonRevisionView"
+          },
+          "replayed": {
+            "default": false,
+            "title": "Replayed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "lessonPlanId",
+          "subjectId",
+          "classId",
+          "revision",
+          "currentRevisionId",
+          "currentRevision"
+        ],
+        "title": "LessonView",
+        "type": "object"
+      },
+      "AnalysisContextInput": {
+        "additionalProperties": false,
+        "properties": {
+          "analysisRunId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Analysisrunid",
+            "type": "string"
+          },
+          "selectedKnowledgePointIds": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Selectedknowledgepointids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "analysisRunId",
+          "selectedKnowledgePointIds"
+        ],
+        "title": "AnalysisContextInput",
+        "type": "object"
+      },
+      "LessonCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "submissionId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Submissionid",
+            "type": "string"
+          },
+          "subjectId": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "classId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Classid",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/LessonPlanData"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisContextInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source": {
+            "default": "manual",
+            "enum": [
+              "manual",
+              "rule"
+            ],
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "submissionId",
+          "subjectId",
+          "classId",
+          "data",
+          "context"
+        ],
+        "title": "LessonCreateRequest",
+        "type": "object"
+      },
+      "LessonImportRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "submissionId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Submissionid",
+            "type": "string"
+          },
+          "subjectId": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "classId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Classid",
+            "type": "string"
+          },
+          "draft": {
+            "$ref": "#/components/schemas/DraftEnvelope"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisContextInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "submissionId",
+          "subjectId",
+          "classId",
+          "draft",
+          "context"
+        ],
+        "title": "LessonImportRequest",
+        "type": "object"
+      },
+      "LessonSaveRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "submissionId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Submissionid",
+            "type": "string"
+          },
+          "expectedRevision": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "title": "Expectedrevision",
+            "type": "integer"
+          },
+          "data": {
+            "$ref": "#/components/schemas/LessonPlanData"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisContextInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source": {
+            "default": "manual",
+            "enum": [
+              "manual",
+              "rule"
+            ],
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "submissionId",
+          "expectedRevision",
+          "data",
+          "context"
+        ],
+        "title": "LessonSaveRequest",
+        "type": "object"
+      },
+      "LessonRevisionSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "lessonPlanId": {
+            "title": "Lessonplanid",
+            "type": "string"
+          },
+          "revisionId": {
+            "title": "Revisionid",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "contentHash": {
+            "title": "Contenthash",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "manual",
+              "rule",
+              "import_local",
+              "ai_applied"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "analysisRunId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analysisrunid"
+          },
+          "acceptedProposalId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acceptedproposalid"
+          },
+          "selectedFields": {
+            "items": {
+              "enum": [
+                "coreCompetencies",
+                "keyPoints",
+                "teachingDesign",
+                "process",
+                "exercises"
+              ],
+              "type": "string"
+            },
+            "title": "Selectedfields",
+            "type": "array"
+          },
+          "reviewState": {
+            "enum": [
+              "unreviewed",
+              "reviewed"
+            ],
+            "title": "Reviewstate",
+            "type": "string"
+          },
+          "createdAt": {
+            "title": "Createdat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "lessonPlanId",
+          "revisionId",
+          "version",
+          "title",
+          "contentHash",
+          "source",
+          "analysisRunId",
+          "acceptedProposalId",
+          "selectedFields",
+          "reviewState",
+          "createdAt"
+        ],
+        "title": "LessonRevisionSummary",
+        "type": "object"
+      },
+      "Page_LessonRevisionSummary_": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/LessonRevisionSummary"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "total",
+          "offset",
+          "limit"
+        ],
+        "title": "Page[LessonRevisionSummary]",
+        "type": "object"
+      },
+      "EvidenceReadable": {
+        "additionalProperties": false,
+        "description": "证据的**可读投影**（RAG-QUALITY v1.1）：已清洗图片 Markdown，保留公式与正文结构。\n\n与 `TextbookEvidence.text` 的关系：`text` 仍是**可逐字验证的封存原文切片**（引用、\n散列、坐标都绑定它）；`readable.text` 只是派生展示文本，**不得**作为客户端回传的\n可信证据，也不得参与原文散列校验。",
+        "properties": {
+          "version": {
+            "enum": [
+              "rag-readable-v1",
+              "rag-readable-v2"
+            ],
+            "title": "Version",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "removedImageCount": {
+            "minimum": 0,
+            "title": "Removedimagecount",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "text",
+          "removedImageCount"
+        ],
+        "title": "EvidenceReadable",
+        "type": "object"
+      },
+      "EvidenceRef": {
+        "additionalProperties": false,
+        "properties": {
+          "evidenceId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Evidenceid",
+            "type": "string"
+          },
+          "documentRevisionId": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Documentrevisionid",
+            "type": "string"
+          },
+          "normalizedTextSha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Normalizedtextsha256",
+            "type": "string"
+          },
+          "charStart": {
+            "minimum": 0,
+            "title": "Charstart",
+            "type": "integer"
+          },
+          "charEnd": {
+            "minimum": 0,
+            "title": "Charend",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "evidenceId",
+          "documentRevisionId",
+          "normalizedTextSha256",
+          "charStart",
+          "charEnd"
+        ],
+        "title": "EvidenceRef",
+        "type": "object"
+      },
+      "LocatorView": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "enum": [
+              "markdown",
+              "pdf",
+              "docx"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "lineStart": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Linestart"
+          },
+          "lineEnd": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Lineend"
+          },
+          "pageStart": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Pagestart"
+          },
+          "pageEnd": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Pageend"
+          },
+          "blockStart": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Blockstart"
+          },
+          "blockEnd": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Blockend"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "LocatorView",
+        "type": "object"
+      },
+      "ScopeDocument": {
+        "additionalProperties": false,
+        "properties": {
+          "documentId": {
+            "title": "Documentid",
+            "type": "string"
+          },
+          "documentRevisionId": {
+            "title": "Documentrevisionid",
+            "type": "string"
+          },
+          "metadataRevisionId": {
+            "title": "Metadatarevisionid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "documentId",
+          "documentRevisionId",
+          "metadataRevisionId"
+        ],
+        "title": "ScopeDocument",
+        "type": "object"
+      },
+      "ScopeSnapshot": {
+        "additionalProperties": false,
+        "properties": {
+          "schemaVersion": {
+            "const": 2,
+            "default": 2,
+            "title": "Schemaversion",
+            "type": "integer"
+          },
+          "selection": {
+            "$ref": "#/components/schemas/TextbookSelection"
+          },
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/ScopeDocument"
+            },
+            "title": "Documents",
+            "type": "array"
+          },
+          "embeddingGenerationId": {
+            "title": "Embeddinggenerationid",
+            "type": "string"
+          },
+          "scopeHash": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Scopehash",
+            "type": "string"
+          }
+        },
+        "required": [
+          "selection",
+          "documents",
+          "embeddingGenerationId",
+          "scopeHash"
+        ],
+        "title": "ScopeSnapshot",
+        "type": "object"
+      },
+      "TextbookEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "evidenceId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Evidenceid",
+            "type": "string"
+          },
+          "documentRevisionId": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Documentrevisionid",
+            "type": "string"
+          },
+          "normalizedTextSha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Normalizedtextsha256",
+            "type": "string"
+          },
+          "charStart": {
+            "minimum": 0,
+            "title": "Charstart",
+            "type": "integer"
+          },
+          "charEnd": {
+            "minimum": 0,
+            "title": "Charend",
+            "type": "integer"
+          },
+          "documentId": {
+            "title": "Documentid",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "editionLabel": {
+            "title": "Editionlabel",
+            "type": "string"
+          },
+          "subjectLabel": {
+            "title": "Subjectlabel",
+            "type": "string"
+          },
+          "chapterPath": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Chapterpath",
+            "type": "array"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "originalFileSha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Originalfilesha256",
+            "type": "string"
+          },
+          "locator": {
+            "$ref": "#/components/schemas/LocatorView"
+          },
+          "isSuperseded": {
+            "title": "Issuperseded",
+            "type": "boolean"
+          },
+          "readable": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EvidenceReadable"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "evidenceId",
+          "documentRevisionId",
+          "normalizedTextSha256",
+          "charStart",
+          "charEnd",
+          "documentId",
+          "title",
+          "editionLabel",
+          "subjectLabel",
+          "chapterPath",
+          "text",
+          "originalFileSha256",
+          "locator",
+          "isSuperseded"
+        ],
+        "title": "TextbookEvidence",
+        "type": "object"
+      },
+      "TextbookSelection": {
+        "additionalProperties": false,
+        "properties": {
+          "gradeId": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Gradeid",
+            "type": "string"
+          },
+          "subjectId": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Subjectid",
+            "type": "string"
+          },
+          "editionId": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Editionid",
+            "type": "string"
+          },
+          "documentIds": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 64,
+            "title": "Documentids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "gradeId",
+          "subjectId",
+          "editionId",
+          "documentIds"
+        ],
+        "title": "TextbookSelection",
+        "type": "object"
+      },
+      "LessonEvidenceView": {
+        "additionalProperties": false,
+        "properties": {
+          "scopeSnapshot": {
+            "$ref": "#/components/schemas/ScopeSnapshot"
+          },
+          "evidenceRefs": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceRef"
+            },
+            "title": "Evidencerefs",
+            "type": "array"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/TextbookEvidence"
+            },
+            "title": "Evidence",
+            "type": "array"
+          }
+        },
+        "required": [
+          "scopeSnapshot",
+          "evidenceRefs",
+          "evidence"
+        ],
+        "title": "LessonEvidenceView",
+        "type": "object"
+      },
+      "EvidenceSlice": {
+        "additionalProperties": false,
+        "properties": {
+          "documentRevisionId": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Documentrevisionid",
+            "type": "string"
+          },
+          "charStart": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Charstart",
+            "type": "integer"
+          },
+          "charEnd": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "title": "Charend",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "documentRevisionId",
+          "charStart",
+          "charEnd"
+        ],
+        "title": "EvidenceSlice",
+        "type": "object"
+      },
+      "LessonEvidenceRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "selection": {
+            "$ref": "#/components/schemas/TextbookSelection"
+          },
+          "slices": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceSlice"
+            },
+            "maxItems": 6,
+            "minItems": 1,
+            "title": "Slices",
+            "type": "array"
+          }
+        },
+        "required": [
+          "selection",
+          "slices"
+        ],
+        "title": "LessonEvidenceRequest",
+        "type": "object"
+      },
+      "JobView": {
+        "additionalProperties": false,
+        "description": "任务对外视图；``202`` 只代表接受任务，不代表生成完成。",
+        "properties": {
+          "jobId": {
+            "minLength": 1,
+            "title": "Jobid",
+            "type": "string"
+          },
+          "domain": {
+            "enum": [
+              "knowledge",
+              "question",
+              "teaching"
+            ],
+            "title": "Domain",
+            "type": "string"
+          },
+          "kind": {
+            "minLength": 1,
+            "title": "Kind",
+            "type": "string"
+          },
+          "attempt": {
+            "minimum": 0,
+            "title": "Attempt",
+            "type": "integer"
+          },
+          "state": {
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed",
+              "cancelled",
+              "interrupted"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Result"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApiErrorEnvelope"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "required": [
+          "jobId",
+          "domain",
+          "kind",
+          "attempt",
+          "state"
+        ],
+        "title": "JobView",
+        "type": "object"
+      },
+      "LessonGenerationReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "lessonPlanId": {
+            "title": "Lessonplanid",
+            "type": "string"
+          },
+          "inputHash": {
+            "title": "Inputhash",
+            "type": "string"
+          },
+          "job": {
+            "$ref": "#/components/schemas/JobView"
+          },
+          "replayed": {
+            "title": "Replayed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "lessonPlanId",
+          "inputHash",
+          "job",
+          "replayed"
+        ],
+        "title": "LessonGenerationReceipt",
+        "type": "object"
+      },
+      "LessonGenerateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "submissionId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Submissionid",
+            "type": "string"
+          },
+          "baseRevisionId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Baserevisionid",
+            "type": "string"
+          },
+          "baseServerRevision": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "title": "Baseserverrevision",
+            "type": "integer"
+          },
+          "analysisRunId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Analysisrunid",
+            "type": "string"
+          },
+          "classId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Classid",
+            "type": "string"
+          },
+          "selectedKnowledgePointIds": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Selectedknowledgepointids",
+            "type": "array"
+          },
+          "requirements": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Requirements",
+            "type": "string"
+          },
+          "durationMinutes": {
+            "maximum": 180,
+            "minimum": 5,
+            "title": "Durationminutes",
+            "type": "integer"
+          },
+          "modelProfileId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Modelprofileid",
+            "type": "string"
+          },
+          "scopeSnapshot": {
+            "$ref": "#/components/schemas/ScopeSnapshot"
+          },
+          "evidenceRefs": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceRef"
+            },
+            "maxItems": 6,
+            "minItems": 1,
+            "title": "Evidencerefs",
+            "type": "array"
+          },
+          "questionRevisionIds": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Questionrevisionids",
+            "type": "array"
+          },
+          "practiceRevisionIds": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "title": "Practicerevisionids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "submissionId",
+          "baseRevisionId",
+          "baseServerRevision",
+          "analysisRunId",
+          "classId",
+          "selectedKnowledgePointIds",
+          "requirements",
+          "durationMinutes",
+          "modelProfileId",
+          "scopeSnapshot",
+          "evidenceRefs",
+          "questionRevisionIds",
+          "practiceRevisionIds"
+        ],
+        "title": "LessonGenerateRequest",
+        "type": "object"
+      },
+      "GenerationSourceView": {
+        "additionalProperties": false,
+        "properties": {
+          "analysis": {
+            "$ref": "#/components/schemas/AnalysisContextSnapshot"
+          },
+          "classId": {
+            "title": "Classid",
+            "type": "string"
+          },
+          "selectedKnowledgePoints": {
+            "items": {
+              "$ref": "#/components/schemas/FixedKnowledge"
+            },
+            "title": "Selectedknowledgepoints",
+            "type": "array"
+          },
+          "modelProfileId": {
+            "title": "Modelprofileid",
+            "type": "string"
+          },
+          "scopeSnapshot": {
+            "$ref": "#/components/schemas/ScopeSnapshot"
+          },
+          "evidenceRefs": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceRef"
+            },
+            "title": "Evidencerefs",
+            "type": "array"
+          },
+          "requirements": {
+            "title": "Requirements",
+            "type": "string"
+          }
+        },
+        "required": [
+          "analysis",
+          "classId",
+          "selectedKnowledgePoints",
+          "modelProfileId",
+          "scopeSnapshot",
+          "evidenceRefs",
+          "requirements"
+        ],
+        "title": "GenerationSourceView",
+        "type": "object"
+      },
+      "LessonBudget": {
+        "additionalProperties": false,
+        "properties": {
+          "durationMinutes": {
+            "maximum": 180,
+            "minimum": 5,
+            "title": "Durationminutes",
+            "type": "integer"
+          },
+          "stages": {
+            "items": {
+              "$ref": "#/components/schemas/StageMetadata"
+            },
+            "maxItems": 12,
+            "minItems": 4,
+            "title": "Stages",
+            "type": "array"
+          }
+        },
+        "required": [
+          "durationMinutes",
+          "stages"
+        ],
+        "title": "LessonBudget",
+        "type": "object"
+      },
+      "LessonPatch": {
+        "additionalProperties": false,
+        "properties": {
+          "coreCompetencies": {
+            "anyOf": [
+              {
+                "maxLength": 100000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Corecompetencies"
+          },
+          "keyPoints": {
+            "anyOf": [
+              {
+                "maxLength": 100000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Keypoints"
+          },
+          "teachingDesign": {
+            "anyOf": [
+              {
+                "maxLength": 100000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Teachingdesign"
+          },
+          "process": {
+            "items": {
+              "$ref": "#/components/schemas/ProcessItem"
+            },
+            "title": "Process",
+            "type": "array"
+          },
+          "exercises": {
+            "anyOf": [
+              {
+                "maxLength": 100000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Exercises"
+          }
+        },
+        "required": [
+          "process"
+        ],
+        "title": "LessonPatch",
+        "type": "object"
+      },
+      "ProposalEvidenceView": {
+        "additionalProperties": false,
+        "properties": {
+          "alias": {
+            "title": "Alias",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "textbook",
+              "question",
+              "practice"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "referenceId": {
+            "title": "Referenceid",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "sha256": {
+            "title": "Sha256",
+            "type": "string"
+          },
+          "locator": {
+            "additionalProperties": true,
+            "title": "Locator",
+            "type": "object"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "alias",
+          "kind",
+          "referenceId",
+          "title",
+          "sha256",
+          "locator",
+          "text"
+        ],
+        "title": "ProposalEvidenceView",
+        "type": "object"
+      },
+      "LessonProposalView": {
+        "additionalProperties": false,
+        "properties": {
+          "protocolVersion": {
+            "const": 2,
+            "default": 2,
+            "title": "Protocolversion",
+            "type": "integer"
+          },
+          "lessonPlanId": {
+            "title": "Lessonplanid",
+            "type": "string"
+          },
+          "proposalId": {
+            "title": "Proposalid",
+            "type": "string"
+          },
+          "jobId": {
+            "title": "Jobid",
+            "type": "string"
+          },
+          "baseRevisionId": {
+            "title": "Baserevisionid",
+            "type": "string"
+          },
+          "baseServerRevision": {
+            "title": "Baseserverrevision",
+            "type": "integer"
+          },
+          "inputHash": {
+            "title": "Inputhash",
+            "type": "string"
+          },
+          "modelFingerprint": {
+            "title": "Modelfingerprint",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "pending",
+              "applied",
+              "rejected",
+              "stale"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "patch": {
+            "$ref": "#/components/schemas/LessonPatch"
+          },
+          "budget": {
+            "$ref": "#/components/schemas/LessonBudget"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/ProposalEvidenceView"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "generationSource": {
+            "$ref": "#/components/schemas/GenerationSourceView"
+          },
+          "selectedFields": {
+            "items": {
+              "enum": [
+                "coreCompetencies",
+                "keyPoints",
+                "teachingDesign",
+                "process",
+                "exercises"
+              ],
+              "type": "string"
+            },
+            "title": "Selectedfields",
+            "type": "array"
+          },
+          "acceptedRevisionId": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acceptedrevisionid"
+          },
+          "createdAt": {
+            "title": "Createdat",
+            "type": "string"
+          },
+          "decidedAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Decidedat"
+          },
+          "replayed": {
+            "default": false,
+            "title": "Replayed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "lessonPlanId",
+          "proposalId",
+          "jobId",
+          "baseRevisionId",
+          "baseServerRevision",
+          "inputHash",
+          "modelFingerprint",
+          "state",
+          "patch",
+          "budget",
+          "evidence",
+          "generationSource",
+          "selectedFields",
+          "acceptedRevisionId",
+          "createdAt",
+          "decidedAt"
+        ],
+        "title": "LessonProposalView",
+        "type": "object"
+      },
+      "LessonApplyRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "submissionId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Submissionid",
+            "type": "string"
+          },
+          "expectedRevision": {
+            "maximum": 9007199254740991,
+            "minimum": 1,
+            "title": "Expectedrevision",
+            "type": "integer"
+          },
+          "baseRevisionId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Baserevisionid",
+            "type": "string"
+          },
+          "selectedFields": {
+            "items": {
+              "enum": [
+                "coreCompetencies",
+                "keyPoints",
+                "teachingDesign",
+                "process",
+                "exercises"
+              ],
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "title": "Selectedfields",
+            "type": "array"
+          }
+        },
+        "required": [
+          "submissionId",
+          "expectedRevision",
+          "baseRevisionId",
+          "selectedFields"
+        ],
+        "title": "LessonApplyRequest",
+        "type": "object"
+      },
+      "LessonRejectRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "submissionId": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Submissionid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "submissionId"
+        ],
+        "title": "LessonRejectRequest",
+        "type": "object"
+      }
+    }
+  }
+}

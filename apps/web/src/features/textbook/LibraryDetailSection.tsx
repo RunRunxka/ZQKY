@@ -8,7 +8,8 @@
  * 刷新比较，绝不静默覆盖。
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEntrance } from '@/components/motion/useEntrance';
 import Link from 'next/link';
 import { ArrowLeft, RefreshCw } from 'lucide-react';
 import '@/components/layout/space.css';
@@ -31,12 +32,27 @@ function isRetrievable(document: DocumentSummary): boolean {
   return Boolean(document.currentRevision && !document.pendingRevisionId && !document.deletedAt);
 }
 
-type OpenPanel = { kind: 'edit' | 'source'; documentId: string } | null;
+type OpenPanel = {
+  kind: 'edit' | 'source';
+  documentId: string;
+  document: DocumentSummary;
+} | null;
 
-/** 更新目标只记 id/title；期望修订在渲染时从最新库数据派生，避免持有过期修订。 */
-type UpdateTargetRef = { documentId: string; title: string };
+/** 更新目标保留打开时的固定期望修订；新列表成功读出目标后才采用其最新发布修订。 */
+type UpdateTargetRef = {
+  documentId: string;
+  title: string;
+  expectedCurrentRevisionId: string | null;
+};
 
 export function LibraryDetailSection({ libraryId }: { libraryId: string }) {
+  // A different library owns a different read/edit session, including pending requests.
+  return <LibraryDetailSession key={libraryId} libraryId={libraryId} />;
+}
+
+function LibraryDetailSession({ libraryId }: { libraryId: string }) {
+  const entranceRef = useRef<HTMLDivElement>(null);
+  useEntrance(entranceRef, { preset: 'page', triggerKey: libraryId });
   const [refreshToken, setRefreshToken] = useState(0);
   const [openPanel, setOpenPanel] = useState<OpenPanel>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -47,8 +63,13 @@ export function LibraryDetailSection({ libraryId }: { libraryId: string }) {
   const [updateSeed, setUpdateSeed] = useState<DocumentMetadataInput | null>(null);
   const [updateSeedError, setUpdateSeedError] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [retainedLibrary, setRetainedLibrary] = useState<LibraryDetail | null>(null);
+  const [refreshPending, setRefreshPending] = useState(false);
 
-  const refresh = () => setRefreshToken((value) => value + 1);
+  const refresh = () => {
+    setRefreshPending(true);
+    setRefreshToken((value) => value + 1);
+  };
   const taxonomy = useAsyncResource((signal) => fetchTextbookTaxonomy(signal), 'detail-taxonomy');
   const index = useMemo(
     () => buildTaxonomyIndex(taxonomy.state.phase === 'ready' ? taxonomy.state.data : null),
@@ -59,26 +80,45 @@ export function LibraryDetailSection({ libraryId }: { libraryId: string }) {
     `${libraryId}|${refreshToken}`,
   );
 
-  // 期望修订始终取当前列表里的已发布修订（刷新后自动更新，不再持有过期值）
+  useEffect(() => {
+    if (state.phase === 'ready') setRetainedLibrary(state.data);
+    if (state.phase !== 'loading') setRefreshPending(false);
+  }, [state]);
+
+  const library = state.phase === 'ready' ? state.data : retainedLibrary;
+  const listFresh = state.phase === 'ready' && !refreshPending;
+  const refreshing = Boolean(library) && (refreshPending || state.phase === 'loading');
+  const documents = library?.documents ?? [];
+  const activeEdit = openPanel?.kind === 'edit' ? openPanel.document : null;
+  // A refresh can remove this row from the list; its teacher-owned edit still stays mounted.
+  const missingEdit =
+    activeEdit && !documents.some((item) => item.documentId === activeEdit.documentId);
+  const visibleDocuments = missingEdit && activeEdit ? [...documents, activeEdit] : documents;
+  const retryLibrary = () => {
+    setRefreshPending(true);
+    reload();
+  };
+
+  // 刷新未读出目标时保留既有 CAS，不能退为 null 并交给服务端隐式选择当前修订。
+  const targetDocument = documents.find((item) => item.documentId === updateTarget?.documentId);
   const resolvedTarget: ImportTarget | null = updateTarget
     ? {
         documentId: updateTarget.documentId,
-        title:
-          (state.phase === 'ready'
-            ? state.data.documents.find((item) => item.documentId === updateTarget.documentId)
-                ?.title
-            : undefined) ?? updateTarget.title,
-        expectedCurrentRevisionId:
-          state.phase === 'ready'
-            ? (state.data.documents.find((item) => item.documentId === updateTarget.documentId)
-                ?.currentRevision?.revisionId ?? null)
-            : null,
+        title: targetDocument?.title ?? updateTarget.title,
+        expectedCurrentRevisionId: targetDocument
+          ? (targetDocument.currentRevision?.revisionId ?? null)
+          : updateTarget.expectedCurrentRevisionId,
       }
     : null;
 
   /** 打开「更新」：预取该书册完整分类用于预填（失败不阻断，提示手填）。 */
   async function openUpdate(document: DocumentSummary) {
-    setUpdateTarget({ documentId: document.documentId, title: document.title });
+    if (!listFresh) return;
+    setUpdateTarget({
+      documentId: document.documentId,
+      title: document.title,
+      expectedCurrentRevisionId: document.currentRevision?.revisionId ?? null,
+    });
     setUpdateSeed(null);
     setUpdateSeedError(null);
     setImportOpen(true);
@@ -91,6 +131,7 @@ export function LibraryDetailSection({ libraryId }: { libraryId: string }) {
   }
 
   async function removeDocument(document: DocumentSummary) {
+    if (!listFresh || !documents.some((item) => item.documentId === document.documentId)) return;
     setBusyId(document.documentId);
     setActionError(null);
     try {
@@ -112,14 +153,14 @@ export function LibraryDetailSection({ libraryId }: { libraryId: string }) {
   }
 
   return (
-    <div className="space-page textbook-page textbook-detail">
-      <header className="space-header">
+    <div className="space-page textbook-page textbook-detail" ref={entranceRef}>
+      <header className="space-header" data-motion-reveal>
         <Link className="space-back" href="/knowledge-bases">
           <ArrowLeft size={14} aria-hidden />
           返回教材资料库
         </Link>
         <div className="space-header-row">
-          <h1>{state.phase === 'ready' ? state.data.displayName : '教材库详情'}</h1>
+          <h1>{library?.displayName ?? '教材库详情'}</h1>
           <div className="space-card-actions">
             <button className="space-button" onClick={refresh}>
               <RefreshCw size={14} aria-hidden />
@@ -127,11 +168,11 @@ export function LibraryDetailSection({ libraryId }: { libraryId: string }) {
             </button>
           </div>
         </div>
-        {state.phase === 'ready' && <LibraryMeta library={state.data} taxonomy={index} />}
+        {library && <LibraryMeta library={library} taxonomy={index} />}
       </header>
 
       <main className="space-content">
-        {state.phase === 'loading' && (
+        {!library && state.phase === 'loading' && (
           <div aria-hidden>
             {[0, 1, 2].map((index) => (
               <div className="space-skeleton" key={index} style={{ height: 96 }} />
@@ -139,11 +180,21 @@ export function LibraryDetailSection({ libraryId }: { libraryId: string }) {
           </div>
         )}
 
+        {refreshing && (
+          <div className="space-banner info" role="status">
+            正在刷新教材库列表。上次成功读取的信息与当前编辑已保留，刷新完成前暂停新的更新和删除。
+          </div>
+        )}
+
         {state.phase === 'failed' && (
           <div className="space-banner error" role="alert">
-            教材库读取失败（{state.error.code}）：{state.error.message}
+            {library ? '教材库刷新失败' : '教材库读取失败'}（{state.error.code}）：
+            {state.error.message}
+            {library && (
+              <p>保留上次成功读取的列表与当前填写，尚未确认最新状态；请重试刷新后再更新或删除。</p>
+            )}
             <div className="textbook-panel-actions">
-              <button className="space-button" onClick={reload}>
+              <button className="space-button" onClick={retryLibrary}>
                 重试
               </button>
             </div>
@@ -174,12 +225,13 @@ export function LibraryDetailSection({ libraryId }: { libraryId: string }) {
           </div>
         )}
 
-        {state.phase === 'ready' && state.data.documents.length === 0 && (
+        {library && visibleDocuments.length === 0 && (
           <div className="space-empty">
-            <strong>该库还没有书册</strong>
+            <strong>{listFresh ? '该库还没有书册' : '上次成功读取时该库没有书册'}</strong>
             <span>用「更新」上传文件并提交入库后，书册会出现在这里。</span>
             <button
               className="space-button primary"
+              disabled={!listFresh}
               onClick={() => {
                 setUpdateTarget(null);
                 setUpdateSeed(null);
@@ -192,11 +244,15 @@ export function LibraryDetailSection({ libraryId }: { libraryId: string }) {
           </div>
         )}
 
-        {state.phase === 'ready' && state.data.documents.length > 0 && (
+        {library && visibleDocuments.length > 0 && (
           <ul className="textbook-document-list">
-            {state.data.documents.map((document) => {
+            {visibleDocuments.map((document) => {
               const revision = document.currentRevision;
               const panelOpen = openPanel?.documentId === document.documentId;
+              const snapshotOnly = !documents.some(
+                (item) => item.documentId === document.documentId,
+              );
+              const actionsPaused = !listFresh || snapshotOnly;
               return (
                 <li className="textbook-document-item" key={document.documentId}>
                   <div className="textbook-document-head">
@@ -211,6 +267,12 @@ export function LibraryDetailSection({ libraryId }: { libraryId: string }) {
                       {document.deletedAt && <span className="space-chip amber">已删除</span>}
                     </span>
                   </div>
+
+                  {snapshotOnly && (
+                    <p className="space-banner" role="alert">
+                      此书册已不在最新库列表中。当前编辑与原列表信息保留供核对，不可从此旧快照更新或删除。
+                    </p>
+                  )}
                   <div className="space-meta-row">
                     <span className="space-chip">
                       年级：{index.gradeLabels(document.gradeIds) || '—'}
@@ -240,16 +302,21 @@ export function LibraryDetailSection({ libraryId }: { libraryId: string }) {
                   </div>
 
                   <div className="textbook-panel-actions">
-                    <button className="space-button" onClick={() => void openUpdate(document)}>
+                    <button
+                      className="space-button"
+                      disabled={actionsPaused}
+                      onClick={() => void openUpdate(document)}
+                    >
                       更新
                     </button>
                     <button
                       className="space-button"
+                      disabled={actionsPaused && !(panelOpen && openPanel?.kind === 'edit')}
                       onClick={() =>
                         setOpenPanel(
                           panelOpen && openPanel?.kind === 'edit'
                             ? null
-                            : { kind: 'edit', documentId: document.documentId },
+                            : { kind: 'edit', documentId: document.documentId, document },
                         )
                       }
                       aria-expanded={panelOpen && openPanel?.kind === 'edit'}
@@ -263,7 +330,7 @@ export function LibraryDetailSection({ libraryId }: { libraryId: string }) {
                         setOpenPanel(
                           panelOpen && openPanel?.kind === 'source'
                             ? null
-                            : { kind: 'source', documentId: document.documentId },
+                            : { kind: 'source', documentId: document.documentId, document },
                         )
                       }
                       aria-expanded={panelOpen && openPanel?.kind === 'source'}
@@ -275,7 +342,7 @@ export function LibraryDetailSection({ libraryId }: { libraryId: string }) {
                         <button
                           className="space-button danger"
                           onClick={() => void removeDocument(document)}
-                          disabled={busyId === document.documentId}
+                          disabled={actionsPaused || busyId === document.documentId}
                         >
                           {busyId === document.documentId ? '删除中…' : '确认删除'}
                         </button>
@@ -287,7 +354,7 @@ export function LibraryDetailSection({ libraryId }: { libraryId: string }) {
                       <button
                         className="space-button"
                         onClick={() => setConfirmDeleteId(document.documentId)}
-                        disabled={Boolean(document.deletedAt)}
+                        disabled={actionsPaused || Boolean(document.deletedAt)}
                       >
                         删除
                       </button>

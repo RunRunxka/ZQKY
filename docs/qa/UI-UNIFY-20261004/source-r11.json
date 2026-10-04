@@ -1,0 +1,1890 @@
+[
+  {
+    "Path": "apps/web/package.json",
+    "Sha256": "A57864BF0F1009F0DBB99A5C44D3C5B2F771ED31BC5FF4C2F6D07E3E95D34251"
+  },
+  {
+    "Path": "apps/web/src\\app\\[planned]\\page.tsx",
+    "Sha256": "6429F3AD583D874EEB6EEAF588A3DBE9616FE50E089C9F6ADD5114EA45AEB8D4"
+  },
+  {
+    "Path": "apps/web/src\\app\\assessments\\page.tsx",
+    "Sha256": "EEB4CFCD102E3D7EAB78387EA3E935E8A16970246F52668189627EBB961C9C4A"
+  },
+  {
+    "Path": "apps/web/src\\app\\books\\[bookId]\\page.tsx",
+    "Sha256": "DFB902DA1603A4C6937F92AF85FA0217CC0B8B1DFA1348115901B0C43C6E71BB"
+  },
+  {
+    "Path": "apps/web/src\\app\\books\\[bookId]\\pages\\[pageId]\\page.tsx",
+    "Sha256": "7F8EA9E1020ADB6AAA48F6D27EB0AB61F7BB75BC9CF03B212929C2BB3AC1FBC7"
+  },
+  {
+    "Path": "apps/web/src\\app\\books\\page.tsx",
+    "Sha256": "CBB5E287C3256D07090909B1CCF66E1BED781D09A3CD152C0B8DE7BAC2D4A90F"
+  },
+  {
+    "Path": "apps/web/src\\app\\chat\\[sessionId]\\page.tsx",
+    "Sha256": "63C757EA73CB323D8BD7363A1E524AB23CE50C485A8B235BD087D038E79D0473"
+  },
+  {
+    "Path": "apps/web/src\\app\\chat\\page.tsx",
+    "Sha256": "8BB589A70606EF6D8D8D0F821C7878588DEE48503097A72B7DB1E7E28B5DC3E2"
+  },
+  {
+    "Path": "apps/web/src\\app\\courses\\[courseId]\\page.tsx",
+    "Sha256": "E12112E5F02908A483E8A56288CCE08D7796A45C8E72267904F1322B48A40119"
+  },
+  {
+    "Path": "apps/web/src\\app\\courses\\page.tsx",
+    "Sha256": "B83F0FEA0012D77B462687C466F654F865DEF467D1FFB09584EB88686155B012"
+  },
+  {
+    "Path": "apps/web/src\\app\\error.tsx",
+    "Sha256": "94F783B05ADE7952AFB00876B15B173EF7ABAE6ABE751FF853CF37C9F2815DB1"
+  },
+  {
+    "Path": "apps/web/src\\app\\icon.svg",
+    "Sha256": "1063605236D477B21766050CB36A258A6141F8A6ED5B33EE3716CC3A792B607F"
+  },
+  {
+    "Path": "apps/web/src\\app\\knowledge-bases\\[kbName]\\page.tsx",
+    "Sha256": "E69247224792AA40355EDDCB0B7166430ABFB237E8D8B3E29BBD8579D881E683"
+  },
+  {
+    "Path": "apps/web/src\\app\\knowledge-bases\\libraries\\[libraryId]\\page.tsx",
+    "Sha256": "8299365CC94599D3ACE66C9C533DEDD559366690F1C48273BD9B67CB051FACB3"
+  },
+  {
+    "Path": "apps/web/src\\app\\knowledge-bases\\page.tsx",
+    "Sha256": "E0159844DA399C90D0B17DD0A0E317423CECE550927BF2AE7CE8C8B70D5E1250"
+  },
+  {
+    "Path": "apps/web/src\\app\\knowledge-points\\page.tsx",
+    "Sha256": "AB09F6C800C4011DC330BF89E451BFE870419BD7BC9EB2540C50CCCED0ABDBB4"
+  },
+  {
+    "Path": "apps/web/src\\app\\layout.tsx",
+    "Sha256": "CDA7A81FB5596A0AA70C69052BBB6792DB27BD34742DF2CB0FF1DC40B1DA1D64"
+  },
+  {
+    "Path": "apps/web/src\\app\\learning-analysis\\page.tsx",
+    "Sha256": "62E003458EF6E4E7FBC1CF4942B96B4D359DB02316E20E71C6A75A3AFF890473"
+  },
+  {
+    "Path": "apps/web/src\\app\\lesson-plans\\page.tsx",
+    "Sha256": "17DCBA67E41B9926BF3467C04FE9D075A98D2F1EB9E7377C4A4ECE78F187FF8F"
+  },
+  {
+    "Path": "apps/web/src\\app\\mcp\\page.tsx",
+    "Sha256": "7D5FEED40DE5E07514A15E35CF81DB3EC3E63E3D0899008014718FCD0E1CC64A"
+  },
+  {
+    "Path": "apps/web/src\\app\\not-found.tsx",
+    "Sha256": "9733113361A644489885C36B49E21CB0FBC241F1B13169623B95C728F045608C"
+  },
+  {
+    "Path": "apps/web/src\\app\\page.tsx",
+    "Sha256": "5DF993E1291A38703216D3FA7293A7382D4DE25D848DE71388E91BF9E02720A0"
+  },
+  {
+    "Path": "apps/web/src\\app\\practices\\page.tsx",
+    "Sha256": "B4D54A643662B03A1E9BD977FA5599BC2BDA3C9DB2F780C10599AF3BCFC1E41C"
+  },
+  {
+    "Path": "apps/web/src\\app\\question-bank\\imports\\[importId]\\page.tsx",
+    "Sha256": "313AA21A02C891CD99896A45062B08C1F14F940E96278EB8B93E3D5C67907E38"
+  },
+  {
+    "Path": "apps/web/src\\app\\question-bank\\page.tsx",
+    "Sha256": "D4F69E0122A44360A2195DC86C85DF77FCCBA9B808FBB7857C9C1BB434E3B02B"
+  },
+  {
+    "Path": "apps/web/src\\app\\settings\\page.tsx",
+    "Sha256": "B386482F56C711A9B5C71EE93234EBD244A56394F0BE31705022B937756B2AE2"
+  },
+  {
+    "Path": "apps/web/src\\app\\skills\\page.tsx",
+    "Sha256": "1FAFC7BC11E9003EBF62D608C2E64702946DCF3E23ED92BCF5211B22A8E7CFB8"
+  },
+  {
+    "Path": "apps/web/src\\components\\layout\\HomeReturnLink.tsx",
+    "Sha256": "9243DAD1B5B816B9995FDB3EC7A7453F8151202294BA493088359567BDD3AA0F"
+  },
+  {
+    "Path": "apps/web/src\\components\\layout\\ModuleWorkspaceShell.tsx",
+    "Sha256": "1F0BF0B9569A721CC1FF1CB2A057FBEE2D65A88BA6AD54C81AFA6AAFC7B7AC49"
+  },
+  {
+    "Path": "apps/web/src\\components\\layout\\MotionPreference.tsx",
+    "Sha256": "DF01DE819DCBB8E21250921A01CCEB665BB5F14A0E45F1EE5646372D3AC718A4"
+  },
+  {
+    "Path": "apps/web/src\\components\\layout\\NavigationPreference.tsx",
+    "Sha256": "16E093DFA695CC47CA9D7FD6F899410F2720FB0C040795489CECDAB1E4D9EA27"
+  },
+  {
+    "Path": "apps/web/src\\components\\layout\\PlannedContent.tsx",
+    "Sha256": "8DFFB684BEB1E59E489A72AA54E15C455239E5CEA44FBED4B58CF4A5C8680FBE"
+  },
+  {
+    "Path": "apps/web/src\\components\\layout\\PlannedModulePage.tsx",
+    "Sha256": "00DD912610E897908F505EF560447C31A5C106708834C4BA91B78206FB931DFA"
+  },
+  {
+    "Path": "apps/web/src\\components\\layout\\ShellScope.tsx",
+    "Sha256": "5287B1744F5BF45FE02E8098D8F83AE4EF1A9ED8E1F25480175DAACA1BA929B6"
+  },
+  {
+    "Path": "apps/web/src\\components\\layout\\space.css",
+    "Sha256": "FF07FBAEC60861EA5168C013E5DF4D3A3539D44BC7EDC20E0F5B454E5285266B"
+  },
+  {
+    "Path": "apps/web/src\\components\\layout\\workspace-shell.css",
+    "Sha256": "5DA9594F4CF2AA73015D5B8973FA7494F30661904AA1AEF024811CD875EAE088"
+  },
+  {
+    "Path": "apps/web/src\\components\\layout\\WorkspaceShell.test.tsx",
+    "Sha256": "8FFF7341F9657E7147F9D65A909C73D55B252D164BFF882B8AC2A7ECD333645C"
+  },
+  {
+    "Path": "apps/web/src\\components\\layout\\WorkspaceShell.tsx",
+    "Sha256": "AA0D26B3526CC5922554F9B1DE6E013F52FECCD6EE4811838A185B3FC0D51671"
+  },
+  {
+    "Path": "apps/web/src\\components\\motion\\useEntrance.test.tsx",
+    "Sha256": "A133AA196154E983B284089D82C6282D5F1F481D76757AD8C42F5C6EFD9110C1"
+  },
+  {
+    "Path": "apps/web/src\\components\\motion\\useEntrance.ts",
+    "Sha256": "C8EAD9D11DBB044D428DA83B8F3B2DBDE1DDB78A8115428C60005CEE4F5D3860"
+  },
+  {
+    "Path": "apps/web/src\\components\\ui\\Field.tsx",
+    "Sha256": "F6B8BD6FD3B84CB907529273C8A7EDA03152DC5B02AEAE14311AC11A5C6A1681"
+  },
+  {
+    "Path": "apps/web/src\\components\\ui\\modal.css",
+    "Sha256": "824728FDA897FBFC84232FEFC0161BD5936D15260993C1B5EE2BB91C4422008C"
+  },
+  {
+    "Path": "apps/web/src\\components\\ui\\Modal.tsx",
+    "Sha256": "4CB4B5D7B7AAD599B28FAC1FC340CFC30AC30635ECA4C6073DBA5527E24B73FE"
+  },
+  {
+    "Path": "apps/web/src\\components\\ui\\rich-content.css",
+    "Sha256": "159AEC52C2C8C38CAB344FEFBB0D235CE139DC64493DF077C5551BBB26B29762"
+  },
+  {
+    "Path": "apps/web/src\\components\\ui\\RichContentRenderer.test.tsx",
+    "Sha256": "1F02B23EA37ABBE12C5F18176DA305B2879574F71543DFF44B959D112B2D581B"
+  },
+  {
+    "Path": "apps/web/src\\components\\ui\\RichContentRenderer.tsx",
+    "Sha256": "744B9AEAE17F70B99D8FF8141DF111CCDA9C1D2F5BF57F39DF53D4E57980D2B7"
+  },
+  {
+    "Path": "apps/web/src\\contracts\\api.ts",
+    "Sha256": "C6F505B0EAA714281224F6463876E7DFFD042F993E41FE39E5F37404EA72BDC9"
+  },
+  {
+    "Path": "apps/web/src\\contracts\\assessments.ts",
+    "Sha256": "598930D81471B138939AE555D9C8FAA2836D246E50A059116683A6C150ED6B62"
+  },
+  {
+    "Path": "apps/web/src\\contracts\\b4.ts",
+    "Sha256": "528831F6D7CE45894A8DED1C8B646BABC286CCA6D0167065154675BC9010F428"
+  },
+  {
+    "Path": "apps/web/src\\contracts\\chat.ts",
+    "Sha256": "9EB4860E9CD0E2E4748186ADACD694B885F176982B5311A6D3AB1BB97034FE4F"
+  },
+  {
+    "Path": "apps/web/src\\contracts\\knowledge.ts",
+    "Sha256": "398A9AE82EC1A06429D132960677A627966A4CA22F0B3D6A966BA323F8CBB049"
+  },
+  {
+    "Path": "apps/web/src\\contracts\\lesson-plans.ts",
+    "Sha256": "B81FC08DCE0F39A318DDAD2B2BEAD7D32F9657132872614091DBBEA9B67AB5E2"
+  },
+  {
+    "Path": "apps/web/src\\contracts\\model-settings.ts",
+    "Sha256": "671F3C1CC7E03A484AB3212C8A77CC48B1020A71363B6C8312728B816EFC794C"
+  },
+  {
+    "Path": "apps/web/src\\contracts\\navigation.ts",
+    "Sha256": "7AC05F7CA97089527402394E093A05F42C89B191E08F7F56818A6E2901755CFB"
+  },
+  {
+    "Path": "apps/web/src\\contracts\\papers.ts",
+    "Sha256": "982DCC3AF7152EBDCA5D8C74F9569AE4F0A155069F9CD1E933B897B826279C75"
+  },
+  {
+    "Path": "apps/web/src\\contracts\\question-bank.ts",
+    "Sha256": "ED8F353F3AFAB4C64EDDB2217E2343B5F4A7866E5D6F3C9BF5B050EA908D8059"
+  },
+  {
+    "Path": "apps/web/src\\contracts\\rag-v2.ts",
+    "Sha256": "FD0BEFDD6F59D46161DC843C24DCC5787ED9576D22AE771C8A77EF9AE4EBC62B"
+  },
+  {
+    "Path": "apps/web/src\\contracts\\roster.ts",
+    "Sha256": "3D36A60493350927A66B95B21CF1211DD44AD5244B4DB9645A1E18F32B896631"
+  },
+  {
+    "Path": "apps/web/src\\contracts\\scores.ts",
+    "Sha256": "E0D6BD80776FEBCD651AC6AF4E39646E9E8DC9573F3160FDE0C165F18E5634B0"
+  },
+  {
+    "Path": "apps/web/src\\contracts\\teaching-loop.ts",
+    "Sha256": "736054277F992E0115AC33621719DC56367594459C9AFFD2FD64888E22F211CC"
+  },
+  {
+    "Path": "apps/web/src\\contracts\\textbook.ts",
+    "Sha256": "F7E4EE320CB8B336D59D5B8ED8DF97E17437D97C9F73C8240BA4F0AA2DD5C577"
+  },
+  {
+    "Path": "apps/web/src\\features\\assessments\\AssessmentsPanel.test.tsx",
+    "Sha256": "5D56DE570857C40E04A00226F11E34F573F484B46B69659650501A6D65AB950A"
+  },
+  {
+    "Path": "apps/web/src\\features\\assessments\\AssessmentsPanel.tsx",
+    "Sha256": "05DA36E1DD958252792204BB80935E75A2F6605D3E0E38DBF3FECE27E858461F"
+  },
+  {
+    "Path": "apps/web/src\\features\\assessments\\AssessmentsWorkspace.test.tsx",
+    "Sha256": "1B9E93CDAAD104DE92A4E8FB7E9E1906E788BAAE9675C6DDB2D1654F8625B72A"
+  },
+  {
+    "Path": "apps/web/src\\features\\assessments\\AssessmentsWorkspace.tsx",
+    "Sha256": "F62BD4FA4E45E6564815C6D7112FFC144EEEE9CE1D328C2EF6BB7E77DE21B44F"
+  },
+  {
+    "Path": "apps/web/src\\features\\assessments\\HistoryPanel.tsx",
+    "Sha256": "6D9F2D79CC5019E6CCDBBC8BFB243BD18A0C31AD8593610D52051087B3D9A174"
+  },
+  {
+    "Path": "apps/web/src\\features\\assessments\\hooks.frozen-operation.test.tsx",
+    "Sha256": "95B7C889B26F9FFCA80AD9ADD779E1D4E643711C96FA6408BA5446747A12CA53"
+  },
+  {
+    "Path": "apps/web/src\\features\\assessments\\hooks.test.tsx",
+    "Sha256": "521ABB89D5D4F910BFD9C910BFBF92D9F0810B1D0EB26A1F1242C5F091E26711"
+  },
+  {
+    "Path": "apps/web/src\\features\\assessments\\hooks.ts",
+    "Sha256": "24879CFBD35BA8DCC252B2D18C81D48975F14C5CE618F81C0A46F5A289522127"
+  },
+  {
+    "Path": "apps/web/src\\features\\assessments\\labels.test.ts",
+    "Sha256": "87CA960E629CC428D9DCB463F49A30A9AE50DD6C9A591D9B5CA1AFC8A3238128"
+  },
+  {
+    "Path": "apps/web/src\\features\\assessments\\labels.ts",
+    "Sha256": "CE869B87F097FD5DDB2D2B163107B1BDEF99D5BB1A5704DF2E3F333083A008F0"
+  },
+  {
+    "Path": "apps/web/src\\features\\assessments\\PaperImportReview.test.tsx",
+    "Sha256": "81C3D3DFDD0CFC973D4176C52A907C6B79DBACBDB105ED65C23B661B493D3E03"
+  },
+  {
+    "Path": "apps/web/src\\features\\assessments\\PaperImportReview.tsx",
+    "Sha256": "7BD9964D39F2DEA113239D622371CE3E71027F0E96174079D215DB0A0D11F2D1"
+  },
+  {
+    "Path": "apps/web/src\\features\\assessments\\PapersPanel.tsx",
+    "Sha256": "473801831FBB6482AF347E6635DD78918D0442E3D1EB97105155EB42EE9C6617"
+  },
+  {
+    "Path": "apps/web/src\\features\\assessments\\ParticipantAddPanel.test.tsx",
+    "Sha256": "B6208FB80DE4AD93E846DA95FE3309BD7A310B01AB01499D614306D78E349D17"
+  },
+  {
+    "Path": "apps/web/src\\features\\assessments\\ParticipantAddPanel.tsx",
+    "Sha256": "CD9B9F59B251AEAACD7B733155EE9D1F2B854605E9A5F1191281F241A65CA3EA"
+  },
+  {
+    "Path": "apps/web/src\\features\\assessments\\ParticipantAttendanceEditor.test.tsx",
+    "Sha256": "AA517070B87A28D017B0E4A9939F9E94EED2B9BC02D9DD956831C3429C4C0607"
+  },
+  {
+    "Path": "apps/web/src\\features\\assessments\\ParticipantAttendanceEditor.tsx",
+    "Sha256": "814C84CD580F13B9AF76E968380CE1A3E30E3EE0FF9109EF6AB0239078A1938C"
+  },
+  {
+    "Path": "apps/web/src\\features\\assessments\\RosterImportPanel.test.tsx",
+    "Sha256": "3562183E4FC063FB5DD935702A2BE1D9D1E49F123577BCDDFC4D15860C5B6EC1"
+  },
+  {
+    "Path": "apps/web/src\\features\\assessments\\RosterImportPanel.tsx",
+    "Sha256": "AC5E86E163DFD33AC9DD99530F7ED4F50B6A3EC85BE94129D9F88CD5B03D3CA7"
+  },
+  {
+    "Path": "apps/web/src\\features\\assessments\\RosterPanel.tsx",
+    "Sha256": "0A70FCE0EC7332D2EB390C41C74BAA7A127C9B83233732FD9D25E49EE1E2C0B6"
+  },
+  {
+    "Path": "apps/web/src\\features\\assessments\\ScoreImportReview.test.tsx",
+    "Sha256": "77912EC7CD776F8D8494F8200D6A31586C9ECEAA355CFD14B7D29F45264BC398"
+  },
+  {
+    "Path": "apps/web/src\\features\\assessments\\ScoreImportReview.tsx",
+    "Sha256": "1B904CAF0F0C769D5F20057E99809C94295775F2ED1B3B275CC22EDA45510E4A"
+  },
+  {
+    "Path": "apps/web/src\\features\\assessments\\ScorePanel.test.tsx",
+    "Sha256": "EDC26C0AF6CE2C6183DA88899B0154714AE43BC4DAA9D1C5DB51C72AE3A5A7F6"
+  },
+  {
+    "Path": "apps/web/src\\features\\assessments\\ScorePanel.tsx",
+    "Sha256": "9503124FF4868C93FC46BE1C6C21D95465D986810481ABC26549E762FE648256"
+  },
+  {
+    "Path": "apps/web/src\\features\\assessments\\ScoreStatusBadge.tsx",
+    "Sha256": "CFBC94F58CCAC5E5D14CB962F9C622D85A2AD98E273A51FD24A6004982C9B854"
+  },
+  {
+    "Path": "apps/web/src\\features\\assessments\\styles\\assessments.css",
+    "Sha256": "2255AC0FB76AAE5AD6DCB93FFFF4DDFC85896C2CB4E5E9502A9D2759B2C4ACA0"
+  },
+  {
+    "Path": "apps/web/src\\features\\books\\AGENTS.md",
+    "Sha256": "6288D62AC0D6ACBD55A464D41E8F7A1AFB3827B14C7AD8B08585B2B6C07145F0"
+  },
+  {
+    "Path": "apps/web/src\\features\\books\\BookBlockFailure.tsx",
+    "Sha256": "970B45F08CD26E25D73E6E98484011492E1E09A2C17C10ACF587AB122673F152"
+  },
+  {
+    "Path": "apps/web/src\\features\\books\\BookGenerationStrip.test.tsx",
+    "Sha256": "64EEC28D68B834191F4E0E01C499292A9E0E32D67A5CDE0B71CFC2724717960B"
+  },
+  {
+    "Path": "apps/web/src\\features\\books\\BookGenerationStrip.tsx",
+    "Sha256": "3D0267EB81276601AADE5ED7F9D1116F6C06BFFBE0646C6DA10A6821474E1802"
+  },
+  {
+    "Path": "apps/web/src\\features\\books\\BookPausedBanner.tsx",
+    "Sha256": "0EE4D76C8AC2567BD91599DB15BEA2712AD0736D5E6B7A3EDCFC26693410D536"
+  },
+  {
+    "Path": "apps/web/src\\features\\books\\books.css",
+    "Sha256": "EEB239F17945C3CA89CE955A0AA662B2FCC4D5FBDF5CC71E51BDF1F8DAB60640"
+  },
+  {
+    "Path": "apps/web/src\\features\\books\\BooksRoute.test.tsx",
+    "Sha256": "6BE4B885B7F0426048F0BA3937D49EEB3D6BB75668ABA5BFE10C4DAB0182267D"
+  },
+  {
+    "Path": "apps/web/src\\features\\books\\BooksRoute.tsx",
+    "Sha256": "BE2D6BEEB3F5C26191FA09A58DABC1DADF8030D8A808C9FB742212EF3A09BD93"
+  },
+  {
+    "Path": "apps/web/src\\features\\books\\PageReader.test.tsx",
+    "Sha256": "D530A67F28B66FBFDA3238B025CE5A088FE9B23188540F5F4CE4297630298129"
+  },
+  {
+    "Path": "apps/web/src\\features\\books\\PageReader.tsx",
+    "Sha256": "160E4AEA4C5504497222C4D14F9055D873A1157F38399B71491488C17F904399"
+  },
+  {
+    "Path": "apps/web/src\\features\\books\\styles\\book-pipeline.css",
+    "Sha256": "CCFD7ADCD2E1E37DBC1B50F68EF6108F941F4C1BA29C00DDDF32CA746B9D3549"
+  },
+  {
+    "Path": "apps/web/src\\features\\books\\styles\\book-reader-states.css",
+    "Sha256": "7F38CBE90BDF60BD205BB966C77471625C692DE818FA4F19431F335EDBDADDAD"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\AGENTS.md",
+    "Sha256": "96E707A06912EE8BCD0A07B53F249E00991033028B05FAE34DE1F48AB48700FC"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\AnswerMarkdown.test.tsx",
+    "Sha256": "F41F52A1EE92FF22E72979BABD212FC13C67E47967CAA2B4B2A4C8377AEFE9CF"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\AnswerMarkdown.tsx",
+    "Sha256": "31D4FD44C0F867B88BD82DF13B02D4F6E061CD5C9F4795E9BBCE06D814845BC1"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\ArtifactPanel.tsx",
+    "Sha256": "191A222C2EF8FE555C3E9D139FC3ED16BBCA807D07F6AADB38F37044A108F9BF"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\artifacts\\ChartPreview.tsx",
+    "Sha256": "1D33268F65BE452685C1C930EED6680A8EB0286D4CC9074B9082666187949AE1"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\artifacts\\MermaidPreview.tsx",
+    "Sha256": "E81413B81EC2A2794373F57C30A9ACAED0C32049891340D8A9E68A88D6B2E87E"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\artifacts\\QuizArtifactView.tsx",
+    "Sha256": "D9C7CC4590FE8D8CE2C8EE4B006C6F61E777014B7F360073172D16C7DC47AA91"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\artifacts\\ReportArtifactView.tsx",
+    "Sha256": "8FD0BF82A87ED70FD3743BD755ADFBC2E3BFE8468CF646DACB3AB3DD884FDAA7"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\AskUserCard.test.tsx",
+    "Sha256": "333B028033113220423842ECF1B9578B26DF14365BB4C1AF5D549007D09396C5"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\AskUserCard.tsx",
+    "Sha256": "30AEA222C4295030731B29AB65D3C797DFE36E71611670B2595C2F920D152B11"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\CapabilityConfigCard.tsx",
+    "Sha256": "B9EAF71C397F6F6BB31EAECF95E060A90255C610372F8D798A05425EF082B866"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\CapabilityMenu.test.tsx",
+    "Sha256": "30E124A6B68B569C9B536E37261B81344BA900EADB1C0F51D0CCD3270D05667B"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\CapabilityMenu.tsx",
+    "Sha256": "AD337F779FD6050C6D08D32C1F441D10964682304607578A661F4DD1CBEDD200"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\ChatWorkspace.rag.test.tsx",
+    "Sha256": "2BEAD2DA7BAE7E94DAC51DD08E8FC5030A94D369D48A542DBD73DAC8CE6C60E2"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\ChatWorkspace.tsx",
+    "Sha256": "BD494D7C98F20902A39DDCFBE0FF719004B93301BCEECAE790093D38786AB8DA"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\ChatWorkspace.unmount.test.tsx",
+    "Sha256": "989731A8ACD03923BE6F453B4ADCE0B7ADBFE28816BCE7F6BF6135C93DA221C3"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\ComposerContextChips.tsx",
+    "Sha256": "78CA08CA2DAE2EE0BC02A75B00B71672BDCE80D3FC4E49BC5559DACDA3B2E185"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\ExtensionPicker.test.tsx",
+    "Sha256": "386F055C657695EB9AE4FE5352D7B127FBAF74A9DF6E69F1618B2C165DF10F30"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\ExtensionPicker.tsx",
+    "Sha256": "2BB9F61BEF35198B57D3F5022DDD313D54A192F03500901D91252BEE3D1D288C"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\InfoPanel.test.tsx",
+    "Sha256": "E22004651B6D5AE8D0F009CB3FC8899A7139757040F68D4B301B4E0A38F86842"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\InfoPanel.tsx",
+    "Sha256": "2B259F074CF8C0856EDFF1ADE93C475CAF06BD9581CEA0E69AEB1A9F1AD01A28"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\message-duration.test.tsx",
+    "Sha256": "C9F5512A92B11632E37D45D94D4B2B6EFB25C9281AF1243BB3D1CFB9B1765C0D"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\Message.compact-rag.test.tsx",
+    "Sha256": "5D13CFC7ACB6C7A2772E7371AC4D2B1C1310719885D4EDDD57F7BA6348411DDD"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\Message.rag.test.tsx",
+    "Sha256": "90370E88D8AFF2376DE7932EB2ED04C80AB537BF08517390DA1A4BB35B1DFCAA"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\Message.test.tsx",
+    "Sha256": "C65BD8C94520D10AB71E1E5EC2DBE426A370D3BFF8DDB1D55CF5104F00A19BE1"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\Message.tsx",
+    "Sha256": "6278A122D8164568C274EA580B377D721CD79C6E500E8339B11701FCE7997371"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\artifact.test.ts",
+    "Sha256": "E4D6E6906F4E75753D469B01F982091BEC2EC70CFE6E989CFF40D5BE5A19EAB3"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\ask-flow.test.ts",
+    "Sha256": "3295F6F3534E9B1C7738EB040B492F4EE764E9AA11352BD0DB9B1C5A0FB72B93"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\ask-user.test.ts",
+    "Sha256": "49B5C23F5E2F1C9FA925577F7080023D11E5ACA6066083DA927292B47BDA1D97"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\capability-demo.ts",
+    "Sha256": "CB9BC9690E71C591C8409C8AEFEDF2755CB462529D227F25622FC8D110E935E6"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\capability-rows.ts",
+    "Sha256": "A67AF5833B61FA4A1C4EC7040B58DE6C096DD84F5686657114EA579F162CAA82"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\chat-service.test.ts",
+    "Sha256": "EA4C3F538DA393216A861F6E37CA550650454B613D2471F381020B25B3B30E8E"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\chat-service.ts",
+    "Sha256": "048298B468C1C6241211749D4E262C38B99ACB8C866B736E5F4A36A1B254FB40"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\ChatContext.tsx",
+    "Sha256": "D2ABFDA561A803766E473729ACF671D9DD58D80D27F2AC7F6492C6EA51D5FCD6"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\composer-snapshot.test.ts",
+    "Sha256": "18DE911E1D86C7623DD1C2A0C0E9D116EA48A1CABBEB0F5561DD0EDE653EEAD4"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\context-budget.test.ts",
+    "Sha256": "67B3BF9AD35DBC3D11661D1CE1719C6539457B8FE43E1678E1DF1D4C4F12E6A5"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\context-budget.ts",
+    "Sha256": "3FE1686E7A0386BB56872D27AE3F59E154C994C988CBF7718E12EEB401F2FD71"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\course-context.test.ts",
+    "Sha256": "65C44BA3BC21506851B1E3186A9C5A18F85449896B75FE747EA1B1A15F815CB3"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\extensions-snapshot.test.ts",
+    "Sha256": "B0030D8585CC1D9EA5C899430762D8E670377636CAB52C95B1A7D77D15C6836A"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\lifecycle.test.ts",
+    "Sha256": "5E813443862753AEAA973734A51C1CB31A1E8DE1BD3E89581C9E54F9C3B23781"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\markdown-math.ts",
+    "Sha256": "3CEA9F8908682FFA9A940115216C8D82B3E8E7BE4A243267C71515847238378F"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\markdown-segments.test.ts",
+    "Sha256": "9EEA1B8A4B0749D05D464B47A35859C852870F3C968249D32D749C9F6AF0A236"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\markdown-segments.ts",
+    "Sha256": "AD1E76F88FC9080458D1E3F51780127CAF1E77676DCE11FBC4DE29A481A00B71"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\message-projection.test.ts",
+    "Sha256": "02D57B71B68FAA330A9C0E408078726BC06467F3E66BFB5DC099056DB41EB46E"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\message-projection.ts",
+    "Sha256": "C49BF74160FF50E18861C53BCD0F0D82597FAD6BB43B790C26158D5FCEA04037"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\mock-mode.test.ts",
+    "Sha256": "80B59FA202B3F3882EE0C42F0C33D374C12890CC4A3C3F719D16FEE9642FB46C"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\rag-delivery.test.ts",
+    "Sha256": "40E3F3B6CCC659EA5CD1D33367906E17D024D552CA9660E531701832C3A45844"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\rag-evidence-null.test.ts",
+    "Sha256": "EC46D69F5EB4BF1041CC7EE658929A1A070AE352872B7BC2348DD853E29EC039"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\rag-explain.test.ts",
+    "Sha256": "C694C29414DC06F7D33700E6796E4F9383801194255A746517E5EB87A04025C3"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\rag-history.test.ts",
+    "Sha256": "181BBAA1489FBF2F210C2C154ED3D3FAB5554D4B54B48D7DEC3A330DCC56F427"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\rag-service.test.ts",
+    "Sha256": "4B7074EA12BFF627531DB2EEC66B92FCAF7A0F9E2F20274106B8584A71810209"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\rag-service.ts",
+    "Sha256": "86AA5578E9E5F84DAE4EF256ED3FE08AED8E57366F5129FE26923D6926C14BCC"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\rag-v2.ts",
+    "Sha256": "EDD6C3150DB31A1CAAC778800109A3CB5B9168933E28EC73DCBF3CC7D67CAF5A"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\request-budget.test.ts",
+    "Sha256": "9EC18C573105C810B3C28FFE4BEA5FFBF8C7AE1FFB61DB675798154F68EDE1AC"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\request-budget.ts",
+    "Sha256": "1FE5896EB331D946343102252414173836B0367355CEE1C9C483F49055BCF613"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\store.test.ts",
+    "Sha256": "A0E83AB98AC83C2F26ADD62B8F2CC9180D7B651BAFC82800CE92A50162F6DB08"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\store.ts",
+    "Sha256": "E574BFCBC724D361E40772A8DD48E2B67D90D156BAD2C0D45407CA9D79A401F9"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\taught-scope.test.ts",
+    "Sha256": "DB8065A87DA7917CCA997121109C9EF9D905C19D942615685B8496709EC1CAD6"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\text-projection.test.ts",
+    "Sha256": "6AA4761C3130B993B1BE7462F01F43E52D7188FC9ADE0B36653CAB8160EC7510"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\text-projection.ts",
+    "Sha256": "CF9869B7189F2FCDD5F2C773F9F27DDE78AF363969E528E276C3C27A65503D27"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\trace-timing.test.ts",
+    "Sha256": "1460B5C2F2D86C56D6DBEC9D6D5AE6228212D7086B2D6FD7E266AE93530458A0"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\trace-timing.ts",
+    "Sha256": "C1EC952935F23E7408A9539BC351B6D5D47FF04CAF953AD6CECF314EBDCB4B35"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\use-capability-status.ts",
+    "Sha256": "E455A59527ED29E4D1D8E94BA687172F10DCE09839634AD9F83E9CB6FC0FDCE3"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\model\\use-taught-scope.ts",
+    "Sha256": "70D7386C4407082B03872A78AAE9D8AEDBCEF1A68B5B5663E991F7EE7538E4C1"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\RagAnswer.tsx",
+    "Sha256": "5911C0A7BF45E51A004DEF8775025D4C149A4E5CE4BBF65A2221DDB81A332B76"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\RagEvidencePanel.tsx",
+    "Sha256": "450B9470A125AF9309724A0C8C9E8C706933CE300A1F075C3D7BD5D1594345DC"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\ReasoningDisclosure.test.tsx",
+    "Sha256": "843A3A94D006DC3B95A51BF81F0448F47F87821F7FAC5DBA7E3D95793A5332D1"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\ReasoningDisclosure.tsx",
+    "Sha256": "2AF7BB709781002ABE6EC9FEA5CDF226CE02F91C8B46890918B7AC7B733C8AEB"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\SessionPanel.tsx",
+    "Sha256": "32ADC2B20EDEF76882DA77B7012D3AE4EAE544D287CFA5EF210D5F18C9593EF3"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\StreamingMarkdown.test.tsx",
+    "Sha256": "D9D5744130736A90CC3F9DEF5BE62B7E20E96037AA59D62FFA34DAEDFF3659E0"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\StreamingMarkdown.tsx",
+    "Sha256": "F5EAE874B087D604F25C8CDF74E99F1574242B42837C86F4B8685F64D7FB1FD3"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\styles\\chat-home.css",
+    "Sha256": "19594118C274F85E079BCE7EAD2FDBAE5FAF53D7769257BFC5193435F94994B8"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\styles\\chat.css",
+    "Sha256": "A89F67621F51A100F6A9A062036CB926ED09CEFA93DC5D28DDA26AEAB2CDAFF8"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\ToolProcessPanel.tsx",
+    "Sha256": "174B59ACE45A6F5F2AD2DD321871848ED44C3CAC6A6B418BEAEF370F2310F350"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\TraceStages.tsx",
+    "Sha256": "D699D6E69CF011D774ABF581BE32CEBD9420F36EB710D041A925A5307651E6B8"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\vendor\\thinking-orbs\\engine\\braid.ts",
+    "Sha256": "D4F099BB8782C75D666602A0DD101CFFF9A0F1EC94258DBD6D683C13A82D1572"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\vendor\\thinking-orbs\\engine\\core.ts",
+    "Sha256": "29235E77AFE330BBA63B42CE751230E6CF124D4B3FD217F1359271303C85528A"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\vendor\\thinking-orbs\\engine\\index.ts",
+    "Sha256": "8D3004C6CB6BB8A7923A6C6C600294E697269BBECDA688B565D51AFC3E6A4275"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\vendor\\thinking-orbs\\engine\\lattice.ts",
+    "Sha256": "FDC802233668A9108BA71E9D1527ADB96ECB36397EA21D817C590797E8863A2B"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\vendor\\thinking-orbs\\engine\\morph.ts",
+    "Sha256": "79E9B74EBDCC9844224B5140DA96ACEBA7B77552EB97CECEB8CA71A6C677B439"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\vendor\\thinking-orbs\\engine\\orbits.ts",
+    "Sha256": "E7257D0460E9C796ECB4685702774837317458425607E3D7AE275335463270F6"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\vendor\\thinking-orbs\\engine\\profiles.ts",
+    "Sha256": "DE655065D9275F2B349A7323D265D05D6F3C6C90C97F6109CF96C6C049A0DBC1"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\vendor\\thinking-orbs\\engine\\registry.ts",
+    "Sha256": "0979FF9A4EDFCA595B130A3035F3EEFB3CC7D2863A791FCC45C7A245433C923C"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\vendor\\thinking-orbs\\engine\\ribbon.ts",
+    "Sha256": "327DC3E3BBD6FD1AEC3FEE8180181A849F96DAC1C10C82C8176089B21AAB8A42"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\vendor\\thinking-orbs\\engine\\types.ts",
+    "Sha256": "BC7ED24F4AF0220C65C1FBAEB4E70ACC60042B3F8FF9BB8A8CFDF774BBED3334"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\vendor\\thinking-orbs\\engine\\web.ts",
+    "Sha256": "BB8068FAC78E6E961352DDE9C274163F460B9290182A78D5F2C021376B2E9929"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\vendor\\thinking-orbs\\index.ts",
+    "Sha256": "C1C0184803E48F68867CB792AA1C8413F17FCE75A77939BF5E4D016FE9EE203D"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\vendor\\thinking-orbs\\LICENSE",
+    "Sha256": "E00E080E1D7557906B7029093038D6B5D8AC43E973F857F5688C4C7F123E3FBA"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\vendor\\thinking-orbs\\presets.ts",
+    "Sha256": "D080794A1BA242FE106E0E432DFDE48913C7A418E8C0A4BAFDC0CA6504422BB7"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\vendor\\thinking-orbs\\theme.ts",
+    "Sha256": "F3F233450EB61FFA3FF66516358581CFB53F52581DFE2B14DF4728C40491599C"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\vendor\\thinking-orbs\\ThinkingOrb.tsx",
+    "Sha256": "F86049E0E600B8995FE9310B6A3D59CE96808FED8C3CF9844998F9F67C26212A"
+  },
+  {
+    "Path": "apps/web/src\\features\\chat\\vendor\\thinking-orbs\\types.ts",
+    "Sha256": "4F208C8F5B140B5C2345BE8AD05E8BB3FEC697F8F7A8708C3C7088550534A958"
+  },
+  {
+    "Path": "apps/web/src\\features\\courses\\AGENTS.md",
+    "Sha256": "36A1CD7EBF393208EC0C46CA27D00C3563D67CDAF61D3EEA38F9EBA2AFCC5B1D"
+  },
+  {
+    "Path": "apps/web/src\\features\\courses\\CourseDetail.tsx",
+    "Sha256": "354A6D603FC7D38623004E60C6096EB4D8D6DE2373F89602EB1027C24CC707DC"
+  },
+  {
+    "Path": "apps/web/src\\features\\courses\\courses.css",
+    "Sha256": "FBB49598DC61FBC043C327389BCF0879E871BFFED99ABFDF3E5741A9142CB2A0"
+  },
+  {
+    "Path": "apps/web/src\\features\\courses\\CourseSessions.tsx",
+    "Sha256": "243253FF8669D4DB7B38FE0EE1CE941866DC074E74ECDF53B1FC39EA6010D24C"
+  },
+  {
+    "Path": "apps/web/src\\features\\courses\\CoursesShelf.tsx",
+    "Sha256": "D213C50DCD6133C983F53B40468BD3F4FBB6973E261CFD7B575533DC0622FB9C"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge-points\\CreatePointDialog.test.tsx",
+    "Sha256": "7D1B49312D8BD0CB4F198FEE8CB87F6A52A80E6BBDABFC2AFA9F21D6AD649988"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge-points\\CreatePointDialog.tsx",
+    "Sha256": "6954077360921329673A88BDEDDBA234B0F4970C5EEB01E02FA18DD1B008FA1E"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge-points\\hooks.strictmode.test.tsx",
+    "Sha256": "763BC741C75E878A31707C819242795D80E5B504DB67E2C4905DCB83D4FF5633"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge-points\\hooks.ts",
+    "Sha256": "A6F5758923C400A8D849955C6574BC62CC5079450B80E23A60F582495B5DDADB"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge-points\\ImportPanel.test.tsx",
+    "Sha256": "37FBD01662DFFCBFB233EC43CB2A7AF174A13686A75009669504CFDDA4B23245"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge-points\\ImportPanel.tsx",
+    "Sha256": "A889972E59FFA3B5FA0A7166523EFE15552645FED927C5CCEF7ABFD06B6D099F"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge-points\\ImportReviewPanel.test.tsx",
+    "Sha256": "83AC1A40613AB8BA8847B34BD3742F874FCD57968888BAB976511FD7D6C34D99"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge-points\\ImportReviewPanel.tsx",
+    "Sha256": "B4FE867CBF0FF5E8A04134D24CDB10FF79868B6793ADDFBCCD6775E88FCA4A99"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge-points\\KnowledgePointsWorkspace.test.tsx",
+    "Sha256": "35CE17FA7EAD0DA4FEC84ABD2791371F1D86CF63939DFFD8AA653E1C3C0C662D"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge-points\\KnowledgePointsWorkspace.tsx",
+    "Sha256": "7DFE7E619E73BD4D7FEB8C70512AAF1671A62BF9A17F4C168765E3EAE2AECD7F"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge-points\\labels.ts",
+    "Sha256": "4A7A88D8685EF99B4BE3BD57572086ACE4168B82D6902C8E8CE07AA3093EB2CA"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge-points\\model-profile.ts",
+    "Sha256": "6B983E8AAD417242A2B5EA251384224DCF035B1B239256B11DE76D48B56821A1"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge-points\\point-form.test.ts",
+    "Sha256": "34EBAE302CCAC46A1A1BF47999042346B63250B20DEE8C0A3104ED5691665D62"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge-points\\point-form.ts",
+    "Sha256": "418B652AA91428283E0019BAD2D7EB3420AC9E856970B7A9067D689D60A4C971"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge-points\\PointBrowser.test.tsx",
+    "Sha256": "6B921A623F0D70E81A9DAC7C8A079206FD5B43524C043A0841D98CBAF27277E4"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge-points\\PointBrowser.tsx",
+    "Sha256": "3FD152537E8E9AE9B9F9FC1380589ED2F79C8BDEB2002970C0413653F452ECD3"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge-points\\PointDetailPanel.test.tsx",
+    "Sha256": "73C296D19BFB69F27C30E38F7807FE64EF5C1E43CCD97AC1CBAD5BC8CE2769F2"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge-points\\PointDetailPanel.tsx",
+    "Sha256": "0A0AB643FC7138F4301F0315AF1E264FEA12314DC8AB9DBC2848735E03548E7D"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge-points\\styles\\knowledge-points.css",
+    "Sha256": "E4C1732BC3F58425086DA7494E58FC064955ECC89CA4A3B540C8391F20DFDFE3"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge-points\\SuggestionPanel.test.tsx",
+    "Sha256": "28652D1F95228F20948CEA90C65C1CC15C4AE81DA265DDEF9FB357CFA6CCDA5B"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge-points\\SuggestionPanel.tsx",
+    "Sha256": "0F42090D37A714F4A674A26EEF1EC05A16010391D5DFE3C4138A02EAA6540C50"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge-points\\TextbookLinksPanel.tsx",
+    "Sha256": "F4362DD28CE6FF2C2BA256C220140ABC3E0D3A3C0E14087D268AC727695BBE41"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge-points\\tree.test.ts",
+    "Sha256": "963CF6FD8735BDBE16B663A97398B7D5E4AB2B98C4846B22BAC2BE5CA6729E66"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge-points\\tree.ts",
+    "Sha256": "B9A3C013FEFC3832F99D55F044191E6F3142549151607286BB474EB05928B605"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge\\AGENTS.md",
+    "Sha256": "C2FD8A9F49A5CF110C2FEB7BD808B7E219569DBB38B346D146DFF12ABBD805A3"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge\\KnowledgeBaseDetailSection.tsx",
+    "Sha256": "94FE35274C78931197B123F95359CF412A6D32DABCF8F109C75F4C2F4E4800C8"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge\\KnowledgeBasesSection.tsx",
+    "Sha256": "E2D3D0BD0498EA519082B0F4987C0A49AA70A737A32237C321EECDF23B2219EB"
+  },
+  {
+    "Path": "apps/web/src\\features\\knowledge\\styles\\knowledge.css",
+    "Sha256": "371B844240CB34B6773DA878EDE7C5FE663BD8643533BAC6C0240EEF2749A85B"
+  },
+  {
+    "Path": "apps/web/src\\features\\learning-analysis\\LearningAnalysisWorkspace.test.tsx",
+    "Sha256": "BF01E743E4D4B1F93DE9007C283683A56C9B8414BB466193A439E492F77AF61D"
+  },
+  {
+    "Path": "apps/web/src\\features\\learning-analysis\\LearningAnalysisWorkspace.tsx",
+    "Sha256": "17DEA2989A61D653268359F5F7F6F52F6D3B2060147ACF52E35FDA8BC7ABCA3A"
+  },
+  {
+    "Path": "apps/web/src\\features\\learning-analysis\\styles.css",
+    "Sha256": "80DACFB50F735D31DBB8B76AB32F8367BCB74B79A788A3C87A45D702D912D75C"
+  },
+  {
+    "Path": "apps/web/src\\features\\learning-analysis\\ui.tsx",
+    "Sha256": "09C487DEAA4EA298A3D300857C9FF93CC3A334F4D629910DB0F28578334EE25E"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\AGENTS.md",
+    "Sha256": "BE2D4AD37C8F456DA31F9B078AF55973D5E522AF11CFB15305AF08322F7E6D83"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\b6-source-loading.test.tsx",
+    "Sha256": "F5ABDABC0AEC0183CF3DC69833578FAAB6072DB94F39531C6D28F62F44B74D74"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\components\\DocumentGateway.tsx",
+    "Sha256": "5FB0C0C479D9D64CAA9915B78DD0EDE3C5A1043AD25A39C9EEE758735A06C75F"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\components\\DocumentsPanel.tsx",
+    "Sha256": "D766B73FF2852432CDD3883F236935959FD7DDD3C779B11AEE388985D2E99E45"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\components\\EditorOverlays.tsx",
+    "Sha256": "BF7694DB59DA78A946DC01B141106F1AE1FA4EBE108A05A5595AB2E1C95CF837"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\components\\EditorPanel.tsx",
+    "Sha256": "C00F165E15A47642A61F3713BC2F40BCD689FC36DC398A644263F76B5C142726"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\components\\ExportMenu.tsx",
+    "Sha256": "8712CE364FF9A924D744840763CACE57F4690B823476F3DC2320BD852442A01B"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\components\\FormPanel.tsx",
+    "Sha256": "4192BAAF3D1406429B9081B2F4479338A96577D74033B2D759E97D7086ECD25E"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\components\\LeaveProtection.tsx",
+    "Sha256": "6FA64D6EF42B6E24E56C2B9F10079FBD337D0999687875CD4DF7DCA98A866E77"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\components\\MobileTabs.tsx",
+    "Sha256": "DDEDDC9D6749B38F726B2BF45F27D74B82E6788EFF4A0CEB84DB0F378045FB58"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\components\\NlFillPanel.tsx",
+    "Sha256": "BE8CC122FFD32B813CF2E2BAC95B2415A1BA00ECD2049966984CE40A692C6EB5"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\components\\OutlinePanel.tsx",
+    "Sha256": "048C8B8972442F9F76E82739A241549195361EC65B9C4E90BFE6D3C0A1BAD868"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\components\\PreviewPane.tsx",
+    "Sha256": "FB84FFA045505765B9C2B12249EADFF6586C854FE5CD96DFF9FD2C9B343F9783"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\components\\ProposalPanel.tsx",
+    "Sha256": "8CF4D6B9BE01348425BA3B71B5C188E3C980D04BAADB1F18B65579675F96E02B"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\components\\ServerControls.tsx",
+    "Sha256": "60DFEEB82F50404326796EA8D333693C1DE6748F04109DD954AFBFCAE52D9DBE"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\components\\SourcePanel.tsx",
+    "Sha256": "BB4399C57492EA1A7B96DED0DC79A9F1AAB5E648417EA2618FD83AA1AAD1D9C8"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\g3-history-copy.test.tsx",
+    "Sha256": "B1BE449914B19C9E368E02EC489B89D3F54C24C27CC580B22732886CFC56A39A"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\g3-source-session.test.tsx",
+    "Sha256": "BB023997679377FABA4BDFB6B14B9EF3C0997000A177CF4ECA527178497815A3"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\lesson-workspace.test.tsx",
+    "Sha256": "24EF1E1EE92C05E6230302F4F9FA2E10306D62F45A952A1FF27D5EA1E447C896"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\LessonPlanWorkspace.tsx",
+    "Sha256": "5111D15D0BABB0DACDAAC130EF1564B8C71892CDC44F52510F8F084C38AB821E"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\model\\defaults.ts",
+    "Sha256": "212773A44C074FDF17401335E5D0515E60B67A1990B551CF848493C3F396347A"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\model\\DocumentContext.tsx",
+    "Sha256": "4DC4479781B054156FBBC9C762ADAE727272969EC598F3041218DA0256F84D54"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\model\\EditorContext.tsx",
+    "Sha256": "6B49D5531CF54844C6FBCEB9EE043FC7DCF9E2D6EA883F490088F553D2A0F7E0"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\model\\field-labels.ts",
+    "Sha256": "FAFD77D8A83D3DD8EC61F313F76B889B7843B62633DB8603265A702B0A615B78"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\model\\g3-persistence.test.tsx",
+    "Sha256": "10EBA94A65BF33B4781796B5BE436A900C3F19921589400AA90FFD62E2BA7523"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\model\\lesson-operation.test.tsx",
+    "Sha256": "D3B774A996AD49ED142C2F4FD7233F82FF4280DDF44A5E9CEF10D9C1D110886B"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\model\\sections.ts",
+    "Sha256": "DAB02207C33131C59C7910572AFEC267B3425C1CF89D1900B8334BF556A12766"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\model\\server-cache.ts",
+    "Sha256": "54144859F96D17F3C2B9D3F387408335102A897622310AB4C1380A5FB2F7A8B0"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\model\\server-session.test.tsx",
+    "Sha256": "2567D5DFB4406BE9D54F7EFA450CE3CAF9B3CCA9DBCDAAF335F8955A49584A53"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\model\\store.ts",
+    "Sha256": "3197CF16CA6F018F55CC80AD93EFB815BFE49C1143B6CF709DFBCFEFA5B9CE17"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\model\\types.ts",
+    "Sha256": "E35C8D7C923625240235975A0C9CFA9B4D81FD512558C295688E77C281F307BB"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\model\\useDraftPersistence.ts",
+    "Sha256": "7660DEB7881279CB3C19DBD4F586A1A62A36F0C335D8B5C557FA303DFC6471B4"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\model\\useLessonOperation.ts",
+    "Sha256": "89CF4D4BB5A255593E6FD3A50B8B58870BCC423AD58CC1A0A97B5B69EDF98FF1"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\model\\useServerPersistence.ts",
+    "Sha256": "4CB06C213E8A07091A510D5697E3207D373D657704274E81D9D5B943C2D1D961"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\model\\workspace-services.ts",
+    "Sha256": "FF25129ABE4F39C4121C429AE088AE02BCD45103307BEA5356D2CFF15B9A776C"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\services\\autosave.test.ts",
+    "Sha256": "B56A502057C26F0E98733C1269555AC86E0F0C540508F6EA3A4BF20E12C6CA5B"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\services\\autosave.ts",
+    "Sha256": "958DCF67E92B038268C92E0BB8E145919205FF6C4DC84865EC37C329C69AF39E"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\services\\drafts.ts",
+    "Sha256": "CB6D1534C5F6C0C1ACD6FD07429FCFF8983A2FAC194A3E27094676A3BDC2CA7E"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\services\\export.ts",
+    "Sha256": "44C4ECC75FE255AD01EBE481B15B79AFB4B2E4C2790B805EFAE3D83406C2C501"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\services\\fill.ts",
+    "Sha256": "6C3E6190880219AC48226A5765B55130E269CF209E4D3155EA620906F2516F14"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\services\\lesson-plan.test.ts",
+    "Sha256": "9FB71D889C0288906635F20FA3F4CB33DE5A2B421C23C5EA7F61ABB6A77D4D5A"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\services\\pagination.ts",
+    "Sha256": "2F496250AA6D4FCA569285085D24B4049E95638570A54A24A709D71674EEB956"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\services\\schema\\lesson-plan.schema.json",
+    "Sha256": "6EB1F4286CADC6DDDA244BB1427849E02D402594037D33C7DE19647840B508A3"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\styles\\lesson-plan.css",
+    "Sha256": "E3706C0940C0B527BF31056E6DFA01959417D3C357419CB4CD3F8EF3231900A3"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\styles\\lesson-refined.css",
+    "Sha256": "F07BC596612CA4EDF50BB4D3207707EF0B94F76DE2644A72B80DF3C31809725A"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\styles\\lesson-visual.css",
+    "Sha256": "A090DD062A90CF1D1AC4921A555527F975045B5FD6B4D5C419A5A94F18D96449"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\styles\\print.css",
+    "Sha256": "B6D88CC9DBB56EC96B24228BFD959B8E427CF4CB6B15F58F098F76801E56767C"
+  },
+  {
+    "Path": "apps/web/src\\features\\lesson-plan\\styles\\server-session.css",
+    "Sha256": "8B0B732FD7C2E3ABC5D098E3A456F997EAE147AE14F9A3C08B80D3F6961960EB"
+  },
+  {
+    "Path": "apps/web/src\\features\\model-settings\\AGENTS.md",
+    "Sha256": "6393C101A45943FB5F4FDF70803AA9EE56BB47F8FA27B76AB2E222993E0EE236"
+  },
+  {
+    "Path": "apps/web/src\\features\\model-settings\\AuthPanel.tsx",
+    "Sha256": "8168023060AC208ED57AD81E70606F6869408DCD21EBE1BF80220E6471085061"
+  },
+  {
+    "Path": "apps/web/src\\features\\model-settings\\ConnectionDetail.tsx",
+    "Sha256": "0725008782294CE0C288A857A103F200F553D7D6761E85DDB286044C28D1E92B"
+  },
+  {
+    "Path": "apps/web/src\\features\\model-settings\\ConnectionForm.tsx",
+    "Sha256": "FE5C4CA3E859E47269D2DFC78C8B432FB1389A3A15BE26622F2FB22BDDC0A2BF"
+  },
+  {
+    "Path": "apps/web/src\\features\\model-settings\\embedding\\EmbeddingPanel.test.tsx",
+    "Sha256": "5176BA58C2E4F274D1F0A21FF6A017BAA6362AD5157732EE1A525779105C2202"
+  },
+  {
+    "Path": "apps/web/src\\features\\model-settings\\embedding\\EmbeddingPanel.tsx",
+    "Sha256": "D12A3BA63783C5035CD79EA7937469CCA1AA728235A5B2A2A1EE2A0A4D9A0D4C"
+  },
+  {
+    "Path": "apps/web/src\\features\\model-settings\\embedding\\styles\\embedding.css",
+    "Sha256": "71BBDA582E8134182A0B4112CD70AF285EC98A3CFE8B3D18DE2C46F726EC939D"
+  },
+  {
+    "Path": "apps/web/src\\features\\model-settings\\ModelBrandIcon.tsx",
+    "Sha256": "0F2B969819B91534D29EF91DA8333B81069B542A34238CBBAD2751F0B7E183F6"
+  },
+  {
+    "Path": "apps/web/src\\features\\model-settings\\ModelListPicker.tsx",
+    "Sha256": "B29D1B5E9534B584360A825728E620DA251756AED4392E0A6D6C13FC7F553900"
+  },
+  {
+    "Path": "apps/web/src\\features\\model-settings\\ModelSelector.tsx",
+    "Sha256": "31FDB3767EA37E6963258C4B2F44D58D33E209830E4ABA51FD49BBCAB08136D6"
+  },
+  {
+    "Path": "apps/web/src\\features\\model-settings\\ModelSettingsPanel.review.test.tsx",
+    "Sha256": "76783EF050B3960A53BB4C43D0651F58C11DE9D2677BBE07D498CBF442FAF800"
+  },
+  {
+    "Path": "apps/web/src\\features\\model-settings\\ModelSettingsPanel.test.tsx",
+    "Sha256": "C667F02ABE61ED5951E1F1312AFA5B870157966645378AF3C4516A686922DE6A"
+  },
+  {
+    "Path": "apps/web/src\\features\\model-settings\\ModelSettingsPanel.tsx",
+    "Sha256": "38DEF49CF189AAD4C09A04D9AE87FDA1E47B1FC31B2875CCAF3A277EA65E28F7"
+  },
+  {
+    "Path": "apps/web/src\\features\\model-settings\\NewConnectionForm.tsx",
+    "Sha256": "C8A2679428B5875CFA55F9CAEC941C3524E3FF4620F9AFEC83CF7BA935467488"
+  },
+  {
+    "Path": "apps/web/src\\features\\model-settings\\ProfileForm.tsx",
+    "Sha256": "5C5E574719AF520567AE1C3E09128E72C4C2A1091DE5B3C93C31BF774589DD4C"
+  },
+  {
+    "Path": "apps/web/src\\features\\model-settings\\provider-icons.ts",
+    "Sha256": "E49D09B5F9C8724DDC8513336B6339A76EBE8DD15EE97FC57996EAA962FA3725"
+  },
+  {
+    "Path": "apps/web/src\\features\\model-settings\\ProviderCard.tsx",
+    "Sha256": "5D71914883928DA26CAC08D19966654BD418C794548217DEC9770BD0A783EBAF"
+  },
+  {
+    "Path": "apps/web/src\\features\\model-settings\\ProviderMark.tsx",
+    "Sha256": "E38552D0B0B307218C737A93A067FB3D5266831919B7A7F57ACBA551C955831B"
+  },
+  {
+    "Path": "apps/web/src\\features\\model-settings\\ProviderPicker.tsx",
+    "Sha256": "1BB29A619EC946C713C99FB4360E569624252C77AD237FB73076011BD28864BE"
+  },
+  {
+    "Path": "apps/web/src\\features\\model-settings\\styles\\model-detail.css",
+    "Sha256": "3BC491AC9AB7B99EF694E5C1305A9883FE2A8807BAD95EBB37853F49E1EF9C35"
+  },
+  {
+    "Path": "apps/web/src\\features\\model-settings\\styles\\model-settings.css",
+    "Sha256": "5E5C88830EB627C1C2E84CE9521F82FAA5CFD786D1F6F694515E6D2B8C2693C8"
+  },
+  {
+    "Path": "apps/web/src\\features\\model-settings\\TestResult.tsx",
+    "Sha256": "E8C70BBBE16D0B3C6EBB87210D8E72B4169171B38BB7DD9177066E4B329D6A5A"
+  },
+  {
+    "Path": "apps/web/src\\features\\model-settings\\useModelCatalog.ts",
+    "Sha256": "10FC2C1F5923EAAE909629273F5FBA00BD0A199D63B17FB1CDFC4443D4B431E3"
+  },
+  {
+    "Path": "apps/web/src\\features\\model-settings\\useProviderDirectory.ts",
+    "Sha256": "018E00B3458DC0E453093131CC9925E026BB1E51FE3074F530345D6F166C7810"
+  },
+  {
+    "Path": "apps/web/src\\features\\practices\\ConstraintsFields.tsx",
+    "Sha256": "23E56191B0D3FEE58C110AA7DCADD908DACB7702D0220CB2D946DF464E397006"
+  },
+  {
+    "Path": "apps/web/src\\features\\practices\\CreatePracticeForm.tsx",
+    "Sha256": "B8F02D74CFE3B2F585CD55D3B7AC314E7490D15AC50B976EF03901D8AC5BDF39"
+  },
+  {
+    "Path": "apps/web/src\\features\\practices\\draft.ts",
+    "Sha256": "01079BFFA717E2DF8A90C430560AC7E1BB15A93D691790113B4E84F2F9BBE456"
+  },
+  {
+    "Path": "apps/web/src\\features\\practices\\g2-session.test.tsx",
+    "Sha256": "41DD27A8ECEDD470E5C6C79BCF8999EC48A8F8246720285D7475F89A3D1201B4"
+  },
+  {
+    "Path": "apps/web/src\\features\\practices\\PracticeConversion.tsx",
+    "Sha256": "602ADEDB9ADF49B2D1945998A65DD5DFDFB9AAEFCDF71A3A658BC5736F393B9F"
+  },
+  {
+    "Path": "apps/web/src\\features\\practices\\PracticeEditor.tsx",
+    "Sha256": "A50DA136DA37662FE992F628E0D2A608166A554D71EF6D835CDDED28D04F2619"
+  },
+  {
+    "Path": "apps/web/src\\features\\practices\\PracticeExports.tsx",
+    "Sha256": "7FA1D9EDDACF2918A6F3843BAEF8FDDB24C52E667DF8A0B4408846367D9A8088"
+  },
+  {
+    "Path": "apps/web/src\\features\\practices\\PracticesWorkspace.test.tsx",
+    "Sha256": "B4382F9595A0E471CC459A1D8913B5C54C6600DC04B1B0340F5E4ABD1193FEBC"
+  },
+  {
+    "Path": "apps/web/src\\features\\practices\\PracticesWorkspace.tsx",
+    "Sha256": "0BF1CAE7F9C6B250EDA9B2C8C60E544159DD63DACCCDA6EEABCA6BD39AAF0894"
+  },
+  {
+    "Path": "apps/web/src\\features\\practices\\session.ts",
+    "Sha256": "00808F1C0B29612A5EB29819CE2469A2FB0E5F8DE02E5F200D8CB704985B6288"
+  },
+  {
+    "Path": "apps/web/src\\features\\practices\\styles.css",
+    "Sha256": "8FE670CBF919646E1AE91D85E4D1F3158E0209DC4B3DB87D63ADE328DC040D8C"
+  },
+  {
+    "Path": "apps/web/src\\features\\practices\\test-fixtures.ts",
+    "Sha256": "FCC02995F208031AC0207B0281288D8267C05E3B2E380659819D6051E82C7948"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\ConfirmPanel.tsx",
+    "Sha256": "FEE54691CA3EAA771EDB91BE54507E8F9EB6325332D42B08185336D4F2058AC2"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\ContentForm.tsx",
+    "Sha256": "9F62C8D1E3F8B2B29A04A9064A75E81F6AEE378383E383E4671A0C59BC2BC654"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\draft-form.test.ts",
+    "Sha256": "DF7FF77CF02D6EC9ACCEE2D730D9D104338648AA97943A5478F3F0788630B6D9"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\draft-form.ts",
+    "Sha256": "A17F887E3574E800B3C20CC9E6D1E0FB8527EF33657EE9CE2C9BC13CFBC3555C"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\DraftEditor.guard.test.tsx",
+    "Sha256": "FC3B4C90D648A7675792AC0FBD7FA92B5A13EA66B288AA21E029F71F2EDB4D5B"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\DraftEditor.tsx",
+    "Sha256": "1F3B1F06688F808CD29203B154E7844BDCD085A70436F35B59323E321DFA2564"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\ErrorNotice.tsx",
+    "Sha256": "D6B8264816C8E26DD80E49BD809AB71290631A06DCBF5B3B2F27CBCACA876F66"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\generation-notice.test.ts",
+    "Sha256": "999CFE5C13C5C584341E87BA9CCC32BD5A012122B96FFD4B382179D2AD53CC31"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\generation-notice.ts",
+    "Sha256": "95FDCEB3892BAEAD5FFD0DA84B77DF0FCB3639BAD4CA4869A91F6A2DCD214B65"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\GenerationPanel.test.tsx",
+    "Sha256": "58F2EF01AAD89A65E41782864216E0A586E523EC14FB868E2099AAF88174E0F7"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\GenerationPanel.tsx",
+    "Sha256": "B88E477B86B4C2497F49262C1604B49756C64BB039C2C45F03483B9AB23F4760"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\hooks.ts",
+    "Sha256": "5B7259C97DF516B6D9F03B37F902F047B2914A64C26DADA58C74E589FDCE9E6F"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\ImportBatchList.tsx",
+    "Sha256": "21686491777E054EAD7C579F49F0BC98B8C43F2AAFB3D35C50A9BF91C15D46CB"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\ImportQuestionPanel.test.tsx",
+    "Sha256": "FF26FECCD207D5542B70A95C3D830694A34912DF9411993FEACE94156E91CA94"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\ImportQuestionPanel.tsx",
+    "Sha256": "64B68B073388FAC05813C908C204BA103C0CC9CA796BD8E94DE915A677E6F4A5"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\jobs.test.tsx",
+    "Sha256": "BDF2BB75D747DA0567704F60E1F72FA37A778F0DA93B6458C5EEBA7DEBED8B9D"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\jobs.ts",
+    "Sha256": "0D82FC284187C8C61AE2F92EC9A660DE35BA35B50351BB8A0B5E635DBDE89D12"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\knowledge-links.test.ts",
+    "Sha256": "01B8BA862A0BD00C635941B8653AEE62C249A6B8DA65C6D0DDB58E60A0471190"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\knowledge-links.ts",
+    "Sha256": "56C2D4E80476320B8EE06A0216926975848A2C6E84AA46D562B7686D1B17C19A"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\KnowledgeLinksPanel.test.tsx",
+    "Sha256": "A578EF2C90B791547CABC34B56CC5917A2A369B506A212FDB1944270C4F5B10B"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\KnowledgeLinksPanel.tsx",
+    "Sha256": "C68E2A5311C223442C4B73B2E93054F8B98DF78F560303BF1A369D4DD1962EBB"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\KnowledgePointFields.tsx",
+    "Sha256": "88C1918F095D2F25F0F7F9C98A37FDBD1335A1A2806A3CDFE6D5A7B9E4CBC50F"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\labels.ts",
+    "Sha256": "ACFCB77274665528980DB4D9C62FCD49B0A2DC548C31BFE8BBA894BCC9BA624E"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\MergePanel.tsx",
+    "Sha256": "9B91451154C337AFEF057253523555BC6941580F645B7CD6D3D45D799F4849E0"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\model-profile.test.ts",
+    "Sha256": "87107222F1407AAA4177316D4D3AFE6D90BA2FEDD7F74D03A86CE5FBC5D8B1DA"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\model-profile.ts",
+    "Sha256": "C8375362DA05BB71A57280F4AD4798D1F610AAA1925115294B4D38E106C46FFA"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\no-rag-status-dependency.test.ts",
+    "Sha256": "2D6F8141B53F6C6F815CD971D17772F8D10A2289BDE551BB1B64CF027295F243"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\organizer-notice.test.ts",
+    "Sha256": "64E06B0C4FDC3CC6C8C81AF9E0798B8387C5BAD677B56212796A5463E3BA164C"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\organizer-notice.ts",
+    "Sha256": "50C3D1E8E5436495B1BB0F60764B6FD46F273625BAA676D40C2A259C693AE184"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\question-file.ts",
+    "Sha256": "A93149CDD325F1AB802FFBF4B79BF801E3EBCABE6DD9D3B10FB04536D1C0EAA1"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\QuestionBankWorkspace.test.tsx",
+    "Sha256": "FB423F2DE354BD0BC4D2DA4716B2697138808477F0718DF55F1E480E6F641B13"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\QuestionBankWorkspace.tsx",
+    "Sha256": "ECC5C79665B573C560C01E2D50A3E90BF808B8A6BDB8A17989FA837B4FC85724"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\QuestionDetailLinks.test.tsx",
+    "Sha256": "53099922BF989192B1D1D6B3C3C5B2D9BD6AA1810F70E43386EA0B073A042E11"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\QuestionDetailPanel.tsx",
+    "Sha256": "89246B21B519F0B39A898F1F025EF6FD817C0739E638B42F7B448A291CE393F2"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\QuestionLibrary.tsx",
+    "Sha256": "45870E54B1CF64165C156D810756C509AD68A649EB2A878B79CF787E13A266D1"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\QuestionPreview.rich.test.tsx",
+    "Sha256": "DDAA7EEAE6BB252C402DD2AE8E49576F3915FD72108386CCDFFB62F474BFBB59"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\QuestionPreview.tsx",
+    "Sha256": "90CF4A4CFD0F1343C82F79420AB01390328AD3727F5EA016E9EF2381AC552537"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\ReviewWorkspace.test.tsx",
+    "Sha256": "3B1C41A74732D714E95A974D81299B2D7A5C39CC982DA3D2FD3B46C50F6753AA"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\ReviewWorkspace.tsx",
+    "Sha256": "04BC754EA84B067CD4347383F9B61692841BECE1491B9A10A7981F050781A3B4"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\source-trace.test.ts",
+    "Sha256": "22DA96DCFFE25B463DBD69DDEDF98018EDA95410A1C7DFCB41A056C12D663834"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\source-trace.ts",
+    "Sha256": "65B53F85AC0319942633E8598133890B3CC44E2CD2BF9F647787A687A6424FB9"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\SourcePane.tsx",
+    "Sha256": "669EB667E4D992F84F2E32D3F72ED944CDA37E2A89A82EC6F1B4E2E9C4B7082B"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\styles\\question-bank.css",
+    "Sha256": "D4DEB17902C6749092A908BBB1FC410CC610FD55A2F95696B200A21A0B3DE582"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\SuggestionPanel.tsx",
+    "Sha256": "0AC6375F2AF36C01B4E3E78C2E11DA6192E74FA65DDAE89C11DFE4325EA7A5FD"
+  },
+  {
+    "Path": "apps/web/src\\features\\question-bank\\taxonomy.ts",
+    "Sha256": "9F880115945D1037CB23C2C5C3291F9B47566AA903E1EDF1D38926A830DE3280"
+  },
+  {
+    "Path": "apps/web/src\\features\\settings\\AGENTS.md",
+    "Sha256": "BA5307A4E361459FAB46D8AAB52018D39A6EBAE73BACD02C2A8A9D2A9EC9849A"
+  },
+  {
+    "Path": "apps/web/src\\features\\settings\\ExtensionManager.tsx",
+    "Sha256": "F1120A0266579F0DE3C2F210BA35A0174E85F28BFFD1B995104B3B0B8572F2BE"
+  },
+  {
+    "Path": "apps/web/src\\features\\settings\\settings.css",
+    "Sha256": "178DC50BB188D0D5386D8A361352060DAF1E7E0134360ADC83764A9659866F50"
+  },
+  {
+    "Path": "apps/web/src\\features\\settings\\SettingsWorkspace.tsx",
+    "Sha256": "9D02F452672907CACFCC316F904127F72E2902A32601355F4ACE749151537EA6"
+  },
+  {
+    "Path": "apps/web/src\\features\\settings\\styles\\settings-extend.css",
+    "Sha256": "4F105C5C537FA8D5625CE6FC08B031C5717F3FE4E9CD7548BF89ECEF8E47B0A8"
+  },
+  {
+    "Path": "apps/web/src\\features\\textbook\\DocumentEditForm.tsx",
+    "Sha256": "8539C0F9415D3E7872318348F413595655B083BF6A713170FD35B97AA2B11992"
+  },
+  {
+    "Path": "apps/web/src\\features\\textbook\\DocumentSourcePreview.tsx",
+    "Sha256": "A2492BDFB85F39568C8F0768A8720AC3CF1118E4EAF36F038564F799E4C2B88B"
+  },
+  {
+    "Path": "apps/web/src\\features\\textbook\\HistoryRegistrations.test.tsx",
+    "Sha256": "4FDFFF7AF2E4D437CD9B9BDE1819553C30BEB629AB0875C63374565818563F08"
+  },
+  {
+    "Path": "apps/web/src\\features\\textbook\\HistoryRegistrations.tsx",
+    "Sha256": "D2D414A5B285A0A6CE52F887F406DD391ACD63AA8E38AE7DF4E7D0E2A123F839"
+  },
+  {
+    "Path": "apps/web/src\\features\\textbook\\hooks.ts",
+    "Sha256": "60A4CE27B039B00A1F3E974C0AECBC51849857BC2B7A4C802FD9598F62C8EA45"
+  },
+  {
+    "Path": "apps/web/src\\features\\textbook\\ids.ts",
+    "Sha256": "EF32FF3A188816EECA37EBB588944306460DB9C3484D7D5EBB6D7605AFF02D13"
+  },
+  {
+    "Path": "apps/web/src\\features\\textbook\\import-file.ts",
+    "Sha256": "6ADDCC56FC4E999B9412523DDC15E5417B62FDF9653F0560932A27F55FCF4495"
+  },
+  {
+    "Path": "apps/web/src\\features\\textbook\\ImportPanel.test.tsx",
+    "Sha256": "8D7715511F73FAA34C031DC738FE352BBED592233F0714593A22B80649376536"
+  },
+  {
+    "Path": "apps/web/src\\features\\textbook\\ImportPanel.tsx",
+    "Sha256": "D4ECF2427E19AD6C1397094300C6BDEAC663EE224B9EDDFBAEB0E3D99730F8B7"
+  },
+  {
+    "Path": "apps/web/src\\features\\textbook\\JobsPanel.test.tsx",
+    "Sha256": "B0BDE6EC63E87433EF611737E9C5C2EB0ADE52FFFF473A52D215EAFFEC9EA62F"
+  },
+  {
+    "Path": "apps/web/src\\features\\textbook\\JobsPanel.tsx",
+    "Sha256": "76559212C0FAF6C9850616D43165D15DCAACCEE25AFAD48560B728566F737BD8"
+  },
+  {
+    "Path": "apps/web/src\\features\\textbook\\labels.test.ts",
+    "Sha256": "80524C1754E46DFF725EEA1AC96663D83E57CBBDF840E64E4853A9C2199B0AAC"
+  },
+  {
+    "Path": "apps/web/src\\features\\textbook\\labels.ts",
+    "Sha256": "E4BCDB74B7433F95B4F009557348DC59B2A7CE9E42FF4413A6F4128CDDF8CED3"
+  },
+  {
+    "Path": "apps/web/src\\features\\textbook\\LibraryBrowser.tsx",
+    "Sha256": "60BBDC97B1A22BE993C5C6F84E5A93EE6D36C2016F47F82AEC806BDDF67027F4"
+  },
+  {
+    "Path": "apps/web/src\\features\\textbook\\LibraryDetailSection.test.tsx",
+    "Sha256": "1D7CC06AE5F65E419A0FB34189DEFBC8D01FC338EFEC9CCA457B58E9CEB0DE3A"
+  },
+  {
+    "Path": "apps/web/src\\features\\textbook\\LibraryDetailSection.tsx",
+    "Sha256": "8FF9E71EC80E87CAA7AB2F10EA9412A6FE0A5B951FBDB568EDEEE84F1BA675AB"
+  },
+  {
+    "Path": "apps/web/src\\features\\textbook\\MetadataForm.tsx",
+    "Sha256": "3D341789C1FD182A98433DD98B145ABDDA13A80FEE964255845B1354D235465A"
+  },
+  {
+    "Path": "apps/web/src\\features\\textbook\\styles\\textbook.css",
+    "Sha256": "C2677F47718C19849CD673C97FA436D78C18A31CB0A99D7307E38BD0AB28E8B6"
+  },
+  {
+    "Path": "apps/web/src\\features\\textbook\\taxonomy.ts",
+    "Sha256": "E6ADF7BC82F90BF512E2D8200179C02641706F33EC7702D88D910ADB7DC9B51E"
+  },
+  {
+    "Path": "apps/web/src\\features\\textbook\\TeachingScopePanel.test.tsx",
+    "Sha256": "CFD88DC479C15A894F4252E3B29BA4BE58BAC0FE3C3C9012288D7D66080FC4A1"
+  },
+  {
+    "Path": "apps/web/src\\features\\textbook\\TeachingScopePanel.tsx",
+    "Sha256": "04AC189E0D92171F56697511168D3E49BCA59608FD2D634F89570EC2163B866B"
+  },
+  {
+    "Path": "apps/web/src\\features\\textbook\\TextbookWorkspace.test.tsx",
+    "Sha256": "7BF937C03225781CC97BC9B18A766FEBAA05B5B820282D7A18F485478FF15586"
+  },
+  {
+    "Path": "apps/web/src\\features\\textbook\\TextbookWorkspace.tsx",
+    "Sha256": "E12917EC605A75ED7BAC566891B707EB4F61709C3B0DEA07831594C1EC0A5D29"
+  },
+  {
+    "Path": "apps/web/src\\services\\api-client.test.ts",
+    "Sha256": "36ACD007E4168105F4205B8ACA814D67868F703C32C7EEF6876B62EF92F6B18C"
+  },
+  {
+    "Path": "apps/web/src\\services\\api-client.ts",
+    "Sha256": "49107DEC7875AE64D4810134B8260EF5DFBB533D20A22957F0C9ECD95FF517FF"
+  },
+  {
+    "Path": "apps/web/src\\services\\assessments-api.test.ts",
+    "Sha256": "75504AEB0526B68E379DE933DC188914A2058F6C3A6A6C7F2FC31A1E364F31B6"
+  },
+  {
+    "Path": "apps/web/src\\services\\assessments-api.ts",
+    "Sha256": "A4999E7FAD5925A299000C995971A85F710D3C591A9AA7BF506DD2D9D1BEBE6C"
+  },
+  {
+    "Path": "apps/web/src\\services\\book-generation.test.ts",
+    "Sha256": "B5222A76ADDCA568BD26ADFFE95A03346506B77CB9F40BDC5A377189F32BCDB9"
+  },
+  {
+    "Path": "apps/web/src\\services\\book-generation.ts",
+    "Sha256": "D669B7A74817940C117A8BC132DA9A7C21BA13D2232DF8C3CF85523AE33909F6"
+  },
+  {
+    "Path": "apps/web/src\\services\\books-store.harden.test.ts",
+    "Sha256": "424E852F4B144F6787742B31F925FE30D7812A5BEE22E81A4FEE4ED6052719FF"
+  },
+  {
+    "Path": "apps/web/src\\services\\books-store.test.ts",
+    "Sha256": "829C10C96C243A71BF6180E09F170044B5DFA9FA632FD74BA02A097D29AB616E"
+  },
+  {
+    "Path": "apps/web/src\\services\\books-store.ts",
+    "Sha256": "9C773D76B701C7A13BFFCC3FF5A6A5F766387686C1149875D8F58005E684280C"
+  },
+  {
+    "Path": "apps/web/src\\services\\capability-catalog.test.ts",
+    "Sha256": "9209D830E1CD6FAAF4B622406C722DDEF253EDCFE5A87499205B59B2C6307052"
+  },
+  {
+    "Path": "apps/web/src\\services\\capability-catalog.ts",
+    "Sha256": "AEBC54E7BD154CC71A0B83D982F3CE383F631C08B40B634E47FB966385A6ACCA"
+  },
+  {
+    "Path": "apps/web/src\\services\\chat-repository.test.ts",
+    "Sha256": "E2A731A66E1EA0637AE531378980A7EF1725BBA2F05CE8172F81C83D964B4806"
+  },
+  {
+    "Path": "apps/web/src\\services\\chat-repository.ts",
+    "Sha256": "EECA62D80AA5B02F2EE9B59025C84F06783D6DF72DAE9A01FE42AE1B607DC822"
+  },
+  {
+    "Path": "apps/web/src\\services\\chat-source.ts",
+    "Sha256": "5B96452E7C7764C5B9809CA6C7072F46D19F0455B8D345C8962D044196025F39"
+  },
+  {
+    "Path": "apps/web/src\\services\\chat-sse.test.ts",
+    "Sha256": "B76A585213AA89F3CBCE9F79A82C6C3CC59DD0BF7689B7C2CCFCD682DDA66CD4"
+  },
+  {
+    "Path": "apps/web/src\\services\\chat-sse.ts",
+    "Sha256": "CBDF0ABE9B729ED958847F16E05523575661F390470B411F5C0EEC1467970D77"
+  },
+  {
+    "Path": "apps/web/src\\services\\chat-stream.ts",
+    "Sha256": "D376CF0541335B7C72743C49956932AEB92334C4FFE608D0D7930657E6B28EAA"
+  },
+  {
+    "Path": "apps/web/src\\services\\collection-lock.test.ts",
+    "Sha256": "58F634961A6C04831E12AA23DBA9A30EF985FBB62DEC027D2B2820BABE684374"
+  },
+  {
+    "Path": "apps/web/src\\services\\collection-lock.ts",
+    "Sha256": "F3E8740974FFA8431BB176E307A3677587CDC7E1D163A816902BDBC317A9E254"
+  },
+  {
+    "Path": "apps/web/src\\services\\course-session.test.ts",
+    "Sha256": "C8E769A85B68874D1AD163A2061574E538E2D91080A1C9E88A76D3B59EB580CB"
+  },
+  {
+    "Path": "apps/web/src\\services\\course-session.ts",
+    "Sha256": "20D745BDE02F10A0DB4957997F7A029FCC4F8F9207F764D2FF8F27BD1C652B73"
+  },
+  {
+    "Path": "apps/web/src\\services\\courses-store.test.ts",
+    "Sha256": "51DD9B82DDC9D344A723F92D06C7E95C05A5B03A7D3CBAD2DFB245FC9B471D06"
+  },
+  {
+    "Path": "apps/web/src\\services\\courses-store.ts",
+    "Sha256": "5393E1BFB337B2B2CEA2FBBF0EB3D1A48A161D62DB43015FAC6C9F5782E94EFC"
+  },
+  {
+    "Path": "apps/web/src\\services\\doc-attachments.test.ts",
+    "Sha256": "45B8B780B4F91BF9A46C036F17A9913C46C1D3D657FBC490C1F94252A52AF518"
+  },
+  {
+    "Path": "apps/web/src\\services\\doc-attachments.ts",
+    "Sha256": "59F39D48ED09859ACEAB7DBF52C7E4C7BD126EF4058B490EF97739AD76688056"
+  },
+  {
+    "Path": "apps/web/src\\services\\extension-catalog.test.ts",
+    "Sha256": "45EE036B83F7F47ECFEA067862770004C09764B4349E02E94E01E28024BEEDB9"
+  },
+  {
+    "Path": "apps/web/src\\services\\extension-catalog.ts",
+    "Sha256": "67AACB096839EBFA2182D717E332D09FD9437D8DC75825994C16542F443E6F74"
+  },
+  {
+    "Path": "apps/web/src\\services\\http-fill-provider.ts",
+    "Sha256": "5C530558F7E8F9A4B6842931F6049C1E784FC0A44115FE9B2F0073ABC81EB18E"
+  },
+  {
+    "Path": "apps/web/src\\services\\knowledge-catalog.test.ts",
+    "Sha256": "A2A508A21067308D8568FF27F0ECEF33386A27B2A47941E80E80BBE1AFF76A41"
+  },
+  {
+    "Path": "apps/web/src\\services\\knowledge-catalog.ts",
+    "Sha256": "565BD7A51DBC217ED9961636D21029E7DA791713FFB5F544B63512D73B865F10"
+  },
+  {
+    "Path": "apps/web/src\\services\\knowledge-ingest.test.ts",
+    "Sha256": "440021712969ED9179B7105914FE148EE2C2934FC8B4179650A01C833600E386"
+  },
+  {
+    "Path": "apps/web/src\\services\\knowledge-ingest.ts",
+    "Sha256": "8F98CFB446AAF35F9EBCD8133F65783A7B00BC6CEB273F8C71852584E0E04C0D"
+  },
+  {
+    "Path": "apps/web/src\\services\\knowledge-points-api.test.ts",
+    "Sha256": "85DD40CB37CB44784AE467088A71A43BA2FE3081A21BD4E7F73670882F27A469"
+  },
+  {
+    "Path": "apps/web/src\\services\\knowledge-points-api.ts",
+    "Sha256": "0FA1CC9AA09457DB42A85A6E2EA7FDBEDF94E1F12F8FECD9C80FAAD11DCA314A"
+  },
+  {
+    "Path": "apps/web/src\\services\\lesson-plan-sources-api.ts",
+    "Sha256": "218700E6F2F12D32C77752753A3AD965A3E06FD3FFCE1119B303C46279503158"
+  },
+  {
+    "Path": "apps/web/src\\services\\lesson-plans-api.ts",
+    "Sha256": "BF9AAE52CF632A5766B776F5E5373DC86553005FA6B0FCC845FE15B906071CE3"
+  },
+  {
+    "Path": "apps/web/src\\services\\local-collection.test.ts",
+    "Sha256": "995554B599EC347AA5010A812CB6B47A0E7B7333FE06ECFFDAACE4D77502A84E"
+  },
+  {
+    "Path": "apps/web/src\\services\\local-collection.ts",
+    "Sha256": "61F592467E50DA1B2CC0DA005526523ABA09514970F23D2D0F59443E27C6DF27"
+  },
+  {
+    "Path": "apps/web/src\\services\\model-settings-api.ts",
+    "Sha256": "510FFBD7FDF510969B7D141A777E64D2636EFF61B0B60BEA750D2AAA3FF0C89A"
+  },
+  {
+    "Path": "apps/web/src\\services\\navigation-guard.test.tsx",
+    "Sha256": "7E7D41FC076BB4C6985FDECC312A34E40EADEA7FC8D08AF3E73FC680B30E9608"
+  },
+  {
+    "Path": "apps/web/src\\services\\navigation-guard.tsx",
+    "Sha256": "99235A778CACEB714006ACF6D44916A1EF606A1009E7883856C6B6D8E012C3A9"
+  },
+  {
+    "Path": "apps/web/src\\services\\navigation.test.ts",
+    "Sha256": "39C3E3872651446775EE07C1EB0A01353939B2DCCBEF0F6ED4D16D2DC377BC4A"
+  },
+  {
+    "Path": "apps/web/src\\services\\navigation.ts",
+    "Sha256": "45EC14463AF4B99E73327BE105D015952BACAFB9EB76C09C624C7E2033CEB43A"
+  },
+  {
+    "Path": "apps/web/src\\services\\page-parameters.ts",
+    "Sha256": "6D27D00E11AB1B80BDE1351F3759C7DB57B0724019C4B4C52D825997DEF34180"
+  },
+  {
+    "Path": "apps/web/src\\services\\question-bank-api.test.ts",
+    "Sha256": "A36BA1A72DB73AF7758A8A03DF76271877A3F119810EA04FFD02A4C68DC1F7DC"
+  },
+  {
+    "Path": "apps/web/src\\services\\question-bank-api.ts",
+    "Sha256": "8D38FB405770C175336112CEB73B01FBE0225572D358B60AE6E820851BC22F8C"
+  },
+  {
+    "Path": "apps/web/src\\services\\taught-scope.ts",
+    "Sha256": "92BE21CF80AD601BD6B3C4DDC14F5E663D5B47E1FFC4A3B8EDCB89215758D9F4"
+  },
+  {
+    "Path": "apps/web/src\\services\\teaching-loop-b4-api.ts",
+    "Sha256": "EE64F465F2543BA0C9D2C7F70EAFD58BF3F1861BAA65FF74A472E2F6FD042B68"
+  },
+  {
+    "Path": "apps/web/src\\services\\textbook-api.test.ts",
+    "Sha256": "7C0475A5843051235BF2822C430D04324419666297BD8ECE202E630517538CAD"
+  },
+  {
+    "Path": "apps/web/src\\services\\textbook-api.ts",
+    "Sha256": "11ECE2CFDA3E57A090C7AE9E7B48FF0455BE7DA830FF40E22D76606F7E1C5E5D"
+  },
+  {
+    "Path": "apps/web/src\\services\\use-workflow-job.test.tsx",
+    "Sha256": "FDC4EC158C8FF85E6010692C7D7E8782D7AD9AB97C24AB700085A2B0FCCF72F0"
+  },
+  {
+    "Path": "apps/web/src\\services\\use-workflow-job.ts",
+    "Sha256": "CD5EA25402821A45C85AF0B93F004DE80DF5443D45A101A202AC9627C152D890"
+  },
+  {
+    "Path": "apps/web/src\\services\\workflow-jobs-api.test.ts",
+    "Sha256": "B8603B4961ED6F6979A55AAB199C479A838D8A34063100E1AB79B044D2B386E9"
+  },
+  {
+    "Path": "apps/web/src\\services\\workflow-jobs-api.ts",
+    "Sha256": "50F9E5A74BD434317F1EE062FE212C3D0F4F2D2E360352828368D99AA22B4905"
+  },
+  {
+    "Path": "apps/web/src\\styles\\globals.css",
+    "Sha256": "DCF9CA4A8362EB4551446975816B2D394DB11166E63A9D70DDD45802DA255F07"
+  },
+  {
+    "Path": "apps/web/src\\styles\\motion.css",
+    "Sha256": "F58F7DF023345A45B17028DBD239F682EF8D1ADED3E152C49BC9153BCF440669"
+  },
+  {
+    "Path": "package-lock.json",
+    "Sha256": "672859CB944DF51C114FAE967939EF62B5F05E27773CD2486AF5C390C04FAD26"
+  },
+  {
+    "Path": "tests/e2e\\assessments.spec.ts",
+    "Sha256": "62A1C32FF1B1A869375CDA0AE40C79EBEBE8F026BC268B8DEFB520E037EEE913"
+  },
+  {
+    "Path": "tests/e2e\\books-commit-safety.spec.ts",
+    "Sha256": "B36E6B41FA441A0972D172B632464B085561E0AFDB6546D0B88475E8CEAE27F9"
+  },
+  {
+    "Path": "tests/e2e\\books-courses.spec.ts",
+    "Sha256": "CCC0E8A73FF830D1931DBC72EEA9B195B48613831985DB7E3981F9C373F49328"
+  },
+  {
+    "Path": "tests/e2e\\books-harden.spec.ts",
+    "Sha256": "0361711B39EF74E32D4B61E44F08D183BA8D885B21F6AEA947771648F32DA557"
+  },
+  {
+    "Path": "tests/e2e\\books-pipeline.spec.ts",
+    "Sha256": "2DAD42DF19A6D17879E9B1E143BE6D3C7BA6EEC2B309F859DC03E71FFD07F10D"
+  },
+  {
+    "Path": "tests/e2e\\chat-composer-boundaries.spec.ts",
+    "Sha256": "C7B64B2F48BC4405719D183920F8585C7861A6B7A92911E25AA2129B8F6F0AEC"
+  },
+  {
+    "Path": "tests/e2e\\chat-composer.spec.ts",
+    "Sha256": "31C54732B751CC3DFE19CA968EB836994EE63B3B4B45136E51F9A702DD04E718"
+  },
+  {
+    "Path": "tests/e2e\\chat-context-budget.spec.ts",
+    "Sha256": "CDC53F3234A330EE59E4C09F89178930EED1D80E5AEE0B696570BAA86946E827"
+  },
+  {
+    "Path": "tests/e2e\\chat-deeplink.spec.ts",
+    "Sha256": "7E43F0A9962A7FEBF2E76C12CFEA846BAF190A2F4262593BE87671FC9DD8E493"
+  },
+  {
+    "Path": "tests/e2e\\chat-home.spec.ts",
+    "Sha256": "78E4D370D21FF04C4899A23AA6C70EA8469FEBA937D9B71390152799E516FA0B"
+  },
+  {
+    "Path": "tests/e2e\\chat.spec.ts",
+    "Sha256": "0ECBC852B8816A05F9290D7C3927581886739735F996AF72C37ABEE53EA5AEFB"
+  },
+  {
+    "Path": "tests/e2e\\course-resource-faults.spec.ts",
+    "Sha256": "2E33556296AEE6006AE1701EE72B6F599BBF6FFEB1188EEA7E30A39E6D3D4844"
+  },
+  {
+    "Path": "tests/e2e\\course-sessions.spec.ts",
+    "Sha256": "05F9C00DC662F1898034727C589D0E09C081A561024899DD2FDB81A6EEC4E39E"
+  },
+  {
+    "Path": "tests/e2e\\helpers\\book-interrupted-recovery.ts",
+    "Sha256": "73A6EB0837350896B40E864743AE5C1BAA4F4453825D0EB3A46A1EDDC2000087"
+  },
+  {
+    "Path": "tests/e2e\\knowledge-points.spec.ts",
+    "Sha256": "59EC01FE4AA88B5B63C0713235A7BF5C0AC8655D18A9086CC999C02525C63640"
+  },
+  {
+    "Path": "tests/e2e\\lesson-plan.spec.ts",
+    "Sha256": "4CC5547138034D2BF5ADF4A4A5D26D3DE49427691AF54C7D157E4DA761FA9699"
+  },
+  {
+    "Path": "tests/e2e\\model-settings-nesting.spec.ts",
+    "Sha256": "7C8958FC6DD1B98EC453ED59B8DE3B074EEC3CCB5FEDF39CEABB46225A92D384"
+  },
+  {
+    "Path": "tests/e2e\\model-settings.spec.ts",
+    "Sha256": "51415F54844F1A3BDF7EA19BCFB6DF79F2EFE1AA0B8BC42F7E93E077DA7A1E7E"
+  },
+  {
+    "Path": "tests/e2e\\navigation.spec.ts",
+    "Sha256": "294E784E7DA93E3EFBD467D96952688C4C88C74A13E84D64A2A998E76A7562FB"
+  },
+  {
+    "Path": "tests/e2e\\question-bank-real.spec.ts",
+    "Sha256": "6308D92FCE1364A33CAFB2EC6412C15026438DA3D83275B469E039FD4934FA38"
+  },
+  {
+    "Path": "tests/e2e\\replica-settings.spec.ts",
+    "Sha256": "12D25A1024FCDC66F90C62C6D6149E35F6E9DEE5CF3274396604C7D9284AF258"
+  },
+  {
+    "Path": "tests/e2e\\settings.spec.ts",
+    "Sha256": "4341D78ADCB4BC75CDDBC7D6BE8CFF9A5EA6F3FA114CD70496170FDA9CEE82F2"
+  },
+  {
+    "Path": "tests/e2e\\shell-home-nav.spec.ts",
+    "Sha256": "86039C72D60043D21DDEAE4A0F876ECF51C8F8C55EBBCA6FAB272EA7F5618A44"
+  },
+  {
+    "Path": "tests/e2e\\sidebar-chat-fixes.spec.ts",
+    "Sha256": "0231C1DFB582AF271E05D9DDA8F9071D0BF44C94553AB9FE1B6B02518ED51B06"
+  },
+  {
+    "Path": "tests/e2e\\sidebar-transition.spec.ts",
+    "Sha256": "6ECBF593C0006DC922FDFFDDBDAD0FD130E16F7E42DDA12C28511EB07885B10A"
+  },
+  {
+    "Path": "tests/e2e\\ui-motion.spec.ts",
+    "Sha256": "565171585F3B8A8CB60E57217689D375A00E753979F94077968A1C7CE5578D21"
+  },
+  {
+    "Path": "tests/e2e\\ui-resource-visual.spec.ts",
+    "Sha256": "6CFBB0AE87C387422016C18ABDB60BE1E0AAF7F4E37269EA358D4FC9DCE95B96"
+  },
+  {
+    "Path": "tests/e2e\\ui-textbook-visual.spec.ts",
+    "Sha256": "982F4C5289F98C88C15C4A0C9210CE4351357CF7E367CF5C3B2A2FF75543DD8A"
+  },
+  {
+    "Path": "tests/e2e\\ui-unification.spec.ts",
+    "Sha256": "5F1189768FA347F3B7C2072AE69EDC9391BF67F7A44AC910975A74B5281F74D0"
+  },
+  {
+    "Path": "tests/e2e\\ui-workflow-visual.spec.ts",
+    "Sha256": "35B268D277E4D0846C9D76F0989434C377F8FCA689185A127560968D45DBDA41"
+  }
+]

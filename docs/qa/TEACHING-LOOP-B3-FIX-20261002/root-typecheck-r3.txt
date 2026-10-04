@@ -1,0 +1,6 @@
+npm notice run zhiqikeyuan@0.2.0 typecheck
+npm notice run npm run typecheck --workspace=@zqky/web
+npm notice run @zqky/web@0.2.0 typecheck
+npm notice run next typegen && tsc --noEmit
+Generating route types...
+✓ Types generated successfully

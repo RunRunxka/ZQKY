@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Boxes, Info, Palette, Plug, Sparkles, X } from 'lucide-react';
 import { WorkspaceShell } from '@/components/layout/WorkspaceShell';
+import { useEntrance } from '@/components/motion/useEntrance';
 import { ModelSettingsPanel } from '@/features/model-settings/ModelSettingsPanel';
 import { EmbeddingPanel } from '@/features/model-settings/embedding/EmbeddingPanel';
 import { ExtensionManager } from './ExtensionManager';
@@ -16,6 +17,8 @@ const sections = [
   { id: 'about', title: '关于', description: '实现状态与版本', icon: Info },
 ];
 export function SettingsWorkspace() {
+  const entranceRef = useRef<HTMLDivElement>(null);
+  useEntrance(entranceRef, { preset: 'page' });
   const [query, setQuery] = useState('');
   const [active, setActive] = useState('appearance');
   const [reduced, setReduced] = useState(false);
@@ -67,9 +70,9 @@ export function SettingsWorkspace() {
   }, []);
   return (
     <WorkspaceShell pageTitle="设置">
-      <div className="settings-workspace settings-page">
+      <div className="settings-workspace settings-page" ref={entranceRef}>
         <nav className="settings-index" aria-label="设置分类">
-          <h1>设置</h1>
+          <h1 data-motion-reveal>设置</h1>
           <div className="settings-search">
             <input
               ref={searchInput}
@@ -130,7 +133,7 @@ export function SettingsWorkspace() {
           )}
         </nav>
         <div className="settings-document" ref={container}>
-          <section id="appearance" className="settings-panel">
+          <section id="appearance" className="settings-panel" data-motion-reveal>
             <h2>外观</h2>
             <p>控制工作台的动态效果。</p>
             <label className="settings-toggle">

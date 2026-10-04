@@ -1,0 +1,240 @@
+{
+  "branch": "main",
+  "head": "6aeb57280f6a7e0d7391cad4d150745479ea58ec",
+  "initialUserChange": "apps/web/next-env.d.ts",
+  "comparisons": [
+    {
+      "manifest": "docs/qa/TEACHING-LOOP-B2/FROZEN-CANDIDATE.json",
+      "count": 84,
+      "matchAtHead": 41,
+      "note": "Git HEAD raw bytes and CRLF checkout equivalent compared; disk may contain mixed endings. Initial existing uncommitted next-env only. Product implementation now running; no historical fingerprint is overwritten.",
+      "matchWithCheckoutCRLF": 6,
+      "contentDifferences": [
+        {
+          "path": "apps/api/AGENTS.md",
+          "frozen": "48cc9af6ba3a69310ca5f60deb9c662f260023a1cb9d313f120187b953927941",
+          "head": "619c648ebd95b9cd223f3f97a2908b8a6d8b10bba4a479459f65649978c3102b"
+        },
+        {
+          "path": "apps/api/app/api/v1/papers.py",
+          "frozen": "7af434417244e184bab8618b11371665c503b19a5bc33c4638850e8b8a6af698",
+          "head": "7bab69667fdc285cd082c90f64580226124b30600c542c5f3e313d1e0c502ec8"
+        },
+        {
+          "path": "apps/api/app/contracts/assessments.py",
+          "frozen": "aeec95e51b26372ec6e63c7af8cb290f9812d9f5ff82f6447b696e581a876392",
+          "head": "474f1cf57548d348b8c541a6e05abd802fa52d2317d14539435df396da7ff507"
+        },
+        {
+          "path": "apps/api/app/contracts/papers.py",
+          "frozen": "d171b3711e42d3ed1af3a43d60f4c9b30bfdd3f56d196459b9a803f1f738d478",
+          "head": "dcac9ffb1bc98040243c013feb2f8b0a1540932d11acf02c80ba684acb38f0da"
+        },
+        {
+          "path": "apps/api/app/core/migrations/teaching.py",
+          "frozen": "2aedc71abb4917e938eda5864c04e52c862f38f199169527e2c99c793dc2e2a6",
+          "head": "41610ba1c2741f591992cf034cd2d9c9fbe1edfbe651fda5af00a092123c11e7"
+        },
+        {
+          "path": "apps/api/app/main.py",
+          "frozen": "4c02f7b7e0df9ffd6b94cae2696be5a3764d021c753d1a812340b5b2c0b13c46",
+          "head": "b1ce3438ed5f59353abd0a83dff1aed23a5886ba1b841b07b0b7b56c5ea7a6dd"
+        },
+        {
+          "path": "apps/api/app/repositories/question_bank/catalog.py",
+          "frozen": "161322bab37a22993daa5ecf90803f3598118896c35bbcb52b8b94cf84fcb957",
+          "head": "8889c24a719e9a5ae5b4a46a04e323e6c04f5f94040d64c64ef6692554ccc738"
+        },
+        {
+          "path": "apps/api/app/repositories/teaching/assessments.py",
+          "frozen": "2fa8390f265ab0c7b3ca933154e771d1c28aeb17013ebb1db8088573fbf81991",
+          "head": "85b56548cb130704abc540b53f6f68f13d9dada8fd2190a605cc63963eeaccad"
+        },
+        {
+          "path": "apps/api/app/repositories/teaching/papers.py",
+          "frozen": "33e2917b54edc4d52fe6e1d79abc32c1a97bc1095a024f4468df5f1f7631181e",
+          "head": "ec27b220946bcefff5283534d7471a6211b500a3e12b1e8ba9f2c5ac4ad6505e"
+        },
+        {
+          "path": "apps/api/app/services/assessments/service.py",
+          "frozen": "491cd1c4ad8aabb27a6b2098dc5e8c4ee8e83c99365123ac35ff02d45ab5b73d",
+          "head": "6201a68f7484f702adaeb2a1c0ebd1ab8b063af1ae9b08258e852e1ea7c05e07"
+        },
+        {
+          "path": "apps/api/app/services/papers/proposals.py",
+          "frozen": "639d1f77519fce067264630a013352d541bf4842b995e6cfed2e09a5c487428c",
+          "head": "acd4e03c2272e00caabd792d671003dc236c59be4e5bd2801c1cae3667b17437"
+        },
+        {
+          "path": "apps/api/app/services/papers/reader.py",
+          "frozen": "24b92e79ed6878a3bdd9ee6b281bd301dd7c72ea7621fc0aa1df0f1385e8e136",
+          "head": "39f48f5642ef5544d2d3e4332ea06565bf568af1cb6cb062e66c0d57cd0a1c49"
+        },
+        {
+          "path": "apps/api/app/services/papers/service.py",
+          "frozen": "0896175d853cee4ecfaff019e0a9837edcecd99362ceb81804106215ffe35b53",
+          "head": "2e4006ccc0675501375ec156c7f183c0b41575ac314b53f8ba0854630b32c0d2"
+        },
+        {
+          "path": "apps/api/app/services/question_bank/generation.py",
+          "frozen": "5cbc4b7c5195a00c699d7e0c5c88a123c7fddbf0dc242490b418e70f6133fe52",
+          "head": "74cdbfac68014c74062e51fbdaefbb4eaa07980f9ab3d68cdfcc8f9374c4287e"
+        },
+        {
+          "path": "apps/api/app/services/question_bank/service.py",
+          "frozen": "bd079750fcecdbc6d02832bda439091d8254e868b270c61e83114192b41f878c",
+          "head": "d191d403877cde175093260c373bffb4f46787f90c66cd1fcefaf8fcfff214c0"
+        },
+        {
+          "path": "apps/api/tests/papers_support.py",
+          "frozen": "25b42fba14064c49749989785ff541083912be980f4625ac2a0e23a8b1bcd67c",
+          "head": "ed0429a034c664b3640ccc4fddfb6d2c90a32af91ed85a58baed529d7e7801cb"
+        },
+        {
+          "path": "apps/api/tests/test_b2_migrations.py",
+          "frozen": "66bc15142a20e50b264a4a29062f99b0708149c3845bdc364b585f7bf1d88261",
+          "head": "933b77f71837b7d37bf952ce2cc9827d5cc5b625392127419308f3e0a3f3fa09"
+        },
+        {
+          "path": "apps/api/tests/test_migrations.py",
+          "frozen": "166d00274ffe0a68e22e28cfa074a6f927e78f66a369de8c0d78668b8cc60431",
+          "head": "3a87ebbb2c5daad3ffad0432581f019098ce2d0bb5cc24e62a1c4c7d1aa925f9"
+        },
+        {
+          "path": "apps/api/tests/test_papers_draft_confirm.py",
+          "frozen": "8e7ee5e23444f2688e984b8248b47e118d360570f738a841cbf1de8f346c1046",
+          "head": "006c9c8598152624a26c4605b112a6ced40215ca114acc7a9a60790e9397be1f"
+        },
+        {
+          "path": "apps/api/tests/test_papers_proposals.py",
+          "frozen": "e5f0e4ac7dca5f81ddd940eb34d87cb0d2c3518af3a923db0710aac9898d2e78",
+          "head": "63c5008dbbbd90aca5a071856a106d4376e9a74f7959babe86819edeb9fae45b"
+        },
+        {
+          "path": "apps/api/tests/test_question_job_engine.py",
+          "frozen": "ec123d19e416991073eb4f142d44b1dabbbb7c805120967ee39a2df767aaeccf",
+          "head": "27368bb6d67881f248b5051a09242322c5afe7c22110f26946b6b7bbf53b9a38"
+        },
+        {
+          "path": "apps/web/src/contracts/assessments.ts",
+          "frozen": "884fec900b8877441e8e683aaa3fc8c201e595cd839f0bda8e055157f2258a46",
+          "head": "1a9ff6921fe9188c557d15fd459e01ee745896bd83485f44abd2642cb9ef24ef"
+        },
+        {
+          "path": "apps/web/src/contracts/papers.ts",
+          "frozen": "4d2f84c05ab56b284ae882d0259a41188e52c5d290445383503e7ee4075b00ac",
+          "head": "aa851b72b51b2390f2a15afbbb03862c149e623f4db7b306c9a3534b989343ea"
+        },
+        {
+          "path": "apps/web/src/contracts/question-bank.ts",
+          "frozen": "82d15553115da1ec6a78803fbae6fa12a71ef8c445899affe90b7e28c6960759",
+          "head": "8a7adf7a32084c775ee712508d6abaea10810bd4436d6b16c9564b3c10e1b0e7"
+        },
+        {
+          "path": "apps/web/src/features/knowledge-points/hooks.ts",
+          "frozen": "f690bb5e206c3e1603236b5a296d4425a3554e5f4b31b6c87fe8aa7d5f8df6f9",
+          "head": "9eb339800df686a14442c17892c3fd7875dd4e073f945bf3e774adc10017b85b"
+        },
+        {
+          "path": "apps/web/src/features/question-bank/ReviewWorkspace.test.tsx",
+          "frozen": "f0dc69fc969e36245c90ed06999d1f635be95bad41cc37ffe90b59c66ba693f9",
+          "head": "bee2870c1410ccd9b7570197755cfa59ddef86d06554356706ddcc22472e5fd3"
+        },
+        {
+          "path": "apps/web/src/features/question-bank/ReviewWorkspace.tsx",
+          "frozen": "ffa78fe7d2050248cf6425c0aef3d386b789b762847f96356635862772ca607a",
+          "head": "a4eeda62398cf9b56aaaa939a5e49c24649fa6a19299cc3a22054f594df9fe2a"
+        },
+        {
+          "path": "apps/web/src/features/question-bank/SuggestionPanel.tsx",
+          "frozen": "89fc8b7cade096e4296c7d75d578ffa9985b720bedac52b0af40f769899eec60",
+          "head": "0ac6375f2af36c01b4e3e78c2e11da6192e74fa65ddae89c11dfe4325ea7a5fd"
+        },
+        {
+          "path": "apps/web/src/features/question-bank/labels.ts",
+          "frozen": "fccacb97c49aae39c3cea673077e6bcb18c41a46ed4f69d4bd2ee1dda719e547",
+          "head": "acfcb77274665528980db4d9c62fcd49b0a2dc548c31bfe8bba894bcc9ba624e"
+        },
+        {
+          "path": "apps/web/src/services/navigation.test.ts",
+          "frozen": "16b3a37e9736e2e8a4aa5a13553a9a12716e98a4f74e9b8a2996f29eb85f7521",
+          "head": "e1b46e5f5cf7fa0e9bad82c3d68ce11ae9aec7954d053537e8966d153fffd95e"
+        },
+        {
+          "path": "apps/web/src/services/navigation.ts",
+          "frozen": "ab73161b9dc1af3a73965aa8f05a97b8df67aba37d310279f6a4ee0ede2ea037",
+          "head": "dd2ce29444339179dbbab9ef26a9fa84998f51f6669256afe1b0e41a780ac75d"
+        },
+        {
+          "path": "apps/web/src/services/question-bank-api.test.ts",
+          "frozen": "2977c33b348d70e2519e39c62de1f3a153c5c873ebd24f6b733d315df30253b2",
+          "head": "a36ba1a72db73af7758a8a03df76271877a3f119810ea04ffd02a4c68dc1f7dc"
+        },
+        {
+          "path": "apps/web/src/services/question-bank-api.ts",
+          "frozen": "1b85f2f21a6f28c3567173e49743f11ec9ee4f3e693b03a031a1fe67c2df9c19",
+          "head": "c5b89007d4ffb0f6abe0848e926413dc6c7f867b79571d58a2e665ca8691dceb"
+        },
+        {
+          "path": "docs/API.md",
+          "frozen": "68ccc3f33675e0549aee290d1bce1392c7fcbf55958972b6e1552689e9c1a7bd",
+          "head": "e446eda7be6c8a913eee3eeddc34920428f38c4eba4c4bb0db8ad222ae60537d"
+        },
+        {
+          "path": "docs/CURRENT_STATUS.md",
+          "frozen": "8eaf902270a28d7e2c81a354fa2af764c682036ffa309459c00f230be2372646",
+          "head": "a2051a123dfac22c95b3128709881b263dbc383b51bbacf340e1d713ca1ba86f"
+        },
+        {
+          "path": "docs/PROJECT_GUIDE.md",
+          "frozen": "d33e9e4766f1355e00e2311fb66dcd50d728194457c29d2588cf284c2e07e908",
+          "head": "9c7204be520110257606fda85bdb3fc9cb7da449b07f575c18cb91ba0c6292b9"
+        },
+        {
+          "path": "docs/ROUTES.md",
+          "frozen": "6acc086c551cf66b7fb5953541573a2b3496c8d32388bd3c18e5d178f9240c29",
+          "head": "2f01fa163a7f0c38c6413ec4f53c016b60bba565958870a2b051ea315f5cf8e6"
+        }
+      ]
+    },
+    {
+      "manifest": "docs/qa/TEACHING-LOOP-B3/FROZEN-B3.json",
+      "count": 163,
+      "matchAtHead": 106,
+      "note": "Git HEAD raw bytes and CRLF checkout equivalent compared; disk may contain mixed endings. Initial existing uncommitted next-env only. Product implementation now running; no historical fingerprint is overwritten.",
+      "matchWithCheckoutCRLF": 51,
+      "contentDifferences": [
+        {
+          "path": "apps/api/AGENTS.md",
+          "frozen": "48cc9af6ba3a69310ca5f60deb9c662f260023a1cb9d313f120187b953927941",
+          "head": "619c648ebd95b9cd223f3f97a2908b8a6d8b10bba4a479459f65649978c3102b"
+        },
+        {
+          "path": "apps/web/src/features/question-bank/ReviewWorkspace.test.tsx",
+          "frozen": "9a419e8ded4a59754179e57889d7a2457d86fbf8b176581f2865ee8dd1fd8a91",
+          "head": "bee2870c1410ccd9b7570197755cfa59ddef86d06554356706ddcc22472e5fd3"
+        },
+        {
+          "path": "docs/API.md",
+          "frozen": "a0b12aef0c27afb5f22b3f6b488e7b7dc764a3469979b01afdc74da83c608a29",
+          "head": "e446eda7be6c8a913eee3eeddc34920428f38c4eba4c4bb0db8ad222ae60537d"
+        },
+        {
+          "path": "docs/CURRENT_STATUS.md",
+          "frozen": "035b7dbbef4f1de401b3d2579110ef7464b8341947c879fe0cc91c809595430c",
+          "head": "a2051a123dfac22c95b3128709881b263dbc383b51bbacf340e1d713ca1ba86f"
+        },
+        {
+          "path": "docs/PROJECT_GUIDE.md",
+          "frozen": "f6d752890640f99d7d616cd6719e1e4cf21b157ad12486a06d73d9f5e7fd98a8",
+          "head": "9c7204be520110257606fda85bdb3fc9cb7da449b07f575c18cb91ba0c6292b9"
+        },
+        {
+          "path": "docs/ROUTES.md",
+          "frozen": "095b34b526520376632e578f55d4c57d83e12d6fb2c1800feddfaef12a13f00c",
+          "head": "2f01fa163a7f0c38c6413ec4f53c016b60bba565958870a2b051ea315f5cf8e6"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,87 @@
+{
+  "exitCode": 0,
+  "stats": {
+    "startTime": "2026-10-02T06:10:46.811Z",
+    "duration": 361326.657,
+    "expected": 153,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "realChainTests": [
+    {
+      "file": "assessments.spec.ts",
+      "title": "空态/错误恢复/键盘/减少动画与 390px：真实后端，无横向溢出",
+      "status": "expected",
+      "durationMs": 2950
+    },
+    {
+      "file": "assessments.spec.ts",
+      "title": "五步真实链：建班/选人次 → 选原卷 → 建施测 → 上传/映射/校对 → 承认 → 确认 → 历史矩阵",
+      "status": "expected",
+      "durationMs": 3118
+    },
+    {
+      "file": "assessments.spec.ts",
+      "title": "完整真实链：名单导入→富原卷校对确认→施测→成绩响应丢失重放→修正历史",
+      "status": "expected",
+      "durationMs": 2591
+    },
+    {
+      "file": "assessments.spec.ts",
+      "title": "规模实测：200 人次 × 100 叶（分页 50/页，记录首屏与翻页耗时）",
+      "status": "expected",
+      "durationMs": 5700
+    },
+    {
+      "file": "question-bank-real.spec.ts",
+      "title": "真实 AI 补题 queued@0→attempt 1→人工校对确认→知识点检索",
+      "status": "expected",
+      "durationMs": 5265
+    },
+    {
+      "file": "question-bank-real.spec.ts",
+      "title": "真实公共 retry：首次失败可见，queued(N)→succeeded(N+1)只调用一次",
+      "status": "expected",
+      "durationMs": 3544
+    }
+  ],
+  "scaleAttachments": [],
+  "scope": "153 full browser regressions; six batch chains connect isolated FastAPI; older mock/error tests are not expanded into real API acceptance",
+  "scaleStdout": [
+    {
+      "text": "[scale] 班级 + 200 名学生耗时 2001ms\n"
+    },
+    {
+      "text": "[scale] 建施测耗时累计 2028ms\n"
+    },
+    {
+      "text": "[scale] 上传（528526 字节）返回，累计 2630ms\n"
+    },
+    {
+      "text": "[scale] 上传解析完成，累计 2631ms\n"
+    },
+    {
+      "text": "[scale] 映射重算完成，累计 3127ms（missing=0 resolved=200）\n"
+    },
+    {
+      "text": "[scale] 确认返回 200，累计 3660ms\n"
+    },
+    {
+      "text": "[scale] 准备完成：assessment=45859ccc98b146c7a1f778ca05312457 import=f518bd1fc3cd47d98a65f29f6381deb7 人次=200 叶=100\n"
+    },
+    {
+      "text": "[scale] 200 人次 × 100 叶：矩阵首屏（第 1 页 50 行）537ms；翻页 569ms\n"
+    },
+    {
+      "text": "[scale] 溢出诊断 {\"scrollWidth\":1440,\"innerWidth\":1440,\"offenders\":[\"TABLE.score-matrix right=7753 w=7605\",\"THEAD.- right=7753 w=7605\",\"TR.- right=7753 w=7605\",\"TH.- right=1496 w=73\",\"SPAN.assessments-meta right=1486 w=52\",\"TH.- right=1570 w=73\"],\"chain\":[\"TABLE.score-matrix w=7605 scrollW=7605 display=table overflowX=visible minW=100%\",\"DIV.score-matrix-wrap w=1146 scrollW=7605 display=block overflowX=auto minW=auto\",\"SECTION.assessments-subpanel w=1180 scrollW=1178 display=flex overflowX=visible minW=0px\",\"DIV.assessments-panel w=1180 scrollW=1180 display=flex overflowX=visible minW=0px\",\"SECTION.- w=1180 scrollW=1180 display=block overflowX=visible minW=0px\",\"MAIN.space-content w=1180 scrollW=1180 display=block overflowX=visible minW=0px\",\"DIV.space-page assessments-page w=1440 scrollW=1440 display=flex overflowX=visible minW=0px\",\"BODY.- w=1440 scrollW=1440 display=block overflowX=visible minW=0px\",\"HTML.- w=1440 scrollW=1440 display=block overflowX=visible minW=0px\"],\"positioned\":[\"SPAN.visually-hidden position=absolute w=1 left=168\",\"SPAN.visually-hidden position=absolute w=1 left=442\",\"SPAN.visually-hidden position=absolute w=1 left=739\",\"SPAN.visually-hidden position=absolute w=1 left=1010\",\"DIV.score-matrix-wrap position=relative w=1146 left=147\",\"TABLE.score-matrix position=relative w=7605 left=148\",\"CAPTION.visually-hidden position=absolute w=1 left=147\",\"SPAN.visually-hidden position=absolute w=1 left=341\",\"SPAN.visually-hidden position=absolute w=1 left=414\",\"SPAN.visually-hidden position=absolute w=1 left=487\",\"SPAN.visually-hidden position=absolute w=1 left=561\",\"SPAN.visually-hidden position=absolute w=1 left=634\"],\"htmlWithTable\":1440,\"htmlWithoutTable\":1440}\n"
+    }
+  ],
+  "scaleAnnotations": [
+    {
+      "type": "scale",
+      "description": "200 人次 × 100 叶：矩阵首屏 537ms，翻页 569ms（选择：服务端分页 50/页；100 叶经 iter_rows 修复后全链可用）"
+    }
+  ],
+  "scaleEvidenceFormat": "original Playwright result stdout and scale annotation; not a JSON attachment"
+}

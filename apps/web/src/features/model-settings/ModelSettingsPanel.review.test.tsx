@@ -200,7 +200,8 @@ describe('模型管理审查回归', () => {
     fireEvent.change(screen.getByLabelText('所属连接'), { target: { value: 'c2' } });
     fireEvent.click(screen.getByRole('button', { name: '保存修改' }));
     await screen.findByText('模型已保存');
-    expect(screen.getByRole('dialog', { name: '连接 · 第二供应商' })).toBeInTheDocument();
+    // 保存提示先提交，目标 dialog 在随后 effect 中 showModal；等待其可见再核对草稿。
+    expect(await screen.findByRole('dialog', { name: '连接 · 第二供应商' })).toBeInTheDocument();
     expect(screen.getByLabelText(/^Base URL/)).toHaveValue(second.baseUrl);
   });
 

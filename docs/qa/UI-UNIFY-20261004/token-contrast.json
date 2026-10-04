@@ -1,0 +1,32 @@
+[
+  {
+    "role": "body",
+    "foreground": "#172033",
+    "background": "#FFFFFF",
+    "ratio": 16.268480224545662
+  },
+  {
+    "role": "secondary",
+    "foreground": "#5F6B7B",
+    "background": "#F5F8FC",
+    "ratio": 5.08689195685234
+  },
+  {
+    "role": "brand",
+    "foreground": "#2563EB",
+    "background": "#FFFFFF",
+    "ratio": 5.168555560022562
+  },
+  {
+    "role": "error",
+    "foreground": "#C62D21",
+    "background": "#FEF3F2",
+    "ratio": 5.0853553541824095
+  },
+  {
+    "role": "success",
+    "foreground": "#28765C",
+    "background": "#ECF7F2",
+    "ratio": 4.992792330485601
+  }
+]

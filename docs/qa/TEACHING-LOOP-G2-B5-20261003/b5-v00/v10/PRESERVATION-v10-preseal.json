@@ -1,0 +1,67 @@
+{
+  "taskId": "B5-V00-QA-v10",
+  "capturedAtUtc": "2026-10-03T13:02:46.948574+00:00",
+  "r5CandidateSHA": "14405cb6374181599ead4db1dc0cb3e8051c5de858121e4045f3e202e4362891",
+  "stableProductOnlySnapshot": {
+    "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-PRODUCT-SOURCE-v5.json",
+    "sha256": "6226bee9d9d039b47cf0c4715b017ce26c4837b7bd8b5196610909a5319d972c",
+    "scope": "source-only engineering binding after all product authors STOP; V00 v10 new QA preparation still open; NOT whole stable candidate or independent pass"
+  },
+  "oldV1toV9Raw201": {
+    "count": 201,
+    "drift": []
+  },
+  "oldQA2419": {
+    "count": 2419,
+    "drift": []
+  },
+  "frozen33": {
+    "count": 33,
+    "drift": []
+  },
+  "source938VersusR5": {
+    "count": 938,
+    "drift": [
+      {
+        "path": "apps/web/next-env.d.ts",
+        "expected": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc",
+        "actual": "1862ac4bbbc5192d4bf562161df66ea547ed3e67173100656ab606ae9797db2b"
+      },
+      {
+        "path": "apps/web/src/features/lesson-plan/components/LeaveProtection.tsx",
+        "expected": "11ffd5e0fcf4dd5976f85cd2f656ded93196e106850711646701a02d3a160a8c",
+        "actual": "6fa64d6ef42b6e24e56c2b9f10079fbd337d0999687875cd4df7dca98a866e77"
+      },
+      {
+        "path": "apps/web/src/features/lesson-plan/lesson-workspace.test.tsx",
+        "expected": "138f73415291003b670d8687351c40369ed496d8e22b576666adc04622629f8d",
+        "actual": "4c6637c342ed181b315c1550a310cb47ff1b381a3faa066a1c579c1e9eaf2ee8"
+      }
+    ]
+  },
+  "source938VersusProductV5": {
+    "count": 938,
+    "drift": [
+      {
+        "path": "apps/web/next-env.d.ts",
+        "expected": "0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc",
+        "actual": "1862ac4bbbc5192d4bf562161df66ea547ed3e67173100656ab606ae9797db2b"
+      }
+    ]
+  },
+  "repairBefore": {
+    "path": "docs/qa/TEACHING-LOOP-G2-B5-20261003/b5-v00/v10/R07-LeaveProtection-before.bin",
+    "sha256": "11ffd5e0fcf4dd5976f85cd2f656ded93196e106850711646701a02d3a160a8c",
+    "originalSource": "apps/web/src/features/lesson-plan/components/LeaveProtection.tsx",
+    "provenance": "Exact bytes recovered from sealed independent R07 raw source record; hash verified. Binary, not executable source."
+  },
+  "old2004Build": {
+    "runtime": "not_audited_during_ROOT_fullcheck_build",
+    "referenceCount": 2004,
+    "referenceBuildId": "xWWO3VbSMdUiLTwkXdD2x",
+    "reason": "ROOT is deriving a new build. Old build does not establish repaired runtime. Await ROOT exact next-env restoration and new whole-QA candidate."
+  },
+  "services": "none owned or called",
+  "git": "not_run",
+  "http": "not_run"
+}

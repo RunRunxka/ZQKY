@@ -1,0 +1,864 @@
+{
+  "checkedAt": "2026-10-02T06:28:17.287566+00:00",
+  "branch": "main",
+  "head": "6aeb57280f6a7e0d7391cad4d150745479ea58ec",
+  "candidateRevision": "r7",
+  "candidateCount": 168,
+  "candidateMismatchCount": 0,
+  "candidateFiles": [
+    {
+      "path": "apps/api/AGENTS.md",
+      "expected": "619c648ebd95b9cd223f3f97a2908b8a6d8b10bba4a479459f65649978c3102b",
+      "actual": "619c648ebd95b9cd223f3f97a2908b8a6d8b10bba4a479459f65649978c3102b"
+    },
+    {
+      "path": "apps/api/app/api/v1/assessments.py",
+      "expected": "bad40493b55628d2636913093b690a1a84427d4a5e27c18fe88fb015755f2eaa",
+      "actual": "bad40493b55628d2636913093b690a1a84427d4a5e27c18fe88fb015755f2eaa"
+    },
+    {
+      "path": "apps/api/app/api/v1/papers.py",
+      "expected": "7bab69667fdc285cd082c90f64580226124b30600c542c5f3e313d1e0c502ec8",
+      "actual": "7bab69667fdc285cd082c90f64580226124b30600c542c5f3e313d1e0c502ec8"
+    },
+    {
+      "path": "apps/api/app/api/v1/question_bank.py",
+      "expected": "50ce5d89f2f86efd9fdad9770c888a9cc17a0b4e67e2d95c0cef10880875c8c0",
+      "actual": "50ce5d89f2f86efd9fdad9770c888a9cc17a0b4e67e2d95c0cef10880875c8c0"
+    },
+    {
+      "path": "apps/api/app/api/v1/scores.py",
+      "expected": "c09de8767985239580b419feca59f7ad5edd30fb374304b68104d633b3fd651f",
+      "actual": "c09de8767985239580b419feca59f7ad5edd30fb374304b68104d633b3fd651f"
+    },
+    {
+      "path": "apps/api/app/api/v1/workflow_jobs.py",
+      "expected": "4b18e9999d7c10ef5cc4e66eccf5682c802c6428a2301a5b531343091f4e2cd8",
+      "actual": "4b18e9999d7c10ef5cc4e66eccf5682c802c6428a2301a5b531343091f4e2cd8"
+    },
+    {
+      "path": "apps/api/app/contracts/assessments.py",
+      "expected": "f34be1c550088a451e82a85232f37f3dde0165a85ddbbbf5973bac2678d27737",
+      "actual": "f34be1c550088a451e82a85232f37f3dde0165a85ddbbbf5973bac2678d27737"
+    },
+    {
+      "path": "apps/api/app/contracts/papers.py",
+      "expected": "7f3530187c774181c8461b5ba29983b07411390e936933ea58cbc48a2632890a",
+      "actual": "7f3530187c774181c8461b5ba29983b07411390e936933ea58cbc48a2632890a"
+    },
+    {
+      "path": "apps/api/app/contracts/scores.py",
+      "expected": "239e9511bae9ff87eb561226cc5218e4a564874560fcf819a69988c51fedc018",
+      "actual": "239e9511bae9ff87eb561226cc5218e4a564874560fcf819a69988c51fedc018"
+    },
+    {
+      "path": "apps/api/app/core/migrations/__init__.py",
+      "expected": "9c25aab18773c6c22aaf4489b291a260c7246b9887df55ab197f51fac1ac8585",
+      "actual": "9c25aab18773c6c22aaf4489b291a260c7246b9887df55ab197f51fac1ac8585"
+    },
+    {
+      "path": "apps/api/app/core/migrations/base.py",
+      "expected": "add45fd71f0cbfa81734c2c2a45c016a0d68a6c2515bcb964fb3445a186f2403",
+      "actual": "add45fd71f0cbfa81734c2c2a45c016a0d68a6c2515bcb964fb3445a186f2403"
+    },
+    {
+      "path": "apps/api/app/core/migrations/question_bank.py",
+      "expected": "49690972f1ad88be47de94635322aa7a1811efd3c5f64aedc670a1f5d987594f",
+      "actual": "49690972f1ad88be47de94635322aa7a1811efd3c5f64aedc670a1f5d987594f"
+    },
+    {
+      "path": "apps/api/app/core/migrations/teaching.py",
+      "expected": "8bbc30e3c5bb2eef5a295dd0bd3b07c780ab8280c3a121c019a695a375657783",
+      "actual": "8bbc30e3c5bb2eef5a295dd0bd3b07c780ab8280c3a121c019a695a375657783"
+    },
+    {
+      "path": "apps/api/app/main.py",
+      "expected": "2c561ed62bbdf453721e970584afbe039d6f0a7830492b9221191a022220fba1",
+      "actual": "2c561ed62bbdf453721e970584afbe039d6f0a7830492b9221191a022220fba1"
+    },
+    {
+      "path": "apps/api/app/repositories/jobs/repository.py",
+      "expected": "f58cb7fbfe87aa701a469c87670b9c57b60eaaacc648435f62e06792d0ce5c48",
+      "actual": "f58cb7fbfe87aa701a469c87670b9c57b60eaaacc648435f62e06792d0ce5c48"
+    },
+    {
+      "path": "apps/api/app/repositories/question_bank/catalog.py",
+      "expected": "9485a9206d41f13815bfdae88ab97d9be3bcba3c847d595d16a9e9ca305b3ffd",
+      "actual": "9485a9206d41f13815bfdae88ab97d9be3bcba3c847d595d16a9e9ca305b3ffd"
+    },
+    {
+      "path": "apps/api/app/repositories/teaching/assessments.py",
+      "expected": "fbe199a0dbdb3d05557652a54e3822b2a163988470b72349b4c3850c48239369",
+      "actual": "fbe199a0dbdb3d05557652a54e3822b2a163988470b72349b4c3850c48239369"
+    },
+    {
+      "path": "apps/api/app/repositories/teaching/papers.py",
+      "expected": "82cc07817f56fdeaf6a3d6337121f29d13516f120bc849cc0100c8279cf0307b",
+      "actual": "82cc07817f56fdeaf6a3d6337121f29d13516f120bc849cc0100c8279cf0307b"
+    },
+    {
+      "path": "apps/api/app/repositories/teaching/scores.py",
+      "expected": "35f5daa285a20181b0fe75a24e06694975ce293db3ab2909add4490fb9b1a524",
+      "actual": "35f5daa285a20181b0fe75a24e06694975ce293db3ab2909add4490fb9b1a524"
+    },
+    {
+      "path": "apps/api/app/schemas/question_bank.py",
+      "expected": "08191731903dd51fb30061cc954659fdf3cb152994be14d22b369a6d8b74fd49",
+      "actual": "08191731903dd51fb30061cc954659fdf3cb152994be14d22b369a6d8b74fd49"
+    },
+    {
+      "path": "apps/api/app/services/assessments/__init__.py",
+      "expected": "2f6182b5617bc7fa5296f3ddb78249d21c3e047895157b76a466c0db8cc76cbc",
+      "actual": "2f6182b5617bc7fa5296f3ddb78249d21c3e047895157b76a466c0db8cc76cbc"
+    },
+    {
+      "path": "apps/api/app/services/assessments/service.py",
+      "expected": "d3fb88d80acf775770adf3646eeb530bf88cf2fa1688bca91649ff8aff7f4ece",
+      "actual": "d3fb88d80acf775770adf3646eeb530bf88cf2fa1688bca91649ff8aff7f4ece"
+    },
+    {
+      "path": "apps/api/app/services/jobs/engine.py",
+      "expected": "dacba49360261ec9eecb9651d59e6da627f6b415af79d9a0136b48065d76b01f",
+      "actual": "dacba49360261ec9eecb9651d59e6da627f6b415af79d9a0136b48065d76b01f"
+    },
+    {
+      "path": "apps/api/app/services/jobs/registry.py",
+      "expected": "bdb59532d07379c9145b954a79aba360e96d3e56e3740ee4b6d243d35f5e9d6b",
+      "actual": "bdb59532d07379c9145b954a79aba360e96d3e56e3740ee4b6d243d35f5e9d6b"
+    },
+    {
+      "path": "apps/api/app/services/knowledge/service.py",
+      "expected": "9b82d021c8b7e024a84900f19a255e6f0dd437df99f684beec7c05bf6482efc2",
+      "actual": "9b82d021c8b7e024a84900f19a255e6f0dd437df99f684beec7c05bf6482efc2"
+    },
+    {
+      "path": "apps/api/app/services/knowledge_refs.py",
+      "expected": "7b16a4bc6bfd3a1e5d5d28cef06e38e8560c30036b8da33066be1aa357e05abe",
+      "actual": "7b16a4bc6bfd3a1e5d5d28cef06e38e8560c30036b8da33066be1aa357e05abe"
+    },
+    {
+      "path": "apps/api/app/services/model_runtime.py",
+      "expected": "4a5491fc2e67613ba837c77e64dae830659a26c99a6d68026e898f23f267bff2",
+      "actual": "4a5491fc2e67613ba837c77e64dae830659a26c99a6d68026e898f23f267bff2"
+    },
+    {
+      "path": "apps/api/app/services/papers/__init__.py",
+      "expected": "ccef86bc88887caefb977a6581fb980172e12a6a7d29a2c3e9a5254a62e7a775",
+      "actual": "ccef86bc88887caefb977a6581fb980172e12a6a7d29a2c3e9a5254a62e7a775"
+    },
+    {
+      "path": "apps/api/app/services/papers/imports.py",
+      "expected": "4757248d92fef3242446974b097d32417340cbd15edfff60823f3792788e18fe",
+      "actual": "4757248d92fef3242446974b097d32417340cbd15edfff60823f3792788e18fe"
+    },
+    {
+      "path": "apps/api/app/services/papers/proposals.py",
+      "expected": "719b75a2afe722edf94f525a0ea4c90b843003ed5705f4d14b1a13aae3546e11",
+      "actual": "719b75a2afe722edf94f525a0ea4c90b843003ed5705f4d14b1a13aae3546e11"
+    },
+    {
+      "path": "apps/api/app/services/papers/reader.py",
+      "expected": "39f48f5642ef5544d2d3e4332ea06565bf568af1cb6cb062e66c0d57cd0a1c49",
+      "actual": "39f48f5642ef5544d2d3e4332ea06565bf568af1cb6cb062e66c0d57cd0a1c49"
+    },
+    {
+      "path": "apps/api/app/services/papers/service.py",
+      "expected": "49e9d69e522765ffdb0d2810a07554f37e7a600f08d69bb72c1d777ee6208edd",
+      "actual": "49e9d69e522765ffdb0d2810a07554f37e7a600f08d69bb72c1d777ee6208edd"
+    },
+    {
+      "path": "apps/api/app/services/question_bank/fingerprint.py",
+      "expected": "03a2d21a603c3eca0ff747d75d41c1097a2a6b7466939abd6fafcd1fc4fae4aa",
+      "actual": "03a2d21a603c3eca0ff747d75d41c1097a2a6b7466939abd6fafcd1fc4fae4aa"
+    },
+    {
+      "path": "apps/api/app/services/question_bank/generation.py",
+      "expected": "f973d2b2d475d130103b2d99ad67f21cfa09d8f0ab6956ca4a8f724a52f70ac9",
+      "actual": "f973d2b2d475d130103b2d99ad67f21cfa09d8f0ab6956ca4a8f724a52f70ac9"
+    },
+    {
+      "path": "apps/api/app/services/question_bank/organizer.py",
+      "expected": "c0fa64987b92eb1c4d6f87ea56ec55abcf477d7778c6fd9a2a458ed04bbc8498",
+      "actual": "c0fa64987b92eb1c4d6f87ea56ec55abcf477d7778c6fd9a2a458ed04bbc8498"
+    },
+    {
+      "path": "apps/api/app/services/question_bank/rich.py",
+      "expected": "313d20d9e77f7f8dd9b6cb9a952a571eadb69eb4c3e2d4174afd6bc6fd58c239",
+      "actual": "313d20d9e77f7f8dd9b6cb9a952a571eadb69eb4c3e2d4174afd6bc6fd58c239"
+    },
+    {
+      "path": "apps/api/app/services/question_bank/service.py",
+      "expected": "cb3e614d850607aa14078b7333e99dbdd835402d3b1f5eb4761406f982bd982e",
+      "actual": "cb3e614d850607aa14078b7333e99dbdd835402d3b1f5eb4761406f982bd982e"
+    },
+    {
+      "path": "apps/api/app/services/question_bank/validation.py",
+      "expected": "736ff6e170e0e1cc28b2fbec0a6d5c09ad7ebc64093d196814d8316066a47fe4",
+      "actual": "736ff6e170e0e1cc28b2fbec0a6d5c09ad7ebc64093d196814d8316066a47fe4"
+    },
+    {
+      "path": "apps/api/app/services/question_bank/views.py",
+      "expected": "117c94af2688af6898234bf83d000a340215e5ebd137f3ffb3caec5e7b6dc6a8",
+      "actual": "117c94af2688af6898234bf83d000a340215e5ebd137f3ffb3caec5e7b6dc6a8"
+    },
+    {
+      "path": "apps/api/app/services/scores/imports.py",
+      "expected": "e73336979a15e0f7245b2d62e3803e685fd40253155ee7ee1b92b6b27627c393",
+      "actual": "e73336979a15e0f7245b2d62e3803e685fd40253155ee7ee1b92b6b27627c393"
+    },
+    {
+      "path": "apps/api/app/services/scores/service.py",
+      "expected": "14076db1c4c656b72657f81c51d0a5bfa0ad296088b82cd457cb62396b0ce970",
+      "actual": "14076db1c4c656b72657f81c51d0a5bfa0ad296088b82cd457cb62396b0ce970"
+    },
+    {
+      "path": "apps/api/app/services/tabular.py",
+      "expected": "35492e67f3bc989fd1e777cae5da3f68f02a330a2a0083512d3276d47ab0f573",
+      "actual": "35492e67f3bc989fd1e777cae5da3f68f02a330a2a0083512d3276d47ab0f573"
+    },
+    {
+      "path": "apps/api/tests/assessments_support.py",
+      "expected": "e27a71db042c4f689334f9b8e7026824b370a27b21fd20d43dab1325ed33a4e3",
+      "actual": "e27a71db042c4f689334f9b8e7026824b370a27b21fd20d43dab1325ed33a4e3"
+    },
+    {
+      "path": "apps/api/tests/papers_support.py",
+      "expected": "decb73c7462227333f21f0d3fa76cef5006c059b8fc542b44301ee9e3a4a4dd9",
+      "actual": "decb73c7462227333f21f0d3fa76cef5006c059b8fc542b44301ee9e3a4a4dd9"
+    },
+    {
+      "path": "apps/api/tests/test_assessment_held_on.py",
+      "expected": "2253e8a089aeb861c328f522e9601face29c52a91d9bcefdb10da90c5dbce7fe",
+      "actual": "2253e8a089aeb861c328f522e9601face29c52a91d9bcefdb10da90c5dbce7fe"
+    },
+    {
+      "path": "apps/api/tests/test_assessments_api.py",
+      "expected": "e11848dbb19fe642c83fbfee0761bcfeb8d73fd429e325112d4867cc7faa412b",
+      "actual": "e11848dbb19fe642c83fbfee0761bcfeb8d73fd429e325112d4867cc7faa412b"
+    },
+    {
+      "path": "apps/api/tests/test_b1_migrations.py",
+      "expected": "9b5475e7b2a61a567d26b333ad1fb5808dfce31164ab31253fb561915a6c1bcd",
+      "actual": "9b5475e7b2a61a567d26b333ad1fb5808dfce31164ab31253fb561915a6c1bcd"
+    },
+    {
+      "path": "apps/api/tests/test_b2_contracts.py",
+      "expected": "19e14d18d1d333ea37b6f8bd430de631a659a797da83ce467393ab81f00f15d1",
+      "actual": "19e14d18d1d333ea37b6f8bd430de631a659a797da83ce467393ab81f00f15d1"
+    },
+    {
+      "path": "apps/api/tests/test_b2_migrations.py",
+      "expected": "b65654e150cb690c02ff2663071c70dd9e209a7406490537f49d280cf214d151",
+      "actual": "b65654e150cb690c02ff2663071c70dd9e209a7406490537f49d280cf214d151"
+    },
+    {
+      "path": "apps/api/tests/test_b3_g0_public.py",
+      "expected": "45df4900a1a5468ca8f14c336a9411cb764365af6b6b13ef9f78f0327b76990d",
+      "actual": "45df4900a1a5468ca8f14c336a9411cb764365af6b6b13ef9f78f0327b76990d"
+    },
+    {
+      "path": "apps/api/tests/test_b3_migration_failure_stages.py",
+      "expected": "f93431abc11c5ce2014970628d4b3852cc8bc9b2b6089c8415002cb28bcdfe11",
+      "actual": "f93431abc11c5ce2014970628d4b3852cc8bc9b2b6089c8415002cb28bcdfe11"
+    },
+    {
+      "path": "apps/api/tests/test_b3_review_job_fixes.py",
+      "expected": "d9bf301060c86bab299b02d38ea934f9993d06f87342ea17f74a5af1b14d4168",
+      "actual": "d9bf301060c86bab299b02d38ea934f9993d06f87342ea17f74a5af1b14d4168"
+    },
+    {
+      "path": "apps/api/tests/test_b3_review_score_fixes.py",
+      "expected": "a7beb8a54089e892fcff80b8f2270724d21847a2d0a59792e377d34cfa24d677",
+      "actual": "a7beb8a54089e892fcff80b8f2270724d21847a2d0a59792e377d34cfa24d677"
+    },
+    {
+      "path": "apps/api/tests/test_jobs_engine.py",
+      "expected": "4705bfa78fbfa070774c9dabdfb718710b9a9aac0186565deb16417f212d45ae",
+      "actual": "4705bfa78fbfa070774c9dabdfb718710b9a9aac0186565deb16417f212d45ae"
+    },
+    {
+      "path": "apps/api/tests/test_migrations.py",
+      "expected": "b2147c371390122342e9761125ce6c7117a8daa79677e97fc5bd0a3131817c46",
+      "actual": "b2147c371390122342e9761125ce6c7117a8daa79677e97fc5bd0a3131817c46"
+    },
+    {
+      "path": "apps/api/tests/test_model_drift_guards.py",
+      "expected": "0b01303263fb9ca1688883a55df8be9d3c4b98765c605727e89061ca1028595e",
+      "actual": "0b01303263fb9ca1688883a55df8be9d3c4b98765c605727e89061ca1028595e"
+    },
+    {
+      "path": "apps/api/tests/test_papers_block_views.py",
+      "expected": "88c7944be01327464612bcbceeec2af9a4d6b5b1c2139fc1d45de4a44624d6ee",
+      "actual": "88c7944be01327464612bcbceeec2af9a4d6b5b1c2139fc1d45de4a44624d6ee"
+    },
+    {
+      "path": "apps/api/tests/test_papers_draft_confirm.py",
+      "expected": "824bdb648ce12b4f0d3cf4fb94d386a48fbcb0ccc78ac36140b283a336f67f3a",
+      "actual": "824bdb648ce12b4f0d3cf4fb94d386a48fbcb0ccc78ac36140b283a336f67f3a"
+    },
+    {
+      "path": "apps/api/tests/test_papers_import.py",
+      "expected": "582ebcf15d49992be7e1c85197ea6c568cd407183652f36f9787ae15f198d763",
+      "actual": "582ebcf15d49992be7e1c85197ea6c568cd407183652f36f9787ae15f198d763"
+    },
+    {
+      "path": "apps/api/tests/test_papers_issue_resolution.py",
+      "expected": "0cc715bae11c4a7190a7adaecaf5c4a01fc042b10c00fb46684f3fa0f3b60be8",
+      "actual": "0cc715bae11c4a7190a7adaecaf5c4a01fc042b10c00fb46684f3fa0f3b60be8"
+    },
+    {
+      "path": "apps/api/tests/test_papers_proposals.py",
+      "expected": "4d1ab1ce0377242fd79658eb33bdda7a19c3b852565a83249b39eac9967b1744",
+      "actual": "4d1ab1ce0377242fd79658eb33bdda7a19c3b852565a83249b39eac9967b1744"
+    },
+    {
+      "path": "apps/api/tests/test_papers_revision_title.py",
+      "expected": "f0fb476c899ebbc5e0984ec3cb47390db0e414d737bdb23b965f0a1973a6c878",
+      "actual": "f0fb476c899ebbc5e0984ec3cb47390db0e414d737bdb23b965f0a1973a6c878"
+    },
+    {
+      "path": "apps/api/tests/test_participant_attendance.py",
+      "expected": "2bf1859c027989bfb087fda74ec5e7eb7548db97c65389d1c2fcdb8b5aadc52a",
+      "actual": "2bf1859c027989bfb087fda74ec5e7eb7548db97c65389d1c2fcdb8b5aadc52a"
+    },
+    {
+      "path": "apps/api/tests/test_question_bank_organize.py",
+      "expected": "ca7617332ae278550dff2edaefa0eb7ed8d0c4bc80c0f92c951a95cdd1a72020",
+      "actual": "ca7617332ae278550dff2edaefa0eb7ed8d0c4bc80c0f92c951a95cdd1a72020"
+    },
+    {
+      "path": "apps/api/tests/test_question_generation.py",
+      "expected": "6515b3da0768b514ff1edb0917569a357d8de10f99db5f4179407a29091c77eb",
+      "actual": "6515b3da0768b514ff1edb0917569a357d8de10f99db5f4179407a29091c77eb"
+    },
+    {
+      "path": "apps/api/tests/test_question_job_engine.py",
+      "expected": "ec60a8a4e3f0ba5ea6ca4280e3574d43126e88d272ce5f2da4bd13d290563995",
+      "actual": "ec60a8a4e3f0ba5ea6ca4280e3574d43126e88d272ce5f2da4bd13d290563995"
+    },
+    {
+      "path": "apps/api/tests/test_question_lease_batches.py",
+      "expected": "40c22d28fb99c29dd83486914572187189509d7bf7093fd46c6d8e3c763ba74d",
+      "actual": "40c22d28fb99c29dd83486914572187189509d7bf7093fd46c6d8e3c763ba74d"
+    },
+    {
+      "path": "apps/api/tests/test_question_publication_boundaries.py",
+      "expected": "31178d579e3a450d1e5c6d7565d2f9365deea01d5e21c66f1381b51f9468de73",
+      "actual": "31178d579e3a450d1e5c6d7565d2f9365deea01d5e21c66f1381b51f9468de73"
+    },
+    {
+      "path": "apps/api/tests/test_question_rich_content.py",
+      "expected": "6735864ff082c22387da16557be94621b8d99659a4aeacf9d1631eb2898c733e",
+      "actual": "6735864ff082c22387da16557be94621b8d99659a4aeacf9d1631eb2898c733e"
+    },
+    {
+      "path": "apps/api/tests/test_question_subject_links.py",
+      "expected": "a977435b2432f7d52b446cbc6ba039ee55f16466056a2341b85bf3b19be81973",
+      "actual": "a977435b2432f7d52b446cbc6ba039ee55f16466056a2341b85bf3b19be81973"
+    },
+    {
+      "path": "apps/api/tests/test_rag_sessions.py",
+      "expected": "c21a55df3c6434354835c8492a2a571e8e17a00b00c7e359a42f32e30c41cf90",
+      "actual": "c21a55df3c6434354835c8492a2a571e8e17a00b00c7e359a42f32e30c41cf90"
+    },
+    {
+      "path": "apps/api/tests/test_rebuild_migration.py",
+      "expected": "755ba4160b16f12dd9d6844b2f32c3be4505e4d22e9979d7ba99dd747c9ba2d6",
+      "actual": "755ba4160b16f12dd9d6844b2f32c3be4505e4d22e9979d7ba99dd747c9ba2d6"
+    },
+    {
+      "path": "apps/api/tests/test_retry_dispatch.py",
+      "expected": "78d7a19c0e0d91f0e7467cdeed01d6554826ccebbd18316966d3671b60b320a8",
+      "actual": "78d7a19c0e0d91f0e7467cdeed01d6554826ccebbd18316966d3671b60b320a8"
+    },
+    {
+      "path": "apps/api/tests/test_score_precision_exact.py",
+      "expected": "589f804729fc3a6d1c9da7c1979157236f735ba3454799d17607af1d850f9c73",
+      "actual": "589f804729fc3a6d1c9da7c1979157236f735ba3454799d17607af1d850f9c73"
+    },
+    {
+      "path": "apps/api/tests/test_score_preview_boundaries.py",
+      "expected": "151589e4db1f88918d9ce85c721846d8931fde1c28f82b8501d3178d02c22bff",
+      "actual": "151589e4db1f88918d9ce85c721846d8931fde1c28f82b8501d3178d02c22bff"
+    },
+    {
+      "path": "apps/api/tests/test_scores_confirm.py",
+      "expected": "dc9bcfb3876d4c90de8c3160c64782eae9d1137f272239d4b4b887f87165c5e7",
+      "actual": "dc9bcfb3876d4c90de8c3160c64782eae9d1137f272239d4b4b887f87165c5e7"
+    },
+    {
+      "path": "apps/api/tests/test_startup_gates.py",
+      "expected": "fb46359642c53f8394ae098b1766a764229dbdd22fbe74670bfa1663c3814ebd",
+      "actual": "fb46359642c53f8394ae098b1766a764229dbdd22fbe74670bfa1663c3814ebd"
+    },
+    {
+      "path": "apps/web/next.config.ts",
+      "expected": "e2d6a4ae92cfdc696800acf6dfa1edb4ac8ecbf48edabb4f516590dcf37af1f7",
+      "actual": "e2d6a4ae92cfdc696800acf6dfa1edb4ac8ecbf48edabb4f516590dcf37af1f7"
+    },
+    {
+      "path": "apps/web/src/app/knowledge-points/page.tsx",
+      "expected": "ab09f6c800c4011dc330bf89e451bfe870419bd7bc9eb2540c50ccced0abdbb4",
+      "actual": "ab09f6c800c4011dc330bf89e451bfe870419bd7bc9eb2540c50ccced0abdbb4"
+    },
+    {
+      "path": "apps/web/src/components/layout/ModuleWorkspaceShell.tsx",
+      "expected": "4c07dea71d2f24d5ac6b5e87ff09f51664c7acef52de542084c8aca896548b92",
+      "actual": "4c07dea71d2f24d5ac6b5e87ff09f51664c7acef52de542084c8aca896548b92"
+    },
+    {
+      "path": "apps/web/src/components/ui/RichContentRenderer.test.tsx",
+      "expected": "2f488835d1a12f46ba7a514bf3bf57a22e33f462b72bde6b9f80d2a597fdeddc",
+      "actual": "2f488835d1a12f46ba7a514bf3bf57a22e33f462b72bde6b9f80d2a597fdeddc"
+    },
+    {
+      "path": "apps/web/src/components/ui/RichContentRenderer.tsx",
+      "expected": "e1eed0f117c221ed9617db803fe8fb10eab2da2b4e8401d15646df8d248675d2",
+      "actual": "e1eed0f117c221ed9617db803fe8fb10eab2da2b4e8401d15646df8d248675d2"
+    },
+    {
+      "path": "apps/web/src/components/ui/rich-content.css",
+      "expected": "159aec52c2c8c38cab344fefbb0d235ce139dc64493df077c5551bbb26b29762",
+      "actual": "159aec52c2c8c38cab344fefbb0d235ce139dc64493df077c5551bbb26b29762"
+    },
+    {
+      "path": "apps/web/src/contracts/assessments.ts",
+      "expected": "598930d81471b138939ae555d9c8faa2836d246e50a059116683a6c150ed6b62",
+      "actual": "598930d81471b138939ae555d9c8faa2836d246e50a059116683a6c150ed6b62"
+    },
+    {
+      "path": "apps/web/src/contracts/papers.ts",
+      "expected": "982dcc3af7152ebdca5d8c74f9569ae4f0a155069f9cd1e933b897b826279c75",
+      "actual": "982dcc3af7152ebdca5d8c74f9569ae4f0a155069f9cd1e933b897b826279c75"
+    },
+    {
+      "path": "apps/web/src/contracts/question-bank.ts",
+      "expected": "ed8f353f3afab4c64eddb2217e2343b5f4a7866e5d6f3c9bf5b050ea908d8059",
+      "actual": "ed8f353f3afab4c64eddb2217e2343b5f4a7866e5d6f3c9bf5b050ea908d8059"
+    },
+    {
+      "path": "apps/web/src/contracts/scores.ts",
+      "expected": "e0d6bd80776febcd651ac6af4e39646e9e8dc9573f3160fde0c165f18e5634b0",
+      "actual": "e0d6bd80776febcd651ac6af4e39646e9e8dc9573f3160fde0c165f18e5634b0"
+    },
+    {
+      "path": "apps/web/src/features/assessments/AssessmentsPanel.test.tsx",
+      "expected": "5d56de570857c40e04a00226f11e34f573f484b46b69659650501a6d65ab950a",
+      "actual": "5d56de570857c40e04a00226f11e34f573f484b46b69659650501a6d65ab950a"
+    },
+    {
+      "path": "apps/web/src/features/assessments/AssessmentsPanel.tsx",
+      "expected": "0962d416049dcbe2b3f564a434ee5dd8370e007e03cc711d3d0fa8290a726048",
+      "actual": "0962d416049dcbe2b3f564a434ee5dd8370e007e03cc711d3d0fa8290a726048"
+    },
+    {
+      "path": "apps/web/src/features/assessments/HistoryPanel.tsx",
+      "expected": "565e2d3c7992ad42820f4fa57ad85478eea8bf9c8ed13b2ce81a3b91299d4a25",
+      "actual": "565e2d3c7992ad42820f4fa57ad85478eea8bf9c8ed13b2ce81a3b91299d4a25"
+    },
+    {
+      "path": "apps/web/src/features/assessments/PaperImportReview.test.tsx",
+      "expected": "81c3d3dfdd0cfc973d4176c52a907c6b79dbacbdb105ed65c23b661b493d3e03",
+      "actual": "81c3d3dfdd0cfc973d4176c52a907c6b79dbacbdb105ed65c23b661b493d3e03"
+    },
+    {
+      "path": "apps/web/src/features/assessments/PaperImportReview.tsx",
+      "expected": "7bd9964d39f2dea113239d622371ce3e71027f0e96174079d215db0a0d11f2d1",
+      "actual": "7bd9964d39f2dea113239d622371ce3e71027f0e96174079d215db0a0d11f2d1"
+    },
+    {
+      "path": "apps/web/src/features/assessments/PapersPanel.tsx",
+      "expected": "473801831fbb6482af347e6635dd78918d0442e3d1eb97105155eb42ee9c6617",
+      "actual": "473801831fbb6482af347e6635dd78918d0442e3d1eb97105155eb42ee9c6617"
+    },
+    {
+      "path": "apps/web/src/features/assessments/ParticipantAddPanel.test.tsx",
+      "expected": "b6208fb80de4ad93e846da95fe3309bd7a310b01ab01499d614306d78e349d17",
+      "actual": "b6208fb80de4ad93e846da95fe3309bd7a310b01ab01499d614306d78e349d17"
+    },
+    {
+      "path": "apps/web/src/features/assessments/ParticipantAddPanel.tsx",
+      "expected": "cd9b9f59b251aeaacd7b733155ee9d1f2b854605e9a5f1191281f241a65ca3ea",
+      "actual": "cd9b9f59b251aeaacd7b733155ee9d1f2b854605e9a5f1191281f241a65ca3ea"
+    },
+    {
+      "path": "apps/web/src/features/assessments/ParticipantAttendanceEditor.test.tsx",
+      "expected": "aa517070b87a28d017b0e4a9939f9e94eed2b9bc02d9dd956831c3429c4c0607",
+      "actual": "aa517070b87a28d017b0e4a9939f9e94eed2b9bc02d9dd956831c3429c4c0607"
+    },
+    {
+      "path": "apps/web/src/features/assessments/ParticipantAttendanceEditor.tsx",
+      "expected": "814c84cd580f13b9af76e968380ce1a3e30e3ee0ff9109ef6ab0239078a1938c",
+      "actual": "814c84cd580f13b9af76e968380ce1a3e30e3ee0ff9109ef6ab0239078a1938c"
+    },
+    {
+      "path": "apps/web/src/features/assessments/RosterImportPanel.test.tsx",
+      "expected": "3562183e4fc063fb5dd935702a2be1d9d1e49f123577bcddfc4d15860c5b6ec1",
+      "actual": "3562183e4fc063fb5dd935702a2be1d9d1e49f123577bcddfc4d15860c5b6ec1"
+    },
+    {
+      "path": "apps/web/src/features/assessments/RosterImportPanel.tsx",
+      "expected": "ac5e86e163dfd33ac9dd99530f7ed4f50b6a3ec85be94129d9f88cd5b03d3ca7",
+      "actual": "ac5e86e163dfd33ac9dd99530f7ed4f50b6a3ec85be94129d9f88cd5b03d3ca7"
+    },
+    {
+      "path": "apps/web/src/features/assessments/RosterPanel.tsx",
+      "expected": "a4dc3a8e6d3940ca82b8b73978a9990f06b305fc73e6217e3ca60cba00fc2091",
+      "actual": "a4dc3a8e6d3940ca82b8b73978a9990f06b305fc73e6217e3ca60cba00fc2091"
+    },
+    {
+      "path": "apps/web/src/features/assessments/ScoreImportReview.test.tsx",
+      "expected": "596980caab080044cf5c6cb707d599cfde4dfc56590748d52cbdbcca9a088c3c",
+      "actual": "596980caab080044cf5c6cb707d599cfde4dfc56590748d52cbdbcca9a088c3c"
+    },
+    {
+      "path": "apps/web/src/features/assessments/ScoreImportReview.tsx",
+      "expected": "8ff947214290d71663abd426feb67f3f954851090d1a3c4ec35026d97b5ac438",
+      "actual": "8ff947214290d71663abd426feb67f3f954851090d1a3c4ec35026d97b5ac438"
+    },
+    {
+      "path": "apps/web/src/features/assessments/ScorePanel.test.tsx",
+      "expected": "fa54a2f0daf4efdfe21043556026a88d924f137a5e2e0c5dacabf2f28d00eb49",
+      "actual": "fa54a2f0daf4efdfe21043556026a88d924f137a5e2e0c5dacabf2f28d00eb49"
+    },
+    {
+      "path": "apps/web/src/features/assessments/ScorePanel.tsx",
+      "expected": "6159a0f4d99bba8e2a16bc212d73f906fb59178a249d1addb3cff87b51854c9e",
+      "actual": "6159a0f4d99bba8e2a16bc212d73f906fb59178a249d1addb3cff87b51854c9e"
+    },
+    {
+      "path": "apps/web/src/features/assessments/hooks.test.tsx",
+      "expected": "521abb89d5d4f910bfd9c910bfbf92d9f0810b1d0eb26a1f1242c5f091e26711",
+      "actual": "521abb89d5d4f910bfd9c910bfbf92d9f0810b1d0eb26a1f1242c5f091e26711"
+    },
+    {
+      "path": "apps/web/src/features/assessments/hooks.ts",
+      "expected": "3ad0804d4e97ba117005389a08e8ca22f88db83238b74a76455adf8af190f33c",
+      "actual": "3ad0804d4e97ba117005389a08e8ca22f88db83238b74a76455adf8af190f33c"
+    },
+    {
+      "path": "apps/web/src/features/assessments/labels.test.ts",
+      "expected": "87ca960e629cc428d9dcb463f49a30a9ae50dd6c9a591d9b5ca1afc8a3238128",
+      "actual": "87ca960e629cc428d9dcb463f49a30a9ae50dd6c9a591d9b5ca1afc8a3238128"
+    },
+    {
+      "path": "apps/web/src/features/assessments/labels.ts",
+      "expected": "ce869b87f097fd5ddb2d2b163107b1bdef99d5bb1a5704df2e3f333083a008f0",
+      "actual": "ce869b87f097fd5ddb2d2b163107b1bdef99d5bb1a5704df2e3f333083a008f0"
+    },
+    {
+      "path": "apps/web/src/features/assessments/styles/assessments.css",
+      "expected": "87a779b1dd13f62a893e93794b37acd3fceb9e36b8423629cbd7541433c13138",
+      "actual": "87a779b1dd13f62a893e93794b37acd3fceb9e36b8423629cbd7541433c13138"
+    },
+    {
+      "path": "apps/web/src/features/knowledge-points/CreatePointDialog.test.tsx",
+      "expected": "7d1b49312d8bd0cb4f198fee8cb87f6a52a80e6bbdabfc2afa9f21d6ad649988",
+      "actual": "7d1b49312d8bd0cb4f198fee8cb87f6a52a80e6bbdabfc2afa9f21d6ad649988"
+    },
+    {
+      "path": "apps/web/src/features/knowledge-points/CreatePointDialog.tsx",
+      "expected": "6954077360921329673a88bdeddba234b0f4970c5eeb01e02fa18dd1b008fa1e",
+      "actual": "6954077360921329673a88bdeddba234b0f4970c5eeb01e02fa18dd1b008fa1e"
+    },
+    {
+      "path": "apps/web/src/features/knowledge-points/ImportPanel.test.tsx",
+      "expected": "37fbd01662dffcbfb233ec43cb2a7af174a13686a75009669504cfdda4b23245",
+      "actual": "37fbd01662dffcbfb233ec43cb2a7af174a13686a75009669504cfdda4b23245"
+    },
+    {
+      "path": "apps/web/src/features/knowledge-points/ImportPanel.tsx",
+      "expected": "a889972e59ffa3b5fa0a7166523efe15552645fed927c5ccef7abfd06b6d099f",
+      "actual": "a889972e59ffa3b5fa0a7166523efe15552645fed927c5ccef7abfd06b6d099f"
+    },
+    {
+      "path": "apps/web/src/features/knowledge-points/ImportReviewPanel.test.tsx",
+      "expected": "83ac1a40613ab8ba8847b34bd3742f874fcd57968888bab976511fd7d6c34d99",
+      "actual": "83ac1a40613ab8ba8847b34bd3742f874fcd57968888bab976511fd7d6c34d99"
+    },
+    {
+      "path": "apps/web/src/features/knowledge-points/ImportReviewPanel.tsx",
+      "expected": "b4fe867cbf0ff5e8a04134d24cdb10ff79868b6793addfbccd6775e88fca4a99",
+      "actual": "b4fe867cbf0ff5e8a04134d24cdb10ff79868b6793addfbccd6775e88fca4a99"
+    },
+    {
+      "path": "apps/web/src/features/knowledge-points/KnowledgePointsWorkspace.test.tsx",
+      "expected": "35ce17fa7ead0da4fec84abd2791371f1d86cf63939dffd8aa653e1c3c0c662d",
+      "actual": "35ce17fa7ead0da4fec84abd2791371f1d86cf63939dffd8aa653e1c3c0c662d"
+    },
+    {
+      "path": "apps/web/src/features/knowledge-points/KnowledgePointsWorkspace.tsx",
+      "expected": "c74a9b64bb120694200ec190e830ec63e109929d009467a66eb54af15e958051",
+      "actual": "c74a9b64bb120694200ec190e830ec63e109929d009467a66eb54af15e958051"
+    },
+    {
+      "path": "apps/web/src/features/knowledge-points/PointBrowser.test.tsx",
+      "expected": "6b921a623f0d70e81a9dac7c8a079206fd5b43524c043a0841d98cbaf27277e4",
+      "actual": "6b921a623f0d70e81a9dac7c8a079206fd5b43524c043a0841d98cbaf27277e4"
+    },
+    {
+      "path": "apps/web/src/features/knowledge-points/PointBrowser.tsx",
+      "expected": "3fd152537e8e9ae9b9f9fc1380589ed2f79c8bdeb2002970c0413653f452ecd3",
+      "actual": "3fd152537e8e9ae9b9f9fc1380589ed2f79c8bdeb2002970c0413653f452ecd3"
+    },
+    {
+      "path": "apps/web/src/features/knowledge-points/PointDetailPanel.test.tsx",
+      "expected": "73c296d19bfb69f27c30e38f7807fe64ef5c1e43ccd97ac1cbad5bc8ce2769f2",
+      "actual": "73c296d19bfb69f27c30e38f7807fe64ef5c1e43ccd97ac1cbad5bc8ce2769f2"
+    },
+    {
+      "path": "apps/web/src/features/knowledge-points/PointDetailPanel.tsx",
+      "expected": "0a0ab643fc7138f4301f0315af1e264fea12314dc8ab9dbc2848735e03548e7d",
+      "actual": "0a0ab643fc7138f4301f0315af1e264fea12314dc8ab9dbc2848735e03548e7d"
+    },
+    {
+      "path": "apps/web/src/features/knowledge-points/SuggestionPanel.test.tsx",
+      "expected": "28652d1f95228f20948cea90c65c1cc15c4ae81da265ddef9fb357cfa6ccda5b",
+      "actual": "28652d1f95228f20948cea90c65c1cc15c4ae81da265ddef9fb357cfa6ccda5b"
+    },
+    {
+      "path": "apps/web/src/features/knowledge-points/SuggestionPanel.tsx",
+      "expected": "0f42090d37a714f4a674a26eef1ec05a16010391d5dfe3c4138a02eaa6540c50",
+      "actual": "0f42090d37a714f4a674a26eef1ec05a16010391d5dfe3c4138a02eaa6540c50"
+    },
+    {
+      "path": "apps/web/src/features/knowledge-points/TextbookLinksPanel.tsx",
+      "expected": "f4362dd28ce6ff2c2ba256c220140abc3e0d3a3c0e14087d268ac727695bbe41",
+      "actual": "f4362dd28ce6ff2c2ba256c220140abc3e0d3a3c0e14087d268ac727695bbe41"
+    },
+    {
+      "path": "apps/web/src/features/knowledge-points/hooks.strictmode.test.tsx",
+      "expected": "763bc741c75e878a31707c819242795d80e5b504db67e2c4905dcb83d4ff5633",
+      "actual": "763bc741c75e878a31707c819242795d80e5b504db67e2c4905dcb83d4ff5633"
+    },
+    {
+      "path": "apps/web/src/features/knowledge-points/hooks.ts",
+      "expected": "a6f5758923c400a8d849955c6574bc62cc5079450b80e23a60f582495b5ddadb",
+      "actual": "a6f5758923c400a8d849955c6574bc62cc5079450b80e23a60f582495b5ddadb"
+    },
+    {
+      "path": "apps/web/src/features/knowledge-points/labels.ts",
+      "expected": "4a7a88d8685ef99b4be3bd57572086ace4168b82d6902c8e8ce07aa3093eb2ca",
+      "actual": "4a7a88d8685ef99b4be3bd57572086ace4168b82d6902c8e8ce07aa3093eb2ca"
+    },
+    {
+      "path": "apps/web/src/features/knowledge-points/model-profile.ts",
+      "expected": "6b983e8aad417242a2b5ea251384224dcf035b1b239256b11de76d48b56821a1",
+      "actual": "6b983e8aad417242a2b5ea251384224dcf035b1b239256b11de76d48b56821a1"
+    },
+    {
+      "path": "apps/web/src/features/knowledge-points/point-form.test.ts",
+      "expected": "34ebae302ccac46a1a1bf47999042346b63250b20dee8c0a3104ed5691665d62",
+      "actual": "34ebae302ccac46a1a1bf47999042346b63250b20dee8c0a3104ed5691665d62"
+    },
+    {
+      "path": "apps/web/src/features/knowledge-points/point-form.ts",
+      "expected": "418b652aa91428283e0019bad2d7eb3420ac9e856970b7a9067d689d60a4c971",
+      "actual": "418b652aa91428283e0019bad2d7eb3420ac9e856970b7a9067d689d60a4c971"
+    },
+    {
+      "path": "apps/web/src/features/knowledge-points/styles/knowledge-points.css",
+      "expected": "56277b6f9b4dd4fc43a64fab4db5e15178dca819efbcd35dfff27b4903f24d50",
+      "actual": "56277b6f9b4dd4fc43a64fab4db5e15178dca819efbcd35dfff27b4903f24d50"
+    },
+    {
+      "path": "apps/web/src/features/knowledge-points/tree.test.ts",
+      "expected": "963cf6fd8735bdbe16b663a97398b7d5e4ab2b98c4846b22bac2be5ca6729e66",
+      "actual": "963cf6fd8735bdbe16b663a97398b7d5e4ab2b98c4846b22bac2be5ca6729e66"
+    },
+    {
+      "path": "apps/web/src/features/knowledge-points/tree.ts",
+      "expected": "b9a3c013fefc3832f99d55f044191e6f3142549151607286bb474eb05928b605",
+      "actual": "b9a3c013fefc3832f99d55f044191e6f3142549151607286bb474eb05928b605"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/ConfirmPanel.tsx",
+      "expected": "fee54691ca3eaa771edb91be54507e8f9eb6325332d42b08185336d4f2058ac2",
+      "actual": "fee54691ca3eaa771edb91be54507e8f9eb6325332d42b08185336d4f2058ac2"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/ContentForm.tsx",
+      "expected": "9f62c8d1e3f8b2b29a04a9064a75e81f6aee378383e383e4671a0c59bc2bc654",
+      "actual": "9f62c8d1e3f8b2b29a04a9064a75e81f6aee378383e383e4671a0c59bc2bc654"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/DraftEditor.guard.test.tsx",
+      "expected": "fc3b4c90d648a7675792ac0fbd7fa92b5a13ea66b288aa21e029f71f2edb4d5b",
+      "actual": "fc3b4c90d648a7675792ac0fbd7fa92b5a13ea66b288aa21e029f71f2edb4d5b"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/DraftEditor.tsx",
+      "expected": "1f3b1f06688f808cd29203b154e7844bdcd085a70436f35b59323e321dfa2564",
+      "actual": "1f3b1f06688f808cd29203b154e7844bdcd085a70436f35b59323e321dfa2564"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/GenerationPanel.test.tsx",
+      "expected": "58f2ef01aad89a65e41782864216e0a586e523ec14fb868e2099aaf88174e0f7",
+      "actual": "58f2ef01aad89a65e41782864216e0a586e523ec14fb868e2099aaf88174e0f7"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/QuestionDetailLinks.test.tsx",
+      "expected": "53099922bf989192b1d1d6b3c3c5b2d9bd6aa1810f70e43386ea0b073a042e11",
+      "actual": "53099922bf989192b1d1d6b3c3c5b2d9bd6aa1810f70e43386ea0b073a042e11"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/QuestionDetailPanel.tsx",
+      "expected": "89246b21b519f0b39a898f1f025ef6fd817c0739e638b42f7b448a291ce393f2",
+      "actual": "89246b21b519f0b39a898f1f025ef6fd817c0739e638b42f7b448a291ce393f2"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/QuestionPreview.rich.test.tsx",
+      "expected": "ddaa7eeae6bb252c402dd2ae8e49576f3915fd72108386ccdffb62f474bfbb59",
+      "actual": "ddaa7eeae6bb252c402dd2ae8e49576f3915fd72108386ccdffb62f474bfbb59"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/QuestionPreview.tsx",
+      "expected": "90cf4a4cfd0f1343c82f79420ab01390328ad3727f5ea016e9ef2381ac552537",
+      "actual": "90cf4a4cfd0f1343c82f79420ab01390328ad3727f5ea016e9ef2381ac552537"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/ReviewWorkspace.test.tsx",
+      "expected": "bf397d68269e10c79b890bd5adbde54a88260365da8316c8c5d384c0fbcd7650",
+      "actual": "bf397d68269e10c79b890bd5adbde54a88260365da8316c8c5d384c0fbcd7650"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/ReviewWorkspace.tsx",
+      "expected": "3e532d4e192f4b4d737075f96e01ebc51faa5ab246dd3f61a0dfe0f62064d500",
+      "actual": "3e532d4e192f4b4d737075f96e01ebc51faa5ab246dd3f61a0dfe0f62064d500"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/SuggestionPanel.tsx",
+      "expected": "0ac6375f2af36c01b4e3e78c2e11da6192e74fa65ddae89c11dfe4325ea7a5fd",
+      "actual": "0ac6375f2af36c01b4e3e78c2e11da6192e74fa65ddae89c11dfe4325ea7a5fd"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/draft-form.ts",
+      "expected": "a17f887e3574e800b3c20cc9e6d1e0fb8527ef33657ee9ce2c9bc13cfbc3555c",
+      "actual": "a17f887e3574e800b3c20cc9e6d1e0fb8527ef33657ee9ce2c9bc13cfbc3555c"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/jobs.test.tsx",
+      "expected": "bdf2bb75d747da0567704f60e1f72fa37a778f0da93b6458c5eeba7debed8b9d",
+      "actual": "bdf2bb75d747da0567704f60e1f72fa37a778f0da93b6458c5eeba7debed8b9d"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/jobs.ts",
+      "expected": "0d82fc284187c8c61ae2f92ec9a660de35ba35b50351bb8a0b5e635dbde89d12",
+      "actual": "0d82fc284187c8c61ae2f92ec9a660de35ba35b50351bb8a0b5e635dbde89d12"
+    },
+    {
+      "path": "apps/web/src/features/question-bank/labels.ts",
+      "expected": "acfcb77274665528980db4d9c62fcd49b0a2dc548c31bfe8bba894bcc9ba624e",
+      "actual": "acfcb77274665528980db4d9c62fcd49b0a2dc548c31bfe8bba894bcc9ba624e"
+    },
+    {
+      "path": "apps/web/src/services/assessments-api.ts",
+      "expected": "a4999e7fad5925a299000c995971a85f710d3c591a9aa7bf506dd2d9d1bebe6c",
+      "actual": "a4999e7fad5925a299000c995971a85f710d3c591a9aa7bf506dd2d9d1bebe6c"
+    },
+    {
+      "path": "apps/web/src/services/knowledge-points-api.test.ts",
+      "expected": "85dd40cb37cb44784ae467088a71a43ba2fe3081a21bd4e7f73670882f27a469",
+      "actual": "85dd40cb37cb44784ae467088a71a43ba2fe3081a21bd4e7f73670882f27a469"
+    },
+    {
+      "path": "apps/web/src/services/knowledge-points-api.ts",
+      "expected": "0fa1cc9aa09457db42a85a6e2ea7fdbedf94e1f12f8fecd9c80faad11dca314a",
+      "actual": "0fa1cc9aa09457db42a85a6e2ea7fdbedf94e1f12f8fecd9c80faad11dca314a"
+    },
+    {
+      "path": "apps/web/src/services/navigation.test.ts",
+      "expected": "168dadcdb167f2fb0564a5f377495c96428e3cb243398811a0abd028b2e65f00",
+      "actual": "168dadcdb167f2fb0564a5f377495c96428e3cb243398811a0abd028b2e65f00"
+    },
+    {
+      "path": "apps/web/src/services/navigation.ts",
+      "expected": "dd2ce29444339179dbbab9ef26a9fa84998f51f6669256afe1b0e41a780ac75d",
+      "actual": "dd2ce29444339179dbbab9ef26a9fa84998f51f6669256afe1b0e41a780ac75d"
+    },
+    {
+      "path": "apps/web/src/services/question-bank-api.test.ts",
+      "expected": "a36ba1a72db73af7758a8a03df76271877a3f119810ea04ffd02a4c68dc1f7dc",
+      "actual": "a36ba1a72db73af7758a8a03df76271877a3f119810ea04ffd02a4c68dc1f7dc"
+    },
+    {
+      "path": "apps/web/src/services/question-bank-api.ts",
+      "expected": "8d38fb405770c175336112ceb73b01fbe0225572d358b60ae6e820851bc22f8c",
+      "actual": "8d38fb405770c175336112ceb73b01fbe0225572d358b60ae6e820851bc22f8c"
+    },
+    {
+      "path": "apps/web/src/services/use-workflow-job.test.tsx",
+      "expected": "fdc4ec158c8ff85e6010692c7d7e8782d7ad9ab97c24ab700085a2b0fccf72f0",
+      "actual": "fdc4ec158c8ff85e6010692c7d7e8782d7ad9ab97c24ab700085a2b0fccf72f0"
+    },
+    {
+      "path": "apps/web/src/services/use-workflow-job.ts",
+      "expected": "cd5ea25402821a45c85af0b93f004de80df5443d45a101a202ac9627c152d890",
+      "actual": "cd5ea25402821a45c85af0b93f004de80df5443d45a101a202ac9627c152d890"
+    },
+    {
+      "path": "apps/web/src/services/workflow-jobs-api.test.ts",
+      "expected": "b8603b4961ed6f6979a55aab199c479a838d8a34063100e1ab79b044d2b386e9",
+      "actual": "b8603b4961ed6f6979a55aab199c479a838d8a34063100e1ab79b044d2b386e9"
+    },
+    {
+      "path": "apps/web/src/services/workflow-jobs-api.ts",
+      "expected": "50f9e5a74bd434317f1ee062fe212c3d0f4f2d2e360352828368d99aa22b4905",
+      "actual": "50f9e5a74bd434317f1ee062fe212c3d0f4f2d2e360352828368d99aa22b4905"
+    },
+    {
+      "path": "package-lock.json",
+      "expected": "45042c44cbb9723c89fd21d3eee6363d38644ff37d55688ea72aa18a58b30143",
+      "actual": "45042c44cbb9723c89fd21d3eee6363d38644ff37d55688ea72aa18a58b30143"
+    },
+    {
+      "path": "package.json",
+      "expected": "546b651fc8b606034b7fae0b717682d22ce28c46306747cd52be4140c0dd2034",
+      "actual": "546b651fc8b606034b7fae0b717682d22ce28c46306747cd52be4140c0dd2034"
+    },
+    {
+      "path": "playwright.config.ts",
+      "expected": "dd32a2826a686f95a13b8b4b12c756af3beca26c0bdfe8673cc740485cfa9df0",
+      "actual": "dd32a2826a686f95a13b8b4b12c756af3beca26c0bdfe8673cc740485cfa9df0"
+    },
+    {
+      "path": "tests/e2e/assessments.spec.ts",
+      "expected": "8abb8f4adcc3c9f9c28fa9ec0f09a88fdca906a73bd098d9c859a8260642affc",
+      "actual": "8abb8f4adcc3c9f9c28fa9ec0f09a88fdca906a73bd098d9c859a8260642affc"
+    },
+    {
+      "path": "tests/e2e/knowledge-points.spec.ts",
+      "expected": "59ec01fe4aa88b5b63c0713235a7bf5c0ac8655d18a9086cc999c02525c63640",
+      "actual": "59ec01fe4aa88b5b63c0713235a7bf5c0ac8655d18a9086cc999c02525c63640"
+    },
+    {
+      "path": "tests/e2e/question-bank-real.spec.ts",
+      "expected": "34dedc6f6daf6eb944c69937707bbe30db89a51e76a946812a0bb0ba0e8f6137",
+      "actual": "34dedc6f6daf6eb944c69937707bbe30db89a51e76a946812a0bb0ba0e8f6137"
+    },
+    {
+      "path": "tests/fixtures/teaching_loop_backend.py",
+      "expected": "958e97bd8258a162580bb4d584245a66986280402bfe4395eae62769a5c09631",
+      "actual": "958e97bd8258a162580bb4d584245a66986280402bfe4395eae62769a5c09631"
+    },
+    {
+      "path": "tests/fixtures/teaching_loop_docx.py",
+      "expected": "ee4eb09e00f1c921ef787bc3223e8642e8db4dc71c18595f082241ef2bdac4da",
+      "actual": "ee4eb09e00f1c921ef787bc3223e8642e8db4dc71c18595f082241ef2bdac4da"
+    }
+  ],
+  "protectedHistoricalPaths": [
+    "docs/qa/TEACHING-LOOP-B2",
+    "docs/qa/TEACHING-LOOP-B2-REVIEW-20261001",
+    "docs/qa/TEACHING-LOOP-B3",
+    "docs/qa/TEACHING-LOOP-B3-REVIEW-20261001"
+  ],
+  "historicalTrackedChanges": [],
+  "originalNextEnvExactBytesRestored": true,
+  "gitDiffCheckExitCode": 0,
+  "listenersAfter": [],
+  "temporaryDataRetention": "six recorded roots retained after tool approval rejection",
+  "b4Started": false,
+  "gitCommitPushDeploy": false,
+  "finalEvidenceAudit": "source/document closeout only; candidate 168 remains unchanged"
+}

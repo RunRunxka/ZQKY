@@ -1,0 +1,23 @@
+{
+  "capturedAtUtc": "2026-10-03T07:23:57.636889+00:00",
+  "version": "G2-r4",
+  "candidateSHA": "8aa0d1aabddeb53c851c2cbc9ec316373578dd4a5df85392e5e254c92259039d",
+  "sourceDrift": [],
+  "sourceAdded": [],
+  "qaDrift": [],
+  "qaAdded": [],
+  "contractDrift": [],
+  "buildDrift": [],
+  "buildAdded": [],
+  "protectedDrift": [],
+  "priorDrift": [],
+  "baselineMatches": true,
+  "nextEnvMatches": true,
+  "buildIdentityMatches": true,
+  "sourceCount": 886,
+  "qaCount": 304,
+  "buildCount": 2007,
+  "historicalCount": 4136,
+  "elapsedMs": 1526.651,
+  "exitCode": 0
+}

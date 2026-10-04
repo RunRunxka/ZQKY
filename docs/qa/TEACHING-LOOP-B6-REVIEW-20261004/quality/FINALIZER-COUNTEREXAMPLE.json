@@ -1,0 +1,36 @@
+{
+  "originalFinalizerSHA": "a67b967db179011fd09e406c2a6fffe95be68d713b169557cacef42cdfb62709",
+  "copiedUnmodifiedSHA": "a67b967db179011fd09e406c2a6fffe95be68d713b169557cacef42cdfb62709",
+  "sourceSummarySHA": "ef97d8ac501cd98781518adc92b3ab3767d69567d940764afc6f142443bffb6b",
+  "proofSummarySHA": "398673442e38bae36f7047fff96975ad07728176e1641495a9873482dfef01b7",
+  "originalCaseCount": 15,
+  "actualProofResults": 14,
+  "omittedCaseId": "C15",
+  "printed": {
+    "caseCount": 14,
+    "literalCountsPassed": true,
+    "allRevisionBindings": true,
+    "docxStructurePassed": 15,
+    "teacherQuality": "teacher_review_pending",
+    "liveRun": "待输入",
+    "RAG_REL": "OPEN"
+  },
+  "generatedVerdict": {
+    "caseCount": 15,
+    "technicalStructure": "PASS15",
+    "docxStructure": "PASS15",
+    "teacherQuality": "teacher_review_pending"
+  },
+  "generatedActualResultCount": 14,
+  "readOnlyDatabases": [
+    "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b5-b6-quality-offline-third-nfyoaa05\\data\\textbooks\\catalog.sqlite3",
+    "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b5-b6-quality-offline-third-nfyoaa05\\data\\knowledge\\knowledge.sqlite3",
+    "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b5-b6-quality-offline-third-nfyoaa05\\data\\question-bank\\question-bank.sqlite3",
+    "C:\\Users\\96022\\AppData\\Local\\Temp\\zqky-b5-b6-quality-offline-third-nfyoaa05\\data\\teaching\\teaching.sqlite3"
+  ],
+  "copiedSourceUnchanged": true,
+  "productAppMainImported": false,
+  "modelCalls": 0,
+  "writesOnlyReviewDirectory": true,
+  "finalizerReadOnlyImportShim": "stdlib sqlite3 mode=ro/query_only; only existing original SQL readback"
+}

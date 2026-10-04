@@ -12,6 +12,7 @@ import {
 import type { NavigationItem } from '@/contracts/navigation';
 import { useNavigationPreference } from './NavigationPreference';
 import { useNavigationGuard } from '@/services/navigation-guard';
+import { useEntrance } from '@/components/motion/useEntrance';
 
 const mainGroups = groupMainNavigation();
 const bottomItems = navigation.filter((n) => n.position === 'bottom');
@@ -100,6 +101,7 @@ export function WorkspaceShell({
       trigger?.focus();
     };
   }, [mobileNavOpen]);
+  useEntrance(mobileNavRef, { preset: 'drawer', enabled: mobileNavOpen });
 
   async function navigate(path: string) {
     if (path === pathname) return;

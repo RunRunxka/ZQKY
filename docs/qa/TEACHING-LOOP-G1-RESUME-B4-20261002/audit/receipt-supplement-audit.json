@@ -1,0 +1,60 @@
+{
+  "capturedAt": "2026-10-02T09:40:20.585Z",
+  "recordsValidated": 2,
+  "issue": "Initial RESULT linked nonexistent first lint/typecheck logs and first receipts omitted duration/streams",
+  "resolution": "Original missing evidence now explicitly recorded; real repeated targeted commands have physical receipts and captured zero-byte output files. No first-run logs or times were fabricated.",
+  "records": [
+    {
+      "name": "lint",
+      "command": "node node_modules/eslint/bin/eslint.js tests/e2e/assessments.spec.ts tests/e2e/question-bank-real.spec.ts --max-warnings=0",
+      "exitCode": 0,
+      "elapsedMs": 1224,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "receiptSHA256": "9195f27653440ed4816bcbe69245ab4e0b07e7cab1f583bc97e35f268c886c3a",
+      "files": [
+        {
+          "file": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-RESUME-B4-20261002\\adapt-e2e\\lint-receipt-r2-stdout.log",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "file": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-RESUME-B4-20261002\\adapt-e2e\\lint-receipt-r2-stderr.log",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "file": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-RESUME-B4-20261002\\adapt-e2e\\lint-receipt-r2.log",
+          "size": 224,
+          "sha256": "fa62e366238674e0fc3a17ba995f326d3a8db04ec72ca72452403f31a7b48d8e"
+        }
+      ]
+    },
+    {
+      "name": "typecheck",
+      "command": "node node_modules/typescript/bin/tsc --noEmit --skipLibCheck --target es2022 --module nodenext --moduleResolution nodenext --types node tests/e2e/assessments.spec.ts tests/e2e/question-bank-real.spec.ts",
+      "exitCode": 0,
+      "elapsedMs": 611,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "receiptSHA256": "6c13f6bfcf87a0b2d75abc1f27d5ddad078ce1b9dd77dd5814f13e763921e808",
+      "files": [
+        {
+          "file": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-RESUME-B4-20261002\\adapt-e2e\\typecheck-receipt-r2-stdout.log",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "file": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-RESUME-B4-20261002\\adapt-e2e\\typecheck-receipt-r2-stderr.log",
+          "size": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "file": "H:\\备份xuexi\\智启课源\\docs\\qa\\TEACHING-LOOP-G1-RESUME-B4-20261002\\adapt-e2e\\typecheck-receipt-r2.log",
+          "size": 303,
+          "sha256": "8d542c4f7af471a3a320bbaebd480bc834d3b25f83f6d58d367b6465d3a59b6b"
+        }
+      ]
+    }
+  ]
+}

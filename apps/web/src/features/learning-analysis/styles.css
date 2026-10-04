@@ -1,0 +1,200 @@
+.learning-analysis-page, .practices-page { --page-content-width: 1240px; font-family: var(--font-ui); }
+.learning-analysis-page .space-header, .learning-analysis-page .space-content,
+.practices-page .space-header, .practices-page .space-content { min-width: 0; }
+.learning-analysis-page .b4-section, .practices-page .b4-section { margin: 0 0 var(--space-5); padding: var(--space-5); background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-md); min-width: 0; }
+.learning-analysis-page h2, .practices-page h2 { font-family: var(--font-display); font-size: var(--font-size-section,16px); line-height: 1.5; margin-bottom: var(--space-4); }
+.learning-analysis-page h3, .practices-page h3 { font-size: var(--font-size-section,16px); margin: var(--space-4) 0 var(--space-2); }
+.learning-analysis-page h4, .practices-page h4 { font-size: var(--font-size-body,14px); margin: var(--space-3) 0 var(--space-2); }
+.learning-analysis-page .b4-actions, .practices-page .b4-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 10px 0; }
+.learning-analysis-page .b4-fields, .practices-page .b4-fields { display: grid; grid-template-columns: repeat(auto-fit,minmax(190px,1fr)); gap: 12px; margin: 12px 0; }
+.learning-analysis-page .b4-field, .practices-page .b4-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; font-size: 13px; }
+.learning-analysis-page fieldset, .practices-page fieldset { min-width: 0; border: 0; padding: 0; }
+.learning-analysis-page legend, .practices-page legend { font-size: 13px; margin: 8px 0; overflow-wrap: anywhere; }
+.learning-analysis-page .space-select, .practices-page .space-select { width: 100%; min-width: 0; max-width: 100%; }
+.learning-analysis-page input:not([type=checkbox]), .learning-analysis-page textarea,
+.practices-page input:not([type=checkbox]), .practices-page textarea { width: 100%; min-width: 0; background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 8px 10px; color: var(--ink); font: inherit; }
+.learning-analysis-page textarea, .practices-page textarea { min-height: 80px; resize: vertical; }
+.learning-analysis-page .b4-meta, .practices-page .b4-meta { display: block; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.learning-analysis-page pre.b4-meta, .practices-page pre.b4-meta { white-space: pre-wrap; max-width: 100%; }
+.learning-analysis-page .b4-hint, .practices-page .b4-hint { color: var(--muted); font-size: 13px; margin: 8px 0; overflow-wrap: anywhere; }
+.learning-analysis-page .b4-chain, .practices-page .b4-chain { display: flex; flex-wrap: wrap; gap: 10px; padding: 12px; background: var(--blue-soft); border-left: 3px solid var(--blue); margin: 0 0 18px; overflow-wrap: anywhere; }
+.learning-analysis-page .b4-chain a, .practices-page .b4-chain a { color: var(--blue); text-decoration: underline; }
+.learning-analysis-page .b4-table-wrap, .practices-page .b4-table-wrap { max-width: 100%; overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.learning-analysis-page .b4-table, .practices-page .b4-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.learning-analysis-page .b4-table th, .learning-analysis-page .b4-table td,
+.practices-page .b4-table th, .practices-page .b4-table td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line); vertical-align: top; min-width: 100px; }
+.learning-analysis-page .b4-table th, .practices-page .b4-table th { background: var(--surface); font-weight: 500; }
+.learning-analysis-page .b4-checks, .practices-page .b4-checks { display: flex; flex-wrap: wrap; gap: 12px; margin: 10px 0; }
+.learning-analysis-page .b4-checks label, .practices-page .b4-checks label { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; }
+.learning-analysis-page .b4-job, .practices-page .b4-job { padding: 12px; margin: 12px 0; background: var(--surface); border-radius: var(--radius-sm); }
+.learning-analysis-page details, .practices-page details { margin: 10px 0; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px; min-width: 0; }
+.learning-analysis-page summary, .practices-page summary { cursor: pointer; overflow-wrap: anywhere; }
+.learning-analysis-page .b4-rich, .practices-page .b4-rich { margin-top: 12px; min-width: 0; overflow-wrap: anywhere; }
+.learning-analysis-page .b4-option, .practices-page .b4-option { display: flex; gap: 10px; margin: 8px 0; }
+.learning-analysis-page .b4-option > div, .practices-page .b4-option > div { min-width: 0; }
+.learning-analysis-page .space-banner, .practices-page .space-banner { overflow-wrap: anywhere; }
+.learning-analysis-page .b4-list, .practices-page .b4-list { display: flex; flex-direction: column; gap: 8px; }
+.learning-analysis-page .b4-list > button, .practices-page .b4-list > button { display: block; text-align: left; white-space: normal; }
+.learning-analysis-page .b4-list > button.primary .b4-meta, .practices-page .b4-list > button.primary .b4-meta { color: inherit; }
+.practices-page .b4-item { border-left: 3px solid var(--line); padding-left: 14px; margin: 18px 0; min-width: 0; }
+.practices-page .b4-node { padding: 12px; background: var(--surface); margin: 10px 0; border-radius: var(--radius-sm); }
+.practices-page .b4-artifacts { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 10px; }
+@media (max-width: 640px) {
+  .learning-analysis-page .b4-section, .practices-page .b4-section { padding: var(--space-4); }
+  .learning-analysis-page .b4-fields, .practices-page .b4-fields { grid-template-columns: minmax(0,1fr); }
+  .learning-analysis-page .space-tabs, .practices-page .space-tabs { max-width: 100%; overflow-x: auto; flex-wrap: nowrap; }
+  .learning-analysis-page .space-tabs button, .practices-page .space-tabs button { flex-shrink: 0; }
+}
+
+/* ===== 固定教学依据的工作面与阅读节奏 ===== */
+.learning-analysis-page .b4-actions,
+.practices-page .b4-actions {
+  gap: var(--space-2);
+  margin: var(--space-4) 0;
+}
+
+.learning-analysis-page .b4-fields,
+.practices-page .b4-fields {
+  gap: var(--space-4);
+  margin: var(--space-4) 0;
+}
+
+.learning-analysis-page .b4-field,
+.practices-page .b4-field {
+  font-size: var(--font-size-control, 13px);
+}
+
+.learning-analysis-page .space-select,
+.practices-page .space-select,
+.learning-analysis-page input:not([type='checkbox']):not([type='radio']),
+.practices-page input:not([type='checkbox']):not([type='radio']) {
+  min-height: var(--control-height, 36px);
+  padding: 8px 12px;
+}
+
+.learning-analysis-page textarea,
+.practices-page textarea {
+  min-height: 96px;
+  padding: var(--space-3);
+  font-size: var(--font-size-body, 14px);
+  line-height: 1.65;
+}
+
+.learning-analysis-page .b4-hint,
+.learning-analysis-page .b4-meta,
+.practices-page .b4-hint,
+.practices-page .b4-meta {
+  font-size: var(--font-size-caption, 12px);
+  line-height: 1.65;
+  font-variant-numeric: tabular-nums;
+}
+
+.learning-analysis-page .b4-chain,
+.practices-page .b4-chain {
+  align-items: center;
+  padding: var(--space-4);
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--blue);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-control, 13px);
+  line-height: 1.6;
+}
+
+.learning-analysis-page .b4-chain a,
+.practices-page .b4-chain a {
+  text-underline-offset: 3px;
+}
+
+.learning-analysis-page .b4-list > button,
+.practices-page .b4-list > button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: var(--space-3) var(--space-4);
+  line-height: 1.6;
+}
+
+.learning-analysis-page .b4-list > button.primary,
+.practices-page .b4-list > button.primary {
+  background: var(--blue-soft);
+  color: var(--blue-deep);
+  border-color: var(--blue);
+}
+
+.learning-analysis-page .b4-table-wrap,
+.practices-page .b4-table-wrap {
+  position: relative;
+  background: var(--bg);
+  overscroll-behavior-x: contain;
+}
+
+.learning-analysis-page .b4-table,
+.practices-page .b4-table {
+  font-size: var(--font-size-control, 13px);
+  font-variant-numeric: tabular-nums;
+}
+
+.learning-analysis-page .b4-table th,
+.learning-analysis-page .b4-table td,
+.practices-page .b4-table th,
+.practices-page .b4-table td {
+  padding: 12px 14px;
+  line-height: 1.6;
+}
+
+.learning-analysis-page .b4-table tbody tr:last-child > *,
+.practices-page .b4-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.learning-analysis-page .b4-checks label,
+.practices-page .b4-checks label {
+  line-height: 1.6;
+  min-width: 0;
+}
+
+.learning-analysis-page .b4-checks label > span,
+.practices-page .b4-checks label > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.learning-analysis-page .b4-job,
+.practices-page .b4-job,
+.learning-analysis-page details,
+.practices-page details,
+.practices-page .b4-node {
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+}
+
+.learning-analysis-page details,
+.practices-page details {
+  background: var(--bg);
+}
+
+.learning-analysis-page summary,
+.practices-page summary {
+  font-size: var(--font-size-body, 14px);
+  line-height: 1.65;
+}
+
+@media (max-width: 767px) {
+  .learning-analysis-page .space-select,
+  .practices-page .space-select,
+  .learning-analysis-page input:not([type='checkbox']):not([type='radio']),
+  .practices-page input:not([type='checkbox']):not([type='radio']),
+  .learning-analysis-page .b4-checks label,
+  .practices-page .b4-checks label {
+    min-height: var(--touch-target, 44px);
+  }
+}
+
+@media (max-width: 640px) {
+  .practices-page .b4-artifacts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

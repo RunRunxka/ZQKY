@@ -1,0 +1,38 @@
+[
+  {
+    "name": "complete-chain-replay.json",
+    "test": "完整真实链：名单导入→富原卷校对确认→施测→成绩响应丢失重放→修正历史",
+    "bytes": 8568,
+    "sha256": "5184a426e072f156d762a5a17ac878f3dc2acce2e598641e3159fe028abb86c6"
+  },
+  {
+    "name": "complete-layout-1440.json",
+    "test": "完整真实链：名单导入→富原卷校对确认→施测→成绩响应丢失重放→修正历史",
+    "bytes": 61,
+    "sha256": "9cd76a32d6c6d31de5cd2aadb68e09c4686e3c95af8e93ce523a27d18f81d224"
+  },
+  {
+    "name": "complete-layout-1920.json",
+    "test": "完整真实链：名单导入→富原卷校对确认→施测→成绩响应丢失重放→修正历史",
+    "bytes": 61,
+    "sha256": "61d5797ef252fa2899f9c4998a82fde8d470cd65376763ac2cc5fdce5b8e9459"
+  },
+  {
+    "name": "complete-layout-390.json",
+    "test": "完整真实链：名单导入→富原卷校对确认→施测→成绩响应丢失重放→修正历史",
+    "bytes": 3883,
+    "sha256": "76cdd05d4d177a0b9d87785cf923dd050167cde4ab4eddd943ace0395e93f5ab"
+  },
+  {
+    "name": "real-generation-chain.json",
+    "test": "真实 AI 补题 queued@0→attempt 1→人工校对确认→知识点检索",
+    "bytes": 27532,
+    "sha256": "71900f2f2b4520a4218261f49abbaf04dacdeedfa2eae79868f54b8b9ae1645d"
+  },
+  {
+    "name": "real-public-retry.json",
+    "test": "真实公共 retry：首次失败可见，queued(N)→succeeded(N+1)只调用一次",
+    "bytes": 11875,
+    "sha256": "fb8b9f7adc977e4e656aa7654ffc4bcfba3ae0109b04e10b1d8d493868b3ec9b"
+  }
+]

@@ -1,0 +1,15 @@
+npm notice run zhiqikeyuan@0.2.0 typecheck
+npm notice run npm run typecheck --workspace=@zqky/web
+npm notice run @zqky/web@0.2.0 typecheck
+npm notice run next typegen && tsc --noEmit
+Generating route types...
+✓ Types generated successfully
+src/components/ui/RichContentRenderer.tsx(72,43): error TS2339: Property 'math' does not exist on type 'JSX.IntrinsicElements'.
+src/components/ui/RichContentRenderer.tsx(72,96): error TS2339: Property 'math' does not exist on type 'JSX.IntrinsicElements'.
+npm error Lifecycle script `typecheck` failed with error:
+npm error code 2
+npm error path H:\备份xuexi\智启课源\apps\web
+npm error workspace @zqky/web@0.2.0
+npm error location H:\备份xuexi\智启课源\apps\web
+npm error command failed
+npm error command C:\WINDOWS\system32\cmd.exe /d /s /c next typegen && tsc --noEmit
