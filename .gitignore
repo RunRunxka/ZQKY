@@ -29,3 +29,11 @@ __pycache__/
 .zcode/
 .zcodeignore
 
+# docs/qa 取证产物默认整目录不入库：本批产物含 3.5GB trace.zip/截图/DOCX/巨型审计 JSON，
+# 规模远超历史惯例（已提交证据共 76.8MB）。白名单放行批次文本证据与冻结指纹；
+# 其余文件（含截图与审计 JSON）如确需入库，由批次会话显式 `git add -f` 精选。
+docs/qa/**
+!docs/qa/**/
+!docs/qa/**/*.md
+!docs/qa/**/FROZEN-CANDIDATE*.json
+
