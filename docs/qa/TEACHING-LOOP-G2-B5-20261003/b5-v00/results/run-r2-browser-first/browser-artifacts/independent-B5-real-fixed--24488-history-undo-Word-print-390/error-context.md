@@ -1,0 +1,319 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - alert [ref=e2]
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - button "打开功能导航" [ref=e5] [cursor=pointer]:
+        - img [ref=e6]
+      - button "返回学习问答" [ref=e7] [cursor=pointer]:
+        - img [ref=e9]
+        - strong [ref=e11]: 智启课源
+      - heading "教案工作台" [level=1] [ref=e12]
+      - button "导出教案" [ref=e15] [cursor=pointer]:
+        - img [ref=e16]
+        - text: 导出教案
+        - img [ref=e19]
+    - main [ref=e21]:
+      - generic [ref=e23]:
+        - generic [ref=e24]: LESSON PLANNER
+        - heading "把教学思路，写进课堂。" [level=1] [ref=e25]
+      - generic [ref=e26]:
+        - button "逐项填写" [ref=e27] [cursor=pointer]:
+          - img [ref=e28]
+          - text: 逐项填写
+        - button "要求填充 规则" [ref=e31] [cursor=pointer]:
+          - img [ref=e32]
+          - text: 要求填充
+          - generic [ref=e34]: 规则
+        - generic [ref=e35]:
+          - button "撤销" [ref=e36] [cursor=pointer]:
+            - img [ref=e37]
+          - button "重做" [disabled] [ref=e40]:
+            - img [ref=e41]
+      - generic [ref=e44]:
+        - generic [ref=e45]:
+          - generic "教案正文来源" [ref=e46]:
+            - generic [ref=e47]: 后台固定 v2 · c0f56ab3769441e1901861fddb43cf83
+            - generic [ref=e48]: manual · unreviewed
+            - generic [ref=e49]: 固定学情 a11ed488eb8b47c1af96eea18747ce35 → 教案 c0f56ab3769441e1901861fddb43cf83 → 调整建议 尚未生成
+          - generic [ref=e50]:
+            - status [ref=e51]: 后台稿已保存
+            - button "保存后台稿" [ref=e52] [cursor=pointer]
+            - button "读取后台最新版本" [ref=e53] [cursor=pointer]
+          - status [ref=e54]: 后台稿已保存。
+          - group [ref=e55]:
+            - generic "后台文档与固定历史" [ref=e56] [cursor=pointer]
+          - group [ref=e57]:
+            - generic "班级、固定学情与生成来源" [ref=e58] [cursor=pointer]
+            - generic [ref=e59]:
+              - paragraph [ref=e60]: 生成使用教师明确选择的固定报告、知识点和核验教材；候选不会直接修改正文。
+              - generic [ref=e61]:
+                - generic [ref=e62]:
+                  - text: 学科
+                  - combobox "教案学科" [disabled] [ref=e63]:
+                    - option "语文"
+                    - option "数学" [selected]
+                    - option "英语"
+                    - option "物理"
+                    - option "化学"
+                    - option "生物"
+                    - option "历史"
+                    - option "地理"
+                    - option "思想政治"
+                - generic [ref=e64]:
+                  - text: 单一班级
+                  - combobox "教案班级" [disabled] [ref=e65]:
+                    - option "请选择班级"
+                    - option "测试班级" [selected]
+                - generic [ref=e66]:
+                  - text: 固定 ready 学情
+                  - combobox "固定学情报告" [ref=e67]:
+                    - option "不关联学情"
+                    - option "初测原卷 · 8a526d309c08434b8922f599ba132b08 · a11ed488eb8b47c1af96eea18747ce35" [selected]
+                    - option "练习施测 · 2f197275f2f840a4bee0b8a6225b4235 · c5b20655fc6c46bbb9ffde49465ba4a2"
+                - generic [ref=e68]:
+                  - text: 模型档案
+                  - combobox "教案生成模型" [ref=e69]:
+                    - option "请选择模型档案"
+                    - option "B5独立 openai-chat · b5-v00-isolated-model" [selected]
+                    - option "B5独立 openai-responses · b5-v00-isolated-model"
+                    - option "B5独立 anthropic-messages · b5-v00-isolated-model"
+              - group "明确选择知识点（最多50项）" [ref=e70]:
+                - generic [ref=e71]: 明确选择知识点（最多50项）
+                - generic [ref=e72]:
+                  - checkbox "独立符号判定知识点 7e1a023ab80644ddb4a3bff98a9d9fc8" [checked] [ref=e73]
+                  - text: 独立符号判定知识点
+                  - generic [ref=e74]: 7e1a023ab80644ddb4a3bff98a9d9fc8
+                - generic [ref=e75]:
+                  - checkbox "独立有理数加法知识点 aa0af8272b474658a0fbe7025b98f979" [checked] [ref=e76]
+                  - text: 独立有理数加法知识点
+                  - generic [ref=e77]: aa0af8272b474658a0fbe7025b98f979
+              - generic [ref=e78]:
+                - generic [ref=e79]:
+                  - text: 课堂时长（分钟）
+                  - spinbutton "课堂时长" [ref=e80]: "43"
+                - generic [ref=e81]:
+                  - text: 教师要求
+                  - textbox "教案生成要求" [ref=e82]: 基于固定教材和班级计数安排复习，课堂题需要说明依据。
+                  - generic [ref=e83]: 请勿填写学生姓名、学号或人员 ID；已知身份将被阻断，系统不能保证识别全部个人信息。
+              - group "真实教材切片" [ref=e84]:
+                - generic [ref=e85]: 真实教材切片
+                - generic [ref=e86]:
+                  - generic [ref=e87]:
+                    - text: 年级
+                    - combobox "教材年级" [ref=e88]:
+                      - option "请选择年级"
+                      - option "高一" [selected]
+                      - option "高二"
+                      - option "高三"
+                  - generic [ref=e89]:
+                    - text: 教材版本
+                    - combobox "教材版本" [ref=e90]:
+                      - option "请选择版本"
+                      - option "人教A版" [selected]
+                      - option "人教B版"
+                      - option "人教版"
+                - button "读取可选教材" [ref=e91] [cursor=pointer]
+                - generic [ref=e92]:
+                  - text: 教材固定修订
+                  - combobox "教材固定修订" [ref=e93]:
+                    - option "请选择教材"
+                    - option "独立有理数教材 · 6e5e948d822e4eea8719c34acf1c36e6" [selected]
+                - generic [ref=e94]:
+                  - generic [ref=e95]:
+                    - text: 切片起点
+                    - spinbutton "切片起点" [ref=e96]: "0"
+                  - generic [ref=e97]:
+                    - text: 切片终点
+                    - spinbutton "切片终点" [ref=e98]: "88"
+                - button "读取并核验教材切片" [ref=e99] [cursor=pointer]
+                - button "清除已选教材切片" [ref=e100] [cursor=pointer]
+              - group "已确认固定题（可选，最多20题）" [ref=e101]:
+                - generic [ref=e102]: 已确认固定题（可选，最多20题）
+                - button "读取已确认固定题" [ref=e103] [cursor=pointer]
+                - generic [ref=e104]:
+                  - 'checkbox "完整题干 $$\\frac{x}{2}$$ ![图片](blobs/3e59d5b8805acbd8d11d144c6d28f4bbfa14a9197c17bc6016e9186191044c05) [表格] 表头 | 单元甲 | 单元 be0b52648ed84c978018ad3ff8998935" [checked] [ref=e105]'
+                  - text: "完整题干 $$\\frac{x}{2}$$ ![图片](blobs/3e59d5b8805acbd8d11d144c6d28f4bbfa14a9197c17bc6016e9186191044c05) [表格] 表头 | 单元甲 | 单元"
+                  - generic [ref=e106]: be0b52648ed84c978018ad3ff8998935
+              - group "已审核固定练习（可选，最多5份）" [ref=e107]:
+                - generic [ref=e108]: 已审核固定练习（可选，最多5份）
+                - generic [ref=e109]:
+                  - checkbox "闭环练习 · 1ea588bbbb194208beb7f818ef0d156b" [checked] [ref=e110]
+                  - text: 闭环练习 · 1ea588bbbb194208beb7f818ef0d156b
+              - button "刷新来源列表" [ref=e111] [cursor=pointer]
+          - group [ref=e112]:
+            - generic "学情驱动 AI 候选与逐字段差异" [ref=e113] [cursor=pointer]
+            - generic [ref=e114]:
+              - button "保存当前稿并生成 AI 候选" [active] [ref=e115] [cursor=pointer]
+              - alert [ref=e116]: 请先明确单一班级、ready 固定报告、知识点、核验教材和模型，并填写5–180分钟时长
+        - group [ref=e117]:
+          - generic [ref=e118]:
+            - generic [ref=e119]:
+              - img [ref=e121]
+              - generic [ref=e124]:
+                - heading "基本信息" [level=2] [ref=e125]
+                - paragraph [ref=e126]: 从课题开始，搭好这节课的框架。
+            - generic [ref=e127]:
+              - generic [ref=e128]:
+                - text: 课题
+                - generic [ref=e129]: 必填
+              - textbox "课题" [ref=e130]:
+                - /placeholder: 例如：荷塘月色
+                - text: B5独立教师标题《有理数》
+            - generic [ref=e131]:
+              - generic [ref=e132]:
+                - generic [ref=e133]: 本课题总课时
+                - generic [ref=e134]:
+                  - spinbutton "本课题总课时" [ref=e135]: "3"
+                  - generic [ref=e136]: 课时
+              - generic [ref=e137]:
+                - generic [ref=e138]: 本节课
+                - generic [ref=e139]:
+                  - spinbutton "本节课" [ref=e140]: "2"
+                  - generic [ref=e141]: 课时
+            - generic [ref=e142]:
+              - generic [ref=e143]:
+                - text: 课型
+                - generic [ref=e144]: 可多选
+              - generic [ref=e145]:
+                - generic [ref=e146] [cursor=pointer]:
+                  - checkbox "新课" [ref=e147]
+                  - text: 新课
+                - generic [ref=e149] [cursor=pointer]:
+                  - checkbox "复习课" [checked] [ref=e150]
+                  - img [ref=e152]
+                  - text: 复习课
+                - generic [ref=e154] [cursor=pointer]:
+                  - checkbox "试题讲评课" [ref=e155]
+                  - text: 试题讲评课
+                - generic [ref=e157] [cursor=pointer]:
+                  - checkbox "实验课" [ref=e158]
+                  - text: 实验课
+                - generic [ref=e160] [cursor=pointer]:
+                  - checkbox "其它" [checked] [ref=e161]
+                  - img [ref=e163]
+                  - text: 其它
+            - generic [ref=e165]:
+              - generic [ref=e166]: 其他课型说明
+              - textbox "其他课型说明" [ref=e167]: 教师独立课型
+          - generic [ref=e168]:
+            - generic [ref=e169]:
+              - img [ref=e171]
+              - generic [ref=e175]:
+                - heading "核心素养目标" [level=2] [ref=e176]
+                - paragraph [ref=e177]: 这节课，你希望学生获得什么？
+            - textbox "核心素养目标" [ref=e178]:
+              - /placeholder: 填写核心素养目标…
+              - text: 原素养：推理、表达及证据意识。
+            - generic [ref=e179]:
+              - generic [ref=e180]: 支持换行，内容自动撑开
+              - generic [ref=e181]: 15 字
+          - generic [ref=e182]:
+            - generic [ref=e183]:
+              - img [ref=e185]
+              - generic [ref=e187]:
+                - heading "教学重、难点" [level=2] [ref=e188]
+                - paragraph [ref=e189]: 明确课堂重点，找到学习突破口。
+            - textbox "教学重、难点" [ref=e190]:
+              - /placeholder: 填写教学重、难点…
+              - text: 原重点：有理数运算。
+            - generic [ref=e191]:
+              - generic [ref=e192]: 支持换行，内容自动撑开
+              - generic [ref=e193]: 10 字
+          - generic [ref=e194]:
+            - generic [ref=e195]:
+              - img [ref=e197]
+              - generic [ref=e199]:
+                - heading "教学设计" [level=2] [ref=e200]
+                - paragraph [ref=e201]: 记录板书思路、教学方法与组织方式。
+            - textbox "教学设计" [ref=e202]:
+              - /placeholder: 填写教学设计…
+              - text: 原设计：先独立作答，再核对依据。
+            - generic [ref=e203]:
+              - generic [ref=e204]: 支持换行，内容自动撑开
+              - generic [ref=e205]: 16 字
+          - generic [ref=e206]:
+            - generic [ref=e207]:
+              - img [ref=e209]
+              - generic [ref=e213]:
+                - heading "教学过程" [level=2] [ref=e214]
+                - paragraph [ref=e215]: 串联教学环节，记录二次备课。
+              - generic [ref=e216]: 2 个环节
+            - generic [ref=e217]:
+              - generic [ref=e218]:
+                - img [ref=e219]
+                - generic [ref=e226]: 环节 1
+                - generic [ref=e227]:
+                  - button "上移环节1" [disabled] [ref=e228]:
+                    - img [ref=e229]
+                  - button "下移环节1" [ref=e231] [cursor=pointer]:
+                    - img [ref=e232]
+                  - button "删除环节1" [ref=e234] [cursor=pointer]:
+                    - img [ref=e235]
+              - generic [ref=e238]:
+                - generic [ref=e239]: 环节名称
+                - textbox "环节名称" [ref=e240]: 原导入
+              - generic [ref=e241]:
+                - generic [ref=e242]: 教学设计
+                - textbox "教学设计" [ref=e243]: 原设计甲
+              - generic [ref=e244]:
+                - generic [ref=e245]: 二次备课
+                - textbox "二次备课" [ref=e246]:
+                  - /placeholder: 记录调整思路或课堂观察…
+                  - text: 原二次甲
+            - generic [ref=e247]:
+              - generic [ref=e248]:
+                - img [ref=e249]
+                - generic [ref=e256]: 环节 2
+                - generic [ref=e257]:
+                  - button "上移环节2" [ref=e258] [cursor=pointer]:
+                    - img [ref=e259]
+                  - button "下移环节2" [disabled] [ref=e261]:
+                    - img [ref=e262]
+                  - button "删除环节2" [ref=e264] [cursor=pointer]:
+                    - img [ref=e265]
+              - generic [ref=e268]:
+                - generic [ref=e269]: 环节名称
+                - textbox "环节名称" [ref=e270]: 原练习
+              - generic [ref=e271]:
+                - generic [ref=e272]: 教学设计
+                - textbox "教学设计" [ref=e273]: 原设计乙
+              - generic [ref=e274]:
+                - generic [ref=e275]: 二次备课
+                - textbox "二次备课" [ref=e276]:
+                  - /placeholder: 记录调整思路或课堂观察…
+                  - text: 原二次乙
+            - button "添加教学环节" [ref=e277] [cursor=pointer]:
+              - img [ref=e278]
+              - text: 添加教学环节
+          - generic [ref=e279]:
+            - generic [ref=e280]:
+              - img [ref=e282]
+              - generic [ref=e285]:
+                - heading "练习与作业" [level=2] [ref=e286]
+                - paragraph [ref=e287]: 让课堂所学，在练习中得到巩固。
+            - textbox "练习与作业" [ref=e288]:
+              - /placeholder: 填写课堂练习与课后作业…
+              - text: 原练习：求 1/2 + 1，保留符号 < > & 。
+          - generic [ref=e289]:
+            - generic [ref=e290]:
+              - img [ref=e292]
+              - generic [ref=e295]:
+                - heading "教学反思" [level=2] [ref=e296]
+                - paragraph [ref=e297]: 课后回顾，为下一次课堂留点启发。
+            - textbox "教学反思" [ref=e298]:
+              - /placeholder: 可以课后再来补充…
+              - text: B5独立人工反思 390
+      - generic [ref=e299]:
+        - generic [ref=e300]: 编辑后实时更新预览
+        - generic [ref=e302]: 7 / 7 项已填写
+    - generic [ref=e303]:
+      - button "编辑教案" [ref=e304] [cursor=pointer]:
+        - img [ref=e305]
+        - text: 编辑教案
+      - button "预览教案" [ref=e308] [cursor=pointer]:
+        - img [ref=e309]
+        - text: 预览教案
+```

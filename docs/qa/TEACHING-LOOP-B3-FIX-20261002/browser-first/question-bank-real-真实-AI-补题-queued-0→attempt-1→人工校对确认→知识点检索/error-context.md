@@ -1,0 +1,221 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - navigation "项目功能导航" [ref=e3]:
+      - button "返回学习问答" [ref=e4] [cursor=pointer]:
+        - img [ref=e5]
+        - strong [ref=e7]: 智启课源
+      - button "收起项目导航" [expanded] [ref=e8] [cursor=pointer]:
+        - img [ref=e9]
+      - generic [ref=e12]:
+        - button "学习问答" [ref=e13] [cursor=pointer]:
+          - img [ref=e14]
+          - generic [ref=e17]: 学习问答
+        - button "教案工作台" [ref=e18] [cursor=pointer]:
+          - img [ref=e19]
+          - generic [ref=e22]: 教案工作台
+        - button "智能组卷（规划中）" [ref=e23] [cursor=pointer]:
+          - img [ref=e24]
+          - generic [ref=e27]:
+            - text: 智能组卷
+            - generic [ref=e28]: 规划中
+        - button "题库" [ref=e29] [cursor=pointer]:
+          - img [ref=e30]
+          - generic [ref=e33]: 题库
+        - button "知识点" [ref=e34] [cursor=pointer]:
+          - img [ref=e35]
+          - generic [ref=e37]: 知识点
+        - button "施测与成绩" [ref=e38] [cursor=pointer]:
+          - img [ref=e39]
+          - generic [ref=e42]: 施测与成绩
+        - button "协同写作（规划中）" [ref=e43] [cursor=pointer]:
+          - img [ref=e44]
+          - generic [ref=e46]:
+            - text: 协同写作
+            - generic [ref=e47]: 规划中
+        - button "沉浸阅读（规划中）" [ref=e48] [cursor=pointer]:
+          - img [ref=e49]
+          - generic [ref=e51]:
+            - text: 沉浸阅读
+            - generic [ref=e52]: 规划中
+        - button "学习空间（规划中）" [ref=e53] [cursor=pointer]:
+          - img [ref=e54]
+          - generic [ref=e59]:
+            - text: 学习空间
+            - generic [ref=e60]: 规划中
+        - button "教材资料库" [ref=e61] [cursor=pointer]:
+          - img [ref=e62]
+          - generic [ref=e64]: 教材资料库
+        - button "模板中心（规划中）" [ref=e65] [cursor=pointer]:
+          - img [ref=e66]
+          - generic [ref=e70]:
+            - text: 模板中心
+            - generic [ref=e71]: 规划中
+      - generic [ref=e72]:
+        - button "设置" [ref=e73] [cursor=pointer]:
+          - img [ref=e74]
+          - generic [ref=e77]: 设置
+        - generic "本地工作台" [ref=e78]: 教
+    - generic [ref=e80]:
+      - banner [ref=e81]:
+        - generic [ref=e82]:
+          - heading "题库" [level=1] [ref=e83]
+          - button "导入试题" [ref=e85] [cursor=pointer]:
+            - img [ref=e86]
+            - text: 导入试题
+        - paragraph [ref=e89]: 试题来自导入文件的本地解析与规则拆题；AI 整理结果只是待校对建议，必须人工校对后才能入库。
+      - main [ref=e90]:
+        - tablist "题库视图" [ref=e91]:
+          - tab "导入批次" [ref=e92] [cursor=pointer]
+          - tab "已入库题目" [selected] [ref=e93] [cursor=pointer]
+        - tabpanel "已入库题目" [ref=e94]:
+          - region "已入库题目" [ref=e95]:
+            - generic [ref=e96]:
+              - paragraph [ref=e97]: 题目列表来自后端；知识点筛选只匹配当前最新修订上的正式知识点关联， 历史修订与旧标签（knowledgeTags）不参与筛选。
+              - button "AI 补题" [ref=e98] [cursor=pointer]:
+                - img [ref=e99]
+                - text: AI 补题
+            - generic [ref=e101]:
+              - generic [ref=e102]:
+                - text: 学科
+                - combobox "学科" [ref=e103]:
+                  - option "全部" [selected]
+                  - option "语文"
+                  - option "数学"
+                  - option "英语"
+                  - option "物理"
+                  - option "化学"
+                  - option "生物"
+                  - option "历史"
+                  - option "地理"
+                  - option "思想政治"
+              - generic [ref=e104]:
+                - text: 年级
+                - combobox "年级" [ref=e105]:
+                  - option "全部" [selected]
+                  - option "高一"
+                  - option "高二"
+                  - option "高三"
+              - generic [ref=e106]:
+                - text: 版本
+                - combobox "版本" [ref=e107]:
+                  - option "全部" [selected]
+                  - option "人教A版"
+                  - option "人教B版"
+                  - option "人教版"
+              - generic [ref=e108]:
+                - generic [ref=e109]:
+                  - text: 知识点
+                  - combobox "知识点" [ref=e110]:
+                    - option "全部知识点" [selected]
+                    - option "有理数（F10-RATIONAL）"
+                - paragraph [ref=e111]: 未选学科：列出全部在用知识点，可用学科缩小范围。
+              - generic [ref=e112]:
+                - text: 状态
+                - combobox "状态" [ref=e113]:
+                  - option "全部" [selected]
+                  - option "已入库"
+                  - option "已归档"
+              - generic [ref=e114]:
+                - text: 关键词
+                - textbox "关键词" [ref=e115]:
+                  - /placeholder: 题干关键词
+              - generic [ref=e116]:
+                - button "查询" [ref=e117] [cursor=pointer]:
+                  - img [ref=e118]
+                  - text: 查询
+                - button "重置" [ref=e121] [cursor=pointer]
+            - generic [ref=e122]:
+              - strong [ref=e123]: 没有符合条件的题目
+              - generic [ref=e124]: 调整筛选条件，或先在「导入批次」里导入试题并完成校对入库。
+            - dialog "AI 补题" [ref=e125]:
+              - generic [ref=e126]:
+                - generic [ref=e127]:
+                  - heading "AI 补题" [level=2] [ref=e128]
+                  - button "关闭对话框" [active] [ref=e129] [cursor=pointer]:
+                    - img [ref=e130]
+                - generic [ref=e133]:
+                  - paragraph [ref=e134]: AI 补题只生成待校对草稿（extraction_method=ai），永远不会自动入库；候选必须人工逐题校对后用确认接口入库。
+                  - paragraph [ref=e135]:
+                    - text: 使用
+                    - strong [ref=e136]: 隔离补题模型 · teaching-browser-model
+                    - text: 补题。
+                  - paragraph [ref=e137]: 本机模型：命题请求不会发送到外部模型服务。
+                  - generic [ref=e138]:
+                    - generic [ref=e139]:
+                      - text: 学科
+                      - combobox "学科" [ref=e140]:
+                        - option "未指定" [selected]
+                        - option "语文"
+                        - option "数学"
+                        - option "英语"
+                        - option "物理"
+                        - option "化学"
+                        - option "生物"
+                        - option "历史"
+                        - option "地理"
+                        - option "思想政治"
+                    - generic [ref=e141]:
+                      - text: 题数（1–10）
+                      - spinbutton "题数（1–10）" [ref=e142]: "3"
+                    - generic [ref=e143]:
+                      - text: 难度
+                      - combobox "难度" [ref=e144]:
+                        - option "未标注" [selected]
+                        - option "容易"
+                        - option "中等"
+                        - option "较难"
+                  - group "知识点（只列当前学科的在用知识点）" [ref=e145]:
+                    - generic [ref=e146]: 知识点（只列当前学科的在用知识点）
+                    - generic [ref=e147]:
+                      - generic [ref=e148]:
+                        - generic [ref=e149]:
+                          - text: 搜索知识点
+                          - textbox "搜索知识点" [ref=e150]:
+                            - /placeholder: 名称或编码
+                        - button "搜索" [ref=e151] [cursor=pointer]:
+                          - img [ref=e152]
+                          - text: 搜索
+                      - list [ref=e155]:
+                        - listitem [ref=e156]:
+                          - generic [ref=e157]:
+                            - checkbox "有理数（F10-RATIONAL）" [ref=e158]
+                            - text: 有理数（F10-RATIONAL）
+                    - paragraph [ref=e159]: 不选知识点时按学科命题：候选不会有正式知识点关联，需要在校对时人工补充。
+                  - group "题型" [ref=e160]:
+                    - generic [ref=e161]: 题型
+                    - generic [ref=e162]:
+                      - generic [ref=e163]:
+                        - checkbox "单选题" [ref=e164]
+                        - text: 单选题
+                      - generic [ref=e165]:
+                        - checkbox "多选题" [ref=e166]
+                        - text: 多选题
+                      - generic [ref=e167]:
+                        - checkbox "判断题" [ref=e168]
+                        - text: 判断题
+                      - generic [ref=e169]:
+                        - checkbox "填空题" [ref=e170]
+                        - text: 填空题
+                      - generic [ref=e171]:
+                        - checkbox "简答题" [ref=e172]
+                        - text: 简答题
+                      - generic [ref=e173]:
+                        - checkbox "其他" [ref=e174]
+                        - text: 其他
+                    - paragraph [ref=e175]: 不勾选表示不限题型，由模型按题干判断。
+                  - generic [ref=e176]:
+                    - text: 补充要求（可选，最多 2000 字）
+                    - textbox "补充要求（可选，最多 2000 字）" [ref=e177]:
+                      - /placeholder: 例如：只考有理数的加减法，避免负数乘除。
+                  - paragraph [ref=e178]: 本版补题不附带教材原文/证据材料：模型只依据所选知识点、学科与补充要求命题； 任何网址或文件路径都会被后端拒绝。
+                  - generic [ref=e179]:
+                    - button "开始补题" [ref=e180] [cursor=pointer]:
+                      - img [ref=e181]
+                      - text: 开始补题
+                    - button "关闭" [ref=e183] [cursor=pointer]
+        - paragraph [ref=e184]: 导入解析、AI 整理与入库都以后端为准：任何环节失败都会显示具体原因与错误码，不会伪造成功， 也不会把请求失败当成空列表。
+  - alert [ref=e185]
+```

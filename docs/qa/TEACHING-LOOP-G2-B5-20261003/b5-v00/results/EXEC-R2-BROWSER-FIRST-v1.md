@@ -1,0 +1,17 @@
+# B5-V00 EXEC r2 首轮结果 v1
+
+完整8由ROOT经run_command实际启动；Playwright PID20340，exit1，104856.084ms：3通过、5失败，0skip/0retry/0flaky。不拼轮次。CANDIDATE-B5-r2 SHA7800205803341a8e737e8d8ee7c0659bd6c264f78f72ce5e4f312ad3f39c5bec，v6manifest694cf0a21757ec66081a2409a07a05ed561b6ca312b3c1158e9d0629f33468a8。本结果封存时实际复核源938、QA2196前后同候选、33冻结、2004build、1030prior与67件私有清单全部0漂移；之后ROOT明确OPEN FE窄写，不能把该旧候选后验冒称修改中的当前源仍0变化。
+
+实际通过完整历史copy11字段/dirty/undo/redo/v3复制另存/v4撤销另存/三旧固定history全对象不变，unknown真丢HTTP回应/continuedB/nativeBack/两原包深等重放，dual-tab A200/B409/保留B/Tab焦点/Escape/明确最新基线/newsavev3。另四主场景已完成固定成绩→报告→KP2明确勾选→完整导入固定context→人工保存→固定题/练习勾选。
+
+四主场景首败在候选checkbox等待。实际generate API0/模型wire0：教材核验POST200尚未返还前脚本继续loadQuestions，SourcePanel共享epoch改变使证据未采用，是独立QA异步完成前提错误。另1440存在真实产品擦模型，不能以等待掩盖：model call@105返回M1成功，after@105帧77541.792 M1selected=true；迟到run/class/practice结束后after课堂fill帧77559.585 placeholderselected=true/M1false，最终仍blank。SourcePanel异步load/selectRun/updateSelection使用旧closure value覆盖新的教师输入。其余390/1024/1920模型保留，时长43/要求均保留。ROOT已经独立确认R06并另开FE v4窄修卡。
+
+history intent首份公开JSON备份成功且schema1/data手写全11深等，URL与原cache不变的断言实际完成。blob下载之后trace有新page事件，未保留新pageURL/类型/frame；随后context clockInstall未返回、45s超时，dirtyA及后续取消/B/history/local清intent未执行。本轮不足以确定下载新page的精确内部成因，不能判为copyIntent产品失败；本地Playwright源码显示clock会向context全部pages注入/求值，属于可疑自动化生命周期。ROOT授权v7只将install移到首download前、pause仍在clean已核之后/dirty之前，预算保持。
+
+全部8trace ZIP CRC实际核绿；12张新PNG均逐张view_image original实际查看（四viewport report/source共8，historycopy2、unknown1、dual1）。这些图只覆盖已到达阶段，没有候选diff/history四view图。Word0/打印0/model三协议0、JSONbackup实际1/预期6，后5份及intent后续动作明确not_run。Word/WPS人工/实际另存PDF/付费教学质量/正式Qdrant仍允许not_run，但不能免除隔离真实Word/冻结print必需门槛。
+
+独立四业务GET后验PID16528/exit0/66.075ms：score/report/classes/practice均200且完整深等seed.originalFixed，四response全关闭。ROOT随后正常关闭r2API18736、保留seed/sample与日志；V00没有服务生命周期动作，也没有后续HTTP需求。ROOT额外r2HTML/proxy身份请求被自动审批policy拒绝，保持not_run；V00没有通过任何工具/Agent/端口重试。r1已核身份/同frontendPID/精确build及r2CIM由ROOT保留。
+
+收据与结果：results/EXEC-r2-browser-first-v1.json SHAd5d3262c9dfd506f740701983d1d70eef7705be7ac3a5967c85372be13856235。离线trace时序/实际帧：R2-TRACE-AUDIT-v1.json SHA1806024d7f9a35d4bd16beacdc0453c3d5718385320eed8b4ef2a7d06806072b。逐图：R2-VISUAL-READ-v1.json SHA64fcc3874a5af7b7f46785acee9b02d00f32d2cb036f4b0cd3305da56fa8577c。11field/history/unknown/backup：R2-FULL-FIELD-ARTIFACT-AUDIT-v1.json SHAab829d3d4125c86d3181df3d63189477ad9c546de2f779c9218bbb78ed7c6848。固定四GET：R2-BROWSER-FIXED-READ-v1.json SHA356ea7965aef47752fcb36bf6c1c391ad64a0752e1654a064bceb675b65d85a0。
+
+当前完整8不通过；后续新QA/新产品只能另版、另冻结、全轮运行。v1–v6字节与所有首败原件保持，不改任何断言/预算或用离线推断当runtime PASS。

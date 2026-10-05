@@ -1,0 +1,79 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - button "打开功能导航" [ref=e4] [cursor=pointer]:
+        - img [ref=e5]
+      - button "返回学习问答" [ref=e6] [cursor=pointer]:
+        - img [ref=e8]
+        - strong [ref=e10]: 智启课源
+    - generic [ref=e12]:
+      - generic [ref=e13]:
+        - generic [ref=e14]: 你好
+        - button "新建对话" [ref=e15] [cursor=pointer]:
+          - img [ref=e16]
+        - button "备份当前会话" [ref=e17] [cursor=pointer]:
+          - img [ref=e18]
+        - button "会话详情" [ref=e21] [cursor=pointer]:
+          - img [ref=e22]
+      - generic [ref=e25]:
+        - generic [ref=e26]:
+          - generic [ref=e27]: 你好
+          - generic [ref=e28]:
+            - button "复制提问" [ref=e29] [cursor=pointer]:
+              - img [ref=e30]
+            - button "复用此提问到输入框" [ref=e33] [cursor=pointer]:
+              - img [ref=e34]
+        - article [ref=e37]:
+          - generic [ref=e38]:
+            - generic [ref=e40]:
+              - img "智启课源" [ref=e42]
+              - strong [ref=e43]: 已完成
+              - generic [ref=e44]: 0s
+            - generic [ref=e46]:
+              - paragraph [ref=e47]: 你好！我是智启课源，你的学习伙伴。
+              - paragraph [ref=e48]: 我可以帮你：
+              - list [ref=e49]:
+                - listitem [ref=e50]:
+                  - strong [ref=e51]: 讲解概念
+                  - text: ——从直觉到细节，一起理解数学、物理、编程等学科
+                - listitem [ref=e52]:
+                  - strong [ref=e53]: 梳理知识
+                  - text: ——整理知识点之间的联系，建立清晰的学习框架
+                - listitem [ref=e54]:
+                  - strong [ref=e55]: 推敲教学思路
+                  - text: ——设计课堂提问，讨论适合学生的解释方式
+              - paragraph [ref=e56]: 你现在想学点什么？告诉我你的目标，我们就开始吧！
+            - generic [ref=e57]:
+              - generic "验收模型 1 · deepseek-v4-flash" [ref=e58]
+              - button "复制回答" [ref=e59] [cursor=pointer]:
+                - img [ref=e60]
+              - button "复制问题到输入框" [ref=e63] [cursor=pointer]:
+                - img [ref=e64]
+      - generic [ref=e65]:
+        - generic [ref=e66]:
+          - textbox "输入问题" [ref=e67]:
+            - /placeholder: 输入问题，Enter 发送，Shift+Enter 换行
+          - generic [ref=e68]:
+            - button "选择业务能力，当前：对话" [ref=e70] [cursor=pointer]:
+              - img [ref=e71]
+              - generic [ref=e73]: 对话
+              - img [ref=e74]
+            - button "添加附件" [ref=e76] [cursor=pointer]:
+              - img [ref=e77]
+            - group [ref=e81]:
+              - generic "查看上下文估算" [ref=e82] [cursor=pointer]:
+                - img [ref=e83]
+                - generic [ref=e85]: 1%
+            - button "选择模型" [active] [ref=e87] [cursor=pointer]:
+              - generic [ref=e88]: 验收模型 2
+              - img [ref=e89]
+            - button "语音输入（未接入，查看说明）" [ref=e92] [cursor=pointer]:
+              - img [ref=e93]
+            - button "发送" [disabled] [ref=e96]:
+              - img [ref=e97]
+        - paragraph [ref=e99]: 回答由模型生成，请核对重要信息。Shift + Enter 换行
+  - alert [ref=e100]
+```

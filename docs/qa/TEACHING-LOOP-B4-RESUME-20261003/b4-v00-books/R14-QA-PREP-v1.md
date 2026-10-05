@@ -1,0 +1,5 @@
+# R14-QA v1 原准备封存
+
+仅作者准备与静态自检，不是独立验收。strict noEmit TS＋AST首轮exit0/PID5468/1429.851ms；限定两文件ESLint首轮exit0/PID1168/8897.6895ms。49原expect全文保留，当前52，仅新增两ready＋cleanup正向断言；6标题、其它5callback与旧top函数全文相同。
+
+CTRL在冻结前发现finally资源正向assert可替换主体首败，登记v1.1窄修正。v1源snapshot和原收据保持，不冒称v1.1已通过。helper原SHA cb6407c8045c35dc0ae54915c9854b0ab9275b17f9654ef3aa9dbfedfee0a072；spec原准备SHA a41d3f6579132c2e6bfb097265dcc2e9af241ca8d75f19092d1f523f6363d554。完整snapshot/命令/proof见同名JSON。实际测试／browser／服务／build均未执行；无runtime改动。

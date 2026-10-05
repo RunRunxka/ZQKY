@@ -1,0 +1,168 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation "项目功能导航" [ref=e3]:
+      - button "返回学习问答" [ref=e4] [cursor=pointer]:
+        - img [ref=e5]
+        - strong [ref=e7]: 智启课源
+      - button "收起项目导航" [expanded] [ref=e8] [cursor=pointer]:
+        - img [ref=e9]
+      - generic [ref=e12]:
+        - button "学习问答" [ref=e13] [cursor=pointer]:
+          - img [ref=e14]
+          - generic [ref=e17]: 学习问答
+        - button "教案工作台" [ref=e18] [cursor=pointer]:
+          - img [ref=e19]
+          - generic [ref=e22]: 教案工作台
+        - button "智能组卷（规划中）" [ref=e23] [cursor=pointer]:
+          - img [ref=e24]
+          - generic [ref=e27]:
+            - text: 智能组卷
+            - generic [ref=e28]: 规划中
+        - button "题库" [ref=e29] [cursor=pointer]:
+          - img [ref=e30]
+          - generic [ref=e33]: 题库
+        - button "知识点" [ref=e34] [cursor=pointer]:
+          - img [ref=e35]
+          - generic [ref=e37]: 知识点
+        - button "施测与成绩" [ref=e38] [cursor=pointer]:
+          - img [ref=e39]
+          - generic [ref=e42]: 施测与成绩
+        - button "学情分析" [ref=e43] [cursor=pointer]:
+          - img [ref=e44]
+          - generic [ref=e47]: 学情分析
+        - button "针对练习" [ref=e48] [cursor=pointer]:
+          - img [ref=e49]
+          - generic [ref=e52]: 针对练习
+        - button "协同写作（规划中）" [ref=e53] [cursor=pointer]:
+          - img [ref=e54]
+          - generic [ref=e56]:
+            - text: 协同写作
+            - generic [ref=e57]: 规划中
+        - button "沉浸阅读（规划中）" [ref=e58] [cursor=pointer]:
+          - img [ref=e59]
+          - generic [ref=e61]:
+            - text: 沉浸阅读
+            - generic [ref=e62]: 规划中
+        - button "学习空间（规划中）" [ref=e63] [cursor=pointer]:
+          - img [ref=e64]
+          - generic [ref=e69]:
+            - text: 学习空间
+            - generic [ref=e70]: 规划中
+        - button "教材资料库" [ref=e71] [cursor=pointer]:
+          - img [ref=e72]
+          - generic [ref=e74]: 教材资料库
+        - button "模板中心（规划中）" [ref=e75] [cursor=pointer]:
+          - img [ref=e76]
+          - generic [ref=e80]:
+            - text: 模板中心
+            - generic [ref=e81]: 规划中
+      - generic [ref=e82]:
+        - button "设置" [ref=e83] [cursor=pointer]:
+          - img [ref=e84]
+          - generic [ref=e87]: 设置
+        - generic "本地工作台" [ref=e88]: 教
+    - generic [ref=e90]:
+      - banner [ref=e91]:
+        - link "返回教材资料库" [ref=e92] [cursor=pointer]:
+          - /url: /knowledge-bases
+          - img [ref=e93]
+          - text: 返回教材资料库
+        - generic [ref=e95]:
+          - heading "七年级数学基础库（隔离验收）" [level=1] [ref=e96]
+          - button "刷新" [ref=e98] [cursor=pointer]:
+            - img [ref=e99]
+            - text: 刷新
+        - generic [ref=e104]:
+          - generic [ref=e105]: 基础库
+          - generic [ref=e106]: 库 ui-library
+          - generic [ref=e107]: 年级：七年级
+          - generic [ref=e108]: 学科：数学
+          - generic [ref=e109]: 版本：人教版
+          - generic [ref=e110]: 书册 2
+          - generic [ref=e111]: 已就绪 1
+          - generic [ref=e112]: 修订 r3
+        - paragraph [ref=e113]: 可检索性以服务端已发布修订为准；「尚不可检索」表示当前没有可用的已发布修订或存在待入库修订。
+      - main [ref=e114]:
+        - list [ref=e115]:
+          - listitem [ref=e116]:
+            - generic [ref=e117]:
+              - strong [ref=e118]: 七年级数学上册（隔离教材）
+              - generic [ref=e120]: 可检索
+            - generic [ref=e121]:
+              - generic [ref=e122]: 年级：七年级
+              - generic [ref=e123]: 学科：数学
+              - generic [ref=e124]: 版本：人教版
+              - generic [ref=e125]: 修订 r4
+            - generic [ref=e126]:
+              - generic [ref=e127]: 字符 1200
+              - generic [ref=e128]: 块 12
+              - generic [ref=e129]: 解析器 fixture
+              - generic [ref=e130]: 发布 2026-10-04T00:00:00Z
+            - generic [ref=e131]:
+              - button "更新" [ref=e132] [cursor=pointer]
+              - button "编辑分类" [expanded] [ref=e133] [cursor=pointer]
+              - button "来源预览" [ref=e134] [cursor=pointer]
+              - button "删除" [ref=e135] [cursor=pointer]
+            - generic [ref=e136]:
+              - paragraph [ref=e137]: 保存使用乐观锁：当前书册修订 r4；若期间被其他操作修改会返回 409，届时保留你的填写供比较。
+              - generic [ref=e138]:
+                - generic [ref=e139]:
+                  - generic [ref=e140]: 标题
+                  - textbox "标题" [ref=e141]:
+                    - /placeholder: 例如：人教版七年级数学上册
+                    - text: 七年级数学上册（隔离教材）
+                - generic [ref=e142]:
+                  - generic [ref=e143]: 学段
+                  - combobox "学段" [ref=e144]:
+                    - option "请选择学段"
+                    - option "初中" [selected]
+                - group "年级（可多选，最多 3 个）" [ref=e145]:
+                  - generic [ref=e146]: 年级（可多选，最多 3 个）
+                  - generic [ref=e148]:
+                    - checkbox "七年级" [checked] [ref=e149]
+                    - text: 七年级
+                - generic [ref=e150]:
+                  - generic [ref=e151]: 学科
+                  - combobox "学科" [ref=e152]:
+                    - option "请选择学科"
+                    - option "数学" [selected]
+                - generic [ref=e153]:
+                  - generic [ref=e154]: 版本
+                  - combobox "版本" [ref=e155]:
+                    - option "请选择版本"
+                    - option "人教版" [selected]
+                - generic [ref=e156]:
+                  - generic [ref=e157]: 版次说明
+                  - textbox "版次说明" [ref=e158]:
+                    - /placeholder: 例如：2024 年 6 月第 1 版
+                    - text: 2024年版
+                - generic [ref=e159]:
+                  - generic [ref=e160]: 册次
+                  - textbox "册次" [ref=e161]:
+                    - /placeholder: 例如：上册
+                    - text: 上册
+              - generic [ref=e162]:
+                - button "保存分类" [ref=e163] [cursor=pointer]
+                - button "取消" [ref=e164] [cursor=pointer]
+          - listitem [ref=e165]:
+            - generic [ref=e166]:
+              - strong [ref=e167]: 七年级数学下册（待入库）
+              - generic [ref=e168]:
+                - generic [ref=e169]: 尚不可检索
+                - generic [ref=e170]: 有待入库修订
+            - generic [ref=e171]:
+              - generic [ref=e172]: 年级：七年级
+              - generic [ref=e173]: 学科：数学
+              - generic [ref=e174]: 版本：人教版
+              - generic [ref=e175]: 修订 r4
+            - generic [ref=e177]: 尚无已发布修订
+            - generic [ref=e178]:
+              - button "更新" [ref=e179] [cursor=pointer]
+              - button "编辑分类" [ref=e180] [cursor=pointer]
+              - button "来源预览" [disabled] [ref=e181]
+              - button "删除" [ref=e182] [cursor=pointer]
+  - alert [ref=e183]: 智启课源 · 教材库详情
+```

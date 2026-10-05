@@ -1,0 +1,258 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - button "打开功能导航" [ref=e4] [cursor=pointer]:
+        - img [ref=e5]
+      - button "返回学习问答" [ref=e6] [cursor=pointer]:
+        - img [ref=e8]
+        - strong [ref=e10]: 智启课源
+      - heading "教案工作台" [level=1] [ref=e11]
+      - button "导出教案" [ref=e14] [cursor=pointer]:
+        - img [ref=e15]
+        - text: 导出教案
+        - img [ref=e18]
+    - main [ref=e20]:
+      - generic [ref=e22]:
+        - generic [ref=e23]: LESSON PLANNER
+        - heading "把教学思路，写进课堂。" [level=1] [ref=e24]
+      - generic [ref=e25]:
+        - button "逐项填写" [ref=e26] [cursor=pointer]:
+          - img [ref=e27]
+          - text: 逐项填写
+        - button "要求填充 规则" [ref=e30] [cursor=pointer]:
+          - img [ref=e31]
+          - text: 要求填充
+          - generic [ref=e33]: 规则
+        - generic [ref=e34]:
+          - button "撤销" [disabled] [ref=e35]:
+            - img [ref=e36]
+          - button "重做" [disabled] [ref=e39]:
+            - img [ref=e40]
+      - generic [ref=e43]:
+        - generic [ref=e44]:
+          - generic "教案正文来源" [ref=e45]:
+            - generic [ref=e46]: 本地编辑 r0
+            - generic [ref=e47]: 本地规则 / 人工编辑 · 本地稿
+          - group [ref=e48]:
+            - generic "后台文档与固定历史" [ref=e49] [cursor=pointer]
+          - group [ref=e50]:
+            - generic "班级、固定学情与生成来源" [ref=e51] [cursor=pointer]
+            - option "请选择学科" [selected]
+            - option "请选择班级" [selected]
+            - option "不关联学情" [selected]
+            - option "请选择模型档案" [selected]
+            - option "请选择年级" [selected]
+            - option "请选择版本" [selected]
+            - option "请选择教材" [selected]
+        - group [ref=e52]:
+          - generic [ref=e53]:
+            - generic [ref=e54]:
+              - img [ref=e56]
+              - generic [ref=e59]:
+                - heading "基本信息" [level=2] [ref=e60]
+                - paragraph [ref=e61]: 从课题开始，搭好这节课的框架。
+            - generic [ref=e62]:
+              - generic [ref=e63]:
+                - text: 课题
+                - generic [ref=e64]: 必填
+              - textbox "课题" [ref=e65]:
+                - /placeholder: 例如：荷塘月色
+                - text: 荷塘月色
+            - generic [ref=e66]:
+              - generic [ref=e67]:
+                - generic [ref=e68]: 本课题总课时
+                - generic [ref=e69]:
+                  - spinbutton "本课题总课时" [ref=e70]: "2"
+                  - generic [ref=e71]: 课时
+              - generic [ref=e72]:
+                - generic [ref=e73]: 本节课
+                - generic [ref=e74]:
+                  - spinbutton "本节课" [ref=e75]: "1"
+                  - generic [ref=e76]: 课时
+            - generic [ref=e77]:
+              - generic [ref=e78]:
+                - text: 课型
+                - generic [ref=e79]: 可多选
+              - generic [ref=e80]:
+                - generic [ref=e81] [cursor=pointer]:
+                  - checkbox "新课" [checked] [ref=e82]
+                  - img [ref=e84]
+                  - text: 新课
+                - generic [ref=e86] [cursor=pointer]:
+                  - checkbox "复习课" [ref=e87]
+                  - text: 复习课
+                - generic [ref=e89] [cursor=pointer]:
+                  - checkbox "试题讲评课" [ref=e90]
+                  - text: 试题讲评课
+                - generic [ref=e92] [cursor=pointer]:
+                  - checkbox "实验课" [ref=e93]
+                  - text: 实验课
+                - generic [ref=e95] [cursor=pointer]:
+                  - checkbox "其它" [ref=e96]
+                  - text: 其它
+          - generic [ref=e98]:
+            - generic [ref=e99]:
+              - img [ref=e101]
+              - generic [ref=e105]:
+                - heading "核心素养目标" [level=2] [ref=e106]
+                - paragraph [ref=e107]: 这节课，你希望学生获得什么？
+            - textbox "核心素养目标" [ref=e108]:
+              - /placeholder: 填写核心素养目标…
+              - text: 1. 语言建构与运用：品味叠词、通感等语言表达，感受散文的音韵美。 2. 思维发展与提升：梳理作者的游踪与情感变化，理解景与情的关系。 3. 审美鉴赏与创造：体会月下荷塘的朦胧美，尝试用细腻的语言描绘生活中的景物。
+            - generic [ref=e109]:
+              - generic [ref=e110]: 支持换行，内容自动撑开
+              - generic [ref=e111]: 107 字
+          - generic [ref=e112]:
+            - generic [ref=e113]:
+              - img [ref=e115]
+              - generic [ref=e117]:
+                - heading "教学重、难点" [level=2] [ref=e118]
+                - paragraph [ref=e119]: 明确课堂重点，找到学习突破口。
+            - textbox "教学重、难点" [ref=e120]:
+              - /placeholder: 填写教学重、难点…
+              - text: 教学重点：赏析第4—6段写景语言，体会比喻、通感的表达效果。 教学难点：理解作者“淡淡的喜悦”与“淡淡的哀愁”交织的情感。
+            - generic [ref=e121]:
+              - generic [ref=e122]: 支持换行，内容自动撑开
+              - generic [ref=e123]: 61 字
+          - generic [ref=e124]:
+            - generic [ref=e125]:
+              - img [ref=e127]
+              - generic [ref=e129]:
+                - heading "教学设计" [level=2] [ref=e130]
+                - paragraph [ref=e131]: 记录板书思路、教学方法与组织方式。
+            - textbox "教学设计" [ref=e132]:
+              - /placeholder: 填写教学设计…
+              - text: 以“循着月光，走进荷塘”为主线，采用诵读品味、情境教学与合作探究。 板书设计：心中不宁 → 踱步荷塘 → 荷香月色 → 回归现实。
+            - generic [ref=e133]:
+              - generic [ref=e134]: 支持换行，内容自动撑开
+              - generic [ref=e135]: 65 字
+          - generic [ref=e136]:
+            - generic [ref=e137]:
+              - img [ref=e139]
+              - generic [ref=e143]:
+                - heading "教学过程" [level=2] [ref=e144]
+                - paragraph [ref=e145]: 串联教学环节，记录二次备课。
+              - generic [ref=e146]: 4 个环节
+            - generic [ref=e147]:
+              - generic [ref=e148]:
+                - img [ref=e149]
+                - generic [ref=e156]: 环节 1
+                - generic [ref=e157]:
+                  - button "上移环节1" [disabled] [ref=e158]:
+                    - img [ref=e159]
+                  - button "下移环节1" [ref=e161] [cursor=pointer]:
+                    - img [ref=e162]
+                  - button "删除环节1" [ref=e164] [cursor=pointer]:
+                    - img [ref=e165]
+              - generic [ref=e168]:
+                - generic [ref=e169]: 环节名称
+                - textbox "环节名称" [ref=e170]: 情境导入 · 5分钟
+              - generic [ref=e171]:
+                - generic [ref=e172]: 教学设计
+                - textbox "教学设计" [ref=e173]: 展示月下荷塘的画面，请学生用一个词描述感受。引出朱自清与《荷塘月色》，提出问题：作者为什么在这样的夜晚走出家门？
+              - generic [ref=e174]:
+                - generic [ref=e175]: 二次备课
+                - textbox "二次备课" [ref=e176]:
+                  - /placeholder: 记录调整思路或课堂观察…
+                  - text: 关注学生的初读感受。
+            - generic [ref=e177]:
+              - generic [ref=e178]:
+                - img [ref=e179]
+                - generic [ref=e186]: 环节 2
+                - generic [ref=e187]:
+                  - button "上移环节2" [ref=e188] [cursor=pointer]:
+                    - img [ref=e189]
+                  - button "下移环节2" [ref=e191] [cursor=pointer]:
+                    - img [ref=e192]
+                  - button "删除环节2" [ref=e194] [cursor=pointer]:
+                    - img [ref=e195]
+              - generic [ref=e198]:
+                - generic [ref=e199]: 环节名称
+                - textbox "环节名称" [ref=e200]: 初读感知 · 10分钟
+              - generic [ref=e201]:
+                - generic [ref=e202]: 教学设计
+                - textbox "教学设计" [ref=e203]: 学生自由朗读课文，圈画表示游踪的词句。小组梳理行文线索，概括作者出门前、漫步时、回家后的心情变化。
+              - generic [ref=e204]:
+                - generic [ref=e205]: 二次备课
+                - textbox "二次备课" [ref=e206]:
+                  - /placeholder: 记录调整思路或课堂观察…
+                  - text: 用游踪图辅助梳理。
+            - generic [ref=e207]:
+              - generic [ref=e208]:
+                - img [ref=e209]
+                - generic [ref=e216]: 环节 3
+                - generic [ref=e217]:
+                  - button "上移环节3" [ref=e218] [cursor=pointer]:
+                    - img [ref=e219]
+                  - button "下移环节3" [ref=e221] [cursor=pointer]:
+                    - img [ref=e222]
+                  - button "删除环节3" [ref=e224] [cursor=pointer]:
+                    - img [ref=e225]
+              - generic [ref=e228]:
+                - generic [ref=e229]: 环节名称
+                - textbox "环节名称" [ref=e230]: 品读赏析 · 20分钟
+              - generic [ref=e231]:
+                - generic [ref=e232]: 教学设计
+                - textbox "教学设计" [ref=e233]: 聚焦第4—6段。选择最喜欢的一句写景语句，从用词、修辞与感官三个角度分享理由。比较“清香”与“远处高楼上渺茫的歌声”，体会通感带来的阅读感受。
+              - generic [ref=e234]:
+                - generic [ref=e235]: 二次备课
+                - textbox "二次备课" [ref=e236]:
+                  - /placeholder: 记录调整思路或课堂观察…
+                  - text: 引导学生联系语境分析。
+            - generic [ref=e237]:
+              - generic [ref=e238]:
+                - img [ref=e239]
+                - generic [ref=e246]: 环节 4
+                - generic [ref=e247]:
+                  - button "上移环节4" [ref=e248] [cursor=pointer]:
+                    - img [ref=e249]
+                  - button "下移环节4" [disabled] [ref=e251]:
+                    - img [ref=e252]
+                  - button "删除环节4" [ref=e254] [cursor=pointer]:
+                    - img [ref=e255]
+              - generic [ref=e258]:
+                - generic [ref=e259]: 环节名称
+                - textbox "环节名称" [ref=e260]: 迁移小结 · 10分钟
+              - generic [ref=e261]:
+                - generic [ref=e262]: 教学设计
+                - textbox "教学设计" [ref=e263]: 回到开篇“这几天心里颇不宁静”，交流景物与情感的联系。用80字描写校园中的一处景物，尝试运用一种本课所学的表达手法。
+              - generic [ref=e264]:
+                - generic [ref=e265]: 二次备课
+                - textbox "二次备课" [ref=e266]:
+                  - /placeholder: 记录调整思路或课堂观察…
+                  - text: 允许不同理解，以文本为依据。
+            - button "添加教学环节" [ref=e267] [cursor=pointer]:
+              - img [ref=e268]
+              - text: 添加教学环节
+          - generic [ref=e269]:
+            - generic [ref=e270]:
+              - img [ref=e272]
+              - generic [ref=e275]:
+                - heading "练习与作业" [level=2] [ref=e276]
+                - paragraph [ref=e277]: 让课堂所学，在练习中得到巩固。
+            - textbox "练习与作业" [ref=e278]:
+              - /placeholder: 填写课堂练习与课后作业…
+              - text: 课堂练习：选择一处通感句，说明它沟通了哪些感官，有什么表达效果。 课后作业：完成一段150字的写景片段，至少运用一种本课学到的手法。
+          - generic [ref=e279]:
+            - generic [ref=e280]:
+              - img [ref=e282]
+              - generic [ref=e285]:
+                - heading "教学反思" [level=2] [ref=e286]
+                - paragraph [ref=e287]: 课后回顾，为下一次课堂留点启发。
+            - textbox "教学反思" [ref=e288]:
+              - /placeholder: 可以课后再来补充…
+      - generic [ref=e289]:
+        - generic [ref=e290]: 编辑后实时更新预览
+        - generic [ref=e292]: 6 / 7 项已填写
+    - generic [ref=e293]:
+      - button "编辑教案" [ref=e294] [cursor=pointer]:
+        - img [ref=e295]
+        - text: 编辑教案
+      - button "预览教案" [ref=e298] [cursor=pointer]:
+        - img [ref=e299]
+        - text: 预览教案
+  - alert [ref=e302]
+```

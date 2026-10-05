@@ -1,0 +1,88 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - heading "施测与成绩" [level=1] [ref=e4]
+      - paragraph [ref=e5]: 按「名单 → 原卷 → 施测 → 成绩 → 历史」完成一次真实测评闭环：成绩只接受教师原始 小题得分表，0 / 空白 / 缺考 / 免考严格区分，确认后的成绩修订不可变；修正生成新版本并保留审计。
+    - main [ref=e6]:
+      - tablist "施测与成绩步骤" [ref=e7]:
+        - tab "1 名单" [ref=e8] [cursor=pointer]
+        - tab "2 原卷" [ref=e9] [cursor=pointer]
+        - tab "3 施测" [selected] [ref=e10] [cursor=pointer]
+        - tab "4 成绩" [ref=e11] [cursor=pointer]
+        - tab "5 历史" [ref=e12] [cursor=pointer]
+      - generic [ref=e13]:
+        - generic [ref=e14]: 班级：55f862fa182b49ffa5fff8af76843138
+        - generic [ref=e15]: 原卷：G1 固定验证卷
+        - generic [ref=e16]: 施测：未选择
+      - tabpanel "3 施测" [ref=e17]:
+        - generic [ref=e18]:
+          - region "新建施测" [ref=e19]:
+            - generic [ref=e20]:
+              - heading "新建施测" [level=3] [ref=e21]:
+                - img [ref=e22]
+                - text: 新建施测
+              - generic [ref=e25]: 原卷：G1 固定验证卷（pr-g1resume-browser）
+            - form "新建施测" [ref=e26]:
+              - generic [ref=e27]:
+                - generic [ref=e28]: 标题
+                - textbox "施测标题" [ref=e29]
+              - generic [ref=e30]:
+                - generic [ref=e31]: 类型
+                - combobox "施测类型" [ref=e32]:
+                  - option "考试" [selected]
+                  - option "测验"
+                  - option "练习"
+              - generic [ref=e33]:
+                - generic [ref=e34]: 日期
+                - textbox "施测日期" [ref=e35]: 2026-10-02
+              - generic [ref=e36]: 班级：（未选择） · 参测 1 人次
+              - button "创建施测" [ref=e37] [cursor=pointer]
+            - button "刷新参测名单" [ref=e38] [cursor=pointer]
+            - group "参测人次" [ref=e39]:
+              - generic [ref=e40]: 参测人次（缺考也要按人次登记）
+              - generic [ref=e41]:
+                - generic [ref=e42]:
+                  - checkbox "参测 V00-G1-1790933660634甲" [active] [ref=e43]
+                  - generic [ref=e44]:
+                    - text: V00-G1-1790933660634甲
+                    - generic [ref=e45]: · 学号 V00-G1-1790933660634-001
+                - generic [ref=e46]:
+                  - generic [ref=e47]: 出勤
+                  - combobox "V00-G1-1790933660634甲 出勤" [disabled] [ref=e48]:
+                    - option "出勤" [selected]
+                    - option "缺考"
+                    - option "免考"
+                - generic [ref=e49]:
+                  - generic [ref=e50]: 人次
+                  - spinbutton "V00-G1-1790933660634甲 人次序号" [disabled] [ref=e51]: "1"
+              - generic [ref=e52]:
+                - generic [ref=e53]:
+                  - checkbox "参测 V00-G1-1790933660634乙" [checked] [ref=e54]
+                  - generic [ref=e55]:
+                    - text: V00-G1-1790933660634乙
+                    - generic [ref=e56]: · 学号 V00-G1-1790933660634-002
+                - generic [ref=e57]:
+                  - generic [ref=e58]: 出勤
+                  - combobox "V00-G1-1790933660634乙 出勤" [ref=e59]:
+                    - option "出勤" [selected]
+                    - option "缺考"
+                    - option "免考"
+                - generic [ref=e60]:
+                  - generic [ref=e61]: 人次
+                  - spinbutton "V00-G1-1790933660634乙 人次序号" [ref=e62]: "1"
+          - region "施测列表与详情" [ref=e63]:
+            - generic [ref=e64]:
+              - heading "现有施测" [level=3] [ref=e65]
+              - button "刷新" [ref=e66] [cursor=pointer]:
+                - img [ref=e67]
+                - text: 刷新
+            - paragraph [ref=e72]:
+              - strong [ref=e73]: 还没有施测
+              - generic [ref=e74]: 选定已确认原卷与班级后，在上方创建第一次施测。
+            - list "施测列表"
+            - paragraph [ref=e75]: 选择一个施测查看参测人次快照；成绩导入基于选中的施测。
+  - alert [ref=e76]
+```

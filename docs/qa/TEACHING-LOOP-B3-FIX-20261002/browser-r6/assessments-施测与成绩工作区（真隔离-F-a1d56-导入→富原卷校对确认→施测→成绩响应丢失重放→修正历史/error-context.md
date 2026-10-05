@@ -1,0 +1,214 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - heading "施测与成绩" [level=1] [ref=e4]
+      - paragraph [ref=e5]: 按「名单 → 原卷 → 施测 → 成绩 → 历史」完成一次真实测评闭环：成绩只接受教师原始 小题得分表，0 / 空白 / 缺考 / 免考严格区分，确认后的成绩修订不可变；修正生成新版本并保留审计。
+    - main [ref=e6]:
+      - tablist "施测与成绩步骤" [ref=e7]:
+        - tab "1 名单" [ref=e8] [cursor=pointer]
+        - tab "2 原卷" [ref=e9] [cursor=pointer]
+        - tab "3 施测" [ref=e10] [cursor=pointer]
+        - tab "4 成绩" [ref=e11] [cursor=pointer]
+        - tab "5 历史" [selected] [ref=e12] [cursor=pointer]
+      - generic [ref=e13]:
+        - generic [ref=e14]: 班级：ef8c8a61fcc14d408c40be381083f461
+        - generic [ref=e15]: 原卷：完整链固定原卷
+        - generic [ref=e16]: 施测：2815aa9222064ff782530f4f0157f3d9
+      - tabpanel "5 历史" [ref=e17]:
+        - generic [ref=e18]:
+          - region "成绩修订列表" [ref=e19]:
+            - generic [ref=e20]:
+              - heading "成绩修订" [level=3] [ref=e21]
+              - button "刷新" [ref=e22] [cursor=pointer]:
+                - img [ref=e23]
+                - text: 刷新
+            - list "成绩修订列表" [ref=e28]:
+              - listitem [ref=e29]:
+                - button "v1 已确认（不可变） · 4cf353ae79bd44eea679ec2c5ed266a5 · 人次 4 · 叶 3 · 首版" [ref=e30] [cursor=pointer]:
+                  - strong [ref=e31]: v1
+                  - generic [ref=e32]: 已确认（不可变） · 4cf353ae79bd44eea679ec2c5ed266a5 · 人次 4 · 叶 3 · 首版
+              - listitem [ref=e33]:
+                - button "v2 已确认（不可变） · 4894fba7f5094361b907549da538159a · 人次 4 · 叶 3 · 基于 4cf353ae79bd44eea679ec2c5ed266a5 · 当前生效" [pressed] [ref=e34] [cursor=pointer]:
+                  - strong [ref=e35]: v2
+                  - generic [ref=e36]: 已确认（不可变） · 4894fba7f5094361b907549da538159a · 人次 4 · 叶 3 · 基于 4cf353ae79bd44eea679ec2c5ed266a5 · 当前生效
+          - region "只读成绩矩阵" [ref=e37]:
+            - generic [ref=e38]:
+              - heading "只读矩阵（4894fba7f5094361b907549da538159a）" [level=3] [ref=e39]
+              - generic [ref=e40]: 第 1 页 · 共 4 人次 · 每页 50
+            - list "成绩四态图例" [ref=e41]:
+              - listitem [ref=e42]:
+                - generic "有效分数（recorded）" [ref=e43]:
+                  - generic [ref=e44]: ●
+                  - generic [ref=e45]: 有效
+                  - generic [ref=e46]: （有效分数（recorded））
+                - generic [ref=e47]: 表格里的 0 是有效 0 分，不等于空白
+              - listitem [ref=e48]:
+                - generic "空白（missing）" [ref=e49]:
+                  - generic [ref=e50]: ▢
+                  - generic [ref=e51]: 空白
+                  - generic [ref=e52]: （空白（missing））
+                - generic [ref=e53]: 空白单元格：不补 0，需逐类承认后确认
+              - listitem [ref=e54]:
+                - generic "缺考（absent）" [ref=e55]:
+                  - generic [ref=e56]: ✕
+                  - generic [ref=e57]: 缺考
+                  - generic [ref=e58]: （缺考（absent））
+                - generic [ref=e59]: 缺考：按人次出勤状态登记，不计 0
+              - listitem [ref=e60]:
+                - generic "免考（exempt）" [ref=e61]:
+                  - generic [ref=e62]: ◇
+                  - generic [ref=e63]: 免考
+                  - generic [ref=e64]: （免考（exempt））
+                - generic [ref=e65]: 免考：不计 0，不参与总分核对
+            - generic [ref=e66]:
+              - generic [ref=e67]: 缺考班 1
+              - generic [ref=e68]: 空白 1 单元 / 1 人次
+            - table "成绩只读矩阵（分页）" [ref=e70]:
+              - caption [ref=e71]: 成绩只读矩阵（分页）
+              - rowgroup [ref=e72]:
+                - row "人次 出勤 1 满分 2 2 满分 3 3 满分 5 总分" [ref=e73]:
+                  - columnheader "人次" [ref=e74]
+                  - columnheader "出勤" [ref=e75]
+                  - columnheader "1 满分 2" [ref=e76]:
+                    - text: "1"
+                    - generic [ref=e77]: 满分 2
+                  - columnheader "2 满分 3" [ref=e78]:
+                    - text: "2"
+                    - generic [ref=e79]: 满分 3
+                  - columnheader "3 满分 5" [ref=e80]:
+                    - text: "3"
+                    - generic [ref=e81]: 满分 5
+                  - columnheader "总分" [ref=e82]
+              - rowgroup [ref=e83]:
+                - row "全链丁 学号 01004 · 人次 1 出勤 0 分 （有效分数（recorded）） 3 分 （有效分数（recorded）） 5 分 （有效分数（recorded）） 8 / 10 分" [ref=e84]:
+                  - rowheader "全链丁 学号 01004 · 人次 1" [ref=e85]:
+                    - text: 全链丁
+                    - generic [ref=e86]: 学号 01004 · 人次 1
+                  - cell "出勤" [ref=e87]
+                  - cell "0 分 （有效分数（recorded））" [ref=e88]:
+                    - generic "有效分数（recorded）" [ref=e89]:
+                      - generic [ref=e90]: ●
+                      - generic [ref=e91]: 0 分
+                      - generic [ref=e92]: （有效分数（recorded））
+                  - cell "3 分 （有效分数（recorded））" [ref=e93]:
+                    - generic "有效分数（recorded）" [ref=e94]:
+                      - generic [ref=e95]: ●
+                      - generic [ref=e96]: 3 分
+                      - generic [ref=e97]: （有效分数（recorded））
+                  - cell "5 分 （有效分数（recorded））" [ref=e98]:
+                    - generic "有效分数（recorded）" [ref=e99]:
+                      - generic [ref=e100]: ●
+                      - generic [ref=e101]: 5 分
+                      - generic [ref=e102]: （有效分数（recorded））
+                  - cell "8 / 10 分" [ref=e103]
+                - row "全链丙 学号 01003 · 人次 1 缺考 缺考 （缺考（absent）） 缺考 （缺考（absent）） 缺考 （缺考（absent）） 不展示总分（共 10 分；该人次含空白/缺考/免考）" [ref=e104]:
+                  - rowheader "全链丙 学号 01003 · 人次 1" [ref=e105]:
+                    - text: 全链丙
+                    - generic [ref=e106]: 学号 01003 · 人次 1
+                  - cell "缺考" [ref=e107]
+                  - cell "缺考 （缺考（absent））" [ref=e108]:
+                    - generic "缺考（absent）" [ref=e109]:
+                      - generic [ref=e110]: ✕
+                      - generic [ref=e111]: 缺考
+                      - generic [ref=e112]: （缺考（absent））
+                  - cell "缺考 （缺考（absent））" [ref=e113]:
+                    - generic "缺考（absent）" [ref=e114]:
+                      - generic [ref=e115]: ✕
+                      - generic [ref=e116]: 缺考
+                      - generic [ref=e117]: （缺考（absent））
+                  - cell "缺考 （缺考（absent））" [ref=e118]:
+                    - generic "缺考（absent）" [ref=e119]:
+                      - generic [ref=e120]: ✕
+                      - generic [ref=e121]: 缺考
+                      - generic [ref=e122]: （缺考（absent））
+                  - cell "不展示总分（共 10 分；该人次含空白/缺考/免考）" [ref=e123]
+                - row "全链乙 学号 01002 · 人次 1 出勤 2 分 （有效分数（recorded）） 3 分 （有效分数（recorded）） 空白 （空白（missing）） 不展示总分（共 10 分；该人次含空白/缺考/免考）" [ref=e124]:
+                  - rowheader "全链乙 学号 01002 · 人次 1" [ref=e125]:
+                    - text: 全链乙
+                    - generic [ref=e126]: 学号 01002 · 人次 1
+                  - cell "出勤" [ref=e127]
+                  - cell "2 分 （有效分数（recorded））" [ref=e128]:
+                    - generic "有效分数（recorded）" [ref=e129]:
+                      - generic [ref=e130]: ●
+                      - generic [ref=e131]: 2 分
+                      - generic [ref=e132]: （有效分数（recorded））
+                  - cell "3 分 （有效分数（recorded））" [ref=e133]:
+                    - generic "有效分数（recorded）" [ref=e134]:
+                      - generic [ref=e135]: ●
+                      - generic [ref=e136]: 3 分
+                      - generic [ref=e137]: （有效分数（recorded））
+                  - cell "空白 （空白（missing））" [ref=e138]:
+                    - generic "空白（missing）" [ref=e139]:
+                      - generic [ref=e140]: ▢
+                      - generic [ref=e141]: 空白
+                      - generic [ref=e142]: （空白（missing））
+                  - cell "不展示总分（共 10 分；该人次含空白/缺考/免考）" [ref=e143]
+                - row "全链甲 学号 01001 · 人次 1 出勤 1.5 分 （有效分数（recorded）） 2 分 （有效分数（recorded）） 5 分 （有效分数（recorded）） 8.5 / 10 分" [ref=e144]:
+                  - rowheader "全链甲 学号 01001 · 人次 1" [ref=e145]:
+                    - text: 全链甲
+                    - generic [ref=e146]: 学号 01001 · 人次 1
+                  - cell "出勤" [ref=e147]
+                  - cell "1.5 分 （有效分数（recorded））" [ref=e148]:
+                    - generic "有效分数（recorded）" [ref=e149]:
+                      - generic [ref=e150]: ●
+                      - generic [ref=e151]: 1.5 分
+                      - generic [ref=e152]: （有效分数（recorded））
+                  - cell "2 分 （有效分数（recorded））" [ref=e153]:
+                    - generic "有效分数（recorded）" [ref=e154]:
+                      - generic [ref=e155]: ●
+                      - generic [ref=e156]: 2 分
+                      - generic [ref=e157]: （有效分数（recorded））
+                  - cell "5 分 （有效分数（recorded））" [ref=e158]:
+                    - generic "有效分数（recorded）" [ref=e159]:
+                      - generic [ref=e160]: ●
+                      - generic [ref=e161]: 5 分
+                      - generic [ref=e162]: （有效分数（recorded））
+                  - cell "8.5 / 10 分" [ref=e163]
+            - generic [ref=e164]:
+              - button "上一页" [disabled] [ref=e165]
+              - button "下一页" [disabled] [ref=e166]
+          - region "成绩修正" [ref=e167]:
+            - generic [ref=e168]:
+              - heading "修正（基于当前生效版本 4894fba7f5094361b907549da538159a）" [level=3] [ref=e169]
+              - generic [ref=e170]: 修正会生成新的完整版本，旧报告仍依据旧版本；审计保留原值/新值/理由/坐标。
+            - paragraph [ref=e171]: 当前生效版本：v2（取自施测记录的权威字段）； 修正默认 base 必须等于当前生效版本。
+            - generic "添加修正" [ref=e172]:
+              - generic [ref=e173]:
+                - generic [ref=e174]: 人次
+                - combobox "修正人次" [ref=e175]:
+                  - option "选择人次"
+                  - option "全链丁（ef8c8a61fcc14d408c40be381083f461 · 人次 1）"
+                  - option "全链丙（ef8c8a61fcc14d408c40be381083f461 · 人次 1）"
+                  - option "全链乙（ef8c8a61fcc14d408c40be381083f461 · 人次 1）"
+                  - option "全链甲（ef8c8a61fcc14d408c40be381083f461 · 人次 1）" [selected]
+              - generic [ref=e176]:
+                - generic [ref=e177]: 计分叶
+                - combobox "修正计分叶" [ref=e178]:
+                  - option "选择计分叶"
+                  - option "1（满分 2）" [selected]
+                  - option "2（满分 3）"
+                  - option "3（满分 5）"
+              - generic [ref=e179]:
+                - generic [ref=e180]: 新状态
+                - combobox "修正状态" [ref=e181]:
+                  - option "有效分数（recorded）" [selected]
+                  - option "空白（missing）"
+                  - option "缺考（absent）"
+                  - option "免考（exempt）"
+              - generic [ref=e182]:
+                - generic [ref=e183]: 新分数（十进制文本）
+                - textbox "修正分数" [ref=e184]:
+                  - /placeholder: 如 7.5
+              - button "加入修正列表" [ref=e185] [cursor=pointer]:
+                - img [ref=e186]
+                - text: 加入修正列表
+            - generic [ref=e187]:
+              - generic [ref=e188]: 修正理由（必填）
+              - textbox "修正理由" [ref=e189]
+            - button "提交修正（生成新版本）" [disabled] [ref=e191]
+            - status [ref=e192]: 已生成新版本 v2（修订 4894fba7f5094361b907549da538159a；基于 4cf353ae79bd44eea679ec2c5ed266a5）。
+  - alert [ref=e193]
+```

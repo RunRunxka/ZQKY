@@ -6,7 +6,7 @@ import { defaultSourceApi } from './workspace-services';
 import { lessonPlanApi } from '@/services/lesson-plans-api';
 
 export interface DocumentSelection { subjectId: string; classId: string; context: AnalysisContextInput | null }
-export interface DocumentOperationState { busy: boolean; unknown: boolean }
+export interface DocumentOperationState { busy: boolean; unknown: boolean; recoveryBlocked?: boolean }
 export interface DocumentOperationPublisher { publish: (state: DocumentOperationState) => boolean; isCurrent: () => boolean; release: () => void }
 export interface DocumentController {
   mode: 'local' | 'server' | 'history';

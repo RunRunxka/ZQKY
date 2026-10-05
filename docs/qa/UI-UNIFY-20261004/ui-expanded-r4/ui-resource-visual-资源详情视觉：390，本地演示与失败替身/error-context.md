@@ -1,0 +1,81 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - button "打开功能导航" [ref=e4] [cursor=pointer]:
+        - img [ref=e5]
+      - button "返回学习问答" [ref=e6] [cursor=pointer]:
+        - img [ref=e8]
+        - strong [ref=e10]: 智启课源
+    - generic [ref=e12]:
+      - banner [ref=e13]:
+        - generic [ref=e14]:
+          - link "返回书籍列表" [ref=e15] [cursor=pointer]:
+            - /url: /books
+            - img [ref=e16]
+            - text: 返回书籍列表
+          - generic [ref=e18]:
+            - button "导出 Markdown" [ref=e19] [cursor=pointer]
+            - button "重建书籍" [ref=e20] [cursor=pointer]:
+              - img [ref=e21]
+              - text: 重建书籍
+        - heading "分数入门（演示书籍）" [level=1] [ref=e24]
+        - paragraph [ref=e25]: 阅读进度 25% · 已读 1/4 页
+      - main [ref=e26]:
+        - generic [ref=e27]:
+          - navigation "章节目录" [ref=e28]:
+            - generic [ref=e29]:
+              - paragraph [ref=e30]: 第 1 章 · 分数是什么
+              - link "分数是什么（1/2）" [ref=e31] [cursor=pointer]:
+                - /url: /books/demo-book-fractions/pages/demo-book-fractions-p0
+                - generic [ref=e33]: 分数是什么（1/2）
+              - link "分数是什么（2/2）" [ref=e34] [cursor=pointer]:
+                - /url: /books/demo-book-fractions/pages/demo-book-fractions-p1
+                - generic [ref=e36]: 分数是什么（2/2）
+            - generic [ref=e37]:
+              - paragraph [ref=e38]: 第 2 章 · 比较分数大小
+              - link "比较分数大小（1/2） 已加书签" [ref=e39] [cursor=pointer]:
+                - /url: /books/demo-book-fractions/pages/demo-book-fractions-p2
+                - generic [ref=e41]: 比较分数大小（1/2）
+                - generic "已加书签" [ref=e42]:
+                  - img [ref=e43]
+                  - text: 签
+              - link "比较分数大小（2/2）" [ref=e45] [cursor=pointer]:
+                - /url: /books/demo-book-fractions/pages/demo-book-fractions-p3
+                - generic [ref=e47]: 比较分数大小（2/2）
+          - article [ref=e48]:
+            - generic [ref=e49]:
+              - generic [ref=e50]: 分数是什么
+              - generic [ref=e51]: 第 1/4 页
+              - generic [ref=e52]:
+                - button "添加书签" [ref=e53] [cursor=pointer]:
+                  - img [ref=e54]
+                  - text: 书签
+                - button "强制重新生成" [ref=e56] [cursor=pointer]:
+                  - img [ref=e57]
+                  - text: 强制重新生成
+            - heading "分数入门（演示书籍）" [level=2] [ref=e62]:
+              - link "分数入门（演示书籍）" [ref=e63] [cursor=pointer]:
+                - /url: /books/demo-book-fractions
+            - note [ref=e64]: 本页内容为本地模拟编译产物（显式标注），非模型生成；练习作答与页内笔记本地持久化，跨会话恢复（参考为服务端 attempt）。
+            - generic [ref=e65]:
+              - heading "分数是什么" [level=3] [ref=e66]
+              - paragraph [ref=e67]: 本节围绕「分数是什么 · 第1页」展开（模拟生成内容，用于验证阅读器结构与进度，不代表模型产出）。
+            - paragraph [ref=e69]: "## 分数是什么 · 第1页 - 先看一个具体例子； - 再理解定义与依据； - 最后完成本页小练习。 （模拟生成）"
+            - complementary [ref=e70]:
+              - strong [ref=e71]: 学习提示
+              - paragraph [ref=e72]: 把本页要点用自己的话复述一遍，再进入下一页（模拟生成）。
+            - generic [ref=e73]:
+              - paragraph [ref=e74]: 「分数是什么 · 第1页」这一页的主要目标是？
+              - button "A. 理解本页概念并能举例" [ref=e75] [cursor=pointer]
+              - button "B. 背诵全文" [ref=e76] [cursor=pointer]
+            - generic [ref=e77]:
+              - generic [ref=e78]: ← / → 键盘翻页
+              - link "下一页" [ref=e79] [cursor=pointer]:
+                - /url: /books/demo-book-fractions/pages/demo-book-fractions-p1
+                - text: 下一页
+                - img [ref=e80]
+  - alert [ref=e82]
+```

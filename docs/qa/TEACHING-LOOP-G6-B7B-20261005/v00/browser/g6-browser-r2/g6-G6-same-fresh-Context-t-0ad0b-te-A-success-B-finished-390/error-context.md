@@ -1,0 +1,241 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - alert [ref=e2]
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - button "打开功能导航" [ref=e5] [cursor=pointer]:
+        - img [ref=e6]
+      - button "返回学习问答" [ref=e7] [cursor=pointer]:
+        - img [ref=e9]
+        - strong [ref=e11]: 智启课源
+      - heading "教案工作台" [level=1] [ref=e12]
+      - button "导出教案" [ref=e15] [cursor=pointer]:
+        - img [ref=e16]
+        - text: 导出教案
+        - img [ref=e19]
+    - main [ref=e21]:
+      - generic [ref=e23]:
+        - generic [ref=e24]: LESSON PLANNER
+        - heading "把教学思路，写进课堂。" [level=1] [ref=e25]
+      - generic [ref=e26]:
+        - button "逐项填写" [ref=e27] [cursor=pointer]:
+          - img [ref=e28]
+          - text: 逐项填写
+        - button "要求填充 规则" [ref=e31] [cursor=pointer]:
+          - img [ref=e32]
+          - text: 要求填充
+          - generic [ref=e34]: 规则
+        - generic [ref=e35]:
+          - button "撤销" [ref=e36] [cursor=pointer]:
+            - img [ref=e37]
+          - button "重做" [disabled] [ref=e40]:
+            - img [ref=e41]
+      - generic [ref=e44]:
+        - generic [ref=e45]:
+          - generic "教案正文来源" [ref=e46]:
+            - generic [ref=e47]: 未保存编辑 r1，基于 v1 · v00-g6-current-A-fixed-1
+            - generic [ref=e48]: manual · unreviewed
+            - generic [ref=e49]: 固定学情 v00-g6-report → 教案 v00-g6-current-A-fixed-1 → 调整建议 尚未生成
+          - generic [ref=e50]:
+            - status [ref=e51]: 后台稿有未保存编辑
+            - button "保存后台稿" [ref=e52] [cursor=pointer]
+            - button "读取后台最新版本" [ref=e53] [cursor=pointer]
+          - group [ref=e54]:
+            - generic "后台文档与固定历史" [ref=e55] [cursor=pointer]
+            - generic [ref=e56]:
+              - generic [ref=e57]:
+                - button "创建空白后台教案" [disabled] [ref=e58]
+                - button "将当前正文创建为后台教案" [disabled] [ref=e59]
+                - button "导入完整旧本地稿到后台" [disabled] [ref=e60]
+                - button "返回旧本地稿" [ref=e61] [cursor=pointer]
+              - paragraph [ref=e62]: 旧本地稿保留原键和完整信封；导入成功后仅打开新后台文档。
+              - button "重试创建操作恢复缓存" [ref=e63] [cursor=pointer]
+              - alert [ref=e64]: 已收到明确结果，但操作恢复缓存清理失败：待清理缓存不属于本次明确结果的原操作，原字节保持。请重试缓存清理；不会重新发送HTTP。
+              - list
+              - button "刷新后台列表" [ref=e65] [cursor=pointer]
+              - button "读取固定历史" [ref=e66] [cursor=pointer]
+              - list
+          - group [ref=e67]:
+            - generic "班级、固定学情与生成来源" [ref=e68] [cursor=pointer]
+            - option "chinese" [selected]
+            - option "请选择班级"
+            - option "v00-g6-class" [selected]
+            - option "不关联学情"
+            - option "v00-g6-report · 固定来源（待核验）" [selected]
+            - option "请选择模型档案" [selected]
+            - option "请选择年级" [selected]
+            - option "请选择版本" [selected]
+            - option "请选择教材" [selected]
+          - group [ref=e69]:
+            - generic "学情驱动 AI 候选与逐字段差异" [ref=e70] [cursor=pointer]
+        - group [ref=e71]:
+          - generic [ref=e72]:
+            - generic [ref=e73]:
+              - img [ref=e75]
+              - generic [ref=e78]:
+                - heading "基本信息" [level=2] [ref=e79]
+                - paragraph [ref=e80]: 从课题开始，搭好这节课的框架。
+            - generic [ref=e81]:
+              - generic [ref=e82]:
+                - text: 课题
+                - generic [ref=e83]: 必填
+              - textbox "课题" [active] [ref=e84]:
+                - /placeholder: 例如：荷塘月色
+                - text: G6 A明确success等待期间新教师编辑
+            - generic [ref=e85]:
+              - generic [ref=e86]:
+                - generic [ref=e87]: 本课题总课时
+                - generic [ref=e88]:
+                  - spinbutton "本课题总课时" [ref=e89]: "9"
+                  - generic [ref=e90]: 课时
+              - generic [ref=e91]:
+                - generic [ref=e92]: 本节课
+                - generic [ref=e93]:
+                  - spinbutton "本节课" [ref=e94]: "5"
+                  - generic [ref=e95]: 课时
+            - generic [ref=e96]:
+              - generic [ref=e97]:
+                - text: 课型
+                - generic [ref=e98]: 可多选
+              - generic [ref=e99]:
+                - generic [ref=e100] [cursor=pointer]:
+                  - checkbox "新课" [ref=e101]
+                  - text: 新课
+                - generic [ref=e103] [cursor=pointer]:
+                  - checkbox "复习课" [checked] [ref=e104]
+                  - img [ref=e106]
+                  - text: 复习课
+                - generic [ref=e108] [cursor=pointer]:
+                  - checkbox "试题讲评课" [ref=e109]
+                  - text: 试题讲评课
+                - generic [ref=e111] [cursor=pointer]:
+                  - checkbox "实验课" [ref=e112]
+                  - text: 实验课
+                - generic [ref=e114] [cursor=pointer]:
+                  - checkbox "其它" [checked] [ref=e115]
+                  - img [ref=e117]
+                  - text: 其它
+            - generic [ref=e119]:
+              - generic [ref=e120]: 其他课型说明
+              - textbox "其他课型说明" [ref=e121]: 手写双页独立课型
+          - generic [ref=e122]:
+            - generic [ref=e123]:
+              - img [ref=e125]
+              - generic [ref=e129]:
+                - heading "核心素养目标" [level=2] [ref=e130]
+                - paragraph [ref=e131]: 这节课，你希望学生获得什么？
+            - textbox "核心素养目标" [ref=e132]:
+              - /placeholder: 填写核心素养目标…
+              - text: G6A完整素养
+            - generic [ref=e133]:
+              - generic [ref=e134]: 支持换行，内容自动撑开
+              - generic [ref=e135]: 7 字
+          - generic [ref=e136]:
+            - generic [ref=e137]:
+              - img [ref=e139]
+              - generic [ref=e141]:
+                - heading "教学重、难点" [level=2] [ref=e142]
+                - paragraph [ref=e143]: 明确课堂重点，找到学习突破口。
+            - textbox "教学重、难点" [ref=e144]:
+              - /placeholder: 填写教学重、难点…
+              - text: G6A完整重点
+            - generic [ref=e145]:
+              - generic [ref=e146]: 支持换行，内容自动撑开
+              - generic [ref=e147]: 7 字
+          - generic [ref=e148]:
+            - generic [ref=e149]:
+              - img [ref=e151]
+              - generic [ref=e153]:
+                - heading "教学设计" [level=2] [ref=e154]
+                - paragraph [ref=e155]: 记录板书思路、教学方法与组织方式。
+            - textbox "教学设计" [ref=e156]:
+              - /placeholder: 填写教学设计…
+              - text: G6A独立中文设计 <>&；固定来源。G6A独立中文设计 <>&；固定来源。G6A独立中文设计 <>&；固定来源。G6A独立中文设计 <>&；固定来源。G6A独立中文设计 <>&；固定来源。G6A独立中文设计 <>&；固定来源。G6A独立中文设计 <>&；固定来源。G6A独立中文设计 <>&；固定来源。G6A独立中文设计 <>&；固定来源。G6A独立中文设计 <>&；固定来源。G6A独立中文设计 <>&；固定来源。G6A独立中文设计 <>&；固定来源。
+            - generic [ref=e157]:
+              - generic [ref=e158]: 支持换行，内容自动撑开
+              - generic [ref=e159]: 228 字
+          - generic [ref=e160]:
+            - generic [ref=e161]:
+              - img [ref=e163]
+              - generic [ref=e167]:
+                - heading "教学过程" [level=2] [ref=e168]
+                - paragraph [ref=e169]: 串联教学环节，记录二次备课。
+              - generic [ref=e170]: 2 个环节
+            - generic [ref=e171]:
+              - generic [ref=e172]:
+                - img [ref=e173]
+                - generic [ref=e180]: 环节 1
+                - generic [ref=e181]:
+                  - button "上移环节1" [disabled] [ref=e182]:
+                    - img [ref=e183]
+                  - button "下移环节1" [ref=e185] [cursor=pointer]:
+                    - img [ref=e186]
+                  - button "删除环节1" [ref=e188] [cursor=pointer]:
+                    - img [ref=e189]
+              - generic [ref=e192]:
+                - generic [ref=e193]: 环节名称
+                - textbox "环节名称" [ref=e194]: 第一环节
+              - generic [ref=e195]:
+                - generic [ref=e196]: 教学设计
+                - textbox "教学设计" [ref=e197]: A完整设计甲
+              - generic [ref=e198]:
+                - generic [ref=e199]: 二次备课
+                - textbox "二次备课" [ref=e200]:
+                  - /placeholder: 记录调整思路或课堂观察…
+                  - text: A二次备课甲；中文<>&
+            - generic [ref=e201]:
+              - generic [ref=e202]:
+                - img [ref=e203]
+                - generic [ref=e210]: 环节 2
+                - generic [ref=e211]:
+                  - button "上移环节2" [ref=e212] [cursor=pointer]:
+                    - img [ref=e213]
+                  - button "下移环节2" [disabled] [ref=e215]:
+                    - img [ref=e216]
+                  - button "删除环节2" [ref=e218] [cursor=pointer]:
+                    - img [ref=e219]
+              - generic [ref=e222]:
+                - generic [ref=e223]: 环节名称
+                - textbox "环节名称" [ref=e224]: 第二环节
+              - generic [ref=e225]:
+                - generic [ref=e226]: 教学设计
+                - textbox "教学设计" [ref=e227]: A完整设计乙
+              - generic [ref=e228]:
+                - generic [ref=e229]: 二次备课
+                - textbox "二次备课" [ref=e230]:
+                  - /placeholder: 记录调整思路或课堂观察…
+                  - text: A二次备课乙；中文±
+            - button "添加教学环节" [ref=e231] [cursor=pointer]:
+              - img [ref=e232]
+              - text: 添加教学环节
+          - generic [ref=e233]:
+            - generic [ref=e234]:
+              - img [ref=e236]
+              - generic [ref=e239]:
+                - heading "练习与作业" [level=2] [ref=e240]
+                - paragraph [ref=e241]: 让课堂所学，在练习中得到巩固。
+            - textbox "练习与作业" [ref=e242]:
+              - /placeholder: 填写课堂练习与课后作业…
+              - text: G6A完整练习
+          - generic [ref=e243]:
+            - generic [ref=e244]:
+              - img [ref=e246]
+              - generic [ref=e249]:
+                - heading "教学反思" [level=2] [ref=e250]
+                - paragraph [ref=e251]: 课后回顾，为下一次课堂留点启发。
+            - textbox "教学反思" [ref=e252]:
+              - /placeholder: 可以课后再来补充…
+              - text: G6A教师反思
+      - generic [ref=e253]:
+        - generic [ref=e254]: 编辑后实时更新预览
+        - generic [ref=e256]: 7 / 7 项已填写
+    - generic [ref=e257]:
+      - button "编辑教案" [ref=e258] [cursor=pointer]:
+        - img [ref=e259]
+        - text: 编辑教案
+      - button "预览教案" [ref=e262] [cursor=pointer]:
+        - img [ref=e263]
+        - text: 预览教案
+```

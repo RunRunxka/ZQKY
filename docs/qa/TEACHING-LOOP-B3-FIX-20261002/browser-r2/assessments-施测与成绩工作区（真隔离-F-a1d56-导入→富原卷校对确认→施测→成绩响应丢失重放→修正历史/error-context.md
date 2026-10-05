@@ -1,0 +1,165 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - heading "施测与成绩" [level=1] [ref=e4]
+      - paragraph [ref=e5]: 按「名单 → 原卷 → 施测 → 成绩 → 历史」完成一次真实测评闭环：成绩只接受教师原始 小题得分表，0 / 空白 / 缺考 / 免考严格区分，确认后的成绩修订不可变；修正生成新版本并保留审计。
+    - main [ref=e6]:
+      - tablist "施测与成绩步骤" [ref=e7]:
+        - tab "1 名单" [selected] [ref=e8] [cursor=pointer]
+        - tab "2 原卷" [ref=e9] [cursor=pointer]
+        - tab "3 施测" [ref=e10] [cursor=pointer]
+        - tab "4 成绩" [ref=e11] [cursor=pointer]
+        - tab "5 历史" [ref=e12] [cursor=pointer]
+      - generic [ref=e13]:
+        - generic [ref=e14]: 班级：72460a2e8c4040afb72cc0acab6dfc17
+        - generic [ref=e15]: 原卷：未选用
+        - generic [ref=e16]: 施测：未选择
+      - tabpanel "1 名单" [ref=e17]:
+        - generic [ref=e18]:
+          - region "班级" [ref=e19]:
+            - generic [ref=e20]:
+              - heading "班级" [level=3] [ref=e21]:
+                - img [ref=e22]
+                - text: 班级
+              - generic [ref=e27]:
+                - button "新建班级" [ref=e28] [cursor=pointer]
+                - button "刷新" [ref=e29] [cursor=pointer]:
+                  - img [ref=e30]
+                  - text: 刷新
+            - list "班级列表" [ref=e35]:
+              - listitem [ref=e36]:
+                - button "完整导入班 COMPLETE · 2026 · 学生 0" [pressed] [ref=e37] [cursor=pointer]:
+                  - strong [ref=e38]: 完整导入班
+                  - generic [ref=e39]: COMPLETE · 2026 · 学生 0
+              - listitem [ref=e40]:
+                - button "F20-I 班级 C-F20I · 2026 · 学生 4" [ref=e41] [cursor=pointer]:
+                  - strong [ref=e42]: F20-I 班级
+                  - generic [ref=e43]: C-F20I · 2026 · 学生 4
+          - region "班级成员" [ref=e44]:
+            - generic [ref=e45]:
+              - heading "班级成员" [level=3] [ref=e46]:
+                - img [ref=e47]
+                - text: 班级成员
+              - button "刷新成员" [ref=e50] [cursor=pointer]:
+                - img [ref=e51]
+                - text: 刷新成员
+            - list "班级成员列表"
+            - paragraph [ref=e56]: 该班还没有学生；可在下面逐个添加（学号可留空，姓名不是主键）。
+            - form "添加学生" [ref=e57]:
+              - generic [ref=e58]:
+                - generic [ref=e59]: 姓名
+                - textbox "学生姓名" [ref=e60]
+              - generic [ref=e61]:
+                - generic [ref=e62]: 学号（可空，按文本保存）
+                - textbox "学生学号" [ref=e63]
+              - button "添加学生" [ref=e64] [cursor=pointer]
+          - region "名单导入与校对" [ref=e65]:
+            - heading "导入名单" [level=3] [ref=e66]
+            - paragraph [ref=e67]: 学号按文本保存，保留前导零；姓名不是主键。名单里未出现的学生不会自动退班。
+            - generic [ref=e68]:
+              - generic [ref=e69]:
+                - text: 名单文件
+                - button "名单文件" [ref=e70]
+              - generic [ref=e71]:
+                - text: 工作表名（XLSX 可选）
+                - textbox "名单工作表名" [ref=e72]
+              - generic [ref=e73]:
+                - text: 上传时姓名表头（自动识别失败时填写）
+                - textbox "上传时姓名表头" [ref=e74]
+              - generic [ref=e75]:
+                - text: 上传时学号表头（可选）
+                - textbox "上传时学号表头" [ref=e76]
+              - button "上传名单" [ref=e77] [cursor=pointer]
+            - generic [ref=e78]:
+              - heading "已有名单批次" [level=4] [ref=e79]
+              - button "刷新名单批次" [ref=e80] [cursor=pointer]
+            - list "名单批次列表" [ref=e81]:
+              - listitem [ref=e82]:
+                - button "17bc9c90a3ec41bc8ae04246424fcdcc · 校对中 · 4 行 · r0" [ref=e83] [cursor=pointer]
+            - paragraph [ref=e84]: 原件：完整名单.csv · 完整导入班 · 版本 0 · 校对中
+            - generic [ref=e85]:
+              - generic [ref=e86]:
+                - text: 姓名列
+                - combobox "名单姓名列" [ref=e87]:
+                  - option "请选择姓名列"
+                  - option "学号"
+                  - option "姓名" [selected]
+              - generic [ref=e88]:
+                - text: 学号列
+                - combobox "名单学号列" [ref=e89]:
+                  - option "不映射学号"
+                  - option "学号" [selected]
+                  - option "姓名"
+            - generic [ref=e90]:
+              - generic [ref=e91]:
+                - text: 搜索已有学生（关联用）
+                - textbox "搜索已有学生" [ref=e92]
+              - button "搜索学生" [ref=e93] [cursor=pointer]
+            - list "名单行校对" [ref=e94]:
+              - listitem [ref=e95]:
+                - strong [ref=e96]: 数据第 1 行：全链甲 · 学号 01001
+                - paragraph [ref=e97]: 建议新建学生；建议不是确认决定。
+                - generic [ref=e98]:
+                  - text: 处理方式
+                  - combobox "第 1 行处理" [ref=e99]:
+                    - option "请选择处理方式" [disabled] [selected]
+                    - option "关联已有学生"
+                    - option "新建学生"
+                    - option "忽略本行"
+              - listitem [ref=e100]:
+                - strong [ref=e101]: 数据第 2 行：全链乙 · 学号 01002
+                - paragraph [ref=e102]: 建议新建学生；建议不是确认决定。
+                - generic [ref=e103]:
+                  - text: 处理方式
+                  - combobox "第 2 行处理" [ref=e104]:
+                    - option "请选择处理方式" [disabled]
+                    - option "关联已有学生"
+                    - option "新建学生" [selected]
+                    - option "忽略本行"
+              - listitem [ref=e105]:
+                - strong [ref=e106]: 数据第 3 行：全链丙 · 学号 01003
+                - paragraph [ref=e107]: 建议新建学生；建议不是确认决定。
+                - generic [ref=e108]:
+                  - text: 处理方式
+                  - combobox "第 3 行处理" [ref=e109]:
+                    - option "请选择处理方式" [disabled]
+                    - option "关联已有学生"
+                    - option "新建学生" [selected]
+                    - option "忽略本行"
+              - listitem [ref=e110]:
+                - strong [ref=e111]: 数据第 4 行：全链丁 · 学号 01004
+                - paragraph [ref=e112]: 建议新建学生；建议不是确认决定。
+                - generic [ref=e113]:
+                  - text: 处理方式
+                  - combobox "第 4 行处理" [ref=e114]:
+                    - option "请选择处理方式" [disabled]
+                    - option "关联已有学生"
+                    - option "新建学生" [selected]
+                    - option "忽略本行"
+            - generic [ref=e115]:
+              - button "保存映射与行决策" [ref=e116] [cursor=pointer]
+              - button "刷新版本对照（保留校对）" [ref=e117] [cursor=pointer]
+              - button "确认名单" [disabled] [ref=e118]
+            - status [ref=e119]: 名单已上传，建议不会自动成为行决定；请逐行选择处理方式。
+          - region "学生转班" [ref=e120]:
+            - heading "学生转班与归属历史" [level=3] [ref=e121]
+            - paragraph [ref=e122]: 转班按指定日期结束旧归属并建立新归属，保留旧班级历史；名单导入不会代替转班。
+            - generic [ref=e123]:
+              - generic [ref=e124]:
+                - text: 转班学生
+                - combobox "转班学生" [ref=e125]:
+                  - option "请选择学生" [selected]
+              - generic [ref=e126]:
+                - text: 目标班级
+                - combobox "转入班级" [ref=e127]:
+                  - option "请选择目标班级" [selected]
+                  - option "F20-I 班级"
+              - generic [ref=e128]:
+                - text: 转班日期
+                - textbox "转班日期" [ref=e129]: 2026-10-02
+              - button "确认转班" [disabled] [ref=e130]
+  - alert [ref=e131]
+```

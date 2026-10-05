@@ -1,0 +1,853 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - alert [ref=e2]: 智启课源 · 学情分析
+  - generic [ref=e3]:
+    - navigation "项目功能导航" [ref=e4]:
+      - button "返回学习问答" [ref=e5] [cursor=pointer]:
+        - img [ref=e6]
+        - strong [ref=e8]: 智启课源
+      - button "收起项目导航" [expanded] [ref=e9] [cursor=pointer]:
+        - img [ref=e10]
+      - generic [ref=e13]:
+        - button "学习问答" [ref=e14] [cursor=pointer]:
+          - img [ref=e15]
+          - generic [ref=e18]: 学习问答
+        - button "教案工作台" [ref=e19] [cursor=pointer]:
+          - img [ref=e20]
+          - generic [ref=e23]: 教案工作台
+        - button "智能组卷（规划中）" [ref=e24] [cursor=pointer]:
+          - img [ref=e25]
+          - generic [ref=e28]:
+            - text: 智能组卷
+            - generic [ref=e29]: 规划中
+        - button "题库" [ref=e30] [cursor=pointer]:
+          - img [ref=e31]
+          - generic [ref=e34]: 题库
+        - button "知识点" [ref=e35] [cursor=pointer]:
+          - img [ref=e36]
+          - generic [ref=e38]: 知识点
+        - button "施测与成绩" [ref=e39] [cursor=pointer]:
+          - img [ref=e40]
+          - generic [ref=e43]: 施测与成绩
+        - button "学情分析" [ref=e44] [cursor=pointer]:
+          - img [ref=e45]
+          - generic [ref=e48]: 学情分析
+        - button "针对练习" [ref=e49] [cursor=pointer]:
+          - img [ref=e50]
+          - generic [ref=e53]: 针对练习
+        - button "协同写作（规划中）" [ref=e54] [cursor=pointer]:
+          - img [ref=e55]
+          - generic [ref=e57]:
+            - text: 协同写作
+            - generic [ref=e58]: 规划中
+        - button "沉浸阅读（规划中）" [ref=e59] [cursor=pointer]:
+          - img [ref=e60]
+          - generic [ref=e62]:
+            - text: 沉浸阅读
+            - generic [ref=e63]: 规划中
+        - button "学习空间（规划中）" [ref=e64] [cursor=pointer]:
+          - img [ref=e65]
+          - generic [ref=e70]:
+            - text: 学习空间
+            - generic [ref=e71]: 规划中
+        - button "教材资料库" [ref=e72] [cursor=pointer]:
+          - img [ref=e73]
+          - generic [ref=e75]: 教材资料库
+        - button "模板中心（规划中）" [ref=e76] [cursor=pointer]:
+          - img [ref=e77]
+          - generic [ref=e81]:
+            - text: 模板中心
+            - generic [ref=e82]: 规划中
+      - generic [ref=e83]:
+        - button "设置" [ref=e84] [cursor=pointer]:
+          - img [ref=e85]
+          - generic [ref=e88]: 设置
+        - generic "本地工作台" [ref=e89]: 教
+    - generic [ref=e91]:
+      - banner [ref=e92]:
+        - heading "学情分析" [level=1] [ref=e93]
+        - paragraph [ref=e94]: 从一次已确认成绩中核对本次需巩固依据，形成针对练习。报告依据固定版本，不计算长期掌握概率。
+      - main [ref=e95]:
+        - region "固定成绩与人次选择" [ref=e96]:
+          - heading "选择固定成绩与参测人次" [level=2] [ref=e97]
+          - generic [ref=e98]:
+            - generic [ref=e99]:
+              - text: 施测
+              - combobox "分析施测" [ref=e100]:
+                - option "明确选择一次施测"
+                - option "B4独立初测 · 2026-10-02" [selected]
+            - generic [ref=e101]:
+              - text: 固定成绩修订
+              - combobox "分析成绩修订" [ref=e102]:
+                - option "明确选择历史成绩版本"
+                - option "v1 · 97c34eaeb5d846bca240c413f41bf8f0" [selected]
+          - generic [ref=e103]:
+            - button "上一页施测" [disabled] [ref=e104]
+            - button "下一页施测" [disabled] [ref=e105]
+          - paragraph [ref=e106]: 成绩 v1 · 97c34eaeb5d846bca240c413f41bf8f0 → 原卷 d0b7213fe0f34925a774816217a7f181
+          - paragraph [ref=e107]: 每名学生至多选择一个人次；补考必须明确选择对应人次。缺考、免考不会补成0分。
+          - group "明确选择参测人次" [ref=e108]:
+            - generic [ref=e109]: 明确选择参测人次
+            - generic [ref=e110]:
+              - generic [ref=e111]:
+                - checkbox "分析人次 合成丁-B4 1" [checked] [ref=e112]
+                - generic [ref=e113]:
+                  - text: 合成丁-B4 · 人次1 · 参加
+                  - generic [ref=e114]: 学号 00004 · 班级 2745fa228ae4425caafdcf5ce9478822 · 该成绩未记录班名
+              - generic [ref=e115]:
+                - checkbox "分析人次 合成丙-B4 1" [checked] [ref=e116]
+                - generic [ref=e117]:
+                  - text: 合成丙-B4 · 人次1 · 缺考
+                  - generic [ref=e118]: 学号 00003 · 班级 2745fa228ae4425caafdcf5ce9478822 · 该成绩未记录班名
+              - generic [ref=e119]:
+                - checkbox "分析人次 合成乙-B4 1" [checked] [ref=e120]
+                - generic [ref=e121]:
+                  - text: 合成乙-B4 · 人次1 · 参加
+                  - generic [ref=e122]: 学号 00002 · 班级 2745fa228ae4425caafdcf5ce9478822 · 该成绩未记录班名
+              - generic [ref=e123]:
+                - checkbox "分析人次 合成甲-B4 1" [checked] [ref=e124]
+                - generic [ref=e125]:
+                  - text: 合成甲-B4 · 人次1 · 参加
+                  - generic [ref=e126]: 学号 00001 · 班级 2745fa228ae4425caafdcf5ce9478822 · 该成绩未记录班名
+              - generic [ref=e127]:
+                - checkbox "分析人次 合成甲-B4 2" [ref=e128]
+                - generic [ref=e129]:
+                  - text: 合成甲-B4 · 人次2 · 参加
+                  - generic [ref=e130]: 学号 00001 · 班级 2745fa228ae4425caafdcf5ce9478822 · 该成绩未记录班名
+          - paragraph [ref=e131]: 规则：任一关联小题有效得分低于满分，标为“本次需巩固”（any_loss_v1）。综合题具体错因仍由教师确认。
+          - button "创建本次报告" [ref=e132] [cursor=pointer]
+        - region "固定报告历史" [ref=e133]:
+          - heading "固定报告历史" [level=2] [ref=e134]
+          - button "B4独立初测 · 成绩 97c34eaeb5d846bca240c413f41bf8f0 报告 564be531338a427eb8c033f41bad4b84 · 尚未准备" [ref=e136] [cursor=pointer]:
+            - text: B4独立初测 · 成绩 97c34eaeb5d846bca240c413f41bf8f0
+            - generic [ref=e137]: 报告 564be531338a427eb8c033f41bad4b84 · 尚未准备
+          - generic "分页" [ref=e138]:
+            - generic [ref=e139]: 共 1 条 · 第 1 页 · 每页 20
+            - button "上一页" [disabled] [ref=e140]
+            - button "下一页" [disabled] [ref=e141]
+        - region "所选固定报告" [ref=e142]:
+          - generic [ref=e143]:
+            - link "固定成绩 97c34eaeb5d846bca240c413f41bf8f0" [ref=e144] [cursor=pointer]:
+              - /url: /assessments?assessmentId=cde4da132758465ca5f0b77ab1c30dd8&step=history
+            - generic [ref=e145]: → 报告 564be531338a427eb8c033f41bad4b84
+            - generic [ref=e146]: 原卷 d0b7213fe0f34925a774816217a7f181
+          - region "任务状态" [ref=e147]:
+            - strong [ref=e148]: 任务成功
+            - generic [ref=e149]: 任务 b9acb91bcb2f48ccae550a46f30e57ff · 尝试 1
+          - button "刷新报告状态" [ref=e150] [cursor=pointer]
+          - region "报告事实与证据" [ref=e151]:
+            - heading "本次固定依据" [level=2] [ref=e152]
+            - paragraph [ref=e153]: 后端记录：4名学生 · 4人次 · 3计分叶。空白/缺考/免考与有效0分区分，信息不全可与需巩固重叠。
+            - tablist "学情报告视图" [ref=e154]:
+              - tab "班级依据" [ref=e155] [cursor=pointer]
+              - tab "学生依据" [ref=e156] [cursor=pointer]
+              - tab "全部题证据" [selected] [ref=e157] [cursor=pointer]
+              - tab "教师备注" [ref=e158] [cursor=pointer]
+            - generic [ref=e159]:
+              - generic [ref=e160]:
+                - text: 冻结班级
+                - combobox "报告班级筛选" [ref=e161]:
+                  - option "全部班级" [selected]
+                  - option "2745fa228ae4425caafdcf5ce9478822 · 该成绩未记录班名"
+              - generic [ref=e162]:
+                - text: 参测人次
+                - combobox "报告人次筛选" [ref=e163]:
+                  - option "全部人次" [selected]
+                  - option "合成丁-B4 · 人次1"
+                  - option "合成丙-B4 · 人次1"
+                  - option "合成乙-B4 · 人次1"
+                  - option "合成甲-B4 · 人次1"
+              - generic [ref=e164]:
+                - text: 冻结知识点
+                - combobox "报告知识点筛选" [ref=e165]:
+                  - option "全部知识点" [selected]
+                  - option "有理数"
+                  - option "运算关联"
+            - tabpanel "全部题证据" [ref=e166]:
+              - group [ref=e167]:
+                - generic "合成丁-B4 · 人次1 · Q1 · 有效记录 0 / 2" [ref=e168] [cursor=pointer]
+                - paragraph [ref=e169]: 成绩 97c34eaeb5d846bca240c413f41bf8f0 · 原卷 d0b7213fe0f34925a774816217a7f181 · 计分叶 108440c751bb4ed1a7cd2ca11477b76d
+                - paragraph [ref=e170]: 有理数（067112142542431fb50d97a63dbd5cdc）
+                - paragraph [ref=e171]: 综合题失分关联，具体错因待教师确认
+                - generic [ref=e172]:
+                  - generic [ref=e173]:
+                    - region "共同材料" [ref=e174]:
+                      - heading "共同材料" [level=4] [ref=e175]
+                      - paragraph [ref=e178]: 共同材料：保持完整上下文。
+                    - generic [ref=e179]:
+                      - paragraph [ref=e181]: 初测原题：逐叶独立计分。 Q1
+                      - generic [ref=e184]:
+                        - math [ref=e186]:
+                          - generic [ref=e188]:
+                            - generic [ref=e189]:
+                              - generic [ref=e190]: x
+                              - generic [ref=e191]: "2"
+                            - generic [ref=e192]: +
+                            - generic [ref=e193]: "1"
+                        - generic [ref=e194]:
+                          - generic [ref=e195]:
+                            - generic [ref=e200]:
+                              - generic [ref=e201]: "2"
+                              - generic [ref=e203]: x
+                            - text: +
+                          - generic [ref=e207]: "1"
+                      - alert [ref=e209]: 图片读取失败：该资产没有被这个修订的图片块引用，不能读取。
+                      - region "原文表格" [ref=e211]:
+                        - table [ref=e212]:
+                          - rowgroup [ref=e213]:
+                            - row "数据" [ref=e214]:
+                              - columnheader "数据" [ref=e215]:
+                                - paragraph [ref=e216]: 数据
+                            - row "甲 乙" [ref=e217]:
+                              - cell "甲" [ref=e218]:
+                                - paragraph [ref=e219]: 甲
+                              - cell "乙" [ref=e220]:
+                                - paragraph [ref=e221]: 乙
+                  - generic [ref=e222]:
+                    - strong [ref=e223]: A
+                    - paragraph [ref=e226]: "3"
+                  - generic [ref=e227]:
+                    - strong [ref=e228]: B
+                    - paragraph [ref=e231]: "-3"
+                  - heading "教师答案" [level=4] [ref=e232]
+                  - paragraph [ref=e235]: B4_TEACHER_ANSWER_731
+                  - heading "解析" [level=4] [ref=e236]
+                  - paragraph [ref=e239]: B4_TEACHER_EXPLANATION_947
+                - group [ref=e240]:
+                  - generic "原始来源与回流映射" [ref=e241] [cursor=pointer]
+              - group [ref=e242]:
+                - generic "合成丁-B4 · 人次1 · Q3 · 有效记录 5 / 5" [ref=e243] [cursor=pointer]
+                - paragraph [ref=e244]: 成绩 97c34eaeb5d846bca240c413f41bf8f0 · 原卷 d0b7213fe0f34925a774816217a7f181 · 计分叶 14996b6149414eaa971c623f2e5cc344
+                - paragraph [ref=e245]: 运算关联（f058dea4020d4fc4a5f6734b06c72356）
+                - paragraph [ref=e246]: 综合题失分关联，具体错因待教师确认
+                - generic [ref=e247]:
+                  - generic [ref=e248]:
+                    - region "共同材料" [ref=e249]:
+                      - heading "共同材料" [level=4] [ref=e250]
+                      - paragraph [ref=e253]: 共同材料：保持完整上下文。
+                    - generic [ref=e254]:
+                      - paragraph [ref=e256]: 初测原题：逐叶独立计分。 Q3
+                      - generic [ref=e259]:
+                        - math [ref=e261]:
+                          - generic [ref=e263]:
+                            - generic [ref=e264]:
+                              - generic [ref=e265]: x
+                              - generic [ref=e266]: "2"
+                            - generic [ref=e267]: +
+                            - generic [ref=e268]: "1"
+                        - generic [ref=e269]:
+                          - generic [ref=e270]:
+                            - generic [ref=e275]:
+                              - generic [ref=e276]: "2"
+                              - generic [ref=e278]: x
+                            - text: +
+                          - generic [ref=e282]: "1"
+                      - alert [ref=e284]: 图片读取失败：该资产没有被这个修订的图片块引用，不能读取。
+                      - region "原文表格" [ref=e286]:
+                        - table [ref=e287]:
+                          - rowgroup [ref=e288]:
+                            - row "数据" [ref=e289]:
+                              - columnheader "数据" [ref=e290]:
+                                - paragraph [ref=e291]: 数据
+                            - row "甲 乙" [ref=e292]:
+                              - cell "甲" [ref=e293]:
+                                - paragraph [ref=e294]: 甲
+                              - cell "乙" [ref=e295]:
+                                - paragraph [ref=e296]: 乙
+                  - generic [ref=e297]:
+                    - strong [ref=e298]: A
+                    - paragraph [ref=e301]: "3"
+                  - generic [ref=e302]:
+                    - strong [ref=e303]: B
+                    - paragraph [ref=e306]: "-3"
+                  - heading "教师答案" [level=4] [ref=e307]
+                  - paragraph [ref=e310]: B4_TEACHER_ANSWER_731
+                  - heading "解析" [level=4] [ref=e311]
+                  - paragraph [ref=e314]: B4_TEACHER_EXPLANATION_947
+                - group [ref=e315]:
+                  - generic "原始来源与回流映射" [ref=e316] [cursor=pointer]
+              - group [ref=e317]:
+                - generic "合成丁-B4 · 人次1 · Q2 · 有效记录 3 / 3" [ref=e318] [cursor=pointer]
+                - paragraph [ref=e319]: 成绩 97c34eaeb5d846bca240c413f41bf8f0 · 原卷 d0b7213fe0f34925a774816217a7f181 · 计分叶 5ae48ebafb10404fab18f16fc106cb33
+                - paragraph [ref=e320]: 有理数（067112142542431fb50d97a63dbd5cdc）、运算关联（f058dea4020d4fc4a5f6734b06c72356）
+                - paragraph [ref=e321]: 综合题失分关联，具体错因待教师确认
+                - paragraph [ref=e322]: 综合题失分关联，具体错因待教师确认。
+                - generic [ref=e323]:
+                  - generic [ref=e324]:
+                    - region "共同材料" [ref=e325]:
+                      - heading "共同材料" [level=4] [ref=e326]
+                      - paragraph [ref=e329]: 共同材料：保持完整上下文。
+                    - generic [ref=e330]:
+                      - paragraph [ref=e332]: 初测原题：逐叶独立计分。 Q2
+                      - generic [ref=e335]:
+                        - math [ref=e337]:
+                          - generic [ref=e339]:
+                            - generic [ref=e340]:
+                              - generic [ref=e341]: x
+                              - generic [ref=e342]: "2"
+                            - generic [ref=e343]: +
+                            - generic [ref=e344]: "1"
+                        - generic [ref=e345]:
+                          - generic [ref=e346]:
+                            - generic [ref=e351]:
+                              - generic [ref=e352]: "2"
+                              - generic [ref=e354]: x
+                            - text: +
+                          - generic [ref=e358]: "1"
+                      - alert [ref=e360]: 图片读取失败：该资产没有被这个修订的图片块引用，不能读取。
+                      - region "原文表格" [ref=e362]:
+                        - table [ref=e363]:
+                          - rowgroup [ref=e364]:
+                            - row "数据" [ref=e365]:
+                              - columnheader "数据" [ref=e366]:
+                                - paragraph [ref=e367]: 数据
+                            - row "甲 乙" [ref=e368]:
+                              - cell "甲" [ref=e369]:
+                                - paragraph [ref=e370]: 甲
+                              - cell "乙" [ref=e371]:
+                                - paragraph [ref=e372]: 乙
+                  - generic [ref=e373]:
+                    - strong [ref=e374]: A
+                    - paragraph [ref=e377]: "3"
+                  - generic [ref=e378]:
+                    - strong [ref=e379]: B
+                    - paragraph [ref=e382]: "-3"
+                  - heading "教师答案" [level=4] [ref=e383]
+                  - paragraph [ref=e386]: B4_TEACHER_ANSWER_731
+                  - heading "解析" [level=4] [ref=e387]
+                  - paragraph [ref=e390]: B4_TEACHER_EXPLANATION_947
+                - group [ref=e391]:
+                  - generic "原始来源与回流映射" [ref=e392] [cursor=pointer]
+              - group [ref=e393]:
+                - generic "合成丙-B4 · 人次1 · Q1 · 缺考 — / 2" [ref=e394] [cursor=pointer]
+                - paragraph [ref=e395]: 成绩 97c34eaeb5d846bca240c413f41bf8f0 · 原卷 d0b7213fe0f34925a774816217a7f181 · 计分叶 108440c751bb4ed1a7cd2ca11477b76d
+                - paragraph [ref=e396]: 有理数（067112142542431fb50d97a63dbd5cdc）
+                - paragraph [ref=e397]: 综合题失分关联，具体错因待教师确认
+                - generic [ref=e398]:
+                  - generic [ref=e399]:
+                    - region "共同材料" [ref=e400]:
+                      - heading "共同材料" [level=4] [ref=e401]
+                      - paragraph [ref=e404]: 共同材料：保持完整上下文。
+                    - generic [ref=e405]:
+                      - paragraph [ref=e407]: 初测原题：逐叶独立计分。 Q1
+                      - generic [ref=e410]:
+                        - math [ref=e412]:
+                          - generic [ref=e414]:
+                            - generic [ref=e415]:
+                              - generic [ref=e416]: x
+                              - generic [ref=e417]: "2"
+                            - generic [ref=e418]: +
+                            - generic [ref=e419]: "1"
+                        - generic [ref=e420]:
+                          - generic [ref=e421]:
+                            - generic [ref=e426]:
+                              - generic [ref=e427]: "2"
+                              - generic [ref=e429]: x
+                            - text: +
+                          - generic [ref=e433]: "1"
+                      - alert [ref=e435]: 图片读取失败：该资产没有被这个修订的图片块引用，不能读取。
+                      - region "原文表格" [ref=e437]:
+                        - table [ref=e438]:
+                          - rowgroup [ref=e439]:
+                            - row "数据" [ref=e440]:
+                              - columnheader "数据" [ref=e441]:
+                                - paragraph [ref=e442]: 数据
+                            - row "甲 乙" [ref=e443]:
+                              - cell "甲" [ref=e444]:
+                                - paragraph [ref=e445]: 甲
+                              - cell "乙" [ref=e446]:
+                                - paragraph [ref=e447]: 乙
+                  - generic [ref=e448]:
+                    - strong [ref=e449]: A
+                    - paragraph [ref=e452]: "3"
+                  - generic [ref=e453]:
+                    - strong [ref=e454]: B
+                    - paragraph [ref=e457]: "-3"
+                  - heading "教师答案" [level=4] [ref=e458]
+                  - paragraph [ref=e461]: B4_TEACHER_ANSWER_731
+                  - heading "解析" [level=4] [ref=e462]
+                  - paragraph [ref=e465]: B4_TEACHER_EXPLANATION_947
+                - group [ref=e466]:
+                  - generic "原始来源与回流映射" [ref=e467] [cursor=pointer]
+              - group [ref=e468]:
+                - generic "合成丙-B4 · 人次1 · Q3 · 缺考 — / 5" [ref=e469] [cursor=pointer]
+                - paragraph [ref=e470]: 成绩 97c34eaeb5d846bca240c413f41bf8f0 · 原卷 d0b7213fe0f34925a774816217a7f181 · 计分叶 14996b6149414eaa971c623f2e5cc344
+                - paragraph [ref=e471]: 运算关联（f058dea4020d4fc4a5f6734b06c72356）
+                - paragraph [ref=e472]: 综合题失分关联，具体错因待教师确认
+                - generic [ref=e473]:
+                  - generic [ref=e474]:
+                    - region "共同材料" [ref=e475]:
+                      - heading "共同材料" [level=4] [ref=e476]
+                      - paragraph [ref=e479]: 共同材料：保持完整上下文。
+                    - generic [ref=e480]:
+                      - paragraph [ref=e482]: 初测原题：逐叶独立计分。 Q3
+                      - generic [ref=e485]:
+                        - math [ref=e487]:
+                          - generic [ref=e489]:
+                            - generic [ref=e490]:
+                              - generic [ref=e491]: x
+                              - generic [ref=e492]: "2"
+                            - generic [ref=e493]: +
+                            - generic [ref=e494]: "1"
+                        - generic [ref=e495]:
+                          - generic [ref=e496]:
+                            - generic [ref=e501]:
+                              - generic [ref=e502]: "2"
+                              - generic [ref=e504]: x
+                            - text: +
+                          - generic [ref=e508]: "1"
+                      - alert [ref=e510]: 图片读取失败：该资产没有被这个修订的图片块引用，不能读取。
+                      - region "原文表格" [ref=e512]:
+                        - table [ref=e513]:
+                          - rowgroup [ref=e514]:
+                            - row "数据" [ref=e515]:
+                              - columnheader "数据" [ref=e516]:
+                                - paragraph [ref=e517]: 数据
+                            - row "甲 乙" [ref=e518]:
+                              - cell "甲" [ref=e519]:
+                                - paragraph [ref=e520]: 甲
+                              - cell "乙" [ref=e521]:
+                                - paragraph [ref=e522]: 乙
+                  - generic [ref=e523]:
+                    - strong [ref=e524]: A
+                    - paragraph [ref=e527]: "3"
+                  - generic [ref=e528]:
+                    - strong [ref=e529]: B
+                    - paragraph [ref=e532]: "-3"
+                  - heading "教师答案" [level=4] [ref=e533]
+                  - paragraph [ref=e536]: B4_TEACHER_ANSWER_731
+                  - heading "解析" [level=4] [ref=e537]
+                  - paragraph [ref=e540]: B4_TEACHER_EXPLANATION_947
+                - group [ref=e541]:
+                  - generic "原始来源与回流映射" [ref=e542] [cursor=pointer]
+              - group [ref=e543]:
+                - generic "合成丙-B4 · 人次1 · Q2 · 缺考 — / 3" [ref=e544] [cursor=pointer]
+                - paragraph [ref=e545]: 成绩 97c34eaeb5d846bca240c413f41bf8f0 · 原卷 d0b7213fe0f34925a774816217a7f181 · 计分叶 5ae48ebafb10404fab18f16fc106cb33
+                - paragraph [ref=e546]: 有理数（067112142542431fb50d97a63dbd5cdc）、运算关联（f058dea4020d4fc4a5f6734b06c72356）
+                - paragraph [ref=e547]: 综合题失分关联，具体错因待教师确认
+                - paragraph [ref=e548]: 综合题失分关联，具体错因待教师确认。
+                - generic [ref=e549]:
+                  - generic [ref=e550]:
+                    - region "共同材料" [ref=e551]:
+                      - heading "共同材料" [level=4] [ref=e552]
+                      - paragraph [ref=e555]: 共同材料：保持完整上下文。
+                    - generic [ref=e556]:
+                      - paragraph [ref=e558]: 初测原题：逐叶独立计分。 Q2
+                      - generic [ref=e561]:
+                        - math [ref=e563]:
+                          - generic [ref=e565]:
+                            - generic [ref=e566]:
+                              - generic [ref=e567]: x
+                              - generic [ref=e568]: "2"
+                            - generic [ref=e569]: +
+                            - generic [ref=e570]: "1"
+                        - generic [ref=e571]:
+                          - generic [ref=e572]:
+                            - generic [ref=e577]:
+                              - generic [ref=e578]: "2"
+                              - generic [ref=e580]: x
+                            - text: +
+                          - generic [ref=e584]: "1"
+                      - alert [ref=e586]: 图片读取失败：该资产没有被这个修订的图片块引用，不能读取。
+                      - region "原文表格" [ref=e588]:
+                        - table [ref=e589]:
+                          - rowgroup [ref=e590]:
+                            - row "数据" [ref=e591]:
+                              - columnheader "数据" [ref=e592]:
+                                - paragraph [ref=e593]: 数据
+                            - row "甲 乙" [ref=e594]:
+                              - cell "甲" [ref=e595]:
+                                - paragraph [ref=e596]: 甲
+                              - cell "乙" [ref=e597]:
+                                - paragraph [ref=e598]: 乙
+                  - generic [ref=e599]:
+                    - strong [ref=e600]: A
+                    - paragraph [ref=e603]: "3"
+                  - generic [ref=e604]:
+                    - strong [ref=e605]: B
+                    - paragraph [ref=e608]: "-3"
+                  - heading "教师答案" [level=4] [ref=e609]
+                  - paragraph [ref=e612]: B4_TEACHER_ANSWER_731
+                  - heading "解析" [level=4] [ref=e613]
+                  - paragraph [ref=e616]: B4_TEACHER_EXPLANATION_947
+                - group [ref=e617]:
+                  - generic "原始来源与回流映射" [ref=e618] [cursor=pointer]
+              - group [ref=e619]:
+                - generic "合成乙-B4 · 人次1 · Q1 · 有效记录 2 / 2" [ref=e620] [cursor=pointer]
+                - paragraph [ref=e621]: 成绩 97c34eaeb5d846bca240c413f41bf8f0 · 原卷 d0b7213fe0f34925a774816217a7f181 · 计分叶 108440c751bb4ed1a7cd2ca11477b76d
+                - paragraph [ref=e622]: 有理数（067112142542431fb50d97a63dbd5cdc）
+                - paragraph [ref=e623]: 综合题失分关联，具体错因待教师确认
+                - generic [ref=e624]:
+                  - generic [ref=e625]:
+                    - region "共同材料" [ref=e626]:
+                      - heading "共同材料" [level=4] [ref=e627]
+                      - paragraph [ref=e630]: 共同材料：保持完整上下文。
+                    - generic [ref=e631]:
+                      - paragraph [ref=e633]: 初测原题：逐叶独立计分。 Q1
+                      - generic [ref=e636]:
+                        - math [ref=e638]:
+                          - generic [ref=e640]:
+                            - generic [ref=e641]:
+                              - generic [ref=e642]: x
+                              - generic [ref=e643]: "2"
+                            - generic [ref=e644]: +
+                            - generic [ref=e645]: "1"
+                        - generic [ref=e646]:
+                          - generic [ref=e647]:
+                            - generic [ref=e652]:
+                              - generic [ref=e653]: "2"
+                              - generic [ref=e655]: x
+                            - text: +
+                          - generic [ref=e659]: "1"
+                      - alert [ref=e661]: 图片读取失败：该资产没有被这个修订的图片块引用，不能读取。
+                      - region "原文表格" [ref=e663]:
+                        - table [ref=e664]:
+                          - rowgroup [ref=e665]:
+                            - row "数据" [ref=e666]:
+                              - columnheader "数据" [ref=e667]:
+                                - paragraph [ref=e668]: 数据
+                            - row "甲 乙" [ref=e669]:
+                              - cell "甲" [ref=e670]:
+                                - paragraph [ref=e671]: 甲
+                              - cell "乙" [ref=e672]:
+                                - paragraph [ref=e673]: 乙
+                  - generic [ref=e674]:
+                    - strong [ref=e675]: A
+                    - paragraph [ref=e678]: "3"
+                  - generic [ref=e679]:
+                    - strong [ref=e680]: B
+                    - paragraph [ref=e683]: "-3"
+                  - heading "教师答案" [level=4] [ref=e684]
+                  - paragraph [ref=e687]: B4_TEACHER_ANSWER_731
+                  - heading "解析" [level=4] [ref=e688]
+                  - paragraph [ref=e691]: B4_TEACHER_EXPLANATION_947
+                - group [ref=e692]:
+                  - generic "原始来源与回流映射" [ref=e693] [cursor=pointer]
+              - group [ref=e694]:
+                - generic "合成乙-B4 · 人次1 · Q3 · 空白 — / 5" [ref=e695] [cursor=pointer]
+                - paragraph [ref=e696]: 成绩 97c34eaeb5d846bca240c413f41bf8f0 · 原卷 d0b7213fe0f34925a774816217a7f181 · 计分叶 14996b6149414eaa971c623f2e5cc344
+                - paragraph [ref=e697]: 运算关联（f058dea4020d4fc4a5f6734b06c72356）
+                - paragraph [ref=e698]: 综合题失分关联，具体错因待教师确认
+                - generic [ref=e699]:
+                  - generic [ref=e700]:
+                    - region "共同材料" [ref=e701]:
+                      - heading "共同材料" [level=4] [ref=e702]
+                      - paragraph [ref=e705]: 共同材料：保持完整上下文。
+                    - generic [ref=e706]:
+                      - paragraph [ref=e708]: 初测原题：逐叶独立计分。 Q3
+                      - generic [ref=e711]:
+                        - math [ref=e713]:
+                          - generic [ref=e715]:
+                            - generic [ref=e716]:
+                              - generic [ref=e717]: x
+                              - generic [ref=e718]: "2"
+                            - generic [ref=e719]: +
+                            - generic [ref=e720]: "1"
+                        - generic [ref=e721]:
+                          - generic [ref=e722]:
+                            - generic [ref=e727]:
+                              - generic [ref=e728]: "2"
+                              - generic [ref=e730]: x
+                            - text: +
+                          - generic [ref=e734]: "1"
+                      - alert [ref=e736]: 图片读取失败：该资产没有被这个修订的图片块引用，不能读取。
+                      - region "原文表格" [ref=e738]:
+                        - table [ref=e739]:
+                          - rowgroup [ref=e740]:
+                            - row "数据" [ref=e741]:
+                              - columnheader "数据" [ref=e742]:
+                                - paragraph [ref=e743]: 数据
+                            - row "甲 乙" [ref=e744]:
+                              - cell "甲" [ref=e745]:
+                                - paragraph [ref=e746]: 甲
+                              - cell "乙" [ref=e747]:
+                                - paragraph [ref=e748]: 乙
+                  - generic [ref=e749]:
+                    - strong [ref=e750]: A
+                    - paragraph [ref=e753]: "3"
+                  - generic [ref=e754]:
+                    - strong [ref=e755]: B
+                    - paragraph [ref=e758]: "-3"
+                  - heading "教师答案" [level=4] [ref=e759]
+                  - paragraph [ref=e762]: B4_TEACHER_ANSWER_731
+                  - heading "解析" [level=4] [ref=e763]
+                  - paragraph [ref=e766]: B4_TEACHER_EXPLANATION_947
+                - group [ref=e767]:
+                  - generic "原始来源与回流映射" [ref=e768] [cursor=pointer]
+              - group [ref=e769]:
+                - generic "合成乙-B4 · 人次1 · Q2 · 有效记录 3 / 3" [ref=e770] [cursor=pointer]
+                - paragraph [ref=e771]: 成绩 97c34eaeb5d846bca240c413f41bf8f0 · 原卷 d0b7213fe0f34925a774816217a7f181 · 计分叶 5ae48ebafb10404fab18f16fc106cb33
+                - paragraph [ref=e772]: 有理数（067112142542431fb50d97a63dbd5cdc）、运算关联（f058dea4020d4fc4a5f6734b06c72356）
+                - paragraph [ref=e773]: 综合题失分关联，具体错因待教师确认
+                - paragraph [ref=e774]: 综合题失分关联，具体错因待教师确认。
+                - generic [ref=e775]:
+                  - generic [ref=e776]:
+                    - region "共同材料" [ref=e777]:
+                      - heading "共同材料" [level=4] [ref=e778]
+                      - paragraph [ref=e781]: 共同材料：保持完整上下文。
+                    - generic [ref=e782]:
+                      - paragraph [ref=e784]: 初测原题：逐叶独立计分。 Q2
+                      - generic [ref=e787]:
+                        - math [ref=e789]:
+                          - generic [ref=e791]:
+                            - generic [ref=e792]:
+                              - generic [ref=e793]: x
+                              - generic [ref=e794]: "2"
+                            - generic [ref=e795]: +
+                            - generic [ref=e796]: "1"
+                        - generic [ref=e797]:
+                          - generic [ref=e798]:
+                            - generic [ref=e803]:
+                              - generic [ref=e804]: "2"
+                              - generic [ref=e806]: x
+                            - text: +
+                          - generic [ref=e810]: "1"
+                      - alert [ref=e812]: 图片读取失败：该资产没有被这个修订的图片块引用，不能读取。
+                      - region "原文表格" [ref=e814]:
+                        - table [ref=e815]:
+                          - rowgroup [ref=e816]:
+                            - row "数据" [ref=e817]:
+                              - columnheader "数据" [ref=e818]:
+                                - paragraph [ref=e819]: 数据
+                            - row "甲 乙" [ref=e820]:
+                              - cell "甲" [ref=e821]:
+                                - paragraph [ref=e822]: 甲
+                              - cell "乙" [ref=e823]:
+                                - paragraph [ref=e824]: 乙
+                  - generic [ref=e825]:
+                    - strong [ref=e826]: A
+                    - paragraph [ref=e829]: "3"
+                  - generic [ref=e830]:
+                    - strong [ref=e831]: B
+                    - paragraph [ref=e834]: "-3"
+                  - heading "教师答案" [level=4] [ref=e835]
+                  - paragraph [ref=e838]: B4_TEACHER_ANSWER_731
+                  - heading "解析" [level=4] [ref=e839]
+                  - paragraph [ref=e842]: B4_TEACHER_EXPLANATION_947
+                - group [ref=e843]:
+                  - generic "原始来源与回流映射" [ref=e844] [cursor=pointer]
+              - group [ref=e845]:
+                - generic "合成甲-B4 · 人次1 · Q1 · 有效记录 2 / 2" [ref=e846] [cursor=pointer]
+                - paragraph [ref=e847]: 成绩 97c34eaeb5d846bca240c413f41bf8f0 · 原卷 d0b7213fe0f34925a774816217a7f181 · 计分叶 108440c751bb4ed1a7cd2ca11477b76d
+                - paragraph [ref=e848]: 有理数（067112142542431fb50d97a63dbd5cdc）
+                - paragraph [ref=e849]: 综合题失分关联，具体错因待教师确认
+                - generic [ref=e850]:
+                  - generic [ref=e851]:
+                    - region "共同材料" [ref=e852]:
+                      - heading "共同材料" [level=4] [ref=e853]
+                      - paragraph [ref=e856]: 共同材料：保持完整上下文。
+                    - generic [ref=e857]:
+                      - paragraph [ref=e859]: 初测原题：逐叶独立计分。 Q1
+                      - generic [ref=e862]:
+                        - math [ref=e864]:
+                          - generic [ref=e866]:
+                            - generic [ref=e867]:
+                              - generic [ref=e868]: x
+                              - generic [ref=e869]: "2"
+                            - generic [ref=e870]: +
+                            - generic [ref=e871]: "1"
+                        - generic [ref=e872]:
+                          - generic [ref=e873]:
+                            - generic [ref=e878]:
+                              - generic [ref=e879]: "2"
+                              - generic [ref=e881]: x
+                            - text: +
+                          - generic [ref=e885]: "1"
+                      - alert [ref=e887]: 图片读取失败：该资产没有被这个修订的图片块引用，不能读取。
+                      - region "原文表格" [ref=e889]:
+                        - table [ref=e890]:
+                          - rowgroup [ref=e891]:
+                            - row "数据" [ref=e892]:
+                              - columnheader "数据" [ref=e893]:
+                                - paragraph [ref=e894]: 数据
+                            - row "甲 乙" [ref=e895]:
+                              - cell "甲" [ref=e896]:
+                                - paragraph [ref=e897]: 甲
+                              - cell "乙" [ref=e898]:
+                                - paragraph [ref=e899]: 乙
+                  - generic [ref=e900]:
+                    - strong [ref=e901]: A
+                    - paragraph [ref=e904]: "3"
+                  - generic [ref=e905]:
+                    - strong [ref=e906]: B
+                    - paragraph [ref=e909]: "-3"
+                  - heading "教师答案" [level=4] [ref=e910]
+                  - paragraph [ref=e913]: B4_TEACHER_ANSWER_731
+                  - heading "解析" [level=4] [ref=e914]
+                  - paragraph [ref=e917]: B4_TEACHER_EXPLANATION_947
+                - group [ref=e918]:
+                  - generic "原始来源与回流映射" [ref=e919] [cursor=pointer]
+              - group [ref=e920]:
+                - generic "合成甲-B4 · 人次1 · Q3 · 有效记录 5 / 5" [ref=e921] [cursor=pointer]
+                - paragraph [ref=e922]: 成绩 97c34eaeb5d846bca240c413f41bf8f0 · 原卷 d0b7213fe0f34925a774816217a7f181 · 计分叶 14996b6149414eaa971c623f2e5cc344
+                - paragraph [ref=e923]: 运算关联（f058dea4020d4fc4a5f6734b06c72356）
+                - paragraph [ref=e924]: 综合题失分关联，具体错因待教师确认
+                - generic [ref=e925]:
+                  - generic [ref=e926]:
+                    - region "共同材料" [ref=e927]:
+                      - heading "共同材料" [level=4] [ref=e928]
+                      - paragraph [ref=e931]: 共同材料：保持完整上下文。
+                    - generic [ref=e932]:
+                      - paragraph [ref=e934]: 初测原题：逐叶独立计分。 Q3
+                      - generic [ref=e937]:
+                        - math [ref=e939]:
+                          - generic [ref=e941]:
+                            - generic [ref=e942]:
+                              - generic [ref=e943]: x
+                              - generic [ref=e944]: "2"
+                            - generic [ref=e945]: +
+                            - generic [ref=e946]: "1"
+                        - generic [ref=e947]:
+                          - generic [ref=e948]:
+                            - generic [ref=e953]:
+                              - generic [ref=e954]: "2"
+                              - generic [ref=e956]: x
+                            - text: +
+                          - generic [ref=e960]: "1"
+                      - alert [ref=e962]: 图片读取失败：该资产没有被这个修订的图片块引用，不能读取。
+                      - region "原文表格" [ref=e964]:
+                        - table [ref=e965]:
+                          - rowgroup [ref=e966]:
+                            - row "数据" [ref=e967]:
+                              - columnheader "数据" [ref=e968]:
+                                - paragraph [ref=e969]: 数据
+                            - row "甲 乙" [ref=e970]:
+                              - cell "甲" [ref=e971]:
+                                - paragraph [ref=e972]: 甲
+                              - cell "乙" [ref=e973]:
+                                - paragraph [ref=e974]: 乙
+                  - generic [ref=e975]:
+                    - strong [ref=e976]: A
+                    - paragraph [ref=e979]: "3"
+                  - generic [ref=e980]:
+                    - strong [ref=e981]: B
+                    - paragraph [ref=e984]: "-3"
+                  - heading "教师答案" [level=4] [ref=e985]
+                  - paragraph [ref=e988]: B4_TEACHER_ANSWER_731
+                  - heading "解析" [level=4] [ref=e989]
+                  - paragraph [ref=e992]: B4_TEACHER_EXPLANATION_947
+                - group [ref=e993]:
+                  - generic "原始来源与回流映射" [ref=e994] [cursor=pointer]
+              - group [ref=e995]:
+                - generic "合成甲-B4 · 人次1 · Q2 · 有效记录 2 / 3" [active] [ref=e996] [cursor=pointer]
+                - paragraph [ref=e997]: 成绩 97c34eaeb5d846bca240c413f41bf8f0 · 原卷 d0b7213fe0f34925a774816217a7f181 · 计分叶 5ae48ebafb10404fab18f16fc106cb33
+                - paragraph [ref=e998]: 有理数（067112142542431fb50d97a63dbd5cdc）、运算关联（f058dea4020d4fc4a5f6734b06c72356）
+                - paragraph [ref=e999]: 综合题失分关联，具体错因待教师确认
+                - paragraph [ref=e1000]: 综合题失分关联，具体错因待教师确认。
+                - generic [ref=e1001]:
+                  - generic [ref=e1002]:
+                    - region "共同材料" [ref=e1003]:
+                      - heading "共同材料" [level=4] [ref=e1004]
+                      - paragraph [ref=e1007]: 共同材料：保持完整上下文。
+                    - generic [ref=e1008]:
+                      - paragraph [ref=e1010]: 初测原题：逐叶独立计分。 Q2
+                      - generic [ref=e1013]:
+                        - math [ref=e1015]:
+                          - generic [ref=e1017]:
+                            - generic [ref=e1018]:
+                              - generic [ref=e1019]: x
+                              - generic [ref=e1020]: "2"
+                            - generic [ref=e1021]: +
+                            - generic [ref=e1022]: "1"
+                        - generic [ref=e1023]:
+                          - generic [ref=e1024]:
+                            - generic [ref=e1029]:
+                              - generic [ref=e1030]: "2"
+                              - generic [ref=e1032]: x
+                            - text: +
+                          - generic [ref=e1036]: "1"
+                      - alert [ref=e1038]: 图片读取失败：该资产没有被这个修订的图片块引用，不能读取。
+                      - region "原文表格" [ref=e1040]:
+                        - table [ref=e1041]:
+                          - rowgroup [ref=e1042]:
+                            - row "数据" [ref=e1043]:
+                              - columnheader "数据" [ref=e1044]:
+                                - paragraph [ref=e1045]: 数据
+                            - row "甲 乙" [ref=e1046]:
+                              - cell "甲" [ref=e1047]:
+                                - paragraph [ref=e1048]: 甲
+                              - cell "乙" [ref=e1049]:
+                                - paragraph [ref=e1050]: 乙
+                  - generic [ref=e1051]:
+                    - strong [ref=e1052]: A
+                    - paragraph [ref=e1055]: "3"
+                  - generic [ref=e1056]:
+                    - strong [ref=e1057]: B
+                    - paragraph [ref=e1060]: "-3"
+                  - heading "教师答案" [level=4] [ref=e1061]
+                  - paragraph [ref=e1064]: B4_TEACHER_ANSWER_731
+                  - heading "解析" [level=4] [ref=e1065]
+                  - paragraph [ref=e1068]: B4_TEACHER_EXPLANATION_947
+                - group [ref=e1069]:
+                  - generic "原始来源与回流映射" [ref=e1070] [cursor=pointer]
+              - generic "分页" [ref=e1071]:
+                - generic [ref=e1072]: 共 12 条 · 第 1 页 · 每页 50
+                - button "上一页" [disabled] [ref=e1073]
+                - button "下一页" [disabled] [ref=e1074]
+          - region "创建针对练习" [ref=e1075]:
+            - heading "选择目标，创建针对练习" [level=2] [ref=e1076]
+            - paragraph [ref=e1077]: 依据固定报告 564be531338a427eb8c033f41bad4b84。先选择需要练习的知识点，再核对正式题与缺口。
+            - group [ref=e1078]:
+              - generic [ref=e1079]:
+                - text: 练习标题
+                - textbox "练习标题" [ref=e1080]
+              - generic "练习目标知识点" [ref=e1081]:
+                - generic [ref=e1082]:
+                  - checkbox "练习目标 有理数" [ref=e1083]
+                  - generic [ref=e1084]:
+                    - text: 有理数
+                    - generic [ref=e1085]: 固定修订 067112142542431fb50d97a63dbd5cdc
+                - generic [ref=e1086]:
+                  - checkbox "练习目标 运算关联" [ref=e1087]
+                  - generic [ref=e1088]:
+                    - text: 运算关联
+                    - generic [ref=e1089]: 固定修订 f058dea4020d4fc4a5f6734b06c72356
+              - group "练习约束" [ref=e1090]:
+                - generic [ref=e1091]: 练习约束
+                - generic [ref=e1092]:
+                  - text: 题量
+                  - spinbutton "练习题量" [ref=e1093]: "3"
+                - paragraph [ref=e1094]: 不选题型或难度表示该维度不限；未标注难度需单独允许。缺题不会自动放宽条件。
+                - generic "题型" [ref=e1095]:
+                  - generic [ref=e1096]:
+                    - checkbox "单选题" [ref=e1097]
+                    - text: 单选题
+                  - generic [ref=e1098]:
+                    - checkbox "多选题" [ref=e1099]
+                    - text: 多选题
+                  - generic [ref=e1100]:
+                    - checkbox "判断题" [ref=e1101]
+                    - text: 判断题
+                  - generic [ref=e1102]:
+                    - checkbox "填空题" [ref=e1103]
+                    - text: 填空题
+                  - generic [ref=e1104]:
+                    - checkbox "简答题" [ref=e1105]
+                    - text: 简答题
+                  - generic [ref=e1106]:
+                    - checkbox "其他" [ref=e1107]
+                    - text: 其他
+                - generic "难度" [ref=e1108]:
+                  - generic [ref=e1109]:
+                    - checkbox "容易" [ref=e1110]
+                    - text: 容易
+                  - generic [ref=e1111]:
+                    - checkbox "中等" [ref=e1112]
+                    - text: 中等
+                  - generic [ref=e1113]:
+                    - checkbox "较难" [ref=e1114]
+                    - text: 较难
+                  - generic [ref=e1115]:
+                    - checkbox "允许未标注难度" [ref=e1116]
+                    - text: 允许未标注难度
+                - generic [ref=e1117]:
+                  - generic [ref=e1118]:
+                    - checkbox "排除原测题" [checked] [ref=e1119]
+                    - text: 排除原测题
+                  - generic [ref=e1120]:
+                    - checkbox "排除内容重复题" [checked] [ref=e1121]
+                    - text: 排除内容重复题
+            - button "创建针对练习" [disabled] [ref=e1122]
+```

@@ -1,5 +1,71 @@
 # 当前接手入口
 
+<!-- G7-B7C:20261005 -->
+2026-10-05：[G7两项修复与B7-C缺项交接](qa/TEACHING-LOOP-G7-B7C-20261005/README.md)。先读[CURRENT_STATUS最新块](CURRENT_STATUS.md)与[缺项交接](qa/TEACHING-LOOP-G7-B7C-20261005/B7C-GAP-v1.md)。G7写入归属闸门与native真实解码已独立限定关闭；B7-C无范围/授权/proof/host，real0，只待用户补齐最小事实。原v2任务/伪代码、旧QA、Word模板只读。
+
+编写时main@b7f99ab，build 49nH0q5IXMfFQTcg4mpIR/proxy8001、next-env恢复0f7062…；check r1的1例分页间歇、旧QA双写前置8例、V-G7-B r1脚本断言错误与r2 trace收尾工具finding均保留未拼绿。公开API/契约无变化；Pillow==12.3.0为页图工具依赖。教师/native/RAG-REL/原B6/B7整体仍待验或OPEN；下一步只等用户明确指令，无自动live、无提交/推送/切分支/部署。
+<!-- /G7-B7C:20261005 -->
+
+<!-- G6-B7B-REVIEW:20261005 -->
+2026-10-05，先读[CURRENT_STATUS最新块](CURRENT_STATUS.md)、[G6/B7-B后续审查及cache/budget/results](qa/TEACHING-LOOP-G6-B7B-REVIEW-20261005/REVIEW.md)、[G7→B7-C提示词](design/teaching-loop-v1/B7C_总控启动提示词_20261005.md)。原ACK与离线预算限定验收保持，新写入foreign包和native魔数漏核两个P2待修。本轮仅审查与提示词，用户下发才执行。
+
+编写时main@b7f99ab，B7B-offline-r1 SHA08e71f7d386e4005406209718317220506829bf9816d9d9e4bce1b934dc61988，972/3771/33/970零漂移，build wsH0-uD7VDC2ACYsbiRfS/proxy8001；先核现场差异，保留用户成果。G7 normal/retry共用完整包写入归属guard；旧源码测试必要前置由CTRL登记，旧QA只读复制新探针保原SHA。native核真实解码但不签人工通过。之后只接一个明确模型的可信host/proof，缺授权范围G7后STOP，不重制离线包；真实整体质量和RAG待验，原v2任务/伪代码保持。
+<!-- /G6-B7B-REVIEW:20261005 -->
+
+<!-- G6-B7B:20261005 -->
+2026-10-05T18:53:42.302168+08:00：[G6/B7-B证据](qa/TEACHING-LOOP-G6-B7B-20261005/README.md)。
+
+G6 R-G5-CACHE-01/P2已独立有限技术关闭；B7-B受控离线技术已独立验收，ROOT收据为G6-CLOSE-v1.json、B7B-OFFLINE-ACCEPT-v1.json和CLOSE-v1.json。G6作者274、完整check127文件1463单测/type/lint0/build、独立211、新同源双页8＋原G5 8共16、现行29spec174各单轮通过，24原PNG/190原trace已独立核。actual check/prebuild-r1、211/built-r1、16/174/built-r2各自身份保留；all候选不冒称这些门禁重跑。build wsH0-uD7VDC2ACYsbiRfS/proxy8001与next-env原字节恢复，正常ACK/cleanup共用归属核验，不宣称原子CAS。
+
+B7B最终独立full-r2：预算64/64、27 fixture边界；结果76/76、77 checker＋1setup、18 fixture，真实调用0；两轮source/执行QA/契约/build零漂移。all候选SHA08e71f7d386e4005406209718317220506829bf9816d9d9e4bce1b934dc61988含972source/3771执行QA/33contract/970build，文件数不是测试数。首完整r1行为与venv launcher出生错绑原件保留；新完整r2仅换同源CPython base和原venv依赖，QA/oracle不改，实际worker PID/birth/wait/日志闭合。作者73、11组84CLI及旧quality52/prepare49＋34subtests是作者自检，分开计数。
+
+本批无真实模型/精确caseIds/sampleCount/attempt/可执行总预算授权，real0；当前CLI缺具体模型proof registry/可信live host，费用模式不支持，不能称输入范围补齐即可任意模型试评。teacher/native仍pending、Word/WPS原生not_run、RAG-REL及原B6/B7整体与R14/CV01～03/OBS-LP-MODE-LABEL/环境观察保持OPEN/待验。旧物理SQLite/Blob缺源保持not_run，新TEMP不补造；原13PDF不代原生。旧QA46952、原材料1056/273、原Word及v2完整任务/伪代码只读，六现行文档仅本批新增状态。自有进程和捕获后代已核闭合、5174/8001无监听，TEMP/所有首败保留，历史未采worker出生不伪补；未知用户进程未操作。独立文档后验和最终资源/INTEGRITY/封印另存后追加证据，本批结束即STOP，下一动作只等用户新指示，无被拒HTTP probe重试、正式数据/6333、Git提交/推送/切分支/部署或自动下一模块。
+<!-- /G6-B7B:20261005 -->
+
+<!-- G5-REVIEW:20261005 -->
+2026-10-05，先读[CURRENT_STATUS最新块](CURRENT_STATUS.md)、[G5后续审查及分项](qa/TEACHING-LOOP-G5-REVIEW-20261005/REVIEW.md)、[G6→B7-B总控提示词](design/teaching-loop-v1/B7B_总控启动提示词_20261005.md)。G5两项原修复保持，新R-G5-CACHE-01正常ACK误删另一标签包尚未修复；当前止于只读审查/提示词，用户下发才开下一批。
+
+编写时main@b7f99ab，G5-built-r2 SHA049ad4057540ba1e2bd6f383c3944bba738ff2e47acd2d1dde542d210506c533，960/3660/33/970相符，build2Gg_WxijBmV9IGIkY1vmG/proxy8001，next-env原字节保持。先核现场差异，不切分支或回滚用户成果；原QA/v2任务/伪代码只读。先补正常ACK与retry的统一owned-cleanup，再接受控执行器；预算发送前预留、未知usage停止、同授权累计额度不因换label清零。无明确范围不live，教师/native独立待验；原offline具体分钟oracle不能直接签live合格，填写反馈不送空表prepare审核。
+<!-- /G5-REVIEW:20261005 -->
+
+<!-- G5:20261005 -->
+2026-10-05T15:21:15.335336+08:00：[G5证据](qa/TEACHING-LOOP-G5-20261005/README.md)。
+
+2026-10-05 G5两项P2已独立限定技术关闭：R-G4-RECOVERY-01清缓存只采用本次操作/会话/明确结果，失败保持当前稿件且不误开历史成功文档；R-B7A-QUALITY-01严格核CSV形状与空人审、固定MD完整空槽，合法SHA不代替内容判据。G5-CLOSE-v1与两finding收据已生成，独立V00签收并STOP；这是本次修复批G5，不等于原v2整体交付G5，不关闭原B6/B7整体。
+
+必要新完整check126文件1380单测/typecheck/lint0/build；独立最终152/152；CLI102为5正常97正确硬拒，四guard实际0；新实际页面8和现行29spec174各单轮完整通过，0skip/retry/flaky/reporterErrors，174含原21UI/R14和6既有隔离真实FastAPI场景（2fixture），模型0，不称全mock。单独pytest API、聊天专项及导出本批未执行，backend410/chat186/exportCore11逐SHA历史绑定；59历史引用精确+1旧MISSING_NOT_RUN，旧export43有12漂移不能整域转签。
+
+当前CANDIDATE-G5-built-r2 SHA049ad4057540ba1e2bd6f383c3944bba738ff2e47acd2d1dde542d210506c533：960source/3660执行QA/33contract/970build，构建2Gg_WxijBmV9IGIkY1vmG、实际proxy8001、next-env原字节恢复。152实际跑r2；check实际prebuild-r2，102/8/174实际built-r1。两非其执行闭包QA差异与同源码/契约/整构建转签单列，保留原实际候选身份，不冒称r2重跑；组件首轮150/152两QA入口首败及最终新完整152分别保留，无拼轮。文件数不是测试数。
+
+六当前权威文档只新增本批G5状态块，完整开工内容含原v2任务/伪代码/旧审查保持原字节；原Word/Guide/API/ROUTES/PLAN、旧QA22207、原材料1056及原273引用保持。当前文档与最后独立文档审查、封印单列后验收据，不声称产品候选覆盖后加文档。ROOT自有四原实例及捕获26后代收据闭合，5174/8001无监听，2fixture child/logClosed；所有TEMP/首败保留，未知用户进程未动。
+
+本批在最终文档独立收据及封印完成后STOP，下一动作只等用户新明确指示。B7-B/live未开始、教师pending、Word/WPS原生not_run、旧物理SQLite/Blob恢复源TEMP缺件not_run_source_temp_unavailable；canonical来源绑定不代替物理通过，历史13PDF页不代替原生页核。RAG-REL/R14跨批间歇/CV01～03/OBS-LP-MODE-LABEL及原环境观察保持OPEN。旧被拒额外HTTP身份probe未重试；无正式数据/6333/迁移/压力，无Git提交/推送/切分支/部署，没有自动下一批或重制离线包。真实试评交接仅列未来授权输入，executorPresent=false/budgetEnforced=false。
+<!-- /G5:20261005 -->
+
+<!-- G4-B7A-REVIEW:20261005 -->
+2026-10-05，接手先读[CURRENT_STATUS最新块](CURRENT_STATUS.md)、[本次审查及三分项](qa/TEACHING-LOOP-G4-B7A-REVIEW-20261005/REVIEW.md)、[G5限定修复提示词](design/teaching-loop-v1/G5_总控启动提示词_20261005.md)。两项新P2尚未修复，原G4四项与B7-A正常包保持；当前止于审查/提示词，用户下发后才开G5，不自动live或下一模块。
+
+编写时main@b7f99ab，B7-A r2候选SHA3a73dd766c2e23e57e5726e157f7ef5ef1efe9a7c5f815429b3774ca24568297，959source/3496执行QA/33契约/970build相符，构建VeOLFBYrp-8v24Yjm-HFi/proxy8001。先核现场差异，保留用户/UI基线及next-env原字节。G5仅修cleanup本次回执归属与CSV/Markdown空人审验证，按连续两操作与非法反馈反例独立验收；不重做273材料包、不开正式库/真实模型、不改v2原任务。真实教师/模型/Word-WPS待验和原B6/B7整体未关闭。
+<!-- /G4-B7A-REVIEW:20261005 -->
+
+<!-- G4-B7A:20261005 -->
+2026-10-05T14:02:43.529062+08:00：[本批证据](qa/TEACHING-LOOP-G4-B7A-20261005/README.md)。
+
+2026-10-05本批交付：G4四项已独立限定技术关闭；随后B7-A离线工具与验收准备完成。G4-CLOSE-v1.json与四项收据保持原件；本轮只完成离线，不关闭原B6/B7整体。
+
+G4实际完整check125文件1354单测/typecheck/lint0/build通过；独立组件38、质量工具59预期结果、新真实浏览器11、原真实14、现行29spec174 E2E分别完整单轮通过，0skip/retry/flaky/reporterErrors。构建VeOLFBYrp-8v24Yjm-HFi，实际代理8001，next-env原字节恢复。B7仅新增离线Python入口/专属测试/README，前端、后端、旧三工具、契约与构建逐项未变；精确引用上述G4门禁及适用历史同源证据，不冒称再次跑完整API/聊天/恢复或重新导出。
+
+B7-A已先交需求→固定样本→结构→真实输出→教师理由→排版矩阵，再实施工具。最终作者21/21完整通过；独立46/46完整首次CLI轮通过（15全集、明确14子集+C15未运行，以及44项硬拒），全部网络/app/.env/数据库打开guard尝试0，各子进程和日志关闭。原作者首败、准备定位/封印失败、候选r1/r2与所有TEMP保留，不拼轮或改原业务判据。B7A-OFFLINE-ACCEPT-v1.json、v00/b7a/RESULT-v1.md、B7A-OFFLINE-MATERIALS-v1.md和本批README为收据/材料入口。
+
+正常材料包b7a/prepared-full-v1仅生产一次，273条固定SHA引用；原15案例/15逐例DOCX、四代表DOCX/四旧实际PDF/13旧PNG、八维rubric和原15行空feedback保持。新native逐页表只有四文件起始行，实际原生页码/页数、应用/版本、评审者、证据理由与结论留空；13页PDF只作历史参考，不能代替原生页数或教师评价。
+
+最终冻结CANDIDATE-B7A-offline-r2.json SHA3a73dd766c2e23e57e5726e157f7ef5ef1efe9a7c5f815429b3774ca24568297：source959/执行QA3496/契约33/build970；历史QA19169逐项不变。原v2计划书87340字节完整保留，仅增加本批状态；CURRENT_STATUS/NEXT_SESSION及现行索引原内容同样保留，PROJECT_GUIDE/API/ROUTES不变，main@b7f99ab未改。自有服务、浏览器后代/工具子进程与句柄关闭，5174/8001无监听；不停止用户进程，不删TEMP或旧policy拒删目录。
+
+live=not_run_user_offline_scope，teacher_review_pending，Word/WPS=not_run_pending_human_manual_open。旧物理SQLite/Blob与恢复证明缺失、唯一旧VISUAL-REVIEW引用缺件均单列not_run；冻结canonical来源绑定不冒称新物理通过。旧export/styles43中12项历史漂移不转移整体排版证明；R14跨批间歇、CV01～03、OBS-LP-MODE-LABEL、RAG-REL及原环境观察保持OPEN。正式Qdrant/迁移、额外压力、正式数据/6333、发布部署未执行。
+
+本批到此STOP。下一动作仅按教师后续反馈或用户新的明确范围执行；没有真实模型授权/执行器或自动下一批，不Git写入/推送/切分支/部署。后续接续从本批收据与待验边界开始，原任务和伪代码不改。
+<!-- /G4-B7A:20261005 -->
+
 2026-10-04，最新后续审查：[REVIEW](qa/TEACHING-LOOP-B6-REVIEW-20261004/REVIEW.md)、[G4→B7-A提示词](design/teaching-loop-v1/B7_总控启动提示词_20261004.md)。原G3与限定B6技术关闭保持；新增两项B5继承产品问题与两项质量工具缺口，尚未修复。本轮只读产品与隔离窄审，没有服务/浏览器/真实模型或Git操作。用户下发新提示词后才开下一批，当前止于审查。
 
 先读CURRENT_STATUS最新首段与本次三个分项报告，再核现场main/HEAD/status、B6-r1候选与现有build。编写时main@6cb6a40，942source/3464QA/33contract/2161build/1056材料0漂移，build LkFgY8qsEnCOUbC11Dm1T/proxy8001；旧QA与next-env保全，本轮权威文档delta单列。G4先公开缓存写重试、明确教材清除失效、评审全集失败闭合、strict live范围，再B7-A试评接入。已有15例/四DOCX/13PDF页继续引用，真实模型/教师/WPS需各自依据；RAG-REL及原B6/B7整体未关闭。以下历史checkpoint不作为新阶段授权。

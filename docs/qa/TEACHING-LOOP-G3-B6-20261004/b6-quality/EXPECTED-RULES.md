@@ -1,0 +1,11 @@
+# 手写预期与逐学生核算依据
+
+预期在offline调用前冻结于 case-specs.json。prepare_cases.py只写手工字面表，不导入app、aggregate、模型或实际输出；共享LOSS/FULL/GAPS是字面常量复用，不是计算器。每例expected.json及student-state-table.json在其业务API之前生成并保持散列。
+
+每名被选唯一学生只选择一次明确attempt。关联KP有任一recorded得分低于该计分叶满分，记本次needs；recorded0也是有效证据。至少一关联叶recorded才进入valid/denominator。关联叶未全recorded记informationIncomplete；全部无recorded记noEvidence。因此C03同一人needs1与incomplete1重叠；C04两人incomplete2与noEvidence2完全重叠；C15同一人incomplete1与noEvidence1重叠，不能相加。
+
+分子为needs唯一学生数，分母仅有recorded的被选唯一学生；分母0时ratio=null。综合题关联两个KP时只能给两个关联提示，不得拆造错因。C06报告可含两个班，生成只取显式目标班；C07同学生两个attempt，显式只选第二次100分，不能自然累计两个参测行。
+
+历史班名未保存在成绩中时，报告为className=null和“该成绩未记录班名”；当前classNameAtSave只表示当前教案保存身份，不补写历史。QB缺口通过真实suggestions记录，课程检测文本不等于新建审核题。教材正例/窄边界/范围外/缺请求依据分别列示，结构存在evidence不推断语义依据充分。
+
+这些规则按本批授权规格由独立QA手写，真人教学判断尚未发生；需教师确认规则解释和候选内容，不能自评替身PASS。

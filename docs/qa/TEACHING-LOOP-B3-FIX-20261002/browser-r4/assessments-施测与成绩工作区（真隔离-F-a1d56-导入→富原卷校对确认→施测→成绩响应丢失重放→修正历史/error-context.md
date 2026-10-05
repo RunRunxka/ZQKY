@@ -1,0 +1,86 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - heading "施测与成绩" [level=1] [ref=e4]
+      - paragraph [ref=e5]: 按「名单 → 原卷 → 施测 → 成绩 → 历史」完成一次真实测评闭环：成绩只接受教师原始 小题得分表，0 / 空白 / 缺考 / 免考严格区分，确认后的成绩修订不可变；修正生成新版本并保留审计。
+    - main [ref=e6]:
+      - tablist "施测与成绩步骤" [ref=e7]:
+        - tab "1 名单" [ref=e8] [cursor=pointer]
+        - tab "2 原卷" [selected] [ref=e9] [cursor=pointer]
+        - tab "3 施测" [ref=e10] [cursor=pointer]
+        - tab "4 成绩" [ref=e11] [cursor=pointer]
+        - tab "5 历史" [ref=e12] [cursor=pointer]
+      - generic [ref=e13]:
+        - generic [ref=e14]: 班级：5478d1a257be460bad0660c8f92b2eb7
+        - generic [ref=e15]: 原卷：未选用
+        - generic [ref=e16]: 施测：未选择
+      - tabpanel "2 原卷" [ref=e17]:
+        - generic [ref=e18]:
+          - region "导入原卷" [ref=e19]:
+            - heading "导入教师原卷（DOCX）" [level=3] [ref=e20]:
+              - img [ref=e21]
+              - text: 导入教师原卷（DOCX）
+            - paragraph [ref=e24]: 完整原文、公式、图片、表格和共同材料均需校对；原卷不要求答案、解析或评分点。
+            - form "导入原卷" [ref=e25]:
+              - generic [ref=e26]:
+                - generic [ref=e27]: 原卷文件
+                - button "原卷DOCX文件" [ref=e28]
+              - generic [ref=e29]:
+                - generic [ref=e30]: 学科
+                - combobox "原卷学科" [ref=e31]:
+                  - option "请选择学科"
+                  - option "语文"
+                  - option "数学" [selected]
+                  - option "英语"
+                  - option "物理"
+                  - option "化学"
+                  - option "生物"
+                  - option "历史"
+                  - option "地理"
+                  - option "思想政治"
+              - generic [ref=e32]:
+                - generic [ref=e33]: 标题（可选）
+                - textbox "导入原卷标题" [ref=e34]
+              - button "上传原卷并校对" [ref=e35] [cursor=pointer]
+            - alert [ref=e36]: 原卷导入失败（INVALID_REQUEST）：上传的原卷文件为空。 已选文件与标题保留。
+          - region "已确认原卷修订" [ref=e37]:
+            - generic [ref=e38]:
+              - heading "原卷修订" [level=3] [ref=e39]
+              - button "刷新" [ref=e40] [cursor=pointer]:
+                - img [ref=e41]
+                - text: 刷新
+            - paragraph [ref=e46]: 成绩固定到已确认修订的计分叶与满分。草稿先校对确认；已选用修订可独立阅读自己的标题和内容。
+            - list "原卷列表" [ref=e47]:
+              - listitem [ref=e48]:
+                - generic [ref=e49]:
+                  - generic [ref=e50]:
+                    - strong [ref=e51]: F20-I 规模样本卷（100 叶）
+                    - generic [ref=e52]: 启用
+                    - generic [ref=e53]: 已确认
+                  - generic [ref=e54]:
+                    - generic [ref=e55]: 修订 v1
+                    - generic [ref=e56]: 计分叶 100
+                    - generic [ref=e57]: 满分 100
+                    - generic [ref=e58]: revisionId pr-scale
+                  - generic [ref=e59]:
+                    - button "阅读固定修订" [ref=e60] [cursor=pointer]
+                    - button "选用该修订" [ref=e61] [cursor=pointer]
+              - listitem [ref=e62]:
+                - generic [ref=e63]:
+                  - generic [ref=e64]:
+                    - strong [ref=e65]: F20-I 成绩样本卷
+                    - generic [ref=e66]: 启用
+                    - generic [ref=e67]: 已确认
+                  - generic [ref=e68]:
+                    - generic [ref=e69]: 修订 v1
+                    - generic [ref=e70]: 计分叶 3
+                    - generic [ref=e71]: 满分 10
+                    - generic [ref=e72]: revisionId pr-f20i
+                  - generic [ref=e73]:
+                    - button "阅读固定修订" [ref=e74] [cursor=pointer]
+                    - button "选用该修订" [ref=e75] [cursor=pointer]
+  - alert [ref=e76]
+```

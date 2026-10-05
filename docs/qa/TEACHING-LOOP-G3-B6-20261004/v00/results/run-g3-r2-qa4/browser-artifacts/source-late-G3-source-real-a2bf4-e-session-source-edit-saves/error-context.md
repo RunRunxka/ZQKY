@@ -1,0 +1,536 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - alert [ref=e2]
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - heading "教案工作台" [level=1] [ref=e5]
+      - generic [ref=e6]:
+        - generic [ref=e7]: 后台稿已保存
+        - button "新建教案" [ref=e9] [cursor=pointer]:
+          - img [ref=e10]
+          - text: 新建教案
+        - button "导出教案" [ref=e12] [cursor=pointer]:
+          - img [ref=e13]
+          - text: 导出教案
+          - img [ref=e16]
+    - navigation "项目功能导航" [ref=e18]:
+      - button "返回学习问答" [ref=e19] [cursor=pointer]:
+        - img [ref=e20]
+        - strong [ref=e22]: 智启课源
+      - button "收起项目导航" [expanded] [ref=e23] [cursor=pointer]:
+        - img [ref=e24]
+      - generic [ref=e27]:
+        - button "学习问答" [ref=e28] [cursor=pointer]:
+          - img [ref=e29]
+          - generic [ref=e32]: 学习问答
+        - button "教案工作台" [ref=e33] [cursor=pointer]:
+          - img [ref=e34]
+          - generic [ref=e37]: 教案工作台
+        - button "智能组卷（规划中）" [ref=e38] [cursor=pointer]:
+          - img [ref=e39]
+          - generic [ref=e42]:
+            - text: 智能组卷
+            - generic [ref=e43]: 规划中
+        - button "题库" [ref=e44] [cursor=pointer]:
+          - img [ref=e45]
+          - generic [ref=e48]: 题库
+        - button "知识点" [ref=e49] [cursor=pointer]:
+          - img [ref=e50]
+          - generic [ref=e52]: 知识点
+        - button "施测与成绩" [ref=e53] [cursor=pointer]:
+          - img [ref=e54]
+          - generic [ref=e57]: 施测与成绩
+        - button "学情分析" [ref=e58] [cursor=pointer]:
+          - img [ref=e59]
+          - generic [ref=e62]: 学情分析
+        - button "针对练习" [ref=e63] [cursor=pointer]:
+          - img [ref=e64]
+          - generic [ref=e67]: 针对练习
+        - button "协同写作（规划中）" [ref=e68] [cursor=pointer]:
+          - img [ref=e69]
+          - generic [ref=e71]:
+            - text: 协同写作
+            - generic [ref=e72]: 规划中
+        - button "沉浸阅读（规划中）" [ref=e73] [cursor=pointer]:
+          - img [ref=e74]
+          - generic [ref=e76]:
+            - text: 沉浸阅读
+            - generic [ref=e77]: 规划中
+        - button "学习空间（规划中）" [ref=e78] [cursor=pointer]:
+          - img [ref=e79]
+          - generic [ref=e84]:
+            - text: 学习空间
+            - generic [ref=e85]: 规划中
+        - button "教材资料库" [ref=e86] [cursor=pointer]:
+          - img [ref=e87]
+          - generic [ref=e89]: 教材资料库
+        - button "模板中心（规划中）" [ref=e90] [cursor=pointer]:
+          - img [ref=e91]
+          - generic [ref=e95]:
+            - text: 模板中心
+            - generic [ref=e96]: 规划中
+      - generic [ref=e97]:
+        - button "设置" [ref=e98] [cursor=pointer]:
+          - img [ref=e99]
+          - generic [ref=e102]: 设置
+        - generic "本地工作台" [ref=e103]: 教
+    - main [ref=e104]:
+      - generic [ref=e105]:
+        - generic [ref=e106]:
+          - generic [ref=e107]: LESSON PLANNER
+          - heading "把教学思路，写进课堂。" [level=1] [ref=e108]
+        - button "收起教案配置" [expanded] [ref=e109] [cursor=pointer]:
+          - img [ref=e110]
+      - generic [ref=e113]:
+        - button "逐项填写" [ref=e114] [cursor=pointer]:
+          - img [ref=e115]
+          - text: 逐项填写
+        - button "要求填充 规则" [ref=e118] [cursor=pointer]:
+          - img [ref=e119]
+          - text: 要求填充
+          - generic [ref=e121]: 规则
+        - generic [ref=e122]:
+          - button "撤销" [disabled] [ref=e123]:
+            - img [ref=e124]
+          - button "重做" [disabled] [ref=e127]:
+            - img [ref=e128]
+      - generic [ref=e131]:
+        - generic [ref=e132]:
+          - generic "教案正文来源" [ref=e133]:
+            - generic [ref=e134]: 后台固定 v1 · 1e15555fe6a34fb1b27ba6d0d641c3e1
+            - generic [ref=e135]: manual · unreviewed
+            - generic [ref=e136]: 固定学情 68ac373b6f9f4954a59c2164a878d1ae → 教案 1e15555fe6a34fb1b27ba6d0d641c3e1 → 调整建议 尚未生成
+          - generic [ref=e137]:
+            - status [ref=e138]: 后台稿已保存
+            - button "保存后台稿" [ref=e139] [cursor=pointer]
+            - button "读取后台最新版本" [ref=e140] [cursor=pointer]
+          - status [ref=e141]: 已放弃未保存编辑并恢复可信正文；若离开未完成，之后的新编辑可重新保存。
+          - group [ref=e142]:
+            - generic "后台文档与固定历史" [ref=e143] [cursor=pointer]
+          - group [ref=e144]:
+            - generic "班级、固定学情与生成来源" [ref=e145] [cursor=pointer]
+            - generic [ref=e146]:
+              - paragraph [ref=e147]: 生成使用教师明确选择的固定报告、知识点和核验教材；候选不会直接修改正文。
+              - generic [ref=e148]:
+                - generic [ref=e149]:
+                  - text: 学科
+                  - combobox "教案学科" [disabled] [ref=e150]:
+                    - option "语文"
+                    - option "数学" [selected]
+                    - option "英语"
+                    - option "物理"
+                    - option "化学"
+                    - option "生物"
+                    - option "历史"
+                    - option "地理"
+                    - option "思想政治"
+                - generic [ref=e151]:
+                  - text: 单一班级
+                  - combobox "教案班级" [disabled] [ref=e152]:
+                    - option "请选择班级"
+                    - option "测试班级" [selected]
+                - generic [ref=e153]:
+                  - text: 固定 ready 学情
+                  - combobox "固定学情报告" [ref=e154]:
+                    - option "不关联学情"
+                    - option "初测原卷 · 8e166d92aa514f5aa4995f0b3e52016f · 68ac373b6f9f4954a59c2164a878d1ae" [selected]
+                    - option "练习施测 · 0e7943f8cf4a4f7b8f9ddb6a50541680 · a46f958f73174ede8ae7c908ea729a62"
+                - generic [ref=e155]:
+                  - text: 模型档案
+                  - combobox "教案生成模型" [ref=e156]:
+                    - option "请选择模型档案"
+                    - option "B5独立 openai-chat · b5-v00-isolated-model" [selected]
+                    - option "B5独立 openai-responses · b5-v00-isolated-model"
+                    - option "B5独立 anthropic-messages · b5-v00-isolated-model"
+              - generic [ref=e157]:
+                - generic [ref=e158]:
+                  - text: 课堂时长（分钟）
+                  - spinbutton "课堂时长" [ref=e159]: "43"
+                - generic [ref=e160]:
+                  - text: 教师要求
+                  - textbox "教案生成要求" [ref=e161]: 匿名教师来源边界要求，保留固定计数与选择。
+                  - generic [ref=e162]: 请勿填写学生姓名、学号或人员 ID；已知身份将被阻断，系统不能保证识别全部个人信息。
+              - group "真实教材切片" [ref=e163]:
+                - generic [ref=e164]: 真实教材切片
+                - generic [ref=e165]:
+                  - generic [ref=e166]:
+                    - text: 年级
+                    - combobox "教材年级" [ref=e167]:
+                      - option "请选择年级" [selected]
+                      - option "高一"
+                      - option "高二"
+                      - option "高三"
+                  - generic [ref=e168]:
+                    - text: 教材版本
+                    - combobox "教材版本" [ref=e169]:
+                      - option "请选择版本" [selected]
+                      - option "人教A版"
+                      - option "人教B版"
+                      - option "人教版"
+                - button "读取可选教材" [ref=e170] [cursor=pointer]
+                - generic [ref=e171]:
+                  - text: 教材固定修订
+                  - combobox "教材固定修订" [ref=e172]:
+                    - option "请选择教材" [selected]
+                - generic [ref=e173]:
+                  - generic [ref=e174]:
+                    - text: 切片起点
+                    - spinbutton "切片起点" [ref=e175]: "0"
+                  - generic [ref=e176]:
+                    - text: 切片终点
+                    - spinbutton "切片终点" [ref=e177]: "1000"
+                - button "读取并核验教材切片" [ref=e178] [cursor=pointer]
+                - button "清除已选教材切片" [ref=e179] [cursor=pointer]
+              - group "已确认固定题（可选，最多20题）" [ref=e180]:
+                - generic [ref=e181]: 已确认固定题（可选，最多20题）
+                - button "读取已确认固定题" [ref=e182] [cursor=pointer]
+              - group "已审核固定练习（可选，最多5份）" [ref=e183]:
+                - generic [ref=e184]: 已审核固定练习（可选，最多5份）
+              - button "刷新来源列表" [ref=e185] [cursor=pointer]
+          - group [ref=e186]:
+            - generic "学情驱动 AI 候选与逐字段差异" [ref=e187] [cursor=pointer]
+        - group [ref=e188]:
+          - generic [ref=e189]:
+            - generic [ref=e190]:
+              - img [ref=e192]
+              - generic [ref=e195]:
+                - heading "基本信息" [level=2] [ref=e196]
+                - paragraph [ref=e197]: 从课题开始，搭好这节课的框架。
+            - generic [ref=e198]:
+              - generic [ref=e199]:
+                - text: 课题
+                - generic [ref=e200]: 必填
+              - textbox "课题" [ref=e201]:
+                - /placeholder: 例如：荷塘月色
+                - text: 来源边界教师可信 new-source-control
+            - generic [ref=e202]:
+              - generic [ref=e203]:
+                - generic [ref=e204]: 本课题总课时
+                - generic [ref=e205]:
+                  - spinbutton "本课题总课时" [ref=e206]: "5"
+                  - generic [ref=e207]: 课时
+              - generic [ref=e208]:
+                - generic [ref=e209]: 本节课
+                - generic [ref=e210]:
+                  - spinbutton "本节课" [ref=e211]: "2"
+                  - generic [ref=e212]: 课时
+            - generic [ref=e213]:
+              - generic [ref=e214]:
+                - text: 课型
+                - generic [ref=e215]: 可多选
+              - generic [ref=e216]:
+                - generic [ref=e217] [cursor=pointer]:
+                  - checkbox "新课" [ref=e218]
+                  - text: 新课
+                - generic [ref=e220] [cursor=pointer]:
+                  - checkbox "复习课" [checked] [ref=e221]
+                  - img [ref=e223]
+                  - text: 复习课
+                - generic [ref=e225] [cursor=pointer]:
+                  - checkbox "试题讲评课" [ref=e226]
+                  - text: 试题讲评课
+                - generic [ref=e228] [cursor=pointer]:
+                  - checkbox "实验课" [ref=e229]
+                  - text: 实验课
+                - generic [ref=e231] [cursor=pointer]:
+                  - checkbox "其它" [checked] [ref=e232]
+                  - img [ref=e234]
+                  - text: 其它
+            - generic [ref=e236]:
+              - generic [ref=e237]: 其他课型说明
+              - textbox "其他课型说明" [ref=e238]: 来源边界独立课型
+          - generic [ref=e239]:
+            - generic [ref=e240]:
+              - img [ref=e242]
+              - generic [ref=e246]:
+                - heading "核心素养目标" [level=2] [ref=e247]
+                - paragraph [ref=e248]: 这节课，你希望学生获得什么？
+            - textbox "核心素养目标" [ref=e249]:
+              - /placeholder: 填写核心素养目标…
+              - text: 可信教师素养完整
+            - generic [ref=e250]:
+              - generic [ref=e251]: 支持换行，内容自动撑开
+              - generic [ref=e252]: 8 字
+          - generic [ref=e253]:
+            - generic [ref=e254]:
+              - img [ref=e256]
+              - generic [ref=e258]:
+                - heading "教学重、难点" [level=2] [ref=e259]
+                - paragraph [ref=e260]: 明确课堂重点，找到学习突破口。
+            - textbox "教学重、难点" [ref=e261]:
+              - /placeholder: 填写教学重、难点…
+              - text: 可信教师重点完整
+            - generic [ref=e262]:
+              - generic [ref=e263]: 支持换行，内容自动撑开
+              - generic [ref=e264]: 8 字
+          - generic [ref=e265]:
+            - generic [ref=e266]:
+              - img [ref=e268]
+              - generic [ref=e270]:
+                - heading "教学设计" [level=2] [ref=e271]
+                - paragraph [ref=e272]: 记录板书思路、教学方法与组织方式。
+            - textbox "教学设计" [ref=e273]:
+              - /placeholder: 填写教学设计…
+              - text: 可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。
+            - generic [ref=e274]:
+              - generic [ref=e275]: 支持换行，内容自动撑开
+              - generic [ref=e276]: 1430 字
+          - generic [ref=e277]:
+            - generic [ref=e278]:
+              - img [ref=e280]
+              - generic [ref=e284]:
+                - heading "教学过程" [level=2] [ref=e285]
+                - paragraph [ref=e286]: 串联教学环节，记录二次备课。
+              - generic [ref=e287]: 2 个环节
+            - generic [ref=e288]:
+              - generic [ref=e289]:
+                - img [ref=e290]
+                - generic [ref=e297]: 环节 1
+                - generic [ref=e298]:
+                  - button "上移环节1" [disabled] [ref=e299]:
+                    - img [ref=e300]
+                  - button "下移环节1" [ref=e302] [cursor=pointer]:
+                    - img [ref=e303]
+                  - button "删除环节1" [ref=e305] [cursor=pointer]:
+                    - img [ref=e306]
+              - generic [ref=e309]:
+                - generic [ref=e310]: 环节名称
+                - textbox "环节名称" [ref=e311]: 可信导入
+              - generic [ref=e312]:
+                - generic [ref=e313]: 教学设计
+                - textbox "教学设计" [ref=e314]: 可信活动甲
+              - generic [ref=e315]:
+                - generic [ref=e316]: 二次备课
+                - textbox "二次备课" [ref=e317]:
+                  - /placeholder: 记录调整思路或课堂观察…
+                  - text: 可信二次甲
+            - generic [ref=e318]:
+              - generic [ref=e319]:
+                - img [ref=e320]
+                - generic [ref=e327]: 环节 2
+                - generic [ref=e328]:
+                  - button "上移环节2" [ref=e329] [cursor=pointer]:
+                    - img [ref=e330]
+                  - button "下移环节2" [disabled] [ref=e332]:
+                    - img [ref=e333]
+                  - button "删除环节2" [ref=e335] [cursor=pointer]:
+                    - img [ref=e336]
+              - generic [ref=e339]:
+                - generic [ref=e340]: 环节名称
+                - textbox "环节名称" [ref=e341]: 可信检测
+              - generic [ref=e342]:
+                - generic [ref=e343]: 教学设计
+                - textbox "教学设计" [ref=e344]: 可信活动乙
+              - generic [ref=e345]:
+                - generic [ref=e346]: 二次备课
+                - textbox "二次备课" [ref=e347]:
+                  - /placeholder: 记录调整思路或课堂观察…
+                  - text: 可信二次乙
+            - button "添加教学环节" [ref=e348] [cursor=pointer]:
+              - img [ref=e349]
+              - text: 添加教学环节
+          - generic [ref=e350]:
+            - generic [ref=e351]:
+              - img [ref=e353]
+              - generic [ref=e356]:
+                - heading "练习与作业" [level=2] [ref=e357]
+                - paragraph [ref=e358]: 让课堂所学，在练习中得到巩固。
+            - textbox "练习与作业" [ref=e359]:
+              - /placeholder: 填写课堂练习与课后作业…
+              - text: 可信教师练习完整
+          - generic [ref=e360]:
+            - generic [ref=e361]:
+              - img [ref=e363]
+              - generic [ref=e366]:
+                - heading "教学反思" [level=2] [ref=e367]
+                - paragraph [ref=e368]: 课后回顾，为下一次课堂留点启发。
+            - textbox "教学反思" [ref=e369]:
+              - /placeholder: 可以课后再来补充…
+              - text: 可信教师反思完整
+      - generic [ref=e370]:
+        - generic [ref=e371]: 编辑后实时更新预览
+        - generic [ref=e373]: 7 / 7 项已填写
+    - complementary [ref=e374]:
+      - generic [ref=e376]: 教案配置
+      - generic [ref=e377]:
+        - button "内容结构" [ref=e378] [cursor=pointer]:
+          - img [ref=e379]
+          - text: 内容结构
+        - button "版式" [ref=e382] [cursor=pointer]:
+          - img [ref=e383]
+          - text: 版式
+      - generic [ref=e384]:
+        - text: 教案内容
+        - generic [ref=e385]: 7 / 7
+      - generic [ref=e386]:
+        - button "基本信息" [ref=e387] [cursor=pointer]:
+          - img [ref=e388]
+          - generic [ref=e391]: 基本信息
+          - img [ref=e392]
+        - button "核心素养目标" [ref=e394] [cursor=pointer]:
+          - img [ref=e395]
+          - generic [ref=e399]: 核心素养目标
+          - img [ref=e400]
+        - button "教学重、难点" [ref=e402] [cursor=pointer]:
+          - img [ref=e403]
+          - generic [ref=e405]: 教学重、难点
+          - img [ref=e406]
+        - button "教学设计" [ref=e408] [cursor=pointer]:
+          - img [ref=e409]
+          - generic [ref=e411]: 教学设计
+          - img [ref=e412]
+        - button "教学过程" [ref=e414] [cursor=pointer]:
+          - img [ref=e415]
+          - generic [ref=e419]: 教学过程
+          - img [ref=e420]
+        - button "练习与作业" [ref=e422] [cursor=pointer]:
+          - img [ref=e423]
+          - generic [ref=e426]: 练习与作业
+          - img [ref=e427]
+        - button "教学反思" [ref=e429] [cursor=pointer]:
+          - img [ref=e430]
+          - generic [ref=e433]: 教学反思
+          - img [ref=e434]
+      - generic [ref=e436]: 教学反思可以在授课后补充
+      - generic [ref=e439]:
+        - text: 当前模板
+        - generic [ref=e440]: 1 款
+      - img "教师备课标准表格模板缩略图" [ref=e441]:
+        - generic [ref=e443]: 教师备课教案
+        - generic [ref=e466]:
+          - generic [ref=e467]:
+            - text: 教师备课标准模板
+            - generic [ref=e468]: 原始 Word 模板适配
+          - img [ref=e470]
+      - button "导入教案草稿" [ref=e472] [cursor=pointer]:
+        - img [ref=e473]
+        - text: 导入教案草稿
+      - generic [ref=e476]:
+        - img [ref=e477]
+        - generic [ref=e480]:
+          - text: 本地工作模式
+          - generic [ref=e481]: 草稿保存在当前浏览器
+    - region "教案实时预览" [ref=e482]:
+      - generic [ref=e483]:
+        - generic [ref=e484]:
+          - text: 实时预览
+          - generic [ref=e486]: A4
+        - generic [ref=e487]:
+          - button "缩小预览" [ref=e488] [cursor=pointer]:
+            - img [ref=e489]
+          - button "69%" [ref=e490] [cursor=pointer]
+          - button "放大预览" [ref=e491] [cursor=pointer]:
+            - img [ref=e492]
+          - button "适合宽度" [ref=e494] [cursor=pointer]:
+            - img [ref=e495]
+          - button "专注预览" [ref=e500] [cursor=pointer]:
+            - img [ref=e501]
+      - generic [ref=e507]:
+        - article [ref=e509]:
+          - generic [ref=e510]:
+            - text: 智启课源
+            - generic [ref=e511]: 教师备课 · 教案
+          - heading "教师备课教案" [level=1] [ref=e512]
+          - table [ref=e513]:
+            - rowgroup [ref=e521]:
+              - row "课题 来源边界教师可信 new-source-control 本课题 总课时 5 本节课 第 2 课时" [ref=e522]:
+                - rowheader "课题" [ref=e523]
+                - cell "来源边界教师可信 new-source-control" [ref=e524]
+                - rowheader "本课题 总课时" [ref=e525]:
+                  - text: 本课题
+                  - text: 总课时
+                - cell "5" [ref=e526]
+                - rowheader "本节课" [ref=e527]
+                - cell "第 2 课时" [ref=e528]
+              - row "课型 新课 复习课 试题讲评课 实验课 其它（来源边界独立课型）" [ref=e529]:
+                - rowheader "课型" [ref=e530]
+                - cell "新课 复习课 试题讲评课 实验课 其它（来源边界独立课型）" [ref=e531]:
+                  - generic [ref=e532]:
+                    - generic [ref=e533]: 新课
+                    - generic [ref=e535]:
+                      - img [ref=e537]
+                      - text: 复习课
+                    - generic [ref=e539]: 试题讲评课
+                    - generic [ref=e541]: 实验课
+                    - generic [ref=e543]:
+                      - img [ref=e545]
+                      - text: 其它（来源边界独立课型）
+          - table [ref=e547]:
+            - rowgroup [ref=e552]:
+              - row "核心素养目标 可信教师素养完整" [ref=e553]:
+                - rowheader "核心素养目标" [ref=e554]
+                - cell "可信教师素养完整" [ref=e555]:
+                  - generic [ref=e556]: 可信教师素养完整
+              - row "教学重、难点 可信教师重点完整" [ref=e557]:
+                - rowheader "教学重、难点" [ref=e558]
+                - cell "可信教师重点完整" [ref=e559]:
+                  - generic [ref=e560]: 可信教师重点完整
+              - row "教学设计 可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。" [ref=e561]:
+                - rowheader "教学设计" [ref=e562]
+                - cell "可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。" [ref=e563]:
+                  - generic [ref=e564]: 可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。
+          - generic [ref=e565]:
+            - generic [ref=e566]: 来源边界教师可信 new-source-control · 后台固定 v1 · 1e15555fe6a34fb1b27ba6d0d641c3e1
+            - generic [ref=e567]: 1 / 2
+        - article [ref=e569]:
+          - generic [ref=e570]:
+            - text: 智启课源
+            - generic [ref=e571]: 教师备课 · 教案
+          - heading "教师备课教案（续）" [level=1] [ref=e572]
+          - generic [ref=e573]: 来源边界教师可信 new-source-control · 接上页
+          - table [ref=e574]:
+            - rowgroup [ref=e579]:
+              - row "教学设计 （续） 可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。" [ref=e580]:
+                - rowheader "教学设计 （续）" [ref=e581]:
+                  - text: 教学设计
+                  - generic [ref=e582]: （续）
+                - cell "可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。" [ref=e583]:
+                  - generic [ref=e584]: 可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。可信长正文中文<&>。
+              - row "教学过程 教学设计 可信导入 可信活动甲 二次备课 可信二次甲" [ref=e585]:
+                - rowheader "教学过程" [ref=e586]:
+                  - generic [ref=e587]: 教学过程
+                - cell "教学设计 可信导入 可信活动甲" [ref=e588]:
+                  - generic [ref=e589]:
+                    - generic [ref=e590]: 教学设计
+                    - strong [ref=e591]: 可信导入
+                  - generic [ref=e592]: 可信活动甲
+                - cell "二次备课 可信二次甲" [ref=e593]:
+                  - generic [ref=e594]: 二次备课
+                  - generic [ref=e595]: 可信二次甲
+              - row "可信检测 可信活动乙 可信二次乙" [ref=e596]:
+                - cell "可信检测 可信活动乙" [ref=e597]:
+                  - strong [ref=e599]: 可信检测
+                  - generic [ref=e600]: 可信活动乙
+                - cell "可信二次乙" [ref=e601]:
+                  - generic [ref=e602]: 可信二次乙
+              - row "课堂练习及 作业布置 可信教师练习完整" [ref=e603]:
+                - rowheader "课堂练习及 作业布置" [ref=e604]
+                - cell "可信教师练习完整" [ref=e605]:
+                  - generic [ref=e606]: 可信教师练习完整
+              - row "教学反思 可信教师反思完整" [ref=e607]:
+                - rowheader "教学反思" [ref=e608]
+                - cell "可信教师反思完整" [ref=e609]:
+                  - generic [ref=e610]: 可信教师反思完整
+          - generic [ref=e611]:
+            - generic [ref=e612]: 教研组核查等次：（优 / 良 / 中 / 差）
+            - generic [ref=e613]:
+              - text: 教务处核查：（盖章）
+              - generic [ref=e614]: 年 月 日
+          - generic [ref=e615]:
+            - generic [ref=e616]: 来源边界教师可信 new-source-control · 后台固定 v1 · 1e15555fe6a34fb1b27ba6d0d641c3e1
+            - generic [ref=e617]: 2 / 2
+      - generic [ref=e618]:
+        - generic [ref=e619]:
+          - img [ref=e620]
+          - text: 内容与 PDF 同步
+        - generic [ref=e622]:
+          - button "上一页" [disabled] [ref=e623]:
+            - img [ref=e624]
+          - generic [ref=e626]: 1 / 2 页
+          - button "下一页" [ref=e627] [cursor=pointer]:
+            - img [ref=e628]
+        - button "打印教案" [ref=e630] [cursor=pointer]:
+          - img [ref=e631]
+```

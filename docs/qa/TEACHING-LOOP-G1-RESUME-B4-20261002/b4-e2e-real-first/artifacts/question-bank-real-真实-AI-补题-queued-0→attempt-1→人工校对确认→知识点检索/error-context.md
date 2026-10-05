@@ -1,0 +1,98 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation "项目功能导航" [ref=e3]:
+      - button "返回学习问答" [ref=e4] [cursor=pointer]:
+        - img [ref=e5]
+        - strong [ref=e7]: 智启课源
+      - button "收起项目导航" [expanded] [ref=e8] [cursor=pointer]:
+        - img [ref=e9]
+      - generic [ref=e12]:
+        - button "学习问答" [ref=e13] [cursor=pointer]:
+          - img [ref=e14]
+          - generic [ref=e17]: 学习问答
+        - button "教案工作台" [ref=e18] [cursor=pointer]:
+          - img [ref=e19]
+          - generic [ref=e22]: 教案工作台
+        - button "智能组卷（规划中）" [ref=e23] [cursor=pointer]:
+          - img [ref=e24]
+          - generic [ref=e27]:
+            - text: 智能组卷
+            - generic [ref=e28]: 规划中
+        - button "题库" [ref=e29] [cursor=pointer]:
+          - img [ref=e30]
+          - generic [ref=e33]: 题库
+        - button "知识点" [ref=e34] [cursor=pointer]:
+          - img [ref=e35]
+          - generic [ref=e37]: 知识点
+        - button "施测与成绩" [ref=e38] [cursor=pointer]:
+          - img [ref=e39]
+          - generic [ref=e42]: 施测与成绩
+        - button "学情分析" [ref=e43] [cursor=pointer]:
+          - img [ref=e44]
+          - generic [ref=e47]: 学情分析
+        - button "针对练习" [ref=e48] [cursor=pointer]:
+          - img [ref=e49]
+          - generic [ref=e52]: 针对练习
+        - button "协同写作（规划中）" [ref=e53] [cursor=pointer]:
+          - img [ref=e54]
+          - generic [ref=e56]:
+            - text: 协同写作
+            - generic [ref=e57]: 规划中
+        - button "沉浸阅读（规划中）" [ref=e58] [cursor=pointer]:
+          - img [ref=e59]
+          - generic [ref=e61]:
+            - text: 沉浸阅读
+            - generic [ref=e62]: 规划中
+        - button "学习空间（规划中）" [ref=e63] [cursor=pointer]:
+          - img [ref=e64]
+          - generic [ref=e69]:
+            - text: 学习空间
+            - generic [ref=e70]: 规划中
+        - button "教材资料库" [ref=e71] [cursor=pointer]:
+          - img [ref=e72]
+          - generic [ref=e74]: 教材资料库
+        - button "模板中心（规划中）" [ref=e75] [cursor=pointer]:
+          - img [ref=e76]
+          - generic [ref=e80]:
+            - text: 模板中心
+            - generic [ref=e81]: 规划中
+      - generic [ref=e82]:
+        - button "设置" [ref=e83] [cursor=pointer]:
+          - img [ref=e84]
+          - generic [ref=e87]: 设置
+        - generic "本地工作台" [ref=e88]: 教
+    - generic [ref=e90]:
+      - banner [ref=e91]:
+        - generic [ref=e92]:
+          - heading "题库" [level=1] [ref=e93]
+          - button "导入试题" [ref=e95] [cursor=pointer]:
+            - img [ref=e96]
+            - text: 导入试题
+        - paragraph [ref=e99]: 试题来自导入文件的本地解析与规则拆题；AI 整理结果只是待校对建议，必须人工校对后才能入库。
+      - main [ref=e100]:
+        - tablist "题库视图" [ref=e101]:
+          - tab "导入批次" [selected] [ref=e102] [cursor=pointer]
+          - tab "已入库题目" [ref=e103] [cursor=pointer]
+        - tabpanel "导入批次" [ref=e104]:
+          - list [ref=e105]:
+            - listitem [ref=e106]:
+              - link "ai-generation-37ba52a1abb44cbb8d2ba3709f6141a1.json 已确认入库 草稿 1 已校对 1 未归属原文 0 0.0 MiB 2026/10/02 23:13 警告 1 条：AI 补题批次：候选尚未入库，请逐题校对后用确认接口建账。" [ref=e107] [cursor=pointer]:
+                - /url: /question-bank/imports/7ff58f05b7ab4d18953a8f8e38dce179
+                - img [ref=e109]
+                - generic [ref=e112]:
+                  - strong [ref=e113]: ai-generation-37ba52a1abb44cbb8d2ba3709f6141a1.json
+                  - generic [ref=e114]:
+                    - generic [ref=e115]: 已确认入库
+                    - generic [ref=e116]: 草稿 1
+                    - generic [ref=e117]: 已校对 1
+                    - generic [ref=e118]: 未归属原文 0
+                    - generic [ref=e119]: 0.0 MiB
+                    - generic [ref=e120]: 2026/10/02 23:13
+                  - generic [ref=e121]: 警告 1 条：AI 补题批次：候选尚未入库，请逐题校对后用确认接口建账。
+                - img [ref=e122]
+        - paragraph [ref=e124]: 导入解析、AI 整理与入库都以后端为准：任何环节失败都会显示具体原因与错误码，不会伪造成功， 也不会把请求失败当成空列表。
+  - alert [ref=e125]: 智启课源 · 题库
+```

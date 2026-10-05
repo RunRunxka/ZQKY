@@ -1,0 +1,80 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - alert [ref=e2]: 试题校对
+  - generic [ref=e3]:
+    - navigation "项目功能导航" [ref=e4]:
+      - button "返回学习问答" [ref=e5] [cursor=pointer]:
+        - img [ref=e6]
+        - strong [ref=e8]: 智启课源
+      - button "收起项目导航" [expanded] [ref=e9] [cursor=pointer]:
+        - img [ref=e10]
+      - generic [ref=e13]:
+        - button "学习问答" [ref=e14] [cursor=pointer]:
+          - img [ref=e15]
+          - generic [ref=e18]: 学习问答
+        - button "教案工作台" [ref=e19] [cursor=pointer]:
+          - img [ref=e20]
+          - generic [ref=e23]: 教案工作台
+        - button "智能组卷（规划中）" [ref=e24] [cursor=pointer]:
+          - img [ref=e25]
+          - generic [ref=e28]:
+            - text: 智能组卷
+            - generic [ref=e29]: 规划中
+        - button "题库" [ref=e30] [cursor=pointer]:
+          - img [ref=e31]
+          - generic [ref=e34]: 题库
+        - button "知识点" [ref=e35] [cursor=pointer]:
+          - img [ref=e36]
+          - generic [ref=e38]: 知识点
+        - button "施测与成绩" [ref=e39] [cursor=pointer]:
+          - img [ref=e40]
+          - generic [ref=e43]: 施测与成绩
+        - button "学情分析" [ref=e44] [cursor=pointer]:
+          - img [ref=e45]
+          - generic [ref=e48]: 学情分析
+        - button "针对练习" [ref=e49] [cursor=pointer]:
+          - img [ref=e50]
+          - generic [ref=e53]: 针对练习
+        - button "协同写作（规划中）" [ref=e54] [cursor=pointer]:
+          - img [ref=e55]
+          - generic [ref=e57]:
+            - text: 协同写作
+            - generic [ref=e58]: 规划中
+        - button "沉浸阅读（规划中）" [ref=e59] [cursor=pointer]:
+          - img [ref=e60]
+          - generic [ref=e62]:
+            - text: 沉浸阅读
+            - generic [ref=e63]: 规划中
+        - button "学习空间（规划中）" [ref=e64] [cursor=pointer]:
+          - img [ref=e65]
+          - generic [ref=e70]:
+            - text: 学习空间
+            - generic [ref=e71]: 规划中
+        - button "教材资料库" [ref=e72] [cursor=pointer]:
+          - img [ref=e73]
+          - generic [ref=e75]: 教材资料库
+        - button "模板中心（规划中）" [ref=e76] [cursor=pointer]:
+          - img [ref=e77]
+          - generic [ref=e81]:
+            - text: 模板中心
+            - generic [ref=e82]: 规划中
+      - generic [ref=e83]:
+        - button "设置" [ref=e84] [cursor=pointer]:
+          - img [ref=e85]
+          - generic [ref=e88]: 设置
+        - generic "本地工作台" [ref=e89]: 教
+    - generic [ref=e91]:
+      - banner [ref=e92]:
+        - link "返回题库" [ref=e93] [cursor=pointer]:
+          - /url: /question-bank
+          - img [ref=e94]
+          - text: 返回题库
+        - heading "试题校对" [level=1] [ref=e96]
+        - paragraph [ref=e97]: 导入文件的本地解析与规则拆题结果，需要人工校对后才能入库。
+      - main [ref=e98]:
+        - alert [ref=e99]:
+          - text: 导入批次读取失败（SERVICE_UNAVAILABLE）：后端服务不可用。
+          - button "重试" [ref=e101] [cursor=pointer]
+```

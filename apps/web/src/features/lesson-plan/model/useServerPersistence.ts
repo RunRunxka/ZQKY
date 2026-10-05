@@ -82,7 +82,7 @@ export function useServerPersistence(store: StoreApi<LessonState>, binding?: Ser
     const view = binding.view;
     if (!known.current || view.revision >= known.current.revision) known.current = structuredClone(view);
     if (view.revision > cache.current.serverRevision || (view.revision === cache.current.serverRevision && view.currentRevisionId !== cache.current.serverRevisionId)) {
-      if (!Object.values(cache.current.operations).some(Boolean)) { setSyncState('conflict'); setNotice('后台版本或固定修订身份已变化；本机稿保持，请对照后选择。'); }
+      if (!Object.values(cache.current.operations).some(Boolean)) { if (stateRef.current !== 'cache_error') setSyncState('conflict'); setNotice('后台版本或固定修订身份已变化；本机稿保持，请对照后选择。'); }
     }
   }, [binding]);
   function acceptReceipt(view: LessonView): boolean {
@@ -100,10 +100,43 @@ export function useServerPersistence(store: StoreApi<LessonState>, binding?: Ser
       const view = await bindingRef.current.api.getLesson(identity);
       if (!mounted.current || load !== loadGeneration.current || epoch !== writeEpoch.current || cache.current?.documentId !== identity) return;
       if (!known.current || view.revision >= known.current.revision) known.current = structuredClone(view);
-      if (view.revision > cache.current.serverRevision || (view.revision === cache.current.serverRevision && view.currentRevisionId !== cache.current.serverRevisionId)) setSyncState('conflict');
+      if (stateRef.current !== 'cache_error' && (view.revision > cache.current.serverRevision || (view.revision === cache.current.serverRevision && view.currentRevisionId !== cache.current.serverRevisionId))) setSyncState('conflict');
       notify();
       return view;
     } catch (cause) { if (mounted.current && load === loadGeneration.current && epoch === writeEpoch.current && cache.current?.documentId === identity) setError(asApiError(cause)); }
+  }
+  async function retryRecoveryWrite(): Promise<boolean> {
+    const current = cache.current, active = bindingRef.current;
+    if (!mounted.current || blocked.current || !current || !active || running.current || save.busy || auxiliaryBusy.current || exclusive.current || paused.current) {
+      setNotice(blocked.current || !current ? '恢复缓存无法可信读取；原字节保持，请先备份当前正文并修复存储。' : '当前操作尚未完成，不能重试恢复缓存。');
+      return false;
+    }
+    clearTimeout(timer.current);
+    const session = captureSession(), snapshot = structuredClone(current), key = stablePayloadKey(snapshot), latestKey = stablePayloadKey(known.current);
+    const same = () => isCurrentSession(session) && cache.current === current && bindingRef.current?.view.lessonPlanId === snapshot.documentId &&
+      store.getState().revision === snapshot.editRevision && stablePayloadKey(current) === key && stablePayloadKey(known.current) === latestKey;
+    try {
+      // A failed read must never be converted into permission to overwrite its bytes.
+      readServerCache(active.storage ?? localStorage, snapshot.documentId);
+      writeServerCache(active.storage ?? localStorage, snapshot);
+      if (stablePayloadKey(readServerCache(active.storage ?? localStorage, snapshot.documentId)) !== key) throw new Error('写入后的完整恢复包核验不一致');
+      await Promise.resolve();
+      if (!same()) return false;
+      if (current.operations.save && !recoverSave(current.operations.save as FrozenSubmission<SaveContent>)) throw new Error('原保存操作身份无法恢复');
+      if (error?.code === 'RECOVERY_CACHE_FAILED') setError(null);
+      if (Object.values(current.operations).some(Boolean)) {
+        setSyncState('unknown'); setNotice('完整原操作包已恢复到缓存；此次未发送HTTP，请使用原包重试入口继续。');
+      } else if (known.current && (known.current.revision > current.serverRevision || (known.current.revision === current.serverRevision && known.current.currentRevisionId !== current.serverRevisionId))) {
+        setSyncState('conflict'); setNotice('恢复缓存已核验；后台固定基线已变化，请人工对照，未发送HTTP。');
+      } else {
+        setSyncState(current.editRevision === current.acknowledgedEditRevision ? 'saved' : 'idle');
+        setNotice('完整恢复缓存已写入并核验；后台尚未因此新增保存，可明确保存或处理离开。');
+      }
+      notify(); return true;
+    } catch (cause) {
+      if (same()) { setError(new ApiError('RECOVERY_CACHE_FAILED', `恢复缓存重试失败：${(cause as Error).message}。完整输入与原操作保持，未发送HTTP。`, 503, true)); setSyncState('cache_error'); notify(); }
+      return false;
+    }
   }
   async function saveOnce(): Promise<boolean> {
     clearTimeout(timer.current);
@@ -145,7 +178,12 @@ export function useServerPersistence(store: StoreApi<LessonState>, binding?: Ser
     })();
     running.current = promise;
     try { return await promise; }
-    finally { if (running.current === promise) running.current = null; }
+    finally {
+      if (running.current === promise) {
+        running.current = null;
+        if (mounted.current && cache.current?.documentId === identity && load === loadGeneration.current && epoch === writeEpoch.current) notify();
+      }
+    }
   }
   auto.current = (epoch) => { if (mounted.current && epoch === writeEpoch.current && !paused.current && cache.current && !Object.values(cache.current.operations).some(Boolean) && stateRef.current !== 'conflict' && stateRef.current !== 'cache_error') void saveOnce(); };
   async function flush(): Promise<void> {
@@ -219,6 +257,8 @@ export function useServerPersistence(store: StoreApi<LessonState>, binding?: Ser
     exclusive: exclusive.current,
     dirty: !!cache.current && cache.current.editRevision !== cache.current.acknowledgedEditRevision,
     unknown: !!cache.current && Object.values(cache.current.operations).some(Boolean),
+    readBlocked: blocked.current, canRetryRecovery: !!cache.current && !blocked.current && !paused.current,
+    retryRecoveryWrite,
     save: saveOnce, flush, keep: persist, refreshLatest, setContext, captureSession, isCurrentSession, chooseLatest, setOperation, acknowledgeApplied,
     setExclusive,
     setAuxiliaryBusy,

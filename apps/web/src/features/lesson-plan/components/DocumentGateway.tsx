@@ -32,15 +32,16 @@ export function DocumentGateway({ children, services = emptyServices, initialLes
   const [pendingCopy, setPendingCopy] = useState<LessonRevisionView | null>(null);
   const [candidateId, setCandidateId] = useState<string | null>(null);
   const leave = useRef<(() => Promise<boolean>) | null>(null);
-  const pendingOperation = useRef({ busy: false, unknown: false });
+  const pendingOperation = useRef<DocumentOperationState>({ busy: false, unknown: false });
   const [pendingOperationState, setPendingOperationState] = useState<DocumentOperationState>({ busy: false, unknown: false });
   const pendingOwner = useRef<symbol | null>(null), pendingContext = useRef('');
   pendingContext.current = `${documentId ?? ''}|${revisionId ?? ''}|${routeError}`;
   const sequence = useRef(0);
   const alive = useRef(true);
   const publishOperation = useCallback((state: DocumentOperationState) => {
-    if (pendingOperation.current.busy === state.busy && pendingOperation.current.unknown === state.unknown) return;
-    const next = { busy: state.busy, unknown: state.unknown };
+    if (pendingOperation.current.busy === state.busy && pendingOperation.current.unknown === state.unknown
+      && !!pendingOperation.current.recoveryBlocked === !!state.recoveryBlocked) return;
+    const next = { busy: state.busy, unknown: state.unknown, recoveryBlocked: !!state.recoveryBlocked };
     pendingOperation.current = next; setPendingOperationState(next);
   }, []);
   const bindPendingOperation = useCallback((): DocumentOperationPublisher => {

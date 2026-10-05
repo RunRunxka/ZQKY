@@ -1,0 +1,1 @@
+完整check第二轮PID21976/98102.674ms再次1285/1，这次旧local flush retry末尾在导航已观察到、对话框关闭effect尚未观察到时同步断言失败；build仍未执行。独立只读核查确认旧测试等待文本与可访问dialog是不同条件，原产品/测试路径与G3相同，真实首因未证环境。ROOT已释放B6-CHECK-QA v1，仅补原四分支dialog打开/关闭等待，保留所有原断言，不改产品、skip、retry或全局timeout；修后新冻结并重新完整check。r2产品与质量/导出材料保持STOP。新构建UI、稳定候选独立组与完整153待执行，限定B6未关闭；真人/真实模型/WordWPS/RAG-REL边界保持。

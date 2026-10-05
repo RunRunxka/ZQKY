@@ -20,15 +20,15 @@ export function SourcePanel({ value, onChange }: { value: GenerationInputs; onCh
   const [questions, setQuestions] = useState<ConfirmedQuestionRevision[]>([]), [questionTotal, setQuestionTotal] = useState(0);
   const [gradeId, setGrade] = useState(''), [editionId, setEdition] = useState(''), [documentId, setDocument] = useState('');
   const [start, setStart] = useState(0), [end, setEnd] = useState(1000), [error, setError] = useState(''), [loading, setLoading] = useState(false), [opened, setOpened] = useState(false);
-  const alive = useRef(true), epoch = useRef(0), metadataEpoch = useRef(0), pendingReport = useRef<symbol | null>(null);
-  useEffect(() => { alive.current = true; return () => { alive.current = false; epoch.current += 1; metadataEpoch.current += 1; pendingReport.current = null; }; }, []);
+  const alive = useRef(true), epoch = useRef(0), metadataEpoch = useRef(0), pendingReport = useRef<symbol | null>(null), verifyIntent = useRef(0);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; epoch.current += 1; metadataEpoch.current += 1; pendingReport.current = null; verifyIntent.current += 1; }; }, []);
   const selection = doc.selection;
   const latest = useRef({ selection, value, doc, editor }); latest.current = { selection, value, doc, editor };
   const discarded = editor.server?.discardGeneration ?? 0;
   const seenDiscard = useRef(discarded);
   useEffect(() => {
     if (seenDiscard.current === discarded) return;
-    seenDiscard.current = discarded; epoch.current += 1; metadataEpoch.current += 1; pendingReport.current = null;
+    seenDiscard.current = discarded; epoch.current += 1; metadataEpoch.current += 1; pendingReport.current = null; verifyIntent.current += 1;
     setRun(null); setRunClasses([]); setPracticeRevisions([]); setError(''); setLoading(false);
     const inputs = { ...latest.current.value, evidence: null, questionRevisionIds: [], practiceRevisionIds: [], classReady: false };
     latest.current = { ...latest.current, value: inputs }; onChange(inputs);
@@ -46,6 +46,10 @@ export function SourcePanel({ value, onChange }: { value: GenerationInputs; onCh
     const next = { ...latest.current.value, ...patch };
     latest.current = { ...latest.current, value: next };
     onChange(next);
+  }
+  function clearEvidence() {
+    verifyIntent.current += 1;
+    changeInputs({ evidence: null });
   }
   function updateSelection(next: typeof selection, eligible = !!next.context && run?.runId === next.context.analysisRunId && runClasses.includes(next.classId), read?: ReturnType<typeof beginRead>) {
     if (read && !read.isCurrent()) return false;
@@ -109,18 +113,20 @@ export function SourcePanel({ value, onChange }: { value: GenerationInputs; onCh
   }
   async function loadQuestions(more = false) { const owner = beginRead(); if (!owner.isCurrent()) return; setError(''); try { if (!selection.subjectId) throw new Error('请先明确学科'); const page = await doc.sources.listConfirmedQuestionRevisions(selection.subjectId, { offset: more ? questions.length : 0, limit: 50 }); if (owner.isCurrent()) { setQuestions((old) => more ? [...old, ...page.items] : page.items); setQuestionTotal(page.total); } } catch (cause) { if (owner.isCurrent()) setError(asApiError(cause).message); } }
   async function verifySlice() {
-    const owner = beginRead(), captured = stablePayloadKey({ selection, value }); if (!owner.isCurrent()) return; setError('');
+    const intent = ++verifyIntent.current, owner = beginRead(), captured = stablePayloadKey({ selection, value });
+    const isCurrent = () => intent === verifyIntent.current && owner.isCurrent() && stablePayloadKey({ selection: latest.current.selection, value: latest.current.value }) === captured;
+    if (!isCurrent()) return; setError('');
     try { const chosen = documents.find((item) => item.documentId === documentId); if (!chosen?.currentRevision || !Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || end <= start || end - start > 6000 || end > chosen.currentRevision.charCount) throw new Error('请选择真实教材固定修订的有效切片（每段最多6000字符）');
       const span = await doc.sources.getDocumentSource(chosen.currentRevision.revisionId, start, end);
-      if (!owner.isCurrent()) return;
+      if (!isCurrent()) return;
       if (span.documentRevisionId !== chosen.currentRevision.revisionId || span.charStart !== start || span.charEnd !== end) throw new Error('教材切片固定身份不匹配');
       const old = value.evidence;
       const slices = [...(old?.evidenceRefs ?? []).map((ref) => ({ documentRevisionId: ref.documentRevisionId, charStart: ref.charStart, charEnd: ref.charEnd })), { documentRevisionId: span.documentRevisionId, charStart: start, charEnd: end }];
       if (slices.length > 6 || slices.reduce((sum, slice) => sum + slice.charEnd - slice.charStart, 0) > 16000) throw new Error('最多6段，合计16000字符');
       const ids = [...new Set([...(old?.scopeSnapshot.selection.documentIds ?? []), documentId])];
       const verified = await doc.api.verifyLessonEvidence({ selection: { gradeId, subjectId: selection.subjectId, editionId, documentIds: ids }, slices });
-      if (owner.isCurrent() && stablePayloadKey({ selection: latest.current.selection, value: latest.current.value }) === captured) changeInputs({ evidence: verified });
-    } catch (cause) { if (owner.isCurrent()) setError(asApiError(cause).message); }
+      if (isCurrent()) changeInputs({ evidence: verified });
+    } catch (cause) { if (isCurrent()) setError(asApiError(cause).message); }
   }
   const immutable = doc.mode !== 'local';
   return <details className="lesson-server-panel" onToggle={(event) => { if (event.currentTarget.open && !opened) { setOpened(true); void load(); } }}>
@@ -136,7 +142,7 @@ export function SourcePanel({ value, onChange }: { value: GenerationInputs; onCh
       <div className="lesson-source-grid"><label>课堂时长（分钟）<input aria-label="课堂时长" type="number" min={5} max={180} value={value.durationMinutes} onChange={(event) => changeInputs({ durationMinutes: Number(event.target.value) })} /></label><label>教师要求<textarea aria-label="教案生成要求" aria-describedby="lesson-requirements-privacy" value={value.requirements} onChange={(event) => changeInputs({ requirements: event.target.value })} /><small id="lesson-requirements-privacy" className="lesson-help">请勿填写学生姓名、学号或人员 ID；已知身份将被阻断，系统不能保证识别全部个人信息。</small></label></div>
       <fieldset><legend>真实教材切片</legend><div className="lesson-source-grid"><label>年级<select aria-label="教材年级" value={gradeId} onChange={(event) => { epoch.current += 1; setGrade(event.target.value); setDocuments([]); setDocument(''); changeInputs({ evidence: null }); }}><option value="">请选择年级</option>{taxonomy?.grades.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label><label>教材版本<select aria-label="教材版本" value={editionId} onChange={(event) => { epoch.current += 1; setEdition(event.target.value); setDocuments([]); setDocument(''); changeInputs({ evidence: null }); }}><option value="">请选择版本</option>{taxonomy?.editions.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label></div>
         <button className="button subtle" onClick={() => void loadDocuments()}>读取可选教材</button><label>教材固定修订<select aria-label="教材固定修订" value={documentId} onChange={(event) => setDocument(event.target.value)}><option value="">请选择教材</option>{documents.map((item) => <option key={item.documentId} value={item.documentId}>{item.title} · {item.currentRevision?.revisionId}</option>)}</select></label>
-        <div className="lesson-source-grid"><label>切片起点<input aria-label="切片起点" type="number" min={0} value={start} onChange={(event) => setStart(Number(event.target.value))} /></label><label>切片终点<input aria-label="切片终点" type="number" min={1} value={end} onChange={(event) => setEnd(Number(event.target.value))} /></label></div><button className="button subtle" onClick={() => void verifySlice()}>读取并核验教材切片</button><button className="button subtle" onClick={() => changeInputs({ evidence: null })}>清除已选教材切片</button>
+        <div className="lesson-source-grid"><label>切片起点<input aria-label="切片起点" type="number" min={0} value={start} onChange={(event) => setStart(Number(event.target.value))} /></label><label>切片终点<input aria-label="切片终点" type="number" min={1} value={end} onChange={(event) => setEnd(Number(event.target.value))} /></label></div><button className="button subtle" onClick={() => void verifySlice()}>读取并核验教材切片</button><button className="button subtle" onClick={clearEvidence}>清除已选教材切片</button>
         {value.evidence?.evidence.map((item) => <details key={item.evidenceId}><summary>{item.title} · {item.documentRevisionId} · [{item.charStart}, {item.charEnd})</summary><pre>{item.text}</pre><small>{item.normalizedTextSha256}</small></details>)}
       </fieldset>
       <fieldset><legend>已确认固定题（可选，最多20题）</legend><button className="button subtle" onClick={() => void loadQuestions()}>读取已确认固定题</button>{questions.filter((question) => question.subjectId === selection.subjectId).map((question) => <label className="lesson-check" key={question.questionRevisionId}><input type="checkbox" checked={value.questionRevisionIds.includes(question.questionRevisionId)} onChange={(event) => { const old = latest.current.value.questionRevisionIds; const ids = event.target.checked ? [...old, question.questionRevisionId] : old.filter((id) => id !== question.questionRevisionId); if (ids.length > 20) { setError('最多20个固定题'); return; } changeInputs({ questionRevisionIds: ids }); }} />{question.stemMarkdown.slice(0, 120)} <small>{question.questionRevisionId}</small></label>)}{questions.length < questionTotal && <button className="button subtle" onClick={() => void loadQuestions(true)}>继续读取已确认固定题</button>}</fieldset>

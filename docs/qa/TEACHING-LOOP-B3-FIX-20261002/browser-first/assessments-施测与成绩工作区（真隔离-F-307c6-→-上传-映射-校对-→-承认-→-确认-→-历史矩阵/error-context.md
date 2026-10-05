@@ -1,0 +1,55 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - heading "施测与成绩" [level=1] [ref=e4]
+      - paragraph [ref=e5]: 按「名单 → 原卷 → 施测 → 成绩 → 历史」完成一次真实测评闭环：成绩只接受教师原始 小题得分表，0 / 空白 / 缺考 / 免考严格区分，确认后的成绩修订不可变；修正生成新版本并保留审计。
+    - main [ref=e6]:
+      - tablist "施测与成绩步骤" [ref=e7]:
+        - tab "1 名单" [ref=e8] [cursor=pointer]
+        - tab "2 原卷" [ref=e9] [cursor=pointer]
+        - tab "3 施测" [ref=e10] [cursor=pointer]
+        - tab "4 成绩" [active] [selected] [ref=e11] [cursor=pointer]
+        - tab "5 历史" [ref=e12] [cursor=pointer]
+      - generic [ref=e13]:
+        - generic [ref=e14]: 班级：6428e2d1132e4e61852400341cf047f6
+        - generic [ref=e15]: 原卷：F20-I 成绩样本卷
+        - generic [ref=e16]: 施测：601c50d5c4ff4ba8a75433493ebae114
+      - tabpanel "4 成绩" [ref=e17]:
+        - generic [ref=e18]:
+          - region "上传成绩表" [ref=e19]:
+            - generic [ref=e20]:
+              - heading "上传成绩表（教师原始 XLSX/CSV）" [level=3] [ref=e21]:
+                - img [ref=e22]
+                - text: 上传成绩表（教师原始 XLSX/CSV）
+              - button "刷新" [ref=e25] [cursor=pointer]:
+                - img [ref=e26]
+                - text: 刷新
+            - paragraph [ref=e31]: 施测「F20-I 第一次月考」· 原卷修订 pr-f20i · 参测 4 人次 · 固定计分叶 读取中
+            - form "上传成绩表" [ref=e32]:
+              - generic [ref=e33]:
+                - generic [ref=e34]: 成绩表格文件（.xlsx / .csv）
+                - button "成绩表格文件" [ref=e35]
+              - generic [ref=e36]:
+                - generic [ref=e37]: 工作表名（多表 XLSX 必填）
+                - textbox "工作表名" [ref=e38]
+              - generic [ref=e39]:
+                - generic [ref=e40]: 基于正式成绩版本（首个版本留空）
+                - combobox "基于正式成绩版本" [ref=e41]:
+                  - option "（首版，无基准）" [selected]
+              - button "上传并创建待校对批次" [ref=e42] [cursor=pointer]
+          - region "导入批次" [ref=e43]:
+            - generic [ref=e44]:
+              - heading "导入批次" [level=3] [ref=e45]
+              - generic [ref=e46]: 共 0 个批次
+            - paragraph [ref=e47]: 还没有导入批次；上传成绩表后会出现在这里。
+            - list "导入批次列表"
+          - region "修订历史入口" [ref=e48]:
+            - generic [ref=e49]:
+              - heading "修订历史" [level=3] [ref=e50]
+              - button "打开只读矩阵与修正" [ref=e51] [cursor=pointer]
+            - paragraph [ref=e52]: 还没有已确认成绩版本；确认一个导入批次后会生成不可变修订。
+  - alert [ref=e53]
+```

@@ -1,0 +1,245 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - alert [ref=e2]
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - button "打开功能导航" [ref=e5] [cursor=pointer]:
+        - img [ref=e6]
+      - button "返回学习问答" [ref=e7] [cursor=pointer]:
+        - img [ref=e9]
+        - strong [ref=e11]: 智启课源
+      - heading "教案工作台" [level=1] [ref=e12]
+      - button "导出教案" [ref=e15] [cursor=pointer]:
+        - img [ref=e16]
+        - text: 导出教案
+        - img [ref=e19]
+    - main [ref=e21]:
+      - generic [ref=e23]:
+        - generic [ref=e24]: LESSON PLANNER
+        - heading "把教学思路，写进课堂。" [level=1] [ref=e25]
+      - generic [ref=e26]:
+        - button "逐项填写" [ref=e27] [cursor=pointer]:
+          - img [ref=e28]
+          - text: 逐项填写
+        - button "要求填充 规则" [ref=e31] [cursor=pointer]:
+          - img [ref=e32]
+          - text: 要求填充
+          - generic [ref=e34]: 规则
+        - generic [ref=e35]:
+          - button "撤销" [disabled] [ref=e36]:
+            - img [ref=e37]
+          - button "重做" [disabled] [ref=e40]:
+            - img [ref=e41]
+      - generic [ref=e44]:
+        - generic [ref=e45]:
+          - generic "教案正文来源" [ref=e46]:
+            - generic [ref=e47]: 后台固定 v1 · v00-g7b-current-A-import-390-fixed-1
+            - generic [ref=e48]: manual · unreviewed
+            - generic [ref=e49]: 固定学情 v00-g7b-report → 教案 v00-g7b-current-A-import-390-fixed-1 → 调整建议 尚未生成
+          - generic [ref=e50]:
+            - status [ref=e51]: 后台稿已保存
+            - button "保存后台稿" [ref=e52] [cursor=pointer]
+            - button "读取后台最新版本" [ref=e53] [cursor=pointer]
+          - group [ref=e54]:
+            - generic "后台文档与固定历史" [ref=e55] [cursor=pointer]
+            - generic [ref=e56]:
+              - generic [ref=e57]:
+                - button "创建空白后台教案" [disabled] [ref=e58]
+                - button "将当前正文创建为后台教案" [disabled] [ref=e59]
+                - button "导入完整旧本地稿到后台" [disabled] [ref=e60]
+                - button "返回旧本地稿" [ref=e61] [cursor=pointer]
+              - paragraph [ref=e62]: 旧本地稿保留原键和完整信封；导入成功后仅打开新后台文档。
+              - button "重试原导入包" [ref=e63] [cursor=pointer]
+              - list
+              - button "刷新后台列表" [ref=e64] [cursor=pointer]
+              - button "读取固定历史" [ref=e65] [cursor=pointer]
+              - list
+          - group [ref=e66]:
+            - generic "班级、固定学情与生成来源" [ref=e67] [cursor=pointer]
+            - option "chinese" [selected]
+            - option "请选择班级"
+            - option "v00-g7b-class" [selected]
+            - option "不关联学情"
+            - option "v00-g7b-report · 固定来源（待核验）" [selected]
+            - option "请选择模型档案" [selected]
+            - option "请选择年级" [selected]
+            - option "请选择版本" [selected]
+            - option "请选择教材" [selected]
+          - group [ref=e68]:
+            - generic "学情驱动 AI 候选与逐字段差异" [ref=e69] [cursor=pointer]
+        - group [ref=e70]:
+          - generic [ref=e71]:
+            - generic [ref=e72]:
+              - img [ref=e74]
+              - generic [ref=e77]:
+                - heading "基本信息" [level=2] [ref=e78]
+                - paragraph [ref=e79]: 从课题开始，搭好这节课的框架。
+            - generic [ref=e80]:
+              - generic [ref=e81]:
+                - text: 课题
+                - generic [ref=e82]: 必填
+              - textbox "课题" [ref=e83]:
+                - /placeholder: 例如：荷塘月色
+                - text: G7B独立import390A完整课题
+            - generic [ref=e84]:
+              - generic [ref=e85]:
+                - generic [ref=e86]: 本课题总课时
+                - generic [ref=e87]:
+                  - spinbutton "本课题总课时" [ref=e88]: "9"
+                  - generic [ref=e89]: 课时
+              - generic [ref=e90]:
+                - generic [ref=e91]: 本节课
+                - generic [ref=e92]:
+                  - spinbutton "本节课" [ref=e93]: "5"
+                  - generic [ref=e94]: 课时
+            - generic [ref=e95]:
+              - generic [ref=e96]:
+                - text: 课型
+                - generic [ref=e97]: 可多选
+              - generic [ref=e98]:
+                - generic [ref=e99] [cursor=pointer]:
+                  - checkbox "新课" [ref=e100]
+                  - text: 新课
+                - generic [ref=e102] [cursor=pointer]:
+                  - checkbox "复习课" [checked] [ref=e103]
+                  - img [ref=e105]
+                  - text: 复习课
+                - generic [ref=e107] [cursor=pointer]:
+                  - checkbox "试题讲评课" [ref=e108]
+                  - text: 试题讲评课
+                - generic [ref=e110] [cursor=pointer]:
+                  - checkbox "实验课" [ref=e111]
+                  - text: 实验课
+                - generic [ref=e113] [cursor=pointer]:
+                  - checkbox "其它" [checked] [ref=e114]
+                  - img [ref=e116]
+                  - text: 其它
+            - generic [ref=e118]:
+              - generic [ref=e119]: 其他课型说明
+              - textbox "其他课型说明" [ref=e120]: 手写双页独立课型
+          - generic [ref=e121]:
+            - generic [ref=e122]:
+              - img [ref=e124]
+              - generic [ref=e128]:
+                - heading "核心素养目标" [level=2] [ref=e129]
+                - paragraph [ref=e130]: 这节课，你希望学生获得什么？
+            - textbox "核心素养目标" [ref=e131]:
+              - /placeholder: 填写核心素养目标…
+              - text: G7Bimport390A完整素养
+            - generic [ref=e132]:
+              - generic [ref=e133]: 支持换行，内容自动撑开
+              - generic [ref=e134]: 17 字
+          - generic [ref=e135]:
+            - generic [ref=e136]:
+              - img [ref=e138]
+              - generic [ref=e140]:
+                - heading "教学重、难点" [level=2] [ref=e141]
+                - paragraph [ref=e142]: 明确课堂重点，找到学习突破口。
+            - textbox "教学重、难点" [ref=e143]:
+              - /placeholder: 填写教学重、难点…
+              - text: G7Bimport390A完整重点
+            - generic [ref=e144]:
+              - generic [ref=e145]: 支持换行，内容自动撑开
+              - generic [ref=e146]: 17 字
+          - generic [ref=e147]:
+            - generic [ref=e148]:
+              - img [ref=e150]
+              - generic [ref=e152]:
+                - heading "教学设计" [level=2] [ref=e153]
+                - paragraph [ref=e154]: 记录板书思路、教学方法与组织方式。
+            - textbox "教学设计" [ref=e155]:
+              - /placeholder: 填写教学设计…
+              - text: G7Bimport390A独立中文设计 <>&；固定来源。G7Bimport390A独立中文设计 <>&；固定来源。G7Bimport390A独立中文设计 <>&；固定来源。G7Bimport390A独立中文设计 <>&；固定来源。G7Bimport390A独立中文设计 <>&；固定来源。G7Bimport390A独立中文设计 <>&；固定来源。G7Bimport390A独立中文设计 <>&；固定来源。G7Bimport390A独立中文设计 <>&；固定来源。G7Bimport390A独立中文设计 <>&；固定来源。G7Bimport390A独立中文设计 <>&；固定来源。G7Bimport390A独立中文设计 <>&；固定来源。G7Bimport390A独立中文设计 <>&；固定来源。
+            - generic [ref=e156]:
+              - generic [ref=e157]: 支持换行，内容自动撑开
+              - generic [ref=e158]: 348 字
+          - generic [ref=e159]:
+            - generic [ref=e160]:
+              - img [ref=e162]
+              - generic [ref=e166]:
+                - heading "教学过程" [level=2] [ref=e167]
+                - paragraph [ref=e168]: 串联教学环节，记录二次备课。
+              - generic [ref=e169]: 2 个环节
+            - generic [ref=e170]:
+              - generic [ref=e171]:
+                - img [ref=e172]
+                - generic [ref=e179]: 环节 1
+                - generic [ref=e180]:
+                  - button "上移环节1" [disabled] [ref=e181]:
+                    - img [ref=e182]
+                  - button "下移环节1" [ref=e184] [cursor=pointer]:
+                    - img [ref=e185]
+                  - button "删除环节1" [ref=e187] [cursor=pointer]:
+                    - img [ref=e188]
+              - generic [ref=e191]:
+                - generic [ref=e192]: 环节名称
+                - textbox "环节名称" [ref=e193]: 第一环节
+              - generic [ref=e194]:
+                - generic [ref=e195]: 教学设计
+                - textbox "教学设计" [ref=e196]: import390A完整设计甲
+              - generic [ref=e197]:
+                - generic [ref=e198]: 二次备课
+                - textbox "二次备课" [ref=e199]:
+                  - /placeholder: 记录调整思路或课堂观察…
+                  - text: import390A二次备课甲；中文<>&
+            - generic [ref=e200]:
+              - generic [ref=e201]:
+                - img [ref=e202]
+                - generic [ref=e209]: 环节 2
+                - generic [ref=e210]:
+                  - button "上移环节2" [ref=e211] [cursor=pointer]:
+                    - img [ref=e212]
+                  - button "下移环节2" [disabled] [ref=e214]:
+                    - img [ref=e215]
+                  - button "删除环节2" [ref=e217] [cursor=pointer]:
+                    - img [ref=e218]
+              - generic [ref=e221]:
+                - generic [ref=e222]: 环节名称
+                - textbox "环节名称" [ref=e223]: 第二环节
+              - generic [ref=e224]:
+                - generic [ref=e225]: 教学设计
+                - textbox "教学设计" [ref=e226]: import390A完整设计乙
+              - generic [ref=e227]:
+                - generic [ref=e228]: 二次备课
+                - textbox "二次备课" [ref=e229]:
+                  - /placeholder: 记录调整思路或课堂观察…
+                  - text: import390A二次备课乙；中文±
+            - button "添加教学环节" [ref=e230] [cursor=pointer]:
+              - img [ref=e231]
+              - text: 添加教学环节
+          - generic [ref=e232]:
+            - generic [ref=e233]:
+              - img [ref=e235]
+              - generic [ref=e238]:
+                - heading "练习与作业" [level=2] [ref=e239]
+                - paragraph [ref=e240]: 让课堂所学，在练习中得到巩固。
+            - textbox "练习与作业" [ref=e241]:
+              - /placeholder: 填写课堂练习与课后作业…
+              - text: G7Bimport390A完整练习
+          - generic [ref=e242]:
+            - generic [ref=e243]:
+              - img [ref=e245]
+              - generic [ref=e248]:
+                - heading "教学反思" [level=2] [ref=e249]
+                - paragraph [ref=e250]: 课后回顾，为下一次课堂留点启发。
+            - textbox "教学反思" [ref=e251]:
+              - /placeholder: 可以课后再来补充…
+              - text: G7Bimport390A教师反思
+      - generic [ref=e252]:
+        - generic [ref=e253]: 编辑后实时更新预览
+        - generic [ref=e255]: 7 / 7 项已填写
+    - generic [ref=e256]:
+      - button "编辑教案" [ref=e257] [cursor=pointer]:
+        - img [ref=e258]
+        - text: 编辑教案
+      - button "预览教案" [ref=e261] [cursor=pointer]:
+        - img [ref=e262]
+        - text: 预览教案
+    - status [ref=e265]:
+      - img [ref=e266]
+      - generic [ref=e268]: 原操作包已恢复到缓存；尚未发送HTTP，请显式重试原包。
+      - button "关闭提示" [ref=e269] [cursor=pointer]:
+        - img [ref=e270]
+```

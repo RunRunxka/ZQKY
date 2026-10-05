@@ -1,0 +1,136 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation "项目功能导航" [ref=e3]:
+      - button "返回学习问答" [ref=e4] [cursor=pointer]:
+        - img [ref=e5]
+        - strong [ref=e7]: 智启课源
+      - button "收起项目导航" [expanded] [ref=e8] [cursor=pointer]:
+        - img [ref=e9]
+      - generic [ref=e12]:
+        - button "学习问答" [ref=e13] [cursor=pointer]:
+          - img [ref=e14]
+          - generic [ref=e17]: 学习问答
+        - button "教案工作台" [ref=e18] [cursor=pointer]:
+          - img [ref=e19]
+          - generic [ref=e22]: 教案工作台
+        - button "智能组卷（规划中）" [ref=e23] [cursor=pointer]:
+          - img [ref=e24]
+          - generic [ref=e27]:
+            - text: 智能组卷
+            - generic [ref=e28]: 规划中
+        - button "题库" [ref=e29] [cursor=pointer]:
+          - img [ref=e30]
+          - generic [ref=e33]: 题库
+        - button "知识点" [ref=e34] [cursor=pointer]:
+          - img [ref=e35]
+          - generic [ref=e37]: 知识点
+        - button "施测与成绩" [ref=e38] [cursor=pointer]:
+          - img [ref=e39]
+          - generic [ref=e42]: 施测与成绩
+        - button "学情分析" [ref=e43] [cursor=pointer]:
+          - img [ref=e44]
+          - generic [ref=e47]: 学情分析
+        - button "针对练习" [ref=e48] [cursor=pointer]:
+          - img [ref=e49]
+          - generic [ref=e52]: 针对练习
+        - button "协同写作（规划中）" [ref=e53] [cursor=pointer]:
+          - img [ref=e54]
+          - generic [ref=e56]:
+            - text: 协同写作
+            - generic [ref=e57]: 规划中
+        - button "沉浸阅读（规划中）" [ref=e58] [cursor=pointer]:
+          - img [ref=e59]
+          - generic [ref=e61]:
+            - text: 沉浸阅读
+            - generic [ref=e62]: 规划中
+        - button "学习空间（规划中）" [ref=e63] [cursor=pointer]:
+          - img [ref=e64]
+          - generic [ref=e69]:
+            - text: 学习空间
+            - generic [ref=e70]: 规划中
+        - button "教材资料库" [ref=e71] [cursor=pointer]:
+          - img [ref=e72]
+          - generic [ref=e74]: 教材资料库
+        - button "模板中心（规划中）" [ref=e75] [cursor=pointer]:
+          - img [ref=e76]
+          - generic [ref=e80]:
+            - text: 模板中心
+            - generic [ref=e81]: 规划中
+      - generic [ref=e82]:
+        - button "设置" [ref=e83] [cursor=pointer]:
+          - img [ref=e84]
+          - generic [ref=e87]: 设置
+        - generic "本地工作台" [ref=e88]: 教
+    - generic [ref=e90]:
+      - banner [ref=e91]:
+        - generic [ref=e92]:
+          - link "返回书籍列表" [ref=e93] [cursor=pointer]:
+            - /url: /books
+            - img [ref=e94]
+            - text: 返回书籍列表
+          - generic [ref=e96]:
+            - button "导出 Markdown" [ref=e97] [cursor=pointer]
+            - button "重建书籍" [ref=e98] [cursor=pointer]:
+              - img [ref=e99]
+              - text: 重建书籍
+        - heading "分数入门（演示书籍）" [level=1] [ref=e102]
+        - paragraph [ref=e103]: 阅读进度 25% · 已读 1/4 页
+      - main [ref=e104]:
+        - generic [ref=e105]:
+          - navigation "章节目录" [ref=e106]:
+            - generic [ref=e107]:
+              - paragraph [ref=e108]: 第 1 章 · 分数是什么
+              - link "分数是什么（1/2）" [ref=e109] [cursor=pointer]:
+                - /url: /books/demo-book-fractions/pages/demo-book-fractions-p0
+                - generic [ref=e111]: 分数是什么（1/2）
+              - link "分数是什么（2/2）" [ref=e112] [cursor=pointer]:
+                - /url: /books/demo-book-fractions/pages/demo-book-fractions-p1
+                - generic [ref=e114]: 分数是什么（2/2）
+            - generic [ref=e115]:
+              - paragraph [ref=e116]: 第 2 章 · 比较分数大小
+              - link "比较分数大小（1/2） 已加书签" [ref=e117] [cursor=pointer]:
+                - /url: /books/demo-book-fractions/pages/demo-book-fractions-p2
+                - generic [ref=e119]: 比较分数大小（1/2）
+                - generic "已加书签" [ref=e120]:
+                  - img [ref=e121]
+                  - text: 签
+              - link "比较分数大小（2/2）" [ref=e123] [cursor=pointer]:
+                - /url: /books/demo-book-fractions/pages/demo-book-fractions-p3
+                - generic [ref=e125]: 比较分数大小（2/2）
+          - article [ref=e126]:
+            - generic [ref=e127]:
+              - generic [ref=e128]: 分数是什么
+              - generic [ref=e129]: 第 1/4 页
+              - generic [ref=e130]:
+                - button "添加书签" [ref=e131] [cursor=pointer]:
+                  - img [ref=e132]
+                  - text: 书签
+                - button "强制重新生成" [ref=e134] [cursor=pointer]:
+                  - img [ref=e135]
+                  - text: 强制重新生成
+            - heading "分数入门（演示书籍）" [level=2] [ref=e140]:
+              - link "分数入门（演示书籍）" [ref=e141] [cursor=pointer]:
+                - /url: /books/demo-book-fractions
+            - note [ref=e142]: 本页内容为本地模拟编译产物（显式标注），非模型生成；练习作答与页内笔记本地持久化，跨会话恢复（参考为服务端 attempt）。
+            - generic [ref=e143]:
+              - heading "分数是什么" [level=3] [ref=e144]
+              - paragraph [ref=e145]: 本节围绕「分数是什么 · 第1页」展开（模拟生成内容，用于验证阅读器结构与进度，不代表模型产出）。
+            - paragraph [ref=e147]: "## 分数是什么 · 第1页 - 先看一个具体例子； - 再理解定义与依据； - 最后完成本页小练习。 （模拟生成）"
+            - complementary [ref=e148]:
+              - strong [ref=e149]: 学习提示
+              - paragraph [ref=e150]: 把本页要点用自己的话复述一遍，再进入下一页（模拟生成）。
+            - generic [ref=e151]:
+              - paragraph [ref=e152]: 「分数是什么 · 第1页」这一页的主要目标是？
+              - button "A. 理解本页概念并能举例" [ref=e153] [cursor=pointer]
+              - button "B. 背诵全文" [ref=e154] [cursor=pointer]
+            - generic [ref=e155]:
+              - generic [ref=e156]: ← / → 键盘翻页
+              - link "下一页" [ref=e157] [cursor=pointer]:
+                - /url: /books/demo-book-fractions/pages/demo-book-fractions-p1
+                - text: 下一页
+                - img [ref=e158]
+  - alert [ref=e160]
+```

@@ -1,0 +1,51 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - heading "施测与成绩" [level=1] [ref=e4]
+      - paragraph [ref=e5]: 按「名单 → 原卷 → 施测 → 成绩 → 历史」完成一次真实测评闭环：成绩只接受教师原始 小题得分表，0 / 空白 / 缺考 / 免考严格区分，确认后的成绩修订不可变；修正生成新版本并保留审计。
+    - main [ref=e6]:
+      - tablist "施测与成绩步骤" [ref=e7]:
+        - tab "1 名单" [selected] [ref=e8] [cursor=pointer]
+        - tab "2 原卷" [ref=e9] [cursor=pointer]
+        - tab "3 施测" [ref=e10] [cursor=pointer]
+        - tab "4 成绩" [ref=e11] [cursor=pointer]
+        - tab "5 历史" [ref=e12] [cursor=pointer]
+      - generic [ref=e13]:
+        - generic [ref=e14]: 班级：未选择
+        - generic [ref=e15]: 原卷：未选用
+        - generic [ref=e16]: 施测：未选择
+      - tabpanel "1 名单" [ref=e17]:
+        - generic [ref=e18]:
+          - region "班级" [ref=e19]:
+            - generic [ref=e20]:
+              - heading "班级" [level=3] [ref=e21]:
+                - img [ref=e22]
+                - text: 班级
+              - generic [ref=e27]:
+                - button "新建班级" [ref=e28] [cursor=pointer]
+                - button "刷新" [ref=e29] [cursor=pointer]:
+                  - img [ref=e30]
+                  - text: 刷新
+            - alert [ref=e35]:
+              - generic [ref=e36]:
+                - generic [ref=e37]: 班级列表读取失败（SERVICE_UNAVAILABLE）：后端服务不可用。
+                - button "重试" [ref=e38] [cursor=pointer]:
+                  - img [ref=e39]
+                  - text: 重试
+            - list "班级列表"
+          - region "班级成员" [ref=e44]:
+            - generic [ref=e45]:
+              - heading "班级成员" [level=3] [ref=e46]:
+                - img [ref=e47]
+                - text: 班级成员
+              - button "刷新成员" [disabled] [ref=e50]:
+                - img [ref=e51]
+                - text: 刷新成员
+            - paragraph [ref=e56]:
+              - strong [ref=e57]: 未选择班级
+              - generic [ref=e58]: 从左侧选择一个班级，查看成员并补充参测学生。
+  - alert [ref=e59]
+```

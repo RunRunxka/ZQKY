@@ -55,7 +55,7 @@ function useEditorController(services: LessonPlanServices, session: EditorMode) 
   const ready = session.history ? true : session.server ? server.ready : local.ready;
   const saveStatus = session.history ? '固定历史只读' : session.server ? ({ idle: '后台稿有未保存编辑', saving: '正在保存后台稿', saved: '后台稿已保存', failed: '后台保存失败', conflict: '后台版本冲突', unknown: '后台操作结果未知', cache_error: '恢复缓存失败' }[server.syncState]) : local.saveStatus;
   const storageBlocked = session.server ? server.syncState === 'cache_error' : local.storageBlocked;
-  const resumeStorage = local.resumeStorage;
+  const resumeStorage = session.server ? server.retryRecoveryWrite : local.resumeStorage;
   const flushDraft = session.server ? server.flush : local.flushDraft;
   const editingLocked = !!session.history || !!printSnapshot || (session.server && (server.exclusive || server.syncState === 'cache_error'));
   const sourceLabel = session.history ? `历史固定 v${session.history.version} · ${session.history.revisionId}` : session.server ?

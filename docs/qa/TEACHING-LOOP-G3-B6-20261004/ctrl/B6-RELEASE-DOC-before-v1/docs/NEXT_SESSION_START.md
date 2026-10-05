@@ -1,0 +1,60 @@
+# 当前接手入口
+
+<!-- G3-CHECKPOINT:20261004-CLOSED -->
+2026-10-04T13:52:47.526153+08:00：**G3-R01/R02已修复并独立技术关闭**。新check1281/type/lint0/build、原2/独立15/第三人8/既有27/真实14及原完整153均通过；153为新全轮0skip/retry/flaky，首轮环境失败另存未拼绿。941/3136/33/2161及旧QA/后台同源/next-env/main6cb完成后验。限定B6现在进入“剩余矩阵→三路集成/质量准备/导出材料”；真实模型待明确输入、教师评价待验、原B7未关闭。详见[本批G3关闭](qa/TEACHING-LOOP-G3-B6-20261004/G3-CLOSE-v1.md)。
+<!-- /G3-CHECKPOINT:20261004-CLOSED -->
+
+
+<!-- G3-CHECKPOINT:20261004-full153-pass -->
+2026-10-04T13:46:22.462174+08:00：完整原153第二轮新单轮153/153通过（PID26492/exit0/394353.994ms；0skip/retry/flaky），首轮152/1环境失败与诊断1另存，未拼绿。V00已独立签核原24spec/941/3136/33/2161一致；ROOT门禁后保全0漂移、后台410同源、旧9196仅已登记索引delta、next-env/main6cb保持。最后边界/改动影响签核正在完成；G3尚待ROOT关闭收据，B6尚未启动。
+<!-- /G3-CHECKPOINT:20261004-full153-pass -->
+
+
+<!-- G3-CHECKPOINT:20261004-full153-first-environment -->
+13:33 门禁当前：独立V00真实14/14、14trace CRC/16全JSON/21实际图及941/3136/33/2161字节核已签收；原完整153首轮152pass/1fail、PID21988/exit1/388290.997ms，知识点键盘场景必需JS块实际报ERR_NO_BUFFER_SPACE，页面仍SSR未开始业务读取，首败79entry trace CRC正常并保留。原同用例新浏览器进程1/1诊断pass，不拼152+1；全新完整153 second正在执行（原断言、0retry、相同候选）。自有浏览器首轮已退出/8001与8002释放、无网络设置或用户进程操作，未知环境根因仍观察。全旧QA9196逐字节核仅已登记当前QA索引delta、其余0漂移，next-env原字节/HEAD6cb保持。**G3待验、B6未启动**。
+<!-- /G3-CHECKPOINT:20261004-full153-first-environment -->
+
+
+<!-- G3-CHECKPOINT:20261004-r2-browser-pass -->
+13:24 r2实际浏览器14/14新单轮通过：PID23212/exit0/43797.925ms，0skip/retry/flaky，源941与执行QA3136前后零漂移；四视口真实延迟Next导航/历史GET、来源迟到响应及放弃后教师新source/save1均实际完成，trace on完整保留待独立逐项签收。首轮14timeout及QA时钟/Node归档归因原件保留。自有API19560已精确守卫正常关闭/TEMP保留；同构建前端21544继续运行。原完整24spec153E2E正在新单轮执行，**G3待验、B6未启动**。
+<!-- /G3-CHECKPOINT:20261004-r2-browser-pass -->
+
+
+<!-- G3-CHECKPOINT:20261004-r2-browser-first -->
+13:15 r2动态状态：同一冻结候选原两正确行为2/2（4条过滤未执行）、独立15/15、第三人8/8与原27/27新单轮通过；四组收据与源/QA/契约/构建均已独立核字节绑定。真实浏览器14例首轮仍在运行，已输出多条失败；首例业务/全字段/缓存/Undo/固定JSON断言已到达，但trace归档尚未闭合，正只读区分业务失败与归档超时，不宣称浏览器通过。完整153E2E未执行；**G3待验、B6未启动**。所有原首败保留，下一步完成首轮错误归因和必要适配，再执行完整独立浏览器与适用回归。
+<!-- /G3-CHECKPOINT:20261004-r2-browser-first -->
+
+
+<!-- G3-CHECKPOINT:20261004-r2-built -->
+13:04 r2构建完成：ROOT完整check 121文件1281单测/type/lint0/build通过，105047.583ms，源码与执行QA零漂移；构建`q84e_pxQoZ2_nwnws9QiI`，实际proxy8001，next-env原字节精确恢复。ROOT已管理新自有127.0.0.1前端5174/PID21544与FastAPI8001/PID23836，真实来源样本新TEMP，未触及用户WPS/服务或原被拒额外HTTP身份检查。下一步稳定QA冻结后独立单元/真实浏览器与完整E2E；**G3待验、B6未启动**。
+<!-- /G3-CHECKPOINT:20261004-r2-built -->
+
+
+<!-- G3-CHECKPOINT:20261004-r2-repair -->
+12:54 当前动作：原两正确行为、独立V00完整15与第三人5字段探针均已新跑通过；独立 actual SourcePanel 新反例首败确认迟到来源读取在放弃后清 context、重建缓存、新增save1。r1通过不能关闭G3，已登记 SourcePanel 同模块最小r2修复，修后重新冻结与完整check/独立验收。真实延迟浏览器和全E2E尚未执行，**G3待验、B6未启动**。ROOT初始8001自有服务按PID/出生时间/命令核验正常关闭，TEMP保留；后续真实来源样本服务另记新身份。
+<!-- /G3-CHECKPOINT:20261004-r2-repair -->
+
+
+<!-- G3-CHECKPOINT:20261004-r1 -->
+本日 r1 检查点：完整 check 实际通过（120 文件 1276 单测、typecheck、lint 0、build；140224.558ms），构建 `ne6c5eGUtmdv2KglkWaMj`，next-env 原字节恢复。原两条 required behavior 2/2、第三人全字段探针5/5通过；独立V00扩展13/15，两个首败保留并正在区分夹具身份/事件与产品行为。第三人另发现 SourcePanel 迟到读取可能恢复已放弃写入的路径，待实际组件反例核实；**G3尚未关闭，真实延迟浏览器/构建后全E2E未执行，B6未启动**。本轮来源/QA无漂移，旧通过收据不拼成最终关闭。
+<!-- /G3-CHECKPOINT:20261004-r1 -->
+
+
+## 2026-10-04 当前接手优先状态
+
+本次用户已明确授权 G3→限定B6，**G3修复进行中，B6未启动**。先读[唯一状态](CURRENT_STATUS.md)与[本批证据/任务卡](qa/TEACHING-LOOP-G3-B6-20261004/README.md)。原两required behavior本批开工2例真实失败，首败保持；待实现稳定停止写入后独立复验、build后完整适用E2E和真实延迟场景通过，才能关闭G3进入B6。保留main@6cb6a40及共享改动，不执行Git写入/部署。
+
+开工73项开发缓存差异已精确归因，生产build/源码/旧QA/契约/prior保持，next-env实际原字节另存。自有8001隔离FastAPI新TEMP由ROOT管理；任何接续必须核当前PID/创建时间/命令，不能沿用旧服务身份。旧额外HTTP身份拒绝不重试。本日材料/运行与10-03原记录分开；以下是10-03交接历史，不构成当前只review或暂停指令。
+
+
+更新：2026-10-03，B5后续审查。**原G2/B5已关闭；新审查确认B5F-R01/R02两项P2待G3，当前只review与提示词，未修产品或启动B6。** 最新材料：[本轮审查](qa/TEACHING-LOOP-B5-REVIEW-20261003/REVIEW.md)、[G3+B6提示词](design/teaching-loop-v1/B6_总控启动提示词_20261003.md)。不自动提交/推送/切分支/部署。
+
+1. 首先读[CURRENT_STATUS](CURRENT_STATUS.md)（唯一当前入口）、[PROJECT_GUIDE](PROJECT_GUIDE.md)、本轮审查及[原G2/B5报告](qa/TEACHING-LOOP-G2-B5-20261003/REPORT.md)。G2三项和B5原R01～R08/T90/F30已经技术关闭，不重复派修；新两项先G3，再按实际剩余做B6集成/质量准备。用户下发新提示词后才执行，当前会话止于审查。
+2. 本轮开工main@6aeb57280f6a7e0d7391cad4d150745479ea58ec；审查期间外部提交使现场前移至main@6cb6a40db890390f0261d547213e319040f64785（直接父为开工HEAD）。本审查未执行Git写入，候选五分组仍零漂移；不得撤销该提交。保留现场未提交/未跟踪改动，未来接手重新读取HEAD/status及模块AGENTS，不能把历史PID当当前归属。
+3. 最终候选[B5-r8](qa/TEACHING-LOOP-G2-B5-20261003/CANDIDATE-B5-r8.json)：938源/3061可执行QA文件/33契约/2004build/1702prior，SHA c33c85698ba2be8e6b08fe432305622bf3635a1bc5bb0cc515472996ebbe2007。build FVU-OXmtBh9WBSHehixfE proxy8001，next-env原SHA 0f70629890b72a0a82e91972cc032c04b658b26c265373cb711cf576bfbf8fcc。
+4. 原新单轮check1256/type/lint0/build、独立27、完整8、全153和14chat均通过；API1918+1既有规模skip及42独立同410后台精确绑定，未冒重跑。原各首败、QA版本、151/2和26/1原件保留。详细命令/用时/边界只看REPORT和[B5矩阵](qa/TEACHING-LOOP-G2-B5-20261003/B5-CLOSE-MATRIX.md)。
+5. 全部本次自有服务/连接已关闭，5174/8001/8002无监听，182证据引用OSTEMP目录保留，旧拒删根未碰。后续隔离前端可由CTRL管理，无需例行手启；仍先核现场监听/创建时间/命令，不能结束用户服务。额外HTTP身份命令被blocked by policy拒绝仍not_run，不换工具/命令/端口/Agent重试。
+6. 未验质量：真实付费模型教学质量、WPS人工分页/实际PDF保存、正式Qdrant6333/正式迁移、超范围压力。CV01～03、RAG-REL、R-14及既有间歇台账保留，不能从技术全绿推出质量全通过。
+7. 每日文档随实际工作同步；跨日另建日期批次引用精确历史绑定，旧报告/首败/冻结件保持。每日记录不是自动定时续跑授权。整理前本接手页原字节见[before](qa/TEACHING-LOOP-G2-B5-20261003/ctrl/B5-DOC-CLOSE-CANDIDATE-v1/before/docs/NEXT_SESSION_START.md)。
+
+本轮仅新隔离窄审：55存储/41生成/112前端/27组件通过，4诊断表示成功复现、2正确行为案例失败；未重跑原1256/153/14。938/3061/33/2004/1702五分组及9151历史QA文件零漂移；9152项旧捕捉中的现行docs/qa/README.md已按本轮索引编辑登记，外部HEAD变化也单列。见[新审查目录](qa/TEACHING-LOOP-B5-REVIEW-20261003/README.md)BASELINE/首次差异/声明/FINAL-VERIFICATION。没有服务/浏览器/被拒身份HTTP重试，原QA和七份after核准记录保持。

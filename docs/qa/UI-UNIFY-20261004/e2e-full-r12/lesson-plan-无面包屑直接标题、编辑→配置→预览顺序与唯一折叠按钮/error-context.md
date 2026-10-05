@@ -1,0 +1,69 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - heading "教案工作台" [level=1] [ref=e4]
+  - navigation "项目功能导航" [ref=e5]:
+    - button "返回学习问答" [ref=e6] [cursor=pointer]:
+      - img [ref=e7]
+      - strong [ref=e9]: 智启课源
+    - button "收起项目导航" [expanded] [ref=e10] [cursor=pointer]:
+      - img [ref=e11]
+    - generic [ref=e14]:
+      - button "学习问答" [ref=e15] [cursor=pointer]:
+        - img [ref=e16]
+        - generic [ref=e19]: 学习问答
+      - button "教案工作台" [ref=e20] [cursor=pointer]:
+        - img [ref=e21]
+        - generic [ref=e24]: 教案工作台
+      - button "智能组卷（规划中）" [ref=e25] [cursor=pointer]:
+        - img [ref=e26]
+        - generic [ref=e29]:
+          - text: 智能组卷
+          - generic [ref=e30]: 规划中
+      - button "题库" [ref=e31] [cursor=pointer]:
+        - img [ref=e32]
+        - generic [ref=e35]: 题库
+      - button "知识点" [ref=e36] [cursor=pointer]:
+        - img [ref=e37]
+        - generic [ref=e39]: 知识点
+      - button "施测与成绩" [ref=e40] [cursor=pointer]:
+        - img [ref=e41]
+        - generic [ref=e44]: 施测与成绩
+      - button "学情分析" [ref=e45] [cursor=pointer]:
+        - img [ref=e46]
+        - generic [ref=e49]: 学情分析
+      - button "针对练习" [ref=e50] [cursor=pointer]:
+        - img [ref=e51]
+        - generic [ref=e54]: 针对练习
+      - button "协同写作（规划中）" [ref=e55] [cursor=pointer]:
+        - img [ref=e56]
+        - generic [ref=e58]:
+          - text: 协同写作
+          - generic [ref=e59]: 规划中
+      - button "沉浸阅读（规划中）" [ref=e60] [cursor=pointer]:
+        - img [ref=e61]
+        - generic [ref=e63]:
+          - text: 沉浸阅读
+          - generic [ref=e64]: 规划中
+      - button "学习空间（规划中）" [ref=e65] [cursor=pointer]:
+        - img [ref=e66]
+        - generic [ref=e71]:
+          - text: 学习空间
+          - generic [ref=e72]: 规划中
+      - button "教材资料库" [ref=e73] [cursor=pointer]:
+        - img [ref=e74]
+        - generic [ref=e76]: 教材资料库
+      - button "模板中心（规划中）" [ref=e77] [cursor=pointer]:
+        - img [ref=e78]
+        - generic [ref=e82]:
+          - text: 模板中心
+          - generic [ref=e83]: 规划中
+    - generic [ref=e84]:
+      - button "设置" [ref=e85] [cursor=pointer]:
+        - img [ref=e86]
+        - generic [ref=e89]: 设置
+      - generic "本地工作台" [ref=e90]: 教
+  - status [ref=e91]: 正在恢复教案草稿…
+```

@@ -1,0 +1,316 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - heading "施测与成绩" [level=1] [ref=e4]
+      - paragraph [ref=e5]: 按「名单 → 原卷 → 施测 → 成绩 → 历史」完成一次真实测评闭环：成绩只接受教师原始 小题得分表，0 / 空白 / 缺考 / 免考严格区分，确认后的成绩修订不可变；修正生成新版本并保留审计。
+    - main [ref=e6]:
+      - tablist "施测与成绩步骤" [ref=e7]:
+        - tab "1 名单" [ref=e8] [cursor=pointer]
+        - tab "2 原卷" [ref=e9] [cursor=pointer]
+        - tab "3 施测" [ref=e10] [cursor=pointer]
+        - tab "4 成绩" [selected] [ref=e11] [cursor=pointer]
+        - tab "5 历史" [ref=e12] [cursor=pointer]
+      - generic [ref=e13]:
+        - generic [ref=e14]: 班级：302b118712b0410c89673f663f37df2a
+        - generic [ref=e15]: 原卷：完整链固定原卷
+        - generic [ref=e16]: 施测：ad3c4829d0ce43ef90314d4f417a6393
+      - tabpanel "4 成绩" [ref=e17]:
+        - generic [ref=e18]:
+          - region "上传成绩表" [ref=e19]:
+            - generic [ref=e20]:
+              - heading "上传成绩表（教师原始 XLSX/CSV）" [level=3] [ref=e21]:
+                - img [ref=e22]
+                - text: 上传成绩表（教师原始 XLSX/CSV）
+              - button "刷新" [ref=e25] [cursor=pointer]:
+                - img [ref=e26]
+                - text: 刷新
+            - paragraph [ref=e31]: 施测「完整链施测」· 原卷修订 c6e97af2f14b4f2e8ab50ae68cbe2bcf · 参测 4 人次 · 固定计分叶 3
+            - form "上传成绩表" [ref=e32]:
+              - generic [ref=e33]:
+                - generic [ref=e34]: 成绩表格文件（.xlsx / .csv）
+                - button "成绩表格文件" [ref=e35]
+              - generic [ref=e36]:
+                - generic [ref=e37]: 工作表名（多表 XLSX 必填）
+                - textbox "工作表名" [ref=e38]
+              - generic [ref=e39]:
+                - generic [ref=e40]: 基于正式成绩版本（首个版本留空）
+                - combobox "基于正式成绩版本" [ref=e41]:
+                  - option "（首版，无基准）" [selected]
+                  - option "v1 · 1f9f8e67f4e54159b9ab7e11a0cf5bd8"
+              - button "上传并创建待校对批次" [disabled] [ref=e42]
+          - region "导入批次" [ref=e43]:
+            - generic [ref=e44]:
+              - heading "导入批次" [level=3] [ref=e45]
+              - generic [ref=e46]: 共 1 个批次
+            - list "导入批次列表" [ref=e47]:
+              - listitem [ref=e48]:
+                - button "5e5aad55920b4199b67c737d37c6f175 已确认入库 · r1 · 行 4" [pressed] [ref=e49] [cursor=pointer]:
+                  - strong [ref=e50]: 5e5aad55920b4199b67c737d37c6f175
+                  - generic [ref=e51]:
+                    - generic [ref=e52]: 已确认入库
+                    - text: · r1 · 行 4
+          - region "列映射" [ref=e53]:
+            - generic [ref=e54]:
+              - heading "列映射（固定到原卷计分叶）" [level=3] [ref=e55]
+              - generic [ref=e56]: 批次 r1 · 预览 v0 · 未映射叶按 missing
+            - generic [ref=e57]:
+              - generic [ref=e58]:
+                - generic [ref=e59]: 工作表名
+                - textbox "映射工作表名" [ref=e60]: CSV
+              - generic [ref=e61]:
+                - generic [ref=e62]: 表头行（0 = 无表头）
+                - spinbutton "表头行" [ref=e63]: "1"
+              - generic [ref=e64]:
+                - generic [ref=e65]: 学号列
+                - textbox "学号列" [ref=e66]: A
+              - generic [ref=e67]:
+                - generic [ref=e68]: 姓名列
+                - textbox "姓名列" [ref=e69]: B
+              - generic [ref=e70]:
+                - generic [ref=e71]: 出勤列（可选）
+                - textbox "出勤列" [ref=e72]
+              - generic [ref=e73]:
+                - generic [ref=e74]: 总分列（可选）
+                - textbox "总分列" [ref=e75]
+            - group "计分叶列映射" [ref=e76]:
+              - generic [ref=e77]: 计分叶 → 原表列字母
+              - generic [ref=e78]:
+                - generic [ref=e79]: 1（满分 2）
+                - textbox "1 列字母" [ref=e80]: C
+              - generic [ref=e81]:
+                - generic [ref=e82]: 2（满分 3）
+                - textbox "2 列字母" [ref=e83]: D
+              - generic [ref=e84]:
+                - generic [ref=e85]: 3（满分 5）
+                - textbox "3 列字母" [ref=e86]: E
+            - generic [ref=e87]:
+              - button "保存映射并重算" [ref=e88] [cursor=pointer]
+              - button "刷新对照" [ref=e89] [cursor=pointer]
+          - region "明确刷新成绩预览" [ref=e90]:
+            - paragraph [ref=e91]: 出勤或参测人次校正后，先刷新对照读取当前施测，再明确刷新本预览并重新承认。 若正式成绩基准已变化，请新建导入批次；刷新不替换基准，也不清空未保存校对。
+            - button "明确刷新成绩预览" [disabled] [ref=e92]
+          - list "成绩四态图例" [ref=e93]:
+            - listitem [ref=e94]:
+              - generic "有效分数（recorded）" [ref=e95]:
+                - generic [ref=e96]: ●
+                - generic [ref=e97]: 有效
+                - generic [ref=e98]: （有效分数（recorded））
+              - generic [ref=e99]: 表格里的 0 是有效 0 分，不等于空白
+            - listitem [ref=e100]:
+              - generic "空白（missing）" [ref=e101]:
+                - generic [ref=e102]: ▢
+                - generic [ref=e103]: 空白
+                - generic [ref=e104]: （空白（missing））
+              - generic [ref=e105]: 空白单元格：不补 0，需逐类承认后确认
+            - listitem [ref=e106]:
+              - generic "缺考（absent）" [ref=e107]:
+                - generic [ref=e108]: ✕
+                - generic [ref=e109]: 缺考
+                - generic [ref=e110]: （缺考（absent））
+              - generic [ref=e111]: 缺考：按人次出勤状态登记，不计 0
+            - listitem [ref=e112]:
+              - generic "免考（exempt）" [ref=e113]:
+                - generic [ref=e114]: ◇
+                - generic [ref=e115]: 免考
+                - generic [ref=e116]: （免考（exempt））
+              - generic [ref=e117]: 免考：不计 0，不参与总分核对
+          - region "成绩校对与确认" [ref=e118]:
+            - generic [ref=e119]:
+              - heading "成绩校对与确认" [level=3] [ref=e120]
+              - generic [ref=e121]: 已确认入库
+              - generic [ref=e122]: 全链成绩.csv · 行 4 · 已定位 4 · 空白单元 1
+            - list "成绩导入步骤" [ref=e123]:
+              - listitem [ref=e124]: 上传
+              - listitem [ref=e125]: 列映射
+              - listitem [ref=e126]: 行校对
+              - listitem [ref=e127]: 预览承认
+              - listitem [ref=e128]: 确认入库
+            - region "原表行校对" [ref=e129]:
+              - generic [ref=e130]:
+                - heading "行校对（原表物理坐标）" [level=4] [ref=e131]
+                - generic [ref=e132]: 第 1 页 · 共 4 行 · 每页 50 行
+              - list [ref=e133]:
+                - listitem [ref=e134]:
+                  - generic [ref=e135]:
+                    - generic [ref=e136]: 原表第 2 行
+                    - generic [ref=e137]: 人次 全链甲
+                  - list [ref=e138]:
+                    - listitem [ref=e139]:
+                      - generic [ref=e140]: 第 2 行 · 列 C
+                      - generic "有效分数（recorded）" [ref=e141]:
+                        - generic [ref=e142]: ●
+                        - generic [ref=e143]: "2"
+                        - generic [ref=e144]: （有效分数（recorded））
+                      - generic [ref=e145]: 原件：2
+                      - textbox "第 2 行 列 C 校正" [ref=e146]:
+                        - /placeholder: "2"
+                    - listitem [ref=e147]:
+                      - generic [ref=e148]: 第 2 行 · 列 D
+                      - generic "有效分数（recorded）" [ref=e149]:
+                        - generic [ref=e150]: ●
+                        - generic [ref=e151]: "2"
+                        - generic [ref=e152]: （有效分数（recorded））
+                      - generic [ref=e153]: 原件：2
+                      - textbox "第 2 行 列 D 校正" [ref=e154]:
+                        - /placeholder: "2"
+                    - listitem [ref=e155]:
+                      - generic [ref=e156]: 第 2 行 · 列 E
+                      - generic "有效分数（recorded）" [ref=e157]:
+                        - generic [ref=e158]: ●
+                        - generic [ref=e159]: "5"
+                        - generic [ref=e160]: （有效分数（recorded））
+                      - generic [ref=e161]: 原件：5
+                      - textbox "第 2 行 列 E 校正" [ref=e162]:
+                        - /placeholder: "5"
+                - listitem [ref=e163]:
+                  - generic [ref=e164]:
+                    - generic [ref=e165]: 原表第 3 行
+                    - generic [ref=e166]: 人次 全链乙
+                  - list [ref=e167]:
+                    - listitem [ref=e168]:
+                      - generic [ref=e169]: 第 3 行 · 列 C
+                      - generic "有效分数（recorded）" [ref=e170]:
+                        - generic [ref=e171]: ●
+                        - generic [ref=e172]: "2"
+                        - generic [ref=e173]: （有效分数（recorded））
+                      - generic [ref=e174]: 原件：2
+                      - textbox "第 3 行 列 C 校正" [ref=e175]:
+                        - /placeholder: "2"
+                    - listitem [ref=e176]:
+                      - generic [ref=e177]: 第 3 行 · 列 D
+                      - generic "有效分数（recorded）" [ref=e178]:
+                        - generic [ref=e179]: ●
+                        - generic [ref=e180]: "3"
+                        - generic [ref=e181]: （有效分数（recorded））
+                      - generic [ref=e182]: 原件：3
+                      - textbox "第 3 行 列 D 校正" [ref=e183]:
+                        - /placeholder: "3"
+                    - listitem [ref=e184]:
+                      - generic [ref=e185]: 第 3 行 · 列 E
+                      - generic "空白（missing）" [ref=e186]:
+                        - generic [ref=e187]: ▢
+                        - generic [ref=e188]: （空白）
+                        - generic [ref=e189]: （空白（missing））
+                      - generic [ref=e190]: 空白单元格按 missing 处理，不补 0
+                      - generic [ref=e191]: 原件：（空白）（空白单元格按 missing 处理，不补 0）
+                      - textbox "第 3 行 列 E 校正" [ref=e192]:
+                        - /placeholder: （空白）
+                - listitem [ref=e193]:
+                  - generic [ref=e194]:
+                    - generic [ref=e195]: 原表第 4 行
+                    - generic [ref=e196]: 人次 全链丙
+                  - list [ref=e197]:
+                    - listitem [ref=e198]:
+                      - generic [ref=e199]: 第 4 行 · 列 C
+                      - generic "缺考（absent）" [ref=e200]:
+                        - generic [ref=e201]: ✕
+                        - generic [ref=e202]: 缺考
+                        - generic [ref=e203]: （缺考（absent））
+                      - generic [ref=e204]: 原件：缺考
+                      - textbox "第 4 行 列 C 校正" [ref=e205]:
+                        - /placeholder: 缺考
+                    - listitem [ref=e206]:
+                      - generic [ref=e207]: 第 4 行 · 列 D
+                      - generic "空白（missing）" [ref=e208]:
+                        - generic [ref=e209]: ▢
+                        - generic [ref=e210]: （空白）
+                        - generic [ref=e211]: （空白（missing））
+                      - generic [ref=e212]: 空白单元格按 missing 处理，不补 0
+                      - generic [ref=e213]: 原件：（空白）（空白单元格按 missing 处理，不补 0）
+                      - textbox "第 4 行 列 D 校正" [ref=e214]:
+                        - /placeholder: （空白）
+                    - listitem [ref=e215]:
+                      - generic [ref=e216]: 第 4 行 · 列 E
+                      - generic "空白（missing）" [ref=e217]:
+                        - generic [ref=e218]: ▢
+                        - generic [ref=e219]: （空白）
+                        - generic [ref=e220]: （空白（missing））
+                      - generic [ref=e221]: 空白单元格按 missing 处理，不补 0
+                      - generic [ref=e222]: 原件：（空白）（空白单元格按 missing 处理，不补 0）
+                      - textbox "第 4 行 列 E 校正" [ref=e223]:
+                        - /placeholder: （空白）
+                - listitem [ref=e224]:
+                  - generic [ref=e225]:
+                    - generic [ref=e226]: 原表第 5 行
+                    - generic [ref=e227]: 人次 全链丁
+                  - list [ref=e228]:
+                    - listitem [ref=e229]:
+                      - generic [ref=e230]: 第 5 行 · 列 C
+                      - generic "有效分数（recorded）" [ref=e231]:
+                        - generic [ref=e232]: ●
+                        - generic [ref=e233]: "0"
+                        - generic [ref=e234]: （有效分数（recorded））
+                      - generic [ref=e235]: 显式 0 分（有效记录）
+                      - generic [ref=e236]: 原件：0（显式 0 分（有效记录））
+                      - textbox "第 5 行 列 C 校正" [ref=e237]:
+                        - /placeholder: "0"
+                    - listitem [ref=e238]:
+                      - generic [ref=e239]: 第 5 行 · 列 D
+                      - generic "有效分数（recorded）" [ref=e240]:
+                        - generic [ref=e241]: ●
+                        - generic [ref=e242]: "3"
+                        - generic [ref=e243]: （有效分数（recorded））
+                      - generic [ref=e244]: 原件：3
+                      - textbox "第 5 行 列 D 校正" [ref=e245]:
+                        - /placeholder: "3"
+                    - listitem [ref=e246]:
+                      - generic [ref=e247]: 第 5 行 · 列 E
+                      - generic "有效分数（recorded）" [ref=e248]:
+                        - generic [ref=e249]: ●
+                        - generic [ref=e250]: "5"
+                        - generic [ref=e251]: （有效分数（recorded））
+                      - generic [ref=e252]: 原件：5
+                      - textbox "第 5 行 列 E 校正" [ref=e253]:
+                        - /placeholder: "5"
+              - generic [ref=e254]:
+                - button "上一页" [disabled] [ref=e255]
+                - button "下一页" [disabled] [ref=e256]
+                - button "保存校对" [disabled] [ref=e257]:
+                  - img [ref=e258]
+                  - text: 保存校对
+                - button "进入预览承认" [disabled] [ref=e262]
+            - region "预览承认" [ref=e263]:
+              - generic [ref=e264]:
+                - heading "预览承认" [level=4] [ref=e265]
+                - button "刷新对照" [ref=e266] [cursor=pointer]:
+                  - img [ref=e267]
+                  - text: 刷新对照
+              - generic [ref=e272]:
+                - heading "缺考人次（按班）" [level=5] [ref=e273]
+                - list [ref=e274]:
+                  - listitem [ref=e275]:
+                    - generic [ref=e276]:
+                      - checkbox "承认 302b118712b0410c89673f663f37df2a 缺考 1 人次" [ref=e277]
+                      - generic [ref=e278]:
+                        - text: 302b118712b0410c89673f663f37df2a：1 名缺考人次
+                        - generic [ref=e279]: 全链丙
+              - generic [ref=e280]:
+                - heading "空白单元范围" [level=5] [ref=e281]
+                - generic [ref=e282]:
+                  - checkbox "承认空白 1 个单元覆盖 1 人次" [ref=e283]
+                  - generic [ref=e284]:
+                    - text: 1 个空白单元，覆盖 1 人次
+                    - generic [ref=e285]: 全链乙
+                - paragraph [ref=e286]: 空白按 missing 落库（不补 0）；未映射的计分叶同样按 missing 处理。
+              - generic [ref=e287]:
+                - button "确认入库" [disabled] [ref=e288]:
+                  - img [ref=e289]
+                  - text: 确认入库
+                - generic [ref=e292]: 勾选上述承认项后才能确认。
+            - status [ref=e293]:
+              - text: 已确认（重放）：同一提交标识此前已入库，本次未重复写入（修订 1f9f8e67f4e54159b9ab7e11a0cf5bd8）。
+              - button "去「历史」查看只读矩阵" [ref=e294] [cursor=pointer]
+            - status [ref=e295]: 该批次已确认入库（本页若无本次会话回执则不显示写入计数，也不重复写入）。
+          - region "修订历史入口" [ref=e296]:
+            - generic [ref=e297]:
+              - heading "修订历史" [level=3] [ref=e298]
+              - button "打开只读矩阵与修正" [ref=e299] [cursor=pointer]
+            - list "成绩修订列表" [ref=e300]:
+              - listitem [ref=e301]:
+                - strong [ref=e302]: v1
+                - generic [ref=e303]: 1f9f8e67f4e54159b9ab7e11a0cf5bd8 · 人次 4 · 叶 3 · 首版
+  - alert [ref=e304]
+```

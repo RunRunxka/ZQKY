@@ -1,0 +1,110 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - navigation "项目功能导航" [ref=e3]:
+    - button "返回学习问答" [ref=e4] [cursor=pointer]:
+      - img [ref=e5]
+      - strong [ref=e7]: 智启课源
+    - button "收起项目导航" [expanded] [ref=e8] [cursor=pointer]:
+      - img [ref=e9]
+    - generic [ref=e12]:
+      - button "学习问答" [ref=e13] [cursor=pointer]:
+        - img [ref=e14]
+        - generic [ref=e17]: 学习问答
+      - button "教案工作台" [ref=e18] [cursor=pointer]:
+        - img [ref=e19]
+        - generic [ref=e22]: 教案工作台
+      - button "智能组卷（规划中）" [ref=e23] [cursor=pointer]:
+        - img [ref=e24]
+        - generic [ref=e27]:
+          - text: 智能组卷
+          - generic [ref=e28]: 规划中
+      - button "题库" [ref=e29] [cursor=pointer]:
+        - img [ref=e30]
+        - generic [ref=e33]: 题库
+      - button "知识点" [ref=e34] [cursor=pointer]:
+        - img [ref=e35]
+        - generic [ref=e37]: 知识点
+      - button "施测与成绩" [ref=e38] [cursor=pointer]:
+        - img [ref=e39]
+        - generic [ref=e42]: 施测与成绩
+      - button "学情分析" [ref=e43] [cursor=pointer]:
+        - img [ref=e44]
+        - generic [ref=e47]: 学情分析
+      - button "针对练习" [ref=e48] [cursor=pointer]:
+        - img [ref=e49]
+        - generic [ref=e52]: 针对练习
+      - button "协同写作（规划中）" [ref=e53] [cursor=pointer]:
+        - img [ref=e54]
+        - generic [ref=e56]:
+          - text: 协同写作
+          - generic [ref=e57]: 规划中
+      - button "沉浸阅读（规划中）" [ref=e58] [cursor=pointer]:
+        - img [ref=e59]
+        - generic [ref=e61]:
+          - text: 沉浸阅读
+          - generic [ref=e62]: 规划中
+      - button "学习空间（规划中）" [ref=e63] [cursor=pointer]:
+        - img [ref=e64]
+        - generic [ref=e69]:
+          - text: 学习空间
+          - generic [ref=e70]: 规划中
+      - button "教材资料库" [ref=e71] [cursor=pointer]:
+        - img [ref=e72]
+        - generic [ref=e74]: 教材资料库
+      - button "模板中心（规划中）" [ref=e75] [cursor=pointer]:
+        - img [ref=e76]
+        - generic [ref=e80]:
+          - text: 模板中心
+          - generic [ref=e81]: 规划中
+    - generic [ref=e82]:
+      - button "设置" [ref=e83] [cursor=pointer]:
+        - img [ref=e84]
+        - generic [ref=e87]: 设置
+      - generic "本地工作台" [ref=e88]: 教
+  - generic [ref=e90]:
+    - banner [ref=e91]:
+      - heading "知识点" [level=1] [ref=e92]
+      - paragraph [ref=e93]: 知识点是学科内的稳定身份（编码唯一、内容按修订追加）；可人工建立、表格导入或由 AI 提出候选， 候选与导入都必须逐行校对、整批确认后才写入正式表。
+    - main [ref=e94]:
+      - tablist "知识点视图" [ref=e95]:
+        - tab "知识点" [selected] [ref=e96] [cursor=pointer]
+        - tab "表格导入" [ref=e97] [cursor=pointer]
+        - tab "AI 候选" [ref=e98] [cursor=pointer]
+      - tabpanel "知识点" [ref=e99]:
+        - generic [ref=e100]:
+          - region "知识点列表" [ref=e102]:
+            - generic [ref=e103]:
+              - generic [ref=e104]:
+                - generic [ref=e105]: 学科
+                - textbox "按学科筛选" [ref=e106]:
+                  - /placeholder: 学科 id
+              - group "按状态筛选" [ref=e107]:
+                - button "全部" [pressed] [ref=e108] [cursor=pointer]
+                - button "在用" [ref=e109] [cursor=pointer]
+                - button "已归档" [ref=e110] [cursor=pointer]
+              - generic [ref=e111]:
+                - textbox "按关键字搜索知识点" [ref=e112]:
+                  - /placeholder: 按编码 / 名称 / 别名搜索
+                - button "搜索" [ref=e113] [cursor=pointer]:
+                  - img [ref=e114]
+                  - text: 搜索
+              - group "视图" [ref=e117]:
+                - button "列表" [pressed] [ref=e118] [cursor=pointer]:
+                  - img [ref=e119]
+                  - text: 列表
+                - button "父树" [ref=e120] [cursor=pointer]:
+                  - img [ref=e121]
+                  - text: 父树
+              - button "刷新" [ref=e123] [cursor=pointer]:
+                - img [ref=e124]
+                - text: 刷新
+              - button "新建知识点" [active] [ref=e129] [cursor=pointer]:
+                - img [ref=e130]
+                - text: 新建知识点
+            - generic "正在读取知识点" [ref=e131]
+          - generic [ref=e135]:
+            - strong [ref=e136]: 未选择知识点
+            - generic [ref=e137]: 从左侧列表或父树中选择一个知识点，查看详情、编辑、别名与教材依据。
+```

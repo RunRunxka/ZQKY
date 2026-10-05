@@ -1,0 +1,268 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation "项目功能导航" [ref=e3]:
+      - button "返回学习问答" [ref=e4] [cursor=pointer]:
+        - img [ref=e5]
+        - strong [ref=e7]: 智启课源
+      - button "收起项目导航" [expanded] [ref=e8] [cursor=pointer]:
+        - img [ref=e9]
+      - generic [ref=e12]:
+        - button "学习问答" [ref=e13] [cursor=pointer]:
+          - img [ref=e14]
+          - generic [ref=e17]: 学习问答
+        - button "教案工作台" [ref=e18] [cursor=pointer]:
+          - img [ref=e19]
+          - generic [ref=e22]: 教案工作台
+        - button "智能组卷（规划中）" [ref=e23] [cursor=pointer]:
+          - img [ref=e24]
+          - generic [ref=e27]:
+            - text: 智能组卷
+            - generic [ref=e28]: 规划中
+        - button "题库" [ref=e29] [cursor=pointer]:
+          - img [ref=e30]
+          - generic [ref=e33]: 题库
+        - button "知识点" [ref=e34] [cursor=pointer]:
+          - img [ref=e35]
+          - generic [ref=e37]: 知识点
+        - button "施测与成绩" [ref=e38] [cursor=pointer]:
+          - img [ref=e39]
+          - generic [ref=e42]: 施测与成绩
+        - button "协同写作（规划中）" [ref=e43] [cursor=pointer]:
+          - img [ref=e44]
+          - generic [ref=e46]:
+            - text: 协同写作
+            - generic [ref=e47]: 规划中
+        - button "沉浸阅读（规划中）" [ref=e48] [cursor=pointer]:
+          - img [ref=e49]
+          - generic [ref=e51]:
+            - text: 沉浸阅读
+            - generic [ref=e52]: 规划中
+        - button "学习空间（规划中）" [ref=e53] [cursor=pointer]:
+          - img [ref=e54]
+          - generic [ref=e59]:
+            - text: 学习空间
+            - generic [ref=e60]: 规划中
+        - button "教材资料库" [ref=e61] [cursor=pointer]:
+          - img [ref=e62]
+          - generic [ref=e64]: 教材资料库
+        - button "模板中心（规划中）" [ref=e65] [cursor=pointer]:
+          - img [ref=e66]
+          - generic [ref=e70]:
+            - text: 模板中心
+            - generic [ref=e71]: 规划中
+      - generic [ref=e72]:
+        - button "设置" [ref=e73] [cursor=pointer]:
+          - img [ref=e74]
+          - generic [ref=e77]: 设置
+        - generic "本地工作台" [ref=e78]: 教
+    - generic [ref=e80]:
+      - banner [ref=e81]:
+        - link "返回题库" [ref=e82] [cursor=pointer]:
+          - /url: /question-bank
+          - img [ref=e83]
+          - text: 返回题库
+        - heading "试题校对" [level=1] [ref=e85]
+        - paragraph [ref=e86]: ai-generation-e879fecedd0e46cca47e5905475abcff.json · 待校对 · 草稿 1 道 （已校对 0） · 未归属原文 0 块
+      - main [ref=e87]:
+        - generic [ref=e88]:
+          - strong [ref=e89]: 解析警告 1 条
+          - list [ref=e90]:
+            - listitem [ref=e91]: AI 补题批次：候选尚未入库，请逐题校对后用确认接口建账。
+        - navigation "草稿列表" [ref=e92]:
+          - button "#1 简答题 计算有理数 (-2) + 5 的结果，并写出计算过程。 待校对 AI 候选" [ref=e93] [cursor=pointer]:
+            - generic [ref=e94]: "#1 简答题"
+            - generic [ref=e95]: 计算有理数 (-2) + 5 的结果，并写出计算过程。
+            - generic [ref=e96]:
+              - generic [ref=e97]: 待校对
+              - generic [ref=e98]: AI 候选
+        - generic [ref=e99]:
+          - complementary "原文与定位" [ref=e100]:
+            - generic [ref=e101]:
+              - generic [ref=e102]:
+                - heading "未归属原文" [level=2] [ref=e103]
+                - generic [ref=e104]: 0 块
+              - paragraph [ref=e105]: 这些原文块没有被任何草稿引用。它们仍然保留在批次里，可据此新增或合并草稿； 系统不会因为拆题结果而丢弃原文。
+              - status [ref=e106]: 本批次没有未归属原文块：服务端返回的原文块都已归属到草稿。
+            - generic [ref=e107]:
+              - generic [ref=e108]:
+                - heading "当前草稿的原文来源" [level=2] [ref=e109]
+                - generic [ref=e110]: 0 个区间
+              - paragraph [ref=e111]: 该草稿没有可定位的原文区间（可能由人工新建或拆分产生）。
+              - list [ref=e112]:
+                - listitem [ref=e113]: AI 补题候选：尚未入库，请逐题校对题干、答案与知识点后再确认。
+          - group [ref=e114]:
+            - region "草稿编辑" [ref=e115]:
+              - generic [ref=e116]:
+                - heading "草稿编辑" [level=2] [ref=e117]
+                - generic [ref=e118]: 待校对
+                - generic [ref=e119]: AI 候选（整理/补题）
+                - generic [ref=e120]: AI 候选（需人工校对）
+                - generic [ref=e121]: 修订 r1
+              - status [ref=e122]: 已保存；服务端当前校对状态：待校对。
+              - region "草稿内容预览" [ref=e123]:
+                - heading "内容预览" [level=3] [ref=e124]
+                - generic [ref=e125]:
+                  - paragraph [ref=e127]: 计算有理数 (-2) + 5 的结果，并写出计算过程。
+                  - generic [ref=e128]:
+                    - generic [ref=e129]: 简答题答案
+                    - generic [ref=e130]: "3"
+                  - generic [ref=e131]:
+                    - text: 解析：
+                    - paragraph [ref=e132]: 从 -2 向正方向移动 5 个单位，得到 3。
+              - generic [ref=e133]:
+                - generic [ref=e134]:
+                  - generic [ref=e135]:
+                    - text: 题型
+                    - combobox "题型" [ref=e136]:
+                      - option "单选题"
+                      - option "多选题"
+                      - option "判断题"
+                      - option "填空题"
+                      - option "简答题" [selected]
+                      - option "其他"
+                  - generic [ref=e137]:
+                    - text: 难度
+                    - combobox "难度" [ref=e138]:
+                      - option "未标注" [selected]
+                      - option "容易"
+                      - option "中等"
+                      - option "较难"
+                - generic [ref=e139]:
+                  - text: 题干
+                  - textbox "题干" [ref=e140]: 计算有理数 (-2) + 5 的结果，并写出计算过程。
+                - generic [ref=e141]:
+                  - text: 答案（文本）
+                  - textbox "答案（文本）" [ref=e142]: "3"
+                - generic [ref=e143]:
+                  - text: 解析
+                  - textbox "解析" [ref=e144]: 从 -2 向正方向移动 5 个单位，得到 3。
+                - group "分类" [ref=e145]:
+                  - generic [ref=e146]: 分类
+                  - generic [ref=e147]:
+                    - generic [ref=e148]:
+                      - text: 学段
+                      - combobox "学段" [ref=e149]:
+                        - option "未设置" [selected]
+                        - option "高中"
+                    - generic [ref=e150]:
+                      - text: 年级
+                      - combobox "年级" [ref=e151]:
+                        - option "未设置" [selected]
+                        - option "高一"
+                        - option "高二"
+                        - option "高三"
+                    - generic [ref=e152]:
+                      - text: 学科
+                      - combobox "学科" [ref=e153]:
+                        - option "未设置"
+                        - option "语文"
+                        - option "数学" [selected]
+                        - option "英语"
+                        - option "物理"
+                        - option "化学"
+                        - option "生物"
+                        - option "历史"
+                        - option "地理"
+                        - option "思想政治"
+                    - generic [ref=e154]:
+                      - text: 版本
+                      - combobox "版本" [ref=e155]:
+                        - option "未设置" [selected]
+                        - option "人教A版"
+                        - option "人教B版"
+                        - option "人教版"
+                    - generic [ref=e156]:
+                      - text: 历史知识点标签（旧字段）
+                      - textbox "历史知识点标签（旧字段）" [ref=e157]:
+                        - /placeholder: 用顿号或逗号分隔
+                  - paragraph [ref=e158]: 旧字段 knowledgeTags 只是文本标签：不会创建正式知识点关联，也不参与知识点筛选； 正式关联在下方「知识点关联」区块维护，两者分开保留、不合并。
+              - region "知识点关联" [ref=e159]:
+                - generic [ref=e160]:
+                  - heading "知识点关联" [level=2] [ref=e161]
+                  - generic [ref=e162]: 1 条
+                - list [ref=e163]:
+                  - listitem [ref=e164]:
+                    - generic [ref=e165]:
+                      - generic [ref=e166]: 有理数
+                      - generic [ref=e167]: 主知识点
+                      - generic [ref=e168]: AI 补题关联
+                      - generic [ref=e169]: 5181da99f4324a1583c1f22cb015407f
+                    - paragraph [ref=e170]: 学科快照：math · 修订：4d1534a579704ca0b95f618194df538d
+                    - generic [ref=e171]:
+                      - generic [ref=e172]:
+                        - text: 角色
+                        - combobox "角色" [ref=e173]:
+                          - option "主知识点" [selected]
+                          - option "次要知识点"
+                      - button "移除关联" [ref=e174] [cursor=pointer]
+                - status [ref=e175]: 未改动知识点关联：保存时不会发送 knowledgeLinks，服务端会沿用旧正式关联（不改写、不清空）。
+                - generic [ref=e176]:
+                  - generic [ref=e178]:
+                    - text: 知识点
+                    - combobox "知识点" [ref=e179]:
+                      - option "请选择知识点" [selected]
+                      - option "有理数（F10-RATIONAL）"
+                  - paragraph [ref=e180]: 按当前学科列出在用知识点；归档知识点不能建立新关联（服务端会 422 拒绝）。
+                - button "清空全部关联" [ref=e182] [cursor=pointer]
+                - generic "历史知识点标签（旧字段）" [ref=e183]:
+                  - heading "历史知识点标签（旧字段）" [level=3] [ref=e184]
+                  - paragraph [ref=e185]: 旧字段 knowledgeTags 与正式知识点关联分开保留：不合并、不丢弃，也不参与知识点筛选。
+                  - paragraph [ref=e186]: 该内容没有历史标签。
+              - generic [ref=e187]:
+                - button "保存修改" [ref=e188] [cursor=pointer]
+                - button "标记已校对" [ref=e189] [cursor=pointer]
+                - button "退回待校对" [ref=e190] [cursor=pointer]
+                - button "标记排除" [ref=e191] [cursor=pointer]
+                - button "标记原文未提供答案" [ref=e192] [cursor=pointer]
+              - group "拆分草稿" [ref=e193]:
+                - generic [ref=e194]: 拆分草稿
+                - paragraph [ref=e195]: 按字符偏移把当前草稿拆成两道：偏移必须落在该草稿的原文区间内；拆分后原草稿会被排除。
+                - generic [ref=e196]:
+                  - generic [ref=e197]:
+                    - text: 拆分位置（字符偏移）
+                    - spinbutton "拆分位置（字符偏移）" [ref=e198]
+                  - button "拆分" [ref=e199] [cursor=pointer]
+        - region "整理与入库" [ref=e200]:
+          - group [ref=e201]:
+            - generic [ref=e202]:
+              - heading "AI 整理" [level=2] [ref=e203]
+              - paragraph [ref=e204]: 把草稿整理成更规范的题目结构（只有点「AI 整理草稿」才调用模型）；AI 只给出待校对建议，永不直接覆盖人工草稿；应用建议需要重新校对后再入库，也不会自动入库。
+              - paragraph [ref=e205]:
+                - text: 使用
+                - strong [ref=e206]: 隔离补题模型 · teaching-browser-model
+                - text: 整理。
+              - paragraph [ref=e207]: 本机模型：题目文本不会发送到外部模型服务。
+              - generic [ref=e208]:
+                - checkbox "同时把未归属原文交给模型参考" [ref=e209]
+                - text: 同时把未归属原文交给模型参考
+              - generic [ref=e210]:
+                - button "AI 整理草稿" [ref=e211] [cursor=pointer]:
+                  - img [ref=e212]
+                  - text: AI 整理草稿
+                - button "重新读取模型配置" [ref=e214] [cursor=pointer]
+            - region "合并草稿" [ref=e215]:
+              - heading "合并草稿" [level=2] [ref=e216]
+              - paragraph [ref=e217]: 勾选至少两道草稿后台并：内容按原文顺序拼接，选中的旧草稿会被排除，合并结果需要重新校对。
+              - list [ref=e218]:
+                - listitem [ref=e219]:
+                  - generic [ref=e220]:
+                    - checkbox "待校对 修订 r1 计算有理数 (-2) + 5 的结果，并写出计算过程。" [ref=e221]
+                    - generic [ref=e222]:
+                      - generic [ref=e223]: 待校对
+                      - generic [ref=e224]: 修订 r1
+                      - generic [ref=e225]: 计算有理数 (-2) + 5 的结果，并写出计算过程。
+              - button "合并所选草稿（0）" [disabled] [ref=e227]
+          - region "确认入库" [ref=e228]:
+            - generic [ref=e229]:
+              - heading "确认入库" [level=2] [ref=e230]
+              - generic [ref=e231]: 已校对 0 道
+            - status [ref=e232]: 还没有已校对的草稿：在右侧编辑区点「标记已校对」后才会进入本次入库。
+            - generic [ref=e233]:
+              - button "确认入库（0 道）" [disabled] [ref=e234]
+              - generic [ref=e235]: 入库使用乐观锁与幂等提交：任一条校验失败则整体不确认，失败原因逐条列出。
+        - paragraph [ref=e236]: 题目来自导入文件的本地解析与规则拆题；AI 整理结果只是待校对建议，必须人工校对后才能入库。
+  - alert [ref=e237]: 试题校对
+```

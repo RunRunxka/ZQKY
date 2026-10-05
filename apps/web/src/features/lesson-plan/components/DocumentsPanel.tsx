@@ -31,7 +31,9 @@ export function DocumentsPanel() {
   useEffect(() => { alive.current = true; const publisher = bindPendingOperation(); publisherRef.current = publisher; return () => { alive.current = false; copyOwner.current = null; if (publisherRef.current === publisher) publisherRef.current = null; publisher.release(); }; }, [bindPendingOperation]);
   const busy = create.busy || importing.busy;
   const unknown = create.state === 'unknown' || importing.state === 'unknown';
-  useEffect(() => { publisherRef.current?.publish({ busy, unknown }); }, [busy, unknown]);
+  const recoveryBlocked = create.recoveryBlocked || importing.recoveryBlocked;
+  const resultUnknown = create.resultUnknown || importing.resultUnknown;
+  useEffect(() => { publisherRef.current?.publish({ busy, unknown: resultUnknown, recoveryBlocked }); }, [busy, resultUnknown, recoveryBlocked]);
   async function load(more = false) {
     setLoading(true); setError('');
     try { const page = await doc.api.listLessons({ offset: more ? lessons.length : 0, limit: 50 }); if (alive.current) { setLessons((old) => more ? [...old, ...page.items] : page.items); setTotal(page.total); } }
@@ -44,7 +46,7 @@ export function DocumentsPanel() {
     setError('');
     try {
       const operation = kind === 'create' ? create : importing;
-      if (busy || (unknown && operation.state !== 'unknown')) return;
+      if (busy || recoveryBlocked || (unknown && operation.state !== 'unknown')) return;
       if (!operation.pending && (!doc.selection.subjectId || !doc.selection.classId)) throw new Error('请先在来源面板明确选择单一学科与班级');
       if (!operation.pending) await editor.flushDraft();
       let receipt;
@@ -55,8 +57,19 @@ export function DocumentsPanel() {
         const original = importing.pending?.payload ?? (() => { const old = loadLegacyRaw(doc.services.recoveryStorage ?? localStorage); if (!old) throw new Error('旧本地稿不存在；未发起导入'); return { ...doc.selection, draft: old.envelope }; })();
         receipt = await importing.run(original, (frozen) => doc.api.importLocalLesson({ ...frozen.payload, submissionId: frozen.submissionId }), editor.revision);
       }
-      if (receipt?.current && alive.current && publisher.publish({ busy: false, unknown: false })) await doc.openDocument(receipt.result.lessonPlanId);
+      if (receipt?.current && alive.current && !operation.isRecoveryBlocked() && publisher.publish({ busy: false, unknown: false, recoveryBlocked: false })) await doc.openDocument(receipt.result.lessonPlanId);
     } catch (cause) { if (alive.current && publisher.isCurrent()) setError(asApiError(cause).message); }
+  }
+  async function retryOperationCache(kind: 'create' | 'import') {
+    const operation = kind === 'create' ? create : importing, publisher = publisherRef.current;
+    if (!publisher?.isCurrent() || busy) return;
+    const outcome = operation.cleanupOutcome();
+    const completed = outcome?.type === 'success' ? outcome.receipt.result : null;
+    if (await operation.retryRecoveryWrite()) {
+      if (!alive.current || !publisher.isCurrent()) return;
+      editor.notice(outcome ? (completed ? '明确成功回执的缓存清理已完成；没有再次发送HTTP。' : '明确失败操作的缓存清理已完成；当前文档保持，没有再次发送HTTP。') : '原操作包已恢复到缓存；尚未发送HTTP，请显式重试原包。');
+      if (completed && publisher.publish({ busy: false, unknown: false, recoveryBlocked: false })) await doc.openDocument(completed.lessonPlanId);
+    }
   }
   async function loadHistory(more = false) {
     if (!doc.documentId) return;
@@ -103,14 +116,16 @@ export function DocumentsPanel() {
     <div className="lesson-panel-body">
       {doc.initialRouteError && <p role="alert">{doc.initialRouteError}</p>}
       <div className="lesson-actions">
-        <button className="button subtle" disabled={busy || unknown} onClick={() => void start('create')}>创建空白后台教案</button>
-        <button className="button subtle" disabled={busy || unknown} onClick={() => void start('create', true)}>将当前正文创建为后台教案</button>
-        <button className="button subtle" disabled={busy || unknown} onClick={() => void start('import')}>导入完整旧本地稿到后台</button>
+        <button className="button subtle" disabled={busy || unknown || recoveryBlocked} onClick={() => void start('create')}>创建空白后台教案</button>
+        <button className="button subtle" disabled={busy || unknown || recoveryBlocked} onClick={() => void start('create', true)}>将当前正文创建为后台教案</button>
+        <button className="button subtle" disabled={busy || unknown || recoveryBlocked} onClick={() => void start('import')}>导入完整旧本地稿到后台</button>
         {doc.mode !== 'local' && <button className="button subtle" onClick={() => void doc.openLocal()}>返回旧本地稿</button>}
       </div>
       <p className="lesson-help">旧本地稿保留原键和完整信封；导入成功后仅打开新后台文档。</p>
-      {create.state === 'unknown' && <button className="button primary" disabled={busy} onClick={() => void start('create')}>重试原创建包</button>}
-      {importing.state === 'unknown' && <button className="button primary" disabled={busy} onClick={() => void start('import')}>重试原导入包</button>}
+      {create.canRetryRecovery && <button className="button primary" disabled={busy} onClick={() => void retryOperationCache('create')}>重试创建操作恢复缓存</button>}
+      {importing.canRetryRecovery && <button className="button primary" disabled={busy} onClick={() => void retryOperationCache('import')}>重试导入操作恢复缓存</button>}
+      {create.state === 'unknown' && <button className="button primary" disabled={busy || recoveryBlocked} onClick={() => void start('create')}>重试原创建包</button>}
+      {importing.state === 'unknown' && <button className="button primary" disabled={busy || recoveryBlocked} onClick={() => void start('import')}>重试原导入包</button>}
       {(error || create.error || importing.error || create.cacheError || importing.cacheError) && <p role="alert">{error || create.cacheError || importing.cacheError || create.error?.message || importing.error?.message}</p>}
       <ul className="lesson-document-list">{lessons.map((lesson) => <li key={lesson.lessonPlanId}><button className="lesson-document-item" onClick={() => void doc.openDocument(lesson.lessonPlanId)}>{lesson.title || '未命名教案'} <small>后台 v{lesson.revision} · {lesson.currentRevisionId}</small></button></li>)}</ul>
       <button className="button subtle" disabled={loading} onClick={() => void load()}>刷新后台列表</button>

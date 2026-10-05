@@ -1,0 +1,226 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - navigation "项目功能导航" [ref=e3]:
+      - button "返回学习问答" [ref=e4] [cursor=pointer]:
+        - img [ref=e5]
+        - strong [ref=e7]: 智启课源
+      - button "收起项目导航" [expanded] [ref=e8] [cursor=pointer]:
+        - img [ref=e9]
+      - generic [ref=e12]:
+        - button "学习问答" [ref=e13] [cursor=pointer]:
+          - img [ref=e14]
+          - generic [ref=e17]: 学习问答
+        - button "教案工作台" [ref=e18] [cursor=pointer]:
+          - img [ref=e19]
+          - generic [ref=e22]: 教案工作台
+        - button "智能组卷（规划中）" [ref=e23] [cursor=pointer]:
+          - img [ref=e24]
+          - generic [ref=e27]:
+            - text: 智能组卷
+            - generic [ref=e28]: 规划中
+        - button "题库" [ref=e29] [cursor=pointer]:
+          - img [ref=e30]
+          - generic [ref=e33]: 题库
+        - button "知识点" [ref=e34] [cursor=pointer]:
+          - img [ref=e35]
+          - generic [ref=e37]: 知识点
+        - button "施测与成绩" [ref=e38] [cursor=pointer]:
+          - img [ref=e39]
+          - generic [ref=e42]: 施测与成绩
+        - button "学情分析" [ref=e43] [cursor=pointer]:
+          - img [ref=e44]
+          - generic [ref=e47]: 学情分析
+        - button "针对练习" [ref=e48] [cursor=pointer]:
+          - img [ref=e49]
+          - generic [ref=e52]: 针对练习
+        - button "协同写作（规划中）" [ref=e53] [cursor=pointer]:
+          - img [ref=e54]
+          - generic [ref=e56]:
+            - text: 协同写作
+            - generic [ref=e57]: 规划中
+        - button "沉浸阅读（规划中）" [ref=e58] [cursor=pointer]:
+          - img [ref=e59]
+          - generic [ref=e61]:
+            - text: 沉浸阅读
+            - generic [ref=e62]: 规划中
+        - button "学习空间（规划中）" [ref=e63] [cursor=pointer]:
+          - img [ref=e64]
+          - generic [ref=e69]:
+            - text: 学习空间
+            - generic [ref=e70]: 规划中
+        - button "教材资料库" [ref=e71] [cursor=pointer]:
+          - img [ref=e72]
+          - generic [ref=e74]: 教材资料库
+        - button "模板中心（规划中）" [ref=e75] [cursor=pointer]:
+          - img [ref=e76]
+          - generic [ref=e80]:
+            - text: 模板中心
+            - generic [ref=e81]: 规划中
+      - generic [ref=e82]:
+        - button "设置" [ref=e83] [cursor=pointer]:
+          - img [ref=e84]
+          - generic [ref=e87]: 设置
+        - generic "本地工作台" [ref=e88]: 教
+    - generic [ref=e90]:
+      - banner [ref=e91]:
+        - generic [ref=e92]:
+          - link "返回书籍列表" [ref=e93] [cursor=pointer]:
+            - /url: /books
+            - img [ref=e94]
+            - text: 返回书籍列表
+          - generic [ref=e96]:
+            - button "导出 Markdown" [ref=e97] [cursor=pointer]
+            - button "重建书籍" [ref=e98] [cursor=pointer]:
+              - img [ref=e99]
+              - text: 重建书籍
+        - heading "R14独立一次页故障书" [level=1] [ref=e102]
+        - paragraph [ref=e103]: 阅读进度 13% · 已读 1/8 页
+      - main [ref=e104]:
+        - status [ref=e106]:
+          - generic [ref=e107]:
+            - generic [ref=e108]: 正在逐章编译（本地模拟，不调用模型）…
+            - generic [ref=e109]: 3/4 章
+            - generic "已运行 00:15" [ref=e110]: 00:15
+          - generic [ref=e111]:
+            - button "暂停生成" [ref=e112] [cursor=pointer]:
+              - img [ref=e113]
+              - text: 暂停生成
+            - button "已生成内容" [ref=e116] [cursor=pointer]:
+              - text: 已生成内容
+              - img [ref=e117]
+        - generic [ref=e119]:
+          - navigation "章节目录" [ref=e120]:
+            - generic [ref=e121]:
+              - paragraph [ref=e122]: 第 1 章 · R14独立一次页故障书是什么
+              - link "R14独立一次页故障书是什么（1/2）" [ref=e123] [cursor=pointer]:
+                - /url: /books/bk-murr6duq-tp9tlg/pages/pg-murr6dyh-sxtq4m
+                - generic [ref=e125]: R14独立一次页故障书是什么（1/2）
+                - generic [ref=e126]: 排队
+              - link "R14独立一次页故障书是什么（2/2）" [ref=e127] [cursor=pointer]:
+                - /url: /books/bk-murr6duq-tp9tlg/pages/pg-murr6dyh-779ea4
+                - generic [ref=e129]: R14独立一次页故障书是什么（2/2）
+                - generic [ref=e130]: 就绪
+            - generic [ref=e131]:
+              - paragraph [ref=e132]: 第 2 章 · R14独立一次页故障书的核心概念
+              - link "R14独立一次页故障书的核心概念（1/2）" [ref=e133] [cursor=pointer]:
+                - /url: /books/bk-murr6duq-tp9tlg/pages/pg-murr6dyh-xleeoi
+                - generic [ref=e135]: R14独立一次页故障书的核心概念（1/2）
+                - generic [ref=e136]: 就绪
+              - link "R14独立一次页故障书的核心概念（2/2）" [ref=e137] [cursor=pointer]:
+                - /url: /books/bk-murr6duq-tp9tlg/pages/pg-murr6dyh-kzp98s
+                - generic [ref=e139]: R14独立一次页故障书的核心概念（2/2）
+                - generic [ref=e140]: 就绪
+            - generic [ref=e141]:
+              - paragraph [ref=e142]: 第 3 章 · R14独立一次页故障书的常见问题
+              - link "R14独立一次页故障书的常见问题（1/2）" [ref=e143] [cursor=pointer]:
+                - /url: /books/bk-murr6duq-tp9tlg/pages/pg-murr6dyh-jmj6ba
+                - generic [ref=e145]: R14独立一次页故障书的常见问题（1/2）
+                - generic [ref=e146]: 就绪
+              - link "R14独立一次页故障书的常见问题（2/2）" [ref=e147] [cursor=pointer]:
+                - /url: /books/bk-murr6duq-tp9tlg/pages/pg-murr6dyh-rtyb05
+                - generic [ref=e149]: R14独立一次页故障书的常见问题（2/2）
+                - generic [ref=e150]: 就绪
+            - generic [ref=e151]:
+              - paragraph [ref=e152]: 第 4 章 · R14独立一次页故障书的练习与巩固
+              - link "R14独立一次页故障书的练习与巩固（1/2）" [ref=e153] [cursor=pointer]:
+                - /url: /books/bk-murr6duq-tp9tlg/pages/pg-murr6dyh-p6azmk
+                - generic [ref=e155]: R14独立一次页故障书的练习与巩固（1/2）
+                - generic [ref=e156]: 就绪
+              - link "R14独立一次页故障书的练习与巩固（2/2）" [ref=e157] [cursor=pointer]:
+                - /url: /books/bk-murr6duq-tp9tlg/pages/pg-murr6dyh-7f4p97
+                - generic [ref=e159]: R14独立一次页故障书的练习与巩固（2/2）
+                - generic [ref=e160]: 就绪
+          - article [ref=e161]:
+            - generic [ref=e162]:
+              - generic [ref=e163]: R14独立一次页故障书是什么
+              - generic [ref=e164]: 第 2/8 页
+              - generic [ref=e165]:
+                - button "添加书签" [ref=e166] [cursor=pointer]:
+                  - img [ref=e167]
+                  - text: 书签
+                - button "强制重新生成" [ref=e169] [cursor=pointer]:
+                  - img [ref=e170]
+                  - text: 强制重新生成
+            - heading "R14独立一次页故障书" [level=2] [ref=e175]:
+              - link "R14独立一次页故障书" [ref=e176] [cursor=pointer]:
+                - /url: /books/bk-murr6duq-tp9tlg
+            - note [ref=e177]: 本页内容为本地模拟编译产物（显式标注），非模型生成；练习作答与页内笔记本地持久化，跨会话恢复（参考为服务端 attempt）。
+            - generic [ref=e178]:
+              - heading "R14独立一次页故障书是什么" [level=3] [ref=e179]
+              - paragraph [ref=e180]: 本节围绕「R14独立一次页故障书是什么 · 第2页」展开（模拟生成内容，用于验证阅读器结构与进度，不代表模型产出）。
+            - paragraph [ref=e182]: "## R14独立一次页故障书是什么 · 第2页 - 先看一个具体例子； - 再理解定义与依据； - 最后完成本页小练习。 （模拟生成）"
+            - complementary [ref=e183]:
+              - strong [ref=e184]: 学习提示
+              - paragraph [ref=e185]: 把本页要点用自己的话复述一遍，再进入下一页（模拟生成）。
+            - generic [ref=e186]:
+              - paragraph [ref=e187]: 「R14独立一次页故障书是什么 · 第2页」这一页的主要目标是？
+              - button "A. 理解本页概念并能举例" [ref=e188] [cursor=pointer]
+              - button "B. 背诵全文" [ref=e189] [cursor=pointer]
+            - generic [ref=e190]:
+              - generic [ref=e191]:
+                - strong [ref=e192]: 示例代码（模拟生成）
+                - generic [ref=e193]: python
+                - button "复制代码" [ref=e195] [cursor=pointer]:
+                  - img [ref=e196]
+                  - text: 复制
+              - code [ref=e200]: "def solve(x): # 模拟示例：两倍 return x * 2 print(solve(21))"
+            - generic [ref=e201]:
+              - strong [ref=e202]: 学习路径时间线（模拟生成）
+              - list [ref=e203]:
+                - listitem [ref=e204]:
+                  - strong [ref=e205]: 第 1 步
+                  - generic [ref=e206]: ：认识基本概念
+                - listitem [ref=e207]:
+                  - strong [ref=e208]: 第 2 步
+                  - generic [ref=e209]: ：完成第一组练习
+                - listitem [ref=e210]:
+                  - strong [ref=e211]: 第 3 步
+                  - generic [ref=e212]: ：综合应用与复述
+            - generic [ref=e213]:
+              - strong [ref=e214]: 记忆卡（点击翻面；模拟生成）
+              - list [ref=e215]:
+                - listitem [ref=e216]:
+                  - button "问：本页的关键词是什么？" [ref=e217] [cursor=pointer]
+                - listitem [ref=e218]:
+                  - button "问：下一页要做什么？" [ref=e219] [cursor=pointer]
+            - group [ref=e220]:
+              - generic "深入探究（展开查看；模拟生成）" [ref=e221] [cursor=pointer]
+            - figure "插图位（模拟占位）" [ref=e222]:
+              - img "插图位（模拟占位）" [ref=e223]:
+                - generic [ref=e224]: 图（模拟占位，真实图像未生成）
+              - generic [ref=e225]: 插图位（模拟占位）
+            - generic [ref=e226]:
+              - strong [ref=e227]: 概念关联（模拟静态展示）
+              - generic [ref=e228]: 模拟静态展示
+              - list [ref=e229]:
+                - listitem [ref=e230]: R14独立一次页故障书是什么 → R14独立一次页故障书是什么 · 第2页
+                - listitem [ref=e231]: R14独立一次页故障书是什么 · 第2页 → 练习巩固
+            - generic [ref=e232]:
+              - strong [ref=e233]: 我的笔记（本地保存）
+              - textbox "我的笔记内容" [ref=e234]:
+                - /placeholder: 写下你的笔记，自动本地保存…
+                - text: 明确中断后保存的真实第二页笔记。
+              - paragraph [ref=e235]: 失焦时本地保存；仅本机可见。
+            - note [ref=e236]:
+              - strong [ref=e237]: 互动组件（显式模拟占位）
+              - generic [ref=e238]: 真实互动课件生成未接入；本块仅保留前端占位与说明。
+              - generic [ref=e239]: 显式模拟占位
+            - note [ref=e240]:
+              - strong [ref=e241]: 动画演示（显式模拟占位）
+              - generic [ref=e242]: 真实教学动画生成未接入；本块仅保留前端占位与说明。
+              - generic [ref=e243]: 显式模拟占位
+            - generic [ref=e244]:
+              - link "上一页" [ref=e245] [cursor=pointer]:
+                - /url: /books/bk-murr6duq-tp9tlg/pages/pg-murr6dyh-sxtq4m
+                - img [ref=e246]
+                - text: 上一页
+              - generic [ref=e248]: ← / → 键盘翻页
+              - link "下一页" [ref=e249] [cursor=pointer]:
+                - /url: /books/bk-murr6duq-tp9tlg/pages/pg-murr6dyh-xleeoi
+                - text: 下一页
+                - img [ref=e250]
+  - alert [ref=e252]: 智启课源 · 书籍阅读
+```
