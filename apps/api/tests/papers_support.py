@@ -70,6 +70,13 @@ STANDALONE_LATEX = r"\frac{a}{b}=c"
 BARE_ROOT_TEXT = "19.（5 分）回答下列问题。"
 BARE_CHILD_ONE = "（1）第一小问。"
 BARE_CHILD_TWO = "（2）第二小问。"
+#: 独立成段子题 + 自有正文（子题号块与后续内容应归完整子题路径）
+STANDALONE_CHILD_ROOT = "20.（10 分）解答下列各题。"
+STANDALONE_CHILD_ONE_NUMBER = "（1）（4 分）求第一四分位数。"
+STANDALONE_CHILD_ONE_BODY = "解：先排序再取中位数。"
+STANDALONE_CHILD_TWO_NUMBER = "（2）（6 分）求中位数。"
+#: 分节标题（结构边界：不属于任何题目，也不贡献分值）
+SECTION_HEADING_TEXT = "二、多项选择题（本题共3小题，每小题6分，共18分）"
 DUPLICATE_ROOT_TEXT = "16.（12 分）重复出现的题号。"
 
 PNG_BYTES = minimal_png()
@@ -92,6 +99,8 @@ def build_paper_docx(
     with_unknown_object: bool = False,
     with_unscored_children: bool = False,
     with_duplicate_number: bool = False,
+    with_standalone_child_text: bool = False,
+    with_section_heading: bool = False,
 ) -> Path:
     """生成 T40 样本 DOCX；返回写入的路径（调用方用 ``tmp_path``）。"""
     import math2docx
@@ -138,6 +147,15 @@ def build_paper_docx(
         document.add_paragraph(BARE_ROOT_TEXT)
         document.add_paragraph(BARE_CHILD_ONE)
         document.add_paragraph(BARE_CHILD_TWO)
+
+    if with_standalone_child_text:
+        document.add_paragraph(STANDALONE_CHILD_ROOT)
+        document.add_paragraph(STANDALONE_CHILD_ONE_NUMBER)
+        document.add_paragraph(STANDALONE_CHILD_ONE_BODY)
+        document.add_paragraph(STANDALONE_CHILD_TWO_NUMBER)
+
+    if with_section_heading:
+        document.add_paragraph(SECTION_HEADING_TEXT)
 
     if with_duplicate_number:
         document.add_paragraph(DUPLICATE_ROOT_TEXT)

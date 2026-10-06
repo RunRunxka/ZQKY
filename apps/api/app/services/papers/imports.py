@@ -20,9 +20,13 @@
   材料的判定同时要求"T10 ``group_shared_materials`` 判为材料"且"本层分段口径也认为
   是材料"：T10 的题号正则不认识 ``16(1)`` 这类完整路径，材料组会越过这种分界继续吸收，
   该修正把被误吸收的题干块交还给题目。
+- **分节边界**：``一、``/``（二）``/``第三部分`` 这类分节标题只作结构边界——关闭上一题的
+  归属、自己归 ``unassigned``（由教师指定归属或排除）。否则节标题里的「共 N 分」会被
+  当成上一题的满分，节标题本身也会混进上一题题干。
 - **题干内容**：每个题目用 ``rich_content_from_blocks`` 组装 ``RichContentV2``（含 origin）：
   题干块 = 该题自有块；共享材料 = 在该题结束位置之前开始的材料组（前导材料对所有题可见，
-  题目内部开的材料留给后续小题）；补出的空容器不含内容（``{}``）。
+  题目内部开的材料留给后续小题）；补出的空容器不含内容（``{}``）。独立成段的子号
+  （``(1)``）与它后面的自有内容归**完整子题路径**（``15(1)``），不留在父容器上。
 - **问题清单**：T10 的解析问题（未知对象等）按 ``blocking`` 落库（影响题意的解析损失
   必须补录或显式排除才可确认）；T10 告警按 ``info``；未归属块按 ``warning`` 逐块登记
   （确认闸门另有实时检查）；分值缺失与题号重复按 ``blocking``。
@@ -72,6 +76,14 @@ _ROOT_NUMBER = re.compile(r"^\s*(?:第\s*)?(\d{1,2})\s*(?:题|问|[.、．)）](
 _COMPOSITE_NUMBER = re.compile(r"^\s*(?:第\s*)?(\d{1,2})\s*[（(]\s*(\d{1,2})\s*[)）]")
 #: 独立成段的子号：``(1)`` / ``（2）``（只在已有顶层题号时才有意义）
 _CHILD_NUMBER = re.compile(r"^\s*[（(]\s*(\d{1,2})\s*[)）](?!\d)")
+
+#: 分节标题：``一、``/``（二）``/``第三部分``。它是**结构边界**：既不属于任何题目的内容，
+#: 也不能把「（本题共3小题，每小题6分，共18分）」这类节合计当作上一题的满分。
+_SECTION_HEADING = re.compile(
+    r"^\s*(?:[（(]\s*[一二三四五六七八九十]{1,3}\s*[)）]"
+    r"|[一二三四五六七八九十]{1,3}\s*[、.．]"
+    r"|第\s*[一二三四五六七八九十\d]{1,3}\s*(?:部分|章|节|大题))"
+)
 
 #: 「（N 分）」标记（首选）
 _SCORE_PAREN = re.compile(r"[（(]\s*(\d{1,3}(?:\.\d{1,2})?)\s*分\s*[)）]")
@@ -194,6 +206,14 @@ def question_no_for(root: str, child: str | None) -> str:
     return f"{root}({child})" if child else root
 
 
+def is_section_heading_block(block: Any) -> bool:
+    """段落是否为分节标题（只作结构边界：不进任何题目的自有块，也不贡献分值标记）。"""
+    if not isinstance(block, ParagraphBlock):
+        return False
+    text = block.text
+    return isinstance(text, str) and _SECTION_HEADING.match(text) is not None
+
+
 def block_kind(block: Any) -> str:
     kind = getattr(block, "kind", None)
     return kind if kind in BLOCK_KINDS else "unknown"
@@ -310,11 +330,13 @@ def _detect_specs(
             by_number[full] = spec
             specs.append(spec)
             continue
-        # child：``(1)`` 必须挂在最近的顶层题号下；没有顶层题号时不算题号（不猜）
+        # child：``(1)`` 必须挂在最近的顶层题号下（父子路径完整）；没有顶层题号时不算题号（不猜）
         if current_root is None:
             continue
-        number_blocks[block.id] = current_root.question_no
         full = question_no_for(current_root.root, match.child)
+        # 子题号块与它后面的自有内容都归**完整子题路径**，不能留在父容器上
+        # （否则子题有分值没有题干，父容器反而吸收全部内容）
+        number_blocks[block.id] = full
         existing = by_number.get(full)
         if existing is not None:
             existing.duplicate = True
@@ -393,6 +415,14 @@ def _assign_blocks(
         if block.id in material_ids:
             dispositions[block.id] = "shared_material"
             owners[block.id] = None
+            continue
+        if is_section_heading_block(block):
+            # 分节标题是结构边界：关闭上一题的归属，自己不归任何题目
+            # （否则节标题里的「共 N 分」会被当成上一题的满分）。由教师指定归属或排除。
+            current = None
+            dispositions[block.id] = "unassigned"
+            owners[block.id] = None
+            unassigned.add(block.id)
             continue
         if current is not None:
             dispositions[block.id] = "item"

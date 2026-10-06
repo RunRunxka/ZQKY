@@ -187,6 +187,62 @@ def test_import_bare_child_numbers_without_scores_are_blocking(
     assert view.revision.total_score_units == SAMPLE_TOTAL_UNITS  # 缺分题不计入
 
 
+def test_import_standalone_child_owns_number_block_and_following_body(
+    tmp_path: Path, harness: PapersHarness
+) -> None:
+    """LOOP-02：独立成段的 ``(1)`` 子题必须拿到自己的题号块与后续正文，不能留在父容器上。"""
+    docx = build_paper_docx(tmp_path / "sample.docx", with_standalone_child_text=True)
+    view = harness.import_docx(harness.service(), docx)
+
+    by_no = {item.question_no: item for item in view.revision.items}
+    assert by_no["20"].is_scored is False  # 有子题的父容器不计分
+    assert (by_no["20(1)"].is_scored, by_no["20(1)"].max_score) == (True, "4")
+    assert (by_no["20(2)"].is_scored, by_no["20(2)"].max_score) == (True, "6")
+    # 子题号块与后续正文都在子题自己的题干里
+    first = "".join(
+        block["text"] for block in by_no["20(1)"].content["stemBlocks"] if "text" in block
+    )
+    assert "（1）（4 分）求第一四分位数。" in first
+    assert "解：先排序再取中位数。" in first
+    second = "".join(
+        block["text"] for block in by_no["20(2)"].content["stemBlocks"] if "text" in block
+    )
+    assert "（2）（6 分）求中位数。" in second
+    # 父容器不再吸收子题正文
+    parent_text = "".join(
+        block["text"] for block in by_no["20"].content["stemBlocks"] if "text" in block
+    )
+    assert "第一四分位数" not in parent_text
+
+
+def test_import_section_heading_is_boundary_not_previous_item_score(
+    tmp_path: Path, harness: PapersHarness
+) -> None:
+    """LOOP-01：分节标题是结构边界——节合计不得成为上一题满分，标题也不进上一题题干。"""
+    docx = build_paper_docx(tmp_path / "sample.docx", with_section_heading=True)
+    view = harness.import_docx(harness.service(), docx)
+
+    by_no = {item.question_no: item for item in view.revision.items}
+    # 样本里最后一个叶子是 18（3 分）；分节标题的「共18分」不得被它吸收
+    assert by_no["18"].max_score == "3"
+    assert all(item.max_score != "18" for item in view.revision.items)
+    heading = [
+        block
+        for block in view.revision.blocks
+        if block.disposition != "item"
+        and "多项选择题" in str(block.content.get("text", ""))
+    ]
+    assert len(heading) == 1
+    assert heading[0].disposition == "unassigned"  # 由教师指定归属或排除，不静默吞掉
+    warnings = [issue for issue in view.revision.issues if issue.code == "PAPER_BLOCK_UNASSIGNED"]
+    assert any(issue.block_id == heading[0].block_id for issue in warnings)
+    stem = "".join(
+        block["text"] for block in by_no["18"].content["stemBlocks"] if "text" in block
+    )
+    assert "多项选择题" not in stem
+    assert view.revision.total_score_units == SAMPLE_TOTAL_UNITS
+
+
 def test_import_duplicate_question_number_records_blocking_issue(
     tmp_path: Path, harness: PapersHarness
 ) -> None:

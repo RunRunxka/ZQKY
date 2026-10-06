@@ -178,4 +178,13 @@ describe('G4-S explicit teacher evidence cancellation', () => {
     const { f, unmount } = await ready(), pending = await hold(f, 'verify'), original = structuredClone(f.inputs);
     unmount(); await pending.fail(); expect(f.inputs).toEqual(original);
   });
+  it('states on screen that the form holds the next slice while adopted evidence keeps its own coordinates', async () => {
+    const { f } = await ready(true);
+    // 口径：改可见切片参数不取消在途核验（见“keeps edits that prepare the next fragment”用例），
+    // 因此界面必须把“下一段待核验”与“已核验证据”的分工写在明面上。
+    expect(screen.getByText(/下一段待核验/)).toBeInTheDocument();
+    expect(screen.getByText(/已核验的证据列在下方/)).toBeInTheDocument();
+    expect(screen.getByText('教材证据first · revision-first · [0, 10)')).toBeInTheDocument();
+    expect(f.inputs.evidence!.evidenceRefs[0]).toMatchObject({ charStart: 0, charEnd: 10 });
+  });
 });
