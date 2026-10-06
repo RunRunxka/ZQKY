@@ -17,12 +17,18 @@ def establish_isolation(prefix="zqky-controlled-"):
 
 
 class AuditGuard:
-    def __init__(self, allowed_temp, repository):
+    def __init__(self, allowed_temp, repository, live_endpoint: tuple[str, tuple[str, ...]] | None = None):
         self.allowed_temp, self.repository = Path(allowed_temp).resolve(), Path(repository).resolve()
+        # live_endpoint = (host, resolved addresses): the only outbound allowed in live mode.
+        # Offline trials pass None and keep the whole network forbidden.
+        self.live_host = (live_endpoint[0].lower() if live_endpoint else None)
+        self.live_addresses = set(live_endpoint[1]) if live_endpoint else set()
+        self._live_dns_seen = False
         self.counts = dict(allowedProductionImports=0, allowedTempDatabaseConnections=0,
             allowedAsyncioInternalSocketPairs=0,
             forbiddenMainWithoutIsolation=0, forbiddenFormalEnvReads=0,
-            forbiddenFormalDataReads=0, forbiddenDatabaseConnections=0, forbiddenNetworkAttempts=0)
+            forbiddenFormalDataReads=0, forbiddenDatabaseConnections=0, forbiddenNetworkAttempts=0,
+            allowedLiveDnsLookups=0, allowedLiveConnects=0)
         self.active = True
 
     def install(self):
@@ -44,8 +50,8 @@ class AuditGuard:
             if path.name == ".env" or path.name.startswith(".env."):
                 self.counts["forbiddenFormalEnvReads"] += 1
                 raise PermissionError("credential file forbidden in controlled offline trial")
-            formal = self.repository / "apps" / "api" / ".local-data"
-            if path.is_relative_to(formal):
+            formal_roots = (self.repository / ".local-data", self.repository / "apps" / "api" / ".local-data")
+            if any(path.is_relative_to(root) for root in formal_roots):
                 self.counts["forbiddenFormalDataReads"] += 1
                 raise PermissionError("formal data forbidden")
         if event == "sqlite3.connect" and args:
@@ -67,8 +73,34 @@ class AuditGuard:
                     if caller is not None and caller.f_code.co_name == "_make_self_pipe" and str(caller.f_globals.get("__name__","")).startswith("asyncio."):
                         self.counts["allowedAsyncioInternalSocketPairs"] += 1
                         return
+                if self.live_host and len(args) > 1 and isinstance(args[1], tuple) and len(args[1]) >= 2:
+                    address = args[1]
+                    raw_ip = address[0].decode("ascii", "ignore") if isinstance(address[0], bytes) else str(address[0])
+                    try:
+                        import ipaddress as _ip
+                        public = not (_ip.ip_address(raw_ip).is_loopback or _ip.ip_address(raw_ip).is_private)
+                    except ValueError:
+                        public = False
+                    if int(address[1]) == 443 and (raw_ip in self.live_addresses or (self._live_dns_seen and public)):
+                        self.counts["allowedLiveConnects"] += 1
+                        return
+                    # On Windows Proactor the connect event may not be emitted at all;
+                    # the DNS gate above is then the effective allowlist.
+            if event == "socket.getaddrinfo" and self.live_host and args:
+                # CPython/anyio may pass the host as str or bytes; normalize both.
+                raw_host = args[0]
+                if isinstance(raw_host, bytes):
+                    raw_host = raw_host.decode("ascii", "ignore")
+                host = str(raw_host).strip().rstrip(".").lower()
+                port = args[1] if len(args) > 1 else None
+                if isinstance(port, str) and port.isdigit():
+                    port = int(port)
+                if host == self.live_host and port == 443:
+                    self._live_dns_seen = True
+                    self.counts["allowedLiveDnsLookups"] += 1
+                    return
             self.counts["forbiddenNetworkAttempts"] += 1
-            raise PermissionError("real network disabled for offline trial")
+            raise PermissionError("real network disabled for offline trial" if not self.live_host else "only the selected live endpoint is permitted")
 
     def report(self):
         return {"isolationEstablishedBeforeProductionImport": True, "allowedTemp": str(self.allowed_temp),

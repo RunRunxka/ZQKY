@@ -79,13 +79,31 @@ def write_artifact(directory, name, value, *, raw=False):
     return {"file": str(path.resolve()), "sha256": sha_bytes(data)}
 
 
-def verified_usage(raw, protocol, bound):
+def verified_usage(raw, protocol, bound, *, policy=None):
     require(type(raw) is dict, "usage", "missing usage object", "USAGE_UNCERTAIN")
     if protocol == "openai-chat":
         in_key, out_key = "prompt_tokens", "completion_tokens"
     else:
         in_key, out_key = "input_tokens", "output_tokens"
-    require(set(raw) <= {in_key, out_key, "total_tokens"}, "usage", "unproven additional billing dimension", "USAGE_UNCERTAIN")
+    if policy is None:
+        require(set(raw) <= {in_key, out_key, "total_tokens"}, "usage", "unproven additional billing dimension", "USAGE_UNCERTAIN")
+    else:
+        # Live proof declares the official dimension set for the selected model.
+        allowed = {in_key, out_key, "total_tokens", "prompt_cache_hit_tokens", "prompt_cache_miss_tokens", "prompt_tokens_details", "completion_tokens_details"}
+        require(set(raw) <= allowed, "usage", "dimension outside the proven usage policy", "USAGE_UNCERTAIN")
+        for name in ("prompt_cache_hit_tokens", "prompt_cache_miss_tokens"):
+            if name in raw:
+                require(type(raw[name]) is int and raw[name] >= 0, "usage", "cache token count must be a nonnegative integer", "USAGE_UNCERTAIN")
+        if "prompt_cache_hit_tokens" in raw and "prompt_cache_miss_tokens" in raw:
+            require(raw["prompt_cache_hit_tokens"] + raw["prompt_cache_miss_tokens"] == raw.get(in_key), "usage", "cache hit+miss must equal prompt tokens", "USAGE_UNCERTAIN")
+        if "prompt_tokens_details" in raw:
+            details = raw["prompt_tokens_details"]
+            require(type(details) is dict and set(details) <= {"cached_tokens"} and all(type(v) is int and v >= 0 for v in details.values()), "usage", "prompt detail dimension outside the policy", "USAGE_UNCERTAIN")
+        if "completion_tokens_details" in raw:
+            details = raw["completion_tokens_details"]
+            require(type(details) is dict and set(details) <= {"reasoning_tokens"} and all(type(v) is int and v >= 0 for v in details.values()), "usage", "completion detail dimension outside the policy", "USAGE_UNCERTAIN")
+            if "reasoning_tokens" in details:
+                require(type(raw.get(out_key)) is int and details["reasoning_tokens"] <= raw[out_key], "usage", "reasoning tokens exceed completion tokens; probe containment disproved", "USAGE_OUT_OF_BOUND")
     values = [raw.get(in_key), raw.get(out_key)]
     require(all(type(x) is int and x >= 0 for x in values), "usage", "missing/negative/bool/noninteger usage", "USAGE_UNCERTAIN")
     total = sum(values)
@@ -167,6 +185,8 @@ class GuardedProvider:
         require(not any(secret and secret in canonical(self.expected_wire).decode("utf-8") for secret in self.secrets), "wire", "credential found in request body", "SECRET_ECHO")
         bound = self.proof.prove(self.authorization, self.handle, self.expected_wire)
         bound.verify(self.authorization, self.handle, self.expected_wire)
+        if hasattr(self.proof, "proof_document"):
+            self.artifacts["billingProof"] = write_artifact(self.directory, "billing-proof.json", self.proof.proof_document(bound))
         self.artifacts["wire"] = write_artifact(self.directory, "wire.json", self.expected_wire)
         suffix = {"openai-chat": "/chat/completions", "openai-responses": "/responses", "anthropic-messages": "/messages" if config.baseUrl.rstrip("/").endswith("/v1") else "/v1/messages"}[protocol]
         self.expected_url = config.baseUrl.rstrip("/") + suffix
@@ -189,7 +209,8 @@ class GuardedProvider:
                 rawSHA=raw_sha, wireSHA=self.artifacts["wire"]["sha256"])
             usage_error = None
             try:
-                usage = verified_usage(boundary.raw_usage, protocol, bound)
+                policy = self.proof.usage_policy() if hasattr(self.proof, "usage_policy") else None
+                usage = verified_usage(boundary.raw_usage, protocol, bound, policy=policy)
                 require(response.usage is not None and response.usage.inputTokens == usage["inputTokens"] and response.usage.outputTokens == usage["outputTokens"], "usage", "normalized Provider usage differs from upstream", "USAGE_UNCERTAIN")
                 usage_doc.update(normalizedUsage=usage, validation={"status": "verified", "reason": None})
             except CheckError as exc:

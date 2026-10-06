@@ -27,6 +27,13 @@ TEACHER_FIELDS = ("title", "totalLessons", "currentLessonNo", "lessonTypes", "ot
 DIMENSIONS = ("facts", "material", "coverage", "activity", "time", "control", "accuracy", "feedback")
 NATIVE_CHECKS = ("secondary", "chineseSymbols", "mergedCells", "crossPage", "clipping")
 ARTIFACTS = {"frozenInput", "raw", "wire", "usage", "attempt", "job", "candidate", "selectedFields", "applied", "docx"}
+# Registered live provenance: only this proof kind / tokenizer revision may carry a live result.
+LIVE_PROOF_KIND = "deepseek-v4-flash-openai-chat-reasoning-probe-v1"
+LIVE_TOKENIZER_SHA256 = "89085f12ef79460ac5f66d1119325ddfc694b4ab209d80bbd81d35f081dc9614"
+LIVE_MODEL_ID = "deepseek-flash"
+LIVE_PROFILE_ID = "63b3ffdc87fb4c8f8b278c3b58923296"
+LIVE_PROOF_FIELDS = {"schemaVersion", "proofKind", "evidenceKind", "modelProfileId", "modelId", "wireSHA", "inputUpper", "outputUpper", "reasoningUpper", "otherUpper", "tokenizerSHA256", "tokenizerSourceURL", "officialFacts", "probeFacts", "proofSHA"}
+LIVE_USAGE_ALLOWED = {"prompt_cache_hit_tokens", "prompt_cache_miss_tokens", "prompt_tokens_details", "completion_tokens_details"}
 ORIGINAL_SPECS = ROOT / "docs/qa/TEACHING-LOOP-G3-B6-20261004/b6-quality/case-specs.json"
 ORIGINAL_SPEC_SHA = "353e56e4f756403b8fb724b73613a2138d9d8a71ca460b3df6143e597497dd55"
 PRODUCTION_REQUIRED = {"apps/api/app/services/lesson_generation/validation.py", "apps/api/app/services/lesson_generation/privacy.py", "apps/api/app/services/lesson_generation/common.py", "apps/api/app/services/lesson_generation/service.py", "apps/api/app/services/lesson_generation/preparation.py", "apps/api/app/services/model_runtime.py", "apps/api/app/providers/llm/base.py", "apps/api/app/providers/llm/openai_chat.py", "apps/api/app/providers/llm/openai_responses.py", "apps/api/app/providers/llm/anthropic_messages.py", "apps/api/app/services/jobs/engine.py", "apps/api/app/contracts/lesson_plans.py"}
@@ -223,10 +230,10 @@ def manifest_check(path, expected_sha, case_path, case_sha):
         safe_text(manifest["stopReason"], "stopReason")
     if manifest["mode"] == "live":
         sha(manifest["authorizationSHA"], "authorizationSHA")
-        # X v1 deliberately registers no independently verified live model proof.
-        # A copied fixture snapshot cannot turn arbitrary self-declared live
-        # labels/proof hashes into evidence of an actual authorized live send.
-        raise CheckError("live", "this executor revision registers no supported live result provenance", "LIVE_RESULT_SUPPORT_UNREGISTERED")
+        # Live results are accepted only through the registered model proof: every case
+        # that actually sent must carry a billingProof artifact of the registered kind
+        # (validated per case below). A fixture snapshot relabelled live still fails,
+        # because it has no live proof artifact bound to its wire/model/profile.
     else:
         require(manifest["authorizationSHA"] is None, "authorizationSHA", "dry-run does not create human authorization")
     specs = checked_json(case_path, case_sha)
@@ -302,7 +309,34 @@ def manifest_check(path, expected_sha, case_path, case_sha):
     for case in manifest["cases"]:
         exact_object(case, "case", CASE_FIELDS, CASE_FIELDS)
         same(case["caseSpecSHA"], digest(next(s for s in specs["cases"] if s["caseId"] == case["caseId"])), "caseSpecSHA")
-        exact_object(case["artifacts"], "artifacts", ARTIFACTS, ARTIFACTS)
+        exact_object(case["artifacts"], "artifacts", ARTIFACTS | {"billingProof"}, ARTIFACTS)
+        if manifest["mode"] == "live" and case["providerSendCount"] > 0:
+            require(case["artifacts"].get("billingProof") is not None, "artifacts.billingProof", "sent live case must carry its registered model proof", "LIVE_PROOF_UNREGISTERED")
+            proof = artifact(case, "billingProof", path.parent)
+            exact_object(proof, "billingProof", LIVE_PROOF_FIELDS, LIVE_PROOF_FIELDS)
+            same(proof["schemaVersion"], 1, "billingProof.schemaVersion")
+            require(proof["proofKind"] == LIVE_PROOF_KIND, "billingProof.proofKind", "proof kind is not registered as live provenance", "LIVE_PROOF_UNREGISTERED")
+            same(proof["evidenceKind"], "live", "billingProof.evidenceKind")
+            same(proof["modelProfileId"], ledger["scope"]["modelProfileId"], "billingProof.modelProfileId")
+            same(proof["modelId"], ledger["scope"]["modelId"], "billingProof.modelId")
+            require(proof["tokenizerSHA256"] == LIVE_TOKENIZER_SHA256, "billingProof.tokenizerSHA256", "tokenizer revision is not the registered one", "LIVE_PROOF_UNREGISTERED")
+            require(proof["modelId"] == LIVE_MODEL_ID and proof["modelProfileId"] == LIVE_PROFILE_ID, "billingProof.model", "proof is not the registered model/profile", "LIVE_PROOF_UNREGISTERED")
+            for key in ("inputUpper", "outputUpper", "reasoningUpper", "otherUpper"):
+                nonnegative(proof[key], "billingProof." + key)
+            same(proof["reasoningUpper"], 0, "billingProof.reasoningUpper")
+            same(proof["otherUpper"], 0, "billingProof.otherUpper")
+            sha(proof["wireSHA"], "billingProof.wireSHA")
+            sha(proof["proofSHA"], "billingProof.proofSHA")
+            wire_value = artifact(case, "wire", path.parent, optional=True)
+            if wire_value is not None:
+                same(proof["wireSHA"], digest(wire_value), "billingProof.wireSHA.actualWire")
+                caps = [wire_value[key] for key in ("max_tokens", "max_completion_tokens", "max_output_tokens") if key in wire_value]
+                require(len(caps) == 1, "billingProof.wireCap", "single generation cap required", "LIVE_PROOF_UNREGISTERED")
+                same(proof["outputUpper"], caps[0], "billingProof.outputUpper.wireCap")
+            require(type(proof["officialFacts"]) is dict and bool(proof["officialFacts"]) and type(proof["probeFacts"]) is dict and bool(proof["probeFacts"]), "billingProof.facts", "proof facts missing", "LIVE_PROOF_UNREGISTERED")
+            require(proof["inputUpper"] > 0 and proof["outputUpper"] > 0, "billingProof.bounds", "proof bounds must be positive", "LIVE_PROOF_UNREGISTERED")
+        if manifest["mode"] == "live" and case["providerSendCount"] == 0 and case["technicalStatus"] != "unrun":
+            same(case["artifacts"].get("billingProof"), None, "artifacts.billingProof")
         for name, ref in case["artifacts"].items():
             if ref is not None:
                 ref_path(ref, path.parent, "artifacts." + name)
@@ -420,9 +454,26 @@ def technical(manifest, specs, root, ledger):
             same(attempt["settledTokens"], usage["normalizedUsage"]["totalTokens"], "attempt.settledUsage")
             raw_usage = usage["rawUsage"]
             in_key, out_key = ("prompt_tokens", "completion_tokens") if usage["protocol"] == "openai-chat" else ("input_tokens", "output_tokens")
-            require(type(raw_usage) is dict and {in_key, out_key} <= set(raw_usage) <= {in_key, out_key, "total_tokens"}, "rawUsage", "unproven billing dimensions or missing raw tokens")
+            allowed_usage = {in_key, out_key, "total_tokens"}
+            if manifest["mode"] == "live" and usage["protocol"] == "openai-chat":
+                allowed_usage = allowed_usage | LIVE_USAGE_ALLOWED
+            require(type(raw_usage) is dict and {in_key, out_key} <= set(raw_usage) <= allowed_usage, "rawUsage", "unproven billing dimensions or missing raw tokens")
             for key in (in_key, out_key):
                 nonnegative(raw_usage[key], "rawUsage." + key)
+            if manifest["mode"] == "live" and usage["protocol"] == "openai-chat":
+                for name in ("prompt_cache_hit_tokens", "prompt_cache_miss_tokens"):
+                    if name in raw_usage:
+                        nonnegative(raw_usage[name], "rawUsage." + name)
+                if "prompt_cache_hit_tokens" in raw_usage and "prompt_cache_miss_tokens" in raw_usage:
+                    same(raw_usage["prompt_cache_hit_tokens"] + raw_usage["prompt_cache_miss_tokens"], raw_usage[in_key], "rawUsage.cacheParts")
+                for name, key in (("prompt_tokens_details", "cached_tokens"), ("completion_tokens_details", "reasoning_tokens")):
+                    if name in raw_usage:
+                        exact_object(raw_usage[name], "rawUsage." + name, {key}, {key})
+                        nonnegative(raw_usage[name][key], "rawUsage." + name + "." + key)
+                if "completion_tokens_details" in raw_usage:
+                    require(raw_usage["completion_tokens_details"]["reasoning_tokens"] <= raw_usage[out_key], "rawUsage.reasoning", "reasoning tokens exceed completion tokens; probe containment disproved")
+                proof = artifact(case, "billingProof", root)
+                require(raw_usage[in_key] <= proof["inputUpper"] and raw_usage[out_key] <= proof["outputUpper"], "usage.proofBound", "returned usage exceeds the registered proof bound")
             same(raw_usage[in_key], usage["normalizedUsage"]["inputTokens"], "rawUsage.normalizedInput")
             same(raw_usage[out_key], usage["normalizedUsage"]["outputTokens"], "rawUsage.normalizedOutput")
             if "total_tokens" in raw_usage:

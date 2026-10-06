@@ -1,5 +1,9 @@
 # 智启课源：学情分析、知识点题库与 AI 备课数据库设计
 
+<!-- G7-B7C-LIVE:20261006 -->
+2026-10-06：[G7 修复 + B7-C 单模型 live 首发 + 用户材料闭环](../../qa/TEACHING-LOOP-G7-B7C-20261005/README.md)。G7 两项已独立限定关闭；首次真实受控试评成功（C01，HTTP 200，settled 8748，`live_technical_pass` + 结果入口 `RESULT_INTEGRITY_PASS`；五本授权账保留、同 scope）。产品级发现：非流式 30 秒等待使 `reasoning=max` 的教案生成在产品自身超时（未改产品）。用户材料闭环单轮 0 偏差（18/19/19/19、4/9/6/6→回流0）；teacher/native/RAG-REL 待验；当前进度只看[CURRENT_STATUS](../../CURRENT_STATUS.md)。
+<!-- /G7-B7C-LIVE:20261006 -->
+
 <!-- G7-B7C:20261005 -->
 2026-10-05：[G7两项修复与B7-C缺项交接](../../qa/TEACHING-LOOP-G7-B7C-20261005/README.md)。写入归属闸门（正常发送与公开write重试共用同一owned-write判据）与native页图真实解码（Pillow==12.3.0登记）均已修复并经非作者独立限定技术关闭；B7-C在本次无授权范围/模型proof/可信host下未执行，real0，缺项与生产入口定位见B7C-GAP-v1.md。原v2任务/伪代码只读保持，原B6/B7整体与教师/原生/RAG待验；当前进度只看[CURRENT_STATUS](../../CURRENT_STATUS.md)。
 <!-- /G7-B7C:20261005 -->

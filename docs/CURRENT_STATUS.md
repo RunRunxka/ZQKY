@@ -1,5 +1,35 @@
 # 当前状态与实施主线
 
+<!-- G7-B7C-LIVE:20261006 -->
+2026-10-06：[本批证据](qa/TEACHING-LOOP-G7-B7C-20261005/README.md)。本块覆盖 G7 两项修复 → B7-C 单模型 live 接入（B+保留推理+探针）→ 用户材料闭环测试 → **首次真实受控试评成功**。
+
+**G7 两项 P2 已修复并独立限定技术关闭**：R-G6-WRITE-OWNER-01（正常发送与公开 write 重试共用单一 writeOwnedPackage 归属闸门；foreign/坏包/不可读/跨 context/会话变化拒写并阻断，HTTP 0、原字节保持、仅显式重放；ACK/cleanup 原判据保持）与 R-B7B-NATIVE-01（native 页图改用真实解码器，Pillow==12.3.0 由 CTRL 唯一登记；三反例正确 SHA 不再放行）。门禁：check r2/r3 全绿（128 文件 1483 单测/type/lint0/build，build `49nH0q5IXMfFQTcg4mpIR`/proxy8001、next-env 恢复 `0f7062…`）、全量 e2e 174/174；首败（check r1 一例分页间歇、旧 QA 双写前置 8 例、V-G7-B r1 脚本断言错误与 r2 trace 收尾工具 finding）保留未拼绿；受影响旧 apps/web 夹具按 CTRL 登记最小调整。
+
+**B7-C live 接入已实现并独立验收（4 轮，含真实失败边界）**：M 卡模型 proof（官方 v4 分词器+chat template 确定性计数、`input_upper = count + max(16, 10%)` 余量、`reasoning_upper=0` 探针事实与结算对账）、X 卡可信 host（收据绑定指令+scope、伪造/漂移/夹具身份拒、经生产配置/凭证只读解析 handle、live guard 仅放行所选端点）、R 卡结果入口 live provenance（billingProof 种类/分词器/模型/wire 绑定 + 官方 usage 维度归一 + 超界硬拒）。三次真实尝试暴露并修复三个工具/配置缺陷（**guard DNS 审计参数是 bytes 导致允许路径失效**、**非流式生产 30 秒默认等待**、**官方分词器计数比 API 实计低约 4%**），每个修复均由非作者独立复验（V-LIVE RECHECK1–4）。
+
+**首次真实受控试评（成功）**：`live-r4-C01`，授权 v5（v1–v4 因验收探针/guard/等待/余量缺陷按 STOP 保留于 `b7c/control-live/`，同一 canonical scope `365a7c93…` 未变）；1 次真实调用、HTTP 200、用量 **prompt 726 / completion 8022（reasoning 6546，包含关系成立）/ total 8748**，预留 17152、`settled 8748`；`live_technical_pass`；结果入口独立核验 `RESULT_INTEGRITY_PASS`（technical_pass、fixedFacts pass、应用保护 `pass_qa_selection`、raw hash_bound_text）；C01 候选已产出（离线亦通过生产 parse/normalize/validate_for_apply），**teacher/native 仍 pending、RAG-REL OPEN、docx not_run**。知情用量：v3（出站后客户端超时，上游计费未知）+ v4（10390 tokens）+ v5（8748 tokens）≈ 已知计费 19138 tokens。
+
+**产品级发现（本批未改产品）**：非流式生成默认 `DEFAULT_TIMEOUT_SECONDS=30`（`apps/api/app/providers/llm/base.py:27/271`），`reasoning=max` 档模型的教案生成在**产品自身**同样会超时；建议后续批次把非流式等待与推理档位对齐或长生成改流式。见 `b7c/LIVE-FINDINGS-v1.md`。
+
+**用户材料闭环测试（单轮 0 偏差）**：隔离真实 FastAPI + 用户 `Downloads/test/inputs`，1–7、9 步全通；8 班级行/96 学生行与 `expected.json` 逐字段一致，独立复算有效分母 **18/19/19/19**、需巩固 **4/9/6/6**；练习回流后 needs **→0/0/0/0**；第 8 步 RAG 按说明另验，not_run。收据 `loop-test/RESULT-v1.json`。
+
+未关闭/待验：教师评价与原生 Word/WPS、RAG-REL、原 B6/B7 整体、R14/CV01～03/OBS-LP-MODE-LABEL；本批未提交/推送/切分支/部署；自有服务全关（5174/5175/8001/8011 无监听），TEMP 与全部首败保留；旧被拒 HTTP probe 未重试。
+<!-- /G7-B7C-LIVE:20261006 -->
+
+<!-- LOOP-RERUN:20261006 -->
+2026-10-06 [闭环复跑入口](qa/TEACHING-LOOP-LOOPRERUN-20261006/README.md)：按用户指示用 `C:\Users\96022\Downloads\test` 的 10-04 资料包在当前 HEAD（main@1f1b7b3，开工工作区干净）重跑教学闭环，并把 10-04 首跑中**从未入库**的四条产品问题（LOOP-01～04）与两条工具问题（QA-01/02）登记进仓库。产品只读：无产品文件改动、无真实模型调用、无正式数据/凭证读取、无提交/推送/切分支。
+
+核心闭环 **PASS**：`run_loop_rerun.py`（`run_loop.py` 字节副本，唯一改动是 `heldOn` 由硬编码 `2026-10-04` 改为当天）110 次 HTTP、577 条断言 0 失败、552 条独立 oracle 字段、初测需巩固 25 条→回流后 2 条、3 个导出工件下载 SHA 与台账一致、班级/学生改名后固定历史逐字节不变。浏览器专项 **15/15**（0 skip/flaky，43.3s，施测与成绩 4 例含 200 人次×100 叶与 390px、知识点 9 例、真实补题与公共 retry 2 例），跑在既有 G7 构建 `49nH0q5IXMfFQTcg4mpIR` 上、未重新构建（HEAD 未变、源码零改动）。原样日期（10-04）重跑会被 `422 PARTICIPANT_CLASS_UNCONFIRMED` 拦下：名单归属自导入当天起算且 B2/T30-b 要求显式确认班级，属**日期口径不是回归**。
+
+仍复现、尚未修复（均为 P2，位置 `apps/api/app/services/papers/imports.py`）：LOOP-01 分节合计被当作上一题满分（最小输入把第 8 题填 18 分）；LOOP-02 独立括号子题创建后无题干块（`15(1)/15(2)` 分值 4/6、`own_block_ids=[]`）。两者使原卷确认依次撞 `422 ITEM_KNOWLEDGE_MISSING`→`422 PAPER_ISSUE_BLOCKING`（22 条 open blocking），**没有产生正式成绩**。LOOP-04 的显式清除用例已修（该断言通过），但"改可见切片坐标/固定教材后迟到旧核验仍被采用"两条探针用例如旧失败（`SourcePanel.verifySlice` 的意图键只含 `selection`/`value`，未含本地 `start/end/documentId`）。LOOP-03 为**口径差异**：仓库已有公开"重试恢复缓存"入口（G4 批实现，`g4-recovery.test.tsx` 26 例通过），而探针要求"读取后台最新版本"后保存键直接可用，待用户/总控裁定。QA-02 复现（7 类非法 scope 仍 exit 0 + READY，`review_tool.py` 字节未变）；QA-01 未重跑（离线源库已被系统清理，`finalize_review_v3.py` 字节未变 `a67b967…`，原反例照旧成立）。
+
+未执行：`npm run check`、全量 e2e（174 例，本批只跑其中 3 个 spec/15 例）、10-04 的样本 4 页与 390px 截图核查、真实模型备课、真实 RAG、Word/WPS 原生排版；最近一次同 HEAD 门禁见下方 G7 块（check r2/r3 全绿、e2e 174/174）。工作区仅新增本批文档与精选证据（未提交）；四条登记问题建议按"修复卡 + 独立反例复验"的既有流程在有界批次内处理。
+
+同日 18:20 按用户要求再跑一遍，结论一致、无翻转：`Downloads/test` 除 `inputs/`（15 份材料）外的驱动脚本与首跑产物已被清理（回收站无对应项），本轮按仓库留存与已记录原文重建最小 harness（`Downloads/test/harness-20261006/`：核心驱动用仓库内逐字节副本 `ccc713d6…`，`runtime.py`、原卷探针、QA 探针为重建）。核心闭环 `run08-head1f1b7b3` **PASS**（110 HTTP/577 断言/552 oracle/需巩固 25→2，与 run06 逐项相同）；浏览器专项再次 **15/15**（45.7s）；原卷最小反例仍复现（`8.` 题 18 分、`15(1)/15(2)` 自有块 0）；QA-02 输出与第一轮**逐字节相同**（SHA 均 `3b595a70…`）。教案组件探针（LOOP-03/04）原件已删、无法逐字恢复，本轮未重跑，其结论仍以 12:5x 那次为准；仓库自有 `g4-recovery`/`g4-source-intent` 55/55 作交叉确认。替身原卷换成仍存在的 `inputs/闭环测试_一元一次方程原卷.docx` 后，确认闸门部分结果与首跑不可比（该卷本身无 blocking），已在证据中标注。
+
+同日 19:15 **LOOP-01/02 已修复并复跑**（用户指示）：LOOP-02 = `_detect_specs` child 分支把子题号块登记为完整子题路径（`15(1)`）而非父题号；LOOP-01 = 新增分节标题识别，`_assign_blocks` 里分节标题作结构边界（关闭上一题归属、自己记 `unassigned`），节合计不再成为上一题满分。反例前后：`8.` 由 `maxScore=18` 变为无分值 + `ITEM_SCORE_MISSING` + 标题 `PAPER_BLOCK_UNASSIGNED`；`15(1)/15(2)` 各自拿到题干块。新增 2 条回归用例（`test_papers_import.py`，样本构造器加开关）；`tests/ -k "paper or import"` 157 通过、全量后端 126 文件 1921 例一轮 exit 0；**修复后核心闭环 run09-postfix PASS**（109 HTTP/577 断言/25→2，唯一差异是任务轮询少 1 次）、浏览器专项 **15/15**。同日 19:30 **LOOP-03/04 口径经用户裁定为"保持现状"**：LOOP-04 保留"改可见切片参数不取消在途核验"（那是下一段准备；已核验证据自带教材修订与区间坐标），并在来源面板补一行分工说明（`SourcePanel.tsx`，配套 `g4-source-intent` 用例 1 条；教案模块 14 文件 342 例通过）；LOOP-03 保留"先点重试恢复缓存、再保存"，即"保存键可用 ⇒ 已有读回校验过的完整恢复包"。QA-01/02 离线工具留待下一次质量批。门禁：`npm run check` 全绿（typecheck、lint 0 警告、单测 128 文件 1484 例、构建 `sBZJ0fQ7zQuuZSbRpWLTT`，next-env 原字节已恢复），新构建上 `lesson-plan.spec.ts` **9/9**。改动：`apps/api` 三文件 + `apps/web` 两文件，未提交。
+<!-- /LOOP-RERUN:20261006 -->
+
 <!-- G7-B7C:20261005 -->
 2026-10-05T22:25:00+08:00：[本批证据](qa/TEACHING-LOOP-G7-B7C-20261005/README.md)。
 
@@ -89,11 +119,11 @@ GSAP系统或应用任一减少动画即时恢复最终状态，关闭偏好不�
 
 本轮编辑137/137、G3全字段5/5、来源作者5/5通过；新缓存正确行为1fail/2对照pass，明确来源行为3pass/1fail；原15材料离线重算与SHA/匿名wire/字段保持/DOCX通过。未重跑全量或真实浏览器/模型。下一执行材料为[G4→B7-A总控提示词](design/teaching-loop-v1/B7_总控启动提示词_20261004.md)：先四项修复和独立门禁，再质量工具与有限试评；真实模型需明确范围，真人/Word-WPS仍待验，原B6/B7整体与RAG-REL未关闭。
 
-现场main@6cb6a40；942/3464/33/2161/1056候选分组及历史QA保全见[本轮入口](qa/TEACHING-LOOP-B6-REVIEW-20261004/README.md)，当前文档delta单列。当前会话止于review/提示词，无Git写入或自动下一批。以下checkpoint保留原始时点，不能把旧“进行中”段当最新指令。
+现场main@6cb6a40；942/3464/33/2161/1056候选分组及历史QA保全见[本轮入口](qa/TEACHING-LOOP-B6-REVIEW-20261004/README.md)，当前文档delta单列。当前会话止于review/提示词，无Git写入或自动下一批。以下checkpoint保留原始时点，不能把旧"进行中"段当最新指令。
 <!-- /B6-REVIEW:20261004 -->
 
 <!-- B6-CHECKPOINT:20261004-LIMITED-CLOSED -->
-2026-10-04T15:35:08.518540+08:00：**G3已独立技术关闭；本批限定B6“剩余技术集成与教学质量验收准备”已完成，完成本批后停止。** [最终矩阵](qa/TEACHING-LOOP-G3-B6-20261004/B6-CLOSE-MATRIX-v1.md)与[关闭收据](qa/TEACHING-LOOP-G3-B6-20261004/B6-CLOSE-v1.json)分列本批新跑、原同源引用、人工待验及not_run，原B6/B7整体未关闭。
+2026-10-04T15:35:08.518540+08:00：**G3已独立技术关闭；本批限定B6"剩余技术集成与教学质量验收准备"已完成，完成本批后停止。** [最终矩阵](qa/TEACHING-LOOP-G3-B6-20261004/B6-CLOSE-MATRIX-v1.md)与[关闭收据](qa/TEACHING-LOOP-G3-B6-20261004/B6-CLOSE-v1.json)分列本批新跑、原同源引用、人工待验及not_run，原B6/B7整体未关闭。
 
 新完整check通过1286单测/type/lint0/build，构建LkFgY8qsEnCOUbC11Dm1T/proxy8001；稳定候选独立Source8/原15/边界8、真实五字段UI、四视口原14及原24spec完整153各自单轮通过，0skip/retry/flaky，首败和诊断分别保留未拼绿。端点全链冻结17完整JSON与120旧全列SQL行，五整字段应用保持教师六字段，审核练习→模板→新施测教师分数→新ready报告完成；Provider仅HTTP Transport手写替身，不据测试计数变化称教学效果。
 
@@ -155,7 +185,7 @@ ROOT隔离服务当前5174/PID26480、8001/PID4056，用户进程不操作；r7�
 
 
 <!-- B6-CHECKPOINT:20261004-check-r2-count -->
-2026-10-04T14:45:30.591324+08:00：前一状态块“原整文件诊断65/65”是 ROOT 手填计数错误；实际日志明确为96/96，PID26172、11088.591ms、exit0、源与QA零漂移。诊断没有改动断言且不替代完整 check；首轮完整1285/1与第二轮进行中状态保持。此勘误仅增加状态，不改原任务或历史运行原件。
+2026-10-04T14:45:30.591324+08:00：前一状态块"原整文件诊断65/65"是 ROOT 手填计数错误；实际日志明确为96/96，PID26172、11088.591ms、exit0、源与QA零漂移。诊断没有改动断言且不替代完整 check；首轮完整1285/1与第二轮进行中状态保持。此勘误仅增加状态，不改原任务或历史运行原件。
 <!-- /B6-CHECKPOINT:20261004-check-r2-count -->
 
 
@@ -190,7 +220,7 @@ ROOT隔离服务当前5174/PID26480、8001/PID4056，用户进程不操作；r7�
 
 
 <!-- G3-CHECKPOINT:20261004-CLOSED -->
-2026-10-04T13:52:47.526153+08:00：**G3-R01/R02已修复并独立技术关闭**。新check1281/type/lint0/build、原2/独立15/第三人8/既有27/真实14及原完整153均通过；153为新全轮0skip/retry/flaky，首轮环境失败另存未拼绿。941/3136/33/2161及旧QA/后台同源/next-env/main6cb完成后验。限定B6现在进入“剩余矩阵→三路集成/质量准备/导出材料”；真实模型待明确输入、教师评价待验、原B7未关闭。详见[本批G3关闭](qa/TEACHING-LOOP-G3-B6-20261004/G3-CLOSE-v1.md)。
+2026-10-04T13:52:47.526153+08:00：**G3-R01/R02已修复并独立技术关闭**。新check1281/type/lint0/build、原2/独立15/第三人8/既有27/真实14及原完整153均通过；153为新全轮0skip/retry/flaky，首轮环境失败另存未拼绿。941/3136/33/2161及旧QA/后台同源/next-env/main6cb完成后验。限定B6现在进入"剩余矩阵→三路集成/质量准备/导出材料"；真实模型待明确输入、教师评价待验、原B7未关闭。详见[本批G3关闭](qa/TEACHING-LOOP-G3-B6-20261004/G3-CLOSE-v1.md)。
 <!-- /G3-CHECKPOINT:20261004-CLOSED -->
 
 
@@ -243,7 +273,7 @@ ROOT隔离服务当前5174/PID26480、8001/PID4056，用户进程不操作；r7�
 
 ## 1. 当前任务与下一动作
 
-2026-10-04T15:35:08.607527+08:00：**G3已独立技术关闭；本批限定B6“剩余技术集成与教学质量验收准备”已完成，完成本批后停止。** [最终矩阵](qa/TEACHING-LOOP-G3-B6-20261004/B6-CLOSE-MATRIX-v1.md)与[关闭收据](qa/TEACHING-LOOP-G3-B6-20261004/B6-CLOSE-v1.json)分列本批新跑、原同源引用、人工待验及not_run，原B6/B7整体未关闭。
+2026-10-04T15:35:08.607527+08:00：**G3已独立技术关闭；本批限定B6"剩余技术集成与教学质量验收准备"已完成，完成本批后停止。** [最终矩阵](qa/TEACHING-LOOP-G3-B6-20261004/B6-CLOSE-MATRIX-v1.md)与[关闭收据](qa/TEACHING-LOOP-G3-B6-20261004/B6-CLOSE-v1.json)分列本批新跑、原同源引用、人工待验及not_run，原B6/B7整体未关闭。
 
 新完整check通过1286单测/type/lint0/build，构建LkFgY8qsEnCOUbC11Dm1T/proxy8001；稳定候选独立Source8/原15/边界8、真实五字段UI、四视口原14及原24spec完整153各自单轮通过，0skip/retry/flaky，首败和诊断分别保留未拼绿。端点全链冻结17完整JSON与120旧全列SQL行，五整字段应用保持教师六字段，审核练习→模板→新施测教师分数→新ready报告完成；Provider仅HTTP Transport手写替身，不据测试计数变化称教学效果。
 
@@ -296,7 +326,7 @@ G2三项的原独立23组件/11API/8真实浏览器、完整153/14与关闭收�
 | B3-R09 | P2 | 失权整理轮的失败 checkpoint 写入无原租约 CAS，可覆盖新轮进度 |
 | B3-R10 | P2 | 模型名额等待时取消，取得名额后仍发起模型调用 |
 
-表中10项描述原审查问题，原B3-FIX批各项已通过独立正确行为断言；原失败日志/JSON保留。“冻结自洽”不是关闭依据，本轮G1结果另见下节及新批实际执行记录。
+表中10项描述原审查问题，原B3-FIX批各项已通过独立正确行为断言；原失败日志/JSON保留。"冻结自洽"不是关闭依据，本轮G1结果另见下节及新批实际执行记录。
 
 ### 2.1 G1八项正确行为与接续整体门禁已关闭：B3F-R01–R08
 

@@ -22,6 +22,7 @@ REPOSITORY = Path(__file__).resolve().parents[2]
 CONTROL_NAMESPACE = REPOSITORY / "docs/qa/TEACHING-LOOP-G6-B7B-20261005/executor/control-state"
 DEFAULT_CASE_SPECS = REPOSITORY / "docs/qa/TEACHING-LOOP-G3-B6-20261004/b6-quality/case-specs.json"
 CASE_SPEC_FILE_SHA = "353e56e4f756403b8fb724b73613a2138d9d8a71ca460b3df6143e597497dd55"
+CASE_ARTIFACTS = ("frozenInput", "raw", "wire", "usage", "attempt", "job", "candidate", "selectedFields", "applied", "docx", "billingProof")
 
 
 def fixed_case_pack(path):
@@ -61,7 +62,7 @@ async def execute_case(scene, spec, authorization, ledger, directory, label, *, 
     directory.mkdir(parents=True,exist_ok=False)
     result = dict(caseId=spec["caseId"],caseSpecSHA=sha_bytes(canonical(spec)),inputHash=None,modelFingerprint=None,jobId=None,
         jobAttempt=0,caseAttempt=0,providerSendCount=0,status="unrun",technicalStatus="unrun",teacherStatus="teacher_pending",nativeStatus="native_pending",
-        artifacts={key:None for key in ("frozenInput","raw","wire","usage","attempt","job","candidate","selectedFields","applied","docx")})
+        artifacts={key:None for key in CASE_ARTIFACTS})
     ledger.ensure_running()
     require(spec["caseId"] in authorization.scope["caseIds"],"case","case is outside selected authorization","CASE_NOT_AUTHORIZED")
     lesson_id, body = await scene.case(spec)
@@ -120,6 +121,62 @@ async def execute_case(scene, spec, authorization, ledger, directory, label, *, 
         scene.generation.frozen_model_resolver = original_resolver
 
 
+async def live_run(args, pack, scope, output, host, isolated):
+    """Live single-model run: anonymous TEMP scene + production services + selected real handle.
+
+    The caller has already built the trusted host (authorization receipt, selected profile
+    config/credential through production readers, production handle, no-retry transport).
+    This function only installs the live guard (TEMP SQL + selected endpoint only) and runs
+    the existing anonymous scene against the real handle.
+    """
+    audit = AuditGuard(isolated, REPOSITORY, live_endpoint=host.live_endpoint).install()
+    sys.path.insert(0, str(REPOSITORY / "apps/api"))
+    from controlled_fixtures import SourceScene
+    from controlled_provider import write_artifact
+    from controlled_host import LIVE_CONTROL_NAMESPACE
+    known = [x["caseId"] for x in pack["cases"]]
+    authorization = host.authorization
+    manifest = empty_result("live", args.label, scope, known)
+    manifest["authorizationSHA"] = host.receipt.sha256
+    scene = None
+    try:
+        from controlled_provider import config_identity
+        write_artifact(output, "host.json", dict(
+            schemaVersion=1, authorizationId=host.receipt.authorization_id, receiptSHA=host.receipt.sha256,
+            modelId=host.handle.model_id, modelProfileId=host.handle.profile_id,
+            configIdentity=config_identity(host.handle.config), clientWaitSeconds=host.handle.config.timeoutSeconds,
+            wireUnchanged=True))
+        with TrialLedger(LIVE_CONTROL_NAMESPACE, authorization) as ledger:
+            scene = SourceScene(isolated / "source", protocol=args.protocol)
+            scene.handle = host.handle
+            scene.transport = host.transport_factory
+            for case_id in scope["caseIds"]:
+                spec = next(x for x in pack["cases"] if x["caseId"] == case_id)
+                if ledger.state["stopReason"]:
+                    manifest["cases"].append(dict(caseId=case_id,caseSpecSHA=sha_bytes(canonical(spec)),inputHash=None,modelFingerprint=None,jobId=None,jobAttempt=0,caseAttempt=0,providerSendCount=0,status="unrun",technicalStatus="unrun",teacherStatus="teacher_pending",nativeStatus="native_pending",artifacts={key:None for key in CASE_ARTIFACTS}))
+                    continue
+                case_result = await execute_case(scene, spec, authorization, ledger, output / case_id, args.label, proof=host.proof)
+                manifest["cases"].append(case_result)
+                manifest["realModelCalls"] += case_result["providerSendCount"]
+            manifest["stopReason"] = ledger.state["stopReason"]
+            manifest["ledgerRef"] = write_artifact(output, "ledger-snapshot.json", ledger.snapshot())
+            for case in manifest["cases"]:
+                for ref in case["artifacts"].values():
+                    if ref is not None:
+                        ref["file"] = Path(ref["file"]).relative_to(output.resolve()).as_posix()
+            manifest["ledgerRef"]["file"] = "ledger-snapshot.json"
+            manifest["technicalGate"] = "live_technical_pass" if all(x["technicalStatus"] == "technical_pass" for x in manifest["cases"]) else "live_technical_fail"
+            write_artifact(output, "trial-result.json", manifest)
+    finally:
+        if scene is not None:
+            await scene.close()
+            if not (output/"trial-result.json").exists():
+                write_artifact(output,"execution-failure.json",dict(schemaVersion=1,fixtureWireSends=0,realModelCalls=manifest["realModelCalls"],status="stopped",reason="EXECUTION_OR_EVIDENCE_FAILURE"))
+        write_artifact(output,"guard.json",audit.report())
+        audit.active = False
+    return manifest
+
+
 def empty_result(mode, label, scope, known):
     production,executor = source_shas()
     selected = scope.get("caseIds",[]) if type(scope) is dict else []
@@ -144,7 +201,7 @@ async def dry_run(args, pack, scope, output):
             for case_id in scope["caseIds"]:
                 spec = next(x for x in pack["cases"] if x["caseId"] == case_id)
                 if ledger.state["stopReason"]:
-                    manifest["cases"].append(dict(caseId=case_id,caseSpecSHA=sha_bytes(canonical(spec)),inputHash=None,modelFingerprint=None,jobId=None,jobAttempt=0,caseAttempt=0,providerSendCount=0,status="unrun",technicalStatus="unrun",teacherStatus="teacher_pending",nativeStatus="native_pending",artifacts={key:None for key in ("frozenInput","raw","wire","usage","attempt","job","candidate","selectedFields","applied","docx")}))
+                    manifest["cases"].append(dict(caseId=case_id,caseSpecSHA=sha_bytes(canonical(spec)),inputHash=None,modelFingerprint=None,jobId=None,jobAttempt=0,caseAttempt=0,providerSendCount=0,status="unrun",technicalStatus="unrun",teacherStatus="teacher_pending",nativeStatus="native_pending",artifacts={key:None for key in CASE_ARTIFACTS}))
                     continue
                 case_result = await execute_case(scene,spec,authorization,ledger,output/case_id,args.label)
                 manifest["cases"].append(case_result)
@@ -178,6 +235,7 @@ def main(argv=None):
     parser.add_argument("--fixture-authorization",default="offline-self-check-v1")
     parser.add_argument("--protocol",choices=("openai-chat","openai-responses","anthropic-messages"),default="openai-chat")
     parser.add_argument("--authorization",type=Path)
+    parser.add_argument("--tokenizer",type=Path,help="official pinned tokenizer.json for the registered proof")
     args = parser.parse_args(argv)
     create_output(args.output)
     try:
@@ -186,17 +244,37 @@ def main(argv=None):
         from common import live_scope
         live_scope(scope,known)
         if args.mode == "live":
-            # Do not read credentials/config/data, or treat an arbitrary supplied
-            # file as human authorization. This batch has no trusted live receipt
-            # or registered model-specific billing proof.
-            raise CheckError("authorization" if args.authorization is None else "billingProof",
-                "No verified human authorization receipt" if args.authorization is None else "No supported live model billing proof is registered", "AUTHORIZATION_MISSING" if args.authorization is None else "BILLING_BOUND_UNSUPPORTED")
+            # No arbitrary JSON, boolean or switch can self-authorize: the trusted host
+            # verifies the CTRL-recorded human authorization receipt, then reads ONLY the
+            # selected profile config/credential through the production readers.
+            if args.authorization is None:
+                raise CheckError("authorization", "No verified human authorization receipt", "AUTHORIZATION_MISSING")
+            if args.tokenizer is None:
+                raise CheckError("billingProof", "official tokenizer artifact path required for the registered model proof", "BILLING_BOUND_UNSUPPORTED")
+            from controlled_proof import DeepseekFlashProbeProof
+            DeepseekFlashProbeProof(args.tokenizer).preflight()  # refuse before reading config/credential or reserving
+            isolated = establish_isolation()
+            from controlled_host import build_live_host
+            host = build_live_host(args.authorization, scope, known, args.tokenizer)
+            manifest = asyncio.run(live_run(args,pack,scope,args.output,host,isolated))
+            print(json.dumps(dict(status=manifest["technicalGate"],realModelCalls=manifest["realModelCalls"],fixtureWireSends=0),ensure_ascii=False))
+            return 0 if manifest["technicalGate"] == "live_technical_pass" else 2
         manifest = asyncio.run(dry_run(args,pack,scope,args.output))
         print(json.dumps(dict(status=manifest["technicalGate"],realModelCalls=0,fixtureWireSends=manifest["fixtureWireSends"]),ensure_ascii=False))
         return 0 if manifest["technicalGate"] == "fixture_technical_pass" else 2
     except CheckError as exc:
         failure = strict_json(args.output/"execution-failure.json") if (args.output/"execution-failure.json").exists() else {}
         payload = dict(schemaVersion=1,mode=args.mode,evidenceKind="fixture" if args.mode == "dry-run" else "live",status="refused",error=exc.as_dict(),realModelCalls=0,fixtureWireSends=failure.get("fixtureWireSends",0))
+        from common import write_json
+        write_json(args.output/"REFUSAL.json",payload)
+        print(json.dumps(payload,ensure_ascii=False))
+        return 2
+    except Exception as exc:
+        # Non-contract errors must still refuse explicitly (never silently continue).
+        failure = strict_json(args.output/"execution-failure.json") if (args.output/"execution-failure.json").exists() else {}
+        payload = dict(schemaVersion=1,mode=args.mode,evidenceKind="fixture" if args.mode == "dry-run" else "live",status="refused",
+                       error={"code": getattr(exc, "code", "UNEXPECTED_REFUSAL"), "field": "production/evidence",
+                              "reason": type(exc).__name__}, realModelCalls=0, fixtureWireSends=failure.get("fixtureWireSends",0))
         from common import write_json
         write_json(args.output/"REFUSAL.json",payload)
         print(json.dumps(payload,ensure_ascii=False))

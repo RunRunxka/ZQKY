@@ -1,5 +1,13 @@
 # 当前文档索引
 
+<!-- G7-B7C-LIVE:20261006 -->
+2026-10-06：[G7 修复 + B7-C 单模型 live 首发 + 用户材料闭环](qa/TEACHING-LOOP-G7-B7C-20261005/README.md)。G7 两项已独立限定关闭；首次真实受控试评成功（C01，HTTP 200， settle 8748，`live_technical_pass` + 结果入口 `RESULT_INTEGRITY_PASS`）；用户材料闭环单轮 0 偏差。产品级发现：非流式 30 秒默认等待使 `reasoning=max` 教案生成在产品自身超时（未改产品）。teacher/native/RAG-REL 与原始台账仍待验；唯一进度见[CURRENT_STATUS](CURRENT_STATUS.md)。
+<!-- /G7-B7C-LIVE:20261006 -->
+
+<!-- LOOP-RERUN:20261006 -->
+2026-10-06：[教学闭环复跑与 10-04 结论入库](qa/TEACHING-LOOP-LOOPRERUN-20261006/README.md)。用 `C:\Users\96022\Downloads\test` 的 10-04 资料在 main@1f1b7b3 重跑：核心闭环 PASS（110 HTTP/577 断言，模型 0）、浏览器专项 15/15（既有 G7 构建）；LOOP-01/02（原卷导入）仍复现、LOOP-04 显式清除已修但切片/固定教材两条仍失败、LOOP-03 口径差异待裁定、QA-02 复现、QA-01 未重跑。产品只读、无提交。同日 18:20 二次复跑结论一致（run08 PASS、浏览器再次 15/15、QA-02 逐字节相同），脚本目录被清理后重建的 harness 在 `Downloads/test/harness-20261006/`。同日 19:15 **LOOP-01/02 已修复**（分节标题作结构边界、独立子题号归完整子题路径；新增 2 条回归用例，全量后端 1921 例 exit 0），修复后闭环 run09 PASS、浏览器 15/15。同日 19:30 **LOOP-03/04 口径经用户裁定为保持现状**：LOOP-04 保留"改切片参数不取消在途核验"并补一行界面分工说明，LOOP-03 保留"先点重试恢复缓存再保存"；`npm run check` 全绿（单测 1484 例、构建 `sBZJ0fQ7zQuuZSbRpWLTT`）、新构建 lesson-plan e2e 9/9。QA-01/02 留待质量批。唯一进度见[CURRENT_STATUS](CURRENT_STATUS.md)。
+<!-- /LOOP-RERUN:20261006 -->
+
 <!-- G7-B7C:20261005 -->
 2026-10-05：[G7两项修复与B7-C缺项交接](qa/TEACHING-LOOP-G7-B7C-20261005/README.md)。R-G6-WRITE-OWNER-01与R-B7B-NATIVE-01已修复并由非作者独立限定技术关闭（check r2/r3全绿、全量e2e 174/174、同源双页r2b 4/4、页图三反例硬拒）；B7-C因无授权范围/模型proof/可信host未执行真实调用，real0，缺项与代码定位见B7C-GAP-v1.md。教师/原生页核/RAG与原始台账仍待验；唯一进度见[CURRENT_STATUS](CURRENT_STATUS.md)。
 <!-- /G7-B7C:20261005 -->

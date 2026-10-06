@@ -90,12 +90,13 @@ class TrialResult(unittest.TestCase):
         closure = sorted(PRODUCTION_REQUIRED | EXECUTOR_REQUIRED)
         return {str(path.relative_to(ROOT)).replace("\\", "/"): sha_file(path) for path in OWN + tuple(ROOT / name for name in closure)}
 
-    def bundle(self, label, case_id="C01", mutate=None, apply=False, docx=False):
+    def bundle(self, label, case_id="C01", mutate=None, apply=False, docx=False, live=False, live_fault=None):
         directory = self.runs / self._testMethodName / label
         directory.mkdir(parents=True, exist_ok=False)
         spec = next(spec for spec in self.specs["cases"] if spec["caseId"] == case_id)
         frozen, raw, original = synthetic(spec)
-        scope = {"modelProfileId": "r-fixture-profile", "modelId": "r-fixture-model", "caseIds": [case_id], "sampleCount": 1, "maxAttempts": 1, "maxTotalTokens": 10000}
+        scope = {"modelProfileId": "63b3ffdc87fb4c8f8b278c3b58923296" if live else "r-fixture-profile", "modelId": "deepseek-flash" if live else "r-fixture-model", "caseIds": [case_id], "sampleCount": 1, "maxAttempts": 1, "maxTotalTokens": 10000}
+        frozen["modelProfileId"] = scope["modelProfileId"]
         scope_sha = digest(scope)
         values = {"frozenInput": frozen, "raw": raw, "beforeData": original}
         if mutate:
@@ -107,7 +108,9 @@ class TrialResult(unittest.TestCase):
         for stage in candidate["budget"]["stages"]:
             stage["processId"] = "lp_" + sha_bytes((digest(frozen) + "\0" + stage["processId"]).encode())[:32]
         candidate.update(evidence=frozen["source"]["evidence"], generationSource={"analysis": frozen["contextSnapshot"]["analysis"], "classId": frozen["classId"], "selectedKnowledgePoints": frozen["source"]["selectedKnowledgePoints"], "modelProfileId": frozen["modelProfileId"], "scopeSnapshot": frozen["scopeSnapshot"], "evidenceRefs": frozen["evidenceRefs"], "requirements": frozen["requirements"]})
-        wire = {"model": "r-fixture-model", "max_tokens": 2000, "messages": [{"role": "system", "content": prompt()}, {"role": "user", "content": canonical(frozen["modelPayload"]).decode()}]}
+        wire = {"model": scope["modelId"], "max_tokens": 16384 if live else 2000, "messages": [{"role": "system", "content": prompt()}, {"role": "user", "content": canonical(frozen["modelPayload"]).decode()}]}
+        if live:
+            wire["reasoning_effort"] = "max"
         artifacts = {name: None for name in ARTIFACTS}
         def save(name, value):
             path = directory / (name + (".txt" if name == "raw" else ".json"))
@@ -121,8 +124,26 @@ class TrialResult(unittest.TestCase):
         save("wire", wire)
         save("candidate", candidate)
         save("job", {"jobId": "r-job", "domain": "teaching", "kind": "lesson_generation", "attempt": 1, "state": "succeeded", "result": {}, "error": None})
-        save("usage", {"schemaVersion": 1, "caseId": case_id, "scopeSHA": scope_sha, "jobId": "r-job", "jobAttempt": 1, "caseAttempt": 1, "protocol": "openai-chat", "evidenceKind": "fixture", "rawUsage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30}, "normalizedUsage": {"inputTokens": 10, "outputTokens": 20, "totalTokens": 30}, "validation": {"status": "verified", "reason": None}, "rawSHA": artifacts["raw"]["sha256"], "wireSHA": artifacts["wire"]["sha256"]})
-        save("attempt", {"schemaVersion": 1, "ticketId": "r-ticket", "caseId": case_id, "scopeSHA": scope_sha, "jobId": "r-job", "jobAttempt": 1, "caseAttempt": 1, "modelFingerprint": "sha256:" + "5" * 64, "inputHash": digest(frozen), "wireSHA": artifacts["wire"]["sha256"], "rawSHA": artifacts["raw"]["sha256"], "usageSHA": artifacts["usage"]["sha256"], "reservedTokens": 10000, "settledTokens": 30, "providerSendCount": 1, "state": "settled", "boundProofSHA": "6" * 64, "runLabel": label})
+        raw_usage = {"prompt_tokens": 100, "completion_tokens": 20, "total_tokens": 120, "prompt_cache_hit_tokens": 40, "prompt_cache_miss_tokens": 60, "completion_tokens_details": {"reasoning_tokens": 10}} if live else {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30}
+        if live and live_fault == "usage-unknown":
+            raw_usage["unknown_tokens"] = 1
+        if live and live_fault == "reasoning":
+            raw_usage["completion_tokens_details"] = {"reasoning_tokens": 51}
+        save("usage", {"schemaVersion": 1, "caseId": case_id, "scopeSHA": scope_sha, "jobId": "r-job", "jobAttempt": 1, "caseAttempt": 1, "protocol": "openai-chat", "evidenceKind": "live" if live else "fixture", "rawUsage": raw_usage, "normalizedUsage": {"inputTokens": 100 if live else 10, "outputTokens": 20, "totalTokens": 120 if live else 30}, "validation": {"status": "verified", "reason": None}, "rawSHA": artifacts["raw"]["sha256"], "wireSHA": artifacts["wire"]["sha256"]})
+        if live:
+            from trial_result_check import LIVE_PROOF_KIND, LIVE_TOKENIZER_SHA256
+            proof_doc = {"schemaVersion": 1, "proofKind": LIVE_PROOF_KIND, "evidenceKind": "live",
+                         "modelProfileId": scope["modelProfileId"], "modelId": scope["modelId"],
+                         "wireSHA": digest(wire), "inputUpper": 300, "outputUpper": 16384,
+                         "reasoningUpper": 0, "otherUpper": 0, "tokenizerSHA256": LIVE_TOKENIZER_SHA256,
+                         "tokenizerSourceURL": "https://cdn.deepseek.com/api-docs/deepseek_v4_tokenizer.zip",
+                         "officialFacts": {"official": True}, "probeFacts": {"probe": True}, "proofSHA": "6" * 64}
+            if live_fault == "proof-kind":
+                proof_doc["proofKind"] = "other-proof"
+            if live_fault == "tokenizer":
+                proof_doc["tokenizerSHA256"] = "0" * 64
+            save("billingProof", proof_doc)
+        save("attempt", {"schemaVersion": 1, "ticketId": "r-ticket", "caseId": case_id, "scopeSHA": scope_sha, "jobId": "r-job", "jobAttempt": 1, "caseAttempt": 1, "modelFingerprint": "sha256:" + "5" * 64, "inputHash": digest(frozen), "wireSHA": artifacts["wire"]["sha256"], "rawSHA": artifacts["raw"]["sha256"], "usageSHA": artifacts["usage"]["sha256"], "reservedTokens": 10000, "settledTokens": 120 if live else 30, "providerSendCount": 1, "state": "settled", "boundProofSHA": "6" * 64, "runLabel": label})
         if apply or docx:
             fields = spec["selectedFields"]
             after = copy.deepcopy(original)
@@ -138,9 +159,9 @@ class TrialResult(unittest.TestCase):
                 archive.writestr("word/document.xml", '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>合成新修订接口样例</w:t></w:r></w:p></w:body></w:document>')
             artifacts["docx"] = {"file": path.name, "sha256": sha_file(path)}
         case = {"caseId": case_id, "caseSpecSHA": digest(spec), "inputHash": digest(frozen), "modelFingerprint": "sha256:" + "5" * 64, "jobId": "r-job", "jobAttempt": 1, "caseAttempt": 1, "providerSendCount": 1, "status": "succeeded", "technicalStatus": "technical_pass", "teacherStatus": "teacher_pending", "nativeStatus": "native_pending", "artifacts": artifacts}
-        ledger = {"schemaVersion": 1, "authorizationId": "synthetic-author-selfcheck", "scopeSHA": scope_sha, "scope": scope, "evidenceKind": "fixture", "stopReason": None, "attempts": {case_id: 1}, "tickets": [strict_json(directory / "attempt.json")]}
+        ledger = {"schemaVersion": 1, "authorizationId": "synthetic-author-selfcheck", "scopeSHA": scope_sha, "scope": scope, "evidenceKind": "live" if live else "fixture", "stopReason": None, "attempts": {case_id: 1}, "tickets": [strict_json(directory / "attempt.json")]}
         write_json(directory / "ledger-snapshot.json", ledger)
-        manifest = {"schemaVersion": 1, "mode": "dry-run", "evidenceKind": "fixture", "reviewLabel": label, "scopeSHA": scope_sha, "authorizationSHA": None, "selectedCaseIds": [case_id], "unrunCaseIds": [s["caseId"] for s in self.specs["cases"] if s["caseId"] != case_id], "productionSourceSHA": {name: sha_file(ROOT / name) for name in PRODUCTION_REQUIRED}, "executorSourceSHA": {name: sha_file(ROOT / name) for name in EXECUTOR_REQUIRED}, "cases": [case], "stopReason": None, "realModelCalls": 0, "fixtureWireSends": 1, "ledgerRef": {"file": "ledger-snapshot.json", "sha256": sha_file(directory / "ledger-snapshot.json")}, "technicalGate": "synthetic_author_selfcheck"}
+        manifest = {"schemaVersion": 1, "mode": "live" if live else "dry-run", "evidenceKind": "live" if live else "fixture", "reviewLabel": label, "scopeSHA": scope_sha, "authorizationSHA": "a" * 64 if live else None, "selectedCaseIds": [case_id], "unrunCaseIds": [s["caseId"] for s in self.specs["cases"] if s["caseId"] != case_id], "productionSourceSHA": {name: sha_file(ROOT / name) for name in PRODUCTION_REQUIRED}, "executorSourceSHA": {name: sha_file(ROOT / name) for name in EXECUTOR_REQUIRED}, "cases": [case], "stopReason": None, "realModelCalls": 1 if live else 0, "fixtureWireSends": 0 if live else 1, "ledgerRef": {"file": "ledger-snapshot.json", "sha256": sha_file(directory / "ledger-snapshot.json")}, "technicalGate": "synthetic_author_selfcheck"}
         return directory, manifest
 
     def run_cli(self, directory, manifest, expected=0, kind="technical", returned=None, repeat=False):
@@ -234,7 +255,44 @@ class TrialResult(unittest.TestCase):
         directory, manifest = self.bundle("relabeled-live")
         manifest.update(mode="live", evidenceKind="live", authorizationSHA="a" * 64, realModelCalls=1, fixtureWireSends=0)
         result = self.run_cli(directory, manifest, 2)
-        self.assertEqual(result["error"]["code"], "LIVE_RESULT_SUPPORT_UNREGISTERED")
+        # A fixture snapshot relabelled live is refused at the fixture-identity gate.
+        self.assertEqual(result["error"]["code"], "FIXTURE_NOT_LIVE")
+        # A live-shaped label without the registered billing proof is refused too.
+        directory, manifest = self.bundle("relabeled-live-unproven")
+        ledger_path = directory / "ledger-snapshot.json"
+        ledger = strict_json(ledger_path)
+        ledger["scope"]["modelProfileId"] = "unregistered-live-profile"
+        ledger["scope"]["modelId"] = "unregistered-live-model"
+        ledger["evidenceKind"] = "live"
+        scope_sha = digest(ledger["scope"])
+        ledger["scopeSHA"] = scope_sha
+        for ticket in ledger["tickets"]:
+            ticket["scopeSHA"] = scope_sha
+        (directory / "attempt.json").write_bytes(canonical(ledger["tickets"][0]) + b"\n")
+        ledger_path.write_bytes(canonical(ledger) + b"\n")
+        manifest.update(mode="live", evidenceKind="live", authorizationSHA="a" * 64, realModelCalls=1, fixtureWireSends=0,
+                        scopeSHA=scope_sha)
+        manifest["cases"][0]["artifacts"]["attempt"]["sha256"] = sha_file(directory / "attempt.json")
+        manifest["ledgerRef"]["sha256"] = sha_file(ledger_path)
+        result = self.run_cli(directory, manifest, 2)
+        self.assertEqual(result["error"]["code"], "LIVE_PROOF_UNREGISTERED")
+
+    def test_live_registered_proof_accepts_official_usage(self):
+        directory, manifest = self.bundle("live-registered", live=True)
+        result = self.run_cli(directory, manifest)
+        self.assertEqual(result["status"], "RESULT_INTEGRITY_PASS")
+        directory, manifest = self.bundle("live-bad-proof-kind", live=True, live_fault="proof-kind")
+        result = self.run_cli(directory, manifest, 2)
+        self.assertEqual(result["error"]["code"], "LIVE_PROOF_UNREGISTERED")
+        directory, manifest = self.bundle("live-bad-tokenizer", live=True, live_fault="tokenizer")
+        result = self.run_cli(directory, manifest, 2)
+        self.assertEqual(result["error"]["code"], "LIVE_PROOF_UNREGISTERED")
+        directory, manifest = self.bundle("live-bad-reasoning", live=True, live_fault="reasoning")
+        result = self.run_cli(directory, manifest, 2)
+        self.assertEqual(result["error"]["field"], "rawUsage.reasoning")
+        directory, manifest = self.bundle("live-unknown-dimension", live=True, live_fault="usage-unknown")
+        result = self.run_cli(directory, manifest, 2)
+        self.assertEqual(result["error"]["field"], "rawUsage")
 
     def test_invalid_raw_and_unsent_unrun(self):
         for label, raw_bytes in (("invalid-json", b"not JSON"), ("duplicate-json", b'{"patch":{},"patch":{},"budget":{}}'), ("secret", b'{"apiKey":"prohibited"}')):

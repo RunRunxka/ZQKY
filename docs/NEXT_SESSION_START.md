@@ -1,5 +1,21 @@
 # 当前接手入口
 
+<!-- G7-B7C-LIVE:20261006 -->
+2026-10-06：[G7 修复 + B7-C 单模型 live 首发 + 用户材料闭环](qa/TEACHING-LOOP-G7-B7C-20261005/README.md)。先读[CURRENT_STATUS最新块](CURRENT_STATUS.md)、[live 结论](qa/TEACHING-LOOP-G7-B7C-20261005/b7c/LIVE-RESULT-v1.json)与[发现登记](qa/TEACHING-LOOP-G7-B7C-20261005/b7c/LIVE-FINDINGS-v1.md)。G7 两项已独立限定关闭；**首次真实受控试评成功**（C01，1 次调用，HTTP 200，用量 726/8022/8748，settled 8748，`live_technical_pass` + 结果入口 `RESULT_INTEGRITY_PASS`），授权 v1–v5 五本账全部保留（v1–v4 由验收探针/guard/等待/余量缺陷消耗，同一 scope 未变）；C01 候选可交教师评审，teacher/native 仍 pending、RAG-REL OPEN。产品级发现：非流式 30 秒默认等待使 `reasoning=max` 的教案生成在产品自身会超时（未改产品）。用户材料闭环单轮 0 偏差（18/19/19/19、4/9/6/6 → 回流 0）。下一步只等用户新指示（教师评审/产品超时口径/真实数据闭环）。
+<!-- /G7-B7C-LIVE:20261006 -->
+
+<!-- LOOP-RERUN:20261006 -->
+2026-10-06：[闭环复跑与 10-04 结论入库](qa/TEACHING-LOOP-LOOPRERUN-20261006/README.md)。先读[CURRENT_STATUS最新块](CURRENT_STATUS.md)。核心教学闭环在当前 HEAD（main@1f1b7b3）仍 PASS（110 HTTP/577 断言/552 oracle 字段，模型 0），浏览器专项 15/15（既有 G7 构建，未重新构建）；四条此前未入库的 P2 已登记：LOOP-01/02（原卷导入分节合计与独立子题归属，`apps/api/app/services/papers/imports.py`）**仍复现**，LOOP-04 残余两条（`SourcePanel.verifySlice` 意图键不含本地切片坐标/固定教材）仍失败，LOOP-03 属探针口径与"重试恢复缓存"现行设计的差异待裁定；QA-01 未重跑（源库被系统清理，工具字节未变）、QA-02 复现。
+
+复跑要点：10-04 脚本的 `heldOn` 写死为当天，跨日重跑会撞 `422 PARTICIPANT_CLASS_UNCONFIRMED`（B2/T30-b 显式确认闸门，非回归），适配副本见本批 `evidence/run_loop_rerun.py`。本批产品只读、未提交；check/全量 e2e/真实模型/RAG/Word-WPS 均未执行（上一同 HEAD 门禁见 G7 块）。下一批建议按修复卡处理 LOOP-01/02 与 LOOP-04 残余，并请用户裁定 LOOP-03 口径。
+
+同日 18:20 二次复跑结论一致：核心 `run08` PASS（110/577/552、25→2）、浏览器再次 15/15、原卷最小反例仍复现、QA-02 逐字节相同；`Downloads/test` 的脚本与首跑产物已被清理（只剩 `inputs/`），重建的 harness 在 `Downloads/test/harness-20261006/`，教案组件探针原件无法逐字恢复故未重跑（仓库自有 `g4-*` 55/55 作交叉确认）。
+
+同日 19:15 **LOOP-01/02 已修复**（原卷导入：分节标题作结构边界、独立子题号归完整子题路径），新增 2 条回归用例；全量后端 1921 例一轮 exit 0，**修复后闭环 run09 PASS**、浏览器 15/15。
+
+同日 19:30 **LOOP-03/04 口径已由用户裁定为保持现状**：LOOP-04 保留"改切片参数不取消在途核验"并在面板补一行分工说明（`SourcePanel.tsx` + 1 条用例）；LOOP-03 保留"先点重试恢复缓存再保存"（保存键可用即已有核验过的恢复包）。QA-01/02 离线工具留待质量批。门禁 `npm run check` 全绿（单测 128 文件 1484 例、构建 `sBZJ0fQ7zQuuZSbRpWLTT`、next-env 已恢复），新构建 `lesson-plan.spec.ts` 9/9。改动 `apps/api` 三文件 + `apps/web` 两文件，未提交。
+<!-- /LOOP-RERUN:20261006 -->
+
 <!-- G7-B7C:20261005 -->
 2026-10-05：[G7两项修复与B7-C缺项交接](qa/TEACHING-LOOP-G7-B7C-20261005/README.md)。先读[CURRENT_STATUS最新块](CURRENT_STATUS.md)与[缺项交接](qa/TEACHING-LOOP-G7-B7C-20261005/B7C-GAP-v1.md)。G7写入归属闸门与native真实解码已独立限定关闭；B7-C无范围/授权/proof/host，real0，只待用户补齐最小事实。原v2任务/伪代码、旧QA、Word模板只读。
 
