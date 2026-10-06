@@ -1,5 +1,7 @@
 # 当前文档索引
 
+> 使用指南：[教学闭环使用教程](教学闭环使用教程.md)——教师视角的完整 walkthrough（环境准备 → 知识点/名单/原卷/施测/成绩/学情/练习/回流/教案 → 护栏与排错）。
+
 <!-- G7-B7C-LIVE:20261006 -->
 2026-10-06：[G7 修复 + B7-C 单模型 live 首发 + 用户材料闭环](qa/TEACHING-LOOP-G7-B7C-20261005/README.md)。G7 两项已独立限定关闭；首次真实受控试评成功（C01，HTTP 200， settle 8748，`live_technical_pass` + 结果入口 `RESULT_INTEGRITY_PASS`）；用户材料闭环单轮 0 偏差。产品级发现：非流式 30 秒默认等待使 `reasoning=max` 教案生成在产品自身超时（未改产品）。teacher/native/RAG-REL 与原始台账仍待验；唯一进度见[CURRENT_STATUS](CURRENT_STATUS.md)。
 <!-- /G7-B7C-LIVE:20261006 -->
