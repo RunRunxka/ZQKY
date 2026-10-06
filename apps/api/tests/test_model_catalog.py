@@ -25,6 +25,32 @@ def test_catalog_default_params_and_conflict(client):
     client.delete('/api/v1/model-profiles/'+p['id'])
     assert client.get('/api/v1/model-catalog').json()['defaultChatProfileId'] is None
 
+def test_catalog_marks_local_connections_and_default_profile(client):
+    """教案生成/RAG 概括按 isLocal 排除本机连接；未显式选择时用 isDefault 档案。"""
+    cloud = create_connection(client, displayName="云端连接", providerId="deepseek")
+    local = create_connection(client, displayName="本机连接", providerId="ollama", baseUrl="http://127.0.0.1:11434/v1")
+    cloud_profile = create_profile(client, cloud["id"], displayName="云端档案")
+    local_profile = create_profile(client, local["id"], displayName="本机档案")
+    revision = client.get("/api/v1/model-catalog").json()["revision"]
+    assert client.put("/api/v1/model-defaults", json={"modelProfileId": cloud_profile["id"], "expectedRevision": revision}).status_code == 200
+
+    connection_by_id = {item["id"]: item for item in client.get("/api/v1/model-connections").json()}
+    assert connection_by_id[cloud["id"]]["isLocal"] is False
+    assert connection_by_id[local["id"]]["isLocal"] is True
+
+    profiles = {item["id"]: item for item in client.get("/api/v1/model-profiles").json()}
+    assert profiles[cloud_profile["id"]]["connection"]["isLocal"] is False
+    assert profiles[local_profile["id"]]["connection"]["isLocal"] is True
+    assert profiles[cloud_profile["id"]]["isDefault"] is True
+    assert profiles[local_profile["id"]]["isDefault"] is False
+
+    catalog = client.get("/api/v1/model-catalog").json()
+    catalog_profiles = {item["id"]: item for item in catalog["profiles"]}
+    assert catalog["defaultChatProfileId"] == cloud_profile["id"]
+    assert catalog_profiles[local_profile["id"]]["connection"]["isLocal"] is True
+    assert catalog_profiles[cloud_profile["id"]]["isDefault"] is True
+
+
 def test_parameter_validation_and_nullable_updates(client):
     c = create_connection(client)
     p = create_profile(client,c['id'],maxOutputTokens=1024)

@@ -1,6 +1,7 @@
 """P1（A1 r1）：`/rag/status` 的可用性必须真实探测上游，且探测慢也不能拖垮状态接口。
 
-- Embedding：身份/可达（复用 provider 的清单能力）；向量库：ping；概括：`/api/tags` + 模型安装。
+- Embedding：身份/可达（复用 provider 的清单能力）；向量库：ping；概括：**配置级检查**
+  （只解析「全局默认问答模型」并判定云端，不向云端发起推理调用——概括只用云端档案）。
 - 探测短超时（默认 2.5s，可用 ``probe_timeout`` 覆盖）、结果短暂缓存、失败只影响 available/reason。
 - `scope.ready` 语义不变（任教范围 ≠ 上游健康）。
 """
@@ -18,7 +19,7 @@ from app.main import create_app
 from app.services.rag_v2.summary import KnowledgeSummarizer
 from tests.conftest import make_settings
 from tests.test_rag_v2_api import make_client
-from tests.test_rag_v2_summary import StubClient
+from tests.summary_support import SummaryWire
 from tests.test_rag_v2_support import FakeEmbeddings, FakeSummarizer, RagEnv, sample_text
 
 
@@ -91,15 +92,6 @@ class DeadVectorStore:
     def delete_collection(self, name: str) -> None: ...
 
 
-class TagsResponse:
-    def __init__(self, names: list[str], status_code: int = 200) -> None:
-        self.names = names
-        self.status_code = status_code
-
-    def json(self):
-        return {"models": [{"name": name} for name in self.names]}
-
-
 def test_embedding_upstream_down_or_mismatched_marks_retrieval_unavailable(tmp_path):
     dead = RagEnv(tmp_path / "dead", embeddings=UnreachableEmbeddings())
     dead.add_document(title="册", text=sample_text())
@@ -150,67 +142,38 @@ def test_status_scope_semantics_are_unchanged_when_upstream_is_down(tmp_path):
     assert status["available"] is False
 
 
-def test_summarizer_probe_reports_reachability_and_model_installation(tmp_path):
-    summarizer = KnowledgeSummarizer(
-        "http://127.0.0.1:11434", client_factory=lambda **_: StubClient(TagsResponse(["qwen2.5:7b"]))
-    )
-    assert summarizer.probe() == {"available": True, "reason": None}
+def test_summarizer_probe_is_config_level_and_never_calls_upstream(tmp_path):
+    """概括探测只做配置级检查：解析默认档案 + 判定云端，不发起推理调用。"""
+    cloud_wire = SummaryWire()
+    cloud = cloud_wire.summarizer()
+    assert cloud.probe()["available"] is True
+    assert "配置级检查" in cloud.probe()["detail"]
+    assert cloud_wire.requests == [], "探测不得调用模型服务"
 
-    # tag 归一（复用 B1 语义）：裸名 qwen2.5 == qwen2.5:latest，但不等于 qwen2.5:7b
-    tagged = KnowledgeSummarizer(
-        "http://127.0.0.1:11434",
-        model="qwen2.5",
-        client_factory=lambda **_: StubClient(TagsResponse(["qwen2.5:latest"])),
-    )
-    assert tagged.probe()["available"] is True
+    # 未配置默认档案 / 默认是本机部署：探测只回报不可用，不抛错
+    assert SummaryWire(profile_id=None).summarizer().probe()["available"] is False
+    local = SummaryWire(provider_id="ollama").summarizer()
+    assert local.probe()["available"] is False and "本机部署" in local.probe()["reason"]
 
-    different_tag = KnowledgeSummarizer(
-        "http://127.0.0.1:11434",
-        model="qwen2.5",
-        client_factory=lambda **_: StubClient(TagsResponse(["qwen2.5:7b"])),
-    )
-    result = different_tag.probe()
-    assert result["available"] is False and "qwen2.5" in result["reason"]
-
-    missing = KnowledgeSummarizer(
-        "http://127.0.0.1:11434",
-        model="llama3:8b",
-        client_factory=lambda **_: StubClient(TagsResponse(["qwen2.5:7b"])),
-    )
-    result = missing.probe()
-    assert result["available"] is False and "llama3:8b" in result["reason"]
-
-    refused = KnowledgeSummarizer(
-        "http://127.0.0.1:11434",
-        client_factory=lambda **_: StubClient(httpx.ConnectError("refused")),
-    )
-    assert refused.probe()["available"] is False
-    assert "不可达" in refused.probe()["reason"]
-
-    timed_out = KnowledgeSummarizer(
-        "http://127.0.0.1:11434",
-        client_factory=lambda **_: StubClient(httpx.TimeoutException("slow")),
-    )
-    assert timed_out.probe()["available"] is False
-    assert "超时" in timed_out.probe()["reason"]
-
-    # 地址不合法 / 未配置：探测只回报，不抛错
-    assert KnowledgeSummarizer(None).probe()["available"] is False
-    assert KnowledgeSummarizer("http://192.168.1.10:11434").probe()["available"] is False
+    # 读取配置本身失败（非 AppError）也不得让状态接口抛错
+    broken = SummaryWire(resolve_error=RuntimeError("boom")).summarizer()
+    assert broken.probe()["available"] is False and broken.status()["available"] is False
 
 
-def test_summarization_probe_marks_unavailable_and_keeps_reason(tmp_path):
-    summarizer = KnowledgeSummarizer(
-        "http://127.0.0.1:11434",
-        client_factory=lambda **_: StubClient(httpx.ConnectError("refused")),
-    )
-    env = RagEnv(tmp_path, summarizer=summarizer)
+def test_summarization_status_names_the_unavailable_reason(tmp_path):
+    """概括不可用时，/rag/status 必须给出可读原因（本机默认档案 / 未配置默认档案）。"""
+    env = RagEnv(tmp_path, summarizer=SummaryWire(provider_id="ollama").summarizer())
     env.add_document(title="册", text=sample_text())
-    service = env.make_service()
-    status = service._status_sync()
+    status = env.make_service()._status_sync()
     assert status["summarization"]["available"] is False
-    assert "不可达" in status["summarization"]["reason"]
-    assert status["summarization"]["model"] == "qwen2.5:7b"
+    assert "本机部署" in status["summarization"]["reason"]
+    assert status["summarization"]["model"] is None
+
+    env2 = RagEnv(tmp_path / "no-default", summarizer=SummaryWire(profile_id=None).summarizer())
+    env2.add_document(title="册", text=sample_text())
+    status2 = env2.make_service()._status_sync()
+    assert status2["summarization"]["available"] is False
+    assert "未配置全局默认问答模型" in status2["summarization"]["reason"]
 
 
 def test_probe_timeout_is_bounded_and_status_still_returns(tmp_path):

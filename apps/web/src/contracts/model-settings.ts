@@ -128,6 +128,8 @@ export interface ModelConnectionSummary {
   displayName: string;
   providerId: string | null;
   providerLabel: string | null;
+  /** 本机部署（Ollama/vLLM/LM Studio 等）：教案生成与 RAG 概括不使用这类连接 */
+  isLocal?: boolean;
   protocol: ModelProtocol;
   apiFormat: ApiFormat;
   hasCredential: boolean;
@@ -139,6 +141,8 @@ export interface ModelProfileView {
   displayName: string;
   modelId: string;
   purpose: string | null;
+  /** 是否全局默认问答档案（设置 → 默认模型）；教案生成未显式选择时用它 */
+  isDefault?: boolean;
   contextTokens: number | null;
   maxOutputTokens: number | null;
   supportedParams: string[];

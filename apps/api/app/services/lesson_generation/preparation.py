@@ -8,6 +8,7 @@ from dataclasses import asdict, dataclass
 from app.contracts.lesson_plans import AnalysisContextSnapshot, LessonContextSnapshot, LessonGenerateRequest, LessonView
 from app.contracts.teaching_loop import canonical_hash
 from app.core.exceptions import AppError
+from app.providers.llm.registry import find_provider
 from app.services.knowledge_refs import require_active_knowledge_references, KnowledgeReference
 from app.services.model_runtime import fingerprint_of_handle
 from .common import invalid, snapshot
@@ -181,6 +182,10 @@ def prepare(service, body: LessonGenerateRequest, lesson: LessonView, owner_id: 
     model_snapshot = {"profileId": body.model_profile_id, "fingerprint": fingerprint_of_handle(handle)}
     if handle.profile_id != body.model_profile_id:
         raise invalid("modelProfileId", "模型解析结果与明确选择的 profile 不一致。", "LESSON_INVALID")
+    # 教案生成只允许云端模型：本机部署（Ollama/vLLM/LM Studio 等）不参与生成
+    spec = find_provider(handle.config.providerId) if handle.config.providerId else None
+    if spec is not None and spec.is_local:
+        raise invalid("modelProfileId", "教案生成不使用本机模型，请选择云端模型档案。", "LESSON_MODEL_NOT_CLOUD")
     with service.catalog.read_connection() as conn:
         class_row = conn.execute("SELECT name FROM classes WHERE id=? AND owner_id=?", (body.class_id, owner_id)).fetchone()
         if class_row is None:

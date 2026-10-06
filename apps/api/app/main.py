@@ -274,7 +274,13 @@ def _build_local_runtime(app: FastAPI, settings: Settings) -> None:
     app.state.rag_v2 = RagV2Service(
         catalog=app.state.catalog,
         retrieval=HybridRetriever(app.state.catalog, vectors, provider),
-        summarizer=KnowledgeSummarizer(settings.embedding_base_url),
+        # 知识点概括只使用「全局默认问答模型」；本机部署档案与未配置默认模型都按不可用上报
+        summarizer=KnowledgeSummarizer(
+            resolve_default_profile=lambda: app.state.model_config_repo.with_document(
+                lambda doc: doc.defaultChatProfileId
+            ),
+            resolve_handle=_build_model_handle_resolver(app),
+        ),
         explainer=Explainer(_build_model_handle_resolver(app)),
     )
     # 教材定位与追问的唯一生产入口；旧四科 rag_engine 保留但不再被 /rag/* 调用。

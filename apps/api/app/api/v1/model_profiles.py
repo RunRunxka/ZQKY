@@ -58,7 +58,11 @@ def _deps(request: Request) -> tuple[ModelConfigRepository, SecretStore]:
 def list_profiles(request: Request) -> list[dict]:
     repo, secrets = _deps(request)
     connections = {c.id: c for c in repo.list_connections()}
-    return [profile_view(p, connections.get(p.connectionId), secrets) for p in repo.list_profiles()]
+    default_id = repo.with_document(lambda doc: doc.defaultChatProfileId)
+    return [
+        profile_view(p, connections.get(p.connectionId), secrets, default_chat_profile_id=default_id)
+        for p in repo.list_profiles()
+    ]
 
 
 @router.post("/model-profiles", status_code=201)
@@ -83,7 +87,8 @@ def create_profile(request: Request, body: ProfileCreate) -> dict:
         updatedAt=now,
     )
     repo.create_profile(profile)
-    return profile_view(profile, repo.get_connection(profile.connectionId), secrets)
+    return profile_view(profile, repo.get_connection(profile.connectionId), secrets,
+                        default_chat_profile_id=repo.with_document(lambda doc: doc.defaultChatProfileId))
 
 
 def _validate_reasoning(enabled: bool | None, effort: ReasoningEffort | None) -> None:
@@ -124,7 +129,8 @@ def update_profile(request: Request, profile_id: str, body: ProfileUpdate) -> di
         _validate_reasoning(profile.reasoningEnabled, profile.reasoningEffort)
 
     updated = repo.update_profile(profile_id, apply, body.expectedRevision)
-    return profile_view(updated, repo.get_connection(updated.connectionId), secrets)
+    return profile_view(updated, repo.get_connection(updated.connectionId), secrets,
+                        default_chat_profile_id=repo.with_document(lambda doc: doc.defaultChatProfileId))
 
 
 @router.delete("/model-profiles/{profile_id}", status_code=204)

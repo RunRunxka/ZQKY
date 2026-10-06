@@ -59,7 +59,7 @@ from app.services.rag_v2.scope import verify_scope
 from app.services.rag_v2.summary import KnowledgeSummarizer, pack_evidence, prompt_char_budget
 from app.services.textbook_ingest.blobs import sha256_text
 from tests.test_rag_v2_explain import StubProvider, handle
-from tests.test_rag_v2_summary import StubResponse
+from tests.summary_support import SummaryWire
 from tests.test_rag_v2_support import FakeSummarizer, RagEnv, ScriptedVectorStore, textbook_text
 
 IMAGE_LINE = "![加速度与力关系图](images/a1b2c3d4e5f6.png)"
@@ -68,37 +68,13 @@ EMPTY_IMAGE_LINE = "![](images/aaaaaaaaaaaaaaaa.png)"
 FORMULA_BODY = "集合的 $$A\\cup B$$ 运算与 emoji 🙂 说明。\n\n"
 
 
-class ScriptedClient:
-    """按脚本依次返回模型输出（每次调用消费一条），并记录提示词。"""
+def summarizer_with(replies: list[dict], **kwargs) -> tuple[KnowledgeSummarizer, SummaryWire]:
+    """脚本化概括上游：按顺序返回给定 payload，并记录每次 ``(path, body)``。
 
-    def __init__(self, payloads: list[dict]) -> None:
-        self.payloads = list(payloads)
-        self.requests: list[tuple[str, dict]] = []
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *exc) -> bool:
-        return False
-
-    def post(self, path: str, json=None, **kwargs):  # noqa: A002 - httpx 关键字
-        self.requests.append((path, json))
-        payload = self.payloads.pop(0)
-        return StubResponse(
-            payload={"message": {"content": jsonlib.dumps(payload, ensure_ascii=False)}}
-        )
-
-    def get(self, path: str, **kwargs):
-        self.requests.append((path, None))
-        return StubResponse(payload={"models": [{"name": "qwen2.5:7b"}]})
-
-
-def summarizer_with(client: ScriptedClient, **kwargs) -> KnowledgeSummarizer:
-    return KnowledgeSummarizer(
-        provider_url="http://127.0.0.1:11434",
-        client_factory=lambda **_: client,
-        **kwargs,
-    )
+    返回 ``(summarizer, wire)``；``wire.requests`` 与旧的假 client 形状一致。
+    """
+    wire = SummaryWire(replies=list(replies), **kwargs)
+    return wire.summarizer(), wire
 
 
 def candidate_for(chunk, document, *, score: float = 0.5) -> Candidate:
@@ -332,8 +308,8 @@ def test_q4_hundred_points_are_capped_and_over_long_point_is_rejected(tmp_path):
         {"title": f"知识点{index}", "summary": "说明" * 30, "evidenceIds": [known]}
         for index in range(100)
     ]
-    client = ScriptedClient([{"points": [long_point, *many]}, {"points": [long_point, *many]}])
-    outcome = summarizer_with(client).summarize(question="集合的表示方法", evidence=evidence)
+    summarizer, client = summarizer_with([{"points": [long_point, *many]}, {"points": [long_point, *many]}])
+    outcome = summarizer.summarize(question="集合的表示方法", evidence=evidence)
 
     assert len(outcome.points) <= SUMMARY_MAX_POINTS
     body_chars = sum(len(point.title) + len(point.summary) for point in outcome.points)
@@ -408,10 +384,8 @@ def test_q5_excluded_evidence_reference_is_rejected_as_a_whole_point(tmp_path):
             {"title": "越界点", "summary": "引用了被预算排除的证据。", "evidenceIds": [excluded_id]},
         ]
     }
-    client = ScriptedClient([proposal, proposal])
-    outcome = summarizer_with(client, num_ctx=4096, num_predict=1024).summarize(
-        question="集合的表示方法", evidence=evidence
-    )
+    summarizer, client = summarizer_with([proposal, proposal], context_tokens=4096, max_output_tokens=1024)
+    outcome = summarizer.summarize(question="集合的表示方法", evidence=evidence)
     assert [point.title for point in outcome.points] == ["合法点"]
     assert outcome.admitted_evidence_ids == pack.admitted_evidence_ids
     assert outcome.reason_code == "SUMMARY_PARTIAL"
@@ -473,15 +447,14 @@ def test_summary_correction_runs_once_and_accepts_the_second_attempt(tmp_path):
     invalid = {"points": [{"title": "越界", "summary": "未入模引用。", "evidenceIds": ["ev-nope"]}]}
     valid = {"points": [{"title": "并集", "summary": "由所有属于 A 或 B 的元素组成。", "evidenceIds": [known]}]}
 
-    accepted = summarizer_with(ScriptedClient([invalid, valid])).summarize(
-        question="并集是什么？", evidence=evidence
-    )
+    accepted_summarizer, _accepted_wire = summarizer_with([invalid, valid])
+    accepted = accepted_summarizer.summarize(question="并集是什么？", evidence=evidence)
     assert [point.title for point in accepted.points] == ["并集"]
     assert accepted.reason is None and accepted.reason_code is None
     assert accepted.corrected == 1
 
-    client = ScriptedClient([invalid, invalid])
-    rejected = summarizer_with(client).summarize(question="并集是什么？", evidence=evidence)
+    rejected_summarizer, client = summarizer_with([invalid, invalid])
+    rejected = rejected_summarizer.summarize(question="并集是什么？", evidence=evidence)
     assert rejected.points == [] and rejected.reason_code == "SUMMARY_INVALID"
     assert len(client.requests) == 2, "两次都非法时不得继续重试"
     assert "未通过原文引用校验" in rejected.reason
@@ -782,5 +755,5 @@ def test_pack_budget_never_exceeds_first_answer_prompt_limit(tmp_path):
         question="集合的表示方法", evidence=evidence, budget_chars=EVIDENCE_PROMPT_MAX_CHARS
     )
     assert pack.fits and pack.chars <= EVIDENCE_PROMPT_MAX_CHARS
-    summarizer = summarizer_with(ScriptedClient([{"points": []}]))
+    summarizer, _wire = summarizer_with([{"points": []}])
     assert summarizer.prompt_budget_chars <= EVIDENCE_PROMPT_MAX_CHARS

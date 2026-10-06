@@ -85,3 +85,31 @@ def test_omitted_string_suggestion_allowed_and_old_safe_id_preserved(scene):
     normalized = normalize_model_output(value,frozen)
     assert normalized["patch"]["exercises"] is None
     assert normalized["patch"]["process"][0]["id"] == "old-safe"
+
+
+def test_local_model_profile_is_rejected_before_any_model_call(scene):
+    """教案生成只允许云端模型：本机部署（Ollama/vLLM/LM Studio）档案直接拒绝，且不发请求。"""
+    from dataclasses import replace
+
+    from app.services.model_runtime import ChatModelHandle
+
+    local_handle = ChatModelHandle(scene.handle.profile_id, scene.handle.model_id, scene.handle.provider,
+        replace(scene.handle.config, providerId="ollama"), scene.handle.max_output_tokens)
+    scene.service.model_resolver = lambda _profile_id: local_handle
+    with pytest.raises(AppError) as failure:
+        scene.prepare()
+    assert failure.value.code == "LESSON_MODEL_NOT_CLOUD"
+    assert failure.value.status_code == 422
+    assert scene.calls == 0
+
+
+def test_cloud_model_profile_still_accepted(scene):
+    """同一现场把 providerId 换成云端供应商时正常放行（规则只针对 is_local）。"""
+    from dataclasses import replace
+
+    from app.services.model_runtime import ChatModelHandle
+
+    cloud_handle = ChatModelHandle(scene.handle.profile_id, scene.handle.model_id, scene.handle.provider,
+        replace(scene.handle.config, providerId="deepseek"), scene.handle.max_output_tokens)
+    scene.service.model_resolver = lambda _profile_id: cloud_handle
+    assert scene.prepare().frozen_input["modelProfileId"] == "isolated-profile"

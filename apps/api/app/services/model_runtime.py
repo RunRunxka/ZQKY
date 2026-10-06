@@ -45,6 +45,8 @@ class ChatModelHandle:
     provider: LLMProvider
     config: LLMConfig
     max_output_tokens: int = DEFAULT_CHAT_MAX_OUTPUT_TOKENS
+    #: 档案声明的上下文窗口（未声明为 None）；提示词预算按它估算，不猜模型默认值
+    context_tokens: int | None = None
 
 
 def build_llm_config(
@@ -226,6 +228,7 @@ def resolve_chat_model(
         provider=provider,
         config=config,
         max_output_tokens=profile.maxOutputTokens or DEFAULT_CHAT_MAX_OUTPUT_TOKENS,
+        context_tokens=profile.contextTokens,
     )
 
 

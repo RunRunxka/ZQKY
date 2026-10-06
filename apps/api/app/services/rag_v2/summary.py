@@ -1,12 +1,14 @@
-"""知识点首答：本机 Ollama 结构化概括，只引用**实际进入提示词**的教材原文。
+"""知识点首答：用**全局默认云端模型**结构化概括，只引用**实际进入提示词**的教材原文。
 
-RAG-QUALITY v1.1 修复（PLAN §3.4）：
+RAG-QUALITY v1.1 修复（PLAN §3.4）+ 2026-10-06 模型口径调整：
 
-- 只调本机回环地址的 Ollama 原生 ``/api/chat``（``httpx``，``trust_env=False``，
-  不跟随重定向）；地址非回环一律拒绝。
+- 概括模型**只取设置里的「全局默认问答模型」**（``defaultChatProfileId``），经
+  ``resolve_chat_model`` 冻结成 ``ChatModelHandle`` 后按档案协议调用（openai-chat /
+  openai-responses / anthropic-messages 均可）。**本机部署（Ollama/vLLM/LM Studio）
+  不参与概括**：默认档案是本机或未配置默认档案时，状态明确不可用并给出原因，不静默回退本地。
 - ``PromptPack`` 返回**真实准入集合**：``admitted_evidence_ids`` / ``admitted_evidence`` /
-  ``skipped_evidence_ids``。打包按 ``EVIDENCE_PROMPT_MAX_CHARS``（预算唯一事实来源）与模型
-  ``num_ctx``/``num_predict`` 估算出的字符预算中**较小者**；整条装入、绝不截断单条原文，
+  ``skipped_evidence_ids``。打包按 ``EVIDENCE_PROMPT_MAX_CHARS``（预算唯一事实来源）与档案
+  ``contextTokens``/输出上限估算出的字符预算中**较小者**；整条装入、绝不截断单条原文，
   装入文本用清洗后的 ``readable.text``（不把图片地址送进模型）。
 - **引用校验只用 admitted 集合**：某个点的 ``evidenceIds`` 不是 admitted 子集 → **整个点拒绝**
   （不删非法 ID 后继续使用可能依赖它的内容）；伪造 ID、空引用、超 2 条引用、单点超 90 码点、
@@ -15,25 +17,27 @@ RAG-QUALITY v1.1 修复（PLAN §3.4）：
 - 模型输出超长、重复或格式错误 → **最多修正一次**（``SUMMARY_MAX_CORRECTIONS``，模型调用总数 ≤2）；
   修正后仍不合法时保留**完整且能装入预算**的点（不截断单点）→ ``SUMMARY_PARTIAL``；
   连一个完整点都没有 → ``SUMMARY_INVALID``。
-- ``num_ctx`` / ``num_predict`` 保持显式下发（既有实现），提示词预算统一由这两个参数计算；
-  ``prompt_eval_count`` 只作**诊断字段**（"样本未观察到窗口饱和"，不代表"绝未截断"）。
-- 失败分类分级：上游不可用（非 200 / 连接失败 / 地址非法）抛 503 ``RAG_SUMMARY_UNAVAILABLE``；
-  非法 JSON、结构不符、引用校验不过、超时、上游截断一律返回 ``partial`` 语义并保留证据，
-  措辞彼此可区分。**绝不悄悄降级成 no_evidence、绝不编造讲解。**
+- 输出预算取档案 ``maxOutputTokens``（未声明用聊天默认值），并夹在
+  ``[OUTPUT_TOKEN_MIN, OUTPUT_TOKEN_MAX]``；``usage`` 计数只作**诊断字段**。
+- 失败分类分级：上游不可用（未配置云端默认模型 / 默认档案是本机 / 连接失败 / 非 200）抛
+  503 ``RAG_SUMMARY_UNAVAILABLE``；非法 JSON、结构不符、引用校验不过、超时、上游截断一律返回
+  ``partial`` 语义并保留证据，措辞彼此可区分。**绝不悄悄降级成 no_evidence、绝不编造讲解。**
+- ``status()`` / ``probe()`` 是**配置级检查**（解析默认档案 + 判定云端），不向云端发起真实推理
+  调用；因此「探测通过」只表示配置就绪，不代表上游凭证/额度已实测。
 - ``reason`` 只含固定措辞、计数与预算数字，不回显题目全文或原文内容。
 
-测试注入替身即可覆盖全部分支；真实模型验收见结果卡「验证」小节。
+测试注入替身（含假 handle/假 provider）即可覆盖全部分支；真实模型验收见结果卡「验证」小节。
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
 import time
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from typing import Protocol
-
-import httpx
 
 from app.core.exceptions import AppError
 from app.core.rag_budget import (
@@ -44,21 +48,16 @@ from app.core.rag_budget import (
     SUMMARY_MAX_REFS_PER_POINT,
     SUMMARY_MAX_TOTAL_CHARS,
 )
-from app.providers.embeddings.ollama_embedding import (
-    model_names_match,
-    normalize_loopback_base_url,
-)
+from app.providers.llm.base import FINISH_LENGTH, LLMMessage, LLMRequest, LLMResponse, ProviderError
+from app.providers.llm.registry import find_provider
 from app.schemas.rag_v2 import RagPoint, TextbookEvidence
+from app.services.model_runtime import ChatModelHandle
 
-DEFAULT_MODEL = "qwen2.5:7b"
+#: 未声明上下文窗口时的保守估算（与既有实现一致）；实际窗口以档案 contextTokens 为准。
+DEFAULT_CONTEXT_TOKENS = 8192
 DEFAULT_TIMEOUT_SECONDS = 300.0
-#: 状态探测的短超时：绝不把 /rag/status 拖慢（探测失败只影响 available/reason）。
-PROBE_TIMEOUT_SECONDS = 3.0
-#: 显式上下文窗口：不显式下发时 Ollama 按默认（常见 2048）截断提示词，
-#: 模型看不到"必须返回 points 数组并引用 evidenceId"的指令 → 真实规模证据必然概括失败。
-DEFAULT_NUM_CTX = 8192
 #: 输出侧有界（PLAN §3.4 默认 1024）：生成预留同时决定提示词 token 预算。
-DEFAULT_NUM_PREDICT = 1024
+DEFAULT_OUTPUT_TOKENS = 1024
 OUTPUT_TOKEN_MIN = 256
 OUTPUT_TOKEN_MAX = 2048
 #: 保守字符估算（仓库既有口径）：1 token ≈ 2 字符。**这是估算，不是精确 token 计数。**
@@ -67,8 +66,6 @@ CHARS_PER_TOKEN = 2
 RESERVED_TOKENS = 512
 #: 安全余量：中文实际约 1.2–1.7 字符/token，字符口径会低估 token 数，故再打折扣。
 PROMPT_SAFETY_MARGIN = 0.7
-#: 上游截断判定余量：prompt_eval_count 逼近窗口即视为提示词被截断（**诊断信号**）。
-TRUNCATION_MARGIN_TOKENS = 64
 
 # ------------------------------------------------------------------ 违规码（内部）
 #: 结构不合法（不是 JSON 对象 / 缺 points 数组 / points 为空）
@@ -210,18 +207,18 @@ def unavailable(message: str) -> AppError:
     return AppError(message, code="RAG_SUMMARY_UNAVAILABLE", status_code=503, retryable=True)
 
 
-def prompt_token_budget(num_ctx: int = DEFAULT_NUM_CTX, num_predict: int = DEFAULT_NUM_PREDICT) -> int:
+def prompt_token_budget(context_tokens: int = DEFAULT_CONTEXT_TOKENS, output_tokens: int = DEFAULT_OUTPUT_TOKENS) -> int:
     """提示词可用 token 预算（估算）：窗口 − 生成预留 − 模板预留。"""
-    return max(0, int(num_ctx) - int(num_predict) - RESERVED_TOKENS)
+    return max(0, int(context_tokens) - int(output_tokens) - RESERVED_TOKENS)
 
 
-def prompt_char_budget(num_ctx: int = DEFAULT_NUM_CTX, num_predict: int = DEFAULT_NUM_PREDICT) -> int:
+def prompt_char_budget(context_tokens: int = DEFAULT_CONTEXT_TOKENS, output_tokens: int = DEFAULT_OUTPUT_TOKENS) -> int:
     """提示词字符硬上限：保守估算（1 token ≈ 2 字符）× 安全余量。
 
-    这是字符口径的上限，用于打包与"发送前自检"；真实 token 数由上游 ``prompt_eval_count``
-    交叉验证（**诊断信号**，不写成"证明绝未截断"）。
+    这是字符口径的上限，用于打包与"发送前自检"；真实 token 数由上游 usage 交叉验证
+    （**诊断信号**，不写成"证明绝未截断"）。
     """
-    return int(prompt_token_budget(num_ctx, num_predict) * CHARS_PER_TOKEN * PROMPT_SAFETY_MARGIN)
+    return int(prompt_token_budget(context_tokens, output_tokens) * CHARS_PER_TOKEN * PROMPT_SAFETY_MARGIN)
 
 
 def evidence_block(item: TextbookEvidence) -> str:
@@ -286,7 +283,7 @@ def pack_evidence(
         )
     prompt = "\n\n".join([header, *used, PROMPT_FOOTER])
     if len(prompt) > budget_chars:  # pragma: no cover - 防御性：打包逻辑与预算必须自洽
-        raise unavailable("本地概括提示词打包超出预算，已停止概括并保留原文。")
+        raise unavailable("知识点概括提示词打包超出预算，已停止概括并保留原文。")
     admitted_ids = frozenset(item.evidenceId for item in admitted)
     return PromptPack(
         prompt=prompt,
@@ -330,10 +327,10 @@ def _invalid_reason(checked: CheckedProposal, *, structure: str) -> str:
     codes = set(checked.violation_codes)
     if VIOLATION_STRUCTURE in codes:
         wording = {
-            "not_object": "本地概括返回结构不符合要求（不是 JSON 对象）",
-            "no_points": "本地概括返回结构不符合要求（缺少 points 数组）",
-            "empty_points": "本地概括未给出知识点（points 为空）",
-        }.get(structure, "本地概括返回结构不符合要求")
+            "not_object": "知识点概括返回结构不符合要求（不是 JSON 对象）",
+            "no_points": "知识点概括返回结构不符合要求（缺少 points 数组）",
+            "empty_points": "知识点概括未给出知识点（points 为空）",
+        }.get(structure, "知识点概括返回结构不符合要求")
         return wording + "，保留教材原文供核对。"
     if codes & {VIOLATION_REF_EMPTY, VIOLATION_REF_NOT_ADMITTED, VIOLATION_REF_LIMIT}:
         return "知识点未通过原文引用校验，保留教材原文供核对。"
@@ -542,99 +539,98 @@ def correction_prompt(*, pack: PromptPack, question: str, violation_codes: Seque
 # ------------------------------------------------------------------ 概括实现
 
 class KnowledgeSummarizer:
-    """本机 Ollama 知识点概括；同步实现，由会话层放进有界线程执行。
+    """知识点概括：同步实现，由会话层放进有界线程执行；模型是**全局默认云端档案**。
 
-    ``num_ctx`` / ``num_predict`` 显式下发到 ``options``；两者一旦变化，提示词预算随之变化
-    （``prompt_char_budget``）。``num_predict`` 会被夹到 ``[OUTPUT_TOKEN_MIN, OUTPUT_TOKEN_MAX]``，
-    ``num_ctx`` 下限 1024，避免调用方给出会立刻截断的窗口。
+    - 模型身份每次调用时解析（默认档案 → ``ChatModelHandle``）；本机部署档案与"未配置默认
+      模型"一律按 503 不可用处理，**不回退本机**。
+    - 提示词预算按档案 ``contextTokens``（未声明用 ``DEFAULT_CONTEXT_TOKENS``）与输出上限
+      （``maxOutputTokens``，夹到 ``[OUTPUT_TOKEN_MIN, OUTPUT_TOKEN_MAX]``）计算，
+      并与 ``EVIDENCE_PROMPT_MAX_CHARS`` 取较小者。
+    - ``status()`` / ``probe()`` 均为**配置级检查**：只解析默认档案与判定云端，不发起推理调用。
     """
 
     def __init__(
         self,
-        provider_url: str | None = None,
-        model: str = DEFAULT_MODEL,
-        timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
         *,
-        num_ctx: int = DEFAULT_NUM_CTX,
-        num_predict: int = DEFAULT_NUM_PREDICT,
-        client_factory=None,
+        resolve_default_profile: Callable[[], str | None],
+        resolve_handle: Callable[[str], ChatModelHandle],
+        timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS,
     ) -> None:
-        self.provider_url = provider_url
-        self.model = model
+        self._resolve_default_profile = resolve_default_profile
+        self._resolve_handle = resolve_handle
         self.timeout_seconds = float(timeout_seconds)
-        self.num_ctx = max(1024, int(num_ctx))
-        self.num_predict = min(max(OUTPUT_TOKEN_MIN, int(num_predict)), OUTPUT_TOKEN_MAX)
-        self._client_factory = client_factory
 
     # ------------------------------------------------------------------ 状态
 
+    def _resolved(self) -> tuple[str, ChatModelHandle]:
+        """解析默认档案并判定云端；不可用时抛 503（调用方转 partial 并保留证据）。"""
+        try:
+            profile_id = self._resolve_default_profile()
+        except AppError:
+            raise
+        except Exception as exc:  # noqa: BLE001 - 读取配置失败按不可用报告
+            raise unavailable(f"读取默认模型配置失败：{exc.__class__.__name__}。") from exc
+        if not profile_id:
+            raise unavailable(
+                "未配置全局默认问答模型（设置 → 默认模型）；知识点概括只使用云端模型，不使用本机模型。"
+            )
+        try:
+            handle = self._resolve_handle(profile_id)
+        except AppError as exc:
+            # 档案缺失/连接被删等都属于"概括暂停"，不能把问答本身拖成 500
+            raise unavailable(f"默认模型档案不可用（{exc.code}），知识点概括暂停。") from exc
+        spec = find_provider(handle.config.providerId) if handle.config.providerId else None
+        if spec is not None and spec.is_local:
+            raise unavailable("全局默认问答模型是本机部署；知识点概括只使用云端模型，请在设置中改选云端默认模型。")
+        return profile_id, handle
+
     @property
     def prompt_budget_chars(self) -> int:
-        """模型窗口估算与首答入模上限的**较小者**（PLAN §3.4）。"""
-        return min(prompt_char_budget(self.num_ctx, self.num_predict), EVIDENCE_PROMPT_MAX_CHARS)
+        """档案窗口估算与首答入模上限的**较小者**（PLAN §3.4）。"""
+        _profile_id, handle = self._resolved()
+        return min(prompt_char_budget(handle.context_tokens or DEFAULT_CONTEXT_TOKENS, self._output_tokens(handle)),
+                   EVIDENCE_PROMPT_MAX_CHARS)
 
-    def _base_url(self) -> str:
-        if not self.provider_url:
-            raise unavailable("本地概括服务地址未配置，知识点概括不可用。")
-        try:
-            return normalize_loopback_base_url(self.provider_url)
-        except AppError as exc:
-            raise unavailable(f"本地概括服务地址不合法：{exc}") from exc
+    @staticmethod
+    def _output_tokens(handle: ChatModelHandle) -> int:
+        return min(max(OUTPUT_TOKEN_MIN, int(handle.max_output_tokens)), OUTPUT_TOKEN_MAX)
 
     def status(self) -> dict:
+        """配置级状态：只解析默认档案 + 判定云端；不发起真实推理调用。"""
         try:
-            base_url = self._base_url()
+            profile_id, handle = self._resolved()
         except AppError as exc:
-            return {"available": False, "reason": str(exc), "model": self.model, "providerUrl": None}
+            return {"available": False, "reason": str(exc), "model": None, "providerUrl": None,
+                    "modelProfileId": None}
+        spec = find_provider(handle.config.providerId)
         return {
             "available": True,
             "reason": None,
-            "model": self.model,
-            "providerUrl": base_url,
-            "numCtx": self.num_ctx,
-            "numPredict": self.num_predict,
-            "promptBudgetChars": self.prompt_budget_chars,
+            "model": handle.model_id,
+            "providerUrl": None,
+            "providerLabel": spec.label if spec else None,
+            "modelProfileId": profile_id,
+            "outputTokens": self._output_tokens(handle),
+            "contextTokens": handle.context_tokens or DEFAULT_CONTEXT_TOKENS,
+            "promptBudgetChars": min(
+                prompt_char_budget(handle.context_tokens or DEFAULT_CONTEXT_TOKENS, self._output_tokens(handle)),
+                EVIDENCE_PROMPT_MAX_CHARS),
         }
 
     def probe(self) -> dict:
-        """轻量真实探测：Ollama ``/api/tags`` 可达 + 配置的概括模型已安装（tag 归一）。
+        """配置级探测：解析默认档案并确认是云端档案。
 
-        只回报不抛错（``/rag/status`` 不得因上游不可达而失败或变慢）；使用短超时客户端。
+        不向云端发起真实调用（避免为状态页产生费用），因此"探测通过"只表示**配置就绪**，
+        不代表凭证与额度已实测；调用失败仍按 503 原样上报。
         """
         try:
-            base_url = self._base_url()
+            self._resolved()
         except AppError as exc:
             return {"available": False, "reason": str(exc)}
-        try:
-            with self._client(base_url, timeout_seconds=PROBE_TIMEOUT_SECONDS) as client:
-                response = client.get("/api/tags")
-        except httpx.TimeoutException:
-            return {"available": False, "reason": "本地概括服务探测超时（Ollama 未在 3 秒内响应）。"}
-        except httpx.HTTPError:
-            return {"available": False, "reason": "本地概括服务不可达（Ollama 未响应）。"}
         except Exception:  # noqa: BLE001 - 探测失败只回报，不影响状态接口
-            return {"available": False, "reason": "本地概括服务探测失败。"}
-        if response.status_code != 200:
-            return {"available": False, "reason": f"本地概括服务返回 {response.status_code}。"}
-        try:
-            body = response.json()
-        except ValueError:
-            return {"available": False, "reason": "本地概括服务探测响应不是合法 JSON。"}
-        entries = body.get("models") if isinstance(body, dict) else None
-        if not isinstance(entries, list):
-            return {"available": False, "reason": "本地概括服务探测响应缺少 models 数组。"}
-        names = [
-            entry.get("name") or entry.get("model")
-            for entry in entries
-            if isinstance(entry, dict)
-        ]
-        if not any(isinstance(name, str) and name.strip() for name in names):
-            return {"available": False, "reason": "本机 Ollama 没有可用模型。"}
-        if not any(
-            isinstance(name, str) and model_names_match(name, self.model) for name in names
-        ):
-            return {"available": False, "reason": f"本机未安装概括模型 {self.model}。"}
-        return {"available": True, "reason": None}
+            return {"available": False, "reason": "默认模型配置探测失败。"}
+        return {"available": True, "reason": None,
+                "detail": "配置级检查：默认云端档案已就绪（未发起真实推理调用）。"}
 
     # ------------------------------------------------------------------ 概括
 
@@ -653,8 +649,8 @@ class KnowledgeSummarizer:
             return SummaryOutcome(
                 points=[],
                 reason=(
-                    f"教材证据超出本地概括输入预算（上限 {budget} 字符；题目与输出要求已占用固定部分），"
-                    "未调用本地概括，保留教材原文供核对。"
+                    f"教材证据超出知识点概括输入预算（上限 {budget} 字符；题目与输出要求已占用固定部分），"
+                    "未调用知识点概括，保留教材原文供核对。"
                 ),
                 reason_code="SUMMARY_INVALID",
                 total_evidence=total,
@@ -683,7 +679,7 @@ class KnowledgeSummarizer:
         if truncated:
             return self._failure(
                 _with_coverage(
-                    "本地概括提示词超出模型上下文（上游已截断），本次不采用该输出，保留教材原文供核对。",
+                    "知识点概括提示词超出模型上下文（上游已截断），本次不采用该输出，保留教材原文供核对。",
                     pack,
                 ),
                 pack,
@@ -740,7 +736,7 @@ class KnowledgeSummarizer:
             return SummaryOutcome(
                 points=[],
                 reason=_with_coverage(
-                    "本地概括提示词超出模型上下文（上游已截断），本次不采用该输出，保留教材原文供核对。",
+                    "知识点概括提示词超出模型上下文（上游已截断），本次不采用该输出，保留教材原文供核对。",
                     pack,
                 ),
                 reason_code="SUMMARY_INVALID",
@@ -801,48 +797,30 @@ class KnowledgeSummarizer:
         )
 
     def _request_proposal(self, prompt: str) -> _Proposal:
-        base_url = self._base_url()
-        payload = {
-            "model": self.model,
-            "stream": False,
-            "format": "json",
-            "messages": [
-                {"role": "system", "content": INSTRUCTION},
-                {"role": "user", "content": prompt},
-            ],
-            "options": {
-                "temperature": 0,
-                "num_ctx": self.num_ctx,
-                "num_predict": self.num_predict,
-            },
-        }
-        try:
-            with self._client(base_url) as client:
-                response = client.post("/api/chat", json=payload)
-        except httpx.TimeoutException as exc:
-            return _timeout(exc)
-        except httpx.HTTPError as exc:
-            raise unavailable("本地概括服务不可用，请检查本机 Ollama 后重试。") from exc
-        if response.status_code != 200:
-            raise unavailable(f"本地概括服务返回 {response.status_code}，知识点概括不可用。")
-        try:
-            body = response.json()
-        except ValueError:
-            return _invalid_json()
-        if not isinstance(body, dict):
-            return _invalid_json()
-        prompt_eval_count = _as_int(body.get("prompt_eval_count"))
-        eval_count = _as_int(body.get("eval_count"))
-        truncated = (
-            prompt_eval_count is not None
-            and prompt_eval_count >= self.num_ctx - TRUNCATION_MARGIN_TOKENS
+        _profile_id, handle = self._resolved()
+        request = LLMRequest(
+            messages=[LLMMessage("system", INSTRUCTION), LLMMessage("user", prompt)],
+            maxOutputTokens=self._output_tokens(handle),
+            params={},
         )
-        message = body.get("message")
-        content = message.get("content") if isinstance(message, dict) else None
-        if not isinstance(content, str) or not content.strip():
+        try:
+            response = self._complete(handle, request)
+        except TimeoutError as exc:
+            # 超时后上游可能仍在生成（无法取消已发出的请求）：按"概括未完成"处理，证据由调用方保留。
+            return _timeout(exc)
+        except ProviderError as exc:
+            if exc.code == "UPSTREAM_TIMEOUT":
+                return _timeout(exc)
+            raise unavailable(f"默认云端模型调用失败（{exc.code}），知识点概括不可用。") from exc
+        text = (response.text or "").strip()
+        usage = response.usage
+        prompt_eval_count = usage.inputTokens if usage is not None else None
+        eval_count = usage.outputTokens if usage is not None else None
+        truncated = getattr(response, "finishReason", None) == FINISH_LENGTH
+        if not text:
             return _invalid_json(prompt_eval_count=prompt_eval_count, eval_count=eval_count, truncated=truncated)
         try:
-            parsed = json.loads(content)
+            parsed = json.loads(text)
         except ValueError:
             return _invalid_json(prompt_eval_count=prompt_eval_count, eval_count=eval_count, truncated=truncated)
         return _Proposal(
@@ -853,16 +831,12 @@ class KnowledgeSummarizer:
             truncated=truncated,
         )
 
-    def _client(self, base_url: str, *, timeout_seconds: float | None = None) -> httpx.Client:
-        timeout = self.timeout_seconds if timeout_seconds is None else float(timeout_seconds)
-        if self._client_factory is not None:
-            return self._client_factory(base_url=base_url, timeout=timeout)
-        return httpx.Client(
-            base_url=base_url,
-            timeout=timeout,
-            follow_redirects=False,
-            trust_env=False,
-        )
+    def _complete(self, handle: ChatModelHandle, request: LLMRequest) -> LLMResponse:
+        """同步桥接异步 provider：在独立线程里跑事件循环，避免在事件循环线程调用 asyncio.run。"""
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            return pool.submit(asyncio.run, handle.provider.complete(handle.config, request)).result(
+                timeout=self.timeout_seconds
+            )
 
 
 def _as_int(value: object) -> int | None:
@@ -875,7 +849,7 @@ def _timeout(exc: Exception) -> _Proposal:
     """超时是"概括未完成"：返回 partial 语义，证据由调用方保留。"""
     return _Proposal(
         ok=False,
-        reason=f"本地知识点概括超时（{exc.__class__.__name__}），保留教材原文供核对。",
+        reason=f"知识点概括调用超时（{exc.__class__.__name__}），保留教材原文供核对。",
     )
 
 
@@ -887,7 +861,7 @@ def _invalid_json(
 ) -> _Proposal:
     return _Proposal(
         ok=False,
-        reason="本地概括返回结构不符合要求（不是合法 JSON），保留教材原文供核对。",
+        reason="知识概括返回结构不符合要求（不是合法 JSON），保留教材原文供核对。",
         prompt_eval_count=prompt_eval_count,
         eval_count=eval_count,
         truncated=truncated,
@@ -896,9 +870,8 @@ def _invalid_json(
 
 __all__ = [
     "CHARS_PER_TOKEN",
-    "DEFAULT_MODEL",
-    "DEFAULT_NUM_CTX",
-    "DEFAULT_NUM_PREDICT",
+    "DEFAULT_CONTEXT_TOKENS",
+    "DEFAULT_OUTPUT_TOKENS",
     "DEFAULT_TIMEOUT_SECONDS",
     "INSTRUCTION",
     "KnowledgeSummarizer",
@@ -907,7 +880,6 @@ __all__ = [
     "PROMPT_FOOTER",
     "PROMPT_HEADER",
     "PROMPT_SAFETY_MARGIN",
-    "PROBE_TIMEOUT_SECONDS",
     "CheckedProposal",
     "PromptPack",
     "SummaryOutcome",

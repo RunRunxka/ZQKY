@@ -44,7 +44,8 @@ def catalog(request: Request) -> dict:
             "revision": doc.revision,
             "defaultChatProfileId": doc.defaultChatProfileId,
             "connections": [connection_view(c, secrets) for c in doc.connections],
-            "profiles": [profile_view(p, connections.get(p.connectionId), secrets) for p in doc.profiles],
+            "profiles": [profile_view(p, connections.get(p.connectionId), secrets,
+                                     default_chat_profile_id=doc.defaultChatProfileId) for p in doc.profiles],
         }
 
     return repo.with_document(read)

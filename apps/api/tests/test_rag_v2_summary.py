@@ -1,6 +1,7 @@
-"""本地知识点概括：结构化输出校验、失败分类与"只允许本机回环"。
+"""知识点概括：结构化输出校验、失败分类与"只用云端默认档案"。
 
-真实 Ollama 调用留给总控集成验收；这里注入 HTTP 替身覆盖全部分支。
+概括在 2026-10-06 改为走「全局默认云端模型」：测试用**真实 provider + MockTransport 替身**
+（``tests/summary_support.py``）覆盖全部分支，不发起真实网络请求；本机部署档案一律按不可用拒绝。
 """
 
 from __future__ import annotations
@@ -9,7 +10,7 @@ import json
 
 import pytest
 
-import httpx
+import httpx2 as httpx
 
 from app.core.exceptions import AppError
 from app.services.rag_v2.evidence import build_evidence
@@ -22,45 +23,8 @@ from app.services.rag_v2.summary import (
     filter_points,
     validate_points,
 )
+from tests.summary_support import SummaryWire, make_summarizer
 from tests.test_rag_v2_support import RagEnv, sample_text
-
-
-class StubResponse:
-    def __init__(self, *, status_code: int = 200, payload: object = None, invalid_json: bool = False):
-        self.status_code = status_code
-        self.payload = payload
-        self.invalid_json = invalid_json
-        self.text = "" if payload is None else str(payload)
-
-    def json(self):
-        if self.invalid_json:
-            raise ValueError("not json")
-        return self.payload
-
-
-class StubClient:
-    def __init__(self, outcome) -> None:
-        self.outcome = outcome
-        self.requests: list[tuple[str, dict]] = []
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, *exc) -> bool:
-        return False
-
-    def post(self, path: str, json=None, **kwargs):  # noqa: A002 - httpx 关键字
-        self.requests.append((path, json))
-        if isinstance(self.outcome, Exception):
-            raise self.outcome
-        return self.outcome
-
-    def get(self, path: str, **kwargs):
-        """状态探测走 GET /api/tags；同一个替身支持两种调用。"""
-        self.requests.append((path, None))
-        if isinstance(self.outcome, Exception):
-            raise self.outcome
-        return self.outcome
 
 
 def evidence_of(env: RagEnv, document):
@@ -81,16 +45,6 @@ def evidence_of(env: RagEnv, document):
     return build_evidence(catalog=env.catalog, scope=scope, candidates=[candidate])
 
 
-def make_summarizer(outcome, **kwargs) -> tuple[KnowledgeSummarizer, StubClient]:
-    client = StubClient(outcome)
-    summarizer = KnowledgeSummarizer(
-        provider_url="http://127.0.0.1:11434",
-        client_factory=lambda **_: client,
-        **kwargs,
-    )
-    return summarizer, client
-
-
 def test_summarizer_parses_structured_points_and_keeps_prompt_grounded(tmp_path):
     env = RagEnv(tmp_path)
     document = env.add_document(title="高中数学必修第一册", text=sample_text())
@@ -104,19 +58,18 @@ def test_summarizer_parses_structured_points_and_keeps_prompt_grounded(tmp_path)
             }
         ]
     }
-    summarizer, client = make_summarizer(
-        StubResponse(payload={"message": {"content": json.dumps(proposal, ensure_ascii=False)}})
-    )
+    summarizer, wire = make_summarizer(proposal)
 
     outcome = summarizer.summarize(question="并集是什么？", evidence=evidence)
     assert [point.title for point in outcome.points] == ["并集"]
     assert outcome.points[0].evidenceIds == [evidence[0].evidenceId]
     assert outcome.reason is None
 
-    path, payload = client.requests[0]
-    assert path == "/api/chat"
-    assert payload["model"] == "qwen2.5:7b"
-    assert payload["format"] == "json" and payload["stream"] is False
+    path, payload = wire.requests[0]
+    assert path.endswith("/chat/completions"), "概括必须走档案协议的聊天接口"
+    assert payload["model"] == "cloud-model"
+    assert "stream" not in payload, "概括是单次非流式调用"
+    assert payload["max_tokens"] == 1024, "输出预算来自档案并夹在 [256, 2048]"
     assert payload["messages"][0]["content"] == INSTRUCTION
     user_prompt = payload["messages"][1]["content"]
     assert "并集是什么？" in user_prompt
@@ -138,15 +91,13 @@ def test_summarizer_rejects_points_with_not_admitted_evidence_ids(tmp_path):
             {"title": "合法", "summary": "有原文依据的要点。", "evidenceIds": [evidence[0].evidenceId]},
         ]
     }
-    summarizer, client = make_summarizer(
-        StubResponse(payload={"message": {"content": json.dumps(proposal, ensure_ascii=False)}})
-    )
+    summarizer, wire = make_summarizer(proposal)
     outcome = summarizer.summarize(question="并集是什么？", evidence=evidence)
     assert [point.title for point in outcome.points] == ["合法"]
     assert outcome.dropped == 3
     assert outcome.reason_code == "SUMMARY_PARTIAL"
     assert outcome.corrected == 1, "非法输出必须触发且只触发一次修正"
-    assert len(client.requests) == 2, "模型总调用次数 = 首次 + 一次修正"
+    assert len(wire.requests) == 2, "模型总调用次数 = 首次 + 一次修正"
     assert "引用了未进入提示词的证据" in outcome.reason
     assert outcome.admitted_evidence_ids == frozenset({evidence[0].evidenceId})
 
@@ -164,9 +115,7 @@ def test_summarizer_never_reuses_a_point_whose_reference_was_rejected(tmp_path):
             {"title": "纯合法", "summary": "只引用已核验证据。", "evidenceIds": [known]},
         ]
     }
-    summarizer, _client = make_summarizer(
-        StubResponse(payload={"message": {"content": json.dumps(proposal, ensure_ascii=False)}})
-    )
+    summarizer, _wire = make_summarizer(proposal)
     outcome = summarizer.summarize(question="并集是什么？", evidence=evidence)
     assert [point.title for point in outcome.points] == ["纯合法"]
     assert all("混合引用" not in point.title for point in outcome.points)
@@ -179,53 +128,108 @@ def test_summarizer_failure_classes_are_explicit(tmp_path):
     evidence = evidence_of(env, document)
 
     # 非法 JSON → partial（保留证据由调用方负责），不抛错、不编造
-    summarizer, _client = make_summarizer(
-        StubResponse(payload={"message": {"content": "这不是 JSON"}})
-    )
+    summarizer, _wire = make_summarizer(text="这不是 JSON")
     outcome = summarizer.summarize(question="问", evidence=evidence)
     assert outcome.points == [] and "结构不符合要求" in outcome.reason
     assert "不是合法 JSON" in outcome.reason
 
-    # 超时 → partial
-    summarizer, _client = make_summarizer(httpx.TimeoutException("timed out"))
+    # 上游超时（provider 归一为 UPSTREAM_TIMEOUT）→ partial 语义
+    summarizer, _wire = make_summarizer(fail=httpx.ReadTimeout("timed out"))
     outcome = summarizer.summarize(question="问", evidence=evidence)
     assert outcome.points == [] and "超时" in outcome.reason
 
+    # 上游截断（finish_reason=length）→ 不采用该输出，partial
+    summarizer, _wire = make_summarizer(text=json.dumps({"points": []}, ensure_ascii=False), finish="length")
+    outcome = summarizer.summarize(question="问", evidence=evidence)
+    assert outcome.points == [] and outcome.truncated is True
+
     # 服务不可用（非 200）→ 503 RAG_SUMMARY_UNAVAILABLE，由会话层决定 partial/error
-    summarizer, _client = make_summarizer(StubResponse(status_code=500, payload={}))
+    summarizer, _wire = make_summarizer(status_code=500)
     with pytest.raises(AppError) as unavailable:
         summarizer.summarize(question="问", evidence=evidence)
     assert unavailable.value.code == "RAG_SUMMARY_UNAVAILABLE"
     assert unavailable.value.status_code == 503
 
     # 连接失败 → 同样显式报不可用
-    summarizer, _client = make_summarizer(httpx.ConnectError("refused"))
+    summarizer, _wire = make_summarizer(fail=httpx.ConnectError("refused"))
     with pytest.raises(AppError) as refused:
         summarizer.summarize(question="问", evidence=evidence)
     assert refused.value.code == "RAG_SUMMARY_UNAVAILABLE"
 
 
-def test_summarizer_only_accepts_loopback_and_reports_status(tmp_path):
+def test_summarizer_only_uses_cloud_default_profile(tmp_path):
+    """模型口径：只取全局默认档案；未配置或默认是本机部署 → 明确不可用，绝不回退本地。"""
     env = RagEnv(tmp_path)
     document = env.add_document(title="高中数学必修第一册", text=sample_text())
     evidence = evidence_of(env, document)
 
-    for url in (None, "", "https://api.example.com/ollama", "http://192.168.1.10:11434"):
-        summarizer = KnowledgeSummarizer(provider_url=url)
-        status = summarizer.status()
-        assert status["available"] is False and status["reason"]
-        with pytest.raises(AppError) as blocked:
-            summarizer.summarize(question="问", evidence=evidence)
-        assert blocked.value.code == "RAG_SUMMARY_UNAVAILABLE"
+    # 未配置默认档案
+    summarizer = SummaryWire(profile_id=None).summarizer()
+    status = summarizer.status()
+    assert status["available"] is False and "未配置全局默认问答模型" in status["reason"]
+    assert summarizer.probe()["available"] is False
+    with pytest.raises(AppError) as blocked:
+        summarizer.summarize(question="问", evidence=evidence)
+    assert blocked.value.code == "RAG_SUMMARY_UNAVAILABLE"
 
-    local = KnowledgeSummarizer(provider_url="http://localhost:11434")
-    assert local.status()["available"] is True
-    assert local.status()["providerUrl"] == "http://localhost:11434"
+    # 默认档案落在本机部署（Ollama 等 is_local 供应商）
+    local = SummaryWire(provider_id="ollama").summarizer()
+    local_status = local.status()
+    assert local_status["available"] is False and "本机部署" in local_status["reason"]
+    assert local.probe()["available"] is False
+    with pytest.raises(AppError) as refused:
+        local.summarize(question="问", evidence=evidence)
+    assert refused.value.code == "RAG_SUMMARY_UNAVAILABLE"
+
+    # 云端默认档案：状态可用、身份来自档案，且状态/探测都不发起推理调用
+    cloud_wire = SummaryWire()
+    cloud = cloud_wire.summarizer()
+    cloud_status = cloud.status()
+    assert cloud_status["available"] is True and cloud_status["reason"] is None
+    assert cloud_status["model"] == "cloud-model" and cloud_status["modelProfileId"] == "cloud-profile"
+    assert cloud_status["providerUrl"] is None and cloud_status["contextTokens"] == 8192
+    assert cloud.probe() == {"available": True, "reason": None,
+                             "detail": "配置级检查：默认云端档案已就绪（未发起真实推理调用）。"}
+    assert cloud.status()["promptBudgetChars"] == 6000, "6000 字符证据上限是主约束"
+    assert cloud_wire.requests == [], "状态与探测是配置级检查，不得发起推理调用"
 
     # 没有证据：不调用模型，直接返回 partial 语义
-    summarizer, client = make_summarizer(StubResponse(payload={}))
+    summarizer, wire = make_summarizer({"points": []})
     outcome = summarizer.summarize(question="问", evidence=[])
-    assert outcome.points == [] and client.requests == []
+    assert outcome.points == [] and wire.requests == []
+
+    # 默认档案解析失败（档案被删/连接不可用）→ 仍是 503 概括不可用，不能把问答拖成 500
+    broken = SummaryWire(
+        handle_error=AppError("模型档案不存在。", code="MODEL_NOT_CONFIGURED", status_code=404)
+    ).summarizer()
+    with pytest.raises(AppError) as stopped:
+        broken.summarize(question="问", evidence=evidence)
+    assert stopped.value.code == "RAG_SUMMARY_UNAVAILABLE"
+
+
+def test_summarizer_follows_the_profile_protocol(tmp_path):
+    """概括按**档案协议**调用：openai-chat / openai-responses / anthropic-messages 都能跑通。"""
+    env = RagEnv(tmp_path)
+    document = env.add_document(title="高中数学必修第一册", text=sample_text())
+    evidence = evidence_of(env, document)
+    known = evidence[0].evidenceId
+    proposal = {"points": [{"title": "并集", "summary": "由所有元素组成。", "evidenceIds": [known]}]}
+
+    for protocol, path, budget_key in (("openai_chat", "/chat/completions", "max_tokens"),
+                                       ("openai_responses", "/responses", "max_output_tokens"),
+                                       ("anthropic_messages", "/v1/messages", "max_tokens")):
+        summarizer, wire = make_summarizer(proposal, protocol=protocol)
+        outcome = summarizer.summarize(question="并集是什么？", evidence=evidence)
+        assert [point.title for point in outcome.points] == ["并集"], protocol
+        assert outcome.prompt_eval_count == 321 and outcome.eval_count == 123, protocol
+        assert wire.requests[0][0].endswith(path), protocol
+        assert wire.requests[0][1][budget_key] == 1024, protocol
+
+    # 截断判定同样跨协议（anthropic 的 max_tokens / responses 的 incomplete）
+    for protocol in ("openai_responses", "anthropic_messages"):
+        summarizer, _wire = make_summarizer(proposal, protocol=protocol, finish="length")
+        outcome = summarizer.summarize(question="并集是什么？", evidence=evidence)
+        assert outcome.points == [] and outcome.truncated is True, protocol
 
 
 def test_validate_points_enforces_admitted_refs_and_length_budget():
@@ -306,4 +310,3 @@ def test_filter_points_second_check_uses_admitted_set():
     # 未提供准入集合（替身）时退回"全部已核验证据"：仍然拒绝凭空引用
     kept, dropped = filter_points([point], [])
     assert kept == [] and dropped == 1
-

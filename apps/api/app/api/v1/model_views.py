@@ -50,6 +50,8 @@ def connection_view(connection: ModelConnection, secrets: SecretStore) -> dict:
         "displayName": connection.displayName,
         "providerId": connection.providerId,
         "providerLabel": spec.label if spec else None,
+        # 本机部署标记：教案生成与 RAG 概括按这条规则排除本机连接
+        "isLocal": bool(spec.is_local) if spec else False,
         "protocol": connection.protocol.value,
         "apiFormat": connection.apiFormat.value,
         "apiVersion": connection.apiVersion,
@@ -86,6 +88,8 @@ def connection_summary(connection: ModelConnection | None, secrets: SecretStore)
         "displayName": connection.displayName,
         "providerId": connection.providerId,
         "providerLabel": spec.label if spec else None,
+        # 本机部署（Ollama/vLLM/LM Studio 等）：教案生成与 RAG 概括不使用这类连接
+        "isLocal": bool(spec.is_local) if spec else False,
         "protocol": connection.protocol.value,
         "apiFormat": connection.apiFormat.value,
         "hasCredential": secrets.has(connection.id),
@@ -96,6 +100,8 @@ def profile_view(
     profile: ModelProfile,
     connection: ModelConnection | None,
     secrets: SecretStore,
+    *,
+    default_chat_profile_id: str | None = None,
 ) -> dict:
     spec = find_provider(connection.providerId) if connection and connection.providerId else None
     return {
@@ -104,6 +110,8 @@ def profile_view(
         "displayName": profile.displayName,
         "modelId": profile.modelId,
         "purpose": profile.purpose,
+        # 全局默认问答档案（设置 → 默认模型）；教案生成未显式选择时用它
+        "isDefault": default_chat_profile_id is not None and profile.id == default_chat_profile_id,
         "contextTokens": profile.contextTokens,
         "maxOutputTokens": profile.maxOutputTokens,
         "supportedParams": list(profile.supportedParams),
