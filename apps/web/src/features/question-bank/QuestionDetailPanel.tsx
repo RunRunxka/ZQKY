@@ -35,7 +35,7 @@ import {
   type KnowledgeLinkView,
   type LinkIssueLocation,
 } from './knowledge-links';
-import { ANSWER_STATE_LABEL, difficultyLabel, formatDateTime } from './labels';
+import { ANSWER_STATE_LABEL, difficultyLabel, formatDateTime, questionStemSummary } from './labels';
 import { KnowledgeLinksPanel } from './KnowledgeLinksPanel';
 import { QuestionPreview } from './QuestionPreview';
 import { aiSourceTraceOf, aiSourceTraceText, aiSourceTraceUnavailableText } from './source-trace';
@@ -311,7 +311,10 @@ function QuestionDetailSession({
         {state.phase === 'ready' && (
           <>
             <div className="space-meta-row">
-              <span className="space-chip">{state.detail.questionId}</span>
+              {/* ID 降级：主文案是题干预览摘要，完整 questionId 只放在 title（不再把 uuid 当标题） */}
+              <span className="space-chip" title={state.detail.questionId}>
+                {questionStemSummary(state.detail.stemPreview)}
+              </span>
               <span className="space-chip blue">
                 {state.detail.status === 'confirmed' ? '已入库' : '已归档'}
               </span>

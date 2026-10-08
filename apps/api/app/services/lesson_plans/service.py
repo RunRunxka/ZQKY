@@ -118,10 +118,13 @@ class LessonPlanService:
             self.repo.document(conn, lesson_id, self.owner)
             return revision_view(self.repo.revision(conn, lesson_id, revision_id, self.owner))
 
-    def list_lessons(self, subject_id=None, class_id=None, offset=0, limit=50):
+    def list_lessons(self, subject_id=None, class_id=None, offset=0, limit=50, archived=False):
         self._pagination(offset, limit)
+        if type(archived) is not bool:
+            raise invalid("archived", "archived须为布尔值。")
         with self.catalog.read_connection() as conn:
-            rows, total = self.repo.list_documents(conn, self.owner, subject_id=subject_id, class_id=class_id, offset=offset, limit=limit)
+            rows, total = self.repo.list_documents(conn, self.owner, subject_id=subject_id, class_id=class_id,
+                archived=archived, offset=offset, limit=limit)
             items = [validate(lp.LessonSummary, dict(lessonPlanId=row["id"], subjectId=row["subject_id"], classId=row["class_id"],
                 revision=row["revision"], currentRevisionId=row["current_revision_id"], title=row["title"], source=row["source"],
                 analysisRunId=row["analysis_run_id"], updatedAt=row["updated_at"])) for row in rows]
@@ -172,6 +175,24 @@ class LessonPlanService:
                 source=source, context=context, source_metadata=metadata, revision_id=revision_id, created_at=created_at, import_envelope=envelope)
             return lesson_view(self.repo, conn, lesson_id, self.owner)
         return self._publish(command, apply, lambda: revalidate_context(self, context))
+
+    def set_archived(self, lesson_id, payload, *, archived):
+        """归档/恢复教案：只写 ``archived_at``，历史修订与 head 指针原样保留。
+
+        ``lesson_plan_identity_fixed`` 触发器要求 current_revision_id 不变时 revision
+        不得变化，因此归档**不递增** revision（与施测/原卷递增口径不同，见该触发器）。
+        后续写入的 CAS 感知由 ``_current()`` 的归档守卫承担：归档后任何新提交
+        （save/generate/apply）先命中 LESSON_INVALID，不允许绕过归档继续写入；恢复后
+        按原 revision 继续编辑，修订历史逐条不变。与施测/原卷归档一致，本操作不
+        走提交幂等回执，直接在同一写事务内核对 ``expectedRevision`` 乐观锁。
+        """
+        body = freeze(lp.LessonRevisionRequest, payload)
+        operation = "lesson.archive" if archived else "lesson.restore"
+        with self.coordinator.publication(operation=operation):
+            with self.catalog.write_transaction() as conn:
+                self.repo.set_archived_in(conn, lesson_id=lesson_id, owner_id=self.owner, archived=archived,
+                    expected_revision=body.expected_revision)
+                return lesson_view(self.repo, conn, lesson_id, self.owner)
 
     def save_draft(self, lesson_id, body):
         body = freeze(lp.LessonSaveRequest, body)

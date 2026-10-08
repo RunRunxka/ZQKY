@@ -15,7 +15,9 @@ export type ImportState =
   | 'indexing'
   | 'ready'
   | 'failed'
-  | 'cancelled';
+  | 'cancelled'
+  /** 草稿已放弃（记录/原始文件/解析产物保留） */
+  | 'discarded';
 export type JobKind = 'ingest' | 'rebuild' | 'cleanup';
 export type JobState = 'queued' | 'running' | 'succeeded' | 'failed' | 'cancelled';
 export type GenerationState = 'building' | 'ready' | 'aborted';
@@ -122,6 +124,14 @@ export interface ImportDraftList {
 
 export interface ImportCreateResponse {
   draft: ImportDraftView;
+}
+
+/**
+ * 放弃导入草稿（对应后端 `ImportDiscardRequest`）：
+ * 只把状态置 `discarded`；草稿记录、原始文件与解析产物保留。
+ */
+export interface ImportDiscardRequest {
+  expectedRevision: number;
 }
 
 export interface DocumentSummary {
@@ -338,4 +348,5 @@ export const IMPORT_STATE_LABEL: Record<ImportState, string> = {
   ready: '已入库',
   failed: '失败',
   cancelled: '已取消',
+  discarded: '已放弃',
 };

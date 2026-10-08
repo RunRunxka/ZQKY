@@ -8,19 +8,36 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiError, API_BASE_PATH } from '@/services/api-client';
 import {
   addAssessmentParticipants,
+  archiveAssessment,
+  archiveClass,
+  archivePaper,
+  archiveStudent,
   assessmentsQuery,
+  batchAddStudents,
   confirmScoreImport,
   correctScoreRevision,
   createAssessment,
   createScoreImport,
+  deleteAssessment,
+  deleteClass,
+  deletePaper,
+  discardRosterImport,
+  discardScoreImport,
   getAssessment,
   getPaperRevisionContent,
   getScoreMatrix,
   listAssessments,
   listClasses,
+  listClassStudents,
   listScoreImportRows,
   listScoreImports,
+  listStudents,
   patchScoreImport,
+  removeAssessmentParticipant,
+  restoreAssessment,
+  restoreClass,
+  restorePaper,
+  restoreStudent,
 } from '@/services/assessments-api';
 
 type FetchMock = ReturnType<typeof vi.fn>;
@@ -396,5 +413,222 @@ describe('只读矩阵与修正', () => {
         { participantId: 'p-2', itemId: 'i-2', status: 'missing' },
       ],
     });
+  });
+});
+
+describe('归档 / 恢复 / 放弃 / 移除（本批新增端点）', () => {
+  it('班级归档/恢复：路径带 id 且请求体只含 expectedRevision', async () => {
+    const fetchMock = stubFetch(() =>
+      jsonResponse(true, 200, { id: 'c-1', status: 'archived', revision: 5 }),
+    );
+    await archiveClass('c 1', { expectedRevision: 4 });
+    expect(call(fetchMock).init?.method).toBe('POST');
+    expect(call(fetchMock).url).toBe(`${API_BASE_PATH}/classes/c%201/archive`);
+    expect(bodyOf(fetchMock)).toEqual({ expectedRevision: 4 });
+
+    const restoreMock = stubFetch(() =>
+      jsonResponse(true, 200, { id: 'c-1', status: 'active', revision: 6 }),
+    );
+    await restoreClass('c-1', { expectedRevision: 5 });
+    expect(call(restoreMock).init?.method).toBe('POST');
+    expect(call(restoreMock).url).toBe(`${API_BASE_PATH}/classes/c-1/restore`);
+    expect(bodyOf(restoreMock)).toEqual({ expectedRevision: 5 });
+  });
+
+  it('学生归档/恢复：/students/{id}/archive|restore 只提交 expectedRevision', async () => {
+    const archiveMock = stubFetch(() => jsonResponse(true, 200, { id: 's-1', status: 'archived' }));
+    await archiveStudent('s-1', { expectedRevision: 8 });
+    expect(call(archiveMock).init?.method).toBe('POST');
+    expect(call(archiveMock).url).toBe(`${API_BASE_PATH}/students/s-1/archive`);
+    expect(bodyOf(archiveMock)).toEqual({ expectedRevision: 8 });
+
+    const fetchMock = stubFetch(() => jsonResponse(true, 200, { id: 's-1', status: 'active' }));
+    await restoreStudent('s-1', { expectedRevision: 9 });
+    expect(call(fetchMock).init?.method).toBe('POST');
+    expect(call(fetchMock).url).toBe(`${API_BASE_PATH}/students/s-1/restore`);
+    expect(bodyOf(fetchMock)).toEqual({ expectedRevision: 9 });
+  });
+
+  it('班级成员：includeArchived=true 才带查询参数，旧 (classId, signal) 调用不带参数且信号透传', async () => {
+    const fetchMock = stubFetch(() =>
+      jsonResponse(true, 200, { items: [], total: 0, offset: 0, limit: 50 }),
+    );
+    await listClassStudents('c-1', { includeArchived: true });
+    expect(call(fetchMock).url).toBe(
+      `${API_BASE_PATH}/classes/c-1/students?includeArchived=true`,
+    );
+
+    const plain = stubFetch(() =>
+      jsonResponse(true, 200, { items: [], total: 0, offset: 0, limit: 50 }),
+    );
+    const controller = new AbortController();
+    await listClassStudents('c-1', controller.signal);
+    expect(call(plain).url).toBe(`${API_BASE_PATH}/classes/c-1/students`);
+    expect(call(plain).init?.signal).toBe(controller.signal);
+  });
+
+  it('学生列表：status 并入查询串', async () => {
+    const fetchMock = stubFetch(() =>
+      jsonResponse(true, 200, { items: [], total: 0, offset: 0, limit: 50 }),
+    );
+    await listStudents({ status: 'archived', limit: 20 });
+    expect(call(fetchMock).url).toBe(`${API_BASE_PATH}/students?status=archived&limit=20`);
+  });
+
+  it('放弃名单批次：POST /roster-imports/{id}/discard 提交 expectedRevision', async () => {
+    const fetchMock = stubFetch(() =>
+      jsonResponse(true, 200, { importId: 'imp-1', state: 'cancelled', revision: 4 }),
+    );
+    const view = await discardRosterImport('imp-1', { expectedRevision: 3 });
+    expect(call(fetchMock).init?.method).toBe('POST');
+    expect(call(fetchMock).url).toBe(`${API_BASE_PATH}/roster-imports/imp-1/discard`);
+    expect(bodyOf(fetchMock)).toEqual({ expectedRevision: 3 });
+    expect(view.state).toBe('cancelled');
+  });
+
+  it('原卷归档/恢复：/papers/{id}/archive|restore 只提交 expectedRevision', async () => {
+    const archiveMock = stubFetch(() => jsonResponse(true, 200, { paperId: 'p-1', status: 'archived' }));
+    await archivePaper('p-1', { expectedRevision: 2 });
+    expect(call(archiveMock).url).toBe(`${API_BASE_PATH}/papers/p-1/archive`);
+    expect(bodyOf(archiveMock)).toEqual({ expectedRevision: 2 });
+
+    const restoreMock = stubFetch(() => jsonResponse(true, 200, { paperId: 'p-1', status: 'active' }));
+    await restorePaper('p-1', { expectedRevision: 3 });
+    expect(call(restoreMock).init?.method).toBe('POST');
+    expect(call(restoreMock).url).toBe(`${API_BASE_PATH}/papers/p-1/restore`);
+    expect(bodyOf(restoreMock)).toEqual({ expectedRevision: 3 });
+  });
+
+  it('施测归档/恢复：/assessments/{id}/archive|restore 只提交 expectedRevision', async () => {
+    const archiveMock = stubFetch(() => jsonResponse(true, 200, { assessmentId: 'as-1', state: 'archived' }));
+    await archiveAssessment('as-1', { expectedRevision: 6 });
+    expect(call(archiveMock).url).toBe(`${API_BASE_PATH}/assessments/as-1/archive`);
+    expect(bodyOf(archiveMock)).toEqual({ expectedRevision: 6 });
+
+    const restoreMock = stubFetch(() => jsonResponse(true, 200, { assessmentId: 'as-1', state: 'open' }));
+    await restoreAssessment('as-1', { expectedRevision: 7 });
+    expect(call(restoreMock).init?.method).toBe('POST');
+    expect(call(restoreMock).url).toBe(`${API_BASE_PATH}/assessments/as-1/restore`);
+    expect(bodyOf(restoreMock)).toEqual({ expectedRevision: 7 });
+  });
+
+  it('移除人次：DELETE 走查询参数 expectedRevision，且不带请求体', async () => {
+    const fetchMock = stubFetch(() =>
+      jsonResponse(true, 200, { assessment: { assessmentId: 'as-1' }, participants: [], replayed: false }),
+    );
+    await removeAssessmentParticipant('as-1', 'p 1', 8);
+    expect(call(fetchMock).init?.method).toBe('DELETE');
+    expect(call(fetchMock).url).toBe(
+      `${API_BASE_PATH}/assessments/as-1/participants/p%201?expectedRevision=8`,
+    );
+    expect(call(fetchMock).init?.body).toBeUndefined();
+  });
+
+  it('放弃成绩批次：POST /score-imports/{id}/discard 返回批次视图', async () => {
+    const fetchMock = stubFetch(() => jsonResponse(true, 200, importView({ state: 'cancelled', revision: 5 })));
+    const view = await discardScoreImport('imp-1', { expectedRevision: 4 });
+    expect(call(fetchMock).init?.method).toBe('POST');
+    expect(call(fetchMock).url).toBe(`${API_BASE_PATH}/score-imports/imp-1/discard`);
+    expect(bodyOf(fetchMock)).toEqual({ expectedRevision: 4 });
+    expect(view.state).toBe('cancelled');
+    expect(view.revision).toBe(5);
+  });
+});
+
+describe('彻底删除与批量学生（本批新增端点）', () => {
+  /** `details.counts` 不在公共 `ApiErrorDetails` 里（受引用守卫专用），按结构化读取。 */
+  function detailsCounts(error: ApiError): Record<string, number> | undefined {
+    return (error.details as unknown as { counts?: Record<string, number> } | undefined)?.counts;
+  }
+
+  it('彻底删除班级：DELETE /classes/{id} 走查询参数 expectedRevision，无请求体', async () => {
+    const fetchMock = stubFetch(() => jsonResponse(true, 200, { deleted: true, classId: 'c-1' }));
+    const result = await deleteClass('c 1', 4);
+    expect(call(fetchMock).init?.method).toBe('DELETE');
+    expect(call(fetchMock).url).toBe(`${API_BASE_PATH}/classes/c%201?expectedRevision=4`);
+    expect(call(fetchMock).init?.body).toBeUndefined();
+    expect(result).toEqual({ deleted: true, classId: 'c-1' });
+  });
+
+  it('彻底删除原卷：409 PAPER_HAS_CONFIRMED_REVISION 的 details.counts 原样保留', async () => {
+    const fetchMock = stubFetch(() =>
+      jsonResponse(false, 409, {
+        code: 'PAPER_HAS_CONFIRMED_REVISION',
+        message: '该原卷存在已确认修订，不能删除（已确认原卷只能归档）。',
+        details: { counts: { confirmedRevisions: 2 } },
+      }),
+    );
+    const error = await rejected(deletePaper('p-1', 2));
+    expect(call(fetchMock).init?.method).toBe('DELETE');
+    expect(call(fetchMock).url).toBe(`${API_BASE_PATH}/papers/p-1?expectedRevision=2`);
+    expect(error.code).toBe('PAPER_HAS_CONFIRMED_REVISION');
+    expect(detailsCounts(error)).toEqual({ confirmedRevisions: 2 });
+  });
+
+  it('彻底删除施测：409 ASSESSMENT_IN_USE 的逐项计数原样保留', async () => {
+    const fetchMock = stubFetch(() =>
+      jsonResponse(false, 409, {
+        code: 'ASSESSMENT_IN_USE',
+        message: '施测仍被引用，不能删除（成绩版本 1 条、学情报告 1 条）。',
+        details: {
+          counts: { scoreRevisions: 1, scoreImports: 0, analysisRuns: 1, practiceConversions: 0 },
+        },
+      }),
+    );
+    const error = await rejected(deleteAssessment('as-1', 3));
+    expect(call(fetchMock).init?.method).toBe('DELETE');
+    expect(call(fetchMock).url).toBe(`${API_BASE_PATH}/assessments/as-1?expectedRevision=3`);
+    expect(error.message).toContain('施测仍被引用');
+    expect(detailsCounts(error)).toMatchObject({ scoreRevisions: 1, analysisRuns: 1 });
+  });
+
+  it('批量添加学生：POST /classes/{id}/students/batch 原样编码 submissionId/items/joinedOn', async () => {
+    const fetchMock = stubFetch(() =>
+      jsonResponse(true, 200, {
+        created: [{ id: 's-1', name: '甲', revision: 1, memberships: [] }],
+        skipped: [{ index: 1, reason: '学号 T2 已存在', code: 'STUDENT_NO_CONFLICT', existingStudentId: 's-9', existingName: '乙' }],
+        replayed: false,
+      }),
+    );
+    const result = await batchAddStudents('c-1', {
+      submissionId: 'sub-1',
+      items: [{ studentNo: 'T1', name: '甲' }, { studentNo: 'T2', name: '乙' }],
+      joinedOn: '2026-10-08',
+    });
+    expect(call(fetchMock).init?.method).toBe('POST');
+    expect(call(fetchMock).url).toBe(`${API_BASE_PATH}/classes/c-1/students/batch`);
+    expect(call(fetchMock).init?.headers).toMatchObject({ 'content-type': 'application/json' });
+    expect(bodyOf(fetchMock)).toEqual({
+      submissionId: 'sub-1',
+      items: [{ studentNo: 'T1', name: '甲' }, { studentNo: 'T2', name: '乙' }],
+      joinedOn: '2026-10-08',
+    });
+    expect(result.created).toHaveLength(1);
+    expect(result.skipped[0]).toMatchObject({ index: 1, existingStudentId: 's-9', existingName: '乙' });
+  });
+
+  it('批量添加学生：归档班级 409 CLASS_ARCHIVED 与行非法 422 issues[].row 都不降级为成功', async () => {
+    const archivedMock = stubFetch(() =>
+      jsonResponse(false, 409, { code: 'CLASS_ARCHIVED', message: '归档班级不再接收新归属。' }),
+    );
+    const archivedError = await rejected(
+      batchAddStudents('c-1', { submissionId: 'sub-1', items: [{ name: '甲' }] }),
+    );
+    expect(archivedError.code).toBe('CLASS_ARCHIVED');
+    expect(call(archivedMock).url).toBe(`${API_BASE_PATH}/classes/c-1/students/batch`);
+
+    const invalidMock = stubFetch(() =>
+      jsonResponse(false, 422, {
+        code: 'ROSTER_ROW_INVALID',
+        message: '第 0 行姓名为空，整批未写入。',
+        details: { issues: [{ row: 0, field: 'name', code: 'ROSTER_ROW_INVALID', message: '姓名必须是非空字符串。' }] },
+      }),
+    );
+    const invalidError = await rejected(
+      batchAddStudents('c-1', { submissionId: 'sub-2', items: [{ name: ' ' }] }),
+    );
+    expect(invalidError.status).toBe(422);
+    expect(invalidError.details?.issues?.[0].row).toBe(0);
+    expect(call(invalidMock).init?.method).toBe('POST');
   });
 });

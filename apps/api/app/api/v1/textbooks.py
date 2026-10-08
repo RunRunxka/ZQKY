@@ -20,6 +20,7 @@ from app.schemas.textbook import (
     DocumentQuery,
     ImportCommitRequest,
     ImportCreateResponse,
+    ImportDiscardRequest,
     ImportDraftList,
     ImportDraftView,
     ImportPatchRequest,
@@ -359,6 +360,16 @@ async def commit_textbook_import(
     # 入库在后台线程执行；响应先返回 queued 任务，轮询 /textbook-jobs 获取真实进度
     background_tasks.add_task(ingest.recover_pending_jobs)
     return job
+
+
+@router.post("/textbook-imports/{import_id}/discard")
+async def discard_textbook_import(
+    request: Request, import_id: str, body: ImportDiscardRequest
+) -> ImportDraftView:
+    ingest = _ingest(request)
+    return await run_in_thread(
+        ingest.discard_import, import_id, expected_revision=body.expectedRevision
+    )
 
 
 # --------------------------------------------------------------------------- 任务

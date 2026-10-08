@@ -12,6 +12,7 @@
 | ``GET /score-imports/{importId}/rows`` | 预览行分页（物理坐标 + 两视图文本） |
 | ``PATCH /score-imports/{importId}`` | 映射/行定位/单元格校正（``expectedRevision`` CAS） |
 | ``POST /score-imports/{importId}/confirm`` | 三版本守卫 + 承认范围 + 幂等确认 |
+| ``POST /score-imports/{importId}/discard`` | 放弃未确认批次（``expectedRevision``；confirmed 409） |
 | ``GET /assessments/{assessmentId}/score-revisions`` | 修订历史（含冻结快照） |
 | ``GET /score-revisions/{revisionId}`` | 单个修订 |
 | ``GET /score-revisions/{revisionId}/matrix`` | 只读矩阵分页（items 固定叶；rows 分页） |
@@ -31,6 +32,7 @@ from fastapi import APIRouter, Query, Request, status
 from app.contracts.scores import (
     ScoreImportConfirmRequest,
     ScoreImportConfirmResult,
+    ScoreImportDiscardRequest,
     ScoreImportList,
     ScoreImportRefreshRequest,
     ScoreImportRowList,
@@ -186,6 +188,14 @@ async def refresh_score_import(
     request: Request, import_id: str, body: ScoreImportRefreshRequest
 ) -> ScoreImportView:
     return await _run(_service(request).refresh_import, import_id, body)
+
+
+@router.post("/score-imports/{import_id}/discard", response_model=ScoreImportView)
+async def discard_score_import(
+    request: Request, import_id: str, body: ScoreImportDiscardRequest
+) -> ScoreImportView:
+    """放弃未确认批次（误上传清理）：state=cancelled、revision+1；记录/文件/预览行保留。"""
+    return await _run(_service(request).discard_score_import, import_id, body)
 
 
 @router.get(

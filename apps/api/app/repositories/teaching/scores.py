@@ -61,9 +61,11 @@ SCORE_ROW_CORRUPT = "SCORE_ROW_CORRUPT"
 _SELECT_IMPORT = """
 SELECT i.id, i.assessment_id, i.file_id, i.base_score_revision_id,
        i.mapping_json, i.state, i.revision, i.preview_version, i.work_sheet,
-       i.summary_json, i.created_at, a.title AS assessment_title
+       i.summary_json, i.created_at, a.title AS assessment_title,
+       fa.original_name AS uploaded_file_name
   FROM score_imports i
   JOIN assessments a ON a.id = i.assessment_id
+  LEFT JOIN file_assets fa ON fa.id = i.file_id
 """
 
 _SELECT_ROWS = """
@@ -275,6 +277,8 @@ class ScoreImportRecord:
     mapping: dict[str, Any] | None
     summary: dict[str, Any]
     created_at: str
+    #: 上传原文件名（只读派生：LEFT JOIN file_assets；资产登记缺失时为 None，不伪造名称）
+    uploaded_file_name: str | None = None
     rows: tuple[ScoreImportRowRecord, ...] = ()
     row_count: int = 0
 
@@ -564,6 +568,24 @@ class ScoreRepository:
             "UPDATE score_imports SET state = 'confirmed', revision = revision + 1, "
             "summary_json = json_set(summary_json, '$.updatedAt', ?) WHERE id = ?",
             (now, import_id),
+        )
+        return self.require_in(conn, import_id)
+
+    def set_state_in(
+        self,
+        conn: sqlite3.Connection,
+        import_id: str,
+        *,
+        state: ScoreImportState,
+    ) -> ScoreImportRecord:
+        """只改批次状态并递增 ``revision``（放弃批次用）；预览行与原件资产一律不动。"""
+        import_id = _require_text(import_id, field="importId")
+        _check_import_state(state)
+        self.require_in(conn, import_id)
+        conn.execute(
+            "UPDATE score_imports SET state = ?, revision = revision + 1, "
+            "summary_json = json_set(summary_json, '$.updatedAt', ?) WHERE id = ?",
+            (state, now_iso(), import_id),
         )
         return self.require_in(conn, import_id)
 
@@ -1059,6 +1081,11 @@ class ScoreRepository:
         if not isinstance(summary_raw, dict):
             raise _corrupt("教学库数据损坏：score_imports.summary_json 不是对象。")
         rows = self._rows_in(conn, row["id"]) if with_rows else ()
+        uploaded_file_name = row["uploaded_file_name"]
+        if uploaded_file_name is not None and (
+            not isinstance(uploaded_file_name, str) or not uploaded_file_name
+        ):
+            raise _corrupt("教学库数据损坏：file_assets.original_name 结构不符。")
         return ScoreImportRecord(
             import_id=row["id"],
             assessment_id=row["assessment_id"],
@@ -1072,6 +1099,7 @@ class ScoreRepository:
             mapping=mapping,
             summary=dict(summary_raw),
             created_at=row["created_at"],
+            uploaded_file_name=uploaded_file_name,
             rows=rows,
             row_count=len(rows) if with_rows else self._row_count_in(conn, row["id"]),
         )

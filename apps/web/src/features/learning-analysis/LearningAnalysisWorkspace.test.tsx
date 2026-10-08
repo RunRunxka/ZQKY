@@ -2,9 +2,9 @@ import { StrictMode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { LearningAnalysisWorkspace } from './LearningAnalysisWorkspace';
-import { b4Api } from '@/services/teaching-loop-b4-api';
+import { b4Api, type AnalysisQuery } from '@/services/teaching-loop-b4-api';
 import { ApiError } from '@/services/api-client';
-import { classRow, deferred, evidenceRow, page, participant, run } from '@/features/practices/test-fixtures';
+import { classRow, deferred, evidenceRow, page, participant, point, run } from '@/features/practices/test-fixtures';
 
 vi.mock('@/services/assessments-api', () => ({
   listAssessments: vi.fn(async () => ({ items: [{ assessmentId: 'assessment-old', title: '历史施测', heldOn: '2026-10-01', activeScoreRevisionId: 'score-active' }], total: 1, offset: 0, limit: 50 })),
@@ -12,6 +12,8 @@ vi.mock('@/services/assessments-api', () => ({
   getScoreRevision: vi.fn(async (id: string) => ({ revisionId: id, assessmentId: 'assessment-old', paperRevisionId: 'paper-old', state: 'confirmed', version: 1, participantSnapshot: [participant, { ...participant, participantId: 'pb', attemptNo: 2 }] })),
   getAssessment: vi.fn(async () => ({ assessment: { paperId: 'paper-id', paperRevisionId: 'paper-old' }, participants: [] })),
   getPaperAsset: vi.fn(),
+  // 班名只读映射（固定成绩快照不含班名）：默认给一个真实班名，缺失态由用例覆盖。
+  listClasses: vi.fn(async () => ({ items: [{ id: 'class-a', name: '七一班', code: 'A' }], total: 1, offset: 0, limit: 200 })),
 }));
 vi.mock('@/services/workflow-jobs-api', () => ({ observeJob: vi.fn(async () => null), retryObservationWindow: (job: { attempt: number }) => ({ minAttempt: job.attempt, maxAttempt: job.attempt + 1 }), retryJob: vi.fn(), cancelJob: vi.fn() }));
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
@@ -96,5 +98,104 @@ describe('固定学情工作区', () => {
     }
     await screen.findByText('原备注已追加；发送后的新备注仍保留，尚未追加。');
     expect(input).toHaveValue('后续备注B'); expect(screen.getByRole('button', { name: '追加教师备注' })).toBeEnabled();
+  });
+  it('报告列表默认只看未归档；归档/恢复需二次确认并刷新列表', async () => {
+    const items = [{ ...run }];
+    const queries: Array<AnalysisQuery | undefined> = [];
+    const list = vi.fn(async (query?: AnalysisQuery) => { queries.push(query); return page(items); });
+    const archive = vi.fn(async (id: string) => ({ ...run, runId: id, archivedAt: '2026-10-06T00:00:00Z' }));
+    const restore = vi.fn(async (id: string) => ({ ...run, runId: id, archivedAt: null }));
+    render(<LearningAnalysisWorkspace services={services({ listAnalysisRuns: list, archiveAnalysisRun: archive, restoreAnalysisRun: restore })} />);
+    const history = await screen.findByRole('region', { name: '固定报告历史' });
+    await within(history).findByRole('button', { name: /已准备/ });
+    expect(queries[0]).toMatchObject({ archived: false });
+    fireEvent.click(within(history).getByRole('button', { name: '归档' }));
+    expect(archive).not.toHaveBeenCalled();
+    expect(within(history).getByText(/归档只隐藏列表入口，报告与快照保留且仍可查看/)).toBeInTheDocument();
+    fireEvent.click(within(history).getByRole('button', { name: '确认归档' }));
+    await waitFor(() => expect(archive).toHaveBeenCalledWith(run.runId));
+    await within(history).findByText(`已归档报告「${run.paperTitle} · 2026-10-02」：列表入口隐藏，报告与快照保留且仍可查看。`);
+    await waitFor(() => expect(queries.length).toBeGreaterThan(1));
+    items[0] = { ...run, archivedAt: '2026-10-06T00:00:00Z' };
+    fireEvent.click(within(history).getByLabelText('显示已归档'));
+    await within(history).findByText('已归档');
+    expect(queries.at(-1)?.archived).toBeUndefined();
+    fireEvent.click(within(history).getByRole('button', { name: '恢复' }));
+    expect(restore).not.toHaveBeenCalled();
+    fireEvent.click(within(history).getByRole('button', { name: '确认恢复' }));
+    await waitFor(() => expect(restore).toHaveBeenCalledWith(run.runId));
+    await within(history).findByText(`已恢复报告「${run.paperTitle} · 2026-10-02」：重新出现在未归档列表。`);
+  });
+  it('归档失败如实报错并保留重试入口，不伪装成功', async () => {
+    const archive = vi.fn(async () => { throw new ApiError('SERVICE_UNAVAILABLE', '响应丢失', 0, true); });
+    render(<LearningAnalysisWorkspace services={services({ archiveAnalysisRun: archive })} />);
+    const history = await screen.findByRole('region', { name: '固定报告历史' });
+    fireEvent.click(await within(history).findByRole('button', { name: '归档' }));
+    fireEvent.click(within(history).getByRole('button', { name: '确认归档' }));
+    await within(history).findByText('SERVICE_UNAVAILABLE');
+    expect(within(history).getByRole('button', { name: '确认归档' })).toBeEnabled();
+    fireEvent.click(within(history).getByRole('button', { name: '确认归档' }));
+    await waitFor(() => expect(archive).toHaveBeenCalledTimes(2));
+    expect(archive.mock.calls[0]).toEqual(archive.mock.calls[1]);
+  });
+  it('已归档报告仍可查看事实，但不提供新建练习入口', async () => {
+    const archivedRun = { ...run, archivedAt: '2026-10-06T00:00:00Z' };
+    render(<LearningAnalysisWorkspace initialRunId={run.runId} services={services({ listAnalysisRuns: vi.fn(async () => page([archivedRun])), getAnalysisRun: vi.fn(async () => archivedRun) })} />);
+    expect(await screen.findByText(/该报告已归档/)).toBeInTheDocument();
+    expect(await screen.findByRole('region', { name: '报告事实与证据' })).toBeInTheDocument();
+    expect(screen.getByText('已归档报告不能新建练习；在报告历史恢复后此入口自动恢复。')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: '创建针对练习' })).not.toBeInTheDocument();
+  });
+
+  it('班名有值用班名 + 短号次行；缺失才显示未记录班名（两态）', async () => {
+    const namedRun = { ...run, participants: [{ ...participant, className: '七一班' }] };
+    const namedRow = { ...classRow, className: '七一班' };
+    const namedStudent = { participant: { ...participant, className: '七一班' }, knowledgePoint: point, observation: 'needs_consolidation' as const, informationIncomplete: false, expectedCount: 2, validCount: 2, stateCounts: { recorded: 2, missing: 0, absent: 0, exempt: 0 }, totalScoreUnits: 0, totalMaxScoreUnits: 100 };
+    render(<LearningAnalysisWorkspace initialAssessmentId="assessment-old" initialScoreRevisionId="score-old" initialRunId={run.runId} services={services({
+      listAnalysisRuns: vi.fn(async () => page([namedRun])), getAnalysisRun: vi.fn(async () => namedRun),
+      listAnalysisClasses: vi.fn(async () => page([namedRow])), listAnalysisStudents: vi.fn(async () => page([namedStudent])),
+    })} />);
+    // 班级筛选下拉用班名；班级依据行班名为主、短号降为次行小字
+    expect(within(await screen.findByLabelText('报告班级筛选')).getByRole('option', { name: '七一班 · class-a' })).toBeInTheDocument();
+    const header = await screen.findByRole('rowheader', { name: /七一班/ });
+    expect(header).toHaveTextContent('class-a'); expect(header).toHaveTextContent('固定知识点');
+    // 固定成绩快照只冻结 classId：有班名时不显示「该成绩未记录班名」
+    expect((await screen.findAllByText(/学号 001 · 班级 七一班 · class-a/)).length).toBeGreaterThan(0);
+    expect(screen.queryByText('该成绩未记录班名')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: '学生依据' }));
+    expect(await screen.findByText('班级 七一班 · class-a')).toBeInTheDocument();
+    cleanup();
+    // 缺失态：短号 + 后端 note（不伪造名称）
+    render(<LearningAnalysisWorkspace initialRunId={run.runId} services={services()} />);
+    expect(await screen.findByText('后端比例 0.123456')).toBeInTheDocument();
+    expect(within(screen.getByLabelText('报告班级筛选')).getByRole('option', { name: 'class-a · 该成绩未记录班名' })).toBeInTheDocument();
+    expect(screen.getAllByText('该成绩未记录班名').length).toBeGreaterThan(0);
+  });
+
+  it('报告链与已归档说明用原卷标题 + 时间；备注用姓名/知识点名映射，映射不到才短号', async () => {
+    const archivedRun = { ...run, archivedAt: '2026-10-06T00:00:00Z' };
+    const notes = vi.fn(async () => page([
+      { noteId: 'n1', runId: run.runId, participantId: 'pa', knowledgePointId: 'kp-1', note: '甲的具体判断', createdAt: '2026-10-06T08:00:00Z', replayed: false },
+      { noteId: 'n2', runId: run.runId, participantId: 'missing-p', knowledgePointId: null, note: '映射不到的人次', createdAt: '2026-10-06T08:00:00Z', replayed: false },
+    ]));
+    const writeText = vi.fn(async () => undefined);
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
+    render(<LearningAnalysisWorkspace initialRunId={run.runId} services={services({
+      listAnalysisRuns: vi.fn(async () => page([archivedRun])), getAnalysisRun: vi.fn(async () => archivedRun), listAnalysisNotes: notes,
+    })} />);
+    // 详情链：原卷标题 + 时间为主文本，成绩/报告/原卷标识降为次行短号（run.createdAt 只有日期就不补时分）
+    const link = await screen.findByRole('link', { name: '固定原卷 · 2026-10-02' });
+    expect(link).toHaveAttribute('href', '/assessments?assessmentId=assessment-old&step=history');
+    expect(await screen.findByText('成绩修订 score-ol… · 报告 run-old · 原卷修订 paper-ol…')).toBeInTheDocument();
+    // 已归档说明行同样用原卷标题 + 时间，而不是 runId
+    expect(await screen.findByText(/报告「固定原卷 · 2026-10-02」与快照保留/)).toBeInTheDocument();
+    // 复制按钮给完整 ID（不是短号）
+    fireEvent.click(screen.getByRole('button', { name: '复制 ID' }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith('runId=run-old\nscoreRevisionId=score-old\npaperRevisionId=paper-old'));
+    expect(await screen.findByRole('button', { name: '已复制' })).toBeInTheDocument();
+    // 备注视图：人次/知识点用 run 内名称映射，映射不到才短号
+    fireEvent.click(screen.getByRole('tab', { name: '教师备注' }));
+    expect(await screen.findByText(/· 甲 · 人次1 · 固定知识点/)).toBeInTheDocument();
+    expect(await screen.findByText(/· missing-… · 全部知识点/)).toBeInTheDocument();
   });
 });

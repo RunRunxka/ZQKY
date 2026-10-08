@@ -43,6 +43,8 @@ export const ORGANIZER_FAILURE_COPY: Record<string, string> = {
     '所选聊天模型配置已不存在：请到「模型设置」重新选择默认问答模型后再整理；不会自动改用其他模型。',
   MODEL_PURPOSE_MISMATCH:
     '所选模型的用途不是聊天：请到「模型设置」改选聊天模型；不会自动改用其他模型。',
+  QUESTION_MODEL_NOT_CLOUD:
+    '题库 AI 不使用本机模型，请选择云端模型档案：到「模型设置 → 模型与连接」把默认问答模型换成云端档案后重试（本次没有创建任务，也没有调用模型）。',
   SERVICE_UNAVAILABLE: '后端题库整理服务未就绪：请确认后端服务已启动后重试。',
   // ----- 旧语义未完成任务：不自动恢复，建议保留 -----
   ORGANIZER_MODEL_RESELECT_REQUIRED:

@@ -40,6 +40,8 @@ def aggregate(facts: dict) -> dict:
     for (class_id, _), rows in sorted(by_class.items()):
         needs = sum(row["observation"] == "needs_consolidation" for row in rows)
         valid = sum(row["validCount"] > 0 for row in rows)
+        # 纯计算无法 JOIN：className 落 None 占位，展示名由读路径按同 owner 实时
+        # 补 classes.name（名称优先）；classNameNote 保留兼容旧前端。
         classes.append({"classId": class_id, "className": None, "classNameNote": "该成绩未记录班名",
                         "knowledgePoint": rows[0]["knowledgePoint"], "selectedCount": len(rows),
                         "validCount": valid, "needsCount": needs,

@@ -28,6 +28,8 @@ CLASS_STATUSES: frozenset[str] = frozenset({"active", "archived"})
 
 CLASS_NOT_FOUND = "CLASS_NOT_FOUND"
 CLASS_ROW_CORRUPT = "CLASS_ROW_CORRUPT"
+#: 受引用守卫：班级仍被名单/施测/教案引用时按此码 409 拒绝删除
+CLASS_IN_USE = "CLASS_IN_USE"
 
 _SELECT_CLASS = """
 SELECT c.id, c.owner_id, c.code, c.name, c.school_year, c.grade_id, c.status,
@@ -257,6 +259,57 @@ class ClassRepository:
         )
         return self._require_record_in(conn, class_id)
 
+    def count_references_in(self, conn: sqlite3.Connection, class_id: str) -> dict[str, int]:
+        """该班在下游表里的引用计数（受引用守卫的数据来源）。
+
+        ``memberships`` = ``class_memberships`` 行数（含已离班历史）；
+        ``rosterImports`` = ``roster_imports`` 批次数（名单导入历史，FK 指向班级）；
+        ``assessments`` = 参测范围 ``assessment_classes`` 行数；
+        ``lessonPlans`` = 教学库 ``lesson_plans.class_id`` 引用数。
+        """
+        class_id = _require_text(class_id, field="classId")
+        return {
+            "memberships": int(
+                conn.execute(
+                    "SELECT COUNT(*) AS n FROM class_memberships WHERE class_id = ?",
+                    (class_id,),
+                ).fetchone()["n"]
+            ),
+            "rosterImports": int(
+                conn.execute(
+                    "SELECT COUNT(*) AS n FROM roster_imports WHERE class_id = ?",
+                    (class_id,),
+                ).fetchone()["n"]
+            ),
+            "assessments": int(
+                conn.execute(
+                    "SELECT COUNT(*) AS n FROM assessment_classes WHERE class_id = ?",
+                    (class_id,),
+                ).fetchone()["n"]
+            ),
+            "lessonPlans": int(
+                conn.execute(
+                    "SELECT COUNT(*) AS n FROM lesson_plans WHERE class_id = ?",
+                    (class_id,),
+                ).fetchone()["n"]
+            ),
+        }
+
+    def delete_in(
+        self, conn: sqlite3.Connection, class_id: str, *, expected_revision: int
+    ) -> None:
+        """物理删除班级行（受引用守卫通过后由服务层调用）。
+
+        乐观锁在守卫阶段核验；行不存在时 404，不静默成功。子行（归属/施测范围/
+        教案）必须先被守卫排除，这里不做级联删除。
+        """
+        class_id = _require_text(class_id, field="classId")
+        current = self._require_row_in(conn, class_id)
+        _check_revision(current["revision"], expected_revision)
+        cursor = conn.execute("DELETE FROM classes WHERE id = ?", (class_id,))
+        if cursor.rowcount != 1:  # pragma: no cover - 刚读到过该行
+            raise _not_found(class_id)
+
     # -------------------------------------------------------------- 读取
 
     def get(self, class_id: str) -> ClassRecord:
@@ -375,6 +428,7 @@ class ClassRepository:
 
 
 __all__ = [
+    "CLASS_IN_USE",
     "CLASS_NOT_FOUND",
     "CLASS_ROW_CORRUPT",
     "CLASS_STATUSES",

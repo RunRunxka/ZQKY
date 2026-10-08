@@ -18,8 +18,11 @@ import anyio
 from fastapi import APIRouter, Query, Request, Response, status
 
 from app.contracts.knowledge import (
+    KnowledgeExtractionPreview,
+    KnowledgeExtractionRequest,
     KnowledgeImportConfirmRequest,
     KnowledgeImportConfirmResult,
+    KnowledgeImportDiscardRequest,
     KnowledgeImportList,
     KnowledgeImportPatchRequest,
     KnowledgeImportView,
@@ -100,6 +103,8 @@ async def list_knowledge_points(
     status_filter: str | None = Query(default=None, alias="status"),
     parentId: str | None = None,
     q: str | None = None,
+    scope: str | None = None,
+    gradeId: str | None = None,
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=200),
 ) -> KnowledgePointList:
@@ -110,6 +115,8 @@ async def list_knowledge_points(
         status=status_filter,
         parent_id=parentId,
         q=q,
+        scope=scope,
+        grade_id=gradeId,
         offset=offset,
         limit=limit,
     )
@@ -151,6 +158,26 @@ async def restore_knowledge_point(
 ) -> KnowledgePointView:
     service = _service(request)
     return await _run(service.set_archived, point_id, body, archived=False)
+
+
+@router.delete("/knowledge-points/{point_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_knowledge_point(
+    request: Request,
+    point_id: str,
+    expectedRevision: int = Query(ge=0),
+) -> Response:
+    """彻底删除（任务①）：跨库守卫任一命中 409 ``KNOWLEDGE_POINT_IN_USE``。
+
+    守卫覆盖知识点库教材依据、教学库原卷题目关联、题库正式/草稿关联；
+    通过后同一写事务删除别名 → 修订 → 身份行。
+    """
+    service = _service(request)
+    await _run(
+        service.delete_point,
+        point_id,
+        KnowledgePointRevisionRequest(expected_revision=expectedRevision),
+    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 # --------------------------------------------------------------------------- 教材依据
@@ -258,6 +285,15 @@ async def confirm_knowledge_import(
     return await _run(service.confirm_import, import_id, body)
 
 
+@router.post("/knowledge-imports/{import_id}/discard")
+async def discard_knowledge_import(
+    request: Request, import_id: str, body: KnowledgeImportDiscardRequest
+) -> KnowledgeImportView:
+    """放弃未确认批次（误上传清理）：``state=cancelled``；记录/文件/预览行保留。"""
+    service = _service(request)
+    return await _run(service.discard_import, import_id, body)
+
+
 # --------------------------------------------------------------------------- AI 候选
 
 
@@ -271,6 +307,35 @@ async def create_knowledge_suggestion_job(
     """AI 候选：202 只代表任务被接受；候选落在 ``source="ai"`` 的待确认批次里。"""
     service = _service(request)
     return await service.create_suggestion_job(body)
+
+
+# --------------------------------------------------------------------------- 教材提取（任务③）
+
+
+@router.get("/knowledge-extraction/preview")
+async def knowledge_extraction_preview(
+    request: Request, subjectId: str = Query(min_length=1, max_length=64)
+) -> KnowledgeExtractionPreview:
+    """预览某学科全部已入库教材的提取清单（只读；未就绪书册带 reason）。"""
+    service = _service(request)
+    return await _run(service.extraction_preview, subjectId)
+
+
+@router.post(
+    "/knowledge-extraction-jobs",
+    status_code=status.HTTP_202_ACCEPTED,
+)
+async def create_knowledge_extraction_jobs(
+    request: Request, body: KnowledgeExtractionRequest
+) -> list[JobView]:
+    """提取任务受理：**每个书册一个** AI 候选任务（202 只代表任务被接受）。
+
+    ``documentIds`` 缺省 = 该学科全部就绪书册；指定时含未就绪书册 → 409
+    ``KNOWLEDGE_EXTRACTION_NOT_READY`` 逐册列出，不静默跳过、不部分受理。
+    候选仍只进 ``source="ai"`` 的待确认批次，确认后自动建教材依据。
+    """
+    service = _service(request)
+    return await service.create_extraction_jobs(body)
 
 
 __all__ = ["router"]

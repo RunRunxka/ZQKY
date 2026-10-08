@@ -225,6 +225,33 @@ export interface QuestionConfirmRequest {
   duplicateResolutions: DuplicateResolution[];
 }
 
+/**
+ * 放弃未确认题库批次（对应后端 `QuestionImportDiscardRequest`）：
+ * 只把状态置 `cancelled`，批次记录、原文与草稿保留。
+ */
+export interface QuestionImportDiscardRequest {
+  expectedRevision: number;
+}
+
+/**
+ * 彻底删除未确认批次（`DELETE /question-imports/{id}`）的回执：
+ * 只声明库行已删除；**受管原件（blobs）由服务端保留**，界面文案必须如实说明。
+ */
+export interface QuestionImportDeleteResult {
+  deleted: boolean;
+  importId: string;
+}
+
+/**
+ * 彻底删除被拒（409 `IMPORT_IN_USE`）时 `details` 的形状：
+ * `sourceRefCount` = 指向本批次的正式题来源登记数；
+ * `mergedDraftCount` = 已并入正式题的草稿数（两者任一 > 0 都不可删）。
+ */
+export interface QuestionImportInUseDetails {
+  sourceRefCount: number;
+  mergedDraftCount: number;
+}
+
 export interface ConfirmFailure {
   draftId: string;
   code: string;

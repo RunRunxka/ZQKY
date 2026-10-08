@@ -8,18 +8,22 @@
 import { describe, expect, it } from 'vitest';
 import {
   ABSENT_TOKENS,
+  CLASS_REFERENCE_LABELS,
   EXEMPT_TOKENS,
   cellValueText,
   formatScoreUnits,
   issueLocationLabel,
   matrixRowTotalText,
+  nameOrShortId,
   parseScoreText,
   rawCellReading,
+  referenceCounts,
   scoreStatusChipClass,
   scoreStatusGlyph,
   scoreStatusLabel,
   scoreUnitsText,
   SCORE_STATUS_LEGEND,
+  shortId,
 } from './labels';
 
 describe('分数文本：整数单位 ↔ 十进制字符串（字符串运算）', () => {
@@ -147,4 +151,31 @@ describe('物理定位与承认范围推导', () => {
     expect(issueLocationLabel({ code: 'X', message: 'y' })).toBe('');
   });
 
+});
+
+describe('名称优先与守卫原因计数', () => {
+  it('短号只截长 id；名称在就用名称，缺失回落短号（不伪造名称）', () => {
+    expect(shortId('as-deep')).toBe('as-deep');
+    expect(shortId('1180b59be2ca4ad48e36958b96af97e3')).toBe('1180b59b…');
+    expect(shortId(null)).toBe('—');
+    expect(nameOrShortId('测试一班', 'c-1')).toBe('测试一班');
+    expect(nameOrShortId('  ', 'c-1')).toBe('c-1');
+    expect(nameOrShortId(null, '1180b59be2ca4ad48e36958b96af97e3')).toBe('1180b59b…');
+  });
+
+  it('守卫计数只留 >0 的键，未知键用原始键名兜底，形状不符给空数组', () => {
+    expect(referenceCounts(undefined, CLASS_REFERENCE_LABELS)).toEqual([]);
+    expect(referenceCounts({}, CLASS_REFERENCE_LABELS)).toEqual([]);
+    expect(referenceCounts({ counts: 'x' }, CLASS_REFERENCE_LABELS)).toEqual([]);
+    expect(
+      referenceCounts(
+        { counts: { memberships: 2, rosterImports: 0, assessments: 1, mystery: 3 } },
+        CLASS_REFERENCE_LABELS,
+      ),
+    ).toEqual([
+      { key: 'memberships', label: '班级归属记录', count: 2 },
+      { key: 'assessments', label: '参测范围引用', count: 1 },
+      { key: 'mystery', label: 'mystery', count: 3 },
+    ]);
+  });
 });

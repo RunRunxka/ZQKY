@@ -23,7 +23,9 @@ import type {
   QuestionConfirmRequest,
   QuestionDetail,
   QuestionGenerationRequest,
+  QuestionImportDeleteResult,
   QuestionImportDetail,
+  QuestionImportDiscardRequest,
   QuestionImportList,
   QuestionList,
   QuestionPatchRequest,
@@ -161,6 +163,37 @@ export function getQuestionImport(id: string, signal?: AbortSignal): Promise<Que
   return apiRequest<QuestionImportDetail>(`/question-imports/${encodeURIComponent(id)}`, {
     signal,
   });
+}
+
+/**
+ * 放弃未确认批次（误上传清理）：只置 `state=cancelled`；批次记录、原文与草稿保留。
+ * 后端返回到导入详情视图，形状与本文件的 `QuestionImportDetail` 一致。
+ */
+export function discardQuestionImport(
+  id: string,
+  body: QuestionImportDiscardRequest,
+): Promise<QuestionImportDetail> {
+  return apiRequest<QuestionImportDetail>(
+    `/question-imports/${encodeURIComponent(id)}/discard`,
+    jsonInit('POST', body),
+  );
+}
+
+/**
+ * **彻底删除**未确认批次及其解析产物（`DELETE /question-imports/{id}`）。
+ *
+ * 与「放弃」互补：放弃保留批次记录（状态置 `cancelled`），本接口把批次与解析产物从库里移除。
+ * 守卫（任一命中即 409，一个字节都不删）：
+ * - 已确认批次 → `IMPORT_ALREADY_CONFIRMED`（正式题源自它，来源追溯必须保留）；
+ * - 草稿被正式题引用 → `IMPORT_IN_USE`（`details` 带 `sourceRefCount` / `mergedDraftCount`）；
+ * - 不存在 → 404。
+ * **受管原件（blobs）不被删除**（内容寻址，可能被其他批次复用）；界面文案必须如实说明。
+ */
+export function deleteQuestionImport(id: string): Promise<QuestionImportDeleteResult> {
+  return apiRequest<QuestionImportDeleteResult>(
+    `/question-imports/${encodeURIComponent(id)}`,
+    { method: 'DELETE' },
+  );
 }
 
 /* ------------------------------------------------------------------ 草稿校对 */

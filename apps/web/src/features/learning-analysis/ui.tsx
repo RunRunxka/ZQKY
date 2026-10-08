@@ -15,6 +15,45 @@ export const statusLabel = { recorded: '有效记录', missing: '空白', absent
 export const attendanceLabel = { present: '参加', absent: '缺考', exempt: '免考' };
 export function scoreText(units: number | null) { return units === null ? '—' : (units / 100).toFixed(2).replace(/\.00$/, ''); }
 
+/* ------------------------------------------------------------------ 名称优先的展示回落 */
+
+/** 短号：长 ID 只留前 8 位并加省略号；缺失给「—」，不伪造身份。 */
+export function shortId(id: string | null | undefined, length = 8): string {
+  if (!id) return '—';
+  return id.length <= length ? id : `${id.slice(0, length)}…`;
+}
+
+/** 名称优先：名称非空用名称，否则回落短号（名称缺失不猜造、不用占位名）。 */
+export function nameOrShortId(name: string | null | undefined, id: string | null | undefined): string {
+  const trimmed = typeof name === 'string' ? name.trim() : '';
+  return trimmed !== '' ? trimmed : shortId(id);
+}
+
+/**
+ * 时间显示：后端 ISO 串原样截取（`2026-10-02T09:30:00Z` → `2026-10-02 09:30`），
+ * 不做时区换算，避免把 UTC 值伪装成本地时间；缺失回落「时间未记录」而不猜造。
+ */
+export function stampText(value: string | null | undefined): string {
+  if (!value) return '时间未记录';
+  const match = /^(\d{4}-\d{2}-\d{2})(?:[T ](\d{2}:\d{2}))?/.exec(value);
+  if (!match) return value;
+  return match[2] ? `${match[1]} ${match[2]}` : match[1];
+}
+
+/**
+ * 班级显示（名称优先）：有班名时班名为主、短号降为次行小字；班名缺失才回落短号 + 后端 note。
+ * 两个分支都不伪造名称，也不隐藏「未记录班名」这一事实。
+ */
+export function classDisplay(
+  className: string | null | undefined,
+  classId: string,
+  note?: string | null,
+): { label: string; meta: string } {
+  const name = typeof className === 'string' ? className.trim() : '';
+  if (name !== '') return { label: name, meta: shortId(classId) };
+  return { label: shortId(classId), meta: (note ?? '').trim() || '该成绩未记录班名' };
+}
+
 export function ErrorNotice({ error }: { error: ApiError | null }) {
   if (!error) return null;
   return <div className="space-banner error" role="alert">

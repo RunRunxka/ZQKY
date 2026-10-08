@@ -38,6 +38,10 @@ MAX_LIST_LIMIT = 200
 PAPER_ROW_CORRUPT = "PAPER_ROW_CORRUPT"
 #: 按 id 找不到原卷/修订的稳定错误码
 PAPER_REVISION_NOT_FOUND = "PAPER_REVISION_NOT_FOUND"
+#: 受引用守卫：原卷被施测引用时按此码 409 拒绝删除
+PAPER_IN_USE = "PAPER_IN_USE"
+#: 受引用守卫：原卷存在已确认修订（DB 触发器禁止删除），只能归档
+PAPER_HAS_CONFIRMED_REVISION = "PAPER_HAS_CONFIRMED_REVISION"
 
 _BLOCK_KINDS = frozenset({"paragraph", "table", "formula", "image", "unknown"})
 _REVISION_STATES = frozenset({"draft", "confirmed"})
@@ -449,6 +453,10 @@ class PaperRepository:
         row = conn.execute("SELECT * FROM papers WHERE id = ?", (paper_id,)).fetchone()
         return _paper_record(row) if row is not None else None
 
+    def get_paper(self, paper_id: str) -> PaperRecord | None:
+        with self._catalog.read_connection() as conn:
+            return self.get_paper_in(conn, paper_id)
+
     def require_paper_in(self, conn: sqlite3.Connection, paper_id: str) -> PaperRecord:
         record = self.get_paper_in(conn, paper_id)
         if record is None:
@@ -473,9 +481,89 @@ class PaperRepository:
         return _row_int(row, "revision")
 
     def set_status_in(self, conn: sqlite3.Connection, paper_id: str, status: str) -> None:
+        """归档/恢复：改状态并**递增编辑锁 revision**（在途草稿/确认按陈旧冲突处理）。
+
+        原卷不存在时不静默无操作，直接 404。
+        """
         if status not in _PAPER_STATUSES:
             raise _invalid(f"status 必须是 {sorted(_PAPER_STATUSES)} 之一。", fields=["status"])
-        conn.execute("UPDATE papers SET status = ? WHERE id = ?", (status, paper_id))
+        cursor = conn.execute(
+            "UPDATE papers SET status = ?, revision = revision + 1 WHERE id = ?",
+            (status, paper_id),
+        )
+        if not cursor.rowcount:
+            raise _not_found(f"原卷不存在：{paper_id}。")
+
+    def count_references_in(self, conn: sqlite3.Connection, paper_id: str) -> int:
+        """该卷修订被施测引用的次数（``assessments.paper_revision_id``）。
+
+        用于受引用守卫：任一施测指向本卷修订 → 删除被 409 拒绝。
+        """
+        paper_id = _require_text(paper_id, field="paper_id")
+        row = conn.execute(
+            "SELECT COUNT(*) AS n FROM assessments a "
+            "JOIN paper_revisions r ON r.id = a.paper_revision_id "
+            "WHERE r.paper_id = ?",
+            (paper_id,),
+        ).fetchone()
+        return int(row["n"])
+
+    def confirmed_revision_count_in(self, conn: sqlite3.Connection, paper_id: str) -> int:
+        """该卷已确认修订数（``paper_revisions.state='confirmed'``）。
+
+        数据库触发器 ``immutable_paper_revisions_delete`` 禁止删除已确认修订，
+        守卫先把这种情况拦下并如实告知"已确认原卷只能归档"。
+        """
+        paper_id = _require_text(paper_id, field="paper_id")
+        row = conn.execute(
+            "SELECT COUNT(*) AS n FROM paper_revisions WHERE paper_id = ? AND state = 'confirmed'",
+            (paper_id,),
+        ).fetchone()
+        return int(row["n"])
+
+    def list_revision_ids_in(self, conn: sqlite3.Connection, paper_id: str) -> list[str]:
+        """该卷全部修订 id（删除时按修订收集子行）。"""
+        paper_id = _require_text(paper_id, field="paper_id")
+        rows = conn.execute(
+            "SELECT id FROM paper_revisions WHERE paper_id = ?", (paper_id,)
+        ).fetchall()
+        return [row["id"] for row in rows]
+
+    def delete_paper_in(self, conn: sqlite3.Connection, paper_id: str) -> None:
+        """在同一写事务内按外键顺序删除该卷全部修订及其子行，最后删除 ``papers`` 行。
+
+        前置：调用方已通过受引用守卫（无已确认修订、无施测引用）。
+        ``papers.current_revision_id`` 外键指回修订（DEFERRABLE），先置 NULL 再删子行，
+        保证删除顺序与外键检查兼容；行不存在时 404，不静默成功。
+        """
+        paper_id = _require_text(paper_id, field="paper_id")
+        if self.get_paper_in(conn, paper_id) is None:
+            raise _not_found(f"原卷不存在：{paper_id}。")
+        self.set_current_revision_in(conn, paper_id, None)
+        revision_ids = self.list_revision_ids_in(conn, paper_id)
+        for revision_id in revision_ids:
+            conn.execute(
+                "DELETE FROM paper_item_knowledge WHERE paper_revision_id = ?",
+                (revision_id,),
+            )
+            conn.execute(
+                "DELETE FROM paper_items WHERE paper_revision_id = ?", (revision_id,)
+            )
+            conn.execute(
+                "DELETE FROM paper_source_blocks WHERE paper_revision_id = ?",
+                (revision_id,),
+            )
+            conn.execute(
+                "DELETE FROM paper_issues WHERE paper_revision_id = ?", (revision_id,)
+            )
+            conn.execute(
+                "DELETE FROM ai_proposals WHERE target_kind = 'paper_revision' AND target_id = ?",
+                (revision_id,),
+            )
+        conn.execute("DELETE FROM paper_revisions WHERE paper_id = ?", (paper_id,))
+        cursor = conn.execute("DELETE FROM papers WHERE id = ?", (paper_id,))
+        if cursor.rowcount != 1:  # pragma: no cover - 事务开头刚读到该行
+            raise _not_found(f"原卷不存在：{paper_id}。")
 
     def list_papers(
         self,
@@ -1270,6 +1358,8 @@ __all__ = [
     "ItemKnowledgeRecord",
     "ItemRecord",
     "IssueRecord",
+    "PAPER_HAS_CONFIRMED_REVISION",
+    "PAPER_IN_USE",
     "PAPER_REVISION_NOT_FOUND",
     "PAPER_ROW_CORRUPT",
     "PaperRecord",

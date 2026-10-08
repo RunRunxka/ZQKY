@@ -66,10 +66,10 @@ async def test_full_offline_backup_restores_all_six_populated_b5_tables_assets_a
         before = {key: rows(root / path) for key, path in relative.items()}
         assert all(before["teaching"][table] for table in LESSON_TABLES)
         with closing(open_readonly(root / relative["teaching"])) as conn:
-            old_hashes = {key: value for key, value in applied_migrations(conn).items() if key != "0010"}
+            old_hashes = {key: value for key, value in applied_migrations(conn).items() if key not in ("0010", "0011_analysis_runs_archived_at")}
             assert len(old_hashes) == 9
             verify_registered_lesson_schema(conn)
-            assert applied_migrations(conn)["0010"] == REGISTERED_MIGRATIONS["teaching"][-1].sha256
+            assert applied_migrations(conn)["0010"] == next(m for m in REGISTERED_MIGRATIONS["teaching"] if m.id == "0010").sha256
             assets = [dict(row) for row in conn.execute("SELECT blob_key,sha256,byte_size FROM file_assets")]
         for asset in assets:
             data = (root / "assets" / asset["blob_key"]).read_bytes()
@@ -105,7 +105,7 @@ async def test_full_offline_backup_restores_all_six_populated_b5_tables_assets_a
                 assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
                 if key == "teaching":
                     verify_registered_lesson_schema(conn)
-                    assert {k: v for k, v in applied_migrations(conn).items() if k != "0010"} == old_hashes
+                    assert {k: v for k, v in applied_migrations(conn).items() if k not in ("0010", "0011_analysis_runs_archived_at")} == old_hashes
         for asset in assets:
             assert (restored / "assets" / asset["blob_key"]).read_bytes() == (root / "assets" / asset["blob_key"]).read_bytes()
         from app.main import create_app

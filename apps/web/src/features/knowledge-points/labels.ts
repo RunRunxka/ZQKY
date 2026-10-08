@@ -12,6 +12,8 @@ import type { ErrorIssue } from '@/contracts/api';
 import type {
   KnowledgeImportSource,
   KnowledgeImportState,
+  KnowledgePointReferenceCount,
+  KnowledgePointScope,
   KnowledgePointStatus,
   KnowledgeRowAction,
 } from '@/contracts/knowledge';
@@ -72,6 +74,115 @@ export const BLOCKING_ISSUE_CODES: readonly string[] = [
   'KNOWLEDGE_ARCHIVED',
   'KNOWLEDGE_CODE_CONFLICT',
 ];
+
+/* ------------------------------------------------------------------ 范围 / 年级 / 删除 */
+
+/** 列表范围切档文案（与设计 3.2 一致：默认窄口径在前）。 */
+export const KNOWLEDGE_POINT_SCOPE_LABEL: Record<KnowledgePointScope, string> = {
+  taught: '任教范围内教材',
+  subject: '学科全部教材',
+};
+
+/** `scope=taught` 未能就绪（未设置任教范围 / 索引代未发布）：409，绝不静默回退全部。 */
+export const KNOWLEDGE_SCOPE_UNAVAILABLE_CODE = 'KNOWLEDGE_SCOPE_UNAVAILABLE';
+
+/** 知识点仍被引用（含仍有子节点）：409 `KNOWLEDGE_POINT_IN_USE`。 */
+export const KNOWLEDGE_POINT_IN_USE_CODE = 'KNOWLEDGE_POINT_IN_USE';
+
+/** 教材提取受理时书册未就绪：409 `KNOWLEDGE_EXTRACTION_NOT_READY`（逐册给原因）。 */
+export const KNOWLEDGE_EXTRACTION_NOT_READY_CODE = 'KNOWLEDGE_EXTRACTION_NOT_READY';
+
+/** 任教范围设置入口（`/knowledge-bases` 顶部的「任教范围」面板）。 */
+export const TAUGHT_SCOPE_SETTINGS_HREF = '/knowledge-bases';
+
+/** 删除守卫 `details.counts` 里的库名 → 可读库名（未知库名原样展示，不猜造）。 */
+export const REFERENCE_LIBRARY_LABEL: Record<string, string> = {
+  knowledge: '知识点库',
+  teaching: '教学库',
+  question_bank: '题库',
+};
+
+/** 删除守卫 `details.counts` 里的引用键 → 可读原因（未知键原样展示）。 */
+export const REFERENCE_KEY_LABEL: Record<string, string> = {
+  textbookKnowledgeLinks: '教材依据',
+  paperItemKnowledge: '原卷题目关联',
+  questionKnowledgeLinks: '题库正式题关联',
+  questionDraftKnowledgeLinks: '题库草稿关联',
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+/**
+ * 解析 409 `KNOWLEDGE_POINT_IN_USE` 的 `details.counts`。
+ * 形状不认识、缺 `counts` 或全部计数为 0 时返回 null（**不伪造原因清单**）；
+ * `count` 非有限数字的项直接丢弃（宁可少一行，也不显示假计数）。
+ */
+export function parseKnowledgeReferenceCounts(
+  details: unknown,
+): KnowledgePointReferenceCount[] | null {
+  if (!isRecord(details) || !Array.isArray(details.counts)) return null;
+  const counts: KnowledgePointReferenceCount[] = [];
+  for (const item of details.counts) {
+    if (!isRecord(item)) continue;
+    const library = typeof item.library === 'string' ? item.library : '';
+    const key = typeof item.key === 'string' ? item.key : '';
+    const count = item.count;
+    if (typeof count !== 'number' || !Number.isFinite(count)) continue;
+    counts.push({ library, key, count });
+  }
+  const hits = counts.filter((item) => item.count > 0);
+  return counts.length > 0 ? hits : null;
+}
+
+/** 单条引用计数的可读文案（库名 · 引用键：N 处）。 */
+export function referenceCountLabel(item: KnowledgePointReferenceCount): string {
+  const library = REFERENCE_LIBRARY_LABEL[item.library] ?? item.library;
+  const key = REFERENCE_KEY_LABEL[item.key] ?? item.key;
+  return library && key ? `${library} · ${key}：${item.count} 处` : `${key || library}：${item.count} 处`;
+}
+
+/** 未就绪书册（409 `KNOWLEDGE_EXTRACTION_NOT_READY` 的 `details.documents`）。 */
+export interface ExtractionNotReadyDocument {
+  documentId: string;
+  title: string;
+  reason: string;
+}
+
+/** 解析未就绪书册清单；形状不认识时返回 null（不猜造书名与原因）。 */
+export function parseExtractionNotReadyDocuments(
+  details: unknown,
+): ExtractionNotReadyDocument[] | null {
+  if (!isRecord(details) || !Array.isArray(details.documents)) return null;
+  const documents: ExtractionNotReadyDocument[] = [];
+  for (const item of details.documents) {
+    if (!isRecord(item)) continue;
+    documents.push({
+      documentId: typeof item.documentId === 'string' ? item.documentId : '',
+      title: typeof item.title === 'string' ? item.title : '',
+      reason: typeof item.reason === 'string' ? item.reason : '',
+    });
+  }
+  return documents.length > 0 ? documents : null;
+}
+
+/**
+ * 当前结果里出现过的年级 id（去重、保持出现顺序）。
+ * 教材字典的年级定义不可用时的降级来源；只汇总服务端确实返回的 `gradeIds`。
+ */
+export function collectResultGradeIds(items: readonly { gradeIds?: string[] }[]): string[] {
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+  for (const item of items) {
+    for (const gradeId of item.gradeIds ?? []) {
+      if (!gradeId || seen.has(gradeId)) continue;
+      seen.add(gradeId);
+      ordered.push(gradeId);
+    }
+  }
+  return ordered;
+}
 
 export function knowledgeStatusLabel(status: KnowledgePointStatus): string {
   return KNOWLEDGE_STATUS_LABEL[status] ?? String(status);

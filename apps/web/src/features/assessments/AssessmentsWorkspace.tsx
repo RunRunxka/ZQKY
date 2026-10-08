@@ -10,15 +10,17 @@
  * 真实数据全部来自 FastAPI（名单/原卷/施测/成绩端点）；本页不伪造任何"已入库"状态。
  */
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useEntrance } from '@/components/motion/useEntrance';
 import '@/components/layout/space.css';
 import '@/features/assessments/styles/assessments.css';
+import { getAssessment } from '@/services/assessments-api';
 import { RosterPanel } from './RosterPanel';
 import { PapersPanel, type SelectedPaper } from './PapersPanel';
 import { AssessmentsPanel } from './AssessmentsPanel';
 import { ScorePanel } from './ScorePanel';
 import { HistoryPanel } from './HistoryPanel';
+import { shortId } from './labels';
 
 type Step = 'roster' | 'paper' | 'assessment' | 'score' | 'history';
 
@@ -44,6 +46,9 @@ export function AssessmentsWorkspace({ initialAssessmentId, initialStep }: { ini
   const [selectedClassName, setSelectedClassName] = useState<string | null>(null);
   const [selectedPaper, setSelectedPaper] = useState<SelectedPaper | null>(null);
   const [selectedAssessmentId, setSelectedAssessmentId] = useState<string | null>(initialAssessmentId ?? null);
+  /** 施测标题：选择时随 id 一起回传；深链进入时由 `getAssessment()` 回读，失败保持短号回落。 */
+  const [selectedAssessmentTitle, setSelectedAssessmentTitle] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
   const [rosterRefreshToken, setRosterRefreshToken] = useState(0);
 
@@ -60,8 +65,65 @@ export function AssessmentsWorkspace({ initialAssessmentId, initialStep }: { ini
   }
 
   function selectClass(classId: string, name?: string) {
-    setSelectedClassId(classId);
-    setSelectedClassName(name ?? null);
+    setSelectedClassId(classId || null);
+    setSelectedClassName(name || null);
+  }
+
+  /** 选择/取消选择施测：标题随回传（缺标题时由下面的深链回读补，没有就显示短号）。 */
+  function selectAssessment(assessmentId: string | null, title?: string | null) {
+    setSelectedAssessmentId(assessmentId || null);
+    setSelectedAssessmentTitle(title || null);
+  }
+
+  /**
+   * 深链（`?assessmentId=`）只给 id：回读一次标题用于状态条。
+   * 读取失败不伪造名称，保持「施测 <短号>」并保留原 id 可用。
+   */
+  useEffect(() => {
+    if (!selectedAssessmentId || selectedAssessmentTitle) return;
+    const controller = new AbortController();
+    let active = true;
+    getAssessment(selectedAssessmentId, controller.signal).then(
+      (detail) => {
+        if (active) setSelectedAssessmentTitle(detail?.assessment?.title ?? null);
+      },
+      () => {
+        /* 回读失败：状态条退回短号，不猜测标题 */
+      },
+    );
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [selectedAssessmentId, selectedAssessmentTitle]);
+
+  const classChipText = selectedClassName
+    ?? (selectedClassId ? `未命名班级（${shortId(selectedClassId)}）` : '未选择');
+  const paperChipText = selectedPaper
+    ? `${selectedPaper.title} · v${selectedPaper.version}`
+    : '未选用';
+  const assessmentChipText = selectedAssessmentTitle
+    ?? (selectedAssessmentId ? `施测 ${shortId(selectedAssessmentId)}` : '未选择');
+  const contextIdText = [
+    selectedClassId ? `班级 ${shortId(selectedClassId)}` : null,
+    selectedPaper ? `原卷修订 ${shortId(selectedPaper.paperRevisionId)}` : null,
+    selectedAssessmentId ? `施测 ${shortId(selectedAssessmentId)}` : null,
+  ].filter((entry): entry is string => entry !== null);
+
+  /** 复制完整 ID（不是短号）；剪贴板不可用或被拒时静默，文本仍可手动选中复制。 */
+  async function copyContextIds() {
+    const text = [
+      selectedClassId ? `classId=${selectedClassId}` : null,
+      selectedPaper ? `paperRevisionId=${selectedPaper.paperRevisionId}` : null,
+      selectedAssessmentId ? `assessmentId=${selectedAssessmentId}` : null,
+    ].filter((entry): entry is string => entry !== null).join('\n');
+    try {
+      if (!navigator.clipboard?.writeText) return;
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+    } catch {
+      /* 复制失败：不报错、不改状态；ID 文本保留可选 */
+    }
   }
 
   return (
@@ -93,15 +155,32 @@ export function AssessmentsWorkspace({ initialAssessmentId, initialStep }: { ini
         </nav>
 
         <div className="assessments-context" aria-live="polite" data-motion-reveal>
-          <span className="space-chip">
-            班级：{selectedClassName ?? selectedClassId ?? '未选择'}
+          <span className="space-chip blue" data-testid="assessments-context-class">
+            班级：{classChipText}
           </span>
-          <span className="space-chip">
-            原卷：{selectedPaper ? selectedPaper.title : '未选用'}
+          <span className="space-chip blue" data-testid="assessments-context-paper">
+            原卷：{paperChipText}
           </span>
-          <span className="space-chip">
-            施测：{selectedAssessmentId ?? '未选择'}
+          <span className="space-chip blue" data-testid="assessments-context-assessment">
+            施测：{assessmentChipText}
           </span>
+        </div>
+        <div className="assessments-meta assessments-context-meta" data-testid="assessments-context-ids">
+          {contextIdText.length > 0 ? (
+            <>
+              <span>ID：{contextIdText.join(' · ')}</span>
+              <button
+                type="button"
+                className="space-button"
+                data-testid="assessments-copy-ids"
+                onClick={() => void copyContextIds()}
+              >
+                {copied ? '已复制' : '复制 ID'}
+              </button>
+            </>
+          ) : (
+            <span>ID：尚未选择班级 / 原卷 / 施测</span>
+          )}
         </div>
 
         <section
@@ -114,7 +193,7 @@ export function AssessmentsWorkspace({ initialAssessmentId, initialStep }: { ini
           {visited.has('roster') && (
           <RosterPanel
             selectedClassId={selectedClassId}
-            onSelectClass={(classId) => selectClass(classId)}
+            onSelectClass={(classId, name) => selectClass(classId, name)}
             refreshToken={refreshToken}
             onChanged={() => setRosterRefreshToken((value) => value + 1)}
           />
@@ -151,7 +230,7 @@ export function AssessmentsWorkspace({ initialAssessmentId, initialStep }: { ini
             classId={selectedClassId}
             className={selectedClassName}
             selectedAssessmentId={selectedAssessmentId}
-            onSelectAssessment={setSelectedAssessmentId}
+            onSelectAssessment={selectAssessment}
             onOpenScore={() => go('score')}
             refreshToken={refreshToken}
             rosterRefreshToken={rosterRefreshToken}

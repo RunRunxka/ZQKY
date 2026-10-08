@@ -65,6 +65,7 @@ from typing import Any, Callable, Iterator, Sequence
 from app.contracts.teaching_loop import ErrorIssue, error_details
 from app.core.exceptions import AppError
 from app.providers.llm.base import FINISH_LENGTH, LLMMessage, LLMRequest, LLMResponse
+from app.providers.llm.registry import find_provider
 from app.repositories.jobs.repository import JobStore
 from app.repositories.question_bank.catalog import JobLeaseIdentity, QuestionBankCatalog
 from app.repositories.question_bank.records import (
@@ -74,6 +75,8 @@ from app.repositories.question_bank.records import (
     SourceBlockRecord,
 )
 from app.schemas.question_bank import (
+    QUESTION_MODEL_NOT_CLOUD,
+    QUESTION_MODEL_NOT_CLOUD_MESSAGE,
     ConfirmFailure,
     ConfirmResult,
     DraftKnowledgeLinkInput,
@@ -87,7 +90,9 @@ from app.schemas.question_bank import (
     QuestionConfirmRequest,
     QuestionDetail,
     QuestionGenerationRequest,
+    QuestionImportDeleteResult,
     QuestionImportDetail,
+    QuestionImportDiscardRequest,
     QuestionImportList,
     QuestionList,
     QuestionPatchRequest,
@@ -172,6 +177,17 @@ KNOWLEDGE_CATALOG_UNAVAILABLE = "KNOWLEDGE_CATALOG_UNAVAILABLE"
 async def _threaded(fn, /, *args, **kwargs):
     """把同步的 SQL/仓储调用放到 anyio 有界线程执行（事件循环里不跑同步数据库调用）。"""
     return await anyio.to_thread.run_sync(functools.partial(fn, *args, **kwargs))
+
+
+def _require_operable_import(record: Any, *, operation: str) -> None:
+    """放弃（``cancelled``）/已确认的批次不再是可操作批次：拆分、合并一律拒绝。
+
+    只收紧行为不放宽：``failed`` 等其它非终态的行为与既有实现一致，不在本守卫内。
+    """
+    if record.state == "cancelled":
+        raise _conflict(f"该导入已放弃，不能{operation}。", code="IMPORT_CANCELLED")
+    if record.state == "confirmed":
+        raise _conflict(f"该导入已确认入库，不能{operation}。", code="IMPORT_ALREADY_CONFIRMED")
 
 
 def _invalid(message: str, *, code: str = "INVALID_REQUEST") -> AppError:
@@ -544,6 +560,14 @@ class QuestionBankService:
 
         解析器内部的 profile 存在性/用途/连接可调用性校验由共享实现完成，
         失败原因（404/400/422）原样上抛，消息可读且不含凭证。
+
+        解析出句柄后即做**云端闸门**（2026-10-07 用户裁定：题库 AI 不使用本机模型）：
+        ``organize`` 与 ``create_generation_job`` 都在建任务之前先经此处，
+        本机供应商（Ollama/vLLM/LM Studio 等）在受理阶段一律 422
+        ``QUESTION_MODEL_NOT_CLOUD``——不建任务、不发起任何上游请求。
+        判定照抄教案生成（``services.lesson_generation.preparation``）：
+        ``find_provider(handle.config.providerId).is_local``；providerId 无法识别时
+        不做本机假设，放行由后续连接校验处理。
         """
         if self.model_resolver is None:
             raise AppError(
@@ -566,6 +590,19 @@ class QuestionBankService:
                 "模型解析器返回的句柄不符合契约，已停止整理。",
                 code="SERVICE_UNAVAILABLE",
                 status_code=503,
+            )
+        # 题库 AI 只允许云端模型：本机部署不参与整理与补题（与教案生成同口径）
+        spec = find_provider(handle.config.providerId) if handle.config.providerId else None
+        if spec is not None and spec.is_local:
+            raise AppError(
+                QUESTION_MODEL_NOT_CLOUD_MESSAGE,
+                code=QUESTION_MODEL_NOT_CLOUD,
+                status_code=422,
+                details={"issues": [{
+                    "field": "modelProfileId",
+                    "code": QUESTION_MODEL_NOT_CLOUD,
+                    "message": QUESTION_MODEL_NOT_CLOUD_MESSAGE,
+                }]},
             )
         return handle
 
@@ -771,6 +808,53 @@ class QuestionBankService:
             )
         return QuestionImportList(imports=summaries)
 
+    def discard_import(self, import_id: str, body: QuestionImportDiscardRequest) -> QuestionImportDetail:
+        """放弃未确认批次（误上传清理）：状态置 ``cancelled``，批次/原文/草稿行保留。
+
+        与名单批次 ``discard_roster_import`` 语义一致：已确认批次不可放弃（历史与已入库
+        题目不动）；重复放弃按幂等返回当前状态；``expectedRevision`` 不符走既有 409 冲突。
+        """
+        with self.catalog.write_transaction() as conn:
+            record = self.catalog.import_in(conn, import_id)
+            if record is None:
+                raise _not_found("导入不存在。", code="IMPORT_NOT_FOUND")
+            if record.state == "confirmed":
+                raise _conflict(
+                    "该导入已确认入库，不能放弃；已入库的题目保留。",
+                    code="IMPORT_ALREADY_CONFIRMED",
+                )
+            if record.revision != body.expectedRevision:
+                raise _conflict(
+                    f"导入已被其他操作更新（当前 revision={record.revision}），请刷新后重试。",
+                    code="REVISION_CONFLICT",
+                )
+            if record.state != "cancelled":
+                self.catalog.set_import_state_in(conn, import_id, state="cancelled")
+        return self.get_import_detail(import_id)
+
+    def delete_import(self, import_id: str) -> QuestionImportDeleteResult:
+        """彻底删除一个导入批次及其解析产物（与「放弃」的语义区分见下）。
+
+        - **放弃**（``discard_import``）：保留批次/原文/草稿行，状态置 ``cancelled``，
+          供审计与追溯；本方法则把批次与解析产物从库里移除；
+        - 守卫在**同一写事务内**判定（与删除原子，杜绝守卫通过后并发确认入库）：
+          已确认批次（正式题源自它）→ 409 ``IMPORT_ALREADY_CONFIRMED``；
+          草稿被正式题引用（``question_sources.import_id`` 指向本批次或草稿带有
+          并入记录）→ 409 ``IMPORT_IN_USE``，``details`` 带引用计数；
+        - 通过后按 FK 顺序删除：建议 → 草稿关联 → 原文块 → 草稿 → 来源登记 → 批次行；
+          触发器核对：题库仅 ``question_knowledge_links``（题目修订关联）带不可变
+          触发器，本路径不触碰该表；
+        - **受管原件（``blobs/<sha256>``）不物理删除**：内容寻址、可能被其他批次复用，
+          回执只声明删除了库行；原件清理属于独立策略，不在本接口承诺范围内。
+        """
+        counts = self.catalog.delete_import(import_id)
+        logger.info(
+            "彻底删除题库导入批次 %s：%s；受管原件（blobs）保留待清理策略。",
+            import_id,
+            counts,
+        )
+        return QuestionImportDeleteResult(deleted=True, importId=import_id)
+
     # ------------------------------------------------------------------ 草稿
 
     def patch_draft(self, draft_id: str, body: DraftPatchRequest) -> DraftView:
@@ -850,8 +934,10 @@ class QuestionBankService:
         *,
         draft_id: str | None = None,
     ) -> QuestionImportDetail:
-        if self.catalog.get_import(import_id) is None:
+        record = self.catalog.get_import(import_id)
+        if record is None:
             raise _not_found("导入不存在。", code="IMPORT_NOT_FOUND")
+        _require_operable_import(record, operation="拆分草稿")
         drafts = self.catalog.list_drafts(import_id)
         target = self._resolve_split_target(drafts, draft_id=draft_id, char_offset=body.charOffset)
         if target.review_state == "excluded":
@@ -905,8 +991,10 @@ class QuestionBankService:
         return self.get_import_detail(import_id)
 
     def merge_drafts(self, import_id: str, body: DraftMergeRequest) -> QuestionImportDetail:
-        if self.catalog.get_import(import_id) is None:
+        record = self.catalog.get_import(import_id)
+        if record is None:
             raise _not_found("导入不存在。", code="IMPORT_NOT_FOUND")
+        _require_operable_import(record, operation="合并草稿")
         by_id = {draft.draft_id: draft for draft in self.catalog.list_drafts(import_id)}
         if len(body.expectedRevisions) < 2:
             raise _invalid("合并至少需要两道草稿。")
@@ -1516,6 +1604,9 @@ class QuestionBankService:
             if existing.request_fingerprint != request_fingerprint:
                 raise _conflict("同一提交键已登记不同载荷的确认请求。", code="IDEMPOTENCY_CONFLICT")
             return ConfirmResult.model_validate(existing.result)
+        # 已放弃的批次不在可操作状态集合内；幂等重放在此之前返回，不受影响
+        if record.state == "cancelled":
+            raise _conflict("该导入已放弃，不能确认入库。", code="IMPORT_CANCELLED")
         # 真实字节与投影预检在发布锁和 SQL 写事务外；事务内只消费同一草稿版本的结果。
         prepared: dict[str, tuple[int, tuple[str, str] | AppError]] = {}
         for item in body.items:
@@ -1546,8 +1637,12 @@ class QuestionBankService:
     ) -> ConfirmResult:
         """确认入库的域内短事务（必须在 ``_publication`` 内、关联复核之后调用）。"""
         with self.catalog.write_transaction() as conn:
-            if self.catalog.import_in(conn, body.importId) is None:
+            current = self.catalog.import_in(conn, body.importId)
+            if current is None:
                 raise _not_found("导入不存在。", code="IMPORT_NOT_FOUND")
+            # 事务内复核：放弃与确认并发时，以事务内读到的状态为准
+            if current.state == "cancelled":
+                raise _conflict("该导入已放弃，不能确认入库。", code="IMPORT_CANCELLED")
             existing = self.catalog.submission_in(conn, body.submissionId)
             if existing is not None:
                 if existing.request_fingerprint != request_fingerprint:

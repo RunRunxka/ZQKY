@@ -1,5 +1,50 @@
 # 当前状态与实施主线
 
+<!-- LIVE-AI-RUN:20261008 -->
+2026-10-08：**真实发起测试批（用户"在测一下"）**：在**正式数据 + 正式云端凭证**上真实发起教材提取与题库 AI 整理（真实前端 5173 → 真实后端 8000，deepseek 真实计费调用）。测出并修复 **4 个真实产品缺陷**，其中第 4 条是用户"题库 AI 无法整理"的另一半根因。
+
+1. **凭证绑定缺陷**：`lifespan` 曾以新 `SecretStore` 替换 `app.state.secret_store`，但知识点/题库/原卷的冻结模型解析器在装配期已持有旧实例 → 真实提取任务反复 `MODEL_NOT_CONFIGURED`（"该连接未保存凭证"），而默认档在模型设置里 `callable=True`。修法：`SecretStore.bind_env_file()` **就地绑定**（`apps/api/app/core/secrets.py` + `main.py` lifespan），晚绑定与装配期捕获的引用看到同一份凭证；回归 `tests/test_secret_store_binding.py`（2 例，含"绑定前失败→绑定后可按指纹解析"）。
+2. **提取输出预算与等待**：整册证据（≤6 万码点）在旧口径下必然失败——2048 输出上限触发 `KNOWLEDGE_SUGGESTION_TRUNCATED`，30 秒非流式默认等待触发 `UPSTREAM_TIMEOUT`（推理档与非推理档都撞）。修法：提取任务专用 `EXTRACTION_MAX_OUTPUT_TOKENS=16384` + "最多 10 条候选"指令 + `EXTRACTION_TIMEOUT_SECONDS=300` 按调用覆盖（任务心跳独立续租，调用时长不影响租约）；其余任务保持默认。真机：非推理档 120 秒成功 7 条、默认推理档成功 10 条（正好上界）。
+3. **题库整理输出预算**：`MAX_OUTPUT_TOKENS=2048` 对单批（≤6000 码点输入）的整卷复述普遍截断（默认档 6 批截 2、非推理档截 5）→ 有界放宽到 8192（仍取 `min(上限, 所选模型上限)`）。
+4. **Next 代理 30 秒截断（用户"AI 无法整理"根因）**：Next 同源代理转发 `/api/v1` 默认 `proxyTimeout=30000`（`node_modules/next/dist/server/lib/router-utils/proxy-request.js` `proxyTimeout || 30000`，dev/start 共用），整理期间后端 70 秒零字节 → 第 30 秒被 Next 掐断为 5xx，前端映射 `SERVICE_UNAVAILABLE`（"后端题库整理服务未就绪"），而**服务端任务其实照常跑完并落库**（任务 succeeded/6 建议）。修法：`apps/web/next.config.ts` `experimental.proxyTimeout=600_000`。浏览器前后对照（Resource Timing）：修复前 30017ms/321B（5xx），修复后 **61902ms/1867B（200，6 条建议）**，UI 显示"已完成 / 建议 6 条 / 失败批次 0"。该代理层同样承载教案生成等同步长请求。
+
+门禁（本批自测，非独立验收）：后端 31 + 59 例相关测试全过（提取/候选/整理/凭证绑定）、`npm run check` 全绿（typecheck / lint 0 警告 / 单测 133 文件 1602 例 / 生产构建）、全量 e2e **174/174（单轮，8.6 分钟，exit 0）**，跑在 `ZQKY_API_ORIGIN=http://127.0.0.1:8001` 的构建上——真实后端类 spec 会自拉 8001 隔离后端，构建期烘焙 8000 时这 3 例会误判失败。**提交门禁发现并修好三处 e2e 漂移/竞态（均非本批产品改动回归）**：① `assessments.spec.ts` 单人「添加学生」按钮在 UX 批次新增「批量添加学生」后被子串匹配命中两个元素 → 加 `exact: true`；② 该 spec 的 `currentAssessmentId` 原来把状态条 chip 文本当 id（名称化后 chip 显示标题/短号）→ 改走「复制 ID」出口（`assessments-copy-ids` + `clipboard-read` 权限解析 `assessmentId=`）；③ `tests/fixtures/teaching_loop_backend.py` 受控替身档案是 `providerId="ollama"`（本机），撞上新口径"题库 AI 一律云端"闸门 → 改为云端 `openai` + 内存替身凭证 + 非回环地址（真实调用仍由注入 Provider 处理，不触网）；④ `course-sessions.spec.ts`「流式中切换会话」在点击「新对话」后**立刻**读 `page.url()`，而 `fresh()` 要先 `await store.flush()` 才 replace URL（天然竞态，历史偶发通过）→ 改为 `expect(page).toHaveURL(非原会话)` 等待落地，`--repeat-each=3` 压测 3/3 通过。前两处修复后 6/6（38.5s，含此前被连带的"完整真实链""规模实测"两例）。
+
+正式 `.local-data` 写入：题库批次 `4ea5a760…`（needs_review，6 草稿）+ 5 个 organize 任务共 **23 条待处理建议**（7f1d33c0 4 / 9e383542 1 / 09de895b 6 / d3a3f140 6 / d60e4dd7 6，全部可人工忽略/应用）；知识点 AI 候选批次 2 个（`ab85b02a…` 7 条、`828cf091…` 10 条，均 reviewing，未入库）；失败提取任务 4 个（208e0f98 / 28e13b86 / 0ccace48 / a48dfd13，无候选写出）。服务全停（5173/5174/5175/5176/8000/8001/16333/16334 无监听）。**仍待人工**：教师真实试评与 Word/WPS 原生排版。本块随"整理提交本批次"入库（另见提交 `git log` 的 feat(teaching-loop) 条目）。
+<!-- /LIVE-AI-RUN:20261008 -->
+
+<!-- UX-REFRESH-IMPL:20261007 -->
+2026-10-07（深夜）：**UX 整改批实施完成（用户 5 条实测问题 + 三项裁定）**。裁定：① 班级/原卷/施测/知识点/练习的"彻底删除"按**受引用守卫**执行；② 知识点**从全部已入库教材提取、按学科/年级归类**，模块内默认只显示任教范围、按钮切"该学科全部"；③ 题库 AI（整理+补题）**不允许本地 LLM**。
+
+**后端（全量 2071 passed / 1 skipped / 0 failed，exit 0；基线 1997）**：四个受守卫 DELETE（classes/papers/assessments/practice-sets，错误码与 `details.counts` 见 [API.md「UX 整改批」](API.md)）+ `POST /classes/{id}/students/batch`（逐行跳过+幂等）+ 知识点跨库守卫删除（`KNOWLEDGE_POINT_IN_USE` + 逐库计数，端口缺失 503）+ `GET /knowledge-points?scope=taught|subject&gradeId`（未就绪 409 不静默回退）+ `GET /knowledge-extraction/preview` 与 `POST /knowledge-extraction-jobs`（每书册一个任务、候选只进待确认批次、确认时自动写入教材依据 `ai_confirmed`）+ `DELETE /question-imports/{id}`（已确认/被引用 409；受管原件保留）+ 题库 AI 云端限定（422 `QUESTION_MODEL_NOT_CLOUD`，受理阶段拒绝、零外呼）+ 名称字段补全（学情 className 读路径 JOIN classes、成绩/名单/知识点批次文件名、练习 sourcePaperTitle/sourceCreatedAt、知识点 gradeIds）。
+
+**前端（全量 vitest 133 文件 / 1602 用例全过；tsc 0；eslint 0；生产构建 exit 0）**：施测与成绩状态条名称化（班级名/原卷标题+版本/施测标题，深链回读；ID 折叠为可复制短号）+ 三处彻底删除按钮与 409 原因清单（"改为归档"出口）+ 批量添加学生对话框（多行粘贴、本地预览、submissionId 幂等）；知识点第四个页签「教材提取」（学科→预览→每册任务六态）与范围切档/年级筛选（默认窄口径、未就绪给原因）；题库批次"彻底删除"与文件名主标题、AI 整理/补题两态提示与补题"改用当前聊天模型"出口；学情班名与报告链名称化；练习来源报告标题化与彻底删除。
+
+**视觉验收（截图 9 张，`_work/ux-refresh-20261007/acceptance/`）**：真实库只读（5175→8000）验证名称化状态条、批量学生对话框、知识点范围切档与教材提取预览（12 册/3,342 块/约 248 万字、年级与就绪标记）、题库批次文件名+彻底删除；隔离库（5176→8001）API 级验证班名 JOIN（`className=测试一班`）与两组删除守卫（施测 `ASSESSMENT_IN_USE` counts 成绩 1/导入 1/报告 1；知识点 `KNOWLEDGE_POINT_IN_USE` 原卷题 2/正式题 1/草稿 1）。**注意**：`next start` 的 API 代理地址是构建期烘焙（`ZQKY_API_ORIGIN`），换后端须重新 build。**未执行**：独立验收（RAG-accptance）、全量 e2e、真实"确认删除/发起提取"（均只到二次确认与只读预览；删除成功路径由隔离库单测覆盖）、390px 实机复看（本轮收在 1280/1440 截图）。`next-env.d.ts` 已恢复开工字节；全部服务已停（5173/5174/5175/5176/8000/8001 无监听）；改动未提交。
+<!-- /UX-REFRESH-IMPL:20261007 -->
+
+<!-- UX-REFRESH:20261007 -->
+2026-10-07（晚）：**用户实测反馈批（5 条）——诊断完成 + 一项已修 + 设计稿待确认**。用户回传：①班级/原卷/施测只能归档不能彻底删除、加学生只能逐个；②题库导入批次只能取消不能删除、校对页 AI 整理不可用、**滚动动画割裂**；③知识点缺少"从教材提取入库"、需按任教范围/学科全部两档可选、只能归档；④针对性练习只能归档；⑤以上板块大量以 32 位 ID 称呼班级/原卷等，先出 oil-ui 设计稿再改。
+
+**已修（代码，含视觉证据）**：题库试题校对的滚动割裂。根因三条：左栏 sticky 无视口上限与内滚（滚动 700px 时左栏 top=16 冻结、右栏 top=-309 继续走，左栏高 711 超出 720 视口）、原文块/知识点列表内滚吞滚轮、入场动画整块打在含 sticky 页的网格上。改法：`question-bank.css` 左栏改"受视口约束的自滚吸顶栏"（max-height calc(100dvh-32px)/overflow-y:auto/overscroll-behavior:contain，与 books-rail 同模式）+ 内层滚动 contain；`ReviewWorkspace.tsx` 摘除网格 `data-motion-reveal`（页头/草稿条保留）。实测：修复后左栏高 688≤720、底部可达（bottom 704），滚动全程无解钉跳变。门禁：question-bank 16 文件 211 用例、tsc、eslint 全过。before/after 截图在 `_work/ux-refresh-20261007/`（`.gitignore` 已排除 `_work/`）。
+
+**设计稿 v1 已产出待确认**（不入库）：`_work/ux-refresh-20261007/design-v1.html`（+ `shots/` 桌面/手机/状态两套截图、`baseline/` 现状基线）。四条原则：名称优先（ID 折叠为可复制短号）、删除三态（归档/放弃/彻底删除+引用守卫逐项说明）、范围可见默认窄口径（任教范围 vs 学科全部）、字体与蓝色基调不变。覆盖：状态条名称化、批量添加学生（粘贴多行+逐行结论）、施测/原卷/班级引用守卫删除、题库 AI 整理两态与模型切换出口、导入批次彻底删除、知识点"从教材提取"面板（范围+预览）、练习删除两态。**待用户确认后实施**。
+
+**诊断结论（未改代码部分）**：AI 整理链路本身可用（本机 `question-bank.sqlite3` 有 3 条 `succeeded` organize 任务，最近 2026-10-07T13:48Z；`.local-data` 默认模型 = deepseek-flash），题库对本地/云端均接受；不可点只由前端闸门决定（默认模型未设置 / 目录读取失败 / 连接不可调用 / **冻结模型陷阱** / 默认指向已删档案），并发现两处 UX 缺口：AI 补题面板缺"改用当前聊天模型"出口、设置页默认模型文案未说明题库整理依赖。ID 直显清单与"该成绩未记录班名"根因（成绩快照未存班名、契约把 className 写死为 null、读路径未 JOIN classes）已定位到 file:line，与"从教材提取"最小实现路径一并记录在 `_work/ux-refresh-20261007/` 的本次会话报告中。隔离服务已全部停止（5173/8001 无监听），正式数据与凭证未读写。
+<!-- /UX-REFRESH:20261007 -->
+
+<!-- CLEANUP-PATHS:20261007 -->
+2026-10-07：**误录入清理路径补齐批（用户下发"帮我把这些修好"）**。回应 2026-10-07 排查结论（第三部分）：教学闭环与资料库大量对象"创建后无删除/作废手段"。本批统一为三种语义并全部落地后端 + 前端：**归档/恢复（软删，历史保留）**、**放弃（未确认的导入批次/草稿 → cancelled/discarded）**、**守卫式移除（参测人次，限无下游引用）**；不新增任何硬删除。
+
+新增/补齐的端点（语义与守卫逐条见 [API.md「误录入清理」](API.md)）：班级与学生归档/恢复（班级为前端入口补齐，学生为新）、学生归档后不参与名单导入自动关联且默认从班级成员列表隐藏（`includeArchived` 可见）、名单/成绩/知识点/题库导入批次放弃 + 教材导入草稿放弃（幂等，已确认 409）、原卷归档/恢复（含未确认草稿；归档后不可编辑/确认、不能新建施测）、施测归档/恢复（归档后更新/补录/出勤校正/新成绩导入与修正 409）、参测人次守卫式移除（已有报告/成绩版本/进行中导入批次 → 409 `PARTICIPANT_REMOVE_BLOCKED`）、Embedding 配置停用（幂等）与受守卫删除（被索引代引用 409）、学情报告归档/恢复（数据库 `analysis_no_delete` 触发器禁止删除，只能软归档）、练习集归档/恢复（归档后五类写路径 409 `PRACTICE_ARCHIVED`）、教案归档/恢复（CAS；归档后写入走既有 422 `LESSON_INVALID`）。前端：契约镜像 + 全部 API 客户端函数 + 各模块"归档/恢复/放弃/移除"入口与"显示已归档"开关（施测列表的过滤只作用当前页）。
+
+数据库：teaching 追加迁移 `0011_analysis_runs_archived_at`（`analysis_runs.archived_at` + `analysis_inputs_fixed` 升级为仅放行已封存报告的 archived_at 写；其余不可变语义与 `analysis_no_delete` 逐字保留）；其余对象用的都是既有状态列（`papers.status`/`students.status`/`assessments.state`/`practice_sets.status`/`lesson_plans.archived_at`，此前均为无写路径的休眠列）。附带修复一处既有潜伏缺陷：assessments service 三处 `ASSESSMENT_NOT_FOUND` 未导入（命中会 NameError 而非 404）。
+
+门禁（本批自测，非独立验收）：`uv run pytest tests/` 全量 **1997 passed / 1 skipped / 0 failed**（405s，exit 0；基线 1924 passed / 1 skipped，本批新增 73 条用例）、前端全量 vitest **131 文件 / 1536 用例全过**（基线 128/1484）、`tsc --noEmit` 0 错误、`eslint apps/web/src --max-warnings=0` 通过、`npm run build` exit 0、全量 e2e **174/174**（7.9 分钟、exit 0，跑在本批新构建上）。**未执行**：独立验收、真实浏览器人工核查（桌面/390px）、真实数据（正式 .local-data）上的迁移升级实测。改动全部未提交（工作区含其他会话的 docs/design 改动，未触碰）。
+
+**同日浏览器闭环实跑（2026-10-07，隔离数据根 `Downloads/test/harness-20261006/browser-run-20261007`）**：用 10-04 资料包在真实浏览器里走完**整条教学闭环**——知识点表格导入（4 条）→ 两班名单导入确认（24 人）→ 原卷 DOCX 校对（6 个计分叶、60 分、按题目知识点对照表挂 4 个知识点）→ 两次施测（缺考/免考按材料）→ 两次成绩导入确认（0 保持有效分、空白不补 0、缺考/免考不参与分母，四态在只读矩阵逐格核对）→ **两班学情报告与 expected.json 逐字段一致**（等式性质 2+2/9+9、解一元一次方程 4+5/9+10、实际问题建模 3+3/9+10、验根 3+3/9+10，合计需巩固 4/9/6/6、有效分母 18/19/19/19）→ 题库 DOCX 导入 6 题、逐题补知识点关联与解析并整批确认入库 → 针对性练习（4 目标知识点、6 题、后端未报缺口）保存草稿并独立审核 → 转换为后测施测 → 导出学生/教师 DOCX + 成绩模板 XLSX（SHA 与产物登记一致）→ 教师填分（1 处 0.5 失分 + 1 处空白）回流导入确认 → **回流学情需巩固 12 → 2**，且回流报告 72 条证据全部绑定已审核练习修订（practiceRevisionId/practiceItemId）。**过程中发现并当场修复一个本批新引入的前端缺陷**：`AssessmentsPanel.tsx` 参测人次项内的出勤编辑器与移除控件被赋了同一个 React key（`assessmentId|participantId`），运行时报 "two children with the same key"；移除两个冗余 key（外层 `<li>` 已有 key）后重载验证错误消失。修复后 `features/assessments` 122 用例全过、tsc/eslint 0、生产构建重跑 exit 0。**未执行**：AI 教案调整与 RAG（隔离运行按设计无凭证/无模型/无 Ollama/Qdrant，属有意边界）；教师真实试评与原生 Word 排版仍 not_run。浏览器文件上传经页面内 DataTransfer 注入（ZCode IAB 不支持系统文件选择器），表单提交与后端解析均为真实链路。
+<!-- /CLEANUP-PATHS:20261007 -->
+
 <!-- G7-B7C-LIVE:20261006 -->
 2026-10-06：[本批证据](qa/TEACHING-LOOP-G7-B7C-20261005/README.md)。本块覆盖 G7 两项修复 → B7-C 单模型 live 接入（B+保留推理+探针）→ 用户材料闭环测试 → **首次真实受控试评成功**。
 

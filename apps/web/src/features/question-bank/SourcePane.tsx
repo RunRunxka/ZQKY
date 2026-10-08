@@ -3,12 +3,15 @@
 /**
  * 校对页左侧原文面板：
  * - 「未归属原文」区域逐块展示服务端返回的未归属原文块（文本 + 可读定位），永不隐藏；
- * - 「当前草稿的原文来源」列出所选草稿的 sourceSpans（块 id 与字符区间）。
+ * - 「当前草稿的原文来源」列出所选草稿的 sourceSpans（可读序号与字符区间）。
  * 已归属块的正文不由 `GET /question-imports/{id}` 返回，这里如实标注，不伪造原文。
+ *
+ * ID 降级（设计 2.x）：主文案用可读序号（`原文块 N`），完整 `blockId` 只放在 `title`
+ * 与定位提示里；序号取不到时明确写「序号未返回」，不编造。
  */
 
 import type { DraftView, SourceBlockView } from '@/contracts/question-bank';
-import { LOCATOR_KIND_LABEL, locatorLabel } from './labels';
+import { LOCATOR_KIND_LABEL, blockLabel, locatorLabel } from './labels';
 
 export function SourcePane({
   draft,
@@ -41,7 +44,9 @@ export function SourcePane({
             {unassignedBlocks.map((block) => (
               <li key={block.blockId} className="qb-block">
                 <div className="qb-block-head">
-                  <span className="qb-block-ordinal">#{block.ordinal}</span>
+                  <span className="qb-block-ordinal" title={block.blockId}>
+                    {blockLabel(block.ordinal)}
+                  </span>
                   <span className="qb-block-locator">
                     {LOCATOR_KIND_LABEL[block.locator.kind]}
                     {locatorLabel(block.locator) ? ` · ${locatorLabel(block.locator)}` : ''}
@@ -71,7 +76,9 @@ export function SourcePane({
               return (
                 <li key={`${span.blockId}-${span.charStart}`} className="qb-span">
                   <div className="qb-block-head">
-                    <span className="qb-block-ordinal">{span.blockId}</span>
+                    <span className="qb-block-ordinal" title={span.blockId}>
+                      {blockLabel(block?.ordinal ?? null)}
+                    </span>
                     <span className="qb-block-locator">
                       字符 {span.charStart}–{span.charEnd}
                     </span>

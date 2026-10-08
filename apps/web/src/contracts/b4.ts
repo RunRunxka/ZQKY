@@ -9,13 +9,24 @@ export interface AnalysisCreateRequest {
   ruleCode: 'any_loss_v1';
 }
 
+/**
+ * 学情运行归档/恢复请求体：镜像后端 `AnalysisArchiveRequest`，
+ * 当前无业务字段（后端 `extra="forbid"`），客户端固定提交 `{}`。
+ */
+export type AnalysisArchiveRequest = Record<string, never>;
+
 export interface FrozenParticipant {
   participantId: string;
   studentId: string;
   studentNo: string | null;
   name: string;
   classId: string;
-  className: null;
+  /**
+   * 班名走「名称优先」：密封事实只冻结 classId，读路径按同 owner JOIN `classes.name` 实时填充；
+   * 班名确实缺失才是 null（界面此时显示短号 + `classNameNote`，不伪造名称）。
+   */
+  className: string | null;
+  /** 班名缺失时的兜底说明；只在 `className` 为 null 时展示，不当作名称。 */
   classNameNote: '该成绩未记录班名';
   attemptNo: number;
   attendance: 'present' | 'absent' | 'exempt';
@@ -60,12 +71,15 @@ export interface AnalysisRunView {
   knowledgePoints: Array<FixedKnowledge>;
   job: JobView;
   reportReady: boolean;
+  /** 软归档时间；缺省/未带 = 未归档（归档只写该字段，报告内容不动） */
+  archivedAt?: string | null;
   createdAt: string;
 }
 
 export interface ClassReportRow {
   classId: string;
-  className: null;
+  /** 结果行只冻结 classId；班名由读路径 JOIN `classes.name` 实时填充，缺失才 null（见 FrozenParticipant）。 */
+  className: string | null;
   classNameNote: string;
   knowledgePoint: FixedKnowledge;
   selectedCount: number;
@@ -199,6 +213,28 @@ export interface PracticeRevisionRequest {
   sourceRevisionId: string;
 }
 
+/** 练习集归档/恢复（对应后端 `PracticeSetStatusRequest`：只带乐观锁修订号）。 */
+export interface PracticeSetStatusRequest {
+  expectedRevision: number;
+}
+
+/**
+ * 彻底删除练习集回执（200）：受引用守卫的物理删除，不可恢复
+ * （纯 draft 集合的子行、修订与集合行在同一事务删除）。
+ * 有已审核修订/导出/转换引用 → 409 `PRACTICE_IN_USE` + `details.counts`（见 `PracticeSetReferenceCounts`）。
+ */
+export interface PracticeSetDeleteReceipt {
+  deleted: boolean;
+  practiceSetId: string;
+}
+
+/** `PRACTICE_IN_USE` 的逐项引用计数（键与后端一致；未知键由界面原样列出，不隐藏）。 */
+export interface PracticeSetReferenceCounts {
+  reviewedRevisions: number;
+  exports: number;
+  conversions: number;
+}
+
 export interface PracticeSuggestion {
   questionId: string;
   questionRevisionId: string;
@@ -245,6 +281,13 @@ export interface PracticeRevisionView {
   title: string;
   subjectId: string;
   analysisRunId: string;
+  /**
+   * 练习来源的展示名（只读派生，镜像后端同名字段）：来源学情报告的原卷标题；
+   * 读路径实时 JOIN，来源卷修订缺失时为 null（界面回落 `analysisRunId` 短号，不伪造名称）。
+   */
+  sourcePaperTitle?: string | null;
+  /** 来源学情报告的创建时间（只读派生）；缺失为 null，界面显示「时间未记录」而不猜造。 */
+  sourceCreatedAt?: string | null;
   targetKnowledgePoints: Array<FixedKnowledge>;
   constraints: PracticeConstraints;
   inputHash: string;
@@ -260,6 +303,12 @@ export interface PracticeSetView {
   title: string;
   subjectId: string;
   analysisRunId: string;
+  /** 练习来源的展示名（只读派生，与 `currentRevision` 同口径；见 `PracticeRevisionView`）。 */
+  sourcePaperTitle?: string | null;
+  /** 来源学情报告的创建时间（只读派生，与 `currentRevision` 同口径）。 */
+  sourceCreatedAt?: string | null;
+  /** 练习集状态；缺省视为 `'active'`（对齐后端对归档功能上线前既有收据的默认值） */
+  status?: 'active' | 'archived';
   revision: number;
   currentRevision: PracticeRevisionView;
   revisions: Array<PracticeRevisionView>;

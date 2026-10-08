@@ -45,8 +45,10 @@ async def run(fn, *args, **kwargs):
 
 @router.get("/lesson-plans", response_model=Page[lp.LessonSummary])
 async def listing(request: Request, subjectId: str | None = None, classId: str | None = None,
+                  archived: bool = Query(default=False),
                   offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=200)):
-    return await run(service(request).list_lessons, subject_id=subjectId, class_id=classId, offset=offset, limit=limit)
+    return await run(service(request).list_lessons, subject_id=subjectId, class_id=classId,
+                     archived=archived, offset=offset, limit=limit)
 
 
 @router.post("/lesson-plans", response_model=lp.LessonView, status_code=201)
@@ -62,6 +64,18 @@ async def import_local(request: Request, body: lp.LessonImportRequest):
 @router.post("/lesson-plans/evidence/verify", response_model=lp.LessonEvidenceView)
 async def verify_evidence(request: Request, body: lp.LessonEvidenceRequest):
     return await run(service(request).verify_evidence, body)
+
+
+@router.post("/lesson-plans/{lesson_id}/archive", response_model=lp.LessonView)
+async def archive(request: Request, lesson_id: str, body: lp.LessonRevisionRequest):
+    """归档教案：请求体 ``{"expectedRevision": <int>}``，返回最新 ``LessonView``。"""
+    return await run(service(request).set_archived, lesson_id, body, archived=True)
+
+
+@router.post("/lesson-plans/{lesson_id}/restore", response_model=lp.LessonView)
+async def restore(request: Request, lesson_id: str, body: lp.LessonRevisionRequest):
+    """恢复教案：清除 ``archived_at``，按原 revision 继续编辑。"""
+    return await run(service(request).set_archived, lesson_id, body, archived=False)
 
 
 @router.get("/lesson-plans/{lesson_id}", response_model=lp.LessonView)

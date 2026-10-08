@@ -97,6 +97,7 @@ export function PaperImportReview({ initial, onSelected, onChanged }: {
   }
   function selectRevision(content: PaperRevisionContentView) {
     onSelected({ paperId: content.paperId, paperRevisionId: content.paperRevisionId, title: content.title,
+      version: content.version,
       totalScoreUnits: content.totalScoreUnits, scoredLeafCount: scoredLeafItems(content.items).length });
   }
   async function readCurrent(resetEdits: boolean, fixedRevisionId?: string) {

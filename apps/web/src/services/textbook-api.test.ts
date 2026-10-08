@@ -10,6 +10,8 @@ import {
   createLibrary,
   deleteDocument,
   deleteLibrary,
+  deleteEmbeddingProfile,
+  discardImport,
   fetchTextbookTaxonomy,
   getDocument,
   getDocumentSource,
@@ -28,6 +30,7 @@ import {
   patchLibrary,
   probeEmbeddingModel,
   putTeachingSettings,
+  retireEmbeddingProfile,
   retryJob,
   startRebuild,
   textbookQuery,
@@ -391,5 +394,39 @@ describe('错误语义', () => {
     const error = await rejected(listJobs());
     expect(error.code).toBe('SERVICE_UNAVAILABLE');
     expect(error.status).toBe(0);
+  });
+});
+
+describe('导入放弃与 Embedding 配置停用/删除（本批新增端点）', () => {
+  it('放弃导入草稿：POST /textbook-imports/{id}/discard 提交 expectedRevision 并返回草稿视图', async () => {
+    const fetchMock = stubFetch(() =>
+      ok({ importId: 'imp-1', state: 'discarded', revision: 3 }),
+    );
+    const draft = await discardImport('imp 1', { expectedRevision: 2 });
+    expect(call(fetchMock).init?.method).toBe('POST');
+    expect(call(fetchMock).url).toBe(`${API_BASE_PATH}/textbook-imports/imp%201/discard`);
+    expect(JSON.parse(String(call(fetchMock).init?.body))).toEqual({ expectedRevision: 2 });
+    expect(draft.state).toBe('discarded');
+  });
+
+  it('停用配置：POST /embedding-profiles/{id}/retire 无请求体，返回含 retiredAt 的视图', async () => {
+    const fetchMock = stubFetch(() =>
+      ok({ profileId: 'prof-1', retiredAt: '2026-10-07T00:00:00Z', isActive: false }),
+    );
+    const profile = await retireEmbeddingProfile('prof-1');
+    expect(call(fetchMock).init?.method).toBe('POST');
+    expect(call(fetchMock).url).toBe(`${API_BASE_PATH}/embedding-profiles/prof-1/retire`);
+    expect(call(fetchMock).init?.body).toBeUndefined();
+    expect(profile.retiredAt).toBe('2026-10-07T00:00:00Z');
+    expect(profile.isActive).toBe(false);
+  });
+
+  it('删除配置：DELETE /embedding-profiles/{id} 允许 204（归一为 undefined）', async () => {
+    const fetchMock = stubFetch(() => jsonResponse(true, 204, null));
+    const result = await deleteEmbeddingProfile('prof-1');
+    expect(call(fetchMock).init?.method).toBe('DELETE');
+    expect(call(fetchMock).url).toBe(`${API_BASE_PATH}/embedding-profiles/prof-1`);
+    expect(call(fetchMock).init?.body).toBeUndefined();
+    expect(result).toBeUndefined();
   });
 });

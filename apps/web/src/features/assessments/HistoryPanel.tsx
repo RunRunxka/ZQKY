@@ -27,7 +27,7 @@ import {
   getScoreRevision,
   listScoreRevisions,
 } from '@/services/assessments-api';
-import { useAsyncResource, useFrozenSubmission } from './hooks';
+import { useAsyncResource, useClassNameMap, useFrozenSubmission } from './hooks';
 import {
   attendanceLabel,
   cellValueText,
@@ -61,6 +61,8 @@ export function HistoryPanel({
   const [corrections, setCorrections] = useState<ScoreCorrectionEntry[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
   const submission = useFrozenSubmission<ScoreRevisionCorrectRequest, ScoreRevisionCorrectResult>();
+  /** 班名映射（只读）：修正人次下拉显示班名；映射缺失/读取失败回落短号。 */
+  const classNames = useClassNameMap(`history|${assessmentId ?? 'none'}`);
 
   const revisions = useAsyncResource(
     (signal) =>
@@ -372,7 +374,8 @@ export function HistoryPanel({
                 <option value="">选择人次</option>
                 {participantSnapshots.map((participant) => (
                   <option key={participant.participantId} value={participant.participantId}>
-                    {participant.name}（{participant.classId} · 人次 {participant.attemptNo}）
+                    {participant.name}（{classNames.nameOf(participant.classId)} · 人次{' '}
+                    {participant.attemptNo}）
                   </option>
                 ))}
               </select>

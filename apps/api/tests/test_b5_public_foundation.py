@@ -17,16 +17,18 @@ def test_populated_b4_gate_accepts_then_appends_b5_without_old_hash_drift(tmp_pa
     path = tmp_path / "teaching.sqlite3"
     connection = connect(path)
     registered = REGISTERED_MIGRATIONS["teaching"]
+    # 0010（B5）及其后追加的迁移一律视为"本次升级范围"；老散列逐条对比不变
+    b5_plus = tuple(m for m in registered if m.id == "0010" or m.id > "0010")
     try:
-        monkeypatch.setitem(REGISTERED_MIGRATIONS, "teaching", registered[:-1])
+        monkeypatch.setitem(REGISTERED_MIGRATIONS, "teaching", tuple(m for m in registered if m not in b5_plus))
         apply_migrations(connection, database="teaching")
         with transaction(connection, immediate=True):
             connection.execute("INSERT INTO classes(id,code,name,school_year,grade_id) VALUES('retained','OLD','保留班','2026','grade-8')")
         old_hashes = dict(applied_migrations(connection))
         monkeypatch.setitem(REGISTERED_MIGRATIONS, "teaching", registered)
         verify_existing_database(DatabaseExpectation(path, "teaching", REQUIRED_TABLES))
-        assert "0010" not in applied_migrations(connection)
-        assert apply_migrations(connection, database="teaching") == ["0010"]
+        assert all(m.id not in applied_migrations(connection) for m in b5_plus)
+        assert apply_migrations(connection, database="teaching") == [m.id for m in b5_plus]
         assert apply_migrations(connection, database="teaching") == []
         assert all(applied_migrations(connection)[key] == sha for key, sha in old_hashes.items())
         assert connection.execute("SELECT name FROM classes WHERE id='retained'").fetchone()[0] == "保留班"
@@ -51,7 +53,7 @@ def test_registered_b5_missing_structure_fails_closed(tmp_path, sql):
         with pytest.raises(AppError) as caught:
             verify_registered_lesson_schema(connection)
         assert caught.value.code == "DATABASE_SCHEMA_INCOMPLETE"
-        assert applied_migrations(connection)["0010"] == REGISTERED_MIGRATIONS["teaching"][-1].sha256
+        assert applied_migrations(connection)["0010"] == next(m for m in REGISTERED_MIGRATIONS["teaching"] if m.id == "0010").sha256
     finally:
         connection.close()
 

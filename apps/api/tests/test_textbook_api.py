@@ -563,6 +563,49 @@ def test_embedding_probe_and_profile_creation(api: ApiHarness) -> None:
     assert unknown.json()["code"] == "EMBEDDING_MODEL_MISSING"
 
 
+def test_embedding_profile_retire_and_delete_endpoints(api: ApiHarness) -> None:
+    created = api.client.post(
+        "/api/v1/embedding-profiles", json={"modelName": "bge-m3", "queryPrefix": "q:"}
+    )
+    assert created.status_code == 201
+    profile = created.json()
+    assert profile["retiredAt"] is None
+
+    # 停用：返回视图且 retiredAt 非空；幂等，重复调用时间戳不变
+    retired = api.client.post(f"/api/v1/embedding-profiles/{profile['profileId']}/retire")
+    assert retired.status_code == 200
+    assert retired.json()["profileId"] == profile["profileId"]
+    assert retired.json()["retiredAt"] is not None
+    again = api.client.post(f"/api/v1/embedding-profiles/{profile['profileId']}/retire")
+    assert again.status_code == 200
+    assert again.json()["retiredAt"] == retired.json()["retiredAt"]
+
+    # 未被索引代引用的配置可以硬删：204 且列表中消失
+    deleted = api.client.request("DELETE", f"/api/v1/embedding-profiles/{profile['profileId']}")
+    assert deleted.status_code == 204
+    listed = api.client.get("/api/v1/embedding-profiles").json()["profiles"]
+    assert profile["profileId"] not in {item["profileId"] for item in listed}
+
+    # 空库默认配置已被空索引代引用：硬删被守卫拒绝，返回 409 并提示改用停用
+    active = api.client.get("/api/v1/embedding-profiles").json()["profiles"][0]
+    blocked = api.client.request("DELETE", f"/api/v1/embedding-profiles/{active['profileId']}")
+    assert blocked.status_code == 409
+    assert blocked.json()["code"] == "EMBEDDING_PROFILE_IN_USE"
+    assert "请改用停用" in blocked.json()["message"]
+    # 被引用的配置改走停用：200 且 retiredAt 非空
+    fallback = api.client.post(f"/api/v1/embedding-profiles/{active['profileId']}/retire")
+    assert fallback.status_code == 200
+    assert fallback.json()["retiredAt"] is not None
+
+    # 不存在的配置：retire 404、delete 404（与既有 PROFILE_NOT_FOUND 风格一致）
+    missing_retire = api.client.post("/api/v1/embedding-profiles/nope/retire")
+    assert missing_retire.status_code == 404
+    assert missing_retire.json()["code"] == "PROFILE_NOT_FOUND"
+    missing_delete = api.client.request("DELETE", "/api/v1/embedding-profiles/nope")
+    assert missing_delete.status_code == 404
+    assert missing_delete.json()["code"] == "PROFILE_NOT_FOUND"
+
+
 # --------------------------------------------------------------------- 索引代
 
 

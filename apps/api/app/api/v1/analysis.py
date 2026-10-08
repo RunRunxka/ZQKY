@@ -3,10 +3,14 @@ import functools
 import anyio
 from fastapi import APIRouter, Query, Request
 from app.contracts.b4 import (AnalysisCreateRequest, AnalysisReceipt, AnalysisRunView, ClassReportRow,
-                              EvidenceRow, NoteRequest, NoteView, Page, StudentReportRow)
+                              EvidenceRow, Frozen, NoteRequest, NoteView, Page, StudentReportRow)
 from app.core.exceptions import AppError
 
 router = APIRouter(tags=["analysis"])
+
+
+class AnalysisArchiveRequest(Frozen):
+    """归档/恢复请求体：当前无字段，预留扩展位（教师无需提交任何内容）。"""
 
 
 def service(request):
@@ -27,13 +31,24 @@ async def create_run(request: Request, assessment_id: str, body: AnalysisCreateR
 
 @router.get("/analysis-runs", response_model=Page[AnalysisRunView])
 async def list_runs(request: Request, assessmentId: str | None = None, scoreRevisionId: str | None = None,
-                    offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=200)):
-    return await run(service(request).list_runs, assessment_id=assessmentId, score_revision_id=scoreRevisionId, offset=offset, limit=limit)
+                    archived: bool | None = Query(None), offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=200)):
+    return await run(service(request).list_runs, assessment_id=assessmentId, score_revision_id=scoreRevisionId,
+                     archived=archived, offset=offset, limit=limit)
 
 
 @router.get("/analysis-runs/{run_id}", response_model=AnalysisRunView)
 async def get_run(request: Request, run_id: str):
     return await run(service(request).get_run, run_id)
+
+
+@router.post("/analysis-runs/{run_id}/archive", response_model=AnalysisRunView)
+async def archive_run(request: Request, run_id: str, body: AnalysisArchiveRequest):
+    return await run(service(request).set_archived, run_id, body, archived=True)
+
+
+@router.post("/analysis-runs/{run_id}/restore", response_model=AnalysisRunView)
+async def restore_run(request: Request, run_id: str, body: AnalysisArchiveRequest):
+    return await run(service(request).set_archived, run_id, body, archived=False)
 
 
 def report_endpoint(kind):

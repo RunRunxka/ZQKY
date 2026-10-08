@@ -172,6 +172,81 @@ def test_probe_rejects_unknown_model(tmp_path: Path) -> None:
     assert exc_info.value.code == "EMBEDDING_MODEL_MISSING"
 
 
+def test_retire_profile_is_idempotent_and_reports_retired_at(tmp_path: Path) -> None:
+    env = IndexHarness(tmp_path, bootstrap=False)
+    retired = env.service.retire_profile(env.base.profile.profile_id)
+    assert retired.retiredAt is not None
+    assert retired.isActive is False
+
+    again = env.service.retire_profile(env.base.profile.profile_id)
+    assert again.retiredAt == retired.retiredAt  # 已停用再调不报错，且时间戳不变
+
+    # 重建选择已停用配置应被既有守卫拒绝（语义不改，这里只确认守卫存在）
+    profile = env.catalog.get_embedding_profile(env.base.profile.profile_id)
+    with pytest.raises(AppError) as guard:
+        env.service.indexer.require_profile_usable(profile)
+    assert guard.value.code == "PROFILE_RETIRED"
+
+
+def test_retire_profile_missing_returns_404(tmp_path: Path) -> None:
+    env = IndexHarness(tmp_path, bootstrap=False)
+    with pytest.raises(AppError) as exc_info:
+        env.service.retire_profile("nope")
+    assert exc_info.value.code == "PROFILE_NOT_FOUND"
+    assert exc_info.value.status_code == 404
+
+
+def test_delete_profile_hard_deletes_when_unreferenced(tmp_path: Path) -> None:
+    env = IndexHarness(tmp_path, bootstrap=False)
+    spare = env.catalog.create_embedding_profile(
+        fingerprint="fingerprint-spare",
+        adapter="ollama",
+        native_base_url="http://127.0.0.1:11434",
+        model_name="bge-m3",
+        model_manifest_digest="digest-1",
+        dimensions=4,
+        distance="cosine",
+        query_prefix="",
+        document_prefix="",
+        normalization="none",
+    )
+    env.service.delete_profile(spare.profile_id)
+    assert env.catalog.get_embedding_profile(spare.profile_id) is None
+    assert env.catalog.get_embedding_profile(env.base.profile.profile_id) is not None
+
+
+def test_delete_profile_rejects_generation_referenced_profile(tmp_path: Path) -> None:
+    env = IndexHarness(tmp_path)  # bootstrap=True：base 配置已有一个索引代引用
+    with pytest.raises(AppError) as exc_info:
+        env.service.delete_profile(env.base.profile.profile_id)
+    assert exc_info.value.code == "EMBEDDING_PROFILE_IN_USE"
+    assert exc_info.value.status_code == 409
+    assert "请改用停用" in str(exc_info.value)
+    # 守卫删除失败后配置仍在，可改走停用路径
+    assert env.catalog.get_embedding_profile(env.base.profile.profile_id) is not None
+    retired = env.service.retire_profile(env.base.profile.profile_id)
+    assert retired.retiredAt is not None
+
+
+def test_delete_profile_missing_returns_404(tmp_path: Path) -> None:
+    env = IndexHarness(tmp_path, bootstrap=False)
+    with pytest.raises(AppError) as exc_info:
+        env.service.delete_profile("nope")
+    assert exc_info.value.code == "PROFILE_NOT_FOUND"
+    assert exc_info.value.status_code == 404
+
+
+def test_retired_profile_cannot_begin_rebuild(tmp_path: Path) -> None:
+    env = IndexHarness(tmp_path, bootstrap=False)
+    env.service.ensure_empty_generation(env.base.profile.profile_id)
+    env.service.retire_profile(env.base.profile.profile_id)
+    with pytest.raises(AppError) as exc_info:
+        env.service.begin_rebuild(
+            profile_id=env.base.profile.profile_id, submission_id="submission-retire-1"
+        )
+    assert exc_info.value.code == "PROFILE_RETIRED"
+
+
 # ---------------------------------------------------------------------- 重建闸门
 
 

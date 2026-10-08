@@ -1,5 +1,5 @@
 /**
- * 「AI 整理」使用的**当前聊天模型**（RAG-QUALITY v1.1：语义改回聊天模型，本地或云端一视同仁）。
+ * 「AI 整理 / AI 补题」使用的**云端聊天模型**（2026-10-07 用户裁定：题库 AI 不使用本机模型）。
  *
  * 契约（总控冻结，后端 B3 同步）：
  * - `OrganizeRequest.modelProfileId` = **当前聊天模型的 profile id**（如 `p-chat-1`），
@@ -11,7 +11,10 @@
  *   因此取聊天配置的默认模型）。
  * - 判定「可调用」与后端闸门一致：连接 `callable`（缺凭证的云连接为 false，本机免 Key 服务为
  *   true）；连接视图缺失时退回与 `/chat` 相同的 `connection.hasCredential`。
- * - 已显式选择但模型失效（profile 不存在 / 连接不可调用）→ 返回可读修复原因，
+ * - **本机档案闸门**：后端在受理阶段对本机供应商一律 422 `QUESTION_MODEL_NOT_CLOUD`
+ *   （`find_provider(providerId).is_local`）。前端在此同步禁用入口并给出同一句话，
+ *   否则教师会先填完表单才被拒绝。
+ * - 已显式选择但模型失效（profile 不存在 / 连接不可调用 / 本机档案）→ 返回可读修复原因，
  *   **绝不在前端另选一个模型顶上**。
  *
  * 本模块不做任何请求副作用以外的写入：只读 `/model-catalog`，不调用模型。
@@ -39,6 +42,43 @@ export const ORGANIZER_MODEL_LOADING = '正在读取聊天模型配置…';
 
 export const ORGANIZER_NO_DEFAULT_REASON =
   '聊天配置还没有默认模型：请到「模型设置」选择默认问答模型后再整理。';
+
+/** 后端 422 `QUESTION_MODEL_NOT_CLOUD`：题库 AI 的云端闸门（本机档案在受理阶段即被拒）。 */
+export const QUESTION_MODEL_NOT_CLOUD_CODE = 'QUESTION_MODEL_NOT_CLOUD';
+
+/** 与后端 `QUESTION_MODEL_NOT_CLOUD_MESSAGE` 同一句话（前端 gate 与 422 文案一致）。 */
+export const QUESTION_AI_LOCAL_MODEL_REASON = '题库 AI 不使用本机模型，请选择云端模型档案。';
+
+/** 「去设置」入口：设置页「模型与连接」段（连接、模型目录与默认模型）。 */
+export const QUESTION_MODEL_SETTINGS_HREF = '/settings#models';
+
+/**
+ * 本机供应商 id（照抄 `apps/api/app/providers/llm/registry.py` 中 `is_local=True` 的
+ * providerId；2026-10-08 核对）。后端闸门按供应商判定，前端用同一份清单才与受理结果一致；
+ * providerId 缺失（旧连接/未知供应商）时退回按地址回环判定。
+ */
+export const LOCAL_PROVIDER_IDS: readonly string[] = [
+  'vllm',
+  'ollama',
+  'lm_studio',
+  'llama_cpp',
+  'lemonade',
+  'ovms',
+];
+
+/**
+ * 该连接是否是后端会拒绝的本机档案。
+ * - providerId 命中本机清单 → 本机（与后端 `is_local` 判定一致）；
+ * - providerId 缺失 → 退回地址判定（回环地址视为本机）；
+ * - providerId 是未知的云端供应商 → 不是本机，交给后端连接校验。
+ */
+export function isLocalQuestionModel(
+  providerId: string | null | undefined,
+  resolvedBaseUrl: string | null | undefined,
+): boolean {
+  if (providerId) return LOCAL_PROVIDER_IDS.includes(providerId);
+  return isLoopbackBaseUrl(resolvedBaseUrl);
+}
 
 /** 读取目录失败时的可读原因（保留错误码，不把失败当空目录）。 */
 export function organizerCatalogErrorReason(code: string, message: string): string {
@@ -102,6 +142,13 @@ export function resolveOrganizerChatModel(
     const why = connection?.callableReason?.trim();
     return unavailable(
       `聊天模型「${modelLabelOf(profile)}」当前不可调用${why ? `（${why}）` : ''}：请到「模型设置」修复该连接；不会自动改用其他模型。`,
+    );
+  }
+  // 本机档案闸门（与后端受理期 422 QUESTION_MODEL_NOT_CLOUD 同一句话、同一判定来源）
+  const providerId = connection?.providerId ?? profile.connection?.providerId ?? null;
+  if (isLocalQuestionModel(providerId, connection?.resolvedBaseUrl)) {
+    return unavailable(
+      `${QUESTION_AI_LOCAL_MODEL_REASON}当前默认模型「${modelLabelOf(profile)}」是本机部署的聊天模型（题库整理与补题只允许云端档案）；请到「模型设置 → 模型与连接」把默认问答模型换成云端档案，不会自动改用其他模型。`,
     );
   }
   return {

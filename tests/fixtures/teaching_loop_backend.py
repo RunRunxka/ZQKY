@@ -121,7 +121,8 @@ def create_fixture_app(*, enable_question_generation: bool | None = None) -> Fas
         qdrant_url="http://127.0.0.1:16333",
         embedding_base_url="http://127.0.0.1:9",
     )
-    application = create_app(settings, secret_store=SecretStore())
+    secret_store = SecretStore()
+    application = create_app(settings, secret_store=secret_store)
     enabled = (
         os.environ.get("ZQKY_TEST_GENERATION") == "1"
         if enable_question_generation is None
@@ -136,12 +137,18 @@ def create_fixture_app(*, enable_question_generation: bool | None = None) -> Fas
         id=CONNECTION_ID,
         displayName="隔离浏览器模型（受控替身）",
         protocol=ModelProtocol.openai_chat,
-        providerId="ollama",
+        # 2026-10-08：题库 AI（整理/补题）云端限定落地后，受控替身必须按**云端**档案装配，
+        # 否则前端闸门与后端 422 QUESTION_MODEL_NOT_CLOUD 会把补题入口整个禁掉；
+        # 真实调用仍由注入的受控 Provider 处理，地址不会被访问。
+        providerId="openai",
         apiFormat=ApiFormat.openai_chat,
-        baseUrl="http://127.0.0.1:9/v1",
+        baseUrl="https://fixture.invalid/v1",
         createdAt=timestamp,
         updatedAt=timestamp,
     ))
+    # 云端供应商按"已保存凭证"判定可调用（model_readiness.callable_state）；
+    # 夹具在内存存储里放一把明显是替身的 Key，不触网。
+    secret_store.put(CONNECTION_ID, "fixture-key-not-a-secret")
     repository.create_profile(ModelProfile(
         id=PROFILE_ID,
         connectionId=CONNECTION_ID,
@@ -166,9 +173,11 @@ def create_fixture_app(*, enable_question_generation: bool | None = None) -> Fas
         provider=provider,
         config=LLMConfig(
             protocol=ModelProtocol.openai_chat,
-            baseUrl="http://127.0.0.1:9/v1",
+            baseUrl="https://fixture.invalid/v1",
             modelId="teaching-browser-model",
             apiFormat=ApiFormat.openai_chat.value,
+            # 与连接同口径：云端供应商，后端闸门才会放行（不是本机档案）
+            providerId="openai",
             connectionId=CONNECTION_ID,
             modelProfileId=PROFILE_ID,
         ),

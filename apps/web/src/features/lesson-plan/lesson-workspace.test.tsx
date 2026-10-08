@@ -340,3 +340,44 @@ describe('F30-L v4 late source reads retain current teacher inputs', () => {
     const sources = raceSources(); const applyLessonProposal = vi.fn<typeof lessonPlanApi.applyLessonProposal>(async () => view('lesson-a', 2)); const api = services({ verifyLessonEvidence: vi.fn(async () => evidence), generateLessonProposal: vi.fn(async () => generationReceipt()), getLessonProposal: vi.fn(async () => candidate()), applyLessonProposal }); await prepareRace(sources, { proposal: true, api }); const generate = screen.getByRole('button', { name: '保存当前稿并生成 AI 候选' }); await waitFor(() => expect(generate).toBeEnabled()); fireEvent.click(generate); fireEvent.click(await screen.findByLabelText('采用核心素养')); let finish!: (run: AnalysisRunView) => void; sources.getRun.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; })); fireEvent.click(screen.getByRole('button', { name: '刷新来源列表' })); await waitFor(() => expect(typeof finish).toBe('function')); chooseTeacherInputs(); await act(async () => finish(fixedRun())); assertTeacherInputs(); expect(screen.getByText(/固定候选 proposal-fixed · 已过期/)).toBeInTheDocument(); expect(screen.getByLabelText('采用核心素养')).toBeChecked(); expect(screen.getByRole('button', { name: '仅采用所选完整字段' })).toBeDisabled(); fireEvent.click(screen.getByRole('button', { name: '仅采用所选完整字段' })); expect(applyLessonProposal).not.toHaveBeenCalled();
   });
 });
+
+describe('F30-L 后台教案归档与恢复', () => {
+  function summary(id: string, title: string) {
+    return { lessonPlanId: id, subjectId: 'chinese', classId: 'class-a', revision: 1, currentRevisionId: `${id}-fixed-1`, title, source: 'manual' as const, analysisRunId: 'run-fixed', updatedAt: '2026-10-03T00:00:00Z' };
+  }
+  it('列表默认只看未归档；归档/恢复需二次确认并按固定修订提交，归档视图只看已归档', async () => {
+    const queries: Array<{ archived?: boolean }> = [];
+    const listLessons = vi.fn(async (query: { archived?: boolean } = {}) => { queries.push(query); return page(query.archived ? [summary('lesson-b', '后台B')] : [summary('lesson-a', '后台A'), summary('lesson-b', '后台B')]); });
+    const archiveLessonPlan = vi.fn<typeof lessonPlanApi.archiveLessonPlan>(async (id) => view(id));
+    const restoreLessonPlan = vi.fn<typeof lessonPlanApi.restoreLessonPlan>(async (id) => view(id));
+    host(services({ listLessons, archiveLessonPlan, restoreLessonPlan }));
+    await screen.findByLabelText('课题');
+    fireEvent.click(screen.getByRole('button', { name: '刷新后台列表' }));
+    await screen.findByRole('button', { name: /后台B/ });
+    expect(queries[0]).toMatchObject({ archived: false });
+    // 当前工作台打开的教案（后台A）不能归档：给出原因且确认入口置灰，不发请求
+    fireEvent.click(screen.getAllByRole('button', { name: '归档' })[0]);
+    expect(archiveLessonPlan).not.toHaveBeenCalled();
+    expect(screen.getByText(/该教案正在工作台打开/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '确认归档' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: '取消' }));
+    // 后台B：二次确认后才按 summary 的 revision 提交
+    fireEvent.click(screen.getAllByRole('button', { name: '归档' })[1]);
+    expect(archiveLessonPlan).not.toHaveBeenCalled();
+    expect(screen.getByText(/归档后不能写入，历史修订保留/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '确认归档' }));
+    await waitFor(() => expect(archiveLessonPlan).toHaveBeenCalledWith('lesson-b', { expectedRevision: 1 }));
+    await screen.findByText('已归档教案 lesson-b：不能写入，历史修订保留。');
+    await waitFor(() => expect(queries.length).toBeGreaterThan(1));
+    // 打开「显示已归档」后传 archived: true（只看已归档），chip + 恢复
+    fireEvent.click(screen.getByLabelText('显示已归档'));
+    await waitFor(() => expect(queries.at(-1)?.archived).toBe(true));
+    expect(await screen.findByText('已归档')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '归档' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '恢复' }));
+    expect(restoreLessonPlan).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '确认恢复' }));
+    await waitFor(() => expect(restoreLessonPlan).toHaveBeenCalledWith('lesson-b', { expectedRevision: 1 }));
+    await screen.findByText('已恢复教案 lesson-b：可继续编辑。');
+  });
+});

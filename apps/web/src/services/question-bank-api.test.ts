@@ -12,6 +12,8 @@ import {
   createQuestionGenerationJob,
   createQuestionImport,
   deleteQuestion,
+  deleteQuestionImport,
+  discardQuestionImport,
   generationFieldsFromJobView,
   getQuestion,
   getQuestionImport,
@@ -762,5 +764,72 @@ describe('错误信封', () => {
     expect(error.code).toBe('SERVICE_UNAVAILABLE');
     expect(error.status).toBe(0);
     expect(error.retryable).toBe(true);
+  });
+});
+
+describe('放弃未确认批次', () => {
+  it('POST /question-imports/{id}/discard 提交 expectedRevision 并返回导入详情视图', async () => {
+    const fetchMock = stubFetch(() =>
+      ok({
+        importId: 'imp-1',
+        ownerId: 'local-user',
+        state: 'cancelled',
+        revision: 5,
+        uploadedFileName: '试题.docx',
+        uploadedBytes: 1024,
+        draftCount: 2,
+        reviewedCount: 0,
+        unassignedCount: 1,
+        warnings: [],
+        createdAt: '2026-10-01T00:00:00Z',
+        drafts: [],
+        unassignedBlocks: [],
+      }),
+    );
+    const detail = await discardQuestionImport('imp 1', { expectedRevision: 4 });
+    expect(call(fetchMock).init?.method).toBe('POST');
+    expect(call(fetchMock).url).toBe(`${API_BASE_PATH}/question-imports/imp%201/discard`);
+    expect(bodyOf(fetchMock)).toEqual({ expectedRevision: 4 });
+    expect(detail.state).toBe('cancelled');
+    expect(detail.revision).toBe(5);
+  });
+});
+
+describe('彻底删除导入批次', () => {
+  it('DELETE /question-imports/{id} 返回 {deleted, importId} 回执（受管原件不在回执范围）', async () => {
+    const fetchMock = stubFetch(() => ok({ deleted: true, importId: 'imp-1' }));
+    const result = await deleteQuestionImport('imp 1');
+    expect(call(fetchMock).init?.method).toBe('DELETE');
+    expect(call(fetchMock).url).toBe(`${API_BASE_PATH}/question-imports/imp%201`);
+    expect(result).toEqual({ deleted: true, importId: 'imp-1' });
+  });
+
+  it('已确认批次 409 IMPORT_ALREADY_CONFIRMED 原样抛出（不假装删除成功）', async () => {
+    stubFetch(() =>
+      jsonResponse(false, 409, {
+        code: 'IMPORT_ALREADY_CONFIRMED',
+        message: '该导入已确认入库，正式题源自它，来源追溯必须保留；不能彻底删除。',
+        retryable: false,
+      }),
+    );
+    const error = await rejected(deleteQuestionImport('imp-1'));
+    expect(error.code).toBe('IMPORT_ALREADY_CONFIRMED');
+    expect(error.status).toBe(409);
+  });
+
+  it('被正式题引用 409 IMPORT_IN_USE：details 带来源登记数与并入草稿数', async () => {
+    stubFetch(() =>
+      jsonResponse(false, 409, {
+        code: 'IMPORT_IN_USE',
+        message: '该批次的草稿被正式题引用（来源追溯或并入记录存在），不能彻底删除。',
+        retryable: false,
+        details: { sourceRefCount: 2, mergedDraftCount: 1 },
+      }),
+    );
+    const error = await rejected(deleteQuestionImport('imp-1'));
+    expect(error.code).toBe('IMPORT_IN_USE');
+    const details = error.details as { sourceRefCount?: unknown; mergedDraftCount?: unknown };
+    expect(details.sourceRefCount).toBe(2);
+    expect(details.mergedDraftCount).toBe(1);
   });
 });

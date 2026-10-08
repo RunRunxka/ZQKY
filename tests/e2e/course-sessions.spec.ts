@@ -457,6 +457,12 @@ test.describe('课程学习会话闭环', () => {
 
     // 流式（请求已发出、回答未到）期间切到普通新会话
     await page.getByRole('button', { name: '新对话' }).click();
+    // fresh() 先 await store.flush() 再 replace URL：新会话地址是异步落地的，
+    // 点完立刻读 page.url() 是竞态（历史偶发通过）；这里等到"已不再是原会话"再断言。
+    await expect(page).toHaveURL(
+      new RegExp(`/chat/(?!${courseSession}$)[0-9a-f-]{36}$`),
+      { timeout: 15000 },
+    );
     const plainSession = page.url().includes('/chat/') ? page.url().split('/chat/')[1]! : '';
     expect(plainSession).not.toBe(courseSession);
     // 目标会话不应出现来源会话的消息或课程归属

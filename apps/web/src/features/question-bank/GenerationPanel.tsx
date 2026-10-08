@@ -13,8 +13,9 @@
  *   必须走既有校对 → 人工确认链，**永不自动入库**。
  */
 
-import { useMemo, useState } from 'react';
-import { Sparkles } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { RefreshCw, Sparkles } from 'lucide-react';
 import type { Difficulty, GenerationJobView, QuestionType } from '@/contracts/question-bank';
 import { DIFFICULTY_LABEL, QUESTION_TYPE_LABEL } from '@/contracts/question-bank';
 import { isJobTerminal } from '@/contracts/teaching-loop';
@@ -34,6 +35,7 @@ import { organizeStateChipClass, organizeStateLabel } from './labels';
 import { KnowledgePointChecklist } from './KnowledgePointFields';
 import {
   ORGANIZER_CLOUD_NOTICE,
+  QUESTION_MODEL_SETTINGS_HREF,
   pickOrganizerChatModel,
   resolveOrganizerChatModel,
   unavailableOrganizerModel,
@@ -94,6 +96,15 @@ export function GenerationPanel({
   );
   const frozenStale = !!frozenModel && catalog.state.phase === 'ready' && frozenNow?.available !== true;
   const activeModel = frozenModel ?? currentModel;
+  /** 冻结模型与当前可用模型不同时，给出显式的「改用当前聊天模型」出口（绝不自动替换）。 */
+  const canSwitchModel =
+    !!frozenModel && currentModel.available && currentModel.profileId !== frozenModel.profileId;
+
+  /** 显式改用当前可用模型：清掉冻结快照，不自动重发（下一次点击才调用模型）。 */
+  function useCurrentModelInstead() {
+    setFrozenModel(null);
+    setSubmitError(null);
+  }
 
   const job = useQuestionJob({
     onTerminal: (view) => {
@@ -104,6 +115,18 @@ export function GenerationPanel({
     },
     polling,
   });
+
+  // 目录变化（在「模型设置」改完默认模型回到本页）重新读取：只读目录，不调用模型
+  const reloadCatalog = catalog.reload;
+  useEffect(() => {
+    const refresh = () => reloadCatalog();
+    window.addEventListener('focus', refresh);
+    window.addEventListener('model-catalog-changed', refresh);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      window.removeEventListener('model-catalog-changed', refresh);
+    };
+  }, [reloadCatalog]);
   const view = job.view;
   const terminal = view ? isJobTerminal(view.state) : false;
   const running = view !== null && !terminal;
@@ -133,7 +156,7 @@ export function GenerationPanel({
     setFrozenModel(activeModel);
     try {
       const created: GenerationJobView = await createQuestionGenerationJob({
-        // 当前聊天模型 profile id（本地或云端均可）；绝不是模型名、不是空串
+        // 云端聊天模型 profile id（题库 AI 不使用本机模型）；绝不是模型名、不是空串
         modelProfileId: activeModel.profileId,
         subjectId: trimmedSubject,
         knowledgePointIds,
@@ -176,6 +199,9 @@ export function GenerationPanel({
       ) : (
         <p className="qb-hint qb-warn-text" role="status" data-testid="qb-generation-model">
           {activeModel.reason ?? '聊天配置还没有默认模型：请到「模型设置」选择默认问答模型后再补题。'}
+          <Link className="space-button" href={QUESTION_MODEL_SETTINGS_HREF}>
+            去设置默认问答模型
+          </Link>
         </p>
       )}
 
@@ -198,7 +224,8 @@ export function GenerationPanel({
       {frozenStale && (
         <p className="space-banner error" role="alert">
           冻结的模型「{frozenModel?.modelLabel}」在当前模型配置里已不可用：不会自动改用其他模型；
-          请到「模型设置」修复后重新发起补题。
+          请到「模型设置」修复后重新发起补题
+          {canSwitchModel ? '，或点「改用当前聊天模型」再发起。' : '。'}
         </p>
       )}
 
@@ -456,6 +483,21 @@ export function GenerationPanel({
           <Sparkles size={14} aria-hidden />
           {submitting ? '提交中…' : '开始补题'}
         </button>
+        <button className="space-button" disabled={running} onClick={catalog.reload}>
+          <RefreshCw size={13} aria-hidden />
+          重新读取模型配置
+        </button>
+        {/* 与 ReviewWorkspace 的 AI 整理同一模式：冻结模型与当前可用模型不同时给显式出口 */}
+        {frozenModel && canSwitchModel && (
+          <button
+            className="space-button"
+            data-testid="qb-generation-switch-model"
+            disabled={running || submitting}
+            onClick={useCurrentModelInstead}
+          >
+            改用当前聊天模型
+          </button>
+        )}
         <button className="space-button" onClick={onClose}>
           关闭
         </button>

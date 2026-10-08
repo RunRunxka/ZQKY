@@ -111,6 +111,35 @@ def test_missing_service_returns_503(scene):
         assert response.status_code==503 and response.json()["code"]=="SERVICE_UNAVAILABLE"
 
 
+def test_archive_restore_routes_and_list_archived_filter(scene):
+    with scene.client() as (client,_):
+        base="/api/v1/lesson-plans"
+        created=client.post(base,json=scene.create_request().model_dump(by_alias=True,mode="json")).json()
+        lid=created["lessonPlanId"]
+        # 缺省请求体：expectedRevision 缺省为 0 时按 CAS 语义冲突。
+        empty=client.post(base+f"/{lid}/archive",json={})
+        assert empty.status_code==409 and empty.json()["code"]=="REVISION_CONFLICT"
+        archived=client.post(base+f"/{lid}/archive",json={"expectedRevision":created["revision"]})
+        assert archived.status_code==200,archived.text
+        assert archived.json()["revision"]==created["revision"] and archived.json()["currentRevisionId"]==created["currentRevisionId"]
+        assert client.get(base,params={"archived":"true"}).json()["items"][0]["lessonPlanId"]==lid
+        assert lid not in [x["lessonPlanId"] for x in client.get(base).json()["items"]]
+        # 归档后写入被守卫拒绝。
+        request=scene.save_request(archived.json(),submission="http-after-archive",
+            content=changed(archived.json()["currentRevision"]["data"],title="HTTP 归档后写入"))
+        blocked=client.patch(base+f"/{lid}/draft",json=request.model_dump(by_alias=True,mode="json"))
+        assert blocked.status_code==422 and blocked.json()["code"]=="LESSON_INVALID"
+        # 恢复后可继续编辑。
+        restored=client.post(base+f"/{lid}/restore",json={"expectedRevision":archived.json()["revision"]})
+        assert restored.status_code==200 and restored.json()["revision"]==created["revision"]
+        assert client.get(base,params={"archived":"true"}).json()["items"]==[]
+        saved=client.patch(base+f"/{lid}/draft",json=scene.save_request(restored.json(),submission="http-after-restore",
+            content=changed(restored.json()["currentRevision"]["data"],title="HTTP 恢复后写入")).model_dump(by_alias=True,mode="json"))
+        assert saved.status_code==200 and saved.json()["revision"]==created["revision"]+1
+        history=client.get(base+f"/{lid}/revisions").json()
+        assert [x["version"] for x in history["items"]]==[2,1]
+
+
 def test_archived_new_save_is_422_without_revision_receipt_and_old_receipt_replays(scene):
     created=scene.be.create_lesson(scene.create_request())
     original=scene.save_request(created,content=changed(created["currentRevision"]["data"],title="归档前保存"))

@@ -38,6 +38,7 @@ from app.contracts.scores import (
     SCORE_BASE_REVISION_CONFLICT,
     SCORE_CELL_INVALID,
     SCORE_CORRECTION_INVALID,
+    SCORE_IMPORT_CONFIRMED,
     SCORE_IMPORT_NOT_EDITABLE,
     SCORE_IMPORT_REVISION_CONFLICT,
     SCORE_ITEM_UNKNOWN,
@@ -50,6 +51,7 @@ from app.contracts.scores import (
     ScoreColumnMapping,
     ScoreImportConfirmRequest,
     ScoreImportConfirmResult,
+    ScoreImportDiscardRequest,
     ScoreImportList,
     ScoreImportRefreshRequest,
     ScoreImportRowList,
@@ -85,6 +87,7 @@ from app.repositories.teaching.scores import (
 )
 from app.services.assets.store import AssetStore
 from app.services.scores import imports as analysis
+from app.contracts.assessments import ASSESSMENT_ARCHIVED
 from app.contracts.scores import ScoreImportPatchRequest
 from app.services.scores.imports import CellInput, Leaf, ParticipantRef, PreviewMatrix
 from app.services.scores.matrix import build_matrix_page
@@ -347,6 +350,22 @@ class ScoreService:
             )
         return context
 
+    def _reject_archived_assessment_in(
+        self, conn: sqlite3.Connection, assessment_id: str
+    ) -> None:
+        """归档施测只读：新建导入、确认与修正一律拒绝；恢复后继续（幂等重放不受影响）。
+
+        只在**新提交**的写路径上调用：``execute_command`` 的已登记重放不经过 apply，
+        因此不会因事后归档改变历史结果。
+        """
+        record = self._assessments.get_in(conn, assessment_id)
+        if record is not None and record.state == "archived":
+            raise AppError(
+                "施测已归档，不能新增成绩导入、确认或修正；请先恢复施测。",
+                code=ASSESSMENT_ARCHIVED,
+                status_code=409,
+            )
+
     def _participants(
         self, conn: sqlite3.Connection, assessment_id: str
     ) -> tuple[ParticipantRef, ...]:
@@ -533,6 +552,7 @@ class ScoreService:
             raise _invalid("上传的成绩文件为空。", fields=["file"])
 
         with self._catalog.read_connection() as conn:
+            self._reject_archived_assessment_in(conn, assessment_id)
             context = self._assessment_context(conn, assessment_id)
             participants = self._participants(conn, assessment_id)
         if base_provided is not None and base_provided != context.active_score_revision_id:
@@ -716,6 +736,9 @@ class ScoreService:
                     assessmentId=record.assessment_id,
                     state=record.state,
                     revision=record.revision,
+                    # 上传原文件名走“名称优先”：仓储已按 file_id LEFT JOIN file_assets
+                    # 取 original_name；登记缺失时为 None，不伪造名称。
+                    uploadedFileName=record.uploaded_file_name,
                     rowCount=record.row_count,
                     createdAt=record.created_at,
                     updatedAt=record.updated_at,
@@ -947,6 +970,28 @@ class ScoreService:
                 conn, import_id, expected_revision=payload.expected_import_revision,
                 work_sheet=current.work_sheet, row_updates=rows, summary=summary,
             )
+        return self.get_score_import(import_id)
+
+    def discard_score_import(
+        self, import_id: str, payload: ScoreImportDiscardRequest
+    ) -> ScoreImportView:
+        """放弃未确认批次（误上传清理）：状态置 ``cancelled``，记录/文件/预览行保留。
+
+        已确认批次不可放弃（历史与已确认成绩版本不动）；重复放弃按幂等返回当前状态。
+        放弃后批次不在 ``EDITABLE_IMPORT_STATES``，patch/confirm/refresh 被既有守卫拒绝。
+        """
+        import_id = _text(import_id, field="importId")
+        with self._catalog.write_transaction() as conn:
+            record = self._scores.require_in(conn, import_id)
+            if record.state == "confirmed":
+                raise AppError(
+                    "该成绩批次已确认，不能放弃；已确认的成绩版本与审计保留。",
+                    code=SCORE_IMPORT_CONFIRMED,
+                    status_code=409,
+                )
+            _check_import_revision(record.revision, payload.expected_revision)
+            if record.state != "cancelled":
+                self._scores.set_state_in(conn, import_id, state="cancelled")
         return self.get_score_import(import_id)
 
     def _apply_row_patches(
@@ -1265,6 +1310,7 @@ class ScoreService:
         _require_editable(record)
         _check_import_revision(record.revision, payload.expected_import_revision)
 
+        self._reject_archived_assessment_in(conn, record.assessment_id)
         context = self._assessment_context(conn, record.assessment_id)
         if context.revision != payload.expected_assessment_revision:
             raise _assessment_conflict(context.revision)
@@ -1652,6 +1698,7 @@ class ScoreService:
         payload: ScoreRevisionCorrectRequest,
     ) -> dict[str, Any]:
         context = self._assessment_context(conn, assessment_id)
+        self._reject_archived_assessment_in(conn, assessment_id)
         if context.revision != payload.expected_assessment_revision:
             raise _assessment_conflict(context.revision)
         base = self._scores.get_revision_in(conn, payload.base_score_revision_id)

@@ -114,6 +114,8 @@ export interface ScoreImportRowList {
 export interface ScoreImportSummary {
   importId: string;
   assessmentId: string;
+  /** 只读派生：上传成绩表的原文件名；关联缺失时服务端给 null（不伪造名称）。 */
+  uploadedFileName: string | null;
   state: ScoreImportState;
   revision: number;
   rowCount: number;
@@ -146,6 +148,14 @@ export interface ScoreImportPatchRequest {
   expectedRevision: number;
   mapping?: ScoreColumnMapping | null;
   rows?: ScoreImportRowPatch[];
+}
+
+/**
+ * 放弃未确认成绩批次（对应后端 `ScoreImportDiscardRequest`）：
+ * 只把状态置 `cancelled`；批次记录、原始文件与预览行保留。
+ */
+export interface ScoreImportDiscardRequest {
+  expectedRevision: number;
 }
 
 export interface ScoreImportConfirmRequest {

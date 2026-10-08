@@ -71,6 +71,14 @@ def organize_body(draft_ids: Sequence[str], *, profile: str = LOCAL_PROFILE) -> 
     )
 
 
+def use_cloud_default(harness: Harness) -> None:
+    """把 harness 的默认句柄换成云端供应商（本机口径变更后成功路径用例共用）。"""
+    harness.resolver.default = make_handle(
+        LOCAL_PROFILE, provider=harness.provider, provider_id="openai", api_key=None
+    )
+    harness.service.model_resolver = harness.resolver
+
+
 def job_records(harness: Harness):
     return harness.catalog.list_jobs(kind="organize")
 
@@ -100,6 +108,31 @@ def crash_on(batch_index: int):
 # ------------------------------------------------------- 1/2 本地与云端 profile
 
 
+def test_organize_rejects_local_profile_before_any_call(harness: Harness) -> None:
+    """① 本机 profile：受理阶段 422 QUESTION_MODEL_NOT_CLOUD，不建任务、零外呼。
+
+    2026-10-07 用户裁定：题库 AI 不使用本机模型（与教案生成同口径）。
+    替身句柄用本机 providerId（ollama）走生产同一条判定路径
+    （``find_provider(handle.config.providerId).is_local``）。
+    """
+    harness.resolver.profiles[LOCAL_PROFILE] = make_handle(
+        LOCAL_PROFILE, provider=harness.provider, provider_id="ollama"
+    )
+    detail = harness.sample_detail()
+    draft = detail["drafts"][0]
+
+    response = organize(harness, detail["importId"], draftIds=[draft["draftId"]])
+    assert response.status_code == 422, response.text
+    body = response.json()
+    assert body["code"] == "QUESTION_MODEL_NOT_CLOUD"
+    assert "本机模型" in body["message"]
+    assert harness.provider.calls == []  # 本机被拒：零外呼
+    assert job_records(harness) == []  # 不建任务
+    assert harness.resolver.calls == [LOCAL_PROFILE]  # 解析发生了，调用没有
+    # 草稿与原文一条不动
+    assert harness.import_detail(detail["importId"])["drafts"] == detail["drafts"]
+
+
 @pytest.mark.parametrize(
     "protocol",
     [
@@ -111,12 +144,20 @@ def crash_on(batch_index: int):
 def test_organize_uses_current_chat_profile_and_freezes_it(
     harness: Harness, protocol: ModelProtocol
 ) -> None:
-    """① 本地 profile：用该 profile 的 provider 调用一次；checkpoint 记 profileId，不是模型名。"""
+    """① 云端 profile：用该 profile 的 provider 调用一次；checkpoint 记 profileId，不是模型名。
+
+    （2026-10-07 口径变更：原"本地 profile 成功"用例改为云端——句柄显式带
+    ``provider_id="openai"``，云端闸门放行；共同覆盖"云端可用"。）
+    """
     harness.resolver.profiles[LOCAL_PROFILE] = make_handle(
         LOCAL_PROFILE,
         protocol=protocol,
         api_format=f"api_format_{protocol.value}",
         provider=harness.provider,
+        provider_id="openai",
+        # 模型自身允许到组织者上限，断言 "budget == 组织者上限" 才有意义
+        # （模型上限低于组织者上限的场景由 test_organize_uses_injected_model_and_respects_output_cap 覆盖）
+        max_output_tokens=MAX_OUTPUT_TOKENS,
     )
     detail = harness.sample_detail()
     draft = detail["drafts"][0]
@@ -152,7 +193,7 @@ def test_organize_uses_current_chat_profile_and_freezes_it(
 
 
 def test_organize_uses_cloud_profile_like_local(harness: Harness) -> None:
-    """② 云端 profile：不同 protocol / modelId / baseUrl 同样走通，本地/云端一视同仁。"""
+    """② 云端 profile：不同 protocol / modelId / baseUrl 同样走通，云端闸门放行。"""
     cloud_provider = FakeLLMProvider()
     harness.resolver.profiles[CLOUD_PROFILE] = make_handle(
         CLOUD_PROFILE,
@@ -161,6 +202,7 @@ def test_organize_uses_cloud_profile_like_local(harness: Harness) -> None:
         base_url="https://api.example.com/v1",
         api_format="anthropic",
         provider=cloud_provider,
+        provider_id="openai",
     )
     detail = harness.sample_detail()
     response = organize(
@@ -317,11 +359,15 @@ def test_model_switch_during_run_does_not_affect_frozen_job(harness: Harness) ->
             harness.service.model_resolver = FakeResolver(
                 {
                     CLOUD_PROFILE: make_handle(
-                        CLOUD_PROFILE, model_id="cloud-x", provider=cloud_provider
+                        CLOUD_PROFILE, model_id="cloud-x", provider=cloud_provider,
+                        provider_id="openai", api_key=None,
                     )
                 }
             )
         return organize_reply(block_ids_of(call.input_text))
+
+    # 本用例的初始句柄也必须是云端（云端闸门口径下的既有覆盖点改写）
+    use_cloud_default(harness)
 
     harness.provider.handler = handler
     detail = harness.sample_detail()
@@ -352,6 +398,7 @@ async def test_recover_resolves_frozen_profile_and_continues(harness: Harness) -
     import_id = detail["importId"]
     draft_ids = [item["draftId"] for item in detail["drafts"][:2]]
     harness.provider.handler = crash_on(1)
+    use_cloud_default(harness)  # 口径变更：成功路径需要云端句柄
 
     # B2：执行器抛出的未预期异常由统一引擎收尾为 failed（不再向上抛给调用方）
     failed_view = await harness.service.organize(import_id, organize_body(draft_ids))
@@ -362,7 +409,9 @@ async def test_recover_resolves_frozen_profile_and_continues(harness: Harness) -
     assert crashed.checkpoint["nextBatchIndex"] == 1  # 第 0 批已提交
 
     # 重启恢复：解析器换成记录型替身，仍按 checkpoint 的 profile id 解析
-    replacement = FakeResolver({LOCAL_PROFILE: harness.handle(LOCAL_PROFILE)})
+    replacement = FakeResolver(
+        {LOCAL_PROFILE: harness.handle(LOCAL_PROFILE, provider_id="openai", api_key=None)}
+    )
     harness.service.model_resolver = replacement
     harness.provider.handler = None
 
@@ -874,9 +923,10 @@ def test_organize_creates_pending_suggestions(harness: Harness) -> None:
 def test_organize_uses_injected_model_and_respects_output_cap(
     harness: Harness, profile_limit: int, expected_tokens: int
 ) -> None:
-    """输出预算 = min(2048, 所选模型 max_output_tokens)，逐批同样受约束。"""
+    """输出预算 = min(组织者上限, 所选模型 max_output_tokens)，逐批同样受约束。"""
+    use_cloud_default(harness)
     harness.resolver.profiles[LOCAL_PROFILE] = harness.handle(
-        LOCAL_PROFILE, max_output_tokens=profile_limit
+        LOCAL_PROFILE, max_output_tokens=profile_limit, provider_id="openai", api_key=None
     )
     detail = harness.sample_detail()
     response = organize(harness, detail["importId"])

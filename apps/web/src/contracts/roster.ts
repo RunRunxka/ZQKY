@@ -55,6 +55,11 @@ export interface ClassUpdateRequest {
   gradeId?: string | null;
 }
 
+/** 班级归档/恢复（对应后端 `ClassRevisionRequest`：只带乐观锁修订号，不携带内容）。 */
+export interface ClassRevisionRequest {
+  expectedRevision: number;
+}
+
 export interface StudentMembershipView {
   membershipId: string;
   classId: string;
@@ -91,6 +96,11 @@ export interface StudentUpdateRequest {
   expectedRevision: number;
   name?: string | null;
   studentNo?: string | null;
+}
+
+/** 学生归档/恢复（对应后端 `StudentRevisionRequest`：与班级同形；归属历史保留）。 */
+export interface StudentRevisionRequest {
+  expectedRevision: number;
 }
 
 export interface MembershipTransferRequest {
@@ -130,12 +140,62 @@ export interface RosterImportView {
 export interface RosterImportSummary {
   importId: string;
   classId: string;
+  /** 只读派生：班名与上传原文件名；关联缺失时服务端给 null（不伪造名称）。 */
+  className: string | null;
+  uploadedFileName: string | null;
   state: RosterImportState;
   revision: number;
   rowCount: number;
   blockingIssueCount: number;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * 彻底删除班级回执（200）：物理删除不可恢复；被引用时服务端 409 拒绝。
+ * 引用计数形状见 `ClassReferenceCounts`（409 `CLASS_IN_USE` 的 `details.counts`）。
+ */
+export interface ClassDeleteResult {
+  deleted: boolean;
+  classId: string;
+}
+
+/** `CLASS_IN_USE` 的逐项引用计数（键与后端一致；未知键由界面原样列出，不隐藏）。 */
+export interface ClassReferenceCounts {
+  memberships: number;
+  rosterImports: number;
+  assessments: number;
+  lessonPlans: number;
+}
+
+/**
+ * 批量添加学生（对应后端 `BatchStudentAddRequest`）：`submissionId` 幂等，1..200 行。
+ * `studentNo` 可空（无学号显式建档）；行级非法由服务端 422 + `details.issues[].row` 定位。
+ */
+export interface BatchStudentItem {
+  studentNo?: string | null;
+  name: string;
+}
+
+export interface BatchStudentAddRequest {
+  submissionId: string;
+  items: BatchStudentItem[];
+  joinedOn?: string | null;
+}
+
+/** 被跳过的行：`index` 是请求 `items` 的 0 基下标（学号已存在时附既有学生）。 */
+export interface BatchStudentSkippedRow {
+  index: number;
+  reason: string;
+  code: string;
+  existingStudentId?: string | null;
+  existingName?: string | null;
+}
+
+export interface BatchStudentAddResult {
+  created: StudentView[];
+  skipped: BatchStudentSkippedRow[];
+  replayed: boolean;
 }
 
 export interface RosterImportList {
@@ -155,6 +215,14 @@ export interface RosterImportPatchRequest {
   expectedRevision: number;
   mapping?: Record<string, string> | null;
   rows?: RosterImportRowPatch[] | null;
+}
+
+/**
+ * 放弃未确认名单批次（对应后端 `RosterImportDiscardRequest`）：
+ * 只把状态置 `cancelled`；批次记录、原始文件与预览行保留。
+ */
+export interface RosterImportDiscardRequest {
+  expectedRevision: number;
 }
 
 export interface RosterIdentityMatch {

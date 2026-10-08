@@ -224,6 +224,22 @@ class KnowledgeImportRepository:
         )
         return self.require_import(conn, import_id)
 
+    def mark_cancelled(self, conn: sqlite3.Connection, import_id: str) -> ImportRecord:
+        """放弃批次：``state = cancelled`` + ``revision + 1``；幂等（已取消不重复递增）。
+
+        只改状态：批次记录、原始文件资产与预览行一律保留（审计），不删除任何行。
+        """
+        import_id = self._text(import_id, field="import_id")
+        current = self.require_import(conn, import_id)
+        if current.state == "cancelled":
+            return current
+        conn.execute(
+            "UPDATE knowledge_imports SET state = 'cancelled', revision = revision + 1, "
+            "updated_at = ? WHERE id = ?",
+            (now_iso(), import_id),
+        )
+        return self.require_import(conn, import_id)
+
     def insert_rows(
         self, conn: sqlite3.Connection, import_id: str, rows: Sequence[ImportRowInput]
     ) -> None:

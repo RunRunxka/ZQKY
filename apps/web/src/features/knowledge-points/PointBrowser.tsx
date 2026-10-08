@@ -1,7 +1,14 @@
 'use client';
 
 /**
- * 知识点浏览：学科/状态/关键字筛选 + 列表 / 父树两种视图。
+ * 知识点浏览：范围（任教范围 / 学科全部）+ 学科/年级/状态/关键字筛选 + 列表 / 父树两种视图。
+ *
+ * 范围口径（设计 3.2）：
+ * - **默认「任教范围内教材」**（`scope=taught`，窄口径）；服务端未就绪时给 409
+ *   `KNOWLEDGE_SCOPE_UNAVAILABLE` → 列表区显示服务端原因 + 「去设置任教范围」入口，
+ *   **绝不静默回退成「全部」**；用户可显式切到「学科全部教材」（`scope=subject`）。
+ * - 年级筛选优先用 `GET /textbook-taxonomy` 的年级字典；字典不可用时降级为「汇总当前结果
+ *   `gradeIds`」，并在页面上如实说明这个局限（不凭空造年级）。
  *
  * 严格区分三态：读取失败显示错误码与重试（**不当空目录**）；空结果显示空态；
  * 父树由 `parentId` / `parentCode` 计算（见 `./tree`），父级不在当前结果的节点
@@ -9,16 +16,25 @@
  */
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { List, Plus, RefreshCw, Search, TreePine } from 'lucide-react';
-import type { KnowledgePointStatus } from '@/contracts/knowledge';
+import type { KnowledgePointScope, KnowledgePointStatus } from '@/contracts/knowledge';
 import { listKnowledgePoints } from '@/services/knowledge-points-api';
-import { knowledgeStatusLabel } from './labels';
+import {
+  KNOWLEDGE_POINT_SCOPE_LABEL,
+  KNOWLEDGE_SCOPE_UNAVAILABLE_CODE,
+  TAUGHT_SCOPE_SETTINGS_HREF,
+  collectResultGradeIds,
+  knowledgeStatusLabel,
+} from './labels';
 import { useAsyncResource } from './hooks';
 import { buildPointTree, type PointTreeNode } from './tree';
 
 export interface PointBrowserProps {
   subjects: { id: string; label: string }[];
   taxonomyReady: boolean;
+  /** `GET /textbook-taxonomy` 的年级字典；不可用时传空数组（自动降级为结果汇总）。 */
+  grades?: { id: string; label: string }[];
   subjectId: string;
   status: '' | KnowledgePointStatus;
   selectedPointId: string | null;
@@ -36,9 +52,12 @@ const STATUS_OPTIONS: { value: '' | KnowledgePointStatus; label: string }[] = [
   { value: 'archived', label: '已归档' },
 ];
 
+const DEFAULT_SCOPE: KnowledgePointScope = 'taught';
+
 export function PointBrowser({
   subjects,
   taxonomyReady,
+  grades = [],
   subjectId,
   status,
   selectedPointId,
@@ -51,8 +70,10 @@ export function PointBrowser({
   const [view, setView] = useState<'list' | 'tree'>('list');
   const [draftQuery, setDraftQuery] = useState('');
   const [appliedQuery, setAppliedQuery] = useState('');
+  const [scope, setScope] = useState<KnowledgePointScope>(DEFAULT_SCOPE);
+  const [gradeId, setGradeId] = useState('');
 
-  const listKey = `${subjectId}|${status}|${appliedQuery}|${refreshToken}`;
+  const listKey = `${subjectId}|${status}|${appliedQuery}|${scope}|${gradeId}|${refreshToken}`;
   const points = useAsyncResource(
     (signal) =>
       listKnowledgePoints(
@@ -60,6 +81,8 @@ export function PointBrowser({
           subjectId: subjectId || undefined,
           status: status || undefined,
           q: appliedQuery || undefined,
+          scope,
+          gradeId: gradeId || undefined,
           limit: 100,
         },
         signal,
@@ -73,10 +96,39 @@ export function PointBrowser({
 
   const items = points.state.phase === 'ready' ? points.state.data.items : [];
   const tree = points.state.phase === 'ready' ? buildPointTree(items) : null;
+  const scopeUnavailable =
+    points.state.phase === 'failed' &&
+    points.state.error.code === KNOWLEDGE_SCOPE_UNAVAILABLE_CODE;
+  const gradesFromTaxonomy = grades.length > 0;
+  // 降级来源：字典不可用时只汇总本页服务端确实返回的 gradeIds（不造年级）
+  const fallbackGradeIds = gradesFromTaxonomy ? [] : collectResultGradeIds(items);
+  const gradeOptions = gradesFromTaxonomy
+    ? grades.map((grade) => ({ id: grade.id, label: grade.label }))
+    : fallbackGradeIds.map((id) => ({ id, label: id }));
+  if (gradeId && !gradeOptions.some((option) => option.id === gradeId)) {
+    // 已选年级不在当前选项里：保留它（不静默丢掉筛选条件），仍可手动切回
+    gradeOptions.push({ id: gradeId, label: gradeId });
+  }
+  const gradeLabelOf = (id: string) =>
+    grades.find((grade) => grade.id === id)?.label ?? id;
 
   return (
     <section className="kp-browser" aria-label="知识点列表">
       <div className="space-toolbar kp-toolbar">
+        <div className="space-segment" role="group" aria-label="按教材范围筛选">
+          {(Object.keys(KNOWLEDGE_POINT_SCOPE_LABEL) as KnowledgePointScope[]).map((value) => (
+            <button
+              key={value}
+              className={scope === value ? 'current' : ''}
+              aria-pressed={scope === value}
+              data-testid={`kp-scope-${value}`}
+              onClick={() => setScope(value)}
+            >
+              {KNOWLEDGE_POINT_SCOPE_LABEL[value]}
+            </button>
+          ))}
+        </div>
+
         <label className="kp-field kp-field-inline">
           <span className="kp-field-label">学科</span>
           {taxonomyReady ? (
@@ -102,6 +154,24 @@ export function PointBrowser({
               onChange={(event) => onSubjectChange(event.target.value)}
             />
           )}
+        </label>
+
+        <label className="kp-field kp-field-inline">
+          <span className="kp-field-label">年级</span>
+          <select
+            className="space-select"
+            value={gradeId}
+            aria-label="按年级筛选"
+            disabled={gradeOptions.length === 0}
+            onChange={(event) => setGradeId(event.target.value)}
+          >
+            <option value="">全部年级</option>
+            {gradeOptions.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </label>
 
         <div className="space-segment" role="group" aria-label="按状态筛选">
@@ -173,7 +243,38 @@ export function PointBrowser({
         </div>
       )}
 
-      {points.state.phase === 'failed' && (
+      {points.state.phase === 'failed' && scopeUnavailable && (
+        <div className="space-banner error" role="alert" data-testid="kp-scope-unavailable">
+          <div className="space-banner-row">
+            <span>
+              「{KNOWLEDGE_POINT_SCOPE_LABEL.taught}」当前不可用（
+              {points.state.error.code}）：{points.state.error.message}
+            </span>
+            <Link className="space-button" href={TAUGHT_SCOPE_SETTINGS_HREF}>
+              去设置任教范围
+            </Link>
+            <button className="space-button" onClick={points.reload}>
+              重试
+            </button>
+          </div>
+          <span>
+            页面<strong>没有</strong>改成显示全部知识点：任教范围未就绪时列表为空是服务端明确
+            拒绝的结果。可先去「教材资料库」保存任教范围，或显式切到「
+            {KNOWLEDGE_POINT_SCOPE_LABEL.subject}」。
+          </span>
+          <div className="kp-actions">
+            <button
+              className="space-button"
+              data-testid="kp-scope-switch-subject"
+              onClick={() => setScope('subject')}
+            >
+              改用「{KNOWLEDGE_POINT_SCOPE_LABEL.subject}」（显式切换）
+            </button>
+          </div>
+        </div>
+      )}
+
+      {points.state.phase === 'failed' && !scopeUnavailable && (
         <div className="space-banner error" role="alert" data-testid="kp-list-error">
           <div className="space-banner-row">
             <span>
@@ -187,11 +288,25 @@ export function PointBrowser({
         </div>
       )}
 
+      <p className="kp-hint" data-testid="kp-scope-hint">
+        {scope === 'taught'
+          ? '当前只显示任教范围内教材来源的知识点（默认窄口径）。范围未就绪时会在上方给出原因与设置入口，不会静默改成「全部」。'
+          : `当前显示「${KNOWLEDGE_POINT_SCOPE_LABEL.subject}」来源的知识点：用于备课/复习时跨册查看；切回「${KNOWLEDGE_POINT_SCOPE_LABEL.taught}」回到默认窄口径。`}
+      </p>
+
+      {!gradesFromTaxonomy && (
+        <p className="kp-hint" data-testid="kp-grade-fallback">
+          年级字典（/textbook-taxonomy）当前不可用：年级筛选项由本页结果里的 `gradeIds`
+          汇总而来（只含当前筛选下出现过的年级），不是完整字典，因此可能缺少其他年级。
+        </p>
+      )}
+
       {points.state.phase === 'ready' && items.length === 0 && (
         <div className="space-empty">
           <strong>没有符合条件的数据</strong>
           <span>
-            当前筛选（学科 / 状态 / 关键字）下服务端返回 0 条知识点。可调整筛选或新建知识点。
+            当前筛选（{KNOWLEDGE_POINT_SCOPE_LABEL[scope]} / 学科 / 年级 / 状态 / 关键字）下服务端
+            返回 0 条知识点。可调整筛选或新建知识点。
           </span>
         </div>
       )}
@@ -211,6 +326,11 @@ export function PointBrowser({
                 </span>
                 <span className="space-meta-row">
                   {point.parentCode && <span className="space-chip">父级 {point.parentCode}</span>}
+                  {(point.gradeIds ?? []).map((id) => (
+                    <span key={id} className="space-chip blue" title={id}>
+                      年级 {gradeLabelOf(id)}
+                    </span>
+                  ))}
                   <span className="space-chip">版本 v{point.version}</span>
                   <span className="space-chip">编辑锁 r{point.revision}</span>
                   <span

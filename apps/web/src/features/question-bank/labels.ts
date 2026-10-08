@@ -12,6 +12,7 @@ import {
   type Difficulty,
   type DraftReviewState,
   type OrganizeJobView,
+  type QuestionImportInUseDetails,
   type QuestionImportState,
   type QuestionLocatorView,
   type QuestionType,
@@ -156,4 +157,50 @@ export function formatDateTime(iso: string): string {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+/**
+ * 解析 409 `IMPORT_IN_USE` 的 `details`（`{sourceRefCount, mergedDraftCount}`）。
+ * 形状不认识或两个计数都不是有限数字时返回 null（**不伪造计数**）。
+ */
+export function parseQuestionImportInUseDetails(details: unknown): QuestionImportInUseDetails | null {
+  if (!isRecord(details)) return null;
+  const sourceRefCount = details.sourceRefCount;
+  const mergedDraftCount = details.mergedDraftCount;
+  const hasSource = typeof sourceRefCount === 'number' && Number.isFinite(sourceRefCount);
+  const hasMerged = typeof mergedDraftCount === 'number' && Number.isFinite(mergedDraftCount);
+  if (!hasSource && !hasMerged) return null;
+  return {
+    sourceRefCount: hasSource ? sourceRefCount : 0,
+    mergedDraftCount: hasMerged ? mergedDraftCount : 0,
+  };
+}
+
+/**
+ * 原文块 id 的降级展示（设计 2.x「ID 降级」）：主文案用可读序号，完整 id 走 `title`。
+ * 序号取不到时（草稿引用的原文块不在未归属列表里）如实说明，不编造序号。
+ */
+export function blockLabel(ordinal: number | null | undefined): string {
+  return typeof ordinal === 'number' && Number.isFinite(ordinal)
+    ? `原文块 ${ordinal}`
+    : '原文块（序号未返回）';
+}
+
+/** 草稿的降级展示：`#序号 题型`，完整 draftId 走 `title`。 */
+export function draftLabel(position: number | null | undefined, type: QuestionType): string {
+  const typeLabel = questionTypeLabel(type);
+  return typeof position === 'number' && Number.isFinite(position) && position > 0
+    ? `#${position} ${typeLabel}`
+    : typeLabel;
+}
+
+/** 题目的降级展示：题干预览摘要（完整 questionId 走 `title`）。 */
+export function questionStemSummary(stemPreview: string, maxChars = 24): string {
+  const text = stemPreview.trim().replace(/\s+/g, ' ');
+  if (!text) return '题干（服务端未返回预览）';
+  return text.length > maxChars ? `${text.slice(0, maxChars)}…` : text;
 }

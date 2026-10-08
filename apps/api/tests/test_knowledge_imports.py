@@ -697,3 +697,99 @@ def test_upload_over_10_mib_is_413(harness: ImportHarness) -> None:
     assert response.status_code == 413
     assert response.json()["code"] == "DOCUMENT_TOO_LARGE"
     assert harness.count(harness.catalog.db_path, "knowledge_imports") == 0
+
+
+# --------------------------------------------------------------------------- 放弃批次
+
+
+def discard(harness: ImportHarness, import_id: str, *, expected_revision: int):
+    return harness.client.post(
+        f"/api/v1/knowledge-imports/{import_id}/discard",
+        json={"expectedRevision": expected_revision},
+    )
+
+
+def test_discard_unconfirmed_import_keeps_records_and_zero_writes(
+    harness: ImportHarness,
+) -> None:
+    """放弃未确认批次：state=cancelled + revision+1；记录/文件/预览行保留、零知识点写入。"""
+    preview = harness.upload_ok(make_xlsx(["编码", "名称"], [["D1", "甲"], ["D2", "乙"]]))
+
+    discarded = discard(harness, preview["importId"], expected_revision=preview["revision"])
+    assert discarded.status_code == 200, discarded.text
+    body = discarded.json()
+    assert body["state"] == "cancelled"
+    assert body["revision"] == preview["revision"] + 1
+    # 批次记录、原始文件资产与预览行保留（审计），没有任何知识点写入
+    assert harness.count(harness.catalog.db_path, "knowledge_imports") == 1
+    assert harness.count(harness.catalog.db_path, "knowledge_import_rows") == 2
+    assert harness.point_count() == 0
+    # 原始文件资产保留（教学库 file_assets + assets/blobs 受管文件）
+    assert harness.count(harness.teaching.db_path, "file_assets") == 1
+
+    # 放弃后不可再 patch/confirm（cancelled 不在 EDITABLE/CONFIRMABLE 状态集合内，
+    # 模块既有守卫按 422 INVALID_REQUEST 拒绝，与 failed 状态同一分支）
+    patched = harness.patch_import(
+        preview["importId"], rows=[{"rowNo": 1, "decision": "create"}]
+    )
+    assert patched.status_code == 422, patched.text
+    assert patched.json()["code"] == "INVALID_REQUEST"
+    assert "cancelled" in patched.json()["message"]
+
+    # 放弃后不可再 confirm
+    confirmed = harness.confirm(
+        preview["importId"], harness.confirm_body(preview["importId"])
+    )
+    assert confirmed.status_code == 422, confirmed.text
+    assert confirmed.json()["code"] == "INVALID_REQUEST"
+    assert harness.point_count() == 0
+
+    # 重复放弃幂等：不报错、不再递增 revision
+    again = discard(harness, preview["importId"], expected_revision=body["revision"])
+    assert again.status_code == 200, again.text
+    assert again.json()["state"] == "cancelled"
+    assert again.json()["revision"] == body["revision"]
+
+
+def test_discard_confirmed_import_is_409(harness: ImportHarness) -> None:
+    """已确认批次不可放弃：409 KNOWLEDGE_IMPORT_CONFIRMED，已写入的知识点保留。"""
+    preview = harness.upload_ok(make_xlsx(["编码", "名称"], [["C1", "甲"]]))
+    confirmed = harness.confirm(
+        preview["importId"],
+        harness.confirm_body(
+            preview["importId"], actions=[{"rowNo": 1, "decision": "create"}]
+        ),
+    )
+    assert confirmed.status_code == 200, confirmed.text
+    current = harness.preview(preview["importId"])
+    assert current["state"] == "confirmed"
+
+    refused = discard(harness, preview["importId"], expected_revision=current["revision"])
+    assert refused.status_code == 409, refused.text
+    body = refused.json()
+    assert body["code"] == "KNOWLEDGE_IMPORT_CONFIRMED"
+    assert harness.point_count() == 1
+
+
+def test_discard_import_revision_conflict_carries_current_revision(
+    harness: ImportHarness,
+) -> None:
+    """expectedRevision 不符：409 REVISION_CONFLICT + details.currentRevision，状态不变。"""
+    preview = harness.upload_ok(make_xlsx(["编码", "名称"], [["R1", "甲"]]))
+
+    stale = discard(harness, preview["importId"], expected_revision=99)
+    assert stale.status_code == 409, stale.text
+    body = stale.json()
+    assert body["code"] == "REVISION_CONFLICT"
+    assert body["details"]["currentRevision"] == preview["revision"]
+
+    after = harness.preview(preview["importId"])
+    assert after["state"] == preview["state"]
+    assert after["revision"] == preview["revision"]
+
+
+def test_discard_import_route_not_found(harness: ImportHarness) -> None:
+    """不存在的批次放弃：404 KNOWLEDGE_IMPORT_NOT_FOUND。"""
+    response = discard(harness, "no-such-import", expected_revision=0)
+    assert response.status_code == 404, response.text
+    assert response.json()["code"] == "KNOWLEDGE_IMPORT_NOT_FOUND"

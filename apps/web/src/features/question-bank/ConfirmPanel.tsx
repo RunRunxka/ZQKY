@@ -7,13 +7,20 @@
  * 界面纪律（F10-QB）：
  * - `failures` 非空时只显示「**整批未确认**」与逐条清单，**不显示成功徽标**、不出现
  *   「已入库 N 道」；确认按钮保持可用（修正后复用同一提交标识重试）；
- * - AI 候选草稿（`extractionMethod=ai`）逐条显式标识来源，说明仍需人工确认后才入库。
+ * - AI 候选草稿（`extractionMethod=ai`）逐条显式标识来源，说明仍需人工确认后才入库；
+ * - ID 降级：草稿标识用「#序号 题型」（完整 `draftId` 走 `title`），不把 uuid 当主标识。
  */
 
 import type { ConfirmResult, DraftView, DuplicateResolution } from '@/contracts/question-bank';
 import { ApiError } from '@/services/api-client';
 import { confirmBlockers } from './draft-form';
-import { AI_CANDIDATE_CHIP, CONFIRM_UNCONFIRMED_TITLE, EXTRACTION_METHOD_LABEL, reviewStateLabel } from './labels';
+import {
+  AI_CANDIDATE_CHIP,
+  CONFIRM_UNCONFIRMED_TITLE,
+  EXTRACTION_METHOD_LABEL,
+  draftLabel,
+  reviewStateLabel,
+} from './labels';
 
 export type ConfirmState =
   | { phase: 'idle' }
@@ -44,6 +51,13 @@ export function ConfirmPanel({
   const reviewed = drafts.filter((draft) => draft.reviewState === 'reviewed');
   const completed = state.phase === 'done' && state.result.failures.length === 0;
   const unknown = state.phase === 'failed' && state.error.status === 0;
+  /** 草稿在本批次里的序号 → 「#N 题型」；序号未知时退回题型（不显示 uuid 当主文案）。 */
+  const positionOf = (draftId: string) => {
+    const index = drafts.findIndex((draft) => draft.draftId === draftId);
+    return index >= 0 ? index + 1 : null;
+  };
+  const labelOf = (draft: DraftView) =>
+    draftLabel(positionOf(draft.draftId), draft.content.type);
 
   return (
     <section className="qb-confirm" aria-label="确认入库">
@@ -68,7 +82,9 @@ export function ConfirmPanel({
             return (
               <li key={draft.draftId} className="qb-confirm-item">
                 <div className="space-meta-row">
-                  <span className="space-chip">{draft.draftId}</span>
+                  <span className="space-chip" title={draft.draftId}>
+                    {labelOf(draft)}
+                  </span>
                   <span className="space-chip">修订 r{draft.revision}</span>
                   <span className="space-chip green">{reviewStateLabel(draft.reviewState)}</span>
                   <span className="space-chip">{EXTRACTION_METHOD_LABEL[draft.extractionMethod]}</span>
@@ -146,11 +162,17 @@ export function ConfirmPanel({
           <strong>没有任何题目被入库</strong>
           ，也不会显示部分成功徽标；本次提交未登记，修正后可复用同一提交标识重试。
           <ul className="qb-failure-list">
-            {state.result.failures.map((failure) => (
-              <li key={`${failure.draftId}-${failure.code}`}>
-                草稿 {failure.draftId} · {failure.code}：{failure.message}
-              </li>
-            ))}
+            {state.result.failures.map((failure) => {
+              const failed = drafts.find((draft) => draft.draftId === failure.draftId);
+              return (
+                <li key={`${failure.draftId}-${failure.code}`}>
+                  <span title={failure.draftId}>
+                    {failed ? labelOf(failed) : `草稿 ${failure.draftId}`}
+                  </span>{' '}
+                  · {failure.code}：{failure.message}
+                </li>
+              );
+            })}
           </ul>
           <div className="qb-actions">
             <button className="space-button primary" onClick={onConfirm} disabled={busy}>

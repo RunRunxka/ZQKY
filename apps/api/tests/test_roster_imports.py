@@ -25,12 +25,14 @@ from app.api.v1 import roster as roster_route
 from app.contracts.roster import (
     ROSTER_IDENTITY_UNRESOLVED,
     ROSTER_IMPORT_BLOCKING_ISSUES,
+    ROSTER_IMPORT_CONFIRMED,
     ROSTER_MAPPING_INVALID,
     STUDENT_NO_CONFLICT,
     ClassCreateRequest,
     ClassRevisionRequest,
     MembershipTransferRequest,
     RosterImportConfirmRequest,
+    RosterImportDiscardRequest,
     RosterImportPatchRequest,
     StudentCreateRequest,
 )
@@ -340,6 +342,40 @@ def test_suggestion_classification_all_cases(harness: Harness) -> None:
     summary = harness.service.list_roster_imports(class_id=created.id).items[0]
     assert summary.blocking_issue_count == 3
     assert RosterImportRepository(harness.catalog).blocking_issue_count(view.import_id) == 3
+
+
+def test_import_list_uploaded_file_name_and_class_name(harness: Harness) -> None:
+    """uploadedFileName/className 走“名称优先”：列表同库 LEFT JOIN classes.name /
+    file_assets.original_name 实时补名；关联缺失时落 null，不伪造名称、不抛错。"""
+    created = make_class(harness)
+    content = csv_bytes([["学号", "姓名"], ["0012", "张三"]])
+    view = upload(harness, created.id, content=content, file_name="名单甲.csv")
+
+    listed = harness.service.list_roster_imports(class_id=created.id)
+    summary = listed.items[0]
+    assert summary.import_id == view.import_id
+    # 有值路径：班名与上传原文件名均来自真实 JOIN
+    assert summary.class_name == created.name
+    assert summary.uploaded_file_name == "名单甲.csv"
+
+    # 缺失为 null：清掉资产登记行（模拟异常数据），列表仍可读且落 null
+    def _raw_delete(sql: str, params: tuple) -> None:
+        raw = connect(harness.catalog.db_path)
+        try:
+            raw.execute("PRAGMA foreign_keys=OFF")
+            raw.execute(sql, params)
+        finally:
+            raw.close()
+
+    _raw_delete("DELETE FROM file_assets WHERE id=?", (view.file_asset.asset_id,))
+    after = harness.service.list_roster_imports(class_id=created.id)
+    assert after.items[0].uploaded_file_name is None
+    assert after.items[0].class_name == created.name
+
+    # 班级行缺失时 className 落 null（旧库/异常数据兼容）
+    _raw_delete("DELETE FROM classes WHERE id=?", (created.id,))
+    final = harness.service.list_roster_imports()
+    assert final.items[0].class_name is None and final.items[0].uploaded_file_name is None
 
 
 def test_patch_mapping_reanalyzes_and_rows_store_decisions(harness: Harness) -> None:
@@ -924,3 +960,85 @@ def test_confirm_joined_on_is_confirm_date(harness: Harness) -> None:
     membership = harness.service.list_class_students(created.id).items[0].memberships[0]
     assert membership.joined_on == now_iso()[:10]
     assert membership.left_on is None
+
+
+# --------------------------------------------------------------------------- 放弃未确认批次（误上传清理）
+
+
+def test_discard_unconfirmed_import_keeps_records_and_zero_writes(harness: Harness) -> None:
+    created = make_class(harness)
+    content = csv_bytes([["学号", "姓名"], ["0013", "李四"]])
+    view = upload(harness, created.id, content=content, file_name="roster.csv")
+
+    discarded = harness.service.discard_roster_import(
+        view.import_id, RosterImportDiscardRequest(expectedRevision=view.revision)
+    )
+    assert discarded.state == "cancelled"
+    assert discarded.revision == view.revision + 1
+    # 批次记录、原始文件与预览行保留（审计），没有任何学生/归属写入
+    assert harness.count("roster_imports") == 1
+    assert harness.count("roster_import_rows") == 1
+    assert harness.count("students") == 0
+    assert harness.count("class_memberships") == 0
+
+    # 放弃后不可再修改/确认
+    with pytest.raises(AppError) as err:
+        harness.service.patch_roster_import(
+            view.import_id,
+            RosterImportPatchRequest(
+                expectedRevision=discarded.revision,
+                rows=[{"rowNo": 1, "decision": "create"}],
+            ),
+        )
+    assert err.value.status_code == 409
+
+    # 重复放弃幂等：不报错、不再递增 revision
+    again = harness.service.discard_roster_import(
+        view.import_id, RosterImportDiscardRequest(expectedRevision=discarded.revision)
+    )
+    assert again.state == "cancelled" and again.revision == discarded.revision
+
+
+def test_discard_confirmed_import_is_409(harness: Harness) -> None:
+    created = make_class(harness)
+    content = csv_bytes([["学号", "姓名"], ["0013", "李四"]])
+    view = upload(harness, created.id, content=content, file_name="roster.csv")
+    confirm(
+        harness,
+        view.import_id,
+        expected_revision=view.revision,
+        submission_id="discard-confirmed-1",
+        identity_matches=[{"rowNo": 1, "action": "create"}],
+    )
+    current = harness.service.get_roster_import(view.import_id)
+    assert current.state == "confirmed"
+    with pytest.raises(AppError) as err:
+        harness.service.discard_roster_import(
+            view.import_id,
+            RosterImportDiscardRequest(expectedRevision=current.revision),
+        )
+    assert err.value.code == ROSTER_IMPORT_CONFIRMED
+    assert err.value.status_code == 409
+    assert harness.count("students") == 1
+
+
+def test_discard_import_route(client: TestClient) -> None:
+    service = client.app.state.roster_service
+    created = service.create_class(
+        ClassCreateRequest(
+            code="701", name="七年级701班", schoolYear="2026-2027", gradeId="grade-7"
+        )
+    )
+    view = service.create_roster_import(
+        class_id=created.id,
+        file_name="roster.csv",
+        content=csv_bytes([["学号", "姓名"], ["0013", "李四"]]),
+        media_type="text/csv",
+    )
+
+    response = client.post(
+        f"/api/v1/roster-imports/{view.import_id}/discard",
+        json={"expectedRevision": view.revision},
+    )
+    assert response.status_code == 200
+    assert response.json()["state"] == "cancelled"

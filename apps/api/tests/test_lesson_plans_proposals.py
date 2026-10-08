@@ -215,3 +215,26 @@ async def test_apply_new_attempt_rechecks_active_references_but_keeps_candidate(
         await scene.be.apply_proposal("lesson",proposal["proposalId"],scene.apply_request(proposal))
     assert scene.be.get_lesson("lesson")["revision"]==1
     assert scene.be.get_proposal("lesson",proposal["proposalId"])["state"]=="pending"
+
+
+async def test_archived_lesson_blocks_generate_apply_and_reject_keeps_history(scene):
+    proposal,_=await scene.proposal()
+    lesson=scene.be.get_lesson("lesson")
+    assert scene.be.set_archived("lesson",lp.LessonRevisionRequest(expectedRevision=lesson["revision"]),archived=True)
+    before=tuple(scene.count(t) for t in ("lesson_ai_proposals","lesson_generation_inputs","lesson_proposal_decisions","lesson_plan_revisions"))
+    # 归档后生成建议被既有守卫挡住。
+    with pytest.raises(AppError) as generate:
+        await scene.be.generate_proposal("lesson",scene.generate_request(lesson,submission="archived-generate"))
+    assert generate.value.code=="LESSON_INVALID" and generate.value.status_code==422
+    # 归档后应用既有建议被挡住：建议保持 pending，无终结决定。
+    with pytest.raises(AppError) as apply_blocked:
+        await scene.be.apply_proposal("lesson",proposal["proposalId"],scene.apply_request(proposal))
+    assert apply_blocked.value.code=="LESSON_INVALID" and apply_blocked.value.status_code==422
+    # reject 不写教案内容（不经过 _current 守卫），归档后仍可终结建议记录。
+    rejected=scene.be.reject_proposal("lesson",proposal["proposalId"],lp.LessonRejectRequest(submissionId="archived-reject"))
+    assert rejected["state"]=="rejected"
+    # 教案本身未被 reject 改动：revision、head 指针与修订历史保持不变。
+    assert scene.be.get_lesson("lesson")==lesson and scene.be.get_lesson("lesson")["revision"]==1
+    assert scene.be.list_revisions("lesson")["items"]==scene.be.list_revisions("lesson")["items"]
+    after=tuple(scene.count(t) for t in ("lesson_ai_proposals","lesson_generation_inputs","lesson_proposal_decisions","lesson_plan_revisions"))
+    assert after[:2]==before[:2] and after[3]==before[3] and after[2]==before[2]+1

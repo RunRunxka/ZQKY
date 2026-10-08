@@ -7,7 +7,7 @@ import type { RichContentV2 } from '@/contracts/teaching-loop';
 import { b4Api } from '@/services/teaching-loop-b4-api';
 import { getQuestionAsset } from '@/services/question-bank-api';
 import { asApiError, useFrozenSubmission } from '@/features/assessments/hooks';
-import { ErrorNotice, SubmissionNotice, RichReview, surfaceBlocks } from '@/features/learning-analysis/ui';
+import { ErrorNotice, SubmissionNotice, RichReview, surfaceBlocks, nameOrShortId, shortId } from '@/features/learning-analysis/ui';
 import { ConstraintsFields } from './ConstraintsFields';
 import { itemFromSuggestion, moveItem, withNode } from './draft';
 import { ApiError } from '@/services/api-client';
@@ -206,12 +206,12 @@ export function PracticeEditor({ view, services, onSaved, onLocked, sessionHandl
   }
 
   return <section className="b4-section" aria-label="练习草稿编辑">
-    <h2>选题与计分结构</h2><p className="b4-hint">编辑版本 {serverRevision} · {dirty ? '有未保存修改' : '当前草稿已保存'}。正式题建议不会自动写入练习。</p>
+    <h2>选题与计分结构</h2><p className="b4-hint" title={`分析运行 ${view.currentRevision.analysisRunId} · 练习修订 ${view.currentRevision.practiceRevisionId}`}>来源报告 {nameOrShortId(view.currentRevision.sourcePaperTitle, view.currentRevision.analysisRunId)} · 编辑版本 {serverRevision} · {dirty ? '有未保存修改' : '当前草稿已保存'}。正式题建议不会自动写入练习。</p>
     {cacheError && <p className="space-banner error" role="alert">{cacheError}</p>}
     <p className="b4-hint">未保存稿按练习独立保留在本机；刷新、关闭或浏览器返回后可恢复，未知保存只重放原包。固定历史不覆盖恢复稿。</p>
     {view.revision > serverRevision && <div className="space-banner" role="alert">服务器已有编辑版本 {view.revision}，本地输入保留。<button className="space-button" disabled={pending || locked || identityConflict} onClick={() => { session.current.serverRevision = view.revision; session.current.serverRevisionId = view.currentRevision.practiceRevisionId; session.current.identityConflict = null; setServerRevision(view.revision); persist(); setNotice('已采用最新CAS版本；本地编辑仍保留，请核对后保存。'); }}>保留输入并采用最新版本</button></div>}
     {identityConflict && <div className="space-banner error" role="alert">固定身份冲突：同编辑版本的修订ID不同。输入和原CAS保留，新的保存、建议及审核暂停；请刷新服务器练习并对照，不能直接采用不一致身份。<p className="b4-meta">原固定修订 {session.current.serverRevisionId} · 读取修订 {view.currentRevision.practiceRevisionId}{session.current.identityConflict && ` · 冲突回执 ${session.current.identityConflict.receivedRevisionId}`}</p></div>}
-    {baselineChoiceRequired && <details><summary>对照服务器固定修订与分值</summary><p className="b4-meta">服务器 r{view.revision} · {view.currentRevision.practiceRevisionId} · 题量约束 {view.currentRevision.constraints.count}</p>{view.currentRevision.draftItems.map((item, index) => <p key={item.itemKey}>第{index + 1}题 · {item.questionRevisionId} · 整题 {item.maxScore}分；{item.itemStructure.nodes.map((node) => `${node.questionNo}：${node.maxScore ?? '不计分'}`).join('；')}</p>)}</details>}
+    {baselineChoiceRequired && <details><summary>对照服务器固定修订与分值</summary><p className="b4-meta" title={`练习修订 ${view.currentRevision.practiceRevisionId}`}>服务器 r{view.revision} · {shortId(view.currentRevision.practiceRevisionId)} · 题量约束 {view.currentRevision.constraints.count}</p>{view.currentRevision.draftItems.map((item, index) => <p key={item.itemKey}>第{index + 1}题 · {item.questionRevisionId} · 整题 {item.maxScore}分；{item.itemStructure.nodes.map((node) => `${node.questionNo}：${node.maxScore ?? '不计分'}`).join('；')}</p>)}</details>}
     <ConstraintsFields value={constraints} onChange={changeConstraints} disabled={locked} />
     <div className="b4-actions"><button className="space-button" disabled={pending || locked || baselineChoiceRequired} onClick={() => void suggest()}>获取正式题建议</button><GuardedLink className="space-button" href={`/question-bank?returnPracticeSetId=${encodeURIComponent(view.practiceSetId)}#generation`}>缺题时手动补题并校对</GuardedLink></div>
     {suggesting && <p role="status">正在按明确约束查找正式题…</p>}<ErrorNotice error={suggestionError} />

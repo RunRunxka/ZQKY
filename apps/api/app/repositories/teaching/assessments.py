@@ -316,6 +316,27 @@ class AssessmentRepository:
             raise _corrupt("教学库数据损坏：assessments.revision 不是非负整数。")
         return revision
 
+    def set_state_in(
+        self, conn: sqlite3.Connection, assessment_id: str, *, state: str
+    ) -> AssessmentRecord:
+        """归档/恢复：改 ``state`` 并**原子递增 revision**（在途写入按陈旧冲突处理）。"""
+        assessment_id = _require_text(assessment_id, field="assessmentId")
+        if state not in ASSESSMENT_STATES:
+            raise _invalid(
+                "state 只能是 open / closed / archived。", fields=["state"]
+            )
+        cursor = conn.execute(
+            "UPDATE assessments SET state = ?, revision = revision + 1 WHERE id = ?",
+            (state, assessment_id),
+        )
+        if cursor.rowcount != 1:
+            raise _not_found(assessment_id)
+        return self.require_in(conn, assessment_id)
+
+    def set_state(self, assessment_id: str, *, state: str) -> AssessmentRecord:
+        with self._catalog.write_transaction() as conn:
+            return self.set_state_in(conn, assessment_id, state=state)
+
     # -------------------------------------------------------------- 读取
 
     def get(self, assessment_id: str) -> AssessmentRecord:
@@ -420,6 +441,118 @@ class AssessmentRepository:
                 status_code=404,
             )
         return self._participant(row)
+
+    def delete_participant_in(
+        self, conn: sqlite3.Connection, assessment_id: str, participant_id: str
+    ) -> bool:
+        """删除一次参测人次行；返回是否确有删除（行不存在时 False，不静默成功）。
+
+        调用方必须先做引用守卫（成绩版本/导入草稿/学情报告）——本方法只做 SQL。
+        """
+        assessment_id = _require_text(assessment_id, field="assessmentId")
+        participant_id = _require_text(participant_id, field="participantId")
+        cursor = conn.execute(
+            "DELETE FROM assessment_participants WHERE id = ? AND assessment_id = ?",
+            (participant_id, assessment_id),
+        )
+        return cursor.rowcount == 1
+
+    def count_score_revisions_in(
+        self, conn: sqlite3.Connection, assessment_id: str
+    ) -> int:
+        """该施测的任一成绩修订数（含草稿版本；用于人次移除守卫）。"""
+        assessment_id = _require_text(assessment_id, field="assessmentId")
+        row = conn.execute(
+            "SELECT COUNT(*) AS n FROM score_revisions WHERE assessment_id = ?",
+            (assessment_id,),
+        ).fetchone()
+        return int(row["n"])
+
+    def count_analysis_runs_in(
+        self, conn: sqlite3.Connection, assessment_id: str
+    ) -> int:
+        """该施测的学情报告数（用于人次移除守卫）。"""
+        assessment_id = _require_text(assessment_id, field="assessmentId")
+        row = conn.execute(
+            "SELECT COUNT(*) AS n FROM analysis_runs WHERE assessment_id = ?",
+            (assessment_id,),
+        ).fetchone()
+        return int(row["n"])
+
+    def count_active_score_imports_in(
+        self, conn: sqlite3.Connection, assessment_id: str
+    ) -> int:
+        """该施测进行中的成绩导入批次（uploaded/reviewing）。
+
+        预览行只在"教师显式指定"时才写 ``participant_id``（自动匹配不写），因此不能用
+        行引用判断；只要批次仍在进行中，就禁止移除人次（先放弃批次）。
+        """
+        assessment_id = _require_text(assessment_id, field="assessmentId")
+        row = conn.execute(
+            "SELECT COUNT(*) AS n FROM score_imports "
+            "WHERE assessment_id = ? AND state IN ('uploaded','reviewing')",
+            (assessment_id,),
+        ).fetchone()
+        return int(row["n"])
+
+    def count_references_in(self, conn: sqlite3.Connection, assessment_id: str) -> dict[str, int]:
+        """该施测在下游表里的全部引用计数（整体删除守卫的数据来源）。
+
+        ``scoreRevisions``/``scoreImports``/``analysisRuns`` 逐项计数；
+        ``practiceConversions`` = ``practice_conversions.assessment_id`` 引用数。
+        """
+        assessment_id = _require_text(assessment_id, field="assessmentId")
+        return {
+            "scoreRevisions": int(
+                conn.execute(
+                    "SELECT COUNT(*) AS n FROM score_revisions WHERE assessment_id = ?",
+                    (assessment_id,),
+                ).fetchone()["n"]
+            ),
+            "scoreImports": int(
+                conn.execute(
+                    "SELECT COUNT(*) AS n FROM score_imports WHERE assessment_id = ?",
+                    (assessment_id,),
+                ).fetchone()["n"]
+            ),
+            "analysisRuns": int(
+                conn.execute(
+                    "SELECT COUNT(*) AS n FROM analysis_runs WHERE assessment_id = ?",
+                    (assessment_id,),
+                ).fetchone()["n"]
+            ),
+            "practiceConversions": int(
+                conn.execute(
+                    "SELECT COUNT(*) AS n FROM practice_conversions WHERE assessment_id = ?",
+                    (assessment_id,),
+                ).fetchone()["n"]
+            ),
+        }
+
+    def delete_assessment_in(
+        self, conn: sqlite3.Connection, assessment_id: str
+    ) -> None:
+        """物理删除施测：先删子行 ``assessment_participants``/``assessment_classes``，
+        再删 ``assessments`` 行。
+
+        前置：调用方已通过受引用守卫（无成绩/导入/报告/练习转换引用）。守卫未覆盖的
+        外键冲突会被 ``defer_foreign_keys`` 之后的 COMMIT 兜底拒绝，不产生半删除状态。
+        行不存在时 404，不静默成功。
+        """
+        assessment_id = _require_text(assessment_id, field="assessmentId")
+        cursor = conn.execute(
+            "DELETE FROM assessment_participants WHERE assessment_id = ?",
+            (assessment_id,),
+        )
+        del cursor  # 参测行数不必返回；级联范围以守卫结果为准
+        conn.execute(
+            "DELETE FROM assessment_classes WHERE assessment_id = ?", (assessment_id,)
+        )
+        deleted = conn.execute(
+            "DELETE FROM assessments WHERE id = ?", (assessment_id,)
+        )
+        if deleted.rowcount != 1:
+            raise _not_found(assessment_id)
 
     # -------------------------------------------------------------- 内部
 
@@ -553,3 +686,6 @@ __all__ = [
     "AssessmentRepository",
     "ParticipantRecord",
 ]
+
+# 施测整体删除的受引用守卫错误码（契约常量在 app.contracts.assessments 定义）
+ASSESSMENT_IN_USE = "ASSESSMENT_IN_USE"

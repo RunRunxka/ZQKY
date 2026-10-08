@@ -1,9 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import type { KnowledgePointView } from '@/contracts/knowledge';
 import { PointBrowser } from './PointBrowser';
 
 const TAXONOMY_SUBJECTS = [{ id: 'math', label: '数学' }];
+const TAXONOMY_GRADES = [
+  { id: 'grade-7', label: '七年级' },
+  { id: 'grade-8', label: '八年级' },
+];
 
 function point(overrides: Partial<KnowledgePointView> = {}): KnowledgePointView {
   return {
@@ -147,5 +151,98 @@ describe('知识点浏览：列表 / 筛选 / 空态 / 失败重试', () => {
     // 父级不在当前结果的节点：单独成组并原样显示 parentCode
     expect(within(tree).getByText(/父级不在当前结果里/)).toBeInTheDocument();
     expect(within(tree).getByText(/父级 M\.9（不在当前结果）/)).toBeInTheDocument();
+  });
+});
+
+describe('知识点浏览：范围切档（默认任教范围）与年级筛选', () => {
+  it('默认 scope=taught（窄口径）；显式切到「学科全部教材」后发 scope=subject 且按钮态明确', async () => {
+    const fetchMock = stubApi((url) => {
+      if (url.includes('/knowledge-points')) return listResponse([point()]);
+      return jsonResponse(false, 500, { code: 'UNEXPECTED_TEST_REQUEST', message: url });
+    });
+    renderBrowser({ grades: TAXONOMY_GRADES });
+
+    await screen.findByText('有理数');
+    // 默认口径：任教范围内教材
+    expect(calls(fetchMock, 'scope=taught').length).toBe(1);
+    const taught = screen.getByTestId('kp-scope-taught');
+    const subject = screen.getByTestId('kp-scope-subject');
+    expect(taught).toHaveAttribute('aria-pressed', 'true');
+    expect(subject).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByTestId('kp-scope-hint')).toHaveTextContent('任教范围内教材');
+
+    fireEvent.click(subject);
+    await waitFor(() => expect(calls(fetchMock, 'scope=subject').length).toBe(1));
+    expect(screen.getByTestId('kp-scope-subject')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByTestId('kp-scope-taught')).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByTestId('kp-scope-hint')).toHaveTextContent('学科全部教材');
+  });
+
+  it('scope=taught 409：显示服务端原因与「去设置任教范围」链接，不静默回退全部', async () => {
+    const fetchMock = stubApi((url) => {
+      if (url.includes('scope=subject')) return listResponse([point()]);
+      if (url.includes('/knowledge-points')) {
+        return jsonResponse(false, 409, {
+          code: 'KNOWLEDGE_SCOPE_UNAVAILABLE',
+          message: '尚未保存任教范围，无法按任教范围筛选知识点。',
+          retryable: false,
+        });
+      }
+      return jsonResponse(false, 500, { code: 'UNEXPECTED_TEST_REQUEST', message: url });
+    });
+    renderBrowser();
+
+    const banner = await screen.findByTestId('kp-scope-unavailable');
+    expect(banner).toHaveTextContent('KNOWLEDGE_SCOPE_UNAVAILABLE');
+    expect(banner).toHaveTextContent('尚未保存任教范围，无法按任教范围筛选知识点。');
+    expect(within(banner).getByRole('link', { name: '去设置任教范围' })).toHaveAttribute(
+      'href',
+      '/knowledge-bases',
+    );
+    // 不是空态、也没有回退成「全部」的第二条请求
+    expect(screen.queryByText('没有符合条件的数据')).not.toBeInTheDocument();
+    expect(calls(fetchMock, 'scope=subject').length).toBe(0);
+
+    // 显式切换到「学科全部教材」才发 subject 口径的请求
+    fireEvent.click(screen.getByTestId('kp-scope-switch-subject'));
+    expect(await screen.findByText('有理数')).toBeInTheDocument();
+    expect(calls(fetchMock, 'scope=subject').length).toBe(1);
+  });
+
+  it('年级筛选用字典选项，并把 gradeId 传给服务端；字典不可用时降级为汇总结果 gradeIds 并说明', async () => {
+    const fetchMock = stubApi((url) => {
+      if (url.includes('gradeId=grade-8')) return listResponse([point({ name: '一次函数' })]);
+      if (url.includes('/knowledge-points')) {
+        return listResponse([point({ gradeIds: ['grade-7'] })]);
+      }
+      return jsonResponse(false, 500, { code: 'UNEXPECTED_TEST_REQUEST', message: url });
+    });
+    const { view } = renderBrowser({ grades: TAXONOMY_GRADES });
+
+    await screen.findByText('有理数');
+    const gradeSelect = screen.getByLabelText('按年级筛选');
+    expect(within(gradeSelect).getByRole('option', { name: '七年级' })).toBeInTheDocument();
+    expect(within(gradeSelect).getByRole('option', { name: '八年级' })).toBeInTheDocument();
+    expect(screen.getByText('年级 七年级')).toBeInTheDocument();
+    expect(screen.queryByTestId('kp-grade-fallback')).not.toBeInTheDocument();
+
+    fireEvent.change(gradeSelect, { target: { value: 'grade-8' } });
+    expect(await screen.findByText('一次函数')).toBeInTheDocument();
+    expect(calls(fetchMock, 'gradeId=grade-8').length).toBe(1);
+
+    // 字典不可用（grades 为空）→ 只能汇总当前结果里出现过的年级，并如实说明局限
+    view.unmount();
+    stubApi((url) => {
+      if (url.includes('/knowledge-points')) return listResponse([point({ gradeIds: ['grade-7'] })]);
+      return jsonResponse(false, 500, { code: 'UNEXPECTED_TEST_REQUEST', message: url });
+    });
+    renderBrowser();
+    await screen.findByText('有理数');
+    expect(screen.getByTestId('kp-grade-fallback')).toHaveTextContent(
+      '年级筛选项由本页结果里的 `gradeIds` 汇总而来',
+    );
+    expect(
+      within(screen.getByLabelText('按年级筛选')).getByRole('option', { name: 'grade-7' }),
+    ).toBeInTheDocument();
   });
 });

@@ -1,18 +1,19 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ExportRequest, ExportReceipt, ExportArtifact, PracticeRevisionView } from '@/contracts/b4';
 import { b4Api } from '@/services/teaching-loop-b4-api';
+import { listAssessments } from '@/services/assessments-api';
 import { asApiError, useAsyncResource, useFrozenSubmission } from '@/features/assessments/hooks';
 import { useObservedJob } from '@/services/use-workflow-job';
 import { ApiError } from '@/services/api-client';
-import { ErrorNotice, ReadNotice, SubmissionNotice, Pagination, JobStatus } from '@/features/learning-analysis/ui';
+import { ErrorNotice, ReadNotice, SubmissionNotice, Pagination, JobStatus, nameOrShortId } from '@/features/learning-analysis/ui';
 
 const variantLabel = { student: '学生 DOCX', teacher: '教师 DOCX', score_template: '成绩模板 XLSX' };
 type FrozenExport = { setId: string; revisionId: string; body: ExportRequest };
 
-export function PracticeExports({ revision, services, convertedAssessmentId, onLocked }: {
-  revision: PracticeRevisionView; services: typeof b4Api; convertedAssessmentId: string | null; onLocked: (locked: boolean) => void;
+export function PracticeExports({ revision, services, convertedAssessmentId, onLocked, disabled = false }: {
+  revision: PracticeRevisionView; services: typeof b4Api; convertedAssessmentId: string | null; onLocked: (locked: boolean) => void; disabled?: boolean;
 }) {
   const [assessmentId, setAssessmentId] = useState(convertedAssessmentId ?? '');
   const [offset, setOffset] = useState(0);
@@ -20,6 +21,12 @@ export function PracticeExports({ revision, services, convertedAssessmentId, onL
   const [downloading, setDownloading] = useState<string | null>(null);
   const submission = useFrozenSubmission<FrozenExport, ExportReceipt>();
   const artifacts = useAsyncResource((signal) => services.listPracticeExports(revision.practiceSetId, revision.practiceRevisionId, { offset, limit: 50 }, signal), `practice-artifacts|${revision.practiceSetId}|${revision.practiceRevisionId}|${offset}`);
+  /**
+   * 施测标题只读映射（仅展示）：成绩模板产物记的是 assessmentId；
+   * 读取失败或映射不到时回落短号并在下方注明，不弹错、不把失败当没有施测。
+   */
+  const assessments = useAsyncResource((signal) => listAssessments({ limit: 200 }, signal), 'practice-export-assessments');
+  const assessmentNames = useMemo(() => new Map((assessments.lastData?.items ?? []).map((item) => [item.assessmentId, item.title] as const)), [assessments.lastData]);
   const alive = useRef(true);
   const receiptIdentity = useRef<{ jobId: string; exportId: string; variant: ExportRequest['variant']; assessmentId: string | null } | null>(null);
   const downloadGeneration = useRef(0);
@@ -40,10 +47,12 @@ export function PracticeExports({ revision, services, convertedAssessmentId, onL
     }, (cause) => { if (alive.current && receiptIdentity.current?.jobId === view.jobId) setError(asApiError(cause)); });
   } });
   const activeJob = job.view?.state === 'queued' || job.view?.state === 'running';
-  const locked = submission.busy || submission.phase === 'unknown' || downloading !== null;
+  const active = submission.busy || submission.phase === 'unknown' || downloading !== null;
+  // 归档练习：生成导出入口置灰（既有产物仍可查看与下载）；`disabled` 不参与 onLocked，避免锁住列表切换。
+  const locked = disabled || active;
   useEffect(() => { alive.current = true; return () => { alive.current = false; downloadGeneration.current += 1; downloadAbort.current?.abort(); }; }, []);
   useEffect(() => { if (convertedAssessmentId && !submission.busy && submission.phase !== 'unknown') setAssessmentId(convertedAssessmentId); }, [convertedAssessmentId, submission.busy, submission.phase]);
-  useEffect(() => { onLocked(locked); return () => onLocked(false); }, [locked, onLocked]);
+  useEffect(() => { onLocked(active); return () => onLocked(false); }, [active, onLocked]);
 
   async function start(variant: ExportRequest['variant']) {
     setError(null);
@@ -77,6 +86,7 @@ export function PracticeExports({ revision, services, convertedAssessmentId, onL
   }
   return <section className="b4-section" aria-label="固定练习导出"><h2>固定审核版本导出</h2>
     <p className="b4-hint">练习 v{revision.version} · {revision.practiceRevisionId}。学生版不含答案解析，教师版标明缺失答案。202表示任务接受；成功产物才可下载。</p>
+    {disabled && <p className="space-banner" role="status">该练习已归档：生成导出的入口已禁用（后端会拒绝），既有产物仍可查看与下载；恢复后可继续导出。</p>}
     <label className="b4-field">此审核版本已转换的施测ID<input aria-label="模板施测ID" value={assessmentId} disabled={locked} onChange={(event) => setAssessmentId(event.target.value)} /></label>
     <p className="b4-hint">成绩模板须在本练习转换施测后生成；后端冻结接受导出时的真实参测名单、固定原卷和叶映射，空白成绩不补0。</p>
     <div className="b4-actions">{(['student', 'teacher', 'score_template'] as const).map((variant) => <button key={variant} className="space-button" disabled={locked || activeJob || (variant === 'score_template' && !assessmentId.trim())} onClick={() => void start(variant)}>生成{variantLabel[variant]}</button>)}
@@ -85,7 +95,8 @@ export function PracticeExports({ revision, services, convertedAssessmentId, onL
     <SubmissionNotice submission={submission} /><JobStatus job={job} /><ErrorNotice error={error} />
     <ReadNotice resource={artifacts} label="固定导出产物" /><button className="space-button" onClick={artifacts.reload}>刷新产物历史</button>
     {artifacts.state.phase === 'ready' && artifacts.lastData?.items.length === 0 && <p>此审核版本还没有成功的导出产物。</p>}
-    <div className="b4-artifacts">{artifacts.lastData?.items.filter((artifact) => artifact.practiceRevisionId === revision.practiceRevisionId).map((artifact) => <article className="b4-job" key={artifact.artifactId}><strong>{variantLabel[artifact.variant]}</strong><span className="b4-meta">{artifact.filename} · {artifact.byteSize}字节 · {artifact.createdAt}</span>{artifact.assessmentId && <span className="b4-meta">名单来源施测 {artifact.assessmentId}</span>}<button className="space-button" disabled={downloading !== null} onClick={() => void download(artifact)}>{downloading === artifact.artifactId ? '下载中…' : `下载${variantLabel[artifact.variant]}`}</button></article>)}</div>
+    <div className="b4-artifacts">{artifacts.lastData?.items.filter((artifact) => artifact.practiceRevisionId === revision.practiceRevisionId).map((artifact) => <article className="b4-job" key={artifact.artifactId}><strong>{variantLabel[artifact.variant]}</strong><span className="b4-meta">{artifact.filename} · {artifact.byteSize}字节 · {artifact.createdAt}</span>{artifact.assessmentId && <span className="b4-meta" title={`施测 ${artifact.assessmentId}`}>名单来源施测 {nameOrShortId(assessmentNames.get(artifact.assessmentId), artifact.assessmentId)}</span>}<button className="space-button" disabled={downloading !== null} onClick={() => void download(artifact)}>{downloading === artifact.artifactId ? '下载中…' : `下载${variantLabel[artifact.variant]}`}</button></article>)}</div>
+    {assessments.state.phase === 'failed' && artifacts.lastData?.items.some((artifact) => artifact.assessmentId) && <p className="b4-hint">施测名称读取失败：以上「名单来源施测」按短号显示，可在「施测与成绩」核对完整标题（悬停短号可看完整 ID）。</p>}
     <Pagination page={artifacts.lastData} offset={offset} onOffset={setOffset} disabled={locked} />
   </section>;
 }

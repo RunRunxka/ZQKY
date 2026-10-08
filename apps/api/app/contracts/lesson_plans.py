@@ -148,6 +148,12 @@ class LessonSaveRequest(RequestModel):
     source: Literal["manual", "rule"] = "manual"
 
 
+class LessonRevisionRequest(RequestModel):
+    """教案归档/恢复的乐观锁请求（只带修订号，与施测/原卷归档口径一致）。"""
+
+    expected_revision: int = Field(default=0, alias="expectedRevision", ge=0, le=MAX_SAFE_INTEGER)
+
+
 class AnalysisContextSnapshot(Frozen):
     analysis_run_id: str = Field(alias="analysisRunId")
     input_hash: str = Field(alias="inputHash")

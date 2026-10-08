@@ -101,6 +101,30 @@ async def test_decimal_text_rejects_unsafe_values(scene,score):
     assert scene.service.get_practice(practice.practice_set_id).revision==0
 
 
+async def test_source_paper_title_prefers_title_snapshot_and_null_when_missing(scene):
+    """sourcePaperTitle/sourceCreatedAt 走“名称优先”：analysis_runs → paper_revisions.
+    title_snapshot / created_at 只读派生（同 owner 校验）；来源缺失时落 null，不伪造名称。"""
+    practice=scene.create_set()
+    view=scene.service.get_practice(practice.practice_set_id)
+    # 有值路径：种子报告的固定原卷标题快照「固定标题」与运行 created_at
+    import sqlite3
+    with scene.catalog.read_connection() as conn:
+        row=conn.execute("SELECT created_at FROM analysis_runs WHERE id=?",(scene.run_id,)).fetchone()
+    assert view.source_paper_title=="固定标题"
+    assert view.source_created_at==row["created_at"]
+    assert view.current_revision.source_paper_title=="固定标题"
+    assert view.current_revision.source_created_at==view.source_created_at
+    # 改 papers.title 不影响修订级快照（title_snapshot 只读派生自 paper_revisions）
+    with scene.catalog.write_transaction() as conn:
+        conn.execute("UPDATE papers SET title='后来卷名' WHERE id='paper'")
+    assert scene.service.get_practice(practice.practice_set_id).source_paper_title=="固定标题"
+    # 缺失为 null：来源运行不存在 / 非同 owner（异常与越权数据）时读路径落 null，不伪造名称
+    from app.repositories.teaching.practices import PracticeRepository
+    with scene.catalog.read_connection() as conn:
+        assert PracticeRepository(scene.catalog).source_view_in(conn,"no-such-run","local")==(None,None)
+        assert PracticeRepository(scene.catalog).source_view_in(conn,scene.run_id,"foreign")==(None,None)
+
+
 async def test_fixed_old_question_new_current_and_cas(scene):
     q=scene.question("旧题面")
     practice=scene.save(scene.create_set(),[scene.item(q)])

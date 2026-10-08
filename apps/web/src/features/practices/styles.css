@@ -12,3 +12,12 @@
 .practices-page .practice-leave-dialog::backdrop { background: rgb(15 23 42 / 42%); }
 .practices-page .practice-leave-dialog h2 { margin-bottom: .75rem; }
 .practices-page .practice-leave-dialog p { margin-bottom: 1rem; }
+/* 「彻底删除」被引用守卫 409 的逐项原因清单：沿用蓝色 token 与细边框，不新增主题。 */
+.practices-page .practice-reference-list {
+  margin: .5rem 0 .5rem 1.25rem;
+  padding: 0;
+  list-style: disc;
+  color: var(--ink);
+  font-size: 13px;
+}
+.practices-page .practice-reference-list li { margin: .25rem 0; }

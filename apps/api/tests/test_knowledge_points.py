@@ -740,3 +740,149 @@ def test_unassembled_service_returns_503(tmp_path: Path) -> None:
     body = response.json()
     assert body["code"] == "SERVICE_UNAVAILABLE"
     assert body["retryable"] is True
+
+
+# --------------------------------------------------------------------------- 范围/年级（任务②）
+
+
+def _install_fake_scope(harness: KnowledgeHarness, *, revision_grades: dict[str, tuple[str, ...]]) -> None:
+    """给测试台挂一个范围替身：任意范围都解析成给定修订集合。"""
+    from app.services.knowledge.textbook_scope import TextbookScopeSnapshot
+
+    class FakeScopeReader:
+        def __init__(self) -> None:
+            self.snapshot = TextbookScopeSnapshot(
+                document_ids=("doc-1",),
+                revision_ids=tuple(revision_grades.keys()),
+                grade_ids_by_document={doc: grades for doc, grades in [("doc-1", grades) for grades in revision_grades.values()]},
+            )
+
+        def resolve_taught_scope(self) -> TextbookScopeSnapshot:
+            return self.snapshot
+
+        def grade_ids_of_revisions(self, revision_ids):
+            return {rid: revision_grades.get(rid, ()) for rid in revision_ids}
+
+    harness.service.scope_reader = FakeScopeReader()
+
+
+class _Selection:
+    """最小任教设置形状（schema 校验在真实 reader 里，替身直接给对象）。"""
+
+    gradeId = "g7"
+    subjectId = "math"
+    editionId = "rj"
+    documentIds = ["doc-1"]
+
+
+def test_list_without_scope_unchanged(harness: KnowledgeHarness) -> None:
+    """不带 scope 的旧调用语义不变：scope_reader 缺省也不影响。"""
+    point = harness.create_point(code="M7-01")
+    listing = harness.client.get("/api/v1/knowledge-points").json()
+    assert listing["total"] == 1
+    assert listing["items"][0]["id"] == point["id"]
+
+
+def test_list_scope_taught_requires_reader(harness: KnowledgeHarness) -> None:
+    """scope=taught 而端口缺失 → 503（不静默回退全部）。"""
+    harness.create_point(code="M7-01")
+    response = harness.client.get("/api/v1/knowledge-points", params={"scope": "taught"})
+    assert response.status_code == 503
+    assert response.json()["code"] == "SERVICE_UNAVAILABLE"
+
+
+def test_list_scope_invalid_value_is_422(harness: KnowledgeHarness) -> None:
+    response = harness.client.get("/api/v1/knowledge-points", params={"scope": "everything"})
+    assert response.status_code == 422
+    body = response.json()
+    assert body["code"] == "INVALID_REQUEST"
+    assert "scope" in body["details"]["fields"]
+
+
+def test_list_scope_taught_in_and_out_of_range(harness: KnowledgeHarness) -> None:
+    """scope=taught：有任教范围教材依据的命中；没有的排除；total 与过滤一致。"""
+    inside = harness.create_point(code="M7-IN", name="范围内")
+    outside = harness.create_point(code="M7-OUT", name="范围外")
+    harness.client.post(
+        f"/api/v1/knowledge-points/{inside['id']}/textbook-links",
+        json={"expectedRevision": 0, "documentRevisionId": "rev-g7", "charStart": 0, "charEnd": 5},
+    )
+    harness.client.post(
+        f"/api/v1/knowledge-points/{outside['id']}/textbook-links",
+        json={"expectedRevision": 0, "documentRevisionId": "rev-other", "charStart": 0, "charEnd": 5},
+    )
+    _install_fake_scope(harness, revision_grades={"rev-g7": ("g7",)})
+
+    listing = harness.client.get(
+        "/api/v1/knowledge-points", params={"scope": "taught"}
+    ).json()
+    assert listing["total"] == 1
+    assert [item["id"] for item in listing["items"]] == [inside["id"]]
+
+    # scope=subject 是显式"该学科全部"，不做任教范围收敛
+    subject = harness.client.get(
+        "/api/v1/knowledge-points", params={"scope": "subject"}
+    ).json()
+    assert subject["total"] == 2
+
+
+def test_list_scope_taught_empty_scope_returns_empty_page(harness: KnowledgeHarness) -> None:
+    """任教范围里没有教材（修订集合为空）→ 空页，不回退全部。"""
+    harness.create_point(code="M7-01")
+    from app.services.knowledge.textbook_scope import TextbookScopeSnapshot
+
+    class EmptyScope:
+        def resolve_taught_scope(self):
+            return TextbookScopeSnapshot(
+                document_ids=(), revision_ids=(), grade_ids_by_document={}
+            )
+
+        def grade_ids_of_revisions(self, revision_ids):
+            return {}
+
+    harness.service.scope_reader = EmptyScope()
+    listing = harness.client.get("/api/v1/knowledge-points", params={"scope": "taught"}).json()
+    assert listing["total"] == 0
+    assert listing["items"] == []
+
+
+def test_list_grade_id_filter_and_grade_ids_view(harness: KnowledgeHarness) -> None:
+    """gradeId 过滤落在教材依据文档的年级；视图 gradeIds 为依据修订的年级并集。"""
+    g7 = harness.create_point(code="M7-G7", name="七年级点")
+    g8 = harness.create_point(code="M7-G8", name="八年级点")
+    plain = harness.create_point(code="M7-N", name="无依据点")
+    harness.client.post(
+        f"/api/v1/knowledge-points/{g7['id']}/textbook-links",
+        json={"expectedRevision": 0, "documentRevisionId": "rev-g7", "charStart": 0, "charEnd": 5},
+    )
+    harness.client.post(
+        f"/api/v1/knowledge-points/{g8['id']}/textbook-links",
+        json={"expectedRevision": 0, "documentRevisionId": "rev-g8", "charStart": 0, "charEnd": 5},
+    )
+    _install_fake_scope(harness, revision_grades={"rev-g7": ("g7", "g9"), "rev-g8": ("g8",)})
+
+    filtered = harness.client.get(
+        "/api/v1/knowledge-points", params={"gradeId": "g7"}
+    ).json()
+    assert filtered["total"] == 1
+    assert [item["id"] for item in filtered["items"]] == [g7["id"]]
+    # 视图补 gradeIds：依据修订的年级去重并集；无依据点为空列表
+    listing = harness.client.get("/api/v1/knowledge-points").json()
+    grades_by_id = {item["id"]: item["gradeIds"] for item in listing["items"]}
+    assert grades_by_id[g7["id"]] == ["g7", "g9"]
+    assert grades_by_id[g8["id"]] == ["g8"]
+    assert grades_by_id[plain["id"]] == []
+
+
+def test_list_scope_taught_unready_scope_is_409(harness: KnowledgeHarness) -> None:
+    """任教范围未就绪（真实 reader 抛 409）→ 原样 409，不静默回退。"""
+    harness.create_point(code="M7-01")
+    from app.services.knowledge.textbook_scope import CatalogTextbookScopeReader
+
+    # 真实 reader + 空教材目录：没有任教设置 → 409
+    harness.service.scope_reader = CatalogTextbookScopeReader(harness.app.state.catalog)
+    response = harness.client.get("/api/v1/knowledge-points", params={"scope": "taught"})
+    assert response.status_code == 409
+    body = response.json()
+    assert body["code"] == "KNOWLEDGE_SCOPE_UNAVAILABLE"
+    assert "任教范围" in body["message"]

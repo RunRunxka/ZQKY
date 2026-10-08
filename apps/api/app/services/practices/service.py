@@ -19,6 +19,9 @@ from .selection import as_rich, prepare, surface, original_surfaces
 from .conversion import convert_in
 from .exports import render
 
+#: 受引用守卫：练习集有已审核修订/导出/转换引用时按此码 409 拒绝删除
+PRACTICE_IN_USE = "PRACTICE_IN_USE"
+
 
 class PracticeService:
     json = staticmethod(decode)
@@ -86,8 +89,11 @@ class PracticeService:
                 knowledgePoints=[dict(knowledgePointId=k["knowledge_point_id"], knowledgeRevisionId=k["knowledge_revision_id"], name=k["name_snapshot"], role=k["role"])
                     for k in self.repo.knowledge_in(conn, row["id"])], sourceLocator=decode(row["source_locator_json"]),
                 reason=decode(row["reason_json"])["reason"], answerState=row["answer_state"]))
+        # 练习来源的展示名走“名称优先”：只读派生（同 owner 校验），缺失落 null 不伪造。
+        paper_title, run_created_at = self.repo.source_view_in(conn, practice["analysis_run_id"], practice["owner_id"])
         return b4.PracticeRevisionView(practiceSetId=practice["id"], practiceRevisionId=revision["id"], version=revision["version"],
             state=revision["state"], title=revision["title_snapshot"], subjectId=practice["subject_id"], analysisRunId=practice["analysis_run_id"],
+            sourcePaperTitle=paper_title, sourceCreatedAt=run_created_at,
             targetKnowledgePoints=selection["targetKnowledgePoints"], constraints=decode(revision["constraints_json"]), inputHash=revision["input_hash"],
             totalScoreUnits=revision["total_score_units"], draftItems=decode(revision["draft_items_json"], list), items=items,
             reviewedAt=revision["reviewed_at"], createdAt=revision["created_at"])
@@ -98,12 +104,64 @@ class PracticeService:
         current = next((r for r in revisions if r.practice_revision_id == practice["current_revision_id"]), None)
         if current is None:
             raise AppError("练习当前修订损坏。", code="PRACTICE_DATA_CORRUPT", status_code=500)
+        # 集合级来源展示名与 currentRevision 同口径（同一次只读派生）。
+        paper_title, run_created_at = self.repo.source_view_in(conn, practice["analysis_run_id"], practice["owner_id"])
         return b4.PracticeSetView(practiceSetId=set_id, title=practice["title"], subjectId=practice["subject_id"], analysisRunId=practice["analysis_run_id"],
-            revision=practice["revision"], currentRevision=current, revisions=revisions)
+            sourcePaperTitle=paper_title, sourceCreatedAt=run_created_at,
+            status=practice["status"], revision=practice["revision"], currentRevision=current, revisions=revisions)
+
+    @staticmethod
+    def _guard_archived(status):
+        """归档练习集只读：所有写路径在恢复前一律拒绝；读取不受影响。"""
+        if status == "archived":
+            raise AppError("练习已归档，不能修改或导出；请先恢复练习。", code="PRACTICE_ARCHIVED", status_code=409)
 
     def get_practice(self, set_id):
         with self.catalog.read_connection() as conn:
             return self._set_view(conn, set_id)
+
+    def set_archived(self, set_id, payload, *, archived):
+        """归档/恢复练习集：只改 status 并递增 revision；修订与历史原样保留。"""
+        with self.catalog.write_transaction() as conn:
+            practice = self.repo.set_archived_in(conn, set_id, self.owner_id,
+                expected_revision=payload.expected_revision, archived=archived)
+            return self._set_view(conn, set_id)
+
+    def delete_practice(self, set_id, payload):
+        """受引用守卫的彻底删除：仅当集合"干净"时物理删除全部 draft 修订与集合行。
+
+        守卫（任一命中 → 409 ``PRACTICE_IN_USE``，``details.counts`` 列出计数）：
+
+        - 任一 ``practice_revisions.state='reviewed'``：已审核版本受 DB 触发器
+          ``practice_revision_delete`` 保护不可删除，只能归档；如需修改请从审核版
+          建立新草稿；
+        - ``practice_exports``/``practice_conversions`` 任一引用 >0：导出与转换是
+          不可变的历史记录，不能被级联删除。
+
+        通过后（此时全部修订都是 draft）按子行 → 修订 → 集合的顺序在同一写事务删除；
+        ``practice_sets.current_revision_id`` 指回修订（DEFERRABLE），先置 NULL。
+        乐观锁不符 → 409 ``REVISION_CONFLICT``；集合不存在/非本人 → 404 ``PRACTICE_NOT_FOUND``。
+        """
+        with self.catalog.write_transaction() as conn:
+            practice = self.repo.set_in(conn, set_id, self.owner_id)
+            if practice["revision"] != payload.expected_revision:
+                raise stale(practice["revision"])
+            counts = self.repo.count_references_in(conn, set_id)
+            blocked = {key: value for key, value in counts.items() if value > 0}
+            if blocked:
+                labels = {
+                    "reviewedRevisions": "已审核版本",
+                    "exports": "导出记录",
+                    "conversions": "施测转换",
+                }
+                summary = "、".join(f"{labels[key]} {value} 条" for key, value in blocked.items())
+                raise AppError(
+                    "练习集仍被引用，不能删除（" + summary + "）；"
+                    "已审核版本只能归档；如需修改请从审核版建立新草稿。",
+                    code=PRACTICE_IN_USE, status_code=409,
+                    details={"counts": blocked})
+            self.repo.delete_set_in(conn, set_id)
+        return b4.PracticeSetDeleteReceipt(deleted=True, practiceSetId=set_id)
 
     def get_revision(self, set_id, revision_id):
         with self.catalog.read_connection() as conn:
@@ -131,11 +189,20 @@ class PracticeService:
             revision = self.repo.revision_in(conn, row["practice_set_id"], revision_id, owner_id)
             return self._revision_view(conn, practice, revision)
 
-    def list_practices(self, *, analysis_run_id=None, offset=0, limit=50):
+    def list_practices(self, *, analysis_run_id=None, status=None, offset=0, limit=50):
         page(offset, limit)
+        if status is not None and status not in ("active", "archived"):
+            raise invalid("status 只能是 active 或 archived。", "status")
         with self.catalog.read_connection() as conn:
-            where = "owner_id=?" + (" AND analysis_run_id=?" if analysis_run_id else "")
-            args = [self.owner_id] + ([analysis_run_id] if analysis_run_id else [])
+            conditions = ["owner_id=?"]
+            args = [self.owner_id]
+            if analysis_run_id:
+                conditions.append("analysis_run_id=?")
+                args.append(analysis_run_id)
+            if status:
+                conditions.append("status=?")
+                args.append(status)
+            where = " AND ".join(conditions)
             total = conn.execute(f"SELECT count(*) FROM practice_sets WHERE {where}", args).fetchone()[0]
             rows = conn.execute(f"SELECT id FROM practice_sets WHERE {where} ORDER BY created_at DESC,id LIMIT ? OFFSET ?", (*args, limit, offset))
             return b4.Page[b4.PracticeSetView](items=[self._set_view(conn, x[0]) for x in rows], total=total, offset=offset, limit=limit)
@@ -155,6 +222,13 @@ class PracticeService:
             return b4.PracticeSetView.model_validate(replay)
         self._constraints(body.constraints)
         report = self.analysis.read_ready_report(body.analysis_run_id, owner_id=self.owner_id)
+        # 归档报告只读：既有练习不受影响，但不允许据此**新建**练习（恢复后可新建）
+        if report.get("archivedAt") is not None:
+            raise AppError(
+                "该学情报告已归档，不能用于新建练习；请先恢复报告。",
+                code="ANALYSIS_RUN_ARCHIVED",
+                status_code=409,
+            )
         points = {x["knowledgePointId"]: x for x in report["knowledgePoints"]}
         unique(body.target_knowledge_point_ids, "targetKnowledgePointIds")
         if not set(body.target_knowledge_point_ids) <= set(points):
@@ -274,6 +348,7 @@ class PracticeService:
                 return b4.PracticeSetView.model_validate(replay)
             self._constraints(body.constraints)
             practice = self._set_view(conn, set_id)
+            self._guard_archived(practice.status)
             if practice.revision != body.expected_revision:
                 raise stale(practice.revision)
             if practice.current_revision.state != "draft":
@@ -291,6 +366,7 @@ class PracticeService:
             raise
         def apply(conn):
             current = self.repo.set_in(conn, set_id, self.owner_id)
+            self._guard_archived(current["status"])
             if current["revision"] != body.expected_revision:
                 raise stale(current["revision"])
             revision = self.repo.revision_in(conn, set_id, current["current_revision_id"], self.owner_id)
@@ -329,6 +405,7 @@ class PracticeService:
         if replay:
             return b4.PracticeSetView.model_validate(replay)
         practice = self.get_practice(set_id)
+        self._guard_archived(practice.status)
         if practice.revision != body.expected_revision:
             raise stale(practice.revision)
         draft = practice.current_revision
@@ -359,6 +436,7 @@ class PracticeService:
             raise invalid("题量或目标覆盖仍有缺口，请明确补题或调整目标与题量。", "items", "PRACTICE_COVERAGE_GAP")
         def apply(conn):
             current = self.repo.set_in(conn, set_id, self.owner_id)
+            self._guard_archived(current["status"])
             if current["revision"] != body.expected_revision:
                 raise stale(current["revision"])
             revision = self.repo.revision_in(conn, set_id, current["current_revision_id"], self.owner_id)
@@ -380,6 +458,7 @@ class PracticeService:
         command = self._command("practice.revision:"+set_id, body)
         def apply(conn):
             practice = self.repo.set_in(conn, set_id, self.owner_id)
+            self._guard_archived(practice["status"])
             source = self.repo.revision_in(conn, set_id, body.source_revision_id, self.owner_id)
             if source["state"] != "reviewed":
                 raise invalid("新草稿只能复制已审核修订。", "sourceRevisionId")
@@ -426,6 +505,7 @@ class PracticeService:
             require_active_knowledge_references(self.knowledge, refs, expected_subject_id=view.subject_id)
             def apply(conn):
                 practice = self.repo.set_in(conn, set_id, self.owner_id)
+                self._guard_archived(practice["status"])
                 revision = self.repo.revision_in(conn, set_id, revision_id, self.owner_id)
                 return convert_in(self, conn, practice, revision, body, asset_sizes=asset_sizes)
             outcome = execute_command(catalog=self.catalog, command=command, apply=apply)
@@ -445,6 +525,7 @@ class PracticeService:
         store = self.engine.store("teaching")
         def apply(conn):
             practice = self.repo.set_in(conn, set_id, self.owner_id)
+            self._guard_archived(practice["status"])
             revision = self.repo.revision_in(conn, set_id, revision_id, self.owner_id)
             if revision["state"] != "reviewed":
                 raise invalid("只能导出审核版。", "practiceRevisionId", "PRACTICE_NOT_REVIEWED")

@@ -437,3 +437,120 @@ describe('导入面板', () => {
     expect(screen.getByRole('button', { name: '提交入库' })).toBeDisabled();
   });
 });
+
+describe('导入面板：放弃草稿', () => {
+  /** 上传一个草稿（阶段由 handler 决定）并返回 fetch mock。 */
+  async function uploadDraft(handler: (url: string, init: RequestInit) => Response) {
+    const fetchMock = stubApi((url, init) => {
+      if (url.includes('/textbook-libraries')) return ok({ libraries: [LIBRARY] });
+      return handler(url, init);
+    });
+    render(<ImportPanel taxonomy={index} onClose={() => {}} />);
+    fireEvent.change(screen.getByLabelText('教材文件'), {
+      target: { files: [new File(['# 标题'], 'book.md', { type: 'text/markdown' })] },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /上传并解析/ }));
+    // 上传返回的草稿阶段（来自服务端）显示在阶段 chip 上
+    await waitFor(() => expect(stageText()).not.toBe(''));
+    return fetchMock;
+  }
+
+  it('待确认草稿可放弃：二次确认后带 expectedRevision，刷新为已放弃并禁用编辑与入库', async () => {
+    const fetchMock = await uploadDraft((url, init) => {
+      const method = (init.method ?? 'GET').toUpperCase();
+      if (method === 'POST' && url.endsWith('/discard')) {
+        return ok(draft({ state: 'discarded', revision: 3, parsed: PARSED, canCommit: false }));
+      }
+      if (url.endsWith('/textbook-imports')) {
+        return ok({
+          draft: draft({ state: 'needs_review', revision: 2, parsed: PARSED, canCommit: true }),
+        });
+      }
+      throw new Error(`未预期的请求 ${url}`);
+    });
+    vi.stubGlobal('confirm', vi.fn(() => true));
+
+    // 放弃前：编辑入口可用（已勾选填写分类）
+    fireEvent.click(screen.getByRole('checkbox', { name: /填写学段/ }));
+    expect(screen.getByRole('button', { name: '保存分类' })).toBeEnabled();
+
+    fireEvent.click(await screen.findByRole('button', { name: '放弃草稿' }));
+
+    expect(await screen.findByText(/该草稿已放弃：记录、原始文件与解析产物保留/)).toBeInTheDocument();
+    expect(stageText()).toBe('阶段：已放弃');
+    const discards = postCalls(fetchMock, '/discard');
+    expect(discards).toHaveLength(1);
+    expect(JSON.parse(String((discards[0][1] as RequestInit).body))).toEqual({
+      expectedRevision: 2,
+    });
+    // 已放弃：不再提供入口，编辑与入库都被既有禁用逻辑挡住
+    expect(screen.queryByRole('button', { name: '放弃草稿' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '提交入库' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '保存分类' })).toBeDisabled();
+    expect(screen.getByText(/已放弃：记录与解析产物保留/)).toBeInTheDocument();
+  });
+
+  it('二次确认取消时不发起请求，草稿保持待确认', async () => {
+    const fetchMock = await uploadDraft((url) => {
+      if (url.endsWith('/textbook-imports')) {
+        return ok({
+          draft: draft({ state: 'needs_review', revision: 2, parsed: PARSED, canCommit: true }),
+        });
+      }
+      throw new Error(`未预期的请求 ${url}`);
+    });
+    vi.stubGlobal('confirm', vi.fn(() => false));
+
+    fireEvent.click(screen.getByRole('button', { name: '放弃草稿' }));
+
+    expect(postCalls(fetchMock, '/discard')).toHaveLength(0);
+    expect(stageText()).toBe('阶段：待确认');
+    expect(screen.getByRole('button', { name: '放弃草稿' })).toBeInTheDocument();
+  });
+
+  it('已入库（ready）草稿不显示放弃入口', async () => {
+    await uploadDraft((url) => {
+      if (url.endsWith('/textbook-imports')) {
+        return ok({ draft: draft({ state: 'ready', revision: 4, parsed: PARSED }) });
+      }
+      throw new Error(`未预期的请求 ${url}`);
+    });
+
+    expect(stageText()).toBe('阶段：已入库');
+    expect(screen.queryByRole('button', { name: '放弃草稿' })).not.toBeInTheDocument();
+  });
+
+  it('放弃失败如实显示错误码与原因，草稿不清空', async () => {
+    const fetchMock = await uploadDraft((url, init) => {
+      const method = (init.method ?? 'GET').toUpperCase();
+      if (method === 'POST' && url.endsWith('/discard')) {
+        return failed(409, {
+          code: 'REVISION_CONFLICT',
+          message: '草稿已被其他操作修改（当前 revision=5），请刷新后重试。',
+          retryable: false,
+        });
+      }
+      if (url.endsWith('/textbook-imports')) {
+        return ok({
+          draft: draft({ state: 'needs_review', revision: 2, parsed: PARSED, canCommit: true }),
+        });
+      }
+      if (url.includes('/textbook-imports/imp-1')) {
+        // GET /textbook-imports/{id} 直接返回草稿视图（无信封）
+        return ok(draft({ state: 'needs_review', revision: 5, parsed: PARSED, canCommit: true }));
+      }
+      throw new Error(`未预期的请求 ${url}`);
+    });
+    vi.stubGlobal('confirm', vi.fn(() => true));
+
+    fireEvent.click(screen.getByRole('button', { name: '放弃草稿' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('REVISION_CONFLICT');
+    expect(alert).toHaveTextContent('草稿已被其他操作修改（当前 revision=5），请刷新后重试。');
+    expect(postCalls(fetchMock, '/discard')).toHaveLength(1);
+    // 冲突后按最新 revision 重新读取，入口仍在（用户可再次确认）
+    expect(await screen.findByRole('button', { name: '放弃草稿' })).toBeEnabled();
+    expect(screen.queryByText(/该草稿已放弃/)).not.toBeInTheDocument();
+  });
+});

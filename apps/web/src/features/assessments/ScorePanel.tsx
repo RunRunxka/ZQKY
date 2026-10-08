@@ -15,12 +15,14 @@ import { RefreshCw, Upload } from 'lucide-react';
 import type { ErrorIssue } from '@/contracts/api';
 import type {
   ScoreColumnMapping,
+  ScoreImportState,
   ScoreImportSummary,
   ScoreImportView,
   ScoreItemColumn,
 } from '@/contracts/scores';
 import {
   createScoreImport,
+  discardScoreImport,
   getAssessment,
   getPaperRevisionContent,
   getScoreImport,
@@ -30,11 +32,14 @@ import {
   refreshScoreImport,
 } from '@/services/assessments-api';
 import { asApiError, useAsyncResource } from './hooks';
-import { issueLocationLabel, leafLabel, scoreImportStateChipClass, scoreImportStateLabel, scoredLeafItems } from './labels';
+import { issueLocationLabel, leafLabel, scoreImportStateChipClass, scoreImportStateLabel, scoredLeafItems, shortId } from './labels';
 import { ScoreImportReview } from './ScoreImportReview';
 import { ScoreStatusLegend } from './ScoreStatusBadge';
 
 const COLUMN_PATTERN = /^[A-Za-z]{1,3}$/;
+
+/** 未确认批次可放弃；`confirmed` 已入库（服务端 409），`cancelled` 已放弃。 */
+const DISCARDABLE_IMPORT_STATES: readonly ScoreImportState[] = ['uploaded', 'reviewing', 'failed'];
 
 interface MappingDraft {
   workSheet: string;
@@ -105,6 +110,10 @@ export function ScorePanel({
   const [file, setFile] = useState<File | null>(null);
   const [workSheet, setWorkSheet] = useState('');
   const [baseSelection, setBaseSelection] = useState('');
+  /** 放弃批次的写操作身份（禁用按钮防重入）与错误提示。 */
+  const [discardBusyId, setDiscardBusyId] = useState<string | null>(null);
+  const [discardError, setDiscardError] = useState<string | null>(null);
+  const discardBusyRef = useRef(false);
 
   const detail = useAsyncResource(
     (signal) => (assessmentId ? getAssessment(assessmentId, signal) : Promise.resolve(null)),
@@ -360,6 +369,33 @@ export function ScorePanel({
     }
   }
 
+  /**
+   * 放弃未确认批次（守卫式 `expectedRevision`）：只置 `cancelled`，批次记录/原件/预览行保留；
+   * 已确认批次不可放弃（服务端 409）。成功后刷新批次列表并读回取消状态。
+   */
+  async function discardImport(summary: ScoreImportSummary) {
+    if (discardBusyRef.current) return;
+    if (!window.confirm('放弃后批次保留记录但不能再校对/确认。确认放弃该成绩批次？')) return;
+    const token = operation.current.epoch;
+    discardBusyRef.current = true;
+    setDiscardBusyId(summary.importId);
+    setDiscardError(null);
+    try {
+      await discardScoreImport(summary.importId, { expectedRevision: summary.revision });
+      if (!current(token)) return;
+      if (summary.importId === activeImportId) importView.reload();
+      reloadAll();
+      onChanged();
+    } catch (cause) {
+      if (!current(token)) return;
+      const error = asApiError(cause);
+      setDiscardError(`放弃批次失败（${error.code}）：${error.message}`);
+    } finally {
+      discardBusyRef.current = false;
+      if (current(token)) setDiscardBusyId(null);
+    }
+  }
+
   if (!assessmentId) {
     return (
       <div className="assessments-panel" data-testid="assessments-score-panel">
@@ -390,9 +426,10 @@ export function ScorePanel({
         )}
         {detail.lastData && (
           <p className="assessments-hint">
-            施测「{detail.lastData.assessment.title}」· 原卷修订{' '}
-            {detail.lastData.assessment.paperRevisionId} · 参测{' '}
-            {detail.lastData.assessment.participantCount} 人次 · 固定计分叶{' '}
+            施测「{detail.lastData.assessment.title}」· 原卷「
+            {detail.lastData.assessment.paperTitle
+              || shortId(detail.lastData.assessment.paperRevisionId)}
+            」 · 参测 {detail.lastData.assessment.participantCount} 人次 · 固定计分叶{' '}
             {leafCount || '读取中'}
           </p>
         )}
@@ -469,28 +506,46 @@ export function ScorePanel({
         <ul className="assessments-list" aria-label="导入批次列表">
           {importSummaries.map((summary) => (
             <li key={summary.importId}>
-              <button
-                type="button"
-                className={
-                  summary.importId === activeImportId
-                    ? 'assessments-list-item current'
-                    : 'assessments-list-item'
-                }
-                aria-pressed={summary.importId === activeImportId}
-                data-testid={`assessments-import-${summary.importId}`}
-                onClick={() => setSelectedImportId(summary.importId)}
-              >
-                <strong>{summary.importId}</strong>
-                <span className="assessments-meta">
-                  <span className={scoreImportStateChipClass(summary.state)}>
-                    {scoreImportStateLabel(summary.state)}
-                  </span>{' '}
-                  · r{summary.revision} · 行 {summary.rowCount}
-                </span>
-              </button>
+              <div className="assessments-actions">
+                <button
+                  type="button"
+                  className={
+                    summary.importId === activeImportId
+                      ? 'assessments-list-item current'
+                      : 'assessments-list-item'
+                  }
+                  aria-pressed={summary.importId === activeImportId}
+                  data-testid={`assessments-import-${summary.importId}`}
+                  onClick={() => setSelectedImportId(summary.importId)}
+                >
+                  <strong>{summary.uploadedFileName || `批次 ${shortId(summary.importId)}`}</strong>
+                  <span className="assessments-meta">
+                    <span className={scoreImportStateChipClass(summary.state)}>
+                      {scoreImportStateLabel(summary.state)}
+                    </span>{' '}
+                    · r{summary.revision} · 行 {summary.rowCount}
+                    <span title={summary.importId}> · 批次 {shortId(summary.importId)}</span>
+                  </span>
+                </button>
+                {DISCARDABLE_IMPORT_STATES.includes(summary.state) && (
+                  <button
+                    className="space-button danger"
+                    data-testid={`assessments-discard-import-${summary.importId}`}
+                    disabled={discardBusyId !== null}
+                    onClick={() => void discardImport(summary)}
+                  >
+                    {discardBusyId === summary.importId ? '放弃中…' : '放弃'}
+                  </button>
+                )}
+              </div>
             </li>
           ))}
         </ul>
+        {discardError && (
+          <p className="space-banner error" role="alert" data-testid="assessments-discard-error">
+            {discardError}
+          </p>
+        )}
       </section>
 
       {importView.state.phase === 'failed' && !importView.lastData && activeImportId && (

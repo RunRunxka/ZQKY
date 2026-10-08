@@ -7,7 +7,10 @@ import { PracticeExports } from './PracticeExports';
 import { PracticeConversion } from './PracticeConversion';
 import { RichReview } from '@/features/learning-analysis/ui';
 import { b4Api } from '@/services/teaching-loop-b4-api';
+import { listAssessments } from '@/services/assessments-api';
+import type { PracticeQuery } from '@/services/teaching-loop-b4-api';
 import { ApiError } from '@/services/api-client';
+import type { ApiErrorDetails } from '@/contracts/api';
 import { deferred, page, practice, revision, rich, run, suggestion } from './test-fixtures';
 import { PRACTICE_RECOVERY_PREFIX } from './session';
 import type { ExportArtifact, PracticeSetView } from '@/contracts/b4';
@@ -15,6 +18,7 @@ import type { ExportArtifact, PracticeSetView } from '@/contracts/b4';
 vi.mock('@/services/assessments-api', () => ({
   listClasses: vi.fn(async () => ({ items: [{ id: 'class-a', name: '当前班名', code: 'A' }], total: 1, offset: 0, limit: 50 })),
   listClassStudents: vi.fn(async () => ({ items: [{ id: 'student-a', name: '甲', studentNo: '001', memberships: [] }], total: 1 })),
+  listAssessments: vi.fn(async () => ({ items: [{ assessmentId: 'assessment-fixed', title: '固定施测标题' }], total: 1, offset: 0, limit: 200 })),
 }));
 vi.mock('@/services/workflow-jobs-api', () => ({ observeJob: vi.fn(async () => null), retryObservationWindow: (job: { attempt: number }) => ({ minAttempt: job.attempt, maxAttempt: job.attempt + 1 }), retryJob: vi.fn(), cancelJob: vi.fn() }));
 afterEach(() => { cleanup(); for (const key of Object.keys(localStorage)) if (key.startsWith(PRACTICE_RECOVERY_PREFIX)) localStorage.removeItem(key); vi.clearAllMocks(); });
@@ -124,5 +128,156 @@ describe('固定导出与转换', () => {
     expect(convert.mock.calls[0]).toEqual(convert.mock.calls[1]);
     expect(convert.mock.calls[1][2]).toMatchObject({ classIds: ['class-a'], participants: [{ studentId: 'student-a', classId: 'class-a', attendance: 'exempt', attemptNo: 3 }] });
     expect(screen.getByRole('link', { name: '进入现有成绩工作区' })).toHaveAttribute('href', '/assessments?assessmentId=assessment-new&step=score');
+  });
+  it('转换入口可按既有禁用模式置灰，且不发任何转换请求', async () => {
+    const convert = vi.fn();
+    render(<PracticeConversion revision={reviewed} services={api({ convertPractice: convert })} onConverted={unlocked} onLocked={unlocked} disabled />);
+    expect(screen.getByText(/该练习已归档：转换为施测的入口已禁用/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '转换固定练习为施测' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: '转换固定练习为施测' }));
+    expect(convert).not.toHaveBeenCalled();
+  });
+});
+
+describe('练习归档与恢复', () => {
+  it('列表默认只看active；归档/恢复需二次确认并刷新列表', async () => {
+    const items: PracticeSetView[] = [{ ...practice }];
+    const queries: Array<PracticeQuery | undefined> = [];
+    const list = vi.fn(async (query?: PracticeQuery) => { queries.push(query); return page([...items]); });
+    const archive = vi.fn(async (id: string) => ({ ...practice, practiceSetId: id, status: 'archived' as const, revision: practice.revision + 1 }));
+    const restore = vi.fn(async (id: string) => ({ ...practice, practiceSetId: id, status: 'active' as const, revision: practice.revision + 2 }));
+    render(<PracticesWorkspace services={api({ listPractices: list, archivePracticeSet: archive, restorePracticeSet: restore })} />);
+    fireEvent.click(await screen.findByRole('button', { name: '归档' }));
+    expect(archive).not.toHaveBeenCalled();
+    expect(screen.getByText(/归档后不能编辑\/导出\/转为施测，历史修订与既有产物保留/)).toBeInTheDocument();
+    expect(queries[0]).toMatchObject({ status: 'active' });
+    fireEvent.click(screen.getByRole('button', { name: '确认归档' }));
+    await waitFor(() => expect(archive).toHaveBeenCalledWith(practice.practiceSetId, { expectedRevision: practice.revision }));
+    await screen.findByText(`已归档练习「${practice.title}」：不能编辑/导出/转为施测，历史修订与既有产物保留。`);
+    await waitFor(() => expect(queries.length).toBeGreaterThan(1));
+    items[0] = { ...practice, status: 'archived', revision: practice.revision + 1 };
+    fireEvent.click(screen.getByLabelText('显示已归档'));
+    await screen.findByText('已归档');
+    await waitFor(() => expect(queries.at(-1)?.status).toBeUndefined());
+    fireEvent.click(screen.getByRole('button', { name: '恢复' }));
+    expect(restore).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '确认恢复' }));
+    await waitFor(() => expect(restore).toHaveBeenCalledWith(practice.practiceSetId, { expectedRevision: practice.revision + 1 }));
+    await screen.findByText(`已恢复练习「${practice.title}」：可继续编辑、导出与转换为施测。`);
+  });
+  it('已归档练习的编辑/导出/转换入口置灰，不锁住练习列表，也不自动提交', async () => {
+    const reviewedArchived = { ...revision, practiceRevisionId: 'reviewed-archived', state: 'reviewed' as const, reviewedAt: '2026-10-02' };
+    const archivedSet: PracticeSetView = { ...practice, status: 'archived', revision: 2, currentRevision: reviewedArchived, revisions: [reviewedArchived] };
+    const create = vi.fn(); const convert = vi.fn(); const newDraft = vi.fn();
+    render(<PracticesWorkspace initialPracticeSetId={practice.practiceSetId} services={api({
+      listPractices: vi.fn(async () => page([archivedSet])), getPractice: vi.fn(async () => archivedSet),
+      getPracticeRevision: vi.fn(async () => reviewedArchived), createPracticeExport: create, convertPractice: convert, createPracticeRevision: newDraft,
+    })} />);
+    expect(await screen.findByText(/该练习已归档：编辑、导出与转换为施测入口已禁用/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '从此审核版建立新草稿' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '生成学生 DOCX' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '转换固定练习为施测' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: '从此审核版建立新草稿' }));
+    fireEvent.click(screen.getByRole('button', { name: '生成学生 DOCX' }));
+    fireEvent.click(screen.getByRole('button', { name: '转换固定练习为施测' }));
+    expect(newDraft).not.toHaveBeenCalled(); expect(create).not.toHaveBeenCalled(); expect(convert).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: /^固定练习\s+练习/ })).toBeEnabled();
+  });
+});
+
+describe('练习来源名称优先', () => {
+  it('列表/详情/编辑用来源原卷标题 + 时间，练习与修订 ID 收进次行小字', async () => {
+    render(<PracticesWorkspace initialPracticeSetId={practice.practiceSetId} services={api({ getPracticeRevision: vi.fn(async () => revision) })} />);
+    const item = await screen.findByRole('button', { name: /固定练习\s+练习/ });
+    expect(item).toHaveTextContent('来源报告 固定原卷 · 2026-10-02 09:30');
+    expect(item).toHaveAttribute('title', expect.stringContaining(`练习 ${practice.practiceSetId}`));
+    expect(await screen.findByRole('link', { name: '来源报告 固定原卷 · 2026-10-02 09:30' })).toHaveAttribute('href', expect.stringContaining('/learning-analysis?runId=run-old'));
+    expect(screen.getByText(/来源报告 固定原卷 · 2026-10-02 09:30 · 练习修订 draft-a · 后端总分/)).toBeInTheDocument();
+    // 编辑区同样按名称显示来源（ID 完整值进 title）
+    expect(screen.getByText(/来源报告 固定原卷 · 编辑版本 1 · 当前草稿已保存/)).toBeInTheDocument();
+  });
+
+  it('转换区把班级 id 映射为班名，来源报告用标题 + 时间', async () => {
+    const reviewed = { ...revision, practiceRevisionId: 'reviewed-a', state: 'reviewed' as const, reviewedAt: '2026-10-02' };
+    render(<PracticeConversion revision={reviewed} services={api()} onConverted={unlocked} onLocked={unlocked} />);
+    expect(await screen.findByText(/固定练习「固定练习」v1（reviewed…）；来源报告 固定原卷 · 2026-10-02 09:30/)).toBeInTheDocument();
+    fireEvent.change(await screen.findByLabelText('练习施测班级'), { target: { value: 'class-a' } });
+    fireEvent.click(await screen.findByLabelText('练习参测 甲'));
+    expect(await screen.findByText('甲 · 当前班名')).toBeInTheDocument();
+  });
+
+  it('导出产物按施测标题显示名单来源；名称读取失败回落短号且不弹错', async () => {
+    const reviewed = { ...revision, practiceRevisionId: 'reviewed-a', state: 'reviewed' as const, reviewedAt: '2026-10-02' };
+    const artifact: ExportArtifact = { artifactId: 'artifact-1', exportId: 'export-1', practiceRevisionId: reviewed.practiceRevisionId, variant: 'score_template', assessmentId: 'assessment-fixed', fileAssetId: 'f', filename: '成绩模板.xlsx', mediaType: 'application/xlsx', sha256: 's', byteSize: 10, downloadUrl: '', createdAt: '' };
+    const rendered = render(<PracticeExports revision={reviewed} services={api({ listPracticeExports: vi.fn(async () => page([artifact])) })} convertedAssessmentId={null} onLocked={unlocked} />);
+    expect(await screen.findByText('名单来源施测 固定施测标题')).toBeInTheDocument();
+    rendered.unmount();
+    vi.mocked(listAssessments).mockRejectedValueOnce(new ApiError('DB_BROKEN', '读取损坏', 500, false));
+    render(<PracticeExports revision={reviewed} services={api({ listPracticeExports: vi.fn(async () => page([artifact])) })} convertedAssessmentId={null} onLocked={unlocked} />);
+    expect(await screen.findByText('名单来源施测 assessme…')).toBeInTheDocument();
+    expect(screen.getByText(/施测名称读取失败/)).toBeInTheDocument();
+    expect(screen.queryByText('DB_BROKEN')).not.toBeInTheDocument();
+  });
+});
+
+describe('练习彻底删除（受引用守卫的三态）', () => {
+  /**
+   * 列表行的「彻底删除」：编辑工作区写完锁（恢复稿读取 + 缓存就绪）之前会被禁用，
+   * 点击命中禁用按钮不会触发；这里重试到二次确认区出现为止，确认没有提前发写请求。
+   */
+  async function openDeleteConfirm(setId: string) {
+    await waitFor(() => {
+      fireEvent.click(screen.getByTestId(`practices-delete-${setId}`));
+      expect(screen.getByText(/物理删除、不可恢复/)).toBeInTheDocument();
+    });
+  }
+
+  it('成功：二次确认后按 expectedRevision 物理删除、刷新列表并清空当前选择', async () => {
+    const remove = vi.fn(async () => ({ deleted: true, practiceSetId: practice.practiceSetId }));
+    const list = vi.fn(async () => page([practice]));
+    render(<PracticesWorkspace initialPracticeSetId={practice.practiceSetId} services={api({ listPractices: list, deletePracticeSet: remove, getPracticeRevision: vi.fn(async () => revision) })} />);
+    await openDeleteConfirm(practice.practiceSetId);
+    expect(remove).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '确认彻底删除' }));
+    await waitFor(() => expect(remove).toHaveBeenCalledWith(practice.practiceSetId, practice.revision));
+    await screen.findByText(`已彻底删除练习「${practice.title}」：物理删除完成，不可恢复。`);
+    await waitFor(() => expect(list.mock.calls.length).toBeGreaterThan(1));
+    await waitFor(() => expect(screen.queryByRole('heading', { name: practice.title })).not.toBeInTheDocument());
+  });
+
+  it('被引用 409 逐项渲染 counts 并给「改为归档」；乐观锁冲突走错误区不误报引用', async () => {
+    const remove = vi.fn()
+      .mockRejectedValueOnce(new ApiError('PRACTICE_IN_USE', '练习集仍被引用，不能删除（已审核版本 1 条、施测转换 2 条）；已审核版本只能归档。', 409, false, 'r1', { counts: { reviewedRevisions: 1, exports: 0, conversions: 2 } } as ApiErrorDetails))
+      .mockRejectedValueOnce(new ApiError('REVISION_CONFLICT', '编辑版本已变化。', 409, false, 'r2', { currentRevision: 2 }));
+    const archive = vi.fn(async (id: string) => ({ ...practice, practiceSetId: id, status: 'archived' as const, revision: practice.revision + 1 }));
+    render(<PracticesWorkspace initialPracticeSetId={practice.practiceSetId} services={api({ deletePracticeSet: remove, archivePracticeSet: archive, getPracticeRevision: vi.fn(async () => revision) })} />);
+    await openDeleteConfirm(practice.practiceSetId);
+    fireEvent.click(screen.getByRole('button', { name: '确认彻底删除' }));
+    const guard = await screen.findByTestId('practices-delete-guard');
+    expect(guard).toHaveTextContent('PRACTICE_IN_USE');
+    expect(guard).toHaveTextContent('已审核版本 1 条');
+    expect(guard).toHaveTextContent('施测转换 2 条');
+    expect(guard).not.toHaveTextContent('导出记录'); // 计数 0 的引用不列出
+    fireEvent.click(screen.getByRole('button', { name: '改为归档（不删除历史）' }));
+    await waitFor(() => expect(archive).toHaveBeenCalledWith(practice.practiceSetId, { expectedRevision: practice.revision }));
+    await screen.findByText(`已归档练习「${practice.title}」：不能编辑/导出/转为施测，历史修订与既有产物保留。`);
+    expect(screen.queryByTestId('practices-delete-guard')).not.toBeInTheDocument();
+    // 第二次：乐观锁冲突不得伪装成引用问题
+    await openDeleteConfirm(practice.practiceSetId);
+    fireEvent.click(screen.getByRole('button', { name: '确认彻底删除' }));
+    await screen.findByText('REVISION_CONFLICT');
+    expect(screen.getByText('服务器当前编辑版本：2。输入已保留，请核对新版本。')).toBeInTheDocument();
+    expect(screen.queryByTestId('practices-delete-guard')).not.toBeInTheDocument();
+    expect(remove.mock.calls[0]).toEqual(remove.mock.calls[1]);
+  });
+
+  it('已归档练习同样可删（同一守卫），并在二次确认里点明', async () => {
+    const archivedSet: PracticeSetView = { ...practice, status: 'archived', revision: 3 };
+    const remove = vi.fn(async () => ({ deleted: true, practiceSetId: practice.practiceSetId }));
+    render(<PracticesWorkspace services={api({ listPractices: vi.fn(async () => page([archivedSet])), deletePracticeSet: remove })} />);
+    await openDeleteConfirm(practice.practiceSetId);
+    expect(screen.getByText(/已归档练习同样受该守卫，不会因归档而可删/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '确认彻底删除' }));
+    await waitFor(() => expect(remove).toHaveBeenCalledWith(practice.practiceSetId, 3));
   });
 });

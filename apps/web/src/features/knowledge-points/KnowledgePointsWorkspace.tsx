@@ -2,10 +2,10 @@
 
 /**
  * `/knowledge-points` 知识点页：知识点（列表/父树/详情与编辑/教材依据）、表格导入校对、
- * AI 候选三个页签。真实数据全部来自 FastAPI（B1 知识点接口 + B0 统一任务客户端），
- * 学科来自 `GET /api/v1/textbook-taxonomy`（不存在 /subjects 接口）。
+ * AI 候选、教材提取四个页签。真实数据全部来自 FastAPI（B1 知识点接口 + B0 统一任务客户端），
+ * 学科与年级来自 `GET /api/v1/textbook-taxonomy`（不存在 /subjects 接口）。
  *
- * 页签面板保持挂载（用 `hidden` 隐藏）：AI 候选任务成功后自动切到「表格导入」时，
+ * 页签面板保持挂载（用 `hidden` 隐藏）：AI 候选/教材提取任务成功或切页签时，
  * 任务状态与资料输入不会因为切换页签被清空。
  */
 
@@ -17,32 +17,37 @@ import '@/features/knowledge-points/styles/knowledge-points.css';
 import { fetchTextbookTaxonomy } from '@/services/textbook-api';
 import type { ObserveJobOptions } from '@/services/workflow-jobs-api';
 import { CreatePointDialog } from './CreatePointDialog';
+import { ExtractionPanel } from './ExtractionPanel';
 import { ImportPanel } from './ImportPanel';
 import { PointBrowser } from './PointBrowser';
 import { PointDetailPanel } from './PointDetailPanel';
 import { SuggestionPanel } from './SuggestionPanel';
 import { useAsyncResource } from './hooks';
 
-type Tab = 'points' | 'imports' | 'suggestion';
+type Tab = 'points' | 'imports' | 'suggestion' | 'extract';
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'points', label: '知识点' },
   { id: 'imports', label: '表格导入' },
   { id: 'suggestion', label: 'AI 候选' },
+  { id: 'extract', label: '教材提取' },
 ];
 
 export function KnowledgePointsWorkspace({
   polling,
 }: {
-  /** 测试注入点：透传给 AI 候选任务的 `observeJob`。 */
+  /** 测试注入点：透传给 AI 候选 / 教材提取任务的 `observeJob`。 */
   polling?: Pick<ObserveJobOptions, 'sleep' | 'now'>;
 } = {}) {
   const pageRef = useRef<HTMLDivElement>(null);
   const pointsPanelRef = useRef<HTMLElement>(null);
   const importsPanelRef = useRef<HTMLElement>(null);
   const suggestionPanelRef = useRef<HTMLElement>(null);
+  const extractPanelRef = useRef<HTMLElement>(null);
   const taxonomy = useAsyncResource((signal) => fetchTextbookTaxonomy(signal), 'kp-taxonomy');
   const subjects = taxonomy.state.phase === 'ready' ? taxonomy.state.data.subjects : [];
+  /** 年级字典：不可用时（读取失败）传空数组，列表与提取面板各自降级并说明。 */
+  const grades = taxonomy.state.phase === 'ready' ? taxonomy.state.data.grades : [];
 
   const [tab, setTab] = useState<Tab>('points');
   const [subjectId, setSubjectId] = useState('');
@@ -58,6 +63,7 @@ export function KnowledgePointsWorkspace({
   useEntrance(pointsPanelRef, { preset: 'panel', enabled: tab === 'points' });
   useEntrance(importsPanelRef, { preset: 'panel', enabled: tab === 'imports' });
   useEntrance(suggestionPanelRef, { preset: 'panel', enabled: tab === 'suggestion' });
+  useEntrance(extractPanelRef, { preset: 'panel', enabled: tab === 'extract' });
 
   const rememberPoint = useCallback((next: KnowledgePointView) => {
     // 只有内容真正变化时才更新，避免 effect → setState → 渲染 的循环。
@@ -118,6 +124,7 @@ export function KnowledgePointsWorkspace({
               <PointBrowser
                 subjects={subjects}
                 taxonomyReady={taxonomy.state.phase === 'ready'}
+                grades={grades}
                 subjectId={subjectId}
                 status={status}
                 selectedPointId={selectedPointId}
@@ -138,6 +145,12 @@ export function KnowledgePointsWorkspace({
                     setListRefresh((value) => value + 1);
                   }}
                   onLoaded={rememberPoint}
+                  onDeleted={() => {
+                    // 彻底删除成功：取消选中并刷新列表（不留下指向已删知识点的详情缓存）
+                    setSelectedPointId(null);
+                    setSelectedPoint(null);
+                    setListRefresh((value) => value + 1);
+                  }}
                 />
               ) : (
                 <div className="space-empty">
@@ -190,6 +203,24 @@ export function KnowledgePointsWorkspace({
             taxonomyReady={taxonomy.state.phase === 'ready'}
             defaultSubjectId={subjectId}
             selectedPoint={selectedPoint}
+            onOpenBatch={openBatch}
+            polling={polling}
+          />
+        </section>
+
+        <section
+          ref={extractPanelRef}
+          role="tabpanel"
+          id="kp-panel-extract"
+          aria-labelledby="kp-tab-extract"
+          hidden={tab !== 'extract'}
+          className="kp-panel"
+        >
+          <ExtractionPanel
+            subjects={subjects}
+            grades={grades}
+            taxonomyReady={taxonomy.state.phase === 'ready'}
+            defaultSubjectId={subjectId}
             onOpenBatch={openBatch}
             polling={polling}
           />

@@ -14,13 +14,17 @@
 
 import { apiRequest } from '@/services/api-client';
 import type {
+  KnowledgeExtractionPreview,
+  KnowledgeExtractionRequest,
   KnowledgeImportConfirmRequest,
   KnowledgeImportConfirmResult,
+  KnowledgeImportDiscardRequest,
   KnowledgeImportList,
   KnowledgeImportPatchRequest,
   KnowledgeImportView,
   KnowledgePointCreateRequest,
   KnowledgePointList,
+  KnowledgePointScope,
   KnowledgePointStatus,
   KnowledgePointUpdateRequest,
   KnowledgePointView,
@@ -60,6 +64,14 @@ export interface KnowledgePointQuery {
   status?: KnowledgePointStatus;
   parentId?: string;
   q?: string;
+  /**
+   * 教材范围（列表默认口径由调用方决定，通常是 `taught`）：
+   * `taught` 未就绪时后端返回 409 `KNOWLEDGE_SCOPE_UNAVAILABLE`（带原因，不静默回退全部）；
+   * 非法取值 422。
+   */
+  scope?: KnowledgePointScope;
+  /** 年级过滤（后端按教材依据文档的年级集合命中）。 */
+  gradeId?: string;
   offset?: number;
   limit?: number;
 }
@@ -74,6 +86,8 @@ export function listKnowledgePoints(
       status: query.status,
       parentId: query.parentId,
       q: query.q,
+      scope: query.scope,
+      gradeId: query.gradeId,
       offset: query.offset,
       limit: query.limit,
     })}`,
@@ -124,6 +138,24 @@ export function restoreKnowledgePoint(
   return apiRequest<KnowledgePointView>(
     `/knowledge-points/${encodeURIComponent(id)}/restore`,
     jsonInit('POST', { expectedRevision }),
+  );
+}
+
+/**
+ * **彻底删除**知识点（204 无返回体；`expectedRevision` 走查询参数，乐观锁）。
+ *
+ * 与「归档」语义不同：归档保留历史引用、可恢复；彻底删除是物理删除、不可恢复。
+ * 守卫（任一命中即 409，服务端不删任何行）：
+ * - 被引用 → `KNOWLEDGE_POINT_IN_USE`，`details.counts` 逐库逐项给出计数
+ *   （knowledge/textbookKnowledgeLinks、teaching/paperItemKnowledge、
+ *   question_bank/questionKnowledgeLinks、questionDraftKnowledgeLinks）；
+ * - 仍有子节点 → 同码 409（message 含子节点数）；
+ * - `expectedRevision` 过期 → 409 `REVISION_CONFLICT`（`details.currentRevision`）；不存在 → 404。
+ */
+export function deleteKnowledgePoint(id: string, expectedRevision: number): Promise<void> {
+  return apiRequest<void>(
+    `/knowledge-points/${encodeURIComponent(id)}${knowledgeQuery({ expectedRevision })}`,
+    { method: 'DELETE' },
   );
 }
 
@@ -248,6 +280,17 @@ export function confirmKnowledgeImport(
   );
 }
 
+/** 放弃未确认批次（误上传清理）：只置 `state=cancelled`；记录/原始文件/预览行保留。 */
+export function discardKnowledgeImport(
+  id: string,
+  body: KnowledgeImportDiscardRequest,
+): Promise<KnowledgeImportView> {
+  return apiRequest<KnowledgeImportView>(
+    `/knowledge-imports/${encodeURIComponent(id)}/discard`,
+    jsonInit('POST', body),
+  );
+}
+
 /* ------------------------------------------------------------------ AI 候选 */
 
 /**
@@ -261,4 +304,39 @@ export function confirmKnowledgeImport(
  */
 export function createKnowledgeSuggestionJob(body: KnowledgeSuggestionRequest): Promise<JobView> {
   return apiRequest<JobView>('/knowledge-suggestion-jobs', jsonInit('POST', body));
+}
+
+/* ------------------------------------------------------------------ 从教材提取 */
+
+/**
+ * 预览某学科全部已入库教材的提取清单（只读，不建任务）。
+ *
+ * 响应形状：`{subjectId, documents:[{documentId,title,gradeIds,revisionId,chunkCount,
+ * approxChars,indexReady,reason?}], totalDocuments, readyDocuments, totalChunks, approxChars}`
+ * ——合计字段是扁平的，不是嵌套 `totals`。
+ * 教材目录未装配 → 503 `TEXTBOOK_EVIDENCE_UNAVAILABLE`（不降级为「没有教材」）。
+ */
+export function previewKnowledgeExtraction(
+  subjectId: string,
+  signal?: AbortSignal,
+): Promise<KnowledgeExtractionPreview> {
+  return apiRequest<KnowledgeExtractionPreview>(
+    `/knowledge-extraction/preview${knowledgeQuery({ subjectId })}`,
+    { signal },
+  );
+}
+
+/**
+ * 发起教材提取（202 只代表任务被接受）：**每个书册一个** AI 候选任务。
+ *
+ * 失败语义（前端必须如实展示）：
+ * - 未就绪书册 → 409 `KNOWLEDGE_EXTRACTION_NOT_READY`（`details.documents` 逐册给原因，
+ *   不静默跳过、不部分受理）；
+ * - 该学科没有就绪书册 → 422（不建空任务）；
+ * - `modelProfileId` 必须是**当前聊天模型的 profile id**（与 AI 候选同一口径）。
+ */
+export function createKnowledgeExtractionJobs(
+  body: KnowledgeExtractionRequest,
+): Promise<JobView[]> {
+  return apiRequest<JobView[]>('/knowledge-extraction-jobs', jsonInit('POST', body));
 }

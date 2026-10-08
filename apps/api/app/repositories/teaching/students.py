@@ -201,6 +201,37 @@ class StudentRepository:
             created_at=created_at,
         )
 
+    def set_status(
+        self,
+        student_id: str,
+        *,
+        expected_revision: int,
+        status: str,
+    ) -> StudentRecord:
+        with self._catalog.write_transaction() as conn:
+            return self.set_status_in(
+                conn, student_id, expected_revision=expected_revision, status=status
+            )
+
+    def set_status_in(
+        self,
+        conn: sqlite3.Connection,
+        student_id: str,
+        *,
+        expected_revision: int,
+        status: str,
+    ) -> StudentRecord:
+        """归档/恢复：只改 ``status`` 并递增 ``revision``；归属历史原样保留。"""
+        if status not in STUDENT_STATUSES:
+            raise _invalid("status 只能是 active 或 archived。", fields=["status"])
+        current = self._require_row_in(conn, student_id)
+        _check_revision(current["revision"], expected_revision)
+        conn.execute(
+            "UPDATE students SET status = ?, revision = revision + 1 WHERE id = ?",
+            (status, student_id),
+        )
+        return self._require_record_in(conn, student_id)
+
     def update(
         self,
         student_id: str,
@@ -313,8 +344,12 @@ class StudentRepository:
         numbers: list[str],
         *,
         owner_id: str = DEFAULT_OWNER_ID,
+        status: str = "active",
     ) -> dict[str, StudentRecord]:
-        """批量按学号精确匹配（保持文本相等，不做数值化）。"""
+        """批量按学号精确匹配（保持文本相等，不做数值化）。
+
+        默认只匹配**活跃**学生：归档学生不参与名单导入自动关联（避免误关联已移除身份）。
+        """
         wanted: list[str] = []
         seen: set[str] = set()
         for number in numbers:
@@ -325,8 +360,9 @@ class StudentRepository:
             return {}
         placeholders = ", ".join("?" for _ in wanted)
         rows = conn.execute(
-            f"SELECT * FROM students WHERE owner_id = ? AND student_no IN ({placeholders})",
-            (owner_id, *wanted),
+            "SELECT * FROM students WHERE owner_id = ? AND status = ? "
+            f"AND student_no IN ({placeholders})",
+            (owner_id, status, *wanted),
         ).fetchall()
         return {row["student_no"]: self._record(row) for row in rows}
 
@@ -336,8 +372,12 @@ class StudentRepository:
         names: list[str],
         *,
         owner_id: str = DEFAULT_OWNER_ID,
+        status: str = "active",
     ) -> dict[str, list[StudentRecord]]:
-        """批量按姓名精确匹配；同名多人在结果里原样保留（不静默选一个）。"""
+        """批量按姓名精确匹配；同名多人在结果里原样保留（不静默选一个）。
+
+        默认只匹配**活跃**学生（与 ``map_by_student_no_in`` 同口径）。
+        """
         wanted: list[str] = []
         seen: set[str] = set()
         for name in names:
@@ -348,9 +388,10 @@ class StudentRepository:
             return {}
         placeholders = ", ".join("?" for _ in wanted)
         rows = conn.execute(
-            f"SELECT * FROM students WHERE owner_id = ? AND name IN ({placeholders}) "
+            f"SELECT * FROM students WHERE owner_id = ? AND status = ? "
+            f"AND name IN ({placeholders}) "
             "ORDER BY created_at ASC, rowid ASC",
-            (owner_id, *wanted),
+            (owner_id, status, *wanted),
         ).fetchall()
         result: dict[str, list[StudentRecord]] = {}
         for row in rows:
@@ -361,6 +402,7 @@ class StudentRepository:
         self,
         *,
         q: str | None = None,
+        status: str | None = None,
         offset: int = 0,
         limit: int = 50,
         owner_id: str = DEFAULT_OWNER_ID,
@@ -376,8 +418,13 @@ class StudentRepository:
             raise _invalid(
                 f"limit 必须是 1..{MAX_LIST_LIMIT} 的整数。", fields=["limit"]
             )
+        if status is not None and status not in STUDENT_STATUSES:
+            raise _invalid("status 只能是 active 或 archived。", fields=["status"])
         where = "WHERE owner_id = ?"
         params: list[object] = [owner_id]
+        if status is not None:
+            where += " AND status = ?"
+            params.append(status)
         if isinstance(q, str) and q.strip():
             where += " AND (name LIKE ? ESCAPE '\\' OR student_no LIKE ? ESCAPE '\\')"
             pattern = _like_pattern(q.strip())
@@ -398,23 +445,33 @@ class StudentRepository:
         return records, total
 
     def list_in_class(
-        self, class_id: str
+        self, class_id: str, *, include_archived: bool = False
     ) -> tuple[list[StudentRecord], int]:
         with self._catalog.read_connection() as conn:
-            return self.list_in_class_in(conn, class_id)
+            return self.list_in_class_in(conn, class_id, include_archived=include_archived)
 
     def list_in_class_in(
-        self, conn: sqlite3.Connection, class_id: str
+        self,
+        conn: sqlite3.Connection,
+        class_id: str,
+        *,
+        include_archived: bool = False,
     ) -> tuple[list[StudentRecord], int]:
-        """该班**活跃**成员（``left_on IS NULL``）；每名学生的完整归属历史一并带出。"""
+        """该班**活跃**成员（``left_on IS NULL``）；每名学生的完整归属历史一并带出。
+
+        默认排除已归档学生（归档 = 退出新流程；历史快照不受影响）；
+        ``include_archived=True`` 供名单管理界面显示并恢复。
+        """
         class_id = _require_text(class_id, field="classId")
-        rows = conn.execute(
+        sql = (
             "SELECT s.* FROM students s "
             "JOIN class_memberships m ON m.student_id = s.id "
             "WHERE m.class_id = ? AND m.left_on IS NULL "
-            "ORDER BY s.created_at ASC, s.rowid ASC",
-            (class_id,),
-        ).fetchall()
+        )
+        if not include_archived:
+            sql += "AND s.status = 'active' "
+        sql += "ORDER BY s.created_at ASC, s.rowid ASC"
+        rows = conn.execute(sql, (class_id,)).fetchall()
         records = self._attach_memberships_in(
             conn, [self._record(row) for row in rows]
         )

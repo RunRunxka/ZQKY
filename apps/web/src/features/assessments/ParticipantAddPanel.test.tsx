@@ -86,4 +86,24 @@ describe('既有施测补录/补考人次', () => {
     expect(changed).not.toHaveBeenCalled(); expect(screen.queryByTestId('participant-add-result')).not.toBeInTheDocument();
     expect(screen.queryByTestId('participant-add-error')).not.toBeInTheDocument(); expect(screen.getByLabelText('补录学生')).toHaveValue('');
   });
+
+  it('补录班级下拉显示班名；名称读取失败回落短号并提示', async () => {
+    const stubClasses = (handler: () => Response) =>
+      vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url.includes('/classes?')) return handler();
+        return response(200, { items: [{ id: 'student-1', name: '甲', studentNo: '0001' }], total: 1 });
+      }));
+    stubClasses(() => response(200, { items: [{ id: 'c-1', name: '七一班' }], total: 1 }));
+    const first = render(ui());
+    expect(await screen.findByRole('option', { name: '七一班' })).toHaveValue('c-1');
+    first.unmount();
+    cleanup();
+
+    // 映射读取失败：回落短号 + 明确提示（不把失败当空目录）
+    stubClasses(() => response(503, { code: 'SERVICE_UNAVAILABLE', message: '班级列表不可用' }));
+    render(ui());
+    expect(await screen.findByRole('option', { name: 'c-1' })).toHaveValue('c-1');
+    expect(screen.getByText('班级名称读取失败，下拉暂显示班级短号；不影响补录本身。')).toBeInTheDocument();
+  });
 });

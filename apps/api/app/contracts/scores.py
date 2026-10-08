@@ -52,6 +52,8 @@ SCORE_TEXT_PATTERN = r"^\d{1,4}(\.\d{1,2})?$"
 
 SCORE_IMPORT_NOT_FOUND = "SCORE_IMPORT_NOT_FOUND"
 SCORE_IMPORT_NOT_EDITABLE = "SCORE_IMPORT_NOT_EDITABLE"
+#: 已确认批次不可放弃（放弃 = 误上传清理，不动历史与已确认结果）
+SCORE_IMPORT_CONFIRMED = "SCORE_IMPORT_CONFIRMED"
 SCORE_IMPORT_REVISION_CONFLICT = "SCORE_IMPORT_REVISION_CONFLICT"
 SCORE_MAPPING_INVALID = "SCORE_MAPPING_INVALID"
 SCORE_ROW_UNRESOLVED = "SCORE_ROW_UNRESOLVED"
@@ -184,6 +186,12 @@ class ScoreImportRefreshRequest(_Strict):
     base_score_revision_id: str | None = Field(default=None, alias="baseScoreRevisionId")
 
 
+class ScoreImportDiscardRequest(_Strict):
+    """放弃未确认批次：只把状态置 ``cancelled``；批次记录、原始文件与预览行保留。"""
+
+    expected_revision: int = Field(alias="expectedRevision", ge=0)
+
+
 class ScoreCellPatch(_Strict):
     """单元格校正：以 **原表坐标** 定位（行号 + 列字母），与题目映射无关。"""
 
@@ -228,6 +236,9 @@ class ScoreImportSummary(_Frozen):
     assessment_id: str = Field(alias="assessmentId")
     state: ScoreImportState
     revision: int = Field(ge=0)
+    # 上传原文件名（只读派生）：score_imports.file_id → file_assets.original_name；
+    # 资产登记缺失时为 null（不伪造名称），仅列表读路径填充。
+    uploaded_file_name: str | None = Field(default=None, alias="uploadedFileName")
     row_count: int = Field(alias="rowCount", ge=0)
     created_at: str = Field(alias="createdAt")
     updated_at: str = Field(alias="updatedAt")

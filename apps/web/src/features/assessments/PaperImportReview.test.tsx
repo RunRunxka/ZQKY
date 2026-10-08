@@ -72,7 +72,7 @@ describe('原卷完整源块校对与确认', () => {
     expect((bodies[0].items as { content: unknown }[])[0].content).toEqual(initial.revision.items[0].content);
     fireEvent.click(screen.getByTestId('paper-confirm'));
     await screen.findByTestId('paper-confirm-result');
-    await waitFor(() => expect(selected).toHaveBeenCalledExactlyOnceWith({ paperId: 'paper-1', paperRevisionId: 'pr-1', title: '固定标题', totalScoreUnits: 200, scoredLeafCount: 1 }));
+    await waitFor(() => expect(selected).toHaveBeenCalledExactlyOnceWith({ paperId: 'paper-1', paperRevisionId: 'pr-1', title: '固定标题', version: 1, totalScoreUnits: 200, scoredLeafCount: 1 }));
     expect(bodies[1]).toMatchObject({ expectedRevision: 2 });
   });
 
@@ -192,7 +192,7 @@ describe('原卷完整源块校对与确认', () => {
     expect(screen.getByLabelText('原卷修订标题')).toBeDisabled();
     expect(screen.queryByTestId('paper-save-draft')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '选用此固定修订' }));
-    expect(selected).toHaveBeenCalledExactlyOnceWith({ paperId: 'paper-1', paperRevisionId: 'pr-1', title: '固定标题', totalScoreUnits: 200, scoredLeafCount: 1 });
+    expect(selected).toHaveBeenCalledExactlyOnceWith({ paperId: 'paper-1', paperRevisionId: 'pr-1', title: '固定标题', version: 1, totalScoreUnits: 200, scoredLeafCount: 1 });
   });
 
   it('确认成功但固定修订读取失败时显示真实失败并不改父级选择', async () => {

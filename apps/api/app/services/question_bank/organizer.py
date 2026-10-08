@@ -47,7 +47,10 @@ from app.services.question_bank.rules import infer_type
 #: 单批输入上限（Unicode 码点；含 ``[块 id]`` 标签与 ``\n\n`` 分隔符）
 MAX_BATCH_INPUT_CHARS = 6000
 #: 组织者侧输出上限；实际请求值 = min(它, 所选模型的 max_output_tokens)
-MAX_OUTPUT_TOKENS = 2048
+#: 2026-10-08 真机：2048 对单批（最多 6000 码点输入）的整卷复述普遍触发
+#: ORGANIZER_OUTPUT_TRUNCATED（默认档 6 批里 2 批、非推理档 5 批被截断），
+#: 有界放宽到 8192；未声明输出上限的模型仍受其自身档位（句柄默认 2048）约束。
+MAX_OUTPUT_TOKENS = 8192
 #: 标签与分隔符之外至少要留出的正文预算；小到无法容纳来源标签属于装配错误
 MIN_BLOCK_BODY_CHARS = 64
 #: 冻结 checkpoint 的契约版本；低于它的未完成任务一律不自动恢复

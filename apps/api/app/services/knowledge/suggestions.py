@@ -33,6 +33,15 @@ from app.services.knowledge.evidence import EvidenceText
 SUGGESTION_CONTRACT_VERSION = 1
 #: 组织者侧输出上限
 MAX_OUTPUT_TOKENS = 2048
+#: 教材提取单册候选的输出上限（2026-10-08 真机：整册一次提炼会超出 2048 触发截断拒绝；
+#: 推理档档案（reasoning=max）的推理 token 计入输出，故给出有界但足够的预算）
+EXTRACTION_MAX_OUTPUT_TOKENS = 16384
+#: 单次提取任务的候选条数上限（宁少勿凑；未提取到的部分留给后续批次）
+EXTRACTION_MAX_CANDIDATES = 10
+#: 提取任务按调用放宽的非流式等待（秒）：整册证据（上限 6 万码点）在默认 30 秒内完不成
+#: （2026-10-08 真机：推理档与非推理档都撞 UPSTREAM_TIMEOUT）。任务心跳独立续租，
+#: 不受调用时长影响；有界放宽只覆盖提取任务，其余任务保持默认。
+EXTRACTION_TIMEOUT_SECONDS = 300
 #: 单次候选任务的全部证据文本预算（码点）；超出一律 422，不静默截断
 MAX_EVIDENCE_CHARS = 60000
 #: 提示词里列出的既有知识点 id 上限（避免把提示词撑爆）
@@ -109,10 +118,21 @@ def render_evidence(frozen_input: dict[str, Any]) -> str:
     return "\n\n".join(parts)
 
 
+EXTRA_INSTRUCTION_SUFFIX = "教师附加要求："
+#: 提取任务专用约束：整册证据必须**有界输出**，否则候选 JSON 会被输出上限截断而整批失败
+EXTRACTION_INSTRUCTION_SUFFIX = (
+    f"\n本次是教材提取任务：只覆盖下面给出的教材切片，最多提炼 {EXTRACTION_MAX_CANDIDATES} 条"
+    "最重要、最可复用的知识点候选（宁少勿凑；其余内容留给后续批次再提取），"
+    "并优先合并同义说法，避免为同一概念输出多条候选。"
+)
+
+
 def system_instruction(frozen_input: dict[str, Any]) -> str:
     """系统指令：固定 JSON 形状 + 允许引用的既有知识点 id（只提示，不猜）。"""
     allowed = [str(item) for item in (frozen_input.get("allowedKnowledgePointIds") or [])]
     instruction = SUGGESTION_INSTRUCTION
+    if isinstance(frozen_input.get("extraction"), dict):
+        instruction = f"{instruction}{EXTRACTION_INSTRUCTION_SUFFIX}"
     if allowed:
         joined = ", ".join(allowed[:MAX_REFERENCE_IDS])
         instruction = (
@@ -120,7 +140,7 @@ def system_instruction(frozen_input: dict[str, Any]) -> str:
         )
     extra = str(frozen_input.get("instructions") or "").strip()
     if extra:
-        instruction = f"{instruction}\n教师附加要求：{extra}"
+        instruction = f"{instruction}\n{EXTRA_INSTRUCTION_SUFFIX}{extra}"
     return instruction
 
 
@@ -258,6 +278,10 @@ def _string_list(value: object) -> list[str]:
 
 
 __all__ = [
+    "EXTRACTION_INSTRUCTION_SUFFIX",
+    "EXTRACTION_MAX_CANDIDATES",
+    "EXTRACTION_MAX_OUTPUT_TOKENS",
+    "EXTRACTION_TIMEOUT_SECONDS",
     "MAX_EVIDENCE_CHARS",
     "MAX_OUTPUT_TOKENS",
     "MAX_REFERENCE_IDS",

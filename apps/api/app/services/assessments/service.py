@@ -47,7 +47,10 @@ from datetime import date
 from typing import Any
 
 from app.contracts.assessments import (
+    ASSESSMENT_ARCHIVED,
     ASSESSMENT_HELD_ON_INVALID,
+    ASSESSMENT_IN_USE,
+    ASSESSMENT_NOT_FOUND,
     ASSESSMENT_PAPER_FIXED,
     ASSESSMENT_PAPER_INVALID,
     ASSESSMENT_REVISION_STALE,
@@ -57,11 +60,13 @@ from app.contracts.assessments import (
     PARTICIPANT_CLASS_UNCONFIRMED,
     PARTICIPANT_EMPTY,
     PARTICIPANT_INVALID,
+    PARTICIPANT_REMOVE_BLOCKED,
     AssessmentCreateRequest,
     AssessmentCreateResult,
     AssessmentDetailView,
     AssessmentList,
     AssessmentParticipantInput,
+    AssessmentRevisionRequest,
     AssessmentUpdateRequest,
     AssessmentView,
     ParticipantAddRequest,
@@ -69,7 +74,7 @@ from app.contracts.assessments import (
     ParticipantAttendanceCorrectionView,
     ParticipantMutationResult,
 )
-from app.contracts.papers import PAPER_NOT_FOUND
+from app.contracts.papers import PAPER_ARCHIVED, PAPER_NOT_FOUND
 from app.contracts.roster import (
     ConfirmedPaperRevisionView,
     PAPER_READER_UNAVAILABLE,
@@ -87,6 +92,7 @@ from app.repositories.teaching.assessments import (
 )
 from app.repositories.teaching.catalog import TeachingCatalog
 from app.repositories.teaching.classes import ClassRepository
+from app.repositories.teaching.papers import PaperRepository
 from app.repositories.teaching.students import (
     MembershipRecord,
     StudentRecord,
@@ -176,6 +182,21 @@ def _paper_invalid(message: str) -> AppError:
             )
         ],
     )
+
+
+def _reject_archived_assessment(record: AssessmentRecord) -> None:
+    """归档施测只读：更新/补录/出勤校正在恢复前一律拒绝（历史与成绩不动）。"""
+    if record.state == "archived":
+        raise AppError(
+            "施测已归档，不能修改或补录；请先恢复施测。",
+            code=ASSESSMENT_ARCHIVED,
+            status_code=409,
+        )
+
+
+def _remove_blocked(message: str) -> AppError:
+    """人次移除的守卫拒绝：不静默级联删除成绩/导入/报告引用的数据。"""
+    return AppError(message, code=PARTICIPANT_REMOVE_BLOCKED, status_code=409)
 
 
 def _stale(current_revision: int) -> AppError:
@@ -374,6 +395,7 @@ class AssessmentService:
         self._assessments = AssessmentRepository(catalog)
         self._classes = ClassRepository(catalog)
         self._students = StudentRepository(catalog)
+        self._papers = PaperRepository(catalog)
 
     # ---------------------------------------------------------------- 读取
 
@@ -502,6 +524,24 @@ class AssessmentService:
 
     # ---------------------------------------------------------------- 更新
 
+    def set_archived(
+        self, assessment_id: str, payload: AssessmentRevisionRequest, *, archived: bool
+    ) -> AssessmentView:
+        """归档/恢复施测：归档后不可更新/补录/出勤校正，也不能新建成绩导入与报告。
+
+        只改 ``assessments.state`` 并原子递增 revision；参测人次、成绩修订、
+        学情报告与练习一律保留（归档仍可读，恢复即可继续）。
+        """
+        assessment_id = _text(assessment_id, field="assessmentId")
+        with self._catalog.write_transaction() as conn:
+            record = self._assessments.require_in(conn, assessment_id)
+            if record.revision != payload.expected_revision:
+                raise _stale(record.revision)
+            record = self._assessments.set_state_in(
+                conn, assessment_id, state="archived" if archived else "open"
+            )
+        return record.view()
+
     def update_assessment(
         self, assessment_id: str, payload: AssessmentUpdateRequest
     ) -> AssessmentView:
@@ -517,6 +557,7 @@ class AssessmentService:
             fields["held_on"] = new_held_on.isoformat()
         with self._catalog.write_transaction() as conn:
             record = self._assessments.require_in(conn, assessment_id)
+            _reject_archived_assessment(record)
             if record.revision != payload.expected_revision:
                 raise _stale(record.revision)
             if new_held_on is not None and new_held_on.isoformat() != record.held_on:
@@ -532,6 +573,43 @@ class AssessmentService:
                     raise _translate_integrity_error(exc) from exc
                 record = self._assessments.require_in(conn, assessment_id)
         return record.view()
+
+    def delete_assessment(
+        self, assessment_id: str, payload: AssessmentRevisionRequest
+    ) -> dict[str, Any]:
+        """受引用守卫的彻底删除：无下游引用才物理删除施测及其参测/范围子行。
+
+        守卫（任一 >0 → 409 ``ASSESSMENT_IN_USE``，``details.counts`` 逐项计数）：
+        ``score_revisions``、``score_imports``、``analysis_runs``、
+        ``practice_conversions.assessment_id`` 引用数。
+        通过后在同一写事务删除 ``assessment_participants``、``assessment_classes``、
+        ``assessments``；乐观锁不符 → 409 ``ASSESSMENT_REVISION_STALE``；
+        施测不存在 → 404。归档施测同样可删（与"彻底删除"的用户裁定一致）。
+        """
+        assessment_id = _text(assessment_id, field="assessmentId")
+        with self._catalog.write_transaction() as conn:
+            record = self._assessments.require_in(conn, assessment_id)
+            if record.revision != payload.expected_revision:
+                raise _stale(record.revision)
+            counts = self._assessments.count_references_in(conn, assessment_id)
+            if any(value > 0 for value in counts.values()):
+                labels = {
+                    "scoreRevisions": "成绩版本",
+                    "scoreImports": "成绩导入批次",
+                    "analysisRuns": "学情报告",
+                    "practiceConversions": "练习转换",
+                }
+                summary = "、".join(
+                    f"{labels[key]} {value} 条" for key, value in counts.items() if value > 0
+                )
+                raise AppError(
+                    f"施测仍被引用，不能删除（{summary}）；请先处理相关数据。",
+                    code=ASSESSMENT_IN_USE,
+                    status_code=409,
+                    details={"counts": counts},
+                )
+            self._assessments.delete_assessment_in(conn, assessment_id)
+        return {"deleted": True, "assessmentId": assessment_id}
 
     def _require_participants_covered_in(
         self, conn: sqlite3.Connection, *, record: AssessmentRecord, held_on: date
@@ -577,6 +655,7 @@ class AssessmentService:
 
         def apply(conn: sqlite3.Connection) -> dict[str, Any]:
             record = self._assessments.require_in(conn, assessment_id)
+            _reject_archived_assessment(record)
             if record.revision != payload.expected_revision:
                 raise _stale(record.revision)
             participant = self._assessments.require_participant_in(conn, participant_id)
@@ -648,6 +727,7 @@ class AssessmentService:
         participants: list[AssessmentParticipantInput],
     ) -> dict[str, Any]:
         record = self._assessments.require_in(conn, assessment_id)
+        _reject_archived_assessment(record)
         if record.revision != expected_revision:
             raise _stale(record.revision)
         held_on = _stored_held_on(record.held_on)
@@ -695,6 +775,70 @@ class AssessmentService:
             replayed=False,
         )
         return result.model_dump(by_alias=True)
+
+    def remove_participant(
+        self,
+        assessment_id: str,
+        participant_id: str,
+        payload: AssessmentRevisionRequest,
+    ) -> ParticipantMutationResult:
+        """移除误录的参测人次（守卫式删除，只允许"干净"的人次）。
+
+        允许条件：施测未归档；``expectedRevision`` 与当前一致；该人次不在任何成绩修订
+        （含草稿）里；本施测没有进行中的成绩导入批次、也没有学情报告。
+        其余情况一律 409 ``PARTICIPANT_REMOVE_BLOCKED``，不静默级联删除任何下游数据。
+        """
+        assessment_id = _text(assessment_id, field="assessmentId")
+        participant_id = _text(participant_id, field="participantId")
+        with self._catalog.write_transaction() as conn:
+            record = self._assessments.require_in(conn, assessment_id)
+            _reject_archived_assessment(record)
+            if record.revision != payload.expected_revision:
+                raise _stale(record.revision)
+            participant = self._assessments.require_participant_in(
+                conn, participant_id
+            )
+            if participant.assessment_id != assessment_id:
+                raise AppError(
+                    f"参测记录不属于本次施测：{participant_id}。",
+                    code=ASSESSMENT_NOT_FOUND,
+                    status_code=404,
+                )
+            # 守卫顺序：报告 → 成绩版本 → 进行中批次（报告必然伴随成绩版本，
+            # 先报"已有学情报告"给教师最可行动的提示）。
+            if self._assessments.count_analysis_runs_in(conn, assessment_id) > 0:
+                raise _remove_blocked(
+                    "该施测已有学情报告（报告按快照保留），不能移除人次。"
+                )
+            if self._assessments.count_score_revisions_in(conn, assessment_id) > 0:
+                raise _remove_blocked(
+                    "该施测已有成绩版本（含草稿），人次已进入成绩矩阵，不能移除。"
+                )
+            if (
+                self._assessments.count_active_score_imports_in(conn, assessment_id)
+                > 0
+            ):
+                raise _remove_blocked(
+                    "该施测有进行中的成绩导入批次（预览可能引用该人次）；"
+                    "请先放弃对应批次再移除。"
+                )
+            deleted = self._assessments.delete_participant_in(
+                conn, assessment_id, participant_id
+            )
+            if not deleted:  # pragma: no cover - 同事务内刚读到
+                raise AppError(
+                    f"参测记录不存在：{participant_id}。",
+                    code=ASSESSMENT_NOT_FOUND,
+                    status_code=404,
+                )
+            self._assessments.bump_revision_in(conn, assessment_id)
+            updated = self._assessments.require_in(conn, assessment_id)
+            remaining = self._assessments.list_participants_in(conn, assessment_id)
+        return ParticipantMutationResult(
+            assessment=updated.view(),
+            participants=[item.view() for item in remaining],
+            replayed=False,
+        )
 
     def _confirm_participant_in(
         self,
@@ -766,6 +910,15 @@ class AssessmentService:
             raise _reader_unavailable() from exc
         if view.total_score_units <= 0 or view.scored_leaf_count < 1:
             raise _paper_invalid("已确认原卷必须至少有一个计分叶子（小题）且总分大于 0。")
+        # 归档原卷只能读历史，不能用于新建施测/补录（归档=退出新流程；恢复后可用）
+        paper = self._papers.get_paper(view.paper_id)
+        if paper is not None and paper.status == "archived":
+            raise AppError(
+                f"原卷「{view.title}」已归档，不能用于新建施测或补录人次；"
+                "请先在原卷工作台恢复该卷，或改用其他原卷。",
+                code=PAPER_ARCHIVED,
+                status_code=409,
+            )
         return view
 
     # ---------------------------------------------------------------- 内部：参测闸门

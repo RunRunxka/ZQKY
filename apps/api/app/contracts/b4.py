@@ -24,7 +24,8 @@ class FrozenParticipant(Frozen):
     student_no: str | None = Field(alias="studentNo")
     name: str
     class_id: str = Field(alias="classId")
-    class_name: None = Field(default=None, alias="className")
+    # 班名走“名称优先”：密封事实只冻结 classId，读路径 JOIN classes.name 实时填充；班名缺失才 null。
+    class_name: str | None = Field(default=None, alias="className")
     class_name_note: Literal["该成绩未记录班名"] = Field(default="该成绩未记录班名", alias="classNameNote")
     attempt_no: int = Field(alias="attemptNo")
     attendance: Literal["present", "absent", "exempt"]
@@ -69,12 +70,14 @@ class AnalysisRunView(Frozen):
     knowledge_points: list[FixedKnowledge] = Field(alias="knowledgePoints")
     job: JobView
     report_ready: bool = Field(alias="reportReady")
+    archived_at: str | None = Field(default=None, alias="archivedAt")
     created_at: str = Field(alias="createdAt")
 
 
 class ClassReportRow(Frozen):
     class_id: str = Field(alias="classId")
-    class_name: None = Field(default=None, alias="className")
+    # 班名走“名称优先”：结果行只冻结 classId，读路径 JOIN classes.name 实时填充；班名缺失才 null。
+    class_name: str | None = Field(default=None, alias="className")
     class_name_note: str = Field(default="该成绩未记录班名", alias="classNameNote")
     knowledge_point: FixedKnowledge = Field(alias="knowledgePoint")
     selected_count: int = Field(alias="selectedCount")
@@ -254,6 +257,10 @@ class PracticeRevisionView(Frozen):
     title: str
     subject_id: str = Field(alias="subjectId")
     analysis_run_id: str = Field(alias="analysisRunId")
+    # 练习来源的展示名（只读派生）：analysis_runs → paper_revisions.title_snapshot / created_at，
+    # 读路径实时 JOIN；来源卷修订缺失时为 null，不伪造名称。
+    source_paper_title: str | None = Field(default=None, alias="sourcePaperTitle")
+    source_created_at: str | None = Field(default=None, alias="sourceCreatedAt")
     target_knowledge_points: list[FixedKnowledge] = Field(alias="targetKnowledgePoints")
     constraints: PracticeConstraints
     input_hash: str = Field(alias="inputHash")
@@ -269,10 +276,28 @@ class PracticeSetView(Frozen):
     title: str
     subject_id: str = Field(alias="subjectId")
     analysis_run_id: str = Field(alias="analysisRunId")
+    # 练习来源的展示名（只读派生，与 currentRevision 同口径；见 PracticeRevisionView）。
+    source_paper_title: str | None = Field(default=None, alias="sourcePaperTitle")
+    source_created_at: str | None = Field(default=None, alias="sourceCreatedAt")
+    # 缺省 active 仅兼容归档功能上线前提交的既有收据（当时练习集必为 active）。
+    status: Literal["active", "archived"] = "active"
     revision: int
     current_revision: PracticeRevisionView = Field(alias="currentRevision")
     revisions: list[PracticeRevisionView]
     replayed: bool = False
+
+
+class PracticeSetStatusRequest(Frozen):
+    """练习集归档/恢复的乐观锁请求（与班级/学生同形）。"""
+
+    expected_revision: int = Field(alias="expectedRevision", ge=0)
+
+
+class PracticeSetDeleteReceipt(Frozen):
+    """练习集彻底删除的回执（受引用守卫通过后物理删除全部 draft 修订与集合行）。"""
+
+    deleted: bool
+    practice_set_id: str = Field(alias="practiceSetId")
 
 
 class ExportRequest(Frozen):

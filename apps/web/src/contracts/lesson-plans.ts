@@ -30,6 +30,8 @@ export interface LessonSaveRequest {
   submissionId: string; expectedRevision: number; data: LessonPlanData;
   context: AnalysisContextInput | null; source?: 'manual' | 'rule';
 }
+/** 教案归档/恢复（对应后端 `LessonRevisionRequest`：只带乐观锁修订号，与施测/原卷归档口径一致）。 */
+export interface LessonRevisionRequest { expectedRevision: number }
 export interface AnalysisContextSnapshot {
   analysisRunId: string; inputHash: string; scoreRevisionId: string; paperRevisionId: string;
   className: string | null; classNameNote: string; knowledgePoints: FixedKnowledge[];

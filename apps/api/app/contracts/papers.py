@@ -48,6 +48,11 @@ SCORE_TEXT_PATTERN = r"^\d{1,4}(\.\d{1,2})?$"
 PAPER_NOT_FOUND = "PAPER_NOT_FOUND"
 PAPER_REVISION_STALE = "PAPER_REVISION_STALE"
 PAPER_NOT_EDITABLE = "PAPER_NOT_EDITABLE"
+PAPER_ARCHIVED = "PAPER_ARCHIVED"
+#: 受引用守卫：原卷仍被施测引用（删除被 409 拒绝，details 列出计数）
+PAPER_IN_USE = "PAPER_IN_USE"
+#: 受引用守卫：原卷存在已确认修订（DB 触发器禁止删除；已确认原卷只能归档）
+PAPER_HAS_CONFIRMED_REVISION = "PAPER_HAS_CONFIRMED_REVISION"
 PAPER_CONFIRM_INVALID = "PAPER_CONFIRM_INVALID"
 PAPER_BLOCK_UNASSIGNED = "PAPER_BLOCK_UNASSIGNED"
 PAPER_ISSUE_BLOCKING = "PAPER_ISSUE_BLOCKING"
@@ -158,6 +163,12 @@ class PaperDraftPatchRequest(_Strict):
 class PaperConfirmRequest(_Strict):
     expected_revision: int = Field(alias="expectedRevision", ge=0)
     submission_id: str = Field(alias="submissionId", min_length=1, max_length=128)
+
+
+class PaperRevisionRequest(_Strict):
+    """原卷归档/恢复的乐观锁请求（只带修订号，不携带内容）。"""
+
+    expected_revision: int = Field(alias="expectedRevision", ge=0)
 
 
 class PaperProposalJobRequest(_Strict):

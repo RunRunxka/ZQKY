@@ -261,3 +261,117 @@ describe('成绩映射与明确刷新预览', () => {
     expect(changed).not.toHaveBeenCalled();
   });
 });
+
+/* ------------------------------------------------------------------ 放弃未确认批次 */
+
+function summary(importId: string, state: ScoreImportView['state'], revision = 1) {
+  return {
+    importId, assessmentId: 'as-1', state, revision, rowCount: 1,
+    createdAt: '2026-10-02T00:00:00Z', updatedAt: '2026-10-02T00:00:00Z',
+  };
+}
+
+function stubBatches(
+  post: (url: string, init: RequestInit) => Promise<Response> | Response,
+  mutate: () => { discarded: boolean },
+) {
+  const fetched = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    if (init?.method === 'POST') return post(url, init);
+    const { discarded } = mutate();
+    if (url.includes('/score-imports?')) return response(200, { items: [
+      summary('imp-1', discarded ? 'cancelled' : 'reviewing', discarded ? 2 : 1),
+      summary('imp-2', 'confirmed', 4),
+    ], total: 2, offset: 0, limit: 50 });
+    if (url.includes('/score-imports/') && url.includes('/rows')) return response(200, { items: [], total: 0 });
+    if (url.includes('/score-imports/')) return response(200, url.includes('imp-2')
+      ? view('imp-2', 4)
+      : { ...view('imp-1', discarded ? 2 : 1), state: discarded ? 'cancelled' : 'reviewing' });
+    if (url.includes('/score-revisions')) return response(200, { items: [], total: 0 });
+    if (url.includes('/content')) return response(200, { items: [], blocks: [] });
+    return response(200, { assessment: { assessmentId: 'as-1', paperId: 'paper-1',
+      paperRevisionId: 'pr-1', title: '期中', participantCount: 1, revision: 4 }, participants: [] });
+  });
+  vi.stubGlobal('fetch', fetched);
+  return fetched;
+}
+
+describe('成绩导入批次的放弃', () => {
+  it('未确认批次显示放弃并可置为已取消；已确认批次不显示放弃', async () => {
+    const confirmSpy = vi.fn(() => true);
+    vi.stubGlobal('confirm', confirmSpy);
+    const writes: { url: string; body: unknown }[] = [];
+    const state = { discarded: false };
+    stubBatches((url, init) => {
+      writes.push({ url, body: JSON.parse(String(init.body)) });
+      state.discarded = true;
+      return response(200, { ...view('imp-1', 2), state: 'cancelled' });
+    }, () => state);
+    render(ui());
+    await screen.findByTestId('assessments-discard-import-imp-1');
+    expect(screen.queryByTestId('assessments-discard-import-imp-2')).not.toBeInTheDocument();
+    expect(screen.getByTestId('assessments-import-imp-2')).toHaveTextContent('已确认入库');
+    fireEvent.click(screen.getByTestId('assessments-discard-import-imp-1'));
+    await waitFor(() => expect(writes).toHaveLength(1));
+    expect(confirmSpy).toHaveBeenCalledTimes(1);
+    expect(writes[0]).toEqual({
+      url: '/api/v1/score-imports/imp-1/discard',
+      body: { expectedRevision: 1 },
+    });
+    await waitFor(() => expect(screen.getByTestId('assessments-import-imp-1')).toHaveTextContent('已取消'));
+  });
+
+  it('放弃失败显示服务端 message，批次仍可校对', async () => {
+    vi.stubGlobal('confirm', vi.fn(() => true));
+    const state = { discarded: false };
+    stubBatches(
+      () => response(409, { code: 'SCORE_IMPORT_CONFIRMED', message: '该成绩批次已确认，不能放弃' }),
+      () => state,
+    );
+    render(ui());
+    await screen.findByTestId('assessments-discard-import-imp-1');
+    fireEvent.click(screen.getByTestId('assessments-discard-import-imp-1'));
+    const alert = await screen.findByTestId('assessments-discard-error');
+    expect(alert).toHaveTextContent('该成绩批次已确认，不能放弃');
+    expect(screen.getByTestId('assessments-import-imp-1')).toHaveTextContent('校对中');
+  });
+});
+
+/* ------------------------------------------------------------------ 名称优先 */
+
+describe('名称优先：批次文件名与原卷标题', () => {
+  it('批次主文本用上传文件名（缺失回落短号），importId 收进次行小字；施测提示用原卷标题', async () => {
+    const summaries = [
+      { importId: 'imp-file', assessmentId: 'as-1', uploadedFileName: '期中成绩单.xlsx',
+        state: 'reviewing', revision: 1, rowCount: 12, createdAt: '', updatedAt: '' },
+      { importId: 'imp-long-identifier', assessmentId: 'as-1', uploadedFileName: null,
+        state: 'confirmed', revision: 3, rowCount: 9, createdAt: '', updatedAt: '' },
+    ];
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/score-imports?')) return response(200, { items: summaries, total: 2 });
+      if (url.includes('/rows')) return response(200, { items: [], total: 0 });
+      if (url.includes('/score-imports/imp-file')) return response(200, view('imp-file'));
+      if (url.includes('/score-imports/imp-long-identifier')) return response(200, view('imp-long-identifier'));
+      if (url.includes('/score-revisions')) return response(200, { items: [], total: 0 });
+      if (url.includes('/content')) return response(200, { items: [], blocks: [] });
+      return response(200, {
+        assessment: { assessmentId: 'as-1', paperId: 'paper-1', paperRevisionId: 'pr-1',
+          paperTitle: '一元一次方程原卷', title: '期中', participantCount: 1, revision: 4 },
+        participants: [],
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(ui());
+    await screen.findByTestId('assessments-import-imp-file');
+    // 主文本 = 文件名；importId 降为小字（短号），仍可核对
+    expect(screen.getByTestId('assessments-import-imp-file')).toHaveTextContent('期中成绩单.xlsx');
+    expect(screen.getByTestId('assessments-import-imp-file')).toHaveTextContent('批次 imp-file');
+    expect(screen.getByTestId('assessments-import-imp-file')).toHaveTextContent('行 12');
+    // 文件名为空：回落「批次 <短号>」，不显示一串 id
+    expect(screen.getByTestId('assessments-import-imp-long-identifier')).toHaveTextContent('批次 imp-long…');
+    // 施测提示显示原卷标题，不显示 paperRevisionId
+    expect(await screen.findByText(/原卷「一元一次方程原卷」/)).toBeInTheDocument();
+    expect(screen.queryByText(/原卷修订 pr-1/)).not.toBeInTheDocument();
+  });
+});

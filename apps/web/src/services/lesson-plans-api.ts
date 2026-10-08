@@ -5,13 +5,14 @@ import type {
   Page, LessonSummary, LessonRevisionSummary, LessonView, LessonRevisionView,
   LessonCreateRequest, LessonImportRequest, LessonSaveRequest, LessonEvidenceRequest, LessonEvidenceView,
   LessonGenerateRequest, LessonGenerationReceipt, LessonProposalView, LessonApplyRequest, LessonRejectRequest,
+  LessonRevisionRequest,
 } from '@/contracts/lesson-plans';
 
 const key = encodeURIComponent;
 const write = (method: string, body: unknown, signal?: AbortSignal): RequestInit => ({
   method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal,
 });
-export interface LessonListQuery { offset?: number; limit?: number; subjectId?: string; classId?: string }
+export interface LessonListQuery { offset?: number; limit?: number; subjectId?: string; classId?: string; archived?: boolean }
 export interface LessonHistoryQuery { offset?: number; limit?: number }
 
 export function listLessons(query: LessonListQuery = {}, signal?: AbortSignal): Promise<Page<LessonSummary>> {
@@ -25,6 +26,13 @@ export function importLocalLesson(body: LessonImportRequest, signal?: AbortSigna
 }
 export function getLesson(id: string, signal?: AbortSignal): Promise<LessonView> {
   return apiRequest(`/lesson-plans/${key(id)}`, { signal });
+}
+/** 教案归档：`expectedRevision` 守卫；历史修订与来源证据保留。 */
+export function archiveLessonPlan(id: string, body: LessonRevisionRequest, signal?: AbortSignal): Promise<LessonView> {
+  return apiRequest(`/lesson-plans/${key(id)}/archive`, write('POST', body, signal));
+}
+export function restoreLessonPlan(id: string, body: LessonRevisionRequest, signal?: AbortSignal): Promise<LessonView> {
+  return apiRequest(`/lesson-plans/${key(id)}/restore`, write('POST', body, signal));
 }
 export function saveLesson(id: string, body: LessonSaveRequest, signal?: AbortSignal): Promise<LessonView> {
   return apiRequest(`/lesson-plans/${key(id)}/draft`, write('PATCH', body, signal));
@@ -55,4 +63,5 @@ export const lessonPlanApi = {
   listLessons, createLesson, importLocalLesson, getLesson, saveLesson,
   listLessonRevisions, getLessonRevision, verifyLessonEvidence,
   generateLessonProposal, getLessonProposal, applyLessonProposal, rejectLessonProposal,
+  archiveLessonPlan, restoreLessonPlan,
 };

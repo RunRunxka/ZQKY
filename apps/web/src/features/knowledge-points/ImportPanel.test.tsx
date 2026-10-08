@@ -1,6 +1,6 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { KnowledgeImportView } from '@/contracts/knowledge';
+import type { KnowledgeImportSummary, KnowledgeImportView } from '@/contracts/knowledge';
 import { ImportPanel } from './ImportPanel';
 
 function importView(overrides: Partial<KnowledgeImportView> = {}): KnowledgeImportView {
@@ -161,5 +161,116 @@ describe('导入面板：批次列表与选中', () => {
       expect(screen.getByTestId('kp-import-file')).toHaveTextContent('知识点.csv'),
     );
     expect(screen.getByTestId('kp-row-1')).toHaveTextContent('数轴');
+  });
+});
+
+describe('导入面板：放弃未确认批次', () => {
+  const summary = (state: KnowledgeImportSummary['state'], revision: number) => ({
+    importId: 'imp-file-1',
+    source: 'file' as const,
+    subjectId: 'math',
+    state,
+    revision,
+    rowCount: 1,
+    blockingIssueCount: 0,
+    // 真实批次都有上传文件名：主标题用文件名，短号进次行小字
+    uploadedFileName: '知识点-导入.csv',
+    createdAt: '2026-09-30T00:00:00Z',
+    updatedAt: '2026-09-30T00:00:00Z',
+  });
+
+  function renderPanel(onSelectImport = vi.fn()) {
+    render(
+      <ImportPanel
+        subjects={[{ id: 'math', label: '数学' }]}
+        taxonomyReady
+        defaultSubjectId="math"
+        selectedImportId={null}
+        onSelectImport={onSelectImport}
+        refreshToken={0}
+      />,
+    );
+    return onSelectImport;
+  }
+
+  it('只对未确认批次显示放弃按钮；放弃带 expectedRevision，成功后刷新为已取消', async () => {
+    let listCalls = 0;
+    stubApi((url, init) => {
+      const method = (init.method ?? 'GET').toUpperCase();
+      if (method === 'POST' && url.endsWith('/api/v1/knowledge-imports/imp-file-1/discard')) {
+        expect(JSON.parse(String(init.body))).toEqual({ expectedRevision: 3 });
+        return json(true, 200, importView({ state: 'cancelled', revision: 4 }));
+      }
+      if (method === 'GET' && url.endsWith('/api/v1/knowledge-imports?limit=100')) {
+        listCalls += 1;
+        return json(true, 200, {
+          items: [
+            summary(listCalls === 1 ? 'reviewing' : 'cancelled', listCalls === 1 ? 3 : 4),
+            {
+              ...summary('confirmed', 2),
+              importId: 'imp-file-done',
+              uploadedFileName: '已确认批次.csv',
+            },
+          ],
+          total: 2,
+          offset: 0,
+          limit: 100,
+        });
+      }
+      return json(false, 500, { code: 'UNEXPECTED_TEST_REQUEST', message: `${method} ${url}` });
+    });
+    vi.stubGlobal('confirm', vi.fn(() => true));
+    renderPanel();
+
+    // 主标题是真实上传文件名，短号与来源进次行小字（不再把短号当标题）
+    const card = await screen.findByText('知识点-导入.csv');
+    expect(card.closest('button')).toHaveTextContent('批次 imp-file');
+    // 未确认批次（reviewing）有入口；已确认批次没有
+    const discard = await screen.findByRole('button', { name: '放弃批次 知识点-导入.csv' });
+    expect(
+      screen.queryByRole('button', { name: '放弃批次 已确认批次.csv' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('已确认入库')).toBeInTheDocument();
+
+    fireEvent.click(discard);
+
+    expect(await screen.findByText('已取消')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: '放弃批次 知识点-导入.csv' }),
+    ).not.toBeInTheDocument();
+    expect(listCalls).toBe(2);
+  });
+
+  it('放弃失败如实显示错误码与原因；409 时刷新列表取最新 revision', async () => {
+    let listCalls = 0;
+    stubApi((url, init) => {
+      const method = (init.method ?? 'GET').toUpperCase();
+      if (method === 'POST' && url.endsWith('/api/v1/knowledge-imports/imp-file-1/discard')) {
+        return json(false, 409, {
+          code: 'REVISION_CONFLICT',
+          message: '批次已被其他操作更新（当前 revision=4），请刷新后重试。',
+          retryable: false,
+        });
+      }
+      if (method === 'GET' && url.endsWith('/api/v1/knowledge-imports?limit=100')) {
+        listCalls += 1;
+        return json(true, 200, { items: [summary('reviewing', 4)], total: 1, offset: 0, limit: 100 });
+      }
+      return json(false, 500, { code: 'UNEXPECTED_TEST_REQUEST', message: `${method} ${url}` });
+    });
+    vi.stubGlobal('confirm', vi.fn(() => true));
+    renderPanel();
+
+    fireEvent.click(await screen.findByRole('button', { name: '放弃批次 知识点-导入.csv' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('REVISION_CONFLICT');
+    expect(alert).toHaveTextContent('批次已被其他操作更新（当前 revision=4），请刷新后重试。');
+    expect(screen.queryByText('已取消')).not.toBeInTheDocument();
+    // 冲突后刷新取最新 revision，入口仍在（用户可再次确认）
+    await waitFor(() => expect(listCalls).toBe(2));
+    expect(
+      await screen.findByRole('button', { name: '放弃批次 知识点-导入.csv' }),
+    ).toBeEnabled();
   });
 });

@@ -317,7 +317,10 @@ describe('题库首页：已入库题目', () => {
     fireEvent.click(await screen.findByRole('button', { name: '查看题目' }));
 
     const dialog = await screen.findByRole('dialog', { name: '题目详情' });
-    expect(within(dialog).getByText('下列各数中，是负数的有？')).toBeInTheDocument();
+    // ID 降级：questionId chip 的主文案是题干预览摘要，完整 id 只放在 title 里
+    const idChip = within(dialog).getByTitle('q-1');
+    expect(idChip).toHaveTextContent('下列各数中，是负数的有？');
+    expect(within(dialog).getAllByText('下列各数中，是负数的有？').length).toBeGreaterThan(1);
     expect(within(dialog).getByText('答案缺失', { selector: '.space-chip' })).toBeInTheDocument();
     expect(within(dialog).getByText('有理数')).toBeInTheDocument();
     expect(within(dialog).getByText(/b-2（字符 30–66）/)).toBeInTheDocument();
@@ -424,5 +427,86 @@ describe('题库首页：已入库题目', () => {
       screen.getByText(/AI 补题只生成待校对草稿/),
     ).toBeInTheDocument();
     expect(calls(fetchMock, '/question-generation-jobs', 'POST')).toHaveLength(0);
+  });
+});
+
+describe('题库首页：放弃未确认导入批次', () => {
+  it('未确认批次二次确认后带 expectedRevision 提交，成功后刷新为已取消', async () => {
+    let current: QuestionImportSummary = BATCH;
+    const fetchMock = router({
+      'GET /api/v1/question-imports': () => jsonResponse(true, 200, { imports: [current] }),
+      'POST /api/v1/question-imports/imp-1/discard': () => {
+        current = { ...BATCH, state: 'cancelled', revision: 2 };
+        return jsonResponse(true, 200, { ...current, drafts: [], unassignedBlocks: [] });
+      },
+    });
+    vi.stubGlobal('confirm', vi.fn(() => true));
+    render(<QuestionBankWorkspace />);
+
+    fireEvent.click(await screen.findByRole('button', { name: '放弃批次 七年级数学题库.md' }));
+
+    await waitFor(() =>
+      expect(calls(fetchMock, '/question-imports/imp-1/discard', 'POST')).toHaveLength(1),
+    );
+    const [, init] = calls(fetchMock, '/question-imports/imp-1/discard', 'POST')[0] as [
+      string,
+      RequestInit,
+    ];
+    expect(JSON.parse(String(init.body))).toEqual({ expectedRevision: 1 });
+
+    expect(await screen.findByText('已取消')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: '放弃批次 七年级数学题库.md' }),
+    ).not.toBeInTheDocument();
+    // 刷新后取服务端权威状态，而不是前端改写列表
+    expect(calls(fetchMock, '/question-imports', 'GET')).toHaveLength(2);
+  });
+
+  it('已确认批次没有放弃入口；取消二次确认时不发起请求', async () => {
+    const confirmedMock = router({
+      'GET /api/v1/question-imports': () =>
+        jsonResponse(true, 200, { imports: [{ ...BATCH, state: 'confirmed' as const }] }),
+    });
+    vi.stubGlobal('confirm', vi.fn(() => true));
+    const first = render(<QuestionBankWorkspace />);
+    await screen.findByText('七年级数学题库.md');
+    expect(screen.getByText('已确认入库')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: '放弃批次 七年级数学题库.md' }),
+    ).not.toBeInTheDocument();
+    expect(calls(confirmedMock, '/question-imports/imp-1/discard', 'POST')).toHaveLength(0);
+    first.unmount();
+
+    const fetchMock = router();
+    vi.stubGlobal('confirm', vi.fn(() => false));
+    render(<QuestionBankWorkspace />);
+    fireEvent.click(await screen.findByRole('button', { name: '放弃批次 七年级数学题库.md' }));
+
+    expect(calls(fetchMock, '/discard', 'POST')).toHaveLength(0);
+    expect(screen.getByText('待校对')).toBeInTheDocument();
+    expect(screen.queryByText('已取消')).not.toBeInTheDocument();
+  });
+
+  it('放弃 409 原样显示服务端原因并刷新列表，不显示为成功', async () => {
+    const fetchMock = router({
+      'POST /api/v1/question-imports/imp-1/discard': () =>
+        jsonResponse(false, 409, {
+          code: 'IMPORT_ALREADY_CONFIRMED',
+          message: '该导入已确认入库，不能放弃；已入库的题目保留。',
+          retryable: false,
+        }),
+    });
+    vi.stubGlobal('confirm', vi.fn(() => true));
+    render(<QuestionBankWorkspace />);
+
+    fireEvent.click(await screen.findByRole('button', { name: '放弃批次 七年级数学题库.md' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('IMPORT_ALREADY_CONFIRMED');
+    expect(alert).toHaveTextContent('该导入已确认入库，不能放弃；已入库的题目保留。');
+    expect(screen.queryByText('已取消')).not.toBeInTheDocument();
+    // 刷新后仍是原状态（放弃失败不改变列表）
+    expect(await screen.findByText('待校对')).toBeInTheDocument();
+    expect(calls(fetchMock, '/question-imports', 'GET')).toHaveLength(2);
   });
 });

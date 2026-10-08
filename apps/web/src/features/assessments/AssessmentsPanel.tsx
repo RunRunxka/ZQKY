@@ -18,18 +18,34 @@ import type {
   AssessmentCreateResult,
   AssessmentDetailView,
   AssessmentParticipantInput,
+  AssessmentParticipantView,
   AssessmentType,
   AssessmentView,
+  ParticipantMutationResult,
 } from '@/contracts/assessments';
 import type { Attendance, StudentView } from '@/contracts/roster';
+import type { ApiError } from '@/services/api-client';
 import {
+  archiveAssessment,
   createAssessment,
+  deleteAssessment,
   getAssessment,
   listAssessments,
   listClassStudents,
+  removeAssessmentParticipant,
+  restoreAssessment,
 } from '@/services/assessments-api';
-import { useAsyncResource, useFrozenSubmission } from './hooks';
-import { assessmentStateLabel, assessmentTypeLabel, attendanceLabel, issueLocationLabel } from './labels';
+import { asApiError, useAsyncResource, useFrozenSubmission } from './hooks';
+import {
+  ASSESSMENT_REFERENCE_LABELS,
+  assessmentStateLabel,
+  assessmentTypeLabel,
+  attendanceLabel,
+  issueLocationLabel,
+  referenceCounts,
+  shortId,
+} from './labels';
+import { DeleteGuardNotice, type DeleteGuardState } from './DeleteGuardNotice';
 import type { SelectedPaper } from './PapersPanel';
 import { ParticipantAttendanceEditor } from './ParticipantAttendanceEditor';
 import { ParticipantAddPanel } from './ParticipantAddPanel';
@@ -74,7 +90,8 @@ export function AssessmentsPanel({
   classId: string | null;
   className: string | null;
   selectedAssessmentId: string | null;
-  onSelectAssessment: (assessmentId: string) => void;
+  /** 选择/取消选择施测：回传 `(id, title)` 供工作区状态条显示标题（null = 取消选择）。 */
+  onSelectAssessment: (assessmentId: string | null, title?: string | null) => void;
   onOpenScore: () => void;
   refreshToken: number;
   rosterRefreshToken?: number;
@@ -88,6 +105,27 @@ export function AssessmentsPanel({
   const [classNote, setClassNote] = useState('');
   const [created, setCreated] = useState<AssessmentCreateResult | null>(null);
   const [rosterNotice, setRosterNotice] = useState<string | null>(null);
+  /**
+   * 「显示已归档」开关**只过滤当前页**：本面板固定取前 100 条（不做分页 UI），
+   * 打开开关不向后端传 state，也就不代表全库的归档集合；后端分页语义不变。
+   */
+  const [showArchivedAssessments, setShowArchivedAssessments] = useState(false);
+  /** 归档/恢复的写操作身份（禁用按钮防重入）与错误提示。 */
+  const [stateBusyId, setStateBusyId] = useState<string | null>(null);
+  const [stateError, setStateError] = useState<string | null>(null);
+  const stateBusyRef = useRef(false);
+  /** 彻底删除（详情区）：被引用守卫 409 的原因清单 + 成功回执。 */
+  const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
+  const [deleteGuard, setDeleteGuard] = useState<DeleteGuardState | null>(null);
+  const [deleteNotice, setDeleteNotice] = useState<string | null>(null);
+  const deleteBusyRef = useRef(false);
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
   const submission = useFrozenSubmission<Record<string, unknown>, AssessmentCreateResult>();
   const editingLocked = submission.busy || submission.phase === 'unknown';
   const context = `${classId ?? ''}|${selectedPaper?.paperRevisionId ?? ''}|${selectedAssessmentId ?? ''}`;
@@ -133,6 +171,11 @@ export function AssessmentsPanel({
 
   const studentItems: StudentView[] = students.lastData?.items ?? [];
   const assessmentItems: AssessmentView[] = assessments.lastData?.items ?? [];
+  // 默认隐藏已归档（仅过滤当前页）：归档仍可读，但不能更新/补录/新导入。
+  const visibleAssessmentItems = showArchivedAssessments
+    ? assessmentItems
+    : assessmentItems.filter((assessment) => assessment.state !== 'archived');
+  const hiddenArchivedCount = assessmentItems.length - visibleAssessmentItems.length;
 
   const draftOf = (studentId: string): ParticipantDraft =>
     drafts[studentId] ?? { checked: true, attendance: 'present', attemptNo: 1 };
@@ -206,8 +249,92 @@ export function AssessmentsPanel({
     // submit 先验证挂载和操作代次；失效请求不能先改变父级选择。
     if (result && contextRef.current === requestContext) {
       setCreated(result);
-      onSelectAssessment(result.assessment.assessmentId);
+      onSelectAssessment(result.assessment.assessmentId, result.assessment.title);
       onChanged();
+    }
+  }
+
+  /**
+   * 归档/恢复施测（守卫式，`expectedRevision` 用该施测 revision）：归档仍可读，
+   * 已封存成绩与报告保留；成功后刷新列表与详情。
+   */
+  async function setArchived(assessment: AssessmentView, archived: boolean) {
+    if (stateBusyRef.current) return;
+    if (
+      archived &&
+      !window.confirm(
+        `归档施测「${assessment.title}」？归档后仍可读，但不能更新/补录人次或导入新成绩；已封存成绩与学情报告保留。`,
+      )
+    ) {
+      return;
+    }
+    const requestContext = contextRef.current;
+    stateBusyRef.current = true;
+    setStateBusyId(assessment.assessmentId);
+    setStateError(null);
+    try {
+      if (archived) {
+        await archiveAssessment(assessment.assessmentId, { expectedRevision: assessment.revision });
+      } else {
+        await restoreAssessment(assessment.assessmentId, { expectedRevision: assessment.revision });
+      }
+      if (!alive.current || contextRef.current !== requestContext) return;
+      assessments.reload();
+      onChanged();
+    } catch (cause) {
+      if (!alive.current || contextRef.current !== requestContext) return;
+      const error = asApiError(cause);
+      setStateError(`${archived ? '归档' : '恢复'}施测失败（${error.code}）：${error.message}`);
+    } finally {
+      stateBusyRef.current = false;
+      if (alive.current) setStateBusyId(null);
+    }
+  }
+
+  /**
+   * 彻底删除施测（受引用守卫的物理删除，二次确认；详情区的对象操作）：
+   * 有成绩版本/导入批次/学情报告/练习转换任一引用时 409 `ASSESSMENT_IN_USE`，
+   * 把 message 与 `details.counts` 逐项显示在详情区，并给「改为归档」；
+   * 乐观锁冲突 / 404 按既有错误区呈现。
+   */
+  async function deleteAssessmentItem(assessment: AssessmentView) {
+    if (deleteBusyRef.current) return;
+    if (
+      !window.confirm(
+        `彻底删除施测「${assessment.title}」？这是物理删除、不可恢复（参测人次与范围一并删除）；已有成绩版本/导入/学情报告/练习转换引用时会被拒绝并逐项列出。`,
+      )
+    ) {
+      return;
+    }
+    const requestContext = contextRef.current;
+    deleteBusyRef.current = true;
+    setDeleteBusyId(assessment.assessmentId);
+    setStateError(null);
+    setDeleteGuard(null);
+    setDeleteNotice(null);
+    try {
+      await deleteAssessment(assessment.assessmentId, assessment.revision);
+      if (!alive.current || contextRef.current !== requestContext) return;
+      // 被删施测若正被选中，取消选择，避免成绩/历史步骤继续读取已不存在的施测。
+      if (selectedAssessmentId === assessment.assessmentId) onSelectAssessment(null);
+      setDeleteNotice(`已彻底删除施测「${assessment.title}」：物理删除完成，不可恢复。`);
+      assessments.reload();
+      onChanged();
+    } catch (cause) {
+      if (!alive.current || contextRef.current !== requestContext) return;
+      const error = asApiError(cause);
+      if (error.status === 409 && error.code === 'ASSESSMENT_IN_USE') {
+        setDeleteGuard({
+          targetId: assessment.assessmentId,
+          error,
+          reasons: referenceCounts(error.details, ASSESSMENT_REFERENCE_LABELS),
+        });
+      } else {
+        setStateError(`彻底删除施测失败（${error.code}）：${error.message}`);
+      }
+    } finally {
+      deleteBusyRef.current = false;
+      if (alive.current) setDeleteBusyId(null);
     }
   }
 
@@ -447,9 +574,20 @@ export function AssessmentsPanel({
       <section className="assessments-subpanel" aria-label="施测列表与详情">
         <div className="assessments-subpanel-head">
           <h3>现有施测</h3>
-          <button className="space-button" onClick={assessments.reload}>
-            <RefreshCw size={13} aria-hidden /> 刷新
-          </button>
+          <div className="assessments-actions">
+            <label className="assessments-check">
+              <input
+                type="checkbox"
+                aria-label="显示已归档施测"
+                checked={showArchivedAssessments}
+                onChange={(event) => setShowArchivedAssessments(event.target.checked)}
+              />
+              <span>显示已归档</span>
+            </label>
+            <button className="space-button" onClick={assessments.reload}>
+              <RefreshCw size={13} aria-hidden /> 刷新
+            </button>
+          </div>
         </div>
         {assessments.state.phase === 'failed' && !assessments.lastData && (
           <div className="space-banner error" role="alert" data-testid="assessments-list-error">
@@ -462,38 +600,84 @@ export function AssessmentsPanel({
             <span>选定已确认原卷与班级后，在上方创建第一次施测。</span>
           </p>
         )}
+        {hiddenArchivedCount > 0 && (
+          <p className="assessments-hint" data-testid="assessments-archived-hidden">
+            当前页有 {hiddenArchivedCount} 条已归档施测默认隐藏；打开「显示已归档」查看（只过滤当前页，不改变后端分页）。
+          </p>
+        )}
         <ul className="assessments-list" aria-label="施测列表">
-          {assessmentItems.map((assessment) => (
+          {visibleAssessmentItems.map((assessment) => (
             <li key={assessment.assessmentId}>
-              <button
-                type="button"
-                className={
-                  assessment.assessmentId === selectedAssessmentId
-                    ? 'assessments-list-item current'
-                    : 'assessments-list-item'
-                }
-                aria-pressed={assessment.assessmentId === selectedAssessmentId}
-                data-testid={`assessments-assessment-${assessment.assessmentId}`}
-                onClick={() => onSelectAssessment(assessment.assessmentId)}
-              >
-                <strong>{assessment.title}</strong>
-                <span className="assessments-meta">
-                  {assessmentTypeLabel(assessment.assessmentType)} · {assessment.heldOn} ·{' '}
-                  {assessmentStateLabel(assessment.state)} · {assessment.participantCount} 人次 ·
-                  r{assessment.revision}
-                </span>
-              </button>
+              <div className="assessments-actions">
+                <button
+                  type="button"
+                  className={
+                    assessment.assessmentId === selectedAssessmentId
+                      ? 'assessments-list-item current'
+                      : 'assessments-list-item'
+                  }
+                  aria-pressed={assessment.assessmentId === selectedAssessmentId}
+                  data-testid={`assessments-assessment-${assessment.assessmentId}`}
+                  onClick={() => onSelectAssessment(assessment.assessmentId, assessment.title)}
+                >
+                  <strong>{assessment.title}</strong>
+                  <span className="assessments-meta">
+                    {assessmentTypeLabel(assessment.assessmentType)} · {assessment.heldOn} ·{' '}
+                    {assessmentStateLabel(assessment.state)} · {assessment.participantCount} 人次 ·
+                    r{assessment.revision}
+                  </span>
+                </button>
+                {assessment.state === 'archived' && (
+                  <span
+                    className="space-chip"
+                    data-testid={`assessments-assessment-archived-${assessment.assessmentId}`}
+                  >
+                    已归档
+                  </span>
+                )}
+                {assessment.state === 'archived' ? (
+                  <button
+                    className="space-button"
+                    data-testid={`assessments-assessment-restore-${assessment.assessmentId}`}
+                    disabled={stateBusyId !== null || deleteBusyId !== null}
+                    onClick={() => void setArchived(assessment, false)}
+                  >
+                    {stateBusyId === assessment.assessmentId ? '恢复中…' : '恢复'}
+                  </button>
+                ) : (
+                  <button
+                    className="space-button danger"
+                    data-testid={`assessments-assessment-archive-${assessment.assessmentId}`}
+                    disabled={stateBusyId !== null || deleteBusyId !== null}
+                    onClick={() => void setArchived(assessment, true)}
+                  >
+                    {stateBusyId === assessment.assessmentId ? '归档中…' : '归档'}
+                  </button>
+                )}
+              </div>
             </li>
           ))}
         </ul>
+        {stateError && (
+          <p className="space-banner error" role="alert" data-testid="assessments-archive-error">
+            {stateError}
+          </p>
+        )}
 
         {detail.state.phase === 'failed' && (
           <div className="space-banner error" role="alert" data-testid="assessments-detail-error">
             施测详情读取失败（{detail.state.error.code}）：{detail.state.error.message}
           </div>
         )}
-        {detail.lastData && <AssessmentDetail detail={detail.lastData}
-          onRefresh={detail.reload} onChanged={() => { detail.reload(); onChanged(); }} />}
+        {detail.lastData && <AssessmentDetail key={detail.lastData.assessment.assessmentId} detail={detail.lastData}
+          onRefresh={detail.reload} onChanged={() => { detail.reload(); onChanged(); }}
+          onToggleState={(assessment) => void setArchived(assessment, assessment.state !== 'archived')}
+          onDelete={(assessment) => void deleteAssessmentItem(assessment)}
+          stateBusy={stateBusyId !== null}
+          deleteBusy={deleteBusyId !== null}
+          deleteNotice={deleteNotice}
+          deleteGuard={deleteGuard}
+          onArchiveFromGuard={(assessment) => void setArchived(assessment, true)} />}
         {selectedAssessmentId && !detail.lastData && detail.state.phase === 'loading' && (
           <div className="space-skeleton" style={{ height: 120 }} aria-hidden />
         )}
@@ -505,19 +689,84 @@ export function AssessmentsPanel({
   );
 }
 
-function AssessmentDetail({ detail, onChanged, onRefresh }: {
+function AssessmentDetail({
+  detail,
+  onChanged,
+  onRefresh,
+  onToggleState,
+  onDelete,
+  stateBusy,
+  deleteBusy,
+  deleteNotice,
+  deleteGuard,
+  onArchiveFromGuard,
+}: {
   detail: AssessmentDetailView;
   onChanged: () => void;
   onRefresh: () => void;
+  onToggleState: (assessment: AssessmentView) => void;
+  onDelete: (assessment: AssessmentView) => void;
+  stateBusy: boolean;
+  deleteBusy: boolean;
+  deleteNotice: string | null;
+  deleteGuard: DeleteGuardState | null;
+  onArchiveFromGuard: (assessment: AssessmentView) => void;
 }) {
-  const { assessment, participants } = detail;
+  const { assessment } = detail;
+  /** 移除人次成功后用服务端返回的 participants 直接刷新展示（不等父级读回）。 */
+  const [live, setLive] = useState<ParticipantMutationResult | null>(null);
+  const [removeNotice, setRemoveNotice] = useState<string | null>(null);
+  // 只有不比读回的详情旧时才用本地结果：迟到的旧读回不能把已移除人次放回来。
+  const current: AssessmentDetailView =
+    live && live.assessment.revision >= assessment.revision ? live : detail;
+  const { participants } = current;
+  const writeBusy = stateBusy || deleteBusy;
+  const archived = current.assessment.state === 'archived';
   return (
-    <div className="assessments-detail" data-testid={`assessments-detail-${assessment.assessmentId}`}>
+    <div className="assessments-detail" data-testid={`assessments-detail-${current.assessment.assessmentId}`}>
       <div className="space-meta-row">
-        <span className="space-chip">原卷修订 {assessment.paperRevisionId}</span>
-        <span className="space-chip">施测 revision {assessment.revision}</span>
-        <span className="space-chip">参测 {assessment.participantCount} 人次</span>
+        <span className="space-chip">原卷 {current.assessment.paperTitle || shortId(current.assessment.paperRevisionId)}</span>
+        <span className="space-chip">编辑版本 r{current.assessment.revision}</span>
+        <span className="space-chip">参测 {current.assessment.participantCount} 人次</span>
       </div>
+      {/* 对象操作（详情区）：归档可恢复；彻底删除是受引用守卫的物理删除 */}
+      <div className="assessments-actions" data-testid="assessments-detail-actions">
+        <button
+          className="space-button"
+          data-testid={`assessments-detail-state-${current.assessment.assessmentId}`}
+          disabled={writeBusy}
+          onClick={() => onToggleState(current.assessment)}
+        >
+          {archived ? '恢复' : '归档'}
+        </button>
+        <button
+          className="space-button danger"
+          data-testid={`assessments-detail-delete-${current.assessment.assessmentId}`}
+          disabled={writeBusy}
+          onClick={() => onDelete(current.assessment)}
+        >
+          彻底删除
+        </button>
+        <span className="assessments-hint">归档仍可读、可恢复；彻底删除是物理删除，被成绩/报告/练习引用时会被拒绝。</span>
+      </div>
+      {deleteNotice && (
+        <p className="space-banner info" role="status" data-testid="assessments-detail-delete-notice">
+          {deleteNotice}
+        </p>
+      )}
+      {deleteGuard && (
+        <DeleteGuardNotice
+          state={deleteGuard}
+          targetName={
+            deleteGuard.targetId === current.assessment.assessmentId
+              ? current.assessment.title
+              : shortId(deleteGuard.targetId)
+          }
+          archiving={stateBusy}
+          testId="assessments-detail-delete-guard"
+          onArchive={() => onArchiveFromGuard(current.assessment)}
+        />
+      )}
       <ul className="assessments-list" aria-label="参测人次快照">
         {participants.map((participant) => (
           <li
@@ -534,15 +783,111 @@ function AssessmentDetail({ detail, onChanged, onRefresh }: {
                 : ''}
             </span>
             <ParticipantAttendanceEditor
-              key={`${assessment.assessmentId}|${participant.participantId}`}
-              assessmentId={assessment.assessmentId} participant={participant}
-              revision={assessment.revision} onChanged={onChanged} onRefresh={onRefresh}
+              assessmentId={current.assessment.assessmentId} participant={participant}
+              revision={current.assessment.revision} onChanged={onChanged} onRefresh={onRefresh}
+            />
+            <ParticipantRemoveControl
+              assessmentId={current.assessment.assessmentId}
+              participant={participant}
+              revision={current.assessment.revision}
+              onRefresh={onRefresh}
+              onRemoved={(result) => {
+                setLive(result);
+                setRemoveNotice(
+                  `已移除人次：${participant.nameSnapshot}（人次 ${participant.attemptNo}）；当前参测 ${result.assessment.participantCount} 人次。`,
+                );
+                onChanged();
+              }}
             />
           </li>
         ))}
       </ul>
-      <ParticipantAddPanel key={assessment.assessmentId} detail={detail}
+      {removeNotice && (
+        <p className="space-banner info" role="status" data-testid="assessments-participant-removed">
+          {removeNotice}
+        </p>
+      )}
+      <ParticipantAddPanel key={current.assessment.assessmentId} detail={current}
         onChanged={onChanged} onRefresh={onRefresh} />
+    </div>
+  );
+}
+
+/**
+ * 移除误录人次（守卫式）：只有尚无成绩版本/导入引用/学情报告的人次能被移除。
+ * 服务端拒绝时（409）原样显示它的 message，并且**不改变当前参测列表**。
+ */
+function ParticipantRemoveControl({
+  assessmentId, participant, revision, onRemoved, onRefresh,
+}: {
+  assessmentId: string;
+  participant: AssessmentParticipantView;
+  revision: number;
+  onRemoved: (result: ParticipantMutationResult) => void;
+  onRefresh: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<ApiError | null>(null);
+  const mounted = useRef(true);
+  const epoch = useRef(0);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      epoch.current += 1;
+    };
+  }, []);
+
+  async function remove() {
+    if (busy) return;
+    if (
+      !window.confirm(
+        `仅限尚无成绩/报告引用的误录人次：确认移除「${participant.nameSnapshot}」的第 ${participant.attemptNo} 次？` +
+          '已有成绩版本、导入引用或学情报告时服务端会拒绝。',
+      )
+    ) {
+      return;
+    }
+    const token = epoch.current;
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await removeAssessmentParticipant(
+        assessmentId,
+        participant.participantId,
+        revision,
+      );
+      if (!mounted.current || token !== epoch.current) return;
+      onRemoved(result);
+    } catch (cause) {
+      if (!mounted.current || token !== epoch.current) return;
+      setError(asApiError(cause));
+    } finally {
+      if (mounted.current && token === epoch.current) setBusy(false);
+    }
+  }
+
+  return (
+    <div className="assessments-actions">
+      <button
+        className="space-button danger"
+        data-testid={`assessments-remove-participant-${participant.participantId}`}
+        disabled={busy}
+        onClick={() => void remove()}
+      >
+        {busy ? '移除中…' : '移除人次'}
+      </button>
+      {error && (
+        <div
+          className="space-banner error"
+          role="alert"
+          data-testid={`assessments-remove-error-${participant.participantId}`}
+        >
+          移除人次失败（{error.code}）：{error.message}
+          {error.status === 409 && <p>该人次已有成绩版本/导入引用/学情报告；本次未做任何改动。</p>}
+          <button className="space-button" onClick={onRefresh}>刷新参测对照</button>
+        </div>
+      )}
     </div>
   );
 }

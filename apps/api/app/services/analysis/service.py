@@ -129,21 +129,41 @@ class AnalysisService:
                 "paperRevisionId": row["paper_revision_id"], "job": self.store.get(row["job_id"]).view().model_dump(by_alias=True),
                 "replayed": False, "reused": reused}
 
-    def _view(self, row):
+    def _class_names_in(self, conn, class_ids, owner_id):
+        """按同 owner 实时读取班级展示名（“名称优先”的共享来源）。
+
+        ``classId`` 已随事实冻结；这里只补展示名：班级行缺失/不属于该 owner 时
+        返回映射缺项（调用方落 null），归档班级不过滤、照常可读。
+        """
+        ids = sorted({cid for cid in class_ids if isinstance(cid, str) and cid})
+        if not ids:
+            return {}
+        placeholders = ",".join("?" for _ in ids)
+        rows = conn.execute(
+            f"SELECT id,name FROM classes WHERE owner_id=? AND id IN ({placeholders})",
+            (owner_id, *ids)).fetchall()
+        return {r["id"]: r["name"] for r in rows if isinstance(r["name"], str) and r["name"]}
+
+    def _view(self, conn, row):
         facts = load(row["input_json"])
         try:
+            # 班名走“名称优先”：input_json 只冻结 classId；详情/视图读路径按同 owner
+            # 实时补 classes.name（班名缺失才 null），不回写冻结事实。
+            names = self._class_names_in(conn, {p["classId"] for p in facts["participants"]}, row["owner_id"])
+            participants = [{**p, "className": names.get(p["classId"])} for p in facts["participants"]]
             return AnalysisRunView(runId=row["id"], assessmentId=row["assessment_id"], subjectId=row["subject_id"],
                                    scoreRevisionId=row["score_revision_id"], paperRevisionId=row["paper_revision_id"],
                                    paperTitle=facts["paperTitle"], inputHash=row["input_hash"], ruleCode=row["rule_code"],
-                                   selectionSnapshot=facts["selectionSnapshot"], participants=facts["participants"],
+                                   selectionSnapshot=facts["selectionSnapshot"], participants=participants,
                                    knowledgePoints=facts["knowledgePoints"], job=self.store.get(row["job_id"]).view(),
-                                   reportReady=bool(row["report_ready"]), createdAt=row["created_at"])
+                                   reportReady=bool(row["report_ready"]), archivedAt=row["archived_at"],
+                                   createdAt=row["created_at"])
         except (KeyError, TypeError, ValidationError) as exc:
             raise AppError("分析报告快照损坏。", code="ANALYSIS_ROW_CORRUPT", status_code=500) from exc
 
     def get_run(self, run_id):
         with self.catalog.read_connection() as conn:
-            return self._view(self.repo.require_in(conn, run_id, self.owner))
+            return self._view(conn, self.repo.require_in(conn, run_id, self.owner))
 
     @staticmethod
     def _page(offset, limit):
@@ -151,18 +171,36 @@ class AnalysisService:
             raise AppError("分页范围非法。", code="INVALID_REQUEST", status_code=422,
                            details={"issues": [{"field": "offset/limit", "code": "PAGE_INVALID", "message": "分页范围非法。"}]})
 
-    def list_runs(self, *, assessment_id=None, score_revision_id=None, offset=0, limit=50):
+    def list_runs(self, *, assessment_id=None, score_revision_id=None, archived=None, offset=0, limit=50):
         self._page(offset, limit)
         where, args = ["owner_id=?"], [self.owner]
         for column, value in (("assessment_id", assessment_id), ("score_revision_id", score_revision_id)):
             if value is not None:
                 where.append(f"{column}=?")
                 args.append(value)
+        if archived is not None:
+            # 缺省返回全部；True 只看已归档，False 只看未归档（已归档报告仍可按 id 读取）。
+            where.append("archived_at IS NOT NULL" if archived else "archived_at IS NULL")
         with self.catalog.read_connection() as conn:
             clause = " AND ".join(where)
             total = conn.execute(f"SELECT count(*) FROM analysis_runs WHERE {clause}", args).fetchone()[0]
             rows = conn.execute(f"SELECT * FROM analysis_runs WHERE {clause} ORDER BY created_at,id LIMIT ? OFFSET ?", [*args, limit, offset]).fetchall()
-            return Page[AnalysisRunView](items=[self._view(r) for r in rows], total=total, offset=offset, limit=limit)
+            return Page[AnalysisRunView](items=[self._view(conn, r) for r in rows], total=total, offset=offset, limit=limit)
+
+    def set_archived(self, run_id: str, payload, *, archived: bool) -> AnalysisRunView:
+        """软归档/恢复：只写 ``archived_at``，报告内容与子表一概不动。
+
+        ``analysis_no_delete`` 触发器保持报告不可删除，本方法也不绕过它；
+        ``analysis_inputs_fixed``（0011 升级版）只放行已封存报告的 archived_at 写。
+        报告没有 revision 列，按"存在性 + 幂等"语义处理：重复归档/重复恢复返回
+        当前视图，不报错；归档不要求 report_ready（未完成任务也可先行归档隐藏）。
+        """
+        with self.catalog.write_transaction() as conn:
+            row = self.repo.require_in(conn, run_id, self.owner)
+            if bool(row["archived_at"]) is not archived:
+                conn.execute("UPDATE analysis_runs SET archived_at=? WHERE id=?",
+                             (now_iso() if archived else None, run_id))
+        return self.get_run(run_id)
 
     def _ready(self, conn, run_id, *, owner=None, class_id=None, participant_id=None, knowledge_point_id=None):
         row = self.repo.require_in(conn, run_id, owner or self.owner)
@@ -212,19 +250,35 @@ class AnalysisService:
                 args.append(knowledge_point_id)
             clause = " AND ".join(where)
             total = conn.execute(f"SELECT count(*) FROM {base} WHERE {clause}", args).fetchone()[0]
-            columns = "r.*,p.snapshot_json AS participant_json,i.snapshot_json AS item_json" if kind == "evidence" else "r.payload_json"
+            columns = "r.*,p.snapshot_json AS participant_json,i.snapshot_json AS item_json" if kind == "evidence" else (
+                "r.class_id,r.payload_json" if kind == "classes" else "r.payload_json")
             records = conn.execute(f"SELECT {columns} FROM {base} WHERE {clause} ORDER BY {order} LIMIT ? OFFSET ?", [*args, limit, offset]).fetchall()
             items = []
             try:
-                for record in records:
+                # 班名走“名称优先”：payload_json/snapshot_json 只冻结 classId；本页读路径
+                # 按同 owner 补 classes.name（班名缺失才 null），归档班照常可读。
+                payloads = [load(record["payload_json"]) for record in records] if kind != "evidence" else None
+                participants_json = [load(record["participant_json"]) for record in records] if kind == "evidence" else None
+                if kind == "classes":
+                    names = self._class_names_in(conn, (record["class_id"] for record in records), self.owner)
+                elif kind == "students":
+                    names = self._class_names_in(conn, (p["participant"]["classId"] for p in payloads), self.owner)
+                else:
+                    names = self._class_names_in(conn, (p["classId"] for p in participants_json), self.owner)
+                for index, record in enumerate(records):
                     if kind == "evidence":
                         item = load(record["item_json"])
+                        participant = {**participants_json[index], "className": names.get(participants_json[index]["classId"])}
                         items.append(model(evidenceId=record["id"], runId=run_id, scoreRevisionId=row["score_revision_id"],
-                                           paperRevisionId=row["paper_revision_id"], participant=load(record["participant_json"]),
+                                           paperRevisionId=row["paper_revision_id"], participant=participant,
                                            scoreUnits=record["score_units"], status=record["status"], **item))
+                    elif kind == "classes":
+                        items.append(model.model_validate({**payloads[index], "className": names.get(record["class_id"])}))
                     else:
-                        items.append(model.model_validate(load(record["payload_json"])))
-            except (TypeError, ValidationError) as exc:
+                        payload = payloads[index]
+                        participant = {**payload["participant"], "className": names.get(payload["participant"]["classId"])}
+                        items.append(model.model_validate({**payload, "participant": participant}))
+            except (KeyError, TypeError, ValidationError) as exc:
                 raise AppError("分析证据结构损坏。", code="ANALYSIS_ROW_CORRUPT", status_code=500) from exc
             return Page[model](items=items, total=total, offset=offset, limit=limit)
 
@@ -259,7 +313,7 @@ class AnalysisService:
         """Public fixed facts for T80; original surfaces contain no participant data."""
         with self.catalog.read_connection() as conn:
             row, facts = self._ready(conn, run_id, owner=owner_id)
-            value = self._view(row).model_dump(by_alias=True)
+            value = self._view(conn, row).model_dump(by_alias=True)
             value.update(originalQuestionRevisionIds=facts["originalQuestionRevisionIds"],
                          originalQuestionContents=facts["originalQuestionContents"],
                          students=[load(r[0]) for r in conn.execute("SELECT payload_json FROM analysis_student_results WHERE run_id=? ORDER BY participant_id,knowledge_point_id", (run_id,))],

@@ -66,8 +66,10 @@ from app.contracts.papers import (
     NO_SCORED_ITEMS,
     PAPER_BLOCK_INVALID,
     PAPER_BLOCK_UNASSIGNED,
+    PAPER_HAS_CONFIRMED_REVISION,
     PAPER_IMPORT_ASSET_INVALID,
     PAPER_IMPORT_PARSE_FAILED,
+    PAPER_IN_USE,
     PAPER_ISSUE_BLOCKING,
     PAPER_ISSUE_NOT_FOUND,
     PAPER_NOT_EDITABLE,
@@ -99,6 +101,7 @@ from app.contracts.papers import (
     PaperProposalJobRequest,
     PaperProposalView,
     PaperRevisionContentView,
+    PaperRevisionRequest,
     PaperSourceBlockView,
     PaperIssueView,
     PaperView,
@@ -636,6 +639,69 @@ class PaperService:
         with self._catalog.read_connection() as conn:
             summary = self._papers.summary_in(conn, paper_id)
         return self._paper_view(summary)
+
+    def set_archived(
+        self, paper_id: str, payload: PaperRevisionRequest, *, archived: bool
+    ) -> PaperView:
+        """归档/恢复原卷：归档后不可编辑/确认/发起建议，也不能用于新建施测；历史保留。
+
+        只改 ``papers.status`` 并递增编辑锁（``expectedRevision`` 乐观锁；在途草稿
+        会按陈旧冲突处理）。未确认草稿与已确认原卷都可归档——归档正是"误上传清理"出口。
+        """
+        paper_id = _clean_text(paper_id, field="paperId")
+        with self._coordinator.publication(operation="paper.archive"):
+            with self._catalog.write_transaction() as conn:
+                paper = self._papers.require_paper_in(conn, paper_id)
+                if paper.revision != payload.expected_revision:
+                    raise _stale_conflict(paper.revision)
+                self._papers.set_status_in(
+                    conn, paper_id, "archived" if archived else "active"
+                )
+        return self.get_paper(paper_id)
+
+    def delete_paper(self, paper_id: str, payload: PaperRevisionRequest) -> dict[str, Any]:
+        """受引用守卫的彻底删除：仅当"干净"（无已确认修订、无施测引用）时物理删除。
+
+        守卫（同一写事务内、乐观锁核验之后）：
+
+        - 任一 ``assessments.paper_revision_id`` 指向本卷修订 → 409 ``PAPER_IN_USE``
+          （``details.counts.assessments`` 附施测数；施测只能引用已确认修订，因此
+          该情况也伴随已确认修订存在，先给"被引用"这个最可行动的提示）；
+        - 否则任一 ``paper_revisions.state='confirmed'`` → 409
+          ``PAPER_HAS_CONFIRMED_REVISION``（数据库触发器
+          ``immutable_paper_revisions_delete`` 本身禁止删除已确认修订；
+          已确认原卷只能归档，历史与既有施测引用保持完整）。
+
+        通过后按外键顺序在同一写事务删除：
+        ``paper_item_knowledge`` → ``paper_items`` → ``paper_source_blocks`` →
+        ``paper_issues`` → ``ai_proposals``（该卷的）→ ``paper_revisions`` → ``papers``；
+        ``papers.current_revision_id`` 外键指回修订，先 ``set_current_revision_in(conn, id, None)``。
+        走 ``PublicationCoordinator`` 临界区：删除时不可能有在途的草稿/确认写入。
+        """
+        paper_id = _clean_text(paper_id, field="paperId")
+        with self._coordinator.publication(operation="paper.delete"):
+            with self._catalog.write_transaction() as conn:
+                paper = self._papers.require_paper_in(conn, paper_id)
+                if paper.revision != payload.expected_revision:
+                    raise _stale_conflict(paper.revision)
+                confirmed = self._papers.confirmed_revision_count_in(conn, paper_id)
+                assessments = self._papers.count_references_in(conn, paper_id)
+                if assessments > 0:
+                    raise AppError(
+                        "该原卷已被施测引用，不能删除；归档原卷是安全的替代做法。",
+                        code=PAPER_IN_USE,
+                        status_code=409,
+                        details={"counts": {"assessments": assessments}},
+                    )
+                if confirmed > 0:
+                    raise AppError(
+                        "该原卷存在已确认修订，不能删除（已确认原卷只能归档）。",
+                        code=PAPER_HAS_CONFIRMED_REVISION,
+                        status_code=409,
+                        details={"counts": {"confirmedRevisions": confirmed}},
+                    )
+                self._papers.delete_paper_in(conn, paper_id)
+        return {"deleted": True, "paperId": paper_id}
 
     def get_revision_content(self, paper_id: str, revision_id: str) -> PaperRevisionContentView:
         paper_id = _clean_text(paper_id, field="paperId")

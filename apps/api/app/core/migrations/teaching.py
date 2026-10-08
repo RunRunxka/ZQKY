@@ -790,3 +790,61 @@ from app.core.migrations.lesson_plans import MIGRATION as _lesson_plans_migratio
 
 MIGRATIONS = MIGRATIONS + (_lesson_plans_migration,)
 
+
+# --------------------------------------------------------------------------- 0011 学情报告软归档
+
+#: 学情报告受 ``analysis_no_delete`` 保护不可删除，列表清理只能走软归档：
+#: 新增 ``analysis_runs.archived_at``（归档=当前 ISO 时间，恢复=NULL），
+#: 报告内容、子表与运行时快照一概不动，归档后仍可读。
+_ANALYSIS_ARCHIVE_STATEMENTS: tuple[str, ...] = (
+    "ALTER TABLE analysis_runs ADD COLUMN archived_at TEXT",
+)
+
+#: 0008 登记的 ``analysis_inputs_fixed`` 末尾带 ``OR OLD.report_ready=1``：已封存报告的
+#: **任何** UPDATE（含新增列的写入）都会被判 IMMUTABLE_REVISION，而归档的主场景恰恰是
+#: 已生成（已封存）的报告，因此加列的同时必须升级该触发器。新句与原句的差异只有两处，
+#: 均为最小放宽：已封存行在全部身份列与 report_ready/ready_at 保持不变时允许且仅允许
+#: archived_at 变化；archived_at 自身只允许 NULL↔时间戳 的归档/恢复转换，已归档时间戳
+#: 不得改写。未封存行的其余语义与原句逐字一致（report_ready 0→1 的封存转换仍受
+#: ``analysis_seal`` 完整性闸门约束）。
+_ANALYSIS_INPUTS_FIXED_ARCHIVE_VERSION = """
+    CREATE TRIGGER IF NOT EXISTS analysis_inputs_fixed BEFORE UPDATE ON analysis_runs WHEN
+      NEW.id IS NOT OLD.id OR NEW.owner_id IS NOT OLD.owner_id OR NEW.assessment_id IS NOT OLD.assessment_id OR
+      NEW.score_revision_id IS NOT OLD.score_revision_id OR NEW.paper_revision_id IS NOT OLD.paper_revision_id OR NEW.subject_id IS NOT OLD.subject_id OR
+      NEW.rule_code IS NOT OLD.rule_code OR NEW.input_hash IS NOT OLD.input_hash OR NEW.input_json IS NOT OLD.input_json OR NEW.job_id IS NOT OLD.job_id OR
+      NEW.selected_count IS NOT OLD.selected_count OR NEW.leaf_count IS NOT OLD.leaf_count OR NEW.knowledge_count IS NOT OLD.knowledge_count OR NEW.class_count IS NOT OLD.class_count OR
+      NEW.created_at IS NOT OLD.created_at OR
+      (OLD.report_ready=1 AND (NEW.report_ready IS NOT OLD.report_ready OR NEW.ready_at IS NOT OLD.ready_at)) OR
+      (NEW.archived_at IS NOT OLD.archived_at AND OLD.archived_at IS NOT NULL AND NEW.archived_at IS NOT NULL)
+      BEGIN SELECT RAISE(ABORT,'IMMUTABLE_REVISION'); END"""
+_DROP_ANALYSIS_INPUTS_FIXED = "DROP TRIGGER IF EXISTS analysis_inputs_fixed"
+
+
+def _adjust_analysis_runs_archive(connection: sqlite3.Connection) -> Sequence[str]:
+    """按列存在情况过滤 ALTER，并在同一事务内升级 ``analysis_inputs_fixed``。
+
+    与 0005 钩子同一模式：声明集合不变（散列只对 ALTER 计算），钩子只调整实际执行
+    语句；对已有 archived_at 列的库过滤 ALTER 后仍执行 DROP/CREATE，保证触发器
+    升级幂等且对任何既有库生效。执行顺序：过滤后的 ALTER → DROP → CREATE 新句，
+    全部在同一迁移事务内，失败整体回滚、不留半升级状态。
+    """
+    present = {row[1] for row in connection.execute("PRAGMA table_info(analysis_runs)")}
+    statements = [] if "archived_at" in present else list(_ANALYSIS_ARCHIVE_STATEMENTS)
+    statements.append(_DROP_ANALYSIS_INPUTS_FIXED)
+    statements.append(_ANALYSIS_INPUTS_FIXED_ARCHIVE_VERSION)
+    return tuple(statements)
+
+
+# B6 append only: the ten previously registered declarations and their digests stay intact.
+MIGRATIONS = MIGRATIONS + (
+    Migration(
+        id="0011_analysis_runs_archived_at",
+        description=(
+            "analysis_runs 增加软归档列 archived_at；analysis_inputs_fixed 升级为"
+            "仅放行已封存报告的 archived_at 写（其余不可变语义逐字保留）"
+        ),
+        statements=_ANALYSIS_ARCHIVE_STATEMENTS,
+        adjust=_adjust_analysis_runs_archive,
+    ),
+)
+

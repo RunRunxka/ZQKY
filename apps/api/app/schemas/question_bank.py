@@ -13,6 +13,11 @@ from app.contracts.teaching_loop import RichContentV2
 QuestionType = Literal[
     "single_choice", "multiple_choice", "true_false", "fill_blank", "short_answer", "other"
 ]
+
+#: 题库 AI（整理与补题）只允许云端模型：本机供应商档案在**受理阶段**一律 422 拒绝，
+#: 不建任务、不发起任何上游请求（2026-10-07 用户裁定，与教案生成同口径）。
+QUESTION_MODEL_NOT_CLOUD = "QUESTION_MODEL_NOT_CLOUD"
+QUESTION_MODEL_NOT_CLOUD_MESSAGE = "题库 AI 不使用本机模型，请选择云端模型档案。"
 Difficulty = Literal["unspecified", "easy", "medium", "hard"]
 DraftReviewState = Literal["needs_review", "reviewed", "excluded"]
 ImportState = Literal[
@@ -168,6 +173,19 @@ class QuestionImportList(_Frozen):
 class QuestionImportCreate(_Strict):
     subjectId: str = Field(default="", max_length=64)
     gradeId: str = Field(default="", max_length=64)
+
+
+class QuestionImportDiscardRequest(_Strict):
+    """放弃未确认批次：只把状态置 ``cancelled``；批次记录、原始文件与草稿/原文块保留。"""
+
+    expectedRevision: int = Field(default=0, ge=0)
+
+
+class QuestionImportDeleteResult(_Frozen):
+    """彻底删除批次的回执：只删除批次与解析产物（库行），受管原件（blobs）保留。"""
+
+    deleted: bool
+    importId: str
 
 
 class DraftPatchRequest(_Strict):

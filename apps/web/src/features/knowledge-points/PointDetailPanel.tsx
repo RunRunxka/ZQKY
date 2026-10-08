@@ -9,23 +9,32 @@
  * - 409 冲突：显示「当前版本 N，已刷新为最新，请重试」，**保留用户的编辑**并给出
  *   「用服务端最新值覆盖表单」出口（不强制覆盖，也不静默丢弃）；
  * - 422：用 `details.issues` 定位字段并逐条显示；
- * - 读取失败显示错误与重试，不显示空态。
+ * - 读取失败显示错误与重试，不显示空态；
+ * - **彻底删除**与归档是两回事：删除是物理删除、不可恢复；被引用（教材依据 / 原卷题目 /
+ *   题库正式题或草稿）或仍有子节点时服务端 409 拒绝，界面把 `details.counts` 逐项列成
+ *   原因清单，并给出「改为归档」出口——绝不把「删不掉」显示成失败或静默重试。
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { Archive, RefreshCw, RotateCcw, Save, X } from 'lucide-react';
+import { Archive, RefreshCw, RotateCcw, Save, Trash2, X } from 'lucide-react';
 import type { ErrorIssue } from '@/contracts/api';
-import type { KnowledgePointView } from '@/contracts/knowledge';
+import type { KnowledgePointReferenceCount, KnowledgePointView } from '@/contracts/knowledge';
 import { Modal } from '@/components/ui/Modal';
 import {
   archiveKnowledgePoint,
+  deleteKnowledgePoint,
   getKnowledgePoint,
   listKnowledgePoints,
   restoreKnowledgePoint,
   updateKnowledgePoint,
 } from '@/services/knowledge-points-api';
 import { asApiError, useAsyncResource } from './hooks';
-import { knowledgeStatusLabel } from './labels';
+import {
+  KNOWLEDGE_POINT_IN_USE_CODE,
+  knowledgeStatusLabel,
+  parseKnowledgeReferenceCounts,
+  referenceCountLabel,
+} from './labels';
 import {
   PARENT_CLEAR,
   PARENT_UNCHANGED,
@@ -52,11 +61,14 @@ export function PointDetailPanel({
   pointId,
   onPointPatched,
   onLoaded,
+  onDeleted,
 }: {
   pointId: string;
   onPointPatched: (next: KnowledgePointView) => void;
   /** 详情读取/保存后把权威对象交给父级（用于「AI 候选」引用同学科与教材依据）。 */
   onLoaded?: (next: KnowledgePointView) => void;
+  /** 彻底删除成功后通知父级：刷新列表并取消选中（父级未提供时本地显示已删除态）。 */
+  onDeleted?: (pointId: string) => void;
 }) {
   const point = useAsyncResource(
     (signal) => getKnowledgePoint(pointId, signal),
@@ -79,6 +91,15 @@ export function PointDetailPanel({
   const [notice, setNotice] = useState<string | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [archiveBusy, setArchiveBusy] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  /** 彻底删除：是否已在本地确认删除成功（父级未接管选中时也不至于继续显示已删知识点）。 */
+  const [deleted, setDeleted] = useState(false);
+  /** 彻底删除被拒（409）的原因：服务端 message + 逐项引用计数（缺 counts 时为 null）。 */
+  const [deleteBlock, setDeleteBlock] = useState<{
+    message: string;
+    counts: KnowledgePointReferenceCount[] | null;
+  } | null>(null);
 
   // 表单只在「对象身份变化」时从服务端初始化：409 冲突后重新读取不会冲掉用户输入。
   useEffect(() => {
@@ -204,6 +225,48 @@ export function PointDetailPanel({
     }
   }
 
+  /**
+   * 彻底删除：二次确认后按当前 `revision` 提交（乐观锁）。
+   * - 成功 → 通知父级刷新列表并取消选中；父级未接管时本地切到「已删除」态；
+   * - 409 `KNOWLEDGE_POINT_IN_USE` → 逐项渲染引用计数（有 counts 时）与「改为归档」出口；
+   * - 409 `REVISION_CONFLICT` → 与保存冲突同一套处理：刷新取最新值，不静默重试；
+   * - 其他失败 → 保留页面原状并给出错误码与可重试说明。
+   */
+  async function remove() {
+    if (!loaded) return;
+    setDeleteBusy(true);
+    setErrorText(null);
+    setDeleteBlock(null);
+    try {
+      await deleteKnowledgePoint(loaded.id, loaded.revision);
+      setDeleteOpen(false);
+      setDeleted(true);
+      setNotice(`已彻底删除知识点「${loaded.name}」（物理删除，不可恢复）。`);
+      onDeleted?.(loaded.id);
+    } catch (cause) {
+      const error = asApiError(cause);
+      setDeleteOpen(false);
+      if (error.status === 409 && error.code === KNOWLEDGE_POINT_IN_USE_CODE) {
+        setDeleteBlock({
+          message: error.message,
+          counts: parseKnowledgeReferenceCounts(error.details),
+        });
+      } else if (error.status === 409) {
+        setConflict({
+          revision: error.details?.currentRevision ?? null,
+          message: error.message,
+        });
+        point.reload();
+      } else {
+        setErrorText(
+          `彻底删除失败（${error.code}）：${error.message} 没有删除任何数据，可重试或改用归档。`,
+        );
+      }
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
+
   if (!loaded) {
     // 首次读取：加载中显示骨架；失败显示错误与重试（绝不显示空态）
     if (pointError) {
@@ -227,6 +290,20 @@ export function PointDetailPanel({
       <section className="kp-detail" aria-busy="true" aria-label="正在读取知识点详情">
         <div className="space-skeleton" style={{ height: 96 }} aria-hidden />
         <div className="space-skeleton" style={{ height: 220 }} aria-hidden />
+      </section>
+    );
+  }
+
+  if (deleted) {
+    return (
+      <section className="kp-detail" data-testid="kp-deleted">
+        <div className="space-banner info" role="status">
+          <strong>该知识点已彻底删除</strong>
+          <span>
+            物理删除已完成、不可恢复；相关教材依据与别名随之删除。列表与选中状态已刷新，
+            请从左侧选择其他知识点。
+          </span>
+        </div>
       </section>
     );
   }
@@ -292,6 +369,18 @@ export function PointDetailPanel({
               恢复
             </button>
           )}
+          <button
+            className="space-button danger"
+            disabled={archiveBusy || deleteBusy}
+            data-testid="kp-delete-open"
+            onClick={() => {
+              setDeleteBlock(null);
+              setDeleteOpen(true);
+            }}
+          >
+            <Trash2 size={13} aria-hidden />
+            彻底删除
+          </button>
         </div>
       </header>
 
@@ -346,6 +435,49 @@ export function PointDetailPanel({
         <p className="space-banner error" role="alert">
           {errorText}
         </p>
+      )}
+
+      {deleteBlock && (
+        <div className="space-banner error" role="alert" data-testid="kp-delete-blocked">
+          <strong>不能彻底删除：「{loaded.name}」仍在使用中</strong>
+          <span>{deleteBlock.message}</span>
+          {deleteBlock.counts ? (
+            <ul className="kp-issue-list" data-testid="kp-delete-counts">
+              {deleteBlock.counts.map((item) => (
+                <li key={`${item.library}-${item.key}`}>{referenceCountLabel(item)}</li>
+              ))}
+            </ul>
+          ) : (
+            <span>
+              服务端没有给出逐项引用计数（可能是子节点或其他引用）：原因以上述说明为准，
+              不在此处编造计数。
+            </span>
+          )}
+          <span>
+            先解除上述引用（在原卷 / 题库 / 教材依据里移除该知识点的关联）后再来删除；
+            只想把它从在用列表里收起来时用「归档」——归档保留历史引用且可恢复。
+          </span>
+          <div className="kp-actions">
+            <button
+              className="space-button danger"
+              disabled={archiveBusy}
+              data-testid="kp-delete-to-archive"
+              onClick={() => setArchiveOpen(true)}
+            >
+              <Archive size={13} aria-hidden />
+              改为归档
+            </button>
+            <button
+              className="space-button"
+              onClick={() => {
+                setDeleteBlock(null);
+                point.reload();
+              }}
+            >
+              重新读取最新状态
+            </button>
+          </div>
+        </div>
       )}
 
       {issues.length > 0 && (
@@ -535,6 +667,36 @@ export function PointDetailPanel({
               className="space-button"
               disabled={archiveBusy}
               onClick={() => setArchiveOpen(false)}
+            >
+              取消
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {deleteOpen && (
+        <Modal title="彻底删除知识点" onClose={() => setDeleteOpen(false)}>
+          <p className="kp-hint">
+            将<strong>物理删除</strong>知识点「{loaded.name}」（编码 {loaded.code}
+            ）及其修订与别名，<strong>不可恢复</strong>，也不会进入归档。
+          </p>
+          <p className="kp-hint">
+            仍被引用时服务端会拒绝并逐项给出原因（教材依据 / 原卷题目 / 题库正式题 / 题库草稿），
+            删除因此不会破坏历史引用。
+          </p>
+          <div className="kp-actions">
+            <button
+              className="space-button danger"
+              disabled={deleteBusy}
+              data-testid="kp-delete-confirm"
+              onClick={() => void remove()}
+            >
+              {deleteBusy ? '删除中…' : '确认彻底删除'}
+            </button>
+            <button
+              className="space-button"
+              disabled={deleteBusy}
+              onClick={() => setDeleteOpen(false)}
             >
               取消
             </button>

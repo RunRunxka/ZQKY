@@ -5,27 +5,35 @@ import type {
   ModelProfileView,
 } from '@/contracts/model-settings';
 import {
+  isLocalQuestionModel,
   isLoopbackBaseUrl,
   ORGANIZER_CLOUD_NOTICE,
   ORGANIZER_MODEL_LOADING,
+  QUESTION_AI_LOCAL_MODEL_REASON,
+  QUESTION_MODEL_NOT_CLOUD_CODE,
   pickOrganizerChatModel,
   resolveOrganizerChatModel,
 } from './model-profile';
 
 /* ---------------------------------------------------------------- 夹具（冻结契约形状） */
 
+/**
+ * 默认夹具 = **云端**档案：题库 AI 在 2026-10-07 起只允许云端模型，
+ * 本机档案（`LOCAL_PROVIDER_IDS`）会被前端 gate 与后端 422 一并拒绝，
+ * 因此「可用」的基准场景必须是云端；本机场景单独用 `localCatalog()` 构造。
+ */
 function connection(overrides: Partial<ModelConnectionView> = {}): ModelConnectionView {
   return {
     id: 'conn-1',
-    displayName: '本机 Ollama',
-    providerId: 'ollama',
-    providerLabel: 'Ollama',
+    displayName: 'DeepSeek 云端',
+    providerId: 'deepseek',
+    providerLabel: 'DeepSeek',
     protocol: 'openai-chat',
     apiFormat: 'auto',
     apiVersion: null,
     baseUrl: '',
-    resolvedBaseUrl: 'http://localhost:11434/v1',
-    hasCredential: false,
+    resolvedBaseUrl: 'https://api.deepseek.com/v1',
+    hasCredential: true,
     hasManagedCredential: false,
     callable: true,
     callableReason: null,
@@ -41,8 +49,8 @@ function profile(overrides: Partial<ModelProfileView> = {}): ModelProfileView {
   return {
     id: 'p-chat-1',
     connectionId: 'conn-1',
-    displayName: '本机问答',
-    modelId: 'qwen2.5:7b',
+    displayName: '云端问答',
+    modelId: 'deepseek-chat',
     purpose: 'chat',
     contextTokens: 8192,
     maxOutputTokens: 2048,
@@ -52,12 +60,12 @@ function profile(overrides: Partial<ModelProfileView> = {}): ModelProfileView {
     reasoningStyle: null,
     capabilities: {},
     connection: {
-      displayName: '本机 Ollama',
-      providerId: 'ollama',
-      providerLabel: 'Ollama',
+      displayName: 'DeepSeek 云端',
+      providerId: 'deepseek',
+      providerLabel: 'DeepSeek',
       protocol: 'openai-chat',
       apiFormat: 'auto',
-      hasCredential: false,
+      hasCredential: true,
     },
     createdAt: '2026-09-29T00:00:00Z',
     updatedAt: '2026-09-29T00:00:00Z',
@@ -75,6 +83,40 @@ function catalog(overrides: Partial<ModelCatalog> = {}): ModelCatalog {
   };
 }
 
+/** 本机 Ollama 档案（后端 `is_local=True`）：题库 AI 一律拒绝。 */
+function localCatalog(): ModelCatalog {
+  return {
+    revision: 1,
+    defaultChatProfileId: 'p-local-1',
+    connections: [
+      connection({
+        id: 'conn-local',
+        displayName: '本机 Ollama',
+        providerId: 'ollama',
+        providerLabel: 'Ollama',
+        resolvedBaseUrl: 'http://localhost:11434/v1',
+        hasCredential: false,
+      }),
+    ],
+    profiles: [
+      profile({
+        id: 'p-local-1',
+        connectionId: 'conn-local',
+        displayName: '本机问答',
+        modelId: 'qwen2.5:7b',
+        connection: {
+          displayName: '本机 Ollama',
+          providerId: 'ollama',
+          providerLabel: 'Ollama',
+          protocol: 'openai-chat',
+          apiFormat: 'auto',
+          hasCredential: false,
+        },
+      }),
+    ],
+  };
+}
+
 /* ---------------------------------------------------------------- 解析规则 */
 
 describe('AI 整理模型：来自聊天模型来源（/model-catalog）', () => {
@@ -82,52 +124,35 @@ describe('AI 整理模型：来自聊天模型来源（/model-catalog）', () =>
     const model = pickOrganizerChatModel(catalog());
     expect(model.available).toBe(true);
     expect(model.profileId).toBe('p-chat-1');
-    expect(model.profileId).not.toBe('qwen2.5:7b');
-    expect(model.modelLabel).toBe('本机问答 · qwen2.5:7b');
+    expect(model.profileId).not.toBe('deepseek-chat');
+    expect(model.modelLabel).toBe('云端问答 · deepseek-chat');
     expect(model.reason).toBeNull();
   });
 
-  it('本机回环地址不标注数据外发；云端地址标注「发送至该模型服务」', () => {
-    const local = pickOrganizerChatModel(catalog());
-    expect(local.cloud).toBe(false);
+  it('本机档案在受理期即被拒绝：文案含「题库 AI 不使用本机模型」，且不自动换模型', () => {
+    const local = pickOrganizerChatModel(localCatalog());
+    expect(local.available).toBe(false);
+    expect(local.profileId).toBe('');
+    expect(local.reason).toContain(QUESTION_AI_LOCAL_MODEL_REASON);
+    expect(local.reason).toContain('云端档案');
+    expect(local.reason).toContain('不会自动改用其他模型');
+    expect(QUESTION_MODEL_NOT_CLOUD_CODE).toBe('QUESTION_MODEL_NOT_CLOUD');
 
-    const cloud = pickOrganizerChatModel(
-      catalog({
-        connections: [
-          connection({
-            id: 'conn-2',
-            providerId: 'deepseek',
-            providerLabel: 'DeepSeek',
-            resolvedBaseUrl: 'https://api.deepseek.com/v1',
-            hasCredential: true,
-            callable: true,
-          }),
-        ],
-        profiles: [
-          profile({
-            id: 'p-chat-cloud',
-            connectionId: 'conn-2',
-            displayName: '云端问答',
-            modelId: 'deepseek-chat',
-            connection: {
-              displayName: 'DeepSeek',
-              providerId: 'deepseek',
-              providerLabel: 'DeepSeek',
-              protocol: 'openai-chat',
-              apiFormat: 'auto',
-              hasCredential: true,
-            },
-          }),
-        ],
-        defaultChatProfileId: 'p-chat-cloud',
-      }),
-    );
+    // 本机供应商清单与后端 registry 的 is_local 一致（任一本机 id 都不放行）
+    for (const providerId of ['vllm', 'ollama', 'lm_studio', 'llama_cpp', 'lemonade', 'ovms']) {
+      expect(isLocalQuestionModel(providerId, 'https://api.example.com/v1')).toBe(true);
+    }
+    expect(isLocalQuestionModel('deepseek', 'http://localhost:11434/v1')).toBe(false);
+  });
+
+  it('云端档案标注「发送至该模型服务」', () => {
+    const cloud = pickOrganizerChatModel(catalog());
     expect(cloud.available).toBe(true);
     expect(cloud.cloud).toBe(true);
     expect(ORGANIZER_CLOUD_NOTICE).toBe('将所选题目文本发送至该模型服务');
   });
 
-  it('模型地址缺失或无法解析时按云端处理（宁可多提示一次数据外发）', () => {
+  it('地址判定与降级：回环视为本机；地址缺失或无法解析按云端处理（宁可多提示一次数据外发）', () => {
     expect(isLoopbackBaseUrl('http://localhost:11434/v1')).toBe(true);
     expect(isLoopbackBaseUrl('http://127.0.0.1:8000/v1')).toBe(true);
     expect(isLoopbackBaseUrl('http://[::1]:11434/v1')).toBe(true);
@@ -136,6 +161,10 @@ describe('AI 整理模型：来自聊天模型来源（/model-catalog）', () =>
     expect(isLoopbackBaseUrl('')).toBe(false);
     expect(isLoopbackBaseUrl(null)).toBe(false);
     expect(isLoopbackBaseUrl('不是地址')).toBe(false);
+
+    // providerId 缺失（旧连接/未知供应商）时退回地址判定
+    expect(isLocalQuestionModel(null, 'http://localhost:11434/v1')).toBe(true);
+    expect(isLocalQuestionModel(undefined, '')).toBe(false);
 
     const missing = pickOrganizerChatModel(
       catalog({ connections: [connection({ resolvedBaseUrl: '' })] }),
@@ -199,8 +228,24 @@ describe('AI 整理模型：失效时提示修复，绝不静默换模型', () =
   });
 
   it('目录缺少连接视图时退回与 /chat 相同的凭证判定', () => {
-    const withoutConnection = pickOrganizerChatModel(catalog({ connections: [] }));
-    // 本机免 Key 在摘要里 hasCredential=false → 与 /chat 一致判为不可用，而不是放行
+    // 摘要里 hasCredential=false（缺凭证的云连接）→ 与 /chat 一致判为不可用，而不是放行
+    const withoutConnection = pickOrganizerChatModel(
+      catalog({
+        connections: [],
+        profiles: [
+          profile({
+            connection: {
+              displayName: 'DeepSeek 云端',
+              providerId: 'deepseek',
+              providerLabel: 'DeepSeek',
+              protocol: 'openai-chat',
+              apiFormat: 'auto',
+              hasCredential: false,
+            },
+          }),
+        ],
+      }),
+    );
     expect(withoutConnection.available).toBe(false);
 
     const withCredential = pickOrganizerChatModel(

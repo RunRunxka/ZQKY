@@ -11,6 +11,10 @@
  *
  * `ScoreImportPatchRequest` 已由 CTRL 并入冻结契约 `@/contracts/scores`（B3 r2），本模块只再导出，
  * 不再持有第二份形状。
+ *
+ * 本批新增三个受引用守卫的 `DELETE`（班级/原卷/施测，`expectedRevision` 走查询参数）与
+ * 批量添加学生 `POST /classes/{id}/students/batch`（`submissionId` 幂等）；
+ * 409 的 `details.counts` 由调用方按契约逐项渲染，这里只做路径与编码。
  */
 
 import { apiRequest, apiRequestBlob } from '@/services/api-client';
@@ -19,6 +23,7 @@ import type {
   AssessmentCreateResult,
   AssessmentDetailView,
   AssessmentList,
+  AssessmentRevisionRequest,
   AssessmentUpdateRequest,
   AssessmentView,
   ParticipantAddRequest,
@@ -26,21 +31,29 @@ import type {
   ParticipantMutationResult,
 } from '@/contracts/assessments';
 import type {
-  ClassCreateRequest, ClassList, ClassView, StudentCreateRequest, StudentList, StudentView,
+  ClassCreateRequest, ClassDeleteResult, ClassList, ClassRevisionRequest, ClassView,
+  BatchStudentAddRequest, BatchStudentAddResult,
+  StudentCreateRequest, StudentList, StudentRevisionRequest, StudentView,
   MembershipTransferRequest, RosterImportView, RosterImportList, RosterImportPatchRequest,
-  RosterImportConfirmRequest, RosterImportConfirmResult,
+  RosterImportConfirmRequest, RosterImportConfirmResult, RosterImportDiscardRequest,
 } from '@/contracts/roster';
 import type {
   PaperList,
+  PaperDeleteResult,
   PaperRevisionContentView,
+  PaperRevisionRequest,
   PaperView,
   PaperImportView, PaperDraftPatchRequest, PaperConfirmRequest, PaperConfirmResult,
   PaperProposalJobRequest, PaperProposalView, PaperProposalDecisionRequest,
 } from '@/contracts/papers';
+import type {
+  AssessmentDeleteResult,
+} from '@/contracts/assessments';
 import type { JobView } from '@/contracts/teaching-loop';
 import type {
   ScoreImportConfirmRequest,
   ScoreImportConfirmResult,
+  ScoreImportDiscardRequest,
   ScoreImportList,
   ScoreImportRowList,
   ScoreImportPatchRequest,
@@ -55,9 +68,12 @@ import type {
 
 /* ------------------------------------------------------------------ 查询串与请求辅助 */
 
-/** 拼接查询串：只写有值的键（undefined/null/空串跳过），并做 URL 编码。 */
+/**
+ * 拼接查询串：只写有值的键（undefined/null/空串跳过），并做 URL 编码。
+ * `boolean` 原样写成 `true`/`false`（false 不跳过：`archived=false` 是真实筛选，静默丢弃会丢语义）。
+ */
 export function assessmentsQuery(
-  params: Record<string, string | number | undefined | null>,
+  params: Record<string, string | number | boolean | undefined | null>,
 ): string {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -100,20 +116,106 @@ export function createClass(body: ClassCreateRequest): Promise<ClassView> {
   return apiRequest<ClassView>('/classes', jsonInit('POST', body));
 }
 
-/** 该班活跃成员（含归属历史）。 */
-export function listClassStudents(classId: string, signal?: AbortSignal): Promise<StudentList> {
-  return apiRequest<StudentList>(`/classes/${encodeURIComponent(classId)}/students`, { signal });
+/** 归档班级：`expectedRevision` 守卫；归档仍可读，归属历史保留。 */
+export function archiveClass(classId: string, body: ClassRevisionRequest): Promise<ClassView> {
+  return apiRequest<ClassView>(
+    `/classes/${encodeURIComponent(classId)}/archive`,
+    jsonInit('POST', body),
+  );
+}
+
+export function restoreClass(classId: string, body: ClassRevisionRequest): Promise<ClassView> {
+  return apiRequest<ClassView>(
+    `/classes/${encodeURIComponent(classId)}/restore`,
+    jsonInit('POST', body),
+  );
+}
+
+/**
+ * 彻底删除班级（受引用守卫的物理删除）：`expectedRevision` 走查询参数。
+ * 任一引用 >0 → 409 `CLASS_IN_USE` + `details.counts.{memberships,rosterImports,assessments,lessonPlans}`；
+ * 乐观锁不符 → 409；不存在 → 404。归档班级同样受守卫（不会因归档而可删）。
+ */
+export function deleteClass(classId: string, expectedRevision: number): Promise<ClassDeleteResult> {
+  return apiRequest<ClassDeleteResult>(
+    `/classes/${encodeURIComponent(classId)}${assessmentsQuery({ expectedRevision })}`,
+    { method: 'DELETE' },
+  );
+}
+
+/**
+ * 批量添加学生（`submissionId` 幂等：同标识同载荷重放返回原结果）：
+ * 单事务逐行处理；学号已存在跳过并说明；行非法 422 + `details.issues[].row`（0 基）整批回滚。
+ */
+export function batchAddStudents(
+  classId: string,
+  body: BatchStudentAddRequest,
+): Promise<BatchStudentAddResult> {
+  return apiRequest<BatchStudentAddResult>(
+    `/classes/${encodeURIComponent(classId)}/students/batch`,
+    jsonInit('POST', body),
+  );
+}
+
+/**
+ * 该班成员（含归属历史）。
+ * - 旧签名 `listClassStudents(classId, signal)` 保留；
+ * - `options.includeArchived === true` 才带 `includeArchived=true`（缺省不传，服务端默认只看活跃）。
+ */
+export function listClassStudents(classId: string, signal?: AbortSignal): Promise<StudentList>;
+export function listClassStudents(
+  classId: string,
+  options?: { includeArchived?: boolean },
+  signal?: AbortSignal,
+): Promise<StudentList>;
+export function listClassStudents(
+  classId: string,
+  optionsOrSignal: { includeArchived?: boolean } | AbortSignal = {},
+  signal?: AbortSignal,
+): Promise<StudentList> {
+  const [options, actualSignal] = splitClassStudentsArgs(optionsOrSignal, signal);
+  return apiRequest<StudentList>(
+    `/classes/${encodeURIComponent(classId)}/students${assessmentsQuery({
+      includeArchived: options.includeArchived ? true : undefined,
+    })}`,
+    { signal: actualSignal },
+  );
+}
+
+/** 拆分第二参数：AbortSignal（旧调用）与 options（新调用）语义分开，互不混淆。 */
+function splitClassStudentsArgs(
+  optionsOrSignal: { includeArchived?: boolean } | AbortSignal,
+  signal?: AbortSignal,
+): [{ includeArchived?: boolean }, AbortSignal | undefined] {
+  if (isAbortSignal(optionsOrSignal)) return [{}, optionsOrSignal];
+  return [optionsOrSignal, signal];
+}
+
+function isAbortSignal(value: unknown): value is AbortSignal {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'aborted' in value &&
+    'addEventListener' in value
+  );
 }
 
 export interface StudentQuery {
   q?: string;
+  /** 学生状态筛选（缺省不传 = 服务端默认口径） */
+  status?: 'active' | 'archived';
   offset?: number;
   limit?: number;
 }
 
 export function listStudents(query: StudentQuery = {}, signal?: AbortSignal): Promise<StudentList> {
   return apiRequest<StudentList>(
-    `/students${assessmentsQuery({ q: query.q, offset: query.offset, limit: query.limit })}`,
+    `/students${assessmentsQuery({
+      q: query.q,
+      status: query.status,
+      offset: query.offset,
+      limit: query.limit,
+    })}`,
     { signal },
   );
 }
@@ -125,6 +227,21 @@ export function createStudent(body: StudentCreateRequest): Promise<StudentView> 
 
 export function transferStudent(studentId: string, body: MembershipTransferRequest): Promise<StudentView> {
   return apiRequest<StudentView>(`/students/${encodeURIComponent(studentId)}/transfer`, jsonInit('POST', body));
+}
+
+/** 归档学生：`expectedRevision` 守卫；归属历史保留。 */
+export function archiveStudent(studentId: string, body: StudentRevisionRequest): Promise<StudentView> {
+  return apiRequest<StudentView>(
+    `/students/${encodeURIComponent(studentId)}/archive`,
+    jsonInit('POST', body),
+  );
+}
+
+export function restoreStudent(studentId: string, body: StudentRevisionRequest): Promise<StudentView> {
+  return apiRequest<StudentView>(
+    `/students/${encodeURIComponent(studentId)}/restore`,
+    jsonInit('POST', body),
+  );
 }
 
 export function createRosterImport(classId: string, file: File, meta: { sheetName?: string; mapping?: Record<string, string> } = {}, signal?: AbortSignal): Promise<RosterImportView> {
@@ -149,6 +266,11 @@ export function patchRosterImport(importId: string, body: RosterImportPatchReque
 
 export function confirmRosterImport(importId: string, body: RosterImportConfirmRequest): Promise<RosterImportConfirmResult> {
   return apiRequest<RosterImportConfirmResult>(`/roster-imports/${encodeURIComponent(importId)}/confirm`, jsonInit('POST', body));
+}
+
+/** 放弃未确认批次：只置 `state=cancelled`；记录/原始文件/预览行保留（可读，不删除）。 */
+export function discardRosterImport(importId: string, body: RosterImportDiscardRequest): Promise<RosterImportView> {
+  return apiRequest<RosterImportView>(`/roster-imports/${encodeURIComponent(importId)}/discard`, jsonInit('POST', body));
 }
 
 /* ------------------------------------------------------------------ 原卷（只读选用） */
@@ -186,6 +308,34 @@ export function getPaperRevisionContent(
   return apiRequest<PaperRevisionContentView>(
     `/papers/${encodeURIComponent(paperId)}/revisions/${encodeURIComponent(revisionId)}/content`,
     { signal },
+  );
+}
+
+/** 归档原卷：`expectedRevision` 守卫；历史引用（施测/成绩）保留。 */
+export function archivePaper(paperId: string, body: PaperRevisionRequest): Promise<PaperView> {
+  return apiRequest<PaperView>(
+    `/papers/${encodeURIComponent(paperId)}/archive`,
+    jsonInit('POST', body),
+  );
+}
+
+export function restorePaper(paperId: string, body: PaperRevisionRequest): Promise<PaperView> {
+  return apiRequest<PaperView>(
+    `/papers/${encodeURIComponent(paperId)}/restore`,
+    jsonInit('POST', body),
+  );
+}
+
+/**
+ * 彻底删除原卷（受引用守卫的物理删除）：`expectedRevision` 走查询参数。
+ * 被施测引用 → 409 `PAPER_IN_USE` + `details.counts.assessments`；
+ * 有已确认修订 → 409 `PAPER_HAS_CONFIRMED_REVISION` + `details.counts.confirmedRevisions`（只能归档）；
+ * 乐观锁不符 → 409；不存在 → 404。
+ */
+export function deletePaper(paperId: string, expectedRevision: number): Promise<PaperDeleteResult> {
+  return apiRequest<PaperDeleteResult>(
+    `/papers/${encodeURIComponent(paperId)}${assessmentsQuery({ expectedRevision })}`,
+    { method: 'DELETE' },
   );
 }
 
@@ -248,6 +398,60 @@ export function addAssessmentParticipants(
   return apiRequest<ParticipantMutationResult>(
     `/assessments/${encodeURIComponent(assessmentId)}/participants`,
     jsonInit('POST', body),
+  );
+}
+
+/**
+ * 移除误录人次（守卫式）：`expectedRevision` 走查询参数；
+ * 已有成绩版本/导入引用/学情报告时服务端 409 拒绝，不静默删除。
+ */
+export function removeAssessmentParticipant(
+  assessmentId: string,
+  participantId: string,
+  expectedRevision: number,
+): Promise<ParticipantMutationResult> {
+  return apiRequest<ParticipantMutationResult>(
+    `/assessments/${encodeURIComponent(assessmentId)}/participants/${encodeURIComponent(
+      participantId,
+    )}${assessmentsQuery({ expectedRevision })}`,
+    { method: 'DELETE' },
+  );
+}
+
+/** 归档施测：`expectedRevision` 守卫；已封存成绩与报告保留，归档仍可读。 */
+export function archiveAssessment(
+  assessmentId: string,
+  body: AssessmentRevisionRequest,
+): Promise<AssessmentView> {
+  return apiRequest<AssessmentView>(
+    `/assessments/${encodeURIComponent(assessmentId)}/archive`,
+    jsonInit('POST', body),
+  );
+}
+
+export function restoreAssessment(
+  assessmentId: string,
+  body: AssessmentRevisionRequest,
+): Promise<AssessmentView> {
+  return apiRequest<AssessmentView>(
+    `/assessments/${encodeURIComponent(assessmentId)}/restore`,
+    jsonInit('POST', body),
+  );
+}
+
+/**
+ * 彻底删除施测（受引用守卫的物理删除）：`expectedRevision` 走查询参数。
+ * 任一引用 >0 → 409 `ASSESSMENT_IN_USE` +
+ * `details.counts.{scoreRevisions,scoreImports,analysisRuns,practiceConversions}`；
+ * 乐观锁不符 → 409；不存在 → 404。归档施测同样受守卫（不会因归档而可删）。
+ */
+export function deleteAssessment(
+  assessmentId: string,
+  expectedRevision: number,
+): Promise<AssessmentDeleteResult> {
+  return apiRequest<AssessmentDeleteResult>(
+    `/assessments/${encodeURIComponent(assessmentId)}${assessmentsQuery({ expectedRevision })}`,
+    { method: 'DELETE' },
   );
 }
 
@@ -399,6 +603,17 @@ export function confirmScoreImport(
 ): Promise<ScoreImportConfirmResult> {
   return apiRequest<ScoreImportConfirmResult>(
     `/score-imports/${encodeURIComponent(importId)}/confirm`,
+    jsonInit('POST', body),
+  );
+}
+
+/** 放弃未确认成绩批次：只置 `state=cancelled`；批次记录/原始文件/预览行保留。 */
+export function discardScoreImport(
+  importId: string,
+  body: ScoreImportDiscardRequest,
+): Promise<ScoreImportView> {
+  return apiRequest<ScoreImportView>(
+    `/score-imports/${encodeURIComponent(importId)}/discard`,
     jsonInit('POST', body),
   );
 }

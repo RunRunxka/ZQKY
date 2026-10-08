@@ -9,7 +9,7 @@
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import type { ModelCatalog } from '@/contracts/model-settings';
 import { GenerationPanel } from './GenerationPanel';
@@ -20,6 +20,11 @@ import { buildTaxonomyIndex } from './taxonomy';
 const CHAT_PROFILE_ID = 'p-chat-1';
 const CHAT_MODEL_ID = 'qwen2.5:7b';
 
+/**
+ * 默认夹具 = **云端**档案：题库 AI 自 2026-10-07 起不使用本机模型，
+ * 本机档案在受理期即被前端 gate 与后端 422 拒绝，「可补题」的基准场景必须是云端；
+ * 本机场景用 `localCatalog()` 单独构造（见「本机档案被拒绝」用例）。
+ */
 function catalog(overrides: Partial<ModelCatalog> = {}): ModelCatalog {
   return {
     revision: 1,
@@ -27,6 +32,61 @@ function catalog(overrides: Partial<ModelCatalog> = {}): ModelCatalog {
     connections: [
       {
         id: 'conn-1',
+        displayName: 'DeepSeek 云端',
+        providerId: 'deepseek',
+        providerLabel: 'DeepSeek',
+        protocol: 'openai-chat',
+        apiFormat: 'auto',
+        apiVersion: null,
+        baseUrl: '',
+        resolvedBaseUrl: 'https://api.deepseek.com/v1',
+        hasCredential: true,
+        hasManagedCredential: false,
+        callable: true,
+        callableReason: null,
+        credentialScope: 'process',
+        extraHeaderNames: [],
+        createdAt: '2026-09-30T00:00:00Z',
+        updatedAt: '2026-09-30T00:00:00Z',
+      },
+    ],
+    profiles: [
+      {
+        id: CHAT_PROFILE_ID,
+        connectionId: 'conn-1',
+        displayName: '云端问答',
+        modelId: CHAT_MODEL_ID,
+        purpose: 'chat',
+        contextTokens: 8192,
+        maxOutputTokens: 2048,
+        supportedParams: [],
+        reasoningEnabled: null,
+        reasoningEffort: null,
+        reasoningStyle: null,
+        capabilities: {},
+        connection: {
+          displayName: 'DeepSeek 云端',
+          providerId: 'deepseek',
+          providerLabel: 'DeepSeek',
+          protocol: 'openai-chat',
+          apiFormat: 'auto',
+          hasCredential: true,
+        },
+        createdAt: '2026-09-30T00:00:00Z',
+        updatedAt: '2026-09-30T00:00:00Z',
+      },
+    ],
+    ...overrides,
+  };
+}
+
+/** 本机 Ollama 档案（后端 `is_local=True`）：题库 AI 一律拒绝，入口禁用并给原因。 */
+function localCatalog(): ModelCatalog {
+  return catalog({
+    defaultChatProfileId: 'p-local-1',
+    connections: [
+      {
+        id: 'conn-local',
         displayName: '本机 Ollama',
         providerId: 'ollama',
         providerLabel: 'Ollama',
@@ -47,10 +107,10 @@ function catalog(overrides: Partial<ModelCatalog> = {}): ModelCatalog {
     ],
     profiles: [
       {
-        id: CHAT_PROFILE_ID,
-        connectionId: 'conn-1',
+        id: 'p-local-1',
+        connectionId: 'conn-local',
         displayName: '本机问答',
-        modelId: CHAT_MODEL_ID,
+        modelId: 'qwen2.5:7b',
         purpose: 'chat',
         contextTokens: 8192,
         maxOutputTokens: 2048,
@@ -71,8 +131,7 @@ function catalog(overrides: Partial<ModelCatalog> = {}): ModelCatalog {
         updatedAt: '2026-09-30T00:00:00Z',
       },
     ],
-    ...overrides,
-  };
+  });
 }
 
 const POINTS = {
@@ -676,5 +735,192 @@ describe('AI 补题：六态、取消与真实重试', () => {
     // 排队中不能重复点击发起（避免重复建任务）
     expect(screen.getByTestId('qb-generation-submit')).toBeDisabled();
     expect(calls(fetchMock, '/question-generation-jobs', 'POST')).toHaveLength(1);
+  });
+});
+
+describe('AI 补题：云端闸门与「改用当前聊天模型」出口', () => {
+  it('默认档案是本机时禁用入口，给出「题库 AI 不使用本机模型」原因与设置入口', async () => {
+    const fetchMock = router({
+      'GET /api/v1/model-catalog': () => jsonResponse(localCatalog()),
+    });
+    renderPanel();
+    await fillValidForm();
+
+    const modelLine = await screen.findByTestId('qb-generation-model');
+    expect(modelLine).toHaveTextContent('题库 AI 不使用本机模型，请选择云端模型档案');
+    expect(modelLine).toHaveTextContent('不会自动改用其他模型');
+    expect(within(modelLine).getByRole('link', { name: '去设置默认问答模型' })).toHaveAttribute(
+      'href',
+      '/settings#models',
+    );
+    expect(screen.getByTestId('qb-generation-submit')).toBeDisabled();
+    fireEvent.click(screen.getByTestId('qb-generation-submit'));
+    expect(calls(fetchMock, '/question-generation-jobs', 'POST')).toHaveLength(0);
+  });
+
+  it('后端 422 QUESTION_MODEL_NOT_CLOUD 映射成同样的可读文案（没有创建任务）', async () => {
+    const fetchMock = router({
+      'POST /api/v1/question-generation-jobs': () =>
+        jsonResponse(
+          {
+            code: 'QUESTION_MODEL_NOT_CLOUD',
+            message: '题库 AI 不使用本机模型，请选择云端模型档案。',
+            retryable: false,
+          },
+          422,
+        ),
+      // 目录仍是云端（前端 gate 通过），模拟服务端判定与前端不同步的边界
+      'GET /api/v1/model-catalog': () => jsonResponse(catalog()),
+    });
+    renderPanel();
+    await fillValidForm();
+    fireEvent.click(screen.getByTestId('qb-generation-submit'));
+
+    const error = await screen.findByTestId('qb-generation-error');
+    expect(error).toHaveTextContent('QUESTION_MODEL_NOT_CLOUD');
+    expect(error).toHaveTextContent('题库 AI 不使用本机模型，请选择云端模型档案');
+    expect(error).toHaveTextContent('没有调用模型，也没有生成任何草稿');
+    expect(calls(fetchMock, '/question-generation-jobs', 'POST')).toHaveLength(1);
+    expect(screen.queryByTestId('qb-generation-job')).not.toBeInTheDocument();
+  });
+
+  it('冻结后目录换成另一个云端模型：出现「改用当前聊天模型」出口，点击只切换不自动重发', async () => {
+    let catalogReads = 0;
+    const fetchMock = router({
+      'GET /api/v1/model-catalog': () => {
+        catalogReads += 1;
+        if (catalogReads === 1) return jsonResponse(catalog());
+        // 用户在「模型设置」里把默认模型换成了另一个云端模型（原冻结档案仍在目录里）
+        return jsonResponse(
+          catalog({
+            defaultChatProfileId: 'p-chat-2',
+            connections: [
+              catalog().connections[0],
+              {
+                ...catalog().connections[0],
+                id: 'conn-2',
+                displayName: '另一家云',
+                providerId: 'qwen',
+                providerLabel: '通义千问',
+              },
+            ],
+            profiles: [
+              catalog().profiles[0],
+              {
+                ...catalog().profiles[0],
+                id: 'p-chat-2',
+                connectionId: 'conn-2',
+                displayName: '另一个云端问答',
+                modelId: 'qwen-max',
+              },
+            ],
+          }),
+        );
+      },
+      'POST /api/v1/question-generation-jobs': () =>
+        jsonResponse(
+          {
+            jobId: 'job-1',
+            state: 'failed',
+            attempt: 1,
+            importId: null,
+            candidateCount: 0,
+            errorCode: 'UPSTREAM_UNAVAILABLE',
+          },
+          202,
+        ),
+      'GET /api/v1/workflow-jobs/job-1': () =>
+        jsonResponse(
+          {
+            jobId: 'job-1',
+            domain: 'question',
+            kind: 'generate',
+            attempt: 1,
+            state: 'failed',
+            result: { importId: null, candidateCount: 0 },
+            error: { code: 'UPSTREAM_UNAVAILABLE', message: '模型服务不可用。', retryable: true },
+          },
+          200,
+        ),
+    });
+    renderPanel();
+    await fillValidForm();
+    fireEvent.click(screen.getByTestId('qb-generation-submit'));
+    await screen.findByTestId('qb-generation-frozen');
+    expect(screen.queryByTestId('qb-generation-switch-model')).not.toBeInTheDocument();
+
+    // 目录变化（等价于用户从设置页回到本页触发的 focus 刷新）
+    fireEvent(window, new Event('model-catalog-changed'));
+    await waitFor(() => expect(catalogReads).toBeGreaterThan(1));
+
+    const switchButton = await screen.findByTestId('qb-generation-switch-model');
+    fireEvent.click(switchButton);
+
+    // 只切换显示与后续发起的模型，不自动重发
+    expect(await screen.findByTestId('qb-generation-model')).toHaveTextContent('qwen-max');
+    expect(calls(fetchMock, '/question-generation-jobs', 'POST')).toHaveLength(1);
+    expect(screen.queryByTestId('qb-generation-switch-model')).not.toBeInTheDocument();
+  });
+
+  it('冻结模型已不可用（本机档案或已删除）时给出修复说明与切换出口，不自动替换', async () => {
+    let catalogReads = 0;
+    router({
+      'GET /api/v1/model-catalog': () => {
+        catalogReads += 1;
+        if (catalogReads === 1) return jsonResponse(catalog());
+        // 目录里当前默认仍是可用云端模型（第三个），但冻结的那个已不在目录里
+        return jsonResponse(
+          catalog({
+            defaultChatProfileId: 'p-chat-2',
+            profiles: [
+              {
+                ...catalog().profiles[0],
+                id: 'p-chat-2',
+                displayName: '另一个云端问答',
+                modelId: 'qwen-max',
+              },
+            ],
+          }),
+        );
+      },
+      'POST /api/v1/question-generation-jobs': () =>
+        jsonResponse(
+          {
+            jobId: 'job-1',
+            state: 'failed',
+            attempt: 1,
+            importId: null,
+            candidateCount: 0,
+            errorCode: 'UPSTREAM_UNAVAILABLE',
+          },
+          202,
+        ),
+      'GET /api/v1/workflow-jobs/job-1': () =>
+        jsonResponse(
+          {
+            jobId: 'job-1',
+            domain: 'question',
+            kind: 'generate',
+            attempt: 1,
+            state: 'failed',
+            result: { importId: null, candidateCount: 0 },
+            error: { code: 'UPSTREAM_UNAVAILABLE', message: '模型服务不可用。', retryable: true },
+          },
+          200,
+        ),
+    });
+    renderPanel();
+    await fillValidForm();
+    fireEvent.click(screen.getByTestId('qb-generation-submit'));
+    await screen.findByTestId('qb-generation-frozen');
+
+    fireEvent(window, new Event('model-catalog-changed'));
+    await waitFor(() => expect(catalogReads).toBeGreaterThan(1));
+
+    const stale = await screen.findByText(/当前模型配置里已不可用/);
+    expect(stale).toHaveTextContent('不会自动改用其他模型');
+    // 点「改用当前聊天模型」后才换成目录里的当前模型
+    fireEvent.click(screen.getByTestId('qb-generation-switch-model'));
+    expect(await screen.findByTestId('qb-generation-model')).toHaveTextContent('qwen-max');
   });
 });

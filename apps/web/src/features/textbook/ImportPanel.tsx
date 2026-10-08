@@ -13,11 +13,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FileText, Upload } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
-import type { DocumentMetadataInput, ImportDraftView, JobView } from '@/contracts/textbook';
+import type {
+  DocumentMetadataInput,
+  ImportDraftView,
+  ImportState,
+  JobView,
+} from '@/contracts/textbook';
 import { formatBytes } from '@/services/doc-attachments';
 import {
   commitImport,
   createImport,
+  discardImport,
   getImport,
   listLibraries,
   patchImport,
@@ -39,6 +45,12 @@ import type { TaxonomyIndex } from './taxonomy';
 
 /** 预览最多展示的块数（其余由「共 N 块」说明，不截断数据本身）。 */
 const PREVIEW_LIMIT = 5;
+
+/**
+ * 可放弃草稿的阶段：与服务端 `discard_import` 一致（`ready` 已入库 / `cancelled`
+ * 已是终态 / `discarded` 已放弃都不再提供入口）。
+ */
+const DISCARDABLE_IMPORT_STATES: readonly ImportState[] = ['uploaded', 'needs_review', 'failed'];
 
 export interface ImportTarget {
   documentId: string;
@@ -91,6 +103,8 @@ export function ImportPanel({
   const [commitError, setCommitError] = useState<string | null>(null);
   const [committedJob, setCommittedJob] = useState<JobView | null>(null);
   const [committed, setCommitted] = useState(false);
+  const [discardBusy, setDiscardBusy] = useState(false);
+  const [discardError, setDiscardError] = useState<string | null>(null);
   const submissionRef = useRef<string | null>(null);
   const draftIdRef = useRef<string | null>(null);
   const activeImportId = draft?.importId ?? null;
@@ -143,7 +157,10 @@ export function ImportPanel({
     const list = draft?.warnings ?? [];
     return parsed ? [...new Set([...list, ...parsed.warnings])] : list;
   }, [draft?.warnings, parsed]);
-  const terminalFailure = draft?.state === 'failed' || draft?.state === 'cancelled';
+  const terminalFailure =
+    draft?.state === 'failed' || draft?.state === 'cancelled' || draft?.state === 'discarded';
+  /** 可放弃草稿：与服务端守卫一致；已入库/已取消/已放弃不再提供入口。 */
+  const canDiscard = Boolean(draft && DISCARDABLE_IMPORT_STATES.includes(draft.state));
   const canCommit = Boolean(
     draft &&
       draft.canCommit &&
@@ -154,13 +171,16 @@ export function ImportPanel({
       !committed,
   );
   // 不能提交时的具体原因（未确认元数据 / 需要 OCR / 状态不对 / 缺库或警告确认）
-  const blockReason = commitBlockReason({
-    draft,
-    libraryCount: selectedLibraryIds.length,
-    hasWarnings: warnings.length > 0,
-    warningsAcknowledged: warningsAck,
-    committed,
-  });
+  const blockReason =
+    draft?.state === 'discarded'
+      ? '该草稿已放弃：记录与解析产物保留，但不能继续编辑或提交入库；如需导入请重新上传文件。'
+      : commitBlockReason({
+          draft,
+          libraryCount: selectedLibraryIds.length,
+          hasWarnings: warnings.length > 0,
+          warningsAcknowledged: warningsAck,
+          committed,
+        });
 
   function pickFile(next: File | null) {
     if (!next) return;
@@ -292,6 +312,35 @@ export function ImportPanel({
     }
   }
 
+  /**
+   * 放弃草稿：二次确认后用当前 `revision` 提交（服务端乐观锁，不符 409）。
+   * 服务端只置 `state='discarded'`：记录/原始文件/解析产物保留，但不能再编辑/入库。
+   * 失败保留当前视图（不清空已填内容），409 时重新读取草稿供比较。
+   */
+  async function discardDraft() {
+    if (!draft) return;
+    const confirmed = window.confirm(
+      `放弃草稿「${draft.uploadedFileName}」？记录与解析产物保留，但放弃后不能再编辑或提交入库。`,
+    );
+    if (!confirmed) return;
+    setDiscardBusy(true);
+    setDiscardError(null);
+    try {
+      const next = await discardImport(draft.importId, { expectedRevision: draft.revision });
+      applyDraft(next);
+    } catch (error) {
+      const apiError = asApiError(error);
+      setDiscardError(
+        apiError.status === 409
+          ? `放弃失败（${apiError.code}）：${apiError.message} 已重新读取最新草稿，请比较后重试。`
+          : `放弃失败（${apiError.code}）：${apiError.message}`,
+      );
+      if (apiError.status === 409) await refreshDraft();
+    } finally {
+      setDiscardBusy(false);
+    }
+  }
+
   return (
     <Modal title={updateTarget ? '更新教材' : '导入教材'} onClose={onClose}>
       <div className="textbook-panel">
@@ -401,7 +450,7 @@ export function ImportPanel({
                 <button
                   className="space-button"
                   onClick={() => void saveMetadata()}
-                  disabled={metadataBusy || !useMetadata}
+                  disabled={metadataBusy || !useMetadata || draft.state === 'discarded'}
                 >
                   {metadataBusy ? '保存中…' : '保存分类'}
                 </button>
@@ -484,6 +533,30 @@ export function ImportPanel({
             {draft.state === 'cancelled' && (
               <div className="space-banner info" role="status">
                 该次解析已取消，未写入任何修订。
+              </div>
+            )}
+            {draft.state === 'discarded' && (
+              <div className="space-banner info" role="status">
+                该草稿已放弃：记录、原始文件与解析产物保留，但不能继续编辑或提交入库；如需导入请重新选择文件上传。
+              </div>
+            )}
+            {canDiscard && (
+              <div className="textbook-panel-actions">
+                <button
+                  className="space-button danger"
+                  onClick={() => void discardDraft()}
+                  disabled={discardBusy}
+                >
+                  {discardBusy ? '放弃中…' : '放弃草稿'}
+                </button>
+                <span className="textbook-hint">
+                  放弃后记录与原始文件保留，但不能再编辑或提交入库。
+                </span>
+              </div>
+            )}
+            {discardError && (
+              <div className="space-banner error" role="alert">
+                {discardError}
               </div>
             )}
 

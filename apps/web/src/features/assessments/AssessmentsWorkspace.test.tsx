@@ -92,3 +92,110 @@ describe('已挂载施测接收真实名单操作的工作区通知', () => {
     expect(writes).toHaveLength(operation === 'import' ? 2 : 1);
   });
 });
+
+/* ------------------------------------------------------------------ 状态条：名称优先 */
+
+/** 状态条与深链测试的 fetch 桩：班级名/施测标题/原卷修订都来自真实端点形状。 */
+function stubContext(assessmentTitle: string | null) {
+  const deleted = assessmentTitle === null;
+  const paper = {
+    paperId: 'paper-1', subjectId: 'subject-1', title: '一元一次方程原卷', status: 'active',
+    revision: 3, currentRevisionId: 'rev-1', currentState: 'confirmed', version: 2,
+    totalScoreUnits: 10000, totalScore: '100', itemCount: 1, scoredLeafCount: 1,
+    blockingIssueCount: 0, createdAt: '2026-10-01T00:00:00Z',
+  };
+  const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes('/classes/class-a/students')) {
+      return response({ items: [student('a', '甲')], total: 1 });
+    }
+    if (url.includes('/classes?')) {
+      return response({ items: [{ id: 'class-a', name: '测试一班', code: 'A', schoolYear: '2026', studentCount: 1 }], total: 1 });
+    }
+    if (url.includes('/assessments/as-deep') || url.includes('/assessments/as-picked')) {
+      if (deleted) return response({ code: 'ASSESSMENT_NOT_FOUND', message: '施测不存在' }, 404);
+      return response({
+        assessment: {
+          assessmentId: url.includes('as-deep') ? 'as-deep' : 'as-picked',
+          paperRevisionId: 'rev-1', paperId: 'paper-1', paperTitle: '一元一次方程原卷',
+          title: assessmentTitle, assessmentType: 'exam', heldOn: '2026-10-01',
+          state: 'open', revision: 1, classIds: ['class-a'], participantCount: 1,
+        },
+        participants: [],
+      });
+    }
+    if (url.includes('/assessments?')) {
+      return response({ items: [{ assessmentId: 'as-picked', title: assessmentTitle ?? '旧标题', paperRevisionId: 'rev-1',
+        paperId: 'paper-1', paperTitle: '一元一次方程原卷', assessmentType: 'exam', heldOn: '2026-10-01',
+        state: 'open', revision: 1, classIds: ['class-a'], participantCount: 1 }], total: 1 });
+    }
+    if (url.includes('/revisions/rev-1/content')) {
+      return response({ paperId: 'paper-1', paperRevisionId: 'rev-1', version: 2, state: 'confirmed',
+        subjectId: 'subject-1', title: '一元一次方程原卷', totalScoreUnits: 10000, totalScore: '100',
+        confirmedAt: '2026-10-01T00:00:00Z', createdAt: '2026-10-01T00:00:00Z', items: [], blocks: [], issues: [] });
+    }
+    if (url.includes('/papers/paper-1')) return response(paper);
+    if (url.includes('/papers?')) return response({ items: [paper], total: 1, offset: 0, limit: 100 });
+    if (url.includes('/knowledge-points')) return response({ items: [], total: 0 });
+    if (url.includes('/model-profiles')) return response([]);
+    if (url.includes('/textbook-taxonomy')) return response({ grades: [], subjects: [], stages: [], editions: [] });
+    return response({ items: [], total: 0, offset: 0, limit: 100 });
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  return fetchMock;
+}
+
+describe('状态条名称化与深链回填', () => {
+  it('班级/原卷/施测显示名称与版本，ID 降为小字并保留可复制文本', async () => {
+    stubContext('期中考试');
+    const writes: string[] = [];
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: vi.fn(async (text: string) => { writes.push(text); }) },
+    });
+    render(<StrictMode><AssessmentsWorkspace /></StrictMode>);
+    fireEvent.click(await screen.findByTestId('assessments-class-class-a'));
+    expect(screen.getByTestId('assessments-context-class')).toHaveTextContent('班级：测试一班');
+    // 未选择时原卷/施测给明确的空态文案，不显示 id
+    expect(screen.getByTestId('assessments-context-paper')).toHaveTextContent('原卷：未选用');
+    expect(screen.getByTestId('assessments-context-assessment')).toHaveTextContent('施测：未选择');
+
+    fireEvent.click(screen.getByTestId('assessments-tab-paper'));
+    fireEvent.click(await screen.findByTestId('assessments-select-paper-paper-1'));
+    await waitFor(() =>
+      expect(screen.getByTestId('assessments-context-paper')).toHaveTextContent('原卷：一元一次方程原卷 · v2'),
+    );
+
+    fireEvent.click(screen.getByTestId('assessments-tab-assessment'));
+    fireEvent.click(await screen.findByTestId('assessments-assessment-as-picked'));
+    await waitFor(() =>
+      expect(screen.getByTestId('assessments-context-assessment')).toHaveTextContent('施测：期中考试'),
+    );
+    // ID 小字行只给短号；复制按钮写入完整 id（不是短号）
+    const idLine = screen.getByTestId('assessments-context-ids');
+    expect(idLine).toHaveTextContent('班级 class-a');
+    expect(idLine).toHaveTextContent('原卷修订 rev-1');
+    expect(idLine).toHaveTextContent('施测 as-picke…');
+    fireEvent.click(screen.getByTestId('assessments-copy-ids'));
+    await waitFor(() => expect(writes).toHaveLength(1));
+    expect(writes[0]).toContain('classId=class-a');
+    expect(writes[0]).toContain('assessmentId=as-picked');
+    await waitFor(() => expect(screen.getByTestId('assessments-copy-ids')).toHaveTextContent('已复制'));
+  });
+
+  it('深链只有 id 时回读标题；回读失败回落「施测 <短号>」不伪造名称', async () => {
+    stubContext('深链施测');
+    const first = render(<StrictMode><AssessmentsWorkspace initialAssessmentId="as-deep" initialStep="score" /></StrictMode>);
+    await waitFor(() =>
+      expect(screen.getByTestId('assessments-context-assessment')).toHaveTextContent('施测：深链施测'),
+    );
+    first.unmount();
+
+    cleanup();
+    stubContext(null);
+    render(<StrictMode><AssessmentsWorkspace initialAssessmentId="as-deep" initialStep="score" /></StrictMode>);
+    await waitFor(() =>
+      expect(screen.getByTestId('assessments-context-assessment')).toHaveTextContent('施测：施测 as-deep'),
+    );
+  });
+});

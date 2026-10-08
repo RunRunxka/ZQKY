@@ -139,6 +139,21 @@ function postsTo(fetchMock: ReturnType<typeof stubApi>, fragment: string) {
   );
 }
 
+function deletesTo(fetchMock: ReturnType<typeof stubApi>, fragment: string) {
+  return fetchMock.mock.calls.filter(
+    ([url, init]) =>
+      String(url).includes(fragment) && (init as RequestInit | undefined)?.method === 'DELETE',
+  );
+}
+
+function getsTo(fetchMock: ReturnType<typeof stubApi>, fragment: string) {
+  return fetchMock.mock.calls.filter(
+    ([url, init]) =>
+      String(url).includes(fragment) &&
+      ((init as RequestInit | undefined)?.method ?? 'GET').toUpperCase() === 'GET',
+  );
+}
+
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
@@ -308,5 +323,106 @@ describe('Embedding 面板', () => {
     await waitFor(() => expect(rebuildCalls).toBe(1));
     expect(await screen.findByText('阶段：排队中')).toBeInTheDocument();
     expect(postsTo(fetchMock, '/textbook-index/rebuilds')).toHaveLength(1);
+  });
+
+  it('停用配置二次确认后调用 retire，刷新列表显示已停用且不再提供停用入口', async () => {
+    let current: EmbeddingProfileList = PROFILES;
+    const fetchMock = stubApi((url, init) => {
+      const method = (init.method ?? 'GET').toUpperCase();
+      if (url.includes('/textbook-index/status')) return ok(status());
+      if (url.includes('/embedding-models')) return ok(MODELS);
+      if (method === 'POST' && url.includes('/embedding-profiles/profile-1/retire')) {
+        const retired: EmbeddingProfileView = {
+          ...PROFILE,
+          retiredAt: '2026-10-07T00:00:00Z',
+          isActive: false,
+        };
+        current = { profiles: [retired], activeProfileId: null };
+        return ok(retired);
+      }
+      if (url.includes('/embedding-profiles')) return ok(current);
+      throw new Error(`未预期的请求 ${url}`);
+    });
+    vi.stubGlobal('confirm', vi.fn(() => true));
+    render(<EmbeddingPanel />);
+
+    fireEvent.click(await screen.findByRole('button', { name: '停用配置 profile-1' }));
+
+    expect(await screen.findByText(/已停用 2026-10-07/)).toBeInTheDocument();
+    expect(postsTo(fetchMock, '/embedding-profiles/profile-1/retire')).toHaveLength(1);
+    expect(
+      screen.queryByRole('button', { name: '停用配置 profile-1' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('删除配置被索引代引用时：409 原样显示服务端文案，列表不变', async () => {
+    const fetchMock = stubApi((url, init) => {
+      const method = (init.method ?? 'GET').toUpperCase();
+      if (url.includes('/textbook-index/status')) return ok(status());
+      if (url.includes('/embedding-models')) return ok(MODELS);
+      if (method === 'DELETE' && url.includes('/embedding-profiles/profile-1')) {
+        return failed(409, {
+          code: 'EMBEDDING_PROFILE_IN_USE',
+          message: '该配置已被索引代使用，请改用停用。',
+          retryable: false,
+        });
+      }
+      if (url.includes('/embedding-profiles')) return ok(PROFILES);
+      throw new Error(`未预期的请求 ${url}`);
+    });
+    vi.stubGlobal('confirm', vi.fn(() => true));
+    render(<EmbeddingPanel />);
+
+    fireEvent.click(await screen.findByRole('button', { name: '删除配置 profile-1' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('EMBEDDING_PROFILE_IN_USE');
+    expect(alert).toHaveTextContent('该配置已被索引代使用，请改用停用。');
+    expect(deletesTo(fetchMock, '/embedding-profiles/profile-1')).toHaveLength(1);
+    // 失败不改变列表：配置仍在、停用入口仍在，也没有重复读取
+    expect(screen.getByRole('button', { name: '停用配置 profile-1' })).toBeInTheDocument();
+    expect(screen.getByText('bge-m3 · 1024 维')).toBeInTheDocument();
+    expect(getsTo(fetchMock, '/embedding-profiles')).toHaveLength(1);
+  });
+
+  it('删除未被引用的配置成功后刷新列表', async () => {
+    let current: EmbeddingProfileList = PROFILES;
+    const fetchMock = stubApi((url, init) => {
+      const method = (init.method ?? 'GET').toUpperCase();
+      if (url.includes('/textbook-index/status')) return ok(status());
+      if (url.includes('/embedding-models')) return ok(MODELS);
+      if (method === 'DELETE' && url.includes('/embedding-profiles/profile-1')) {
+        current = { profiles: [], activeProfileId: null };
+        return { ok: true, status: 204, json: async () => null } as Response;
+      }
+      if (url.includes('/embedding-profiles')) return ok(current);
+      throw new Error(`未预期的请求 ${url}`);
+    });
+    vi.stubGlobal('confirm', vi.fn(() => true));
+    render(<EmbeddingPanel />);
+
+    fireEvent.click(await screen.findByRole('button', { name: '删除配置 profile-1' }));
+
+    expect(await screen.findByText('还没有已保存的 Embedding 配置。')).toBeInTheDocument();
+    expect(deletesTo(fetchMock, '/embedding-profiles/profile-1')).toHaveLength(1);
+    expect(getsTo(fetchMock, '/embedding-profiles')).toHaveLength(2);
+  });
+
+  it('二次确认取消时既不调用 retire 也不删除', async () => {
+    const fetchMock = stubApi((url) => {
+      if (url.includes('/textbook-index/status')) return ok(status());
+      if (url.includes('/embedding-models')) return ok(MODELS);
+      if (url.includes('/embedding-profiles')) return ok(PROFILES);
+      throw new Error(`未预期的请求 ${url}`);
+    });
+    vi.stubGlobal('confirm', vi.fn(() => false));
+    render(<EmbeddingPanel />);
+
+    fireEvent.click(await screen.findByRole('button', { name: '停用配置 profile-1' }));
+    fireEvent.click(screen.getByRole('button', { name: '删除配置 profile-1' }));
+
+    expect(postsTo(fetchMock, '/retire')).toHaveLength(0);
+    expect(deletesTo(fetchMock, '/embedding-profiles/profile-1')).toHaveLength(0);
+    expect(screen.getByText('bge-m3 · 1024 维')).toBeInTheDocument();
   });
 });

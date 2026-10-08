@@ -539,3 +539,37 @@ def test_import_list_filter_and_page_bounds(harness: ScoresHarness, tmp_path: Pa
     assert missing.status_code == 200
     unknown = harness.client.get("/api/v1/score-imports/does-not-exist")
     assert unknown.status_code == 404
+
+
+def test_import_list_uploaded_file_name_prefers_original_name(harness: ScoresHarness, tmp_path: Path) -> None:
+    """uploadedFileName 走“名称优先”：file_id LEFT JOIN file_assets.original_name 实时补名；
+    资产登记缺失（异常数据）时列表落 null，不伪造名称、不抛错。"""
+    scene = _sample_scene(harness)
+    first = harness.upload_scores(
+        scene.assessment["assessmentId"], _sample_xlsx(tmp_path, name="成绩表A.xlsx")
+    ).json()
+    listing = harness.client.get(
+        "/api/v1/score-imports",
+        params={"assessmentId": scene.assessment["assessmentId"]},
+    )
+    assert listing.status_code == 200, listing.text
+    summary = listing.json()["items"][0]
+    assert summary["importId"] == first["importId"]
+    assert summary["uploadedFileName"] == "成绩表A.xlsx"
+    # 有值路径：批次详情的 fileAsset.originalName 与列表汇总一致
+    detail = harness.client.get(f"/api/v1/score-imports/{first['importId']}").json()
+    assert detail["fileAsset"]["originalName"] == "成绩表A.xlsx"
+    # 缺失为 null：直接清掉资产登记行（模拟登记缺失；同库真实 SQL 读路径）
+    from app.core.sqlite import connect as raw_connect
+    raw = raw_connect(harness.app.state.teaching.db_path)
+    try:
+        raw.execute("PRAGMA foreign_keys=OFF")
+        raw.execute("DELETE FROM file_assets WHERE id=?", (detail["fileAsset"]["assetId"],))
+    finally:
+        raw.close()
+    after = harness.client.get(
+        "/api/v1/score-imports",
+        params={"assessmentId": scene.assessment["assessmentId"]},
+    )
+    assert after.status_code == 200, after.text
+    assert after.json()["items"][0]["uploadedFileName"] is None

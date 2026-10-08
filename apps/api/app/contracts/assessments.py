@@ -38,6 +38,10 @@ ASSESSMENT_PAPER_INVALID = "ASSESSMENT_PAPER_INVALID"
 ASSESSMENT_PAPER_FIXED = "ASSESSMENT_PAPER_FIXED"
 ASSESSMENT_HELD_ON_INVALID = "ASSESSMENT_HELD_ON_INVALID"
 ASSESSMENT_REVISION_STALE = "ASSESSMENT_REVISION_STALE"
+ASSESSMENT_ARCHIVED = "ASSESSMENT_ARCHIVED"
+#: 受引用守卫：施测仍被成绩/导入/报告/练习转换引用（删除被 409 拒绝，details 列出计数）
+ASSESSMENT_IN_USE = "ASSESSMENT_IN_USE"
+PARTICIPANT_REMOVE_BLOCKED = "PARTICIPANT_REMOVE_BLOCKED"
 PARTICIPANT_EMPTY = "PARTICIPANT_EMPTY"
 PARTICIPANT_INVALID = "PARTICIPANT_INVALID"
 PARTICIPANT_CLASS_UNCONFIRMED = "PARTICIPANT_CLASS_UNCONFIRMED"
@@ -126,6 +130,12 @@ class AssessmentUpdateRequest(_Strict):
     title: str | None = Field(default=None, min_length=1, max_length=200)
     assessment_type: AssessmentType | None = Field(default=None, alias="assessmentType")
     held_on: str | None = Field(default=None, alias="heldOn", min_length=10, max_length=10)
+
+
+class AssessmentRevisionRequest(_Strict):
+    """施测归档/恢复的乐观锁请求（只带修订号）。"""
+
+    expected_revision: int = Field(alias="expectedRevision", ge=0)
 
 
 class ParticipantAttendanceRequest(_Strict):

@@ -19,7 +19,13 @@ from app.api.v1 import knowledge as knowledge_route
 from app.contracts.knowledge import KnowledgeSuggestionRequest
 from app.core.exceptions import AppError
 from app.main import create_app
-from app.providers.llm.base import FINISH_LENGTH, FINISH_STOP, LLMConfig, LLMResponse
+from app.providers.llm.base import (
+    DEFAULT_TIMEOUT_SECONDS,
+    FINISH_LENGTH,
+    FINISH_STOP,
+    LLMConfig,
+    LLMResponse,
+)
 from app.repositories.assets.file_assets import FileAssetsRepository
 from app.schemas.model_config import ModelProtocol
 from app.services.assets.store import AssetStore
@@ -121,9 +127,11 @@ class FakeProvider:
         self.replies = list(replies or [])
         self.handler = handler
         self.calls: list[Any] = []
+        self.configs: list[LLMConfig] = []
 
     async def complete(self, config: LLMConfig, request: Any, *, transport: Any = None) -> LLMResponse:
         self.calls.append(request)
+        self.configs.append(config)
         value = (
             self.handler(request)
             if self.handler is not None
@@ -495,6 +503,19 @@ def test_truncated_output_fails_job(tmp_path: Path) -> None:
         harness.close()
 
 
+def test_plain_suggestion_job_keeps_default_provider_timeout(tmp_path: Path) -> None:
+    """放宽只覆盖教材提取；手输材料候选任务保持默认非流式等待。"""
+    provider = FakeProvider()
+    harness = make_harness(tmp_path, provider=provider)
+    try:
+        job = harness.run_job(harness.payload())
+        assert job["state"] == "succeeded", job
+        assert provider.configs, "候选任务必须真实调用模型"
+        assert provider.configs[-1].timeoutSeconds == DEFAULT_TIMEOUT_SECONDS
+    finally:
+        harness.close()
+
+
 def test_model_profile_missing_fails_job(tmp_path: Path) -> None:
     harness = make_harness(
         tmp_path,
@@ -664,3 +685,18 @@ def test_cancel_after_executor_returns_does_not_publish(tmp_path: Path) -> None:
             instance.close()
 
     asyncio.run(scenario())
+
+
+def test_extraction_instruction_bounds_candidates_and_raises_output_budget() -> None:
+    """教材提取必须有界输出（2026-10-08 真机：整册候选超出 2048 触发截断拒绝）。"""
+    from app.services.knowledge import suggestions
+
+    plain = suggestions.system_instruction({"allowedKnowledgePointIds": []})
+    assert suggestions.EXTRACTION_INSTRUCTION_SUFFIX.strip() not in plain
+
+    extraction = suggestions.system_instruction(
+        {"allowedKnowledgePointIds": [], "extraction": {"documentRevisionId": "rev-1"}}
+    )
+    assert f"最多提炼 {suggestions.EXTRACTION_MAX_CANDIDATES} 条" in extraction
+    assert suggestions.EXTRACTION_MAX_OUTPUT_TOKENS > suggestions.MAX_OUTPUT_TOKENS
+    assert extraction.index(suggestions.EXTRACTION_INSTRUCTION_SUFFIX.strip()) > 0

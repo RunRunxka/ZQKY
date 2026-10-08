@@ -102,7 +102,7 @@ afterEach(() => {
 });
 
 describe('知识点工作台：页签与建立', () => {
-  it('三个页签都存在；切换页签不会卸载其他页签的任务状态', async () => {
+  it('四个页签都存在；切换页签不会卸载其他页签的任务状态', async () => {
     router();
     const { container } = render(<KnowledgePointsWorkspace />);
     const panel = (id: string) => container.querySelector(`#kp-panel-${id}`);
@@ -113,6 +113,7 @@ describe('知识点工作台：页签与建立', () => {
     expect(panel('points')).not.toHaveAttribute('hidden');
     expect(panel('imports')).toHaveAttribute('hidden');
     expect(panel('suggestion')).toHaveAttribute('hidden');
+    expect(panel('extract')).toHaveAttribute('hidden');
 
     fireEvent.click(screen.getByRole('tab', { name: '表格导入' }));
     expect(panel('imports')).not.toHaveAttribute('hidden');
@@ -127,6 +128,14 @@ describe('知识点工作台：页签与建立', () => {
       await screen.findByRole('heading', { name: /AI 候选（待确认，不直接入库）/ }),
     ).toBeInTheDocument();
     expect(container.querySelector('#kp-panel-imports')).not.toBeNull();
+
+    // 第四个页签「教材提取」：面板挂载、未读预览时入口禁用
+    fireEvent.click(screen.getByRole('tab', { name: '教材提取' }));
+    expect(panel('extract')).not.toHaveAttribute('hidden');
+    expect(screen.getByTestId('kp-extract-start')).toBeDisabled();
+    expect(
+      await screen.findByRole('heading', { name: /从教材提取知识点（AI 候选 · 需人工确认）/ }),
+    ).toBeInTheDocument();
   });
 
   it('新建知识点成功后关闭对话框、选中新对象并刷新列表', async () => {

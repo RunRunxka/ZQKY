@@ -6,11 +6,14 @@ import type {
   RosterDecision,
   RosterImportConfirmResult,
   RosterImportRowPatch,
+  RosterImportState,
+  RosterImportSummary,
   RosterImportView,
 } from '@/contracts/roster';
 import {
   confirmRosterImport,
   createRosterImport,
+  discardRosterImport,
   getRosterImport,
   listRosterImports,
   listStudents,
@@ -35,6 +38,8 @@ const STATE_LABELS = {
   failed: '失败',
   cancelled: '已取消',
 };
+/** 未确认批次可放弃；`confirmed` 已应用（服务端 409），`cancelled` 已放弃。 */
+const DISCARDABLE_STATES: readonly RosterImportState[] = ['uploaded', 'reviewing', 'failed'];
 const SUGGESTIONS = {
   link: '建议关联已有学生',
   create: '建议新建学生',
@@ -63,6 +68,8 @@ function RosterImportSession({ classId, onChanged }: Props) {
   const [notice, setNotice] = useState<string | null>(null);
   const [studentQuery, setStudentQuery] = useState('');
   const [appliedStudentQuery, setAppliedStudentQuery] = useState('');
+  /** 放弃批次的写操作身份（禁用按钮防重入）。 */
+  const [discardBusyId, setDiscardBusyId] = useState<string | null>(null);
   const mounted = useRef(true);
   const epoch = useRef(0);
   const busyRef = useRef(false);
@@ -149,6 +156,31 @@ function RosterImportSession({ classId, onChanged }: Props) {
           ? '已读取最新版本，映射和行校对输入保留，请对照后再提交。'
           : '已恢复服务端名单批次。',
       );
+    }
+  }
+
+  /**
+   * 放弃未确认批次：只置 `cancelled`，记录/原始文件/预览行保留（不能再校对/确认）。
+   * 成功刷新批次列表；若当前打开的正是该批次，同步读回它的 `cancelled` 状态。
+   */
+  async function discardBatch(batch: RosterImportSummary) {
+    if (locked) return;
+    if (!window.confirm('放弃后批次保留记录但不能再校对/确认。确认放弃该名单批次？')) return;
+    const token = epoch.current;
+    setDiscardBusyId(batch.importId);
+    try {
+      const result = await run(() =>
+        discardRosterImport(batch.importId, { expectedRevision: batch.revision }),
+      );
+      if (!result || !mounted.current || token !== epoch.current) return;
+      if (view?.importId === result.importId) {
+        submission.release();
+        adopt(result);
+      }
+      batches.reload();
+      setNotice(`批次 ${result.importId} 已放弃（已取消）；批次记录与原始文件保留，不能再校对/确认。`);
+    } finally {
+      if (mounted.current && token === epoch.current) setDiscardBusyId(null);
     }
   }
 
@@ -305,15 +337,27 @@ function RosterImportSession({ classId, onChanged }: Props) {
       <ul className="assessments-list" aria-label="名单批次列表">
         {(batches.lastData?.items ?? []).map((batch) => (
           <li key={batch.importId}>
-            <button
-              className="assessments-list-item"
-              data-testid={`roster-batch-${batch.importId}`}
-              disabled={locked}
-              onClick={() => void openBatch(batch.importId)}
-            >
-              {batch.importId} · {STATE_LABELS[batch.state]} · {batch.rowCount} 行 · r
-              {batch.revision}
-            </button>
+            <div className="assessments-actions">
+              <button
+                className="assessments-list-item"
+                data-testid={`roster-batch-${batch.importId}`}
+                disabled={locked}
+                onClick={() => void openBatch(batch.importId)}
+              >
+                {batch.importId} · {STATE_LABELS[batch.state]} · {batch.rowCount} 行 · r
+                {batch.revision}
+              </button>
+              {DISCARDABLE_STATES.includes(batch.state) && (
+                <button
+                  className="space-button danger"
+                  data-testid={`roster-batch-discard-${batch.importId}`}
+                  disabled={locked || discardBusyId !== null}
+                  onClick={() => void discardBatch(batch)}
+                >
+                  {discardBusyId === batch.importId ? '放弃中…' : '放弃'}
+                </button>
+              )}
+            </div>
           </li>
         ))}
       </ul>

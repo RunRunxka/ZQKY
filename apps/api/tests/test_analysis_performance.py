@@ -45,7 +45,7 @@ async def test_200_students_100_leaves_complete_evidence_and_real_http_pages(tmp
                 seen.add(row["evidenceId"])
                 cells.add((row["participant"]["participantId"], row["itemId"]))
                 assert row["content"]["stemBlocks"] == scene.rich["stemBlocks"] and row["sharedMaterials"] == scene.rich["sharedMaterials"]
-                assert row["assets"] == scene.rich["assets"] and row["participant"]["className"] is None
+                assert row["assets"] == scene.rich["assets"] and row["participant"]["className"] == "现班名"
         assert len(seen) == len(cells) == 20000
         assert cells == {(pid, iid) for pid in scene.participant_ids for iid in scene.item_ids}
         assert client.get(url, params={"knowledgePointId": "k0", "limit": 200}).json()["total"] == 4000

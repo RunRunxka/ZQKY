@@ -86,6 +86,10 @@ ORIGIN_REUSE_WARNING = "检测到相同内容的既有书册，已作为该书�
 #: 与 ``DOCUMENT_NEEDS_OCR`` 是两类问题（不是扫描件缺文本层，而是清洗后为空），文案与错误码都不复用。
 CLEANED_TEXT_EMPTY_WARNING = "该文件在清洗图片后没有可用文本，无法建立可检索索引。"
 CLEANED_TEXT_EMPTY_CODE = "NO_INDEXABLE_TEXT"
+#: 允许放弃（discard）的草稿状态：与可编辑状态同集合（任务进行态/已入库不允许放弃）
+DISCARDABLE_IMPORT_STATES = frozenset({"uploaded", "needs_review", "failed"})
+#: 已入库（ready）草稿的放弃拒绝错误码；其余不可放弃状态统一 ``IMPORT_NOT_DISCARDABLE``
+IMPORT_ALREADY_COMMITTED = "IMPORT_ALREADY_COMMITTED"
 #: 草稿产物里的标记键（``parsed_artifacts_json``）
 CLEANED_TEXT_EMPTY_FLAG = "cleanedTextEmpty"
 _ARTIFACT_FIELDS = (
@@ -123,6 +127,15 @@ def _conflict(message: str, *, code: str, retryable: bool = False) -> AppError:
 
 def _not_found(message: str, *, code: str) -> AppError:
     return AppError(message, code=code, status_code=404)
+
+
+def _check_import_revision(current: int, expected: int) -> None:
+    """草稿乐观锁：``expectedRevision`` 不符时按模块既有风格返回 409 冲突。"""
+    if current != expected:
+        raise _conflict(
+            f"导入草稿已被其他操作更新（当前 revision={current}），请刷新后重试。",
+            code="REVISION_CONFLICT",
+        )
 
 
 class IngestService:
@@ -337,6 +350,38 @@ class IngestService:
             state=state,
         )
         return self._build_import_view(updated)
+
+    def discard_import(self, import_id: str, *, expected_revision: int) -> ImportDraftView:
+        """放弃导入草稿（误上传清理）：状态置 ``discarded``，记录/原始 blob/解析产物保留。
+
+        - 只有 ``uploaded`` / ``needs_review`` / ``failed`` 可以放弃；
+        - 已入库（``ready``）→ 409 ``IMPORT_ALREADY_COMMITTED``：历史与已发布修订不动；
+        - 其余任务态（queued/chunking/... /cancelled）→ 409 ``IMPORT_NOT_DISCARDABLE``；
+        - 已放弃（``discarded``）→ 幂等返回当前视图，不再递增 revision；
+        - ``expectedRevision`` 不符 → 409 ``REVISION_CONFLICT``（乐观锁）。
+        """
+        record = self.catalog.get_import(import_id)
+        if record is None:
+            raise _not_found("导入草稿不存在。", code="IMPORT_NOT_FOUND")
+        _check_import_revision(record.revision, expected_revision)
+        if record.state == "discarded":
+            # 重复放弃按幂等返回当前状态，不递增 revision
+            return self._build_import_view(record)
+        if record.state == "ready":
+            raise _conflict(
+                "该草稿已入库，不能放弃；已发布的书册修订保留。",
+                code=IMPORT_ALREADY_COMMITTED,
+            )
+        if record.state not in DISCARDABLE_IMPORT_STATES:
+            raise _conflict(
+                f"草稿当前状态（{record.state}）不允许放弃。",
+                code="IMPORT_NOT_DISCARDABLE",
+            )
+        # 事务内 CAS 复核快照 revision：并发 PATCH 推进后放弃失败，不静默覆盖
+        self.catalog.set_import_state(
+            import_id, state="discarded", error_code=None, expected_revision=record.revision
+        )
+        return self.get_import_view(import_id)
 
     # -------------------------------------------------------------------- 提交
 

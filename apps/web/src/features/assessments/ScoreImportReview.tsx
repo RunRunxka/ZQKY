@@ -26,6 +26,7 @@ import { confirmScoreImport, listScoreImportRows } from '@/services/assessments-
 import {
   scoreFlowStep,
   useAsyncResource,
+  useClassNameMap,
   useFrozenSubmission,
   useScoreDrafts,
   type ScoreFlowStep,
@@ -78,6 +79,8 @@ export function ScoreImportReview({
   const [ackAbsences, setAckAbsences] = useState(false);
   const [ackMissing, setAckMissing] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  /** 班名映射（只读）：候选人次与缺考分组显示班名；映射缺失/读取失败回落短号。 */
+  const classNames = useClassNameMap(`score-review|${view.assessmentId}`);
   const drafts = useScoreDrafts(view);
   const submission = useFrozenSubmission<ScoreImportConfirmRequest, ScoreImportConfirmResult>();
   const editingLocked = submission.busy || submission.phase === 'unknown';
@@ -371,7 +374,7 @@ export function ScoreImportReview({
                         return (
                           <option key={candidate} value={candidate}>
                             {participant
-                              ? `${participant.name}（${participant.classId}）`
+                              ? `${participant.name}（${classNames.nameOf(participant.classId)}）`
                               : candidate}
                           </option>
                         );
@@ -543,13 +546,13 @@ export function ScoreImportReview({
                       <label className="assessments-check">
                         <input
                           type="checkbox"
-                          aria-label={`承认 ${group.classId} 缺考 ${group.participantIds.length} 人次`}
+                          aria-label={`承认 ${classNames.nameOf(group.classId)} 缺考 ${group.participantIds.length} 人次`}
                           checked={ackAbsences}
                           disabled={editingLocked}
                           onChange={(event) => setAckAbsences(event.target.checked)}
                         />
                         <span>
-                          {group.classId}：{group.participantIds.length} 名缺考人次
+                          {classNames.nameOf(group.classId)}：{group.participantIds.length} 名缺考人次
                           <span className="assessments-meta">
                             {group.participantIds
                               .map((id) => confirmedParticipants(id)?.name ?? id)

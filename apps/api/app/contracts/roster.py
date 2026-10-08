@@ -46,6 +46,9 @@ ROSTER_IMPORT_FIELDS: tuple[str, ...] = ("studentNo", "name")
 
 CLASS_CODE_CONFLICT = "CLASS_CODE_CONFLICT"
 CLASS_ARCHIVED = "CLASS_ARCHIVED"
+#: 受引用守卫：班级仍被名单/施测/教案引用（删除被 409 拒绝，details 列出计数）
+CLASS_IN_USE = "CLASS_IN_USE"
+STUDENT_ARCHIVED = "STUDENT_ARCHIVED"
 STUDENT_NO_CONFLICT = "STUDENT_NO_CONFLICT"
 ROSTER_ROW_INVALID = "ROSTER_ROW_INVALID"
 ROSTER_IDENTITY_UNRESOLVED = "ROSTER_IDENTITY_UNRESOLVED"
@@ -103,6 +106,57 @@ class ClassUpdateRequest(_Strict):
 
 
 class ClassRevisionRequest(_Strict):
+    expected_revision: int = Field(alias="expectedRevision", ge=0)
+
+
+class BatchStudentItem(_Strict):
+    """批量添加学生的一行：``studentNo`` 可空（无学号显式建档）；姓名允许重名。
+
+    姓名为空/学号超长等**行级合法性**由服务层逐行校验（422 + ``details.issues[].row``
+    定位行号并整批回滚），契约层只保证形状（字符串/长度上限防滥用）。
+    """
+
+    student_no: str | None = Field(default=None, alias="studentNo", max_length=200)
+    name: str = Field(max_length=200)
+
+    @field_validator("student_no")
+    @classmethod
+    def normalize_student_no(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        text = value.strip()
+        return text or None
+
+
+class BatchStudentAddRequest(_Strict):
+    """批量添加学生（单事务逐行处理；1..200 行）。"""
+
+    submission_id: str = Field(alias="submissionId", min_length=1, max_length=128)
+    items: list[BatchStudentItem] = Field(min_length=1, max_length=200)
+    joined_on: str | None = Field(default=None, alias="joinedOn", min_length=10, max_length=10)
+
+
+class BatchStudentSkippedRow(_Frozen):
+    """被跳过的行（学号已存在）：定位到请求 ``items`` 的 0 基下标。"""
+
+    index: int = Field(ge=0)
+    reason: str
+    code: str
+    existing_student_id: str | None = Field(default=None, alias="existingStudentId")
+    existing_name: str | None = Field(default=None, alias="existingName")
+
+
+class BatchStudentAddResult(_Frozen):
+    """批量添加结果：新建学生列表 + 被跳过行 + 是否幂等重放。"""
+
+    created: list[StudentView] = Field(default_factory=list)
+    skipped: list[BatchStudentSkippedRow] = Field(default_factory=list)
+    replayed: bool = False
+
+
+class StudentRevisionRequest(_Strict):
+    """学生归档/恢复的乐观锁请求（与班级同形；名称分开以免误用）。"""
+
     expected_revision: int = Field(alias="expectedRevision", ge=0)
 
 
@@ -199,6 +253,10 @@ class RosterImportView(_Frozen):
 class RosterImportSummary(_Frozen):
     import_id: str = Field(alias="importId")
     class_id: str = Field(alias="classId")
+    # 班名与上传原文件名（只读派生）：roster_imports JOIN classes.name /
+    # file_asset_id → file_assets.original_name；关联缺失时为 null（不伪造名称）。
+    class_name: str | None = Field(default=None, alias="className")
+    uploaded_file_name: str | None = Field(default=None, alias="uploadedFileName")
     state: RosterImportState
     revision: int = Field(ge=0)
     row_count: int = Field(alias="rowCount", ge=0)
@@ -225,6 +283,12 @@ class RosterImportPatchRequest(_Strict):
     expected_revision: int = Field(alias="expectedRevision", ge=0)
     mapping: dict[str, str] | None = None
     rows: list[RosterImportRowPatch] | None = None
+
+
+class RosterImportDiscardRequest(_Strict):
+    """放弃未确认批次：只把状态置 ``cancelled``；批次记录、原始文件与预览行保留。"""
+
+    expected_revision: int = Field(alias="expectedRevision", ge=0)
 
 
 class RosterIdentityMatch(_Strict):

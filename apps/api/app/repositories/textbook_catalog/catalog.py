@@ -1057,7 +1057,8 @@ class TextbookCatalog:
         )
         return [self._profile_record(row) for row in rows]
 
-    def retire_embedding_profile(self, profile_id: str) -> None:
+    def retire_embedding_profile(self, profile_id: str) -> ProfileRecord:
+        """软停用：``retired_at`` 为空才写入，重复停用幂等；存在性检查与写入在同一写事务。"""
         profile_id = _text(profile_id, field="profile_id")
         with self._write() as conn:
             row = conn.execute(
@@ -1070,6 +1071,29 @@ class TextbookCatalog:
                     "UPDATE embedding_profiles SET retired_at = ? WHERE id = ?",
                     (now_iso(), profile_id),
                 )
+            updated = conn.execute(
+                "SELECT * FROM embedding_profiles WHERE id = ?", (profile_id,)
+            ).fetchone()
+            return self._profile_record(updated)
+
+    def delete_embedding_profile(self, profile_id: str) -> None:
+        """硬删：仅允许从未被任何索引代引用的配置；存在性 + 引用检查 + 删除在同一写事务内完成。"""
+        profile_id = _text(profile_id, field="profile_id")
+        with self._write() as conn:
+            row = conn.execute(
+                "SELECT id FROM embedding_profiles WHERE id = ?", (profile_id,)
+            ).fetchone()
+            if row is None:
+                raise _not_found("Embedding 配置不存在。", code="PROFILE_NOT_FOUND")
+            referenced = conn.execute(
+                "SELECT COUNT(*) FROM index_generations WHERE profile_id = ?", (profile_id,)
+            ).fetchone()[0]
+            if referenced:
+                raise _conflict(
+                    "该配置已被索引代使用，请改用停用。",
+                    code="EMBEDDING_PROFILE_IN_USE",
+                )
+            conn.execute("DELETE FROM embedding_profiles WHERE id = ?", (profile_id,))
 
     # ------------------------------------------------------------ 索引任务
 
@@ -1435,6 +1459,33 @@ class TextbookCatalog:
                     "WHERE id = ?",
                     (*updates.values(), now_iso(), import_id),
                 )
+            return self._import_record(self._import_row(conn, import_id))
+
+    def set_import_state(
+        self,
+        import_id: str,
+        *,
+        state: str,
+        error_code: str | None = None,
+        expected_revision: int | None = None,
+    ) -> ImportRecord:
+        """单独推进草稿状态（放弃等状态迁移用）：同事务内先比 revision 再写。
+
+        与 ``update_import`` 的区别是 ``expected_revision`` 可选：状态迁移的乐观锁由
+        服务层在读取快照上判断后传入，写入前在同一事务内复核（CAS），并发编辑不会
+        被静默覆盖；其余校验（state 合法性、行存在、递增 revision、更新时间）一致。
+        """
+        state = _choice(state, field="state", allowed=IMPORT_STATES)
+        error_code = _optional_text(error_code, field="error_code")
+        with self._write() as conn:
+            row = self._require_import_row(conn, import_id)
+            if expected_revision is not None:
+                self._check_revision(row["revision"], expected_revision, what="导入草稿")
+            conn.execute(
+                "UPDATE import_drafts SET state = ?, error_code = ?, "
+                "revision = revision + 1, updated_at = ? WHERE id = ?",
+                (state, error_code, now_iso(), import_id),
+            )
             return self._import_record(self._import_row(conn, import_id))
 
     # ------------------------------------------------------------ 任教设置

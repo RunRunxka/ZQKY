@@ -5,7 +5,7 @@ import Link from 'next/link';
 import type { AnalysisRunView, PracticeCreateRequest, PracticeSetView } from '@/contracts/b4';
 import { b4Api } from '@/services/teaching-loop-b4-api';
 import { useFrozenSubmission } from '@/features/assessments/hooks';
-import { SubmissionNotice } from '@/features/learning-analysis/ui';
+import { SubmissionNotice, nameOrShortId, stampText } from '@/features/learning-analysis/ui';
 import { ConstraintsFields, defaultConstraints } from './ConstraintsFields';
 
 export function CreatePracticeForm({ run, services = b4Api, onCreated, onLocked }: {
@@ -26,7 +26,7 @@ export function CreatePracticeForm({ run, services = b4Api, onCreated, onLocked 
     if (result) onCreated(result);
   }
   return <section className="b4-section" aria-label="创建针对练习">
-    <h2>选择目标，创建针对练习</h2><p className="b4-hint">依据固定报告 {run.runId}。先选择需要练习的知识点，再核对正式题与缺口。</p>
+    <h2>选择目标，创建针对练习</h2><p className="b4-hint" title={`分析运行 ${run.runId}`}>依据固定报告「{nameOrShortId(run.paperTitle, run.runId)}」{run.createdAt ? ` · ${stampText(run.createdAt)}` : ''}。先选择需要练习的知识点，再核对正式题与缺口。</p>
     {!ready && <p role="status">报告尚未准备好，不能创建练习。</p>}
     <fieldset disabled={locked || !ready}>
       <label className="b4-field">练习标题<input aria-label="练习标题" maxLength={200} value={title} onChange={(event) => setTitle(event.target.value)} /></label>

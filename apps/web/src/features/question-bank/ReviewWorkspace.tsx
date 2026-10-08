@@ -44,6 +44,7 @@ import { MergePanel } from './MergePanel';
 import {
   ORGANIZER_CLOUD_NOTICE,
   ORGANIZER_NO_DEFAULT_REASON,
+  QUESTION_MODEL_SETTINGS_HREF,
   organizerCatalogErrorReason,
   pickOrganizerChatModel,
   resolveOrganizerChatModel,
@@ -365,7 +366,7 @@ function ReviewSession({ importId, returnPracticeSetId }: { importId: string; re
           .filter((draft) => draft.reviewState !== 'excluded')
           .map((draft) => draft.draftId),
         includeUnassigned,
-        // 当前聊天模型 profile id（本地或云端均可）；绝不是模型名、不是空串
+        // 云端聊天模型 profile id（题库 AI 不使用本机模型）；绝不是模型名、不是空串
         modelProfileId: next.profileId,
       });
       if (!isCurrent()) return;
@@ -688,7 +689,9 @@ function ReviewSession({ importId, returnPracticeSetId }: { importId: string; re
                   ))}
                 </nav>
 
-                <div className="qb-review-layout" data-motion-reveal>
+                {/* 两栏工作区不做入场动画：整块网格被 translate 时含 sticky 原文栏，
+                    在数据加载窗口内滚动会出现"整块滑一下"的割裂感；页头/草稿条保留入场。 */}
+                <div className="qb-review-layout">
                   <SourcePane draft={selectedDraft} unassignedBlocks={detail.unassignedBlocks} />
                   {selectedDraft && (
                     <fieldset disabled={confirmationLocked} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
@@ -725,6 +728,9 @@ function ReviewSession({ importId, returnPracticeSetId }: { importId: string; re
                         data-testid="qb-organizer-model"
                       >
                         {activeModel.reason ?? ORGANIZER_NO_DEFAULT_REASON}
+                        <Link className="space-button" href={QUESTION_MODEL_SETTINGS_HREF}>
+                          去设置默认问答模型
+                        </Link>
                       </p>
                     )}
                     {frozenModel && (
@@ -788,8 +794,8 @@ function ReviewSession({ importId, returnPracticeSetId }: { importId: string; re
                     {!activeModel.available && (
                       <p className="qb-hint">
                         「AI
-                        整理草稿」在聊天模型可用前不可点：请到「模型设置」选择并修复默认问答模型
-                        （本地或云端均可）；读取模型配置不会调用模型。
+                        整理草稿」在可用的云端聊天模型就绪前不可点：请到「模型设置 → 模型与连接」选择并修复
+                        默认问答模型（题库 AI 不使用本机模型）；读取模型配置不会调用模型。
                       </p>
                     )}
                     {organizeError && (

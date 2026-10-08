@@ -12,11 +12,14 @@
 | --- | --- |
 | GET/POST `/classes`、GET/PATCH `/classes/{id}` | 班级 CRUD（`schoolYear`+`code` 用户内唯一） |
 | POST `/classes/{id}/archive`、`/restore` | 归档/恢复（`expectedRevision`；归档仍可读） |
-| GET `/classes/{id}/students` | 该班活跃成员（含归属历史） |
-| GET `/students`（`q` 模糊）、GET/POST `/students` | 学生身份 |
-| PATCH `/students/{id}`、POST `/students/{id}/transfer` | 改名/改学号（乐观锁）、转班 |
+| DELETE `/classes/{id}?expectedRevision=N` | 受引用守卫的彻底删除（归属/施测范围/教案任一引用 → 409 `CLASS_IN_USE` 列出计数） |
+| POST `/classes/{id}/students/batch` | 批量添加学生（`submissionId` 幂等；学号已存在跳过并说明） |
+| GET `/classes/{id}/students` | 该班活跃成员（含归属历史；默认不含已归档学生，`includeArchived=true` 可带出） |
+| GET `/students`（`q` 模糊 / `status` 过滤）、GET/POST `/students` | 学生身份 |
+| PATCH `/students/{id}`、POST `/students/{id}/transfer` | 改名/改学号（乐观锁）、转班（归档学生拒绝） |
+| POST `/students/{id}/archive`、`/restore` | 归档/恢复学生（`expectedRevision`；归属历史保留） |
 | POST `/classes/{id}/roster-imports` | multipart 名单上传 + 预览 |
-| GET `/roster-imports`、GET/PATCH `/roster-imports/{id}`、POST `/{id}/confirm` | 批次/预览/校对/确认（幂等） |
+| GET `/roster-imports`、GET/PATCH `/roster-imports/{id}`、POST `/{id}/confirm`、POST `/{id}/discard` | 批次/预览/校对/确认（幂等）/放弃未确认批次 |
 """
 
 from __future__ import annotations
@@ -28,6 +31,8 @@ import anyio
 from fastapi import APIRouter, Query, Request, status
 
 from app.contracts.roster import (
+    BatchStudentAddRequest,
+    BatchStudentAddResult,
     ClassCreateRequest,
     ClassList,
     ClassRevisionRequest,
@@ -36,11 +41,13 @@ from app.contracts.roster import (
     MembershipTransferRequest,
     RosterImportConfirmRequest,
     RosterImportConfirmResult,
+    RosterImportDiscardRequest,
     RosterImportList,
     RosterImportPatchRequest,
     RosterImportView,
     StudentCreateRequest,
     StudentList,
+    StudentRevisionRequest,
     StudentUpdateRequest,
     StudentView,
 )
@@ -158,10 +165,37 @@ async def restore_class(
     return await _run(service.set_archived, class_id, body, archived=False)
 
 
-@router.get("/classes/{class_id}/students")
-async def list_class_students(request: Request, class_id: str) -> StudentList:
+@router.delete("/classes/{class_id}")
+async def delete_class(
+    request: Request,
+    class_id: str,
+    expectedRevision: int = Query(ge=0),
+) -> dict:
+    """受引用守卫的彻底删除：无下游引用才物理删除；被引用时 409 ``CLASS_IN_USE``。"""
     service = _service(request)
-    return await _run(service.list_class_students, class_id)
+    payload = ClassRevisionRequest(expectedRevision=expectedRevision)
+    return await _run(service.delete_class, class_id, payload)
+
+
+@router.post("/classes/{class_id}/students/batch")
+async def batch_add_students(
+    request: Request, class_id: str, body: BatchStudentAddRequest
+) -> BatchStudentAddResult:
+    """批量添加学生：单事务逐行处理；学号已存在跳过并说明；同 submissionId 幂等重放。"""
+    service = _service(request)
+    return await _run(service.batch_add_students, class_id, body)
+
+
+@router.get("/classes/{class_id}/students")
+async def list_class_students(
+    request: Request,
+    class_id: str,
+    includeArchived: bool = Query(default=False),
+) -> StudentList:
+    service = _service(request)
+    return await _run(
+        service.list_class_students, class_id, include_archived=includeArchived
+    )
 
 
 # --------------------------------------------------------------------------- 学生
@@ -171,11 +205,14 @@ async def list_class_students(request: Request, class_id: str) -> StudentList:
 async def list_students(
     request: Request,
     q: str | None = Query(default=None),
+    status_filter: str | None = Query(default=None, alias="status"),
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=200),
 ) -> StudentList:
     service = _service(request)
-    return await _run(service.list_students, q=q, offset=offset, limit=limit)
+    return await _run(
+        service.list_students, q=q, status=status_filter, offset=offset, limit=limit
+    )
 
 
 @router.post("/students", status_code=status.HTTP_201_CREATED)
@@ -204,6 +241,22 @@ async def transfer_student(
 ) -> StudentView:
     service = _service(request)
     return await _run(service.transfer_student, student_id, body)
+
+
+@router.post("/students/{student_id}/archive")
+async def archive_student(
+    request: Request, student_id: str, body: StudentRevisionRequest
+) -> StudentView:
+    service = _service(request)
+    return await _run(service.set_student_archived, student_id, body, archived=True)
+
+
+@router.post("/students/{student_id}/restore")
+async def restore_student(
+    request: Request, student_id: str, body: StudentRevisionRequest
+) -> StudentView:
+    service = _service(request)
+    return await _run(service.set_student_archived, student_id, body, archived=False)
 
 
 # --------------------------------------------------------------------------- 名单导入
@@ -285,6 +338,14 @@ async def confirm_roster_import(
 ) -> RosterImportConfirmResult:
     service = _service(request)
     return await _run(service.confirm_roster_import, import_id, body)
+
+
+@router.post("/roster-imports/{import_id}/discard")
+async def discard_roster_import(
+    request: Request, import_id: str, body: RosterImportDiscardRequest
+) -> RosterImportView:
+    service = _service(request)
+    return await _run(service.discard_roster_import, import_id, body)
 
 
 __all__ = ["router"]

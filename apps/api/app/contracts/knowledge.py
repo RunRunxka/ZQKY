@@ -55,6 +55,9 @@ KNOWLEDGE_CROSS_SUBJECT_PARENT = "KNOWLEDGE_CROSS_SUBJECT_PARENT"
 KNOWLEDGE_CYCLE = "KNOWLEDGE_CYCLE"
 KNOWLEDGE_ARCHIVED = "KNOWLEDGE_ARCHIVED"
 KNOWLEDGE_ROW_INVALID = "KNOWLEDGE_ROW_INVALID"
+KNOWLEDGE_POINT_IN_USE = "KNOWLEDGE_POINT_IN_USE"
+KNOWLEDGE_SCOPE_UNAVAILABLE = "KNOWLEDGE_SCOPE_UNAVAILABLE"
+KNOWLEDGE_EXTRACTION_NOT_READY = "KNOWLEDGE_EXTRACTION_NOT_READY"
 KNOWLEDGE_IMPORT_BLOCKING_ISSUES = "KNOWLEDGE_IMPORT_BLOCKING_ISSUES"
 KNOWLEDGE_IMPORT_CONFIRMED = "KNOWLEDGE_IMPORT_CONFIRMED"
 KNOWLEDGE_SUBJECT_UNKNOWN = "KNOWLEDGE_SUBJECT_UNKNOWN"
@@ -99,6 +102,8 @@ class KnowledgePointView(_Frozen):
     revision_id: str | None = Field(default=None, alias="revisionId")
     version: int = Field(default=0, ge=0)
     aliases: list[str] = Field(default_factory=list)
+    #: 教材依据文档的年级去重集合（只读展示字段；无依据或未按需查询为空列表）
+    grade_ids: list[str] = Field(default_factory=list, alias="gradeIds")
     created_at: str = Field(alias="createdAt")
 
 
@@ -176,6 +181,8 @@ class KnowledgeImportView(_Frozen):
     state: KnowledgeImportState
     revision: int = Field(ge=0)
     file_asset: AssetRef = Field(alias="fileAsset")
+    #: 原始上传文件名（教学库 file_assets.original_name；读取失败为 None，不伪造）
+    uploaded_file_name: str | None = Field(default=None, alias="uploadedFileName")
     headers: list[str] = Field(default_factory=list)
     mapping: dict[str, str] = Field(default_factory=dict)
     warnings: list[str] = Field(default_factory=list)
@@ -193,6 +200,8 @@ class KnowledgeImportSummary(_Frozen):
     revision: int = Field(ge=0)
     row_count: int = Field(alias="rowCount", ge=0)
     blocking_issue_count: int = Field(alias="blockingIssueCount", ge=0)
+    #: 原始上传文件名（教学库 file_assets.original_name；读取失败为 None，不伪造）
+    uploaded_file_name: str | None = Field(default=None, alias="uploadedFileName")
     created_at: str = Field(alias="createdAt")
     updated_at: str = Field(alias="updatedAt")
 
@@ -215,6 +224,12 @@ class KnowledgeImportPatchRequest(_Strict):
     expected_revision: int = Field(alias="expectedRevision", ge=0)
     mapping: dict[str, str] | None = None
     rows: list[KnowledgeImportRowPatch] | None = None
+
+
+class KnowledgeImportDiscardRequest(_Strict):
+    """放弃未确认批次：只把状态置 ``cancelled``；批次记录、原始文件与预览行保留。"""
+
+    expected_revision: int = Field(alias="expectedRevision", ge=0)
 
 
 class KnowledgeImportConfirmRequest(_Strict):
@@ -329,3 +344,57 @@ class KnowledgeSuggestionCandidate(_Frozen):
         default=None, alias="existingKnowledgePointId"
     )
     evidence_ids: list[str] = Field(default_factory=list, alias="evidenceIds")
+
+
+# --------------------------------------------------------------------------- 知识点提取（教材 → 候选）
+
+
+class KnowledgeExtractionDocument(_Frozen):
+    """预览清单里的一本教材：取材范围 + 就绪状态（未就绪书册带 reason，不伪造）。"""
+
+    document_id: str = Field(alias="documentId")
+    title: str
+    grade_ids: list[str] = Field(alias="gradeIds")
+    #: 当前修订 id（无修订为 None → 必然未就绪）
+    revision_id: str | None = Field(default=None, alias="revisionId")
+    chunk_count: int = Field(alias="chunkCount", ge=0)
+    approx_chars: int = Field(alias="approxChars", ge=0)
+    #: 当前索引代是否包含该修订（正文分块可作 AI 证据）
+    index_ready: bool = Field(alias="indexReady")
+    #: 未就绪原因（就绪书册为 None）
+    reason: str | None = None
+
+
+class KnowledgeExtractionPreview(_Frozen):
+    """某学科全部已入库教材的提取预览：清单 + 合计（只读，不建任务）。"""
+
+    subject_id: str = Field(alias="subjectId")
+    documents: list[KnowledgeExtractionDocument] = Field(default_factory=list)
+    total_documents: int = Field(alias="totalDocuments", ge=0)
+    ready_documents: int = Field(alias="readyDocuments", ge=0)
+    total_chunks: int = Field(alias="totalChunks", ge=0)
+    approx_chars: int = Field(alias="approxChars", ge=0)
+
+
+class KnowledgeExtractionRequest(_Strict):
+    """提取任务受理请求：每个书册一个 AI 候选任务；缺省 = 该学科全部就绪书册。"""
+
+    submission_id: str = Field(alias="submissionId", min_length=1, max_length=128)
+    model_profile_id: str = Field(alias="modelProfileId", min_length=1, max_length=128)
+    subject_id: str = Field(alias="subjectId", min_length=1, max_length=64)
+    #: 缺省 = 该学科全部就绪书册；指定时仅这些（含未就绪书册 → 409 逐册列出）
+    document_ids: list[str] | None = Field(
+        default=None, alias="documentIds", max_length=64
+    )
+
+    @field_validator("document_ids")
+    @classmethod
+    def unique_documents(cls, value: list[str] | None) -> list[str] | None:
+        if value is None:
+            return None
+        cleaned = [item.strip() for item in value]
+        if any(not item for item in cleaned):
+            raise ValueError("documentIds 不允许空字符串")
+        if len(set(cleaned)) != len(cleaned):
+            raise ValueError("documentIds 不允许重复")
+        return cleaned

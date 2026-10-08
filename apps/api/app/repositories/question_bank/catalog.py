@@ -107,8 +107,10 @@ def _not_found(message: str, *, code: str) -> AppError:
     return AppError(message, code=code, status_code=404)
 
 
-def _conflict(message: str, *, code: str, retryable: bool = False) -> AppError:
-    return AppError(message, code=code, status_code=409, retryable=retryable)
+def _conflict(
+    message: str, *, code: str, retryable: bool = False, details: dict | None = None
+) -> AppError:
+    return AppError(message, code=code, status_code=409, retryable=retryable, details=details)
 
 
 def _corrupt(message: str) -> AppError:
@@ -450,6 +452,112 @@ class QuestionBankCatalog:
             "revision = revision + 1, updated_at = ? WHERE id = ?",
             (state, error_code, now_iso(), import_id),
         )
+
+    #: 彻底删除批次的守卫错误码（服务层转成 409 响应）
+    DELETE_GUARD_CONFIRMED = "IMPORT_ALREADY_CONFIRMED"
+    DELETE_GUARD_IN_USE = "IMPORT_IN_USE"
+
+    def delete_import(self, import_id: str) -> dict[str, int]:
+        """彻底删除一个导入批次及其解析产物（**单写事务**，按外键依赖顺序删除）。
+
+        守卫（任一命中 → 409，一个字节都不删，错误码经 ``AppError`` 抛出）：
+
+        - ``state == 'confirmed'``：正式题源自该批次，来源追溯必须保留；
+        - 该批次被正式题引用：``question_sources.import_id`` 指向本批次（确认时
+          冻结的来源行），或本批次草稿 ``duplicate_of_question_id`` 指向正式题
+          （跳过/并入的处置记录）。
+
+        通过后按外键依赖顺序在同一事务内删除：
+        ``question_suggestions``（指向本批次草稿的建议）→
+        ``question_draft_knowledge_links`` → ``question_source_blocks`` →
+        ``question_drafts`` → ``question_import_provenance`` → ``question_imports``。
+
+        触发器核对（2026-10-08）：题库仅有 ``question_knowledge_links`` 的
+        不可变 UPDATE/DELETE 触发器，挂在题目修订上；本删除路径不触碰该表，
+        其余表无触发器，不存在不可删障碍。
+
+        **受管原件（``blobs/<sha256>``）不物理删除**：内容寻址、可能被其他批次
+        复用，交由独立清理策略处理；本方法只删库行，不删任何文件。
+
+        返回各类删除行数（供服务层回执与测试断言）；批次不存在 → 404。
+        """
+        import_id = _text(import_id, field="import_id")
+        with self._write() as conn:
+            row = self._import_row_in(conn, import_id)
+            if row is None:
+                raise _not_found("导入不存在。", code="IMPORT_NOT_FOUND")
+            if row["state"] == "confirmed":
+                raise _conflict(
+                    "该导入已确认入库，正式题源自它，来源追溯必须保留；不能彻底删除。",
+                    code=self.DELETE_GUARD_CONFIRMED,
+                )
+            draft_ids = [
+                str(item["id"])
+                for item in conn.execute(
+                    "SELECT id FROM question_drafts WHERE import_id = ?", (import_id,)
+                ).fetchall()
+            ]
+            source_ref_count = int(
+                conn.execute(
+                    "SELECT COUNT(*) AS total FROM question_sources WHERE import_id = ?",
+                    (import_id,),
+                ).fetchone()["total"]
+            )
+            placeholders = ", ".join("?" for _ in draft_ids) or "NULL"
+            merged_draft_count = 0
+            if draft_ids:
+                merged_draft_count = int(
+                    conn.execute(
+                        "SELECT COUNT(*) AS total FROM question_drafts "
+                        f"WHERE id IN ({placeholders}) AND duplicate_of_question_id IS NOT NULL",
+                        draft_ids,
+                    ).fetchone()["total"]
+                )
+            if source_ref_count or merged_draft_count:
+                raise _conflict(
+                    "该批次的草稿被正式题引用（来源追溯或并入记录存在），不能彻底删除。",
+                    code=self.DELETE_GUARD_IN_USE,
+                    details={
+                        "sourceRefCount": source_ref_count,
+                        "mergedDraftCount": merged_draft_count,
+                    },
+                )
+            deleted: dict[str, int] = {}
+            if draft_ids:
+                # ① AI 建议：target_draft_id 都属于本批次（整理只对本批次草稿提建议）
+                cursor = conn.execute(
+                    f"DELETE FROM question_suggestions WHERE target_draft_id IN ({placeholders})",
+                    draft_ids,
+                )
+                deleted["suggestions"] = cursor.rowcount
+                # ② 草稿知识点关联
+                cursor = conn.execute(
+                    "DELETE FROM question_draft_knowledge_links "
+                    f"WHERE draft_id IN ({placeholders})",
+                    draft_ids,
+                )
+                deleted["draftKnowledgeLinks"] = cursor.rowcount
+            else:
+                deleted["suggestions"] = 0
+                deleted["draftKnowledgeLinks"] = 0
+            # ③ 原文块 ④ 草稿 ⑤ 生成来源 ⑥ 批次行
+            cursor = conn.execute(
+                "DELETE FROM question_source_blocks WHERE import_id = ?", (import_id,)
+            )
+            deleted["sourceBlocks"] = cursor.rowcount
+            cursor = conn.execute(
+                "DELETE FROM question_drafts WHERE import_id = ?", (import_id,)
+            )
+            deleted["drafts"] = cursor.rowcount
+            cursor = conn.execute(
+                "DELETE FROM question_import_provenance WHERE import_id = ?", (import_id,)
+            )
+            deleted["provenance"] = cursor.rowcount
+            cursor = conn.execute(
+                "DELETE FROM question_imports WHERE id = ?", (import_id,)
+            )
+            deleted["imports"] = cursor.rowcount
+            return deleted
 
     # ------------------------------------------------------------- 原文块
 

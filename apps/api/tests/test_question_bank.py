@@ -188,14 +188,21 @@ def make_handle(
     max_output_tokens: int = 2048,
     provider: Any | None = None,
     api_key: str | None = FAKE_API_KEY,
+    provider_id: str | None = None,
 ) -> ChatModelHandle:
-    """构造真实的 ``ChatModelHandle``（只把 Provider 换成替身）。"""
+    """构造真实的 ``ChatModelHandle``（只把 Provider 换成替身）。
+
+    ``provider_id`` 用于云端闸门用例：设为 ``ollama`` 等本机供应商时，
+    生产判定 ``find_provider(providerId).is_local`` 会拒绝该句柄；
+    缺省 ``None`` 模拟"未识别供应商"的替身句柄（闸门不假设本机，放行）。
+    """
     config = LLMConfig(
         protocol=protocol,
         baseUrl=base_url,
         modelId=model_id,
         apiKey=api_key,
         apiFormat=api_format,
+        providerId=provider_id,
         connectionId="conn-1",
         modelProfileId=profile_id,
     )

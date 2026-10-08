@@ -79,6 +79,11 @@ export interface PaperConfirmRequest {
   submissionId: string;
 }
 
+/** 原卷归档/恢复（对应后端 `PaperRevisionRequest`：只带乐观锁修订号，不携带内容）。 */
+export interface PaperRevisionRequest {
+  expectedRevision: number;
+}
+
 export interface PaperProposalJobRequest {
   modelProfileId: string;
   expectedRevision: number;
@@ -191,6 +196,22 @@ export interface PaperConfirmResult {
   totalScoreUnits: number;
   scoredLeafCount: number;
   replayed: boolean;
+}
+
+/**
+ * 彻底删除原卷回执（200）：物理删除不可恢复。
+ * 被施测引用 → 409 `PAPER_IN_USE`（`details.counts.assessments`）；
+ * 有已确认修订 → 409 `PAPER_HAS_CONFIRMED_REVISION`（`details.counts.confirmedRevisions`，只能归档）。
+ */
+export interface PaperDeleteResult {
+  deleted: boolean;
+  paperId: string;
+}
+
+/** 原卷 409 守卫的逐项引用计数（两键不会同时出现；未知键由界面原样列出）。 */
+export interface PaperReferenceCounts {
+  assessments: number;
+  confirmedRevisions: number;
 }
 
 export interface PaperProposalItemView {

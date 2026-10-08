@@ -123,18 +123,23 @@ const CHAT_PROFILE_ID = 'p-chat-1';
 const CHAT_MODEL_ID = 'qwen2.5:7b';
 const CLOUD_PROFILE_ID = 'p-chat-cloud';
 
+/**
+ * 默认夹具 = **云端**档案：题库 AI 自 2026-10-07 起不使用本机模型，
+ * 本机档案会被前端 gate 与后端 422 一并拒绝，因此「可整理」的基准场景必须是云端；
+ * 本机场景用 `localCatalog()` 单独构造（见「本机档案被拒绝」用例）。
+ */
 function connection(overrides: Partial<ModelConnectionView> = {}): ModelConnectionView {
   return {
     id: 'conn-1',
-    displayName: '本机 Ollama',
-    providerId: 'ollama',
-    providerLabel: 'Ollama',
+    displayName: 'DeepSeek 云端',
+    providerId: 'deepseek',
+    providerLabel: 'DeepSeek',
     protocol: 'openai-chat',
     apiFormat: 'auto',
     apiVersion: null,
     baseUrl: '',
-    resolvedBaseUrl: 'http://localhost:11434/v1',
-    hasCredential: false,
+    resolvedBaseUrl: 'https://api.deepseek.com/v1',
+    hasCredential: true,
     hasManagedCredential: false,
     callable: true,
     callableReason: null,
@@ -150,7 +155,7 @@ function profile(overrides: Partial<ModelProfileView> = {}): ModelProfileView {
   return {
     id: CHAT_PROFILE_ID,
     connectionId: 'conn-1',
-    displayName: '本机问答',
+    displayName: '云端问答',
     modelId: CHAT_MODEL_ID,
     purpose: 'chat',
     contextTokens: 8192,
@@ -161,12 +166,12 @@ function profile(overrides: Partial<ModelProfileView> = {}): ModelProfileView {
     reasoningStyle: null,
     capabilities: {},
     connection: {
-      displayName: '本机 Ollama',
-      providerId: 'ollama',
-      providerLabel: 'Ollama',
+      displayName: 'DeepSeek 云端',
+      providerId: 'deepseek',
+      providerLabel: 'DeepSeek',
       protocol: 'openai-chat',
       apiFormat: 'auto',
-      hasCredential: false,
+      hasCredential: true,
     },
     createdAt: '2026-09-29T00:00:00Z',
     updatedAt: '2026-09-29T00:00:00Z',
@@ -182,6 +187,39 @@ function catalog(overrides: Partial<ModelCatalog> = {}): ModelCatalog {
     profiles: [profile()],
     ...overrides,
   };
+}
+
+/** 本机 Ollama 档案（后端 `is_local=True`）：题库 AI 一律拒绝，入口禁用并给原因。 */
+function localCatalog(): ModelCatalog {
+  return catalog({
+    defaultChatProfileId: 'p-local-1',
+    connections: [
+      connection({
+        id: 'conn-local',
+        displayName: '本机 Ollama',
+        providerId: 'ollama',
+        providerLabel: 'Ollama',
+        resolvedBaseUrl: 'http://localhost:11434/v1',
+        hasCredential: false,
+      }),
+    ],
+    profiles: [
+      profile({
+        id: 'p-local-1',
+        connectionId: 'conn-local',
+        displayName: '本机问答',
+        modelId: 'qwen2.5:7b',
+        connection: {
+          displayName: '本机 Ollama',
+          providerId: 'ollama',
+          providerLabel: 'Ollama',
+          protocol: 'openai-chat',
+          apiFormat: 'auto',
+          hasCredential: false,
+        },
+      }),
+    ],
+  });
 }
 
 /** 云端（非回环地址）聊天模型目录。 */
@@ -357,7 +395,11 @@ describe('校对工作台：加载与原文', () => {
 
     const source = screen.getByRole('complementary', { name: '原文与定位' });
     expect(within(source).getByText(/字符 10–40/)).toBeInTheDocument();
-    expect(within(source).getAllByText('b-1').length).toBeGreaterThan(0);
+    // ID 降级：主文案是可读序号，完整 blockId 只放在 title 里
+    const unassigned = within(source).getByText('原文块 4');
+    expect(unassigned).toHaveAttribute('title', 'b-9');
+    const spanLabel = within(source).getByText('原文块（序号未返回）');
+    expect(spanLabel).toHaveAttribute('title', 'b-1');
   });
 
   it('读取失败显示错误与重试，不显示空态；重试成功后恢复真实数据', async () => {
@@ -583,11 +625,12 @@ describe('确认入库', () => {
     fireEvent.click(await screen.findByRole('button', { name: /确认入库（1 道）/ }));
 
     expect(await screen.findByText('没有任何题目被入库')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        /d-1 · MISSING_ANSWER_NOT_ACKNOWLEDGED：原文未提供答案的题目需要显式确认后才能入库。/,
-      ),
-    ).toBeInTheDocument();
+    // failures 清单里的草稿标识已降级为「#序号 题型」（完整 draftId 在 title 里）
+    const failureLine = screen.getByText(
+      /MISSING_ANSWER_NOT_ACKNOWLEDGED：原文未提供答案的题目需要显式确认后才能入库。/,
+    );
+    expect(failureLine).toHaveTextContent('#1 单选题');
+    expect(within(failureLine).getByTitle('d-1')).toBeInTheDocument();
     expect(screen.getByText(/提交标识 sub-1/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /确认入库（1 道）/ }));
@@ -604,6 +647,30 @@ describe('确认入库', () => {
     expect(bodyAt(fetchMock, '/question-imports/imp-1/confirm', 'POST', 0).items).toEqual([
       { draftId: 'd-1', expectedDraftRevision: 5 },
     ]);
+  });
+
+  it('确认清单的草稿标识降级为「#序号 题型」（完整 draftId 在 title 里）', async () => {
+    const reviewed = detail({
+      drafts: [
+        draft({ reviewState: 'reviewed' }),
+        draft({
+          draftId: 'd-2',
+          reviewState: 'reviewed',
+          content: { ...CONTENT, type: 'fill_blank', stemMarkdown: '第二草稿' },
+        }),
+      ],
+      reviewedCount: 2,
+    });
+    router({ 'GET /api/v1/question-imports/imp-1': () => jsonResponse(true, 200, reviewed) }, reviewed);
+    render(<ReviewWorkspace importId="imp-1" />);
+
+    const panel = await screen.findByRole('region', { name: '确认入库' });
+    const first = within(panel).getByTitle('d-1');
+    expect(first).toHaveTextContent('#1 单选题');
+    const second = within(panel).getByTitle('d-2');
+    expect(second).toHaveTextContent('#2 填空题');
+    // 原始 uuid 不再是主文案
+    expect(within(panel).queryByText('d-1')).not.toBeInTheDocument();
   });
 });
 
@@ -655,7 +722,7 @@ describe('AI 整理：使用点击时的当前聊天模型（v1.1）', () => {
     await waitFor(() => expect(calls(fetchMock, '/organize', 'POST')).toHaveLength(1));
   });
 
-  it('云模型标注「将所选题目文本发送至该模型服务」，本机模型不出现该提示', async () => {
+  it('云端模型标注「将所选题目文本发送至该模型服务」；本机档案被拒绝并给出可读原因', async () => {
     router({
       'GET /api/v1/model-catalog': () => jsonResponse(true, 200, cloudCatalog()),
     });
@@ -666,11 +733,18 @@ describe('AI 整理：使用点击时的当前聊天模型（v1.1）', () => {
     expect(await screen.findByTestId('qb-organizer-model')).toHaveTextContent('deepseek-chat');
     unmount();
 
-    router();
+    // 默认档案是本机（ollama）→ 题库 AI 不使用本机模型：入口禁用 + 明确原因 + 去设置入口
+    router({
+      'GET /api/v1/model-catalog': () => jsonResponse(true, 200, localCatalog()),
+    });
     render(<ReviewWorkspace importId="imp-1" />);
-    const localNote = await screen.findByTestId('qb-organizer-dataflow');
-    expect(localNote).not.toHaveTextContent('将所选题目文本发送至该模型服务');
-    expect(localNote).toHaveTextContent('不会发送到外部模型服务');
+    const localNote = await screen.findByTestId('qb-organizer-model');
+    expect(localNote).toHaveTextContent('题库 AI 不使用本机模型，请选择云端模型档案');
+    expect(localNote).toHaveTextContent('不会自动改用其他模型');
+    expect(within(localNote).getByRole('link', { name: /去设置默认问答模型/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /AI 整理草稿/ })).toBeDisabled();
+    // 没有任何数据外发提示（本机档案不会发起调用）
+    expect(screen.queryByTestId('qb-organizer-dataflow')).not.toBeInTheDocument();
   });
 
   it('任务进行中切换聊天模型：重试仍用点击时冻结的 profile id', async () => {
@@ -808,6 +882,29 @@ describe('AI 整理：使用点击时的当前聊天模型（v1.1）', () => {
     expect(alert).not.toHaveTextContent('试题内容无效');
     expect(alert).toHaveTextContent('原文与草稿未被修改');
     expect(calls(fetchMock, '/question-suggestions', 'POST')).toHaveLength(0);
+  });
+
+  it('后端 422 QUESTION_MODEL_NOT_CLOUD：显示「题库 AI 不使用本机模型」的可读文案且未创建任务', async () => {
+    const fetchMock = router({
+      'POST /api/v1/question-imports/imp-1/organize': () =>
+        jsonResponse(false, 422, {
+          code: 'QUESTION_MODEL_NOT_CLOUD',
+          message: '题库 AI 不使用本机模型，请选择云端模型档案。',
+          retryable: false,
+        }),
+    });
+    render(<ReviewWorkspace importId="imp-1" />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /AI 整理草稿/ }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert).toHaveTextContent('QUESTION_MODEL_NOT_CLOUD');
+    expect(alert).toHaveTextContent('题库 AI 不使用本机模型，请选择云端模型档案');
+    expect(alert).toHaveTextContent('模型与连接');
+    expect(alert).not.toHaveTextContent('试题内容无效');
+    // 受理阶段即被拒：只有一次请求，没有任务结果可展示（草稿与既有建议未被修改）
+    expect(calls(fetchMock, '/organize', 'POST')).toHaveLength(1);
+    expect(alert).toHaveTextContent('草稿与既有建议未被修改');
   });
 
   it('批级失败时其他批次已生成的建议仍可应用（不因该批失败而丢建议）', async () => {

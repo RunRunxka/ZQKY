@@ -579,7 +579,8 @@ test.describe('施测与成绩工作区（真隔离 FastAPI + 真实浏览器）
     ] as const) {
       await page.getByLabel('学生姓名').fill(name);
       await page.getByLabel('学生学号').fill(studentNo);
-      await page.getByRole('button', { name: '添加学生' }).click();
+      // UX 整改批新增「批量添加学生」入口后，子串匹配会命中两个按钮，必须精确到单人表单的提交按钮
+      await page.getByRole('button', { name: '添加学生', exact: true }).click();
       await expect(page.getByLabel('学生姓名')).toHaveValue('');
     }
     await expect(page.getByText('学号 0001')).toBeVisible();
@@ -1146,13 +1147,20 @@ async function prepareScaleScene(
   };
 }
 
-/** 从页面 URL/状态里取当前选中的施测 id（真实 API 断言用）。 */
+/**
+ * 取当前选中的施测 id（真实 API 断言用）。
+ *
+ * 2026-10-07 UX 整改批后状态条显示**标题与短号**（不再直接显示 32 位 id），
+ * 完整 ID 由「复制 ID」出口（`assessments-copy-ids`）提供；这里按同一出口取值，
+ * 不再把 chip 文本当 id。
+ */
 async function currentAssessmentId(page: Page): Promise<string> {
-  const chip = page.locator('.assessments-context .space-chip', { hasText: '施测：' });
-  const text = await chip.innerText();
-  const value = text.replace('施测：', '').trim();
-  if (!value || value === '未选择') {
-    throw new Error(`页面上没有选中的施测：${text}`);
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.getByTestId('assessments-copy-ids').click();
+  const text = await page.evaluate(() => navigator.clipboard.readText());
+  const match = /(?:^|\n)assessmentId=(\S+)/.exec(text);
+  if (!match) {
+    throw new Error(`「复制 ID」未包含 assessmentId（页面可能未选中施测）：${JSON.stringify(text)}`);
   }
-  return value;
+  return match[1];
 }

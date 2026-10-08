@@ -14,7 +14,7 @@ OwnerId = Literal["system", "local-user"]
 LibraryKind = Literal["base", "personal"]
 ImportState = Literal[
     "uploaded", "extracting", "needs_review", "queued", "chunking",
-    "embedding", "indexing", "ready", "failed", "cancelled",
+    "embedding", "indexing", "ready", "failed", "cancelled", "discarded",
 ]
 JobKind = Literal["ingest", "rebuild", "cleanup"]
 JobState = Literal["queued", "running", "succeeded", "failed", "cancelled"]
@@ -166,6 +166,12 @@ class ImportCommitRequest(StrictModel):
     submissionId: str = Field(min_length=8, max_length=128)
     libraryIds: list[str] = Field(min_length=1, max_length=32)
     acknowledgeWarnings: bool = False
+
+
+class ImportDiscardRequest(StrictModel):
+    """放弃导入草稿：只把状态置 ``discarded``；草稿记录、原始文件与解析产物保留。"""
+
+    expectedRevision: int = Field(ge=0)
 
 
 # --------------------------------------------------------------------------- 书册

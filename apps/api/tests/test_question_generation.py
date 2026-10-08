@@ -658,6 +658,32 @@ def test_generate_unresolved_model_profile_fails_before_job(harness: GenerationH
     assert harness.service.job_engine.store("question").list_recent(limit=10) == []
 
 
+def test_generate_rejects_local_profile_before_any_call(harness: GenerationHarness) -> None:
+    """AI 补题同样只允许云端：本机 profile（ollama）受理阶段 422，不建任务、零外呼。
+
+    2026-10-07 用户裁定：题库 AI（整理与补题）不使用本机模型，与教案生成同口径。
+    """
+    from tests.test_question_bank import make_handle
+
+    harness.resolver.default = make_handle(
+        LOCAL_PROFILE, provider=harness.provider, provider_id="ollama"
+    )
+    harness.service.model_resolver = harness.resolver
+    point = harness.create_point()
+    harness.provider.replies = [generation_reply(knowledge_ids=[point["pointId"]])]
+
+    response = harness.start_generation(knowledgePointIds=[point["pointId"]])
+    assert response.status_code == 422, response.text
+    body = response.json()
+    assert body["code"] == "QUESTION_MODEL_NOT_CLOUD"
+    assert "本机模型" in body["message"]
+    assert harness.provider.calls == []  # 本机被拒：零外呼
+    assert harness.service.job_engine.store("question").list_recent(limit=10) == []  # 不建任务
+    # 知识点闸门在模型闸门之前：批次/候选零残留（本来就没建）
+    assert harness.row_count("question_imports") == 0
+    assert harness.row_count("question_drafts") == 0
+
+
 # ------------------------------------------------------------------------ 3 取消
 
 

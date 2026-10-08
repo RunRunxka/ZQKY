@@ -3,7 +3,7 @@
 冻结方法名（路由与测试按此对接）：``list_points`` / ``create_point`` / ``get_point`` /
 ``update_point`` / ``set_archived`` / ``list_textbook_links`` / ``add_textbook_link`` /
 ``delete_textbook_link`` / ``create_file_import`` / ``get_import`` / ``list_imports`` /
-``patch_import`` / ``confirm_import`` / ``create_suggestion_job``。
+``patch_import`` / ``confirm_import`` / ``discard_import`` / ``create_suggestion_job``。
 
 纪律（与四库一致）：
 
@@ -41,12 +41,16 @@ from app.contracts.knowledge import (
     KNOWLEDGE_IMPORT_BLOCKING_ISSUES,
     KNOWLEDGE_IMPORT_CONFIRMED,
     KNOWLEDGE_PARENT_INVALID,
+    KNOWLEDGE_POINT_IN_USE,
     KNOWLEDGE_ROW_INVALID,
     KNOWLEDGE_SUGGESTION_NO_EVIDENCE,
     KNOWLEDGE_SUGGESTION_TRUNCATED,
     TEXTBOOK_EVIDENCE_UNAVAILABLE,
+    KnowledgeExtractionPreview,
+    KnowledgeExtractionRequest,
     KnowledgeImportConfirmRequest,
     KnowledgeImportConfirmResult,
+    KnowledgeImportDiscardRequest,
     KnowledgeImportList,
     KnowledgeImportPatchRequest,
     KnowledgeImportView,
@@ -87,9 +91,11 @@ from app.repositories.knowledge.points import (
 )
 from app.services.assets.store import AssetStore
 from app.services.jobs.engine import FrozenJob, JobContext, JobEngine, JobOutcome
+from app.services.knowledge import extraction as extraction_rules
 from app.services.knowledge import imports as import_rules
 from app.services.knowledge import suggestions as suggestion_rules
 from app.services.knowledge.evidence import TextbookEvidenceReader
+from app.services.knowledge.references import in_use_error
 from app.services.model_runtime import (
     MODEL_CONFIG_DRIFT,
     MODEL_FINGERPRINT_MISSING,
@@ -112,6 +118,8 @@ DEFAULT_OWNER_ID = "local"
 CONFIRMABLE_STATES = frozenset({"uploaded", "reviewing"})
 #: 允许继续校对的状态
 EDITABLE_STATES = frozenset({"uploaded", "reviewing"})
+#: 知识点列表范围（任务②）：缺省不过滤；taught = 任教范围内有教材依据
+POINT_SCOPES = frozenset({"taught", "subject"})
 
 ChatModelResolver = Callable[..., ChatModelHandle]
 
@@ -201,6 +209,8 @@ class KnowledgeService:
         model_config_repo: Any | None = None,
         secret_store: Any | None = None,
         model_auth_service: Any | None = None,
+        reference_checker: Any | None = None,
+        scope_reader: Any | None = None,
     ) -> None:
         self.catalog = catalog
         self.assets = asset_store
@@ -219,6 +229,10 @@ class KnowledgeService:
         self.points = KnowledgePointRepository()
         self.links = TextbookLinkRepository()
         self.imports = KnowledgeImportRepository()
+        # 任务①：跨库引用守卫端口（缺失时彻底删除 503，不静默放行）
+        self.reference_checker = reference_checker
+        # 任务②：教材范围查询端口（缺失时带 scope=taught 的调用 503，旧调用不变）
+        self.scope_reader = scope_reader
 
     def close(self) -> None:
         """无长连接需要关闭；保留方法以便统一生命周期调用。"""
@@ -233,10 +247,28 @@ class KnowledgeService:
         status: str | None = None,
         parent_id: str | None = None,
         q: str | None = None,
+        scope: str | None = None,
+        grade_id: str | None = None,
         offset: int = 0,
         limit: int = DEFAULT_LIST_LIMIT,
     ) -> KnowledgePointList:
         _validate_page(offset=offset, limit=limit)
+        scope_key = None
+        if scope is not None:
+            scope_key = _text(scope, field="scope")
+            if scope_key not in POINT_SCOPES:
+                raise _field_error(
+                    f"scope 必须是 {sorted(POINT_SCOPES)} 之一。", fields=["scope"]
+                )
+        # 任务②：scope=taught 先在教材目录解析任教范围（端口缺失 503 / 未就绪 409），
+        # 再把命中的知识点 id 集合下推给仓储；不带 scope 的旧调用不走这条路。
+        scope_point_ids: set[str] | None = None
+        if scope_key == "taught":
+            scope_point_ids = self._taught_scope_point_ids()
+        grade_point_ids: set[str] | None = None
+        if grade_id is not None:
+            grade_id = _text(grade_id, field="gradeId")
+            grade_point_ids = self._grade_hit_point_ids(grade_id)
         with self.catalog.read_connection() as conn:
             items, total = self.points.list_points(
                 conn,
@@ -244,16 +276,90 @@ class KnowledgeService:
                 status=status,
                 parent_id=parent_id,
                 q=q,
+                scope_point_ids=None if scope_point_ids is None else scope_point_ids,
+                grade_point_ids=None if grade_point_ids is None else grade_point_ids,
                 offset=offset,
                 limit=limit,
             )
+            # 视图补 gradeIds：按本页知识点批量取教材依据修订，再经教材目录批量映射
+            grade_ids_map = self._grade_ids_for_page(conn, [record.point_id for record in items])
         return KnowledgePointList.model_validate(
             {
-                "items": [_point_dict(record) for record in items],
+                "items": [
+                    _point_dict(record, grade_ids=grade_ids_map.get(record.point_id, []))
+                    for record in items
+                ],
                 "total": total,
                 "offset": offset,
                 "limit": limit,
             }
+        )
+
+    def _require_scope_reader(self) -> Any:
+        """任务②：范围端口缺失 → 503（带 scope 的调用不可用，不静默回退全部）。"""
+        if self.scope_reader is None:
+            raise AppError(
+                "知识点教材范围查询未装配（scope_reader），无法按任教范围筛选；"
+                "请检查后端启动配置。",
+                code="SERVICE_UNAVAILABLE",
+                status_code=503,
+                retryable=True,
+            )
+        return self.scope_reader
+
+    def _taught_scope_point_ids(self) -> set[str]:
+        """任教范围命中的知识点 id 集合：范围修订 ∩ textbook_knowledge_links。"""
+        reader = self._require_scope_reader()
+        snapshot = reader.resolve_taught_scope()
+        with self.catalog.read_connection() as conn:
+            return self.points.point_ids_with_revision_links(
+                conn, document_revision_ids=list(snapshot.revision_ids)
+            )
+
+    def _grade_hit_point_ids(self, grade_id: str) -> set[str]:
+        """年级命中的知识点 id 集合：教材依据修订的年级集合里包含该年级。"""
+        reader = self._require_scope_reader()
+        with self.catalog.read_connection() as conn:
+            revisions_by_point = self.points.document_revisions_by_point(
+                conn, point_ids=self.points.list_point_ids(conn)
+            )
+        all_revisions: set[str] = set()
+        for revision_ids in revisions_by_point.values():
+            all_revisions.update(revision_ids)
+        if not all_revisions:
+            return set()
+        grade_ids_by_revision = reader.grade_ids_of_revisions(tuple(sorted(all_revisions)))
+        hits: set[str] = set()
+        for point_id, revision_ids in revisions_by_point.items():
+            for revision_id in revision_ids:
+                if grade_id in grade_ids_by_revision.get(revision_id, ()):
+                    hits.add(point_id)
+                    break
+        return hits
+
+    def _grade_ids_for_page(
+        self, conn: Any, point_ids: Sequence[str]
+    ) -> dict[str, list[str]]:
+        """本页知识点的 ``gradeIds`` 视图（批量两步：本库修订 → 教材目录年级）。"""
+        if not point_ids:
+            return {}
+        revisions_by_point = self.points.document_revisions_by_point(conn, point_ids=point_ids)
+        if not revisions_by_point:
+            return {}
+        all_revisions: set[str] = set()
+        for revision_ids in revisions_by_point.values():
+            all_revisions.update(revision_ids)
+        grade_ids_by_revision: dict[str, Sequence[str]] = {}
+        if self.scope_reader is not None:
+            try:
+                grade_ids_by_revision = self.scope_reader.grade_ids_of_revisions(
+                    tuple(sorted(all_revisions))
+                )
+            except AppError:
+                # 视图补充字段读取失败不改变列表语义：gradeIds 留空（不伪造年级）
+                grade_ids_by_revision = {}
+        return self.points.grade_ids_from_revisions(
+            revisions_by_point, grade_ids_by_revision
         )
 
     def create_point(self, payload: KnowledgePointCreateRequest) -> KnowledgePointView:
@@ -396,6 +502,50 @@ class KnowledgeService:
                     archived=archived,
                 )
         return _point_view(record)
+
+    def delete_point(self, point_id: str, payload: KnowledgePointRevisionRequest) -> None:
+        """彻底删除（任务①）：跨库守卫 → 同一写事务删除别名/修订/身份行。
+
+        - 守卫：任一库仍有引用 → 409 ``KNOWLEDGE_POINT_IN_USE`` + ``details.counts``
+          逐项计数；守卫端口缺失 → 503 ``SERVICE_UNAVAILABLE``（不静默放行）；
+        - 本学科仍有子节点 → 409 ``KNOWLEDGE_POINT_IN_USE``（子节点引用父节点，
+          先处理子节点）；404 ``KNOWLEDGE_POINT_NOT_FOUND`` / 409 ``REVISION_CONFLICT``
+          语义与既有更新一致；
+        - 引用计数在发布协调器锁内、删除写事务之前完成（锁内只做数据库读取）。
+        """
+        point_id = _text(point_id, field="pointId")
+        with self.coordinator.publication(operation="knowledge.delete"):
+            # ① 跨库引用守卫（端口缺失 503，绝不静默放行）
+            if self.reference_checker is None:
+                raise AppError(
+                    "知识点引用检查未装配（reference_checker），无法彻底删除；"
+                    "请检查后端启动配置。",
+                    code="SERVICE_UNAVAILABLE",
+                    status_code=503,
+                    retryable=True,
+                )
+            # ② 本库前置校验：存在 / 子节点（都在守卫计数之前给出可定位错误）
+            with self.catalog.read_connection() as conn:
+                current = self.points.require_point(conn, point_id)
+                row = conn.execute(
+                    "SELECT COUNT(*) AS total FROM knowledge_points WHERE parent_id = ?",
+                    (point_id,),
+                ).fetchone()
+                child_count = int(row["total"]) if row is not None else 0
+                if child_count:
+                    raise _conflict(
+                        f"该知识点还有 {child_count} 个子节点；先删除或移动子节点。",
+                        code=KNOWLEDGE_POINT_IN_USE,
+                    )
+            counts = self.reference_checker.count_references(point_id)
+            if counts.total:
+                raise in_use_error(counts)
+            # ③ 同一写事务删除：别名 → 修订 → 身份（乐观锁在仓储删除方法内核对）
+            with self.catalog.write_transaction() as conn:
+                self.points.delete_point(
+                    conn, point_id, expected_revision=payload.expected_revision
+                )
+        return None
 
     # ------------------------------------------------------------------ 教材依据
 
@@ -568,6 +718,12 @@ class KnowledgeService:
             records, total = self.imports.list_imports(
                 conn, state=state, offset=offset, limit=limit
             )
+            # 视图补 uploadedFileName：按本页批次批量取教学库受管文件（不做 N+1）
+            asset_ids = [record.file_asset_id for record in records]
+            asset_names = {
+                asset_id: _asset_original_name(asset)
+                for asset_id, asset in (self.file_assets.get_many(asset_ids).items())
+            }
             for record in records:
                 items.append(
                     _summary_dict(
@@ -576,6 +732,7 @@ class KnowledgeService:
                         blocking_issue_count=_blocking_count(
                             self.imports.issue_codes(conn, record.import_id)
                         ),
+                        uploaded_file_name=asset_names.get(record.file_asset_id),
                     )
                 )
         return KnowledgeImportList.model_validate(
@@ -702,6 +859,165 @@ class KnowledgeService:
         result = dict(outcome.result)
         result["replayed"] = outcome.replayed
         return KnowledgeImportConfirmResult.model_validate(result)
+
+    def discard_import(
+        self, import_id: str, payload: KnowledgeImportDiscardRequest
+    ) -> KnowledgeImportView:
+        """放弃未确认批次（误上传清理）：状态置 ``cancelled``，记录/文件/预览行保留。
+
+        已确认批次不可放弃（已入库的知识点与历史不动）；重复放弃按幂等返回当前
+        记录，不再递增 revision。``cancelled`` 不在 ``EDITABLE_STATES`` /
+        ``CONFIRMABLE_STATES`` 内，放弃后不能再 patch/confirm。
+        """
+        import_id = _text(import_id, field="importId")
+        with self.coordinator.publication(operation="knowledge.import.discard"):
+            with self.catalog.write_transaction() as conn:
+                record = self.imports.require_import(conn, import_id)
+                if record.state == "confirmed":
+                    raise _conflict(
+                        "该导入批次已确认入库，不能放弃；已写入的知识点保留。",
+                        code=KNOWLEDGE_IMPORT_CONFIRMED,
+                    )
+                if record.revision != payload.expected_revision:
+                    raise revision_conflict(record.revision)
+                record = self.imports.mark_cancelled(conn, import_id)
+                rows = self.imports.list_rows(conn, import_id)
+                versions = _base_versions(conn, rows, self.points)
+        return self._import_view(record, rows, base_versions=versions)
+
+    # ------------------------------------------------------------------ 提取（任务③）
+
+    def extraction_preview(self, subject_id: str) -> KnowledgeExtractionPreview:
+        """预览某学科全部已入库教材的提取清单（只读；未就绪书册带 reason）。"""
+        if self.evidence is None:
+            raise AppError(
+                "教材目录未装配，无法预览提取来源。",
+                code=TEXTBOOK_EVIDENCE_UNAVAILABLE,
+                status_code=503,
+                retryable=True,
+            )
+        return extraction_rules.build_preview(
+            self.evidence._catalog, subject_id=_text(subject_id, field="subjectId")
+        )
+
+    def catalog_of_evidence(self) -> Any:
+        """教材目录（经 evidence reader 注入的 catalog）；缺失时 503。"""
+        if self.evidence is None:
+            raise AppError(
+                "教材目录未装配，无法进行教材提取。",
+                code=TEXTBOOK_EVIDENCE_UNAVAILABLE,
+                status_code=503,
+                retryable=True,
+            )
+        return self.evidence._catalog
+
+    async def create_extraction_jobs(
+        self, payload: KnowledgeExtractionRequest
+    ) -> list[JobView]:
+        """提取任务受理（202）：每个书册一个 AI 候选任务；未就绪书册 409 逐册列出。
+
+        - ``documentIds`` 缺省 = 该学科全部就绪书册；指定时仅这些；
+        - 证据 = 该书册正文 chunk 区间（region="body"，经既有 evidence reader 核验），
+          复用既有 AI 候选链（冻结输入、模型指纹、执行器、``source="ai"`` 批次）；
+        - 候选只进待确认批次，绝不直接写正式表；
+        - 任何书册都没有可用证据（无正文 chunk）→ 422（不建空任务）。
+        """
+        if self.job_engine is None:
+            raise AppError(
+                "知识点提取未装配任务引擎（job_engine），无法创建任务；请检查后端启动配置。",
+                code="SERVICE_UNAVAILABLE",
+                status_code=503,
+                retryable=True,
+            )
+        if self.model_resolver is None:
+            raise AppError(
+                "知识点提取未装配模型解析器（model_resolver），无法调用聊天模型；"
+                "请检查后端启动配置。",
+                code="SERVICE_UNAVAILABLE",
+                status_code=503,
+                retryable=True,
+            )
+        catalog = self.catalog_of_evidence()
+        subject_id = _text(payload.subject_id, field="subjectId")
+        profile_id = _text(payload.model_profile_id, field="modelProfileId")
+        submission_id = _text(payload.submission_id, field="submissionId")
+        # 受理校验（在教材目录里逐册核验；未就绪 409 逐册列出，不部分受理）
+        targets = extraction_rules.resolve_target_documents(
+            catalog, subject_id=subject_id, document_ids=payload.document_ids
+        )
+        if not targets:
+            raise _field_error("该学科没有就绪的教材，无法发起提取。", fields=["subjectId"])
+        # 学科按需登记（与人工建立一致）
+        await _threaded(self._ensure_subject, subject_id)
+        allowed_points = await _threaded(self._active_point_ids, subject_id)
+        model_snapshot = await self._freeze_model_snapshot(profile_id)
+        views: list[JobView] = []
+        for entry in targets:
+            revision = catalog.get_revision(entry.revision_id)  # 受理已核验非空
+            ranges = extraction_rules.collect_document_evidence(
+                catalog, entry=entry, revision=revision
+            )
+            if not ranges:
+                raise _field_error(
+                    f"教材「{entry.title}」没有可提取的正文分块，无法发起提取。",
+                    fields=["documentIds"],
+                )
+            # 逐区间经既有 evidence reader 读取并冻结（标题/文本/sha256，预算外 422）
+            textbook: list[dict[str, Any]] = []
+            extraction_evidence: list[dict[str, Any]] = []
+            for item in ranges:
+                evidence = await _threaded(
+                    self.evidence.read,
+                    document_revision_id=item.document_revision_id,
+                    char_start=item.char_start,
+                    char_end=item.char_end,
+                )
+                textbook.append(suggestion_rules.textbook_entry(evidence))
+                extraction_evidence.append(
+                    {
+                        "documentRevisionId": evidence.document_revision_id,
+                        "charStart": evidence.char_start,
+                        "charEnd": evidence.char_end,
+                        "title": evidence.title,
+                    }
+                )
+            total_chars = sum(len(item["text"]) for item in textbook)
+            if total_chars > suggestion_rules.MAX_EVIDENCE_CHARS:
+                raise _field_error(
+                    f"教材「{entry.title}」的正文证据合计 {total_chars} 字，超过单次候选预算 "
+                    f"{suggestion_rules.MAX_EVIDENCE_CHARS} 字；请缩小提取范围后重试。",
+                    fields=["documentIds"],
+                )
+            frozen_input = {
+                "contractVersion": suggestion_rules.SUGGESTION_CONTRACT_VERSION,
+                "subjectId": subject_id,
+                "modelProfileId": profile_id,
+                "allowedKnowledgePointIds": allowed_points,
+                "evidenceIds": [item["id"] for item in textbook],
+                "materials": [],
+                "textbookEvidence": textbook,
+                "instructions": "",
+                # 提取任务专用：候选行冻结证据坐标（确认后自动建教材依据用）
+                "extraction": {
+                    "submissionId": submission_id,
+                    "documentId": entry.document_id,
+                    "documentTitle": entry.title,
+                    "gradeIds": list(entry.grade_ids),
+                },
+            }
+            store = self.job_engine.store("knowledge")
+            record = await _threaded(
+                store.create,
+                kind="suggestion",
+                frozen_input=frozen_input,
+                model_snapshot=model_snapshot,
+                owner_id=self.owner_id,
+            )
+            self.job_engine.schedule(
+                "knowledge", record.job_id, self._suggestion_executor, uses_model=True
+            )
+            views.append(record.view())
+        return views
 
     # ------------------------------------------------------------------ AI 候选
 
@@ -933,17 +1249,30 @@ class KnowledgeService:
                 snapshot["profileId"] = fallback
         handle = await self._resolve_frozen_handle(snapshot)
 
+        # 提取任务按单册证据提炼，输出预算比手输候选更高（真机实测：2048 会因整册候选截断被拒）；
+        # 调用等待同步放宽到有界上限（默认 30 秒对整册证据不够，真机实测撞 UPSTREAM_TIMEOUT）
+        extraction = isinstance(frozen.input.get("extraction"), dict)
+        max_output_tokens = (
+            suggestion_rules.EXTRACTION_MAX_OUTPUT_TOKENS
+            if extraction
+            else suggestion_rules.MAX_OUTPUT_TOKENS
+        )
+        config = (
+            replace(handle.config, timeoutSeconds=suggestion_rules.EXTRACTION_TIMEOUT_SECONDS)
+            if extraction
+            else handle.config
+        )
         request = LLMRequest(
             messages=[
                 LLMMessage(role="system", content=suggestion_rules.system_instruction(frozen.input)),
                 LLMMessage(role="user", content=suggestion_rules.render_evidence(frozen.input)),
             ],
-            maxOutputTokens=suggestion_rules.MAX_OUTPUT_TOKENS,
+            maxOutputTokens=max_output_tokens,
             params={},
         )
         if await ctx.cancellation_requested():
             return JobOutcome(result={"cancelled": True, "candidateCount": 0}, publish=None)
-        response = await handle.provider.complete(handle.config, request)
+        response = await handle.provider.complete(config, request)
         if response.finishReason == FINISH_LENGTH:
             raise AppError(
                 "模型输出被截断（结束原因 length），候选批次未生成；"
@@ -994,14 +1323,42 @@ class KnowledgeService:
         )
 
         subject_id = str(frozen.input.get("subjectId") or "")
-        sources = [
-            import_rules.AiRowSource(
-                candidate=candidate,
-                raw=raw,
-                issues=suggestion_rules.hint_issues(candidate, raw),
+        # 任务③：提取任务的教材证据坐标按"模型回引的证据 id"冻结进候选行
+        # raw_cells（保留键 knowledgeExtractionEvidence），确认后自动建教材依据用。
+        is_extraction = isinstance(frozen.input.get("extraction"), dict)
+        textbook_entries_by_id = {
+            str(item.get("id")): item for item in frozen.input.get("textbookEvidence") or []
+        }
+        sources: list[import_rules.AiRowSource] = []
+        for candidate, raw in zip(candidates, raw_items, strict=True):
+            source_issues = list(suggestion_rules.hint_issues(candidate, raw))
+            raw_payload: dict[str, Any] = dict(raw)
+            if is_extraction:
+                entries: list[dict[str, Any]] = []
+                for evidence_id in candidate.evidence_ids:
+                    item = textbook_entries_by_id.get(evidence_id)
+                    if item is None:
+                        continue
+                    entries.append(
+                        {
+                            "documentRevisionId": item.get("documentRevisionId"),
+                            "charStart": item.get("charStart"),
+                            "charEnd": item.get("charEnd"),
+                            "title": item.get("title"),
+                        }
+                    )
+                if entries:
+                    merged_hint, hint_text = extraction_rules.build_extraction_evidence(entries)
+                    raw_payload = extraction_rules.freeze_evidence_into_raw_cells(
+                        raw_payload, merged_hint
+                    )
+                    if hint_text:
+                        source_issues.append(
+                            ErrorIssue(code=extraction_rules.EXTRACTION_EVIDENCE_KEY, message=hint_text)
+                        )
+            sources.append(
+                import_rules.AiRowSource(candidate=candidate, raw=raw_payload, issues=tuple(source_issues))
             )
-            for candidate, raw in zip(candidates, raw_items, strict=True)
-        ]
         import_id = uuid.uuid4().hex
 
         def publish(conn: Any) -> None:
@@ -1087,6 +1444,14 @@ class KnowledgeService:
         updated: list[dict[str, Any]] = []
         ignored: list[int] = []
         created_by_code: dict[str, str] = {}
+        # 任务③：新建行的教材证据坐标（raw_cells 冻结；确认时为新建知识点自动建依据）
+        row_evidence: dict[int, list[dict[str, Any]]] = {}
+        row_codes: dict[int, str] = {}
+        for record_row in rows:
+            row_codes[record_row.row_no] = record_row.code
+            entries = extraction_rules.extract_evidence_from_raw_cells(record_row.raw_cells)
+            if entries:
+                row_evidence[record_row.row_no] = entries
         for entry in plan:
             if entry.action == "ignore":
                 ignored.append(entry.row_no)
@@ -1129,6 +1494,17 @@ class KnowledgeService:
                 aliases=list(entry.aliases) or None,
             )
             updated.append(_applied_dict(entry.row_no, point))
+        # 任务③：由本批 AI 候选带入证据的**新建**知识点自动建教材依据
+        # （source="ai_confirmed"，既有枚举值；update 行不自动建依据）
+        if created_by_code and row_evidence:
+            extraction_rules.confirm_textbook_links(
+                conn,
+                created_by_code=created_by_code,
+                row_evidence=row_evidence,
+                row_codes=row_codes,
+                links=self.links,
+                points=self.points,
+            )
         confirmed = self.imports.mark_confirmed(conn, import_id)
         return KnowledgeImportConfirmResult.model_validate(
             {
@@ -1163,6 +1539,7 @@ class KnowledgeService:
                 [str(issue.get("code", "")) for issue in record.batch_issues]
                 + [str(issue.get("code", "")) for row in rows for issue in row.issues]
             ),
+            uploaded_file_name=_asset_original_name(asset),
         )
         # 详情视图不含 rowCount/blockingIssueCount（那是 KnowledgeImportSummary 的字段）
         payload.pop("rowCount", None)
@@ -1197,6 +1574,8 @@ def build_knowledge_service(
     model_config_repo: Any | None = None,
     secret_store: Any | None = None,
     model_auth_service: Any | None = None,
+    reference_checker: Any | None = None,
+    scope_reader: Any | None = None,
 ) -> KnowledgeService:
     """装配入口（CTRL 在 ``main.py`` 调用）。
 
@@ -1207,6 +1586,9 @@ def build_knowledge_service(
     B3/G0 v2 追加注入（RV04）：``model_config_repo`` + ``secret_store``（+ ``model_auth_service``）
     使候选执行器的冻结指纹核对走共享 ``resolve_frozen_model``；缺省时用 ``model_resolver``
     解析后按 ``fingerprint_of_handle`` 核对（同一判定与错误码）。形参名与题库/原卷一致。
+
+    任务①②追加注入：``reference_checker``（跨库引用计数，缺失时彻底删除 503）、
+    ``scope_reader``（任教范围解析，缺失时带 scope=taught 的调用 503，旧调用不变）。
     """
     return KnowledgeService(
         catalog,
@@ -1219,13 +1601,15 @@ def build_knowledge_service(
         model_config_repo=model_config_repo,
         secret_store=secret_store,
         model_auth_service=model_auth_service,
+        reference_checker=reference_checker,
+        scope_reader=scope_reader,
     )
 
 
 # --------------------------------------------------------------------------- 视图构造
 
 
-def _point_dict(record: PointRecord) -> dict[str, Any]:
+def _point_dict(record: PointRecord, *, grade_ids: Sequence[str] = ()) -> dict[str, Any]:
     return {
         "id": record.point_id,
         "subjectId": record.subject_id,
@@ -1240,6 +1624,7 @@ def _point_dict(record: PointRecord) -> dict[str, Any]:
         "revisionId": record.revision_id,
         "version": record.version,
         "aliases": list(record.aliases),
+        "gradeIds": list(grade_ids),
         "createdAt": record.created_at,
     }
 
@@ -1290,7 +1675,11 @@ def _row_dict(record: ImportRowRecord, *, base_version: int | None = None) -> di
 
 
 def _summary_dict(
-    record: ImportRecord, *, row_count: int, blocking_issue_count: int
+    record: ImportRecord,
+    *,
+    row_count: int,
+    blocking_issue_count: int,
+    uploaded_file_name: str | None = None,
 ) -> dict[str, Any]:
     return {
         "importId": record.import_id,
@@ -1300,9 +1689,18 @@ def _summary_dict(
         "revision": record.revision,
         "rowCount": row_count,
         "blockingIssueCount": blocking_issue_count,
+        "uploadedFileName": uploaded_file_name,
         "createdAt": record.created_at,
         "updatedAt": record.updated_at,
     }
+
+
+def _asset_original_name(asset: Any) -> str | None:
+    """教学库 ``file_assets.original_name``（缺失/损坏时 None，不伪造文件名）。"""
+    name = getattr(asset, "original_name", None)
+    if isinstance(name, str) and name.strip():
+        return name
+    return None
 
 
 def _applied_dict(row_no: int, point: PointRecord) -> dict[str, Any]:
@@ -1506,6 +1904,7 @@ __all__ = [
     "DEFAULT_LIST_LIMIT",
     "MAX_LIST_LIMIT",
     "MAX_UPLOAD_BYTES",
+    "POINT_SCOPES",
     "KnowledgeService",
     "build_knowledge_service",
 ]

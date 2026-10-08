@@ -24,6 +24,7 @@ from app.contracts.roster import (
     CLASS_CODE_CONFLICT,
     PAPER_READER_UNAVAILABLE,
     ROSTER_IMPORT_CONFIRMED,
+    STUDENT_ARCHIVED,
     STUDENT_NO_CONFLICT,
     ClassCreateRequest,
     ClassRevisionRequest,
@@ -31,6 +32,7 @@ from app.contracts.roster import (
     MembershipTransferRequest,
     RosterImportConfirmRequest,
     StudentCreateRequest,
+    StudentRevisionRequest,
     StudentUpdateRequest,
     UnavailablePaperReader,
 )
@@ -557,6 +559,123 @@ def test_route_without_service_returns_503(tmp_path: Path) -> None:
     body = response.json()
     assert body["code"] == "SERVICE_UNAVAILABLE"
     assert body["retryable"] is True
+
+
+# --------------------------------------------------------------------------- 学生归档（误录入清理）
+
+
+def test_student_archive_hides_from_members_and_filters(harness: Harness) -> None:
+    """归档 = 退出新流程但历史保留：成员列表默认隐藏、显式可见、可恢复。"""
+    klass = _create_class(harness)
+    student = harness.service.create_student(
+        StudentCreateRequest(
+            name="张三", studentNo="0012", classId=klass.id, joinedOn="2025-09-01"
+        )
+    )
+    assert harness.service.list_class_students(klass.id).total == 1
+
+    archived = harness.service.set_student_archived(
+        student.id, StudentRevisionRequest(expectedRevision=0), archived=True
+    )
+    assert archived.status == "archived"
+    assert archived.revision == 1
+    assert len(archived.memberships) == 1  # 归属历史保留
+
+    assert harness.service.list_class_students(klass.id).total == 0
+    included = harness.service.list_class_students(klass.id, include_archived=True)
+    assert included.total == 1
+    assert included.items[0].status == "archived"
+
+    assert harness.service.list_students(status="active").total == 0
+    assert harness.service.list_students(status="archived").total == 1
+    # 不带过滤仍可读（与班级归档同口径，列表由调用方决定过滤）
+    assert harness.service.list_students().total == 1
+
+    restored = harness.service.set_student_archived(
+        student.id, StudentRevisionRequest(expectedRevision=1), archived=False
+    )
+    assert restored.status == "active" and restored.revision == 2
+    assert harness.service.list_class_students(klass.id).total == 1
+
+
+def test_student_archive_routes_and_revision_conflict(client: TestClient) -> None:
+    harness = client.app.state.roster_service  # type: ignore[attr-defined]
+    klass = harness.create_class(ClassCreateRequest(**_class_payload()))
+    student = harness.create_student(
+        StudentCreateRequest(name="李四", classId=klass.id, joinedOn="2025-09-01")
+    )
+
+    response = client.post(
+        f"/api/v1/students/{student.id}/archive", json={"expectedRevision": 0}
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "archived"
+
+    stale = client.post(
+        f"/api/v1/students/{student.id}/restore", json={"expectedRevision": 0}
+    )
+    assert stale.status_code == 409
+    assert stale.json()["code"] == REVISION_CONFLICT
+
+    restored = client.post(
+        f"/api/v1/students/{student.id}/restore", json={"expectedRevision": 1}
+    )
+    assert restored.status_code == 200
+    assert restored.json()["status"] == "active"
+
+
+def test_archived_student_rejects_update_and_transfer(harness: Harness) -> None:
+    class_a = _create_class(harness, code="701")
+    class_b = _create_class(harness, code="702")
+    student = harness.service.create_student(
+        StudentCreateRequest(name="王五", classId=class_a.id, joinedOn="2025-09-01")
+    )
+    harness.service.set_student_archived(
+        student.id, StudentRevisionRequest(expectedRevision=0), archived=True
+    )
+
+    with pytest.raises(AppError) as err:
+        harness.service.update_student(
+            student.id, StudentUpdateRequest(expectedRevision=1, name="王五改")
+        )
+    assert err.value.code == STUDENT_ARCHIVED
+    assert err.value.status_code == 409
+
+    with pytest.raises(AppError) as err2:
+        harness.service.transfer_student(
+            student.id,
+            MembershipTransferRequest(
+                expectedStudentRevision=1,
+                fromClassId=class_a.id,
+                toClassId=class_b.id,
+                movedOn="2026-03-01",
+            ),
+        )
+    assert err2.value.code == STUDENT_ARCHIVED
+    assert err2.value.status_code == 409
+    assert harness.count("class_memberships") == 1
+
+
+def test_archived_student_not_auto_matched_by_roster_import(harness: Harness) -> None:
+    """归档学生不参与名单导入自动关联（不会把已移除身份又挂回新名单）。"""
+    klass = _create_class(harness)
+    student = harness.service.create_student(
+        StudentCreateRequest(
+            name="赵六", studentNo="0025", classId=klass.id, joinedOn="2025-09-01"
+        )
+    )
+    harness.service.set_student_archived(
+        student.id, StudentRevisionRequest(expectedRevision=0), archived=True
+    )
+    view = harness.service.create_roster_import(
+        class_id=klass.id,
+        file_name="roster.csv",
+        content="学号,姓名\n0025,赵六\n".encode("utf-8"),
+        media_type="text/csv",
+    )
+    row = view.rows[0]
+    assert row.matched_student_id is None
+    assert row.suggestion != "link"
 
 
 def test_route_invalid_query_params_return_422_with_fields(client: TestClient) -> None:

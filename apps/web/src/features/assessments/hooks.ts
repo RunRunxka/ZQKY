@@ -21,10 +21,12 @@ import { ApiError } from '@/services/api-client';
 import type { ErrorIssue } from '@/contracts/api';
 import type { ScoreImportView, ScoreImportRowView } from '@/contracts/scores';
 import {
+  listClasses,
   listScoreImportRows,
   patchScoreImport,
   type ScoreImportPatchRequest,
 } from '@/services/assessments-api';
+import { shortId } from './labels';
 
 export type AsyncState<T> =
   | { phase: 'loading' }
@@ -87,6 +89,41 @@ export function useAsyncResource<T>(
   const reload = useCallback(() => setTick((value) => value + 1), []);
   const lastData = lastRef.current && lastRef.current.key === key ? lastRef.current.data : null;
   return { state, reload, lastData };
+}
+
+/* ------------------------------------------------------------------ 班名映射 */
+
+export interface ClassNameMap {
+  /** 班级 id → 显示名：命中返回班名，缺失（含读取失败）回落 ID 短号，不伪造名称。 */
+  nameOf: (classId: string | null | undefined) => string;
+  /** 名称映射读取失败（界面据此提示"以下显示短号"，但不把失败当空列表）。 */
+  failed: boolean;
+}
+
+/**
+ * 班名映射（只读）：`listClasses({ limit: 200 })` 一次（服务端默认口径 = 含已归档），
+ * 建立 id → name；读取失败或缺失回落短号。映射仅用于显示，不改后端、不缓存写入。
+ */
+export function useClassNameMap(scope: string): ClassNameMap {
+  const classes = useAsyncResource(
+    (signal) => listClasses({ limit: 200 }, signal),
+    `assessments-class-names|${scope}`,
+  );
+  const nameMap = useMemo(() => {
+    const entries = new Map<string, string>();
+    for (const item of classes.lastData?.items ?? []) {
+      if (typeof item?.id === 'string' && item.id !== '' && typeof item.name === 'string' && item.name.trim() !== '') {
+        entries.set(item.id, item.name);
+      }
+    }
+    return entries;
+  }, [classes.lastData]);
+  const nameOf = useCallback(
+    (classId: string | null | undefined) =>
+      (classId ? nameMap.get(classId) : undefined) ?? shortId(classId),
+    [nameMap],
+  );
+  return { nameOf, failed: classes.state.phase === 'failed' };
 }
 
 /* ------------------------------------------------------------------ 五步成绩流 */

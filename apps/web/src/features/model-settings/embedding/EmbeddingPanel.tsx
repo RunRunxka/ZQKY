@@ -8,6 +8,10 @@
  * - 可用配置：`GET /embedding-models` + `POST /embedding-probes`（实测）+ `POST /embedding-profiles`（保存）；
  * - 重建：`POST /textbook-index/rebuilds`（`submissionId` 幂等键：请求级重试复用，新意图换新 id）。
  *
+ * 配置生命周期：`POST /embedding-profiles/{id}/retire`（停用：不再用于新的重建，历史索引代保留）
+ * 与 `DELETE /embedding-profiles/{id}`（受守卫硬删：被索引代引用时服务端 409
+ * `EMBEDDING_PROFILE_IN_USE`，原样显示服务端 message 并提示改用停用，列表不变）。
+ *
  * 口径：检测通过只代表接口能力（维度/身份/稳定性），不代表检索质量已验收；
  * Qdrant 或本机模型不可用时如实显示原因，不回退、不伪造成功。
  */
@@ -16,6 +20,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   EmbeddingModelCandidate,
   EmbeddingProfileList,
+  EmbeddingProfileView,
   EmbeddingProbeView,
   IndexStatusView,
 } from '@/contracts/textbook';
@@ -24,10 +29,12 @@ import '@/components/layout/space.css';
 import {
   cancelJob,
   createEmbeddingProfile,
+  deleteEmbeddingProfile,
   getIndexStatus,
   listEmbeddingModels,
   listEmbeddingProfiles,
   probeEmbeddingModel,
+  retireEmbeddingProfile,
   startRebuild,
 } from '@/services/textbook-api';
 import {
@@ -75,6 +82,11 @@ export function EmbeddingPanel() {
   const [rebuildBusy, setRebuildBusy] = useState(false);
   const [rebuildError, setRebuildError] = useState<string | null>(null);
   const [rebuildSubmitted, setRebuildSubmitted] = useState(false);
+  const [profileActionId, setProfileActionId] = useState<string | null>(null);
+  const [profileActionError, setProfileActionError] = useState<{
+    profileId: string;
+    message: string;
+  } | null>(null);
   const rebuildSubmissionRef = useRef<string | null>(null);
 
   const loadStatus = useCallback(async (background: boolean) => {
@@ -197,6 +209,58 @@ export function EmbeddingPanel() {
       setRebuildError(`取消重建失败：${errorText(error)}`);
     } finally {
       setRebuildBusy(false);
+    }
+  }
+
+  /**
+   * 停用配置（二次确认）：服务端幂等；停用后不再用于新的入库与重建，历史索引代保留。
+   * 成功后刷新配置列表取服务端权威的 `retiredAt`；失败不改列表，只显示原因。
+   */
+  async function retireProfile(item: EmbeddingProfileView) {
+    const confirmed = window.confirm(
+      `停用 Embedding 配置「${item.modelName} · ${item.dimensions} 维」？停用后不能再用于新的重建，历史索引代保留。`,
+    );
+    if (!confirmed) return;
+    setProfileActionId(item.profileId);
+    setProfileActionError(null);
+    try {
+      await retireEmbeddingProfile(item.profileId);
+      profiles.reload();
+    } catch (error) {
+      const apiError = asApiError(error);
+      setProfileActionError({
+        profileId: item.profileId,
+        message: `停用配置失败（${apiError.code}）：${apiError.message}`,
+      });
+    } finally {
+      setProfileActionId(null);
+    }
+  }
+
+  /**
+   * 受守卫删除（二次确认）：仅当没有任何索引代引用该配置才允许硬删。
+   * 被引用时服务端 409 `EMBEDDING_PROFILE_IN_USE`：原样显示服务端 message（提示改用停用），
+   * 列表保持不变。成功后刷新配置列表；若删掉的正是当前选中项，清空选择让列表重新选默认值。
+   */
+  async function removeProfile(item: EmbeddingProfileView) {
+    const confirmed = window.confirm(
+      `删除 Embedding 配置「${item.modelName} · ${item.dimensions} 维」？仅当没有任何索引代引用该配置时可删除；被引用时请改用停用。`,
+    );
+    if (!confirmed) return;
+    setProfileActionId(item.profileId);
+    setProfileActionError(null);
+    try {
+      await deleteEmbeddingProfile(item.profileId);
+      setProfileId((current) => (current === item.profileId ? '' : current));
+      profiles.reload();
+    } catch (error) {
+      const apiError = asApiError(error);
+      setProfileActionError({
+        profileId: item.profileId,
+        message: `删除配置失败（${apiError.code}）：${apiError.message}`,
+      });
+    } finally {
+      setProfileActionId(null);
     }
   }
 
@@ -478,6 +542,31 @@ export function EmbeddingPanel() {
                     <span className="space-chip amber">已停用 {item.retiredAt}</span>
                   )}
                 </div>
+                <div className="embedding-actions">
+                  {!item.retiredAt && (
+                    <button
+                      className="space-button"
+                      aria-label={`停用配置 ${item.profileId}`}
+                      disabled={profileActionId === item.profileId}
+                      onClick={() => void retireProfile(item)}
+                    >
+                      {profileActionId === item.profileId ? '处理中…' : '停用'}
+                    </button>
+                  )}
+                  <button
+                    className="space-button danger"
+                    aria-label={`删除配置 ${item.profileId}`}
+                    disabled={profileActionId === item.profileId}
+                    onClick={() => void removeProfile(item)}
+                  >
+                    删除
+                  </button>
+                </div>
+                {profileActionError?.profileId === item.profileId && (
+                  <div className="space-banner error" role="alert">
+                    {profileActionError.message}
+                  </div>
+                )}
               </li>
             ))}
           </ul>

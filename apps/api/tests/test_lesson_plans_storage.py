@@ -239,3 +239,61 @@ def test_true_pointer_owner_version_fks_and_immutable_content(scene):
     with scene.catalog.read_connection() as conn:
         assert conn.execute("PRAGMA foreign_key_check").fetchall()==[]
         assert conn.execute("PRAGMA integrity_check").fetchone()[0]=="ok"
+
+
+async def test_archive_restore_keeps_revision_and_history_and_blocks_writes(scene):
+    initial = scene.be.create_lesson(scene.create_request())
+    saved = scene.be.save_draft(initial["lessonPlanId"], scene.save_request(initial, content=changed(initial["currentRevision"]["data"], title="归档前")))
+    lid = initial["lessonPlanId"]
+    before_history = scene.be.list_revisions(lid)
+    before_counts = tuple(scene.count(t) for t in ("lesson_plan_revisions", "lesson_revision_reviews", "lesson_generation_inputs", "lesson_ai_proposals"))
+    # 乐观锁：expectedRevision 不符时报既有 CAS 冲突语义。
+    with pytest.raises(AppError) as stale:
+        scene.be.set_archived(lid, lp.LessonRevisionRequest(expectedRevision=saved["revision"]+1), archived=True)
+    assert stale.value.code == "REVISION_CONFLICT" and stale.value.details == {"currentRevision": saved["revision"], "fields": ["expectedRevision"]}
+    archived = scene.be.set_archived(lid, lp.LessonRevisionRequest(expectedRevision=saved["revision"]), archived=True)
+    # 归档不递增 revision（lesson_plan_identity_fixed 触发器），历史与计数逐条不变。
+    assert archived["revision"] == saved["revision"] and archived["currentRevisionId"] == saved["currentRevisionId"]
+    assert scene.be.list_revisions(lid)["items"] == before_history["items"]
+    assert before_counts == tuple(scene.count(t) for t in ("lesson_plan_revisions", "lesson_revision_reviews", "lesson_generation_inputs", "lesson_ai_proposals"))
+    with scene.catalog.read_connection() as conn:
+        assert conn.execute("SELECT archived_at FROM lesson_plans WHERE id=?", (lid,)).fetchone()[0] is not None
+    # 归档后详情与修订历史照常可读。
+    assert scene.be.get_lesson(lid)["revision"] == saved["revision"]
+    # 新提交被归档守卫拒绝：保存与生成建议都挡住，且不落任何新行。
+    with pytest.raises(AppError) as blocked_save:
+        scene.be.save_draft(lid, scene.save_request(saved, submission="after-archive", content=changed(saved["currentRevision"]["data"], title="归档后写入")))
+    assert blocked_save.value.code == "LESSON_INVALID" and blocked_save.value.status_code == 422
+    with pytest.raises(AppError) as blocked_generate:
+        await scene.be.generate_proposal(lid, scene.generate_request(saved, submission="after-archive"))
+    assert blocked_generate.value.code == "LESSON_INVALID" and blocked_generate.value.status_code == 422
+    assert before_counts == tuple(scene.count(t) for t in ("lesson_plan_revisions", "lesson_revision_reviews", "lesson_generation_inputs", "lesson_ai_proposals"))
+    # 已归档教案默认不在列表中，archived=True 可列出（场景还预置未归档的 lesson 种子）。
+    assert lid not in [x["lessonPlanId"] for x in scene.be.list_lessons()["items"]]
+    assert [x["lessonPlanId"] for x in scene.be.list_lessons(archived=True)["items"]] == [lid]
+    # 恢复后按原 revision 继续编辑，修订历史逐条不变。
+    restored = scene.be.set_archived(lid, lp.LessonRevisionRequest(expectedRevision=archived["revision"]), archived=False)
+    assert restored["revision"] == saved["revision"] and restored["currentRevisionId"] == saved["currentRevisionId"]
+    assert scene.be.list_revisions(lid)["items"] == before_history["items"]
+    assert lid in [x["lessonPlanId"] for x in scene.be.list_lessons()["items"]]
+    assert scene.be.list_lessons(archived=True)["items"] == []
+    resumed = scene.be.save_draft(lid, scene.save_request(restored, submission="after-restore", content=changed(restored["currentRevision"]["data"], title="恢复后写入")))
+    assert resumed["revision"] == saved["revision"]+1
+    assert [x["version"] for x in scene.be.list_revisions(lid)["items"]] == [resumed["revision"]]+[x["version"] for x in before_history["items"]]
+
+
+def test_archived_cas_receipt_order_and_owner_isolation(scene):
+    initial = scene.be.create_lesson(scene.create_request())
+    lid = initial["lessonPlanId"]
+    scene.be.set_archived(lid, lp.LessonRevisionRequest(expectedRevision=initial["revision"]), archived=True)
+    # 归档后旧 revision 的新提交必须被拒：归档动作对写入方 CAS 可感知。
+    with pytest.raises(AppError) as old_revision:
+        scene.be.save_draft(lid, scene.save_request(initial, submission="old-revision"))
+    assert old_revision.value.code == "LESSON_INVALID"
+    other = LessonPlanService(scene.catalog, analysis_reader=scene.ai.analysis.service, knowledge_catalog=scene.ai.practice_scene.knowledge,
+        coordinator=scene.be.coordinator, job_engine=scene.engine, generation_service=scene.ai.service, evidence_reader=scene.ai.rag, owner_id="other")
+    for action in [lambda: other.set_archived(lid, lp.LessonRevisionRequest(expectedRevision=1), archived=True),
+                   lambda: other.set_archived(lid, lp.LessonRevisionRequest(expectedRevision=1), archived=False)]:
+        with pytest.raises(AppError) as absent:
+            action()
+        assert absent.value.code == "NOT_FOUND" and absent.value.status_code == 404

@@ -469,6 +469,15 @@
   overflow-wrap: anywhere;
 }
 
+/* 批次卡次行小字：短号与来源（主标题是真实文件名） */
+.knowledge-points-page .kp-import-short {
+  font-size: 11px;
+  color: var(--muted, currentColor);
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
 .knowledge-points-page .kp-import-review {
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
@@ -615,6 +624,88 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
+}
+
+/* ===== 从教材提取（任务③）：书册清单与逐册任务 ===== */
+
+.knowledge-points-page .kp-extract {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-extract-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-extract-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  min-width: 0;
+}
+
+/* 未就绪书册：整行弱化，原因文字保持可读（不伪造就绪，也不隐藏） */
+.knowledge-points-page .kp-extract-row.blocked {
+  border-style: dashed;
+  background: var(--surface);
+}
+
+.knowledge-points-page .kp-extract-pick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-extract-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.knowledge-points-page .kp-extract-row.blocked .kp-extract-title {
+  color: var(--muted);
+}
+
+.knowledge-points-page .kp-extract-reason {
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--danger);
+  overflow-wrap: anywhere;
+}
+
+.knowledge-points-page .kp-extract-jobs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.knowledge-points-page .kp-extract-job {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
   min-width: 0;
 }
 
@@ -788,6 +879,7 @@
   .knowledge-points-page .kp-tree-node,
   .knowledge-points-page .kp-card,
   .knowledge-points-page .kp-import-card,
+  .knowledge-points-page .kp-extract-pick,
   .knowledge-points-page .kp-alias-remove {
     min-height: var(--touch-target, 44px);
   }

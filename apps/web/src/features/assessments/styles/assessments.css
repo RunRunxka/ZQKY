@@ -621,6 +621,29 @@
   overflow-wrap: anywhere;
 }
 
+/* 名称 chips 下方的 ID 小字行：短号 + 复制（ID 降为次要，不占主视觉） */
+.assessments-page .assessments-context-meta {
+  display: flex;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px var(--space-3);
+  margin: 0;
+  padding-top: var(--space-2);
+  border-top: 1px dashed var(--line);
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+/* 批量添加学生：预览/结果行的单行排布（窄屏自动换行，不横向溢出） */
+.assessments-page .assessments-batch-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px var(--space-3);
+}
+
 .assessments-page .assessments-panel {
   gap: var(--space-5);
 }

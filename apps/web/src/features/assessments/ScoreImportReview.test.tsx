@@ -254,4 +254,21 @@ describe('服务端有效矩阵的成绩承认范围', () => {
     expect(screen.getByText('未保存校正预览')).toBeInTheDocument();
     expect(screen.getByTestId('score-corrected-2-D')).toHaveTextContent('已保存校正：0');
   });
+
+  it('缺考分组显示班名（映射缺失回落短号），承认范围不变', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes('/classes?')) {
+        return response(200, { items: [{ id: 'c-1', name: '七一班' }], total: 1 });
+      }
+      return response(200, { items: sourceRows, total: sourceRows.length });
+    }));
+    render(ui());
+    fireEvent.click(screen.getByTestId('score-goto-acknowledge'));
+    const group = await screen.findByLabelText('承认 七一班 缺考 1 人次');
+    expect(group).not.toBeChecked();
+    fireEvent.click(group);
+    expect(group).toBeChecked();
+    expect(screen.getByTestId('score-ack-absences')).toHaveTextContent('七一班：1 名缺考人次');
+  });
 });

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import type { AssessmentDetailView, ParticipantAddRequest, ParticipantMutationResult } from '@/contracts/assessments';
 import type { Attendance } from '@/contracts/roster';
 import { addAssessmentParticipants, listClassStudents } from '@/services/assessments-api';
-import { useAsyncResource, useFrozenSubmission } from './hooks';
+import { useAsyncResource, useClassNameMap, useFrozenSubmission } from './hooks';
 import { attendanceLabel, issueLocationLabel } from './labels';
 
 /** 补录/补考只引用已有学生；服务器读取并冻结身份，不修改旧人次或成绩。 */
@@ -14,6 +14,8 @@ export function ParticipantAddPanel({ detail, onChanged, onRefresh }: {
   onRefresh: () => void;
 }) {
   const { assessment, participants } = detail;
+  /** 班名映射（只读）：下拉显示班名而不是 id；读取失败回落短号并提示。 */
+  const classNames = useClassNameMap(`participant-add|${assessment.assessmentId}`);
   const [classId, setClassId] = useState(assessment.classIds?.[0] ?? '');
   const [studentId, setStudentId] = useState('');
   const [attemptNo, setAttemptNo] = useState(1);
@@ -44,7 +46,7 @@ export function ParticipantAddPanel({ detail, onChanged, onRefresh }: {
     <p className="assessments-hint">选择已登记学生并明确人次序号；补考新增人次，已有参测记录和历史成绩快照保留。</p>
     <div className="assessments-form">
       <label className="assessments-field"><span>本施测班级</span><select className="space-select" aria-label="补录班级" value={classId} disabled={locked} onChange={(event) => { setClassId(event.target.value); setStudentId(''); }}>
-        <option value="">选择班级</option>{(assessment.classIds ?? []).map((id) => <option key={id} value={id}>{id}</option>)}
+        <option value="">选择班级</option>{(assessment.classIds ?? []).map((id) => <option key={id} value={id} title={id}>{classNames.nameOf(id)}</option>)}
       </select></label>
       <label className="assessments-field"><span>既有学生</span><select className="space-select" aria-label="补录学生" value={studentId} disabled={locked || students.state.phase !== 'ready'} onChange={(event) => {
         setStudentId(event.target.value);
@@ -56,6 +58,7 @@ export function ParticipantAddPanel({ detail, onChanged, onRefresh }: {
       <button className="space-button primary" disabled={submission.busy || !studentId || !classId} onClick={() => void add()}>{submission.busy ? '补录中…' : submission.phase === 'unknown' ? '重试原人次补录' : '新增参测人次'}</button>
     </div>
     {students.state.phase === 'failed' && <p className="space-banner error" role="alert">班级学生读取失败（{students.state.error.code}）。<button className="space-button" onClick={students.reload}>重试补录学生</button></p>}
+    {classNames.failed && <p className="assessments-hint">班级名称读取失败，下拉暂显示班级短号；不影响补录本身。</p>}
     {students.state.phase === 'ready' && students.lastData?.items.length === 0 && <p className="assessments-hint">该班没有可选学生；先在名单步骤建立学生与归属。</p>}
     {formError && <p className="space-banner error" role="alert">{formError}</p>}
     {submission.error && <div className="space-banner error" role="alert" data-testid="participant-add-error">

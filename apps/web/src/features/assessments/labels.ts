@@ -307,3 +307,65 @@ export function leafLabel(item: PaperItemView): string {
   const max = item.maxScoreUnits === null ? '' : `（满分 ${formatScoreUnits(item.maxScoreUnits)}）`;
   return `${item.questionNo}${max}`;
 }
+
+/* ------------------------------------------------------------------ 名称优先与守卫原因 */
+
+/**
+ * 短号：长 ID 只显示前 `length` 位（名称缺失时的兜底显示，不是主文本）。
+ * 空值给 `—`（"没有"与"有但太长"必须能区分开）。
+ */
+export function shortId(id: string | null | undefined, length = 8): string {
+  if (!id) return '—';
+  return id.length <= length ? id : `${id.slice(0, length)}…`;
+}
+
+/** 名称缺失时的回落：名称在就用名称，否则给 ID 短号（绝不伪造名称）。 */
+export function nameOrShortId(
+  name: string | null | undefined,
+  id: string | null | undefined,
+): string {
+  const trimmed = typeof name === 'string' ? name.trim() : '';
+  return trimmed !== '' ? trimmed : shortId(id);
+}
+
+/** 受引用守卫 409 的一条计数：`键 → 标签 + 计数`。 */
+export interface ReferenceCount {
+  key: string;
+  label: string;
+  count: number;
+}
+
+export const CLASS_REFERENCE_LABELS: Record<string, string> = {
+  memberships: '班级归属记录',
+  rosterImports: '名单导入批次',
+  assessments: '参测范围引用',
+  lessonPlans: '教案引用',
+};
+
+export const PAPER_REFERENCE_LABELS: Record<string, string> = {
+  assessments: '引用施测',
+  confirmedRevisions: '已确认修订（已确认原卷只能归档）',
+};
+
+export const ASSESSMENT_REFERENCE_LABELS: Record<string, string> = {
+  scoreRevisions: '成绩版本',
+  scoreImports: '成绩导入批次',
+  analysisRuns: '学情报告',
+  practiceConversions: '练习转换',
+};
+
+/**
+ * 从 409 的 `details` 里读 `counts` 并逐项列成原因清单：
+ * 只保留计数 >0 的键，未知键用原始键名兜底（不隐藏任何一条引用），形状不符返回空数组。
+ */
+export function referenceCounts(
+  details: unknown,
+  labels: Record<string, string>,
+): ReferenceCount[] {
+  if (!details || typeof details !== 'object') return [];
+  const counts = (details as { counts?: unknown }).counts;
+  if (!counts || typeof counts !== 'object') return [];
+  return Object.entries(counts as Record<string, unknown>)
+    .filter(([, value]) => typeof value === 'number' && value > 0)
+    .map(([key, value]) => ({ key, label: labels[key] ?? key, count: value as number }));
+}

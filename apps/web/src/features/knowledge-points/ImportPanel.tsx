@@ -5,13 +5,19 @@
  *
  * 列表读取失败显示错误码与重试（**不当空目录**）；AI 候选批次用独立 chip 与说明
  * 与人工表格导入区分（候选未入库）。
+ * 未确认批次（uploaded/reviewing/failed）可「放弃」（二次确认）：服务端只把状态置
+ * `cancelled`，记录/原始文件/预览行保留；已确认批次不提供入口（服务端 409 拒绝）。
  */
 
 import { useState } from 'react';
 import { RefreshCw, Upload } from 'lucide-react';
-import type { KnowledgeImportSummary } from '@/contracts/knowledge';
+import type { KnowledgeImportState, KnowledgeImportSummary } from '@/contracts/knowledge';
 import { Modal } from '@/components/ui/Modal';
-import { createKnowledgeImport, listKnowledgeImports } from '@/services/knowledge-points-api';
+import {
+  createKnowledgeImport,
+  discardKnowledgeImport,
+  listKnowledgeImports,
+} from '@/services/knowledge-points-api';
 import { asApiError, useAsyncResource } from './hooks';
 import {
   formatDateTime,
@@ -21,7 +27,22 @@ import {
 } from './labels';
 import { ImportReviewPanel } from './ImportReviewPanel';
 
+/** 批次卡主标题：优先真实上传文件名；服务端没给文件名时回退到来源标签（不伪造文件名）。 */
+function batchTitle(item: KnowledgeImportSummary): string {
+  const name = item.uploadedFileName?.trim();
+  if (name) return name;
+  return item.source === 'ai' ? 'AI 候选批次' : '表格批次';
+}
+
+/** 次行小字：短号与来源（完整 id 在 title 与详情里）。 */
+function batchShortLine(item: KnowledgeImportSummary): string {
+  return `${item.source === 'ai' ? 'AI 候选批次' : '表格批次'} · 批次 ${item.importId.slice(0, 8)}`;
+}
+
 const ACCEPT = '.xlsx,.csv,.txt';
+
+/** 可放弃的批次状态（与服务端 `discard_import` 的守卫一致：confirmed 一律 409）。 */
+const DISCARDABLE_STATES: readonly KnowledgeImportState[] = ['uploaded', 'reviewing', 'failed'];
 
 export function ImportPanel({
   subjects,
@@ -46,9 +67,36 @@ export function ImportPanel({
     `kp-imports|${refreshToken}|${listTick}`,
   );
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [discardBusyId, setDiscardBusyId] = useState<string | null>(null);
+  const [discardError, setDiscardError] = useState<string | null>(null);
 
   const items: KnowledgeImportSummary[] =
     imports.state.phase === 'ready' ? imports.state.data.items : [];
+
+  /**
+   * 放弃未确认批次：二次确认后用当前 `revision` 提交（服务端乐观锁）。
+   * 成功后刷新列表；被放弃的批次若正被选中，退回「未选择」以避免继续显示可校对状态。
+   * 失败不改变列表：409（revision 过期）时刷新取最新 revision，用户可再次确认。
+   */
+  async function discard(item: KnowledgeImportSummary) {
+    const confirmed = window.confirm(
+      `放弃批次「${batchTitle(item)}」（${batchShortLine(item)}）？批次记录与原始文件保留，但放弃后不能再校对或确认入库。`,
+    );
+    if (!confirmed) return;
+    setDiscardBusyId(item.importId);
+    setDiscardError(null);
+    try {
+      await discardKnowledgeImport(item.importId, { expectedRevision: item.revision });
+      setListTick((value) => value + 1);
+      if (item.importId === selectedImportId) onSelectImport(null);
+    } catch (cause) {
+      const apiError = asApiError(cause);
+      setDiscardError(`放弃批次失败（${apiError.code}）：${apiError.message}`);
+      if (apiError.status === 409) setListTick((value) => value + 1);
+    } finally {
+      setDiscardBusyId(null);
+    }
+  }
 
   return (
     <section className="kp-imports" aria-label="表格导入与校对">
@@ -96,33 +144,52 @@ export function ImportPanel({
             </div>
           )}
 
+          {discardError && (
+            <div className="space-banner error" role="alert">
+              {discardError}
+            </div>
+          )}
+
           {items.map((item) => (
-            <button
-              key={item.importId}
-              data-testid={`kp-import-card-${item.importId}`}
-              className={
-                item.importId === selectedImportId ? 'kp-import-card current' : 'kp-import-card'
-              }
-              aria-current={item.importId === selectedImportId}
-              onClick={() => onSelectImport(item.importId)}
-            >
-              <span className="kp-import-name">
-                {item.source === 'ai' ? 'AI 候选批次' : '表格批次'} · {item.importId.slice(0, 8)}
-              </span>
-              <span className="space-meta-row">
-                <span className={item.source === 'ai' ? 'space-chip amber' : 'space-chip'}>
-                  {importSourceLabel(item.source)}
+            <div key={item.importId}>
+              <button
+                data-testid={`kp-import-card-${item.importId}`}
+                className={
+                  item.importId === selectedImportId ? 'kp-import-card current' : 'kp-import-card'
+                }
+                aria-current={item.importId === selectedImportId}
+                title={item.importId}
+                onClick={() => onSelectImport(item.importId)}
+              >
+                <span className="kp-import-name">{batchTitle(item)}</span>
+                <span className="kp-import-short">{batchShortLine(item)}</span>
+                <span className="space-meta-row">
+                  <span className={item.source === 'ai' ? 'space-chip amber' : 'space-chip'}>
+                    {importSourceLabel(item.source)}
+                  </span>
+                  <span className={importStateChipClass(item.state)}>
+                    {importStateLabel(item.state)}
+                  </span>
+                  <span className="space-chip">行 {item.rowCount}</span>
+                  {item.blockingIssueCount > 0 && (
+                    <span className="space-chip amber">阻断 {item.blockingIssueCount}</span>
+                  )}
                 </span>
-                <span className={importStateChipClass(item.state)}>
-                  {importStateLabel(item.state)}
-                </span>
-                <span className="space-chip">行 {item.rowCount}</span>
-                {item.blockingIssueCount > 0 && (
-                  <span className="space-chip amber">阻断 {item.blockingIssueCount}</span>
-                )}
-              </span>
-              <span className="kp-hint">{formatDateTime(item.updatedAt)}</span>
-            </button>
+                <span className="kp-hint">{formatDateTime(item.updatedAt)}</span>
+              </button>
+              {DISCARDABLE_STATES.includes(item.state) && (
+                <div className="kp-actions">
+                  <button
+                    className="space-button danger"
+                    aria-label={`放弃批次 ${batchTitle(item)}`}
+                    disabled={discardBusyId === item.importId}
+                    onClick={() => void discard(item)}
+                  >
+                    {discardBusyId === item.importId ? '放弃中…' : '放弃'}
+                  </button>
+                </div>
+              )}
+            </div>
           ))}
         </nav>
 

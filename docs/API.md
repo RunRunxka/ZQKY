@@ -731,10 +731,69 @@ B1 仅冻结 `AssessmentCreateRequest`/`ParticipantSnapshot`/`ConfirmedPaperRevi
 | POST `/lesson-plans/{id}/proposals/{proposalId}/reject` | 幂等终结候选，不改正文 |
 | GET `/confirmed-question-revisions?subjectId=...&offset=0&limit=50` | 按真实题库owner分页读取confirmed固定revision ID；未知学科真实空集，依赖缺失503 |
 
-写操作皆有submissionId，保存/应用有expectedRevision，生成同时绑定baseRevisionId/baseServerRevision。成功原包重放在后来CAS/外部来源预检之前，异包409，版本冲突409保留details.currentRevision；教案请求非法422 VALIDATION_ERROR、业务422 LESSON_INVALID等、413超2MiB，错误不回显学生个人信息。没有归档/审核HTTP端点，保存不偷偷审核。
+写操作皆有submissionId，保存/应用有expectedRevision，生成同时绑定baseRevisionId/baseServerRevision。成功原包重放在后来CAS/外部来源预检之前，异包409，版本冲突409保留details.currentRevision；教案请求非法422 VALIDATION_ERROR、业务422 LESSON_INVALID等、413超2MiB，错误不回显学生个人信息。审核状态仍非HTTP语义；归档/恢复端点见文末「误录入清理」小节（2026-10-07 追加），保存不偷偷审核。
 
 正文仍11字段v1，ProcessItem仍id/stage/design/secondary；外层protocolVersion2、环节分钟为独立processMetadata。五个AI可改整字段为coreCompetencies/keyPoints/teachingDesign/process/exercises；教师标题/课时/课型/反思不属于patch。后台缓存按document ID新键，旧zhiqikeyuan:lesson-plan:v1不与后台共写。
 
 任务沿用teaching/lesson_generation与公共六态workflow-jobs观察/取消/显式retry。首次/重试均核冻结profile与指纹；只有候选发布与succeeded同事务，教师应用才另存正文。模型最终请求仅单班级/KP匿名固定计数与明确教学文本；已知个人信息在各来源和最终三协议wire阻断，不能据此宣称普遍匿名化或人工教学质量通过。输入128000 UTF-16/256KiB，输出256KiB/最多16384token，校验失败/截断/不可用不回退规则或静默裁切。
 
 教学库只追加0010的lesson_plans/lesson_plan_revisions/lesson_revision_reviews/lesson_generation_inputs/lesson_ai_proposals/lesson_proposal_decisions，真owner/基线/任务/报告FK、不可变trigger与CAS保护，0001～0009原声明保持。跨教材/KP/题库由生产读取口与固定快照验证，不伪造跨库FK；版本感知体检和全四库离线恢复包括新增表及受管资产。
+
+## 误录入清理：归档/恢复、放弃与人次移除（2026-10-07）
+
+统一口径：**归档/恢复是软删除**（只改状态位，历史、成绩、报告与快照一律保留，恢复即可继续）；**放弃只用于尚未确认的导入批次/草稿**（记录与原始文件保留、状态置 `cancelled`/`discarded`）；**没有硬删除**任何已确认数据。写操作除注明外都用 `expectedRevision` 乐观锁（409 冲突带 `details.currentRevision`）。
+
+| 方法与路径（统一 /api/v1 前缀） | 语义与守卫 |
+| --- | --- |
+| POST `/classes/{id}/archive`、`/restore` | 班级归档/恢复（既有能力，本批补前端入口）；归档班级不能导入名单/转入学生 |
+| POST `/students/{id}/archive`、`/restore` | 学生归档/恢复（新）；归档后不能改名/转班、不参与名单导入自动关联、默认不出现在班级成员列表（`includeArchived=true` 可见） |
+| GET `/classes/{id}/students?includeArchived=`、GET `/students?status=active\|archived` | 成员/学生列表过滤 |
+| POST `/roster-imports/{id}/discard` | 放弃未确认名单批次（`cancelled`，幂等；已确认 409 `ROSTER_IMPORT_CONFIRMED`） |
+| POST `/papers/{id}/archive`、`/restore` | 原卷归档/恢复（含未确认草稿）；归档后不可编辑/确认/发起建议，**不能用于新建施测或补录人次**（409 `PAPER_ARCHIVED`）；归档仍可读、既有施测不受影响 |
+| POST `/assessments/{id}/archive`、`/restore` | 施测归档/恢复；归档后更新标题/补录/出勤校正 409 `ASSESSMENT_ARCHIVED`，新成绩导入/确认/修正 409 `ASSESSMENT_ARCHIVED`；历史与报告保留 |
+| DELETE `/assessments/{id}/participants/{pid}?expectedRevision=` | 移除误录参测人次（守卫式）：已有学情报告、成绩版本（含草稿）或进行中的成绩导入批次 → 409 `PARTICIPANT_REMOVE_BLOCKED`；只按 `(id, assessmentId)` 双条件删除 |
+| POST `/score-imports/{id}/discard` | 放弃未确认成绩导入批次（`cancelled`，幂等；已确认 409 `SCORE_IMPORT_CONFIRMED`） |
+| POST `/knowledge-imports/{id}/discard` | 放弃未确认知识点导入批次（`cancelled`，幂等；已确认 409 `KNOWLEDGE_IMPORT_CONFIRMED`） |
+| POST `/question-imports/{id}/discard` | 放弃未确认题库导入批次（`cancelled`，幂等；已确认 409 `IMPORT_ALREADY_CONFIRMED`；放弃后 split/merge/organize/confirm 拒绝） |
+| POST `/textbook-imports/{id}/discard` | 放弃教材导入草稿（`uploaded`/`needs_review`/`failed` → `discarded`，幂等；已入库 409 `IMPORT_ALREADY_COMMITTED`） |
+| POST `/embedding-profiles/{id}/retire` | 停用 Embedding 配置（幂等；停用后不能用于新重建，历史索引代保留） |
+| DELETE `/embedding-profiles/{id}` | 删除 Embedding 配置：仅当**没有任何索引代引用**时 204；被引用 409 `EMBEDDING_PROFILE_IN_USE`（提示改用停用）；不存在 404 |
+| POST `/analysis-runs/{id}/archive`、`/restore` | 学情报告归档/恢复（幂等；`analysis_runs` 数据库层禁止 DELETE——`analysis_no_delete` 触发器——所以只有软归档）；`GET /analysis-runs?archived=` 过滤 |
+| POST `/practice-sets/{id}/archive`、`/restore` | 练习集归档/恢复（CAS）；归档后保存草稿/复核/新建修订/导出/转施测 409 `PRACTICE_ARCHIVED`；`GET /practice-sets?status=` 过滤 |
+| POST `/lesson-plans/{id}/archive`、`/restore` | 教案归档/恢复（CAS；不递增 revision 是 0010 触发器 `lesson_plan_identity_fixed` 的硬约束）；归档后写入 422 `LESSON_INVALID`（既有守卫）；`GET /lesson-plans?archived=` 过滤 |
+
+数据库层：teaching 追加迁移 `0011_analysis_runs_archived_at`（`analysis_runs` 增 `archived_at`，并把 `analysis_inputs_fixed` 升级为**仅放行已封存报告的 archived_at 写**，其余不可变语义逐字保留；`analysis_no_delete` 不变）。清理路径不新增任何硬删除；`papers.status`/`students.status`/`assessments.state`/`practice_sets.status`/`lesson_plans.archived_at` 都是既有列，本批只是补齐写路径。前端入口（归档/恢复/放弃/移除按钮与"显示已归档"开关）见各模块组件；施测列表的"显示已归档"只过滤当前页。
+
+## UX 整改批：彻底删除、批量学生、范围口径、名称字段与题库 AI 云端限定（2026-10-07 晚）
+
+用户实测反馈（5 条）与裁定：① 受引用守卫的**彻底删除**（物理删除，仅当无下游引用）；② 知识点**从全部已入库教材提取、按学科/年级归类**，模块内默认只显示任教范围、按钮可切"该学科全部"；③ 题库 AI（整理与补题）**不允许本地 LLM**，与教案/RAG 概括同口径。
+
+### 彻底删除（统一 `expectedRevision` 乐观锁；不存在 404；守卫命中 409 并带 `details.counts`）
+
+| 方法与路径 | 守卫与错误码 |
+| --- | --- |
+| `DELETE /classes/{id}` | `CLASS_IN_USE`：`class_memberships`/`roster_imports`/`assessment_classes`/`lesson_plans.class_id` 任一非零（逐项计数） |
+| `DELETE /papers/{id}` | `PAPER_IN_USE`（被任一 `assessments.paper_revision_id` 引用）或 `PAPER_HAS_CONFIRMED_REVISION`（含已确认修订——DB 触发器禁止删除已确认修订，只能归档）；通过后按 FK 顺序清 `paper_item_knowledge/paper_items/paper_source_blocks/paper_issues/ai_proposals/paper_revisions` |
+| `DELETE /assessments/{id}` | `ASSESSMENT_IN_USE`：`score_revisions`/`score_imports`/`analysis_runs`/`practice_conversions` 任一非零；通过后删 participants/classes/assessment 行 |
+| `DELETE /practice-sets/{id}` | `PRACTICE_IN_USE`：任一 `practice_revisions.state='reviewed'` 或 `practice_exports`/`practice_conversions` 引用；通过后删全部 **draft** 修订及其子行与练习集本身（reviewed 修订受触发器保护） |
+| `DELETE /knowledge-points/{id}` | `KNOWLEDGE_POINT_IN_USE`：有子节点，或跨库引用计数非零（`details.counts=[{library,key,count}]`，覆盖 knowledge 教材依据 / teaching 原卷题目 / question-bank 正式题与草稿关联）；跨库检查经只读端口注入，端口缺失 503 不静默放行 |
+| `DELETE /question-imports/{id}` | 已确认 409 `IMPORT_ALREADY_CONFIRMED`；草稿被正式题引用 409 `IMPORT_IN_USE`（计数）；通过后删批次/草稿/行/原文块/建议/溯源；**受管原件（内容寻址 blob）不物理删除**，前端如实说明"原件保留" |
+
+### 新增能力
+
+| 方法与路径 | 说明 |
+| --- | --- |
+| `POST /classes/{id}/students/batch` | 批量建学生：`{submissionId, items[{studentNo?,name}], joinedOn?}`；逐行执行、学号已存在**只跳过该行并如实报告**（`skipped[{index,reason,code,existingStudentId,existingName}]`）、姓名重复允许；行非法整批 422 定位行号；同 submissionId 幂等重放 |
+| `GET /knowledge-points?scope=taught\|subject&gradeId=` | 默认窄口径由前端传参；`scope=taught` 只返回在任教范围教材中有依据的知识点（任教范围经 `resolve_selection` 权威解析，未就绪 409 `KNOWLEDGE_SCOPE_UNAVAILABLE` 含原因，**不静默回退全部**）；`gradeId` 按教材依据文档年级过滤 |
+| `GET /knowledge-extraction/preview?subjectId=` | 该学科全部已入库教材清单（`documentId/title/gradeIds/revisionId/chunkCount/approxChars/indexReady/reason?` + 合计）；未就绪书册如实标原因 |
+| `POST /knowledge-extraction-jobs` | `{submissionId, modelProfileId, subjectId, documentIds?}` → 202 **每书册一个任务**；未就绪书册 409 `KNOWLEDGE_EXTRACTION_NOT_READY`（逐册列出、零受理）；候选仍只写 `source="ai" state="reviewing"` 待确认批次（不自动发布）；确认入库时自动为该批新知识点写入教材依据（`KnowledgeLinkSource="ai_confirmed"`），使"任教范围可见性"对提取入库的知识点自然成立 |
+| 题库 AI 云端限定 | `POST /question-imports/{id}/organize` 与 AI 补题：档案为本机部署时 **422 `QUESTION_MODEL_NOT_CLOUD`**（"题库 AI 不使用本机模型，请选择云端模型档案。"），受理阶段拒绝、不发上游请求；前端同步给出原因与"去设置/改用当前聊天模型"出口 |
+
+### 名称字段（只读、可空、向后兼容；缺失即 null，不伪造名称）
+
+- 学情：`FrozenParticipant.className` / `ClassReportRow.className` 由写死 `None` 改为**读路径 JOIN `classes.name` 的真实班名**（`classNameNote` 保留为缺失兜底）；报告详情与三视图同步。
+- 批次文件名：`ScoreImportSummary.uploadedFileName`、`RosterImportSummary.uploadedFileName` + `RosterImportSummary.className`、`KnowledgeImportSummary/View.uploadedFileName`。
+- 练习来源：`PracticeSetView` / `PracticeRevisionView` 增加 `sourcePaperTitle`、`sourceCreatedAt`。
+- 知识点：`KnowledgePointView` 增加 `gradeIds: string[]`（其教材依据文档的年级去重）。
+
+前端配套（同期落地）：四模块状态条/列表/批次的**名称优先 + ID 折叠为可复制短号**、删除三态与 409 原因清单（含"改为归档"出口）、批量添加学生对话框（本地预览 + 幂等重试）、知识点范围切档与年级筛选与「教材提取」页签、题库 AI 两态提示与"改用当前聊天模型"出口、题库校对页左栏自滚吸顶（滚动割裂修复）。

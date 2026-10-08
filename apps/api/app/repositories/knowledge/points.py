@@ -474,6 +474,47 @@ class KnowledgePointRepository:
             raise translate_integrity_error(exc) from exc
         return self.require_point(conn, point_id)
 
+    def delete_point(
+        self,
+        conn: sqlite3.Connection,
+        point_id: str,
+        *,
+        expected_revision: int,
+    ) -> None:
+        """彻底删除：``knowledge_aliases`` → ``knowledge_point_revisions`` → ``knowledge_points``。
+
+        顺序说明：``knowledge_points.current_revision_id`` 是指向修订表的
+        DEFERRABLE INITIALLY DEFERRED 外键，按"别名 → 修订 → 身份"自底向上删除，
+        COMMIT 时延迟校验仍成立；子节点外键（``parent_id``）若仍存在会触发 FK
+        拒绝（服务层先拒绝有子节点的删除）。调用方必须先经跨库引用守卫
+        （409 ``KNOWLEDGE_POINT_IN_USE``），因此不触碰 ``textbook_knowledge_links``：
+        守卫保证该点没有教材依据行，这里再删会掩盖守卫缺陷。
+
+        触发器说明：``immutable_knowledge_point_revisions_delete`` 是无条件阻止
+        修订删除的兜底；彻底删除是**经守卫的受控行为**，同一写事务内临时摘除该
+        触发器 → 删除 → 按登记声明逐字恢复（DDL 可事务化，任一步失败整体回滚，
+        触发器随事务恢复；BEGIN IMMEDIATE 下无并发写者可见窗口）。触发器文本与
+        ``app/core/migrations/knowledge.py`` 0002 声明一致，不改登记 SQL。
+        """
+        point_id = _text(point_id, field="point_id")
+        current = self.require_point(conn, point_id)
+        if current.revision != expected_revision:
+            raise revision_conflict(current.revision)
+        try:
+            conn.execute(
+                "DROP TRIGGER IF EXISTS immutable_knowledge_point_revisions_delete"
+            )
+            conn.execute("DELETE FROM knowledge_aliases WHERE knowledge_point_id = ?", (point_id,))
+            conn.execute("DELETE FROM knowledge_point_revisions WHERE knowledge_point_id = ?", (point_id,))
+            conn.execute("DELETE FROM knowledge_points WHERE id = ?", (point_id,))
+            conn.execute(
+                "CREATE TRIGGER IF NOT EXISTS immutable_knowledge_point_revisions_delete "
+                "BEFORE DELETE ON knowledge_point_revisions "
+                "BEGIN SELECT RAISE(ABORT,'IMMUTABLE_REVISION'); END"
+            )
+        except sqlite3.IntegrityError as exc:
+            raise translate_integrity_error(exc) from exc
+
     def set_aliases(
         self, conn: sqlite3.Connection, point_id: str, aliases: Sequence[str]
     ) -> None:
@@ -525,10 +566,17 @@ class KnowledgePointRepository:
         status: str | None = None,
         parent_id: str | None = None,
         q: str | None = None,
+        scope_point_ids: Sequence[str] | None = None,
+        grade_point_ids: Sequence[str] | None = None,
         offset: int = 0,
         limit: int = 50,
     ) -> tuple[list[PointRecord], int]:
-        """列表（subject/status/parent/q 过滤 + 分页）；返回 ``(items, total)``。"""
+        """列表（subject/status/parent/q/scope/grade 过滤 + 分页）；返回 ``(items, total)``。
+
+        ``scope_point_ids`` / ``grade_point_ids`` 是服务层解析出的**允许 id 集合**
+        （任务②：任教范围命中 / 年级命中），以子查询 ``IN`` 收敛；``None`` 表示
+        不过滤（不带 scope 的旧调用语义不变）。分页 total 与过滤后的集合一致。
+        """
         if subject_id is not None:
             subject_id = _text(subject_id, field="subject_id")
         if status is not None:
@@ -542,6 +590,14 @@ class KnowledgePointRepository:
         where, params = self._list_filter(
             subject_id=subject_id, status=status, parent_id=parent_id, q=q
         )
+        if scope_point_ids is not None:
+            where, params = _with_id_filter(
+                where, params, "kp.id", scope_point_ids, alias="kp"
+            )
+        if grade_point_ids is not None:
+            where, params = _with_id_filter(
+                where, params, "kp.id", grade_point_ids, alias="kp"
+            )
         total = conn.execute(
             f"SELECT COUNT(*) AS total FROM {_POINT_FROM}{where}", params
         ).fetchone()["total"]
@@ -639,6 +695,70 @@ class KnowledgePointRepository:
             if current is None:
                 return False
         return True
+
+    # ---------------------------------------------------------------- 范围/年级（任务②）
+
+    def point_ids_with_revision_links(
+        self, conn: sqlite3.Connection, *, document_revision_ids: Sequence[str]
+    ) -> set[str]:
+        """教材依据落在给定修订集合内的知识点 id（任教范围命中集合）。
+
+        ``textbook_knowledge_links.document_revision_id`` IN (...)；修订集合为空时
+        返回空集合（任教范围里没有教材 → 没有任何知识点命中，不回退全部）。
+        """
+        revision_ids = [item for item in document_revision_ids if isinstance(item, str) and item]
+        if not revision_ids:
+            return set()
+        placeholders = ", ".join("?" for _ in revision_ids)
+        rows = conn.execute(
+            f"SELECT DISTINCT knowledge_point_id AS id FROM textbook_knowledge_links "
+            f"WHERE document_revision_id IN ({placeholders})",
+            revision_ids,
+        ).fetchall()
+        return {row["id"] for row in rows}
+
+    def document_revisions_by_point(
+        self, conn: sqlite3.Connection, point_ids: Sequence[str]
+    ) -> dict[str, set[str]]:
+        """按知识点批量读教材依据修订 id 集合（分页批量取，不做 N+1）。
+
+        返回 ``{point_id: {document_revision_id, ...}}``；没有教材依据的知识点不在
+        结果表里。年级并集由服务层用教材目录的修订 → 年级映射合成（跨库只读，
+        不在本库 SQL 里 join）。
+        """
+        ids = [item for item in point_ids if isinstance(item, str) and item]
+        if not ids:
+            return {}
+        placeholders = ", ".join("?" for _ in ids)
+        rows = conn.execute(
+            f"SELECT knowledge_point_id AS id, document_revision_id AS rid "
+            f"FROM textbook_knowledge_links WHERE knowledge_point_id IN ({placeholders})",
+            ids,
+        ).fetchall()
+        result: dict[str, set[str]] = {}
+        for row in rows:
+            result.setdefault(row["id"], set()).add(row["rid"])
+        return result
+
+    @staticmethod
+    def grade_ids_from_revisions(
+        revisions_by_point: dict[str, Sequence[str]],
+        grade_ids_by_revision: dict[str, Sequence[str]],
+    ) -> dict[str, list[str]]:
+        """合成视图 ``gradeIds``：知识点 → 其教材依据修订的年级去重并集（排序）。
+
+        ``grade_ids_by_revision`` 里缺失的修订（教材目录中已不可读）不贡献年级；
+        合成结果为空的知识点不出现在返回表里（视图取缺省空列表）。
+        """
+        result: dict[str, list[str]] = {}
+        for point_id, revision_ids in revisions_by_point.items():
+            grades: set[str] = set()
+            for revision_id in revision_ids:
+                for grade in grade_ids_by_revision.get(revision_id, ()):  # 未知修订无年级
+                    grades.add(str(grade))
+            if grades:
+                result[point_id] = sorted(grades)
+        return result
 
     # ---------------------------------------------------------------- 内部
 
@@ -962,6 +1082,34 @@ def _description(value: object) -> str:
     if not isinstance(value, str):
         raise invalid("description 必须是字符串。")
     return value
+
+
+def _with_id_filter(
+    where: str,
+    params: list[object],
+    column: str,
+    point_ids: Sequence[str],
+    *,
+    alias: str,
+) -> tuple[str, list[object]]:
+    """在既有 WHERE 上追加 ``column IN (id 集合)``（分页 total 与过滤一致）。
+
+    集合为空 → 追加恒假条件（``0 = 1``）：任教范围/年级没有命中任何知识点时，
+    结果为空页而不是回退成不过滤（与"绝不静默回退"同一纪律）。
+    """
+    ids = [item for item in point_ids if isinstance(item, str) and item]
+    if not ids:
+        return f"{where}{' AND' if where else ' WHERE'} 0 = 1", params
+    # SQLite 变量上限默认 999：按批次拆成 OR 组，避免大范围命中列表炸参数上限
+    batch_size = 500
+    clauses: list[str] = []
+    for start in range(0, len(ids), batch_size):
+        batch = ids[start : start + batch_size]
+        placeholders = ", ".join("?" for _ in batch)
+        clauses.append(f"{column} IN ({placeholders})")
+        params.extend(batch)
+    joined = " OR ".join(clauses)
+    return f"{where}{' AND' if where else ' WHERE'} ({joined})", params
 
 
 def _locator_payload(

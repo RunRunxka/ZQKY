@@ -25,13 +25,30 @@ async def create(request: Request, body: b4.PracticeCreateRequest):
 
 
 @router.get("/practice-sets", response_model=b4.Page[b4.PracticeSetView])
-async def listing(request: Request, analysisRunId: str | None = None, offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=200)):
-    return await run(service(request).list_practices, analysis_run_id=analysisRunId, offset=offset, limit=limit)
+async def listing(request: Request, analysisRunId: str | None = None, status: str | None = Query(default=None), offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=200)):
+    return await run(service(request).list_practices, analysis_run_id=analysisRunId, status=status, offset=offset, limit=limit)
 
 
 @router.get("/practice-sets/{set_id}", response_model=b4.PracticeSetView)
 async def detail(request: Request, set_id: str):
     return await run(service(request).get_practice, set_id)
+
+
+@router.post("/practice-sets/{set_id}/archive", response_model=b4.PracticeSetView)
+async def archive(request: Request, set_id: str, body: b4.PracticeSetStatusRequest):
+    return await run(service(request).set_archived, set_id, body, archived=True)
+
+
+@router.delete("/practice-sets/{set_id}", response_model=b4.PracticeSetDeleteReceipt)
+async def delete_set(request: Request, set_id: str, expectedRevision: int = Query(ge=0)):
+    """受引用守卫的彻底删除：已审核版本/导出/转换任一引用 → 409 列出计数；纯草稿集物理删除。"""
+    payload = b4.PracticeSetStatusRequest(expectedRevision=expectedRevision)
+    return await run(service(request).delete_practice, set_id, payload)
+
+
+@router.post("/practice-sets/{set_id}/restore", response_model=b4.PracticeSetView)
+async def restore(request: Request, set_id: str, body: b4.PracticeSetStatusRequest):
+    return await run(service(request).set_archived, set_id, body, archived=False)
 
 
 @router.get("/practice-sets/{set_id}/revisions/{revision_id}", response_model=b4.PracticeRevisionView)

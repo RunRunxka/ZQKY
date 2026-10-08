@@ -25,12 +25,18 @@ from typing import Any
 
 from app.contracts.roster import (
     CLASS_ARCHIVED,
+    CLASS_IN_USE,
     ROSTER_DECISIONS,
     ROSTER_IDENTITY_UNRESOLVED,
     ROSTER_IMPORT_BLOCKING_ISSUES,
     ROSTER_IMPORT_CONFIRMED,
     ROSTER_ROW_INVALID,
+    STUDENT_ARCHIVED,
     STUDENT_NO_CONFLICT,
+    BatchStudentAddRequest,
+    BatchStudentAddResult,
+    BatchStudentItem,
+    BatchStudentSkippedRow,
     ClassCreateRequest,
     ClassList,
     ClassRevisionRequest,
@@ -40,6 +46,7 @@ from app.contracts.roster import (
     RosterAppliedRow,
     RosterImportConfirmRequest,
     RosterImportConfirmResult,
+    RosterImportDiscardRequest,
     RosterImportList,
     RosterImportPatchRequest,
     RosterImportRowPatch,
@@ -48,6 +55,7 @@ from app.contracts.roster import (
     RosterIdentityMatch,
     StudentCreateRequest,
     StudentList,
+    StudentRevisionRequest,
     StudentUpdateRequest,
     StudentView,
 )
@@ -69,7 +77,7 @@ from app.repositories.teaching.roster import (
     RosterRowPayload,
     RowDecision,
 )
-from app.repositories.teaching.students import StudentRepository
+from app.repositories.teaching.students import StudentRecord, StudentRepository
 from app.services.assets.store import AssetStore
 from app.services.roster import imports as row_analysis
 from app.services.roster.imports import AnalyzedRow, ExtractedRow
@@ -187,6 +195,15 @@ def _reject_archived(record: ClassRecord, *, action: str) -> None:
         raise AppError(
             f"班级已归档，不能{action}；请先恢复班级。",
             code=CLASS_ARCHIVED,
+            status_code=409,
+        )
+
+
+def _reject_archived_student(record: StudentRecord, *, action: str) -> None:
+    if record.status == "archived":
+        raise AppError(
+            f"学生已归档，不能{action}；请先恢复学生。",
+            code=STUDENT_ARCHIVED,
             status_code=409,
         )
 
@@ -417,12 +434,186 @@ class RosterService:
         )
         return record.view()
 
+    def delete_class(self, class_id: str, payload: ClassRevisionRequest) -> dict[str, Any]:
+        """受引用守卫的彻底删除：无下游引用才物理删除班级行。
+
+        守卫（任一 >0 → 409 ``CLASS_IN_USE`` + ``details.counts`` 列出计数）：
+        ``class_memberships`` 行数、``roster_imports`` 批次数（名单导入历史是
+        ``classes`` 的真实外键，同属下游引用）、``assessment_classes`` 行数、
+        ``lesson_plans.class_id`` 引用数。通过后在同一写事务里删除 ``classes`` 行；
+        乐观锁不符 → 409 ``REVISION_CONFLICT``；班级不存在 → 404。
+        """
+        class_id = _clean_text(class_id, field="classId")
+        with self._catalog.write_transaction() as conn:
+            record = self._classes.require_in(conn, class_id)
+            _check_revision(record.revision, payload.expected_revision)
+            counts = self._classes.count_references_in(conn, class_id)
+            if any(value > 0 for value in counts.values()):
+                labels = {
+                    "memberships": "班级归属记录",
+                    "rosterImports": "名单导入批次",
+                    "assessments": "参测范围引用",
+                    "lessonPlans": "教案引用",
+                }
+                summary = "、".join(
+                    f"{labels[key]} {value} 条" for key, value in counts.items() if value > 0
+                )
+                raise AppError(
+                    f"班级仍被引用，不能删除（{summary}）；请先处理相关数据。",
+                    code=CLASS_IN_USE,
+                    status_code=409,
+                    details={"counts": counts},
+                )
+            self._classes.delete_in(
+                conn, class_id, expected_revision=payload.expected_revision
+            )
+        return {"deleted": True, "classId": class_id}
+
     # ---------------------------------------------------------------- 学生
 
-    def list_class_students(self, class_id: str) -> StudentList:
+    def batch_add_students(
+        self, class_id: str, payload: BatchStudentAddRequest
+    ) -> BatchStudentAddResult:
+        """批量添加学生（单事务逐行处理 + 提交幂等）。
+
+        - 班级必须存在且未归档（归档 → 409 ``CLASS_ARCHIVED``）；
+        - 学号已存在（同 owner）→ 跳过该行并在 ``skipped`` 里给出既有学生；
+          姓名重复允许（不合并）；其余行新建学生 + 该班归属（``joinedOn`` 缺省今天，
+          用既有 ``insert_membership_in`` 幂等语义）；
+        - 任一行非法（姓名空/学号超长）→ 422 整批回滚并定位行号；
+        - 同 ``submissionId`` 重放返回原结果（``replayed=True``）。
+        """
+        class_id = _clean_text(class_id, field="classId")
+        joined_on = (
+            _require_date(payload.joined_on, field="joinedOn")
+            if payload.joined_on is not None
+            else _today()
+        )
+        command = make_command(
+            operation="roster.students.batch",
+            submission_id=payload.submission_id,
+            # 幂等载荷用请求原始值（joinedOn 未提供时存 None）：跨天重放同一提交
+            # 的散列保持一致，才能可靠返回原结果而不是 409 SUBMISSION_CONFLICT。
+            payload={
+                "classId": class_id,
+                "joinedOn": payload.joined_on,
+                "items": [
+                    {"name": item.name, "studentNo": item.student_no}
+                    for item in payload.items
+                ],
+            },
+        )
+        outcome = execute_command(
+            catalog=self._catalog,
+            command=command,
+            apply=lambda conn: self._apply_batch_add(
+                conn, class_id=class_id, items=list(payload.items), joined_on=joined_on
+            ),
+            table="command_submissions",
+        )
+        result = BatchStudentAddResult.model_validate(outcome.result)
+        return result.model_copy(update={"replayed": outcome.replayed})
+
+    def _apply_batch_add(
+        self,
+        conn: sqlite3.Connection,
+        *,
+        class_id: str,
+        items: list[BatchStudentItem],
+        joined_on: str,
+    ) -> dict[str, Any]:
+        """批量添加的写事务主体：先全量校验（任一行非法整批拒绝），再逐行落库。"""
+        # 归档班级不再接收新归属：与创建学生/名单确认同一口径拒绝。
+        _reject_archived(self._classes.require_in(conn, class_id), action="批量添加学生")
+        # 1) 先校验全部行的形状（空姓名/超长学号 → 带行号的 422，整批不写入）
+        for index, item in enumerate(items):
+            if not isinstance(item.name, str) or not item.name.strip():
+                raise _issue_error(
+                    f"第 {index} 行姓名为空，整批未写入。",
+                    code=ROSTER_ROW_INVALID,
+                    status_code=422,
+                    issues=[
+                        _issue(
+                            index,
+                            code=ROSTER_ROW_INVALID,
+                            message="姓名必须是非空字符串。",
+                            field="name",
+                        )
+                    ],
+                )
+            if len(item.name.strip()) > row_analysis.MAX_NAME_CHARS:
+                raise _issue_error(
+                    f"第 {index} 行姓名超出长度上限，整批未写入。",
+                    code=ROSTER_ROW_INVALID,
+                    status_code=422,
+                    issues=[
+                        _issue(
+                            index,
+                            code=ROSTER_ROW_INVALID,
+                            message=f"姓名不能超过 {row_analysis.MAX_NAME_CHARS} 字。",
+                            field="name",
+                        )
+                    ],
+                )
+            if item.student_no is not None and (
+                not isinstance(item.student_no, str)
+                or not item.student_no.strip()
+                or len(item.student_no.strip()) > row_analysis.MAX_STUDENT_NO_CHARS
+            ):
+                raise _issue_error(
+                    f"第 {index} 行学号非法，整批未写入。",
+                    code=ROSTER_ROW_INVALID,
+                    status_code=422,
+                    issues=[
+                        _issue(
+                            index,
+                            code=ROSTER_ROW_INVALID,
+                            message=(
+                                "studentNo 不能为空字符串且不能超过 "
+                                f"{row_analysis.MAX_STUDENT_NO_CHARS} 字。"
+                            ),
+                            field="studentNo",
+                        )
+                    ],
+                )
+
+        # 2) 逐行处理：学号已存在（同 owner）→ 跳过并说明；否则新建学生 + 归属
+        created: list[StudentView] = []
+        skipped: list[BatchStudentSkippedRow] = []
+        for index, item in enumerate(items):
+            student_no = item.student_no.strip() if item.student_no is not None else None
+            name = item.name.strip()
+            if student_no is not None:
+                existing = self._students.find_by_no_in(conn, student_no)
+                if existing is not None:
+                    skipped.append(
+                        BatchStudentSkippedRow(
+                            index=index,
+                            reason=f"学号 {student_no} 已存在（学生「{existing.name}」），未重复创建。",
+                            code=STUDENT_NO_CONFLICT,
+                            existing_student_id=existing.id,
+                            existing_name=existing.name,
+                        )
+                    )
+                    continue
+            student = self._students.create_in(conn, name=name, student_no=student_no)
+            self._students.insert_membership_in(
+                conn, class_id=class_id, student_id=student.id, joined_on=joined_on
+            )
+            created.append(self._students.require_in(conn, student.id).view())
+        result = BatchStudentAddResult(created=created, skipped=skipped, replayed=False)
+        return result.model_dump(by_alias=True)
+
+    # ---------------------------------------------------------------- 学生
+
+    def list_class_students(
+        self, class_id: str, *, include_archived: bool = False
+    ) -> StudentList:
         with self._catalog.read_connection() as conn:
             self._classes.require_in(conn, class_id)
-            records, total = self._students.list_in_class_in(conn, class_id)
+            records, total = self._students.list_in_class_in(
+                conn, class_id, include_archived=include_archived
+            )
         return StudentList(
             items=[record.view() for record in records],
             total=total,
@@ -431,10 +622,12 @@ class RosterService:
         )
 
     def list_students(
-        self, *, q: str | None = None, offset: int = 0, limit: int = 50
+        self, *, q: str | None = None, status: str | None = None, offset: int = 0, limit: int = 50
     ) -> StudentList:
         offset, limit = _page(offset, limit)
-        records, total = self._students.list(q=q, offset=offset, limit=limit)
+        records, total = self._students.list(
+            q=q, status=status, offset=offset, limit=limit
+        )
         return StudentList(
             items=[record.view() for record in records],
             total=total,
@@ -475,11 +668,26 @@ class RosterService:
     def update_student(
         self, student_id: str, payload: StudentUpdateRequest
     ) -> StudentView:
-        record = self._students.update(
+        with self._catalog.write_transaction() as conn:
+            current = self._students.require_in(conn, student_id)
+            _reject_archived_student(current, action="修改学生信息")
+            record = self._students.update_in(
+                conn,
+                student_id,
+                expected_revision=payload.expected_revision,
+                name=_optional_text(payload.name, field="name"),
+                student_no=_optional_student_no(payload.student_no),
+            )
+        return record.view()
+
+    def set_student_archived(
+        self, student_id: str, payload: StudentRevisionRequest, *, archived: bool
+    ) -> StudentView:
+        """归档/恢复学生：只改状态并递增 revision；归属历史与既有参测快照不变。"""
+        record = self._students.set_status(
             student_id,
             expected_revision=payload.expected_revision,
-            name=_optional_text(payload.name, field="name"),
-            student_no=_optional_student_no(payload.student_no),
+            status="archived" if archived else "active",
         )
         return record.view()
 
@@ -494,6 +702,9 @@ class RosterService:
         with self._catalog.write_transaction() as conn:
             self._classes.require_in(conn, from_class_id)
             _reject_archived(self._classes.require_in(conn, to_class_id), action="转入学生")
+            _reject_archived_student(
+                self._students.require_in(conn, student_id), action="转班"
+            )
             record = self._students.transfer_in(
                 conn,
                 student_id,
@@ -660,6 +871,26 @@ class RosterService:
         )
         result = RosterImportConfirmResult.model_validate(outcome.result)
         return result.model_copy(update={"replayed": outcome.replayed})
+
+    def discard_roster_import(
+        self, import_id: str, payload: RosterImportDiscardRequest
+    ) -> RosterImportView:
+        """放弃未确认批次（误上传清理）：状态置 ``cancelled``，记录/文件/预览行保留。
+
+        已确认批次不可放弃（历史与已应用结果不动）；重复放弃按幂等返回当前状态。
+        """
+        with self._catalog.write_transaction() as conn:
+            record = self._imports.require_in(conn, import_id)
+            if record.state == "confirmed":
+                raise AppError(
+                    "该名单批次已确认，不能放弃；已应用的学生与归属保留。",
+                    code=ROSTER_IMPORT_CONFIRMED,
+                    status_code=409,
+                )
+            _check_revision(record.revision, payload.expected_revision)
+            if record.state != "cancelled":
+                self._imports.set_state_in(conn, import_id, state="cancelled")
+        return self.get_roster_import(import_id)
 
     # ---------------------------------------------------------------- 内部
 

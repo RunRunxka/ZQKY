@@ -55,19 +55,32 @@ class SecretStore:
         self._secrets: dict[str, str] = {}
         self._env_path = env_path
         if env_path:
-            try:
-                lines = env_path.read_text(encoding='utf-8-sig').splitlines() if env_path.exists() else []
-                for line in lines:
-                    name, separator, raw = line.strip().removeprefix('export ').partition('=')
-                    if separator and name.strip().startswith(PREFIX):
-                        value = _parse_value(raw)
-                        if value:
-                            self._secrets[name.strip()[len(PREFIX):]] = value
-            except OSError as exc:
-                raise AppError('无法读取后端凭证文件。', code='CREDENTIAL_STORAGE_ERROR', status_code=500) from exc
-            for name, value in os.environ.items():
-                if name.startswith(PREFIX) and value:
-                    self._secrets[name[len(PREFIX):].lower()] = value
+            self.bind_env_file(env_path)
+
+    def bind_env_file(self, env_path: Path) -> None:
+        """就地绑定并加载凭证文件（幂等）。
+
+        必须在**原地**生效而不是替换实例：应用装配期已把同一个 store 注入各域服务
+        （知识点/题库/原卷的冻结模型解析器等持有其引用），替换实例会让它们一直看到
+        启动前的空凭证，任务执行时报 ``MODEL_NOT_CONFIGURED``。
+        """
+        loaded: dict[str, str] = {}
+        try:
+            lines = env_path.read_text(encoding='utf-8-sig').splitlines() if env_path.exists() else []
+            for line in lines:
+                name, separator, raw = line.strip().removeprefix('export ').partition('=')
+                if separator and name.strip().startswith(PREFIX):
+                    value = _parse_value(raw)
+                    if value:
+                        loaded[name.strip()[len(PREFIX):]] = value
+        except OSError as exc:
+            raise AppError('无法读取后端凭证文件。', code='CREDENTIAL_STORAGE_ERROR', status_code=500) from exc
+        for name, value in os.environ.items():
+            if name.startswith(PREFIX) and value:
+                loaded[name[len(PREFIX):].lower()] = value
+        with self._lock:
+            self._env_path = env_path
+            self._secrets.update(loaded)
 
     @property
     def scope(self) -> str:

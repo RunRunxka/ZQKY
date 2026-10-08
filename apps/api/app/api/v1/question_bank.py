@@ -31,7 +31,9 @@ from app.schemas.question_bank import (
     QuestionDetail,
     QuestionGenerationRequest,
     QuestionImportCreate,
+    QuestionImportDeleteResult,
     QuestionImportDetail,
+    QuestionImportDiscardRequest,
     QuestionImportList,
     QuestionList,
     QuestionPatchRequest,
@@ -169,6 +171,30 @@ async def list_question_imports(
 async def get_question_import(request: Request, import_id: str) -> QuestionImportDetail:
     service = _service(request)
     return await _run(service.get_import_detail, import_id)
+
+
+@router.post("/question-imports/{import_id}/discard")
+async def discard_question_import(
+    request: Request, import_id: str, body: QuestionImportDiscardRequest
+) -> QuestionImportDetail:
+    """放弃未确认批次（误上传清理）：状态置 ``cancelled``，批次记录/原文/草稿保留。"""
+    service = _service(request)
+    return await _run(service.discard_import, import_id, body)
+
+
+@router.delete("/question-imports/{import_id}")
+async def delete_question_import(
+    request: Request, import_id: str
+) -> QuestionImportDeleteResult:
+    """彻底删除未确认批次及其解析产物（与放弃互补：放弃保留记录，删除移除记录）。
+
+    守卫（任一命中 409，零删除）：已确认批次 ``IMPORT_ALREADY_CONFIRMED``（正式题
+    源自它，来源追溯必须保留）；草稿被正式题引用 ``IMPORT_IN_USE``（details 带计数）。
+    通过后单写事务按 FK 顺序删除批次全部库行；**受管原件（blobs）不物理删除**——
+    内容寻址、可能被其他批次复用，保留待独立清理策略，本接口不宣称原件已删。
+    """
+    service = _service(request)
+    return await _run(service.delete_import, import_id)
 
 
 # --------------------------------------------------------------------------- 草稿

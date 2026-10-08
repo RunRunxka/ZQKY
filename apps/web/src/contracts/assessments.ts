@@ -50,6 +50,11 @@ export interface AssessmentUpdateRequest {
   heldOn?: string | null;
 }
 
+/** 施测归档/恢复（对应后端 `AssessmentRevisionRequest`：只带乐观锁修订号）。 */
+export interface AssessmentRevisionRequest {
+  expectedRevision: number;
+}
+
 export interface AssessmentParticipantView {
   participantId: string;
   studentId: string;
@@ -110,4 +115,21 @@ export interface ParticipantMutationResult {
     reason: string;
     correctedAt: string;
   } | null;
+}
+
+/**
+ * 彻底删除施测回执（200）：物理删除不可恢复（参测与范围子行一并删除）。
+ * 被引用 → 409 `ASSESSMENT_IN_USE` + `details.counts`（见 `AssessmentReferenceCounts`）。
+ */
+export interface AssessmentDeleteResult {
+  deleted: boolean;
+  assessmentId: string;
+}
+
+/** `ASSESSMENT_IN_USE` 的逐项引用计数（键与后端一致；未知键由界面原样列出，不隐藏）。 */
+export interface AssessmentReferenceCounts {
+  scoreRevisions: number;
+  scoreImports: number;
+  analysisRuns: number;
+  practiceConversions: number;
 }

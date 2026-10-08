@@ -22,6 +22,7 @@ import type {
   EmbeddingProbeView,
   EmbeddingProfileView,
   ImportCreateResponse,
+  ImportDiscardRequest,
   ImportDraftView,
   IndexStatusView,
   JobList,
@@ -310,6 +311,17 @@ export function commitImport(id: string, body: ImportCommitRequest): Promise<Job
   );
 }
 
+/**
+ * 放弃导入草稿：只置 `state='discarded'`；草稿记录、原始文件与解析产物保留。
+ * 返回放弃后的权威草稿视图（`expectedRevision` 守卫，不符 409 保留调用方编辑）。
+ */
+export function discardImport(id: string, body: ImportDiscardRequest): Promise<ImportDraftView> {
+  return apiRequest<ImportDraftView>(
+    `/textbook-imports/${encodeURIComponent(id)}/discard`,
+    jsonInit('POST', body),
+  );
+}
+
 /* ------------------------------------------------------------------ 入库任务 */
 
 export function listJobs(signal?: AbortSignal): Promise<JobList> {
@@ -374,6 +386,27 @@ export function createEmbeddingProfile(
   body: EmbeddingProbeRequest,
 ): Promise<EmbeddingProfileView | null> {
   return apiRequestNullable<EmbeddingProfileView>('/embedding-profiles', jsonInit('POST', body));
+}
+
+/**
+ * 停用配置：不再用于新的入库与重建；幂等（已停用再调返回原配置）。
+ * 返回含 `retiredAt` 的权威配置视图，调用方据此更新列表。
+ */
+export function retireEmbeddingProfile(profileId: string): Promise<EmbeddingProfileView> {
+  return apiRequest<EmbeddingProfileView>(
+    `/embedding-profiles/${encodeURIComponent(profileId)}/retire`,
+    { method: 'POST' },
+  );
+}
+
+/**
+ * 受守卫硬删配置：仅当没有任何索引代引用该配置才允许；被引用时服务端 409
+ * （提示改用停用）。204 无响应体，`apiRequest` 归一为 undefined。
+ */
+export function deleteEmbeddingProfile(profileId: string): Promise<void> {
+  return apiRequest<void>(`/embedding-profiles/${encodeURIComponent(profileId)}`, {
+    method: 'DELETE',
+  });
 }
 
 /* ------------------------------------------------------------------ 索引代 */

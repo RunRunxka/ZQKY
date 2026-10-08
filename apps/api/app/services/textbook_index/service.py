@@ -362,6 +362,37 @@ class IndexService:
         )
         return self._profile_view(profile, is_active=False, installed=True)
 
+    def retire_profile(self, profile_id: str) -> EmbeddingProfileView:
+        """停用配置：旧配置不再用于新的入库与重建（既有 ``PROFILE_RETIRED`` 语义），幂等。
+
+        存在性检查与写入在仓储同一写事务内完成；已停用再调不报错。
+        """
+        profile = self.catalog.retire_embedding_profile(profile_id)
+        return self._profile_view(
+            profile,
+            is_active=self._is_active_profile(profile),
+            installed=self._is_installed(profile.model_name, self._installed_model_names()),
+        )
+
+    def delete_profile(self, profile_id: str) -> None:
+        """受守卫删除：仅当没有任何索引代引用该配置才硬删，否则 409。
+
+        存在性 + 引用检查 + 删除都在仓储同一写事务内完成，不存在删除半个配置的中间态。
+        """
+        self.catalog.delete_embedding_profile(profile_id)
+
+    def _is_active_profile(self, profile: ProfileRecord) -> bool:
+        state = self.catalog.catalog_state()
+        active_generation = (
+            self.catalog.get_generation(state.active_generation_id)
+            if state.active_generation_id
+            else None
+        )
+        return (
+            active_generation is not None
+            and active_generation.profile_id == profile.profile_id
+        )
+
     # ---------------------------------------------------------------- 空库首启
 
     def ensure_empty_generation(self, profile_id: str) -> GenerationRecord:

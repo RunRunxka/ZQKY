@@ -82,12 +82,16 @@ SELECT COUNT(*) FROM roster_import_rows r
    )
 """
 
-#: 批次摘要（列表）
+#: 批次摘要（列表）：同库只读 JOIN 补班级展示名与上传原文件名（名称优先，
+#: LEFT JOIN——班级/资产登记缺失时取 NULL，由服务层落 null，不伪造名称）
 _SELECT_SUMMARY = f"""
 SELECT i.id, i.class_id, i.state, i.revision, i.created_at, i.updated_at,
+       c.name AS class_name, fa.original_name AS uploaded_file_name,
        (SELECT COUNT(*) FROM roster_import_rows r WHERE r.import_id = i.id) AS row_count,
        ({_SUMMARY_BLOCKING.strip()}) AS blocking_count
   FROM roster_imports i
+  LEFT JOIN classes c ON c.id = i.class_id
+  LEFT JOIN file_assets fa ON fa.id = i.file_asset_id
 """
 
 
@@ -693,9 +697,21 @@ class RosterImportRepository:
 
     @staticmethod
     def _summary(row: sqlite3.Row) -> RosterImportSummary:
+        class_name = row["class_name"]
+        if class_name is not None and (not isinstance(class_name, str) or not class_name):
+            raise _corrupt("教学库数据损坏：roster_imports.class_name 结构不符。")
+        uploaded_file_name = row["uploaded_file_name"]
+        if uploaded_file_name is not None and (
+            not isinstance(uploaded_file_name, str) or not uploaded_file_name
+        ):
+            raise _corrupt("教学库数据损坏：file_assets.original_name 结构不符。")
         return RosterImportSummary(
             importId=row["id"],
             classId=row["class_id"],
+            # 名称优先：JOIN classes.name / file_assets.original_name 实时补展示名；
+            # 关联缺失时为 None（不伪造名称），字段保留以兼容旧前端。
+            className=class_name,
+            uploadedFileName=uploaded_file_name,
             state=row["state"],
             revision=row["revision"],
             rowCount=row["row_count"],

@@ -26,6 +26,7 @@ from app.contracts.papers import (
     PaperProposalJobRequest,
     PaperProposalView,
     PaperRevisionContentView,
+    PaperRevisionRequest,
     PaperView,
 )
 from app.contracts.teaching_loop import JobView
@@ -173,6 +174,34 @@ async def confirm_paper(
 ) -> PaperConfirmResult:
     service = _service(request)
     return await _run(service.confirm, paper_id, body)
+
+
+@router.post("/papers/{paper_id}/archive")
+async def archive_paper(
+    request: Request, paper_id: str, body: PaperRevisionRequest
+) -> PaperView:
+    service = _service(request)
+    return await _run(service.set_archived, paper_id, body, archived=True)
+
+
+@router.post("/papers/{paper_id}/restore")
+async def restore_paper(
+    request: Request, paper_id: str, body: PaperRevisionRequest
+) -> PaperView:
+    service = _service(request)
+    return await _run(service.set_archived, paper_id, body, archived=False)
+
+
+@router.delete("/papers/{paper_id}")
+async def delete_paper(
+    request: Request,
+    paper_id: str,
+    expectedRevision: int = Query(ge=0),
+) -> dict:
+    """受引用守卫的彻底删除：已确认修订/被施测引用 → 409 并列出计数；干净草稿卷物理删除。"""
+    service = _service(request)
+    payload = PaperRevisionRequest(expectedRevision=expectedRevision)
+    return await _run(service.delete_paper, paper_id, payload)
 
 
 # --------------------------------------------------------------------------- AI 建议

@@ -120,15 +120,11 @@ def _database_expectations(settings: Settings) -> list[DatabaseExpectation]:
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings: Settings = app.state.settings
     if app.state.load_env_credentials and settings.credentials_file:
-        # 启动时重建凭证存储；服务层必须一并重建，否则会写入启动前的内存存储，
-        # 导致 .env 落盘与读取不一致。
-        app.state.secret_store = SecretStore(settings.credentials_file)
-        app.state.model_config_service = ModelConfigService(
-            app.state.model_config_repo, app.state.secret_store
-        )
-        app.state.model_auth_service = ModelAuthService(
-            app.state.model_config_repo, app.state.secret_store
-        )
+        # **就地**加载 .env 凭证：装配期已把同一个 store 注入各域服务（知识点/题库/原卷的
+        # 冻结模型解析器持其引用），替换实例会让它们一直看到启动前的空凭证、任务执行时
+        # 报 MODEL_NOT_CONFIGURED。原地绑定后，晚绑定（app.state.secret_store）与装配期
+        # 捕获的引用看到同一份凭证；配置/认证服务持有同一实例，也无需重建。
+        app.state.secret_store.bind_env_file(settings.credentials_file)
     logger.info(
         "后端服务启动：%s:%s（env=%s）",
         settings.host,
@@ -423,7 +419,12 @@ def _build_shared_services(app: FastAPI, settings: Settings) -> None:
 
 
 def _build_knowledge_runtime(app: FastAPI) -> None:
-    """知识点服务：依赖知识点库 + 受管资产登记 + 发布协调器 + 任务引擎。"""
+    """知识点服务：依赖知识点库 + 受管资产登记 + 发布协调器 + 任务引擎。
+
+    任务①②追加装配（仅知识点运行时段）：跨库引用检查（删除守卫）与教材范围查询
+    （scope=taught）端口的真实实现在这里就近构造——此处能拿到 teaching / question_bank
+    catalog 与教材目录；端口缺失时对应能力 503，不静默放行。
+    """
     if app.state.knowledge is None or app.state.asset_store is None or app.state.file_assets is None:
         return
     try:
@@ -431,6 +432,22 @@ def _build_knowledge_runtime(app: FastAPI) -> None:
     except ImportError as exc:  # pragma: no cover - 实现落地前
         logger.warning("知识点服务缺失：%s", exc)
         return
+    # 引用检查真实实现：知识点库 + 教学库 + 题库（缺库的库按无引用处理，不伪造）
+    reference_checker = None
+    scope_reader = None
+    try:
+        from app.services.knowledge.references import CrossLibraryReferenceChecker
+        from app.services.knowledge.textbook_scope import CatalogTextbookScopeReader
+    except ImportError as exc:  # pragma: no cover - 实现落地前
+        logger.warning("知识点引用检查/范围查询实现缺失：%s", exc)
+    else:
+        reference_checker = CrossLibraryReferenceChecker(
+            knowledge_catalog=app.state.knowledge,
+            teaching_catalog=app.state.teaching,
+            question_bank_catalog=app.state.question_bank,
+        )
+        if app.state.catalog is not None:
+            scope_reader = CatalogTextbookScopeReader(app.state.catalog)
     app.state.knowledge_service = build_knowledge_service(
         app.state.knowledge,
         asset_store=app.state.asset_store,
@@ -442,6 +459,8 @@ def _build_knowledge_runtime(app: FastAPI) -> None:
         model_config_repo=app.state.model_config_repo,
         secret_store=app.state.secret_store,
         model_auth_service=app.state.model_auth_service,
+        reference_checker=reference_checker,
+        scope_reader=scope_reader,
     )
 
 
