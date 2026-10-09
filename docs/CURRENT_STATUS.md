@@ -8,6 +8,8 @@
 3. **正式数据清理**：本轮复走产物全部软删除/可追溯——班级×2、原卷、施测×3、练习、报告×3、教案×2 归档；模拟教材逻辑删除（向量经 `run_cleanup_queue` 实清，活跃书册回到 58 册）；正式题×6 归档；非本批对象未触碰。**顺带发现（P3，未修）**：`IndexService.run_cleanup_queue` 生产无调用点（仅测试调用），教材删除后向量清理不自动执行、队列条目永久滞留。
 
 门禁（本批自测，非独立验收）：后端全量 **2079 例 exit 0**（0012 相关三处迁移清单断言同步）；前端 typecheck/lint 0、vitest **133 文件/1605 例**全绿（须 `NODE_OPTIONS=--no-experimental-webstorage`）、生产构建 exit 0；e2e `assessments.spec.ts` **4/4**、`lesson-plan.spec.ts` **9/9**。**未执行**：独立验收、全量 e2e、390px、教师真实试评。改动未提交（工作区含其他会话 docs 改动，未触碰）。
+
+**同日追加（用户人工测第二批之 #1）**：AI 补题稳定 `GENERATION_OUTPUT_TRUNCATED` 已修——用户真机任务 `46c1fa0d…`（count=10、默认推理档）确认根因是固定 4096 输出预算被推理与题面耗尽；改为**按题数伸缩、有界**（每题 2048 / 下限 16384 / 上限 32768，再取 min 模型上限）+ 单次等待 `GENERATION_TIMEOUT_SECONDS=300`（`question_bank/generation.py`），新增 2 例回归，全量后端复跑 exit 0。**真机复测被 HTTP 402 挡住**：DeepSeek 账户余额为负（`is_available=false`，`total_balance=-0.02`），充值后需复跑一次确认。其余四项（流程清晰度、ID 直显、教案退出口/删除、教案生成流程）诊断与方案见会话记录，待实施。
 <!-- /LOOP-FIX:20261009 -->
 
 <!-- LOOP-WALKTHROUGH:20261009 -->

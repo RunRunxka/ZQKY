@@ -47,7 +47,7 @@ import json
 import re
 import uuid
 from collections.abc import Awaitable, Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from app.core.exceptions import AppError
@@ -63,8 +63,16 @@ from app.services.question_bank.rules import infer_type
 
 #: 冻结输入的契约版本；不是这个形状的任务不自动执行（不猜模型、不猜语义）
 GENERATION_CONTRACT_VERSION = 1
-#: 单次补题的输出上限；实际请求值 = min(它, 所选模型的 max_output_tokens)
-MAX_OUTPUT_TOKENS = 4096
+#: 每题输出预算（token 近似：题干/选项/答案/解析的 JSON）
+TOKENS_PER_QUESTION = 2048
+#: 单次补题的输出下限；推理 token 计入输出预算——2026-10-09 用户人工测（count=10、
+#: 默认推理档）稳定 ``GENERATION_OUTPUT_TRUNCATED``（旧口径固定 4096 被思考与题面耗尽）。
+MIN_OUTPUT_TOKENS = 16384
+#: 单次补题的输出上限（有界）；实际请求值 = min(按题数伸缩的目标, 本上限, 所选模型上限)
+MAX_OUTPUT_TOKENS = 32768
+#: 单次补题按调用放宽的非流式等待（秒）：推理档写完整题面 JSON 可能远超默认 30 秒；
+#: 任务心跳独立续租，调用时长不影响租约；其余任务保持默认等待不变。
+GENERATION_TIMEOUT_SECONDS = 300
 #: 模型原始回复的字节上限（超过按失败处理，不落半截原件）
 MAX_REPLY_BYTES = 1_000_000
 #: 单条材料文本上限与全部材料合计上限（Unicode 码点）
@@ -621,12 +629,15 @@ class QuestionGenerationRunner:
                 LLMMessage(role="system", content=build_instruction(count)),
                 LLMMessage(role="user", content=render_user_prompt(payload)),
             ],
-            maxOutputTokens=self._output_budget(handle),
+            maxOutputTokens=self._output_budget(handle, count),
             params={},
         )
         if await ctx.cancellation_requested():
             return JobOutcome(result={"cancelled": True, "candidateCount": 0}, publish=None)
-        response = await handle.provider.complete(handle.config, request)
+        # 补题为单次长非流式生成：推理档（reasoning=max）的真机耗时常态超过默认 30 秒，
+        # 按调用有界放宽等待（任务心跳独立续租，不受调用时长影响）；其余任务不变。
+        config = replace(handle.config, timeoutSeconds=GENERATION_TIMEOUT_SECONDS)
+        response = await handle.provider.complete(config, request)
         if response.finishReason == FINISH_LENGTH:
             raise _invalid(
                 "模型输出被截断（结束原因 length），整批补题已失败；没有生成任何草稿。",
@@ -756,11 +767,17 @@ class QuestionGenerationRunner:
     # ------------------------------------------------------------------ 内部
 
     @staticmethod
-    def _output_budget(handle: ChatModelHandle) -> int:
+    def _output_budget(handle: ChatModelHandle, count: int) -> int:
+        """输出预算 = min(按题数伸缩的目标预算, 业务上限, 所选模型上限)。
+
+        目标预算随题数伸缩并设下限：推理 token 计入输出预算，固定小预算对批量命题
+        （用户真机 count=10）必然截断（``GENERATION_OUTPUT_TRUNCATED``）。
+        """
+        target = max(MIN_OUTPUT_TOKENS, max(1, count) * TOKENS_PER_QUESTION)
         limit = handle.max_output_tokens
         if not isinstance(limit, int) or isinstance(limit, bool) or limit <= 0:
-            return MAX_OUTPUT_TOKENS
-        return min(MAX_OUTPUT_TOKENS, limit)
+            return min(target, MAX_OUTPUT_TOKENS)
+        return min(target, MAX_OUTPUT_TOKENS, limit)
 
     @staticmethod
     def _publish_rows(
@@ -799,6 +816,7 @@ __all__ = [
     "CONTENT_INVALID",
     "FORBIDDEN_REFERENCE",
     "GENERATION_CONTRACT_VERSION",
+    "GENERATION_TIMEOUT_SECONDS",
     "GenerationCandidate",
     "INSTRUCTION_TEMPLATE",
     "INPUT_INVALID",

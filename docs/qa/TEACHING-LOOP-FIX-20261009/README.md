@@ -58,6 +58,24 @@
 
 **顺带发现（P3，未修）**：`IndexService.run_cleanup_queue` 在生产代码中**没有任何调用点**（仅测试调用）——教材逻辑删除后向量清理不会自动发生、`cleanup_queue` 条目会永久滞留；本次由维护脚本手动执行。建议后续给启动自检或定时 janitor 增加触发。
 
+---
+
+## 5. 用户人工测第二批：#1 AI 补题稳定截断（同日追加）
+
+**用户反馈**："AI 补题一直失败，提示模型输出被截断。"
+
+**真机复现（用户自己的任务）**：`question_jobs` 中用户 15:31（07:31Z）创建的补题任务 `46c1fa0d…`（默认档 deepseek-flash、**count=10**、三种题型）18 秒后 `GENERATION_OUTPUT_TRUNCATED`「模型输出被截断（结束原因 length）」。
+
+**根因**：`question_bank/generation.py` 旧口径固定 `MAX_OUTPUT_TOKENS = 4096`，且**推理 token 计入输出预算**——10 道题的题干/选项/答案/解析 JSON 加上推理思考在 4096 内写不完，`finish_reason=length` → 整批失败。同屏的整理器（8192）与教材提取（16384）此前已各自按真机数据放宽，补题是遗漏的一个。
+
+**修法（本批）**：
+
+- 输出预算改为**按题数伸缩、有界**：`TOKENS_PER_QUESTION=2048`、`MIN_OUTPUT_TOKENS=16384`、`MAX_OUTPUT_TOKENS=32768`，实际请求 = `min(max(下限, 题数×每题预算), 业务上限, 所选模型上限)`；`_output_budget(handle, count)`。
+- 单次等待按调用放宽：`GENERATION_TIMEOUT_SECONDS=300`（`replace(config, timeoutSeconds=…)` 用于 `provider.complete`；推理档单次生成常态超过默认 30 秒，只放宽预算会改撞超时）；任务心跳独立续租。
+- 回归：`tests/test_question_generation.py` 新增 2 例（预算/等待放宽断言；count=10 伸缩与模型上限压制），截断负向用例保持。
+
+**未完成**：真机复测被上游 **HTTP 402 挡住**——DeepSeek 账户 `is_available=false`、`total_balance=-0.02 CNY`（`GET /user/balance` 实测）。充值后需复跑一次补题（同一界面路径）确认端到端成功。
+
 ## 4. 门禁（本批自测，非独立验收）
 
 - 后端：`uv run pytest tests/` **2079 例全绿（exit 0）**；涉及 0012 的三处"已登记迁移清单"断言与 B5 备份排除清单同步更新（测试意图不变）。

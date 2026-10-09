@@ -534,6 +534,79 @@ def test_generate_rejects_truncated_output(harness: GenerationHarness) -> None:
     assert harness.provider.calls  # 调用确实发生过，只是输出不可用
 
 
+def test_generate_widens_output_budget_and_call_timeout(harness: GenerationHarness) -> None:
+    """补题按调用放宽输出预算与等待：推理档 token 计入输出、单次生成也会超过默认 30 秒。
+
+    2026-10-09 用户人工测：默认档（推理 max）补题稳定 ``GENERATION_OUTPUT_TRUNCATED``——
+    4096 预算被思考耗尽；放宽预算的同时必须放宽等待，否则会改撞 ``UPSTREAM_TIMEOUT``。
+    """
+    from app.providers.llm.base import DEFAULT_TIMEOUT_SECONDS
+
+    # 夹具句柄默认上限 2048；换成贴近真实云端档的上限（deepseek-flash 为 384000），
+    # 让 min(补题上限, 模型上限) 的放开可见。
+    from dataclasses import replace as dataclass_replace
+
+    harness.resolver.default = dataclass_replace(
+        harness.resolver.default, max_output_tokens=384000
+    )
+    harness.service.model_resolver = harness.resolver
+    point = harness.create_point(code="kp-budget", name="预算口径")
+    seen_timeouts: list[float] = []
+    original = harness.provider.complete
+
+    async def recording(config: Any, request: Any, *, transport: Any = None):
+        seen_timeouts.append(config.timeoutSeconds)
+        return await original(config, request, transport=transport)
+
+    harness.provider.complete = recording
+    harness.provider.replies = [generation_reply(knowledge_ids=[point["pointId"]])]
+    response = harness.start_generation(knowledgePointIds=[point["pointId"]], count=1)
+    assert response.status_code == 202, response.text
+    view = harness.wait_job(response.json()["jobId"])
+    assert view["state"] == "succeeded", view
+    assert harness.provider.calls[0].max_output_tokens == generation.MIN_OUTPUT_TOKENS
+    assert generation.MIN_OUTPUT_TOKENS > 4096  # 覆盖必须是"放宽"而非缩小
+    assert seen_timeouts == [generation.GENERATION_TIMEOUT_SECONDS]
+    assert generation.GENERATION_TIMEOUT_SECONDS > DEFAULT_TIMEOUT_SECONDS
+
+
+async def test_generate_output_budget_scales_with_count(
+    harness: GenerationHarness,
+) -> None:
+    """用户真机 count=10 被旧固定 4096 截断：预算随题数伸缩并受业务上限约束。"""
+    from dataclasses import replace as dataclass_replace
+
+    harness.resolver.default = dataclass_replace(
+        harness.resolver.default, max_output_tokens=384000
+    )
+    harness.service.model_resolver = harness.resolver
+    point = harness.create_point(code="kp-scale", name="题数伸缩")
+    harness.provider.replies = [
+        generation_reply(knowledge_ids=[point["pointId"]], count=10)
+    ]
+    response = harness.start_generation(
+        knowledgePointIds=[point["pointId"]], count=10
+    )
+    assert response.status_code == 202, response.text
+    view = harness.wait_job(response.json()["jobId"])
+    assert view["state"] == "succeeded", view
+    budget = harness.provider.calls[0].max_output_tokens
+    assert budget == 10 * generation.TOKENS_PER_QUESTION
+    assert budget > 4096 and budget <= generation.MAX_OUTPUT_TOKENS
+
+    # 模型自身声明更小的上限时仍被压回模型上限
+    harness.provider.replies = [
+        generation_reply(knowledge_ids=[point["pointId"]], count=10)
+    ]
+    harness.resolver.default = dataclass_replace(
+        harness.resolver.default, max_output_tokens=8192
+    )
+    second = harness.start_generation(knowledgePointIds=[point["pointId"]], count=10)
+    assert second.status_code == 202, second.text
+    assert harness.wait_job(second.json()["jobId"])["state"] == "succeeded"
+    assert harness.provider.calls[1].max_output_tokens == 8192
+
+
 def test_generate_rejects_unknown_knowledge_point(harness: GenerationHarness) -> None:
     point = harness.create_point()
     harness.provider.replies = [generation_reply(knowledge_ids=["kp-outside"])]
