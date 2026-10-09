@@ -150,6 +150,9 @@ async function installFixtures(page: BrowserPage) {
     else if (path === '/assessments') body = emptyAssessments;
     else if (path === '/assessments/assessment-old') body = assessment;
     else if (path === '/classes') body = emptyClasses;
+    // 闭环传递带（页顶）会读取原卷与教案列表：同样给显式空夹具，不留 503
+    else if (path === '/papers') body = fixturePage([]);
+    else if (path === '/lesson-plans') body = fixturePage([]);
     else if (path === '/practice-sets') body = fixturePage([visualPractice]);
     else if (path === '/practice-sets/practice-a') body = visualPractice;
     else if (path === '/practice-sets/practice-a/revisions/reviewed-a') body = reviewed;

@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useLayoutEffect } from 'react';
 import { WorkspaceShell } from '@/components/layout/WorkspaceShell';
+import { LoopConveyor } from '@/components/layout/LoopConveyor';
 import { useLessonEditor } from './model/EditorContext';
 import { DocumentGateway, type LessonWorkspaceProps } from './components/DocumentGateway';
 import { LeaveProtection } from './components/LeaveProtection';
@@ -49,7 +50,7 @@ function LessonWorkspaceContent() {
   return (
     <WorkspaceShell
       pageTitle="教案工作台"
-      className={`lesson-workspace lesson-page ${collapsed ? 'outline-hidden' : ''} ${focusMode ? 'focus-mode' : ''} mobile-${mobileView}`}
+      className={`lesson-workspace lesson-page ${collapsed ? 'outline-hidden' : ''} ${focusMode ? 'focus-mode' : ''} mobile-${mobileView}${ready ? ' loop-conveyor-host' : ''}`}
       beforeNavigate={navigation.hasProvider ? undefined : async () => { if (doc.leave.current && !(await doc.leave.current())) throw new Error('当前教案保持'); }}
       headerActions={
         <>
@@ -63,6 +64,8 @@ function LessonWorkspaceContent() {
     >
       {ready ? (
         <>
+          {/* 闭环传递带：教案调整之前的五站真实状态；占独立一行，不遮挡顶栏与三栏面板 */}
+          <LoopConveyor className="lesson-loop-conveyor" subjectId={doc.selection.subjectId || null} />
           {/* DOM 阅读顺序 = 视觉顺序：始终可见的编辑区 → 可折叠的教案配置 → 教案预览 */}
           <EditorPanel />
           <OutlinePanel />

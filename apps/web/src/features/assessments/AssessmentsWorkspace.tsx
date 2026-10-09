@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useEntrance } from '@/components/motion/useEntrance';
 import '@/components/layout/space.css';
 import '@/features/assessments/styles/assessments.css';
+import { LoopConveyor } from '@/components/layout/LoopConveyor';
 import { getAssessment } from '@/services/assessments-api';
 import { RosterPanel } from './RosterPanel';
 import { PapersPanel, type SelectedPaper } from './PapersPanel';
@@ -137,6 +138,9 @@ export function AssessmentsWorkspace({ initialAssessmentId, initialStep }: { ini
       </header>
 
       <main className="space-content">
+        {/* 闭环传递带：读真实状态，不遮挡状态条与步骤页签（在页签之前、与既有布局同流） */}
+        <LoopConveyor className="assessments-loop-conveyor" />
+
         <nav className="space-tabs" role="tablist" aria-label="施测与成绩步骤" data-motion-reveal>
           {STEPS.map((entry) => (
             <button

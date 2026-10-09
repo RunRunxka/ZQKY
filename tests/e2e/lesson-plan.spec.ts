@@ -351,6 +351,14 @@ test('教案标题与导出菜单同一顶栏，四视口不重叠不溢出（UX
         brandToTitleGap: bb ? tb!.left - bb.right : null,
         titleToExportGap: eb ? eb.left - tb!.right : null,
         editorTop: editor ? Math.round(editor.getBoundingClientRect().top) : null,
+        conveyorTop: (() => {
+          const band = document.querySelector('[data-testid="loop-conveyor"]') as HTMLElement | null;
+          return band ? Math.round(band.getBoundingClientRect().top) : null;
+        })(),
+        conveyorBottom: (() => {
+          const band = document.querySelector('[data-testid="loop-conveyor"]') as HTMLElement | null;
+          return band ? Math.round(band.getBoundingClientRect().bottom) : null;
+        })(),
         headerBottom: hb ? Math.round(hb.bottom) : null,
         pageOverflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       };
@@ -370,8 +378,17 @@ test('教案标题与导出菜单同一顶栏，四视口不重叠不溢出（UX
         `顶栏品牌与标题需有可见间隔 @${viewport.width}`,
       ).toBeGreaterThanOrEqual(2);
     expect(geometry.pageOverflowX, `不得横向溢出 @${viewport.width}`).toBeLessThanOrEqual(1);
-    // 2) 内容区紧接顶栏，没有多出的一行标题空间
-    expect(geometry.editorTop).toBe(geometry.headerBottom);
+    // 2) 顶栏之下只允许有"闭环传递带"（有意的信息带，2026-10-09 用户选定方向 02），
+    //    内容区紧接其后——不再有其它多出的一行标题空间。
+    expect(geometry.conveyorTop, `传递带应紧接顶栏 @${viewport.width}`).not.toBeNull();
+    expect(
+      Math.abs(geometry.conveyorTop! - geometry.headerBottom!),
+      `传递带应紧接顶栏 @${viewport.width}`,
+    ).toBeLessThanOrEqual(1);
+    expect(
+      Math.abs(geometry.editorTop! - geometry.conveyorBottom!),
+      `内容区应紧接传递带 @${viewport.width}`,
+    ).toBeLessThanOrEqual(1);
 
     // 3) 顶栏内不出现标题换行/截断导致的按钮挤压：导出菜单仍可打开
     await page.getByRole('button', { name: /导出教案/ }).click();
