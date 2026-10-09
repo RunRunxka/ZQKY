@@ -157,3 +157,30 @@ def test_archived_new_save_is_422_without_revision_receipt_and_old_receipt_repla
         replay=client.patch(path,json=original.model_dump(by_alias=True,mode="json"))
         assert replay.status_code==200 and replay.json()=={**saved,"replayed":True}
     assert before==tuple(scene.count(table) for table in ("lesson_plan_revisions","lesson_revision_reviews","command_submissions"))
+
+
+def test_http_delete_lesson_route_guard_receipt_and_list_refresh(scene):
+    """DELETE /lesson-plans/{id}：查询参数乐观锁、404/409 语义、回执与列表刷新。"""
+    with scene.client() as (client,_):
+        base="/api/v1/lesson-plans"
+        created=client.post(base,json=scene.create_request().model_dump(by_alias=True,mode="json")).json()
+        lid=created["lessonPlanId"]
+        updated=client.patch(base+f"/{lid}/draft",json=scene.save_request(created,
+            content=changed(created["currentRevision"]["data"],title="HTTP 删除前")).model_dump(by_alias=True,mode="json")).json()
+        # 乐观锁不符 409；缺失 404。
+        stale=client.delete(base+f"/{lid}",params={"expectedRevision":updated["revision"]+1})
+        assert stale.status_code==409 and stale.json()["code"]=="REVISION_CONFLICT"
+        missing=client.delete(base+"/missing",params={"expectedRevision":0})
+        assert missing.status_code==404 and missing.json()["code"]=="NOT_FOUND"
+        negative=client.delete(base+f"/{lid}",params={"expectedRevision":-1})
+        assert negative.status_code==422 and negative.json()["code"]=="VALIDATION_ERROR"
+        # 归档件也允许删除：这是归档件的物理出口。
+        archived=client.post(base+f"/{lid}/archive",json={"expectedRevision":updated["revision"]}).json()
+        assert client.get(base,params={"archived":"true"}).json()["total"]==1
+        receipt=client.delete(base+f"/{lid}",params={"expectedRevision":archived["revision"]})
+        assert receipt.status_code==200,receipt.text
+        assert receipt.json()=={"deleted":True,"lessonPlanId":lid,"removedRevisions":2,"removedProposals":0,"removedInputs":0}
+        assert client.get(base+f"/{lid}").status_code==404
+        assert lid not in [x["lessonPlanId"] for x in client.get(base).json()["items"]]
+        assert lid not in [x["lessonPlanId"] for x in client.get(base,params={"archived":"true"}).json()["items"]]
+        assert client.get(base+f"/{lid}/revisions").status_code==404

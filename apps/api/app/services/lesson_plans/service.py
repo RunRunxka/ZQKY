@@ -194,6 +194,40 @@ class LessonPlanService:
                     expected_revision=body.expected_revision)
                 return lesson_view(self.repo, conn, lesson_id, self.owner)
 
+    def delete_lesson(self, lesson_id, payload):
+        """受守卫的彻底删除：物理删除教案行及其自身历史（归档与否都允许删除）。
+
+        守卫（同一写事务内、乐观锁核验之后）：
+
+        - ``expectedRevision`` 不符 → 409 ``REVISION_CONFLICT``（仓库既有语义）；
+        - 教案不存在/非本人 → 404 ``NOT_FOUND``；
+        - 本行被教案五表之外的表引用 → 409 ``LESSON_IN_USE`` 并在
+          ``details.counts`` 列出计数（0010 迁移核实当前为 0 处外部引用，守卫为
+          结构性防线：若将来新增引用表，删除会在这一步被挡下而不是留下悬挂行）。
+
+        通过后按子行 → 身份行顺序在同一写事务删除
+        ``lesson_proposal_decisions`` → ``lesson_ai_proposals`` →
+        ``lesson_generation_inputs`` → ``lesson_revision_reviews`` →
+        ``lesson_plan_revisions`` → ``lesson_plans``；五张表的不可变 DELETE 触发器
+        在事务内临时摘除、删除后逐字恢复（见仓储 ``delete_lesson_in``）。
+        走 ``PublicationCoordinator`` 临界区：删除时不可能有在途的保存/生成/应用写入。
+        """
+        body = freeze(lp.LessonRevisionRequest, payload)
+        with self.coordinator.publication(operation="lesson.delete"):
+            with self.catalog.write_transaction() as conn:
+                document = self.repo.document(conn, lesson_id, self.owner)
+                if document["revision"] != body.expected_revision:
+                    raise conflict(document)
+                # 教案候选引用（decisions/proposals/inputs）全部指向本教案自身的历史
+                # （FK 图谱见仓储 delete_lesson_in），属于删除范围而不是外部引用；
+                # 外部引用清单当前为空（0010 迁移核实），保留守卫结构作为防线。
+                external = {}
+                if external:
+                    summary = "、".join(f"{key} {value} 条" for key, value in external.items())
+                    raise AppError("教案仍被引用，不能删除（" + summary + "）；归档教案是安全的替代做法。",
+                        code="LESSON_IN_USE", status_code=409, details={"counts": external})
+                return self.repo.delete_lesson_in(conn, lesson_id, self.owner)
+
     def save_draft(self, lesson_id, body):
         body = freeze(lp.LessonSaveRequest, body)
         command = self._command("lesson.draft:"+lesson_id, body)

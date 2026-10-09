@@ -297,3 +297,74 @@ def test_archived_cas_receipt_order_and_owner_isolation(scene):
         with pytest.raises(AppError) as absent:
             action()
         assert absent.value.code == "NOT_FOUND" and absent.value.status_code == 404
+
+
+def test_delete_lesson_guarded_purge_removes_own_history_and_keeps_triggers(scene):
+    """彻底删除：乐观锁/404 守卫、自身历史物理删除、回执计数、触发器逐字恢复。"""
+    initial = scene.be.create_lesson(scene.create_request())
+    lid = initial["lessonPlanId"]
+    saved = scene.be.save_draft(lid, scene.save_request(initial, submission="s1", content=changed(initial["currentRevision"]["data"], title="删除前")))
+    assert scene.count("lesson_plans") == 2  # 场景预置种子 lesson + 本稿
+    with pytest.raises(AppError) as stale:
+        scene.be.delete_lesson(lid, lp.LessonRevisionRequest(expectedRevision=saved["revision"]+1))
+    assert stale.value.code == "REVISION_CONFLICT" and stale.value.status_code == 409
+    assert stale.value.details == {"currentRevision": saved["revision"], "fields": ["expectedRevision"]}
+    other = LessonPlanService(scene.catalog, analysis_reader=scene.ai.analysis.service, knowledge_catalog=scene.ai.practice_scene.knowledge,
+        coordinator=scene.be.coordinator, job_engine=scene.engine, generation_service=scene.ai.service, evidence_reader=scene.ai.rag, owner_id="other")
+    with pytest.raises(AppError) as absent:
+        other.delete_lesson(lid, lp.LessonRevisionRequest(expectedRevision=1))
+    assert absent.value.code == "NOT_FOUND" and absent.value.status_code == 404
+    with pytest.raises(AppError) as missing:
+        scene.be.delete_lesson("missing-lesson", lp.LessonRevisionRequest())
+    assert missing.value.code == "NOT_FOUND" and missing.value.status_code == 404
+    # 删除前各表都有行；删除后全部归零（只清本教案，种子其他教案保留）。
+    owned = lambda conn, table: conn.execute(f"SELECT count(*) FROM {table} WHERE lesson_plan_id=?", (lid,)).fetchone()[0]
+    with scene.catalog.read_connection() as conn:
+        assert all(owned(conn, table) > 0 for table in ("lesson_plan_revisions", "lesson_revision_reviews"))
+    receipt = scene.be.delete_lesson(lid, lp.LessonRevisionRequest(expectedRevision=saved["revision"]))
+    assert receipt == {"deleted": True, "lessonPlanId": lid, "removedRevisions": 2, "removedProposals": 0, "removedInputs": 0}
+    with pytest.raises(AppError) as gone:
+        scene.be.get_lesson(lid)
+    assert gone.value.code == "NOT_FOUND" and gone.value.status_code == 404
+    with scene.catalog.read_connection() as conn:
+        for table in ("lesson_plan_revisions", "lesson_revision_reviews", "lesson_generation_inputs", "lesson_ai_proposals", "lesson_proposal_decisions"):
+            assert owned(conn, table) == 0
+        assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
+        triggers = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='trigger' AND tbl_name LIKE 'lesson%'")}
+        assert triggers >= {"lesson_plan_revisions_immutable_update", "lesson_plan_revisions_immutable_delete",
+                            "lesson_generation_inputs_immutable_update", "lesson_generation_inputs_immutable_delete",
+                            "lesson_ai_proposals_immutable_update", "lesson_ai_proposals_immutable_delete",
+                            "lesson_proposal_decisions_immutable_update", "lesson_proposal_decisions_immutable_delete",
+                            "lesson_review_no_delete"}
+    # 触发器恢复后重新生效：直接 DELETE 固定历史仍被 ABORT（reviews 行无 FK 阻碍，触发器先命中）。
+    with pytest.raises(sqlite3.IntegrityError) as blocked:
+        with scene.catalog.write_transaction() as conn:
+            conn.execute("DELETE FROM lesson_revision_reviews")
+    assert "LESSON_REVIEW_FIXED" in str(blocked.value)
+
+
+async def test_delete_lesson_purges_proposals_inputs_and_rejects_archived_writes(scene):
+    """含 AI 候选/输入的教案删除：inputs/proposals/decisions 一并清空；归档件也可删除。"""
+    lesson = scene.be.get_lesson("lesson")
+    proposal, _ = await scene.proposal(lesson)
+    rejected = scene.be.reject_proposal("lesson", proposal["proposalId"], lp.LessonRejectRequest(submissionId="reject-1"))
+    assert rejected["state"] == "rejected"
+    second, _ = await scene.proposal(lesson, submission="generate-2")
+    await scene.be.apply_proposal("lesson", second["proposalId"], scene.apply_request(second, submission="apply-2"))
+    applied = scene.be.get_lesson("lesson")
+    assert applied["revision"] == 2 and scene.count("lesson_ai_proposals") == 2 and scene.count("lesson_proposal_decisions") == 2
+    assert scene.count("lesson_generation_inputs") == 2
+    # 归档件允许删除：这是归档件唯一出口（归档只读，编辑器无法表达归档态）。
+    scene.be.set_archived("lesson", lp.LessonRevisionRequest(expectedRevision=applied["revision"]), archived=True)
+    with pytest.raises(AppError) as write:
+        scene.be.save_draft("lesson", scene.save_request(applied, submission="after-archive", content=applied["currentRevision"]["data"]))
+    assert write.value.code == "LESSON_INVALID"
+    receipt = scene.be.delete_lesson("lesson", lp.LessonRevisionRequest(expectedRevision=applied["revision"]))
+    assert receipt == {"deleted": True, "lessonPlanId": "lesson", "removedRevisions": 2, "removedProposals": 2, "removedInputs": 2}
+    for table in ("lesson_plans", "lesson_plan_revisions", "lesson_revision_reviews", "lesson_generation_inputs", "lesson_ai_proposals", "lesson_proposal_decisions"):
+        assert scene.count(table) == 0
+    with scene.catalog.read_connection() as conn:
+        assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
+        assert conn.execute("SELECT count(*) FROM sqlite_master WHERE type='trigger' AND name LIKE 'lesson_%_immutable_%'").fetchone()[0] == 8
+    # workflow_jobs 是独立历史记录，不在教案删除范围（引用方向是 inputs→jobs）。
+    assert scene.count("workflow_jobs") == 3  # 场景预置 1 个 + 两次生成任务

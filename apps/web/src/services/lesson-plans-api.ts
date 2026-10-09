@@ -8,6 +8,12 @@ import type {
   LessonRevisionRequest,
 } from '@/contracts/lesson-plans';
 
+/** 教案彻底删除回执（受守卫通过后物理删除教案行及其自身历史）。 */
+export interface LessonDeleteReceipt {
+  deleted: boolean; lessonPlanId: string;
+  removedRevisions: number; removedProposals: number; removedInputs: number;
+}
+
 const key = encodeURIComponent;
 const write = (method: string, body: unknown, signal?: AbortSignal): RequestInit => ({
   method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal,
@@ -33,6 +39,17 @@ export function archiveLessonPlan(id: string, body: LessonRevisionRequest, signa
 }
 export function restoreLessonPlan(id: string, body: LessonRevisionRequest, signal?: AbortSignal): Promise<LessonView> {
   return apiRequest(`/lesson-plans/${key(id)}/restore`, write('POST', body, signal));
+}
+/**
+ * 彻底删除教案（受守卫的物理删除）：`expectedRevision` 走查询参数，归档与否都允许删除。
+ * 删除教案行及其自身历史（revisions/inputs/proposals）；乐观锁不符 → 409 `REVISION_CONFLICT`，
+ * 不存在 → 404；返回删除计数回执。
+ */
+export function deleteLessonPlan(id: string, expectedRevision: number, signal?: AbortSignal): Promise<LessonDeleteReceipt> {
+  return apiRequest<LessonDeleteReceipt>(
+    `/lesson-plans/${key(id)}${assessmentsQuery({ expectedRevision })}`,
+    { method: 'DELETE', signal },
+  );
 }
 export function saveLesson(id: string, body: LessonSaveRequest, signal?: AbortSignal): Promise<LessonView> {
   return apiRequest(`/lesson-plans/${key(id)}/draft`, write('PATCH', body, signal));
@@ -63,5 +80,5 @@ export const lessonPlanApi = {
   listLessons, createLesson, importLocalLesson, getLesson, saveLesson,
   listLessonRevisions, getLessonRevision, verifyLessonEvidence,
   generateLessonProposal, getLessonProposal, applyLessonProposal, rejectLessonProposal,
-  archiveLessonPlan, restoreLessonPlan,
+  archiveLessonPlan, restoreLessonPlan, deleteLessonPlan,
 };

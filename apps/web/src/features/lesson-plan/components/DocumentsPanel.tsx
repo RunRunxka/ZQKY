@@ -7,6 +7,7 @@ import { useLessonEditor } from '../model/EditorContext';
 import { browserOperationRecovery, useLessonOperation } from '../model/useLessonOperation';
 import { loadLegacyRaw, validateExactData } from '../model/server-cache';
 import { emptyData } from '../model/defaults';
+import { LOCAL_INPUTS_BUCKET, adoptGenerationInputs, clearGenerationInputs } from '../model/generation-inputs';
 import { asApiError, stablePayloadKey } from '@/features/assessments/hooks';
 
 type CreateContent = Omit<LessonCreateRequest, 'submissionId'>;
@@ -36,6 +37,11 @@ export function DocumentsPanel() {
   const [archiveError, setArchiveError] = useState<ApiError | null>(null);
   const [archiveNotice, setArchiveNotice] = useState('');
   const archiveBusyRef = useRef(false);
+  /** 彻底删除（二次 window.confirm，与原卷/施测等破坏性操作同口径）。 */
+  const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
+  const deleteBusyRef = useRef<string | null>(null);
+  const [deleteError, setDeleteError] = useState<ApiError | null>(null);
+  const [deleteNotice, setDeleteNotice] = useState('');
   const alive = useRef(true);
   useEffect(() => { alive.current = true; const publisher = bindPendingOperation(); publisherRef.current = publisher; return () => { alive.current = false; copyOwner.current = null; if (publisherRef.current === publisher) publisherRef.current = null; publisher.release(); }; }, [bindPendingOperation]);
   const busy = create.busy || importing.busy;
@@ -59,11 +65,11 @@ export function DocumentsPanel() {
   }
   /**
    * 当前工作台已打开的教案不能归档：编辑器没有归档态，归档后继续写入会被后端拒绝（LESSON_INVALID）。
-   * 恢复不受影响。
+   * 恢复不受影响。文案指向顶部「退出当前教案（回到本机草稿）」按钮。
    */
   function archiveBlockReason(lessonPlanId: string) {
     if (doc.mode === 'local' || doc.documentId !== lessonPlanId) return '';
-    return '该教案正在工作台打开：编辑器无法表示归档状态，归档后继续写入会被后端拒绝。请先返回旧本地稿或打开其他教案，再归档。';
+    return '该教案正在工作台打开：编辑器无法表示归档状态，归档后继续写入会被后端拒绝。请先用上方「退出当前教案（回到本机草稿）」按钮退出，再归档。';
   }
   /**
    * 归档/恢复一份后台教案：归档只写 archived_at，历史修订与 head 指针保留，revision 不递增。
@@ -85,6 +91,29 @@ export function DocumentsPanel() {
       if (alive.current) setArchiveError(asApiError(cause));
     } finally { archiveBusyRef.current = false; if (alive.current) setArchiveBusy(false); }
   }
+  /**
+   * 彻底删除一份后台教案：物理删除教案行及其自身历史，归档与否都允许；不可恢复。
+   * 当前正在工作台打开的教案禁用并提示先退出；409/422 原样显示 message。
+   * 失败/结果未知时不刷新列表，可重按重发同一请求（同一教案与 expectedRevision）。
+   */
+  async function deleteLessonItem(lesson: LessonSummary) {
+    const lessonPlanId = lesson.lessonPlanId;
+    if (deleteBusyRef.current || archiveBusyRef.current) return;
+    if (!window.confirm(`彻底删除教案「${lesson.title || '未命名教案'}」？这是物理删除、不可恢复；该教案的全部历史修订与 AI 候选记录会一并删除。`)) return;
+    deleteBusyRef.current = lessonPlanId;
+    setDeleteBusyId(lessonPlanId); setDeleteError(null); setDeleteNotice('');
+    try {
+      const receipt = await doc.api.deleteLessonPlan(lessonPlanId, lesson.revision);
+      if (!alive.current) return;
+      if (receipt.lessonPlanId !== lessonPlanId || !receipt.deleted) throw new ApiError('LESSON_DELETE_IDENTITY_MISMATCH', '删除回执与目标教案不一致，未刷新列表。', 500, false);
+      deleteBusyRef.current = null;
+      clearGenerationInputs(lessonPlanId);
+      setDeleteNotice(`已彻底删除教案 ${lessonPlanId}：历史修订 ${receipt.removedRevisions} 条、AI 候选 ${receipt.removedProposals} 条、生成输入 ${receipt.removedInputs} 条已一并删除。`);
+      void load(false);
+    } catch (cause) {
+      if (alive.current) setDeleteError(asApiError(cause));
+    } finally { deleteBusyRef.current = null; if (alive.current) setDeleteBusyId(null); }
+  }
   async function start(kind: 'create' | 'import', useCurrent = false) {
     const publisher = publisherRef.current;
     if (!publisher?.isCurrent()) return;
@@ -102,7 +131,12 @@ export function DocumentsPanel() {
         const original = importing.pending?.payload ?? (() => { const old = loadLegacyRaw(doc.services.recoveryStorage ?? localStorage); if (!old) throw new Error('旧本地稿不存在；未发起导入'); return { ...doc.selection, draft: old.envelope }; })();
         receipt = await importing.run(original, (frozen) => doc.api.importLocalLesson({ ...frozen.payload, submissionId: frozen.submissionId }), editor.revision);
       }
-      if (receipt?.current && alive.current && !operation.isRecoveryBlocked() && publisher.publish({ busy: false, unknown: false, recoveryBlocked: false })) await doc.openDocument(receipt.result.lessonPlanId);
+      if (receipt?.current && alive.current && !operation.isRecoveryBlocked() && publisher.publish({ busy: false, unknown: false, recoveryBlocked: false })) {
+        // P2：把来源会话的教师自有选择（模型/时长/要求/固定题/固定练习）带到新教案键，
+        // 创建/导入成功打开新文档不再静默清空（证据与资格按原语义重新核验）。
+        adoptGenerationInputs(doc.documentId ?? LOCAL_INPUTS_BUCKET, receipt.result.lessonPlanId);
+        await doc.openDocument(receipt.result.lessonPlanId);
+      }
     } catch (cause) { if (alive.current && publisher.isCurrent()) setError(asApiError(cause).message); }
   }
   async function retryOperationCache(kind: 'create' | 'import') {
@@ -164,7 +198,7 @@ export function DocumentsPanel() {
         <button className="button subtle" disabled={busy || unknown || recoveryBlocked} onClick={() => void start('create')}>创建空白后台教案</button>
         <button className="button subtle" disabled={busy || unknown || recoveryBlocked} onClick={() => void start('create', true)}>将当前正文创建为后台教案</button>
         <button className="button subtle" disabled={busy || unknown || recoveryBlocked} onClick={() => void start('import')}>导入完整旧本地稿到后台</button>
-        {doc.mode !== 'local' && <button className="button subtle" onClick={() => void doc.openLocal()}>返回旧本地稿</button>}
+        {doc.mode !== 'local' && <button className="button subtle" onClick={() => void doc.openLocal()}>退出当前教案（回到本机草稿）</button>}
       </div>
       <p className="lesson-help">旧本地稿保留原键和完整信封；导入成功后仅打开新后台文档。</p>
       {create.canRetryRecovery && <button className="button primary" disabled={busy} onClick={() => void retryOperationCache('create')}>重试创建操作恢复缓存</button>}
@@ -177,15 +211,22 @@ export function DocumentsPanel() {
       {archiveNotice && <p role="status">{archiveNotice}</p>}
       {archiveError && <p role="alert">{archiveError.code}：{archiveError.message}</p>}
       {archiveError && <button className="button subtle" disabled={loading} onClick={() => void load(false)}>刷新后台列表对照服务器</button>}
+      {deleteNotice && <p role="status">{deleteNotice}</p>}
+      {deleteError && <p role="alert">{deleteError.code}：{deleteError.message}</p>}
+      {deleteError && <button className="button subtle" disabled={loading} onClick={() => void load(false)}>刷新后台列表对照服务器</button>}
       {loading && <p role="status">正在读取后台教案列表…</p>}
       <ul className="lesson-document-list">{lessons.map((lesson) => <li key={lesson.lessonPlanId}>
         <button className="lesson-document-item" onClick={() => void doc.openDocument(lesson.lessonPlanId)}>{lesson.title || '未命名教案'} <small>后台 v{lesson.revision} · {lesson.currentRevisionId}</small></button>
         <div className="lesson-sync-actions">
-          <button className="button subtle" disabled={busy || unknown || recoveryBlocked || archiveBusy} onClick={() => setArchiveTarget({ lessonPlanId: lesson.lessonPlanId, revision: lesson.revision, archived: !archivedView })}>{archivedView ? '恢复' : '归档'}</button>
+          <button className="button subtle" disabled={busy || unknown || recoveryBlocked || archiveBusy || deleteBusyId !== null} onClick={() => setArchiveTarget({ lessonPlanId: lesson.lessonPlanId, revision: lesson.revision, archived: !archivedView })}>{archivedView ? '恢复' : '归档'}</button>
           {archivedView && <span className="small-badge">已归档</span>}
+          {doc.documentId === lesson.lessonPlanId
+            ? <span className="small-badge" title={archiveBlockReason(lesson.lessonPlanId) || '先退出当前教案，再彻底删除。'}>先退出当前教案，再彻底删除</span>
+            : <button className="button subtle" disabled={busy || unknown || recoveryBlocked || archiveBusy || deleteBusyId !== null}
+                onClick={() => void deleteLessonItem(lesson)}>{deleteBusyId === lesson.lessonPlanId ? '删除中…' : '彻底删除'}</button>}
           {archiveTarget?.lessonPlanId === lesson.lessonPlanId && <>
             <span role="alert">{archiveTarget.archived ? '归档后不能写入，历史修订保留。' : '恢复后可继续编辑。'}{archiveTarget.archived && archiveBlockReason(lesson.lessonPlanId) ? ` ${archiveBlockReason(lesson.lessonPlanId)}` : ''}</span>
-            <button className="button subtle" disabled={archiveBusy || (archiveTarget.archived && !!archiveBlockReason(lesson.lessonPlanId))} onClick={() => void changeArchivedLesson({ lessonPlanId: lesson.lessonPlanId, revision: lesson.revision, archived: archiveTarget.archived })}>{archiveBusy ? '正在提交…' : archiveTarget.archived ? '确认归档' : '确认恢复'}</button>
+            <button className="button subtle" disabled={archiveBusy || deleteBusyId !== null || (archiveTarget.archived && !!archiveBlockReason(lesson.lessonPlanId))} onClick={() => void changeArchivedLesson({ lessonPlanId: lesson.lessonPlanId, revision: lesson.revision, archived: archiveTarget.archived })}>{archiveBusy ? '正在提交…' : archiveTarget.archived ? '确认归档' : '确认恢复'}</button>
             <button className="button subtle" disabled={archiveBusy} onClick={() => setArchiveTarget(null)}>取消</button>
           </>}
         </div>

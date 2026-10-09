@@ -4,14 +4,15 @@ import type { AnalysisRunView, ClassReportRow, Page, PracticeRevisionView, Pract
 import type { ClassView } from '@/contracts/roster';
 import type { DocumentSummary, TextbookTaxonomy } from '@/contracts/textbook';
 import type { ModelProfileView } from '@/contracts/model-settings';
-import type { LessonEvidenceView } from '@/contracts/lesson-plans';
 import { asApiError, stablePayloadKey } from '@/features/assessments/hooks';
 import { useLessonDocument } from '../model/DocumentContext';
 import { useLessonEditor } from '../model/EditorContext';
 import type { ConfirmedQuestionRevision } from '@/services/lesson-plan-sources-api';
+import type { GenerationInputs as GenerationInputsState } from '../model/generation-inputs';
 
-export interface GenerationInputs { modelProfileId: string; requirements: string; durationMinutes: number; evidence: LessonEvidenceView | null; questionRevisionIds: string[]; practiceRevisionIds: string[]; classReady: boolean }
-export const initialGenerationInputs: GenerationInputs = { modelProfileId: '', requirements: '', durationMinutes: 40, evidence: null, questionRevisionIds: [], practiceRevisionIds: [], classReady: false };
+/** 兼容导出：生成前置输入类型已提升到 model/generation-inputs（P2 按教案键持久化）。 */
+export type GenerationInputs = GenerationInputsState;
+export { initialGenerationInputs } from '../model/generation-inputs';
 export function SourcePanel({ value, onChange }: { value: GenerationInputs; onChange: (value: GenerationInputs) => void }) {
   const doc = useLessonDocument(), editor = useLessonEditor();
   const [classes, setClasses] = useState<ClassView[]>([]), [taxonomy, setTaxonomy] = useState<TextbookTaxonomy | null>(null), [profiles, setProfiles] = useState<ModelProfileView[]>([]);

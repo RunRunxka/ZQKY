@@ -78,6 +78,17 @@ async def restore(request: Request, lesson_id: str, body: lp.LessonRevisionReque
     return await run(service(request).set_archived, lesson_id, body, archived=False)
 
 
+@router.delete("/lesson-plans/{lesson_id}")
+async def delete_lesson(request: Request, lesson_id: str, expectedRevision: int = Query(ge=0)):
+    """受守卫的彻底删除：物理删除教案行及其自身历史（归档与否都允许删除）。
+
+    乐观锁不符 → 409 ``REVISION_CONFLICT``；不存在 → 404；本行被教案范围之外的
+    表引用 → 409 ``LESSON_IN_USE`` 并列出计数。回执为
+    ``{deleted, lessonPlanId, removedRevisions, removedProposals, removedInputs}``。
+    """
+    return await run(service(request).delete_lesson, lesson_id, lp.LessonRevisionRequest(expectedRevision=expectedRevision))
+
+
 @router.get("/lesson-plans/{lesson_id}", response_model=lp.LessonView)
 async def detail(request: Request, lesson_id: str):
     return await run(service(request).get_lesson, lesson_id)

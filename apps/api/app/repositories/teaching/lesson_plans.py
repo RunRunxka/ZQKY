@@ -101,6 +101,63 @@ class LessonPlanRepository:
             (proposal_id,lesson_plan_id,owner_id,state,selected_fields_json,accepted_revision_id,created_at) VALUES(?,?,?,?,?,?,?)""",
             (proposal_id, lesson_id, owner_id, state, dump(selected_fields or []), revision_id, now_iso()))
 
+    def delete_lesson_in(self, conn, lesson_id, owner_id):
+        """彻底删除教案行及其自身历史，返回 ``LessonDeleteReceipt`` 计数（dict）。
+
+        FK 图谱（0010 迁移核实）：``lesson_plan_revisions``/``lesson_revision_reviews``/
+        ``lesson_generation_inputs``/``lesson_ai_proposals`` 只引用本教案（lesson_plan_id）
+        与向外引用（analysis_runs/classes/workflow_jobs），``lesson_proposal_decisions``
+        只引用本教案的 proposals/revisions；**没有任何其他表把外键指向教案五表**，
+        因此守卫通过后可安全物理删除，不留悬挂引用。
+
+        删除顺序（子行 → 身份行）：``lesson_proposal_decisions`` → ``lesson_ai_proposals``
+        → ``lesson_generation_inputs`` → ``lesson_revision_reviews`` →
+        ``lesson_plan_revisions`` → ``lesson_plans``。三条指向教案行的外键
+        （``lesson_plans.current_revision_id``、``lesson_plan_revisions.accepted_proposal_id``、
+        ``lesson_proposal_decisions.accepted_revision_id``）均为 DEFERRABLE INITIALLY
+        DEFERRED，同事务内全删后 COMMIT 校验自然成立，**不 UPDATE 教案行**
+        （``current_revision_id`` NOT NULL 且 ``lesson_plan_identity_fixed`` 禁止指针无递增变化）。
+        本事务只删不改，因此只临时摘除 5 个 DELETE 触发器（四张 IMMUTABLE 表的
+        ``*_immutable_delete`` 加 ``lesson_review_no_delete``），与知识点仓储同一先例：
+        彻底删除是经守卫的受控行为，同一写事务内临时摘除触发器 → 删除 → 按登记声明
+        逐字恢复（DDL 可事务化，任一步失败整体回滚，触发器随事务恢复；BEGIN IMMEDIATE
+        下无并发写者可见窗口）。触发器文本与 ``app/core/migrations/lesson_plans.py``
+        0010 声明一致，不改登记 SQL。
+
+        行不存在/非本人 → 404，不静默成功。
+        """
+        document = self.document(conn, lesson_id, owner_id)
+        revisions = conn.execute("SELECT id FROM lesson_plan_revisions WHERE lesson_plan_id=? AND owner_id=?",
+                                 (lesson_id, owner_id)).fetchall()
+        inputs = conn.execute("SELECT count(*) FROM lesson_generation_inputs WHERE lesson_plan_id=? AND owner_id=?",
+                              (lesson_id, owner_id)).fetchone()[0]
+        proposals = conn.execute("SELECT count(*) FROM lesson_ai_proposals WHERE lesson_plan_id=? AND owner_id=?",
+                                 (lesson_id, owner_id)).fetchone()[0]
+        # 不可变触发器是固定历史的兜底；受守卫的彻底删除在同一事务内临时摘除再逐字恢复。
+        delete_triggers = tuple(
+            (f"{table}_immutable_delete",
+             f"CREATE TRIGGER {table}_immutable_delete BEFORE DELETE ON {table} BEGIN SELECT RAISE(ABORT,'LESSON_FIXED_CONTENT'); END")
+            for table in ("lesson_plan_revisions", "lesson_generation_inputs", "lesson_ai_proposals", "lesson_proposal_decisions")
+        ) + (("lesson_review_no_delete",
+              "CREATE TRIGGER lesson_review_no_delete BEFORE DELETE ON lesson_revision_reviews "
+              "BEGIN SELECT RAISE(ABORT,'LESSON_REVIEW_FIXED'); END"),)
+        for name, _ in delete_triggers:
+            conn.execute(f"DROP TRIGGER IF EXISTS {name}")
+        try:
+            conn.execute("""DELETE FROM lesson_proposal_decisions WHERE lesson_plan_id=? AND owner_id=?""", (lesson_id, owner_id))
+            conn.execute("""DELETE FROM lesson_ai_proposals WHERE lesson_plan_id=? AND owner_id=?""", (lesson_id, owner_id))
+            conn.execute("""DELETE FROM lesson_generation_inputs WHERE lesson_plan_id=? AND owner_id=?""", (lesson_id, owner_id))
+            conn.execute("""DELETE FROM lesson_revision_reviews WHERE lesson_plan_id=? AND owner_id=?""", (lesson_id, owner_id))
+            conn.execute("""DELETE FROM lesson_plan_revisions WHERE lesson_plan_id=? AND owner_id=?""", (lesson_id, owner_id))
+            deleted = conn.execute("DELETE FROM lesson_plans WHERE id=? AND owner_id=?", (lesson_id, owner_id))
+            if deleted.rowcount != 1:
+                raise AppError("教案或固定版本不存在。", code="NOT_FOUND", status_code=404)
+        finally:
+            for _, statement in delete_triggers:
+                conn.execute(statement)
+        return dict(deleted=True, lessonPlanId=lesson_id, removedRevisions=len(revisions),
+                    removedProposals=proposals, removedInputs=inputs)
+
     def list_documents(self, conn, owner_id, *, subject_id=None, class_id=None, archived=False, offset=0, limit=50):
         where, values = ["l.owner_id=?"], [owner_id]
         where.append("l.archived_at IS NULL" if not archived else "l.archived_at IS NOT NULL")
