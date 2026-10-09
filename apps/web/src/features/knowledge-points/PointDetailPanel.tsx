@@ -34,6 +34,7 @@ import {
   knowledgeStatusLabel,
   parseKnowledgeReferenceCounts,
   referenceCountLabel,
+  shortId,
 } from './labels';
 import {
   PARENT_CLEAR,
@@ -166,7 +167,7 @@ export function PointDetailPanel({
       setConflict(null);
       resetFormFrom(next);
       setNotice(
-        `已保存：内容版本 v${next.version}，修订 ${next.revisionId ?? '（无）'}（编辑锁 r${next.revision}）。`,
+        `已保存：内容版本 v${next.version}，修订 ${shortId(next.revisionId ?? null)}（编辑锁 r${next.revision}）。`,
       );
       onPointPatched(next);
       // 让头部 chip（版本/修订/编辑锁）与资源缓存一致：重新读取服务端权威对象
@@ -338,8 +339,12 @@ export function PointDetailPanel({
             <span className="space-chip">版本 v{loaded.version}</span>
             <span className="space-chip">编辑锁 r{loaded.revision}</span>
             {loaded.revisionId && (
-              <span className="space-chip" data-testid="kp-revision-id">
-                修订 {loaded.revisionId}
+              <span
+                className="space-chip"
+                title={`修订 ${loaded.revisionId}`}
+                data-testid="kp-revision-id"
+              >
+                修订 {shortId(loaded.revisionId)}
               </span>
             )}
             {loaded.parentCode && <span className="space-chip">父级 {loaded.parentCode}</span>}

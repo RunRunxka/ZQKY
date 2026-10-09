@@ -36,6 +36,7 @@ import {
   rawCellReading,
   scoreImportStateChipClass,
   scoreImportStateLabel,
+  shortId,
   type ParticipantLite,
 } from './labels';
 import { ScoreStatusBadge } from './ScoreStatusBadge';
@@ -372,8 +373,8 @@ export function ScoreImportReview({
               <div className="score-row-head">
                 <span className="space-chip">原表第 {row.rowNo} 行</span>
                 {row.participantId ? (
-                  <span className="space-chip blue">
-                    人次 {row.participantName ?? row.participantId}
+                  <span className="space-chip blue" title={`人次 ${row.participantId}`}>
+                    人次 {row.participantName ?? shortId(row.participantId)}
                   </span>
                 ) : rowIgnored ? (
                   <span className="space-chip">已忽略（不属于本次施测）</span>
@@ -584,9 +585,12 @@ export function ScoreImportReview({
                         />
                         <span>
                           {classNames.nameOf(group.classId)}：{group.participantIds.length} 名缺考人次
-                          <span className="assessments-meta">
+                          <span
+                            className="assessments-meta"
+                            title={`人次 ${group.participantIds.join('、')}`}
+                          >
                             {group.participantIds
-                              .map((id) => confirmedParticipants(id)?.name ?? id)
+                              .map((id) => confirmedParticipants(id)?.name ?? shortId(id))
                               .join('、')}
                           </span>
                         </span>
@@ -616,9 +620,12 @@ export function ScoreImportReview({
                   />
                   <span>
                     {missing.cellCount} 个空白单元，覆盖 {missing.participantIds.length} 人次
-                    <span className="assessments-meta">
+                    <span
+                      className="assessments-meta"
+                      title={`人次 ${missing.participantIds.join('、')}`}
+                    >
                       {missing.participantIds
-                        .map((id) => confirmedParticipants(id)?.name ?? id)
+                        .map((id) => confirmedParticipants(id)?.name ?? shortId(id))
                         .join('、')}
                     </span>
                   </span>
@@ -658,10 +665,15 @@ export function ScoreImportReview({
       </section>
 
       {submission.result && (
-        <p className="space-banner info" role="status" data-testid="score-confirm-result">
+        <p
+          className="space-banner info"
+          role="status"
+          title={`修订 ${submission.result.revisionId}`}
+          data-testid="score-confirm-result"
+        >
           {submission.result.replayed
-            ? `已确认（重放）：同一提交标识此前已入库，本次未重复写入（修订 ${submission.result.revisionId}）。`
-            : `已确认入库：修订 ${submission.result.revisionId}，施测 revision ${submission.result.assessmentRevision}。`}
+            ? `已确认（重放）：同一提交标识此前已入库，本次未重复写入（修订 ${shortId(submission.result.revisionId)}）。`
+            : `已确认入库：修订 ${shortId(submission.result.revisionId)}，施测 revision ${submission.result.assessmentRevision}。`}
           <button className="space-button" onClick={onOpenHistory}>
             去「历史」查看只读矩阵
           </button>

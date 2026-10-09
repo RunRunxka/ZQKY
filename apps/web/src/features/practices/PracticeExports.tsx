@@ -7,7 +7,7 @@ import { listAssessments } from '@/services/assessments-api';
 import { asApiError, useAsyncResource, useFrozenSubmission } from '@/features/assessments/hooks';
 import { useObservedJob } from '@/services/use-workflow-job';
 import { ApiError } from '@/services/api-client';
-import { ErrorNotice, ReadNotice, SubmissionNotice, Pagination, JobStatus, nameOrShortId } from '@/features/learning-analysis/ui';
+import { ErrorNotice, ReadNotice, SubmissionNotice, Pagination, JobStatus, nameOrShortId, shortId } from '@/features/learning-analysis/ui';
 
 const variantLabel = { student: '学生 DOCX', teacher: '教师 DOCX', score_template: '成绩模板 XLSX' };
 type FrozenExport = { setId: string; revisionId: string; body: ExportRequest };
@@ -85,7 +85,7 @@ export function PracticeExports({ revision, services, convertedAssessmentId, onL
     finally { if (alive.current && token === downloadGeneration.current) setDownloading(null); }
   }
   return <section className="b4-section" aria-label="固定练习导出"><h2>固定审核版本导出</h2>
-    <p className="b4-hint">练习 v{revision.version} · {revision.practiceRevisionId}。学生版不含答案解析，教师版标明缺失答案。202表示任务接受；成功产物才可下载。</p>
+    <p className="b4-hint" title={`练习修订 ${revision.practiceRevisionId}`}>练习 v{revision.version} · {shortId(revision.practiceRevisionId)}。学生版不含答案解析，教师版标明缺失答案。202表示任务接受；成功产物才可下载。</p>
     {disabled && <p className="space-banner" role="status">该练习已归档：生成导出的入口已禁用（后端会拒绝），既有产物仍可查看与下载；恢复后可继续导出。</p>}
     <label className="b4-field">此审核版本已转换的施测ID<input aria-label="模板施测ID" value={assessmentId} disabled={locked} onChange={(event) => setAssessmentId(event.target.value)} /></label>
     <p className="b4-hint">成绩模板须在本练习转换施测后生成；后端冻结接受导出时的真实参测名单、固定原卷和叶映射，空白成绩不补0。</p>

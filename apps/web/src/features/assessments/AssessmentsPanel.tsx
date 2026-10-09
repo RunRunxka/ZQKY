@@ -349,8 +349,14 @@ export function AssessmentsPanel({
           <h3>
             <ClipboardList size={15} aria-hidden /> 新建施测
           </h3>
-          <span className="assessments-hint">
-            原卷：{selectedPaper ? `${selectedPaper.title}（${selectedPaper.paperRevisionId}）` : '未选用'}
+          <span
+            className="assessments-hint"
+            title={selectedPaper ? `原卷修订 ${selectedPaper.paperRevisionId}` : undefined}
+          >
+            原卷：
+            {selectedPaper
+              ? `${selectedPaper.title}（修订 ${shortId(selectedPaper.paperRevisionId)}）`
+              : '未选用'}
           </span>
         </div>
 

@@ -16,7 +16,7 @@ import { listKnowledgePoints } from '@/services/knowledge-points-api';
 import { listProfiles } from '@/services/model-settings-api';
 import { useObservedJob } from '@/services/use-workflow-job';
 import { asApiError, useAsyncResource, useFrozenSubmission } from './hooks';
-import { formatScoreUnits, issueLocationLabel, scoredLeafItems } from './labels';
+import { formatScoreUnits, issueLocationLabel, scoredLeafItems, shortId } from './labels';
 import type { SelectedPaper } from './PapersPanel';
 
 function rich(content: Record<string, unknown>): RichContentV2 {
@@ -188,7 +188,7 @@ export function PaperImportReview({ initial, onSelected, onChanged }: {
 
   return <section className="assessments-subpanel" aria-label="原卷校对与固定修订阅读" data-testid="paper-import-review">
     <h3>{revision.state === 'confirmed' ? '固定原卷修订' : '原卷校对'}：{revision.title}</h3>
-    <p className="assessments-hint">修订 v{revision.version} · 编辑版本 r{paper.revision} · {revision.paperRevisionId} · 满分 {formatScoreUnits(revision.totalScoreUnits)}。
+    <p className="assessments-hint" title={`修订 ${revision.paperRevisionId}`}>修订 v{revision.version} · 编辑版本 r{paper.revision} · {shortId(revision.paperRevisionId)} · 满分 {formatScoreUnits(revision.totalScoreUnits)}。
       {readOnly ? ' 此修订只读。' : ' 草稿保存后再确认；题号保留完整路径，只有叶子计分。'}</p>
     {initial.warnings.map((warning, index) => <p className="space-banner info" key={index}>{warning}</p>)}
     {notice && <p className="space-banner info" role="status">{notice}</p>}
@@ -198,8 +198,8 @@ export function PaperImportReview({ initial, onSelected, onChanged }: {
       {((error ?? confirmation.error)?.details?.issues ?? []).map((issue, index) => <p key={index}>{issueLocationLabel(issue)}{issue.code}：{issue.message}</p>)}
     </div>}
     {confirmation.unknownNotice && <p className="space-banner error" role="alert">{confirmation.unknownNotice}</p>}
-    {confirmation.result && <p className="space-banner info" role="status" data-testid="paper-confirm-result">
-      {confirmation.result.replayed ? '已确认原卷（重放）' : '已确认原卷'}：{confirmation.result.paperRevisionId}，计分叶 {confirmation.result.scoredLeafCount}。
+    {confirmation.result && <p className="space-banner info" role="status" title={`修订 ${confirmation.result.paperRevisionId}`} data-testid="paper-confirm-result">
+      {confirmation.result.replayed ? '已确认原卷（重放）' : '已确认原卷'}：{shortId(confirmation.result.paperRevisionId)}，计分叶 {confirmation.result.scoredLeafCount}。
     </p>}
     <div className="assessments-actions">
       {readOnly ? <button className="space-button primary" onClick={() => selectRevision(revision)}>选用此固定修订</button> : <>

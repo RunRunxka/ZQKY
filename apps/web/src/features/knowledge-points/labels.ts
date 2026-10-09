@@ -236,6 +236,16 @@ export function issueLocationLabel(issue: ErrorIssue): string {
   return parts.length > 0 ? `${parts.join(' · ')}：` : '';
 }
 
+/**
+ * 短号：长 ID 只显示前 `length` 位（名称缺失或次行小字时的兜底显示，不是主文本）。
+ * 空值给 `—`（「没有」与「有但太长」必须能区分开）；完整值留在 `title`/既有复制渠道里。
+ * 与 `assessments/labels.ts`、`learning-analysis/ui.tsx` 的同名实现同口径。
+ */
+export function shortId(id: string | null | undefined, length = 8): string {
+  if (!id) return '—';
+  return id.length <= length ? id : `${id.slice(0, length)}…`;
+}
+
 /** 时间展示：解析失败时原样返回，不显示假时间。 */
 export function formatDateTime(iso: string): string {
   const date = new Date(iso);

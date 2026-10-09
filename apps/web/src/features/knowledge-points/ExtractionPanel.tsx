@@ -34,6 +34,7 @@ import {
   KNOWLEDGE_EXTRACTION_NOT_READY_CODE,
   jobStateLabel,
   parseExtractionNotReadyDocuments,
+  shortId,
 } from './labels';
 import {
   SUGGESTION_CLOUD_NOTICE,
@@ -152,7 +153,9 @@ function ExtractionJobCard({
   return (
     <li className="kp-extract-job" data-testid={`kp-extract-job-${view.jobId}`}>
       <div className="space-meta-row">
-        <span className="space-chip">任务 {view.jobId}</span>
+        <span className="space-chip" title={`任务 ${view.jobId}`}>
+          任务 {shortId(view.jobId)}
+        </span>
         <span className="space-chip">第 {view.attempt} 次尝试</span>
         <span className="space-chip blue" data-testid={`kp-extract-state-${view.jobId}`}>
           {jobStateLabel(view.state)}
@@ -171,7 +174,9 @@ function ExtractionJobCard({
         <p className="space-banner error" role="alert">
           该册提取{view.state === 'failed' ? '失败' : '被中断'}
           {view.error ? `（${view.error.code}）` : ''}：{view.error?.message ?? '服务端未提供说明。'}
-          {importId ? ` 已生成的候选仍在批次 ${importId} 里。` : ' 没有候选被写入。'}
+          {importId
+            ? ` 已生成的候选仍在批次 ${shortId(importId)} 里。`
+            : ' 没有候选被写入。'}
         </p>
       )}
       {view.state === 'cancelled' && (
@@ -182,7 +187,9 @@ function ExtractionJobCard({
       {view.state === 'succeeded' && (
         <p className="space-banner info" role="status">
           该册提取完成{candidateCount !== null ? `（${candidateCount} 条候选）` : ''}
-          {importId ? `：批次 ${importId}` : '：服务端没有返回批次 id'}。候选必须人工校对后确认。
+          {importId
+            ? `：批次 ${shortId(importId)}。候选必须人工校对后确认。`
+            : '：服务端没有返回批次 id。候选必须人工校对后确认。'}
         </p>
       )}
 
@@ -227,7 +234,9 @@ function ExtractionJobCard({
           </button>
         )}
         {importId && (
-          <span className="kp-hint">候选批次 {importId}</span>
+          <span className="kp-hint" title={`候选批次 ${importId}`}>
+            候选批次 {shortId(importId)}
+          </span>
         )}
       </div>
     </li>
@@ -548,7 +557,10 @@ export function ExtractionPanel({
             <ul className="kp-issue-list">
               {notReady.map((document) => (
                 <li key={document.documentId}>
-                  {document.title || document.documentId}：{document.reason || '服务端未给出原因。'}
+                  <span title={`教材 ${document.documentId}`}>
+                    {document.title || shortId(document.documentId)}
+                  </span>
+                  ：{document.reason || '服务端未给出原因。'}
                 </li>
               ))}
             </ul>
@@ -600,10 +612,11 @@ export function ExtractionPanel({
               <button
                 key={importId}
                 className="space-button"
+                title={`候选批次 ${importId}`}
                 data-testid={`kp-extract-open-${importId}`}
                 onClick={() => onOpenBatch(importId)}
               >
-                打开候选批次 {importId}
+                打开候选批次 {shortId(importId)}
               </button>
             ))}
           </div>

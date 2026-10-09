@@ -471,8 +471,12 @@ export function ScorePanel({
             >
               <option value="">（首版，无基准）</option>
               {confirmedRevisions.map((revision) => (
-                <option key={revision.revisionId} value={revision.revisionId}>
-                  v{revision.version} · {revision.revisionId}
+                <option
+                  key={revision.revisionId}
+                  value={revision.revisionId}
+                  title={`修订 ${revision.revisionId}`}
+                >
+                  v{revision.version} · {shortId(revision.revisionId)}
                 </option>
               ))}
             </select>
@@ -750,10 +754,14 @@ export function ScorePanel({
             {confirmedRevisions.map((revision) => (
               <li key={revision.revisionId} className="assessments-list-static">
                 <strong>v{revision.version}</strong>
-                <span className="assessments-meta">
-                  {revision.revisionId} · 人次 {revision.participantSnapshot?.length ?? 0} · 叶{' '}
+                <span
+                  className="assessments-meta"
+                  title={`修订 ${revision.revisionId}${revision.baseRevisionId ? ` · 基于 ${revision.baseRevisionId}` : ' · 首版'}`}
+                >
+                  {shortId(revision.revisionId)} · 人次{' '}
+                  {revision.participantSnapshot?.length ?? 0} · 叶{' '}
                   {revision.itemSnapshot?.length ?? 0}
-                  {revision.baseRevisionId ? ` · 基于 ${revision.baseRevisionId}` : ' · 首版'}
+                  {revision.baseRevisionId ? ` · 基于 ${shortId(revision.baseRevisionId)}` : ' · 首版'}
                 </span>
               </li>
             ))}

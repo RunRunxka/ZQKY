@@ -56,7 +56,7 @@ export function PracticeConversion({ revision, services, onConverted, onLocked, 
       </article>)}
     </fieldset>
     <SubmissionNotice submission={submission} /><button className="space-button primary" disabled={disabled || submission.busy || (submission.phase !== 'unknown' && (!title.trim() || !heldOn || selections.length === 0))} onClick={() => void convert()}>{submission.phase === 'unknown' ? '重试原转换提交' : '转换固定练习为施测'}</button>
-    {submission.result && <div className="b4-chain"><span>练习 {submission.result.practiceRevisionId} → 原卷 {submission.result.paperRevisionId} → 施测 {submission.result.assessmentId}</span><Link href={`/assessments?assessmentId=${encodeURIComponent(submission.result.assessmentId)}&step=score`}>进入现有成绩工作区</Link><span>{submission.result.replayed ? '原提交已重放，同一施测身份' : '施测已创建'}</span></div>}
+    {submission.result && <div className="b4-chain"><span title={`练习修订 ${submission.result.practiceRevisionId} · 原卷修订 ${submission.result.paperRevisionId} · 施测 ${submission.result.assessmentId}`}>练习 {shortId(submission.result.practiceRevisionId)} → 原卷 {shortId(submission.result.paperRevisionId)} → 施测 {shortId(submission.result.assessmentId)}</span><Link href={`/assessments?assessmentId=${encodeURIComponent(submission.result.assessmentId)}&step=score`}>进入现有成绩工作区</Link><span>{submission.result.replayed ? '原提交已重放，同一施测身份' : '施测已创建'}</span></div>}
     <p className="b4-hint">在现有成绩工作区完成上传、校对与确认，再从新成绩历史创建新学情报告。新报告产生前，尚未完成回流。</p>
   </section>;
 }

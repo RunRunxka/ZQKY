@@ -309,8 +309,8 @@ function FixedItemContent({ revision, item, services }: { revision: PracticeRevi
     return (await services.getPracticeAsset(revision.practiceSetId, revision.practiceRevisionId, declaration.sha256, signal)).blob;
   }, [item.content.assets, revision.practiceSetId, revision.practiceRevisionId, services]);
   return <details><summary>{item.questionNo} · {item.isScored ? `计分叶，满分${scoreText(item.maxScoreUnits)}分` : '父题 / 材料，不计分'} · {item.knowledgePoints.map((point) => point.name).join('、')}</summary>
-    <span className="b4-meta">题修订 {item.questionRevisionId} · 节点 {item.nodeKey} · 父题 {item.parentItemId ?? '无'} · 来源 {item.reason}</span><RichReview content={item.content} loadAsset={loadAsset} assetScope={`${revision.practiceRevisionId}|${item.practiceItemId}`} />
-    <p className="b4-meta">固定知识点：{item.knowledgePoints.map((point) => `${point.name}（${point.knowledgeRevisionId}）`).join('、')}</p>
+    <span className="b4-meta" title={`题修订 ${item.questionRevisionId} · 节点 ${item.nodeKey}${item.parentItemId ? ` · 父题 ${item.parentItemId}` : ''}`}>题修订 {shortId(item.questionRevisionId)} · 节点 {shortId(item.nodeKey)} · 父题 {item.parentItemId ? shortId(item.parentItemId) : '无'} · 来源 {item.reason}</span><RichReview content={item.content} loadAsset={loadAsset} assetScope={`${revision.practiceRevisionId}|${item.practiceItemId}`} />
+    <p className="b4-meta">固定知识点：{item.knowledgePoints.map((point) => `${point.name}（${shortId(point.knowledgeRevisionId)}）`).join('、')}</p>
   </details>;
 }
 

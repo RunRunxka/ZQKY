@@ -707,10 +707,10 @@ test.describe('知识点页', () => {
     await expect(conflict).toContainText('当前版本 7，已刷新为最新，请重试。');
     await expect(nameInput).toHaveValue('我改的名字');
 
-    // 按服务端最新版本重试成功
+    // 按服务端最新版本重试成功（修订号按短号口径展示，完整值在 title）
     await page.getByRole('button', { name: '保留我的修改并重试' }).click();
     await expect(page.getByTestId('kp-detail-notice')).toContainText('已保存');
-    await expect(page.getByTestId('kp-revision-id')).toContainText('kr-updated');
+    await expect(page.getByTestId('kp-revision-id')).toContainText('kr-updat…');
     expectNoUnhandled(state);
   });
 

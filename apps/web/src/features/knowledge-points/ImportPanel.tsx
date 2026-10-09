@@ -24,6 +24,7 @@ import {
   importSourceLabel,
   importStateChipClass,
   importStateLabel,
+  shortId,
 } from './labels';
 import { ImportReviewPanel } from './ImportReviewPanel';
 
@@ -36,7 +37,7 @@ function batchTitle(item: KnowledgeImportSummary): string {
 
 /** 次行小字：短号与来源（完整 id 在 title 与详情里）。 */
 function batchShortLine(item: KnowledgeImportSummary): string {
-  return `${item.source === 'ai' ? 'AI 候选批次' : '表格批次'} · 批次 ${item.importId.slice(0, 8)}`;
+  return `${item.source === 'ai' ? 'AI 候选批次' : '表格批次'} · 批次 ${shortId(item.importId)}`;
 }
 
 const ACCEPT = '.xlsx,.csv,.txt';

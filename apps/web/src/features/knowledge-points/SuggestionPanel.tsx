@@ -34,6 +34,7 @@ import {
   TEXTBOOK_EVIDENCE_UNAVAILABLE_CODE,
   TEXTBOOK_EVIDENCE_UNAVAILABLE_TEXT,
   jobStateLabel,
+  shortId,
 } from './labels';
 
 const MAX_MATERIAL_CHARS = 20000;
@@ -341,7 +342,11 @@ export function SuggestionPanel({
           {selectedPoint && (
             <span className="space-chip blue">随选中知识点 {selectedPoint.code}</span>
           )}
-          {view && <span className="space-chip">任务 {view.jobId}</span>}
+          {view && (
+            <span className="space-chip" title={`任务 ${view.jobId}`}>
+              任务 {shortId(view.jobId)}
+            </span>
+          )}
           {view && <span className="space-chip">第 {view.attempt} 次尝试</span>}
           {view && (
             <span className="space-chip blue" data-testid="kp-suggestion-state">
@@ -438,9 +443,9 @@ export function SuggestionPanel({
         )}
         {view?.state === 'succeeded' && (
           <div className="space-banner info" role="status" data-testid="kp-suggestion-succeeded">
-            <span>
+            <span title={importId ? `候选批次 ${importId}` : undefined}>
               候选已生成{candidateCount !== null ? `（${candidateCount} 条）` : ''}
-              {importId ? `：批次 ${importId}` : '：结果未给出批次 id'}。
+              {importId ? `：批次 ${shortId(importId)}` : '：结果未给出批次 id'}。
             </span>
             {importId && (
               <button className="space-button" onClick={() => onOpenBatch(importId)}>

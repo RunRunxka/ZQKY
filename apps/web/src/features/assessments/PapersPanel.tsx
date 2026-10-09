@@ -279,7 +279,7 @@ export function PapersPanel({ selected, onSelect, refreshToken }: {
           }}
         />
       )}
-      {selected && <p className="space-banner info" role="status" data-testid="assessments-paper-selected">已选用原卷「{selected.title}」（revision {selected.paperRevisionId}，计分叶 {selected.scoredLeafCount}，满分 {formatScoreUnits(selected.totalScoreUnits)}）。
+      {selected && <p className="space-banner info" role="status" title={`修订 ${selected.paperRevisionId}`} data-testid="assessments-paper-selected">已选用原卷「{selected.title}」（修订 {shortId(selected.paperRevisionId)}，计分叶 {selected.scoredLeafCount}，满分 {formatScoreUnits(selected.totalScoreUnits)}）。
         <button className="space-button" disabled={busy} onClick={() => {
           const paper = items.find((item) => item.paperId === selected.paperId);
           if (paper) void open(paper, selected.paperRevisionId);

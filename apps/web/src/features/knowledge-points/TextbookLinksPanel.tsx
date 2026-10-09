@@ -26,6 +26,7 @@ import {
   TEXTBOOK_EVIDENCE_UNAVAILABLE_CODE,
   TEXTBOOK_EVIDENCE_UNAVAILABLE_TEXT,
   formatDateTime,
+  shortId,
 } from './labels';
 
 export function TextbookLinksPanel({
@@ -207,7 +208,9 @@ export function TextbookLinksPanel({
                 <span className="space-chip">
                   {link.source === 'ai_confirmed' ? 'AI 候选确认' : '人工挂接'}
                 </span>
-                <span className="space-chip">修订 {link.documentRevisionId}</span>
+                <span className="space-chip" title={`修订 ${link.documentRevisionId}`}>
+                  修订 {shortId(link.documentRevisionId)}
+                </span>
                 <span className="space-chip">{formatDateTime(link.createdAt)}</span>
               </span>
               <button

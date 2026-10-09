@@ -260,7 +260,7 @@ function ReportFacts({ run, services, onLocked }: { run: AnalysisRunView; servic
     </div>}
     {tab === 'classes' && <div ref={tabPanelRef} role="tabpanel" id="analysis-classes" aria-labelledby="analysis-tab-classes"><ReadNotice resource={classes} label="班级依据" />
       {classes.lastData && <><div className="b4-table-wrap" tabIndex={0} aria-label="班级依据表，可横向滚动"><table className="b4-table"><caption className="visually-hidden">班级知识点事实（后端结果）</caption><thead><tr><th>班级与知识点</th><th>选定 / 有效</th><th>本次需巩固</th><th>信息不全</th><th>无有效依据 / 满分</th><th>需巩固比例</th></tr></thead><tbody>
-        {classes.lastData.items.map((row) => { const display = classDisplay(row.className, row.classId, row.classNameNote); return <tr key={`${row.classId}|${row.knowledgePoint.knowledgePointId}`}><th scope="row">{display.label}<span className="b4-meta">{display.meta}</span>{row.knowledgePoint.name}<span className="b4-meta">{row.knowledgePoint.knowledgeRevisionId}</span></th><td>{row.selectedCount} / {row.validCount}</td><td>{row.needsCount}</td><td>{row.incompleteCount}</td><td>{row.noEvidenceCount} / {row.fullCreditCount}</td><td>{row.denominator === 0 ? '暂无有效依据' : <>{row.numerator} / {row.denominator}<span className="b4-meta">后端比例 {row.ratio ?? '未提供'}</span></>}</td></tr>; })}
+        {classes.lastData.items.map((row) => { const display = classDisplay(row.className, row.classId, row.classNameNote); return <tr key={`${row.classId}|${row.knowledgePoint.knowledgePointId}`}><th scope="row">{display.label}<span className="b4-meta">{display.meta}</span>{row.knowledgePoint.name}<span className="b4-meta" title={`知识点修订 ${row.knowledgePoint.knowledgeRevisionId}`}>{shortId(row.knowledgePoint.knowledgeRevisionId)}</span></th><td>{row.selectedCount} / {row.validCount}</td><td>{row.needsCount}</td><td>{row.incompleteCount}</td><td>{row.noEvidenceCount} / {row.fullCreditCount}</td><td>{row.denominator === 0 ? '暂无有效依据' : <>{row.numerator} / {row.denominator}<span className="b4-meta">后端比例 {row.ratio ?? '未提供'}</span></>}</td></tr>; })}
       </tbody></table></div>{classes.lastData.items.length === 0 && <p>没有符合筛选条件的班级依据。</p>}<Pagination page={classes.lastData} offset={offset} onOffset={setOffset} /></>}
     </div>}
     {tab === 'students' && <div ref={tabPanelRef} role="tabpanel" id="analysis-students" aria-labelledby="analysis-tab-students"><ReadNotice resource={students} label="学生依据" />
@@ -284,8 +284,8 @@ function EvidenceDetail({ evidence, loadAsset }: { evidence: EvidenceRow; loadAs
     origin: (raw as Record<string, unknown>).origin ?? { originalAssetId: '', originalSha256: '', sourceLocator: evidence.sourceLocator } };
   const rich: RichContentV2 | null = isRichContent(candidate) ? candidate : null;
   return <details><summary>{evidence.participant.name} · 人次{evidence.participant.attemptNo} · {evidence.itemPath} · {statusLabel[evidence.status]} {scoreText(evidence.scoreUnits)} / {scoreText(evidence.maxScoreUnits)}</summary>
-    <p className="b4-meta">成绩 {evidence.scoreRevisionId} · 原卷 {evidence.paperRevisionId} · 计分叶 {evidence.itemId}</p>
-    <p>{evidence.knowledgePoints.map((point) => `${point.name}（${point.knowledgeRevisionId}）`).join('、') || '未关联知识点'}</p>
+    <p className="b4-meta" title={`成绩修订 ${evidence.scoreRevisionId} · 原卷修订 ${evidence.paperRevisionId} · 计分叶 ${evidence.itemId}`}>成绩 {shortId(evidence.scoreRevisionId)} · 原卷 {shortId(evidence.paperRevisionId)} · 计分叶 {shortId(evidence.itemId)}</p>
+    <p>{evidence.knowledgePoints.map((point) => `${point.name}（${shortId(point.knowledgeRevisionId)}）`).join('、') || '未关联知识点'}</p>
     {evidence.associationNote && <p className="b4-hint">{evidence.associationNote}</p>}
     {evidence.knowledgePoints.length > 1 && <p className="b4-hint">综合题失分关联，具体错因待教师确认。</p>}
     {rich ? <RichReview content={rich} loadAsset={loadAsset} assetScope={`${evidence.paperRevisionId}|${evidence.itemId}`} /> : <p role="alert">固定题面结构暂无法识别，请核对原卷；没有生成替代题面。</p>}

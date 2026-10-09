@@ -35,6 +35,7 @@ import {
   matrixRowTotalText,
   scoreRevisionStateLabel,
   scoreStatusLabel,
+  shortId,
 } from './labels';
 import { ScoreStatusBadge, ScoreStatusLegend } from './ScoreStatusBadge';
 
@@ -231,11 +232,14 @@ export function HistoryPanel({
                 }}
               >
                 <strong>v{revision.version}</strong>
-                <span className="assessments-meta">
-                  {scoreRevisionStateLabel(revision.state)} · {revision.revisionId} · 人次{' '}
+                <span
+                  className="assessments-meta"
+                  title={`修订 ${revision.revisionId}${revision.baseRevisionId ? ` · 基于 ${revision.baseRevisionId}` : ' · 首版'}`}
+                >
+                  {scoreRevisionStateLabel(revision.state)} · {shortId(revision.revisionId)} · 人次{' '}
                   {revision.participantSnapshot?.length ?? 0} · 叶{' '}
                   {revision.itemSnapshot?.length ?? 0}
-                  {revision.baseRevisionId ? ` · 基于 ${revision.baseRevisionId}` : ' · 首版'}
+                  {revision.baseRevisionId ? ` · 基于 ${shortId(revision.baseRevisionId)}` : ' · 首版'}
                   {revision.revisionId === activeRevisionId ? ' · 当前生效' : ''}
                 </span>
               </button>
@@ -247,7 +251,9 @@ export function HistoryPanel({
       {activeRevisionIdSafe && (
         <section className="assessments-subpanel" aria-label="只读成绩矩阵">
           <div className="assessments-subpanel-head">
-            <h3>只读矩阵（{activeRevisionIdSafe}）</h3>
+            <h3 title={activeRevisionIdSafe ? `只读矩阵（修订 ${activeRevisionIdSafe}）` : undefined}>
+              只读矩阵（{shortId(activeRevisionIdSafe)}）
+            </h3>
             {assessmentId && revisions.state.phase === 'ready' && activeRevision?.assessmentId === assessmentId && (
               <Link className="space-button" href={`/learning-analysis?assessmentId=${encodeURIComponent(assessmentId)}&scoreRevisionId=${encodeURIComponent(activeRevision.revisionId)}`}>
                 分析这份固定成绩
@@ -350,7 +356,11 @@ export function HistoryPanel({
       {activeRevisionIdSafe && (
         <section className="assessments-subpanel" aria-label="成绩修正">
           <div className="assessments-subpanel-head">
-            <h3>修正（基于当前生效版本 {activeRevisionId ?? '（无）'}）</h3>
+            <h3
+              title={activeRevisionId ? `修正（基于当前生效版本 ${activeRevisionId}）` : undefined}
+            >
+              修正（基于当前生效版本 {activeRevisionId ? shortId(activeRevisionId) : '（无）'}）
+            </h3>
             <span className="assessments-hint">
               修正会生成新的完整版本，旧报告仍依据旧版本；审计保留原值/新值/理由/坐标。
             </span>
@@ -435,11 +445,12 @@ export function HistoryPanel({
             <ul className="assessments-list" aria-label="待提交修正">
               {corrections.map((entry) => (
                 <li key={`${entry.participantId}-${entry.itemId}`} className="assessments-list-static">
-                  <span>
+                  <span title={`人次 ${entry.participantId} · 计分叶 ${entry.itemId}`}>
                     {participantSnapshots.find((item) => item.participantId === entry.participantId)?.name ??
-                      entry.participantId}{' '}
+                      shortId(entry.participantId)}{' '}
                     ·{' '}
-                    {itemSnapshots.find((item) => item.itemId === entry.itemId)?.itemPath ?? entry.itemId}{' '}
+                    {itemSnapshots.find((item) => item.itemId === entry.itemId)?.itemPath ??
+                      shortId(entry.itemId)}{' '}
                     → {scoreStatusLabel(entry.status)}
                     {entry.status === 'recorded' && entry.scoreText ? `（${entry.scoreText} 分）` : ''}
                   </span>
@@ -486,8 +497,12 @@ export function HistoryPanel({
               {submission.busy ? '提交中…' : '提交修正（生成新版本）'}
             </button>
             {submission.frozen && (
-              <span className="space-chip" data-testid="assessments-correct-submission">
-                提交标识 {submission.frozen.submissionId}
+              <span
+                className="space-chip"
+                title={`提交标识 ${submission.frozen.submissionId}`}
+                data-testid="assessments-correct-submission"
+              >
+                提交标识 {shortId(submission.frozen.submissionId)}
               </span>
             )}
           </div>
@@ -518,9 +533,17 @@ export function HistoryPanel({
             </p>
           )}
           {submission.result && (
-            <p className="space-banner info" role="status" data-testid="assessments-correct-result">
-              已生成新版本 v{submission.result.version}（修订 {submission.result.revisionId}；
-              {submission.result.replayed ? '重放，未重复写入' : `基于 ${submission.result.baseRevisionId}`}）。
+            <p
+              className="space-banner info"
+              role="status"
+              title={`修订 ${submission.result.revisionId}${submission.result.replayed ? '' : ` · 基于 ${submission.result.baseRevisionId}`}`}
+              data-testid="assessments-correct-result"
+            >
+              已生成新版本 v{submission.result.version}（修订 {shortId(submission.result.revisionId)}；
+              {submission.result.replayed
+                ? '重放，未重复写入'
+                : `基于 ${shortId(submission.result.baseRevisionId)}`}
+              ）。
             </p>
           )}
           {formError && (
