@@ -453,3 +453,88 @@ describe('L1 教案退出与彻底删除', () => {
     expect(store['lesson-b']).toBeUndefined();
   });
 });
+
+describe('W2-LESSON-WIZARD 生成前置五步清单', () => {
+  /** 打开真实 SourcePanel（本地模式）并把教师侧输入显式归零：generation-inputs 的模块内存桶不随 localStorage.clear 复位。 */
+  async function openWizard() {
+    const sources = raceSources();
+    raceHost(sources, { local: true });
+    await openSourcePanel();
+    await screen.findByRole('option', { name: '语文' });
+    fireEvent.change(screen.getByLabelText('教案生成模型'), { target: { value: '' } });
+    fireEvent.change(screen.getByLabelText('课堂时长'), { target: { value: '40' } });
+    fireEvent.change(screen.getByLabelText('教案生成要求'), { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: '清除已选教材切片' }));
+    expect(screen.getByText('就绪 0/5')).toBeInTheDocument();
+    return sources;
+  }
+  it('五步行齐全：四段文案就位，汇总 n/5 与未就绪名称、状态徽标随真实前置切换', async () => {
+    await openWizard();
+    for (const title of ['① 班级与固定报告', '② 知识点', '③ 教材切片核验', '④ 模型与时长', '⑤ 教师要求']) expect(screen.getByText(title)).toBeInTheDocument();
+    for (const text of ['候选的学情依据要绑到单一班级与一份 ready 报告。', '来自「学情分析」已创建的固定报告', '只按选中知识点调整，最多 50 个。', '所选报告的知识点清单自动带出', '引用的教材原文必须先核验区间与内容指纹。', '教材库 → 年级 / 版本 → 固定修订 + 起止（最多 6 段）', '决定候选质量与四阶段分钟预算（5–180 分钟）。', '「设置 → 模型与连接」选云端档案', '本页文本框（勿填学生姓名/学号）']) expect(screen.getByText(text)).toBeInTheDocument();
+    expect(screen.getByText('未就绪：① 班级与固定报告、② 知识点、③ 教材切片核验、④ 模型与时长、⑤ 教师要求')).toBeInTheDocument();
+    expect(screen.getAllByText('▢ 未就绪')).toHaveLength(3);
+    expect(document.querySelectorAll('.lesson-wizard-step')).toHaveLength(5);
+    expect(document.querySelector('[data-step="class-report"]')).toHaveAttribute('data-state', 'todo');
+    fireEvent.change(screen.getByLabelText('教案学科'), { target: { value: 'chinese' } });
+    fireEvent.change(screen.getByLabelText('教案班级'), { target: { value: 'class-a' } });
+    fireEvent.change(screen.getByLabelText('固定学情报告'), { target: { value: 'run-fixed' } });
+    await screen.findByRole('checkbox', { name: /依据语言/ });
+    expect(screen.getByText('▣ 就绪 · 隔离班A/固定原卷')).toBeInTheDocument();
+    expect(screen.getByText('就绪 1/5')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('checkbox', { name: /依据语言/ }));
+    expect(screen.getByText('▣ 就绪 · 已选 1 个')).toBeInTheDocument();
+    expect(screen.getByText('就绪 2/5')).toBeInTheDocument();
+    await verifyRaceEvidence();
+    expect(screen.getByText('▣ 就绪 · 已核验 1 段')).toBeInTheDocument();
+    expect(screen.getByText('就绪 3/5')).toBeInTheDocument();
+    expect(document.querySelector('[data-step="textbook-slices"]')).toHaveAttribute('data-state', 'ready');
+    fireEvent.change(screen.getByLabelText('教案生成模型'), { target: { value: 'model-a' } });
+    expect(screen.getByText('▣ 就绪 · 模型M1 · 40 分钟')).toBeInTheDocument();
+    expect(screen.getByText('就绪 4/5')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('教案生成要求'), { target: { value: '关注文言句式' } });
+    expect(screen.getByText('▣ 就绪 · 已填写')).toBeInTheDocument();
+    expect(screen.getByText('就绪 5/5')).toBeInTheDocument();
+    expect(screen.getByText('五步齐备')).toBeInTheDocument();
+    // 撤回核验切片：③ 回到未就绪，汇总与缺口名称同步，动作按钮重新出现
+    fireEvent.click(screen.getByRole('button', { name: '清除已选教材切片' }));
+    expect(screen.getByText('就绪 4/5')).toBeInTheDocument();
+    expect(screen.getByText('未就绪：③ 教材切片核验')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '去核验' })).toBeInTheDocument();
+  });
+  it('⑤ 教师要求标必填：空白不算填写，①/④ 未就绪给出去学情分析与去选择的真实链接', async () => {
+    await openWizard();
+    expect(screen.getByText('把课堂侧重写进候选；必填，至少 1 个字。')).toBeInTheDocument();
+    expect(screen.getByText('▢ 未就绪 · 必填')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('教案生成要求'), { target: { value: '   ' } });
+    expect(screen.getByText('▢ 未就绪 · 必填')).toBeInTheDocument();
+    expect(screen.getByText('就绪 0/5')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('教案生成要求'), { target: { value: '调整作业' } });
+    expect(screen.getByText('▣ 就绪 · 已填写')).toBeInTheDocument();
+    expect(screen.getByText('就绪 1/5')).toBeInTheDocument();
+    expect(screen.getByText('未就绪：① 班级与固定报告、② 知识点、③ 教材切片核验、④ 模型与时长')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '去学情分析' })).toHaveAttribute('href', '/learning-analysis');
+    expect(screen.getByRole('link', { name: '去选择' })).toHaveAttribute('href', '/settings#models');
+    expect(screen.getByLabelText('教案生成要求')).toHaveValue('调整作业');
+    fireEvent.change(screen.getByLabelText('教案学科'), { target: { value: 'chinese' } });
+    fireEvent.change(screen.getByLabelText('教案班级'), { target: { value: 'class-a' } });
+    fireEvent.change(screen.getByLabelText('固定学情报告'), { target: { value: 'run-fixed' } });
+    await screen.findByRole('checkbox', { name: /依据语言/ });
+    expect(screen.queryByRole('link', { name: '去学情分析' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '去选择' })).toBeInTheDocument();
+  });
+  it('③「去核验」只在本面板内定位并聚焦切片首个输入，不跳转；核验后按钮消失', async () => {
+    await openWizard();
+    fireEvent.click(screen.getByRole('button', { name: '去核验' }));
+    expect(document.activeElement).toBe(screen.getByLabelText('教材年级'));
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalled();
+    expect(router.push).not.toHaveBeenCalled();
+    // 减少动画：滚动改为即时定位
+    Object.defineProperty(window, 'matchMedia', { configurable: true, value: vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() })) });
+    fireEvent.click(screen.getByRole('button', { name: '去核验' }));
+    expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({ block: 'start', behavior: 'auto' });
+    fireEvent.change(screen.getByLabelText('教案学科'), { target: { value: 'chinese' } });
+    await verifyRaceEvidence();
+    expect(screen.queryByRole('button', { name: '去核验' })).not.toBeInTheDocument();
+  });
+});

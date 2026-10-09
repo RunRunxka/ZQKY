@@ -5,10 +5,13 @@ import type { ClassView } from '@/contracts/roster';
 import type { DocumentSummary, TextbookTaxonomy } from '@/contracts/textbook';
 import type { ModelProfileView } from '@/contracts/model-settings';
 import { asApiError, stablePayloadKey } from '@/features/assessments/hooks';
+import { GuardedLink } from '@/services/navigation-guard';
 import { useLessonDocument } from '../model/DocumentContext';
 import { useLessonEditor } from '../model/EditorContext';
 import type { ConfirmedQuestionRevision } from '@/services/lesson-plan-sources-api';
 import type { GenerationInputs as GenerationInputsState } from '../model/generation-inputs';
+import { ChecklistStep, ChecklistSummary, type ChecklistStepView } from './GenerationChecklist';
+import '../styles/wizard.css';
 
 /** 兼容导出：生成前置输入类型已提升到 model/generation-inputs（P2 按教案键持久化）。 */
 export type GenerationInputs = GenerationInputsState;
@@ -22,6 +25,8 @@ export function SourcePanel({ value, onChange }: { value: GenerationInputs; onCh
   const [gradeId, setGrade] = useState(''), [editionId, setEdition] = useState(''), [documentId, setDocument] = useState('');
   const [start, setStart] = useState(0), [end, setEnd] = useState(1000), [error, setError] = useState(''), [loading, setLoading] = useState(false), [opened, setOpened] = useState(false);
   const alive = useRef(true), epoch = useRef(0), metadataEpoch = useRef(0), pendingReport = useRef<symbol | null>(null), verifyIntent = useRef(0);
+  /** ③「去核验」的就地锚点：只滚动并聚焦本面板切片区，不跳转、不展开/收起其它区域。 */
+  const sliceStep = useRef<HTMLElement | null>(null);
   useEffect(() => { alive.current = true; return () => { alive.current = false; epoch.current += 1; metadataEpoch.current += 1; pendingReport.current = null; verifyIntent.current += 1; }; }, []);
   const selection = doc.selection;
   const latest = useRef({ selection, value, doc, editor }); latest.current = { selection, value, doc, editor };
@@ -134,25 +139,79 @@ export function SourcePanel({ value, onChange }: { value: GenerationInputs; onCh
     } catch (cause) { if (isCurrent()) setError(asApiError(cause).message); }
   }
   const immutable = doc.mode !== 'local';
+  // 五步就绪判据（与 ProposalPanel 的生成前置一致或更严；只读，不产生写入、不伪造就绪）。
+  const classChoice = classes.find((item) => item.id === selection.classId);
+  /** 已选固定报告：以报告选择框的实际取值为准（选报告但未勾选知识点时 context 仍为 null）。 */
+  const reportId = run?.runId ?? selection.context?.analysisRunId ?? '';
+  const reportTitle = run?.paperTitle ?? reportId;
+  const selectedPointCount = selection.context?.selectedKnowledgePointIds.length ?? 0;
+  const verifiedSliceCount = value.evidence?.evidenceRefs.length ?? 0;
+  const durationValid = Number.isSafeInteger(value.durationMinutes) && value.durationMinutes >= 5 && value.durationMinutes <= 180;
+  const requirementsFilled = value.requirements.trim().length > 0;
+  const modelLabel = profiles.find((item) => item.id === value.modelProfileId)?.displayName ?? value.modelProfileId;
+  const readiness = [
+    !!selection.subjectId && !!selection.classId && !!reportId,
+    selectedPointCount > 0,
+    verifiedSliceCount > 0,
+    !!value.modelProfileId && durationValid,
+    requirementsFilled,
+  ];
+  const stepNames = ['① 班级与固定报告', '② 知识点', '③ 教材切片核验', '④ 模型与时长', '⑤ 教师要求'];
+  const readyCount = readiness.filter(Boolean).length;
+  const missingNames = stepNames.filter((_, index) => !readiness[index]);
+  /** 状态徽标：沿用传递带 ▣/▢；细节随步骤类型不同。 */
+  const stateText = (step: number, detail?: string) => `${readiness[step] ? '▣ 就绪' : '▢ 未就绪'}${detail ? ` · ${detail}` : ''}`;
+  const steps: ChecklistStepView[] = [
+    { id: 'class-report', no: '①', title: '班级与固定报告', why: '候选的学情依据要绑到单一班级与一份 ready 报告。', where: '来自「学情分析」已创建的固定报告', ready: readiness[0], stateText: stateText(0, readiness[0] ? `${classChoice?.name ?? selection.classId}/${reportTitle}` : undefined) },
+    { id: 'knowledge-points', no: '②', title: '知识点', why: '只按选中知识点调整，最多 50 个。', where: '所选报告的知识点清单自动带出', ready: readiness[1], stateText: stateText(1, readiness[1] ? `已选 ${selectedPointCount} 个` : '至少勾选 1 个') },
+    { id: 'textbook-slices', no: '③', title: '教材切片核验', why: '引用的教材原文必须先核验区间与内容指纹。', where: '教材库 → 年级 / 版本 → 固定修订 + 起止（最多 6 段）', ready: readiness[2], stateText: stateText(2, readiness[2] ? `已核验 ${verifiedSliceCount} 段` : undefined) },
+    { id: 'model-duration', no: '④', title: '模型与时长', why: '决定候选质量与四阶段分钟预算（5–180 分钟）。', where: '「设置 → 模型与连接」选云端档案', ready: readiness[3], stateText: stateText(3, readiness[3] ? `${modelLabel} · ${value.durationMinutes} 分钟` : undefined) },
+    { id: 'requirements', no: '⑤', title: '教师要求', why: '把课堂侧重写进候选；必填，至少 1 个字。', where: '本页文本框（勿填学生姓名/学号）', ready: readiness[4], stateText: stateText(4, readiness[4] ? '已填写' : '必填') },
+  ];
+  /** ③「去核验」：滚动并聚焦本面板切片区的第一个输入；不用平滑滚动动画时为即时定位。 */
+  function revealSlices() {
+    const root = sliceStep.current; if (!root) return;
+    const reduce = typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    root.scrollIntoView({ block: 'start', behavior: reduce ? 'auto' : 'smooth' });
+    root.querySelector<HTMLElement>('.lesson-wizard-body select, .lesson-wizard-body input, .lesson-wizard-body textarea, .lesson-wizard-body button')?.focus();
+  }
   return <details className="lesson-server-panel" onToggle={(event) => { if (event.currentTarget.open && !opened) { setOpened(true); void load(); } }}>
     <summary>班级、固定学情与生成来源</summary><div className="lesson-panel-body">
       <p className="lesson-help">生成使用教师明确选择的固定报告、知识点和核验教材；候选不会直接修改正文。</p>
-      <div className="lesson-source-grid">
-        <label>学科<select aria-label="教案学科" disabled={immutable} value={selection.subjectId} onChange={(event) => { setRun(null); updateSelection({ ...selection, subjectId: event.target.value, context: null }); }}>{!selection.subjectId && <option value="">请选择学科</option>}{taxonomy?.subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.label}</option>)}{selection.subjectId && !taxonomy?.subjects.some((item) => item.id === selection.subjectId) && <option value={selection.subjectId}>{selection.subjectId}</option>}</select></label>
-        <label>单一班级<select aria-label="教案班级" disabled={immutable} value={selection.classId} onChange={(event) => updateSelection({ ...selection, classId: event.target.value })}><option value="">请选择班级</option>{classes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}{selection.classId && !classes.some((item) => item.id === selection.classId) && <option value={selection.classId}>{selection.classId}</option>}</select></label>
-        <label>固定 ready 学情<select aria-label="固定学情报告" value={run?.runId ?? selection.context?.analysisRunId ?? ''} onChange={(event) => void selectRun(event.target.value)}><option value="">不关联学情</option>{runs.filter((item) => !selection.subjectId || item.subjectId === selection.subjectId).map((item) => <option key={item.runId} value={item.runId}>{item.paperTitle} · {item.scoreRevisionId} · {item.runId}</option>)}{run && !runs.some((item) => item.runId === run.runId) && <option value={run.runId}>{run.paperTitle} · {run.scoreRevisionId} · {run.runId}</option>}{!run && selection.context && !runs.some((item) => item.runId === selection.context!.analysisRunId) && <option value={selection.context.analysisRunId}>{selection.context.analysisRunId} · 固定来源（待核验）</option>}</select></label>
-        <label>模型档案<select aria-label="教案生成模型" value={value.modelProfileId} onChange={(event) => changeInputs({ modelProfileId: event.target.value })}><option value="">请选择模型档案</option>{profiles.filter((profile) => !profile.connection?.isLocal).map((profile) => <option key={profile.id} value={profile.id}>{profile.displayName} · {profile.modelId}{profile.isDefault ? '（全局默认）' : ''}</option>)}{value.modelProfileId && profiles.some((profile) => profile.id === value.modelProfileId && profile.connection?.isLocal) && <option value={value.modelProfileId}>{value.modelProfileId} · 本机档案不可用于教案生成</option>}</select></label>
+      <div className="lesson-wizard">
+        <ChecklistSummary readyCount={readyCount} total={5} missing={missingNames} />
+        <ChecklistStep step={{ ...steps[0], action: readiness[0] ? undefined : <GuardedLink className="button subtle lesson-wizard-go" href="/learning-analysis">去学情分析</GuardedLink> }}>
+          <div className="lesson-source-grid">
+            <label>学科<select aria-label="教案学科" disabled={immutable} value={selection.subjectId} onChange={(event) => { setRun(null); updateSelection({ ...selection, subjectId: event.target.value, context: null }); }}>{!selection.subjectId && <option value="">请选择学科</option>}{taxonomy?.subjects.map((subject) => <option key={subject.id} value={subject.id}>{subject.label}</option>)}{selection.subjectId && !taxonomy?.subjects.some((item) => item.id === selection.subjectId) && <option value={selection.subjectId}>{selection.subjectId}</option>}</select></label>
+            <label>单一班级<select aria-label="教案班级" disabled={immutable} value={selection.classId} onChange={(event) => updateSelection({ ...selection, classId: event.target.value })}><option value="">请选择班级</option>{classes.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}{selection.classId && !classes.some((item) => item.id === selection.classId) && <option value={selection.classId}>{selection.classId}</option>}</select></label>
+            <label>固定 ready 学情<select aria-label="固定学情报告" value={run?.runId ?? selection.context?.analysisRunId ?? ''} onChange={(event) => void selectRun(event.target.value)}><option value="">不关联学情</option>{runs.filter((item) => !selection.subjectId || item.subjectId === selection.subjectId).map((item) => <option key={item.runId} value={item.runId}>{item.paperTitle} · {item.scoreRevisionId} · {item.runId}</option>)}{run && !runs.some((item) => item.runId === run.runId) && <option value={run.runId}>{run.paperTitle} · {run.scoreRevisionId} · {run.runId}</option>}{!run && selection.context && !runs.some((item) => item.runId === selection.context!.analysisRunId) && <option value={selection.context.analysisRunId}>{selection.context.analysisRunId} · 固定来源（待核验）</option>}</select></label>
+          </div>
+        </ChecklistStep>
+        <ChecklistStep step={steps[1]}>
+          {run ? <fieldset><legend>明确选择知识点（最多50项）</legend>{runClasses.length > 0 && !runClasses.includes(selection.classId) && <p role="alert">所选班级不在固定报告中，生成暂停。</p>}{run.knowledgePoints.map((point) => <label className="lesson-check" key={point.knowledgePointId}><input type="checkbox" checked={selection.context?.analysisRunId === run.runId && selection.context.selectedKnowledgePointIds.includes(point.knowledgePointId)} onChange={(event) => { const old = selection.context?.analysisRunId === run.runId ? selection.context.selectedKnowledgePointIds : []; const ids = event.target.checked ? [...old, point.knowledgePointId] : old.filter((id) => id !== point.knowledgePointId); if (ids.length > 50) { setError('最多50个知识点'); return; } updateSelection({ ...selection, context: ids.length ? { analysisRunId: run.runId, selectedKnowledgePointIds: ids } : null }); }} />{point.name} <small>{point.knowledgeRevisionId}</small></label>)}</fieldset> : <p className="lesson-wizard-hint">选择固定报告后，报告中的知识点清单会在这里列出。</p>}
+        </ChecklistStep>
+        <ChecklistStep step={{ ...steps[2], action: readiness[2] ? undefined : <button type="button" className="button subtle lesson-wizard-go" onClick={revealSlices}>去核验</button> }} rootRef={sliceStep}>
+          <fieldset><legend>真实教材切片</legend><div className="lesson-source-grid"><label>年级<select aria-label="教材年级" value={gradeId} onChange={(event) => { epoch.current += 1; setGrade(event.target.value); setDocuments([]); setDocument(''); changeInputs({ evidence: null }); }}><option value="">请选择年级</option>{taxonomy?.grades.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label><label>教材版本<select aria-label="教材版本" value={editionId} onChange={(event) => { epoch.current += 1; setEdition(event.target.value); setDocuments([]); setDocument(''); changeInputs({ evidence: null }); }}><option value="">请选择版本</option>{taxonomy?.editions.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label></div>
+            <button className="button subtle" onClick={() => void loadDocuments()}>读取可选教材</button><label>教材固定修订<select aria-label="教材固定修订" value={documentId} onChange={(event) => setDocument(event.target.value)}><option value="">请选择教材</option>{documents.map((item) => <option key={item.documentId} value={item.documentId}>{item.title} · {item.currentRevision?.revisionId}</option>)}</select></label>
+            <div className="lesson-source-grid"><label>切片起点<input aria-label="切片起点" type="number" min={0} value={start} onChange={(event) => setStart(Number(event.target.value))} /></label><label>切片终点<input aria-label="切片终点" type="number" min={1} value={end} onChange={(event) => setEnd(Number(event.target.value))} /></label></div><button className="button subtle" onClick={() => void verifySlice()}>读取并核验教材切片</button><button className="button subtle" onClick={clearEvidence}>清除已选教材切片</button>
+            <p className="lesson-help">这里的教材与起止是「下一段待核验」的切片：核验进行中改这些参数不会取消这次核验。已核验的证据列在下方，各自标注教材修订与区间；要撤回请整体「清除已选教材切片」。</p>
+            {value.evidence?.evidence.map((item) => <details key={item.evidenceId}><summary>{item.title} · {item.documentRevisionId} · [{item.charStart}, {item.charEnd})</summary><pre>{item.text}</pre><small>{item.normalizedTextSha256}</small></details>)}
+          </fieldset>
+        </ChecklistStep>
+        <ChecklistStep step={{ ...steps[3], action: readiness[3] ? undefined : <GuardedLink className="button subtle lesson-wizard-go" href="/settings#models">去选择</GuardedLink> }}>
+          <div className="lesson-source-grid">
+            <label>模型档案<select aria-label="教案生成模型" value={value.modelProfileId} onChange={(event) => changeInputs({ modelProfileId: event.target.value })}><option value="">请选择模型档案</option>{profiles.filter((profile) => !profile.connection?.isLocal).map((profile) => <option key={profile.id} value={profile.id}>{profile.displayName} · {profile.modelId}{profile.isDefault ? '（全局默认）' : ''}</option>)}{value.modelProfileId && profiles.some((profile) => profile.id === value.modelProfileId && profile.connection?.isLocal) && <option value={value.modelProfileId}>{value.modelProfileId} · 本机档案不可用于教案生成</option>}</select></label>
+            <label>课堂时长（分钟）<input aria-label="课堂时长" type="number" min={5} max={180} value={value.durationMinutes} onChange={(event) => changeInputs({ durationMinutes: Number(event.target.value) })} /></label>
+          </div>
+        </ChecklistStep>
+        <ChecklistStep step={steps[4]}>
+          <label>教师要求<textarea aria-label="教案生成要求" aria-describedby="lesson-requirements-privacy" value={value.requirements} onChange={(event) => changeInputs({ requirements: event.target.value })} /><small id="lesson-requirements-privacy" className="lesson-help">请勿填写学生姓名、学号或人员 ID；已知身份将被阻断，系统不能保证识别全部个人信息。</small></label>
+        </ChecklistStep>
       </div>
-      {run && <fieldset><legend>明确选择知识点（最多50项）</legend>{runClasses.length > 0 && !runClasses.includes(selection.classId) && <p role="alert">所选班级不在固定报告中，生成暂停。</p>}{run.knowledgePoints.map((point) => <label className="lesson-check" key={point.knowledgePointId}><input type="checkbox" checked={selection.context?.analysisRunId === run.runId && selection.context.selectedKnowledgePointIds.includes(point.knowledgePointId)} onChange={(event) => { const old = selection.context?.analysisRunId === run.runId ? selection.context.selectedKnowledgePointIds : []; const ids = event.target.checked ? [...old, point.knowledgePointId] : old.filter((id) => id !== point.knowledgePointId); if (ids.length > 50) { setError('最多50个知识点'); return; } updateSelection({ ...selection, context: ids.length ? { analysisRunId: run.runId, selectedKnowledgePointIds: ids } : null }); }} />{point.name} <small>{point.knowledgeRevisionId}</small></label>)}</fieldset>}
-      <div className="lesson-source-grid"><label>课堂时长（分钟）<input aria-label="课堂时长" type="number" min={5} max={180} value={value.durationMinutes} onChange={(event) => changeInputs({ durationMinutes: Number(event.target.value) })} /></label><label>教师要求<textarea aria-label="教案生成要求" aria-describedby="lesson-requirements-privacy" value={value.requirements} onChange={(event) => changeInputs({ requirements: event.target.value })} /><small id="lesson-requirements-privacy" className="lesson-help">请勿填写学生姓名、学号或人员 ID；已知身份将被阻断，系统不能保证识别全部个人信息。</small></label></div>
-      <fieldset><legend>真实教材切片</legend><div className="lesson-source-grid"><label>年级<select aria-label="教材年级" value={gradeId} onChange={(event) => { epoch.current += 1; setGrade(event.target.value); setDocuments([]); setDocument(''); changeInputs({ evidence: null }); }}><option value="">请选择年级</option>{taxonomy?.grades.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label><label>教材版本<select aria-label="教材版本" value={editionId} onChange={(event) => { epoch.current += 1; setEdition(event.target.value); setDocuments([]); setDocument(''); changeInputs({ evidence: null }); }}><option value="">请选择版本</option>{taxonomy?.editions.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label></div>
-        <button className="button subtle" onClick={() => void loadDocuments()}>读取可选教材</button><label>教材固定修订<select aria-label="教材固定修订" value={documentId} onChange={(event) => setDocument(event.target.value)}><option value="">请选择教材</option>{documents.map((item) => <option key={item.documentId} value={item.documentId}>{item.title} · {item.currentRevision?.revisionId}</option>)}</select></label>
-        <div className="lesson-source-grid"><label>切片起点<input aria-label="切片起点" type="number" min={0} value={start} onChange={(event) => setStart(Number(event.target.value))} /></label><label>切片终点<input aria-label="切片终点" type="number" min={1} value={end} onChange={(event) => setEnd(Number(event.target.value))} /></label></div><button className="button subtle" onClick={() => void verifySlice()}>读取并核验教材切片</button><button className="button subtle" onClick={clearEvidence}>清除已选教材切片</button>
-        <p className="lesson-help">这里的教材与起止是「下一段待核验」的切片：核验进行中改这些参数不会取消这次核验。已核验的证据列在下方，各自标注教材修订与区间；要撤回请整体「清除已选教材切片」。</p>
-        {value.evidence?.evidence.map((item) => <details key={item.evidenceId}><summary>{item.title} · {item.documentRevisionId} · [{item.charStart}, {item.charEnd})</summary><pre>{item.text}</pre><small>{item.normalizedTextSha256}</small></details>)}
-      </fieldset>
-      <fieldset><legend>已确认固定题（可选，最多20题）</legend><button className="button subtle" onClick={() => void loadQuestions()}>读取已确认固定题</button>{questions.filter((question) => question.subjectId === selection.subjectId).map((question) => <label className="lesson-check" key={question.questionRevisionId}><input type="checkbox" checked={value.questionRevisionIds.includes(question.questionRevisionId)} onChange={(event) => { const old = latest.current.value.questionRevisionIds; const ids = event.target.checked ? [...old, question.questionRevisionId] : old.filter((id) => id !== question.questionRevisionId); if (ids.length > 20) { setError('最多20个固定题'); return; } changeInputs({ questionRevisionIds: ids }); }} />{question.stemMarkdown.slice(0, 120)} <small>{question.questionRevisionId}</small></label>)}{questions.length < questionTotal && <button className="button subtle" onClick={() => void loadQuestions(true)}>继续读取已确认固定题</button>}</fieldset>
-      <fieldset><legend>已审核固定练习（可选，最多5份）</legend>{practiceRevisions.map((revision) => <label className="lesson-check" key={revision.practiceRevisionId}><input type="checkbox" checked={value.practiceRevisionIds.includes(revision.practiceRevisionId)} onChange={(event) => { const old = latest.current.value.practiceRevisionIds; const ids = event.target.checked ? [...old, revision.practiceRevisionId] : old.filter((id) => id !== revision.practiceRevisionId); if (ids.length > 5) { setError('最多5份固定练习'); return; } changeInputs({ practiceRevisionIds: ids }); }} />{revision.title} · {revision.practiceRevisionId}</label>)}</fieldset>
+      <div className="lesson-wizard-optional"><p className="lesson-wizard-group">可选补充来源 · 不计入五步就绪</p>
+        <fieldset><legend>已确认固定题（可选，最多20题）</legend><button className="button subtle" onClick={() => void loadQuestions()}>读取已确认固定题</button>{questions.filter((question) => question.subjectId === selection.subjectId).map((question) => <label className="lesson-check" key={question.questionRevisionId}><input type="checkbox" checked={value.questionRevisionIds.includes(question.questionRevisionId)} onChange={(event) => { const old = latest.current.value.questionRevisionIds; const ids = event.target.checked ? [...old, question.questionRevisionId] : old.filter((id) => id !== question.questionRevisionId); if (ids.length > 20) { setError('最多20个固定题'); return; } changeInputs({ questionRevisionIds: ids }); }} />{question.stemMarkdown.slice(0, 120)} <small>{question.questionRevisionId}</small></label>)}{questions.length < questionTotal && <button className="button subtle" onClick={() => void loadQuestions(true)}>继续读取已确认固定题</button>}</fieldset>
+        <fieldset><legend>已审核固定练习（可选，最多5份）</legend>{practiceRevisions.map((revision) => <label className="lesson-check" key={revision.practiceRevisionId}><input type="checkbox" checked={value.practiceRevisionIds.includes(revision.practiceRevisionId)} onChange={(event) => { const old = latest.current.value.practiceRevisionIds; const ids = event.target.checked ? [...old, revision.practiceRevisionId] : old.filter((id) => id !== revision.practiceRevisionId); if (ids.length > 5) { setError('最多5份固定练习'); return; } changeInputs({ practiceRevisionIds: ids }); }} />{revision.title} · {revision.practiceRevisionId}</label>)}</fieldset>
+      </div>
       {loading && <p role="status">正在读取真实来源…</p>}{error && <p role="alert">{error}</p>}<button className="button subtle" onClick={() => void load()}>刷新来源列表</button>
     </div></details>;
 }

@@ -1,0 +1,153 @@
+/* 教案生成前置：五步清单外壳（F2-LOOP 方向 02 闭环传递带 · 教案工位）。
+   只复用既有 token（--line / --blue / --surface / --radius-* / 字体 token）；
+   「缺前置」沿用传递带缺口用的琥珀色，不新增独立主题、不引入动画。 */
+
+.lesson-workspace .lesson-wizard {
+  display: grid;
+  gap: 8px;
+}
+
+.lesson-workspace .lesson-wizard-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.lesson-workspace .lesson-wizard-score {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--blue-deep);
+  white-space: nowrap;
+}
+
+.lesson-workspace .lesson-wizard-missing {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.lesson-workspace .lesson-wizard-step {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  scroll-margin-top: 12px;
+}
+
+.lesson-workspace .lesson-wizard-step[data-state='ready'] {
+  border-left-color: var(--blue);
+}
+
+.lesson-workspace .lesson-wizard-step[data-state='todo'] {
+  border-left-color: #e3d3ad;
+  background: #fffdf8;
+}
+
+.lesson-workspace .lesson-wizard-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.lesson-workspace .lesson-wizard-no {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.lesson-workspace .lesson-wizard-state {
+  margin-left: auto;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.lesson-workspace .lesson-wizard-state-text {
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.lesson-workspace .lesson-wizard-step[data-state='ready'] .lesson-wizard-state-text {
+  color: var(--blue-deep);
+}
+
+.lesson-workspace .lesson-wizard-step[data-state='todo'] .lesson-wizard-state-text {
+  color: #92610c;
+}
+
+.lesson-workspace .lesson-wizard-why,
+.lesson-workspace .lesson-wizard-where {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.lesson-workspace .lesson-wizard-why {
+  color: var(--muted);
+}
+
+.lesson-workspace .lesson-wizard-where {
+  color: var(--ink);
+}
+
+.lesson-workspace .lesson-wizard-go {
+  min-height: 26px;
+  padding: 2px 8px;
+  font-size: 12px;
+}
+
+.lesson-workspace .lesson-wizard-body {
+  display: grid;
+  gap: 10px;
+  margin-top: 2px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+}
+
+.lesson-workspace .lesson-wizard-optional {
+  display: grid;
+  gap: 10px;
+}
+
+.lesson-workspace .lesson-wizard-group,
+.lesson-workspace .lesson-wizard-hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.lesson-workspace .lesson-wizard-group {
+  font-weight: 600;
+}
+
+@media (max-width: 480px) {
+  .lesson-workspace .lesson-wizard-step {
+    padding: 9px 10px;
+  }
+
+  .lesson-workspace .lesson-wizard-state {
+    margin-left: 0;
+  }
+
+  .lesson-workspace .lesson-wizard-state-text {
+    white-space: normal;
+  }
+
+  .lesson-workspace .lesson-wizard-go {
+    min-height: var(--control-height);
+    padding: 6px 10px;
+  }
+}
