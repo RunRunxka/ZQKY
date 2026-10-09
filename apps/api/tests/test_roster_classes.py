@@ -656,8 +656,12 @@ def test_archived_student_rejects_update_and_transfer(harness: Harness) -> None:
     assert harness.count("class_memberships") == 1
 
 
-def test_archived_student_not_auto_matched_by_roster_import(harness: Harness) -> None:
-    """归档学生不参与名单导入自动关联（不会把已移除身份又挂回新名单）。"""
+def test_archived_student_is_rematched_and_restored_on_reimport(harness: Harness) -> None:
+    """重导场景：归档学生参与匹配（非阻断提示将恢复），确认后自动恢复身份并加入本班。
+
+    2026-10-09 用户实测："删除班级后学生学号依旧存在、无法重新导入该学生"——旧口径
+    归档身份不参与匹配，会走新建并撞 UNIQUE(owner_id, student_no)。
+    """
     klass = _create_class(harness)
     student = harness.service.create_student(
         StudentCreateRequest(
@@ -674,8 +678,17 @@ def test_archived_student_not_auto_matched_by_roster_import(harness: Harness) ->
         media_type="text/csv",
     )
     row = view.rows[0]
-    assert row.matched_student_id is None
-    assert row.suggestion != "link"
+    assert row.matched_student_id == student.id
+    assert any(issue.code == "ROSTER_STUDENT_ARCHIVED" for issue in row.issues)
+
+    result = harness.service.confirm_roster_import(
+        view.import_id,
+        RosterImportConfirmRequest(
+            expectedRevision=view.revision, submissionId="reimport-archived"
+        ),
+    )
+    assert result.applied[0].student_id == student.id
+    assert harness.service.get_student(student.id).status == "active"
 
 
 def test_route_invalid_query_params_return_422_with_fields(client: TestClient) -> None:

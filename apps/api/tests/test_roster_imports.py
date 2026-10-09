@@ -509,10 +509,35 @@ def test_confirm_success_counts_and_leaves_unlisted_students(harness: Harness) -
     assert [row.decision for row in confirmed.rows] == ["link", "create", "ignore"]
 
 
-def test_confirm_without_decisions_is_422_per_row(harness: Harness) -> None:
+def test_confirm_without_decisions_auto_imports(harness: Harness) -> None:
+    """自动决策（"直接导入"）：命中唯一身份自动关联、其余自动新建，无需逐行选择。
+
+    2026-10-09 用户要求：表格导入名单不再要求人工判断 关联/新建/忽略。
+    """
     created = make_class(harness)
-    make_student(harness, "张三", "0012")
+    existing = make_student(harness, "张三", "0012")
     content = csv_bytes([["学号", "姓名"], ["0012", "张三"], ["0013", "李四"]])
+    view = upload(harness, created.id, content=content, file_name="roster.csv")
+
+    result = confirm(
+        harness,
+        view.import_id,
+        expected_revision=view.revision,
+        submission_id="confirm-auto",
+    )
+    assert result.replayed is False
+    assert harness.service.get_roster_import(view.import_id).state == "confirmed"
+    # 自动关联既有学生 + 自动新建新学生，均进入本班
+    assert harness.count("students") == 2
+    assert harness.count("class_memberships") == 2
+    rows = {row.row_no: row for row in view.rows}
+    assert rows[1].matched_student_id == existing.id
+
+
+def test_confirm_invalid_row_still_requires_decision(harness: Harness) -> None:
+    """自动决策不覆盖数据异常：姓名为空的行仍需 link/ignore（422 定位到该行）。"""
+    created = make_class(harness)
+    content = csv_bytes([["学号", "姓名"], ["0012", ""]])
     view = upload(harness, created.id, content=content, file_name="roster.csv")
 
     with pytest.raises(AppError) as err:
@@ -520,15 +545,14 @@ def test_confirm_without_decisions_is_422_per_row(harness: Harness) -> None:
             harness,
             view.import_id,
             expected_revision=view.revision,
-            submission_id="confirm-missing",
+            submission_id="confirm-blank-name",
         )
     assert err.value.code == ROSTER_IDENTITY_UNRESOLVED
     assert err.value.status_code == 422
-    assert [issue["row"] for issue in err.value.details["issues"]] == [1, 2]
+    assert [issue["row"] for issue in err.value.details["issues"]] == [1]
     # 零写入
-    assert harness.count("students") == 1
+    assert harness.count("students") == 0
     assert harness.count("class_memberships") == 0
-    assert harness.count("command_submissions") == 0
     assert harness.service.get_roster_import(view.import_id).state == "reviewing"
 
 

@@ -32,6 +32,7 @@ from app.contracts.roster import (
     ROSTER_IMPORT_CONFIRMED,
     ROSTER_ROW_INVALID,
     STUDENT_ARCHIVED,
+    STUDENT_IN_USE,
     STUDENT_NO_CONFLICT,
     BatchStudentAddRequest,
     BatchStudentAddResult,
@@ -435,12 +436,15 @@ class RosterService:
         return record.view()
 
     def delete_class(self, class_id: str, payload: ClassRevisionRequest) -> dict[str, Any]:
-        """受引用守卫的彻底删除：无下游引用才物理删除班级行。
+        """受引用守卫的彻底删除：删除班级及其归属/名单历史，并清理不再被引用的学生。
 
-        守卫（任一 >0 → 409 ``CLASS_IN_USE`` + ``details.counts`` 列出计数）：
-        ``class_memberships`` 行数、``roster_imports`` 批次数（名单导入历史是
-        ``classes`` 的真实外键，同属下游引用）、``assessment_classes`` 行数、
-        ``lesson_plans.class_id`` 引用数。通过后在同一写事务里删除 ``classes`` 行；
+        真实引用（任一 >0 → 409 ``CLASS_IN_USE`` + ``details.counts``）：
+        ``assessment_classes`` 行数（参测范围）、``lesson_plans.class_id`` 引用数（教案）。
+        其余按下述**级联**处理（"删除要彻底"，2026-10-09 用户）：
+        - 该班 ``class_memberships`` 归属记录整批删除；
+        - 该班 ``roster_imports`` 名单批次（+预览行）随班删除（属该班自身的导入历史）；
+        - 归属清理后**无任何归属且未被任何施测参测快照引用**的学生行物理删除；
+          仍被引用的学生只解除归属、保留身份与历史（成绩/报告的证据不丢）。
         乐观锁不符 → 409 ``REVISION_CONFLICT``；班级不存在 → 404。
         """
         class_id = _clean_text(class_id, field="classId")
@@ -448,26 +452,79 @@ class RosterService:
             record = self._classes.require_in(conn, class_id)
             _check_revision(record.revision, payload.expected_revision)
             counts = self._classes.count_references_in(conn, class_id)
-            if any(value > 0 for value in counts.values()):
+            blocking = {
+                key: counts.get(key, 0)
+                for key in ("assessments", "lessonPlans", "lessonGenerationInputs")
+            }
+            if any(value > 0 for value in blocking.values()):
                 labels = {
-                    "memberships": "班级归属记录",
-                    "rosterImports": "名单导入批次",
                     "assessments": "参测范围引用",
                     "lessonPlans": "教案引用",
+                    "lessonGenerationInputs": "教案生成输入引用",
                 }
                 summary = "、".join(
-                    f"{labels[key]} {value} 条" for key, value in counts.items() if value > 0
+                    f"{labels[key]} {value} 条"
+                    for key, value in blocking.items()
+                    if value > 0
                 )
                 raise AppError(
-                    f"班级仍被引用，不能删除（{summary}）；请先处理相关数据。",
+                    f"班级仍被施测或教案引用，不能删除（{summary}）；请先处理相关数据或改为归档。",
                     code=CLASS_IN_USE,
                     status_code=409,
                     details={"counts": counts},
                 )
+            student_ids = self._students.student_ids_of_class_in(conn, class_id)
+            self._classes.delete_memberships_in(conn, class_id=class_id)
+            self._classes.delete_imports_in(conn, class_id=class_id)
+            removed_students: list[str] = []
+            kept_students: list[str] = []
+            for student_id in student_ids:
+                if self._students.membership_count_in(conn, student_id) > 0:
+                    kept_students.append(student_id)
+                    continue
+                if self._students.participant_reference_count_in(conn, student_id) > 0:
+                    # 被施测快照引用的学生保留身份（成绩/报告的锚点），只解除本班归属。
+                    kept_students.append(student_id)
+                    continue
+                self._students.delete_in(conn, student_id)
+                removed_students.append(student_id)
             self._classes.delete_in(
                 conn, class_id, expected_revision=payload.expected_revision
             )
-        return {"deleted": True, "classId": class_id}
+        return {
+            "deleted": True,
+            "classId": class_id,
+            "removedStudents": removed_students,
+            "keptReferencedStudents": kept_students,
+        }
+
+    def delete_student(self, student_id: str, payload: ClassRevisionRequest) -> dict[str, Any]:
+        """受引用守卫的学生彻底删除：无参测引用才物理删除（连同归属记录）。
+
+        仍被任何施测参测快照引用 → 409 ``STUDENT_IN_USE`` + ``details.counts``；
+        通过后同一事务删除该生的全部归属记录与学生行。
+        """
+        student_id = _clean_text(student_id, field="studentId")
+        with self._catalog.write_transaction() as conn:
+            record = self._students.require_in(conn, student_id)
+            _check_revision(record.revision, payload.expected_revision)
+            counts = {
+                "participants": self._students.participant_reference_count_in(
+                    conn, student_id
+                ),
+                "memberships": self._students.membership_count_in(conn, student_id),
+            }
+            if counts["participants"] > 0:
+                raise AppError(
+                    f"该学生仍被施测参测快照引用，不能删除（参测引用 {counts['participants']} 条）；"
+                    "请改为归档（历史与成绩证据保留）。",
+                    code=STUDENT_IN_USE,
+                    status_code=409,
+                    details={"counts": counts},
+                )
+            self._students.delete_memberships_in(conn, student_id=student_id)
+            self._students.delete_in(conn, student_id)
+        return {"deleted": True, "studentId": student_id}
 
     # ---------------------------------------------------------------- 学生
 
@@ -905,8 +962,11 @@ class RosterService:
         names = [
             row.name for row in extracted if row.student_no is None and row.name
         ]
-        by_student_no = self._students.map_by_student_no_in(conn, numbers)
-        by_name = self._students.map_by_name_in(conn, names)
+        # 重导场景：归档身份参与匹配（确认事务随后显式恢复），否则会走新建撞唯一约束。
+        by_student_no = self._students.map_by_student_no_in(
+            conn, numbers, include_archived=True
+        )
+        by_name = self._students.map_by_name_in(conn, names, include_archived=True)
         return row_analysis.analyze_rows(
             extracted, by_student_no=by_student_no, by_name=by_name
         )
@@ -1026,10 +1086,11 @@ class RosterService:
                 action = row.decision
                 student_id = row.matched_student_id if row.decision == "link" else None
             else:
-                action, student_id = None, None
-            decisions[row.row_no] = (action, student_id)
-            if action is None:
+                # 自动决策（"直接导入"）：命中唯一身份 → 关联（含归档身份的恢复）；否则新建。
+                # 只有数据层面必须人工处理的才行显式要求：批次内重复/同名冲突（阻断），
+                # 姓名缺失或超限（无法新建，需要 link/ignore）。
                 if any(issue.code in BLOCKING_ISSUE_CODES for issue in row.issues):
+                    action, student_id = None, None
                     blocking.append(
                         _issue(
                             row.row_no,
@@ -1038,15 +1099,25 @@ class RosterService:
                             field="identity",
                         )
                     )
-                else:
+                elif (
+                    not row.name
+                    or len(row.name) > row_analysis.MAX_NAME_CHARS
+                    or len(row.student_no or "") > row_analysis.MAX_STUDENT_NO_CHARS
+                ):
+                    action, student_id = None, None
                     unresolved.append(
                         _issue(
                             row.row_no,
                             code=ROSTER_IDENTITY_UNRESOLVED,
-                            message="该行还没有决定；请给出 link/create/ignore。",
+                            message="该行姓名缺失或超限，不能自动新建；请给出 link/ignore。",
                             field="identity",
                         )
                     )
+                elif row.matched_student_id is not None:
+                    action, student_id = "link", row.matched_student_id
+                else:
+                    action, student_id = "create", None
+            decisions[row.row_no] = (action, student_id)
         # 重复组：两行最终指向同一身份（同学号/同姓名同特征）仍未消歧时阻断。
         identity_key = {
             row.row_no: f"{row.student_no or ''}\u0000{row.name}"
@@ -1158,6 +1229,14 @@ class RosterService:
                 continue
             if action == "link":
                 student = self._students.require_in(conn, student_id or "")
+                if student.status == "archived":
+                    # 重导场景：教师显式把该生重新导入本班即恢复其身份（同一事务）。
+                    self._students.set_status_in(
+                        conn,
+                        student.id,
+                        expected_revision=student.revision,
+                        status="active",
+                    )
                 membership, created = self._students.insert_membership_in(
                     conn,
                     class_id=record.class_id,

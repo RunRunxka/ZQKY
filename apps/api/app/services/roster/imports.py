@@ -26,6 +26,7 @@ from app.contracts.roster import (
     ROSTER_IMPORT_FIELDS,
     ROSTER_MAPPING_INVALID,
     ROSTER_ROW_INVALID,
+    ROSTER_STUDENT_ARCHIVED,
     RosterRowSuggestion,
 )
 from app.contracts.teaching_loop import ErrorIssue, error_details
@@ -63,10 +64,11 @@ HEADER_SYNONYMS: dict[str, tuple[str, ...]] = {
 
 
 class _StudentLike(Protocol):
-    """分析层只依赖学生的稳定身份与姓名，不关心仓储实现。"""
+    """分析层只依赖学生的稳定身份、姓名与状态，不关心仓储实现。"""
 
     id: str
     name: str
+    status: str
 
 
 def mapping_invalid(message: str) -> AppError:
@@ -251,6 +253,17 @@ def analyze_rows(
             matched = by_student_no.get(row.student_no)
             if matched is not None:
                 matched_student_id = matched.id
+                if getattr(matched, "status", "active") == "archived":
+                    # 重导场景：归档身份也能被关联，确认事务会显式恢复它（非阻断提示）。
+                    issues.append(
+                        ErrorIssue(
+                            row=row.row_no,
+                            column="studentNo",
+                            field="studentNo",
+                            code=ROSTER_STUDENT_ARCHIVED,
+                            message="该学号对应已归档学生；导入将自动恢复其身份并加入本班。",
+                        )
+                    )
                 if row.name and matched.name != row.name:
                     issues.append(
                         ErrorIssue(

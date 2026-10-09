@@ -265,7 +265,9 @@ class ClassRepository:
         ``memberships`` = ``class_memberships`` 行数（含已离班历史）；
         ``rosterImports`` = ``roster_imports`` 批次数（名单导入历史，FK 指向班级）；
         ``assessments`` = 参测范围 ``assessment_classes`` 行数；
-        ``lessonPlans`` = 教学库 ``lesson_plans.class_id`` 引用数。
+        ``lessonPlans`` = 教学库 ``lesson_plans.class_id`` 引用数；
+        ``lessonGenerationInputs`` = ``lesson_generation_inputs.class_id`` 引用数
+        （补题/教案生成的冻结输入行，与教案同生命周期，删除前必须为 0）。
         """
         class_id = _require_text(class_id, field="classId")
         return {
@@ -293,7 +295,34 @@ class ClassRepository:
                     (class_id,),
                 ).fetchone()["n"]
             ),
+            "lessonGenerationInputs": int(
+                conn.execute(
+                    "SELECT COUNT(*) AS n FROM lesson_generation_inputs WHERE class_id = ?",
+                    (class_id,),
+                ).fetchone()["n"]
+            ),
         }
+
+    def delete_memberships_in(self, conn: sqlite3.Connection, *, class_id: str) -> int:
+        """删除该班全部归属记录（彻底删除班级的级联步骤）；返回删除行数。"""
+        class_id = _require_text(class_id, field="classId")
+        cursor = conn.execute(
+            "DELETE FROM class_memberships WHERE class_id = ?", (class_id,)
+        )
+        return cursor.rowcount
+
+    def delete_imports_in(self, conn: sqlite3.Connection, *, class_id: str) -> int:
+        """删除该班全部名单导入批次及其预览行（属该班自身的导入历史）；返回批次数。"""
+        class_id = _require_text(class_id, field="classId")
+        conn.execute(
+            "DELETE FROM roster_import_rows WHERE import_id IN "
+            "(SELECT id FROM roster_imports WHERE class_id = ?)",
+            (class_id,),
+        )
+        cursor = conn.execute(
+            "DELETE FROM roster_imports WHERE class_id = ?", (class_id,)
+        )
+        return cursor.rowcount
 
     def delete_in(
         self, conn: sqlite3.Connection, class_id: str, *, expected_revision: int

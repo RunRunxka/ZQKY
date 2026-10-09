@@ -232,6 +232,55 @@ class StudentRepository:
         )
         return self._require_record_in(conn, student_id)
 
+    def delete_in(self, conn: sqlite3.Connection, student_id: str) -> None:
+        """物理删除学生行（"彻底删除"的引用守卫由服务层先行判定）。"""
+        self._require_row_in(conn, student_id)
+        conn.execute("DELETE FROM students WHERE id = ?", (student_id,))
+
+    def delete_memberships_in(
+        self,
+        conn: sqlite3.Connection,
+        *,
+        class_id: str | None = None,
+        student_id: str | None = None,
+    ) -> int:
+        """按班级或学生删除归属关系；返回删除行数（恰好给一个条件）。"""
+        if (class_id is None) == (student_id is None):
+            raise _invalid("必须且只能给出 classId 或 studentId。")
+        if class_id is not None:
+            cursor = conn.execute(
+                "DELETE FROM class_memberships WHERE class_id = ?", (class_id,)
+            )
+        else:
+            cursor = conn.execute(
+                "DELETE FROM class_memberships WHERE student_id = ?", (student_id,)
+            )
+        return cursor.rowcount
+
+    def membership_count_in(self, conn: sqlite3.Connection, student_id: str) -> int:
+        row = conn.execute(
+            "SELECT COUNT(*) AS n FROM class_memberships WHERE student_id = ?",
+            (student_id,),
+        ).fetchone()
+        return int(row["n"])
+
+    def student_ids_of_class_in(self, conn: sqlite3.Connection, class_id: str) -> list[str]:
+        rows = conn.execute(
+            "SELECT DISTINCT student_id FROM class_memberships WHERE class_id = ?",
+            (class_id,),
+        ).fetchall()
+        return [row["student_id"] for row in rows]
+
+    def participant_reference_count_in(
+        self, conn: sqlite3.Connection, student_id: str
+    ) -> int:
+        """该学生被施测参测快照引用的行数（成绩/报告的历史锚点，删除必须让路）。"""
+        row = conn.execute(
+            "SELECT COUNT(*) AS n FROM assessment_participants WHERE student_id = ?",
+            (student_id,),
+        ).fetchone()
+        return int(row["n"])
+
     def update(
         self,
         student_id: str,
@@ -345,10 +394,13 @@ class StudentRepository:
         *,
         owner_id: str = DEFAULT_OWNER_ID,
         status: str = "active",
+        include_archived: bool = False,
     ) -> dict[str, StudentRecord]:
         """批量按学号精确匹配（保持文本相等，不做数值化）。
 
         默认只匹配**活跃**学生：归档学生不参与名单导入自动关联（避免误关联已移除身份）。
+        ``include_archived=True`` 供名单导入的"重导"场景：归档身份也要能被关联
+        （确认事务随后显式恢复），否则会走新建并撞 ``UNIQUE(owner_id, student_no)``。
         """
         wanted: list[str] = []
         seen: set[str] = set()
@@ -359,11 +411,18 @@ class StudentRepository:
         if not wanted:
             return {}
         placeholders = ", ".join("?" for _ in wanted)
-        rows = conn.execute(
-            "SELECT * FROM students WHERE owner_id = ? AND status = ? "
-            f"AND student_no IN ({placeholders})",
-            (owner_id, status, *wanted),
-        ).fetchall()
+        if include_archived:
+            rows = conn.execute(
+                "SELECT * FROM students WHERE owner_id = ? "
+                f"AND student_no IN ({placeholders})",
+                (owner_id, *wanted),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM students WHERE owner_id = ? AND status = ? "
+                f"AND student_no IN ({placeholders})",
+                (owner_id, status, *wanted),
+            ).fetchall()
         return {row["student_no"]: self._record(row) for row in rows}
 
     def map_by_name_in(
@@ -373,10 +432,12 @@ class StudentRepository:
         *,
         owner_id: str = DEFAULT_OWNER_ID,
         status: str = "active",
+        include_archived: bool = False,
     ) -> dict[str, list[StudentRecord]]:
         """批量按姓名精确匹配；同名多人在结果里原样保留（不静默选一个）。
 
-        默认只匹配**活跃**学生（与 ``map_by_student_no_in`` 同口径）。
+        默认只匹配**活跃**学生（与 ``map_by_student_no_in`` 同口径）；
+        ``include_archived=True`` 时归档学生同样参与匹配。
         """
         wanted: list[str] = []
         seen: set[str] = set()
@@ -387,12 +448,20 @@ class StudentRepository:
         if not wanted:
             return {}
         placeholders = ", ".join("?" for _ in wanted)
-        rows = conn.execute(
-            f"SELECT * FROM students WHERE owner_id = ? AND status = ? "
-            f"AND name IN ({placeholders}) "
-            "ORDER BY created_at ASC, rowid ASC",
-            (owner_id, status, *wanted),
-        ).fetchall()
+        if include_archived:
+            rows = conn.execute(
+                f"SELECT * FROM students WHERE owner_id = ? "
+                f"AND name IN ({placeholders}) "
+                "ORDER BY created_at ASC, rowid ASC",
+                (owner_id, *wanted),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                f"SELECT * FROM students WHERE owner_id = ? AND status = ? "
+                f"AND name IN ({placeholders}) "
+                "ORDER BY created_at ASC, rowid ASC",
+                (owner_id, status, *wanted),
+            ).fetchall()
         result: dict[str, list[StudentRecord]] = {}
         for row in rows:
             result.setdefault(row["name"], []).append(self._record(row))

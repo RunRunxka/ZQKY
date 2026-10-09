@@ -161,7 +161,8 @@ def test_delete_clean_class_succeeds(client: TestClient, harness: Harness) -> No
     deleted = client.delete(f"/api/v1/classes/{class_id}", params={"expectedRevision": 0})
     assert deleted.status_code == 200, deleted.text
     body = deleted.json()
-    assert body == {"deleted": True, "classId": class_id}
+    assert body["deleted"] is True and body["classId"] == class_id
+    assert body["removedStudents"] == [] and body["keptReferencedStudents"] == []
 
     # 物理删除：班级行与归属子行都不存在
     assert harness.count("classes", "id = ?", (class_id,)) == 0
@@ -169,7 +170,10 @@ def test_delete_clean_class_succeeds(client: TestClient, harness: Harness) -> No
     assert fetched.status_code == 404
 
 
-def test_delete_class_blocked_by_membership(client: TestClient, harness: Harness) -> None:
+def test_delete_class_cascades_memberships_and_unreferenced_students(
+    client: TestClient, harness: Harness
+) -> None:
+    """彻底删除：归属关系与"仅属于该班"的学生一并物理删除（删除要彻底）。"""
     created = _create_class(client)
     class_id = created["id"]
     student = client.post(
@@ -177,15 +181,14 @@ def test_delete_class_blocked_by_membership(client: TestClient, harness: Harness
     )
     assert student.status_code == 201, student.text
 
-    blocked = client.delete(f"/api/v1/classes/{class_id}", params={"expectedRevision": 0})
-    assert blocked.status_code == 409, blocked.text
-    body = blocked.json()
-    assert body["code"] == "CLASS_IN_USE"
-    assert body["details"]["counts"]["memberships"] == 1
-    assert body["details"]["counts"]["assessments"] == 0
-    assert body["details"]["counts"]["lessonPlans"] == 0
-    # 零删除：班级行仍在
-    assert harness.count("classes", "id = ?", (class_id,)) == 1
+    deleted = client.delete(f"/api/v1/classes/{class_id}", params={"expectedRevision": 0})
+    assert deleted.status_code == 200, deleted.text
+    body = deleted.json()
+    assert body["removedStudents"] == [student.json()["id"]]
+    # 零残留：班级、归属、无引用学生都被物理删除
+    assert harness.count("classes", "id = ?", (class_id,)) == 0
+    assert harness.count("class_memberships", "class_id = ?", (class_id,)) == 0
+    assert harness.count("students", "id = ?", (student.json()["id"],)) == 0
 
 
 def test_delete_class_blocked_by_assessment_scope(client: TestClient, harness: Harness) -> None:
@@ -466,8 +469,14 @@ def test_batch_add_students_empty_items_rejected(client: TestClient) -> None:
     assert response.status_code == 422
 
 
-def test_delete_class_blocked_by_roster_import(client: TestClient, harness: Harness) -> None:
-    """名单导入批次（roster_imports.class_id 真实外键）同样拦截：删除前先放弃/清理批次。"""
+def test_delete_class_cascades_roster_import_history(
+    client: TestClient, harness: Harness
+) -> None:
+    """名单批次属该班自身的导入历史：彻底删除班级时随班删除（不再拦截）。
+
+    2026-10-09 用户裁决："删除需要彻底"——归属/名单历史按级联处理，
+    只有参测范围与教案（含生成输入）等真实下游引用才 409。
+    """
     created = _create_class(client)
     class_id = created["id"]
     now = "2026-10-07T00:00:00Z"
@@ -487,7 +496,8 @@ def test_delete_class_blocked_by_roster_import(client: TestClient, harness: Harn
             ),
         ]
     )
-    blocked = client.delete(f"/api/v1/classes/{class_id}", params={"expectedRevision": 0})
-    assert blocked.status_code == 409, blocked.text
-    assert blocked.json()["code"] == "CLASS_IN_USE"
-    assert blocked.json()["details"]["counts"]["rosterImports"] == 1
+    deleted = client.delete(f"/api/v1/classes/{class_id}", params={"expectedRevision": 0})
+    assert deleted.status_code == 200, deleted.text
+    assert harness.count("classes", "id = ?", (class_id,)) == 0
+    assert harness.count("roster_imports", "class_id = ?", (class_id,)) == 0
+    assert harness.count("roster_import_rows", "import_id = 'ri-1'") == 0

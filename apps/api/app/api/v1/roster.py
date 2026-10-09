@@ -259,6 +259,18 @@ async def restore_student(
     return await _run(service.set_student_archived, student_id, body, archived=False)
 
 
+@router.delete("/students/{student_id}")
+async def delete_student(
+    request: Request,
+    student_id: str,
+    expectedRevision: int = Query(ge=0),
+) -> dict:
+    """受引用守卫的彻底删除：无参测引用才物理删除（连同归属记录）；被引用时 409 ``STUDENT_IN_USE``。"""
+    service = _service(request)
+    payload = ClassRevisionRequest(expectedRevision=expectedRevision)
+    return await _run(service.delete_student, student_id, payload)
+
+
 # --------------------------------------------------------------------------- 名单导入
 
 
