@@ -64,8 +64,8 @@ describe('已挂载施测接收真实名单操作的工作区通知', () => {
     } else if (operation === 'import') {
       fireEvent.change(screen.getByLabelText('名单文件'), { target: { files: [new File(['学号,姓名\n00c,丙'], '名单.csv')] } });
       fireEvent.click(screen.getByRole('button', { name: '上传名单' }));
-      await screen.findByLabelText('第 1 行处理');
-      fireEvent.change(screen.getByLabelText('第 1 行处理'), { target: { value: 'create' } });
+      // 自动决策：无匹配行直接给"将新建学生"（决策 chip），无需逐行选择（2026-10-09 用户裁决）
+      await screen.findByTestId('roster-row-1-decision');
       fireEvent.click(screen.getByRole('button', { name: '确认名单' }));
       await screen.findByTestId('roster-import-result');
     } else {

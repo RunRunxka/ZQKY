@@ -788,9 +788,9 @@ test.describe('施测与成绩工作区（真隔离 FastAPI + 真实浏览器）
     await page.getByLabel('名单文件').setInputFiles({ name: '完整名单.csv', mimeType: 'text/csv',
       buffer: Buffer.from('\ufeff学号,姓名\n01001,全链甲\n01002,全链乙\n01003,全链丙\n01004,全链丁\n') });
     await page.getByRole('button', { name: '上传名单', exact: true }).click();
+    // 自动决策（2026-10-09 用户裁决）：无匹配行直接「将新建学生」（决策 chip），无需逐行选择即可确认。
     // 名单沿用 T30-a 的数据行序号（不含表头）；成绩仍用原表物理坐标。
-    for (let row = 1; row <= 4; row += 1) await page.getByLabel(`第 ${row} 行处理`).selectOption('create');
-    await page.getByRole('button', { name: '保存映射与行决策', exact: true }).click();
+    await expect(page.getByTestId('roster-row-4-decision')).toBeVisible();
     await page.getByRole('button', { name: '确认名单', exact: true }).click();
     await expect(page.getByTestId('roster-import-result')).toContainText('名单已确认');
     await expect(page.getByText('学号 01001', { exact: true })).toBeVisible();

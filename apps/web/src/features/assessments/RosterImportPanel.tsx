@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import type { ErrorIssue } from '@/contracts/api';
 import type { ApiError } from '@/services/api-client';
 import type {
   RosterDecision,
   RosterImportConfirmResult,
   RosterImportRowPatch,
+  RosterImportRowView,
   RosterImportState,
   RosterImportSummary,
   RosterImportView,
@@ -20,6 +22,7 @@ import {
   patchRosterImport,
 } from '@/services/assessments-api';
 import { asApiError, useAsyncResource, useFrozenSubmission } from './hooks';
+import { shortId } from './labels';
 
 interface Props {
   classId: string;
@@ -40,14 +43,140 @@ const STATE_LABELS = {
 };
 /** 未确认批次可放弃；`confirmed` 已应用（服务端 409），`cancelled` 已放弃。 */
 const DISCARDABLE_STATES: readonly RosterImportState[] = ['uploaded', 'reviewing', 'failed'];
-const SUGGESTIONS = {
-  link: '建议关联已有学生',
-  create: '建议新建学生',
-  name_mismatch: '学号命中但姓名不符',
-  no_student_no: '无学号，需人工核对',
-  duplicate: '同批重复行',
-  conflict: '同名存在多个身份',
+
+/**
+ * 自动决策门槛（与服务端 `app/services/roster/imports.py` 同口径，只用于**显示**是否需要人工选择；
+ * 确认时的最终判定始终以服务端为准，前端不自行改写入库语义）：
+ * - 阻断问题（同批重复 / 同名多命中）必须人工消歧；
+ * - 姓名缺失、姓名超过 120 字或学号超过 64 字时不能自动新建，必须给出 link/ignore。
+ * 其余行：命中唯一身份（学号一致，含已归档学生）自动关联；无匹配自动新建。
+ */
+const BLOCKING_REASON_LABELS: Record<string, string> = {
+  ROSTER_ROW_DUPLICATE: '重复行',
+  ROSTER_NAME_CONFLICT: '同名冲突',
 };
+const ARCHIVED_STUDENT_ISSUE_CODE = 'ROSTER_STUDENT_ARCHIVED';
+const ROW_INVALID_CODE = 'ROSTER_ROW_INVALID';
+const MAX_NAME_CHARS = 120;
+const MAX_STUDENT_NO_CHARS = 64;
+
+const DECISION_LABELS: Record<RosterDecision, string> = {
+  link: '关联已有学生',
+  create: '新建学生',
+  ignore: '忽略本行',
+};
+
+/** 本地行草稿：`decision === null` = 已改为手动处理但还没选（保存/确认前必须选）。 */
+interface RowDraft {
+  decision: RosterDecision | null;
+  studentId: string | null;
+}
+
+/**
+ * 行的处理计划：自动决策（只读 chip）或需要人工选择（下拉）。
+ * `origin` 说明人工选择来自哪里：异常行必须选 / 本地已改为手动 / 服务端已记录的决定。
+ */
+type RowPlan =
+  | {
+      kind: 'auto-link';
+      rowNo: number;
+      studentId: string;
+      studentName: string | null;
+      archived: boolean;
+    }
+  | { kind: 'auto-create'; rowNo: number }
+  | {
+      kind: 'manual';
+      rowNo: number;
+      reasons: string[];
+      decision: RosterDecision | null;
+      studentId: string | null;
+      canCreate: boolean;
+      origin: 'required' | 'draft' | 'stored';
+    };
+
+/** 必须人工选择的原因文案（与服务端确认时的判定同口径）。 */
+function manualReasons(row: RosterImportRowView): string[] {
+  const reasons: string[] = [];
+  for (const issue of row.issues) {
+    const label = BLOCKING_REASON_LABELS[issue.code];
+    if (label && !reasons.includes(label)) reasons.push(label);
+  }
+  if (!row.name) reasons.push('姓名缺失');
+  else if (row.name.length > MAX_NAME_CHARS) reasons.push('姓名超限');
+  if ((row.studentNo?.length ?? 0) > MAX_STUDENT_NO_CHARS) reasons.push('学号超限');
+  return reasons;
+}
+
+/** 该行能否新建学生（姓名缺失/超限时服务端会 422 拒绝 create）。 */
+function canCreateRow(row: RosterImportRowView): boolean {
+  return (
+    row.name.length > 0 &&
+    row.name.length <= MAX_NAME_CHARS &&
+    (row.studentNo?.length ?? 0) <= MAX_STUDENT_NO_CHARS
+  );
+}
+
+function planRow(row: RosterImportRowView, draft: RowDraft | undefined): RowPlan {
+  const reasons = manualReasons(row);
+  const decision = draft ? draft.decision : row.decision;
+  const studentId = draft ? draft.studentId : row.matchedStudentId;
+  if (reasons.length === 0 && draft === undefined && decision === null) {
+    if (row.matchedStudentId) {
+      return {
+        kind: 'auto-link',
+        rowNo: row.rowNo,
+        studentId: row.matchedStudentId,
+        studentName: row.matchedStudentName,
+        archived: row.issues.some((issue) => issue.code === ARCHIVED_STUDENT_ISSUE_CODE),
+      };
+    }
+    return { kind: 'auto-create', rowNo: row.rowNo };
+  }
+  return {
+    kind: 'manual',
+    rowNo: row.rowNo,
+    reasons,
+    decision,
+    studentId,
+    canCreate: canCreateRow(row),
+    origin: reasons.length > 0 ? 'required' : draft !== undefined ? 'draft' : 'stored',
+  };
+}
+
+/** 行上只读 chip 的文案（自动决策结果 / 需要人工选择的原因）。 */
+function rowChipText(plan: RowPlan): string {
+  if (plan.kind === 'auto-create') return '将新建学生';
+  if (plan.kind === 'auto-link') {
+    const who = plan.studentName || plan.studentId;
+    return plan.archived ? `将关联并恢复：${who}（原已归档）` : `将关联：${who}（学号一致）`;
+  }
+  const label = plan.decision === null ? null : DECISION_LABELS[plan.decision];
+  if (plan.origin === 'draft') {
+    return label === null ? '已改为手动处理，请选择处理方式' : `已改为手动处理：${label}`;
+  }
+  if (plan.origin === 'stored' && label !== null) return `已记录：${label}`;
+  const reason = `（原因：${plan.reasons.join('、')}）`;
+  return label === null ? `需要你选择${reason}` : `已记录人工决定：${label}${reason}`;
+}
+
+/** chip 色调：关联=绿、新建=蓝、人工选择=琥珀（颜色只是辅助，文案始终自洽）。 */
+function chipTone(plan: RowPlan): 'green' | 'blue' | 'amber' {
+  if (plan.kind === 'auto-link') return 'green';
+  if (plan.kind === 'auto-create') return 'blue';
+  return 'amber';
+}
+
+/** 缺少人工决定（或选了 link 却没给身份）时不能确认。 */
+function needsAttention(plan: RowPlan): boolean {
+  if (plan.kind !== 'manual') return false;
+  return plan.decision === null || (plan.decision === 'link' && !plan.studentId);
+}
+
+/** 阻断/行级非法问题按错误显示；其余（如已归档提示）按提示显示，避免把非阻断提示画成失败。 */
+function isAlertingIssue(issue: ErrorIssue): boolean {
+  return issue.code === ROW_INVALID_CODE || issue.code in BLOCKING_REASON_LABELS;
+}
 
 /** A class switch remounts the session and invalidates all old writes. */
 export function RosterImportPanel(props: Props) {
@@ -62,7 +191,7 @@ function RosterImportSession({ classId, onChanged }: Props) {
   const [view, setView] = useState<RosterImportView | null>(null);
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [mappingTouched, setMappingTouched] = useState(false);
-  const [rows, setRows] = useState<Record<number, RosterImportRowPatch>>({});
+  const [rows, setRows] = useState<Record<number, RowDraft>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<ApiError | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -142,7 +271,7 @@ function RosterImportSession({ classId, onChanged }: Props) {
       submission.release();
       adopt(result);
       batches.reload();
-      setNotice('名单已上传，建议不会自动成为行决定；请逐行选择处理方式。');
+      setNotice('名单已上传：学号一致的自动关联（含已归档身份，自动恢复），新学生自动新建；异常行需要你选择。');
     }
   }
 
@@ -178,7 +307,7 @@ function RosterImportSession({ classId, onChanged }: Props) {
         adopt(result);
       }
       batches.reload();
-      setNotice(`批次 ${result.importId} 已放弃（已取消）；批次记录与原始文件保留，不能再校对/确认。`);
+      setNotice(`批次 ${shortId(result.importId)} 已放弃（已取消）；批次记录与原始文件保留，不能再校对/确认。`);
     } finally {
       if (mounted.current && token === epoch.current) setDiscardBusyId(null);
     }
@@ -195,7 +324,7 @@ function RosterImportSession({ classId, onChanged }: Props) {
               ...(mapping.studentNo ? { studentNo: mapping.studentNo } : {}),
             }
           : undefined,
-        rows: Object.values(rows).length ? Object.values(rows) : undefined,
+        rows: rowPatches.length ? rowPatches : undefined,
       }),
     );
     if (result) {
@@ -206,19 +335,40 @@ function RosterImportSession({ classId, onChanged }: Props) {
     }
   }
 
-  const decisionOf = (row: RosterImportView['rows'][number]) =>
-    rows[row.rowNo]?.decision ?? row.decision;
-  const studentOf = (row: RosterImportView['rows'][number]) =>
-    rows[row.rowNo] ? (rows[row.rowNo].studentId ?? null) : row.matchedStudentId;
   const unknown = submission.phase === 'unknown';
   const locked = busy || submission.busy || unknown;
   const editable = view !== null && (view.state === 'uploaded' || view.state === 'reviewing');
-  const resolved =
-    !!view?.rows.length &&
-    view.rows.every((row) => {
-      const decision = decisionOf(row);
-      return decision !== null && (decision !== 'link' || Boolean(studentOf(row)));
-    });
+  const planOf = (row: RosterImportRowView) => planRow(row, rows[row.rowNo]);
+  /** 还缺人工决定的行（异常行未选择 / 已改为手动但未选 / 选了 link 却没给身份）。 */
+  const unsettledRowNos = (view?.rows ?? [])
+    .map(planOf)
+    .filter((plan) => needsAttention(plan))
+    .map((plan) => plan.rowNo);
+  const rowsSettled = !!view?.rows.length && unsettledRowNos.length === 0;
+  /** 只提交需要人工决定的行；全自动行缺省即由服务端自动决策（不逐行必选）。 */
+  const manualMatches = (view?.rows ?? []).flatMap((row) => {
+    const plan = planOf(row);
+    if (plan.kind !== 'manual' || plan.decision === null) return [];
+    return [
+      {
+        rowNo: row.rowNo,
+        action: plan.decision,
+        studentId: plan.decision === 'link' ? plan.studentId : null,
+      },
+    ];
+  });
+  /** 已选好的人工决定（未决定的行不入 patch；`decision` 是 PATCH 的必填字段）。 */
+  const rowPatches: RosterImportRowPatch[] = Object.entries(rows).flatMap(([rowNo, draft]) =>
+    draft.decision === null
+      ? []
+      : [
+          {
+            rowNo: Number(rowNo),
+            decision: draft.decision,
+            studentId: draft.decision === 'link' ? draft.studentId : null,
+          },
+        ],
+  );
 
   async function confirm() {
     if (!view) return;
@@ -228,11 +378,7 @@ function RosterImportSession({ classId, onChanged }: Props) {
         : {
             importId: view.importId,
             expectedRevision: view.revision,
-            identityMatches: view.rows.map((row) => ({
-              rowNo: row.rowNo,
-              action: decisionOf(row)!,
-              studentId: decisionOf(row) === 'link' ? studentOf(row) : null,
-            })),
+            identityMatches: manualMatches,
           };
     const token = epoch.current;
     const result = await submission.submit(payload, (frozen) =>
@@ -248,15 +394,32 @@ function RosterImportSession({ classId, onChanged }: Props) {
     onChanged();
   }
 
-  function decide(row: RosterImportView['rows'][number], decision: RosterDecision) {
+  function decide(row: RosterImportRowView, decision: RosterDecision) {
     setRows((current) => ({
       ...current,
       [row.rowNo]: {
-        rowNo: row.rowNo,
         decision,
-        studentId: decision === 'link' ? studentOf(row) : null,
+        studentId:
+          decision === 'link' ? (current[row.rowNo]?.studentId ?? row.matchedStudentId) : null,
       },
     }));
+  }
+
+  /** 「改为手动处理」：只生成本地草稿（decision=null → 必选），不影响自动决策的默认值。 */
+  function takeOver(row: RosterImportRowView) {
+    setRows((current) =>
+      current[row.rowNo] ? current : { ...current, [row.rowNo]: { decision: null, studentId: null } },
+    );
+  }
+
+  /** 放弃本地手动草稿，恢复自动决策（服务端已记录的决定不能用前端撤销）。 */
+  function restoreAuto(rowNo: number) {
+    setRows((current) => {
+      if (!(rowNo in current)) return current;
+      const next = { ...current };
+      delete next[rowNo];
+      return next;
+    });
   }
 
   const displayedError = error ?? submission.error;
@@ -275,7 +438,7 @@ function RosterImportSession({ classId, onChanged }: Props) {
     >
       <h3>导入名单</h3>
       <p className="assessments-hint">
-        学号按文本保存，保留前导零；姓名不是主键。名单里未出现的学生不会自动退班。
+        名单会自动处理：学号一致的自动关联（含已归档身份，自动恢复），新学生自动新建；只有重复/同名冲突等异常行需要你选择。
       </p>
       <div className="assessments-form">
         <label className="assessments-field">
@@ -340,11 +503,12 @@ function RosterImportSession({ classId, onChanged }: Props) {
             <div className="assessments-actions">
               <button
                 className="assessments-list-item"
+                title={`批次 ${batch.importId}`}
                 data-testid={`roster-batch-${batch.importId}`}
                 disabled={locked}
                 onClick={() => void openBatch(batch.importId)}
               >
-                {batch.importId} · {STATE_LABELS[batch.state]} · {batch.rowCount} 行 · r
+                批次 {shortId(batch.importId)} · {STATE_LABELS[batch.state]} · {batch.rowCount} 行 · r
                 {batch.revision}
               </button>
               {DISCARDABLE_STATES.includes(batch.state) && (
@@ -443,83 +607,126 @@ function RosterImportSession({ classId, onChanged }: Props) {
             </p>
           )}
           <ul className="assessments-list" aria-label="名单行校对">
-            {view.rows.map((row) => (
-              <li
-                key={row.rowNo}
-                className="assessments-list-static"
-                data-testid={`roster-row-${row.rowNo}`}
-              >
-                <strong>
-                  数据第 {row.rowNo} 行：{row.name} · 学号 {row.studentNo ?? '（无）'}
-                </strong>
-                <p className="assessments-hint">
-                  {row.suggestion ? SUGGESTIONS[row.suggestion] : '请人工核对身份'}
-                  ；建议不是确认决定。
-                </p>
-                {row.issues.map((issue, index) => (
-                  <p className="assessments-error" key={index}>
-                    {issue.field ? `${issue.field}：` : ''}
-                    {issue.message}
-                  </p>
-                ))}
-                <label className="assessments-field">
-                  处理方式
-                  <select
-                    aria-label={`第 ${row.rowNo} 行处理`}
-                    value={decisionOf(row) ?? ''}
-                    disabled={locked || !editable}
-                    onChange={(event) => decide(row, event.target.value as RosterDecision)}
-                  >
-                    <option value="" disabled>
-                      请选择处理方式
-                    </option>
-                    <option value="link">关联已有学生</option>
-                    <option value="create">新建学生</option>
-                    <option value="ignore">忽略本行</option>
-                  </select>
-                </label>
-                {decisionOf(row) === 'link' && (
-                  <label className="assessments-field">
-                    关联学生
-                    <select
-                      aria-label={`第 ${row.rowNo} 行关联学生`}
-                      value={studentOf(row) ?? ''}
-                      disabled={locked || !editable}
-                      onChange={(event) =>
-                        setRows((current) => ({
-                          ...current,
-                          [row.rowNo]: {
-                            rowNo: row.rowNo,
-                            decision: 'link',
-                            studentId: event.target.value || null,
-                          },
-                        }))
-                      }
+            {view.rows.map((row) => {
+              const plan = planOf(row);
+              return (
+                <li
+                  key={row.rowNo}
+                  className="assessments-list-static"
+                  data-testid={`roster-row-${row.rowNo}`}
+                >
+                  <strong>
+                    数据第 {row.rowNo} 行：{row.name || '（姓名缺失）'} · 学号{' '}
+                    {row.studentNo ?? '（无）'}
+                  </strong>
+                  <p className="assessments-hint">
+                    <span
+                      className={`space-chip ${chipTone(plan)}`}
+                      data-testid={`roster-row-${row.rowNo}-decision`}
                     >
-                      <option value="">请选择明确身份</option>
-                      {studentOf(row) &&
-                        !(students.lastData?.items ?? []).some(
-                          (student) => student.id === studentOf(row),
-                        ) && (
-                          <option value={studentOf(row)!}>
-                            {row.matchedStudentName ?? '已指定身份'}（{studentOf(row)}）
-                          </option>
-                        )}
-                      {(students.lastData?.items ?? []).map((student) => (
-                        <option key={student.id} value={student.id}>
-                          {student.name} · {student.studentNo ?? '无学号'} · {student.id}
+                      {rowChipText(plan)}
+                    </span>
+                  </p>
+                  {row.issues.map((issue, index) => (
+                    <p
+                      className={isAlertingIssue(issue) ? 'assessments-error' : 'assessments-hint'}
+                      key={index}
+                    >
+                      {issue.field ? `${issue.field}：` : ''}
+                      {issue.message}
+                    </p>
+                  ))}
+                  {plan.kind === 'manual' && (
+                    <label className="assessments-field">
+                      处理方式
+                      <select
+                        aria-label={`第 ${row.rowNo} 行处理`}
+                        aria-required="true"
+                        value={plan.decision ?? ''}
+                        disabled={locked || !editable}
+                        onChange={(event) => decide(row, event.target.value as RosterDecision)}
+                      >
+                        <option value="" disabled>
+                          请选择处理方式
                         </option>
-                      ))}
-                    </select>
-                  </label>
-                )}
-              </li>
-            ))}
+                        <option value="link">关联已有学生</option>
+                        {plan.canCreate && <option value="create">新建学生</option>}
+                        <option value="ignore">忽略本行</option>
+                      </select>
+                    </label>
+                  )}
+                  {plan.kind === 'manual' && plan.decision === 'link' && (
+                    <label className="assessments-field">
+                      关联学生
+                      <select
+                        aria-label={`第 ${row.rowNo} 行关联学生`}
+                        value={plan.studentId ?? ''}
+                        disabled={locked || !editable}
+                        onChange={(event) =>
+                          setRows((current) => ({
+                            ...current,
+                            [row.rowNo]: {
+                              decision: 'link',
+                              studentId: event.target.value || null,
+                            },
+                          }))
+                        }
+                      >
+                        <option value="">请选择明确身份</option>
+                        {plan.studentId &&
+                          !(students.lastData?.items ?? []).some(
+                            (student) => student.id === plan.studentId,
+                          ) && (
+                            <option value={plan.studentId} title={`学生 ${plan.studentId}`}>
+                              {row.matchedStudentName ?? '已指定身份'}（{shortId(plan.studentId)}）
+                            </option>
+                          )}
+                        {(students.lastData?.items ?? []).map((student) => (
+                          <option key={student.id} value={student.id} title={`学生 ${student.id}`}>
+                            {student.name} · {student.studentNo ?? '无学号'} · {shortId(student.id)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  {plan.kind === 'manual' && plan.origin === 'draft' && (
+                    <div className="assessments-actions">
+                      <button
+                        className="space-button"
+                        data-testid={`roster-row-${row.rowNo}-auto`}
+                        disabled={locked || !editable}
+                        onClick={() => restoreAuto(row.rowNo)}
+                      >
+                        恢复自动处理
+                      </button>
+                    </div>
+                  )}
+                  {plan.kind !== 'manual' && editable && (
+                    <div className="assessments-actions">
+                      <button
+                        className="space-button"
+                        data-testid={`roster-row-${row.rowNo}-manual`}
+                        disabled={locked}
+                        onClick={() => takeOver(row)}
+                      >
+                        改为手动处理
+                      </button>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
+          {unsettledRowNos.length > 0 && (
+            <p className="assessments-hint" data-testid="roster-pending-hint">
+              还有 {unsettledRowNos.length} 行需要先选择处理方式：第 {unsettledRowNos.join('、')}{' '}
+              行。
+            </p>
+          )}
           <div className="assessments-actions">
             <button
               className="space-button"
-              disabled={locked || !editable || (!mappingTouched && !Object.keys(rows).length)}
+              disabled={locked || !editable || (!mappingTouched && !rowPatches.length)}
               onClick={() => void save()}
             >
               保存映射与行决策
@@ -534,7 +741,12 @@ function RosterImportSession({ classId, onChanged }: Props) {
             <button
               className="space-button primary"
               disabled={
-                busy || submission.busy || (!unknown && (!editable || !resolved || mappingTouched))
+                busy || submission.busy || (!unknown && (!editable || !rowsSettled || mappingTouched))
+              }
+              title={
+                editable && !mappingTouched && unsettledRowNos.length > 0
+                  ? `第 ${unsettledRowNos.join('、')} 行还没有选择处理方式`
+                  : undefined
               }
               onClick={() => void confirm()}
             >

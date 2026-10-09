@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { RosterImportView, StudentView } from '@/contracts/roster';
+import type { RosterImportRowView, RosterImportView, StudentView } from '@/contracts/roster';
 import { RosterImportPanel } from './RosterImportPanel';
 import { RosterPanel } from './RosterPanel';
 
@@ -46,6 +46,20 @@ const STUDENT: StudentView = {
     },
   ],
 };
+
+/** 行视图工厂（默认全部字段为空，由用例按服务端行视图形状覆盖）。 */
+function rosterRow(overrides: Partial<RosterImportRowView> & { rowNo: number }): RosterImportRowView {
+  return {
+    name: '',
+    studentNo: null,
+    matchedStudentId: null,
+    matchedStudentName: null,
+    suggestion: null,
+    decision: null,
+    issues: [],
+    ...overrides,
+  };
+}
 
 function batch(overrides: Partial<RosterImportView> = {}): RosterImportView {
   return {
@@ -161,12 +175,7 @@ function formFile(name = '名单.csv') {
 }
 async function restore() {
   fireEvent.click(await screen.findByTestId('roster-batch-import-1'));
-  await screen.findByLabelText('第 1 行处理');
-}
-function chooseRows() {
-  fireEvent.change(screen.getByLabelText('第 1 行处理'), { target: { value: 'link' } });
-  fireEvent.change(screen.getByLabelText('第 2 行处理'), { target: { value: 'create' } });
-  fireEvent.change(screen.getByLabelText('第 3 行处理'), { target: { value: 'ignore' } });
+  await screen.findByTestId('roster-row-1');
 }
 const CONFIRMED = {
   importId: 'import-1',
@@ -175,26 +184,32 @@ const CONFIRMED = {
   ignored: [3],
   replayed: false,
 };
+/** 只统计发往 `/confirm` 的 POST（上传 multipart 也是 POST，不能混算）。 */
+function confirmRequests(fetchMock: ReturnType<typeof stub>) {
+  return requests(fetchMock, 'POST').filter(([input]) => String(input).endsWith('/confirm'));
+}
 
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
 });
 
-describe('名单导入的真实客户端与人工身份选择', () => {
-  it('CSV 上传→显式link/create/ignore→保存→幂等确认；学号保留前导零', async () => {
+describe('名单导入的真实客户端与自动决策', () => {
+  it('CSV 上传→自动 chip→保存手动行决定→幂等确认；学号保留前导零', async () => {
     let current = batch();
     const fetchMock = stub((url, init) => {
       if (init.method === 'POST' && url.endsWith('/roster-imports')) return response(current, 201);
       if (init.method === 'PATCH') {
-        const payload = JSON.parse(String(init.body));
+        const payload = JSON.parse(String(init.body)) as {
+          rows?: { rowNo: number; decision: RosterImportRowView['decision'] }[];
+        };
+        const patched = payload.rows ?? [];
         current = batch({
           revision: 2,
-          rows: current.rows.map((row) => ({
-            ...row,
-            decision: payload.rows.find((item: { rowNo: number }) => item.rowNo === row.rowNo)
-              .decision,
-          })),
+          rows: current.rows.map((row) => {
+            const hit = patched.find((item) => item.rowNo === row.rowNo);
+            return hit ? { ...row, decision: hit.decision } : row;
+          }),
         });
         return response(current);
       }
@@ -209,32 +224,32 @@ describe('名单导入的真实客户端与人工身份选择', () => {
     );
     formFile();
     fireEvent.click(screen.getByRole('button', { name: '上传名单' }));
-    await screen.findByLabelText('第 1 行处理');
+    await screen.findByTestId('roster-row-1');
     const uploaded = requests(fetchMock, 'POST')[0][1]!.body as FormData;
     expect(uploaded.get('file')).toBeInstanceOf(File);
     expect(screen.getByTestId('roster-row-1')).toHaveTextContent('学号 0012');
-    expect(screen.getByRole('button', { name: '确认名单' })).toBeDisabled();
-    chooseRows();
+    // 自动决策结果以只读 chip 呈现，默认没有逐行下拉，也不需要任何选择即可确认
+    expect(screen.getByTestId('roster-row-1-decision')).toHaveTextContent('将关联：甲（学号一致）');
+    expect(screen.getByTestId('roster-row-2-decision')).toHaveTextContent('将新建学生');
+    expect(screen.queryByLabelText('第 1 行处理')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '确认名单' })).toBeEnabled();
+    // 手动调整一行：保存后服务端记录该决定
+    fireEvent.click(screen.getByTestId('roster-row-3-manual'));
+    fireEvent.change(screen.getByLabelText('第 3 行处理'), { target: { value: 'ignore' } });
     fireEvent.click(screen.getByRole('button', { name: '保存映射与行决策' }));
     await screen.findByText('已保存映射与行决策（版本 2）。');
     expect(JSON.parse(String(requests(fetchMock, 'PATCH')[0][1]!.body))).toMatchObject({
       expectedRevision: 1,
-      rows: [
-        { rowNo: 1, decision: 'link', studentId: 'student-old' },
-        { rowNo: 2, decision: 'create' },
-        { rowNo: 3, decision: 'ignore' },
-      ],
+      rows: [{ rowNo: 3, decision: 'ignore', studentId: null }],
     });
+    expect(screen.getByTestId('roster-row-3-decision')).toHaveTextContent('已记录：忽略本行');
     fireEvent.click(screen.getByRole('button', { name: '确认名单' }));
     await screen.findByTestId('roster-import-result');
-    const confirmation = JSON.parse(String(requests(fetchMock, 'POST').at(-1)![1]!.body));
+    const confirmation = JSON.parse(String(confirmRequests(fetchMock).at(-1)![1]!.body));
+    // 只提交人工决定的行；命中/新建两行缺省由服务端自动决策
     expect(confirmation).toMatchObject({
       expectedRevision: 2,
-      identityMatches: [
-        { rowNo: 1, action: 'link', studentId: 'student-old' },
-        { rowNo: 2, action: 'create', studentId: null },
-        { rowNo: 3, action: 'ignore', studentId: null },
-      ],
+      identityMatches: [{ rowNo: 3, action: 'ignore', studentId: null }],
     });
     expect(confirmation.submissionId).toMatch(/^[a-f0-9-]{36}$/);
     expect(changed).toHaveBeenCalledTimes(1);
@@ -250,7 +265,7 @@ describe('名单导入的真实客户端与人工身份选择', () => {
     fireEvent.change(screen.getByLabelText('上传时姓名表头'), { target: { value: '学生称呼' } });
     fireEvent.change(screen.getByLabelText('上传时学号表头'), { target: { value: '身份代号' } });
     fireEvent.click(screen.getByRole('button', { name: '上传名单' }));
-    await screen.findByLabelText('第 1 行处理');
+    await screen.findByTestId('roster-row-1');
     const form = requests(fetchMock, 'POST')[0][1]!.body as FormData;
     expect(form.get('sheetName')).toBe('七年级');
     expect(JSON.parse(String(form.get('mappingJson')))).toEqual({
@@ -259,7 +274,8 @@ describe('名单导入的真实客户端与人工身份选择', () => {
     });
     await restore();
     expect(requests(fetchMock, 'POST')).toHaveLength(1);
-    expect(screen.getByLabelText('第 2 行处理')).toHaveValue('');
+    expect(screen.queryByLabelText('第 2 行处理')).not.toBeInTheDocument();
+    expect(screen.getByTestId('roster-row-2-decision')).toHaveTextContent('将新建学生');
   });
 
   it.each([409, 422])('保存遇%d保留映射与行编辑，并可刷新版本对照后重试', async (status) => {
@@ -293,7 +309,8 @@ describe('名单导入的真实客户端与人工身份选择', () => {
     });
     render(<RosterImportPanel classId="class-a" onChanged={() => {}} />);
     await restore();
-    chooseRows();
+    fireEvent.click(screen.getByTestId('roster-row-2-manual'));
+    fireEvent.change(screen.getByLabelText('第 2 行处理'), { target: { value: 'create' } });
     fireEvent.change(screen.getByLabelText('名单姓名列'), { target: { value: '别名' } });
     fireEvent.click(screen.getByRole('button', { name: '保存映射与行决策' }));
     await screen.findByRole('alert');
@@ -321,13 +338,14 @@ describe('名单导入的真实客户端与人工身份选择', () => {
     const changed = vi.fn();
     render(<RosterImportPanel classId="class-a" onChanged={changed} />);
     await restore();
-    chooseRows();
+    fireEvent.click(screen.getByTestId('roster-row-2-manual'));
+    fireEvent.change(screen.getByLabelText('第 2 行处理'), { target: { value: 'ignore' } });
     fireEvent.click(screen.getByRole('button', { name: '确认名单' }));
     await screen.findByText(/校对已冻结/);
     expect(screen.getByLabelText('第 2 行处理')).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: '确认名单' }));
     await screen.findByTestId('roster-import-result');
-    expect(requests(fetchMock, 'POST')[1][1]!.body).toBe(requests(fetchMock, 'POST')[0][1]!.body);
+    expect(confirmRequests(fetchMock)[1][1]!.body).toBe(confirmRequests(fetchMock)[0][1]!.body);
     expect(changed).toHaveBeenCalledTimes(1);
   });
 
@@ -348,7 +366,7 @@ describe('名单导入的真实客户端与人工身份选择', () => {
           : response({ code: 'OLD_ERROR', message: '旧班失败' }, 422),
       ),
     );
-    expect(screen.queryByLabelText('第 1 行处理')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('roster-row-1')).not.toBeInTheDocument();
     expect(screen.queryByText(/旧班失败/)).not.toBeInTheDocument();
     expect(changed).not.toHaveBeenCalled();
   });
@@ -359,7 +377,6 @@ describe('名单导入的真实客户端与人工身份选择', () => {
     const changed = vi.fn();
     const ui = render(<RosterImportPanel classId="class-a" onChanged={changed} />);
     await restore();
-    chooseRows();
     fireEvent.click(screen.getByRole('button', { name: '确认名单' }));
     ui.unmount();
     await act(async () =>
@@ -370,6 +387,287 @@ describe('名单导入的真实客户端与人工身份选择', () => {
       ),
     );
     expect(changed).not.toHaveBeenCalled();
+  });
+});
+
+/* ------------------------------------------------------------------ 自动决策与人工例外 */
+
+describe('名单自动决策（不再逐行必选）', () => {
+  /** 只替换该批次 GET 的读回；其余端点走默认桩。 */
+  const readBatch =
+    (view: RosterImportView) =>
+    (url: string, init: RequestInit): Response | null =>
+      url.includes('/roster-imports/import-1') && !init.method ? response(view) : null;
+
+  it('全自动两行（1 命中 + 1 新建）无需任何选择，确认提交 identityMatches 为空', async () => {
+    const view = batch({
+      rows: [
+        rosterRow({
+          rowNo: 1,
+          name: '甲',
+          studentNo: '0012',
+          matchedStudentId: 'student-old',
+          matchedStudentName: '甲',
+          suggestion: 'link',
+        }),
+        rosterRow({ rowNo: 2, name: '乙', studentNo: '0013', suggestion: 'create' }),
+      ],
+    });
+    const fetchMock = stub((url, init) => {
+      if (url.endsWith('/confirm'))
+        return response({ ...CONFIRMED, applied: [{ rowNo: 1 }, { rowNo: 2 }], ignored: [] });
+      return readBatch(view)(url, init);
+    });
+    render(<RosterImportPanel classId="class-a" onChanged={() => {}} />);
+    await restore();
+    expect(screen.getByTestId('roster-row-1-decision')).toHaveTextContent('将关联：甲（学号一致）');
+    expect(screen.getByTestId('roster-row-2-decision')).toHaveTextContent('将新建学生');
+    expect(screen.queryByLabelText('第 1 行处理')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('第 2 行处理')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('roster-pending-hint')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '确认名单' }));
+    await screen.findByTestId('roster-import-result');
+    const confirmation = JSON.parse(String(confirmRequests(fetchMock).at(-1)![1]!.body));
+    expect(confirmation).toMatchObject({ expectedRevision: 1, identityMatches: [] });
+  });
+
+  it('全自动行 + 异常行：确认只提交异常行，自动行缺省交给服务端', async () => {
+    const view = batch({
+      rows: [
+        rosterRow({
+          rowNo: 1,
+          name: '甲',
+          studentNo: '0012',
+          matchedStudentId: 'student-old',
+          matchedStudentName: '甲',
+          suggestion: 'link',
+        }),
+        rosterRow({ rowNo: 2, name: '乙', studentNo: '0013', suggestion: 'create' }),
+        rosterRow({
+          rowNo: 3,
+          name: '同名',
+          suggestion: 'conflict',
+          issues: [
+            {
+              row: 3,
+              column: 'name',
+              field: 'name',
+              code: 'ROSTER_NAME_CONFLICT',
+              message: '同名学生在库中有 2 人，请人工指定 link 目标（不自动选第一人）。',
+            },
+          ],
+        }),
+      ],
+    });
+    const fetchMock = stub((url, init) => {
+      if (url.endsWith('/confirm')) return response({ ...CONFIRMED, ignored: [3] });
+      return readBatch(view)(url, init);
+    });
+    render(<RosterImportPanel classId="class-a" onChanged={() => {}} />);
+    await restore();
+    const confirmButton = screen.getByRole('button', { name: '确认名单' });
+    expect(confirmButton).toBeDisabled();
+    expect(screen.getByTestId('roster-pending-hint')).toHaveTextContent('第 3 行');
+    fireEvent.change(screen.getByLabelText('第 3 行处理'), { target: { value: 'ignore' } });
+    expect(confirmButton).toBeEnabled();
+    fireEvent.click(confirmButton);
+    await screen.findByTestId('roster-import-result');
+    const confirmation = JSON.parse(String(confirmRequests(fetchMock).at(-1)![1]!.body));
+    expect(confirmation.identityMatches).toEqual([
+      { rowNo: 3, action: 'ignore', studentId: null },
+    ]);
+  });
+
+  it('学号命中已归档学生：显示「将关联并恢复」且不阻断确认', async () => {
+    const view = batch({
+      rows: [
+        rosterRow({
+          rowNo: 1,
+          name: '丙',
+          studentNo: '0013',
+          matchedStudentId: 'student-archived',
+          matchedStudentName: '丙',
+          suggestion: 'link',
+          issues: [
+            {
+              row: 1,
+              column: 'studentNo',
+              field: 'studentNo',
+              code: 'ROSTER_STUDENT_ARCHIVED',
+              message: '该学号对应已归档学生；导入将自动恢复其身份并加入本班。',
+            },
+          ],
+        }),
+      ],
+    });
+    const fetchMock = stub((url, init) => {
+      if (url.endsWith('/confirm'))
+        return response({ ...CONFIRMED, applied: [{ rowNo: 1 }], ignored: [] });
+      return readBatch(view)(url, init);
+    });
+    render(<RosterImportPanel classId="class-a" onChanged={() => {}} />);
+    await restore();
+    expect(screen.getByTestId('roster-row-1-decision')).toHaveTextContent(
+      '将关联并恢复：丙（原已归档）',
+    );
+    // 非阻断提示照原样可见，但不画成失败、也不要求任何选择
+    expect(screen.getByTestId('roster-row-1')).toHaveTextContent(
+      '导入将自动恢复其身份并加入本班。',
+    );
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('第 1 行处理')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '确认名单' }));
+    await screen.findByTestId('roster-import-result');
+    expect(JSON.parse(String(confirmRequests(fetchMock).at(-1)![1]!.body)).identityMatches).toEqual(
+      [],
+    );
+  });
+
+  it('异常行未选择时拦截确认并逐行给出原因；姓名缺失行不能新建', async () => {
+    const view = batch({
+      rows: [
+        rosterRow({
+          rowNo: 1,
+          name: '甲',
+          studentNo: '0012',
+          suggestion: 'duplicate',
+          issues: [
+            {
+              row: 1,
+              column: 'studentNo',
+              field: 'studentNo',
+              code: 'ROSTER_ROW_DUPLICATE',
+              message: '与第 2 行重复（同学号或同名同特征），需人工消歧。',
+            },
+          ],
+        }),
+        rosterRow({
+          rowNo: 2,
+          name: '甲',
+          studentNo: '0012',
+          suggestion: 'duplicate',
+          issues: [
+            {
+              row: 2,
+              column: 'studentNo',
+              field: 'studentNo',
+              code: 'ROSTER_ROW_DUPLICATE',
+              message: '与第 1 行重复（同学号或同名同特征），需人工消歧。',
+            },
+          ],
+        }),
+        rosterRow({
+          rowNo: 3,
+          name: '同名',
+          suggestion: 'conflict',
+          issues: [
+            {
+              row: 3,
+              column: 'name',
+              field: 'name',
+              code: 'ROSTER_NAME_CONFLICT',
+              message: '同名学生在库中有 2 人，请人工指定 link 目标（不自动选第一人）。',
+            },
+          ],
+        }),
+        rosterRow({
+          rowNo: 4,
+          suggestion: 'no_student_no',
+          issues: [
+            {
+              row: 4,
+              column: 'name',
+              field: 'name',
+              code: 'ROSTER_ROW_INVALID',
+              message: '姓名为空，只能 link 到既有学生或 ignore。',
+            },
+          ],
+        }),
+      ],
+    });
+    const fetchMock = stub((url, init) => {
+      if (url.endsWith('/confirm'))
+        return response({ ...CONFIRMED, applied: [], ignored: [1, 2, 3, 4] });
+      return readBatch(view)(url, init);
+    });
+    render(<RosterImportPanel classId="class-a" onChanged={() => {}} />);
+    await restore();
+    expect(screen.getByTestId('roster-row-1-decision')).toHaveTextContent('需要你选择（原因：重复行）');
+    expect(screen.getByTestId('roster-row-2-decision')).toHaveTextContent('需要你选择（原因：重复行）');
+    expect(screen.getByTestId('roster-row-3-decision')).toHaveTextContent(
+      '需要你选择（原因：同名冲突）',
+    );
+    expect(screen.getByTestId('roster-row-4-decision')).toHaveTextContent('需要你选择（原因：姓名缺失）');
+    expect(screen.getByTestId('roster-row-4')).toHaveTextContent('（姓名缺失）');
+    // 姓名缺失的行不能新建（服务端会 422 拒绝 create），异常行仍可新建
+    expect(screen.getByLabelText('第 4 行处理')).not.toHaveTextContent('新建学生');
+    expect(screen.getByLabelText('第 1 行处理')).toHaveTextContent('新建学生');
+    const confirmButton = screen.getByRole('button', { name: '确认名单' });
+    expect(confirmButton).toBeDisabled();
+    const hint = screen.getByTestId('roster-pending-hint');
+    expect(hint).toHaveTextContent('还有 4 行需要先选择处理方式');
+    expect(hint).toHaveTextContent('第 1、2、3、4 行');
+    expect(confirmRequests(fetchMock)).toHaveLength(0);
+
+    for (const rowNo of [1, 2, 3]) {
+      fireEvent.change(screen.getByLabelText(`第 ${rowNo} 行处理`), { target: { value: 'ignore' } });
+    }
+    expect(confirmButton).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('第 4 行处理'), { target: { value: 'ignore' } });
+    expect(screen.queryByTestId('roster-pending-hint')).not.toBeInTheDocument();
+    expect(confirmButton).toBeEnabled();
+    fireEvent.click(confirmButton);
+    await screen.findByTestId('roster-import-result');
+    expect(JSON.parse(String(confirmRequests(fetchMock).at(-1)![1]!.body)).identityMatches).toEqual([
+      { rowNo: 1, action: 'ignore', studentId: null },
+      { rowNo: 2, action: 'ignore', studentId: null },
+      { rowNo: 3, action: 'ignore', studentId: null },
+      { rowNo: 4, action: 'ignore', studentId: null },
+    ]);
+  });
+
+  it('非异常行默认不给下拉：「改为手动处理」后才出现且必选，可恢复自动', async () => {
+    stub();
+    render(<RosterImportPanel classId="class-a" onChanged={() => {}} />);
+    await restore();
+    expect(screen.queryByLabelText('第 2 行处理')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '确认名单' })).toBeEnabled();
+    fireEvent.click(screen.getByTestId('roster-row-2-manual'));
+    expect(screen.getByTestId('roster-row-2-decision')).toHaveTextContent(
+      '已改为手动处理，请选择处理方式',
+    );
+    expect(screen.getByLabelText('第 2 行处理')).toHaveValue('');
+    expect(screen.getByRole('button', { name: '确认名单' })).toBeDisabled();
+    expect(screen.getByTestId('roster-pending-hint')).toHaveTextContent('第 2 行');
+    fireEvent.change(screen.getByLabelText('第 2 行处理'), { target: { value: 'ignore' } });
+    expect(screen.getByTestId('roster-row-2-decision')).toHaveTextContent('已改为手动处理：忽略本行');
+    expect(screen.getByRole('button', { name: '确认名单' })).toBeEnabled();
+    fireEvent.click(screen.getByTestId('roster-row-2-auto'));
+    expect(screen.queryByLabelText('第 2 行处理')).not.toBeInTheDocument();
+    expect(screen.getByTestId('roster-row-2-decision')).toHaveTextContent('将新建学生');
+    expect(screen.getByRole('button', { name: '确认名单' })).toBeEnabled();
+  });
+
+  it('手动改为关联已有学生：必须显式选定身份，提交只带该行', async () => {
+    const fetchMock = stub((url) => (url.endsWith('/confirm') ? response(CONFIRMED) : null));
+    render(<RosterImportPanel classId="class-a" onChanged={() => {}} />);
+    await restore();
+    fireEvent.click(screen.getByTestId('roster-row-2-manual'));
+    fireEvent.change(screen.getByLabelText('第 2 行处理'), { target: { value: 'link' } });
+    const target = screen.getByLabelText('第 2 行关联学生');
+    await waitFor(() =>
+      expect(target.querySelectorAll('option').length).toBeGreaterThan(1),
+    );
+    expect(target).toHaveValue('');
+    const confirmButton = screen.getByRole('button', { name: '确认名单' });
+    expect(confirmButton).toBeDisabled();
+    fireEvent.change(target, { target: { value: 'student-old' } });
+    expect(confirmButton).toBeEnabled();
+    fireEvent.click(confirmButton);
+    await screen.findByTestId('roster-import-result');
+    expect(JSON.parse(String(confirmRequests(fetchMock).at(-1)![1]!.body)).identityMatches).toEqual([
+      { rowNo: 2, action: 'link', studentId: 'student-old' },
+    ]);
   });
 });
 
@@ -733,8 +1031,11 @@ describe('名单批次的放弃', () => {
     await waitFor(() =>
       expect(screen.getByTestId('roster-batch-import-1')).toHaveTextContent('已取消'),
     );
-    // 当前打开的批次同步冻结：不再能改行决策/确认
-    await waitFor(() => expect(screen.getByLabelText('第 1 行处理')).toBeDisabled());
+    // 当前打开的批次同步冻结：行不再可改为手动、也不能确认
+    await waitFor(() =>
+      expect(screen.queryByTestId('roster-row-1-manual')).not.toBeInTheDocument(),
+    );
+    expect(screen.getByTestId('roster-row-1-decision')).toHaveTextContent('将关联：甲（学号一致）');
     expect(screen.getByRole('button', { name: '确认名单' })).toBeDisabled();
     expect(
       fetchMock.mock.calls.filter(([input]) => String(input).includes('/roster-imports?')).length,
