@@ -48,8 +48,12 @@ async def test_bad_json_truncated_and_large_outputs_never_publish(scene,response
     assert scene.count("lesson_ai_proposals") == 0 and scene.count("lesson_plan_revisions") == 1
 
 
-async def test_timeout_and_explicit_retry_preserve_frozen_input(scene):
-    scene.handle = replace(scene.handle,config=replace(scene.handle.config,timeoutSeconds=0.05))
+async def test_timeout_and_explicit_retry_preserve_frozen_input(scene, monkeypatch):
+    from app.services.lesson_generation import service as lesson_service
+
+    # 教案生成按调用放宽等待（LESSON_TIMEOUT_SECONDS）；这里临时改常量来验证超时路径，
+    # 不改产品的放宽语义本身。
+    monkeypatch.setattr(lesson_service, "LESSON_TIMEOUT_SECONDS", 0.05)
     scene.delay = 0.2
     job = scene.job()
     failed = await scene.run(job)
@@ -60,6 +64,26 @@ async def test_timeout_and_explicit_retry_preserve_frozen_input(scene):
     assert queued.frozen_input == job.frozen_input and queued.input_hash == job.input_hash and queued.model_snapshot == job.model_snapshot
     done = await scene.run(queued)
     assert done.state == "succeeded" and done.attempt == 2 and scene.calls == 2
+
+
+async def test_generation_widens_provider_call_timeout(scene):
+    """教案生成按调用放宽非流式等待：默认 30 秒对推理档（真机约 90 秒）必然超时。"""
+    from app.providers.llm.base import DEFAULT_TIMEOUT_SECONDS
+    from app.services.lesson_generation import service as lesson_service
+
+    seen: list[float] = []
+    original = scene.handle.provider.complete
+
+    async def recording(config, request):
+        seen.append(config.timeoutSeconds)
+        return await original(config, request)
+
+    scene.handle.provider.complete = recording
+    result = await scene.run()
+    assert result.state == "succeeded"
+    assert seen == [lesson_service.LESSON_TIMEOUT_SECONDS]
+    # 覆盖必须是"放宽"而非缩小，且不影响默认值本身
+    assert lesson_service.LESSON_TIMEOUT_SECONDS > DEFAULT_TIMEOUT_SECONDS
 
 
 @pytest.mark.parametrize("status,code", [(401,"UPSTREAM_AUTH_FAILED"),(429,"RATE_LIMITED"),(503,"UPSTREAM_ERROR")])

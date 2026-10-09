@@ -25,6 +25,9 @@ score_revisions / student_item_scores 一致；设计未定义、由 B3 任务�
   - ``expectedAssessmentRevision``：施测实体的乐观锁（参测人次等在被审阅期间变化）；
   - ``baseScoreRevisionId``：本导入所基于的**正式成绩版本**（首个版本为 null；修正时必须是当前
     active）。三者任一不符都明确 409，前端保留编辑。
+- **不属于本次施测的原表行**（如整卷成绩表里别班的学生行）：教师可用行补丁 ``ignored=true``
+  做**显式**忽略决策（可撤销，``ignored=false`` 恢复自动定位）。忽略行不参与预览矩阵、不产生
+  ``SCORE_ROW_UNRESOLVED`` 阻断；服务端绝不自动忽略任何行。
 - 名单/学号：学号按文本读取（前导零保留），**姓名不是主键**；同名同班等歧义行必须由教师
   人工指定 ``participantId``，服务端不猜。
 """
@@ -152,6 +155,8 @@ class ScoreImportRowView(_Frozen):
     row_no: int = Field(alias="rowNo", ge=1)
     participant_id: str | None = Field(default=None, alias="participantId")
     participant_name: str | None = Field(default=None, alias="participantName")
+    #: 教师显式标记"不属于本次施测"并已忽略的行（可撤销；不参与矩阵与阻断）
+    ignored: bool = Field(default=False)
     #: 歧义/未匹配行的可选取人次（含 姓名/学号/班级 摘要），供教师显式消歧
     candidates: list[str] = Field(default_factory=list)
     cells: list[ScoreRawCellView] = Field(default_factory=list)
@@ -159,10 +164,17 @@ class ScoreImportRowView(_Frozen):
 
 
 class ScoreImportRowPatch(_Strict):
-    """行定位/校正：``rowNo`` + 显式 ``participantId`` 或单元格校正。"""
+    """行定位/校正/忽略：``rowNo`` + 显式 ``participantId``、``ignored`` 或单元格校正。
+
+    - ``participantId`` 非空：把该行显式定位到人次（并解除该行的忽略标记）；
+    - ``ignored=true``：显式忽略该行（不属于本次施测）；同时清除该行的手工定位，
+      撤销忽略（``ignored=false``）后按学号/姓名重新自动定位；
+    - ``ignored`` 与本次未提供的字段无关，缺省不改动既有决策。
+    """
 
     row_no: int = Field(alias="rowNo", ge=1)
     participant_id: str | None = Field(default=None, alias="participantId")
+    ignored: bool | None = Field(default=None)
     cells: list["ScoreCellPatch"] = Field(default_factory=list)
 
 
@@ -216,6 +228,8 @@ class ScoreImportView(_Frozen):
     issues: list[ErrorIssue] = Field(default_factory=list)
     row_count: int = Field(alias="rowCount", ge=0)
     resolved_row_count: int = Field(alias="resolvedRowCount", ge=0)
+    #: 教师显式忽略（"不属于本次施测"）的行数；不参与矩阵、阻断与承认
+    ignored_row_count: int = Field(default=0, alias="ignoredRowCount", ge=0)
     missing_cell_count: int = Field(alias="missingCellCount", ge=0)
     required_acknowledgements: "ScorePreviewAcknowledgements" = Field(
         alias="requiredAcknowledgements"

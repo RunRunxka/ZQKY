@@ -55,6 +55,8 @@ export interface ScoreImportRowView {
   rowNo: number;
   participantId?: string | null;
   participantName?: string | null;
+  /** 教师显式标记"不属于本次施测"并已忽略的行（可撤销；不参与矩阵与阻断） */
+  ignored?: boolean;
   /** 歧义/未匹配行的可选取人次（供教师显式消歧） */
   candidates?: string[];
   cells?: ScoreRawCellView[];
@@ -71,6 +73,8 @@ export interface ScoreCellPatch {
 export interface ScoreImportRowPatch {
   rowNo: number;
   participantId?: string | null;
+  /** 显式忽略/撤销忽略该行（"不属于本次施测"）；忽略同时清除手工定位 */
+  ignored?: boolean;
   cells?: ScoreCellPatch[];
 }
 
@@ -94,6 +98,8 @@ export interface ScoreImportView {
   issues?: ErrorIssue[];
   rowCount: number;
   resolvedRowCount: number;
+  /** 教师显式忽略（"不属于本次施测"）的行数；不参与矩阵、阻断与承认 */
+  ignoredRowCount?: number;
   missingCellCount: number;
   /** 当前 previewVersion 有效矩阵的服务端权威范围；缺失时不能确认。 */
   requiredAcknowledgements?: {

@@ -69,7 +69,7 @@ SELECT i.id, i.assessment_id, i.file_id, i.base_score_revision_id,
 """
 
 _SELECT_ROWS = """
-SELECT row_no, participant_id, raw_cells_json, issues_json
+SELECT row_no, participant_id, raw_cells_json, issues_json, ignored
   FROM score_import_rows
  WHERE import_id = ?
  ORDER BY row_no ASC
@@ -250,12 +250,17 @@ def load_cells(raw: object, *, import_id: str, row_no: int) -> tuple[RawCellReco
 
 @dataclass(frozen=True)
 class ScoreImportRowRecord:
-    """``score_import_rows`` 一行。``participant_id`` 只存教师显式指定值。"""
+    """``score_import_rows`` 一行。``participant_id`` 只存教师显式指定值。
+
+    ``ignored`` 是教师对该行"不属于本次施测"的显式决策（可撤销）；
+    忽略行不参与预览矩阵与阻断判定。
+    """
 
     row_no: int
     participant_id: str | None
     cells: tuple[RawCellRecord, ...]
     issues: tuple[ErrorIssue, ...]
+    ignored: bool = False
 
     def cell_map(self) -> dict[str, RawCellRecord]:
         return {cell.column: cell for cell in self.cells}
@@ -389,12 +394,16 @@ class AssessmentContext:
 
 @dataclass(frozen=True)
 class RowPayload:
-    """写入一行的值（服务层解析结果；``issues`` 是审计证据）。"""
+    """写入一行的值（服务层解析结果；``issues`` 是审计证据）。
+
+    ``ignored`` 只承载教师显式忽略决策；``participant_id`` 只承载教师显式指定值。
+    """
 
     row_no: int
     participant_id: str | None
     cells: tuple[RawCellRecord, ...]
     issues: tuple[ErrorIssue, ...] = field(default_factory=tuple)
+    ignored: bool = False
 
 
 def _normalize_issue(issue: object) -> ErrorIssue:
@@ -482,14 +491,15 @@ class ScoreRepository:
                 raise _invalid("row_no 必须是不小于 1 的整数。", fields=["rowNo"])
             conn.execute(
                 "INSERT INTO score_import_rows "
-                "(import_id, row_no, participant_id, raw_cells_json, issues_json) "
-                "VALUES (?, ?, ?, ?, ?)",
+                "(import_id, row_no, participant_id, raw_cells_json, issues_json, ignored) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
                 (
                     import_id,
                     row.row_no,
                     row.participant_id,
                     dump_cells(row.cells),
                     _dump_json([issue.model_dump(exclude_none=True) for issue in row.issues]),
+                    1 if row.ignored else 0,
                 ),
             )
 
@@ -598,7 +608,7 @@ class ScoreRepository:
                 raise _invalid("row_updates 元素必须是 RowPayload。")
             cursor = conn.execute(
                 "UPDATE score_import_rows "
-                "SET participant_id = ?, raw_cells_json = ?, issues_json = ? "
+                "SET participant_id = ?, raw_cells_json = ?, issues_json = ?, ignored = ? "
                 "WHERE import_id = ? AND row_no = ?",
                 (
                     row.participant_id,
@@ -606,6 +616,7 @@ class ScoreRepository:
                     _dump_json(
                         [issue.model_dump(exclude_none=True) for issue in row.issues]
                     ),
+                    1 if row.ignored else 0,
                     import_id,
                     row.row_no,
                 ),
@@ -1125,6 +1136,9 @@ class ScoreRepository:
                 not isinstance(participant_id, str) or not participant_id
             ):
                 raise _corrupt("教学库数据损坏：score_import_rows.participant_id 结构不符。")
+            ignored = row["ignored"]
+            if ignored not in (0, 1):
+                raise _corrupt("教学库数据损坏：score_import_rows.ignored 不是 0/1。")
             records.append(
                 ScoreImportRowRecord(
                     row_no=row_no,
@@ -1135,6 +1149,7 @@ class ScoreRepository:
                     issues=load_issues(
                         row["issues_json"], import_id=import_id, row_no=row_no
                     ),
+                    ignored=bool(ignored),
                 )
             )
         return tuple(records)

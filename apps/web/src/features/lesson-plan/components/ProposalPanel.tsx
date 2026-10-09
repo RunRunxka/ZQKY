@@ -155,6 +155,11 @@ export function ProposalPanel({ inputs }: { inputs: GenerationInputs }) {
     {apply.canRetryRecovery && <button className="button primary" disabled={busy || server.busy || server.exclusive} onClick={() => void apply.retryRecoveryWrite()}>重试采用操作恢复缓存</button>}
     {reject.canRetryRecovery && <button className="button subtle" disabled={busy || server.busy || server.exclusive} onClick={() => void reject.retryRecoveryWrite()}>重试拒绝操作恢复缓存</button>}
     {job.view && <p role="status">任务：{jobLabels[job.view.state]} · 尝试 {job.view.attempt} · {job.view.jobId}</p>}
+    {job.view?.error && (
+      <p role="alert" data-testid="lesson-job-error">
+        失败原因（{job.view.error.code}）：{job.view.error.message}
+      </p>
+    )}
     {(job.view?.state === 'failed' || job.view?.state === 'interrupted' || job.view?.state === 'cancelled') && <button className="button subtle" disabled={!!job.pending} onClick={job.retry}>显式重试生成任务</button>}
     {(job.view?.state === 'queued' || job.view?.state === 'running') && <button className="button subtle" disabled={!!job.pending} onClick={job.cancel}>取消生成任务</button>}
     {(error || generate.cacheError || apply.cacheError || reject.cacheError || generate.error || apply.error || reject.error || job.actionError || job.observationNotice) && <p role="alert">{error || generate.cacheError || apply.cacheError || reject.cacheError || generate.error?.message || apply.error?.message || reject.error?.message || job.actionError?.message || job.observationNotice}</p>}

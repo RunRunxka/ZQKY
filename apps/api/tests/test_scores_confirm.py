@@ -23,6 +23,7 @@ from app.contracts.scores import (
     SCORE_IMPORT_REVISION_CONFLICT,
     SCORE_MATRIX_INCOMPLETE,
     SCORE_ROW_DUPLICATE_PARTICIPANT,
+    SCORE_ROW_UNRESOLVED,
 )
 from app.contracts.teaching_loop import SUBMISSION_CONFLICT
 from app.core.exceptions import AppError
@@ -545,6 +546,57 @@ def test_ambiguous_row_blocks_confirm_until_patched(
         _confirm_body(updated, scene, missing=missing_ack([other], 3)),
     )
     assert ok.status_code == 200, ok.text
+
+
+def test_ignored_out_of_assessment_rows_unblock_and_confirm(
+    harness: ScoresHarness, tmp_path: Path
+) -> None:
+    """整卷成绩表导入单班施测：别班的学生行由教师显式忽略后即可确认（不静默跳过）。"""
+    scene = harness.create_scene(tag="ignore", students=[("甲", "0001"), ("乙", "0002")])
+    path = write_score_xlsx(
+        tmp_path / "ignore.xlsx",
+        SAMPLE_HEADER,
+        [
+            ["0001", "甲", 2, 2, 5],
+            ["0002", "乙", 2, 3, 5],
+            ["9999", "丙", 2, 2, 5],
+        ],
+    )
+    view = harness.upload_scores(scene.assessment["assessmentId"], path).json()
+    assert view["resolvedRowCount"] == 2 and view["ignoredRowCount"] == 0
+    assert [issue["code"] for issue in view["issues"]] == [SCORE_ROW_UNRESOLVED]
+    blocked = harness.confirm_import(view["importId"], _confirm_body(view, scene))
+    assert blocked.status_code == 422, blocked.text
+    assert blocked.json()["code"] == SCORE_ROW_UNRESOLVED
+    assert harness.count("score_revisions") == 0
+
+    rows = harness.list_import_rows(view["importId"]).json()["items"]
+    extra = next(row for row in rows if row["participantId"] is None)
+    patched = harness.patch_import(
+        view["importId"],
+        {
+            "expectedRevision": view["revision"],
+            "rows": [{"rowNo": extra["rowNo"], "ignored": True}],
+        },
+    )
+    assert patched.status_code == 200, patched.text
+    updated = patched.json()
+    assert updated["issues"] == [] and updated["ignoredRowCount"] == 1
+
+    confirmed = harness.confirm_import(view["importId"], _confirm_body(updated, scene))
+    assert confirmed.status_code == 200, confirmed.text
+    revision_id = confirmed.json()["revisionId"]
+    matrix = harness.score_matrix(revision_id, limit=50).json()
+    assert {row["participant"]["participantId"] for row in matrix["rows"]} == {
+        scene.participant_id("0001"),
+        scene.participant_id("0002"),
+    }
+    # 确认后批次与行审计冻结忽略决策（只读视图同口径）
+    frozen = harness.get_import(view["importId"]).json()
+    assert frozen["state"] == "confirmed" and frozen["ignoredRowCount"] == 1
+    rows = harness.list_import_rows(view["importId"]).json()["items"]
+    assert sum(1 for row in rows if row["ignored"]) == 1
+    assert all(row["issues"] == [] for row in rows if row["ignored"])
 
 
 def test_attendance_conflict_blocks_confirm(harness: ScoresHarness, tmp_path: Path) -> None:

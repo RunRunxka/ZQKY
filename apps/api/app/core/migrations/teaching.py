@@ -848,3 +848,24 @@ MIGRATIONS = MIGRATIONS + (
     ),
 )
 
+
+# --------------------------------------------------------------------------- 0012 成绩导入行忽略
+
+#: 教师对"不属于本次施测"的原表行做显式忽略决策（可撤销）：
+#: 忽略行不再参与预览矩阵与阻断判定；历史批次默认 0，逐字保持原行为。
+_IMPORT_ROWS_IGNORED_STATEMENTS: tuple[str, ...] = (
+    "ALTER TABLE score_import_rows ADD COLUMN ignored INTEGER NOT NULL DEFAULT 0 "
+    "CHECK(ignored IN (0,1))",
+)
+
+MIGRATIONS = MIGRATIONS + (
+    Migration(
+        id="0012_score_import_rows_ignored",
+        description=(
+            "score_import_rows 增加 ignored 列：教师显式标记“不属于本次施测”的行"
+            "（可撤销；忽略行不参与矩阵与阻断）"
+        ),
+        statements=_IMPORT_ROWS_IGNORED_STATEMENTS,
+    ),
+)
+

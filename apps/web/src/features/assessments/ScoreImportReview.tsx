@@ -244,6 +244,7 @@ export function ScoreImportReview({
         <span className="assessments-meta">
           {view.fileAsset.originalName} · 行 {view.rowCount} · 已定位 {view.resolvedRowCount} · 空白单元{' '}
           {view.missingCellCount}
+          {(view.ignoredRowCount ?? 0) > 0 ? ` · 已忽略 ${view.ignoredRowCount} 行（不属于本次施测）` : ''}
         </span>
       </div>
 
@@ -312,6 +313,22 @@ export function ScoreImportReview({
         </div>
       )}
 
+      {confirmError && confirmError.code !== 'SCORE_ACKNOWLEDGEMENT_MISMATCH' && (
+        <div className="space-banner error" role="alert" data-testid="score-confirm-issues">
+          <p>确认被拒绝（{confirmError.code}）：{confirmError.message}</p>
+          {(confirmError.details?.issues ?? []).length > 0 && (
+            <ul className="assessments-issue-list">
+              {(confirmError.details?.issues ?? []).map((issue, index) => (
+                <li key={`${issue.code}-${index}`}>
+                  {issueLocationLabel(issue)}
+                  {issue.code}：{issue.message}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
       {submission.unknownNotice && (
         <p className="space-banner error" role="alert" data-testid="score-confirm-unknown">
           {submission.unknownNotice}
@@ -342,7 +359,10 @@ export function ScoreImportReview({
         )}
 
         <ul className="score-row-list">
-          {rowItems.map((row) => (
+          {rowItems.map((row) => {
+            const ignoredDraft = drafts.edits.ignored[row.rowNo];
+            const rowIgnored = ignoredDraft !== undefined ? ignoredDraft : Boolean(row.ignored);
+            return (
             <li
               key={row.rowNo}
               className="score-row"
@@ -355,10 +375,20 @@ export function ScoreImportReview({
                   <span className="space-chip blue">
                     人次 {row.participantName ?? row.participantId}
                   </span>
+                ) : rowIgnored ? (
+                  <span className="space-chip">已忽略（不属于本次施测）</span>
                 ) : (
                   <span className="space-chip amber">未匹配人次（需人工指定）</span>
                 )}
-                {(row.candidates?.length ?? 0) > 0 && (
+                <button
+                  className="space-button subtle"
+                  data-testid={`score-row-ignore-${row.rowNo}`}
+                  disabled={drafts.saving || editingLocked}
+                  onClick={() => editDraft(() => drafts.setIgnored(row.rowNo, !rowIgnored))}
+                >
+                  {rowIgnored ? '撤销忽略' : '不属于本次施测（忽略此行）'}
+                </button>
+                {!rowIgnored && (row.candidates?.length ?? 0) > 0 && (
                   <label className="assessments-field assessments-field-inline">
                     <span>人工指定人次</span>
                     <select
@@ -384,7 +414,7 @@ export function ScoreImportReview({
                 )}
               </div>
 
-              {(row.issues ?? []).length > 0 && (
+              {!rowIgnored && (row.issues ?? []).length > 0 && (
                 <ul className="assessments-issue-list">
                   {(row.issues ?? []).map((issue, index) => (
                     <li key={`${row.rowNo}-${issue.code}-${index}`}>
@@ -443,14 +473,14 @@ export function ScoreImportReview({
                         aria-label={`第 ${cell.row} 行 列 ${cell.column} 校正`}
                         placeholder={cell.text || '（空白）'}
                         value={draftValue ?? ''}
-                        disabled={drafts.saving || editingLocked}
+                        disabled={drafts.saving || editingLocked || rowIgnored}
                         onChange={(event) => editDraft(() => drafts.setCell(cell.row, cell.column, event.target.value))}
                       />
                       {draftValue !== undefined && (
                         <button
                           className="space-button"
                           aria-label={`撤销第 ${cell.row} 行 列 ${cell.column} 的校正`}
-                          disabled={drafts.saving || editingLocked}
+                          disabled={drafts.saving || editingLocked || rowIgnored}
                           onClick={() => editDraft(() => drafts.clearCell(cell.row, cell.column))}
                         >
                           撤销校正
@@ -461,7 +491,8 @@ export function ScoreImportReview({
                 })}
               </ul>
             </li>
-          ))}
+            );
+          })}
         </ul>
 
         {rowItems.length === 0 && rows.state.phase === 'ready' && (

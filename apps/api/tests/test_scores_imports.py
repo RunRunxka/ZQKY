@@ -444,6 +444,71 @@ def test_patch_unknown_participant_and_out_of_range_column(
     assert bad_column.json()["code"] == SCORE_MAPPING_INVALID
 
 
+def test_ignore_row_is_revocable_and_clears_manual_participant(
+    harness: ScoresHarness, tmp_path: Path
+) -> None:
+    """教师可显式忽略"不属于本次施测"的行；忽略消除阻断、可撤销，并清除手工定位。"""
+    scene = harness.create_scene(tag="ignore", students=[("甲", "0001"), ("乙", "0002")])
+    path = write_score_xlsx(
+        tmp_path / "ignore.xlsx",
+        SAMPLE_HEADER,
+        [["0001", "甲", 2, 2, 5], ["9999", "丙", 2, 2, 5]],
+    )
+    view = harness.upload_scores(scene.assessment["assessmentId"], path).json()
+    assert view["resolvedRowCount"] == 1 and view["ignoredRowCount"] == 0
+    assert [issue["code"] for issue in view["issues"]] == [SCORE_ROW_UNRESOLVED]
+    rows = harness.list_import_rows(view["importId"]).json()["items"]
+    extra = next(row for row in rows if row["participantId"] is None)
+    assert extra["ignored"] is False and extra["issues"]
+
+    # 先手工指定，再忽略：忽略必须清除手工定位（不留隐藏状态）
+    assigned = harness.patch_import(
+        view["importId"],
+        {
+            "expectedRevision": view["revision"],
+            "rows": [{"rowNo": extra["rowNo"], "participantId": scene.participant_id("0002")}],
+        },
+    )
+    assert assigned.status_code == 200, assigned.text
+    assert assigned.json()["issues"] == []
+    after_assign = {
+        row["rowNo"]: row
+        for row in harness.list_import_rows(view["importId"]).json()["items"]
+    }
+    assert after_assign[extra["rowNo"]]["participantId"] == scene.participant_id("0002")
+
+    ignored = harness.patch_import(
+        view["importId"],
+        {
+            "expectedRevision": assigned.json()["revision"],
+            "rows": [{"rowNo": extra["rowNo"], "ignored": True}],
+        },
+    )
+    assert ignored.status_code == 200, ignored.text
+    ignored_view = ignored.json()
+    assert ignored_view["ignoredRowCount"] == 1 and ignored_view["issues"] == []
+    after_ignore = {
+        row["rowNo"]: row
+        for row in harness.list_import_rows(view["importId"]).json()["items"]
+    }
+    assert after_ignore[extra["rowNo"]]["ignored"] is True
+    assert after_ignore[extra["rowNo"]]["participantId"] is None
+    assert after_ignore[extra["rowNo"]]["issues"] == []
+
+    # 撤销忽略 → 回到自动定位：该行仍不属于本次施测，阻断恢复（教师可继续人工指定）
+    revoked = harness.patch_import(
+        view["importId"],
+        {
+            "expectedRevision": ignored_view["revision"],
+            "rows": [{"rowNo": extra["rowNo"], "ignored": False}],
+        },
+    )
+    assert revoked.status_code == 200, revoked.text
+    revoked_view = revoked.json()
+    assert revoked_view["ignoredRowCount"] == 0
+    assert [issue["code"] for issue in revoked_view["issues"]] == [SCORE_ROW_UNRESOLVED]
+
+
 def test_multi_sheet_selection_and_switch(harness: ScoresHarness, tmp_path: Path) -> None:
     """多工作表：默认第一个并给警告；PATCH 指定另一个工作表时按原件重建行。"""
     scene = _sample_scene(harness)

@@ -837,11 +837,15 @@ class CellInput:
 
 @dataclass(frozen=True)
 class RowInput:
-    """一行用于定位与解析的输入（``explicit_participant_id`` 只来自教师 PATCH）。"""
+    """一行用于定位与解析的输入（``explicit_participant_id`` 只来自教师 PATCH）。
+
+    ``ignored`` 只来自教师显式忽略决策：为真时该行不参与定位、解析与矩阵。
+    """
 
     row_no: int
     explicit_participant_id: str | None
     cells: Mapping[str, CellInput]
+    ignored: bool = False
 
     def text_at(self, column: str | None) -> str:
         if not column:
@@ -854,12 +858,13 @@ class RowInput:
 
 @dataclass(frozen=True)
 class RowMatch:
-    """一行的定位结果；``issues`` 非空表示需要人工指定。"""
+    """一行的定位结果；``issues`` 非空表示需要人工指定。``ignored`` 为教师显式忽略。"""
 
     row_no: int
     participant_id: str | None
     candidates: tuple[str, ...]
     issues: tuple[ErrorIssue, ...]
+    ignored: bool = False
 
 
 def _candidates(participants: Sequence[ParticipantRef]) -> tuple[str, ...]:
@@ -875,10 +880,24 @@ def match_rows(
     mapping: ScoreColumnMapping,
     participants: Sequence[ParticipantRef],
 ) -> tuple[RowMatch, ...]:
-    """逐行定位人次：显式 id → 学号文本 → 姓名；歧义不猜，给出候选要求人工指定。"""
+    """逐行定位人次：显式 id → 学号文本 → 姓名；歧义不猜，给出候选要求人工指定。
+
+    教师显式忽略的行（``ignored``）直接落"已忽略"结果：不定位、不给问题、不进矩阵。
+    """
     by_id = {item.participant_id: item for item in participants}
     matches: list[RowMatch] = []
     for row in rows:
+        if row.ignored:
+            matches.append(
+                RowMatch(
+                    row_no=row.row_no,
+                    participant_id=None,
+                    candidates=(),
+                    issues=(),
+                    ignored=True,
+                )
+            )
+            continue
         explicit = row.explicit_participant_id
         if explicit is not None:
             target = by_id.get(explicit)
@@ -1036,6 +1055,8 @@ class PreviewMatrix:
     #: 语义冲突（缺考与数值同时出现/标记矛盾）：落预览并阻断确认，要求教师修正
     conflicts: tuple[ErrorIssue, ...]
     warnings: tuple[str, ...]
+    #: 教师显式忽略（"不属于本次施测"）的原表行号；不参与矩阵与阻断，确认时冻结审计
+    ignored_row_nos: tuple[int, ...] = ()
 
     @property
     def cell_errors(self) -> tuple[ErrorIssue, ...]:
@@ -1297,6 +1318,9 @@ def build_preview(
         for ids in absent_by_class.values()
         for participant_id in ids
     )
+    ignored_row_nos = tuple(
+        sorted(match.row_no for match in matches if match.ignored)
+    )
     return PreviewMatrix(
         participant_count=len(participants),
         cells=cells,
@@ -1311,6 +1335,7 @@ def build_preview(
         parse_errors=tuple(parse_errors),
         conflicts=tuple(conflicts),
         warnings=tuple(warnings),
+        ignored_row_nos=ignored_row_nos,
     )
 
 

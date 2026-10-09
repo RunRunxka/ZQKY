@@ -395,11 +395,13 @@ export function useFrozenSubmission<T, R>(): SubmissionController<T, R> {
 export interface ScoreDraftEdits {
   /** 行号 → 人工指定的人次（消歧/未匹配行定位）。 */
   participants: Record<number, string>;
+  /** 行号 → 显式忽略决策（true=不属于本次施测，false=撤销忽略）。 */
+  ignored: Record<number, boolean>;
   /** `行:列` → 校正后的分数文本（原表物理坐标）。 */
   cells: Record<string, string>;
 }
 
-export const EMPTY_SCORE_DRAFTS: ScoreDraftEdits = { participants: {}, cells: {} };
+export const EMPTY_SCORE_DRAFTS: ScoreDraftEdits = { participants: {}, ignored: {}, cells: {} };
 
 export function draftCellKey(row: number, column: string): string {
   return `${row}:${column}`;
@@ -416,6 +418,8 @@ export interface ScoreDraftsController {
   error: ApiError | null;
   notice: string | null;
   setParticipant: (rowNo: number, participantId: string) => void;
+  /** 显式忽略/撤销忽略该行（"不属于本次施测"）。 */
+  setIgnored: (rowNo: number, ignored: boolean) => void;
   setCell: (row: number, column: string, text: string) => void;
   clearCell: (row: number, column: string) => void;
   /** 保存（`expectedRevision` 乐观锁，T60 CAS）；返回服务端重算后的批次视图。 */
@@ -467,7 +471,11 @@ export function useScoreDrafts(view: ScoreImportView | null): ScoreDraftsControl
   }, [viewKey]);
 
   const dirty = useMemo(
-    () => Object.keys(edits.participants).length + Object.keys(edits.cells).length > 0,
+    () =>
+      Object.keys(edits.participants).length +
+      Object.keys(edits.ignored).length +
+      Object.keys(edits.cells).length >
+      0,
     [edits],
   );
 
@@ -477,6 +485,16 @@ export function useScoreDrafts(view: ScoreImportView | null): ScoreDraftsControl
       if (participantId) participants[rowNo] = participantId;
       else delete participants[rowNo];
       return { ...prev, participants };
+    });
+  }, []);
+
+  const setIgnored = useCallback((rowNo: number, ignored: boolean) => {
+    setEdits((prev) => {
+      const decisions = { ...prev.ignored, [rowNo]: ignored };
+      // 忽略与手工定位互斥：服务端在忽略时会清掉手工定位，稿子里同步清掉避免歧义。
+      const participants = { ...prev.participants };
+      if (ignored) delete participants[rowNo];
+      return { ...prev, ignored: decisions, participants };
     });
   }, []);
 
@@ -506,14 +524,27 @@ export function useScoreDrafts(view: ScoreImportView | null): ScoreDraftsControl
     const current = viewRef.current;
     if (!current) return null;
     const draft = editsRef.current;
-    const rows: ScoreImportPatchRequest['rows'] = [];
+    // 每行合并成一个补丁：服务端拒绝同一行号出现多次（定位/忽略/校正同存时也必须一次表达）。
+    const byRow = new Map<number, NonNullable<ScoreImportPatchRequest['rows']>[number]>();
+    const rowOf = (rowNo: number) => {
+      const existing = byRow.get(rowNo);
+      if (existing) return existing;
+      const created: NonNullable<ScoreImportPatchRequest['rows']>[number] = { rowNo };
+      byRow.set(rowNo, created);
+      return created;
+    };
     for (const [rowNoText, participantId] of Object.entries(draft.participants)) {
-      rows.push({ rowNo: Number(rowNoText), participantId });
+      rowOf(Number(rowNoText)).participantId = participantId;
+    }
+    for (const [rowNoText, ignored] of Object.entries(draft.ignored)) {
+      rowOf(Number(rowNoText)).ignored = ignored;
     }
     for (const [key, text] of Object.entries(draft.cells)) {
       const [rowText, column] = key.split(':');
-      rows.push({ rowNo: Number(rowText), cells: [{ row: Number(rowText), column, text }] });
+      const row = rowOf(Number(rowText));
+      row.cells = [...(row.cells ?? []), { row: Number(rowText), column, text }];
     }
+    const rows = [...byRow.values()];
     const token = epoch.current;
     setSaving(true);
     setConflict(null);
@@ -558,6 +589,7 @@ export function useScoreDrafts(view: ScoreImportView | null): ScoreDraftsControl
     error,
     notice,
     setParticipant,
+    setIgnored,
     setCell,
     clearCell,
     save,

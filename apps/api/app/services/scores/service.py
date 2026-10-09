@@ -462,6 +462,7 @@ class ScoreService:
                     row_no=row.row_no,
                     explicit_participant_id=row.participant_id,
                     cells=cells,
+                    ignored=bool(getattr(row, "ignored", False)),
                 )
             )
         return tuple(rows)
@@ -697,6 +698,8 @@ class ScoreService:
                 "resolvedRowCount": sum(
                     1 for pid in preview.row_participant.values() if pid is not None
                 ),
+                "ignoredRowCount": len(preview.ignored_row_nos),
+                "ignoredRowNos": list(preview.ignored_row_nos),
                 "missingCellCount": preview.missing_cell_count,
                 "missingParticipantIds": list(preview.missing_participant_ids),
                 "absentByClass": {
@@ -896,6 +899,7 @@ class ScoreService:
                     if preview is not None and row.row_no in preview.row_matches
                     else row.issues
                 ),
+                ignored=row.ignored,
             )
             for row in patched_rows
         ]
@@ -955,6 +959,7 @@ class ScoreService:
             row_no=row.row_no, participant_id=row.participant_id, cells=row.cells,
             issues=(preview.row_matches[row.row_no].issues
                     if preview is not None and row.row_no in preview.row_matches else row.issues),
+            ignored=row.ignored,
         ) for row in record.rows]
         with self._catalog.write_transaction() as conn:
             current = self._scores.require_in(conn, import_id)
@@ -1029,6 +1034,7 @@ class ScoreService:
                 patched.append(row)
                 continue
             explicit = row.participant_id
+            ignored = row.ignored
             provided = set(patch.model_fields_set)
             if "participantId" in provided or "participant_id" in provided:
                 explicit = _optional_text(patch.participant_id, field="participantId")
@@ -1046,6 +1052,17 @@ class ScoreService:
                             )
                         ],
                     )
+                if explicit is not None:
+                    # 显式定位人次即解除该行的忽略标记（教师重新把它当作有效行处理）。
+                    ignored = False
+            if "ignored" in provided:
+                decision = patch.ignored
+                if decision is True:
+                    # 忽略 = "不属于本次施测"：同时清除手工定位，撤销忽略后按学号/姓名重新定位。
+                    ignored = True
+                    explicit = None
+                elif decision is False:
+                    ignored = False
             cells = list(row.cells)
             for cell_patch in patch.cells:
                 if cell_patch.row != patch.row_no:
@@ -1126,6 +1143,7 @@ class ScoreService:
                     participant_id=explicit,
                     cells=tuple(cells),
                     issues=row.issues,
+                    ignored=ignored,
                 )
             )
         return patched
@@ -1138,6 +1156,7 @@ class ScoreService:
             participant_id=row.participant_id,
             cells=tuple(row.cells),
             issues=tuple(row.issues),
+            ignored=bool(getattr(row, "ignored", False)),
         )
 
     def _rebuild_rows(
@@ -1433,6 +1452,11 @@ class ScoreService:
                     if row.row_no in preview.row_matches
                     else row.issues
                 ),
+                ignored=bool(
+                    preview.row_matches[row.row_no].ignored
+                    if row.row_no in preview.row_matches
+                    else getattr(row, "ignored", False)
+                ),
             )
             for row in record.rows
         ]
@@ -1449,6 +1473,8 @@ class ScoreService:
                 "resolvedRowCount": sum(
                     1 for pid in preview.row_participant.values() if pid is not None
                 ),
+                "ignoredRowCount": len(preview.ignored_row_nos),
+                "ignoredRowNos": list(preview.ignored_row_nos),
                 "missingCellCount": preview.missing_cell_count,
                 "missingParticipantIds": list(preview.missing_participant_ids),
                 "absentByClass": {
@@ -1962,6 +1988,7 @@ class ScoreService:
             numbers = record.summary.get("preview")
             numbers = numbers if isinstance(numbers, dict) else {}
             resolved = int(numbers.get("resolvedRowCount") or 0)
+            ignored = int(numbers.get("ignoredRowCount") or 0)
             missing_cells = int(numbers.get("missingCellCount") or 0)
             blocking: list[ErrorIssue] = ([] if frozen else [
                 ErrorIssue.model_validate(issue) for issue in record.summary.get("issues", [])
@@ -1972,6 +1999,7 @@ class ScoreService:
                 if preview is not None
                 else 0
             )
+            ignored = len(preview.ignored_row_nos) if preview is not None else 0
             missing_cells = preview.missing_cell_count if preview is not None else 0
             blocking = list(preview.blocking_issues) if preview is not None else []
         if stale:
@@ -2012,6 +2040,7 @@ class ScoreService:
             issues=blocking,
             rowCount=record.row_count,
             resolvedRowCount=resolved,
+            ignoredRowCount=ignored,
             missingCellCount=missing_cells,
             requiredAcknowledgements=required,
             createdAt=record.created_at,
@@ -2047,6 +2076,7 @@ class ScoreService:
         names: Mapping[str, str],
     ) -> ScoreImportRowView:
         cells: list[ScoreRawCellView] = []
+        ignored = bool(getattr(row, "ignored", False))
         match = preview.row_matches.get(row.row_no) if preview is not None else None
         participant_id = (preview.row_participant.get(row.row_no)
                           if preview is not None else row.participant_id)
@@ -2070,14 +2100,15 @@ class ScoreService:
             # 尚无身份映射时仍暴露原表证据，教师才能完成手动映射；不伪造得分状态。
             cells = [cell.view() for cell in row.cells]
         issues: list[ErrorIssue] = (
-            list(match.issues) if match is not None else list(row.issues)
+            [] if ignored else (list(match.issues) if match is not None else list(row.issues))
         )
-        if preview is not None:
+        if preview is not None and not ignored:
             issues.extend(issue for issue in preview.cell_errors if issue.row == row.row_no)
         return ScoreImportRowView(
             rowNo=row.row_no,
             participantId=participant_id,
             participantName=names.get(participant_id) if participant_id else None,
+            ignored=ignored,
             candidates=list(match.candidates) if match is not None else [],
             cells=cells,
             issues=issues,

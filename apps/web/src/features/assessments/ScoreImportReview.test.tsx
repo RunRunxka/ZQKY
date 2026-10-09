@@ -272,3 +272,50 @@ describe('服务端有效矩阵的成绩承认范围', () => {
     expect(screen.getByTestId('score-ack-absences')).toHaveTextContent('七一班：1 名缺考人次');
   });
 });
+
+describe('不属于本次施测的行与确认失败原因', () => {
+  const extraRow: ScoreImportRowView = {
+    rowNo: 14, participantId: null, ignored: false, candidates: [],
+    cells: [{ row: 14, column: 'C', text: '10', isFormula: false }],
+    issues: [{ row: 14, field: 'participantId', code: 'SCORE_ROW_UNRESOLVED',
+      message: '该行的学号/姓名在本次施测的参测人次中找不到；请人工指定 participantId。' }],
+  };
+
+  it('未匹配行可显式忽略，保存时按行发送 ignored 补丁且随后显示已忽略', async () => {
+    const patches: Record<string, unknown>[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      if (init?.method === 'PATCH') {
+        patches.push(JSON.parse(String(init.body)));
+        return response(200, view({ revision: 2, previewVersion: 2, ignoredRowCount: 1 }));
+      }
+      return response(200, { items: [...sourceRows, extraRow], total: sourceRows.length + 1, offset: 0, limit: 50 });
+    }));
+    render(ui());
+    const ignore = await screen.findByTestId('score-row-ignore-14');
+    expect(ignore).toHaveTextContent('不属于本次施测（忽略此行）');
+    fireEvent.click(ignore);
+    expect(ignore).toHaveTextContent('撤销忽略');
+    expect(screen.getByText('已忽略（不属于本次施测）')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('score-save-drafts'));
+    await waitFor(() => expect(patches).toHaveLength(1));
+    expect(patches[0]).toMatchObject({ expectedRevision: 1, rows: [{ rowNo: 14, ignored: true }] });
+  });
+
+  it('确认被 422 拒绝时逐行显示原因（不再静默）', async () => {
+    stubFetch(async () => response(422, {
+      code: 'SCORE_ROW_UNRESOLVED',
+      message: '成绩校对仍有阻断问题（未消歧行/缺考与数值冲突等）；本次确认未写入。',
+      requestId: 'req-1', retryable: false,
+      details: { issues: [{ row: 14, column: null, field: 'participantId', code: 'SCORE_ROW_UNRESOLVED',
+        message: '该行的学号/姓名在本次施测的参测人次中找不到；请人工指定 participantId。' }] },
+    }));
+    render(ui(view({ requiredAcknowledgements: { absences: [], missing: null } })));
+    await screen.findByLabelText('第 2 行 列 C 校正');
+    fireEvent.click(screen.getByTestId('score-goto-acknowledge'));
+    openConfirmation();
+    const banner = await screen.findByTestId('score-confirm-issues');
+    expect(banner).toHaveTextContent('确认被拒绝（SCORE_ROW_UNRESOLVED）');
+    expect(banner).toHaveTextContent('原表第 14 行');
+    expect(banner).toHaveTextContent('请人工指定 participantId');
+  });
+});

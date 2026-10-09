@@ -180,6 +180,17 @@ describe('F30-L v2 generation first identity regression', () => {
     await screen.findByText(/保存等待期间正文、来源或模型发生变化/); expect(generateLessonProposal).not.toHaveBeenCalled(); expect(screen.getByLabelText('测试正文')).toHaveValue(change === 'edit' ? '保存之后的新稿' : '先保存的稿');
     await waitFor(() => expect(screen.getByRole('button', { name: '保存当前稿并生成 AI 候选' })).toBeEnabled()); fireEvent.click(screen.getByRole('button', { name: '保存当前稿并生成 AI 候选' })); await waitFor(() => expect(generateLessonProposal).toHaveBeenCalledTimes(1)); const body = generateLessonProposal.mock.calls[0][1]; expect(body.modelProfileId).toBe(change === 'model' ? 'model-b' : 'model-a'); expect(body.scopeSnapshot.scopeHash).toBe(change === 'source' ? 'scope-other' : 'scope-fixed'); expect(body.baseServerRevision).toBe(change === 'edit' ? 3 : 2); expect(body.baseRevisionId).toBe(`lesson-a-fixed-${change === 'edit' ? 3 : 2}`);
   });
+  it('failed generation shows the upstream error code and message', async () => {
+    const receipt = generationReceipt('job-fail', 'queued');
+    receipt.job = { ...receipt.job, state: 'failed', error: { code: 'UPSTREAM_TIMEOUT', message: '等待模型响应超时（300 秒）。' } };
+    const generateLessonProposal = vi.fn<typeof lessonPlanApi.generateLessonProposal>(async () => receipt);
+    proposalHost(services({ generateLessonProposal, getLessonProposal: vi.fn(async () => candidate()) }));
+    fireEvent.click(await generateReady());
+    const alert = await screen.findByTestId('lesson-job-error');
+    expect(alert).toHaveTextContent('UPSTREAM_TIMEOUT');
+    expect(alert).toHaveTextContent('等待模型响应超时（300 秒）。');
+    expect(screen.getByRole('button', { name: '显式重试生成任务' })).toBeInTheDocument();
+  });
   it.each(['model', 'model-back', 'source-back'])('unknown response replay retains the first body and becomes stale after %s', async (change) => {
     const observedRecords: unknown[] = [];
     const generateLessonProposal = vi.fn<typeof lessonPlanApi.generateLessonProposal>().mockImplementationOnce(async () => { observedRecords.push(JSON.parse(localStorage.getItem(generationKey)!)); throw new ApiError('NETWORK_ERROR', '首个202响应丢失', 0, true); }).mockImplementation(async () => { observedRecords.push(JSON.parse(localStorage.getItem(generationKey)!)); return generationReceipt(); });

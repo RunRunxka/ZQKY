@@ -1,5 +1,15 @@
 # 当前状态与实施主线
 
+<!-- LOOP-FIX:20261009 -->
+2026-10-09（同日晚）：**教学闭环问题修复批（用户"把这三项都做了吧"）**。三项全部落地并真机验证，记录见 [qa/TEACHING-LOOP-FIX-20261009/README.md](qa/TEACHING-LOOP-FIX-20261009/README.md)。
+
+1. **教案生成链 P1**：①非流式等待按调用放宽——`lesson_generation/service.py` 新增 `LESSON_TIMEOUT_SECONDS=300` 并 `replace(config, timeoutSeconds=…)` 统一用于 `complete()` 与 `wait_for`（真机复现：同冻结载荷修复前第 30 秒 `UPSTREAM_TIMEOUT`，修复后 **31 秒 succeeded** 出候选 `a141efde…`）；浏览器 UI 走通"生成（任务 08b7461c…，40–85 秒）→ 逐字段差异 → 采用教学过程 → 候选终结落库（教案 r3→r4 `ca33af38…`）"，为 10-04 起首次完整成功路径。②失败原因上屏：ProposalPanel 增 `data-testid=lesson-job-error`（真机 v4-pro 失败显示 `LESSON_PROPOSAL_INVALID` 全文）。
+2. **成绩导入跨班行 P1**：追加迁移 `0012_score_import_rows_ignored`（`score_import_rows.ignored`）；契约/解析/服务/前端全链支持**显式忽略"不属于本次施测"行**（可撤销、确认时冻结审计、服务端绝不自动忽略）；确认 422 逐行原因横幅（`score-confirm-issues`）；顺带修复前端保存载荷同行多补丁（服务端拒绝重复 rowNo）。真机：24 行整卷表导入一班 → 忽略 12 行 → 零阻断 → 确认入库 **200**（批次 `aab3f04c…`、修订 v2 `55ca9d4b…`、矩阵 72 格/12 人次、12 行 `ignored=1`）；此前为永久 422 死结。
+3. **正式数据清理**：本轮复走产物全部软删除/可追溯——班级×2、原卷、施测×3、练习、报告×3、教案×2 归档；模拟教材逻辑删除（向量经 `run_cleanup_queue` 实清，活跃书册回到 58 册）；正式题×6 归档；非本批对象未触碰。**顺带发现（P3，未修）**：`IndexService.run_cleanup_queue` 生产无调用点（仅测试调用），教材删除后向量清理不自动执行、队列条目永久滞留。
+
+门禁（本批自测，非独立验收）：后端全量 **2079 例 exit 0**（0012 相关三处迁移清单断言同步）；前端 typecheck/lint 0、vitest **133 文件/1605 例**全绿（须 `NODE_OPTIONS=--no-experimental-webstorage`）、生产构建 exit 0；e2e `assessments.spec.ts` **4/4**、`lesson-plan.spec.ts` **9/9**。**未执行**：独立验收、全量 e2e、390px、教师真实试评。改动未提交（工作区含其他会话 docs 改动，未触碰）。
+<!-- /LOOP-FIX:20261009 -->
+
 <!-- LOOP-WALKTHROUGH:20261009 -->
 2026-10-09：**教学闭环真实浏览器复走**（用户："真实的在浏览器中走一遍这个项目的闭环，看看还有哪些问题"）。真实前端 5173 + 真实后端 8000 + **正式数据根 `.local-data`** + 正式云端凭证；资料=10-04 测试包（24 名虚构学生/6 计分叶原卷/两班名单/初测成绩/练习题库/原创模拟教材）。完整问题清单与逐步证据见 [qa/TEACHING-LOOP-WALKTHROUGH-20261009/README.md](qa/TEACHING-LOOP-WALKTHROUGH-20261009/README.md)。
 
