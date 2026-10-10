@@ -74,6 +74,13 @@ class AnalysisRunView(Frozen):
     created_at: str = Field(alias="createdAt")
 
 
+class AnalysisRunDeleteReceipt(Frozen):
+    """学情报告彻底删除的回执（受引用守卫通过后物理删除报告与其冻结子表行）。"""
+
+    deleted: bool
+    run_id: str = Field(alias="runId")
+
+
 class ClassReportRow(Frozen):
     class_id: str = Field(alias="classId")
     # 班名走“名称优先”：结果行只冻结 classId，读路径 JOIN classes.name 实时填充；班名缺失才 null。
@@ -261,6 +268,8 @@ class PracticeRevisionView(Frozen):
     # 读路径实时 JOIN；来源卷修订缺失时为 null，不伪造名称。
     source_paper_title: str | None = Field(default=None, alias="sourcePaperTitle")
     source_created_at: str | None = Field(default=None, alias="sourceCreatedAt")
+    # 该修订已建立的回流转换（读路径实时取最新一条）：刷新页面后仍可展示与解除；无转换落 null。
+    converted_assessment_id: str | None = Field(default=None, alias="convertedAssessmentId")
     target_knowledge_points: list[FixedKnowledge] = Field(alias="targetKnowledgePoints")
     constraints: PracticeConstraints
     input_hash: str = Field(alias="inputHash")
@@ -351,3 +360,11 @@ class PracticeConversionReceipt(Frozen):
     assessment_id: str = Field(alias="assessmentId")
     practice_revision_id: str = Field(alias="practiceRevisionId")
     replayed: bool
+
+
+class PracticeConversionDeleteReceipt(Frozen):
+    """练习转换记录删除回执：只解除练习与施测的转换关联，不动施测/原卷/成绩。"""
+
+    deleted: bool
+    conversion_id: str = Field(alias="conversionId")
+    assessment_id: str = Field(alias="assessmentId")

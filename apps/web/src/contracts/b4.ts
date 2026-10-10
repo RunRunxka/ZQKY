@@ -76,6 +76,16 @@ export interface AnalysisRunView {
   createdAt: string;
 }
 
+/**
+ * 学情报告彻底删除回执（200）：受引用守卫的物理删除，不可恢复
+ * （报告的班级/学生依据、题证据与教师备注在同一事务删除）。
+ * 仍有针对练习 / 教案引用 → 409 `ANALYSIS_RUN_IN_USE` + `details.counts`。
+ */
+export interface AnalysisRunDeleteResult {
+  deleted: boolean;
+  runId: string;
+}
+
 export interface ClassReportRow {
   classId: string;
   /** 结果行只冻结 classId；班名由读路径 JOIN `classes.name` 实时填充，缺失才 null（见 FrozenParticipant）。 */
@@ -294,6 +304,12 @@ export interface PracticeRevisionView {
   totalScoreUnits: number;
   draftItems: Array<PracticeDraftItem>;
   items: Array<PracticeItemView>;
+  /**
+   * 该修订最新一条回流转换的施测 id（只读派生，同 `PracticeRevisionView` 读路径 JOIN）；
+   * 无转换则 null。刷新页面/切修订后依然返回，用于持久显示「解除回流关联」入口；
+   * 可选以兼容不加该字段的既有夹具与历史回执。
+   */
+  convertedAssessmentId?: string | null;
   reviewedAt: string | null;
   createdAt: string;
 }
@@ -360,4 +376,14 @@ export interface PracticeConversionReceipt {
   assessmentId: string;
   practiceRevisionId: string;
   replayed: boolean;
+}
+
+/**
+ * 练习转换记录删除回执（200）：只解除练习修订与施测的回流关联，
+ * 施测、原卷与成绩数据保留；无引用守卫，无转换记录时 404。
+ */
+export interface PracticeConversionDeleteResult {
+  deleted: boolean;
+  conversionId: string;
+  assessmentId: string;
 }

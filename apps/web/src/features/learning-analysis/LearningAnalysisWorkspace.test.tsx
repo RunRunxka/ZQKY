@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { LearningAnalysisWorkspace } from './LearningAnalysisWorkspace';
 import { b4Api, type AnalysisQuery } from '@/services/teaching-loop-b4-api';
 import { ApiError } from '@/services/api-client';
+import type { ApiErrorDetails } from '@/contracts/api';
 import { classRow, deferred, evidenceRow, page, participant, point, run } from '@/features/practices/test-fixtures';
 
 vi.mock('@/services/assessments-api', () => ({
@@ -197,5 +198,54 @@ describe('固定学情工作区', () => {
     fireEvent.click(screen.getByRole('tab', { name: '教师备注' }));
     expect(await screen.findByText(/· 甲 · 人次1 · 固定知识点/)).toBeInTheDocument();
     expect(await screen.findByText(/· missing-… · 全部知识点/)).toBeInTheDocument();
+  });
+
+  it('彻底删除固定报告：两段内联确认、成功刷新列表并退出被删报告的详情', async () => {
+    const items = [{ ...run }];
+    const list = vi.fn(async () => page(items));
+    const remove = vi.fn(async (id: string) => ({ deleted: true, runId: id }));
+    render(<LearningAnalysisWorkspace initialRunId={run.runId} services={services({ listAnalysisRuns: list, deleteAnalysisRun: remove })} />);
+    const history = await screen.findByRole('region', { name: '固定报告历史' });
+    await within(history).findByRole('button', { name: /已准备/ });
+    expect(await screen.findByRole('region', { name: '所选固定报告' })).toBeInTheDocument();
+    // 第一击只展开内联确认（不弹 window.confirm、不发写请求），提示不可恢复
+    fireEvent.click(within(history).getByTestId(`analysis-run-delete-${run.runId}`));
+    expect(remove).not.toHaveBeenCalled();
+    expect(within(history).getByText('彻底删除会物理删除该报告的班级/学生依据、题证据与教师备注，不可恢复。')).toBeInTheDocument();
+    fireEvent.click(within(history).getByRole('button', { name: '取消' }));
+    expect(within(history).queryByRole('button', { name: '确认彻底删除' })).not.toBeInTheDocument();
+    expect(remove).not.toHaveBeenCalled();
+    fireEvent.click(within(history).getByTestId(`analysis-run-delete-${run.runId}`));
+    fireEvent.click(within(history).getByRole('button', { name: '确认彻底删除' }));
+    await waitFor(() => expect(remove).toHaveBeenCalledWith(run.runId));
+    const notice = await screen.findByTestId('analysis-run-delete-notice');
+    expect(notice).toHaveAttribute('role', 'status');
+    expect(notice).toHaveTextContent('已彻底删除学情报告：物理删除完成，不可恢复。');
+    await waitFor(() => expect(list.mock.calls.length).toBeGreaterThan(1));
+    // 被删报告正打开详情：退出详情视图，不再读取已删除的报告
+    await waitFor(() => expect(screen.queryByRole('region', { name: '所选固定报告' })).not.toBeInTheDocument());
+  });
+
+  it('彻底删除被引用守卫拒绝：逐项计数与标签；非 409 原样报错并保留现场可重发', async () => {
+    const guard = new ApiError('ANALYSIS_RUN_IN_USE', '报告仍被引用，不能删除（针对练习 1 条、教案引用 2 条）。', 409, false, 'r1', { counts: { practiceSets: 1, lessonReferences: 2, otherRefs: 1 } } as ApiErrorDetails);
+    const remove = vi.fn().mockRejectedValueOnce(guard).mockRejectedValueOnce(new ApiError('SERVICE_UNAVAILABLE', '响应丢失', 0, true));
+    render(<LearningAnalysisWorkspace services={services({ deleteAnalysisRun: remove })} />);
+    const history = await screen.findByRole('region', { name: '固定报告历史' });
+    await within(history).findByRole('button', { name: /已准备/ });
+    fireEvent.click(within(history).getByTestId(`analysis-run-delete-${run.runId}`));
+    fireEvent.click(within(history).getByRole('button', { name: '确认彻底删除' }));
+    const blocked = await screen.findByTestId('analysis-run-delete-guard');
+    expect(blocked).toHaveTextContent('ANALYSIS_RUN_IN_USE');
+    expect(blocked).toHaveTextContent('针对练习 1 条');
+    expect(blocked).toHaveTextContent('教案引用（修订/生成输入/AI 候选） 2 条');
+    expect(blocked).toHaveTextContent('otherRefs 1 条'); // 未知键用原始键名兜底，不隐藏引用
+    // 非 409 不得冒充引用问题：原样 role=alert，确认现场保留，重按重发同一请求
+    fireEvent.click(within(history).getByRole('button', { name: '确认彻底删除' }));
+    await screen.findByText('SERVICE_UNAVAILABLE');
+    expect(screen.queryByTestId('analysis-run-delete-guard')).not.toBeInTheDocument();
+    fireEvent.click(within(history).getByRole('button', { name: '确认彻底删除' }));
+    await waitFor(() => expect(remove).toHaveBeenCalledTimes(3));
+    expect(remove.mock.calls[0]).toEqual(remove.mock.calls[1]);
+    expect(remove.mock.calls[1]).toEqual(remove.mock.calls[2]);
   });
 });

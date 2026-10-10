@@ -90,6 +90,66 @@ class PracticeRepository:
             conn.execute("DELETE FROM practice_revisions WHERE id=? AND state='draft'", (revision_id,))
         return revision_ids
 
+    def latest_conversion_assessment_id_in(self, conn, revision_id: str, owner_id: str) -> str | None:
+        """该修订最新一条转换的施测 id（只读派生）：无转换落 ``None``，不伪造。
+
+        排序口径与 ``delete_conversion_in`` 取最新一条完全一致（``created_at DESC,
+        rowid DESC LIMIT 1``），保证"展示与解除"看到的是同一条回流关联。
+        """
+        row = conn.execute(
+            "SELECT assessment_id FROM practice_conversions WHERE practice_revision_id=? AND owner_id=? "
+            "ORDER BY created_at DESC, rowid DESC LIMIT 1",
+            (revision_id, owner_id)).fetchone()
+        return row["assessment_id"] if row is not None else None
+
+    def delete_conversion_in(self, conn, revision_id: str, owner_id: str) -> dict[str, str]:
+        """删除该审核修订**最新一条**练习转换关联行及其映射子行，返回被删身份。
+
+        范围（受控解除回流）：只删 ``practice_conversions`` 一行（按创建时间取最新，
+        多条时重复调用逐条解除）与该行在 ``practice_paper_item_mappings`` 的全部子行；
+        **不动** ``assessments``/``paper_revisions``/``practice_revisions``/``practice_exports``/
+        ``export_artifacts``——施测、原卷与成绩保留，之后由施测自己的删除守卫链处理。
+        同一修订存在多条转换时每次只删一条，回执身份与实际删除行一一对应。
+
+        触发器说明：``immutable_practice_conversions_delete`` 与
+        ``immutable_practice_paper_item_mappings_delete`` 是固定历史的兜底；解除回流
+        关联是**经 owner 校验的受控行为**，同一写事务内临时摘除两个 DELETE 触发器 →
+        删除 → 按登记声明逐字恢复（DDL 可事务化，任一步失败整体回滚，触发器随事务
+        恢复；BEGIN IMMEDIATE 下无并发写者可见窗口）。触发器文本与
+        ``app/core/migrations/b4.py`` 0008 声明（``immutable_{t}_{op}`` 循环生成处）
+        逐字一致，不改登记 SQL。先例：``lesson_plans.delete_lesson_in``、
+        ``knowledge.points.delete_point``。
+
+        行不存在/非本人 → 404 ``PRACTICE_CONVERSION_NOT_FOUND``，不静默成功。
+        """
+        row = conn.execute(
+            "SELECT c.id AS conversion_id, c.assessment_id AS assessment_id FROM practice_conversions c "
+            "WHERE c.practice_revision_id=? AND c.owner_id=? ORDER BY c.created_at DESC, c.rowid DESC LIMIT 1",
+            (revision_id, owner_id)).fetchone()
+        if row is None:
+            raise AppError("该审核修订没有转换记录。", code="PRACTICE_CONVERSION_NOT_FOUND", status_code=404)
+        delete_triggers = (
+            ("immutable_practice_paper_item_mappings_delete",
+             "CREATE TRIGGER immutable_practice_paper_item_mappings_delete BEFORE DELETE ON practice_paper_item_mappings "
+             "BEGIN SELECT RAISE(ABORT,'IMMUTABLE_REVISION'); END"),
+            ("immutable_practice_conversions_delete",
+             "CREATE TRIGGER immutable_practice_conversions_delete BEFORE DELETE ON practice_conversions "
+             "BEGIN SELECT RAISE(ABORT,'IMMUTABLE_REVISION'); END"),
+        )
+        # 不可变触发器是固定历史的兜底；受控解除在同一事务内临时摘除再逐字恢复。
+        for name, _ in delete_triggers:
+            conn.execute(f"DROP TRIGGER IF EXISTS {name}")
+        try:
+            conn.execute("DELETE FROM practice_paper_item_mappings WHERE conversion_id=?", (row["conversion_id"],))
+            deleted = conn.execute("DELETE FROM practice_conversions WHERE id=? AND owner_id=?",
+                                   (row["conversion_id"], owner_id))
+            if deleted.rowcount != 1:
+                raise AppError("练习转换记录不存在。", code="PRACTICE_CONVERSION_NOT_FOUND", status_code=404)
+        finally:
+            for _, statement in delete_triggers:
+                conn.execute(statement)
+        return dict(conversion_id=row["conversion_id"], assessment_id=row["assessment_id"])
+
     def set_archived_in(self, conn, set_id: str, owner_id: str, *, expected_revision: int, archived: bool):
         """归档/恢复：一条 UPDATE 同时改 ``status`` 并原子递增 ``revision``；历史修订原样保留。"""
         status = "archived" if archived else "active"

@@ -9,6 +9,8 @@ import { b4Api } from '@/services/teaching-loop-b4-api';
 import { ApiError } from '@/services/api-client';
 import { getAssessment, getPaperAsset, getScoreRevision, listAssessments, listClasses, listScoreRevisions } from '@/services/assessments-api';
 import { asApiError, useAsyncResource, useFrozenSubmission } from '@/features/assessments/hooks';
+import { referenceCounts } from '@/features/assessments/labels';
+import { DeleteGuardNotice, type DeleteGuardState } from '@/features/assessments/DeleteGuardNotice';
 import { useObservedJob } from '@/services/use-workflow-job';
 import { CreatePracticeForm } from '@/features/practices/CreatePracticeForm';
 import { LoopConveyor } from '@/components/layout/LoopConveyor';
@@ -35,6 +37,12 @@ function reportLabel(run: { paperTitle?: string | null; createdAt?: string | nul
   return stamp || shortId(run.runId);
 }
 
+/** `ANALYSIS_RUN_IN_USE` 的逐项标签（键与后端一致；未知键用原始键名兜底，不隐藏引用）。 */
+const ANALYSIS_REFERENCE_LABELS: Record<string, string> = {
+  practiceSets: '针对练习',
+  lessonReferences: '教案引用（修订/生成输入/AI 候选）',
+};
+
 export function LearningAnalysisWorkspace({ initialAssessmentId = null, initialScoreRevisionId = null, initialRunId = null, services = b4Api }: LearningAnalysisWorkspaceProps) {
   const pageRef = useRef<HTMLDivElement>(null);
   useEntrance(pageRef, { preset: 'page' });
@@ -51,7 +59,16 @@ export function LearningAnalysisWorkspace({ initialAssessmentId = null, initialS
   const [archiveError, setArchiveError] = useState<ApiError | null>(null);
   const [archiveNotice, setArchiveNotice] = useState('');
   const archiveBusyRef = useRef(false);
-  const archiveAlive = useRef(true);
+  /** 二次确认的彻底删除目标（物理删除、不可恢复）；确认前不发任何写请求。 */
+  const [deleteTarget, setDeleteTarget] = useState<{ runId: string } | null>(null);
+  const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<ApiError | null>(null);
+  const [deleteNotice, setDeleteNotice] = useState('');
+  /** 被引用守卫拒绝的 409：逐项计数（其他错误走既有错误区，不误报成引用问题）。 */
+  const [deleteGuard, setDeleteGuard] = useState<DeleteGuardState | null>(null);
+  const deleteBusyRef = useRef(false);
+  /** 归档与彻底删除共用的存活标志：卸载后迟到的回执一律不写状态。 */
+  const writeAlive = useRef(true);
   const [assessmentOffset, setAssessmentOffset] = useState(0);
   const [childLocked, setChildLocked] = useState(false);
   const create = useFrozenSubmission<{ assessmentId: string; body: AnalysisCreateRequest }, AnalysisReceipt>();
@@ -72,7 +89,7 @@ export function LearningAnalysisWorkspace({ initialAssessmentId = null, initialS
   const validSource = source?.assessmentId === assessmentId && source.state === 'confirmed' && !!source.paperRevisionId;
   const sourceReady = validSource && revision.state.phase === 'ready';
 
-  useEffect(() => { archiveAlive.current = true; return () => { archiveAlive.current = false; }; }, []);
+  useEffect(() => { writeAlive.current = true; return () => { writeAlive.current = false; }; }, []);
 
   async function createRun() {
     const result = await create.submit({ assessmentId, body: { submissionId: '', scoreRevisionId: revisionId, selectedParticipantIds: participantIds, ruleCode: 'any_loss_v1' } },
@@ -95,14 +112,41 @@ export function LearningAnalysisWorkspace({ initialAssessmentId = null, initialS
     setArchiveBusy(true); setArchiveError(null); setArchiveNotice('');
     try {
       const result = target.archived ? await services.archiveAnalysisRun(target.runId) : await services.restoreAnalysisRun(target.runId);
-      if (!archiveAlive.current) return;
+      if (!writeAlive.current) return;
       if (result.runId !== target.runId) throw new ApiError('ANALYSIS_ARCHIVE_IDENTITY_MISMATCH', '归档回执与目标报告不一致，未刷新列表。', 500, false);
       setArchiveTarget(null);
       setArchiveNotice(target.archived ? `已归档报告「${target.label}」：列表入口隐藏，报告与快照保留且仍可查看。` : `已恢复报告「${target.label}」：重新出现在未归档列表。`);
       reloadRuns();
     } catch (cause) {
-      if (archiveAlive.current) setArchiveError(asApiError(cause));
-    } finally { archiveBusyRef.current = false; if (archiveAlive.current) setArchiveBusy(false); }
+      if (writeAlive.current) setArchiveError(asApiError(cause));
+    } finally { archiveBusyRef.current = false; if (writeAlive.current) setArchiveBusy(false); }
+  }
+
+  /**
+   * 彻底删除一份固定报告（物理删除报告与其冻结子表行，二次确认、不可恢复）：
+   * 仍有针对练习 / 教案引用时后端 409 `ANALYSIS_RUN_IN_USE`，逐项列出引用原因；
+   * 其他错误原样显示并保留现场（可重按确认重发同一请求）。成功刷新列表；
+   * 被删报告正在查看时退出详情，避免继续读取已删除的报告。
+   */
+  async function deleteRun(target: { runId: string }) {
+    if (deleteBusyRef.current) return;
+    deleteBusyRef.current = true;
+    setDeleteBusyId(target.runId); setDeleteError(null); setDeleteNotice(''); setDeleteGuard(null);
+    try {
+      const receipt = await services.deleteAnalysisRun(target.runId);
+      if (!writeAlive.current) return;
+      if (!receipt.deleted || receipt.runId !== target.runId) throw new ApiError('ANALYSIS_DELETE_IDENTITY_MISMATCH', '删除回执与目标报告不一致，未刷新列表。', 500, false);
+      setDeleteTarget(null);
+      if (runId === target.runId) setRunId(null);
+      setDeleteNotice('已彻底删除学情报告：物理删除完成，不可恢复。');
+      reloadRuns();
+    } catch (cause) {
+      if (!writeAlive.current) return;
+      const error = asApiError(cause);
+      if (error.status === 409 && error.code === 'ANALYSIS_RUN_IN_USE') {
+        setDeleteGuard({ targetId: target.runId, error, reasons: referenceCounts(error.details, ANALYSIS_REFERENCE_LABELS) });
+      } else setDeleteError(error);
+    } finally { deleteBusyRef.current = false; if (writeAlive.current) setDeleteBusyId(null); }
   }
 
   return <div ref={pageRef} className="space-page learning-analysis-page">
@@ -147,24 +191,33 @@ export function LearningAnalysisWorkspace({ initialAssessmentId = null, initialS
       </section>
 
       <section className="b4-section" aria-label="固定报告历史" data-motion-reveal><h2>固定报告历史</h2><ReadNotice resource={runs} label="报告列表" />
-        <label><input type="checkbox" aria-label="显示已归档" checked={showArchived} disabled={locked} onChange={(event) => { setShowArchived(event.target.checked); setRunsOffset(0); setArchiveTarget(null); setArchiveError(null); setArchiveNotice(''); }} />显示已归档</label>
+        <label><input type="checkbox" aria-label="显示已归档" checked={showArchived} disabled={locked} onChange={(event) => { setShowArchived(event.target.checked); setRunsOffset(0); setArchiveTarget(null); setArchiveError(null); setArchiveNotice(''); setDeleteTarget(null); setDeleteGuard(null); setDeleteError(null); setDeleteNotice(''); }} />显示已归档</label>
         <p className="b4-hint">{showArchived ? '当前不筛选归档状态：同时列出未归档与已归档报告，便于核对与恢复。' : '当前只看未归档报告；已归档报告不出现在这里，可用上方开关查看。'}</p>
         {archiveNotice && <p className="b4-hint" role="status">{archiveNotice}</p>}
+        {deleteNotice && <p className="b4-hint" role="status" data-testid="analysis-run-delete-notice">{deleteNotice}</p>}
         <ErrorNotice error={archiveError} />
-        {archiveError && <button className="space-button" onClick={reloadRuns}>刷新列表对照服务器</button>}
+        <ErrorNotice error={deleteError} />
+        {(archiveError || deleteError) && <button className="space-button" onClick={reloadRuns}>刷新列表对照服务器</button>}
         {runs.state.phase === 'ready' && runs.lastData?.items.length === 0 && <p>此来源还没有分析报告。</p>}
         <div className="b4-list">{runs.lastData?.items.map((item) => <Fragment key={item.runId}>
           <button className={`space-button${runId === item.runId ? ' primary' : ''}`} title={`报告 ${item.runId} · 成绩修订 ${item.scoreRevisionId} · 原卷修订 ${item.paperRevisionId}`} disabled={locked} onClick={() => setRunId(item.runId)}>
             {reportLabel(item)}<span className="b4-meta">成绩修订 {shortId(item.scoreRevisionId)} · 报告 {shortId(item.runId)} · {item.reportReady ? '已准备' : '尚未准备'}</span></button>
           <div className="b4-actions">
             <button className="space-button" disabled={locked || archiveBusy} onClick={() => setArchiveTarget({ runId: item.runId, archived: !item.archivedAt, label: reportLabel(item) })}>{item.archivedAt ? '恢复' : '归档'}</button>
+            <button className="space-button danger" data-testid={`analysis-run-delete-${item.runId}`} disabled={locked || deleteBusyId !== null} onClick={() => { setDeleteTarget({ runId: item.runId }); setDeleteNotice(''); setDeleteError(null); setDeleteGuard(null); }}>{deleteBusyId === item.runId ? '删除中…' : '彻底删除'}</button>
             {item.archivedAt && <span className="space-chip amber">已归档</span>}
             {archiveTarget?.runId === item.runId && <>
               <span className="b4-hint" role="alert">{archiveTarget.archived ? '归档只隐藏列表入口，报告与快照保留且仍可查看；不会删除报告、证据或备注。' : '恢复后该报告重新出现在未归档列表，内容与快照保持原样。'}</span>
               <button className="space-button primary" disabled={archiveBusy} onClick={() => void changeArchive({ runId: item.runId, archived: archiveTarget.archived, label: archiveTarget.label })}>{archiveBusy ? '正在提交…' : archiveTarget.archived ? '确认归档' : '确认恢复'}</button>
               <button className="space-button" disabled={archiveBusy} onClick={() => setArchiveTarget(null)}>取消</button>
             </>}
+            {deleteTarget?.runId === item.runId && <>
+              <span className="b4-hint" role="alert">彻底删除会物理删除该报告的班级/学生依据、题证据与教师备注，不可恢复。</span>
+              <button className="space-button danger" disabled={deleteBusyId !== null} onClick={() => void deleteRun({ runId: item.runId })}>{deleteBusyId === item.runId ? '删除中…' : '确认彻底删除'}</button>
+              <button className="space-button" disabled={deleteBusyId !== null} onClick={() => setDeleteTarget(null)}>取消</button>
+            </>}
           </div>
+          {deleteGuard?.targetId === item.runId && <DeleteGuardNotice state={deleteGuard} targetName={reportLabel(item)} testId="analysis-run-delete-guard" />}
         </Fragment>)}</div>
         <Pagination page={runs.lastData} offset={runsOffset} onOffset={setRunsOffset} disabled={locked} />
       </section>

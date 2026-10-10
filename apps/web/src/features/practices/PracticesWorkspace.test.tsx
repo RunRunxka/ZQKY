@@ -139,6 +139,91 @@ describe('固定导出与转换', () => {
   });
 });
 
+describe('练习转换记录删除（解除回流关联）', () => {
+  const reviewed = { ...revision, practiceRevisionId: 'reviewed-a', state: 'reviewed' as const, reviewedAt: '2026-10-02' };
+  const reviewedSet: PracticeSetView = { ...practice, currentRevision: reviewed, revisions: [reviewed] };
+
+  it('仅已转换时显示入口；两段确认后解除关联、刷新练习与导出视图', async () => {
+    const remove = vi.fn(async () => ({ deleted: true, conversionId: 'conversion-a', assessmentId: 'assessment-new' }));
+    const convert = vi.fn(async () => ({ conversionId: 'conversion-a', paperId: 'paper-new', paperRevisionId: 'paper-revision-new', assessmentId: 'assessment-new', practiceRevisionId: reviewed.practiceRevisionId, replayed: false }));
+    const getPractice = vi.fn(async () => reviewedSet);
+    const listExports = vi.fn(async () => page([]));
+    render(<PracticesWorkspace initialPracticeSetId={practice.practiceSetId} services={api({ getPractice, convertPractice: convert, deletePracticeConversion: remove, listPracticeExports: listExports })} />);
+    await screen.findByRole('button', { name: '转换固定练习为施测' });
+    // 未转换（convertedAssessmentId 为空）时没有解除入口
+    expect(screen.queryByTestId(`practices-delete-conversion-${practice.practiceSetId}`)).not.toBeInTheDocument();
+    fireEvent.change(await screen.findByLabelText('练习施测班级'), { target: { value: 'class-a' } });
+    fireEvent.click(await screen.findByLabelText('练习参测 甲'));
+    fireEvent.change(screen.getByLabelText('练习施测日期'), { target: { value: '2026-10-02' } });
+    fireEvent.click(screen.getByRole('button', { name: '转换固定练习为施测' }));
+    const entry = await screen.findByTestId(`practices-delete-conversion-${practice.practiceSetId}`);
+    // 第一击只展开内联确认（不用 window.confirm、不发写请求）
+    fireEvent.click(entry);
+    expect(remove).not.toHaveBeenCalled();
+    expect(screen.getByText(/删除转换记录只解除本练习与该施测的回流关联：施测、原卷与成绩数据都保留/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '确认删除转换记录' }));
+    await waitFor(() => expect(remove).toHaveBeenCalledWith(practice.practiceSetId, reviewed.practiceRevisionId));
+    const notice = await screen.findByTestId('practices-conversion-delete-notice');
+    expect(notice).toHaveAttribute('role', 'status');
+    expect(notice).toHaveTextContent('已删除转换记录：练习与施测的回流关联已解除。');
+    // convertedAssessmentId 消失：入口与二次确认一起撤下，不会残留已解除的关联
+    await waitFor(() => expect(screen.queryByTestId(`practices-delete-conversion-${practice.practiceSetId}`)).not.toBeInTheDocument());
+    await waitFor(() => expect(getPractice.mock.calls.length).toBeGreaterThan(1));
+    await waitFor(() => expect(listExports.mock.calls.length).toBeGreaterThan(1));
+  });
+
+  it('刷新后由服务端只读字段恢复入口：无会话转换也可两段确认解除关联', async () => {
+    const remove = vi.fn(async () => ({ deleted: true, conversionId: 'conversion-restored', assessmentId: 'assessment-restored' }));
+    // 模拟刷新后的读路径：修订带 convertedAssessmentId（无本会话转换回执）
+    const restoredSet: PracticeSetView = { ...reviewedSet, currentRevision: { ...reviewed, convertedAssessmentId: 'assessment-restored' } };
+    const reloadedSet: PracticeSetView = { ...reviewedSet, currentRevision: { ...reviewed, convertedAssessmentId: null } };
+    const getPractice = vi.fn().mockResolvedValueOnce(restoredSet).mockResolvedValue(reloadedSet);
+    render(<PracticesWorkspace initialPracticeSetId={practice.practiceSetId} services={api({ getPractice, deletePracticeConversion: remove })} />);
+    const entry = await screen.findByTestId(`practices-delete-conversion-${practice.practiceSetId}`);
+    expect(screen.getByText(/本审核版本已转换施测 assessme…：回流关联存在。/)).toBeInTheDocument();
+    fireEvent.click(entry);
+    expect(remove).not.toHaveBeenCalled();
+    expect(screen.getByText(/删除转换记录只解除本练习与该施测的回流关联/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '确认删除转换记录' }));
+    await waitFor(() => expect(remove).toHaveBeenCalledWith(practice.practiceSetId, reviewed.practiceRevisionId));
+    expect(await screen.findByTestId('practices-conversion-delete-notice')).toHaveTextContent('已删除转换记录：练习与施测的回流关联已解除。');
+    // 刷新后服务端字段归 null：入口撤下，不残留已解除的关联
+    await waitFor(() => expect(screen.queryByTestId(`practices-delete-conversion-${practice.practiceSetId}`)).not.toBeInTheDocument());
+  });
+
+  it('未转换不渲染入口；已归档时仍可解除回流关联，导出生成保持禁用', async () => {
+    const remove = vi.fn(async () => ({ deleted: true, conversionId: 'conversion-a', assessmentId: 'assessment-new' }));
+    const rendered = render(<PracticeExports revision={reviewed} services={api({ deletePracticeConversion: remove })} convertedAssessmentId={null} onLocked={unlocked} />);
+    expect(screen.queryByTestId(`practices-delete-conversion-${practice.practiceSetId}`)).not.toBeInTheDocument();
+    rendered.rerender(<PracticeExports revision={reviewed} services={api({ deletePracticeConversion: remove })} convertedAssessmentId="assessment-new" onLocked={unlocked} disabled />);
+    // 已归档只禁用导出生成（locked 含 disabled），不挡解除回流关联
+    expect(screen.getByRole('button', { name: '生成学生 DOCX' })).toBeDisabled();
+    const entry = screen.getByTestId(`practices-delete-conversion-${practice.practiceSetId}`);
+    expect(entry).toBeEnabled();
+    expect(screen.queryByText(/删除转换记录的入口已禁用/)).not.toBeInTheDocument();
+    fireEvent.click(entry);
+    fireEvent.click(screen.getByRole('button', { name: '确认删除转换记录' }));
+    await waitFor(() => expect(remove).toHaveBeenCalledWith(practice.practiceSetId, reviewed.practiceRevisionId));
+    await screen.findByText('已删除转换记录：练习与施测的回流关联已解除。');
+  });
+
+  it('没有转换记录 404 原样显示并保留现场，可重按重发同一请求', async () => {
+    const remove = vi.fn()
+      .mockRejectedValueOnce(new ApiError('NOT_FOUND', '该审核修订没有转换记录。', 404, false))
+      .mockResolvedValueOnce({ deleted: true, conversionId: 'conversion-a', assessmentId: 'assessment-new' });
+    render(<PracticeExports revision={reviewed} services={api({ deletePracticeConversion: remove })} convertedAssessmentId="assessment-new" onLocked={unlocked} />);
+    fireEvent.click(screen.getByTestId(`practices-delete-conversion-${practice.practiceSetId}`));
+    fireEvent.click(screen.getByRole('button', { name: '确认删除转换记录' }));
+    await screen.findByText('NOT_FOUND');
+    expect(screen.getByText(/该审核修订没有转换记录/)).toBeInTheDocument();
+    expect(screen.getByTestId(`practices-delete-conversion-${practice.practiceSetId}`)).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: '确认删除转换记录' }));
+    await waitFor(() => expect(remove).toHaveBeenCalledTimes(2));
+    expect(remove.mock.calls[0]).toEqual(remove.mock.calls[1]);
+    await screen.findByText('已删除转换记录：练习与施测的回流关联已解除。');
+  });
+});
+
 describe('练习归档与恢复', () => {
   it('列表默认只看active；归档/恢复需二次确认并刷新列表', async () => {
     const items: PracticeSetView[] = [{ ...practice }];

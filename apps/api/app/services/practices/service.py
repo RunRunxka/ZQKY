@@ -91,9 +91,11 @@ class PracticeService:
                 reason=decode(row["reason_json"])["reason"], answerState=row["answer_state"]))
         # 练习来源的展示名走“名称优先”：只读派生（同 owner 校验），缺失落 null 不伪造。
         paper_title, run_created_at = self.repo.source_view_in(conn, practice["analysis_run_id"], practice["owner_id"])
+        # 回流转换展示同样只读派生（同 owner）：实时取最新一条，刷新页面后仍可展示与解除。
+        converted_assessment_id = self.repo.latest_conversion_assessment_id_in(conn, revision["id"], practice["owner_id"])
         return b4.PracticeRevisionView(practiceSetId=practice["id"], practiceRevisionId=revision["id"], version=revision["version"],
             state=revision["state"], title=revision["title_snapshot"], subjectId=practice["subject_id"], analysisRunId=practice["analysis_run_id"],
-            sourcePaperTitle=paper_title, sourceCreatedAt=run_created_at,
+            sourcePaperTitle=paper_title, sourceCreatedAt=run_created_at, convertedAssessmentId=converted_assessment_id,
             targetKnowledgePoints=selection["targetKnowledgePoints"], constraints=decode(revision["constraints_json"]), inputHash=revision["input_hash"],
             totalScoreUnits=revision["total_score_units"], draftItems=decode(revision["draft_items_json"], list), items=items,
             reviewedAt=revision["reviewed_at"], createdAt=revision["created_at"])
@@ -510,6 +512,27 @@ class PracticeService:
                 return convert_in(self, conn, practice, revision, body, asset_sizes=asset_sizes)
             outcome = execute_command(catalog=self.catalog, command=command, apply=apply)
         return b4.PracticeConversionReceipt.model_validate(dict(outcome.result, replayed=outcome.replayed))
+
+    def delete_conversion(self, set_id, revision_id):
+        """删除练习转换记录（解除回流关联）：只删关联行与映射子行，不动施测/原卷/成绩。
+
+        无引用守卫（这是关联记录本身）；确认文案需明示：施测、原卷与成绩数据保留，
+        之后可由施测自己的守卫链（``ASSESSMENT_IN_USE``）处理。owner 范围与既有练习
+        接口一致：先按 ``set_id``+owner 校验练习集，再按修订归属校验，最后只在
+        ``owner_id`` 过滤下删除转换行。该审核修订没有转换记录 → 404
+        ``PRACTICE_CONVERSION_NOT_FOUND``。删除成功后，同一施测的
+        ``ASSESSMENT_IN_USE`` practiceConversions 计数与同一练习集的
+        ``PRACTICE_IN_USE`` conversions 计数随之归零。
+
+        归档不影响解除回流关联（与 ``delete_practice`` 同口径：归档只挡修改类写路径，
+        彻底删除/解除类动作照常执行；产品先例：归档施测/教案/原卷均可删）。
+        """
+        with self.catalog.write_transaction() as conn:
+            practice = self.repo.set_in(conn, set_id, self.owner_id)
+            self.repo.revision_in(conn, set_id, revision_id, self.owner_id)
+            deleted = self.repo.delete_conversion_in(conn, revision_id, self.owner_id)
+        return b4.PracticeConversionDeleteReceipt(deleted=True, conversionId=deleted["conversion_id"],
+            assessmentId=deleted["assessment_id"])
 
     def register_job_executors(self, registry):
         registry.register("teaching", "export", uses_model=False, factory=lambda record: self._export_executor)

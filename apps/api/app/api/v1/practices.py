@@ -95,3 +95,9 @@ async def asset(request: Request, set_id: str, revision_id: str, sha: str):
 @router.post("/practice-sets/{set_id}/revisions/{revision_id}/assessments", response_model=b4.PracticeConversionReceipt, status_code=201)
 async def convert(request: Request, set_id: str, revision_id: str, body: b4.PracticeConversionRequest):
     return await run(service(request).convert, set_id, revision_id, body)
+
+
+@router.delete("/practice-sets/{set_id}/revisions/{revision_id}/conversion", response_model=b4.PracticeConversionDeleteReceipt)
+async def delete_conversion(request: Request, set_id: str, revision_id: str):
+    """删除练习转换记录（解除回流关联，无引用守卫）：只删关联行与映射子行；施测/原卷/成绩保留。"""
+    return await run(service(request).delete_conversion, set_id, revision_id)

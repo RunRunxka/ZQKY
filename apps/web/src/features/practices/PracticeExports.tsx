@@ -12,13 +12,19 @@ import { ErrorNotice, ReadNotice, SubmissionNotice, Pagination, JobStatus, nameO
 const variantLabel = { student: '学生 DOCX', teacher: '教师 DOCX', score_template: '成绩模板 XLSX' };
 type FrozenExport = { setId: string; revisionId: string; body: ExportRequest };
 
-export function PracticeExports({ revision, services, convertedAssessmentId, onLocked, disabled = false }: {
-  revision: PracticeRevisionView; services: typeof b4Api; convertedAssessmentId: string | null; onLocked: (locked: boolean) => void; disabled?: boolean;
+export function PracticeExports({ revision, services, convertedAssessmentId, onLocked, disabled = false, onConversionDeleted }: {
+  revision: PracticeRevisionView; services: typeof b4Api; convertedAssessmentId: string | null; onLocked: (locked: boolean) => void; disabled?: boolean; onConversionDeleted?: () => void;
 }) {
   const [assessmentId, setAssessmentId] = useState(convertedAssessmentId ?? '');
   const [offset, setOffset] = useState(0);
   const [error, setError] = useState<ApiError | null>(null);
   const [downloading, setDownloading] = useState<string | null>(null);
+  /** 删除转换记录（解除回流关联）的二次确认；确认前不发任何写请求。 */
+  const [deleteConversionOpen, setDeleteConversionOpen] = useState(false);
+  const [deleteConversionBusy, setDeleteConversionBusy] = useState(false);
+  const [deleteConversionError, setDeleteConversionError] = useState<ApiError | null>(null);
+  const [deleteConversionNotice, setDeleteConversionNotice] = useState('');
+  const deleteConversionBusyRef = useRef(false);
   const submission = useFrozenSubmission<FrozenExport, ExportReceipt>();
   const artifacts = useAsyncResource((signal) => services.listPracticeExports(revision.practiceSetId, revision.practiceRevisionId, { offset, limit: 50 }, signal), `practice-artifacts|${revision.practiceSetId}|${revision.practiceRevisionId}|${offset}`);
   /**
@@ -84,11 +90,48 @@ export function PracticeExports({ revision, services, convertedAssessmentId, onL
     } catch (cause) { if (alive.current && token === downloadGeneration.current && !controller.signal.aborted) setError(asApiError(cause)); }
     finally { if (alive.current && token === downloadGeneration.current) setDownloading(null); }
   }
+  /**
+   * 删除本审核版本的转换记录（只解除练习与施测的回流关联，二次确认）：
+   * 施测、原卷与成绩数据保留；成功刷新产物并让上层清除 `convertedAssessmentId`（回流对比入口消失）。
+   * 该审核修订没有转换记录 → 404 原样显示；其他错误同样保留现场可重按重发。
+   */
+  async function deleteConversion() {
+    if (deleteConversionBusyRef.current || !convertedAssessmentId) return;
+    deleteConversionBusyRef.current = true;
+    const removedAssessmentId = convertedAssessmentId;
+    setDeleteConversionBusy(true); setDeleteConversionError(null); setDeleteConversionNotice('');
+    try {
+      const receipt = await services.deletePracticeConversion(revision.practiceSetId, revision.practiceRevisionId);
+      if (!alive.current) return;
+      if (!receipt.deleted || receipt.assessmentId !== removedAssessmentId) throw new ApiError('PRACTICE_CONVERSION_DELETE_IDENTITY_MISMATCH', '删除回执与当前转换记录不一致，未刷新关联状态。', 500, false);
+      setDeleteConversionOpen(false);
+      // 解除后模板导出不再沿用已删除的施测绑定：只在输入仍是该施测时清空，不覆盖教师手改的值。
+      if (assessmentId === removedAssessmentId) setAssessmentId('');
+      setDeleteConversionNotice('已删除转换记录：练习与施测的回流关联已解除。');
+      artifacts.reload();
+      onConversionDeleted?.();
+    } catch (cause) {
+      if (alive.current) setDeleteConversionError(asApiError(cause));
+    } finally { deleteConversionBusyRef.current = false; if (alive.current) setDeleteConversionBusy(false); }
+  }
   return <section className="b4-section" aria-label="固定练习导出"><h2>固定审核版本导出</h2>
     <p className="b4-hint" title={`练习修订 ${revision.practiceRevisionId}`}>练习 v{revision.version} · {shortId(revision.practiceRevisionId)}。学生版不含答案解析，教师版标明缺失答案。202表示任务接受；成功产物才可下载。</p>
     {disabled && <p className="space-banner" role="status">该练习已归档：生成导出的入口已禁用（后端会拒绝），既有产物仍可查看与下载；恢复后可继续导出。</p>}
     <label className="b4-field">此审核版本已转换的施测ID<input aria-label="模板施测ID" value={assessmentId} disabled={locked} onChange={(event) => setAssessmentId(event.target.value)} /></label>
     <p className="b4-hint">成绩模板须在本练习转换施测后生成；后端冻结接受导出时的真实参测名单、固定原卷和叶映射，空白成绩不补0。</p>
+    {/* 已转换（回流关联存在）时才提供解除入口。删除动作在归档练习上也可执行（与归档施测/教案/原卷/练习集同先例），
+        只与忙碌态互斥；导出生成的置灰（locked 含 disabled）不受影响。 */}
+    {convertedAssessmentId && <div className="b4-actions">
+      <span className="b4-hint" title={`施测 ${convertedAssessmentId}`}>本审核版本已转换施测 {nameOrShortId(assessmentNames.get(convertedAssessmentId), convertedAssessmentId)}：回流关联存在。</span>
+      <button className="space-button danger" data-testid={`practices-delete-conversion-${revision.practiceSetId}`} disabled={active} onClick={() => { setDeleteConversionOpen(true); setDeleteConversionNotice(''); setDeleteConversionError(null); }}>{deleteConversionBusy ? '删除中…' : '删除转换记录（解除回流关联）'}</button>
+      {deleteConversionOpen && <>
+        <span className="b4-hint" role="alert">删除转换记录只解除本练习与该施测的回流关联：施测、原卷与成绩数据都保留，但本练习将不再显示回流对比；不可恢复。</span>
+        <button className="space-button danger" disabled={deleteConversionBusy || active} onClick={() => void deleteConversion()}>{deleteConversionBusy ? '正在提交…' : '确认删除转换记录'}</button>
+        <button className="space-button" disabled={deleteConversionBusy} onClick={() => setDeleteConversionOpen(false)}>取消</button>
+      </>}
+    </div>}
+    {deleteConversionNotice && <p className="b4-hint" role="status" data-testid="practices-conversion-delete-notice">{deleteConversionNotice}</p>}
+    <ErrorNotice error={deleteConversionError} />
     <div className="b4-actions">{(['student', 'teacher', 'score_template'] as const).map((variant) => <button key={variant} className="space-button" disabled={locked || activeJob || (variant === 'score_template' && !assessmentId.trim())} onClick={() => void start(variant)}>生成{variantLabel[variant]}</button>)}
       {submission.phase === 'unknown' && <button className="space-button primary" disabled={submission.busy} onClick={() => void start(submission.frozen?.payload.body.variant ?? 'student')}>重试原导出提交</button>}
     </div>

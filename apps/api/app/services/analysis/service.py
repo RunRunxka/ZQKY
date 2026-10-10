@@ -7,7 +7,7 @@ import uuid
 import anyio
 from pydantic import ValidationError
 
-from app.contracts.b4 import (AnalysisCreateRequest, AnalysisReceipt, AnalysisRunView,
+from app.contracts.b4 import (AnalysisCreateRequest, AnalysisReceipt, AnalysisRunDeleteReceipt, AnalysisRunView,
                               ClassReportRow, EvidenceRow, NoteRequest, NoteView, Page, StudentReportRow)
 from app.contracts.teaching_loop import canonical_hash
 from app.core.exceptions import AppError
@@ -17,6 +17,9 @@ from app.services.jobs.engine import JobOutcome
 from app.services.submissions.service import execute_command, make_command
 from .aggregate import aggregate
 from .snapshot import read_facts
+
+#: 学情报告彻底删除的受引用守卫错误码（跟随施测/练习/原卷 ``*_IN_USE`` 先例）
+ANALYSIS_RUN_IN_USE = "ANALYSIS_RUN_IN_USE"
 
 
 class AnalysisService:
@@ -201,6 +204,29 @@ class AnalysisService:
                 conn.execute("UPDATE analysis_runs SET archived_at=? WHERE id=?",
                              (now_iso() if archived else None, run_id))
         return self.get_run(run_id)
+
+    def delete_run(self, run_id: str) -> AnalysisRunDeleteReceipt:
+        """受引用守卫的彻底删除：报告"干净"时物理删除报告行与其全部冻结子表行。
+
+        守卫（任一命中 → 409 ``ANALYSIS_RUN_IN_USE``，``details.counts`` 恒含两键）：
+        ``practiceSets`` = ``practice_sets.analysis_run_id`` 引用数；
+        ``lessonReferences`` = 教案引用（``lesson_plan_revisions`` +
+        ``lesson_generation_inputs`` + ``lesson_ai_proposals`` 的 ``analysis_run_id``）之和。
+        通过后按子行 → 身份行顺序在同一写事务删除（先例见仓储 ``delete_run_in``）；
+        ``workflow_jobs`` 任务行保留不动。归档与未归档报告同样可删；
+        不存在/非本人 → 404 ``ANALYSIS_NOT_FOUND``。
+        """
+        labels = {"practiceSets": "针对练习", "lessonReferences": "教案引用（修订/生成输入/AI 候选）"}
+        with self.catalog.write_transaction() as conn:
+            self.repo.require_in(conn, run_id, self.owner)
+            counts = self.repo.count_references_in(conn, run_id)
+            blocked = {key: value for key, value in counts.items() if value > 0}
+            if blocked:
+                summary = "、".join(f"{labels[key]} {value} 条" for key, value in blocked.items())
+                raise AppError("学情报告仍被引用，不能删除（" + summary + "）；请先处理相关数据。",
+                               code=ANALYSIS_RUN_IN_USE, status_code=409, details={"counts": counts})
+            self.repo.delete_run_in(conn, run_id, self.owner)
+        return AnalysisRunDeleteReceipt(deleted=True, runId=run_id)
 
     def _ready(self, conn, run_id, *, owner=None, class_id=None, participant_id=None, knowledge_point_id=None):
         row = self.repo.require_in(conn, run_id, owner or self.owner)

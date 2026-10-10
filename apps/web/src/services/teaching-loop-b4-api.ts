@@ -4,11 +4,13 @@ import { assessmentsQuery } from './assessments-api';
 import type {
   AnalysisArchiveRequest, AnalysisCreateRequest, AnalysisReceipt, AnalysisRunView, ClassReportRow,
   StudentReportRow, EvidenceRow, NoteRequest, NoteView, Page,
+  AnalysisRunDeleteResult,
   PracticeCreateRequest, PracticeSetView, PracticeRevisionView,
   PracticeSetStatusRequest, PracticeSetDeleteReceipt,
   PracticeSuggestionsRequest, PracticeSuggestions, PracticeDraftPatch,
   PracticeReviewRequest, PracticeRevisionRequest, ExportRequest, ExportReceipt,
   ExportArtifact, PracticeConversionRequest, PracticeConversionReceipt,
+  PracticeConversionDeleteResult,
 } from '@/contracts/b4';
 
 const key = encodeURIComponent;
@@ -37,6 +39,13 @@ export function archiveAnalysisRun(runId: string, signal?: AbortSignal): Promise
 }
 export function restoreAnalysisRun(runId: string, signal?: AbortSignal): Promise<AnalysisRunView> {
   return apiRequest(`/analysis-runs/${key(runId)}/restore`, write('POST', analysisArchiveBody, signal));
+}
+/**
+ * 彻底删除学情报告（受引用守卫的物理删除）：物理删除报告与其冻结的班级/学生依据、题证据、教师备注，不可恢复。
+ * 仍有针对练习 / 教案引用 → 409 `ANALYSIS_RUN_IN_USE` + `details.counts`；不存在/非本人 → 404。
+ */
+export function deleteAnalysisRun(runId: string, signal?: AbortSignal): Promise<AnalysisRunDeleteResult> {
+  return apiRequest(`/analysis-runs/${key(runId)}`, { method: 'DELETE', signal });
 }
 export function listAnalysisClasses(runId: string, query: ReportQuery = {}, signal?: AbortSignal): Promise<Page<ClassReportRow>> {
   return apiRequest(`/analysis-runs/${key(runId)}/classes${assessmentsQuery({ ...query })}`, { signal });
@@ -110,13 +119,20 @@ export function getPracticeAsset(setId: string, revisionId: string, sha: string,
 export function convertPractice(setId: string, revisionId: string, body: PracticeConversionRequest, signal?: AbortSignal): Promise<PracticeConversionReceipt> {
   return apiRequest(`/practice-sets/${key(setId)}/revisions/${key(revisionId)}/assessments`, write('POST', body, signal));
 }
+/**
+ * 删除练习转换记录（只解除回流关联，无引用守卫）：施测、原卷与成绩数据保留；
+ * 该审核修订没有转换记录 → 404。回执带被解除的 `conversionId` 与 `assessmentId`。
+ */
+export function deletePracticeConversion(setId: string, revisionId: string, signal?: AbortSignal): Promise<PracticeConversionDeleteResult> {
+  return apiRequest(`/practice-sets/${key(setId)}/revisions/${key(revisionId)}/conversion`, { method: 'DELETE', signal });
+}
 
 export const b4Api = {
   createAnalysisRun, listAnalysisRuns, getAnalysisRun, listAnalysisClasses, listAnalysisStudents,
   listAnalysisEvidence, listAnalysisNotes, createAnalysisNote, createPractice, listPractices,
   getPractice, getPracticeRevision, suggestPractice, patchPracticeDraft, reviewPractice,
   createPracticeRevision, createPracticeExport, listPracticeExports, getExportArtifact,
-  downloadExportArtifact, getPracticeAsset, convertPractice,
-  archiveAnalysisRun, restoreAnalysisRun, archivePracticeSet, restorePracticeSet,
+  downloadExportArtifact, getPracticeAsset, convertPractice, deletePracticeConversion,
+  archiveAnalysisRun, restoreAnalysisRun, deleteAnalysisRun, archivePracticeSet, restorePracticeSet,
   deletePracticeSet,
 };

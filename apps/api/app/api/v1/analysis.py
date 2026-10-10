@@ -2,8 +2,8 @@
 import functools
 import anyio
 from fastapi import APIRouter, Query, Request
-from app.contracts.b4 import (AnalysisCreateRequest, AnalysisReceipt, AnalysisRunView, ClassReportRow,
-                              EvidenceRow, Frozen, NoteRequest, NoteView, Page, StudentReportRow)
+from app.contracts.b4 import (AnalysisCreateRequest, AnalysisReceipt, AnalysisRunDeleteReceipt, AnalysisRunView,
+                              ClassReportRow, EvidenceRow, Frozen, NoteRequest, NoteView, Page, StudentReportRow)
 from app.core.exceptions import AppError
 
 router = APIRouter(tags=["analysis"])
@@ -49,6 +49,16 @@ async def archive_run(request: Request, run_id: str, body: AnalysisArchiveReques
 @router.post("/analysis-runs/{run_id}/restore", response_model=AnalysisRunView)
 async def restore_run(request: Request, run_id: str, body: AnalysisArchiveRequest):
     return await run(service(request).set_archived, run_id, body, archived=False)
+
+
+@router.delete("/analysis-runs/{run_id}", response_model=AnalysisRunDeleteReceipt)
+async def delete_run(request: Request, run_id: str):
+    """受引用守卫的彻底删除：物理删除报告与其冻结子表行。
+
+    练习引用/教案引用任一存在 → 409 ``ANALYSIS_RUN_IN_USE`` 并列出计数；
+    不存在 → 404；归档与未归档报告同样可删。回执为 ``{"deleted": true, "runId": ...}``。
+    """
+    return await run(service(request).delete_run, run_id)
 
 
 def report_endpoint(kind):

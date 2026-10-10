@@ -254,7 +254,7 @@ export function PracticesWorkspace({ initialPracticeSetId = null, initialPractic
         <div className="b4-list">{view.revisions.map((item) => <button className="space-button" disabled={locked} key={item.practiceRevisionId} title={`练习修订 ${item.practiceRevisionId}`} onClick={() => void switchWithin(() => setFixedId(item.practiceRevisionId))}>v{item.version} · {item.state === 'reviewed' ? '已审核，只读' : '草稿'}<span className="b4-meta">{shortId(item.practiceRevisionId)} · {item.reviewedAt ?? item.createdAt}</span></button>)}</div>
       </section>
       {revision && revision.practiceSetId !== setId && <p className="space-banner error" role="alert">修订归属与当前练习不一致，未显示其他练习内容。</p>}
-      {revision && revision.practiceSetId === setId && <PracticePane key={`${setId}|${fixedId ?? 'current'}`} view={view} revision={revision} services={services} onSaved={saved} onNewDraft={(next) => { saved(next); setFixedId(null); }} onLocked={workspaceLock} sessionHandle={editing} editable={!fixedId && revision.state === 'draft' && !archived} archived={archived} />}
+      {revision && revision.practiceSetId === setId && <PracticePane key={`${setId}|${fixedId ?? 'current'}`} view={view} revision={revision} services={services} onSaved={saved} onNewDraft={(next) => { saved(next); setFixedId(null); }} onLocked={workspaceLock} sessionHandle={editing} editable={!fixedId && revision.state === 'draft' && !archived} archived={archived} onConversionDeleted={() => { current.reload(); if (fixedId) fixed.reload(); }} />}
     </>}
     {leaveOpen && <dialog ref={leaveDialog} className="practice-leave-dialog" aria-label="处理未保存练习" onCancel={(event) => { event.preventDefault(); if (!leaveBusy) finishLeave(false); }}>
       <h2>离开当前练习前</h2><p role="status">{leaveNotice}</p>
@@ -267,9 +267,12 @@ export function PracticesWorkspace({ initialPracticeSetId = null, initialPractic
   </main></div>;
 }
 
-function PracticePane({ view, revision, services, onSaved, onNewDraft, onLocked, sessionHandle, editable, archived }: {
+function PracticePane({ view, revision, services, onSaved, onNewDraft, onLocked, onConversionDeleted, sessionHandle, editable, archived }: {
   view: PracticeSetView; revision: PracticeRevisionView; services: typeof b4Api;
-  onSaved: (view: PracticeSetView) => void; onNewDraft: (view: PracticeSetView) => void; onLocked: (locked: boolean) => void; sessionHandle: MutableRefObject<PracticeEditingHandle | null>; editable: boolean; archived: boolean;
+  onSaved: (view: PracticeSetView) => void; onNewDraft: (view: PracticeSetView) => void; onLocked: (locked: boolean) => void;
+  /** 解除回流关联成功后：清空本会话的转换回执并刷新练习/固定修订视图。 */
+  onConversionDeleted: () => void;
+  sessionHandle: MutableRefObject<PracticeEditingHandle | null>; editable: boolean; archived: boolean;
 }) {
   const [converted, setConverted] = useState<PracticeConversionReceipt | null>(null);
   const [locks, setLocks] = useState({ editor: false, exports: false, conversion: false, copy: false });
@@ -290,7 +293,8 @@ function PracticePane({ view, revision, services, onSaved, onNewDraft, onLocked,
     {revision.state === 'reviewed' && <>
       <section className="b4-section" aria-label="从审核版建立草稿"><h2>审核版只读</h2><p className="b4-hint">修改需要从此固定版本建立新草稿，旧导出与施测继续使用旧内容。</p>{archived && <p className="space-banner" role="status">该练习已归档：建立新草稿的入口已禁用，恢复后可继续。</p>}<SubmissionNotice submission={copy} /><button className="space-button" disabled={archived || copy.busy || locks.exports || locks.conversion} onClick={() => void newDraft()}>{copy.phase === 'unknown' ? '重试原新草稿提交' : '从此审核版建立新草稿'}</button></section>
       <PracticeConversion key={`conversion|${revision.practiceRevisionId}`} revision={revision} services={services} onLocked={conversionLock} onConverted={setConverted} disabled={archived} />
-      <PracticeExports key={`exports|${revision.practiceRevisionId}`} revision={revision} services={services} convertedAssessmentId={converted?.practiceRevisionId === revision.practiceRevisionId ? converted.assessmentId : null} onLocked={exportsLock} disabled={archived} />
+      {/* 已转换施测：本会话转换回执优先（即时反馈），否则回落服务端只读派生字段（刷新后仍可见）。 */}
+      <PracticeExports key={`exports|${revision.practiceRevisionId}`} revision={revision} services={services} convertedAssessmentId={converted?.practiceRevisionId === revision.practiceRevisionId ? converted.assessmentId : (revision.convertedAssessmentId ?? null)} onConversionDeleted={() => { setConverted(null); onConversionDeleted(); }} onLocked={exportsLock} disabled={archived} />
     </>}
     {!editable && revision.state === 'draft' && (archived
       ? <p className="b4-hint">该练习已归档：编辑入口已禁用以保持归档内容不被改写，恢复后可继续编辑；历史修订保留。</p>
