@@ -25,6 +25,10 @@ from langgraph.types import Command
 #: 单轮事件流上限保护（防模型失控死循环把流撑爆）；超出按 error 收尾。
 _MAX_EVENTS = 2000
 
+#: 图的递归步数上限（防模型失控反复调工具死循环）；LangGraph 超限抛 GraphRecursionError，
+#: 由运行器归为可读 error 事件。
+_RECURSION_LIMIT = 50
+
 
 def _norm_tool_args(raw: Any) -> dict:
     return raw if isinstance(raw, dict) else {"value": raw}
@@ -88,7 +92,10 @@ async def _iter_events(agent, invoke_input, config) -> AsyncIterator[dict]:
 
 async def run_turn(agent, *, thread_id: str, user_text: str) -> AsyncIterator[dict]:
     """发起一轮：把用户消息喂给图，产出内部事件流。"""
-    config: dict[str, Any] = {"configurable": {"thread_id": thread_id}}
+    config: dict[str, Any] = {
+        "configurable": {"thread_id": thread_id},
+        "recursion_limit": _RECURSION_LIMIT,
+    }
     invoke_input = {"messages": [HumanMessage(content=user_text)]}
     try:
         async for event in _iter_events(agent, invoke_input, config):
@@ -106,7 +113,10 @@ async def run_turn(agent, *, thread_id: str, user_text: str) -> AsyncIterator[di
 
 async def resume_turn(agent, *, thread_id: str, decision: Any) -> AsyncIterator[dict]:
     """恢复被 interrupt 挂起的一轮（教师确认/拒绝后）。"""
-    config: dict[str, Any] = {"configurable": {"thread_id": thread_id}}
+    config: dict[str, Any] = {
+        "configurable": {"thread_id": thread_id},
+        "recursion_limit": _RECURSION_LIMIT,
+    }
     try:
         async for event in _iter_events(agent, Command(resume=decision), config):
             yield event
