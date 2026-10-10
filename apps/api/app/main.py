@@ -17,6 +17,7 @@ from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.v1 import capabilities as capabilities_route
+from app.api.v1 import agent as agent_route
 from app.api.v1 import chat as chat_route
 from app.api.v1 import embedding_models as embedding_models_route
 from app.api.v1 import question_bank as question_bank_route
@@ -138,9 +139,23 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # 服务生命周期内持有数据根排他锁（OS 级，进程退出自动释放）：
     # 离线一致性备份拿不到锁会返回 DATA_LOCK_BUSY，而不会去停用户进程。
     with acquire_data_lock(settings.data_dir, exclusive=True, label="api"):
+        # Agent checkpointer 装配（LangGraph 中断/会话状态）；未装配时跳过，路由 503。
+        agent_service = getattr(app.state, "agent_service", None)
+        if agent_service is not None:
+            try:
+                await agent_service.setup()
+            except Exception:  # pragma: no cover - 装配失败不阻断其余服务
+                logger.exception("Agent checkpointer 装配失败")
+                app.state.agent_service = None
+                agent_service = None
         try:
             yield
         finally:
+            if agent_service is not None:
+                try:
+                    await agent_service.close()
+                except Exception:  # pragma: no cover - 收尾失败不覆盖正常退出
+                    logger.exception("关闭 Agent 服务失败")
             engine = getattr(app.state, "job_engine", None)
             shutdown = getattr(engine, "shutdown", None)
             if callable(shutdown):
@@ -284,6 +299,26 @@ def _build_local_runtime(app: FastAPI, settings: Settings) -> None:
     _build_lesson_runtime(app)
     # B5 依赖生产 RAG 和固定来源；全部域服务构造后才登记唯一 retry 执行器。
     _build_executor_registry(app)
+
+
+def _build_agent_runtime(app: FastAPI, settings: Settings) -> None:
+    """装配 Agent 编排服务（LangGraph 内嵌）。缺失依赖时留 None，路由 503。
+
+    checkpointer 落 teaching 数据根下的独立库；setup/close 由 lifespan 驱动。
+    Agent 只是编排层：业务读写仍走既有服务，模型凭证经 SecretStore 显式注入。
+    """
+    app.state.agent_service = None
+    try:
+        from app.services.agent.service import AgentService
+    except ImportError as exc:  # pragma: no cover - 依赖未装（langgraph 等）
+        logger.warning("Agent 服务未装配：%s", exc)
+        return
+    app.state.agent_service = AgentService(
+        checkpoint_db=settings.teaching_root / "agent_checkpoints.sqlite3",
+        repo=app.state.model_config_repo,
+        secrets=app.state.secret_store,
+        app_state=app.state,
+    )
 
 
 def _build_lesson_runtime(app: FastAPI) -> None:
@@ -668,6 +703,7 @@ def create_app(
         app.state.textbooks_error = "教材目录未装配（隔离测试）"
         for key in TEXTBOOK_STATE_KEYS:
             setattr(app.state, key, None)
+    _build_agent_runtime(app, settings)
     app.add_middleware(LocalAccessGuardMiddleware, settings=settings)
 
     app.include_router(health_route.router, prefix="/api/v1")
@@ -676,6 +712,7 @@ def create_app(
     app.include_router(model_profiles_route.router, prefix="/api/v1")
     app.include_router(model_catalog_route.router, prefix="/api/v1")
     app.include_router(chat_route.router, prefix="/api/v1")
+    app.include_router(agent_route.router, prefix="/api/v1")
     app.include_router(rag_route.router, prefix="/api/v1")
     app.include_router(embedding_models_route.router, prefix="/api/v1")
     app.include_router(textbooks_route.router, prefix="/api/v1")
