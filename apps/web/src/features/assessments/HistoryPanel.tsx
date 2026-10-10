@@ -7,10 +7,12 @@
  *   含 missing/缺考/免考一律不展示总分（也不用 0 代替）；
  * - 修正 = 从**不可变 base** 复制全矩阵 + 修正当时的参测快照生成新完整版本；
  *   `baseScoreRevisionId` 必须是当前生效版本（本页按最高已确认版本推断；见结果卡契约缺口）；
- * - 修正自身即一次完整确认：`submissionId` 冻结，同载荷重试按幂等处理。
+ * - 修正自身即一次完整确认：`submissionId` 冻结，同载荷重试按幂等处理；
+ * - 彻底删除 = 受引用守卫的物理删除（二次确认）：被学情报告/更新版本/导入批次引用时 409
+ *   `SCORE_REVISION_IN_USE`，逐项列出 `details.counts`；删掉正在展示的版本时立即切走，不读取已删版本。
  */
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { Plus, RefreshCw } from 'lucide-react';
 import type {
@@ -22,21 +24,25 @@ import type {
 import type { ScoreStatus } from '@/contracts/teaching-loop';
 import {
   correctScoreRevision,
+  deleteScoreRevision,
   getAssessment,
   getScoreMatrix,
   getScoreRevision,
   listScoreRevisions,
 } from '@/services/assessments-api';
-import { useAsyncResource, useClassNameMap, useFrozenSubmission } from './hooks';
+import { asApiError, useAsyncResource, useClassNameMap, useFrozenSubmission } from './hooks';
 import {
   attendanceLabel,
   cellValueText,
   formatScoreUnits,
   matrixRowTotalText,
+  referenceCounts,
+  SCORE_REVISION_REFERENCE_LABELS,
   scoreRevisionStateLabel,
   scoreStatusLabel,
   shortId,
 } from './labels';
+import { DeleteGuardNotice, type DeleteGuardState } from './DeleteGuardNotice';
 import { ScoreStatusBadge, ScoreStatusLegend } from './ScoreStatusBadge';
 
 const ROWS_PER_PAGE = 50;
@@ -61,6 +67,14 @@ export function HistoryPanel({
   const [scoreText, setScoreText] = useState('');
   const [corrections, setCorrections] = useState<ScoreCorrectionEntry[]>([]);
   const [formError, setFormError] = useState<string | null>(null);
+  /** 彻底删除（物理删除）的写操作身份与提示；与修正提交互斥。 */
+  const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
+  const [deleteGuard, setDeleteGuard] = useState<DeleteGuardState | null>(null);
+  const [deleteNotice, setDeleteNotice] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const deleteBusyRef = useRef(false);
+  /** 已删除版本：列表/施测详情读回前也不读取已删版本（矩阵与修正基准）。 */
+  const [removedRevisionIds, setRemovedRevisionIds] = useState<string[]>([]);
   const submission = useFrozenSubmission<ScoreRevisionCorrectRequest, ScoreRevisionCorrectResult>();
   /** 班名映射（只读）：修正人次下拉显示班名；映射缺失/读取失败回落短号。 */
   const classNames = useClassNameMap(`history|${assessmentId ?? 'none'}`);
@@ -77,7 +91,9 @@ export function HistoryPanel({
     `assessments-history-detail|${assessmentId ?? 'none'}|${refreshToken}|${localRefresh}`,
   );
 
-  const revisionItems: ScoreRevisionView[] = revisions.lastData?.items ?? [];
+  const revisionItems: ScoreRevisionView[] = (revisions.lastData?.items ?? []).filter(
+    (revision) => !removedRevisionIds.includes(revision.revisionId),
+  );
   const confirmed = revisionItems.filter((revision) => revision.state === 'confirmed');
   /** 权威字段优先：施测记录里的当前生效成绩修订（B3 契约 `activeScoreRevisionId`）。 */
   const activeFromAssessment = detail.lastData?.assessment.activeScoreRevisionId ?? null;
@@ -88,7 +104,12 @@ export function HistoryPanel({
   );
   const activeRevisionId = activeFromAssessment ?? activeRevisionEntity?.revisionId ?? null;
   const activeIsAuthoritative = activeFromAssessment !== null;
-  const activeRevisionIdSafe = selectedRevisionId ?? activeRevisionId;
+  const selectedOrActiveRevisionId = selectedRevisionId ?? activeRevisionId;
+  /** 已彻底删除的版本不再读取（施测详情/列表读回前也不闪读已删版本）。 */
+  const activeRevisionIdSafe =
+    selectedOrActiveRevisionId && !removedRevisionIds.includes(selectedOrActiveRevisionId)
+      ? selectedOrActiveRevisionId
+      : null;
   const activeRevision =
     confirmed.find((revision) => revision.revisionId === activeRevisionIdSafe) ?? null;
 
@@ -182,6 +203,57 @@ export function HistoryPanel({
       ? submission.error
       : null;
   const editingLocked = submission.busy || submission.phase === 'unknown';
+  /** 删除在途时同样禁止提交修正：一次只允许一个写操作。 */
+  const writingLocked = editingLocked || deleteBusyId !== null;
+
+  /**
+   * 彻底删除成绩版本（受引用守卫的物理删除，二次确认）：
+   * 被学情报告/基于它的更新版本/基于它的导入批次引用 → 409 `SCORE_REVISION_IN_USE`，
+   * 把服务端 message 与 `details.counts` 逐项列出；其它错误按既有错误区呈现。
+   */
+  async function deleteRevisionItem(revision: ScoreRevisionView) {
+    if (deleteBusyRef.current) return;
+    if (
+      !window.confirm(
+        `彻底删除成绩版本 v${revision.version}？这是物理删除、不可恢复；若它是当前生效版本，删除后本施测将没有生效成绩。`,
+      )
+    ) {
+      return;
+    }
+    deleteBusyRef.current = true;
+    setDeleteBusyId(revision.revisionId);
+    setDeleteGuard(null);
+    setDeleteNotice(null);
+    setDeleteError(null);
+    try {
+      await deleteScoreRevision(revision.revisionId);
+      // 已删版本立即从列表与读取路径剔除（施测详情/列表读回前不闪读已删版本）
+      setRemovedRevisionIds((prev) => [...prev, revision.revisionId]);
+      if (revision.revisionId === activeRevisionIdSafe) {
+        const remaining = revisionItems.filter((item) => item.revisionId !== revision.revisionId);
+        setSelectedRevisionId(remaining[0]?.revisionId ?? null);
+        setPage(0);
+      }
+      setDeleteNotice(`已彻底删除成绩版本 v${revision.version}：物理删除完成，不可恢复。`);
+      revisions.reload();
+      detail.reload();
+      onChanged();
+    } catch (cause) {
+      const error = asApiError(cause);
+      if (error.status === 409 && error.code === 'SCORE_REVISION_IN_USE') {
+        setDeleteGuard({
+          targetId: revision.revisionId,
+          error,
+          reasons: referenceCounts(error.details, SCORE_REVISION_REFERENCE_LABELS),
+        });
+      } else {
+        setDeleteError(`彻底删除成绩版本失败（${error.code}）：${error.message}`);
+      }
+    } finally {
+      deleteBusyRef.current = false;
+      setDeleteBusyId(null);
+    }
+  }
 
   if (!assessmentId) {
     return (
@@ -193,6 +265,12 @@ export function HistoryPanel({
       </div>
     );
   }
+
+  /** 删除被拒时的对象显示名：仍能从列表读到版本号就用 `v{n}`，否则回落短号。 */
+  const guardTargetRevision =
+    deleteGuard === null
+      ? null
+      : revisionItems.find((revision) => revision.revisionId === deleteGuard.targetId) ?? null;
 
   return (
     <div className="assessments-panel" data-testid="assessments-history-panel">
@@ -217,35 +295,66 @@ export function HistoryPanel({
         <ul className="assessments-list" aria-label="成绩修订列表">
           {revisionItems.map((revision) => (
             <li key={revision.revisionId}>
-              <button
-                type="button"
-                className={
-                  revision.revisionId === activeRevisionIdSafe
-                    ? 'assessments-list-item current'
-                    : 'assessments-list-item'
-                }
-                aria-pressed={revision.revisionId === activeRevisionIdSafe}
-                data-testid={`assessments-revision-${revision.revisionId}`}
-                onClick={() => {
-                  setSelectedRevisionId(revision.revisionId);
-                  setPage(0);
-                }}
-              >
-                <strong>v{revision.version}</strong>
-                <span
-                  className="assessments-meta"
-                  title={`修订 ${revision.revisionId}${revision.baseRevisionId ? ` · 基于 ${revision.baseRevisionId}` : ' · 首版'}`}
+              <div className="assessments-actions">
+                <button
+                  type="button"
+                  className={
+                    revision.revisionId === activeRevisionIdSafe
+                      ? 'assessments-list-item current'
+                      : 'assessments-list-item'
+                  }
+                  aria-pressed={revision.revisionId === activeRevisionIdSafe}
+                  data-testid={`assessments-revision-${revision.revisionId}`}
+                  onClick={() => {
+                    setSelectedRevisionId(revision.revisionId);
+                    setPage(0);
+                  }}
                 >
-                  {scoreRevisionStateLabel(revision.state)} · {shortId(revision.revisionId)} · 人次{' '}
-                  {revision.participantSnapshot?.length ?? 0} · 叶{' '}
-                  {revision.itemSnapshot?.length ?? 0}
-                  {revision.baseRevisionId ? ` · 基于 ${shortId(revision.baseRevisionId)}` : ' · 首版'}
-                  {revision.revisionId === activeRevisionId ? ' · 当前生效' : ''}
-                </span>
-              </button>
+                  <strong>v{revision.version}</strong>
+                  <span
+                    className="assessments-meta"
+                    title={`修订 ${revision.revisionId}${revision.baseRevisionId ? ` · 基于 ${revision.baseRevisionId}` : ' · 首版'}`}
+                  >
+                    {scoreRevisionStateLabel(revision.state)} · {shortId(revision.revisionId)} · 人次{' '}
+                    {revision.participantSnapshot?.length ?? 0} · 叶{' '}
+                    {revision.itemSnapshot?.length ?? 0}
+                    {revision.baseRevisionId ? ` · 基于 ${shortId(revision.baseRevisionId)}` : ' · 首版'}
+                    {revision.revisionId === activeRevisionId ? ' · 当前生效' : ''}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="space-button danger"
+                  aria-label={`彻底删除成绩版本 v${revision.version}`}
+                  data-testid={`assessments-revision-delete-${revision.revisionId}`}
+                  disabled={deleteBusyId !== null}
+                  onClick={() => void deleteRevisionItem(revision)}
+                >
+                  {deleteBusyId === revision.revisionId ? '删除中…' : '彻底删除'}
+                </button>
+              </div>
             </li>
           ))}
         </ul>
+        {deleteNotice && (
+          <p className="space-banner info" role="status" data-testid="assessments-revision-delete-notice">
+            {deleteNotice}
+          </p>
+        )}
+        {deleteError && (
+          <p className="space-banner error" role="alert" data-testid="assessments-revision-delete-error">
+            {deleteError}
+          </p>
+        )}
+        {deleteGuard && (
+          <DeleteGuardNotice
+            state={deleteGuard}
+            targetName={
+              guardTargetRevision ? `v${guardTargetRevision.version}` : shortId(deleteGuard.targetId)
+            }
+            testId="assessments-revision-delete-guard"
+          />
+        )}
       </section>
 
       {activeRevisionIdSafe && (
@@ -490,7 +599,7 @@ export function HistoryPanel({
               className="space-button primary"
               data-testid="assessments-correct-submit"
               disabled={
-                submission.busy || (submission.phase !== 'unknown' && (corrections.length === 0 || reason.trim() === '' || !activeRevisionId))
+                writingLocked || (submission.phase !== 'unknown' && (corrections.length === 0 || reason.trim() === '' || !activeRevisionId))
               }
               onClick={() => void submitCorrection()}
             >

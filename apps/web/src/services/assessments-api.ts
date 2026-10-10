@@ -48,6 +48,8 @@ import type {
 } from '@/contracts/papers';
 import type {
   AssessmentDeleteResult,
+  ScoreImportDeleteResult,
+  ScoreRevisionDeleteResult,
 } from '@/contracts/assessments';
 import type { JobView } from '@/contracts/teaching-loop';
 import type {
@@ -618,6 +620,18 @@ export function discardScoreImport(
   );
 }
 
+/**
+ * 彻底删除成绩导入批次（受引用守卫的物理删除，无请求体）：批次记录与预览行一并删除。
+ * 已生成成绩版本 → 409 `SCORE_IMPORT_IN_USE` + `details.counts.scoreRevisions`；
+ * 不存在 → 404。状态不预判：是否被拒绝由服务端守卫决定。
+ */
+export function deleteScoreImport(importId: string): Promise<ScoreImportDeleteResult> {
+  return apiRequest<ScoreImportDeleteResult>(
+    `/score-imports/${encodeURIComponent(importId)}`,
+    { method: 'DELETE' },
+  );
+}
+
 /* ------------------------------------------------------------------ 成绩修订与矩阵 */
 
 export function listScoreRevisions(
@@ -663,5 +677,17 @@ export function correctScoreRevision(
   return apiRequest<ScoreRevisionCorrectResult>(
     `/assessments/${encodeURIComponent(assessmentId)}/score-revisions/correct`,
     jsonInit('POST', body),
+  );
+}
+
+/**
+ * 彻底删除成绩版本（受引用守卫的物理删除，无请求体）：快照与单元一并删除。
+ * 被学情报告/基于它的更新版本/基于它的导入批次引用 → 409 `SCORE_REVISION_IN_USE` +
+ * `details.counts.{analysisRuns,dependentRevisions,importBatches}`；不存在 → 404。
+ */
+export function deleteScoreRevision(revisionId: string): Promise<ScoreRevisionDeleteResult> {
+  return apiRequest<ScoreRevisionDeleteResult>(
+    `/score-revisions/${encodeURIComponent(revisionId)}`,
+    { method: 'DELETE' },
   );
 }

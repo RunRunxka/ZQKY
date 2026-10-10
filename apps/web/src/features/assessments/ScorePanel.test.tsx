@@ -375,3 +375,133 @@ describe('名称优先：批次文件名与原卷标题', () => {
     expect(screen.queryByText(/原卷修订 pr-1/)).not.toBeInTheDocument();
   });
 });
+
+/* ------------------------------------------------------------------ 成绩导入批次的彻底删除 */
+
+/** 彻底删除批次测试的 fetch 桩：批次列表 / 批次详情 / 原表行 / 施测详情 / DELETE。 */
+function stubDeleteBatches(
+  onDelete: (importId: string) => Promise<Response> | Response,
+  summaries: () => unknown[],
+) {
+  const calls: { url: string; method: string }[] = [];
+  const fetched = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    const method = init?.method ?? 'GET';
+    calls.push({ url, method });
+    if (method === 'DELETE') {
+      return onDelete(decodeURIComponent(url.split('/').pop() ?? ''));
+    }
+    if (url.includes('/score-imports?')) {
+      return response(200, { items: summaries(), total: summaries().length, offset: 0, limit: 50 });
+    }
+    if (url.includes('/score-imports/') && url.includes('/rows')) return response(200, { items: [], total: 0 });
+    if (url.includes('/score-imports/')) {
+      return response(200, view(decodeURIComponent(url.split('/').pop() ?? '')));
+    }
+    if (url.includes('/score-revisions')) return response(200, { items: [], total: 0 });
+    if (url.includes('/content')) return response(200, { items: [], blocks: [] });
+    return response(200, {
+      assessment: { assessmentId: 'as-1', paperId: 'paper-1', paperRevisionId: 'pr-1',
+        title: '期中', participantCount: 1, revision: 4 },
+      participants: [],
+    });
+  });
+  vi.stubGlobal('fetch', fetched);
+  return { fetched, calls };
+}
+
+describe('成绩导入批次的彻底删除', () => {
+  it('confirmed 批次同样显示彻底删除；取消二次确认不发请求', async () => {
+    const confirmSpy = vi.fn(() => false);
+    vi.stubGlobal('confirm', confirmSpy);
+    const list = { items: [summary('imp-1', 'reviewing'), summary('imp-2', 'confirmed', 4)] };
+    const { calls } = stubDeleteBatches(() => response(200, { deleted: true, importId: 'imp-2' }), () => list.items);
+    render(ui());
+    await screen.findByTestId('assessments-import-delete-imp-2');
+    fireEvent.click(screen.getByTestId('assessments-import-delete-imp-2'));
+    expect(confirmSpy).toHaveBeenCalledWith(
+      '彻底删除该导入批次？这是物理删除、不可恢复；批次预览行会一并删除。若它已生成成绩版本，需要先删除对应成绩版本。',
+    );
+    expect(calls.filter((call) => call.method === 'DELETE')).toHaveLength(0);
+    expect(screen.queryByTestId('assessments-import-delete-notice')).not.toBeInTheDocument();
+    expect(screen.getByTestId('assessments-import-imp-2')).toBeInTheDocument();
+  });
+
+  it('成功删除：提示 + 刷新批次列表 + 选中切到剩余批次且不再读取已删批次', async () => {
+    vi.stubGlobal('confirm', vi.fn(() => true));
+    const list = { items: [summary('imp-1', 'reviewing'), summary('imp-2', 'confirmed', 4)] };
+    const { calls } = stubDeleteBatches(() => {
+      list.items = [summary('imp-2', 'confirmed', 4)];
+      return response(200, { deleted: true, importId: 'imp-1' });
+    }, () => list.items);
+    render(ui());
+    await waitFor(() => expect(screen.getByTestId('assessments-import-imp-1')).toHaveAttribute('aria-pressed', 'true'));
+    const listReads = () =>
+      calls.filter((call) => call.method === 'GET' && call.url.includes('/score-imports?')).length;
+    const before = listReads();
+    fireEvent.click(screen.getByTestId('assessments-import-delete-imp-1'));
+    expect(await screen.findByTestId('assessments-import-delete-notice')).toHaveTextContent(
+      '已彻底删除导入批次：物理删除完成，不可恢复。',
+    );
+    await waitFor(() => expect(listReads()).toBeGreaterThan(before));
+    expect(calls.filter((call) => call.method === 'DELETE')).toEqual([
+      { url: '/api/v1/score-imports/imp-1', method: 'DELETE' },
+    ]);
+    expect(screen.queryByTestId('assessments-import-imp-1')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('assessments-import-imp-2')).toHaveAttribute('aria-pressed', 'true'));
+    const lateCalls = () => calls.slice(calls.findIndex((call) => call.method === 'DELETE') + 1);
+    // 已删批次不再作为选中批次读取（批次详情）；校对行可能仍在途（点击时正在展示该批次）
+    expect(
+      lateCalls().filter(
+        (call) => call.method === 'GET' && call.url === '/api/v1/score-imports/imp-1',
+      ),
+    ).toHaveLength(0);
+    // 面板切到剩余批次：剩余批次的校对行被读取，没有停留在已删批次
+    await waitFor(() =>
+      expect(
+        lateCalls().some(
+          (call) => call.method === 'GET' && call.url.includes('/score-imports/imp-2/rows'),
+        ),
+      ).toBe(true),
+    );
+  });
+
+  it('409 引用守卫逐项列出中文原因，批次仍在列表且可继续操作', async () => {
+    vi.stubGlobal('confirm', vi.fn(() => true));
+    const list = { items: [summary('imp-1', 'confirmed', 4)] };
+    stubDeleteBatches(
+      () => response(409, {
+        code: 'SCORE_IMPORT_IN_USE',
+        message: '该批次已生成成绩版本，不能彻底删除',
+        details: { counts: { scoreRevisions: 2 } },
+      }),
+      () => list.items,
+    );
+    render(ui());
+    fireEvent.click(await screen.findByTestId('assessments-import-delete-imp-1'));
+    const guard = await screen.findByTestId('assessments-import-delete-guard');
+    expect(guard).toHaveTextContent('SCORE_IMPORT_IN_USE');
+    expect(guard).toHaveTextContent('该批次已生成成绩版本，不能彻底删除');
+    expect(guard).toHaveTextContent('已生成的成绩版本 2 条');
+    expect(screen.getByTestId('assessments-import-imp-1')).toBeInTheDocument();
+    expect(screen.queryByTestId('assessments-import-delete-notice')).not.toBeInTheDocument();
+  });
+
+  it('删除在途时放弃按钮禁用：不会并发两个写操作', async () => {
+    vi.stubGlobal('confirm', vi.fn(() => true));
+    let finish!: (value: Response) => void;
+    const pending = new Promise<Response>((resolve) => { finish = resolve; });
+    const list = { items: [summary('imp-1', 'reviewing')] };
+    const { calls } = stubDeleteBatches(() => pending, () => list.items);
+    render(ui());
+    await screen.findByTestId('assessments-discard-import-imp-1');
+    fireEvent.click(screen.getByTestId('assessments-import-delete-imp-1'));
+    await waitFor(() => expect(calls.filter((call) => call.method === 'DELETE')).toHaveLength(1));
+    expect(screen.getByTestId('assessments-discard-import-imp-1')).toBeDisabled();
+    fireEvent.click(screen.getByTestId('assessments-discard-import-imp-1'));
+    expect(calls.filter((call) => call.method === 'POST')).toHaveLength(0);
+    await act(async () => finish(response(200, { deleted: true, importId: 'imp-1' })));
+    await screen.findByTestId('assessments-import-delete-notice');
+    expect(calls.filter((call) => call.method === 'POST')).toHaveLength(0);
+  });
+});

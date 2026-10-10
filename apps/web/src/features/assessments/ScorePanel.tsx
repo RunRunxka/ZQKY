@@ -7,7 +7,9 @@
  * - 列映射固定到原卷的**计分叶**（未映射的叶在确认时按 missing 处理，必须被承认覆盖）；
  * - 行校对在原表物理坐标上做（行号 + 列字母），明细见 `ScoreImportReview`；
  * - 确认是逻辑确认：`submissionId` + 原样载荷冻结，结果未知时原样重试；
- * - 409/422 的处理在 review 组件里：保留编辑/校对并显式刷新对照。
+ * - 409/422 的处理在 review 组件里：保留编辑/校对并显式刷新对照；
+ * - 彻底删除 = 受引用守卫的物理删除（二次确认，预览行一并删除，任何状态都可尝试、不预判状态）；
+ *   已生成成绩版本 → 409 `SCORE_IMPORT_IN_USE` 并逐项列出计数；与「放弃」互斥，一次只发一个写请求。
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -22,6 +24,7 @@ import type {
 } from '@/contracts/scores';
 import {
   createScoreImport,
+  deleteScoreImport,
   discardScoreImport,
   getAssessment,
   getPaperRevisionContent,
@@ -32,7 +35,17 @@ import {
   refreshScoreImport,
 } from '@/services/assessments-api';
 import { asApiError, useAsyncResource } from './hooks';
-import { issueLocationLabel, leafLabel, scoreImportStateChipClass, scoreImportStateLabel, scoredLeafItems, shortId } from './labels';
+import {
+  issueLocationLabel,
+  leafLabel,
+  referenceCounts,
+  SCORE_IMPORT_REFERENCE_LABELS,
+  scoreImportStateChipClass,
+  scoreImportStateLabel,
+  scoredLeafItems,
+  shortId,
+} from './labels';
+import { DeleteGuardNotice, type DeleteGuardState } from './DeleteGuardNotice';
 import { ScoreImportReview } from './ScoreImportReview';
 import { ScoreStatusLegend } from './ScoreStatusBadge';
 
@@ -114,6 +127,14 @@ export function ScorePanel({
   const [discardBusyId, setDiscardBusyId] = useState<string | null>(null);
   const [discardError, setDiscardError] = useState<string | null>(null);
   const discardBusyRef = useRef(false);
+  /** 彻底删除批次的写操作身份、守卫原因与提示（与放弃互斥，一次只发一个写请求）。 */
+  const [deleteImportBusyId, setDeleteImportBusyId] = useState<string | null>(null);
+  const [deleteImportGuard, setDeleteImportGuard] = useState<DeleteGuardState | null>(null);
+  const [deleteImportNotice, setDeleteImportNotice] = useState<string | null>(null);
+  const [deleteImportError, setDeleteImportError] = useState<string | null>(null);
+  const deleteImportBusyRef = useRef(false);
+  /** 已彻底删除的批次：列表/详情读回前不再读取（校对面板不读已删批次）。 */
+  const [removedImportIds, setRemovedImportIds] = useState<string[]>([]);
 
   const detail = useAsyncResource(
     (signal) => (assessmentId ? getAssessment(assessmentId, signal) : Promise.resolve(null)),
@@ -128,11 +149,18 @@ export function ScorePanel({
     `assessments-score-imports|${assessmentId ?? 'none'}|${refreshToken}|${localRefresh}`,
   );
 
-  const importSummaries: ScoreImportSummary[] = imports.lastData?.items ?? [];
+  const importSummaries: ScoreImportSummary[] = (imports.lastData?.items ?? []).filter(
+    (summary) => !removedImportIds.includes(summary.importId),
+  );
 
   // 选中批次：用户选择优先（列表刷新期间不丢选择，避免校对面板被卸载）；否则用最新批次
+  // 已彻底删除的批次不再参与选中与回落（列表/详情读回前也不读取已删批次）。
   const defaultImportId = importSummaries[0]?.importId ?? null;
-  const activeImportId = selectedImportId ?? defaultImportId;
+  const selectedImportIdSafe =
+    selectedImportId !== null && !removedImportIds.includes(selectedImportId)
+      ? selectedImportId
+      : null;
+  const activeImportId = selectedImportIdSafe ?? defaultImportId;
   useEffect(() => {
     // 首次自动选择也固定身份：列表刷新不应短暂变成 none，误清在途后的新编辑。
     if (selectedImportId === null && defaultImportId) setSelectedImportId(defaultImportId);
@@ -374,7 +402,7 @@ export function ScorePanel({
    * 已确认批次不可放弃（服务端 409）。成功后刷新批次列表并读回取消状态。
    */
   async function discardImport(summary: ScoreImportSummary) {
-    if (discardBusyRef.current) return;
+    if (discardBusyRef.current || deleteImportBusyRef.current) return;
     if (!window.confirm('放弃后批次保留记录但不能再校对/确认。确认放弃该成绩批次？')) return;
     const token = operation.current.epoch;
     discardBusyRef.current = true;
@@ -395,6 +423,64 @@ export function ScorePanel({
       if (current(token)) setDiscardBusyId(null);
     }
   }
+
+  /**
+   * 彻底删除导入批次（受引用守卫的物理删除，二次确认）：批次记录与预览行一并删除。
+   * 任何状态都可尝试（`confirmed` 是否被拒由服务端守卫决定，界面不预判）；
+   * 已生成成绩版本 → 409 `SCORE_IMPORT_IN_USE`，把服务端 message 与 `details.counts` 逐项列出；
+   * 其它错误按既有错误区呈现。与放弃互斥：在途时两个按钮都禁用，不会并发两个写操作。
+   */
+  async function deleteImportItem(summary: ScoreImportSummary) {
+    if (deleteImportBusyRef.current || discardBusyRef.current) return;
+    if (
+      !window.confirm(
+        '彻底删除该导入批次？这是物理删除、不可恢复；批次预览行会一并删除。若它已生成成绩版本，需要先删除对应成绩版本。',
+      )
+    ) {
+      return;
+    }
+    const token = operation.current.epoch;
+    deleteImportBusyRef.current = true;
+    setDeleteImportBusyId(summary.importId);
+    setDeleteImportGuard(null);
+    setDeleteImportNotice(null);
+    setDeleteImportError(null);
+    try {
+      await deleteScoreImport(summary.importId);
+      if (!current(token)) return;
+      // 已删批次立即退出列表与选中回落：校对面板不再读取已删批次
+      setRemovedImportIds((prev) => [...prev, summary.importId]);
+      if (summary.importId === activeImportId) setSelectedImportId(null);
+      setDeleteImportNotice('已彻底删除导入批次：物理删除完成，不可恢复。');
+      reloadAll();
+      onChanged();
+    } catch (cause) {
+      if (!current(token)) return;
+      const error = asApiError(cause);
+      if (error.status === 409 && error.code === 'SCORE_IMPORT_IN_USE') {
+        setDeleteImportGuard({
+          targetId: summary.importId,
+          error,
+          reasons: referenceCounts(error.details, SCORE_IMPORT_REFERENCE_LABELS),
+        });
+      } else {
+        setDeleteImportError(`彻底删除导入批次失败（${error.code}）：${error.message}`);
+      }
+    } finally {
+      deleteImportBusyRef.current = false;
+      if (current(token)) setDeleteImportBusyId(null);
+    }
+  }
+
+  /** 删除被拒时的对象显示名：文件名缺失回落「批次 <短号>」（不伪造名称）。 */
+  const deleteGuardTargetName = (() => {
+    const target = deleteImportGuard === null
+      ? null
+      : importSummaries.find((summary) => summary.importId === deleteImportGuard.targetId) ?? null;
+    return target?.uploadedFileName?.trim()
+      ? target.uploadedFileName
+      : `批次 ${shortId(deleteImportGuard?.targetId ?? null)}`;
+  })();
 
   if (!assessmentId) {
     return (
@@ -535,12 +621,20 @@ export function ScorePanel({
                   <button
                     className="space-button danger"
                     data-testid={`assessments-discard-import-${summary.importId}`}
-                    disabled={discardBusyId !== null}
+                    disabled={discardBusyId !== null || deleteImportBusyId !== null}
                     onClick={() => void discardImport(summary)}
                   >
                     {discardBusyId === summary.importId ? '放弃中…' : '放弃'}
                   </button>
                 )}
+                <button
+                  className="space-button danger"
+                  data-testid={`assessments-import-delete-${summary.importId}`}
+                  disabled={discardBusyId !== null || deleteImportBusyId !== null}
+                  onClick={() => void deleteImportItem(summary)}
+                >
+                  {deleteImportBusyId === summary.importId ? '删除中…' : '彻底删除'}
+                </button>
               </div>
             </li>
           ))}
@@ -549,6 +643,23 @@ export function ScorePanel({
           <p className="space-banner error" role="alert" data-testid="assessments-discard-error">
             {discardError}
           </p>
+        )}
+        {deleteImportNotice && (
+          <p className="space-banner info" role="status" data-testid="assessments-import-delete-notice">
+            {deleteImportNotice}
+          </p>
+        )}
+        {deleteImportError && (
+          <p className="space-banner error" role="alert" data-testid="assessments-import-delete-error">
+            {deleteImportError}
+          </p>
+        )}
+        {deleteImportGuard && (
+          <DeleteGuardNotice
+            state={deleteImportGuard}
+            targetName={deleteGuardTargetName}
+            testId="assessments-import-delete-guard"
+          />
         )}
       </section>
 

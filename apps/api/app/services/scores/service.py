@@ -47,6 +47,8 @@ from app.contracts.scores import (
     SCORE_NO_BASE_REVISION,
     SCORE_PARTICIPANT_UNKNOWN,
     SCORE_REVISION_NOT_FOUND,
+    SCORE_REVISION_IN_USE,
+    SCORE_IMPORT_IN_USE,
     ScoreAbsenceAcknowledgement,
     ScoreColumnMapping,
     ScoreImportConfirmRequest,
@@ -1689,6 +1691,66 @@ class ScoreService:
         return build_matrix_page(
             revision, cells=cell_map, stats=stats, offset=offset, limit=limit
         )
+
+    # ---------------------------------------------------------------- 删除（误录入清理）
+
+    def delete_score_revision(self, revision_id: str) -> dict[str, Any]:
+        """彻底删除一个成绩版本（draft/confirmed 都可）：受引用守卫 + 单事务原子删除。
+
+        守卫（任一 >0 → 409 ``SCORE_REVISION_IN_USE``，``details.counts`` 恒含三键）：
+        ``analysisRuns``（学情报告运行）、``dependentRevisions``（基于它的更新成绩版本）、
+        ``importBatches``（基于它的导入批次）。通过后同一写事务内：删修正审计 → 删矩阵
+        → active 指针指向它则置 NULL（不 bump 施测 revision，保持其它标签页 CAS 语义）
+        → 删版本行；confirmed 版本的 DELETE 触发器按迁移登记原文临时摘除再逐字恢复
+        （详见仓储层 docstring）。不存在 → 404 ``SCORE_REVISION_NOT_FOUND``。
+        """
+        revision_id = _text(revision_id, field="revisionId")
+        with self._catalog.write_transaction() as conn:
+            self._scores.require_revision_in(conn, revision_id)
+            counts = self._scores.count_revision_references_in(conn, revision_id)
+            if any(value > 0 for value in counts.values()):
+                labels = {
+                    "analysisRuns": "学情报告",
+                    "dependentRevisions": "基于它的更新成绩版本",
+                    "importBatches": "基于它的导入批次",
+                }
+                summary = "、".join(
+                    f"{labels[key]} {value} 条" for key, value in counts.items() if value > 0
+                )
+                raise AppError(
+                    f"成绩版本仍被引用，不能删除（{summary}）；请先处理相关数据。",
+                    code=SCORE_REVISION_IN_USE,
+                    status_code=409,
+                    details={"counts": counts},
+                )
+            receipt = self._scores.delete_revision_in(conn, revision_id)
+        return {"deleted": True, "revisionId": revision_id, **receipt}
+
+    def delete_score_import(self, import_id: str) -> dict[str, Any]:
+        """彻底删除一个成绩导入批次（任何 state 都可）：受产出守卫 + 单事务原子删除。
+
+        守卫：该批次已确认产出成绩版本（``score_revisions.source_import_id``）→ 409
+        ``SCORE_IMPORT_IN_USE``（先彻底删除对应成绩版本）；任何 state
+        （uploaded/reviewing/confirmed/failed/cancelled）本身不拦——批次记录是清理目标，
+        成绩版本才是下游证据。通过后同一写事务先删 ``score_import_rows`` 再删
+        ``score_imports`` 行（两表均无触发器）。不存在 → 404 ``SCORE_IMPORT_NOT_FOUND``。
+        ``POST /score-imports/{id}/discard`` 的既有语义不变（放弃 ≠ 删除）。
+        """
+        import_id = _text(import_id, field="importId")
+        with self._catalog.write_transaction() as conn:
+            record = self._scores.require_in(conn, import_id, with_rows=False)
+            del record  # require_in 已承担 404
+            generated = self._scores.count_import_generated_revisions_in(conn, import_id)
+            if generated > 0:
+                raise AppError(
+                    "导入批次已生成成绩版本，不能删除（已生成的成绩版本 "
+                    f"{generated} 条）；请先彻底删除对应成绩版本。",
+                    code=SCORE_IMPORT_IN_USE,
+                    status_code=409,
+                    details={"counts": {"scoreRevisions": generated}},
+                )
+            self._scores.delete_import_in(conn, import_id)
+        return {"deleted": True, "importId": import_id}
 
     # ---------------------------------------------------------------- 修正
 

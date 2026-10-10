@@ -354,6 +354,18 @@ export const ASSESSMENT_REFERENCE_LABELS: Record<string, string> = {
   practiceConversions: '练习转换',
 };
 
+/** 彻底删除成绩版本被拒（`SCORE_REVISION_IN_USE`）的 `details.counts` 逐项标签。 */
+export const SCORE_REVISION_REFERENCE_LABELS: Record<string, string> = {
+  analysisRuns: '学情报告',
+  dependentRevisions: '基于它的更新成绩版本',
+  importBatches: '基于它的导入批次',
+};
+
+/** 彻底删除成绩导入批次被拒（`SCORE_IMPORT_IN_USE`）的 `details.counts` 逐项标签。 */
+export const SCORE_IMPORT_REFERENCE_LABELS: Record<string, string> = {
+  scoreRevisions: '已生成的成绩版本',
+};
+
 /**
  * 从 409 的 `details` 里读 `counts` 并逐项列成原因清单：
  * 只保留计数 >0 的键，未知键用原始键名兜底（不隐藏任何一条引用），形状不符返回空数组。

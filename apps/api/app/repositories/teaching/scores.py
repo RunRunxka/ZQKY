@@ -58,6 +58,23 @@ SCORE_REVISION_STATES: frozenset[str] = frozenset({"draft", "confirmed"})
 #: 读取时结构非法（500）：不静默放行损坏的批次/行/修订。
 SCORE_ROW_CORRUPT = "SCORE_ROW_CORRUPT"
 
+#: 0006 登记的不可变 DELETE 触发器原文（``app/core/migrations/teaching.py``；全迁移中
+#: 仅此一处声明，未被后续迁移重写）。受守卫的彻底删除在同一写事务内临时摘除再
+#: **逐字**恢复（DDL 可事务化，任一步失败整体回滚，触发器随事务恢复；
+#: BEGIN IMMEDIATE 下无并发写者可见窗口）。先例：lesson_plans.delete_lesson_in、
+#: knowledge points.delete_point。不改登记 SQL。
+_IMMUTABLE_SCORE_REVISIONS_DELETE = (
+    "CREATE TRIGGER IF NOT EXISTS immutable_score_revisions_delete "
+    "BEFORE DELETE ON score_revisions WHEN OLD.state='confirmed' "
+    "BEGIN SELECT RAISE(ABORT,'SCORE_REVISION_IMMUTABLE'); END"
+)
+_IMMUTABLE_ITEM_SCORES_DELETE = (
+    "CREATE TRIGGER IF NOT EXISTS immutable_item_scores_delete "
+    "BEFORE DELETE ON student_item_scores "
+    "WHEN (SELECT state FROM score_revisions WHERE id=OLD.score_revision_id)='confirmed' "
+    "BEGIN SELECT RAISE(ABORT,'SCORE_REVISION_IMMUTABLE'); END"
+)
+
 _SELECT_IMPORT = """
 SELECT i.id, i.assessment_id, i.file_id, i.base_score_revision_id,
        i.mapping_json, i.state, i.revision, i.preview_version, i.work_sheet,
@@ -877,6 +894,141 @@ class ScoreRepository:
             )
 
     # -------------------------------------------------------------- 成绩修订读
+
+    def count_revision_references_in(
+        self, conn: sqlite3.Connection, revision_id: str
+    ) -> dict[str, int]:
+        """一个成绩修订在下游表里的引用计数（彻底删除守卫的数据来源）。
+
+        - ``analysisRuns``：``analysis_runs.score_revision_id``（学情报告运行；B4 表，
+          报告证据不随版本删除，须先单独处理）；
+        - ``dependentRevisions``：``score_revisions.base_revision_id`` 指向它的更新版本
+          （修正链：base 不可先于其衍生版本删除）；
+        - ``importBatches``：``score_imports.base_score_revision_id`` 指向它的导入批次
+          （批次冻结点记录了它基于哪个版本）。
+        """
+        revision_id = _require_text(revision_id, field="revisionId")
+        return {
+            "analysisRuns": int(
+                conn.execute(
+                    "SELECT COUNT(*) AS n FROM analysis_runs WHERE score_revision_id = ?",
+                    (revision_id,),
+                ).fetchone()["n"]
+            ),
+            "dependentRevisions": int(
+                conn.execute(
+                    "SELECT COUNT(*) AS n FROM score_revisions WHERE base_revision_id = ?",
+                    (revision_id,),
+                ).fetchone()["n"]
+            ),
+            "importBatches": int(
+                conn.execute(
+                    "SELECT COUNT(*) AS n FROM score_imports "
+                    "WHERE base_score_revision_id = ?",
+                    (revision_id,),
+                ).fetchone()["n"]
+            ),
+        }
+
+    def count_import_generated_revisions_in(
+        self, conn: sqlite3.Connection, import_id: str
+    ) -> int:
+        """该导入批次产出的成绩版本数（``score_revisions.source_import_id``；删除守卫）。"""
+        import_id = _require_text(import_id, field="importId")
+        row = conn.execute(
+            "SELECT COUNT(*) AS n FROM score_revisions WHERE source_import_id = ?",
+            (import_id,),
+        ).fetchone()
+        return int(row["n"])
+
+    def delete_revision_in(
+        self, conn: sqlite3.Connection, revision_id: str
+    ) -> dict[str, Any]:
+        """彻底删除一个成绩修订（draft/confirmed 都可）：修正审计 → 矩阵 → 指针 → 版本行。
+
+        前置：调用方已通过受引用守卫（``count_revision_references_in`` 全零）。
+        顺序说明：
+
+        - ``score_revision_corrections``（FK 指向本修订）→ ``student_item_scores``
+          （复合 FK 指向本修订）→ ``score_revisions`` 行，自底向上；
+        - confirmed 版本的 DELETE 被 0006 登记的 ``immutable_score_revisions_delete`` /
+          ``immutable_item_scores_delete`` 拦截：同一写事务内先 DROP、删除后按登记
+          原文逐字恢复（与迁移声明一致，不改登记 SQL；任一步失败整体回滚，触发器随
+          事务恢复；BEGIN IMMEDIATE 下无并发写者可见窗口）。先例：
+          ``lesson_plans.delete_lesson_in``、``knowledge points.delete_point``；
+        - ``assessments.active_score_revision_id`` 指向本修订时置 NULL（派生清空）。
+          0006 的 ``assessment_active_score_confirmed`` 触发器只拦
+          ``NEW.active_score_revision_id IS NOT NULL`` 的 UPDATE，置 NULL 天然放行，
+          无需摘除该触发器；
+        - **不 bump ``assessments.revision``**：删除是独立动作，指针清空是派生后果；
+          保持其它标签页持有的施测 CAS（expectedRevision）语义不被这次删除打乱。
+        """
+        revision_id = _require_text(revision_id, field="revisionId")
+        current = self.get_revision_in(conn, revision_id)
+        if current is None:
+            raise self._revision_not_found(revision_id)
+        cleared_active = False
+        removed_scores = 0
+        removed_corrections = 0
+        # 与迁移登记逐字一致的两条 DELETE 触发器原文（模块顶部常量）
+        delete_triggers = (
+            ("immutable_score_revisions_delete", _IMMUTABLE_SCORE_REVISIONS_DELETE),
+            ("immutable_item_scores_delete", _IMMUTABLE_ITEM_SCORES_DELETE),
+        )
+        for name, _ in delete_triggers:
+            conn.execute(f"DROP TRIGGER IF EXISTS {name}")
+        try:
+            removed_corrections = conn.execute(
+                "DELETE FROM score_revision_corrections WHERE revision_id = ?",
+                (revision_id,),
+            ).rowcount
+            removed_scores = conn.execute(
+                "DELETE FROM student_item_scores WHERE score_revision_id = ?",
+                (revision_id,),
+            ).rowcount
+            row = conn.execute(
+                "SELECT id FROM assessments WHERE active_score_revision_id = ?",
+                (revision_id,),
+            ).fetchone()
+            if row is not None:
+                conn.execute(
+                    "UPDATE assessments SET active_score_revision_id = NULL "
+                    "WHERE id = ? AND active_score_revision_id = ?",
+                    (row["id"], revision_id),
+                )
+                cleared_active = True
+            deleted = conn.execute(
+                "DELETE FROM score_revisions WHERE id = ?", (revision_id,)
+            )
+            if deleted.rowcount != 1:
+                raise self._revision_not_found(revision_id)
+        finally:
+            for _, statement in delete_triggers:
+                conn.execute(statement)
+        return {
+            "clearedActive": cleared_active,
+            "removedScores": int(removed_scores),
+            "removedCorrections": int(removed_corrections),
+        }
+
+    def delete_import_in(self, conn: sqlite3.Connection, import_id: str) -> None:
+        """彻底删除一个导入批次：先删预览行再删批次行（两表均无触发器）。
+
+        前置：调用方已通过受引用守卫（该批次未产出任何 ``score_revisions``）；
+        原件受管资产登记与 blob 不在此删除（与"批次放弃保留原件"同口径：
+        资产登记 ``file_assets`` 行仍可能被审计引用，清理不随业务行删除）。
+        行不存在时 404，不静默成功。
+        """
+        import_id = _require_text(import_id, field="importId")
+        self.require_in(conn, import_id, with_rows=False)
+        conn.execute("DELETE FROM score_import_rows WHERE import_id = ?", (import_id,))
+        deleted = conn.execute("DELETE FROM score_imports WHERE id = ?", (import_id,))
+        if deleted.rowcount != 1:
+            raise AppError(
+                f"成绩导入批次不存在：{import_id}。",
+                code=SCORE_IMPORT_NOT_FOUND,
+                status_code=404,
+            )
 
     def get_revision_in(
         self, conn: sqlite3.Connection, revision_id: str

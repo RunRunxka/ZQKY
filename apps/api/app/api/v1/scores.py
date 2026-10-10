@@ -13,8 +13,10 @@
 | ``PATCH /score-imports/{importId}`` | 映射/行定位/单元格校正（``expectedRevision`` CAS） |
 | ``POST /score-imports/{importId}/confirm`` | 三版本守卫 + 承认范围 + 幂等确认 |
 | ``POST /score-imports/{importId}/discard`` | 放弃未确认批次（``expectedRevision``；confirmed 409） |
+| ``DELETE /score-imports/{importId}`` | 彻底删除批次（任何 state；已产出成绩版本 409） |
 | ``GET /assessments/{assessmentId}/score-revisions`` | 修订历史（含冻结快照） |
 | ``GET /score-revisions/{revisionId}`` | 单个修订 |
+| ``DELETE /score-revisions/{revisionId}`` | 彻底删除版本（学情报告/衍生版本/导入批次任一引用 409） |
 | ``GET /score-revisions/{revisionId}/matrix`` | 只读矩阵分页（items 固定叶；rows 分页） |
 | ``POST /assessments/{assessmentId}/score-revisions/correct`` | 从不可变 base 生成新完整版本 |
 
@@ -198,6 +200,15 @@ async def discard_score_import(
     return await _run(_service(request).discard_score_import, import_id, body)
 
 
+@router.delete("/score-imports/{import_id}")
+async def delete_score_import(request: Request, import_id: str) -> dict:
+    """彻底删除一个成绩导入批次（任何 state 都可）：批次已产出成绩版本
+    → 409 ``SCORE_IMPORT_IN_USE``（``details.counts.scoreRevisions``）；
+    ``POST .../discard`` 的既有语义不变。"""
+    service = _service(request)
+    return await _run(service.delete_score_import, import_id)
+
+
 @router.get(
     "/assessments/{assessment_id}/score-revisions", response_model=ScoreRevisionList
 )
@@ -212,6 +223,16 @@ async def list_score_revisions(
 async def get_score_revision(request: Request, revision_id: str) -> ScoreRevisionView:
     service = _service(request)
     return await _run(service.get_score_revision, revision_id)
+
+
+@router.delete("/score-revisions/{revision_id}")
+async def delete_score_revision(
+    request: Request, revision_id: str
+) -> dict:
+    """彻底删除一个成绩版本（draft/confirmed 都可）：学情报告/衍生版本/导入批次任一引用
+    → 409 ``SCORE_REVISION_IN_USE`` 列出 ``details.counts``（恒含三键，无引用为 0）。"""
+    service = _service(request)
+    return await _run(service.delete_score_revision, revision_id)
 
 
 @router.get("/score-revisions/{revision_id}/matrix", response_model=ScoreMatrixPage)

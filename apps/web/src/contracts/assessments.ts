@@ -133,3 +133,25 @@ export interface AssessmentReferenceCounts {
   analysisRuns: number;
   practiceConversions: number;
 }
+
+/**
+ * 彻底删除成绩版本回执（200）：物理删除不可恢复（固定快照与未修正单元一并删除）。
+ * `clearedActive` = 删掉的正是当前生效版本（此后该施测没有生效成绩）。
+ * 被引用 → 409 `SCORE_REVISION_IN_USE` + `details.counts.{analysisRuns,dependentRevisions,importBatches}`。
+ */
+export interface ScoreRevisionDeleteResult {
+  deleted: boolean;
+  revisionId: string;
+  clearedActive: boolean;
+  removedScores: number;
+  removedCorrections: number;
+}
+
+/**
+ * 彻底删除成绩导入批次回执（200）：物理删除不可恢复（批次预览行一并删除）。
+ * 被引用 → 409 `SCORE_IMPORT_IN_USE` + `details.counts.scoreRevisions`。
+ */
+export interface ScoreImportDeleteResult {
+  deleted: boolean;
+  importId: string;
+}
