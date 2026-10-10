@@ -64,8 +64,9 @@ function LessonWorkspaceContent() {
     >
       {ready ? (
         <>
-          {/* 闭环传递带：教案调整之前的五站真实状态；占独立一行，不遮挡顶栏与三栏面板 */}
-          <LoopConveyor className="lesson-loop-conveyor" subjectId={doc.selection.subjectId || null} />
+          {/* 闭环传递带：教案调整之前的五站真实状态；占独立一行，不遮挡顶栏与三栏面板。
+              本页工位＝教案调整（lesson）：它缺前置时主按钮改为「缺「X」：一句话」＋「去补齐」 */}
+          <LoopConveyor className="lesson-loop-conveyor" subjectId={doc.selection.subjectId || null} focusStation="lesson" />
           {/* DOM 阅读顺序 = 视觉顺序：始终可见的编辑区 → 可折叠的教案配置 → 教案预览 */}
           <EditorPanel />
           <OutlinePanel />

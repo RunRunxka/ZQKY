@@ -25,6 +25,9 @@ import { shortId } from './labels';
 
 type Step = 'roster' | 'paper' | 'assessment' | 'score' | 'history';
 
+/** 本页工位：最常见动作是成绩，但原卷在这页同样能推进——按集合表达，两个都算本页可达。 */
+const LOOP_FOCUS = ['paper', 'score'] as const;
+
 const STEPS: { id: Step; label: string }[] = [
   { id: 'roster', label: '1 名单' },
   { id: 'paper', label: '2 原卷' },
@@ -138,8 +141,9 @@ export function AssessmentsWorkspace({ initialAssessmentId, initialStep }: { ini
       </header>
 
       <main className="space-content">
-        {/* 闭环传递带：读真实状态，不遮挡状态条与步骤页签（在页签之前、与既有布局同流） */}
-        <LoopConveyor className="assessments-loop-conveyor" />
+        {/* 闭环传递带：读真实状态，不遮挡状态条与步骤页签（在页签之前、与既有布局同流）；
+            本页工位＝原卷 / 成绩，本页不可达时主按钮改为「缺「X」：一句话」＋「去补齐」 */}
+        <LoopConveyor className="assessments-loop-conveyor" focusStation={LOOP_FOCUS} />
 
         <nav className="space-tabs" role="tablist" aria-label="施测与成绩步骤" data-motion-reveal>
           {STEPS.map((entry) => (

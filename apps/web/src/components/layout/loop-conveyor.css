@@ -1,6 +1,8 @@
 /* 闭环传递带（F2-LOOP · 方向 02）：六工位 + 缺口。
    工位三态：已完成＝实心卡＋产出物；可开始＝空心卡＋「可开始」；
    缺前置＝虚线卡＋「缺前置」，连接线段断在没接上的那一段。
+   本页工位（`data-focus="true"`）＝左侧蓝色指示条＋极浅蓝底＋「本页」小标，
+   与「可开始」的强调区分开（见文件下部）。
    右端是整条带唯一的主按钮。样式只用仓库既有 token（蓝色主题、细边框、留白），
    类名统一 `loop-*` 前缀；本文件同时承载教案工作台的三行栅格适配（见文件末尾）。 */
 
@@ -394,6 +396,52 @@
 
   .loop-primary {
     min-height: var(--touch-target);
+  }
+
+  /* 竖排时卡片没有内边距，本页工位的左侧指示条要留出呼吸位 */
+  .loop-slot[data-focus='true'] .loop-card {
+    padding: 3px 2px 3px 8px;
+  }
+}
+
+/* 本页工位（focusStation）：本页视角的落点。
+   与「可开始」的整圈蓝边强调区分开——这里用左侧蓝色指示条 + 极浅蓝底 + 「本页」小标，
+   让「本页能动的工位」和「整条链当前可推进的工位」一眼分开；只用既有 token。
+   放在状态样式与手机块之后，等权时压过手机端「背景一律清空」的写法。 */
+.loop-slot[data-focus='true'] .loop-card {
+  background: var(--blue-soft);
+  box-shadow: inset 2px 0 0 var(--blue);
+}
+
+.loop-slot[data-focus='true'] .loop-name {
+  color: var(--blue-deep);
+}
+
+/* 「本页」小标：不让高亮只靠颜色传达 */
+.loop-focus-tag {
+  margin-left: 5px;
+  padding: 1px 5px 0;
+  border: 1px solid var(--blue);
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+  color: var(--blue-deep);
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+/* 工位格窄到放不下「本页」小标时（成绩页 / 教案页在 1024 附近的紧凑栅格）整体隐去，
+   不留给名字格裁成半截；该宽度下高亮仍由左侧指示条、浅蓝底、aria-current="step"
+   与工位 tooltip 的「本页工位 ·」承担，名字与产出物优先。
+   按工位格自身宽度判断（容器查询），不写死页面宽度：放得下就一定看得见。 */
+.loop-slot {
+  container-type: inline-size;
+}
+
+@container (max-width: 124px) {
+  .loop-focus-tag {
+    display: none;
   }
 }
 

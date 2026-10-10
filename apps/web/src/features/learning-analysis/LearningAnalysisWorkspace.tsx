@@ -108,8 +108,9 @@ export function LearningAnalysisWorkspace({ initialAssessmentId = null, initialS
   return <div ref={pageRef} className="space-page learning-analysis-page">
     <header className="space-header" data-motion-reveal><h1>学情分析</h1><p className="space-description">从一次已确认成绩中核对本次需巩固依据，形成针对练习。报告依据固定版本，不计算长期掌握概率。</p></header>
     <main className="space-content">
-      {/* 闭环传递带：读真实状态，不遮挡固定成绩选择与报告区 */}
-      <LoopConveyor className="learning-analysis-loop-conveyor" />
+      {/* 闭环传递带：读真实状态，不遮挡固定成绩选择与报告区；
+          本页工位＝学情报告，它缺前置时主按钮改为「缺「X」：一句话」＋「去补齐」 */}
+      <LoopConveyor className="learning-analysis-loop-conveyor" focusStation="report" />
       <section className="b4-section" aria-label="固定成绩与人次选择" data-motion-reveal>
         <h2>选择固定成绩与参测人次</h2>
         <ReadNotice resource={assessments} label="施测列表" />

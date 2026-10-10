@@ -2,10 +2,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach } from 'vitest';
 import { LoopConveyor } from './LoopConveyor';
+import { normalizeFocusStations } from './use-loop-progress';
 import {
   deriveLoopProgress,
   type LoopProgressServices,
   type LoopSnapshot,
+  type LoopStationId,
 } from '@/services/loop-progress';
 import type { AssessmentView } from '@/contracts/assessments';
 import type { AnalysisRunView, PracticeRevisionView, PracticeSetView } from '@/contracts/b4';
@@ -333,5 +335,126 @@ describe('闭环传递带组件', () => {
     view.unmount();
     release();
     await waitFor(() => expect(screen.queryByTestId('loop-conveyor')).not.toBeInTheDocument());
+  });
+});
+
+/* ------------------------------------------------------------------ 本页工位（focusStation） */
+
+describe('闭环传递带·本页工位', () => {
+  /** 原卷、成绩已完成，报告尚未产出：本页视角最典型的「更早的缺口」。 */
+  const papersAndScores = () => emptyServices({
+    listPapers: async () => ({ items: [paper()], total: 1, offset: 0, limit: 100 }),
+    listAssessments: async () => ({ items: [assessment()], total: 1, offset: 0, limit: 100 }),
+    listScoreRevisions: async () => ({ items: [scoreRevision()], total: 1 }),
+  });
+
+  /** 原卷、成绩、报告都已完成，练习尚未产出。 */
+  const upToReport = () => emptyServices({
+    listPapers: async () => ({ items: [paper()], total: 1, offset: 0, limit: 100 }),
+    listAssessments: async () => ({ items: [assessment()], total: 1, offset: 0, limit: 100 }),
+    listScoreRevisions: async () => ({ items: [scoreRevision()], total: 1 }),
+    listAnalysisRuns: async () => ({ items: [analysisRun()], total: 1, offset: 0, limit: 100 }),
+  });
+
+  it('本页工位归一化：单个与一组都收、去重、缺省为空', () => {
+    expect(normalizeFocusStations('report')).toEqual(['report']);
+    expect(normalizeFocusStations(['score', 'score', 'paper'])).toEqual(['score', 'paper']);
+    expect(normalizeFocusStations(null)).toEqual([]);
+    expect(normalizeFocusStations(undefined)).toEqual([]);
+  });
+
+  it('不传本页工位：没有工位高亮、没有 aria-current，主按钮与既有行为一致', async () => {
+    render(<LoopConveyor services={papersAndScores()} />);
+    await screen.findByTestId('loop-belt');
+    const slots = within(screen.getByTestId('loop-belt')).getAllByTestId(/^loop-slot-/);
+    expect(slots.every((slot) => slot.getAttribute('data-focus') === 'false')).toBe(true);
+    expect(slots.some((slot) => slot.hasAttribute('aria-current'))).toBe(false);
+    expect(screen.queryAllByTestId(/^loop-focus-tag-/)).toHaveLength(0);
+    expect(screen.getByTestId('loop-next-title')).toHaveTextContent('下一步 · 学情报告');
+  });
+
+  it('本页工位加 data-focus 与 aria-current="step" 与「本页」小标，其余工位不受影响', async () => {
+    const single = render(<LoopConveyor services={papersAndScores()} focusStation="score" />);
+    await screen.findByTestId('loop-belt');
+    expect(screen.getByTestId('loop-slot-score')).toHaveAttribute('data-focus', 'true');
+    expect(screen.getByTestId('loop-slot-score')).toHaveAttribute('aria-current', 'step');
+    expect(screen.getByTestId('loop-focus-tag-score')).toHaveTextContent('本页');
+    // 本页身份不只在颜色/小标上：tooltip（无障碍名）也说明「本页工位」
+    expect(within(screen.getByTestId('loop-slot-score')).getByRole('link')).toHaveAttribute('title', expect.stringContaining('本页工位 · 成绩：'));
+    expect(within(screen.getByTestId('loop-slot-paper')).getByRole('link')).toHaveAttribute('title', expect.not.stringContaining('本页工位'));
+    expect(screen.getByTestId('loop-slot-paper')).toHaveAttribute('data-focus', 'false');
+    expect(screen.getByTestId('loop-slot-paper')).not.toHaveAttribute('aria-current');
+    single.unmount();
+    render(<LoopConveyor services={papersAndScores()} focusStation={['paper', 'score']} />);
+    await screen.findByTestId('loop-belt');
+    expect(screen.getByTestId('loop-slot-paper')).toHaveAttribute('aria-current', 'step');
+    expect(screen.getByTestId('loop-slot-score')).toHaveAttribute('aria-current', 'step');
+    expect(screen.getByTestId('loop-focus-tag-paper')).toHaveTextContent('本页');
+    expect(within(screen.getByTestId('loop-slot-report')).queryByTestId(/^loop-focus-tag-/)).not.toBeInTheDocument();
+  });
+
+  it('本页工位缺前置：主按钮改为「缺「缺口工位」：一句话」＋「去补齐」，链接到能补齐该缺口的模块', async () => {
+    render(<LoopConveyor services={papersAndScores()} focusStation="practice" />);
+    await screen.findByTestId('loop-belt');
+    expect(screen.getByTestId('loop-slot-practice')).toHaveAttribute('data-state', 'blocked');
+    expect(screen.getByTestId('loop-next')).toHaveAttribute('data-kind', 'blocked');
+    expect(screen.getByTestId('loop-next-title')).toHaveTextContent('缺「学情报告」：没有已准备完成的学情报告');
+    expect(screen.getByTestId('loop-next-note')).toHaveTextContent('补齐后本页「针对练习」才能继续');
+    expect(screen.getByRole('link', { name: '去补齐' })).toHaveAttribute('href', '/learning-analysis');
+  });
+
+  it('本页工位自己可开始（缺口就是本页工位）时维持「下一步 · X」，不改成缺口文案', async () => {
+    render(<LoopConveyor services={upToReport()} focusStation="practice" />);
+    await waitFor(() => expect(screen.getByTestId('loop-slot-practice')).toHaveAttribute('data-state', 'ready'));
+    expect(screen.getByTestId('loop-next-title')).toHaveTextContent('下一步 · 针对练习');
+    expect(screen.getByRole('link', { name: '去审核练习' })).toHaveAttribute('href', '/practices');
+  });
+
+  it('成绩页视角（原卷＋成绩都算本页可达）：本页工位可开始时维持「下一步 · X」', async () => {
+    render(<LoopConveyor services={emptyServices()} focusStation={['paper', 'score']} />);
+    await waitFor(() => expect(screen.getByTestId('loop-slot-paper')).toHaveAttribute('data-state', 'ready'));
+    expect(screen.getByTestId('loop-slot-score')).toHaveAttribute('data-focus', 'true');
+    expect(screen.getByTestId('loop-next-title')).toHaveTextContent('下一步 · 原卷');
+    expect(screen.getByRole('link', { name: '去确认原卷' })).toHaveAttribute('href', '/assessments');
+  });
+
+  it('本页工位已完成、缺口在下游时维持「下一步 · X」', async () => {
+    render(<LoopConveyor services={upToReport()} focusStation="report" />);
+    await waitFor(() => expect(screen.getByTestId('loop-slot-report')).toHaveAttribute('data-state', 'done'));
+    expect(screen.getByTestId('loop-next-title')).toHaveTextContent('下一步 · 针对练习');
+    expect(screen.getByRole('link', { name: '去审核练习' })).toHaveAttribute('href', '/practices');
+  });
+
+  it('读取失败不当缺口：本页视角下仍就地「重新读取」，工位仍标本页', async () => {
+    const unreadable = emptyServices({
+      listPapers: async () => { throw new Error('原卷列表读取失败'); },
+      listAssessments: async () => ({ items: [assessment()], total: 1, offset: 0, limit: 100 }),
+      listScoreRevisions: async () => ({ items: [scoreRevision()], total: 1 }),
+    });
+    render(<LoopConveyor services={unreadable} focusStation="practice" />);
+    await waitFor(() => expect(screen.getByTestId('loop-slot-paper')).toHaveAttribute('data-state', 'unknown'));
+    expect(screen.getByTestId('loop-next-title')).toHaveTextContent('未知「原卷」');
+    expect(screen.getByRole('button', { name: '重新读取' })).toBeInTheDocument();
+    expect(screen.getByTestId('loop-slot-practice')).toHaveAttribute('aria-current', 'step');
+  });
+
+  it('本页工位到缺口之间有一段读取失败时不断言「缺」：保留既有主按钮，失败仍留在带子上', async () => {
+    const partiallyRead = emptyServices({
+      listAssessments: async () => { throw new Error('施测列表读取失败'); },
+    });
+    render(<LoopConveyor services={partiallyRead} focusStation="report" />);
+    await waitFor(() => expect(screen.getByTestId('loop-slot-score')).toHaveAttribute('data-state', 'unknown'));
+    expect(screen.getByTestId('loop-slot-report')).toHaveAttribute('data-state', 'blocked');
+    expect(screen.getByTestId('loop-artifact-score')).toHaveTextContent('未知');
+    expect(screen.getByTestId('loop-next-title')).toHaveTextContent('下一步 · 原卷');
+    expect(screen.getByRole('link', { name: '去确认原卷' })).toHaveAttribute('href', '/assessments');
+  });
+
+  it('未知的工位 id 不猜：没有高亮，主按钮维持既有行为', async () => {
+    render(<LoopConveyor services={papersAndScores()} focusStation={'nope' as LoopStationId} />);
+    await screen.findByTestId('loop-belt');
+    expect(screen.queryAllByTestId(/^loop-focus-tag-/)).toHaveLength(0);
+    expect(screen.getByTestId('loop-conveyor').querySelectorAll('[data-focus="true"]')).toHaveLength(0);
+    expect(screen.getByTestId('loop-next-title')).toHaveTextContent('下一步 · 学情报告');
   });
 });

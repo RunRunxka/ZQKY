@@ -198,8 +198,9 @@ export function PracticesWorkspace({ initialPracticeSetId = null, initialPractic
     await changeArchive({ practiceSetId: target.practiceSetId, revision: target.revision, archived: true, title: target.title });
   }
   return <div ref={pageRef} className="space-page practices-page"><header className="space-header" data-motion-reveal><h1>针对练习</h1><p className="space-description">依据固定学情报告选正式题，复核计分结构并独立审核，导出后转换施测，再用新成绩回流。</p></header><main className="space-content">
-    {/* 闭环传递带：读真实状态，不遮挡练习列表与工作区 */}
-    <LoopConveyor className="practices-loop-conveyor" />
+    {/* 闭环传递带：读真实状态，不遮挡练习列表与工作区；
+        本页工位＝针对练习，它缺前置时主按钮改为「缺「X」：一句话」＋「去补齐」 */}
+    <LoopConveyor className="practices-loop-conveyor" focusStation="practice" />
     {!setId && initialPracticeRevisionId && <p className="space-banner error" role="alert">固定练习修订需要对应练习ID，入口不完整，不会猜测当前练习。</p>}
     {!setId && initialAnalysisRunId && <><ReadNotice resource={source} label="练习来源报告" />{source.lastData && <CreatePracticeForm run={source.lastData} services={services} onLocked={createLock} onCreated={(next) => { setAuthoritative(next); setSetId(next.practiceSetId); setFixedId(null); list.reload(); }} />}</>}
     <section className="b4-section" aria-label="练习列表" data-motion-reveal><h2>练习列表</h2><ReadNotice resource={list} label="练习列表" />
