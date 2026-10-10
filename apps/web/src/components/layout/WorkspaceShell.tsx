@@ -17,9 +17,9 @@ import { useEntrance } from '@/components/motion/useEntrance';
 const mainGroups = groupMainNavigation();
 const bottomItems = navigation.filter((n) => n.position === 'bottom');
 
-/** 可访问名称与提示统一携带规划状态，展开、收起和手机导航保持一致 */
+/** 可访问名称与提示统一，展开、收起和手机导航保持一致 */
 function accessibleName(item: NavigationItem) {
-  return item.status === 'planned' ? `${item.label}（规划中）` : item.label;
+  return item.label;
 }
 
 function NavButton({
@@ -43,10 +43,7 @@ function NavButton({
       onClick={onNavigate}
     >
       <Icon size={20} />
-      <span>
-        {item.label}
-        {item.status === 'planned' && <small>规划中</small>}
-      </span>
+      <span>{item.label}</span>
     </button>
   );
 }

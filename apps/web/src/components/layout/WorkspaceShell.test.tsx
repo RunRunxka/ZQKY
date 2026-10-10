@@ -71,7 +71,7 @@ describe('WorkspaceShell 导航', () => {
         ).not.toBeInTheDocument();
         continue;
       }
-      const name = item.status === 'planned' ? `${item.label}（规划中）` : item.label;
+      const name = item.label;
       expect(screen.getByRole('button', { name }), `缺少入口：${item.label}`).toBeInTheDocument();
     }
     expect(screen.getByRole('button', { name: '教案工作台' })).toHaveAttribute(
@@ -96,8 +96,7 @@ describe('WorkspaceShell 导航', () => {
     expect(dialog).toBeInTheDocument();
     for (const item of navigation) {
       if (item.hidden) continue;
-      const name = item.status === 'planned' ? `${item.label}（规划中）` : item.label;
-      expect(within(dialog).getByRole('button', { name })).toBeInTheDocument();
+      expect(within(dialog).getByRole('button', { name: item.label })).toBeInTheDocument();
     }
     expect(within(dialog).getByRole('button', { name: '教案工作台' })).toHaveFocus();
     fireEvent(dialog, new Event('cancel', { bubbles: false, cancelable: true }));

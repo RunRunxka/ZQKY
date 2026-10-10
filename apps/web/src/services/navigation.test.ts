@@ -23,9 +23,8 @@ describe('导航注册表', () => {
     }
   });
 
-  it('教案工作台本地可用，教学闭环与资源页已实现，其余均为规划中', () => {
-    const implemented = navigation.filter((item) => item.status !== 'planned');
-    expect(implemented.map((item) => item.id)).toEqual([
+  it('教案工作台本地可用，教学闭环与资源页已实现（规划页已移除）', () => {
+    expect(navigation.map((item) => item.id)).toEqual([
       'chat',
       'lesson-plan',
       'question-bank',
@@ -38,50 +37,25 @@ describe('导航注册表', () => {
       'courses',
       'settings',
     ]);
-    expect(implemented[0]?.status).toBe('ready');
-    expect(implemented[1]?.status).toBe('local');
-    for (const item of implemented.slice(2)) {
+    expect(navigation[0]?.status).toBe('ready');
+    expect(navigation[1]?.status).toBe('local');
+    for (const item of navigation.slice(2)) {
       expect(item.status).toBe('ready');
     }
     // 课程按参考行为隐藏主导航入口（路由可达），桌面上溯到教材资料库
-    const courses = implemented.find((item) => item.id === 'courses');
+    const courses = navigation.find((item) => item.id === 'courses');
     expect(courses?.hidden).toBe(true);
   });
 
-  it('题库紧跟智能组卷，排在协同写作之前（RAG-REBUILD v1.0 导航口径）', () => {
+  it('规划功能（智能组卷/协同写作/沉浸阅读/学习空间/模板中心）已整体移除', () => {
     const ids = navigation.map((item) => item.id);
-    expect(ids.indexOf('question-bank')).toBe(ids.indexOf('papers') + 1);
-  });
-
-  it('每个规划模块都登记了用途简介与能力清单', () => {
-    for (const item of navigation) {
-      if (item.status !== 'planned') continue;
-      expect(item.plan.summary.trim(), `${item.label} 缺少用途简介`).not.toBe('');
-      expect(item.plan.capabilities.length, `${item.label} 缺少能力清单`).toBeGreaterThan(0);
-      for (const capability of item.plan.capabilities) {
-        expect(capability.trim()).not.toBe('');
-      }
+    for (const removed of ['papers', 'co-writer', 'reading', 'space', 'templates']) {
+      expect(ids).not.toContain(removed);
     }
-  });
-
-  it('规划中模块全部登记且为规划状态（协同写作/沉浸阅读/学习空间已清除实现、Agent 任务整体移除）', () => {
-    const plannedPaths = navigation.filter((item) => item.status === 'planned').map((n) => n.path);
-    expect(plannedPaths).toEqual(
-      expect.arrayContaining([
-        '/papers',
-        '/co-writer',
-        '/reading',
-        '/space',
-        '/templates',
-      ]),
-    );
-    // Agent 任务整体移除，不再保留导航项与规划入口
-    expect(plannedPaths).not.toContain('/agents');
-    expect(plannedPaths).not.toContain('/notebooks');
-    expect(plannedPaths).not.toContain('/whisper');
-    expect(plannedPaths).not.toContain('/knowledge-bases');
-    expect(plannedPaths).not.toContain('/settings');
-    expect(plannedPaths).not.toContain('/chat');
+    // Agent 任务、MCP、Skills 均不保留导航项
+    expect(ids).not.toContain('agents');
+    expect(ids).not.toContain('notebooks');
+    expect(ids).not.toContain('whisper');
     expect(navigation.some((item) => item.id === 'mcp' || item.id === 'skills')).toBe(false);
   });
 
@@ -119,10 +93,6 @@ describe('唯一主页与当前菜单解析（R-02/R-04）', () => {
       // 课程与书籍同级，父菜单同为教材资料库
       ['/courses', 'knowledge'],
       ['/courses/x', 'knowledge'],
-      // 规划中模块无当前实现，但仍解析到自身入口
-      ['/co-writer', 'co-writer'],
-      ['/reading', 'reading'],
-      ['/space', 'space'],
       // 404 没有对应条目
       ['/definitely-missing', null],
     ];
@@ -139,7 +109,6 @@ describe('唯一主页与当前菜单解析（R-02/R-04）', () => {
       '/books/demo-book',
       '/books/demo-book/pages/demo-page',
       '/courses/demo-course',
-      '/co-writer/room',
       '/definitely-missing',
     ];
     for (const pathname of pathnames) {

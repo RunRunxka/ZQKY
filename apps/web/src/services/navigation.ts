@@ -4,24 +4,18 @@ import {
   ClipboardList,
   FilePenLine,
   FileQuestion,
-  FolderOpen,
   GraduationCap,
-  LayoutTemplate,
   Library,
   MessageSquare,
-  PanelsTopLeft,
   Settings2,
   House,
-  PenLine,
-  BookText,
-  LayoutGrid,
   Settings,
 } from 'lucide-react';
 import type { NavigationItem } from '@/contracts/navigation';
 
 /**
- * 全站模块登记的唯一运行时来源：图标、分组、模块状态与规划页内容都登记在此，
- * WorkspaceShell 与规划状态页从这里读取，不各自维护副本。
+ * 全站模块登记的唯一运行时来源：图标、分组、模块状态都登记在此，
+ * WorkspaceShell 从这里读取，不各自维护副本。（规划页已随 Agent 化改造移除。）
  */
 export const navigation: NavigationItem[] = [
   {
@@ -46,25 +40,7 @@ export const navigation: NavigationItem[] = [
     icon: FilePenLine,
   },
   {
-    id: 'papers',
-    label: '智能组卷',
-    path: '/papers',
-    status: 'planned',
-    position: 'main',
-    group: '教学工作台',
-    icon: ClipboardList,
-    plan: {
-      summary: '组织试卷与课堂小练，右侧实时预览，支持 A3/A4 排版与导出。',
-      capabilities: [
-        '手动录入与结构化导入题目（本地组卷）',
-        'A3 正式试卷 / A4 课堂小练排版',
-        '从题库智能选题',
-        '根据教材生成试题',
-      ],
-    },
-  },
-  {
-    // 题库紧跟「智能组卷」（RAG-REBUILD v1.0）：独立题库已是真实存储，不再是规划状态。
+    // 题库紧跟教案工作台（RAG-REBUILD v1.0）：独立题库已是真实存储，不再是规划状态。
     id: 'question-bank',
     label: '题库',
     path: '/question-bank',
@@ -102,48 +78,6 @@ export const navigation: NavigationItem[] = [
     status: 'ready', position: 'main', group: '教学工作台', icon: ClipboardList,
   },
   {
-    id: 'co-writer',
-    label: '协同写作',
-    path: '/co-writer',
-    status: 'planned',
-    position: 'main',
-    group: '教学工作台',
-    icon: PanelsTopLeft,
-    sidebarIcon: PenLine,
-    plan: {
-      summary: '多人协同撰写讲义与文稿，支持自动保存、版本与 AI 辅助修改。',
-      capabilities: ['协同编辑与自动保存', '版本历史与撤销', 'AI 辅助修改与 Whisper 双席位房间'],
-    },
-  },
-  {
-    id: 'reading',
-    label: '沉浸阅读',
-    path: '/reading',
-    status: 'planned',
-    position: 'main',
-    group: '教学工作台',
-    icon: BookOpen,
-    sidebarIcon: BookText,
-    plan: {
-      summary: '沉浸式阅读学习材料，支持批注、书签与阅读进度。',
-      capabilities: ['材料与集合管理', '批注 / 书签 / 阅读进度', '伴生阅读助手'],
-    },
-  },
-  {
-    id: 'space',
-    label: '学习空间',
-    path: '/space',
-    status: 'planned',
-    position: 'main',
-    group: '教学工作台',
-    icon: FolderOpen,
-    sidebarIcon: LayoutGrid,
-    plan: {
-      summary: '沉淀会话历史、题库、角色目录与 CLI 应用的个人学习空间。',
-      capabilities: ['会话历史归档', '题库与笔记本', '角色目录与 CLI 应用登记'],
-    },
-  },
-  {
     id: 'knowledge',
     label: '教材资料库',
     path: '/knowledge-bases',
@@ -177,19 +111,6 @@ export const navigation: NavigationItem[] = [
     parentPath: '/knowledge-bases',
     group: '教学资源',
     icon: GraduationCap,
-  },
-  {
-    id: 'templates',
-    label: '模板中心',
-    path: '/templates',
-    status: 'planned',
-    position: 'main',
-    group: '教学资源',
-    icon: LayoutTemplate,
-    plan: {
-      summary: '管理 DOCX 模板的上传检查、字段映射与版本。',
-      capabilities: ['DOCX 模板上传与支持范围检查', '字段映射与样例试填', '模板版本管理'],
-    },
   },
   {
     id: 'settings',
