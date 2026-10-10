@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from './api-client';
-import { streamAgent } from './agent-stream';
+import { confirmAgent, streamAgent, uploadAgent } from './agent-stream';
 
 function sseResponse(frames: string): Response {
   const stream = new ReadableStream<Uint8Array>({
@@ -139,5 +139,75 @@ describe('agent-stream', () => {
     stubFetch(async () => sseResponse(frames));
     const err = await streamAgent(BASE_INPUT, {}).then(() => null, (e) => e as ApiError);
     expect(err?.code).toBe('STREAM_INTERRUPTED');
+  });
+
+  it('带附件时请求体包含 attachments', async () => {
+    const frames =
+      'event: message.start\ndata: {"requestId":"r1","messageId":"r1","threadId":"t1","modelProfileId":"p1"}\n\n' +
+      'event: message.end\ndata: {"messageId":"r1","finishReason":"stop"}\n\n';
+    const fetchMock = stubFetch(async () => sseResponse(frames));
+    await streamAgent(
+      { ...BASE_INPUT, attachments: [{ assetId: 'a1', fileName: 't.docx', mediaType: 'application/octet-stream', kind: 'paper' }] },
+      {},
+    );
+    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    expect(body.attachments).toHaveLength(1);
+    expect(body.attachments[0].assetId).toBe('a1');
+    expect(body.attachments[0].kind).toBe('paper');
+  });
+});
+
+describe('agent confirm', () => {
+  it('confirm 提交 decision 并消费恢复流', async () => {
+    const frames =
+      'event: message.start\ndata: {"requestId":"r1","messageId":"r1","threadId":"t1","modelProfileId":"p1","resumed":true}\n\n' +
+      'event: text.delta\ndata: {"messageId":"r1","text":"已应用调整"}\n\n' +
+      'event: message.end\ndata: {"messageId":"r1","finishReason":"stop"}\n\n';
+    const fetchMock = stubFetch(async () => sseResponse(frames));
+    const texts: string[] = [];
+    await confirmAgent(
+      {
+        submissionId: 'sub-12345678',
+        requestId: 'r1',
+        threadId: 't1',
+        modelProfileId: 'p1',
+        confirmId: 'k1',
+        decision: 'approve',
+      },
+      { onText: (d) => texts.push(d) },
+    );
+    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/v1/agent/confirm');
+    expect(body.decision).toBe('approve');
+    expect(body.submissionId).toBe('sub-12345678');
+    expect(texts.join('')).toBe('已应用调整');
+  });
+});
+
+describe('agent upload', () => {
+  it('上传文件并返回 assetRef', async () => {
+    const fetchMock = stubFetch(async () => ({
+      ok: true,
+      status: 200,
+      json: async () => ({ assetId: 'sha256abc', fileName: 't.docx', mediaType: 'application/octet-stream', byteSize: 10, sha256: 'sha256abc' }),
+      headers: new Headers({ 'content-type': 'application/json' }),
+    } as unknown as Response));
+    const file = new File([new Uint8Array(10)], 't.docx', { type: 'application/octet-stream' });
+    const result = await uploadAgent(file);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/v1/agent/upload');
+    expect(result.assetId).toBe('sha256abc');
+    expect(result.sha256).toBe('sha256abc');
+  });
+
+  it('上传失败抛信封错误', async () => {
+    stubFetch(async () => ({
+      ok: false,
+      status: 413,
+      json: async () => ({ code: 'UPLOAD_TOO_LARGE', message: '超过上限。' }),
+      headers: new Headers({ 'content-type': 'application/json' }),
+    } as unknown as Response));
+    const file = new File([new Uint8Array(10)], 'big.docx');
+    const err = await uploadAgent(file).then(() => null, (e) => e as ApiError);
+    expect(err?.code).toBe('UPLOAD_TOO_LARGE');
   });
 });

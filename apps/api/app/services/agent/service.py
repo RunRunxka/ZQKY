@@ -22,6 +22,7 @@ from app.services.agent import runtime
 from app.services.agent.graph import AgentDeps, build_agent
 from app.services.agent.model import resolve_agent_chat_model
 from app.services.agent.tools import build_read_tools
+from app.services.agent.tools_write import build_confirm_tools, build_import_tools
 
 
 class AgentService:
@@ -63,7 +64,11 @@ class AgentService:
                 retryable=True,
             )
         handle = resolve_agent_chat_model(self._repo, self._secrets, model_profile_id)
-        tools = build_read_tools(self._app_state)
+        tools = (
+            build_read_tools(self._app_state)
+            + build_import_tools(self._app_state)
+            + build_confirm_tools(self._app_state)
+        )
         deps = AgentDeps(
             chat_model=handle.chat_model,
             tools=tools,

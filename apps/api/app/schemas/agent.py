@@ -8,27 +8,66 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 
+class AgentAttachment(BaseModel):
+    """随消息附带的上传文件引用（先经 /agent/upload 落 blob）。
+
+    Agent 据此调 import_* 工具读取字节建导入草稿（产候选）；字节本体不进模型上下文。
+    """
+
+    assetId: str = Field(min_length=1, max_length=128)
+    fileName: str = Field(min_length=1, max_length=512)
+    mediaType: str = Field(default="", max_length=128)
+    kind: str = Field(
+        default="auto",
+        pattern="^(auto|textbook|paper|roster|score|question)$",
+        description="导入目标类型；auto 由 Agent 按文件名/上下文判断",
+    )
+
+
 class AgentStreamRequest(BaseModel):
     """发起一轮 Agent 对话。
 
     - ``threadId``：Agent 会话线程（checkpointer 按它隔离/恢复 interrupt 状态）；
     - ``message``：教师的一句话；
-    - ``modelProfileId``：本论使用的模型配置（走 SecretStore 显式注入，不读进程环境）。
+    - ``modelProfileId``：本论使用的模型配置（走 SecretStore 显式注入，不读进程环境）；
+    - ``attachments``：可选的上传文件引用（一句话 + 附件驱动导入）。
     """
 
     requestId: str = Field(min_length=1, max_length=128)
     threadId: str = Field(min_length=1, max_length=128)
     message: str = Field(min_length=1, max_length=32000)
     modelProfileId: str = Field(min_length=1, max_length=128)
+    attachments: list[AgentAttachment] = Field(default_factory=list, max_length=8)
 
 
 class AgentConfirmRequest(BaseModel):
-    """写操作确认（A4 全面启用；骨架批先占位，保证协议稳定）。"""
+    """写操作确认：教师对 wait-confirm 卡片的决定。
 
-    submissionId: str = Field(min_length=1, max_length=128)
+    - ``decision``：approve（执行写操作）/ reject（放弃，图继续但不写库）；
+    - ``submissionId``：幂等键，同一确认重复提交不产生第二次写操作。
+    """
+
+    submissionId: str = Field(min_length=8, max_length=128)
+    requestId: str = Field(min_length=1, max_length=128)
     threadId: str = Field(min_length=1, max_length=128)
+    modelProfileId: str = Field(min_length=1, max_length=128)
     confirmId: str = Field(min_length=1, max_length=128)
     decision: str = Field(pattern="^(approve|reject)$")
 
 
-__all__ = ["AgentConfirmRequest", "AgentStreamRequest"]
+class AgentUploadResponse(BaseModel):
+    """上传落 blob 后的引用（/agent/upload 返回）。"""
+
+    assetId: str
+    fileName: str
+    mediaType: str
+    byteSize: int
+    sha256: str
+
+
+__all__ = [
+    "AgentAttachment",
+    "AgentConfirmRequest",
+    "AgentStreamRequest",
+    "AgentUploadResponse",
+]

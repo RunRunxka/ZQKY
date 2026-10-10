@@ -1,21 +1,51 @@
 /**
- * /api/v1/agent/stream 的流式客户端：POST fetch + ReadableStream 消费 SSE。
+ * /api/v1/agent/* 的流式客户端：POST fetch + ReadableStream 消费 SSE。
  * 与 chat-stream 同一消费模式；本模块不存储任何凭证。
+ *
+ * - streamAgent：发起一轮对话（可附上传文件引用）；
+ * - confirmAgent：教师对写操作确认卡的决定，恢复被 interrupt 挂起的图（同样是 SSE 流）；
+ * - uploadAgent：先落 blob 拿 assetRef，随 streamAgent 的 attachments 传入。
  */
 
 import { API_BASE_PATH, ApiError } from './api-client';
 import { createSseParser } from './chat-sse';
+
+export interface AgentAttachment {
+  assetId: string;
+  fileName: string;
+  mediaType: string;
+  kind?: 'auto' | 'textbook' | 'paper' | 'roster' | 'score' | 'question';
+}
+
+export interface AgentUploadResult {
+  assetId: string;
+  fileName: string;
+  mediaType: string;
+  byteSize: number;
+  sha256: string;
+}
 
 export interface AgentStreamInput {
   requestId: string;
   threadId: string;
   message: string;
   modelProfileId: string;
+  attachments?: AgentAttachment[];
+  signal?: AbortSignal;
+}
+
+export interface AgentConfirmInput {
+  submissionId: string;
+  requestId: string;
+  threadId: string;
+  modelProfileId: string;
+  confirmId: string;
+  decision: 'approve' | 'reject';
   signal?: AbortSignal;
 }
 
 export interface AgentConfirmPayload {
-  /** 写操作确认卡的负载（由后端 interrupt value 给出，骨架批原样透传） */
+  /** 写操作确认卡的负载（由后端 interrupt value 给出，原样透传给确认卡渲染） */
   [key: string]: unknown;
 }
 
@@ -39,22 +69,14 @@ const KNOWN_EVENTS = new Set([
   'error',
 ]);
 
-export async function streamAgent(
-  input: AgentStreamInput,
-  handlers: AgentStreamHandlers,
-): Promise<void> {
+async function postSse(path: string, body: Record<string, unknown>, signal?: AbortSignal): Promise<Response> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_PATH}/agent/stream`, {
+    response = await fetch(`${API_BASE_PATH}${path}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', accept: 'text/event-stream' },
-      body: JSON.stringify({
-        requestId: input.requestId,
-        threadId: input.threadId,
-        message: input.message,
-        modelProfileId: input.modelProfileId,
-      }),
-      signal: input.signal,
+      body: JSON.stringify(body),
+      signal,
     });
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') throw error;
@@ -83,7 +105,10 @@ export async function streamAgent(
   if (!response.body || !response.headers.get('content-type')?.includes('text/event-stream')) {
     throw new ApiError('SERVICE_UNAVAILABLE', '后端未返回流式响应。', response.status, true);
   }
+  return response;
+}
 
+async function consume(response: Response, handlers: AgentStreamHandlers): Promise<void> {
   const decoder = new TextDecoder('utf-8');
   let terminal = false;
   const parser = createSseParser(({ name, data }) => {
@@ -133,7 +158,7 @@ export async function streamAgent(
     }
   });
 
-  const reader = response.body.getReader();
+  const reader = response.body!.getReader();
   try {
     while (true) {
       const { done, value } = await reader.read();
@@ -149,4 +174,69 @@ export async function streamAgent(
     await reader.cancel().catch(() => undefined);
     reader.releaseLock();
   }
+}
+
+export async function streamAgent(input: AgentStreamInput, handlers: AgentStreamHandlers): Promise<void> {
+  const response = await postSse(
+    '/agent/stream',
+    {
+      requestId: input.requestId,
+      threadId: input.threadId,
+      message: input.message,
+      modelProfileId: input.modelProfileId,
+      ...(input.attachments && input.attachments.length > 0 ? { attachments: input.attachments } : {}),
+    },
+    input.signal,
+  );
+  await consume(response, handlers);
+}
+
+export async function confirmAgent(input: AgentConfirmInput, handlers: AgentStreamHandlers): Promise<void> {
+  const response = await postSse(
+    '/agent/confirm',
+    {
+      submissionId: input.submissionId,
+      requestId: input.requestId,
+      threadId: input.threadId,
+      modelProfileId: input.modelProfileId,
+      confirmId: input.confirmId,
+      decision: input.decision,
+    },
+    input.signal,
+  );
+  await consume(response, handlers);
+}
+
+export async function uploadAgent(file: File, signal?: AbortSignal): Promise<AgentUploadResult> {
+  const form = new FormData();
+  form.append('file', file, file.name);
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_PATH}/agent/upload`, {
+      method: 'POST',
+      body: form,
+      signal,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') throw error;
+    throw new ApiError('SERVICE_UNAVAILABLE', '后端服务未运行或无法连接。', 0, true);
+  }
+  if (!response.ok) {
+    let envelope: { code?: string; message?: string; retryable?: boolean } | null = null;
+    try {
+      envelope = await response.json();
+    } catch {
+      envelope = null;
+    }
+    if (envelope && typeof envelope.code === 'string') {
+      throw new ApiError(
+        envelope.code,
+        envelope.message ?? '上传失败。',
+        response.status,
+        envelope.retryable ?? false,
+      );
+    }
+    throw new ApiError('REQUEST_FAILED', `上传失败（HTTP ${response.status}）。`, response.status, false);
+  }
+  return (await response.json()) as AgentUploadResult;
 }
