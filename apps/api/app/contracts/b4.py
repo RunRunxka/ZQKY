@@ -303,10 +303,18 @@ class PracticeSetStatusRequest(Frozen):
 
 
 class PracticeSetDeleteReceipt(Frozen):
-    """练习集彻底删除的回执（受引用守卫通过后物理删除全部 draft 修订与集合行）。"""
+    """练习集彻底删除的回执（受引用守卫通过后物理删除全部 draft 修订与集合行）。
+
+    计数字段（可选、默认 0）只在 ``includeHistory=true`` 的连带历史删除路径填写；
+    默认守卫路径不删历史，全部保持 0。
+    """
 
     deleted: bool
     practice_set_id: str = Field(alias="practiceSetId")
+    removed_revisions: int = Field(default=0, alias="removedRevisions", ge=0)
+    removed_exports: int = Field(default=0, alias="removedExports", ge=0)
+    removed_conversions: int = Field(default=0, alias="removedConversions", ge=0)
+    removed_artifacts: int = Field(default=0, alias="removedArtifacts", ge=0)
 
 
 class ExportRequest(Frozen):

@@ -1,4 +1,6 @@
 """Append-only B4 declarations. No B5 tables or cross-database foreign keys."""
+from dataclasses import replace
+
 from app.core.migrations.base import Migration, RebuildPlan
 
 TABLES = (
@@ -241,3 +243,38 @@ def migrations(original: tuple[str, ...], related: tuple[str, ...]) -> tuple[Mig
         Migration('0008', 'B4 analysis, reviewed practices and managed export metadata', TABLES + TRIGGERS),
         Migration('0009', 'B4 exclusive file/practice paper source via checked rebuild', rebuild=paper_rebuild(original, related)),
     )
+
+
+def relaxed_migration(original: tuple[str, ...], related: tuple[str, ...]) -> Migration:
+    """0013（PH）：追加在 0012 之后的源互斥放宽重建（语义见 ``paper_source_relaxed_rebuild``）。"""
+    return Migration('0013', 'B4-PH relaxed paper source exclusivity via checked rebuild',
+                     rebuild=paper_source_relaxed_rebuild(original, related))
+
+
+def paper_source_relaxed_rebuild(original: tuple[str, ...], related: tuple[str, ...]) -> RebuildPlan:
+    """0013：受控重建 ``paper_revisions``，源互斥 CHECK 放宽为"至多一源"。
+
+    语义（PH 任务卡裁定）：练习被"连同全部历史"彻底删除后，其转换生成的原卷修订
+    允许**无来源**（``source_practice_revision_id`` 置 NULL 后 ``source_file_id``
+    仍为 NULL 是合法状态）；禁的只是"两个来源同时非空"。0009 的"恰一非空"在新
+    语义下不再成立——若保留，``exclusive_source`` 对账在任何未来重建/体检重跑时
+    会因无源行 fail-closed。
+
+    实现纪律：0009（``paper_rebuild``）与其产物**逐字不动**（声明冻结）；本函数
+    以 0009 的 RebuildPlan 为底，仅替换 ``new_table_sql`` 中该一条 CHECK 与
+    ``verifications``（新口径：双源行数必须为 0），``copy_sql``/``drop_and_rename``/
+    ``restore``（``_PAPER_STATEMENTS`` 索引触发器 + 0009/0010 相关触发器）与 0009
+    完全同源，触发器/索引重建文本逐字一致。fresh 库先按老 CHECK 跑 0009（此时全体
+    行互斥、验证通过），再跑 0013；老库升级同理。幂等：登记后重跑为空操作。
+    """
+    plan = paper_rebuild(original, related)
+    rebuilt = plan.new_table_sql.replace(
+        "CHECK((source_file_id IS NOT NULL AND source_practice_revision_id IS NULL) "
+        "OR(source_file_id IS NULL AND source_practice_revision_id IS NOT NULL))",
+        "CHECK(source_file_id IS NULL OR source_practice_revision_id IS NULL)")
+    if rebuilt == plan.new_table_sql:
+        raise ValueError("0013: 未找到 0009 源互斥 CHECK 文本，拒绝登记放宽迁移")
+    return replace(plan, new_table_sql=rebuilt, verifications=(
+        ('both_sources_set', 'SELECT count(*) FROM paper_revisions WHERE source_file_id IS NOT NULL '
+         'AND source_practice_revision_id IS NOT NULL'),
+    ))

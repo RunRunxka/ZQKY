@@ -40,10 +40,16 @@ async def archive(request: Request, set_id: str, body: b4.PracticeSetStatusReque
 
 
 @router.delete("/practice-sets/{set_id}", response_model=b4.PracticeSetDeleteReceipt)
-async def delete_set(request: Request, set_id: str, expectedRevision: int = Query(ge=0)):
-    """受引用守卫的彻底删除：已审核版本/导出/转换任一引用 → 409 列出计数；纯草稿集物理删除。"""
+async def delete_set(request: Request, set_id: str, expectedRevision: int = Query(ge=0),
+                     includeHistory: bool = Query(False)):
+    """受引用守卫的彻底删除：已审核版本/导出/转换任一引用 → 409 列出计数；纯草稿集物理删除。
+
+    ``includeHistory=true``（界面明确确认后）跳过守卫，连同全部历史（含已审核修订、
+    导出、转换与导出工件）彻底删除该练习；转换生成的原卷修订只摘除来源指针，
+    施测/原卷/成绩/报告行本身保留。
+    """
     payload = b4.PracticeSetStatusRequest(expectedRevision=expectedRevision)
-    return await run(service(request).delete_practice, set_id, payload)
+    return await run(service(request).delete_practice, set_id, payload, include_history=includeHistory)
 
 
 @router.post("/practice-sets/{set_id}/restore", response_model=b4.PracticeSetView)

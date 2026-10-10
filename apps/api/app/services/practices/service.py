@@ -129,7 +129,7 @@ class PracticeService:
                 expected_revision=payload.expected_revision, archived=archived)
             return self._set_view(conn, set_id)
 
-    def delete_practice(self, set_id, payload):
+    def delete_practice(self, set_id, payload, *, include_history=False):
         """受引用守卫的彻底删除：仅当集合"干净"时物理删除全部 draft 修订与集合行。
 
         守卫（任一命中 → 409 ``PRACTICE_IN_USE``，``details.counts`` 列出计数）：
@@ -142,28 +142,44 @@ class PracticeService:
 
         通过后（此时全部修订都是 draft）按子行 → 修订 → 集合的顺序在同一写事务删除；
         ``practice_sets.current_revision_id`` 指回修订（DEFERRABLE），先置 NULL。
-        乐观锁不符 → 409 ``REVISION_CONFLICT``；集合不存在/非本人 → 404 ``PRACTICE_NOT_FOUND``。
+
+        ``include_history=True``（界面明确确认后的"连同全部历史彻底删除"）：跳过
+        受引用守卫，在同一写事务内先摘除 10 个不可变触发器再全级联删除（见仓储
+        ``delete_set_with_history_in``）：修订（含 reviewed）、选题/题目/题叶知识、
+        转换、导出与导出工件、映射一并删除；转换生成的原卷修订只把
+        ``source_practice_revision_id`` 置 NULL（行与内容保留）；``file_assets``、
+        ``workflow_jobs`` 与 paper/assessment/analysis 行一律不动。删除后来源报告
+        的 ``practiceSets`` 引用与施测的 ``practiceConversions`` 引用随之归零，
+        之后可由各自守卫链彻底删除。归档集合同样可删。
+
+        乐观锁不符 → 409 ``REVISION_CONFLICT``；集合不存在/非本人 → 404
+        ``PRACTICE_NOT_FOUND``。两条路径回执均为 ``PracticeSetDeleteReceipt``；
+        默认路径四计数全 0，历史路径填写实际删除计数。
         """
         with self.catalog.write_transaction() as conn:
             practice = self.repo.set_in(conn, set_id, self.owner_id)
             if practice["revision"] != payload.expected_revision:
                 raise stale(practice["revision"])
-            counts = self.repo.count_references_in(conn, set_id)
-            blocked = {key: value for key, value in counts.items() if value > 0}
-            if blocked:
-                labels = {
-                    "reviewedRevisions": "已审核版本",
-                    "exports": "导出记录",
-                    "conversions": "施测转换",
-                }
-                summary = "、".join(f"{labels[key]} {value} 条" for key, value in blocked.items())
-                raise AppError(
-                    "练习集仍被引用，不能删除（" + summary + "）；"
-                    "已审核版本只能归档；如需修改请从审核版建立新草稿。",
-                    code=PRACTICE_IN_USE, status_code=409,
-                    details={"counts": blocked})
-            self.repo.delete_set_in(conn, set_id)
-        return b4.PracticeSetDeleteReceipt(deleted=True, practiceSetId=set_id)
+            if not include_history:
+                counts = self.repo.count_references_in(conn, set_id)
+                blocked = {key: value for key, value in counts.items() if value > 0}
+                if blocked:
+                    labels = {
+                        "reviewedRevisions": "已审核版本",
+                        "exports": "导出记录",
+                        "conversions": "施测转换",
+                    }
+                    summary = "、".join(f"{labels[key]} {value} 条" for key, value in blocked.items())
+                    raise AppError(
+                        "练习集仍被引用，不能删除（" + summary + "）；"
+                        "已审核版本只能归档；如需修改请从审核版建立新草稿。"
+                        "如需连同全部历史彻底删除该练习（不可恢复），请在界面明确确认后重试。",
+                        code=PRACTICE_IN_USE, status_code=409,
+                        details={"counts": blocked})
+                self.repo.delete_set_in(conn, set_id)
+                return b4.PracticeSetDeleteReceipt(deleted=True, practiceSetId=set_id)
+            removed = self.repo.delete_set_with_history_in(conn, set_id)
+        return b4.PracticeSetDeleteReceipt(deleted=True, practiceSetId=set_id, **removed)
 
     def get_revision(self, set_id, revision_id):
         with self.catalog.read_connection() as conn:

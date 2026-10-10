@@ -869,3 +869,8 @@ MIGRATIONS = MIGRATIONS + (
     ),
 )
 
+# PH append only: 0013 追加在 0012 之后（b4 模块提供受控重建计划；0009 声明冻结不动）。
+from app.core.migrations.b4 import relaxed_migration as _relaxed_migration
+
+MIGRATIONS = MIGRATIONS + (_relaxed_migration(_PAPER_STATEMENTS, _ASSESSMENT_STATEMENTS + _SCORE_STATEMENTS),)
+
