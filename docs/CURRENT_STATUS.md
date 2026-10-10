@@ -1,5 +1,14 @@
 # 当前状态与实施主线
 
+<!-- CLEANUP-HISTORY-DELETE:20261010 -->
+2026-10-10（用户裁定「这一类也需要能彻底删除」，关闭复测新发现的 P2 断点）：**练习「连同全部历史彻底删除」+ 迁移 0013**。提交 `8aeb6ef`（后端+迁移）/`b428f25`（前端），独立验收（RAG-accptance）**pass_with_conditions：A–E 全 pass、无产品缺陷**（条件为补 API.md 与恢复 next-env.d.ts，均已落实）。
+
+- **新能力**：`DELETE /practice-sets/{id}?includeHistory=true` —— 界面明确确认后跳过受引用守卫，单写事务内摘除 10 个不可变触发器（finally 逐字恢复）并级联删除：修订（含已审核）/选题题目/映射/转换/导出与导出工件；转换生成的原卷修订只置 `source_practice_revision_id=NULL`（行与内容保留）；`file_assets`（blob）/`workflow_jobs`/paper/assessment/analysis 不动。无 flag 行为不变（409 文案追加新指引）；回执新增 `removedRevisions/removedExports/removedConversions/removedArtifacts`。前端：守卫块新增「确认彻底删除（含已审核版本/导出/转换，不可恢复）」出口。
+- **迁移 0013**（追加在 0012 后，`migrations/b4.py: paper_source_relaxed_rebuild`）：受控重建 `paper_revisions`，源互斥 CHECK 由"恰一非空"放宽为"至多一源"（对账 `both_sources_set=0`）；0009 与其散列**冻结未动**（test_b4_foundation 绿）。**放弃了初版"PRAGMA ignore_check_constraints 临时绕行"**——总控裁定其会让行永久违反登记 CHECK 且未来重建对账 fail-closed，改由迁移承载语义（无运行期绕行）。
+- **验证**：验收自写脚本 21+19+15+19 项断言全过——全链（reviewed+3 类导出+转换 → 默认 409 → includeHistory 全清 → 来源报告经既有端点真删成功 → 施测 practiceConversions 归零；blob/jobs/原卷修订行保留且两源列 NULL）；fresh/老库升级双路径 + 幂等 + 0009 冻结；删除后 10 触发器逐一与恢复文本逐字一致、越权直连写全拒；前端 33 例全过。**门禁**：后端全量 **2124 passed / 1 skipped**；前端 typecheck/lint 0 警告、单测 **136 文件 / 1669 例**；build 0；e2e **174/174**。
+- **用户正式数据的断链可用性**：`闭环初测·测试二班` 链（练习 `a9c788e7` → 报告 `9339cb32` → 施测 `026c4c74`）与复测自建链现可由界面逐条清理（练习守卫块「连同全部历史」）。**本轮未替用户执行任何真实删除**。
+<!-- /CLEANUP-HISTORY-DELETE:20261010 -->
+
 <!-- LOOP-RETEST:20261010 -->
 2026-10-10（用户「本批任务完成后，走一遍闭环测试」）：**教学闭环复测（真实前后端 + 正式数据根 + 正式云端凭证）**，完整记录见 [qa/TEACHING-LOOP-RETEST-20261010/README.md](qa/TEACHING-LOOP-RETEST-20261010/README.md)。
 
