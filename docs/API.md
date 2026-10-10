@@ -95,7 +95,7 @@ FastAPI 服务位于 apps/api，仅监听 127.0.0.1:8000；浏览器经 Next 同
 | 方法与路径 | 状态 | 说明 |
 | --- | --- | --- |
 | GET `/api/v1/health` | 已实现 | 返回 `status/service/apiVersion/time`，不含配置内容 |
-| GET `/api/v1/capabilities` | 已实现 | 能力清单；`model_settings`、`chat`、`textbook_repository`、`question_bank` 为 `ready`，RAG 按运行时就绪状态为 `ready` / `unavailable`；教案真实AI按服务与lesson_generation执行器实际装配为ready/unavailable；组卷、模板、Agent/MCP/Skills为planned。清单不是全部教学闭环接口的索引 |
+| GET `/api/v1/capabilities` | 已实现 | 能力清单；`model_settings`、`chat`、`textbook_repository`、`question_bank` 为 `ready`，RAG 按运行时就绪状态为 `ready` / `unavailable`；教案真实AI按服务与lesson_generation执行器实际装配为ready/unavailable；教学 Agent 见文末「教学 Agent」节；组卷、模板、MCP/Skills 仍为 planned。清单不是全部教学闭环接口的索引 |
 | GET/POST `/api/v1/model-connections` | 已实现 | 连接列表/创建；非空 `apiKey` 经 SecretStore 持久化到 .env，响应只返回凭证状态和变量名，不回显 Key |
 | GET `/api/v1/model-catalog` | 已实现 | 一次读取带 revision 的连接/模型/默认模型目录 |
 | GET `/api/v1/model-connections/{id}/models` | 已实现 | 使用服务端凭证发现上游模型；不修改目录 |
@@ -139,7 +139,20 @@ FastAPI 服务位于 apps/api，仅监听 127.0.0.1:8000；浏览器经 Next 同
 | POST `/api/v1/templates/inspect` | DOCX 上传检查与临时上传 ID | D05–D07 |
 | POST/GET `/api/v1/exports`、cancel、artifacts | 渲染任务与受控下载 | D07 |
 | POST `/api/v1/lesson-plans/fill` | 生成填充建议 | 随 D08 评估 |
-| Agent/MCP/Skills 执行相关 | 仅契约规划 | 历史 F 系列；当前未排期 |
+
+## 教学 Agent（2026-10-10 Agent 化改造）
+
+对话式驱动教学闭环的 SSE 入口（LangGraph 内嵌于 FastAPI）。写操作（确认导入入库、应用教案调整）必须经教师在界面上确认后才落库（AI 只进候选红线不变）；学生姓名/学号/人员 ID 不进模型上下文。
+
+| 方法和路径 | 用途 | 事件 / 说明 |
+| --- | --- | --- |
+| POST `/api/v1/agent/stream` | 发起一轮 Agent 对话（可附 `attachments` 上传引用） | SSE：`message.start` / `text.delta` / `tool.call` / `tool.result` / `wait-confirm` / `message.end` / `error` |
+| POST `/api/v1/agent/confirm` | 教师对写操作确认卡的决定（approve/reject），`Command(resume=...)` 恢复被 `interrupt` 挂起的图 | 恢复后的事件同样以 SSE 回传；`submissionId` 幂等 |
+| POST `/api/v1/agent/upload` | 接收上传文件落受管 blob，返回 `assetId`（= sha256）供 `attachments` 引用 | multipart；上限 100 MiB；解析与建草稿由 `import_*` 工具在对话中完成 |
+
+模型接入：Agent 用 LangChain 官方 provider 包，凭证只经后端 `SecretStore` 显式注入（本地免 Key 用占位符），构造前断言 `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` 进程环境未设置；受管认证（Codex/Copilot/CodeBuddy）一期不支持 Agent（`AGENT_MODEL_UNSUPPORTED`），仍可用于 `/chat` 直连。会话/中断状态经 checkpointer 落 `teaching/agent_checkpoints.sqlite3`。
+
+历史"Agent/MCP/Skills 执行仅契约规划未排期"的口径已由本节的实际实现取代；MCP/Skills 本地登记仍为外观能力，不代表已接入执行。
 
 填充类接口实施时沿用既定约束：同源会话、JSON 请求、30 秒默认超时，校验 patch 与 warnings，不在错误后回退规则实现。
 

@@ -1,5 +1,18 @@
 # 当前状态与实施主线
 
+<!-- AGENT-A0-A5:20261010 -->
+2026-10-10（用户「用 LangChain+LangGraph 把项目改造成 Agent，一句话（可上传文件）生成教案/学情分析，保留闭环，规划功能不再需要」）：**Agent 化改造 A0–A5 批次落地**。提交 `4c9455b`(A0)/`a942701`(A1)/`98be79b`(A2)/`6fe2120`(A3)/`79a6273`(A4)/UI+文档（A5）。
+
+- **A0 清理**：移除 5 个规划页（智能组卷/协同写作/沉浸阅读/学习空间/模板中心）与 `[planned]` 捕获路由、planned 机制；navigation 登记表只留已实现模块。书籍/课程/chat 课程归属因与 chat 状态机深度耦合，**另开专项批次**做特性级删除（本批未动，避免改崩 chat）。
+- **A1 模型接入**：新增依赖 langgraph/langchain/langchain-openai/langchain-anthropic/langgraph-checkpoint-sqlite。`services/agent/model.py` 把既有连接+profile+SecretStore 凭证**显式构造**为官方 chat model；凭证红线落地——Key 只经 SecretStore 显式注入（本地免 Key 用占位符），构造前断言 `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` 进程环境未设置（堵死官方包的环境变量回退路径）；OAuth（Codex/Copilot/CodeBuddy）一期不支持 Agent（`AGENT_MODEL_UNSUPPORTED`）。与既有 `providers/llm` 适配层**并存不替换**（/chat、/rag、题库、教案链路不动）。
+- **A2 骨架**：`graph.py`（create_agent ReAct 主循环）+ `runtime.py`（astream_events 规范化）+ `service.py`（AsyncSqliteSaver checkpointer 落 `teaching/agent_checkpoints.sqlite3`）+ `POST /api/v1/agent/stream` SSE；前端 `agent-stream.ts`。`prepare()` 在流前解析模型（配置错误走 HTTP 不进 SSE）。
+- **A3 工具**：13 个核心闭环只读工具（知识点/班级/原卷/施测/学情/练习/教案/题库/能力清单）。**隐私红线**：`_strip_person` 剥学生姓名/学号，名单工具只给匿名计数；工具按 app.state 服务装配注册，缺失不误报；失控防护（图递归 50 + 事件流 2000）。
+- **A4 确认闸门**：`POST /agent/upload`（落 blob 返 sha256/assetId）、`POST /agent/confirm`（`Command(resume=decision)` 恢复 interrupt 挂起的图）；4 个导入工具（原卷/名单/成绩/题库，按 assetRef 读字节**建导入草稿=产候选**，不需 interrupt）+ `apply_lesson_proposal`（**interrupt 等教师确认才落库**）。前端 agent-stream 增 confirmAgent/uploadAgent。
+- **A5 UI + 文档**：`/chat` 顶栏加「学习问答/教学 Agent」切换，AgentPanel 独立面板（自建消息态，复用 AnswerMarkdown/StreamingMarkdown/ModelSelector；工具过程、写操作确认卡行内展示；附件上传）。文档：API.md 增「教学 Agent」节、ROUTES.md 移除规划页、本节登记。
+
+**红线保持**：AI 只进候选、教师确认后才落库；学生个人信息不进模型；教材/题目证据只用工具返回的固定数据。**门禁**：后端全量 pytest 全绿（agent 新增 16+5+11+11 用例）；前端 typecheck/lint 0 警告、agent-stream 9 用例全过、build 0（全量单测 1676 例中 2 例为 lesson-plan/knowledge-points **既有间歇**（单跑全过，本批未触碰这两模块），按台账管理）。**未执行/边界**：浏览器视觉走查与 e2e 未做（组件级 jsdom 已覆盖）；OAuth 供应商的 Agent 调用、书籍/课程特性级删除为后续专项。
+<!-- /AGENT-A0-A5:20261010 -->
+
 <!-- CLEANUP-HISTORY-DELETE:20261010 -->
 2026-10-10（用户裁定「这一类也需要能彻底删除」，关闭复测新发现的 P2 断点）：**练习「连同全部历史彻底删除」+ 迁移 0013**。提交 `8aeb6ef`（后端+迁移）/`b428f25`（前端），独立验收（RAG-accptance）**pass_with_conditions：A–E 全 pass、无产品缺陷**（条件为补 API.md 与恢复 next-env.d.ts，均已落实）。
 

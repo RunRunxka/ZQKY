@@ -54,6 +54,7 @@ import { createIdbChatRepository } from '@/services/chat-repository';
 import { resolveCourse, courseAvailabilityLabel } from '@/services/course-session';
 import { subscribeCourses } from '@/services/courses-store';
 import { Message } from './Message';
+import { AgentPanel } from './AgentPanel';
 import { SessionPanel } from './SessionPanel';
 import { InfoPanel } from './InfoPanel';
 import { ArtifactPanelItem, WorkspacePanel } from './ArtifactPanel';
@@ -172,6 +173,9 @@ function ChatPage({
   // null=关闭；'workspace'=打开（活动标签或某个产物标签由 artifactKey 决定）
   const [panelView, setPanelViewState] = useState<'workspace' | null>(null);
   const [panelExiting, setPanelExiting] = useState(false);
+  // Agent 化改造（A5）：'chat'=学习问答（现有 ChatService）；'agent'=教学 Agent 工作台。
+  // 切换只替换消息区+输入区，不动现有问答的 store/会话/右侧面板。
+  const [workspaceMode, setWorkspaceMode] = useState<'chat' | 'agent'>('chat');
   function setPanelView(next: 'workspace' | null) {
     setPanelExiting(next === null);
     setPanelViewState(next);
@@ -851,9 +855,29 @@ function ChatPage({
       }}
     >
       <div ref={entranceRef} className={`chat-page ${panelView !== null ? 'info-open' : ''}`}>
-        <section className={`chat-main ${hasMessages ? '' : 'chat-welcome'}`}>
+        <section className={`chat-main ${hasMessages ? '' : 'chat-welcome'} ${workspaceMode === 'agent' ? 'agent-mode' : ''}`}>
           <header className="chat-toolbar" data-motion-reveal>
             <span className="chat-title">{activeTitle}</span>
+            <span className="chat-mode-switch" role="tablist" aria-label="工作区模式">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={workspaceMode === 'chat'}
+                className={workspaceMode === 'chat' ? 'active' : ''}
+                onClick={() => setWorkspaceMode('chat')}
+              >
+                学习问答
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={workspaceMode === 'agent'}
+                className={workspaceMode === 'agent' ? 'active' : ''}
+                onClick={() => setWorkspaceMode('agent')}
+              >
+                教学 Agent
+              </button>
+            </span>
 
             <span className="chat-flex-spacer" />
             <button className="icon-button" aria-label="新建对话" onClick={() => void fresh()}>
@@ -1387,6 +1411,11 @@ function ChatPage({
               </p>
             )}
           </div>
+          {workspaceMode === 'agent' && (
+            <div className="chat-agent-slot">
+              <AgentPanel />
+            </div>
+          )}
         </section>
         {(panelView !== null || panelExiting) && !isMobile && (
           <aside
