@@ -169,20 +169,35 @@ export function PracticesWorkspace({ initialPracticeSetId = null, initialPractic
   }
   /**
    * 彻底删除练习（受引用守卫的物理删除，二次确认；已归档练习同样受同一守卫）：
-   * 有已审核版本/导出/转换任一引用时 409 `PRACTICE_IN_USE`，逐项显示计数并给「改为归档」；
+   * 有已审核版本/导出/转换任一引用时 409 `PRACTICE_IN_USE`，逐项显示计数并给「改为归档」与
+   * 「确认彻底删除（含已审核版本/导出/转换，不可恢复）」两条出路；
+   * `includeHistory=true`（经守卫块明确确认）沿同一删除通道连同全部历史彻底删除，成功后清空守卫态；
    * 乐观锁冲突 / 404 走既有错误区；成功刷新列表并清空当前选择。
    */
-  async function deleteSet(target: { practiceSetId: string; revision: number; title: string }) {
+  async function deleteSet(target: { practiceSetId: string; revision: number; title: string }, includeHistory = false) {
     if (deleteBusyRef.current) return;
     deleteBusyRef.current = true;
-    setDeleteBusyId(target.practiceSetId); setDeleteError(null); setDeleteNotice(''); setDeleteGuard(null);
+    setDeleteBusyId(target.practiceSetId); setDeleteError(null); setDeleteNotice('');
+    // 连同历史删除时保留守卫块（计数与确认上下文），在途按钮禁用、成功后清空；
+    // 常规删除仍先清守卫，避免上一次的引用提示残留成错误结论。
+    if (!includeHistory) setDeleteGuard(null);
     try {
-      const receipt = await services.deletePracticeSet(target.practiceSetId, target.revision);
+      const receipt = includeHistory
+        ? await services.deletePracticeSet(target.practiceSetId, target.revision, true)
+        : await services.deletePracticeSet(target.practiceSetId, target.revision);
       if (!writeAlive.current) return;
       if (!receipt.deleted || receipt.practiceSetId !== target.practiceSetId) throw new ApiError('PRACTICE_DELETE_IDENTITY_MISMATCH', '删除回执与目标练习不一致，未刷新列表。', 500, false);
       setDeleteTarget(null);
       if (setId === target.practiceSetId) { setSetId(null); setFixedId(null); setAuthoritative(null); }
-      setDeleteNotice(`已彻底删除练习「${target.title}」：物理删除完成，不可恢复。`);
+      if (includeHistory) setDeleteGuard(null);
+      // 回执四计数任一 >0 才算连同历史删除；缺省 0 与旧回执都按既有文案，不虚构删除量。
+      const removedRevisions = receipt.removedRevisions ?? 0;
+      const removedExports = receipt.removedExports ?? 0;
+      const removedConversions = receipt.removedConversions ?? 0;
+      const removedArtifacts = receipt.removedArtifacts ?? 0;
+      setDeleteNotice(removedRevisions + removedExports + removedConversions + removedArtifacts > 0
+        ? `已彻底删除练习「${target.title}」：已审核修订 ${removedRevisions} 条、导出 ${removedExports} 条、转换 ${removedConversions} 条已一并删除（不可恢复）。`
+        : `已彻底删除练习「${target.title}」：物理删除完成，不可恢复。`);
       list.reload();
     } catch (cause) {
       if (!writeAlive.current) return;
@@ -226,7 +241,7 @@ export function PracticesWorkspace({ initialPracticeSetId = null, initialPractic
             <button className="space-button" disabled={archiveBusy} onClick={() => setArchiveTarget(null)}>取消</button>
           </>}
           {deleteTarget?.practiceSetId === item.practiceSetId && <>
-            <span className="b4-hint" role="alert">彻底删除「{deleteTarget.title}」是物理删除、不可恢复；已审核/已导出/已转换的练习会被拒绝并逐项列出原因{deleteTarget.archived ? '；已归档练习同样受该守卫，不会因归档而可删' : ''}。</span>
+            <span className="b4-hint" role="alert">彻底删除「{deleteTarget.title}」是物理删除、不可恢复；已审核/已导出/已转换的练习会被拒绝并逐项列出原因{deleteTarget.archived ? '；已归档练习同样受该守卫，不会因归档而可删' : ''}。若含已审核版本/导出/转换，将出现「连同全部历史」的明确确认。</span>
             <button className="space-button danger" disabled={deleteBusyId !== null} onClick={() => void deleteSet({ practiceSetId: deleteTarget.practiceSetId, revision: deleteTarget.revision, title: deleteTarget.title })}>{deleteBusyId === item.practiceSetId ? '删除中…' : '确认彻底删除'}</button>
             <button className="space-button" disabled={deleteBusyId !== null} onClick={() => setDeleteTarget(null)}>取消</button>
           </>}
@@ -235,7 +250,10 @@ export function PracticesWorkspace({ initialPracticeSetId = null, initialPractic
             {deleteGuard.reasons.length > 0
               ? <><p>还有 {deleteGuard.reasons.length} 类下游数据引用它：</p><ul className="practice-reference-list" aria-label="引用原因清单">{deleteGuard.reasons.map((reason) => <li key={reason.key}>{reason.label} {reason.count} 条</li>)}</ul></>
               : <p className="b4-hint">服务端未给出逐项引用计数；请先处理相关数据，或改为归档保证历史完整。</p>}
-            {item.status !== 'archived' && <div className="b4-actions"><button className="space-button" disabled={archiveBusy} onClick={() => void archiveFromGuard({ practiceSetId: item.practiceSetId, revision: item.revision, title: item.title })}>{archiveBusy ? '归档中…' : '改为归档（不删除历史）'}</button></div>}
+            <div className="b4-actions">
+              {item.status !== 'archived' && <button className="space-button" disabled={archiveBusy} onClick={() => void archiveFromGuard({ practiceSetId: item.practiceSetId, revision: item.revision, title: item.title })}>{archiveBusy ? '归档中…' : '改为归档（不删除历史）'}</button>}
+              <button className="space-button danger" data-testid={`practices-history-delete-${item.practiceSetId}`} disabled={archiveBusy || deleteBusyId !== null} onClick={() => void deleteSet({ practiceSetId: item.practiceSetId, revision: item.revision, title: item.title }, true)}>{deleteBusyId === item.practiceSetId ? '删除中…' : '确认彻底删除（含已审核版本/导出/转换，不可恢复）'}</button>
+            </div>
           </div>}
         </div>
       </Fragment>)}</div><Pagination page={list.lastData} offset={offset} onOffset={setOffset} disabled={locked} />

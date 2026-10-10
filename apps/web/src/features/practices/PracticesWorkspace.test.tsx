@@ -1,6 +1,6 @@
 import { StrictMode, useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { PracticesWorkspace } from './PracticesWorkspace';
 import { PracticeEditor } from './PracticeEditor';
 import { PracticeExports } from './PracticeExports';
@@ -9,20 +9,38 @@ import { RichReview } from '@/features/learning-analysis/ui';
 import { b4Api } from '@/services/teaching-loop-b4-api';
 import { listAssessments } from '@/services/assessments-api';
 import type { PracticeQuery } from '@/services/teaching-loop-b4-api';
-import { ApiError } from '@/services/api-client';
+import { ApiError, API_BASE_PATH } from '@/services/api-client';
 import type { ApiErrorDetails } from '@/contracts/api';
 import { deferred, page, practice, revision, rich, run, suggestion } from './test-fixtures';
 import { PRACTICE_RECOVERY_PREFIX } from './session';
 import type { ExportArtifact, PracticeSetView } from '@/contracts/b4';
 
-vi.mock('@/services/assessments-api', () => ({
-  listClasses: vi.fn(async () => ({ items: [{ id: 'class-a', name: '当前班名', code: 'A' }], total: 1, offset: 0, limit: 50 })),
-  listClassStudents: vi.fn(async () => ({ items: [{ id: 'student-a', name: '甲', studentNo: '001', memberships: [] }], total: 1 })),
-  listAssessments: vi.fn(async () => ({ items: [{ assessmentId: 'assessment-fixed', title: '固定施测标题' }], total: 1, offset: 0, limit: 200 })),
-}));
+/**
+ * 只替身读取用的数据接口；`assessmentsQuery` 是纯查询串构造器，保留真实实现，
+ * 让走真实传输层（`teaching-loop-b4-api`）的用例能验证冻结查询串。
+ */
+vi.mock('@/services/assessments-api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/services/assessments-api')>();
+  return {
+    listClasses: vi.fn(async () => ({ items: [{ id: 'class-a', name: '当前班名', code: 'A' }], total: 1, offset: 0, limit: 50 })),
+    listClassStudents: vi.fn(async () => ({ items: [{ id: 'student-a', name: '甲', studentNo: '001', memberships: [] }], total: 1 })),
+    listAssessments: vi.fn(async () => ({ items: [{ assessmentId: 'assessment-fixed', title: '固定施测标题' }], total: 1, offset: 0, limit: 200 })),
+    assessmentsQuery: actual.assessmentsQuery,
+  };
+});
 vi.mock('@/services/workflow-jobs-api', () => ({ observeJob: vi.fn(async () => null), retryObservationWindow: (job: { attempt: number }) => ({ minAttempt: job.attempt, maxAttempt: job.attempt + 1 }), retryJob: vi.fn(), cancelJob: vi.fn() }));
-afterEach(() => { cleanup(); for (const key of Object.keys(localStorage)) if (key.startsWith(PRACTICE_RECOVERY_PREFIX)) localStorage.removeItem(key); vi.clearAllMocks(); });
+afterEach(() => { cleanup(); for (const key of Object.keys(localStorage)) if (key.startsWith(PRACTICE_RECOVERY_PREFIX)) localStorage.removeItem(key); vi.unstubAllGlobals(); vi.clearAllMocks(); });
 const unlocked = () => undefined;
+/**
+ * 列表行的「彻底删除」：编辑工作区写完锁（恢复稿读取 + 缓存就绪）之前会被禁用，
+ * 点击命中禁用按钮不会触发；这里重试到二次确认区出现为止，确认没有提前发写请求。
+ */
+async function openDeleteConfirm(setId: string) {
+  await waitFor(() => {
+    fireEvent.click(screen.getByTestId(`practices-delete-${setId}`));
+    expect(screen.getByText(/物理删除、不可恢复/)).toBeInTheDocument();
+  });
+}
 function api(overrides: Partial<typeof b4Api> = {}): typeof b4Api { return { ...b4Api, listPractices: vi.fn(async () => page([practice])), getPractice: vi.fn(async () => practice), getAnalysisRun: vi.fn(async () => run), listPracticeExports: vi.fn(async () => page([])), ...overrides }; }
 function savedView(score: string, number: number): PracticeSetView { return { ...practice, revision: number, currentRevision: { ...revision, draftItems: [{ ...revision.draftItems[0], maxScore: score, itemStructure: { nodes: [{ ...revision.draftItems[0].itemStructure.nodes[0], maxScore: score }] } }] } }; }
 function EditorHost({ services }: { services: typeof b4Api }) { const [view, setView] = useState(practice); return <PracticeEditor view={view} services={services} onSaved={setView} onLocked={unlocked} />; }
@@ -306,17 +324,6 @@ describe('练习来源名称优先', () => {
 });
 
 describe('练习彻底删除（受引用守卫的三态）', () => {
-  /**
-   * 列表行的「彻底删除」：编辑工作区写完锁（恢复稿读取 + 缓存就绪）之前会被禁用，
-   * 点击命中禁用按钮不会触发；这里重试到二次确认区出现为止，确认没有提前发写请求。
-   */
-  async function openDeleteConfirm(setId: string) {
-    await waitFor(() => {
-      fireEvent.click(screen.getByTestId(`practices-delete-${setId}`));
-      expect(screen.getByText(/物理删除、不可恢复/)).toBeInTheDocument();
-    });
-  }
-
   it('成功：二次确认后按 expectedRevision 物理删除、刷新列表并清空当前选择', async () => {
     const remove = vi.fn(async () => ({ deleted: true, practiceSetId: practice.practiceSetId }));
     const list = vi.fn(async () => page([practice]));
@@ -364,5 +371,116 @@ describe('练习彻底删除（受引用守卫的三态）', () => {
     expect(screen.getByText(/已归档练习同样受该守卫，不会因归档而可删/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '确认彻底删除' }));
     await waitFor(() => expect(remove).toHaveBeenCalledWith(practice.practiceSetId, 3));
+  });
+});
+
+describe('练习彻底删除（连同全部历史）', () => {
+  /** 后端受引用守卫的 409：`details.counts` 逐项计数，message 末尾带「连同全部历史」指引。 */
+  function inUse(counts: Record<string, number>) {
+    const listed = Object.entries(counts).filter(([, value]) => value > 0).map(([keyName, value]) => `${keyName} ${value} 条`).join('、');
+    return new ApiError('PRACTICE_IN_USE', `练习集仍被引用，不能删除（${listed}）；如需连同全部历史彻底删除该练习（不可恢复），请在界面明确确认后重试。`, 409, false, 'r1', { counts } as ApiErrorDetails);
+  }
+
+  it('守卫块渲染「连同全部历史」按钮；确认后以 includeHistory=true 与正确 expectedRevision 删除并显示四计数明细回执', async () => {
+    const remove = vi.fn()
+      .mockRejectedValueOnce(inUse({ reviewedRevisions: 2, exports: 1, conversions: 3 }))
+      .mockResolvedValueOnce({ deleted: true, practiceSetId: practice.practiceSetId, removedRevisions: 2, removedExports: 1, removedConversions: 3, removedArtifacts: 4 });
+    const list = vi.fn(async () => page([practice]));
+    render(<PracticesWorkspace services={api({ listPractices: list, deletePracticeSet: remove })} />);
+    await openDeleteConfirm(practice.practiceSetId);
+    // 首次二次确认提示先点明「连同全部历史」会另行明确确认（不提前发写请求）
+    expect(screen.getByText(/若含已审核版本\/导出\/转换，将出现「连同全部历史」的明确确认/)).toBeInTheDocument();
+    expect(remove).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: '确认彻底删除' }));
+    const guard = await screen.findByTestId('practices-delete-guard');
+    expect(guard).toHaveTextContent('已审核版本 2 条');
+    const history = within(guard).getByTestId(`practices-history-delete-${practice.practiceSetId}`);
+    expect(history).toBeEnabled();
+    expect(history).toHaveTextContent('确认彻底删除（含已审核版本/导出/转换，不可恢复）');
+    // 常规删除调用形状不变（保持既有两参语义）
+    expect(remove.mock.calls[0]).toEqual([practice.practiceSetId, practice.revision]);
+    fireEvent.click(history);
+    await waitFor(() => expect(remove).toHaveBeenCalledTimes(2));
+    expect(remove.mock.calls[1]).toEqual([practice.practiceSetId, practice.revision, true]);
+    // 成功后守卫态清空、列表刷新，回执按名称 + 四计数明细展示
+    await waitFor(() => expect(screen.queryByTestId('practices-delete-guard')).not.toBeInTheDocument());
+    const notice = await screen.findByTestId('practices-delete-notice');
+    expect(notice).toHaveAttribute('role', 'status');
+    expect(notice).toHaveTextContent(`已彻底删除练习「${practice.title}」：已审核修订 2 条、导出 1 条、转换 3 条已一并删除（不可恢复）。`);
+    await waitFor(() => expect(list.mock.calls.length).toBeGreaterThan(1));
+  });
+
+  it('界面确认后走真实服务层：查询串带 expectedRevision 与 includeHistory=true（冻结契约）', async () => {
+    const deletes: string[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === 'string' ? input : input.toString();
+      if (init?.method !== 'DELETE' || !url.includes('/practice-sets/')) throw new Error('本用例只放行练习删除请求');
+      deletes.push(url);
+      if (!url.includes('includeHistory=true')) {
+        return { ok: false, status: 409, json: async () => ({ code: 'PRACTICE_IN_USE', message: '练习集仍被引用，不能删除（已审核版本 1 条）；如需连同全部历史彻底删除该练习（不可恢复），请在界面明确确认后重试。', retryable: false, details: { counts: { reviewedRevisions: 1, exports: 0, conversions: 0 } } }) } as Response;
+      }
+      return { ok: true, status: 200, json: async () => ({ deleted: true, practiceSetId: practice.practiceSetId, removedRevisions: 1, removedExports: 0, removedConversions: 0, removedArtifacts: 0 }) } as Response;
+    }));
+    render(<PracticesWorkspace services={api()} />);
+    await openDeleteConfirm(practice.practiceSetId);
+    fireEvent.click(screen.getByRole('button', { name: '确认彻底删除' }));
+    const guard = await screen.findByTestId('practices-delete-guard');
+    expect(deletes).toEqual([`${API_BASE_PATH}/practice-sets/${practice.practiceSetId}?expectedRevision=${practice.revision}`]);
+    fireEvent.click(within(guard).getByTestId(`practices-history-delete-${practice.practiceSetId}`));
+    await waitFor(() => expect(deletes.length).toBe(2));
+    expect(deletes[1]).toBe(`${API_BASE_PATH}/practice-sets/${practice.practiceSetId}?expectedRevision=${practice.revision}&includeHistory=true`);
+    expect(await screen.findByTestId('practices-delete-notice')).toHaveTextContent(`已彻底删除练习「${practice.title}」：已审核修订 1 条、导出 0 条、转换 0 条已一并删除（不可恢复）。`);
+  });
+
+  it('回执计数全 0 或旧回执缺字段时保持既有成功文案，不虚构历史删除量', async () => {
+    const zeroed = vi.fn(async () => ({ deleted: true, practiceSetId: practice.practiceSetId, removedRevisions: 0, removedExports: 0, removedConversions: 0, removedArtifacts: 0 }));
+    const first = render(<PracticesWorkspace services={api({ deletePracticeSet: zeroed })} />);
+    await openDeleteConfirm(practice.practiceSetId);
+    fireEvent.click(screen.getByRole('button', { name: '确认彻底删除' }));
+    await waitFor(() => expect(zeroed).toHaveBeenCalledWith(practice.practiceSetId, practice.revision));
+    const notice = await screen.findByTestId('practices-delete-notice');
+    expect(notice).toHaveTextContent(`已彻底删除练习「${practice.title}」：物理删除完成，不可恢复。`);
+    expect(notice).not.toHaveTextContent('已一并删除');
+    first.unmount();
+    // 旧回执（无新字段）按缺省 0 处理，不猜测删除量
+    const legacy = vi.fn(async () => ({ deleted: true, practiceSetId: practice.practiceSetId }));
+    render(<PracticesWorkspace services={api({ deletePracticeSet: legacy })} />);
+    await openDeleteConfirm(practice.practiceSetId);
+    fireEvent.click(screen.getByRole('button', { name: '确认彻底删除' }));
+    await waitFor(() => expect(legacy).toHaveBeenCalledWith(practice.practiceSetId, practice.revision));
+    expect(await screen.findByTestId('practices-delete-notice')).toHaveTextContent(`已彻底删除练习「${practice.title}」：物理删除完成，不可恢复。`);
+  });
+
+  it('连同历史删除在途禁用且不重入；再次 409 原样保留守卫与逐项计数供重试', async () => {
+    const pending = deferred<never>();
+    const conflict = inUse({ reviewedRevisions: 1, exports: 0, conversions: 2 });
+    const remove = vi.fn().mockRejectedValueOnce(conflict).mockImplementationOnce(() => pending.promise);
+    render(<PracticesWorkspace services={api({ deletePracticeSet: remove })} />);
+    await openDeleteConfirm(practice.practiceSetId);
+    fireEvent.click(screen.getByRole('button', { name: '确认彻底删除' }));
+    const guard = await screen.findByTestId('practices-delete-guard');
+    const history = within(guard).getByTestId(`practices-history-delete-${practice.practiceSetId}`);
+    const plain = screen.getByRole('button', { name: '确认彻底删除' });
+    fireEvent.click(history);
+    await waitFor(() => expect(remove).toHaveBeenCalledTimes(2));
+    // 在途：连同历史按钮禁用、重按不重入；常规二次确认同样被同一 busy 互斥禁用
+    expect(history).toBeDisabled();
+    expect(history).toHaveTextContent('删除中…');
+    expect(plain).toBeDisabled();
+    fireEvent.click(history);
+    fireEvent.click(plain);
+    expect(remove).toHaveBeenCalledTimes(2);
+    await act(async () => pending.reject(conflict));
+    // 再次 409 原样展示：守卫块与逐项计数保留，按钮恢复可重送同一请求
+    const guardAgain = await screen.findByTestId('practices-delete-guard');
+    expect(guardAgain).toHaveTextContent('PRACTICE_IN_USE');
+    expect(guardAgain).toHaveTextContent('已审核版本 1 条');
+    expect(guardAgain).toHaveTextContent('施测转换 2 条');
+    expect(guardAgain).not.toHaveTextContent('导出记录');
+    expect(within(guardAgain).getByText(/如需连同全部历史彻底删除该练习（不可恢复），请在界面明确确认后重试/)).toBeInTheDocument();
+    expect(screen.queryByTestId('practices-delete-notice')).not.toBeInTheDocument();
+    const retry = within(guardAgain).getByTestId(`practices-history-delete-${practice.practiceSetId}`);
+    expect(retry).toBeEnabled();
+    expect(retry).toHaveTextContent('确认彻底删除（含已审核版本/导出/转换，不可恢复）');
   });
 });

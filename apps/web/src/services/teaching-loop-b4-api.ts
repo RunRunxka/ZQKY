@@ -82,9 +82,11 @@ export function restorePracticeSet(setId: string, body: PracticeSetStatusRequest
  * 练习集彻底删除（受引用守卫的物理删除）：`expectedRevision` 走查询参数。
  * 有已审核修订/导出/转换引用 → 409 `PRACTICE_IN_USE` + `details.counts`（见 `PracticeSetReferenceCounts`）；
  * 乐观锁不符 → 409 `REVISION_CONFLICT`；不存在/非本人 → 404。已归档练习同样受守卫（不会因归档而可删）。
+ * `includeHistory=true`（界面明确确认「连同全部历史」后）一并彻底删除已审核修订/导出产物/回流转换，
+ * 查询串追加 `&includeHistory=true`，成功回执带四类删除计数；不传时保持原两参调用语义（回执计数为 0）。
  */
-export function deletePracticeSet(setId: string, expectedRevision: number, signal?: AbortSignal): Promise<PracticeSetDeleteReceipt> {
-  return apiRequest(`/practice-sets/${key(setId)}${assessmentsQuery({ expectedRevision })}`, { method: 'DELETE', signal });
+export function deletePracticeSet(setId: string, expectedRevision: number, includeHistory = false): Promise<PracticeSetDeleteReceipt> {
+  return apiRequest(`/practice-sets/${key(setId)}${assessmentsQuery({ expectedRevision, ...(includeHistory ? { includeHistory: true } : {}) })}`, { method: 'DELETE' });
 }
 export function getPracticeRevision(setId: string, revisionId: string, signal?: AbortSignal): Promise<PracticeRevisionView> {
   return apiRequest(`/practice-sets/${key(setId)}/revisions/${key(revisionId)}`, { signal });

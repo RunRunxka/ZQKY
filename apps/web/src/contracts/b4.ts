@@ -231,11 +231,22 @@ export interface PracticeSetStatusRequest {
 /**
  * 彻底删除练习集回执（200）：受引用守卫的物理删除，不可恢复
  * （纯 draft 集合的子行、修订与集合行在同一事务删除）。
- * 有已审核修订/导出/转换引用 → 409 `PRACTICE_IN_USE` + `details.counts`（见 `PracticeSetReferenceCounts`）。
+ * `includeHistory=true` 时连同全部历史（已审核修订、导出产物、回流转换）一并彻底删除，不可恢复；
+ * 回执带四类历史计数，后端总是返回（缺省 0，界面按 0 处理旧回执）。
+ * 未带 `includeHistory` 且存在已审核修订/导出/转换引用 → 409 `PRACTICE_IN_USE` + `details.counts`
+ * （见 `PracticeSetReferenceCounts`）。
  */
 export interface PracticeSetDeleteReceipt {
   deleted: boolean;
   practiceSetId: string;
+  /** 本次一并彻底删除的已审核修订数（缺省 0）。 */
+  removedRevisions?: number;
+  /** 本次一并彻底删除的导出记录数（缺省 0）。 */
+  removedExports?: number;
+  /** 本次一并彻底删除的施测转换记录数（缺省 0）。 */
+  removedConversions?: number;
+  /** 本次一并彻底删除的导出产物（文件资产）数（缺省 0）。 */
+  removedArtifacts?: number;
 }
 
 /** `PRACTICE_IN_USE` 的逐项引用计数（键与后端一致；未知键由界面原样列出，不隐藏）。 */
