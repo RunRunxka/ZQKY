@@ -157,7 +157,8 @@ function newest<T>(items: readonly T[], stamp: (item: T) => string | null | unde
 function paperFact(snapshot: LoopSnapshot, subjectId: string | null): StationFact {
   const papers = snapshot.papers;
   if (!papers) return { readable: false, done: false, artifact: null, basis: '原卷列表读取失败' };
-  const confirmed = papers.filter((paper) => paper.currentState === 'confirmed' && matchesSubject(paper.subjectId, subjectId));
+  // 只认**在用**原卷：归档原卷不算已产出（2026-10-09 真机复走发现——与成绩/报告/练习同口径）。
+  const confirmed = papers.filter((paper) => paper.status !== 'archived' && paper.currentState === 'confirmed' && matchesSubject(paper.subjectId, subjectId));
   if (confirmed.length === 0) return { readable: true, done: false, artifact: null, basis: '没有已确认修订的原卷' };
   const latest = confirmed.reduce((best, paper) => (paper.version > best.version ? paper : best));
   return { readable: true, done: true, artifact: `v${latest.version} 已确认`, basis: '已确认原卷修订' };

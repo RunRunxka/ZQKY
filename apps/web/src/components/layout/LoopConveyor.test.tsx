@@ -194,6 +194,16 @@ describe('闭环传递带派生', () => {
     expect(stations[0].state).toBe('ready');
     expect(stations[0].artifact).toBe('可开始');
   });
+
+  it('归档原卷不算已产出，只有在用原卷才算完成（真机复走发现）', () => {
+    const archivedOnly = deriveLoopProgress(snapshot({ papers: [paper({ status: 'archived', currentState: 'confirmed', version: 9 })] }));
+    expect(archivedOnly.stations[0].state).toBe('ready');
+    expect(archivedOnly.stations[0].artifact).toBe('可开始');
+
+    const mixed = deriveLoopProgress(snapshot({ papers: [paper({ status: 'archived', currentState: 'confirmed', version: 9 }), paper({ version: 2 })] }));
+    expect(mixed.stations[0].state).toBe('done');
+    expect(mixed.stations[0].artifact).toBe('v2 已确认');
+  });
 });
 
 /* ------------------------------------------------------------------ 组件（DOM 契约） */
