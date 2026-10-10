@@ -758,7 +758,7 @@ B1 仅冻结 `AssessmentCreateRequest`/`ParticipantSnapshot`/`ConfirmedPaperRevi
 | POST `/textbook-imports/{id}/discard` | 放弃教材导入草稿（`uploaded`/`needs_review`/`failed` → `discarded`，幂等；已入库 409 `IMPORT_ALREADY_COMMITTED`） |
 | POST `/embedding-profiles/{id}/retire` | 停用 Embedding 配置（幂等；停用后不能用于新重建，历史索引代保留） |
 | DELETE `/embedding-profiles/{id}` | 删除 Embedding 配置：仅当**没有任何索引代引用**时 204；被引用 409 `EMBEDDING_PROFILE_IN_USE`（提示改用停用）；不存在 404 |
-| POST `/analysis-runs/{id}/archive`、`/restore` | 学情报告归档/恢复（幂等；`analysis_runs` 数据库层禁止 DELETE——`analysis_no_delete` 触发器——所以只有软归档）；`GET /analysis-runs?archived=` 过滤 |
+| POST `/analysis-runs/{id}/archive`、`/restore` | 学情报告归档/恢复（幂等）；`GET /analysis-runs?archived=` 过滤；受守卫的物理删除见「清理链补全」节（`DELETE /analysis-runs/{id}` 在事务内受控摘除 `analysis_no_delete`/冻结触发器后逐字恢复） |
 | POST `/practice-sets/{id}/archive`、`/restore` | 练习集归档/恢复（CAS）；归档后保存草稿/复核/新建修订/导出/转施测 409 `PRACTICE_ARCHIVED`；`GET /practice-sets?status=` 过滤 |
 | POST `/lesson-plans/{id}/archive`、`/restore` | 教案归档/恢复（CAS；不递增 revision 是 0010 触发器 `lesson_plan_identity_fixed` 的硬约束）；归档后写入 422 `LESSON_INVALID`（既有守卫）；`GET /lesson-plans?archived=` 过滤 |
 
@@ -778,6 +778,21 @@ B1 仅冻结 `AssessmentCreateRequest`/`ParticipantSnapshot`/`ConfirmedPaperRevi
 | `DELETE /practice-sets/{id}` | `PRACTICE_IN_USE`：任一 `practice_revisions.state='reviewed'` 或 `practice_exports`/`practice_conversions` 引用；通过后删全部 **draft** 修订及其子行与练习集本身（reviewed 修订受触发器保护） |
 | `DELETE /knowledge-points/{id}` | `KNOWLEDGE_POINT_IN_USE`：有子节点，或跨库引用计数非零（`details.counts=[{library,key,count}]`，覆盖 knowledge 教材依据 / teaching 原卷题目 / question-bank 正式题与草稿关联）；跨库检查经只读端口注入，端口缺失 503 不静默放行 |
 | `DELETE /question-imports/{id}` | 已确认 409 `IMPORT_ALREADY_CONFIRMED`；草稿被正式题引用 409 `IMPORT_IN_USE`（计数）；通过后删批次/草稿/行/原文块/建议/溯源；**受管原件（内容寻址 blob）不物理删除**，前端如实说明"原件保留" |
+
+### 清理链补全：四类下游记录单独彻底删除（2026-10-10）
+
+施测的 `ASSESSMENT_IN_USE` 守卫把四类下游引用列为计数；本批让**每一类记录都能单独彻底删除**（物理删除、不可恢复、不存在 404），逐条清完后施测自身即可删除——不用因某一类残留而卡死整条清理。所有删除在单写事务内运行；受 DB 不可变触发器保护的行按既有先例"事务内临时摘除 → 删除 → 逐字恢复"（与教案/知识点删除同款，任一步失败整体回滚）。
+
+| 方法与路径 | 守卫与语义 |
+| --- | --- |
+| `DELETE /score-revisions/{id}` | 409 `SCORE_REVISION_IN_USE`：`details.counts` 恒含 `analysisRuns`（引用它的学情报告）/`dependentRevisions`（以它为基的更新版本）/`importBatches`（以它为基的导入批次）；通过后删修正审计与矩阵行、**该版本是当前生效版本时清空 `activeScoreRevisionId`**（不递增施测 revision，其它标签页 CAS 语义不变）、删版本行；draft/confirmed 都可删。回执 `{deleted,revisionId,clearedActive,removedScores,removedCorrections}` |
+| `DELETE /score-imports/{id}` | 409 `SCORE_IMPORT_IN_USE`（`counts.scoreRevisions`）：该批次已产出成绩版本时先删对应成绩版本；任何 state（`uploaded/reviewing/confirmed/failed/cancelled`）都可删；通过后删预览行与批次行（受管原件保留）；`POST /discard` 语义不变。回执 `{deleted,importId}` |
+| `DELETE /analysis-runs/{id}` | 409 `ANALYSIS_RUN_IN_USE`：`counts.practiceSets`（由该报告创建的练习）/`lessonReferences`（教案修订+生成输入+AI 候选的引用之和）；通过后物理删除报告与六张冻结子表（参测/题快照/学生与班级依据/证据/备注）；归档与未归档都可删（`analysis_no_delete` 与冻结触发器在事务内受控摘除并逐字恢复）；`workflow_jobs` 任务行保留。回执 `{deleted,runId}` |
+| `DELETE /practice-sets/{id}/revisions/{revisionId}/conversion` | 无引用守卫（这是回流关联记录本身）；该修订无转换 404 `PRACTICE_CONVERSION_NOT_FOUND`；只删转换行与题目映射子行（不可变触发器同款受控摘除/恢复），**不动施测/原卷/练习修订与成绩**；归档练习同样可解除（与 `delete_practice` 同口径：归档只挡修改类写路径）。回执 `{deleted,conversionId,assessmentId}` |
+
+配套只读字段：`PracticeRevisionView` 增加 `convertedAssessmentId`（该修订**最新一条**转换的施测 id；读路径实时取，缺失为 `null`），使"删除转换记录"入口在刷新页面后依旧可见（此前只认会话内转换回执）。
+
+前端入口：成绩修订列表（步骤 5）、成绩导入批次列表（步骤 4）、学情固定报告历史、练习导出区（已转换时）；409 统一用原因清单展示 `details.counts`。
 
 ### 新增能力
 
