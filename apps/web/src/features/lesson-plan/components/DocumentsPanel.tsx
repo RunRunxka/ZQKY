@@ -108,7 +108,7 @@ export function DocumentsPanel() {
       if (receipt.lessonPlanId !== lessonPlanId || !receipt.deleted) throw new ApiError('LESSON_DELETE_IDENTITY_MISMATCH', '删除回执与目标教案不一致，未刷新列表。', 500, false);
       deleteBusyRef.current = null;
       clearGenerationInputs(lessonPlanId);
-      setDeleteNotice(`已彻底删除教案 ${lessonPlanId}：历史修订 ${receipt.removedRevisions} 条、AI 候选 ${receipt.removedProposals} 条、生成输入 ${receipt.removedInputs} 条已一并删除。`);
+      setDeleteNotice(`已彻底删除教案「${lesson.title || '未命名教案'}」：物理删除完成，不可恢复。`);
       void load(false);
     } catch (cause) {
       if (alive.current) setDeleteError(asApiError(cause));

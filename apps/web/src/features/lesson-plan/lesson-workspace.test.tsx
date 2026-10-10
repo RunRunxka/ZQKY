@@ -420,7 +420,9 @@ describe('L1 教案退出与彻底删除', () => {
     expect(screen.getByText('先退出当前教案，再彻底删除')).toBeInTheDocument();
     fireEvent.click(items[0]);
     await waitFor(() => expect(deleteLessonPlan).toHaveBeenCalledWith('lesson-b', 1));
-    await screen.findByText(/已彻底删除教案 lesson-b：历史修订 3 条、AI 候选 1 条、生成输入 2 条已一并删除。/);
+    await screen.findByText('已彻底删除教案「后台B」：物理删除完成，不可恢复。');
+    // 成功提示不再直显 ID 与「历史修订 N 条」等明细（回执字段仍在类型与 API 里）
+    expect(screen.queryByText(/历史修订 3 条/)).not.toBeInTheDocument();
     // 422 原样显示 message
     const again = screen.getByRole('button', { name: '彻底删除' });
     fireEvent.click(again);
@@ -448,7 +450,7 @@ describe('L1 教案退出与彻底删除', () => {
     await screen.findByLabelText('课题');
     fireEvent.click(screen.getByRole('button', { name: '刷新后台列表' }));
     fireEvent.click((await screen.findAllByRole('button', { name: '彻底删除' }))[0]);
-    await screen.findByText(/已彻底删除教案 lesson-b/);
+    await screen.findByText('已彻底删除教案「后台B」：物理删除完成，不可恢复。');
     const store = JSON.parse(localStorage.getItem('zhiqikeyuan:lesson-plan:generation-inputs:v1')!);
     expect(store['lesson-b']).toBeUndefined();
   });
