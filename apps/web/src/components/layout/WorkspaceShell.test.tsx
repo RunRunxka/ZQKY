@@ -1,8 +1,7 @@
 import { describe, expect, it, vi, afterEach, beforeEach } from 'vitest';
-import { cleanup, fireEvent, render, screen, within, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { WorkspaceShell } from './WorkspaceShell';
-import { ModuleWorkspaceShell } from './ModuleWorkspaceShell';
 import { NavigationPreference, useNavigationPreference } from './NavigationPreference';
 import { navigation } from '@/services/navigation';
 
@@ -18,7 +17,7 @@ vi.mock('next/navigation', () => ({
 function renderShell() {
   return render(
     <NavigationPreference>
-      <WorkspaceShell pageTitle="教案工作台">
+      <WorkspaceShell pageTitle="对话">
         <main>页面内容</main>
       </WorkspaceShell>
     </NavigationPreference>,
@@ -27,7 +26,7 @@ function renderShell() {
 
 describe('WorkspaceShell 导航', () => {
   beforeEach(() => {
-    location.pathname = '/lesson-plans';
+    location.pathname = '/chat';
     push.mockClear();
     localStorage.removeItem('zhiqikeyuan:nav-expanded');
     HTMLDialogElement.prototype.showModal = function () {
@@ -42,25 +41,6 @@ describe('WorkspaceShell 导航', () => {
   });
   afterEach(cleanup);
 
-  it('施测工作区保留内容并提供唯一公共导航，可返回学习问答', async () => {
-    location.pathname = '/assessments';
-    render(
-      <NavigationPreference>
-        <ModuleWorkspaceShell>
-          <main>成绩校对内容</main>
-        </ModuleWorkspaceShell>
-      </NavigationPreference>,
-    );
-    expect(screen.getByText('成绩校对内容')).toBeVisible();
-    expect(screen.getAllByRole('navigation', { name: '项目功能导航' })).toHaveLength(1);
-    expect(screen.getByRole('button', { name: '施测与成绩' })).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
-    fireEvent.click(screen.getByRole('button', { name: '学习问答' }));
-    await waitFor(() => expect(push).toHaveBeenCalledWith('/chat'));
-  });
-
   it('渲染全部登记入口（隐藏项除外），规划中模块的可访问名称统一携带状态', () => {
     renderShell();
     for (const item of navigation) {
@@ -74,7 +54,7 @@ describe('WorkspaceShell 导航', () => {
       const name = item.label;
       expect(screen.getByRole('button', { name }), `缺少入口：${item.label}`).toBeInTheDocument();
     }
-    expect(screen.getByRole('button', { name: '教案工作台' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: '对话' })).toHaveAttribute(
       'aria-current',
       'page',
     );
@@ -84,8 +64,8 @@ describe('WorkspaceShell 导航', () => {
     renderShell();
     fireEvent.click(screen.getByRole('button', { name: '收起项目导航' }));
     fireEvent.click(screen.getByRole('button', { name: '展开项目导航' }));
-    expect(screen.getByText('教学工作台')).toBeInTheDocument();
-    expect(screen.getByText('教学资源')).toBeInTheDocument();
+    expect(screen.getByText('工作台')).toBeInTheDocument();
+    
     expect(screen.getByRole('button', { name: '收起项目导航' })).toBeInTheDocument();
   });
 
@@ -98,7 +78,7 @@ describe('WorkspaceShell 导航', () => {
       if (item.hidden) continue;
       expect(within(dialog).getByRole('button', { name: item.label })).toBeInTheDocument();
     }
-    expect(within(dialog).getByRole('button', { name: '教案工作台' })).toHaveFocus();
+    expect(within(dialog).getByRole('button', { name: '对话' })).toHaveFocus();
     fireEvent(dialog, new Event('cancel', { bubbles: false, cancelable: true }));
     expect(screen.queryByRole('dialog', { name: '功能导航' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '打开功能导航' })).toHaveFocus();
@@ -123,7 +103,7 @@ describe('WorkspaceShell 导航', () => {
     renders.length = 0;
     ui.rerender(
       <NavigationPreference>
-        <RouteShell key="lesson" route="教案工作台" />
+        <RouteShell key="lesson" route="对话" />
       </NavigationPreference>,
     );
     expect(renders.length).toBeGreaterThan(0);

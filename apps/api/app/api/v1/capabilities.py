@@ -21,99 +21,38 @@ CAPABILITIES: tuple[Capability, ...] = (
         label="模型设置",
         status=CapabilityStatus.ready,
         detail=(
-            "模型连接、模型配置、供应商目录（38 条）与真实连接测试已实现；"
+            "模型连接、模型配置、供应商目录与真实连接测试已实现；"
             "凭证存入服务端 SecretStore（正式服务为忽略的 apps/api/.env，测试为内存），"
             "响应只返回凭证状态，不回显明文。"
         ),
     ),
     Capability(
         feature="chat",
-        label="学习问答对话",
+        label="对话",
         status=CapabilityStatus.ready,
-        detail="流式对话已实现（D04）；对话记录保存在浏览器本地。教材定位与追问由独立的本地 RAG 模式提供。",
+        detail="流式对话已实现（三协议 SSE）；对话记录保存在浏览器本地。",
     ),
     Capability(
-        feature="lesson_plan_ai_fill",
-        label="教案真实AI填充",
-        status=CapabilityStatus.planned,
-        detail="当前教案使用浏览器本地规则填充，不调用模型。",
-    ),
-    Capability(
-        feature="paper_compose",
-        label="智能组卷",
-        status=CapabilityStatus.planned,
-        detail="本地组卷与排版在 D05/D06 实施；题库自动选题保持规划。",
-    ),
-    Capability(
-        feature="templates",
-        label="模板中心与正式导出",
-        status=CapabilityStatus.planned,
-        detail="DOCX 模板上传、字段映射与渲染任务在 D05–D07 实施。",
-    ),
-    Capability(
-        feature="textbook_repository",
-        label="教材资料库",
+        feature="agent",
+        label="教学 Agent",
         status=CapabilityStatus.ready,
         detail=(
-            "教材目录由 SQLite 权威管理（分类、逻辑库、不可变修订、任教范围），"
-            "原件与规范化文本按内容指纹封存；索引代状态见 /textbook-index/status。"
+            "LangGraph 内嵌编排已实现（会话/中断确认/上传机制在位）；"
+            "工具表当前为空骨架，随业务重建逐项扩展。"
         ),
-    ),
-    Capability(
-        feature="question_bank",
-        label="题库",
-        status=CapabilityStatus.ready,
-        detail=(
-            "独立 SQLite 题库：导入拆题、原文对照校对、可选本地模型整理建议与幂等确认入库；"
-            "题库不进入教材向量库。"
-        ),
-    ),
-    Capability(
-        feature="rag",
-        label="教材检索（RAG）",
-        status=CapabilityStatus.unavailable,
-        detail="本地教材运行时状态由 /rag/status 检查；人工教学质量验收尚未完成。",
-    ),
-    Capability(
-        feature="agent_tasks",
-        label="Agent 任务",
-        status=CapabilityStatus.planned,
-        detail="任务运行器与业务工具调用未实现。",
-    ),
-    Capability(
-        feature="mcp",
-        label="MCP",
-        status=CapabilityStatus.planned,
-        detail="外部 MCP 连接管理未实现。",
-    ),
-    Capability(
-        feature="skills",
-        label="Skills",
-        status=CapabilityStatus.planned,
-        detail="技能定义与执行未实现。",
     ),
 )
 
 
 @router.get("/capabilities", response_model=CapabilitiesResponse)
 async def capabilities(request: Request) -> CapabilitiesResponse:
-    rag = await request.app.state.rag_service.status()
-    items = [item.model_copy(update={
-        "status": CapabilityStatus.ready if rag["available"] else CapabilityStatus.unavailable,
-        "detail": rag["detail"] + "仅表示工程运行能力；人工教学质量验收尚未完成。",
-    }) if item.feature == "rag" else item for item in CAPABILITIES]
-    lesson = getattr(request.app.state, "lesson_plan_service", None)
-    generation = getattr(request.app.state, "lesson_generation_service", None)
-    registry = getattr(request.app.state, "job_executors", None)
-    lesson_ready = lesson is not None and generation is not None and registry is not None and registry.has("teaching", "lesson_generation")
-    items = [item.model_copy(update={
-        "status": CapabilityStatus.ready if lesson_ready else CapabilityStatus.unavailable,
-        "detail": ("后台教案保存与固定历史、固定学情驱动模型建议和教师选择应用已装配；须选择可用模型，人工教学质量尚未验收。"
-                   if lesson_ready else "后台教案运行依赖未装配；本地规则填充仍可独立使用。"),
-    }) if item.feature == "lesson_plan_ai_fill" else item for item in items]
+    """骨架能力清单：只报告当前实际装配的三项（对话 / Agent / 模型设置）。
+
+    业务能力随重建在 CAPABILITIES 中逐项回归；未实现的能力不得在此伪装 ready。
+    """
     return CapabilitiesResponse(
         service=SERVICE_NAME,
         apiVersion=API_VERSION,
         generatedAt=now_utc(),
-        capabilities=items,
+        capabilities=list(CAPABILITIES),
     )

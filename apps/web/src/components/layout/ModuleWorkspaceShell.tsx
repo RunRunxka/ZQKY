@@ -6,16 +6,7 @@ import { WorkspaceShell } from './WorkspaceShell';
 import { ShellScope } from './ShellScope';
 
 // 这些独立模块此前没有全局导航；已有壳的聊天、教案、设置不重复嵌套。
-const independentRoots = new Set([
-  '/knowledge-bases',
-  '/knowledge-points',
-  '/books',
-  '/courses',
-  '/question-bank',
-  '/assessments',
-  '/learning-analysis',
-  '/practices',
-]);
+const independentRoots = new Set<string>([]);  // 骨架期无独立业务根；业务模块回归时在此登记
 export function ModuleWorkspaceShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const root = `/${pathname.split('/')[1]}`;

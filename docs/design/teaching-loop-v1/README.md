@@ -1,5 +1,7 @@
 # 智启课源：学情分析、知识点题库与 AI 备课数据库设计
 
+> 交接用：[项目全局理解提示词](项目全局理解提示词_20261007.md)——粘贴给任何新智能体即可接手（项目是什么 / 真值入口 / 领域红线 / 纪律 / 当前快照）。
+
 <!-- G7-B7C-LIVE:20261006 -->
 2026-10-06：[G7 修复 + B7-C 单模型 live 首发 + 用户材料闭环](../../qa/TEACHING-LOOP-G7-B7C-20261005/README.md)。G7 两项已独立限定关闭；首次真实受控试评成功（C01，HTTP 200，settled 8748，`live_technical_pass` + 结果入口 `RESULT_INTEGRITY_PASS`；五本授权账保留、同 scope）。产品级发现：非流式 30 秒等待使 `reasoning=max` 的教案生成在产品自身超时（未改产品）。用户材料闭环单轮 0 偏差（18/19/19/19、4/9/6/6→回流0）；teacher/native/RAG-REL 待验；当前进度只看[CURRENT_STATUS](../../CURRENT_STATUS.md)。
 <!-- /G7-B7C-LIVE:20261006 -->

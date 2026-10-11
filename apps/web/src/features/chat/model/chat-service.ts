@@ -13,22 +13,10 @@ import type {
   ChatArtifact,
   ChatRole,
   ChatServiceKind,
-  RagTurnState,
   TurnExtensionSnapshot,
 } from '@/contracts/chat';
 import { streamChat } from '@/services/chat-stream';
 import { createAgentChatService } from './agent-chat-service';
-import { createRagChatService, isRagCapability, type RagServiceStatus } from './rag-service';
-import type { RagResultV2, RagScopeInput, ScopeSnapshot } from './rag-v2';
-
-/**
- * 教材通道的本轮输入（v2）：在既有 `RagTurnState` 上补充范围入参。
- * 首次定位传 `{kind:'selection'}`；断线续传回传 `message.start` 里的快照
- * `{kind:'frozen'}`，服务端每次使用前重新核验。
- */
-export interface RagChannelInput extends RagTurnState {
-  scope?: RagScopeInput;
-}
 
 export type ChatToolStatus = 'running' | 'done' | 'error' | 'cancelled';
 
@@ -56,9 +44,8 @@ interface ChatServiceEventBase {
 export type ChatServiceEvent =
   | (ChatServiceEventBase & { type: 'checkpoint' })
   | (ChatServiceEventBase & { type: 'reply-accepted'; interactionId: string; submissionId: string; answers: AskUserAnswer[] })
-  | (ChatServiceEventBase & { type: 'turn-start'; scopeSnapshot?: ScopeSnapshot })
+  | (ChatServiceEventBase & { type: 'turn-start' })
   /** 教材 v2 结构化结果：与正文、游标在同一次会话持久化中提交 */
-  | (ChatServiceEventBase & { type: 'rag-result'; result: RagResultV2 })
   /** text：普通聊天为增量；教材 v2 带 replace=true（整段渲染好的正文，替换本轮正文） */
   | (ChatServiceEventBase & { type: 'text'; delta: string; replace?: boolean })
   | (ChatServiceEventBase & { type: 'reasoning'; delta: string })
@@ -104,8 +91,6 @@ export interface ChatServiceRequest {
    * 本轮扩展快照；教材能力据此选择专用服务。普通聊天不向后端发送扩展。
    */
   extensions?: TurnExtensionSnapshot;
-  /** 教材通道（v2）本轮身份与范围；普通聊天不携带 */
-  rag?: RagChannelInput;
   signal: AbortSignal;
 }
 
@@ -118,7 +103,6 @@ export interface ChatServiceReplyRequest {
   submissionId: string;
   answers: AskUserAnswer[];
   signal: AbortSignal;
-  channel?: 'rag';
 }
 
 export interface ChatReplyAck {
@@ -135,29 +119,21 @@ export interface ChatService {
    * 教材服务支持同轮回答；普通聊天显式不支持，不静默转模拟。
    */
   submitReply?(request: ChatServiceReplyRequest): Promise<ChatReplyAck>;
-  checkRagAvailable?(): Promise<RagServiceStatus>;
-  cancel?(request: { sessionId: string; turnId: string; channel?: 'rag' }): Promise<unknown>;
+  cancel?(request: { sessionId: string; turnId: string }): Promise<unknown>;
 }
 
-/** 真实服务：包装现有 SSE 客户端，真实路径行为保持不变（不发送扩展快照）。
+/** 真实服务：包装现有 SSE 客户端（显式注入 stream 时）或 Agent 通道（默认）。
  *
- * Agent 化改造（C1 融合）：默认（非教材）请求走 **Agent 通道**（agent-chat-service），
- * Agent 直答普通问答、按需调业务工具（学情/教案/练习/导入），写操作经确认闸门；
- * 教材追问澄清仍走 **rag 专用通道**（流式，机制不变）。普通 streamChat 不再作为默认，
- * 仅在显式注入 ``stream``（如测试）时走纯问答。
+ * 推倒重做后：对话默认走 Agent 通道（agent/stream，直答 + 未来工具）；
+ * 显式注入 ``stream``（测试/纯问答回退）走普通 /chat/stream。
  */
 export function createRealChatService(deps?: { stream?: typeof streamChat }): ChatService {
   const runStream = deps?.stream ?? null;
-  const rag = createRagChatService();
   const agent = createAgentChatService();
   return {
     kind: 'real',
-    checkRagAvailable: () => rag.checkRagAvailable!(),
-    cancel: (request) => (request.channel === 'rag' ? rag.cancel!(request) : Promise.resolve()),
-    // 普通聊天协议不支持追问；教材轮次只走专用回答接口；Agent 卡片走确认续跑。
+    cancel: () => Promise.resolve(),
     async submitReply(request) {
-      if (request.channel === 'rag') return rag.submitReply!(request);
-      // 显式注入 stream（纯问答回退）不支持追问；Agent 通道支持确认/选择卡续跑。
       if (runStream) {
         return {
           accepted: false,
@@ -168,45 +144,30 @@ export function createRealChatService(deps?: { stream?: typeof streamChat }): Ch
       return agent.submitReply!(request);
     },
     async run(request, emit) {
-      if (request.rag || isRagCapability(request.extensions)) return rag.run(request, emit);
-      // 显式注入 stream（测试/纯问答回退）走普通聊天；默认走 Agent 通道。
-      if (runStream) {
-        await runStream(
-          {
-            requestId: request.turnId.replaceAll('-', ''),
-            modelProfileId: request.modelProfileId ?? '',
-            messages: request.messages,
-            maxOutputTokens: request.maxOutputTokens,
-            signal: request.signal,
-          },
-          {
-            onStart: () =>
-              emit({ sessionId: request.sessionId, turnId: request.turnId, type: 'turn-start' }),
-            onText: (delta) =>
-              emit({ sessionId: request.sessionId, turnId: request.turnId, type: 'text', delta }),
-            onReasoning: (delta) =>
-              emit({
-                sessionId: request.sessionId,
-                turnId: request.turnId,
-                type: 'reasoning',
-                delta,
-              }),
-            onUsage: (usage) =>
-              emit({ sessionId: request.sessionId, turnId: request.turnId, type: 'usage', usage }),
-            onEnd: (finishReason) =>
-              emit({
-                sessionId: request.sessionId,
-                turnId: request.turnId,
-                type: 'end',
-                finishReason,
-              }),
-            onError: (error) =>
-              emit({ sessionId: request.sessionId, turnId: request.turnId, type: 'error', error }),
-          },
-        );
-        return;
-      }
-      return agent.run(request, emit);
+      if (!runStream) return agent.run(request, emit);
+      await runStream(
+        {
+          requestId: request.turnId.replaceAll('-', ''),
+          modelProfileId: request.modelProfileId ?? '',
+          messages: request.messages,
+          maxOutputTokens: request.maxOutputTokens,
+          signal: request.signal,
+        },
+        {
+          onStart: () =>
+            emit({ sessionId: request.sessionId, turnId: request.turnId, type: 'turn-start' }),
+          onText: (delta) =>
+            emit({ sessionId: request.sessionId, turnId: request.turnId, type: 'text', delta }),
+          onReasoning: (delta) =>
+            emit({ sessionId: request.sessionId, turnId: request.turnId, type: 'reasoning', delta }),
+          onUsage: (usage) =>
+            emit({ sessionId: request.sessionId, turnId: request.turnId, type: 'usage', usage }),
+          onEnd: (finishReason) =>
+            emit({ sessionId: request.sessionId, turnId: request.turnId, type: 'end', finishReason }),
+          onError: (error) =>
+            emit({ sessionId: request.sessionId, turnId: request.turnId, type: 'error', error }),
+        },
+      );
     },
   };
 }

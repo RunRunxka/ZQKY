@@ -19,8 +19,10 @@ from fastapi.responses import StreamingResponse
 
 from app.core.exceptions import AppError
 from app.schemas.agent import AgentConfirmRequest, AgentStreamRequest, AgentUploadResponse
-from app.schemas.textbook import MAX_UPLOAD_BYTES
 from app.services.agent.service import AgentService
+
+#: 上传上限（骨架自持；历史业务域的共享常量已随推倒重做移除）
+MAX_UPLOAD_BYTES = 100 * 1024 * 1024
 
 router = APIRouter(tags=["agent"])
 

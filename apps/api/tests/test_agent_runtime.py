@@ -114,7 +114,7 @@ def _client(data_dir: Path) -> TestClient:
     settings = Settings(
         host="127.0.0.1", port=8001, allowed_origins=ALLOWED, env="test", data_dir=data_dir
     )
-    app = create_app(settings, bootstrap_textbooks=False)
+    app = create_app(settings)
     return TestClient(app, base_url="http://127.0.0.1:8001")
 
 

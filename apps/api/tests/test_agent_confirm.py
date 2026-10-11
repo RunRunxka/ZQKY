@@ -107,15 +107,15 @@ class TestConfirmTool:
 ALLOWED = frozenset({"http://127.0.0.1:5173"})
 
 
-def _client(data_dir: Path, *, bootstrap: bool) -> TestClient:
+def _client(data_dir: Path) -> TestClient:
     settings = Settings(host="127.0.0.1", port=8001, allowed_origins=ALLOWED, env="test", data_dir=data_dir)
-    app = create_app(settings, bootstrap_textbooks=bootstrap)
+    app = create_app(settings)
     return TestClient(app, base_url="http://127.0.0.1:8001")
 
 
 class TestUploadEndpoint:
     def test_empty_file_422(self, tmp_path: Path) -> None:
-        with _client(tmp_path, bootstrap=True) as client:
+        with _client(tmp_path) as client:
             resp = client.post(
                 "/api/v1/agent/upload",
                 files={"file": ("t.docx", b"", "application/octet-stream")},
@@ -123,7 +123,7 @@ class TestUploadEndpoint:
             assert resp.status_code == 422
 
     def test_upload_stores_blob(self, tmp_path: Path) -> None:
-        with _client(tmp_path, bootstrap=True) as client:
+        with _client(tmp_path) as client:
             resp = client.post(
                 "/api/v1/agent/upload",
                 files={"file": ("t.docx", b"PK fake bytes", "application/octet-stream")},
@@ -134,18 +134,19 @@ class TestUploadEndpoint:
             assert body["byteSize"] == len(b"PK fake bytes")
             assert (tmp_path / "assets" / "blobs" / body["assetId"]).exists()
 
-    def test_upload_service_unavailable_when_not_bootstrapped(self, tmp_path: Path) -> None:
-        with _client(tmp_path, bootstrap=False) as client:
+    def test_upload_available_in_skeleton(self, tmp_path: Path) -> None:
+        """推倒重做后骨架始终装配 asset_store：上传可用（200）。"""
+        with _client(tmp_path) as client:
             resp = client.post(
                 "/api/v1/agent/upload",
                 files={"file": ("t.docx", b"PK fake", "application/octet-stream")},
             )
-            assert resp.status_code == 503
+            assert resp.status_code == 200
 
 
 class TestConfirmEndpoint:
     def test_confirm_model_not_found(self, tmp_path: Path) -> None:
-        with _client(tmp_path, bootstrap=False) as client:
+        with _client(tmp_path) as client:
             resp = client.post(
                 "/api/v1/agent/confirm",
                 json={
@@ -161,7 +162,7 @@ class TestConfirmEndpoint:
             assert resp.json()["code"] == "MODEL_PROFILE_NOT_FOUND"
 
     def test_confirm_rejects_bad_decision(self, tmp_path: Path) -> None:
-        with _client(tmp_path, bootstrap=False) as client:
+        with _client(tmp_path) as client:
             resp = client.post(
                 "/api/v1/agent/confirm",
                 json={
@@ -177,7 +178,7 @@ class TestConfirmEndpoint:
 
     def test_confirm_rejects_short_submission_id(self, tmp_path: Path) -> None:
         """submissionId 幂等键至少 8 字符（与既有提交幂等纪律一致）。"""
-        with _client(tmp_path, bootstrap=False) as client:
+        with _client(tmp_path) as client:
             resp = client.post(
                 "/api/v1/agent/confirm",
                 json={

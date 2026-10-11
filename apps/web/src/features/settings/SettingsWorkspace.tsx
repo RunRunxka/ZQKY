@@ -1,19 +1,14 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { Boxes, Info, Palette, Plug, Sparkles, X } from 'lucide-react';
+import { Info, Palette, Plug, X } from 'lucide-react';
 import { WorkspaceShell } from '@/components/layout/WorkspaceShell';
 import { useEntrance } from '@/components/motion/useEntrance';
 import { ModelSettingsPanel } from '@/features/model-settings/ModelSettingsPanel';
-import { EmbeddingPanel } from '@/features/model-settings/embedding/EmbeddingPanel';
-import { ExtensionManager } from './ExtensionManager';
 import './settings.css';
 import './styles/settings-extend.css';
 const sections = [
   { id: 'appearance', title: '外观', description: '显示与减少动画', icon: Palette },
   { id: 'models', title: '模型与连接', description: '连接、模型目录与默认模型', icon: Plug },
-  { id: 'embedding', title: 'Embedding 模型', description: '教材索引的本地向量模型', icon: Boxes },
-  { id: 'mcp', title: 'MCP', description: '扩展能力 · 服务管理', icon: Boxes },
-  { id: 'skills', title: 'Skills', description: '扩展能力 · 技能管理', icon: Sparkles },
   { id: 'about', title: '关于', description: '实现状态与版本', icon: Info },
 ];
 export function SettingsWorkspace() {
@@ -165,23 +160,11 @@ export function SettingsWorkspace() {
             <h2>模型与连接</h2>
             <ModelSettingsPanel />
           </section>
-          <section id="embedding" className="settings-panel">
-            <h2>Embedding 模型</h2>
-            <EmbeddingPanel />
-          </section>
-          <section id="mcp" className="settings-panel">
-            <h2>MCP</h2>
-            <ExtensionManager kind="mcp" />
-          </section>
-          <section id="skills" className="settings-panel">
-            <h2>Skills</h2>
-            <ExtensionManager kind="skill" />
-          </section>
           <section id="about" className="settings-panel">
             <h2>关于智启课源</h2>
             <p>
-              界面参考 DeepTutor v1.6.5。模型管理保留现有真实服务；MCP 与 Skills
-              当前为本地模拟管理。其余复刻能力正在实施。
+              当前为推倒重做后的最小骨架：对话 + 教学 Agent 编排 + 模型配置。
+              历史完整产品（教学闭环全量）已归档为 git tag archive-full-v1-20261011。
             </p>
           </section>
         </div>
