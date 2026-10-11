@@ -1,5 +1,15 @@
 # 当前状态与实施主线
 
+<!-- LESSON-C3-CLOSE:20261011 -->
+2026-10-11（续 C 系列）：**C3-3/C3-4 完成，C 系列核心（融合+学情+教案）全部落地**。
+
+- **C3-4 模板 v2**（c2770fb）：templates/lesson-plan-template-v2.docx（封面+目录+五大正文表，三列教学过程 docxtemplater 循环）+ flattenForDocxV2（processV2 优先/旧 process 回退 stage→标题、design→教师活动、secondary→意图）；导出自动补齐第 1、2 页，正文从第 3 页起与预览一致；映射 2 用例。
+- **C3-3 流式生成**（f6b875a）：POST /lesson-plans/generation-stream（SSE，module.start/delta/error/done）——七模块逐个 provider.stream，单模块失败不中断；学情上下文复用 commentary 匿名聚合（学生代称）；只产候选（填充编辑草稿，教师保存才落库）。前端 LessonStreamDialog（模板视图顶栏「AI 生成」）：模型/学情报告/要求/模块勾选 → 流式进度 → module.done 按【小节】标签拆字段入稿（过程解析「环节|教师|学生|意图」成 processV2 行），经 editor.set 可撤销。
+- **race 扳机修复**（57b8120）：emptyData 新字段改回惰性默认（组件层 `?? 默认对象` 兜底），消除切文档取消被覆盖的时序扳机；前端全量 **1682/1682**、后端全量 **2187 passed**、build 0。
+- **P1 缺陷本体仍未修**（切换文档取消应中止已启动的 binding 拉取——debug 复刻全流程未复现，疑与 auto 保存 600ms 定时器相关，见 LESSON-C3-2 节），**专项批第一项**。
+- **未执行/边界**：模板视图/生成对话框的浏览器视觉走查与 e2e 未做（组件级 jsdom 已覆盖）；真实云端联调（学情→教案全链）待用户环境验证；C4 后续批未开始。
+<!-- /LESSON-C3-CLOSE:20261011 -->
+
 <!-- LESSON-C3-2:20261011 -->
 2026-10-11（闭环教学 AI 智能体 C 系列）：**C1/C2 已提交（2ceff9c+fde9925 / 426b672），C3-2 模板工作台 v2 组件就绪并挂切换入口（默认经典视图零破坏）**。C3-1 模型扩展（f0fd837+76f2f00）：LessonPlanData 增全 optional 的 basic/analysis/strategy/evaluation/processV2（三列教学过程），AI patch 白名单与生成链路不动，旧数据实测兼容；教案全链 81 用例全过。
 
