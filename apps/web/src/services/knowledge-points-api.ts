@@ -76,6 +76,13 @@ export interface KnowledgePointQuery {
   limit?: number;
 }
 
+/** 教材目录 → 知识点树（C4-1）：幂等生成，返回创建/跳过计数。 */
+export function generateKnowledgeTreeFromTextbook(
+  body: { subjectId?: string; documentIds?: string[] },
+): Promise<{ created: number; skipped: number; total: number; books: number }> {
+  return apiRequest('/knowledge-points/tree-from-textbook', jsonInit('POST', body));
+}
+
 export function listKnowledgePoints(
   query: KnowledgePointQuery = {},
   signal?: AbortSignal,

@@ -38,6 +38,8 @@ from app.contracts.knowledge import (
 )
 from app.contracts.teaching_loop import JobView
 from app.core.exceptions import AppError
+from pydantic import Field
+from app.contracts.knowledge import _Strict as _StrictBase
 from app.services.knowledge.service import MAX_UPLOAD_BYTES, KnowledgeService
 from app.services.textbook_ingest.multipart import MultipartPart, parse_multipart_form
 
@@ -128,6 +130,73 @@ async def create_knowledge_point(
 ) -> KnowledgePointView:
     service = _service(request)
     return await _run(service.create_point, body)
+
+
+class TreeFromTextbookRequest(_StrictBase):
+    """教材目录 → 知识点树（C4-1）：subject 默认数学；documentIds 可选限定教材。"""
+
+    subject_id: str = Field(default="math", alias="subjectId", max_length=64)
+    document_ids: list[str] = Field(default_factory=list, alias="documentIds", max_length=50)
+
+
+@router.post("/knowledge-points/tree-from-textbook")
+async def generate_tree_from_textbook(request: Request, body: TreeFromTextbookRequest) -> dict:
+    """从已入库教材的目录（chapter_path）反向生成知识点树（幂等；章节为容器节点）。
+
+    教师可在生成后的任何节点下继续自定义增删改（走既有 create/update/delete）。
+    """
+    service = _service(request)
+    catalog = getattr(request.app.state, "catalog", None)
+    if catalog is None:
+        raise AppError("教材目录未装配，无法读取教材目录。", code="SERVICE_UNAVAILABLE", status_code=503, retryable=True)
+
+    def _work() -> dict:
+        from app.services.knowledge.tree_gen import TextbookInput, plan_tree
+
+        documents = catalog.list_documents(subject_id=body.subject_id)
+        if body.document_ids:
+            wanted = set(body.document_ids)
+            documents = [d for d in documents if d.document_id in wanted]
+        books: list[TextbookInput] = []
+        for document in documents:
+            if document.current_revision_id is None:
+                continue
+            paths: set[tuple[str, ...]] = set()
+            for chunk_set in _chunk_sets_of(catalog, document.current_revision_id):
+                for chunk in catalog.list_chunks(chunk_set.chunk_set_id):
+                    if chunk.chapter_path:
+                        paths.add(tuple(str(part) for part in chunk.chapter_path))
+            books.append(TextbookInput(title=document.title, document_id=document.document_id, chapter_paths=tuple(paths)))
+        plan = plan_tree(body.subject_id, books)
+        created, skipped = 0, 0
+        for node in plan.nodes:
+            try:
+                service.create_point(KnowledgePointCreateRequest(
+                    subjectId=body.subject_id, code=node.code, name=node.name,
+                    parentCode=node.parent_code, sortOrder=node.sort_order,
+                    description=f"教材目录节点（文档 {node.document_id}）",
+                ))
+                created += 1
+            except AppError as exc:
+                if exc.code in ("KNOWLEDGE_CODE_CONFLICT",):
+                    skipped += 1
+                else:
+                    raise
+        return {"created": created, "skipped": skipped, "total": len(plan.nodes), "books": len(books)}
+
+    return await _run(_work)
+
+
+def _chunk_sets_of(catalog, document_revision_id: str):
+    """某文档当前修订的 chunk sets（生成读取用；无公开列法时按 policy 遍历）。"""
+    with catalog._read() as conn:  # noqa: SLF001 - 只读目录内表（生成端点专用）
+        rows = conn.execute(
+            "SELECT id FROM chunk_sets WHERE document_revision_id = ?", (document_revision_id,)
+        ).fetchall()
+    for row in rows:
+        record = catalog.get_chunk_set(row["id"])
+        if record is not None:
+            yield record
 
 
 @router.get("/knowledge-points/{point_id}")

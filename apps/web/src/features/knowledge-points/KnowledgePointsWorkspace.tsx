@@ -15,6 +15,7 @@ import type { KnowledgePointStatus, KnowledgePointView } from '@/contracts/knowl
 import '@/components/layout/space.css';
 import '@/features/knowledge-points/styles/knowledge-points.css';
 import { fetchTextbookTaxonomy } from '@/services/textbook-api';
+import { generateKnowledgeTreeFromTextbook } from '@/services/knowledge-points-api';
 import type { ObserveJobOptions } from '@/services/workflow-jobs-api';
 import { CreatePointDialog } from './CreatePointDialog';
 import { ExtractionPanel } from './ExtractionPanel';
@@ -92,6 +93,7 @@ export function KnowledgePointsWorkspace({
           知识点是学科内的稳定身份（编码唯一、内容按修订追加）；可人工建立、表格导入或由 AI
           提出候选， 候选与导入都必须逐行校对、整批确认后才写入正式表。
         </p>
+        <TreeGenButton />
       </header>
 
       <main className="space-content">
@@ -242,6 +244,38 @@ export function KnowledgePointsWorkspace({
           }}
         />
       )}
+    </div>
+  );
+}
+
+
+/** 从教材目录反向生成知识点树（C4-1）：幂等；生成后刷新列表由使用者手动或页面提示。 */
+function TreeGenButton() {
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  async function generate() {
+    if (busy) return;
+    setBusy(true);
+    setResult(null);
+    try {
+      const r = await generateKnowledgeTreeFromTextbook({ subjectId: 'math' });
+      setResult(r.created > 0
+        ? `已从教材目录生成 ${r.created} 个知识点节点（跳过已存在 ${r.skipped} 个，涉及 ${r.books} 本教材）；请在列表查看。`
+        : `教材目录节点已全部存在（${r.skipped} 个，${r.books} 本教材），无新增。`);
+      window.dispatchEvent(new Event('knowledge-tree-generated'));
+    } catch (error) {
+      const e = error as { message?: string };
+      setResult(`生成失败：${e.message ?? '未知错误'}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="kp-treegen">
+      <button type="button" className="space-button" disabled={busy} onClick={() => void generate()}>
+        {busy ? '生成中…' : '从教材目录生成树'}
+      </button>
+      {result && <p className="b4-meta" role="status">{result}</p>}
     </div>
   );
 }
