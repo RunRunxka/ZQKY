@@ -1,0 +1,757 @@
+{
+  "version": "rag-readable-v2",
+  "cases": [
+    {
+      "name": "inline-empty-alt",
+      "raw": "正文开始。\n\n![](images/1a2b3c4d5e6f7890.jpg)\n\n正文结束。",
+      "expectedText": "正文开始。\n\n正文结束。",
+      "expectedRemovedImageCount": 1,
+      "expectedSegments": [
+        {
+          "cleanStart": 0,
+          "cleanEnd": 7,
+          "rawStart": 0,
+          "rawEnd": 7,
+          "kind": "kept"
+        },
+        {
+          "cleanStart": 7,
+          "cleanEnd": 7,
+          "rawStart": 7,
+          "rawEnd": 41,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 7,
+          "cleanEnd": 12,
+          "rawStart": 41,
+          "rawEnd": 46,
+          "kind": "kept"
+        }
+      ]
+    },
+    {
+      "name": "inline-chinese-alt",
+      "raw": "图前文字 ![加速度与力关系图](images/force.png) 图后文字",
+      "expectedText": "图前文字 加速度与力关系图 图后文字",
+      "expectedRemovedImageCount": 1,
+      "expectedSegments": [
+        {
+          "cleanStart": 0,
+          "cleanEnd": 5,
+          "rawStart": 0,
+          "rawEnd": 5,
+          "kind": "kept"
+        },
+        {
+          "cleanStart": 5,
+          "cleanEnd": 5,
+          "rawStart": 5,
+          "rawEnd": 7,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 5,
+          "cleanEnd": 13,
+          "rawStart": 7,
+          "rawEnd": 15,
+          "kind": "alt_kept"
+        },
+        {
+          "cleanStart": 13,
+          "cleanEnd": 13,
+          "rawStart": 15,
+          "rawEnd": 34,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 13,
+          "cleanEnd": 18,
+          "rawStart": 34,
+          "rawEnd": 39,
+          "kind": "kept"
+        }
+      ]
+    },
+    {
+      "name": "reference-image-definition-removed",
+      "raw": "[fig1]: images/buoyancy.png\n\n图 ![浮力实验装置图][fig1] 如下。",
+      "expectedText": "图 浮力实验装置图 如下。",
+      "expectedRemovedImageCount": 1,
+      "expectedSegments": [
+        {
+          "cleanStart": 0,
+          "cleanEnd": 0,
+          "rawStart": 0,
+          "rawEnd": 29,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 0,
+          "cleanEnd": 2,
+          "rawStart": 29,
+          "rawEnd": 31,
+          "kind": "kept"
+        },
+        {
+          "cleanStart": 2,
+          "cleanEnd": 2,
+          "rawStart": 31,
+          "rawEnd": 33,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 2,
+          "cleanEnd": 9,
+          "rawStart": 33,
+          "rawEnd": 40,
+          "kind": "alt_kept"
+        },
+        {
+          "cleanStart": 9,
+          "cleanEnd": 9,
+          "rawStart": 40,
+          "rawEnd": 47,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 9,
+          "cleanEnd": 13,
+          "rawStart": 47,
+          "rawEnd": 51,
+          "kind": "kept"
+        }
+      ]
+    },
+    {
+      "name": "reference-definition-kept-for-text-link",
+      "raw": "正文 ![图片说明][fig2] 与 [文字链接][fig2] 并列。\n\n[fig2]: images/mixed.png",
+      "expectedText": "正文 图片说明 与 [文字链接][fig2] 并列。\n\n[fig2]: images/mixed.png",
+      "expectedRemovedImageCount": 1,
+      "expectedSegments": [
+        {
+          "cleanStart": 0,
+          "cleanEnd": 3,
+          "rawStart": 0,
+          "rawEnd": 3,
+          "kind": "kept"
+        },
+        {
+          "cleanStart": 3,
+          "cleanEnd": 3,
+          "rawStart": 3,
+          "rawEnd": 5,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 3,
+          "cleanEnd": 7,
+          "rawStart": 5,
+          "rawEnd": 9,
+          "kind": "alt_kept"
+        },
+        {
+          "cleanStart": 7,
+          "cleanEnd": 7,
+          "rawStart": 9,
+          "rawEnd": 16,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 7,
+          "cleanEnd": 52,
+          "rawStart": 16,
+          "rawEnd": 61,
+          "kind": "kept"
+        }
+      ]
+    },
+    {
+      "name": "shortcut-reference-image",
+      "raw": "[浮力示意图]: images/f.png\n\n![浮力示意图]",
+      "expectedText": "浮力示意图",
+      "expectedRemovedImageCount": 1,
+      "expectedSegments": [
+        {
+          "cleanStart": 0,
+          "cleanEnd": 0,
+          "rawStart": 0,
+          "rawEnd": 25,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 0,
+          "cleanEnd": 5,
+          "rawStart": 25,
+          "rawEnd": 30,
+          "kind": "alt_kept"
+        },
+        {
+          "cleanStart": 5,
+          "cleanEnd": 5,
+          "rawStart": 30,
+          "rawEnd": 31,
+          "kind": "removed"
+        }
+      ]
+    },
+    {
+      "name": "html-img-empty-alt",
+      "raw": "前文<img src=\"images/a.png\" alt=\"\">后文",
+      "expectedText": "前文后文",
+      "expectedRemovedImageCount": 1,
+      "expectedSegments": [
+        {
+          "cleanStart": 0,
+          "cleanEnd": 2,
+          "rawStart": 0,
+          "rawEnd": 2,
+          "kind": "kept"
+        },
+        {
+          "cleanStart": 2,
+          "cleanEnd": 2,
+          "rawStart": 2,
+          "rawEnd": 33,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 2,
+          "cleanEnd": 4,
+          "rawStart": 33,
+          "rawEnd": 35,
+          "kind": "kept"
+        }
+      ]
+    },
+    {
+      "name": "html-img-chinese-alt",
+      "raw": "前文<img src=\"images/b.png\" alt=\"电路连接示意图\" />后文",
+      "expectedText": "前文电路连接示意图后文",
+      "expectedRemovedImageCount": 1,
+      "expectedSegments": [
+        {
+          "cleanStart": 0,
+          "cleanEnd": 2,
+          "rawStart": 0,
+          "rawEnd": 2,
+          "kind": "kept"
+        },
+        {
+          "cleanStart": 2,
+          "cleanEnd": 2,
+          "rawStart": 2,
+          "rawEnd": 31,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 2,
+          "cleanEnd": 9,
+          "rawStart": 31,
+          "rawEnd": 38,
+          "kind": "alt_kept"
+        },
+        {
+          "cleanStart": 9,
+          "cleanEnd": 9,
+          "rawStart": 38,
+          "rawEnd": 42,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 9,
+          "cleanEnd": 11,
+          "rawStart": 42,
+          "rawEnd": 44,
+          "kind": "kept"
+        }
+      ]
+    },
+    {
+      "name": "html-picture-with-source",
+      "raw": "<picture><source srcset=\"images/c.webp\"><img src=\"images/c.png\" alt=\"实验装置照片\"></picture>后文",
+      "expectedText": "实验装置照片后文",
+      "expectedRemovedImageCount": 1,
+      "expectedSegments": [
+        {
+          "cleanStart": 0,
+          "cleanEnd": 0,
+          "rawStart": 0,
+          "rawEnd": 69,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 0,
+          "cleanEnd": 6,
+          "rawStart": 69,
+          "rawEnd": 75,
+          "kind": "alt_kept"
+        },
+        {
+          "cleanStart": 6,
+          "cleanEnd": 6,
+          "rawStart": 75,
+          "rawEnd": 87,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 6,
+          "cleanEnd": 8,
+          "rawStart": 87,
+          "rawEnd": 89,
+          "kind": "kept"
+        }
+      ]
+    },
+    {
+      "name": "outer-link-empty-content",
+      "raw": "文字 [![](images/thumb.jpg)](images/full.jpg) 结束",
+      "expectedText": "文字  结束",
+      "expectedRemovedImageCount": 1,
+      "expectedSegments": [
+        {
+          "cleanStart": 0,
+          "cleanEnd": 3,
+          "rawStart": 0,
+          "rawEnd": 3,
+          "kind": "kept"
+        },
+        {
+          "cleanStart": 3,
+          "cleanEnd": 3,
+          "rawStart": 3,
+          "rawEnd": 43,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 3,
+          "cleanEnd": 6,
+          "rawStart": 43,
+          "rawEnd": 46,
+          "kind": "kept"
+        }
+      ]
+    },
+    {
+      "name": "outer-link-with-alt",
+      "raw": "文字 [![滑轮组示意图](images/thumb.jpg)](images/full.jpg) 结束",
+      "expectedText": "文字 滑轮组示意图 结束",
+      "expectedRemovedImageCount": 1,
+      "expectedSegments": [
+        {
+          "cleanStart": 0,
+          "cleanEnd": 3,
+          "rawStart": 0,
+          "rawEnd": 3,
+          "kind": "kept"
+        },
+        {
+          "cleanStart": 3,
+          "cleanEnd": 3,
+          "rawStart": 3,
+          "rawEnd": 6,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 3,
+          "cleanEnd": 9,
+          "rawStart": 6,
+          "rawEnd": 12,
+          "kind": "alt_kept"
+        },
+        {
+          "cleanStart": 9,
+          "cleanEnd": 9,
+          "rawStart": 12,
+          "rawEnd": 49,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 9,
+          "cleanEnd": 12,
+          "rawStart": 49,
+          "rawEnd": 52,
+          "kind": "kept"
+        }
+      ]
+    },
+    {
+      "name": "nested-parentheses-url",
+      "raw": "公式 ![力与加速度关系图](images/fig_(1)_final.png) 结束",
+      "expectedText": "公式 力与加速度关系图 结束",
+      "expectedRemovedImageCount": 1,
+      "expectedSegments": [
+        {
+          "cleanStart": 0,
+          "cleanEnd": 3,
+          "rawStart": 0,
+          "rawEnd": 3,
+          "kind": "kept"
+        },
+        {
+          "cleanStart": 3,
+          "cleanEnd": 3,
+          "rawStart": 3,
+          "rawEnd": 5,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 3,
+          "cleanEnd": 11,
+          "rawStart": 5,
+          "rawEnd": 13,
+          "kind": "alt_kept"
+        },
+        {
+          "cleanStart": 11,
+          "cleanEnd": 11,
+          "rawStart": 13,
+          "rawEnd": 40,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 11,
+          "cleanEnd": 14,
+          "rawStart": 40,
+          "rawEnd": 43,
+          "kind": "kept"
+        }
+      ]
+    },
+    {
+      "name": "image-title-dropped",
+      "raw": "装置 ![实验装置图](images/e.png \"图 1\") 结束",
+      "expectedText": "装置 实验装置图 结束",
+      "expectedRemovedImageCount": 1,
+      "expectedSegments": [
+        {
+          "cleanStart": 0,
+          "cleanEnd": 3,
+          "rawStart": 0,
+          "rawEnd": 3,
+          "kind": "kept"
+        },
+        {
+          "cleanStart": 3,
+          "cleanEnd": 3,
+          "rawStart": 3,
+          "rawEnd": 5,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 3,
+          "cleanEnd": 8,
+          "rawStart": 5,
+          "rawEnd": 10,
+          "kind": "alt_kept"
+        },
+        {
+          "cleanStart": 8,
+          "cleanEnd": 8,
+          "rawStart": 10,
+          "rawEnd": 31,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 8,
+          "cleanEnd": 11,
+          "rawStart": 31,
+          "rawEnd": 34,
+          "kind": "kept"
+        }
+      ]
+    },
+    {
+      "name": "empty-alt-with-hash-name",
+      "raw": "![1f2e3d4c5b6a79887766554433221100](images/1f2e3d4c5b6a79887766554433221100.jpg)",
+      "expectedText": "",
+      "expectedRemovedImageCount": 1,
+      "expectedSegments": [
+        {
+          "cleanStart": 0,
+          "cleanEnd": 0,
+          "rawStart": 0,
+          "rawEnd": 80,
+          "kind": "removed"
+        }
+      ]
+    },
+    {
+      "name": "generic-alt-placeholders",
+      "raw": "前 ![图](images/g1.png) 后 ![image](images/g2.png) 完",
+      "expectedText": "前  后  完",
+      "expectedRemovedImageCount": 2,
+      "expectedSegments": [
+        {
+          "cleanStart": 0,
+          "cleanEnd": 2,
+          "rawStart": 0,
+          "rawEnd": 2,
+          "kind": "kept"
+        },
+        {
+          "cleanStart": 2,
+          "cleanEnd": 2,
+          "rawStart": 2,
+          "rawEnd": 21,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 2,
+          "cleanEnd": 5,
+          "rawStart": 21,
+          "rawEnd": 24,
+          "kind": "kept"
+        },
+        {
+          "cleanStart": 5,
+          "cleanEnd": 5,
+          "rawStart": 24,
+          "rawEnd": 47,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 5,
+          "cleanEnd": 7,
+          "rawStart": 47,
+          "rawEnd": 49,
+          "kind": "kept"
+        }
+      ]
+    },
+    {
+      "name": "image-with-caption-below",
+      "raw": "![](images/fig-3.png)\n图 3 实验装置示意",
+      "expectedText": "图 3 实验装置示意",
+      "expectedRemovedImageCount": 1,
+      "expectedSegments": [
+        {
+          "cleanStart": 0,
+          "cleanEnd": 0,
+          "rawStart": 0,
+          "rawEnd": 22,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 0,
+          "cleanEnd": 10,
+          "rawStart": 22,
+          "rawEnd": 32,
+          "kind": "kept"
+        }
+      ]
+    },
+    {
+      "name": "consecutive-images",
+      "raw": "前缀![](images/a.png)![](images/b.png)后缀",
+      "expectedText": "前缀后缀",
+      "expectedRemovedImageCount": 2,
+      "expectedSegments": [
+        {
+          "cleanStart": 0,
+          "cleanEnd": 2,
+          "rawStart": 0,
+          "rawEnd": 2,
+          "kind": "kept"
+        },
+        {
+          "cleanStart": 2,
+          "cleanEnd": 2,
+          "rawStart": 2,
+          "rawEnd": 36,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 2,
+          "cleanEnd": 4,
+          "rawStart": 36,
+          "rawEnd": 38,
+          "kind": "kept"
+        }
+      ]
+    },
+    {
+      "name": "only-images-becomes-empty",
+      "raw": "![](images/a.png)\n\n![图](images/b.png)\n",
+      "expectedText": "",
+      "expectedRemovedImageCount": 2,
+      "expectedSegments": [
+        {
+          "cleanStart": 0,
+          "cleanEnd": 0,
+          "rawStart": 0,
+          "rawEnd": 38,
+          "kind": "removed"
+        }
+      ]
+    },
+    {
+      "name": "escaped-image-marker",
+      "raw": "字面写法 \\![不是图片](images/x.png) 保留",
+      "expectedText": "字面写法 \\![不是图片](images/x.png) 保留",
+      "expectedRemovedImageCount": 0,
+      "expectedSegments": [
+        {
+          "cleanStart": 0,
+          "cleanEnd": 30,
+          "rawStart": 0,
+          "rawEnd": 30,
+          "kind": "kept"
+        }
+      ]
+    },
+    {
+      "name": "code-fence-literal",
+      "raw": "```markdown\n![示例图片](images/demo.png)\n```\n\n正文",
+      "expectedText": "```markdown\n![示例图片](images/demo.png)\n```\n\n正文",
+      "expectedRemovedImageCount": 0,
+      "expectedSegments": [
+        {
+          "cleanStart": 0,
+          "cleanEnd": 44,
+          "rawStart": 0,
+          "rawEnd": 44,
+          "kind": "kept"
+        }
+      ]
+    },
+    {
+      "name": "inline-code-literal",
+      "raw": "行内代码 `![图片](images/e.png)` 保留原样",
+      "expectedText": "行内代码 `![图片](images/e.png)` 保留原样",
+      "expectedRemovedImageCount": 0,
+      "expectedSegments": [
+        {
+          "cleanStart": 0,
+          "cleanEnd": 31,
+          "rawStart": 0,
+          "rawEnd": 31,
+          "kind": "kept"
+        }
+      ]
+    },
+    {
+      "name": "display-math-protected",
+      "raw": "计算 $$a_i = ![b](images/g.png)$$ 结束",
+      "expectedText": "计算 $$a_i = ![b](images/g.png)$$ 结束",
+      "expectedRemovedImageCount": 0,
+      "expectedSegments": [
+        {
+          "cleanStart": 0,
+          "cleanEnd": 34,
+          "rawStart": 0,
+          "rawEnd": 34,
+          "kind": "kept"
+        }
+      ]
+    },
+    {
+      "name": "inline-math-protected",
+      "raw": "公式 $a![b](c)$ 结束",
+      "expectedText": "公式 $a![b](c)$ 结束",
+      "expectedRemovedImageCount": 0,
+      "expectedSegments": [
+        {
+          "cleanStart": 0,
+          "cleanEnd": 16,
+          "rawStart": 0,
+          "rawEnd": 16,
+          "kind": "kept"
+        }
+      ]
+    },
+    {
+      "name": "blank-line-and-trailing-space-normalization",
+      "raw": "第一段  \n\n\n\n第二段![](images/z.png)   \n",
+      "expectedText": "第一段\n\n第二段",
+      "expectedRemovedImageCount": 1,
+      "expectedSegments": [
+        {
+          "cleanStart": 0,
+          "cleanEnd": 3,
+          "rawStart": 0,
+          "rawEnd": 3,
+          "kind": "kept"
+        },
+        {
+          "cleanStart": 3,
+          "cleanEnd": 3,
+          "rawStart": 3,
+          "rawEnd": 5,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 3,
+          "cleanEnd": 5,
+          "rawStart": 5,
+          "rawEnd": 7,
+          "kind": "kept"
+        },
+        {
+          "cleanStart": 5,
+          "cleanEnd": 5,
+          "rawStart": 7,
+          "rawEnd": 9,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 5,
+          "cleanEnd": 8,
+          "rawStart": 9,
+          "rawEnd": 12,
+          "kind": "kept"
+        },
+        {
+          "cleanStart": 8,
+          "cleanEnd": 8,
+          "rawStart": 12,
+          "rawEnd": 33,
+          "kind": "removed"
+        }
+      ]
+    },
+    {
+      "name": "emoji-and-combining-codepoints",
+      "raw": "😀 ![组合字符图示](images/e.png) 👨‍👩‍👧 é",
+      "expectedText": "😀 组合字符图示 👨‍👩‍👧 é",
+      "expectedRemovedImageCount": 1,
+      "expectedSegments": [
+        {
+          "cleanStart": 0,
+          "cleanEnd": 2,
+          "rawStart": 0,
+          "rawEnd": 2,
+          "kind": "kept"
+        },
+        {
+          "cleanStart": 2,
+          "cleanEnd": 2,
+          "rawStart": 2,
+          "rawEnd": 4,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 2,
+          "cleanEnd": 8,
+          "rawStart": 4,
+          "rawEnd": 10,
+          "kind": "alt_kept"
+        },
+        {
+          "cleanStart": 8,
+          "cleanEnd": 8,
+          "rawStart": 10,
+          "rawEnd": 25,
+          "kind": "removed"
+        },
+        {
+          "cleanStart": 8,
+          "cleanEnd": 17,
+          "rawStart": 25,
+          "rawEnd": 34,
+          "kind": "kept"
+        }
+      ]
+    }
+  ]
+}
