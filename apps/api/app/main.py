@@ -697,6 +697,8 @@ def create_app(
     app.state.model_auth_service = ModelAuthService(
         app.state.model_config_repo, app.state.secret_store
     )
+    # 共享模型句柄解析器（C2 AI 评价等新路由复用，不再各自拼装）
+    app.state.model_handle_resolver = _build_model_handle_resolver(app)
     if bootstrap_textbooks:
         _build_local_runtime(app, settings)
     else:

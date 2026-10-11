@@ -3,7 +3,7 @@ import { apiRequest, apiRequestBlob } from './api-client';
 import { assessmentsQuery } from './assessments-api';
 import type {
   AnalysisArchiveRequest, AnalysisCreateRequest, AnalysisReceipt, AnalysisRunView, ClassReportRow,
-  StudentReportRow, EvidenceRow, NoteRequest, NoteView, Page,
+  StudentReportRow, EvidenceRow, ItemStatView, NoteRequest, NoteView, Page,
   AnalysisRunDeleteResult,
   PracticeCreateRequest, PracticeSetView, PracticeRevisionView,
   PracticeSetStatusRequest, PracticeSetDeleteReceipt,
@@ -55,6 +55,16 @@ export function listAnalysisStudents(runId: string, query: ReportQuery = {}, sig
 }
 export function listAnalysisEvidence(runId: string, query: ReportQuery = {}, signal?: AbortSignal): Promise<Page<EvidenceRow>> {
   return apiRequest(`/analysis-runs/${key(runId)}/evidence${assessmentsQuery({ ...query })}`, { signal });
+}
+
+/** 图表聚合（C2）：按题号的全班得分率（匿名；趋势图/热力图共用）。 */
+export function getAnalysisItemStats(runId: string, signal?: AbortSignal): Promise<ItemStatView[]> {
+  return apiRequest(`/analysis-runs/${key(runId)}/item-stats`, { signal });
+}
+
+/** AI 学情评价（C2-3）：即席生成 Markdown 评价（候选文本不落库；学生匿名进模型）。 */
+export function generateAnalysisCommentary(runId: string, modelProfileId: string, signal?: AbortSignal): Promise<string> {
+  return apiRequest(`/analysis-runs/${key(runId)}/ai-commentary`, write('POST', { modelProfileId }, signal));
 }
 export function listAnalysisNotes(runId: string, query: PageQuery = {}, signal?: AbortSignal): Promise<Page<NoteView>> {
   return apiRequest(`/analysis-runs/${key(runId)}/notes${assessmentsQuery({ ...query })}`, { signal });
@@ -131,7 +141,7 @@ export function deletePracticeConversion(setId: string, revisionId: string, sign
 
 export const b4Api = {
   createAnalysisRun, listAnalysisRuns, getAnalysisRun, listAnalysisClasses, listAnalysisStudents,
-  listAnalysisEvidence, listAnalysisNotes, createAnalysisNote, createPractice, listPractices,
+  listAnalysisEvidence, getAnalysisItemStats, generateAnalysisCommentary, listAnalysisNotes, createAnalysisNote, createPractice, listPractices,
   getPractice, getPracticeRevision, suggestPractice, patchPracticeDraft, reviewPractice,
   createPracticeRevision, createPracticeExport, listPracticeExports, getExportArtifact,
   downloadExportArtifact, getPracticeAsset, convertPractice, deletePracticeConversion,

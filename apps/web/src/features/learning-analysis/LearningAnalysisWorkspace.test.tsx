@@ -45,6 +45,8 @@ describe('固定学情工作区', () => {
   });
   it('原样显示后端比例和缺班名；全部题证据含有效0分和真实富块', async () => {
     render(<LearningAnalysisWorkspace initialRunId={run.runId} services={services()} />);
+    // C2：默认页签为「图表」，需要班级依据表的用例先切页签
+    fireEvent.click(await screen.findByRole('tab', { name: '班级依据' }));
     expect(await screen.findByText('后端比例 0.123456')).toBeInTheDocument();
     expect(screen.getAllByText('该成绩未记录班名').length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('tab', { name: '全部题证据' }));
@@ -56,6 +58,8 @@ describe('固定学情工作区', () => {
     const old = deferred<ReturnType<typeof page<typeof classRow>>>();
     const api = services({ listAnalysisClasses: vi.fn((_id, query) => query?.knowledgePointId ? Promise.resolve(page([{ ...classRow, needsCount: 7 }])) : old.promise) });
     render(<LearningAnalysisWorkspace initialRunId={run.runId} services={api} />);
+    // C2：默认页签为「图表」，先切「班级依据」
+    fireEvent.click(await screen.findByRole('tab', { name: '班级依据' }));
     await screen.findByLabelText('报告知识点筛选');
     fireEvent.change(screen.getByLabelText('报告知识点筛选'), { target: { value: 'kp-1' } });
     await screen.findByRole('cell', { name: '7' });
@@ -69,6 +73,8 @@ describe('固定学情工作区', () => {
     const saving = deferred<Awaited<ReturnType<typeof b4Api.createAnalysisNote>>>();
     const note = vi.fn().mockImplementationOnce(() => saving.promise).mockRejectedValueOnce(new ApiError('SERVICE_UNAVAILABLE', '响应丢失', 0, true)).mockResolvedValue({ noteId: 'note', runId: run.runId, note: '第二次', participantId: null, knowledgePointId: null, createdAt: '', replayed: true });
     render(<LearningAnalysisWorkspace initialRunId={run.runId} services={services({ createAnalysisNote: note })} />);
+    // C2：默认页签为「图表」，先切「班级依据」让筛选器出现，再进备注页签
+    fireEvent.click(await screen.findByRole('tab', { name: '班级依据' }));
     await screen.findByLabelText('报告知识点筛选'); fireEvent.click(screen.getByRole('tab', { name: '教师备注' }));
     const input = await screen.findByLabelText('教师备注内容');
     fireEvent.change(input, { target: { value: '发送时备注' } }); fireEvent.click(screen.getByRole('button', { name: '追加教师备注' }));
@@ -156,7 +162,8 @@ describe('固定学情工作区', () => {
       listAnalysisRuns: vi.fn(async () => page([namedRun])), getAnalysisRun: vi.fn(async () => namedRun),
       listAnalysisClasses: vi.fn(async () => page([namedRow])), listAnalysisStudents: vi.fn(async () => page([namedStudent])),
     })} />);
-    // 班级筛选下拉用班名；班级依据行班名为主、短号降为次行小字
+    // 班级筛选下拉用班名；班级依据行班名为主、短号降为次行小字（C2：先切「班级依据」页签）
+    fireEvent.click(await screen.findByRole('tab', { name: '班级依据' }));
     expect(within(await screen.findByLabelText('报告班级筛选')).getByRole('option', { name: '七一班 · class-a' })).toBeInTheDocument();
     const header = await screen.findByRole('rowheader', { name: /七一班/ });
     expect(header).toHaveTextContent('class-a'); expect(header).toHaveTextContent('固定知识点');
@@ -168,6 +175,7 @@ describe('固定学情工作区', () => {
     cleanup();
     // 缺失态：短号 + 后端 note（不伪造名称）
     render(<LearningAnalysisWorkspace initialRunId={run.runId} services={services()} />);
+    fireEvent.click(await screen.findByRole('tab', { name: '班级依据' }));
     expect(await screen.findByText('后端比例 0.123456')).toBeInTheDocument();
     expect(within(screen.getByLabelText('报告班级筛选')).getByRole('option', { name: 'class-a · 该成绩未记录班名' })).toBeInTheDocument();
     expect(screen.getAllByText('该成绩未记录班名').length).toBeGreaterThan(0);

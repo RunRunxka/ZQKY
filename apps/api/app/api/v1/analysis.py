@@ -2,8 +2,10 @@
 import functools
 import anyio
 from fastapi import APIRouter, Query, Request
+from pydantic import Field
 from app.contracts.b4 import (AnalysisCreateRequest, AnalysisReceipt, AnalysisRunDeleteReceipt, AnalysisRunView,
-                              ClassReportRow, EvidenceRow, Frozen, NoteRequest, NoteView, Page, StudentReportRow)
+                              ClassReportRow, EvidenceRow, Frozen, ItemStatView, NoteRequest, NoteView, Page,
+                              StudentReportRow)
 from app.core.exceptions import AppError
 
 router = APIRouter(tags=["analysis"])
@@ -83,3 +85,29 @@ async def add_note(request: Request, run_id: str, body: NoteRequest):
 @router.get("/analysis-runs/{run_id}/notes", response_model=Page[NoteView])
 async def list_notes(request: Request, run_id: str, offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=200)):
     return await run(service(request).list_notes, run_id, offset=offset, limit=limit)
+
+
+@router.get("/analysis-runs/{run_id}/item-stats", response_model=list[ItemStatView])
+async def get_item_stats(request: Request, run_id: str):
+    """图表聚合（C2）：按题号的全班得分率（匿名聚合；趋势图与热力图共用）。"""
+    return await run(service(request).item_stats, run_id)
+
+
+class AiCommentaryRequest(Frozen):
+    """AI 学情评价请求（C2-3）：即席生成不落库；model_profile_id 指定评价用模型。"""
+
+    model_profile_id: str = Field(alias="modelProfileId", min_length=1, max_length=128)
+
+
+@router.post("/analysis-runs/{run_id}/ai-commentary")
+async def ai_commentary(request: Request, run_id: str, body: AiCommentaryRequest):
+    """AI 学情评价：读已就绪报告的匿名聚合（学生以代称进模型），调 LLM 生成 Markdown 评价。
+
+    候选文本不落库；教师可在界面上「存为教师备注」（走既有 notes 追加）。
+    """
+    resolver = getattr(request.app.state, "model_handle_resolver", None)
+    if resolver is None:
+        raise AppError("模型解析器未装配，无法生成 AI 评价。", code="SERVICE_UNAVAILABLE", status_code=503, retryable=True)
+    from app.services.analysis.commentary import generate_commentary
+
+    return await generate_commentary(service(request), run_id, resolver, body.model_profile_id)

@@ -3,7 +3,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useEntrance } from '@/components/motion/useEntrance';
 import Link from 'next/link';
-import type { AnalysisCreateRequest, AnalysisReceipt, AnalysisRunView, EvidenceRow, NoteRequest, NoteView } from '@/contracts/b4';
+import type { AnalysisCreateRequest, AnalysisReceipt, AnalysisRunView, EvidenceRow, ItemStatView, NoteRequest, NoteView } from '@/contracts/b4';
 import type { RichContentV2 } from '@/contracts/teaching-loop';
 import { b4Api } from '@/services/teaching-loop-b4-api';
 import { ApiError } from '@/services/api-client';
@@ -14,6 +14,8 @@ import { DeleteGuardNotice, type DeleteGuardState } from '@/features/assessments
 import { useObservedJob } from '@/services/use-workflow-job';
 import { CreatePracticeForm } from '@/features/practices/CreatePracticeForm';
 import { LoopConveyor } from '@/components/layout/LoopConveyor';
+import { ScoreTrendChart, ScoreHeatmap } from './ScoreCharts';
+import { AiCommentaryPanel } from './AiCommentaryPanel';
 import { ErrorNotice, ReadNotice, SubmissionNotice, Pagination, JobStatus, RichReview, isRichContent, observationLabel, statusLabel, attendanceLabel, scoreText, classDisplay, shortId, stampText } from './ui';
 import '@/components/layout/space.css';
 import './styles.css';
@@ -283,7 +285,7 @@ function AnalysisRunPanel({ runId, services, onLocked, onHistoryReload }: { runI
 
 function ReportFacts({ run, services, onLocked }: { run: AnalysisRunView; services: typeof b4Api; onLocked: (locked: boolean) => void }) {
   const tabPanelRef = useRef<HTMLDivElement>(null);
-  const [tab, setTab] = useState<'classes' | 'students' | 'evidence' | 'notes'>('classes');
+  const [tab, setTab] = useState<'charts' | 'classes' | 'students' | 'evidence' | 'notes'>('charts');
   useEntrance(tabPanelRef, { preset: 'panel', triggerKey: `${run.runId}|${tab}` });
   const [classId, setClassId] = useState('');
   const [participantId, setParticipantId] = useState('');
@@ -296,6 +298,7 @@ function ReportFacts({ run, services, onLocked }: { run: AnalysisRunView; servic
   const classes = useAsyncResource((signal) => tab === 'classes' ? services.listAnalysisClasses(run.runId, query, signal) : Promise.resolve(null), `analysis-classes|${run.runId}|${tab}|${queryKey}`);
   const students = useAsyncResource((signal) => tab === 'students' ? services.listAnalysisStudents(run.runId, query, signal) : Promise.resolve(null), `analysis-students|${run.runId}|${tab}|${queryKey}`);
   const evidence = useAsyncResource((signal) => tab === 'evidence' ? services.listAnalysisEvidence(run.runId, query, signal) : Promise.resolve(null), `analysis-evidence|${run.runId}|${tab}|${queryKey}`);
+  const itemStats = useAsyncResource<ItemStatView[] | null>((signal) => tab === 'charts' ? services.getAnalysisItemStats(run.runId, signal) : Promise.resolve(null), `analysis-item-stats|${run.runId}|${tab}`);
   const assessment = useAsyncResource((signal) => getAssessment(run.assessmentId, signal), `analysis-paper-owner|${run.assessmentId}`);
   const loadAsset = useCallback(async (assetId: string, signal: AbortSignal) => {
     const detail = assessment.lastData;
@@ -309,8 +312,8 @@ function ReportFacts({ run, services, onLocked }: { run: AnalysisRunView; servic
 
   return <section className="b4-section" aria-label="报告事实与证据"><h2>本次固定依据</h2>
     <p className="b4-hint">后端记录：{run.selectionSnapshot.uniqueStudentCount}名学生 · {run.selectionSnapshot.participantCount}人次 · {run.selectionSnapshot.leafCount}计分叶。空白/缺考/免考与有效0分区分，信息不全可与需巩固重叠。</p>
-    <div className="space-tabs" role="tablist" aria-label="学情报告视图">{(['classes', 'students', 'evidence', 'notes'] as const).map((value) => <button key={value} disabled={notesLocked} role="tab" aria-selected={tab === value} aria-controls={`analysis-${value}`} id={`analysis-tab-${value}`} className={tab === value ? 'current' : ''} onClick={() => { setTab(value); setOffset(0); }}>{({ classes: '班级依据', students: '学生依据', evidence: '全部题证据', notes: '教师备注' })[value]}</button>)}</div>
-    {tab !== 'notes' && <div className="b4-fields">
+    <div className="space-tabs" role="tablist" aria-label="学情报告视图">{(['charts', 'classes', 'students', 'evidence', 'notes'] as const).map((value) => <button key={value} disabled={notesLocked} role="tab" aria-selected={tab === value} aria-controls={`analysis-${value}`} id={`analysis-tab-${value}`} className={tab === value ? 'current' : ''} onClick={() => { setTab(value); setOffset(0); }}>{({ charts: '图表', classes: '班级依据', students: '学生依据', evidence: '全部题证据', notes: '教师备注' })[value]}</button>)}</div>
+    {tab !== 'notes' && tab !== 'charts' && <div className="b4-fields">
       <label className="b4-field">冻结班级<select className="space-select" aria-label="报告班级筛选" value={classId} onChange={(event) => { setClassId(event.target.value); setOffset(0); }}><option value="">全部班级</option>{classIds.map((id) => { const sealed = sealedClass(id); const display = classDisplay(sealed?.className, id, sealed?.classNameNote); return <option key={id} value={id}>{display.label} · {display.meta}</option>; })}</select></label>
       <label className="b4-field">参测人次<select className="space-select" aria-label="报告人次筛选" value={participantId} onChange={(event) => { setParticipantId(event.target.value); setOffset(0); }}><option value="">全部人次</option>{run.participants.map((p) => <option key={p.participantId} value={p.participantId}>{p.name} · 人次{p.attemptNo}</option>)}</select></label>
       <label className="b4-field">冻结知识点<select className="space-select" aria-label="报告知识点筛选" value={knowledgePointId} onChange={(event) => { setKnowledgePointId(event.target.value); setOffset(0); }}><option value="">全部知识点</option>{points.map((point) => <option key={point.knowledgePointId} value={point.knowledgePointId}>{point.name}</option>)}</select></label>
@@ -326,6 +329,14 @@ function ReportFacts({ run, services, onLocked }: { run: AnalysisRunView; servic
     {tab === 'evidence' && <div ref={tabPanelRef} role="tabpanel" id="analysis-evidence" aria-labelledby="analysis-tab-evidence"><ReadNotice resource={evidence} label="全部题证据" /><ReadNotice resource={assessment} label="原卷资产身份" />
       {evidence.lastData?.items.map((row) => <EvidenceDetail key={row.evidenceId} evidence={row} loadAsset={loadAsset} />)}
       {evidence.lastData?.items.length === 0 && <p>没有符合筛选条件的题证据。</p>}<Pagination page={evidence.lastData} offset={offset} onOffset={setOffset} />
+    </div>}
+    {tab === 'charts' && <div ref={tabPanelRef} role="tabpanel" id="analysis-charts" aria-labelledby="analysis-tab-charts">
+      <ReadNotice resource={itemStats} label="小题得分聚合" />
+      {itemStats.lastData && <div className="analysis-charts-grid">
+        <ScoreTrendChart stats={itemStats.lastData} />
+        <ScoreHeatmap stats={itemStats.lastData} />
+        <AiCommentaryPanel runId={run.runId} services={services} />
+      </div>}
     </div>}
     {tab === 'notes' && <div ref={tabPanelRef} role="tabpanel" id="analysis-notes" aria-labelledby="analysis-tab-notes"><TeacherNotes run={run} services={services} onLocked={updateNotesLock} /></div>}
   </section>;

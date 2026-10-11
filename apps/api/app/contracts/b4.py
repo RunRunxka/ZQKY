@@ -131,6 +131,21 @@ class EvidenceRow(Frozen):
     association_note: str = Field(default="综合题失分关联，具体错因待教师确认", alias="associationNote")
 
 
+class ItemStatView(Frozen):
+    """图表聚合（C2 可视化）：单题全班得分率。
+
+    匿名聚合——只有题号与汇总计数，不含任何个人身份；趋势图（题号×得分率）与
+    小题热力图共用这一份数据。``score_rate`` 为 null 表示该题无有效作答（如全班缺考）。
+    """
+
+    item_id: str = Field(alias="itemId")
+    item_path: str = Field(alias="itemPath")
+    max_score_units: int = Field(alias="maxScoreUnits")
+    recorded_count: int = Field(alias="recordedCount")
+    total_score_units: int = Field(alias="totalScoreUnits")
+    score_rate: float | None = Field(alias="scoreRate")
+
+
 class NoteRequest(Frozen):
     submission_id: str = Field(alias="submissionId", min_length=1, max_length=128)
     participant_id: str | None = Field(default=None, alias="participantId")

@@ -8,7 +8,7 @@ import anyio
 from pydantic import ValidationError
 
 from app.contracts.b4 import (AnalysisCreateRequest, AnalysisReceipt, AnalysisRunDeleteReceipt, AnalysisRunView,
-                              ClassReportRow, EvidenceRow, NoteRequest, NoteView, Page, StudentReportRow)
+                              ClassReportRow, EvidenceRow, ItemStatView, NoteRequest, NoteView, Page, StudentReportRow)
 from app.contracts.teaching_loop import canonical_hash
 from app.core.exceptions import AppError
 from app.core.sqlite import now_iso
@@ -307,6 +307,41 @@ class AnalysisService:
             except (KeyError, TypeError, ValidationError) as exc:
                 raise AppError("分析证据结构损坏。", code="ANALYSIS_ROW_CORRUPT", status_code=500) from exc
             return Page[model](items=items, total=total, offset=offset, limit=limit)
+
+    def item_stats(self, run_id):
+        """图表聚合（C2）：按题号聚合全班得分率（匿名，不含个人身份）。
+
+        口径：``score_rate = Σrecorded(score_units) / (recorded_count × max_score_units)``；
+        missing/absent/exempt 不进分母（与 any_loss_v1 的"有效得分"口径一致）。
+        无人有效作答的题 ``score_rate`` 为 null（前端画空档）。
+        """
+        with self.catalog.read_connection() as conn:
+            self._ready(conn, run_id)
+            records = conn.execute(
+                """SELECT r.item_id AS item_id, i.snapshot_json AS item_json,
+                          SUM(CASE WHEN r.status='recorded' AND r.score_units IS NOT NULL THEN r.score_units ELSE 0 END) AS total_score,
+                          SUM(CASE WHEN r.status='recorded' AND r.score_units IS NOT NULL THEN 1 ELSE 0 END) AS recorded_count
+                   FROM analysis_evidence r
+                   JOIN analysis_item_snapshots i ON i.run_id=r.run_id AND i.item_id=r.item_id
+                   WHERE r.run_id=?
+                   GROUP BY r.item_id ORDER BY r.item_id""",
+                (run_id,),
+            ).fetchall()
+        items: list[ItemStatView] = []
+        for record in records:
+            snapshot = load(record["item_json"])
+            max_units = int(snapshot.get("maxScoreUnits") or 0)
+            recorded = int(record["recorded_count"] or 0)
+            total = int(record["total_score"] or 0)
+            items.append(ItemStatView(
+                itemId=record["item_id"],
+                itemPath=str(snapshot.get("itemPath") or record["item_id"]),
+                maxScoreUnits=max_units,
+                recordedCount=recorded,
+                totalScoreUnits=total,
+                scoreRate=(total / (recorded * max_units)) if recorded > 0 and max_units > 0 else None,
+            ))
+        return items
 
     def add_note(self, run_id, payload: NoteRequest):
         command = make_command(operation=f"analysis.note:{run_id}", submission_id=payload.submission_id,

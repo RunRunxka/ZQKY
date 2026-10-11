@@ -136,6 +136,16 @@ export interface EvidenceRow {
   associationNote: string;
 }
 
+/** 图表聚合（C2 可视化）：单题全班得分率（匿名，趋势图/热力图共用）。scoreRate null=无有效作答。 */
+export interface ItemStatView {
+  itemId: string;
+  itemPath: string;
+  maxScoreUnits: number;
+  recordedCount: number;
+  totalScoreUnits: number;
+  scoreRate: number | null;
+}
+
 export interface NoteRequest {
   submissionId: string;
   participantId?: string | null;
