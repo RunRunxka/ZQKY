@@ -1,5 +1,17 @@
 # 当前状态与实施主线
 
+<!-- C4-BATCH:20261011 -->
+2026-10-11（续）：**C4 后续批全部落地**（5 个独立提交），用户 8 项要求的代码层全部完成。
+
+- **C4-1 知识点树**（fef6836）：POST /knowledge-points/tree-from-textbook——从已入库教材 chapter_path 反向生成「文档→章→节」容器节点树（code=TB-sha1 路径幂等，MAX_NODES 400；章节为容器节点不加列，教师可在任何节点下继续增删改）；前端知识点页「从教材目录生成树」按钮。规划/集成/幂等 5 用例。
+- **C4-2 题库**（6fdc4d1）：GET /questions 加 difficulty 过滤（内存 metadata 匹配，与既有 subjectId 过滤同模式；前端难度下拉）；POST /question-imports/from-textbook——教材课后习题区（region=exercise）提取为**导入草稿**（正文经封存 normalized 切片，教师校对确认——红线不变）；前端「从教材课后习题提取」按钮。
+- **C4-3 施测拆页**（6396b87）：/assessments/roster（班级管理）与 /assessments/papers（试卷管理）独立路由页（复用既有面板；五步工作区保留零破坏）；导航加两项。试卷知识点占比：PaperService.knowledge_distribution（primary 聚合/未分类/分值降序）+ GET /papers/{id}/knowledge-distribution + Chart.js Doughnut 环图（tooltip 题/分/占比）。本模块不含成绩分析与试卷内容展示（按用户要求）。
+- **C4-4 练习**（67886fd）：练习创建表单「AI 出题补齐」——按所选薄弱知识点+教师描述调**已验收的题库生成管道**（needs_review→教师确认入库→练习选拔自然覆盖），不绕过题库直塞练习（AI 只进候选红线）。
+- **C4-5 教材清洗**（c4e88be）：strip_running_headers——跨 ≥3 chunk 重复的页眉/页脚短行（≤40 字符）与页码行在 chunk 首尾剔除（正文中间行绝不触碰；无法安全映射回原文时保留原块）；接入 ingest 管线（仅数学教材场景受益）。
+- **门禁**：后端全量 **2199 passed**；前端全量 **1682/1682**、build 0、typecheck/lint 0 警告。**未执行**：新增路由页/按钮的浏览器视觉走查与 e2e（组件级 jsdom 已覆盖）；真实云端联调（学情→教案全链、AI 出题真实任务）待用户环境。
+- **遗留台账**：P1 切文档取消竞争（扳机已移除、全绿、无可复现路径）；模板视图测试补齐与默认切换；教材视觉走查。
+<!-- /C4-BATCH:20261011 -->
+
 <!-- LESSON-C3-CLOSE:20261011 -->
 2026-10-11（续 C 系列）：**C3-3/C3-4 完成，C 系列核心（融合+学情+教案）全部落地**。
 
