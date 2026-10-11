@@ -235,6 +235,86 @@ def retained_for_manifest(
     return retained
 
 
+#: 页眉/页脚判定：短行（≤40 字符）在同文档 ≥3 个 chunk 的首/尾重复出现视为版式重复行；
+#: 页码行模式（纯数字 / 第x页 / -x- / Page n / 共x页）无论长度一律剔除。
+_HEADER_FOOTER_MAX_CHARS = 40
+_HEADER_FOOTER_MIN_REPEATS = 3
+_PAGE_NUMBER_LINE = __import__("re").compile(
+    r"^\s*(?:[-—–]?\s*\d{1,4}\s*[-—–]?|第\s*\d{1,4}\s*页(?:\s*[·/共\s]*\d{0,4}\s*页?)?|Page\s+\d{1,4}(?:\s+of\s+\d{1,4})?)\s*$",
+    __import__("re").IGNORECASE,
+)
+
+
+def _is_page_number_line(line: str) -> bool:
+    return bool(_PAGE_NUMBER_LINE.match(line))
+
+
+def strip_running_headers(chunks: list[ChunkInput], normalized_text: str) -> list[ChunkInput]:
+    """剔除跨块重复的页眉/页脚行与页码行（C4-5 教材清洗增强）。
+
+    只处理 chunk 的**首尾短行**（页眉页脚的出现位置），绝不触碰正文中间行；
+    页码行仅当位于 chunk 首尾时剔除。全部行级判定，改动可由单测逐行验证。
+    """
+    if not chunks:
+        return chunks
+    edge_counts: dict[str, int] = {}
+    edges: list[tuple[int, list[str], list[str]]] = []
+    for index, chunk in enumerate(chunks):
+        text = normalized_text[chunk.char_start:chunk.char_end]
+        lines = text.split("\n")
+        while lines and not lines[0].strip():
+            lines.pop(0)
+        while lines and not lines[-1].strip():
+            lines.pop()
+        head = lines[0].strip() if lines else ""
+        tail = lines[-1].strip() if len(lines) > 1 else ""
+        edges.append((index, lines, []))
+        if head and len(head) <= _HEADER_FOOTER_MAX_CHARS and not _is_page_number_line(head):
+            edge_counts[head] = edge_counts.get(head, 0) + 1
+        if tail and len(tail) <= _HEADER_FOOTER_MAX_CHARS and not _is_page_number_line(tail):
+            edge_counts[tail] = edge_counts.get(tail, 0) + 1
+    repeated = {line for line, count in edge_counts.items() if count >= _HEADER_FOOTER_MIN_REPEATS}
+    if not repeated:
+        return chunks
+    retained: list[ChunkInput] = []
+    for chunk, (_, lines, _) in zip(chunks, edges, strict=False):
+        text = normalized_text[chunk.char_start:chunk.char_end]
+        lines = text.split("\n")
+        changed = False
+        # 首部：剔页码行与重复版式行
+        while lines:
+            stripped = lines[0].strip()
+            if not stripped:
+                lines.pop(0); changed = True; continue
+            if _is_page_number_line(stripped) or stripped in repeated:
+                lines.pop(0); changed = True; continue
+            break
+        # 尾部：剔页码行与重复版式行（至少保留一行正文）
+        while len(lines) > 1:
+            stripped = lines[-1].strip()
+            if not stripped:
+                lines.pop(); changed = True; continue
+            if _is_page_number_line(stripped) or stripped in repeated:
+                lines.pop(); changed = True; continue
+            break
+        if not changed:
+            retained.append(chunk)
+            continue
+        new_text = "\n".join(lines)
+        offset = chunk.char_start
+        # 首字符定位：原文中从 char_start 找 new_text 首个非空行起点（保守：整段重投影）
+        start = normalized_text.find(new_text.strip()[:20], max(0, offset - 2)) if new_text.strip() else chunk.char_start
+        if start < 0:
+            start = chunk.char_start
+        end = start + len(new_text)
+        if end > len(normalized_text) or normalized_text[start:end] != new_text:
+            # 无法安全映射回原文（少见：剔除后文本不再连续）——保留原块，不冒险
+            retained.append(chunk)
+            continue
+        retained.append(replace(chunk, char_start=start, char_end=end))
+    return retained
+
+
 def chunk_document(
     parsed: ParsedDocument,
     *,

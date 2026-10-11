@@ -50,6 +50,7 @@ from app.services.document_parsing.chunking import (
     chunk_manifest_sha256,
     chunk_policy_fingerprint,
     chunk_projection,
+    strip_running_headers,
 )
 from app.services.document_parsing.parser import ParsedDocument, parsed_from_source_map
 from app.services.textbook_ingest.blobs import BlobStore, sha256_text
@@ -228,6 +229,8 @@ class DocumentIndexer:
             ]
             return existing, chunks, parsed
         chunks = chunk_document(parsed, policy=policy)
+        # C4-5 清洗增强：剔除跨块重复的页眉/页脚行与页码行（只动 chunk 首尾，映射回原文坐标）
+        chunks = strip_running_headers(chunks, parsed.normalized_text)
         manifest = chunk_manifest_sha256(chunks)
         chunk_set = self.catalog.create_chunk_set(
             revision.revision_id,
