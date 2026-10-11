@@ -7,10 +7,30 @@ export type { Page, EvidenceRef, ScopeSnapshot, TextbookEvidence };
 
 export type LessonType = 'new' | 'review' | 'exercise' | 'experiment' | 'other';
 export interface ProcessItem { id: string; stage: string; design: string; secondary: string }
+
+/** 教学设计模板 v2（C3 复刻）：全 optional，旧数据缺省；教师手填/编辑，AI patch 白名单不变。 */
+export interface LessonBasicInfo {
+  courseName: string; teacher: string; audience: string; hours: string;
+  teachingTime: string; location: string; chapter: string;
+}
+export interface LessonTeachingAnalysis { learning: string; textbook: string; content: string; ideological: string }
+export interface LessonTeachingStrategy { designThinking: string; teachingFlow: string; methods: string }
+export interface LessonEvaluationFeedback { afterClassTest: string; homework: string }
+export type ProcessPhase = 'warmup' | 'introduction' | 'exploration' | 'practice' | 'conclusion';
+export interface ProcessItemV2 {
+  id: string; phase: ProcessPhase; phaseLabel: string; title: string;
+  teacherActivity: string; studentActivity: string; intent: string;
+}
 export interface LessonPlanData {
   title: string; totalLessons: string; currentLessonNo: string; lessonTypes: LessonType[];
   otherTypeText: string; coreCompetencies: string; keyPoints: string; teachingDesign: string;
   process: ProcessItem[]; exercises: string; reflection: string;
+  basic?: LessonBasicInfo | null;
+  analysis?: LessonTeachingAnalysis | null;
+  strategy?: LessonTeachingStrategy | null;
+  evaluation?: LessonEvaluationFeedback | null;
+  /** 三列教学过程；为空时由旧 process 映射展示。 */
+  processV2?: ProcessItemV2[];
 }
 export interface DraftEnvelope { schemaVersion: 1; revision: number; updatedAt: string; data: LessonPlanData }
 export type AllowedLessonField = 'coreCompetencies' | 'keyPoints' | 'teachingDesign' | 'process' | 'exercises';

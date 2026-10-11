@@ -11,6 +11,11 @@ export const emptyData: LessonPlanData = {
   process: [],
   exercises: '',
   reflection: '',
+  basic: { courseName: '', teacher: '', audience: '', hours: '', teachingTime: '', location: '', chapter: '' },
+  analysis: { learning: '', textbook: '', content: '', ideological: '' },
+  strategy: { designThinking: '', teachingFlow: '', methods: '' },
+  evaluation: { afterClassTest: '', homework: '' },
+  processV2: [],
 };
 export const exampleData: LessonPlanData = {
   title: '荷塘月色',

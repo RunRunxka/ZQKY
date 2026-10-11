@@ -61,6 +61,14 @@ class LessonPlanData(Frozen):
     process: list[ProcessItem] = Field(max_length=100)
     exercises: str = Field(max_length=100000)
     reflection: str = Field(max_length=100000)
+    # ---- 教学设计模板 v2（C3 复刻：全 optional，旧数据缺省向后兼容；教师手填/编辑，
+    # ---- AI patch 白名单（AllowedField 5 字段）不变，不破坏既有教案生成链路）----
+    basic: "BasicInfo | None" = Field(default=None)
+    analysis: "TeachingAnalysis | None" = Field(default=None)
+    strategy: "TeachingStrategy | None" = Field(default=None)
+    evaluation: "EvaluationFeedback | None" = Field(default=None)
+    #: 三列教学过程（教师活动/学生活动/设计意图）；为空时由旧 ``process`` 映射展示。
+    process_v2: list["ProcessItemV2"] = Field(default_factory=list, alias="processV2", max_length=100)
 
     @field_validator("title", "total_lessons", "current_lesson_no", "other_type_text",
                      "core_competencies", "key_points", "teaching_design", "exercises", "reflection")
@@ -76,7 +84,57 @@ class LessonPlanData(Frozen):
     def identifiers(self):
         if len({item.id for item in self.process}) != len(self.process):
             raise ValueError("process IDs must be unique")
+        if len({item.id for item in self.process_v2}) != len(self.process_v2):
+            raise ValueError("processV2 IDs must be unique")
         return self
+
+
+class BasicInfo(Frozen):
+    """封面 + 基本信息表（课程名称/授课教师/授课对象/授课学时/时间/地点/教学章节）。"""
+
+    course_name: str = Field(default="", alias="courseName", max_length=100000)
+    teacher: str = Field(default="", max_length=100000)
+    audience: str = Field(default="", max_length=100000)
+    hours: str = Field(default="", max_length=100000)
+    teaching_time: str = Field(default="", alias="teachingTime", max_length=100000)
+    location: str = Field(default="", max_length=100000)
+    chapter: str = Field(default="", max_length=100000)
+
+
+class TeachingAnalysis(Frozen):
+    """二、教学分析（学情分析/教材分析/教学内容/思政资源）。"""
+
+    learning: str = Field(default="", max_length=100000)
+    textbook: str = Field(default="", max_length=100000)
+    content: str = Field(default="", max_length=100000)
+    ideological: str = Field(default="", max_length=100000)
+
+
+class TeachingStrategy(Frozen):
+    """四、教学策略（设计思路/教学流程/教学手段）。"""
+
+    design_thinking: str = Field(default="", alias="designThinking", max_length=100000)
+    teaching_flow: str = Field(default="", alias="teachingFlow", max_length=100000)
+    methods: str = Field(default="", max_length=100000)
+
+
+class EvaluationFeedback(Frozen):
+    """六、评价反馈（课后测试情况/作业情况）。"""
+
+    after_class_test: str = Field(default="", alias="afterClassTest", max_length=100000)
+    homework: str = Field(default="", max_length=100000)
+
+
+class ProcessItemV2(Frozen):
+    """三列教学过程行（教师活动/学生活动/设计意图），阶段归属经 phase。"""
+
+    id: str = Field(max_length=100000)
+    phase: Literal["warmup", "introduction", "exploration", "practice", "conclusion"] = Field(default="exploration")
+    phase_label: str = Field(default="", alias="phaseLabel", max_length=120)
+    title: str = Field(default="", max_length=120)
+    teacher_activity: str = Field(default="", alias="teacherActivity", max_length=100000)
+    student_activity: str = Field(default="", alias="studentActivity", max_length=100000)
+    intent: str = Field(default="", max_length=100000)
 
 
 class DraftEnvelope(Frozen):
