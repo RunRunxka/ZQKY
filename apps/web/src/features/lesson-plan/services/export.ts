@@ -36,19 +36,58 @@ export async function buildDocx(data: LessonPlanData) {
     import('pizzip'),
     import('docxtemplater'),
   ]);
-  const response = await fetch('/templates/lesson-plan-template.docx');
+  // C3：教学设计模板 v2（封面 + 目录 + 五大正文表，三列教学过程）；旧模板仅作回退。
+  const response = await fetch('/templates/lesson-plan-template-v2.docx');
   if (!response.ok) throw Error('模板加载失败，请刷新后重试');
   const doc = new Docxtemplater(new PizZip(await response.arrayBuffer()), {
     paragraphLoop: true,
     linebreaks: true,
   });
-  doc.render(flattenForDocx(data));
+  doc.render(flattenForDocxV2(data));
   return doc
     .getZip()
     .generate({
       type: 'blob',
       mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     });
+}
+
+/** 模板 v2 字段映射：封面/目录由模板自带（导出自动补齐第 1、2 页），正文从第 3 页起与预览一致。 */
+export function flattenForDocxV2(data: LessonPlanData) {
+  const basic = data.basic ?? { courseName: '', teacher: '', audience: '', hours: '', teachingTime: '', location: '', chapter: '' };
+  const analysis = data.analysis ?? { learning: '', textbook: '', content: '', ideological: '' };
+  const strategy = data.strategy ?? { designThinking: '', teachingFlow: '', methods: '' };
+  const evaluation = data.evaluation ?? { afterClassTest: '', homework: '' };
+  const rows = (data.processV2 && data.processV2.length > 0)
+    ? data.processV2
+    : data.process.map((p) => ({
+        id: p.id, phase: 'exploration' as const, phaseLabel: '', title: p.stage,
+        teacherActivity: p.design, studentActivity: '', intent: p.secondary,
+      }));
+  return {
+    title: data.title,
+    courseName: basic.courseName || data.title,
+    teacher: basic.teacher,
+    audience: basic.audience,
+    hours: basic.hours,
+    teachingTime: basic.teachingTime,
+    location: basic.location,
+    chapter: basic.chapter,
+    analysisLearning: analysis.learning,
+    analysisTextbook: analysis.textbook,
+    analysisContent: analysis.content,
+    analysisIdeological: analysis.ideological,
+    coreCompetencies: data.coreCompetencies,
+    keyPoints: data.keyPoints,
+    strategyDesignThinking: strategy.designThinking,
+    strategyTeachingFlow: strategy.teachingFlow,
+    strategyMethods: strategy.methods,
+    teachingDesign: data.teachingDesign,
+    processV2: rows,
+    evaluationAfterClassTest: evaluation.afterClassTest,
+    evaluationHomework: evaluation.homework,
+    reflection: data.reflection,
+  };
 }
 export async function exportDocx(data: LessonPlanData, sourceLabel?: string) {
   download(await buildDocx(data), `教案-${safeName(data.title)}${sourceLabel ? `-${safeName(sourceLabel)}` : ''}.docx`);

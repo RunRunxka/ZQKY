@@ -3,7 +3,7 @@ import { RuleBasedFillProvider, mergeProposal } from './fill';
 import { exampleData, emptyData, requirementExample } from '../model/defaults';
 import { paginate } from './pagination';
 import { validateData } from './drafts';
-import { flattenForDocx } from './export';
+import { flattenForDocx, flattenForDocxV2 } from './export';
 import { createLessonStore } from '../model/store';
 const useLessonStore = createLessonStore();
 const provider = new RuleBasedFillProvider();
@@ -79,6 +79,37 @@ describe('导出与分页', () => {
     for (const p of exampleData.process) {
       expect(out.firstDesign + out.restDesign).toContain(p.design);
       expect(out.firstSecondary + out.restSecondary).toContain(p.secondary);
+    }
+  });
+
+  it('C3 模板v2映射：封面/正文/评价字段与三列过程循环（processV2 优先）', () => {
+    const data = {
+      ...structuredClone(emptyData),
+      title: '分数的意义',
+      basic: { courseName: '数学', teacher: '王老师', audience: '五年级', hours: '1', teachingTime: '周一', location: '教室1', chapter: '第一章' },
+      analysis: { learning: '学情', textbook: '教材', content: '内容', ideological: '思政' },
+      strategy: { designThinking: '思路', teachingFlow: '流程', methods: '手段' },
+      evaluation: { afterClassTest: '测试情况', homework: '作业' },
+      processV2: [
+        { id: 'p1', phase: 'warmup' as const, phaseLabel: '课前热身', title: '热身', teacherActivity: '提问', studentActivity: '思考', intent: '激趣' },
+      ],
+    };
+    const out = flattenForDocxV2(data);
+    expect(out.courseName).toBe('数学');
+    expect(out.analysisLearning).toBe('学情');
+    expect(out.strategyTeachingFlow).toBe('流程');
+    expect(out.evaluationAfterClassTest).toBe('测试情况');
+    expect(out.processV2).toHaveLength(1);
+    expect(out.processV2[0]).toMatchObject({ phaseLabel: '课前热身', teacherActivity: '提问', studentActivity: '思考', intent: '激趣' });
+  });
+
+  it('C3 模板v2映射：processV2 为空时回退映射旧 process（stage→标题，design→教师活动，secondary→设计意图）', () => {
+    const out = flattenForDocxV2(exampleData);
+    expect(out.processV2).toHaveLength(exampleData.process.length);
+    for (let i = 0; i < exampleData.process.length; i += 1) {
+      expect(out.processV2[i].title).toBe(exampleData.process[i].stage);
+      expect(out.processV2[i].teacherActivity).toBe(exampleData.process[i].design);
+      expect(out.processV2[i].intent).toBe(exampleData.process[i].secondary);
     }
   });
 });
