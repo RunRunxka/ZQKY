@@ -17,6 +17,7 @@ import type {
   TurnExtensionSnapshot,
 } from '@/contracts/chat';
 import { streamChat } from '@/services/chat-stream';
+import { createAgentChatService } from './agent-chat-service';
 import { createRagChatService, isRagCapability, type RagServiceStatus } from './rag-service';
 import type { RagResultV2, RagScopeInput, ScopeSnapshot } from './rag-v2';
 
@@ -138,58 +139,74 @@ export interface ChatService {
   cancel?(request: { sessionId: string; turnId: string; channel?: 'rag' }): Promise<unknown>;
 }
 
-/** 真实服务：包装现有 SSE 客户端，真实路径行为保持不变（不发送扩展快照） */
+/** 真实服务：包装现有 SSE 客户端，真实路径行为保持不变（不发送扩展快照）。
+ *
+ * Agent 化改造（C1 融合）：默认（非教材）请求走 **Agent 通道**（agent-chat-service），
+ * Agent 直答普通问答、按需调业务工具（学情/教案/练习/导入），写操作经确认闸门；
+ * 教材追问澄清仍走 **rag 专用通道**（流式，机制不变）。普通 streamChat 不再作为默认，
+ * 仅在显式注入 ``stream``（如测试）时走纯问答。
+ */
 export function createRealChatService(deps?: { stream?: typeof streamChat }): ChatService {
-  const runStream = deps?.stream ?? streamChat;
+  const runStream = deps?.stream ?? null;
   const rag = createRagChatService();
+  const agent = createAgentChatService();
   return {
     kind: 'real',
     checkRagAvailable: () => rag.checkRagAvailable!(),
-    cancel: (request) => request.channel === 'rag' ? rag.cancel!(request) : Promise.resolve(),
-    // 普通聊天协议不支持追问；教材轮次只走专用回答接口。
+    cancel: (request) => (request.channel === 'rag' ? rag.cancel!(request) : Promise.resolve()),
+    // 普通聊天协议不支持追问；教材轮次只走专用回答接口；Agent 卡片走确认续跑。
     async submitReply(request) {
       if (request.channel === 'rag') return rag.submitReply!(request);
-      return {
-        accepted: false,
-        code: 'REPLY_NOT_SUPPORTED',
-        message: '真实问答暂不支持追问回答。',
-      };
+      // 显式注入 stream（纯问答回退）不支持追问；Agent 通道支持确认/选择卡续跑。
+      if (runStream) {
+        return {
+          accepted: false,
+          code: 'REPLY_NOT_SUPPORTED',
+          message: '真实问答暂不支持追问回答。',
+        };
+      }
+      return agent.submitReply!(request);
     },
     async run(request, emit) {
       if (request.rag || isRagCapability(request.extensions)) return rag.run(request, emit);
-      await runStream(
-        {
-          requestId: request.turnId.replaceAll('-', ''),
-          modelProfileId: request.modelProfileId ?? '',
-          messages: request.messages,
-          maxOutputTokens: request.maxOutputTokens,
-          signal: request.signal,
-        },
-        {
-          onStart: () =>
-            emit({ sessionId: request.sessionId, turnId: request.turnId, type: 'turn-start' }),
-          onText: (delta) =>
-            emit({ sessionId: request.sessionId, turnId: request.turnId, type: 'text', delta }),
-          onReasoning: (delta) =>
-            emit({
-              sessionId: request.sessionId,
-              turnId: request.turnId,
-              type: 'reasoning',
-              delta,
-            }),
-          onUsage: (usage) =>
-            emit({ sessionId: request.sessionId, turnId: request.turnId, type: 'usage', usage }),
-          onEnd: (finishReason) =>
-            emit({
-              sessionId: request.sessionId,
-              turnId: request.turnId,
-              type: 'end',
-              finishReason,
-            }),
-          onError: (error) =>
-            emit({ sessionId: request.sessionId, turnId: request.turnId, type: 'error', error }),
-        },
-      );
+      // 显式注入 stream（测试/纯问答回退）走普通聊天；默认走 Agent 通道。
+      if (runStream) {
+        await runStream(
+          {
+            requestId: request.turnId.replaceAll('-', ''),
+            modelProfileId: request.modelProfileId ?? '',
+            messages: request.messages,
+            maxOutputTokens: request.maxOutputTokens,
+            signal: request.signal,
+          },
+          {
+            onStart: () =>
+              emit({ sessionId: request.sessionId, turnId: request.turnId, type: 'turn-start' }),
+            onText: (delta) =>
+              emit({ sessionId: request.sessionId, turnId: request.turnId, type: 'text', delta }),
+            onReasoning: (delta) =>
+              emit({
+                sessionId: request.sessionId,
+                turnId: request.turnId,
+                type: 'reasoning',
+                delta,
+              }),
+            onUsage: (usage) =>
+              emit({ sessionId: request.sessionId, turnId: request.turnId, type: 'usage', usage }),
+            onEnd: (finishReason) =>
+              emit({
+                sessionId: request.sessionId,
+                turnId: request.turnId,
+                type: 'end',
+                finishReason,
+              }),
+            onError: (error) =>
+              emit({ sessionId: request.sessionId, turnId: request.turnId, type: 'error', error }),
+          },
+        );
+        return;
+      }
+      return agent.run(request, emit);
     },
   };
 }

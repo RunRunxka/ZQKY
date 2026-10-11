@@ -186,7 +186,12 @@ async def agent_confirm(request: Request, body: AgentConfirmRequest) -> Streamin
 
     message_id = body.requestId
     request_id = body.requestId
-    decision = {"decision": body.decision, "submissionId": body.submissionId, "confirmId": body.confirmId}
+    decision = {
+        "decision": body.decision,
+        "submissionId": body.submissionId,
+        "confirmId": body.confirmId,
+        **({"value": body.value} if body.value is not None else {}),
+    }
 
     async def event_stream():
         yield _sse(

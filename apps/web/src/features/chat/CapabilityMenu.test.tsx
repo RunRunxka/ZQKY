@@ -23,8 +23,9 @@ describe('模式选择菜单', () => {
     );
     expect(within(dialog).getByRole('button', { name: /^智能出题/ })).toBeInTheDocument();
     expect(within(dialog).getByRole('button', { name: /^可视化/ })).toBeInTheDocument();
-    // RAG 模式取代原“更多能力”的位置：同级一行，不再是二级菜单入口
-    expect(within(dialog).getByRole('button', { name: /^RAG 模式/ })).toBeInTheDocument();
+    // C1 融合：独立「RAG 模式」选项已移除（追问澄清即教材 RAG 通道），不再出现在菜单
+    expect(within(dialog).queryByRole('button', { name: /^RAG 模式/ })).toBeNull();
+    expect(within(dialog).getByRole('button', { name: /^追问澄清/ })).toBeInTheDocument();
     expect(within(dialog).queryByRole('button', { name: /^更多能力/ })).toBeNull();
     expect(dialog.querySelector('.chat-cap-more')).toBeNull();
     expect(dialog.querySelector('.chat-cap-flyout')).toBeNull();
@@ -42,11 +43,9 @@ describe('模式选择菜单', () => {
     expect(quiz).toBeDisabled();
     expect(within(dialog).getAllByText('真实服务未接入').length).toBeGreaterThan(0);
     expect(within(dialog).getByRole('button', { name: /^对话/ })).toBeEnabled();
-    // 教材入口独立于普通云模型，选择后由服务可用性检查给出真实结果。
-    const rag = within(dialog).getByRole('button', { name: /^RAG 模式/ });
-    expect(rag).toBeEnabled();
-    expect(rag).not.toHaveTextContent('未接入 · 规划中');
+    // 教材入口独立于普通云模型，选择后由服务可用性检查给出真实结果（C1：追问澄清即教材通道）。
     expect(within(dialog).getByRole('button', { name: /^追问澄清/ })).toBeEnabled();
+    expect(within(dialog).getByRole('button', { name: /^追问澄清/ })).not.toHaveTextContent('未接入 · 规划中');
   });
 
   it('选择能力回调并关闭菜单', () => {

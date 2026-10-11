@@ -146,6 +146,12 @@ def _build_chat_model(
     temperature = profile.params.get("temperature")
     if temperature is not None:
         common["temperature"] = temperature
+    # 思考强度（D6）：profile 声明的 reasoningEffort 注入官方包；per-turn 切换由运行层
+    # 经调用参数覆盖（C1-4 对话框控件）。仅当模型声明开启推理时才下发，避免不支持模型报错。
+    if profile.reasoningEnabled and profile.reasoningEffort is not None:
+        effort = profile.reasoningEffort.value
+        if effort not in ("none",):
+            common["reasoning_effort"] = effort
 
     if api_format == ApiFormat.anthropic.value:
         return ChatAnthropic(**common)  # type: ignore[arg-type]

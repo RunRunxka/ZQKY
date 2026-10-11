@@ -59,12 +59,6 @@ export const CHAT_CAPABILITIES: CapabilityDef[] = [
     description: '生成图表、示意图、页面或数学动画',
     needsConfig: true,
   },
-  {
-    // 取代原“更多能力”飞出层的位置：同一列表、同一行样式、同一选中语义，无二级菜单。
-    value: 'rag',
-    label: 'RAG 模式',
-    description: '基于教材资料库的定位与讲解',
-  },
 ];
 
 export function getCapability(value: string): CapabilityDef {

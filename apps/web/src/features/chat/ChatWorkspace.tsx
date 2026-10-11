@@ -54,11 +54,11 @@ import { createIdbChatRepository } from '@/services/chat-repository';
 import { resolveCourse, courseAvailabilityLabel } from '@/services/course-session';
 import { subscribeCourses } from '@/services/courses-store';
 import { Message } from './Message';
-import { AgentPanel } from './AgentPanel';
 import { SessionPanel } from './SessionPanel';
 import { InfoPanel } from './InfoPanel';
 import { ArtifactPanelItem, WorkspacePanel } from './ArtifactPanel';
 import { ComposerContextChips } from './ComposerContextChips';
+import { uploadAgent } from '@/services/agent-stream';
 import '@/features/model-settings/styles/model-settings.css';
 import './styles/chat.css';
 import './styles/chat-home.css';
@@ -70,6 +70,19 @@ interface SessionPending {
 const EMPTY_PENDING: SessionPending = {
   attachments: [],
 };
+
+/** 把附件的 base64 内容重建为 File（供 Agent 上传）；预览仍走 base64/previewUrl。 */
+function attachmentToFile(att: PendingAttachment): File | null {
+  if (!att.base64) return null;
+  try {
+    const bin = atob(att.base64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
+    return new File([bytes], att.filename, { type: att.mimeType ?? '' });
+  } catch {
+    return null;
+  }
+}
 
 /** 教材服务分项状态（检索 / 本地概括 / 原文访问分别报告，不用单一结论概括） */
 function RagStatusLines({ status }: { status: RagServiceStatus }) {
@@ -173,9 +186,6 @@ function ChatPage({
   // null=关闭；'workspace'=打开（活动标签或某个产物标签由 artifactKey 决定）
   const [panelView, setPanelViewState] = useState<'workspace' | null>(null);
   const [panelExiting, setPanelExiting] = useState(false);
-  // Agent 化改造（A5）：'chat'=学习问答（现有 ChatService）；'agent'=教学 Agent 工作台。
-  // 切换只替换消息区+输入区，不动现有问答的 store/会话/右侧面板。
-  const [workspaceMode, setWorkspaceMode] = useState<'chat' | 'agent'>('chat');
   function setPanelView(next: 'workspace' | null) {
     setPanelExiting(next === null);
     setPanelViewState(next);
@@ -196,6 +206,8 @@ function ChatPage({
   const [blockedNotice, setBlockedNotice] = useState<string | null>(null);
   // S2 输入区：业务能力（默认“对话”）+ 各能力配置表单 + 确认状态
   const [capabilityValue, setCapabilityValue] = useState('');
+  // 追问澄清（ask_questions）即教材 RAG 通道（C1 融合：独立「RAG 模式」选项已移除，
+  // rag 仅作旧快照兼容）；其余（普通对话）走 Agent 通道。
   const ragMode = capabilityValue === 'rag' || capabilityValue === 'ask_questions';
   const [ragStatus, setRagStatus] = useState<{ status: RagServiceStatus | null; error: string | null }>(
     { status: null, error: null },
@@ -731,17 +743,15 @@ function ChatPage({
       setBlockedNotice(`「${activeCap.label}」暂无真实服务，输入与选择已保留。`);
       return;
     }
-    if (attachments.length) {
-      // R20：真实服务无文件解析/上传通道——不静默剥离附件转纯文字请求；
-      // 保留输入与附件，用户明确移除附件后才能继续纯文字请求
+    // 教材追问澄清（RAG 通道）不支持附件；Agent 通道支持（上传后随消息发 assetRef）。
+    if (attachments.length && ragMode) {
       setBlockedNotice(
-        '当前真实服务不支持附件发送（未接入文件解析服务）：已保留输入与附件，请移除附件后再发送。',
+        '教材追问澄清暂不支持附件发送：已保留输入与附件，请移除附件或改用普通提问。',
       );
       return;
     }
-    if (!text) {
-      // 真实服务无文件解析/上传通道：仅引用无法构成真实请求
-      setBlockedNotice('当前真实服务不支持仅引用发送（无文件解析服务），请输入文字后发送。');
+    if (!text && attachments.length === 0) {
+      // 无文字且无附件不构成请求
       return;
     }
     // 教材范围门槛（RAG-REBUILD v1.0）：范围未配置或读取失败时**发送前**阻断并保留输入
@@ -767,9 +777,54 @@ function ChatPage({
     }
     setBlockedNotice(null);
     setFollowing(true);
-    void store.send(text, ragMode ? LOCAL_RAG_PROFILE : selection!, ragMode ? {
-      mcps: [], skills: [], capability: { value: capabilityValue, label: activeCap.label },
-    } : undefined);
+    if (ragMode) {
+      void store.send(text, LOCAL_RAG_PROFILE, {
+        mcps: [], skills: [], capability: { value: capabilityValue, label: activeCap.label },
+      });
+      return;
+    }
+    // Agent 通道：有附件先经 /agent/upload 上传拿 assetRef，再随消息发送（C1）。
+    void sendViaAgent(text, attachments);
+  }
+
+  /** Agent 通道发送：先上传附件（如有）拿 assetRef，再经 extensions 传 AgentChatService。 */
+  async function sendViaAgent(text: string, pendingAttachments: PendingAttachment[]) {
+    let uploaded: { filename: string; kind: 'image' | 'doc'; size: number; mimeType?: string; assetId: string }[] = [];
+    if (pendingAttachments.length) {
+      try {
+        uploaded = await Promise.all(
+          pendingAttachments.map(async (att) => {
+            const file = attachmentToFile(att);
+            if (!file) throw new Error(`附件内容缺失：${att.filename}`);
+            const result = await uploadAgent(file);
+            return {
+              filename: att.filename,
+              kind: att.kind,
+              size: att.size,
+              ...(att.mimeType ? { mimeType: att.mimeType } : {}),
+              assetId: result.assetId,
+            };
+          }),
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : '附件上传失败。';
+        setBlockedNotice(`附件上传失败：${message} 输入与附件已保留，可重试。`);
+        setFollowing(false);
+        return;
+      }
+    }
+    const messageText =
+      text ||
+      `请处理随附的 ${uploaded.length} 个文件（${uploaded.map((u) => u.filename).join('、')}）。`;
+    void store.send(messageText, selection!, {
+      mcps: [],
+      skills: [],
+      ...(uploaded.length ? { attachments: uploaded } : {}),
+    });
+    // 发送成功后清空已上传附件（文件已落 blob，assetRef 随消息冻结）
+    if (pendingAttachments.length) {
+      patchPending(pendingKey, () => ({ attachments: [] }));
+    }
   }
   async function fresh() {
     setTargetMessageId(undefined);
@@ -855,29 +910,9 @@ function ChatPage({
       }}
     >
       <div ref={entranceRef} className={`chat-page ${panelView !== null ? 'info-open' : ''}`}>
-        <section className={`chat-main ${hasMessages ? '' : 'chat-welcome'} ${workspaceMode === 'agent' ? 'agent-mode' : ''}`}>
+        <section className={`chat-main ${hasMessages ? '' : 'chat-welcome'}`}>
           <header className="chat-toolbar" data-motion-reveal>
             <span className="chat-title">{activeTitle}</span>
-            <span className="chat-mode-switch" role="tablist" aria-label="工作区模式">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={workspaceMode === 'chat'}
-                className={workspaceMode === 'chat' ? 'active' : ''}
-                onClick={() => setWorkspaceMode('chat')}
-              >
-                学习问答
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={workspaceMode === 'agent'}
-                className={workspaceMode === 'agent' ? 'active' : ''}
-                onClick={() => setWorkspaceMode('agent')}
-              >
-                教学 Agent
-              </button>
-            </span>
 
             <span className="chat-flex-spacer" />
             <button className="icon-button" aria-label="新建对话" onClick={() => void fresh()}>
@@ -1411,11 +1446,6 @@ function ChatPage({
               </p>
             )}
           </div>
-          {workspaceMode === 'agent' && (
-            <div className="chat-agent-slot">
-              <AgentPanel />
-            </div>
-          )}
         </section>
         {(panelView !== null || panelExiting) && !isMobile && (
           <aside

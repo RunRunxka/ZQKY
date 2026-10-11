@@ -10,29 +10,29 @@ import {
 } from './capability-catalog';
 
 describe('能力目录（对照参考 v1.6.5 capability 目录）', () => {
-  it('单层菜单：对话/追问澄清/智能出题/可视化 + RAG 模式；隐藏能力不出现在首页菜单', () => {
-    // UX-PERF-CLOSEOUT v1：移除“更多能力”飞出层与其三项次要能力，
-    // 同级 RAG 入口现在接入真实本地教材服务。
+  it('单层菜单：对话/追问澄清/智能出题/可视化；隐藏能力不出现在首页菜单', () => {
+    // UX-PERF-CLOSEOUT v1：移除“更多能力”飞出层与其三项次要能力。
+    // C1 融合：独立「RAG 模式」选项移除（追问澄清即教材 RAG 通道），目录只留一项教材入口。
     expect(CHAT_CAPABILITIES.map((cap) => cap.value)).toEqual([
       '',
       'ask_questions',
       'deep_question',
       'visualize',
-      'rag',
     ]);
-    // 已删除的三项能力不得以任何形式回流目录
-    for (const removed of ['deep_solve', 'deep_research', 'immersive_watching'])
+    // 已删除的三项能力不得以任何形式回流目录；rag 不再作为独立目录项
+    for (const removed of ['deep_solve', 'deep_research', 'immersive_watching', 'rag'])
       expect(CHAT_CAPABILITIES.map((cap) => cap.value)).not.toContain(removed);
     // mastery_path / course_study 为工作区自有能力，不进首页菜单（参考 legacy/隐藏规则）
     expect(CHAT_CAPABILITIES.map((cap) => cap.value)).not.toContain('mastery_path');
     expect(CHAT_CAPABILITIES.map((cap) => cap.value)).not.toContain('course_study');
   });
 
-  it('RAG 模式：同级目录项，使用真实教材服务，无额外配置', () => {
-    const rag = getCapability('rag');
-    expect(rag.label).toBe('RAG 模式');
-    expect(rag.unavailableNote).toBeUndefined();
-    expect(rag.needsConfig).toBeFalsy(); // 不是二级菜单，也不是配置型能力
+  it('追问澄清：教材 RAG 通道，使用真实教材服务，无额外配置（旧 rag 快照仍兼容可用）', () => {
+    const ask = getCapability('ask_questions');
+    expect(ask.label).toBe('追问澄清');
+    expect(ask.needsConfig).toBeFalsy();
+    expect(capabilityAvailableInReal('ask_questions')).toBe(true);
+    // 旧快照中的 rag 值回退为「对话」标签，但运行时仍按可用处理（不阻断历史会话）
     expect(capabilityAvailableInReal('rag')).toBe(true);
   });
 

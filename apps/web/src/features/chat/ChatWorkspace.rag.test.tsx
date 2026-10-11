@@ -141,7 +141,8 @@ async function openRag() {
     </NavigationPreference>,
   );
   fireEvent.click(screen.getByRole('button', { name: /^选择业务能力，当前：/ }));
-  fireEvent.click(screen.getByRole('button', { name: /^RAG 模式/ }));
+  // C1 融合：独立「RAG 模式」选项已移除，改选「追问澄清」（同走教材 RAG 通道，ragMode 相同）。
+  fireEvent.click(screen.getByRole('button', { name: /^追问澄清/ }));
   const input = screen.getByRole('textbox', { name: '输入问题' });
   await waitFor(() => expect(input).not.toBeDisabled());
   return input;

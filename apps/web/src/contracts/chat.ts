@@ -41,12 +41,18 @@ export type ChatServiceKind = 'real' | 'mock';
   /**
    * 附件元数据（文件名/类别/大小/MIME）。无解析服务时不携带文件内容，
    * 模拟侧按“未读取文件内容”如实陈述，不伪装上传或解析成功。
+   * Agent 化改造（C1）：走 Agent 通道时 ``assetId`` 为已上传落 blob 的引用，
+   * 由 AgentChatService 转成后端 /agent/stream 的 attachments；字节不随快照。
    */
   attachments?: {
     filename: string;
     kind: 'image' | 'doc';
     size: number;
     mimeType?: string;
+    /** Agent 通道：已上传 assetRef（/agent/upload 返回的 sha256/assetId） */
+    assetId?: string;
+    /** Agent 通道：建议导入类型（auto/textbook/paper/roster/score/question） */
+    importKind?: string;
   }[];
 }
 

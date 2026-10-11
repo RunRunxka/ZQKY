@@ -41,9 +41,10 @@ class AgentStreamRequest(BaseModel):
 
 
 class AgentConfirmRequest(BaseModel):
-    """写操作确认：教师对 wait-confirm 卡片的决定。
+    """教师对中断卡（写操作确认 / 参数选择）的决定，用于 Command(resume=...) 续跑。
 
-    - ``decision``：approve（执行写操作）/ reject（放弃，图继续但不写库）；
+    - ``decision``：approve（确认执行/选定）/ reject（放弃）；
+    - ``value``：选择卡的选定值（select 类卡片；confirm 类省略）；
     - ``submissionId``：幂等键，同一确认重复提交不产生第二次写操作。
     """
 
@@ -53,6 +54,7 @@ class AgentConfirmRequest(BaseModel):
     modelProfileId: str = Field(min_length=1, max_length=128)
     confirmId: str = Field(min_length=1, max_length=128)
     decision: str = Field(pattern="^(approve|reject)$")
+    value: str | None = Field(default=None, max_length=2000)
 
 
 class AgentUploadResponse(BaseModel):

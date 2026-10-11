@@ -41,6 +41,8 @@ export interface AgentConfirmInput {
   modelProfileId: string;
   confirmId: string;
   decision: 'approve' | 'reject';
+  /** 选择卡的选定值（select 类卡片；confirm 类省略） */
+  value?: string;
   signal?: AbortSignal;
 }
 
@@ -201,6 +203,7 @@ export async function confirmAgent(input: AgentConfirmInput, handlers: AgentStre
       modelProfileId: input.modelProfileId,
       confirmId: input.confirmId,
       decision: input.decision,
+      ...(input.value !== undefined ? { value: input.value } : {}),
     },
     input.signal,
   );
