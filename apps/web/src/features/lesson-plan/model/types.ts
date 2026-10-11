@@ -1,5 +1,9 @@
 import type { LessonPlanData, DraftEnvelope } from '@/contracts/lesson-plans';
 export type { LessonType, ProcessItem, LessonPlanData, DraftEnvelope } from '@/contracts/lesson-plans';
+export type {
+  LessonBasicInfo, LessonTeachingAnalysis, LessonTeachingStrategy,
+  LessonEvaluationFeedback, ProcessItemV2, ProcessPhase,
+} from '@/contracts/lesson-plans';
 export const lessonTypeLabels = {
   new: '新课',
   review: '复习课',
@@ -7,7 +11,9 @@ export const lessonTypeLabels = {
   experiment: '实验课',
   other: '其它',
 } as const;
-export type TextField = Exclude<keyof LessonPlanData, 'lessonTypes' | 'process'>;
+/** 规则填充可写的字符串字段（模板 v2 的对象字段与三列过程不由自然语言规则填充）。 */
+export type TextField = Exclude<keyof LessonPlanData,
+  'lessonTypes' | 'process' | 'basic' | 'analysis' | 'strategy' | 'evaluation' | 'processV2'>;
 export interface FillProposal {
   patch: Partial<LessonPlanData>;
   warnings: string[];
