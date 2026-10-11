@@ -1797,6 +1797,7 @@ class QuestionBankService:
         status: str | None = None,
         query: str | None = None,
         knowledge_point_id: str | None = None,
+        difficulty: str | None = None,
         offset: int = 0,
         limit: int = DEFAULT_LIST_LIMIT,
         owner_id: str | None = None,
@@ -1809,6 +1810,7 @@ class QuestionBankService:
             status=status,
             query=query,
             knowledge_point_id=knowledge_point_id,
+            difficulty=difficulty,
             offset=offset,
             limit=limit,
         )

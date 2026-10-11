@@ -16,6 +16,7 @@ import '@/components/layout/space.css';
 import '@/features/question-bank/styles/question-bank.css';
 import { fetchTextbookTaxonomy } from '@/services/textbook-api';
 import { ImportBatchList } from './ImportBatchList';
+import { importQuestionsFromTextbook } from '@/services/question-bank-api';
 import { ImportQuestionPanel } from './ImportQuestionPanel';
 import { QuestionLibrary } from './QuestionLibrary';
 import { useAsyncResource } from './hooks';
@@ -40,6 +41,24 @@ export function QuestionBankWorkspace({ returnPracticeSetId, requestedTab }: {
   const [importOpen, setImportOpen] = useState(false);
   const [refreshToken, setRefreshToken] = useState(0);
   const [generationRequested, setGenerationRequested] = useState(requestedTab === 'generation');
+  const [extracting, setExtracting] = useState(false);
+  const [extractNotice, setExtractNotice] = useState<string | null>(null);
+
+  async function extractFromTextbook() {
+    if (extracting) return;
+    setExtracting(true);
+    setExtractNotice(null);
+    try {
+      const detail = await importQuestionsFromTextbook({ subjectId: 'math' });
+      setRefreshToken((n) => n + 1);
+      setExtractNotice(`已从教材课后习题提取为导入草稿（${detail.state === 'failed' ? '解析失败，请检查教材' : '待校对'}）：请在下方批次列表打开校对。`);
+    } catch (error) {
+      const e = error as { message?: string };
+      setExtractNotice(`提取失败：${e.message ?? '未知错误'}`);
+    } finally {
+      setExtracting(false);
+    }
+  }
   const returnQuery = returnPracticeSetId ? `?returnPracticeSetId=${encodeURIComponent(returnPracticeSetId)}` : '';
 
   useEntrance(pageRef, { preset: 'page' });
@@ -133,7 +152,20 @@ export function QuestionBankWorkspace({ returnPracticeSetId, requestedTab }: {
           className="qb-panel-body"
         >
           {tab === 'imports' ? (
-            <ImportBatchList refreshToken={refreshToken} />
+            <>
+              <div className="qb-extract-row">
+                <button
+                  type="button"
+                  className="space-button"
+                  disabled={extracting}
+                  onClick={() => void extractFromTextbook()}
+                >
+                  {extracting ? '提取中…' : '从教材课后习题提取'}
+                </button>
+                {extractNotice && <span className="b4-meta" role="status">{extractNotice}</span>}
+              </div>
+              <ImportBatchList refreshToken={refreshToken} />
+            </>
           ) : (
             <QuestionLibrary
               initialGenerationOpen={generationRequested}

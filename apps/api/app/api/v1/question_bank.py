@@ -14,7 +14,8 @@ import json
 
 import anyio
 from fastapi import APIRouter, Query, Request, Response, status
-from pydantic import ValidationError
+from pydantic import Field, ValidationError
+from app.contracts.b4 import Frozen
 
 from app.core.exceptions import AppError
 from app.repositories.question_bank.catalog import QuestionBankCatalog
@@ -173,6 +174,78 @@ async def get_question_import(request: Request, import_id: str) -> QuestionImpor
     return await _run(service.get_import_detail, import_id)
 
 
+class TextbookExerciseImportRequest(Frozen):
+    """教材课后习题 → 题目导入草稿（C4-2）：exercise chunks 拼成 markdown 走既有导入校对链。"""
+
+    subject_id: str = Field(default="math", alias="subjectId", max_length=64)
+    grade_id: str = Field(default="", alias="gradeId", max_length=64)
+    document_ids: list[str] = Field(default_factory=list, alias="documentIds", max_length=50)
+    chapter_prefix: str = Field(default="", alias="chapterPrefix", max_length=200)
+
+
+@router.post("/question-imports/from-textbook", status_code=status.HTTP_201_CREATED)
+async def import_from_textbook_exercises(request: Request, body: TextbookExerciseImportRequest) -> QuestionImportDetail:
+    """把已入库教材的课后习题区域（region=exercise）提取为题目导入草稿（只产草稿，教师校对确认）。"""
+    service = _service(request)
+    catalog = getattr(request.app.state, "catalog", None)
+    if catalog is None:
+        raise AppError("教材目录未装配，无法读取教材习题。", code="SERVICE_UNAVAILABLE", status_code=503, retryable=True)
+
+    def _work() -> QuestionImportDetail:
+        documents = catalog.list_documents(subject_id=body.subject_id, grade_id=body.grade_id or None)
+        if body.document_ids:
+            wanted = set(body.document_ids)
+            documents = [d for d in documents if d.document_id in wanted]
+        sections: list[str] = []
+        for document in documents:
+            if document.current_revision_id is None:
+                continue
+            evidence = getattr(request.app.state, "textbook_evidence", None)
+            revision = catalog.get_revision(document.current_revision_id)
+            if revision is None or evidence is None or not hasattr(evidence, "_source"):
+                continue
+            normalized = evidence._source.read_normalized_text(revision)  # noqa: SLF001 - 提取端点读取封存正文
+            for chunk_set in _textbook_chunk_sets(catalog, document.current_revision_id):
+                for chunk in catalog.list_chunks(chunk_set.chunk_set_id):
+                    if chunk.region != "exercise" or not chunk.text_sha256:
+                        continue
+                    path = tuple(str(part) for part in chunk.chapter_path)
+                    if body.chapter_prefix and (not path or not path[0].startswith(body.chapter_prefix)):
+                        continue
+                    text = normalized[chunk.char_start:chunk.char_end]
+                    if text and text.strip():
+                        heading = " / ".join(path) if path else document.title
+                        sections.append(f"## {document.title}｜{heading}\n\n{text.strip()}")
+        if not sections:
+            raise AppError(
+                "所选教材没有可提取的课后习题区域；请确认教材已入库并完成索引。",
+                code="TEXTBOOK_EXERCISES_EMPTY",
+                status_code=422,
+            )
+        document_text = "\n\n".join(sections)
+        if len(document_text.encode("utf-8")) > MAX_UPLOAD_BYTES:
+            raise AppError("所选教材习题总量超过单次导入上限，请缩小教材或章节范围。", code="DOCUMENT_TOO_LARGE", status_code=413)
+        return service.create_import(
+            file_name=f"教材课后习题-{body.subject_id}.md",
+            data=document_text.encode("utf-8"),
+            subject_id=body.subject_id,
+            grade_id=body.grade_id,
+        )
+
+    return await _run(_work)
+
+
+def _textbook_chunk_sets(catalog, document_revision_id: str):
+    with catalog._read() as conn:  # noqa: SLF001 - 只读 chunk_sets（提取端点专用）
+        rows = conn.execute(
+            "SELECT id FROM chunk_sets WHERE document_revision_id = ?", (document_revision_id,)
+        ).fetchall()
+    for row in rows:
+        record = catalog.get_chunk_set(row["id"])
+        if record is not None:
+            yield record
+
+
 @router.post("/question-imports/{import_id}/discard")
 async def discard_question_import(
     request: Request, import_id: str, body: QuestionImportDiscardRequest
@@ -289,6 +362,7 @@ async def list_questions(
     status: str | None = None,
     q: str | None = None,
     knowledgePointId: str | None = None,
+    difficulty: str | None = Query(default=None, pattern="^(easy|medium|hard|unspecified)$"),
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=20, ge=1, le=200),
 ) -> QuestionList:
@@ -301,6 +375,7 @@ async def list_questions(
         status=status,
         query=q,
         knowledge_point_id=knowledgePointId,
+        difficulty=difficulty,
         offset=offset,
         limit=limit,
     )

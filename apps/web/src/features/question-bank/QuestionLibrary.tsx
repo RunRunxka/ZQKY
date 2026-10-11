@@ -33,6 +33,7 @@ interface Filters {
   editionId: string;
   status: '' | QuestionStatus;
   knowledgePointId: string;
+  difficulty: '' | 'easy' | 'medium' | 'hard';
   q: string;
 }
 
@@ -42,6 +43,7 @@ const EMPTY_FILTERS: Filters = {
   editionId: '',
   status: '',
   knowledgePointId: '',
+  difficulty: '',
   q: '',
 };
 
@@ -52,6 +54,7 @@ function queryOf(filters: Filters, offset: number): QuestionQuery {
     editionId: filters.editionId || undefined,
     status: filters.status || undefined,
     knowledgePointId: filters.knowledgePointId || undefined,
+    difficulty: filters.difficulty || undefined,
     q: filters.q || undefined,
     offset,
     limit: PAGE_SIZE,
@@ -153,6 +156,25 @@ export function QuestionLibrary({
             setDraftFilters((prev) => ({ ...prev, knowledgePointId: value }))
           }
         />
+        <label className="qb-field" htmlFor="qb-filter-difficulty">
+          难度
+          <select
+            id="qb-filter-difficulty"
+            className="space-select"
+            value={draftFilters.difficulty}
+            onChange={(event) =>
+              setDraftFilters((prev) => ({
+                ...prev,
+                difficulty: event.target.value as Filters['difficulty'],
+              }))
+            }
+          >
+            <option value="">全部难度</option>
+            <option value="easy">基础</option>
+            <option value="medium">中等</option>
+            <option value="hard">困难</option>
+          </select>
+        </label>
         <label className="qb-field" htmlFor="qb-filter-status">
           状态
           <select

@@ -75,6 +75,8 @@ export interface QuestionQuery {
    * B3/F10-QB 新增；缺省不筛。
    */
   knowledgePointId?: string;
+  /** 难度过滤（C4-2）；缺省不筛。 */
+  difficulty?: 'easy' | 'medium' | 'hard' | 'unspecified';
   offset?: number;
   limit?: number;
 }
@@ -487,6 +489,13 @@ export function listQuestions(
     })}`,
     { signal },
   );
+}
+
+/** 教材课后习题 → 题目导入草稿（C4-2）：exercise 区提取，走既有校对确认链。 */
+export function importQuestionsFromTextbook(
+  body: { subjectId?: string; gradeId?: string; documentIds?: string[]; chapterPrefix?: string },
+): Promise<QuestionImportDetail> {
+  return apiRequest<QuestionImportDetail>('/question-imports/from-textbook', jsonInit('POST', body));
 }
 
 export function getQuestion(id: string, signal?: AbortSignal): Promise<QuestionDetail> {

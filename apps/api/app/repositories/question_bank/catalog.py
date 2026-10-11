@@ -1034,6 +1034,7 @@ class QuestionBankCatalog:
         status: str | None = None,
         query: str | None = None,
         knowledge_point_id: str | None = None,
+        difficulty: str | None = None,
         offset: int = 0,
         limit: int = 20,
     ) -> tuple[list[QuestionRecord], int]:
@@ -1078,6 +1079,8 @@ class QuestionBankCatalog:
             if grade_id is not None and metadata.get("gradeId") != grade_id:
                 continue
             if edition_id is not None and metadata.get("editionId") != edition_id:
+                continue
+            if difficulty is not None and metadata.get("difficulty") != difficulty:
                 continue
             if needle:
                 haystack = " ".join(
