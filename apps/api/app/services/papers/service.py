@@ -703,6 +703,42 @@ class PaperService:
                 self._papers.delete_paper_in(conn, paper_id)
         return {"deleted": True, "paperId": paper_id}
 
+    def knowledge_distribution(self, paper_id: str) -> list[dict]:
+        """试卷知识点占比（C4-3）：按当前修订小题的 primary 知识点聚合题数与满分占比。
+
+        只聚合已关联知识点的小题，未关联计入「未分类」；按分值降序。
+        """
+        view = self.get_paper(paper_id)
+        if view.current_revision_id is None:
+            raise _not_found("该试卷尚无可用修订。", code="PAPER_NO_REVISION")
+        content = self.get_revision_content(paper_id, view.current_revision_id)
+        buckets: dict[str, dict] = {}
+        unclassified = {"knowledgePointId": "", "name": "未分类", "itemCount": 0, "totalScoreUnits": 0}
+        for item in content.items:
+            score = item.max_score_units or 0
+            primary = next((k for k in item.knowledge if k.role == "primary"), None)
+            if primary is None:
+                unclassified["itemCount"] += 1
+                unclassified["totalScoreUnits"] += score
+                continue
+            key = primary.knowledge_point_id
+            bucket = buckets.setdefault(key, {
+                "knowledgePointId": key,
+                "name": primary.knowledge_name_snapshot or key,
+                "itemCount": 0,
+                "totalScoreUnits": 0,
+            })
+            bucket["itemCount"] += 1
+            bucket["totalScoreUnits"] += score
+        result = list(buckets.values())
+        if unclassified["itemCount"]:
+            result.append(unclassified)
+        total_score = sum(b["totalScoreUnits"] for b in result)
+        for bucket in result:
+            bucket["scoreRatio"] = round(bucket["totalScoreUnits"] / total_score, 4) if total_score else None
+        result.sort(key=lambda b: -b["totalScoreUnits"])
+        return result
+
     def get_revision_content(self, paper_id: str, revision_id: str) -> PaperRevisionContentView:
         paper_id = _clean_text(paper_id, field="paperId")
         revision_id = _clean_text(revision_id, field="revisionId")

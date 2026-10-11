@@ -1,0 +1,14 @@
+
+/* ===== 试卷管理独立页（C4-3） ===== */
+.papers-page {
+  display: grid;
+  gap: 16px;
+}
+.paper-donut {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  padding: 14px 16px;
+}
+.paper-donut h4 { margin: 0 0 10px; font-size: 14px; }
+.paper-donut-canvas { position: relative; height: 240px; }

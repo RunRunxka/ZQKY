@@ -691,3 +691,17 @@ export function deleteScoreRevision(revisionId: string): Promise<ScoreRevisionDe
     { method: 'DELETE' },
   );
 }
+
+/** 试卷知识点占比桶（C4-3 环状图数据源）。 */
+export interface KnowledgeDistributionBucket {
+  knowledgePointId: string;
+  name: string;
+  itemCount: number;
+  totalScoreUnits: number;
+  scoreRatio: number | null;
+}
+
+/** 试卷知识点占比（C4-3）：按当前修订 primary 知识点聚合；未关联计入「未分类」。 */
+export function paperKnowledgeDistribution(paperId: string, signal?: AbortSignal): Promise<KnowledgeDistributionBucket[]> {
+  return apiRequest(`/papers/${encodeURIComponent(paperId)}/knowledge-distribution`, { signal });
+}

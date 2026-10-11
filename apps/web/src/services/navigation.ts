@@ -60,6 +60,25 @@ export const navigation: NavigationItem[] = [
     icon: BookOpen,
   },
   {
+    // C4-3：班级管理/试卷管理拆为独立页面（与五步工作区并存；深链兼容）
+    id: 'assessments-roster',
+    label: '班级管理',
+    path: '/assessments/roster',
+    status: 'ready',
+    position: 'main',
+    group: '教学工作台',
+    icon: ClipboardList,
+  },
+  {
+    id: 'assessments-papers',
+    label: '试卷管理',
+    path: '/assessments/papers',
+    status: 'ready',
+    position: 'main',
+    group: '教学工作台',
+    icon: FileQuestion,
+  },
+  {
     // 施测与成绩（TEACHING-LOOP B3 / T60 + F20-I）：五步工作区，成绩导入为真实后端。
     id: 'assessments',
     label: '施测与成绩',

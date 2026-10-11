@@ -29,6 +29,8 @@ describe('导航注册表', () => {
       'lesson-plan',
       'question-bank',
       'knowledge-points',
+      'assessments-roster',
+      'assessments-papers',
       'assessments',
       'learning-analysis',
       'practices',

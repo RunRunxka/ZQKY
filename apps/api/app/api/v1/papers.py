@@ -136,6 +136,12 @@ async def get_paper(request: Request, paper_id: str) -> PaperView:
     return await _run(service.get_paper, paper_id)
 
 
+@router.get("/papers/{paper_id}/knowledge-distribution")
+async def get_paper_knowledge_distribution(request: Request, paper_id: str) -> list[dict]:
+    """试卷知识点占比（C4-3）：按当前修订 primary 知识点聚合（环状图数据源）。"""
+    return await _run(_service(request).knowledge_distribution, paper_id)
+
+
 @router.get("/papers/{paper_id}/revisions/{revision_id}/content")
 async def get_paper_revision_content(
     request: Request, paper_id: str, revision_id: str
