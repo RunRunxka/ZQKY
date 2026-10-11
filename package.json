@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspace=@zqky/web",
-    "dev:api": "cd apps/api && uv run uvicorn app.main:app --host 127.0.0.1 --port 8000",
+    "dev:api": "cd apps/api && uv run python -m uvicorn app.main:app --host 127.0.0.1 --port 8000",
     "setup:api": "cd apps/api && uv sync",
     "test:api": "cd apps/api && uv run python -m pytest",
     "build": "npm run build --workspace=@zqky/web",
