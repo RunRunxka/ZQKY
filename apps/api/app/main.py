@@ -19,6 +19,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.api.v1 import capabilities as capabilities_route
 from app.api.v1 import agent as agent_route
 from app.api.v1 import chat as chat_route
+from app.api.v1 import lesson_stream as lesson_stream_route
 from app.api.v1 import embedding_models as embedding_models_route
 from app.api.v1 import question_bank as question_bank_route
 from app.api.v1 import rag as rag_route
@@ -715,6 +716,7 @@ def create_app(
     app.include_router(model_catalog_route.router, prefix="/api/v1")
     app.include_router(chat_route.router, prefix="/api/v1")
     app.include_router(agent_route.router, prefix="/api/v1")
+    app.include_router(lesson_stream_route.router, prefix="/api/v1")
     app.include_router(rag_route.router, prefix="/api/v1")
     app.include_router(embedding_models_route.router, prefix="/api/v1")
     app.include_router(textbooks_route.router, prefix="/api/v1")

@@ -16,6 +16,7 @@ import { PreviewPane } from './components/PreviewPane';
 import { ModuleNav } from './components/ModuleNav';
 import { ModuleEditor } from './components/ModuleEditor';
 import { TemplatePreview } from './components/TemplatePreview';
+import { LessonStreamDialog } from './components/LessonStreamDialog';
 import { DEFAULT_LESSON_STYLE, type LessonModuleId, type LessonStyleState } from './model/modules';
 import './styles/lesson-v2.css';
 import './styles/lesson-fonts.css';
@@ -60,6 +61,7 @@ function LessonWorkspaceContent() {
   const [viewMode, setViewMode] = useState<'classic' | 'template'>('classic');
   const [selectedModule, setSelectedModule] = useState<LessonModuleId>('basic');
   const [lessonStyle, setLessonStyle] = useState<LessonStyleState>(DEFAULT_LESSON_STYLE);
+  const [streamOpen, setStreamOpen] = useState(false);
   if (viewMode === 'template' && ready) {
     return (
       <WorkspaceShell
@@ -69,6 +71,7 @@ function LessonWorkspaceContent() {
         headerActions={
           <>
             <h1 className="lesson-page-title">教案工作台</h1>
+            <button className="space-button" onClick={() => setStreamOpen(true)}>AI 生成</button>
             <button className="space-button" onClick={() => setViewMode('classic')}>经典视图</button>
             <ExportMenu />
           </>
@@ -105,6 +108,13 @@ function LessonWorkspaceContent() {
             <TemplatePreview data={printSnapshot?.data ?? data} style={lessonStyle} onPrint={() => setModal('pdf')} />
           </div>
         </div>
+        {streamOpen && (
+          <LessonStreamDialog
+            data={data}
+            onClose={() => setStreamOpen(false)}
+            onApply={set}
+          />
+        )}
         <EditorOverlays />
         <LeaveProtection />
       </WorkspaceShell>
