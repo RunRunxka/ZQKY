@@ -15,6 +15,10 @@ from app.providers.llm.registry import (
     find_provider,
 )
 from app.schemas.model_config import ModelConnection, ModelProfile
+from app.services.model_capabilities import (
+    resolve_context_window,
+    resolve_reasoning_support,
+)
 from app.services.model_readiness import callable_state, credential_present
 
 
@@ -120,6 +124,9 @@ def profile_view(
         "reasoningEffort": profile.reasoningEffort.value if profile.reasoningEffort else None,
         # 只读派生：前端据此提示该供应商的推理表达方式
         "reasoningStyle": reasoning_style_for(spec, connection.providerId if connection else None),
+        # 只读派生：思考档位支持与上下文窗口（前端已按此契约实现）
+        "reasoningSupport": resolve_reasoning_support(profile, connection, spec),
+        "contextWindow": resolve_context_window(profile, spec, profile.modelId),
         "capabilities": dict(profile.capabilities),
         "connection": connection_summary(connection, secrets),
         "createdAt": profile.createdAt.isoformat(),

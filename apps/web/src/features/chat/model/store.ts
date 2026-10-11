@@ -4,7 +4,7 @@
  * - 权威源为内存 docs（会话全量），UI 投影写入 zustand store（messages/conversations）；
  * - 持久化经 ChatRepository（IndexedDB）：修订号防跨标签覆盖；
  * - 事件必须匹配当前轮次与会话：迟到、串会话与重复事件一律丢弃；
- * - 无课程归属、无教材 RAG 通道（骨架只保留对话与 Agent）。
+ * - 无课程归属：对话页只保留对话与 Agent（无业务模块入口）。
  */
 import { createStore } from 'zustand/vanilla';
 import {

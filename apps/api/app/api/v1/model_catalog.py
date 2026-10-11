@@ -13,6 +13,23 @@ from app.providers.llm.registry import PROVIDERS, effective_backend, find_provid
 
 router = APIRouter(tags=["model-settings"])
 
+#: 发现条目透传的 supportedParameters 上限，防止异常上游把响应撑爆
+_MAX_PASSTHROUGH_PARAMS = 64
+
+
+def _passthrough_metadata(row: dict) -> dict:
+    """从上游发现条目提取 contextLength / supportedParameters（有值才附带）。"""
+    meta: dict = {}
+    raw_tokens = row.get("context_length") or row.get("context_window") or row.get("contextWindow")
+    if isinstance(raw_tokens, int) and not isinstance(raw_tokens, bool) and raw_tokens > 0:
+        meta["contextLength"] = raw_tokens
+    raw_params = row.get("supported_parameters")
+    if isinstance(raw_params, list):
+        params = [str(item) for item in raw_params if isinstance(item, str)][: _MAX_PASSTHROUGH_PARAMS]
+        if params:
+            meta["supportedParameters"] = params
+    return meta
+
 # 无发现 API 的供应商：返回有来源的目录或要求手工输入，不伪造成功（D12）
 MANUAL_DISCOVERY_PROVIDERS = frozenset({"openai_codex"})
 CATALOG_DISCOVERY: dict[str, tuple[list[str], str]] = {
@@ -116,6 +133,7 @@ async def discover_models(request: Request, connection_id: str) -> dict:
     is_anthropic = backend == "anthropic"
 
     models: set[str] = set()
+    row_metadata: dict[str, dict] = {}
     try:
         async with httpx.AsyncClient(timeout=20, follow_redirects=False) as client:
             params: dict[str, str] = {}
@@ -140,8 +158,15 @@ async def discover_models(request: Request, connection_id: str) -> dict:
                         models.add(row)
                     elif isinstance(row, dict) and isinstance(row.get("id"), str) and 0 < len(row["id"]) <= 128:
                         models.add(row["id"])
+                        meta = _passthrough_metadata(row)
+                        if meta:
+                            row_metadata[row["id"]] = meta
                 if not is_anthropic or not data.get("has_more"):
-                    return {"models": [{"id": value} for value in sorted(models)], "source": "upstream"}
+                    entries = [
+                        {"id": value, **row_metadata[value]} if value in row_metadata else {"id": value}
+                        for value in sorted(models)
+                    ]
+                    return {"models": entries, "source": "upstream"}
                 cursor = data.get("last_id")
                 if not cursor or cursor == params.get("after_id"):
                     break

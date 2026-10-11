@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef } from 'react';
+import type { ContextWindowView } from '@/contracts/model-settings';
 
 /** 上下文容量环形进度：随已占用上下文顺时针逐渐填充；超 80% 转橙、超 95% 转红。 */
 function ContextRing({ ratio }: { ratio: number | null }) {
@@ -36,9 +37,12 @@ function ContextRing({ ratio }: { ratio: number | null }) {
 /** 参考工具栏中的上下文胶囊；角色选择走可直达的空间菜单，这里只保留上下文估算。 */
 export function ComposerContextChips({
   contextTokens,
+  contextSource,
   contentChars,
 }: {
   contextTokens?: number | null;
+  /** 上限来源（profile=档案手填；model-table=按模型族推断；unknown/缺失=不标注来源） */
+  contextSource?: ContextWindowView['source'] | null;
   contentChars: number;
 }) {
   const root = useRef<HTMLDivElement>(null);
@@ -56,6 +60,12 @@ export function ComposerContextChips({
   const tokens = Math.ceil(contentChars / 2);
   const ratio = contextTokens ? tokens / contextTokens : null;
   const percent = ratio === null ? null : Math.ceil(ratio * 100);
+  // 上限来源：档案手填给精确值；按模型族推断的上限标注约值与可覆盖位置；未知不猜造数值。
+  const limitNote = !contextTokens
+    ? '，模型上下文上限未知'
+    : contextSource === 'model-table'
+      ? `，模型上下文上限约 ${contextTokens.toLocaleString()}（按模型族推断，可在设置→模型档案中手填覆盖）`
+      : `，模型上下文上限 ${contextTokens.toLocaleString()}`;
   return (
     <div
       className="chat-context-chips"
@@ -80,10 +90,7 @@ export function ComposerContextChips({
           <strong>上下文估算</strong>
           <p>
             当前消息与输入约 {tokens.toLocaleString()} tokens
-            {contextTokens
-              ? `，模型上下文上限 ${contextTokens.toLocaleString()}`
-              : '，模型上下文上限未知'}
-            。
+            {limitNote}。
           </p>
           <p>
             按约 2 字符 / token

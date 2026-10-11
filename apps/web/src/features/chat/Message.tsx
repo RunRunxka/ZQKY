@@ -12,7 +12,7 @@ import { ToolProcessPanel } from './ToolProcessPanel';
 
 /**
  * 单条消息（骨架版）：用户气泡 / 助手卡（推理、阶段、工具过程、产物入口、追问卡）。
- * 无 RAG 证据面板与课程来源（骨架只保留对话与 Agent）。
+ * 无课程归属与业务模块入口（骨架只保留对话与 Agent）。
  */
 export function Message({
   message,

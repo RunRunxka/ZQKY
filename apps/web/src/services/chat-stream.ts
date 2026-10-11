@@ -1,6 +1,6 @@
 /**
  * /api/v1/chat/stream 的流式客户端：POST fetch + ReadableStream 消费 SSE。
- * 未实现能力（RAG、附件、工具）不提供入口；本模块不存储任何凭证。
+ * 未实现能力（附件、工具）不提供入口；本模块不存储任何凭证。
  */
 
 import { API_BASE_PATH, ApiError } from './api-client';

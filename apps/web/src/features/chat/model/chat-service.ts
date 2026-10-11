@@ -5,7 +5,8 @@
  * callId/名称/状态，必要字段不可缺失。事件分类对齐参考仓库 v1.6.5 的 turn 协议
  * （thinking→reasoning、content→text、done→end 等），并按 replica 约束携带
  * sessionId + turnId：消费方据此丢弃迟到、串会话与重复事件。
- * 普通聊天保持原 SSE 协议；教材能力路由到专用本地服务，支持同轮追问与恢复。
+ * 统一为一条对话通道：业务能力（教材检索/学情/教案/练习等）由 Agent 工具完成，
+ * 不再有按能力分流的专用服务。
  */
 import type {
   AskUserAnswer,
@@ -45,8 +46,8 @@ export type ChatServiceEvent =
   | (ChatServiceEventBase & { type: 'checkpoint' })
   | (ChatServiceEventBase & { type: 'reply-accepted'; interactionId: string; submissionId: string; answers: AskUserAnswer[] })
   | (ChatServiceEventBase & { type: 'turn-start' })
-  /** 教材 v2 结构化结果：与正文、游标在同一次会话持久化中提交 */
-  /** text：普通聊天为增量；教材 v2 带 replace=true（整段渲染好的正文，替换本轮正文） */
+  /** 结构化结果：与正文、游标在同一次会话持久化中提交 */
+  /** text：默认增量；replace=true 表示整段正文替换（例如结构化产物回填） */
   | (ChatServiceEventBase & { type: 'text'; delta: string; replace?: boolean })
   | (ChatServiceEventBase & { type: 'reasoning'; delta: string })
   | (ChatServiceEventBase & { type: 'process'; delta: string })
@@ -88,7 +89,7 @@ export interface ChatServiceRequest {
   modelProfileId?: string;
   maxOutputTokens?: number;
   /**
-   * 本轮扩展快照；教材能力据此选择专用服务。普通聊天不向后端发送扩展。
+   * 本轮扩展快照（历史兼容字段；业务能力现统一由 Agent 工具处理，不再据此分流）。
    */
   extensions?: TurnExtensionSnapshot;
   signal: AbortSignal;
@@ -116,7 +117,7 @@ export interface ChatService {
   run(request: ChatServiceRequest, emit: (event: ChatServiceEvent) => void): Promise<void>;
   /**
    * 回答当前追问（同一轮暂停与续答）。
-   * 教材服务支持同轮回答；普通聊天显式不支持，不静默转模拟。
+   * 不支持的实现必须显式报错，不静默转模拟。
    */
   submitReply?(request: ChatServiceReplyRequest): Promise<ChatReplyAck>;
   cancel?(request: { sessionId: string; turnId: string }): Promise<unknown>;

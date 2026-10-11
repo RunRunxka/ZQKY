@@ -108,7 +108,7 @@ export interface AskUserInteraction {
   error?: { code: string; message: string };
   /** 本卡确认后、下一张卡或轮结束前的续写正文 */
   followUp?: string;
-  /** RAG 提交意图随卡保存；断线重试沿用同一标识与载荷。 */
+  /** 追问意图随卡保存；断线重试沿用同一标识与载荷。 */
   pendingSubmission?: { submissionId: string; answers: AskUserAnswer[] };
 }
 
@@ -179,7 +179,7 @@ export interface ChatMessage {
   stages?: TraceStageRecord[];
   /** 过程增量（process 事件）最新一条，流式时显示 */
   processNote?: string;
-  /** 本轮使用的能力与扩展快照（发送时冻结；教材身份另存于 rag） */
+  /** 本轮使用的能力与扩展快照（发送时冻结） */
   extensions?: TurnExtensionSnapshot;
   /** 工具/技能执行过程（按 callId 去重；随会话持久化，刷新只恢复不重放） */
   toolCalls?: ToolCallRecord[];

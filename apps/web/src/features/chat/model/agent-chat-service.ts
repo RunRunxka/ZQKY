@@ -2,8 +2,8 @@
  * Agent 通道服务：把 /api/v1/agent/* 的 SSE 包装成统一 ChatService。
  *
  * Agent 化改造（C1 学习问答/Agent 融合）：对话页默认走 Agent——普通问答由 Agent 直答，
- * 业务意图（学情/教案/练习/导入）由 Agent 调工具，写操作经确认闸门；教材追问澄清仍走
- * rag 专用通道（流式，机制不变）。本服务与 rag 子服务并列，由 createRealChatService 分流。
+ * 业务意图由 Agent 调工具，写操作经确认闸门；无独立 RAG 通道。
+ * 本服务即对话页默认通道（由 createRealChatService 装配）。
  *
  * 事件映射（agent-stream → ChatServiceEvent）：
  * - message.start → turn-start；text.delta → text；message.end → end；error → error；

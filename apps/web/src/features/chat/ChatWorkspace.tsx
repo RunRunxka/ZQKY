@@ -6,7 +6,12 @@ import { useEntrance } from '@/components/motion/useEntrance';
 import { ChatProvider, useChatStore } from './model/ChatContext';
 import { useModelCatalog } from '@/features/model-settings/useModelCatalog';
 import { ModelSelector } from '@/features/model-settings/ModelSelector';
-import { REASONING_EFFORT_LABELS, REASONING_EFFORT_VALUES } from '@/contracts/model-settings';
+import {
+  REASONING_EFFORT_LABELS,
+  REASONING_EFFORT_VALUES,
+  type ModelProfileView,
+  type ReasoningEffort,
+} from '@/contracts/model-settings';
 import { uploadAgent } from '@/services/agent-stream';
 import { Message } from './Message';
 import { SessionPanel } from './SessionPanel';
@@ -28,6 +33,38 @@ export function ChatWorkspace() {
       <ChatPage />
     </ChatProvider>
   );
+}
+
+interface ReasoningChoices {
+  /** 是否展示思考强度下拉：由后端受支持档位决定（缺失时回退旧行为） */
+  visible: boolean;
+  defaultLabel: string;
+  levels: { value: ReasoningEffort; label: string }[];
+}
+
+/**
+ * 思考强度可选项：有 `reasoningSupport` 时只列当前模型受支持的档位（用后端 label）；
+ * 字段缺失（旧后端/旧缓存目录）时回退 `reasoningEnabled` + 全量档位表。提交值始终是 effort 字符串。
+ */
+function reasoningChoices(profile: ModelProfileView | null): ReasoningChoices {
+  if (!profile) return { visible: false, defaultLabel: '默认', levels: [] };
+  const support = profile.reasoningSupport;
+  if (support) {
+    const levels = support.levels.filter((level) => level.value !== 'none');
+    const fallback = support.default && support.default !== 'none' ? support.default : null;
+    const defaultLabel = fallback
+      ? `默认（${levels.find((level) => level.value === fallback)?.label ?? REASONING_EFFORT_LABELS[fallback]}）`
+      : '默认';
+    return { visible: support.supported && levels.length > 0, defaultLabel, levels };
+  }
+  return {
+    visible: !!profile.reasoningEnabled,
+    defaultLabel: `默认${profile.reasoningEffort ? `（${REASONING_EFFORT_LABELS[profile.reasoningEffort]}）` : ''}`,
+    levels: REASONING_EFFORT_VALUES.filter((value) => value !== 'none').map((value) => ({
+      value,
+      label: REASONING_EFFORT_LABELS[value],
+    })),
+  };
 }
 
 function ChatPage() {
@@ -77,6 +114,7 @@ function ChatPage() {
   }, [store.messages, store.ready, following]);
 
   const hasMessages = store.messages.length > 0;
+  const effort = useMemo(() => reasoningChoices(profile), [profile]);
   const activeTitle =
     store.conversations.find((c) => c.id === store.activeId)?.title?.trim() || '新的对话';
 
@@ -353,7 +391,7 @@ function ChatPage() {
                   if (items && items.length > 0) handleFiles(items);
                 }}
               />
-              <div className="chat-composer-actions">
+              <div className="chat-composer-tools">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -373,11 +411,12 @@ function ChatPage() {
                 </button>
                 <span className="chat-flex-spacer" />
                 <ComposerContextChips
-                  contextTokens={profile?.contextTokens}
+                  contextTokens={profile?.contextWindow?.tokens ?? profile?.contextTokens}
+                  contextSource={profile?.contextWindow?.source}
                   contentChars={store.messages.reduce((total, m) => total + m.content.length, 0) + store.draft.length}
                 />
-                {profile?.reasoningEnabled && (
-                  <label className="chat-effort-picker" title="思考强度（本轮覆盖，随模型支持）">
+                {effort.visible && (
+                  <label className="chat-effort-picker" title="思考强度（本轮覆盖，仅列当前模型受支持的档位）">
                     <Brain size={14} strokeWidth={1.8} aria-hidden="true" />
                     <select
                       aria-label="思考强度"
@@ -385,12 +424,10 @@ function ChatPage() {
                       disabled={store.sending}
                       onChange={(event) => setReasoningEffort(event.target.value || null)}
                     >
-                      <option value="">
-                        默认{profile.reasoningEffort ? `（${REASONING_EFFORT_LABELS[profile.reasoningEffort]}）` : ''}
-                      </option>
-                      {REASONING_EFFORT_VALUES.filter((v) => v !== 'none').map((v) => (
-                        <option key={v} value={v}>
-                          {REASONING_EFFORT_LABELS[v]}
+                      <option value="">{effort.defaultLabel}</option>
+                      {effort.levels.map((level) => (
+                        <option key={level.value} value={level.value}>
+                          {level.label}
                         </option>
                       ))}
                     </select>

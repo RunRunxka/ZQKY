@@ -50,6 +50,38 @@ export const REASONING_STYLE_LABELS: Record<ReasoningStyle, string> = {
   reasoning_split: 'reasoning_split',
 };
 
+/** 派生的思考风格全集：既有三态 + OpenAI effort / Anthropic budget 两类预算风格。 */
+export type ReasoningSupportStyle = ReasoningStyle | 'openai_effort' | 'anthropic_budget';
+
+/** 单个受支持思考档位：value 为提交值，label 为后端给出的展示名（不含 none）。 */
+export interface ReasoningLevel {
+  value: ReasoningEffort;
+  label: string;
+}
+
+/**
+ * 只读派生（GET /model-catalog）：当前模型**受支持**的思考档位。
+ * 只用于展示可选范围；提交值仍是 effort 字符串（`config.reasoningEffort`）。
+ * 字段缺失时前端回退旧行为（`reasoningEnabled` + 硬编码档位表）。
+ */
+export interface ReasoningSupportView {
+  supported: boolean;
+  /** 受支持档位（不含 none）；supported 为 false 时通常为空数组 */
+  levels: ReasoningLevel[];
+  /** 未显式指定时实际使用的档位 */
+  default: ReasoningEffort | null;
+  style: ReasoningSupportStyle | null;
+  source: 'profile' | 'registry' | 'model-table';
+  note: string | null;
+}
+
+/** 只读派生（GET /model-catalog）：解析后的上下文窗口；tokens 为 null 表示未知。 */
+export interface ContextWindowView {
+  tokens: number | null;
+  source: 'profile' | 'model-table' | 'unknown';
+  note: string | null;
+}
+
 export type CapabilityEvidence = 'verified' | 'claimed' | 'unknown';
 
 export const CAPABILITY_EVIDENCE_LABELS: Record<CapabilityEvidence, string> = {
@@ -128,7 +160,7 @@ export interface ModelConnectionSummary {
   displayName: string;
   providerId: string | null;
   providerLabel: string | null;
-  /** 本机部署（Ollama/vLLM/LM Studio 等）：教案生成与 RAG 概括不使用这类连接 */
+  /** 本机部署（Ollama/vLLM/LM Studio 等）：教案生成等重任务默认不使用这类连接 */
   isLocal?: boolean;
   protocol: ModelProtocol;
   apiFormat: ApiFormat;
@@ -151,6 +183,10 @@ export interface ModelProfileView {
   reasoningEffort: ReasoningEffort | null;
   /** 只读派生；不接受写入 */
   reasoningStyle: ReasoningStyle | null;
+  /** 只读派生：受支持的思考档位；缺失时前端回退 reasoningEnabled/reasoningEffort（兼容旧后端） */
+  reasoningSupport?: ReasoningSupportView;
+  /** 只读派生：解析后的上下文窗口；缺失时前端回退 contextTokens */
+  contextWindow?: ContextWindowView;
   capabilities: Record<string, CapabilityEvidence>;
   connection: ModelConnectionSummary | null;
   createdAt: string;

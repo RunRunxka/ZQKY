@@ -33,7 +33,7 @@ function CodeBlock({ children }: { children?: ReactNode }) {
 /**
  * 正文 Markdown 渲染。
  *
- * - `omitImages`（RAG 专用「省略图片」策略，PLAN §4.2）：`img` 不渲染、**不发起任何图片请求**；
+ * - `omitImages`（省略图片策略）：`img` 不渲染、**不发起任何图片请求**；
  *   普通聊天保持默认 `false`，仍显示既有的文字占位（行为不变）；
  * - `inline`：知识点标题/说明内的公式同行渲染，不产生块级段落（`[n]` 引用编号可紧跟其后）。
  */
