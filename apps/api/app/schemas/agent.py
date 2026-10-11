@@ -38,6 +38,9 @@ class AgentStreamRequest(BaseModel):
     message: str = Field(min_length=1, max_length=32000)
     modelProfileId: str = Field(min_length=1, max_length=128)
     attachments: list[AgentAttachment] = Field(default_factory=list, max_length=8)
+    #: 本轮思考强度（D6）：覆盖 profile 默认值；none/minimal/low/medium/high/xhigh/max。
+    #: 省略用 profile 声明的 reasoningEffort。模型不支持推理由构造层忽略，不报错。
+    reasoningEffort: str | None = Field(default=None, max_length=16)
 
 
 class AgentConfirmRequest(BaseModel):

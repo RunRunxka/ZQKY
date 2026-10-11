@@ -89,6 +89,9 @@ export function createAgentChatService(): ChatService {
           mediaType: a.mimeType ?? '',
           kind: (a.importKind ?? 'auto') as 'auto',
         }));
+      // 思考强度（D6）：发送时随 capability.config.reasoningEffort 冻结传入。
+      const effortRaw = request.extensions?.capability?.config?.reasoningEffort;
+      const reasoningEffort = typeof effortRaw === 'string' && effortRaw ? effortRaw : undefined;
       await streamAgent(
         {
           requestId: turnId.replaceAll('-', ''),
@@ -96,6 +99,7 @@ export function createAgentChatService(): ChatService {
           message,
           modelProfileId: request.modelProfileId ?? '',
           ...(attachments.length > 0 ? { attachments } : {}),
+          ...(reasoningEffort ? { reasoningEffort } : {}),
           signal: request.signal,
         },
         {

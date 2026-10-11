@@ -2624,3 +2624,23 @@
 }
 
 
+
+/* ===== 思考强度切换（D6 · C1） ===== */
+.chat-effort-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+}
+.chat-effort-picker select {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  border-radius: 8px;
+  font-size: 12px;
+  padding: 4px 6px;
+  cursor: pointer;
+  max-width: 92px;
+}
+.chat-effort-picker select:focus { outline: none; border-color: var(--blue); }
+.chat-effort-picker select:disabled { opacity: 0.5; cursor: not-allowed; }

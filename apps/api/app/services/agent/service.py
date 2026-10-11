@@ -22,7 +22,11 @@ from app.services.agent import runtime
 from app.services.agent.graph import AgentDeps, build_agent
 from app.services.agent.model import resolve_agent_chat_model
 from app.services.agent.tools import build_read_tools
-from app.services.agent.tools_write import build_confirm_tools, build_import_tools
+from app.services.agent.tools_write import (
+    build_confirm_tools,
+    build_import_tools,
+    build_interaction_tools,
+)
 
 
 class AgentService:
@@ -51,10 +55,12 @@ class AgentService:
             self._conn = None
             self._saver = None
 
-    def prepare(self, model_profile_id: str):
+    def prepare(self, model_profile_id: str, *, reasoning_effort: str | None = None):
         """流开始前解析模型 + 编译图；任何配置/凭证/可调用性错误在此抛 AppError。
 
         路由据此把"流开始前失败"转成 HTTP 错误（不进 SSE 流），与 /chat、/rag 一致。
+        ``reasoning_effort`` 为本轮思考强度覆盖（D6）：合法档位经 ``bind`` 覆盖 profile
+        默认值；不支持的档位由官方包忽略/报错归上游错误，不在这里臆造校验。
         """
         if self._saver is None:
             raise AppError(
@@ -64,13 +70,20 @@ class AgentService:
                 retryable=True,
             )
         handle = resolve_agent_chat_model(self._repo, self._secrets, model_profile_id)
+        chat_model = handle.chat_model
+        if reasoning_effort and reasoning_effort != "none":
+            try:
+                chat_model = chat_model.bind(reasoning_effort=reasoning_effort)
+            except Exception:  # pragma: no cover - 个别模型不接受该参数：沿用默认构造
+                chat_model = handle.chat_model
         tools = (
             build_read_tools(self._app_state)
             + build_import_tools(self._app_state)
             + build_confirm_tools(self._app_state)
+            + build_interaction_tools(self._app_state)
         )
         deps = AgentDeps(
-            chat_model=handle.chat_model,
+            chat_model=chat_model,
             tools=tools,
             checkpointer=self._saver,
         )

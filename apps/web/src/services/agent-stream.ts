@@ -31,6 +31,8 @@ export interface AgentStreamInput {
   message: string;
   modelProfileId: string;
   attachments?: AgentAttachment[];
+  /** 本轮思考强度覆盖（D6）：none/minimal/low/medium/high/xhigh/max；省略用 profile 默认 */
+  reasoningEffort?: string;
   signal?: AbortSignal;
 }
 
@@ -187,6 +189,7 @@ export async function streamAgent(input: AgentStreamInput, handlers: AgentStream
       message: input.message,
       modelProfileId: input.modelProfileId,
       ...(input.attachments && input.attachments.length > 0 ? { attachments: input.attachments } : {}),
+      ...(input.reasoningEffort ? { reasoningEffort: input.reasoningEffort } : {}),
     },
     input.signal,
   );

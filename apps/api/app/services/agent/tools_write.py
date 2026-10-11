@@ -151,4 +151,73 @@ def build_confirm_tools(app_state: Any) -> list[BaseTool]:
     return tools
 
 
-__all__ = ["build_confirm_tools", "build_import_tools"]
+def build_interaction_tools(app_state: Any) -> list[BaseTool]:
+    """交互类工具（C1-4 关键词触发弹窗选择）：缺关键上下文时向教师发选择卡。
+
+    Agent 判断要做学情/教案/练习但缺少班级/试卷/知识点时调用 ``confirm_context``；
+    工具内部从业务服务组装候选，``interrupt(kind='select')`` 在对话框弹选择卡，
+    教师选定后 resume 返回对应的业务 ID 供后续工具使用。
+    """
+    tools: list[BaseTool] = []
+
+    roster = getattr(app_state, "roster_service", None)
+    assessments = getattr(app_state, "assessment_service", None)
+    analysis = getattr(app_state, "analysis_service", None)
+
+    @tool
+    def confirm_context(need: str) -> str:
+        """需要教师补充选择时调用（弹窗选择卡）。need 取值：class=选班级；assessment=选学情报告来源（施测）；analysis_run=选已有学情分析运行。
+        返回教师选定的 ID（如 classId/assessmentId/runId）；教师放弃时返回"未选择"。"""
+        options: list[dict[str, str]] = []
+        title = need
+        if need == "class" and roster is not None:
+            title = "选择班级"
+            page = roster.list_classes(limit=50)
+            options = [
+                {"label": item.name or item.id, "description": f"{item.student_count} 名学生，id={item.id}"}
+                for item in page.items
+            ]
+        elif need == "assessment" and assessments is not None:
+            title = "选择施测（出学情的来源）"
+            page = assessments.list_assessments(limit=50)
+            options = [
+                {"label": item.title or item.assessment_id, "description": f"id={item.assessment_id}，{item.paper_title}"}
+                for item in page.items
+            ]
+        elif need == "analysis_run" and analysis is not None:
+            title = "选择学情分析运行"
+            page = analysis.list_runs(limit=50)
+            options = [
+                {"label": f"运行 {item.run_id[:8]}", "description": f"runId={item.run_id}，施测={item.assessment_id}，报告就绪={item.report_ready}"}
+                for item in page.items
+            ]
+        else:
+            return f"无法为 need={need} 组装候选（服务未装配或不支持）。"
+
+        if not options:
+            return f"当前没有任何可选的 {title} 候选；请教师先建立对应数据。"
+
+        decision = interrupt({
+            "kind": "select",
+            "prompt": title,
+            "options": options,
+        })
+        if not isinstance(decision, dict) or decision.get("decision") != "approve":
+            return "教师未选择。"
+        picked = decision.get("value") or ""
+        # 从选项 label 反查业务 ID（description 末尾 id=xxx）
+        for opt in options:
+            if opt["label"] == picked:
+                desc = opt.get("description", "")
+                marker = "id="
+                idx = desc.rfind(marker)
+                if idx >= 0:
+                    return f"教师已选定：{desc[idx + len(marker):].strip()}"
+        return f"教师已选定：{picked}（未匹配到 ID，请用该名称继续）。"
+
+    tools.append(confirm_context)
+
+    return tools
+
+
+__all__ = ["build_confirm_tools", "build_import_tools", "build_interaction_tools"]

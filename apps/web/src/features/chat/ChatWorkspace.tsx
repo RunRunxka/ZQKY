@@ -5,6 +5,7 @@ import {
   ArrowDown,
   ArrowUp,
   BookOpen,
+  Brain,
   Download,
   Paperclip,
   Mic,
@@ -30,6 +31,7 @@ import { CapabilityMenu } from './CapabilityMenu';
 
 import { useModelCatalog } from '@/features/model-settings/useModelCatalog';
 import { ModelSelector } from '@/features/model-settings/ModelSelector';
+import { REASONING_EFFORT_LABELS, REASONING_EFFORT_VALUES } from '@/contracts/model-settings';
 import {
   CHAT_CAPABILITIES,
   capabilityAvailableInReal,
@@ -209,6 +211,8 @@ function ChatPage({
   // 追问澄清（ask_questions）即教材 RAG 通道（C1 融合：独立「RAG 模式」选项已移除，
   // rag 仅作旧快照兼容）；其余（普通对话）走 Agent 通道。
   const ragMode = capabilityValue === 'rag' || capabilityValue === 'ask_questions';
+  // 思考强度（D6）：本轮覆盖值；null = 用模型 profile 默认档。仅 Agent 通道（非 ragMode）。
+  const [reasoningEffort, setReasoningEffort] = useState<string | null>(null);
   const [ragStatus, setRagStatus] = useState<{ status: RagServiceStatus | null; error: string | null }>(
     { status: null, error: null },
   );
@@ -819,6 +823,12 @@ function ChatPage({
     void store.send(messageText, selection!, {
       mcps: [],
       skills: [],
+      capability: {
+        value: '',
+        label: '对话',
+        // 思考强度（D6）：随本轮冻结传入 AgentChatService → /agent/stream
+        ...(reasoningEffort ? { config: { reasoningEffort } } : {}),
+      },
       ...(uploaded.length ? { attachments: uploaded } : {}),
     });
     // 发送成功后清空已上传附件（文件已落 blob，assetRef 随消息冻结）
@@ -1318,13 +1328,35 @@ function ChatPage({
                 />}
                 {
                   ragMode ? <span className="chat-ext-unavailable">本地教材引擎 · 详解用 {profile?.displayName ?? '尚未选择聊天模型'}</span> :
-                  <ModelSelector
-                    catalog={catalog}
-                    value={store.modelProfileId}
-                    onChange={(id) => store.setModel(id)}
-                    disabled={store.sending || loading}
-                    presentation="popover"
-                  />
+                  <>
+                    {profile?.reasoningEnabled && (
+                      <label className="chat-effort-picker" title="思考强度（本轮覆盖，随模型支持）">
+                        <Brain size={14} strokeWidth={1.8} aria-hidden="true" />
+                        <select
+                          aria-label="思考强度"
+                          value={reasoningEffort ?? ''}
+                          disabled={store.sending}
+                          onChange={(e) => setReasoningEffort(e.target.value || null)}
+                        >
+                          <option value="">
+                            默认{profile.reasoningEffort ? `（${REASONING_EFFORT_LABELS[profile.reasoningEffort]}）` : ''}
+                          </option>
+                          {REASONING_EFFORT_VALUES.filter((v) => v !== 'none').map((v) => (
+                            <option key={v} value={v}>
+                              {REASONING_EFFORT_LABELS[v]}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
+                    <ModelSelector
+                      catalog={catalog}
+                      value={store.modelProfileId}
+                      onChange={(id) => store.setModel(id)}
+                      disabled={store.sending || loading}
+                      presentation="popover"
+                    />
+                  </>
                 }
                 {<span className="chat-ext-unavailable">扩展 · 真实模式尚未接入</span>}
                 {/* 语音入口（S2）：无 STT 服务——明确未接入说明与演示转写，不采集音频 */}

@@ -101,7 +101,8 @@ async def agent_stream(request: Request, body: AgentStreamRequest) -> StreamingR
     service = _service(request)
     # 流开始前解析模型 + 编译图：模型缺失/凭证问题/连接不可调用在此抛 AppError，
     # 由统一异常处理器转成 HTTP 错误（不进 SSE 流），与 /chat、/rag 边界一致。
-    agent = service.prepare(body.modelProfileId)
+    # reasoningEffort 为本轮思考强度覆盖（D6）。
+    agent = service.prepare(body.modelProfileId, reasoning_effort=body.reasoningEffort)
 
     message_id = body.requestId
     request_id = body.requestId
