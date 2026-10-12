@@ -15,7 +15,7 @@ export default defineConfig({
   },
   webServer: {
     command: 'node scripts/run-web.mjs start 5174',
-    url: 'http://127.0.0.1:5174/lesson-plans',
+    url: 'http://127.0.0.1:5174/chat',
     reuseExistingServer: false,
     timeout: 60000,
   },

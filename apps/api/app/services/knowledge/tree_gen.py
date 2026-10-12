@@ -3,15 +3,27 @@
 约定：章节作为**容器节点**（与普通知识点同表，靠目录层级与命名表达；不加列），
 教师可在任何节点下继续自定义增删改（走既有 create/update/delete）。
 节点 code = ``TB-`` + sha1(subject|docTitle|父路径)[:12]，同一路径重复生成只建一次。
+
+R9 修正：路径里的**版式/水印噪声段**（电子课本广告行：微信扫码/免费下载/配套资源等）
+不建节点，且对其**透明**——子级直接挂到其父级，真实章节层级不变。
 """
 
 from __future__ import annotations
 
 import hashlib
+import re
 from dataclasses import dataclass, field
 
 #: 单次生成的节点上限（防异常教材把库撑爆）。
 MAX_NODES = 400
+
+#: 版式/水印噪声段（命中即从路径中跳过，见模块 docstring）。
+_NOISE_SEGMENT_PATTERN = re.compile(
+    r"微信扫码|扫码关注|扫码|扫一扫|免费下载|配套资源|二维码|公众号"
+)
+
+#: 标题段必须含实际文字（字母/数字/汉字）：纯符号装饰标题（如「● ●」「※※」）不进树。
+_MEANINGFUL_CHAR = re.compile(r"[0-9A-Za-z\u4e00-\u9fff]")
 
 
 @dataclass(frozen=True)
@@ -57,7 +69,11 @@ def plan_tree(subject_id: str, books: list[TextbookInput]) -> TreePlan:
             cumulative: tuple[str, ...] = ()
             for segment in path:
                 name = segment.strip()
-                if not name:
+                if (
+                    not name
+                    or _NOISE_SEGMENT_PATTERN.search(name)
+                    or not _MEANINGFUL_CHAR.search(name)
+                ):
                     continue
                 cumulative = (*cumulative, name)
                 code = _code_for(subject_id, title, cumulative)

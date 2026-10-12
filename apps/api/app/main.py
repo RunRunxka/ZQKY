@@ -55,6 +55,11 @@ AGENT_STATE_KEYS = ("agent_service", "asset_store")
 #: 注册自己的路由）。模块尚不存在时跳过（未实现路由由 501 兜底）；装配失败按域降级并记录
 #: 原因，不阻断其余服务、不假成功。共享件约定：``publication_coordinator`` 由核心装配；
 #: JobEngine 经 ``app.services.jobs.assembly.register_job_store`` 逐域登记（装配期重建全集）。
+#:
+#: 顺序即依赖顺序（后装配的域可复用先装配的键），但**跨域构造期捕获有环**——
+#: knowledge 需要 teaching 的 file_assets、papers（teaching 第一批）需要 knowledge 目录；
+#: 该环由 knowledge 侧的晚绑定代理打破（`services/knowledge/assembly.py::_LateFileAssets`），
+#: 因此 teaching 仍排在 knowledge 之后。
 _DOMAIN_ASSEMBLIES: tuple[str, ...] = (
     "app.services.knowledge.assembly",
     "app.services.question_bank.assembly",

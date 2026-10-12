@@ -54,6 +54,33 @@ class TestPlanTree:
         plan = plan_tree("math", books)
         assert len(plan.nodes) == MAX_NODES
 
+    def test_watermark_segment_is_transparent(self) -> None:
+        """版式噪声段（广告行）不建节点，且子级直接挂到其父级（R9 修正）。"""
+        books = [TextbookInput(title="数学必修一", document_id="d", chapter_paths=(
+            ("本教材最新教材配套资源 微信扫码 免费下载", "第一章 集合"),
+            ("第一章 集合", "1.1 集合的概念"),
+        ))]
+        plan = plan_tree("math", books)
+        names = {n.name for n in plan.nodes}
+        assert not any("微信扫码" in name for name in names)
+        by_code = {n.code: n for n in plan.nodes}
+        chapter = next(n for n in plan.nodes if n.name == "第一章 集合")
+        # 噪声段透明：章直接挂在文档根下，节挂在章下
+        assert by_code[chapter.parent_code].name == "数学必修一"
+        section = next(n for n in plan.nodes if n.name == "1.1 集合的概念")
+        assert by_code[section.parent_code].name == "第一章 集合"
+        assert len(plan.nodes) == 3  # 根 + 章 + 节
+
+    def test_symbol_only_segment_is_transparent(self) -> None:
+        """纯符号装饰标题（如「● ●」）不建节点，子级直挂父级（R9 修正）。"""
+        books = [TextbookInput(title="数学必修一", document_id="d", chapter_paths=(
+            ("● ●", "第一章 集合"),
+        ))]
+        plan = plan_tree("math", books)
+        assert {n.name for n in plan.nodes} == {"数学必修一", "第一章 集合"}
+        chapter = next(n for n in plan.nodes if n.name == "第一章 集合")
+        assert next(n for n in plan.nodes if n.code == chapter.parent_code).name == "数学必修一"
+
 
 @pytest.mark.asyncio
 async def test_endpoint_generates_and_is_idempotent(tmp_path: Path) -> None:

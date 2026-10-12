@@ -100,6 +100,41 @@ def _register_jobs(app: FastAPI, catalog: Any) -> None:
         logger.warning("知识点任务引擎未装配：%s", exc)
 
 
+class _LateFileAssets:
+    """教学库 ``file_assets`` 的晚绑定代理（R9 修正装配环）。
+
+    知识点域装配先于 teaching 域（原卷/名单批次），构造期拿不到 file_assets；
+    本代理在**每次属性访问**时从 ``app.state`` 解析，teaching 装配完成后共用同一实例。
+    目标仍缺失时抛与 ``KnowledgeService._require_assets`` 同口径的 503，不静默放行。
+    """
+
+    def __init__(self, app: FastAPI) -> None:
+        self._app = app
+
+    def _target(self) -> Any:
+        existing = getattr(self._app.state, "file_assets", None)
+        if existing is not None:
+            return existing
+        teaching = getattr(self._app.state, "teaching", None)
+        if teaching is None:
+            from app.core.exceptions import AppError
+
+            raise AppError(
+                "知识点受管资产未装配（教学库 file_assets 未就绪），"
+                "表格导入与 AI 候选不可用；知识点增删改查不受影响。",
+                code="SERVICE_UNAVAILABLE",
+                status_code=503,
+            )
+        from app.repositories.assets.file_assets import FileAssetsRepository
+
+        repo = FileAssetsRepository(teaching)
+        self._app.state.file_assets = repo  # 与 teaching 装配共用同一实例（幂等）
+        return repo
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._target(), name)
+
+
 def _build_knowledge_service(app: FastAPI, settings: Settings) -> None:
     """知识点服务：知识点库 + 受管资产 + 发布协调器 + 任务引擎 + 教材证据（都按缺省降级）。"""
     try:
@@ -114,14 +149,14 @@ def _build_knowledge_service(app: FastAPI, settings: Settings) -> None:
 
     asset_store = getattr(app.state, "asset_store", None)
     teaching = getattr(app.state, "teaching", None)
-    file_assets = FileAssetsRepository(teaching) if teaching is not None else None
-    if asset_store is None or file_assets is None:
-        # R3 适配：教学库（R5-BE 批次）未装配时知识点 CRUD/树生成/教材依据仍可用，
-        # 依赖受管资产的入口（表格导入/AI 候选）在服务层 503（_require_assets）。
-        logger.info(
-            "知识点受管资产未装配（asset_store / teaching 缺失）；"
-            "表格导入与 AI 候选将在调用时 503。"
-        )
+    if teaching is not None:
+        file_assets: Any = FileAssetsRepository(teaching)
+    else:
+        # 教学域装配在本域之后（见 main.py _DOMAIN_ASSEMBLIES 顺序）：晚绑定代理，
+        # 调用时解析；目标仍缺失由代理抛与 _require_assets 同口径的 503。
+        file_assets = _LateFileAssets(app)
+    if asset_store is None:
+        logger.info("知识点资产库（asset_store）缺失；表格导入与 AI 候选将在调用时 503。")
 
     # 教材证据读取（R2 教材目录 + rag_v2 不可变原文）：缺失时 textbookEvidence 503
     evidence = _build_evidence_reader(app)

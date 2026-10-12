@@ -37,3 +37,6 @@ docs/qa/**
 !docs/qa/**/*.md
 !docs/qa/**/FROZEN-CANDIDATE*.json
 
+
+# IDE
+.idea/

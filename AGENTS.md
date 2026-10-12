@@ -1,22 +1,23 @@
-# AGENTS.md — 智启课源（最小骨架版）
+# AGENTS.md — 智启课源
 
 > 面向编码智能体的仓库指南。读完本文件再动手。
-> **本仓库于 2026-10-11 推倒重做**：只保留对话 + 教学 Agent 编排 + 模型配置的最小骨架；
-> 历史完整产品（教学闭环全量：教案/学情/题库/知识点/教材/名单/原卷/施测/成绩/练习）
-> 已归档为 git tag `archive-full-v1-20261011`，可随业务重建按需取回参考。
+> **2026-10-11 推倒重做 → 2026-10-12 R 系列重建完成**：在最小骨架上按 R0–R8 批重建了
+> 完整教学闭环（八个板块 + 统一问答 + Agent 工具化）。历史完整产品（全量期）仍归档于
+> git tag `archive-full-v1-20261011`——**取回参考的唯一入口**，不要把旧文件直接捞回工作区。
 
 ## 1. 项目概述
 
-智启课源的当前形态是一个**对话优先的教学 AI 工作台底座**：一个干净的对话界面
-（会话、流式消息、附件上传、Agent 中断确认卡）+ 模型配置（连接/档案/目录/授权）。
-业务能力（教学闭环）将随重建在 Agent 工具表中逐项回归——**先对话，再长业务**。
+智启课源是**对话优先的闭环教学 AI 工作台**：`/chat` 统一学习问答承载全部教学 AI 能力；
+八个业务板块（教材资料库 / 知识点 / 题库 / 班级管理 / 试卷管理 / 学情分析 / 教案工作台 / 练习）
+既是独立页面，也是学习问答里的 Agent 工具（一句话或带文件触发）。
 
-- **当前真实能力**：对话（三协议 SSE 直连模型）、教学 Agent 编排（LangGraph 内嵌，
-  工具表为空骨架）、模型配置（含 OAuth 受管认证）、受管资产（上传落 blob）。
-- **当前不含**：任何业务页面与业务后端域（原教案/学情/题库/知识点/教材/名单/原卷/
-  施测/成绩/练习全部移除，数据已清空）。
-- **红线延续**：AI 输出只进候选、教师确认才落库；学生个人信息不进模型；
+- **架构硬性（用户裁定）**：所有 LLM 调用统一经 **LangChain**（`services/agent/model.py` 模型工厂 +
+  `services/llm/` 运行层），多步 AI 流程由 **LangGraph** 编排；业务代码禁止直连供应商 SDK
+  （门禁 `tests/test_no_raw_sdk_imports.py`）。
+- **红线延续**：AI 输出只进候选、教师确认才落库（写操作走中断确认卡）；学生个人信息不进模型；
   凭证只存后端 `.env`（`apps/api/.env`）经 SecretStore 注入，不进进程环境/日志/前端。
+- **装配约定**：业务域按 `app.services.<domain>.assembly:assemble(app, settings)` 逐批装配
+  （`main.py _DOMAIN_ASSEMBLIES`，列表顺序即依赖顺序）；缺依赖的域路由 503/501，不假成功。
 
 ## 2. 技术栈
 
@@ -26,9 +27,9 @@
 | 样式 | Tailwind CSS 3.4 + 单一 CSS 变量层 | `apps/web/src/styles/globals.css`；字体走 token |
 | 状态 | Zustand 5 | 对话单 store（`features/chat/model/store.ts`）|
 | 内容渲染 | react-markdown、KaTeX、Mermaid、Chart.js | 消息正文与产物预览 |
-| 后端 | FastAPI（Python ≥ 3.12，uv 管理） | `apps/api`，SSE 三协议适配 |
-| Agent | langgraph + langchain + langchain-openai/anthropic | `app/services/agent/`；checkpointer 落 SQLite |
-| 测试 | Vitest（jsdom）+ Playwright + pytest | 单测 / e2e / 后端 |
+| 后端 | FastAPI（Python ≥ 3.12，uv 管理） | `apps/api`，SSE 三协议适配 + 八域装配 |
+| Agent | langgraph 1.2 + langchain 1.4（core 1.6） | `app/services/agent/`；checkpointer 落 SQLite；模块 LLM 走 `app/services/llm/` |
+| 测试 | Vitest（jsdom）+ Playwright + pytest | 单测 / e2e / 后端（后端 1835 例） |
 
 ## 3. 仓库结构
 
@@ -36,23 +37,24 @@
 apps/
 ├── web/                      # Next.js 前端
 │   └── src/
-│       ├── app/              # 路由：/chat（home）、/settings
-│       ├── components/       # 公共壳（layout/）与通用控件（ui/、motion/）
-│       ├── features/
-│       │   ├── chat/         # 对话（store/消息/composer/追问卡/产物面板）
-│       │   ├── model-settings/   # 模型连接与档案设置面板
-│       │   └── settings/     # 设置页（外观/模型/关于）
-│       ├── services/         # API 客户端与本地仓储
+│       ├── app/              # 路由：/chat(home)、/lesson-plans、/textbooks、/knowledge-points、
+│       │                     #       /question-bank、/practices、/learning-analysis、
+│       │                     #       /assessments{,/roster,/papers}、/settings
+│       ├── components/       # 公共壳（layout/，含 ModuleWorkspaceShell 业务根登记）与控件（ui/、motion/）
+│       ├── features/         # chat / lesson-plan / textbook / knowledge-points / question-bank /
+│       │                     # assessments / learning-analysis / practices / model-settings / settings
+│       ├── services/         # API 客户端（各域 *-api.ts）、SSE 客户端、导航登记（唯一来源）
 │       └── styles/           # globals.css / motion.css
 └── api/                      # FastAPI 后端
-    ├── app/api/v1/           # health / capabilities / chat / agent / model_* 路由
-    ├── app/services/         # agent（编排）/ model_*（运行时）/ assets / jobs（引擎骨架）
+    ├── app/api/v1/           # health/capabilities/chat/agent/model_* + 八域路由 + workflow_jobs/export_artifacts
+    ├── app/services/         # agent（编排+工具）/ llm（LangChain 运行层）/ 八域服务 + 各域 assembly.py
     ├── app/providers/llm/    # 三协议供应商适配（38 供应商注册表）
-    ├── app/repositories/     # model_config_repository / assets / jobs
-    ├── app/core/             # config / secrets / sqlite / migrations 机制
-    └── tests/                # pytest（220 用例）
-tests/                        # e2e（Playwright）
-docs/                         # 骨架文档（旧全量文档随归档 tag 保留）
+    ├── app/repositories/     # 四库仓储（textbook_catalog/knowledge/question_bank/teaching）+ vector_store/jobs
+    ├── app/core/             # config / secrets / sqlite / migrations（四库追加式）/ data_lock
+    ├── app/resources/        # 教案模板（lesson_templates/）
+    └── tests/                # pytest（1835 例）
+tests/                        # e2e（Playwright）与 fixtures
+docs/                         # 权威文档（CURRENT_STATUS / PROJECT_GUIDE / API / ROUTES）
 ```
 
 ## 4. 开发命令（Windows / 根目录）
@@ -84,6 +86,13 @@ npm.cmd run check         # typecheck + lint + unit + build 串跑
 - **单一后端**：不要借 Next.js Route Handlers 起第二套业务后端。
 - **依赖纪律**：用根 workspace 与锁文件；常规开发不顺手升级框架或换包管理器。
 - **样式纪律**：全站共用 `globals.css` 变量层与字体 token；页面不散写具体字体名。
+- **LLM 纪律**：新模块 LLM 调用一律经 `resolve_agent_chat_model` + `services/llm/`（提示词登记
+  `PromptSpec` 带版本；结构化输出用 `run_structured`；流式用 `chat_model.astream`）；
+  禁止 `openai`/`anthropic` SDK 直连（有门禁测试）。
+- **装配纪律**：新业务域写 `app/services/<domain>/assembly.py`（`assemble(app, settings)`），
+  在 `main.py _DOMAIN_ASSEMBLIES` 按依赖顺序登记；不要改他人域的装配。
+- **前端壳纪律**：新业务页在 `ModuleWorkspaceShell.independentRoots` 登记（无斜杠首段）+
+  `navigation.ts` 登记后由壳统一提供侧栏与滚动，页面裸渲染（不自包 WorkspaceShell）。
 
 ## 6. 测试与验收要求
 

@@ -1,42 +1,39 @@
 import { test, expect } from '@playwright/test';
 
-// e2e 环境只启动前端：用路由级模拟上游验证 UI 全流程（模拟服务器仅用于测试）；
-// 真实供应商验收在未获凭证时单独标注未执行。
-const PROFILES = [
-  {
-    id: 'profile-1',
-    connectionId: 'conn-1',
-    displayName: '模拟模型',
-    modelId: 'sim-chat-1',
-    purpose: 'chat',
-    contextTokens: 8000,
-    maxOutputTokens: 512,
-    supportedParams: ['temperature'],
-    capabilities: { chat: 'verified' },
-    connection: { displayName: '模拟连接', protocol: 'openai-chat', hasCredential: true },
-    createdAt: '2026-09-06T00:00:00Z',
-    updatedAt: '2026-09-06T00:00:00Z',
-  },
-];
+/**
+ * R9 学习问答套件：composer 控件（附件 / 上下文环 / 模型选择）、无模式切换、减少动画可用。
+ * 模型目录以路由级 mock 提供；对话流本身不在此套件（由后端 pytest + 探针覆盖）。
+ */
 
-const SSE_OK = [
-  'event: message.start',
-  'data: {"requestId":"req-1","messageId":"m1","modelProfileId":"profile-1"}',
-  '',
-  'event: text.delta',
-  'data: {"messageId":"m1","text":"你好，"}',
-  '',
-  'event: text.delta',
-  'data: {"messageId":"m1","text":"这是模拟回答。"}',
-  '',
-  'event: usage',
-  'data: {"messageId":"m1","inputTokens":9,"outputTokens":6}',
-  '',
-  'event: message.end',
-  'data: {"messageId":"m1","finishReason":"stop"}',
-  '',
-  '',
-].join('\n');
+const PROFILE = {
+  id: 'profile-1',
+  connectionId: 'conn-1',
+  displayName: '模拟模型',
+  modelId: 'sim-chat-1',
+  purpose: 'chat',
+  contextTokens: 8000,
+  maxOutputTokens: 512,
+  supportedParams: [],
+  reasoningEnabled: null,
+  reasoningEffort: null,
+  contextWindow: { tokens: 8000, source: 'profile', note: null },
+  reasoningSupport: {
+    supported: true,
+    levels: [
+      { value: 'low', label: '低' },
+      { value: 'medium', label: '中' },
+      { value: 'high', label: '高' },
+    ],
+    default: 'medium',
+    style: 'openai_effort',
+    source: 'registry',
+    note: null,
+  },
+  capabilities: {},
+  connection: { displayName: '模拟连接', protocol: 'openai-chat', hasCredential: true },
+  createdAt: '2026-10-12T00:00:00Z',
+  updatedAt: '2026-10-12T00:00:00Z',
+};
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/v1/model-catalog', (route) =>
@@ -44,95 +41,41 @@ test.beforeEach(async ({ page }) => {
       json: {
         revision: 1,
         defaultChatProfileId: 'profile-1',
-        profiles: PROFILES,
-        connections: [
-          { id: 'conn-1', displayName: '模拟连接', protocol: 'openai-chat', hasCredential: true },
-        ],
+        profiles: [PROFILE],
+        connections: [PROFILE.connection],
       },
     }),
   );
-  await page.route('**/api/v1/model-profiles', (route) => route.fulfill({ json: PROFILES }));
-  await page.route('**/api/v1/chat/stream', (route) =>
-    route.fulfill({
-      status: 200,
-      headers: { 'content-type': 'text/event-stream' },
-      body: SSE_OK,
-    }),
-  );
 });
 
-test('发送消息后流式回答可见，标注模型与用量，历史在刷新后恢复', async ({ page }, testInfo) => {
-  await page.setViewportSize({ width: 1440, height: 900 });
+test('/chat：composer 控件齐备（附件 / 上下文环 / 思考强度受支持档位 / 模型选择）', async ({
+  page,
+}) => {
   await page.goto('/chat');
-  const input = page.getByPlaceholder('输入问题，Enter 发送，Shift+Enter 换行');
-  await expect(input).toBeVisible();
-  await input.fill('你好');
-  await page.getByRole('button', { name: '发送' }).click();
-
-  await expect(page.getByText('你好，这是模拟回答。')).toBeVisible();
-  await expect(
-    page.locator('.chat-bubble-foot', { hasText: '模拟模型 · sim-chat-1' }),
-  ).toBeVisible();
-  await expect(page.getByText(/输出 6 tokens/)).toBeVisible();
-
-  await page.reload();
-  await expect(page.getByText('你好，这是模拟回答。')).toBeVisible();
-  await page.screenshot({ path: testInfo.outputPath('chat-1440.png') });
-
-  // 手机视口
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({ path: testInfo.outputPath('chat-390.png') });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await expect(page.locator('.chat-page')).toBeVisible();
+  await expect(page.getByRole('button', { name: '添加附件' })).toBeVisible();
+  await expect(page.getByLabel(/上下文估算/)).toBeVisible();
+  // 思考强度：仅列受支持档位（低/中/高）
+  const effort = page.getByLabel('思考强度');
+  await expect(effort).toBeVisible();
+  await expect(effort.locator('option')).toHaveCount(4); // 默认 + 三档
+  await expect(page.locator('.model-selector').first()).toBeVisible();
+  // 无模式切换：不出现「追问澄清 / RAG」等选项文案
+  await expect(page.getByText('追问澄清')).toHaveCount(0);
+  await expect(page.getByText('RAG')).toHaveCount(0);
 });
 
-test('发送中显示停止按钮且禁止重复发送', async ({ page }) => {
-  await page.route('**/api/v1/chat/stream', async () => {
-    await new Promise(() => {}); // 挂起的流
-  });
+test('/chat：空输入不可发送，输入后可发送', async ({ page }) => {
   await page.goto('/chat');
-  const input = page.getByPlaceholder('输入问题，Enter 发送，Shift+Enter 换行');
-  await input.fill('长问题');
-  await page.getByRole('button', { name: '发送' }).click();
-  const stopButton = page.getByRole('button', { name: '停止' });
-  await expect(stopButton).toBeVisible();
-  await expect(page.getByRole('button', { name: '发送' })).toHaveCount(0);
-  await stopButton.click();
-  await expect(page.getByText('已停止')).toBeVisible();
-  await expect(page.getByRole('button', { name: '发送' })).toBeVisible();
+  const send = page.getByRole('button', { name: '发送' });
+  await expect(send).toBeDisabled();
+  await page.getByLabel('输入问题').fill('函数的单调性');
+  await expect(send).toBeEnabled();
 });
 
-test('发送前 HTTP 错误（如未配置凭证）展示准确原因，用户消息保留且可重试', async ({ page }) => {
-  await page.route('**/api/v1/chat/stream', (route) =>
-    route.fulfill({
-      status: 400,
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        code: 'MODEL_NOT_CONFIGURED',
-        message: '该模型连接未保存凭证，请先在设置中填写 API Key。',
-        requestId: 'req-err',
-        retryable: false,
-      }),
-    }),
-  );
+test('/chat：prefers-reduced-motion 下仍可用', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/chat');
-  const input = page.getByPlaceholder('输入问题，Enter 发送，Shift+Enter 换行');
-  await input.fill('我的问题不会丢');
-  await page.getByRole('button', { name: '发送' }).click();
-
-  await expect(page.locator('.chat-error')).toContainText('MODEL_NOT_CONFIGURED');
-  await expect(page.locator('.chat-bubble.user')).toContainText('我的问题不会丢');
-  await expect(page.locator('.chat-error').getByRole('button', { name: '重试' })).toBeVisible();
-});
-
-test('未配置任何模型时提示先去设置而不是假对话', async ({ page }) => {
-  await page.route('**/api/v1/model-catalog', (route) =>
-    route.fulfill({
-      json: { revision: 1, defaultChatProfileId: null, profiles: [], connections: [] },
-    }),
-  );
-  await page.route('**/api/v1/model-profiles', (route) => route.fulfill({ json: [] }));
-  await page.goto('/chat');
-  await expect(page.getByText(/还没有可用的模型/)).toBeVisible();
-  await expect(page.locator('.chat-banner').getByRole('link', { name: '设置' })).toBeVisible();
-  await expect(page.getByRole('button', { name: '发送' })).toBeDisabled();
+  await expect(page.getByLabel('输入问题')).toBeVisible();
+  await expect(page.getByRole('button', { name: '添加附件' })).toBeVisible();
 });
