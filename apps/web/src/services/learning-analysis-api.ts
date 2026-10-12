@@ -15,6 +15,7 @@
 
 import { apiRequest, apiRequestBlob, type BlobDownload } from '@/services/api-client';
 import type {
+  AnalysisCommentaryView,
   AnalysisReportReceipt,
   AnalysisRunList,
   AnalysisRunView,
@@ -123,13 +124,18 @@ export function getAnalysisDistribution(
   return apiRequest<DistributionResponse>(`/analysis-runs/${key(runId)}/distribution`, { signal });
 }
 
-/** AI 学情评价：候选 Markdown 文本（即席生成、不落库；学生由后端脱敏为代称）。 */
+/**
+ * AI 学情评价：候选 Markdown 文本（即席生成、不落库；学生由后端脱敏为代称）。
+ *
+ * 返回 `{commentary, degraded, reason}`：模型未返回/不可用时服务端**不**抛错，
+ * 以 `degraded=true` + 空文本 + 原因码表达（教师可重试）。
+ */
 export function generateAnalysisCommentary(
   runId: string,
   modelProfileId: string,
   signal?: AbortSignal,
-): Promise<string> {
-  return apiRequest<string>(
+): Promise<AnalysisCommentaryView> {
+  return apiRequest<AnalysisCommentaryView>(
     `/analysis-runs/${key(runId)}/ai-commentary`,
     jsonInit('POST', { modelProfileId }, signal),
   );

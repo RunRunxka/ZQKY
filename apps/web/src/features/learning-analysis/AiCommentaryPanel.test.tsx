@@ -28,7 +28,11 @@ vi.mock('@/features/model-settings/useModelCatalog', () => ({
 
 function baseApi() {
   return {
-    generateAnalysisCommentary: vi.fn(async () => '# 班级学情评价\n\n整体得分率偏低。'),
+    generateAnalysisCommentary: vi.fn(async () => ({
+      commentary: '# 班级学情评价\n\n整体得分率偏低。',
+      degraded: false,
+      reason: null,
+    })),
     createAnalysisNote: vi.fn(async () => ({
       noteId: 'note-1',
       runId: 'run-1',
@@ -120,6 +124,34 @@ describe('AI 评价与导出', () => {
     expect((save.mock.calls[1][1] as { submissionId: string }).submissionId).toBe(
       (save.mock.calls[0][1] as { submissionId: string }).submissionId,
     );
+    expect(api.createAnalysisNote).toBeDefined();
+  });
+
+  it('降级（模型未返回）：显示原因提示、不出现评价正文、可重试', async () => {
+    const generate = vi
+      .fn()
+      .mockResolvedValueOnce({
+        commentary: '',
+        degraded: true,
+        reason: 'MODEL_EMPTY_REPLY',
+      })
+      .mockResolvedValueOnce({
+        commentary: '重试后的评价正文。',
+        degraded: false,
+        reason: null,
+      });
+    const api = installApi({ generateAnalysisCommentary: generate });
+    renderPanel();
+
+    fireEvent.click(screen.getByRole('button', { name: /生成 AI 评价/ }));
+    const notice = await screen.findByTestId('analysis-ai-degraded');
+    expect(notice).toHaveTextContent('MODEL_EMPTY_REPLY');
+    expect(screen.queryByText('重试后的评价正文。')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '存为教师备注' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /生成 AI 评价/ }));
+    expect(await screen.findByText('重试后的评价正文。')).toBeInTheDocument();
+    expect(screen.queryByTestId('analysis-ai-degraded')).not.toBeInTheDocument();
     expect(api.createAnalysisNote).toBeDefined();
   });
 

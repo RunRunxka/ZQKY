@@ -137,6 +137,17 @@ export interface DistributionResponse {
   buckets: DistributionBucket[];
 }
 
+/**
+ * AI 学情评价响应（`POST /analysis-runs/{run_id}/ai-commentary`）。
+ * `degraded=true` 表示生成未成功（模型未返回/不可用）：`commentary` 为空、`reason` 给出原因码，
+ * 服务端**不**以错误状态码表达降级（教师可重试），前端据此显示提示而不是报错。
+ */
+export interface AnalysisCommentaryView {
+  commentary: string;
+  degraded: boolean;
+  reason: string | null;
+}
+
 /* ---------------------------------------------------------------- AI 评价与教师备注 */
 
 export interface NoteRequest {

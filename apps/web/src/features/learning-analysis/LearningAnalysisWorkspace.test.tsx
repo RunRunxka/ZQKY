@@ -146,7 +146,11 @@ function baseApi() {
         { label: '高（≥70%）', count: 1 },
       ],
     })),
-    generateAnalysisCommentary: vi.fn(async () => '候选评价'),
+    generateAnalysisCommentary: vi.fn(async () => ({
+      commentary: '候选评价',
+      degraded: false,
+      reason: null,
+    })),
     createAnalysisNote: vi.fn(),
     createAnalysisReport: vi.fn(),
     downloadExportArtifact: vi.fn(),

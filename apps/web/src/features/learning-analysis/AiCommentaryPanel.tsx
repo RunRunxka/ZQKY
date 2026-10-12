@@ -47,6 +47,8 @@ export function AiCommentaryPanel({
   const [commentary, setCommentary] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<{ code: string; message: string } | null>(null);
+  /** 服务端降级（模型未返回/不可用）：不是错误状态码，显式提示并可重试。 */
+  const [degraded, setDegraded] = useState<string | null>(null);
   /** 存备注的逻辑确认：失败后重试必须复用同一 submissionId（不重复写入）。 */
   const [pendingNote, setPendingNote] = useState<{ submissionId: string; note: string } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -67,11 +69,16 @@ export function AiCommentaryPanel({
     if (!effectiveProfile || generating) return;
     setGenerating(true);
     setError(null);
+    setDegraded(null);
     setSaved(false);
     setPendingNote(null);
     try {
-      const text = await services.generateAnalysisCommentary(runId, effectiveProfile);
-      setCommentary(text);
+      const result = await services.generateAnalysisCommentary(runId, effectiveProfile);
+      if (result.commentary.trim()) {
+        setCommentary(result.commentary);
+      } else {
+        setDegraded(result.reason ?? '模型未返回可用评价，可稍后重试。');
+      }
     } catch (cause) {
       const apiError = asApiError(cause);
       setError({ code: apiError.code, message: apiError.message });
@@ -196,6 +203,11 @@ export function AiCommentaryPanel({
       {error && (
         <p className="analysis-ai-error" role="alert">
           {error.message}（{error.code}）
+        </p>
+      )}
+      {degraded && (
+        <p className="analysis-ai-error" role="alert" data-testid="analysis-ai-degraded">
+          AI 评价生成未成功：{degraded}
         </p>
       )}
       {commentary && (
