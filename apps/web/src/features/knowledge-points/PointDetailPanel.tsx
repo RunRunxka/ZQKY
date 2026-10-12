@@ -46,12 +46,13 @@ import {
 } from './point-form';
 import { TextbookLinksPanel } from './TextbookLinksPanel';
 
-const ZERO_CLEAR: PointClearFlags = { description: false, aliases: false };
+const ZERO_CLEAR: PointClearFlags = { description: false, objectives: false, aliases: false };
 
 function valuesFrom(point: KnowledgePointView): PointUpdateValues {
   return {
     name: point.name,
     description: point.description,
+    objectives: point.objectives ?? '',
     parentId: PARENT_UNCHANGED,
     sortOrder: String(point.sortOrder),
     // 逐条别名的编辑行以换行分隔（提交时由 splitAliases 归一为服务端数组）
@@ -629,6 +630,27 @@ export function PointDetailPanel({
             onChange={(event) => setClear({ ...clear, description: event.target.checked })}
           />
           清空说明（提交后为空；留空不勾选 = 不修改）
+        </label>
+
+        <label className="kp-field">
+          <span className="kp-field-label">学习目标</span>
+          <textarea
+            value={form.objectives}
+            aria-label="学习目标"
+            rows={4}
+            disabled={busy || clear.objectives}
+            onChange={(event) => setForm({ ...form, objectives: event.target.value })}
+          />
+        </label>
+        <label className="space-toggle">
+          <input
+            type="checkbox"
+            checked={clear.objectives}
+            disabled={busy}
+            aria-label="清空学习目标"
+            onChange={(event) => setClear({ ...clear, objectives: event.target.checked })}
+          />
+          清空学习目标（提交后为空；留空不勾选 = 不修改）
         </label>
 
         <div className="kp-field">

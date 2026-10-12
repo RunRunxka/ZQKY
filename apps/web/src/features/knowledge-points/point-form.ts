@@ -2,7 +2,7 @@
  * 知识点表单 → 请求体的纯函数层（不碰 DOM、不发请求，便于单测锁定语义）。
  *
  * 契约语义（`@/contracts/knowledge` 与后端 `KnowledgePointUpdateRequest`）：
- * - **空白/缺省 = 不修改**；要清空必须放进 `clearFields`（description/parentId/aliases）
+ * - **空白/缺省 = 不修改**；要清空必须放进 `clearFields`（description/objectives/parentId/aliases）
  *   或显式选择「清空」动作 —— 本模块负责把界面意图翻成这两条不同路径。
  * - 名称不可清空（`name` 最短 1）；排序没有清空语义（留空 = 不修改）。
  * - `expectedRevision` 是可变实体乐观锁；改名由服务端追加修订（返回新的 revisionId/version）。
@@ -15,7 +15,7 @@ import type {
 } from '@/contracts/knowledge';
 
 /** 可明确清空的可选字段（与后端 `clearFields` 取值一致）。 */
-export const CLEARABLE_FIELDS = ['description', 'parentId', 'aliases'] as const;
+export const CLEARABLE_FIELDS = ['description', 'objectives', 'parentId', 'aliases'] as const;
 export type ClearableField = (typeof CLEARABLE_FIELDS)[number];
 
 /** 父级下拉的哨兵值：不修改（保留原父级）。 */
@@ -29,12 +29,15 @@ export const MAX_DESCRIPTION = 4000;
 
 export interface PointClearFlags {
   description: boolean;
+  objectives: boolean;
   aliases: boolean;
 }
 
 export interface PointUpdateValues {
   name: string;
   description: string;
+  /** 学习目标（R3 新增；镜像说明字段的空白=不修改语义） */
+  objectives: string;
   /** PARENT_UNCHANGED / PARENT_CLEAR / 目标知识点 id */
   parentId: string;
   sortOrder: string;
@@ -127,6 +130,24 @@ export function planPointUpdate(
     hints.push('说明留空表示不修改；如需清空请勾选「清空说明」。');
   }
 
+  const currentObjectives = current.objectives ?? '';
+  const objectives = values.objectives;
+  if (clear.objectives) {
+    if (currentObjectives !== '') {
+      clearFields.push('objectives');
+      actions.push('清空学习目标');
+    } else {
+      hints.push('该知识点当前没有学习目标，无需清空。');
+    }
+    if (objectives.trim() !== '') {
+      hints.push('已勾选「清空学习目标」：输入框中的文本不会被提交。');
+    }
+  } else if (objectives.trim() !== '' && objectives !== currentObjectives) {
+    actions.push('修改学习目标');
+  } else if (objectives.trim() === '' && currentObjectives !== '') {
+    hints.push('学习目标留空表示不修改；如需清空请勾选「清空学习目标」。');
+  }
+
   if (values.parentId === PARENT_CLEAR) {
     if (current.parentId !== null || current.parentCode !== null) {
       clearFields.push('parentId');
@@ -175,6 +196,9 @@ export function planPointUpdate(
   if (!clear.description && description.trim() !== '' && description !== current.description) {
     request.description = description;
   }
+  if (!clear.objectives && objectives.trim() !== '' && objectives !== currentObjectives) {
+    request.objectives = objectives;
+  }
   if (
     values.parentId !== PARENT_UNCHANGED &&
     values.parentId !== PARENT_CLEAR &&
@@ -199,6 +223,8 @@ export interface PointCreateValues {
   code: string;
   name: string;
   description: string;
+  /** 学习目标（可选；省略即不写） */
+  objectives?: string;
   parentCode: string;
   sortOrder: string;
   aliasesText: string;
@@ -233,6 +259,8 @@ export function planPointCreate(values: PointCreateValues): PointCreatePlan {
 
   const request: KnowledgePointCreateRequest = { subjectId, code, name };
   if (description.trim() !== '') request.description = description;
+  const objectives = values.objectives ?? '';
+  if (objectives.trim() !== '') request.objectives = objectives;
   const parentCode = values.parentCode.trim();
   if (parentCode !== '') request.parentCode = parentCode;
   if (sort.value !== undefined) request.sortOrder = sort.value;

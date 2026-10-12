@@ -15,6 +15,7 @@ function point(overrides: Partial<KnowledgePointView> = {}): KnowledgePointView 
     code: 'M.7.1',
     name: '有理数',
     description: '整数与分数',
+    objectives: '会用数轴上的点表示有理数',
     parentId: 'kp-0',
     parentCode: 'M.7',
     sortOrder: 1,
@@ -32,6 +33,7 @@ function values(overrides: Partial<Parameters<typeof planPointUpdate>[1]> = {}) 
   return {
     name: '有理数',
     description: '整数与分数',
+    objectives: '会用数轴上的点表示有理数',
     parentId: PARENT_UNCHANGED,
     sortOrder: '1',
     aliasesText: '有理数概念、有理数定义',
@@ -39,7 +41,7 @@ function values(overrides: Partial<Parameters<typeof planPointUpdate>[1]> = {}) 
   };
 }
 
-const NO_CLEAR = { description: false, aliases: false };
+const NO_CLEAR = { description: false, objectives: false, aliases: false };
 
 describe('splitAliases', () => {
   it('按「、」「,」「;」「/」与换行拆分并去空白', () => {
@@ -129,7 +131,7 @@ describe('planPointUpdate：留空 = 不修改，清空必须显式', () => {
         sortOrder: '9',
         aliasesText: '',
       }),
-      { description: true, aliases: false },
+      { description: true, objectives: false, aliases: false },
     );
     expect(plan.request).toEqual({
       expectedRevision: 3,
@@ -138,6 +140,29 @@ describe('planPointUpdate：留空 = 不修改，清空必须显式', () => {
       clearFields: ['description', 'parentId'],
     });
     expect(plan.errors).toEqual([]);
+  });
+
+  it('学习目标：修改进请求，留空给提示，勾选清空进 clearFields', () => {
+    const changed = planPointUpdate(
+      point(),
+      values({ objectives: '会用数轴比较大小并解释相反意义的量' }),
+      NO_CLEAR,
+    );
+    expect(changed.request).toEqual({
+      expectedRevision: 3,
+      objectives: '会用数轴比较大小并解释相反意义的量',
+    });
+
+    const blank = planPointUpdate(point(), values({ objectives: '' }), NO_CLEAR);
+    expect(blank.request).toBeNull();
+    expect(blank.hints.join()).toContain('学习目标留空表示不修改');
+
+    const cleared = planPointUpdate(point(), values({ objectives: '' }), {
+      ...NO_CLEAR,
+      objectives: true,
+    });
+    expect(cleared.request).toEqual({ expectedRevision: 3, clearFields: ['objectives'] });
+    expect(cleared.actions.join()).toContain('清空学习目标');
   });
 });
 
@@ -187,5 +212,35 @@ describe('planPointCreate', () => {
       aliasesText: '',
     });
     expect(minimal.request).toEqual({ subjectId: 'math', code: 'M.7.3', name: '绝对值' });
+  });
+
+  it('学习目标非空时提交，缺省时省略', () => {
+    const withObjectives = planPointCreate({
+      subjectId: 'math',
+      code: 'M.7.4',
+      name: '相反数',
+      description: '',
+      objectives: '理解相反数的概念并会求相反数',
+      parentCode: '',
+      sortOrder: '',
+      aliasesText: '',
+    });
+    expect(withObjectives.request).toEqual({
+      subjectId: 'math',
+      code: 'M.7.4',
+      name: '相反数',
+      objectives: '理解相反数的概念并会求相反数',
+    });
+
+    const without = planPointCreate({
+      subjectId: 'math',
+      code: 'M.7.5',
+      name: '倒数',
+      description: '',
+      parentCode: '',
+      sortOrder: '',
+      aliasesText: '',
+    });
+    expect(without.request).toEqual({ subjectId: 'math', code: 'M.7.5', name: '倒数' });
   });
 });

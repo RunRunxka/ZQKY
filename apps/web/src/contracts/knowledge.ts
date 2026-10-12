@@ -84,6 +84,8 @@ export interface KnowledgePointView {
   code: string;
   name: string;
   description: string;
+  /** 学习目标（R3 新增字段；老响应可能缺省，缺省按「无目标」展示但不据此清空） */
+  objectives?: string | null;
   parentId: string | null;
   parentCode: string | null;
   sortOrder: number;
@@ -114,6 +116,7 @@ export interface KnowledgePointCreateRequest {
   code: string;
   name: string;
   description?: string;
+  objectives?: string;
   parentId?: string | null;
   parentCode?: string | null;
   sortOrder?: number;
@@ -124,12 +127,13 @@ export interface KnowledgePointUpdateRequest {
   expectedRevision: number;
   name?: string | null;
   description?: string | null;
+  objectives?: string | null;
   parentId?: string | null;
   parentCode?: string | null;
   sortOrder?: number | null;
   aliases?: string[] | null;
-  /** 明确清空（description / parentId / aliases）；空白默认不修改 */
-  clearFields?: Array<'description' | 'parentId' | 'aliases'>;
+  /** 明确清空（description / objectives / parentId / aliases）；空白默认不修改 */
+  clearFields?: Array<'description' | 'objectives' | 'parentId' | 'aliases'>;
 }
 
 export interface KnowledgeImportRowView {
