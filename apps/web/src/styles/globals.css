@@ -166,6 +166,10 @@ small {
   grid-template-rows: 66px minmax(0, 1fr);
   overflow: hidden;
   min-height: 450px;
+  /* R10：壳作为包含块，凡壳内 position:absolute 的装饰/隐藏元素（如 visually-hidden 表注）
+     一律落在壳内被裁剪，不能逃逸到文档层把 <html> 撑出可滚动高度（否则内容区滚到底后
+     滚轮连带滚文档，左侧导航随页面被滚走——用户实测「导航悬空」）。 */
+  position: relative;
 }
 .app-header {
   grid-column: 1/-1;

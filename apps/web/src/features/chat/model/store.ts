@@ -134,7 +134,11 @@ export function createChatStore(deps: ChatDeps = {}) {
     function change(id: string, mutate: (conversation: Conversation) => Conversation | void): void {
       const current = docs.get(id);
       if (!current) return;
-      const next = mutate(structuredClone(current)) ?? current;
+      // 在克隆上改动：显式返回则以返回值为准；**未返回时采用就地改动的草稿**
+      // （曾经的 `?? current` 会丢弃「就地 push 型」变更——发送消息/写标题都被吞掉，
+      // 表现为消息不显示、侧栏标题空白，R10 修复）。
+      const draft = structuredClone(current);
+      const next = mutate(draft) ?? draft;
       next.updatedAt = now();
       docs.set(id, next);
       publish();
@@ -394,6 +398,10 @@ export function createChatStore(deps: ChatDeps = {}) {
       chatProfile: null,
 
       async init(): Promise<void> {
+        // StrictMode 双挂载会先跑一次 effect 清理（dispose 置 disposed=true）再重新挂载，
+        // 而 store 实例被复用——这里对称复位；不复位会让开发态整个 store 永久丢弃事件
+        // （占位与流式更新被静默吞掉，R10 修复）。
+        disposed = false;
         if (get().ready) return;
         try {
           const metas = await repository.list();

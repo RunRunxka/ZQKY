@@ -25,15 +25,18 @@ export function SessionPanel({
       </button>
       {conversations.length === 0 && <p className="chat-empty-hint">还没有历史会话。</p>}
       <ul className="chat-session-list">
-        {conversations.map((conversation) => (
+        {conversations.map((conversation) => {
+          // 旧记录可能没有标题（历史缺陷遗留）：显示兜底文案，不留空白行
+          const title = conversation.title?.trim() || '新的对话';
+          return (
           <li key={conversation.id} className={conversation.id === activeId ? 'current' : ''}>
             <button
               className="chat-session-item"
-              aria-label={`打开会话 ${conversation.title}`}
+              aria-label={`打开会话 ${title}`}
               onClick={() => onSelect(conversation.id)}
             >
               <MessageSquare size={15} />
-              <span className="chat-session-title">{conversation.title}</span>
+              <span className="chat-session-title">{title}</span>
               <small>
                 {new Date(conversation.updatedAt).toLocaleString('zh-CN', {
                   month: 'numeric',
@@ -53,14 +56,15 @@ export function SessionPanel({
               </button>
               <button
                 className="icon-button"
-                aria-label={`删除会话 ${conversation.title}`}
+                aria-label={`删除会话 ${title}`}
                 onClick={() => onRemove(conversation.id)}
               >
                 <Trash2 size={13} />
               </button>
             </span>
           </li>
-        ))}
+          );
+        })}
       </ul>
     </div>
   );
