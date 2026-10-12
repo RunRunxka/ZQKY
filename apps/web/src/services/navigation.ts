@@ -12,6 +12,7 @@ import {
   Users,
   FileText,
   NotebookPen,
+  ClipboardList,
 } from 'lucide-react';
 import type { NavigationItem } from '@/contracts/navigation';
 
@@ -75,6 +76,17 @@ export const navigation: NavigationItem[] = [
     group: '教学资源',
     icon: FileQuestion,
     sidebarIcon: FileQuestion,
+  },
+  {
+    // 练习（需求 8）：学情/描述驱动题库出题与选拔，教师微调并确认后导出学生卷/教师卷/成绩模板
+    id: 'practices',
+    label: '练习',
+    path: '/practices',
+    status: 'ready',
+    position: 'main',
+    group: '教学资源',
+    icon: ClipboardList,
+    sidebarIcon: ClipboardList,
   },
   {
     // 学情分析（需求 5）：小题分导入、班级/试卷/时间筛选、五项图表与 AI 评价；数据全部来自 FastAPI

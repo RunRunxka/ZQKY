@@ -1,0 +1,688 @@
+/* 练习模块样式（R8-FE 2026-10-12）。
+   只使用 globals.css 的单一变量层（--bg/--surface/--ink/--line/--blue… 与字体 token），
+   与 space.css 的 space-* 类共用同一设计语言；不新增独立主题、不引入新依赖。
+   A4 预览与教案工作台同风格：白纸 + 阴影 + 红色虚线分页标记；纸张按容器宽度以 zoom 缩放。 */
+
+/* 练习是工作台型页面：内容列比通用 960px 更宽，让 A4 纸（794px）在双栏下按 1:1 完整显示，
+   不出现横向滚动；窄视口退化为单列并按 zoom 缩小纸张。 */
+.practices-page {
+  --page-content-width: 1240px;
+}
+
+.practices-page .practices-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  gap: var(--space-4, 20px);
+  align-items: start;
+  margin-top: var(--space-4, 20px);
+}
+
+.practices-page .practices-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  padding: var(--space-4, 20px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 14px);
+  min-width: 0;
+}
+
+.practices-page .practices-card-head h2 {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+.practices-page .practices-card-head h3 {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.practices-page .practices-hint {
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.7;
+}
+
+.practices-page .practices-meta {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.practices-page .practices-warn {
+  color: var(--danger);
+}
+
+/* ---------------- 新建练习：来源切换 ---------------- */
+
+.practices-page .practices-subsection {
+  border-top: 1px dashed var(--line);
+  padding-top: var(--space-3, 14px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.practices-page .practices-source-switch {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.practices-page .practices-source {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.practices-page .practices-source.current {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+}
+
+.practices-page .practices-source input {
+  margin-top: 3px;
+}
+
+.practices-page .practices-source span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.practices-page .practices-source small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.practices-page .practices-run-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.practices-page .practices-run-list label {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  cursor: pointer;
+  background: var(--bg);
+}
+
+.practices-page .practices-run-list label.current {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+}
+
+.practices-page .practices-run-list input:disabled + span {
+  opacity: 0.6;
+}
+
+.practices-page .practices-run-list span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.practices-page .practices-stats ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 6px;
+}
+
+.practices-page .practices-stats li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  padding: 4px 0;
+  font-size: 12.5px;
+}
+
+/* ---------------- 表单原语（与 space-* 同一语言） ---------------- */
+
+.practices-page .practices-fieldset {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.practices-page .practices-fieldset legend {
+  padding: 0 6px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.practices-page .practices-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.practices-page .practices-field input,
+.practices-page .practices-field textarea {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--ink);
+  padding: 7px 10px;
+  font-size: 13px;
+  font-family: var(--font-ui);
+  width: 100%;
+  min-width: 0;
+}
+
+.practices-page .practices-field textarea {
+  resize: vertical;
+}
+
+.practices-page .practices-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+
+.practices-page .practices-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: 12.5px;
+}
+
+.practices-page .practices-checks label {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  cursor: pointer;
+}
+
+.practices-page .practices-checks span {
+  display: inline-flex;
+  flex-direction: column;
+}
+
+.practices-page .practices-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.practices-page .practices-ai-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+
+.practices-page .practices-create-footer {
+  border-top: 1px solid var(--line);
+  padding-top: var(--space-3, 14px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.practices-page .practices-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.practices-page .practices-link a {
+  color: var(--blue-deep);
+  text-decoration: underline;
+}
+
+/* ---------------- 列表 / 详情 ---------------- */
+
+.practices-page .practices-list-items {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.practices-page .practices-list-items button {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  padding: 10px 12px;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.practices-page .practices-list-items button:hover {
+  border-color: var(--blue);
+}
+
+.practices-page .practices-list-items button.current {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+}
+
+.practices-page .practices-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 14px);
+  min-width: 0;
+}
+
+.practices-page .practices-detail-head h2 {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
+}
+
+/* ---------------- 页签 ---------------- */
+
+.practices-page .practices-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+.practices-page .practices-tabs button {
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: transparent;
+  color: var(--muted);
+  padding: 8px 14px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.practices-page .practices-tabs button.current {
+  background: var(--bg);
+  border-color: var(--line);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.practices-page .practices-tabs button:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.practices-page .practices-lock {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+/* ---------------- 题目卡片 ---------------- */
+
+.practices-page .practices-item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.practices-page .practices-item {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg);
+}
+
+.practices-page .practices-item-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+}
+
+.practices-page .practices-item-head h3 {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.practices-page .practices-item-head .practices-actions {
+  margin-left: auto;
+}
+
+.practices-page .practices-item-view summary,
+.practices-page .practices-suggestion summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--blue-deep);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.practices-page .practices-suggestion {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.practices-page .practices-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.practices-page .practices-node {
+  border-top: 1px dashed var(--line);
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.practices-page .practices-nodes-points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.practices-page .practices-option {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+/* 确认门槛清单：满足打勾、缺口标红（沿用 danger 色，不引入新颜色）。 */
+.practices-page .practices-gate ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.practices-page .practices-gate li {
+  font-size: 12.5px;
+  line-height: 1.7;
+  padding-left: 20px;
+  position: relative;
+}
+
+.practices-page .practices-gate li::before {
+  position: absolute;
+  left: 2px;
+}
+
+.practices-page .practices-gate li.ok {
+  color: var(--green);
+}
+
+.practices-page .practices-gate li.ok::before {
+  content: '✓';
+}
+
+.practices-page .practices-gate li.gap {
+  color: var(--danger);
+}
+
+.practices-page .practices-gate li.gap::before {
+  content: '!';
+  font-weight: 700;
+}
+
+.practices-page .practices-gate {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  background: var(--surface);
+}
+
+.practices-page .practices-gate h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.practices-page .practices-job {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--surface);
+}
+
+/* ---------------- A4 导出预览 ---------------- */
+
+.practices-page .practices-preview {
+  background: var(--preview);
+  border-radius: var(--radius-sm);
+  padding: 18px 12px 30px;
+  overflow-x: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 26px;
+}
+
+.practices-page .practices-sheet {
+  width: 794px;
+  min-height: 1123px;
+  background: #fff;
+  box-shadow: 0 10px 26px -14px rgba(32, 57, 92, 0.32);
+  display: flex;
+  flex-direction: column;
+  zoom: 1;
+}
+
+.practices-page .practices-sheet-body {
+  flex: 1;
+  color: #111827;
+  font-family: var(--font-document);
+  font-size: 14px;
+  line-height: 1.7;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.practices-page .practices-page-end {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 24px 12px;
+  color: var(--danger);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.practices-page .practices-page-end::before,
+.practices-page .practices-page-end::after {
+  content: '';
+  flex: 1;
+  border-top: 1px dashed #e0574a;
+}
+
+.practices-page .practices-paper-head h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.practices-page .practices-paper-head .practices-meta {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.practices-page .practices-paper-lines {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid #d9e1ec;
+  font-size: 13px;
+}
+
+.practices-page .practices-paper-question {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.practices-page .practices-paper-question-head {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  font-size: 14px;
+}
+
+.practices-page .practices-answer-line {
+  border-bottom: 1px solid #b9c4d4;
+  height: 22px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.practices-page .practices-answer-area {
+  border: 1px dashed #c3cddc;
+  border-radius: 4px;
+  min-height: 120px;
+  padding: 6px 8px;
+}
+
+.practices-page .practices-answer-sheet ol {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.practices-page .practices-answer-sheet li {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  border-bottom: 1px solid #e6ecf4;
+  padding-bottom: 6px;
+}
+
+.practices-page .practices-artifact-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.practices-page .practices-artifact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
+/* 难度徽标：与题库模块同值镜像（基础=绿、中等=琥珀、困难=红、未标注=中性），
+   不引入新配色；题库样式表按 `.question-bank-page` 作用域，跨页无法直接复用。 */
+.practices-page .qb-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.practices-page .qb-badge-easy {
+  border-color: #bfe0d4;
+  background: #ecf7f2;
+  color: var(--green);
+}
+
+.practices-page .qb-badge-medium {
+  border-color: #f2d9a4;
+  background: #fdf6e7;
+  color: #92610c;
+}
+
+.practices-page .qb-badge-hard {
+  border-color: #f4b6ae;
+  background: #fef3f2;
+  color: var(--danger);
+}
+
+/* ---------------- 响应式：单列 + 纸张缩放 ---------------- */
+
+@media screen and (max-width: 1080px) {
+  /* 练习是工作台型页面：内容列比通用 960px 更宽，让 A4 纸（794px）在双栏下按 1:1 完整显示，
+   不出现横向滚动；窄视口退化为单列并按 zoom 缩小纸张。 */
+.practices-page {
+  --page-content-width: 1240px;
+}
+
+.practices-page .practices-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .practices-page .practices-sheet {
+    zoom: 0.82;
+  }
+}
+
+@media screen and (max-width: 767px) {
+  .practices-page {
+    --page-gutter: 16px;
+  }
+
+  .practices-page .practices-sheet {
+    zoom: 0.44;
+  }
+
+  .practices-page .practices-item-head .practices-actions {
+    margin-left: 0;
+  }
+}
