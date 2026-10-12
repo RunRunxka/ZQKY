@@ -10,15 +10,26 @@ from app.core.migrations import REGISTERED_MIGRATIONS, apply_migrations
 from app.core.migrations.base import Migration
 from app.core.migrations.teaching import _ASSESSMENTS_REBUILD
 from app.core.sqlite import connect
-from tests.test_b3_score_migrations import _seed_b2_business
+from tests.test_b3_score_migrations import STUDENT_BUSINESS_COLUMNS, _seed_b2_business
 
 TABLES = ('papers', 'paper_revisions', 'paper_items', 'paper_item_knowledge',
           'classes', 'students', 'class_memberships', 'assessments',
           'assessment_classes', 'assessment_participants')
 
 def fingerprint(connection):
-    rows = {table: [tuple(row) for row in connection.execute(f'SELECT * FROM {table} ORDER BY 1')]
-            for table in TABLES}
+    # 0014 给 students 追加可空 gender 列（老行 NULL）：指纹按业务列计算，
+    # 不把"追加列导致的行形状变化"误判为数据变更（R5-BE-b 最小适配）。
+    rows = {
+        table: [
+            tuple(row)
+            for row in connection.execute(
+                f'SELECT {STUDENT_BUSINESS_COLUMNS} FROM {table} ORDER BY 1'
+                if table == 'students'
+                else f'SELECT * FROM {table} ORDER BY 1'
+            )
+        ]
+        for table in TABLES
+    }
     return hashlib.sha256(json.dumps(rows, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
 
 def seed(connection):
@@ -63,7 +74,7 @@ def test_rebuild_failure_preserves_all_b2_rows_and_can_rerun(tmp_path, monkeypat
         assert connection.execute('PRAGMA integrity_check').fetchall()[0][0] == 'ok'
         assert connection.execute("SELECT 1 FROM schema_migrations WHERE id='0007_teaching_assessment_active_score_fk'").fetchone() is None
         monkeypatch.setitem(REGISTERED_MIGRATIONS, 'teaching', full)
-        assert apply_migrations(connection, database='teaching') == ['0007_teaching_assessment_active_score_fk', '0008', '0009', '0010', '0011_analysis_runs_archived_at', '0012_score_import_rows_ignored', '0013']
+        assert apply_migrations(connection, database='teaching') == ['0007_teaching_assessment_active_score_fk', '0008', '0009', '0010', '0011_analysis_runs_archived_at', '0012_score_import_rows_ignored', '0013', '0014_student_gender']
         assert fingerprint(connection) == before
         assert connection.execute('PRAGMA foreign_key_check').fetchall() == []
     finally:
@@ -94,7 +105,7 @@ def test_integrity_non_ok_after_ok_row_rolls_back_and_restores_foreign_keys(tmp_
         assert fingerprint(connection) == before
         assert connection.execute('PRAGMA foreign_keys').fetchone()[0] == 1
         connection.inject = False
-        assert apply_migrations(connection, database='teaching') == ['0007_teaching_assessment_active_score_fk', '0008', '0009', '0010', '0011_analysis_runs_archived_at', '0012_score_import_rows_ignored', '0013']
+        assert apply_migrations(connection, database='teaching') == ['0007_teaching_assessment_active_score_fk', '0008', '0009', '0010', '0011_analysis_runs_archived_at', '0012_score_import_rows_ignored', '0013', '0014_student_gender']
         assert fingerprint(connection) == before
         assert connection.execute('PRAGMA integrity_check').fetchall()[0][0] == 'ok'
     finally:

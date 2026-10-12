@@ -345,6 +345,66 @@ def test_assessment_triggers_and_phasing(tmp_path: Path) -> None:
         connection.close()
 
 
+def test_student_gender_migration_is_idempotent_and_skips_existing_column(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """0014_student_gender：新库加列、重复应用幂等、已有 gender 列的库跳过 ALTER。
+
+    两库场景沿用本文件风格（声明散列不变，``adjust`` 钩子只调整实际执行语句）；
+    老库升级后既有行 ``gender`` 为 NULL（= 未记录），不回填。
+    """
+    # 场景一：全新库——加列成功、重复应用幂等、可写入与读回 NULL
+    connection = connect(tmp_path / "fresh.sqlite3")
+    try:
+        applied = apply_migrations(connection, database="teaching")
+        assert applied[-1] == "0014_student_gender"
+        columns = [row[1] for row in connection.execute("PRAGMA table_info(students)")]
+        assert "gender" in columns
+        assert apply_migrations(connection, database="teaching") == []
+        connection.execute(
+            "INSERT INTO students (id, owner_id, student_no, name) "
+            "VALUES ('s1','local','0001','老行')"
+        )
+        row = connection.execute("SELECT gender FROM students WHERE id='s1'").fetchone()
+        assert row["gender"] is None
+        connection.execute(
+            "UPDATE students SET gender='男' WHERE id='s1'"
+        )
+        assert connection.execute(
+            "SELECT gender FROM students WHERE id='s1'"
+        ).fetchone()["gender"] == "男"
+    finally:
+        connection.close()
+
+    # 场景二：gender 列已存在的旧库（模拟手工加列）——adjust 跳过 ALTER、不报错、登记成功
+    path = tmp_path / "preset.sqlite3"
+    full = REGISTERED_FULL["teaching"]
+    prefix = full[:-1]  # 截到 0013（不含 0014）
+    monkeypatch.setitem(REGISTERED_MIGRATIONS, "teaching", prefix)
+    connection = connect(path)
+    try:
+        apply_migrations(connection, database="teaching")
+        connection.execute("ALTER TABLE students ADD COLUMN gender TEXT")
+        connection.execute(
+            "INSERT INTO students (id, owner_id, student_no, name, gender) "
+            "VALUES ('s2','local','0002','手工列','女')"
+        )
+    finally:
+        connection.close()
+
+    monkeypatch.setitem(REGISTERED_MIGRATIONS, "teaching", full)  # 真实 0014（含 adjust 钩子）
+    connection = connect(path)
+    try:
+        assert apply_migrations(connection, database="teaching") == ["0014_student_gender"]
+        # 手工列的数据原样保留
+        row = connection.execute("SELECT gender FROM students WHERE id='s2'").fetchone()
+        assert row["gender"] == "女"
+        assert connection.execute("PRAGMA foreign_key_check").fetchall() == []
+        assert connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+    finally:
+        connection.close()
+
+
 def test_question_links_immutable(tmp_path: Path) -> None:
     connection = connect(tmp_path / "question-bank.sqlite3")
     try:

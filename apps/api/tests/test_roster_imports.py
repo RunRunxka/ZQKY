@@ -1066,3 +1066,95 @@ def test_discard_import_route(client: TestClient) -> None:
     )
     assert response.status_code == 200
     assert response.json()["state"] == "cancelled"
+
+
+# --------------------------------------------------------------------------- 性别列（R5-BE-b，0014）
+
+
+def test_import_gender_column_create_and_link(harness: Harness) -> None:
+    """「性别」表头自动映射：create 行把原文写入新学生；link 行不改既有学生性别。"""
+    created = make_class(harness)
+    existing = make_student(harness, "张三", "0012")
+    content = csv_bytes(
+        [
+            ["学号", "姓名", "性别"],
+            ["0012", "张三", "女"],  # link：既有学生性别不被表格改写
+            ["0013", "王五", "男"],  # create：新学生写入原文
+        ]
+    )
+    view = upload(harness, created.id, content=content, file_name="名单.csv")
+
+    # 自动映射命中「性别」列
+    assert view.mapping == {"studentNo": "学号", "name": "姓名", "gender": "性别"}
+
+    result = confirm(
+        harness,
+        view.import_id,
+        expected_revision=view.revision,
+        submission_id="gender-1",
+    )
+    assert result.state == "confirmed"
+    linked = harness.service.get_student(existing.id)
+    assert linked.gender is None  # link 不改既有身份（同「绝不自动改名」口径）
+    created_student = harness.service.list_students()
+    by_no = {item.student_no: item for item in created_student.items}
+    assert by_no["0013"].gender == "男"  # create 写入原文（存原文，不发明枚举）
+
+
+def test_import_gender_missing_or_empty_is_unrecorded(harness: Harness) -> None:
+    """无性别列 = 该批不提供性别（新学生 NULL）；性别列空单元格同样未记录。"""
+    created = make_class(harness)
+    no_column = upload(
+        harness,
+        created.id,
+        content=csv_bytes([["学号", "姓名"], ["0012", "张三"]]),
+        file_name="无性别.csv",
+    )
+    assert "gender" not in no_column.mapping
+    confirm(
+        harness,
+        no_column.import_id,
+        expected_revision=no_column.revision,
+        submission_id="gender-2",
+    )
+    by_no = {item.student_no: item for item in harness.service.list_students().items}
+    assert by_no["0012"].gender is None
+
+    # 有列但单元格为空 → 未记录
+    created2 = make_class(harness, code="702")
+    empty_cell = upload(
+        harness,
+        created2.id,
+        content=csv_bytes([["学号", "姓名", "性别"], ["0013", "李四", ""]]),
+        file_name="空性别.csv",
+    )
+    assert empty_cell.mapping["gender"] == "性别"
+    confirm(
+        harness,
+        empty_cell.import_id,
+        expected_revision=empty_cell.revision,
+        submission_id="gender-3",
+    )
+    by_no2 = {item.student_no: item for item in harness.service.list_students().items}
+    assert by_no2["0013"].gender is None
+
+
+def test_import_gender_over_limit_blocks_row(harness: Harness) -> None:
+    """性别超 16 字：预览行标 ROSTER_ROW_INVALID；确认整批不写入。"""
+    created = make_class(harness)
+    content = csv_bytes(
+        [["学号", "姓名", "性别"], ["0012", "张三", "甲" * 17]]
+    )
+    view = upload(harness, created.id, content=content, file_name="超限.csv")
+    row = row_by_no(view, 1)
+    assert any(issue.field == "gender" for issue in row.issues)
+
+    with pytest.raises(AppError) as err:
+        confirm(
+            harness,
+            view.import_id,
+            expected_revision=view.revision,
+            submission_id="gender-4",
+        )
+    assert err.value.status_code == 422
+    assert harness.count("students") == 0

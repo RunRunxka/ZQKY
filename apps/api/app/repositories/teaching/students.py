@@ -16,6 +16,7 @@ import uuid
 from dataclasses import dataclass
 
 from app.contracts.roster import (
+    MAX_GENDER_CHARS,
     STUDENT_NO_CONFLICT,
     StudentMembershipView,
     StudentView,
@@ -28,6 +29,7 @@ from app.repositories.teaching.catalog import TeachingCatalog
 DEFAULT_OWNER_ID = "local"
 MAX_LIST_LIMIT = 200
 STUDENT_STATUSES: frozenset[str] = frozenset({"active", "archived"})
+#: 性别原文长度上限（R5-BE-b）：单一来源在 ``app/contracts/roster.py``，此处转发复用。
 
 STUDENT_NOT_FOUND = "STUDENT_NOT_FOUND"
 STUDENT_ROW_CORRUPT = "STUDENT_ROW_CORRUPT"
@@ -123,6 +125,8 @@ class StudentRecord:
     status: str
     revision: int
     created_at: str
+    #: 性别（0014 可空列）：存原文（如「男/女/其他」），老行/未记录为 ``None``。
+    gender: str | None = None
     memberships: tuple[MembershipRecord, ...] = ()
 
     def view(self) -> StudentView:
@@ -130,6 +134,7 @@ class StudentRecord:
             id=self.id,
             studentNo=self.student_no,
             name=self.name,
+            gender=self.gender,
             status=self.status,
             revision=self.revision,
             memberships=[item.view() for item in self.memberships],
@@ -150,6 +155,7 @@ class StudentRepository:
         *,
         name: str,
         student_no: str | None = None,
+        gender: str | None = None,
         owner_id: str = DEFAULT_OWNER_ID,
         student_id: str | None = None,
     ) -> StudentRecord:
@@ -158,6 +164,7 @@ class StudentRepository:
                 conn,
                 name=name,
                 student_no=student_no,
+                gender=gender,
                 owner_id=owner_id,
                 student_id=student_id,
             )
@@ -168,6 +175,7 @@ class StudentRepository:
         *,
         name: str,
         student_no: str | None = None,
+        gender: str | None = None,
         owner_id: str = DEFAULT_OWNER_ID,
         student_id: str | None = None,
     ) -> StudentRecord:
@@ -177,14 +185,22 @@ class StudentRepository:
             if not isinstance(student_no, str):
                 raise _invalid("studentNo 必须是字符串或 null。", fields=["studentNo"])
             student_no = student_no.strip() or None
+        if gender is not None:
+            if not isinstance(gender, str):
+                raise _invalid("gender 必须是字符串或 null。", fields=["gender"])
+            gender = gender.strip() or None
+            if gender is not None and len(gender) > MAX_GENDER_CHARS:
+                raise _invalid(
+                    f"gender 不能超过 {MAX_GENDER_CHARS} 字。", fields=["gender"]
+                )
         new_id = student_id or uuid.uuid4().hex
         created_at = now_iso()
         try:
             conn.execute(
                 "INSERT INTO students "
-                "(id, owner_id, student_no, name, status, revision, created_at) "
-                "VALUES (?, ?, ?, ?, 'active', 0, ?)",
-                (new_id, owner_id, student_no, name, created_at),
+                "(id, owner_id, student_no, name, gender, status, revision, created_at) "
+                "VALUES (?, ?, ?, ?, ?, 'active', 0, ?)",
+                (new_id, owner_id, student_no, name, gender, created_at),
             )
         except sqlite3.IntegrityError as exc:
             message = str(exc).upper()
@@ -196,6 +212,7 @@ class StudentRepository:
             owner_id=owner_id,
             student_no=student_no,
             name=name,
+            gender=gender,
             status="active",
             revision=0,
             created_at=created_at,
@@ -288,6 +305,7 @@ class StudentRepository:
         expected_revision: int,
         name: str | None = None,
         student_no: str | None = None,
+        gender: str | None = None,
     ) -> StudentRecord:
         with self._catalog.write_transaction() as conn:
             return self.update_in(
@@ -296,6 +314,7 @@ class StudentRepository:
                 expected_revision=expected_revision,
                 name=name,
                 student_no=student_no,
+                gender=gender,
             )
 
     def update_in(
@@ -306,8 +325,14 @@ class StudentRepository:
         expected_revision: int,
         name: str | None = None,
         student_no: str | None = None,
+        gender: str | None = None,
     ) -> StudentRecord:
-        """改名/改学号；``None`` 表示**不修改该字段**（本批不支持清空学号）。"""
+        """改名/改学号/改性别；``None`` 表示**不修改该字段**。
+
+        ``gender`` 与 ``studentNo`` 清空/不修改语义完全一致（R5-BE-b 审计同文件
+        ``student_no`` 口径）：空字符串/纯空白 → 422（不支持清空）；非空文本覆盖为原文
+        （≤16 字、存原文、不发明枚举）。
+        """
         current = self._require_row_in(conn, student_id)
         _check_revision(current["revision"], expected_revision)
         fields: dict[str, object] = {}
@@ -322,6 +347,20 @@ class StudentRepository:
                     "studentNo 不能为空字符串；本批不支持清空学号。", fields=["studentNo"]
                 )
             fields["student_no"] = normalized
+        if gender is not None:
+            if not isinstance(gender, str):
+                raise _invalid("gender 必须是字符串或 null。", fields=["gender"])
+            normalized_gender = gender.strip()
+            if not normalized_gender:
+                raise _invalid(
+                    "gender 不能为空字符串；本批不支持清空性别（留 null = 不修改）。",
+                    fields=["gender"],
+                )
+            if len(normalized_gender) > MAX_GENDER_CHARS:
+                raise _invalid(
+                    f"gender 不能超过 {MAX_GENDER_CHARS} 字。", fields=["gender"]
+                )
+            fields["gender"] = normalized_gender
         if fields:
             assignments = ", ".join(f"{column} = ?" for column in fields)
             try:
@@ -715,6 +754,7 @@ class StudentRepository:
             status=record.status,
             revision=record.revision,
             created_at=record.created_at,
+            gender=record.gender,
             memberships=memberships,
         )
 
@@ -742,6 +782,7 @@ class StudentRepository:
                 status=record.status,
                 revision=record.revision,
                 created_at=record.created_at,
+                gender=record.gender,
                 memberships=tuple(grouped.get(record.id, ())),
             )
             for record in records
@@ -786,6 +827,9 @@ class StudentRepository:
         if student_no is not None:
             if not isinstance(student_no, str) or not student_no.strip():
                 raise _corrupt("教学库数据损坏：students.student_no 结构不符。")
+        gender = row["gender"] if "gender" in row.keys() else None
+        if gender is not None and (not isinstance(gender, str) or not gender.strip()):
+            raise _corrupt("教学库数据损坏：students.gender 结构不符。")
         name = row["name"]
         if not isinstance(name, str) or not name.strip():
             raise _corrupt("教学库数据损坏：students.name 不是非空字符串。")
@@ -801,11 +845,13 @@ class StudentRepository:
             status=status,
             revision=revision,
             created_at=row["created_at"],
+            gender=gender,
         )
 
 
 __all__ = [
     "DEFAULT_OWNER_ID",
+    "MAX_GENDER_CHARS",
     "MAX_LIST_LIMIT",
     "STUDENT_NOT_FOUND",
     "STUDENT_ROW_CORRUPT",

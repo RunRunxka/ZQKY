@@ -23,6 +23,7 @@ from dataclasses import dataclass, replace
 from typing import Protocol, Sequence
 
 from app.contracts.roster import (
+    MAX_GENDER_CHARS,
     ROSTER_IMPORT_FIELDS,
     ROSTER_MAPPING_INVALID,
     ROSTER_ROW_INVALID,
@@ -59,6 +60,14 @@ HEADER_SYNONYMS: dict[str, tuple[str, ...]] = {
         "student name",
         "studentname",
         "student_name",
+    ),
+    # 性别（R5-BE-b，0014 补列后可选增强）：出现「性别」表头就读入该列，存原文；
+    # 未出现/显式不映射 = 该批不提供性别（新建学生 gender=NULL=未记录）。
+    "gender": (
+        "性别",
+        "学生性别",
+        "gender",
+        "sex",
     ),
 }
 
@@ -139,6 +148,8 @@ class ExtractedRow:
     row_no: int
     name: str
     student_no: str | None
+    #: 性别原文（映射无性别列 = ``None``；空单元格同样视为未记录）
+    gender: str | None
     raw_cells: dict[str, str]
 
 
@@ -151,7 +162,16 @@ class AnalyzedRow:
     student_no: str | None
     matched_student_id: str | None
     issues: tuple[ErrorIssue, ...]
+    #: 性别原文（可空，≤16 字；仅 ``create`` 路径写入新学生，link 不改既有身份）
+    gender: str | None
     raw_cells: dict[str, str]
+
+
+def _gender_of(raw_cells: dict[str, str], gender_header: str | None) -> str | None:
+    """从审计原文取性别原文：无性别列/空单元格 → ``None``（不发明默认值）。"""
+    if gender_header is None:
+        return None
+    return raw_cells.get(gender_header, "").strip() or None
 
 
 def extract_rows(
@@ -159,9 +179,10 @@ def extract_rows(
     rows: Sequence[Sequence[str]],
     mapping: dict[str, str],
 ) -> list[ExtractedRow]:
-    """逐行按映射取「姓名/学号」；``studentNo`` 单元格为空 → ``None``（文本保持不变）。"""
+    """逐行按映射取「姓名/学号/性别」；``studentNo`` 单元格为空 → ``None``（文本保持不变）。"""
     name_header = mapping["name"]
     no_header = mapping.get("studentNo")
+    gender_header = mapping.get("gender")
     name_index = list(headers).index(name_header)
     no_index = list(headers).index(no_header) if no_header is not None else None
 
@@ -180,6 +201,7 @@ def extract_rows(
                 row_no=offset + 1,
                 name=name,
                 student_no=student_no,
+                gender=_gender_of(raw_cells, gender_header),
                 raw_cells=raw_cells,
             )
         )
@@ -193,6 +215,7 @@ def extract_rows_from_raw(
     """按新映射从已持久化的审计原文重算行（改映射时使用，行号原样保留）。"""
     name_header = mapping["name"]
     no_header = mapping.get("studentNo")
+    gender_header = mapping.get("gender")
     extracted: list[ExtractedRow] = []
     for row_no, raw_cells in raw_rows:
         name = raw_cells.get(name_header, "").strip()
@@ -202,6 +225,7 @@ def extract_rows_from_raw(
                 row_no=row_no,
                 name=name,
                 student_no=raw_no.strip() or None,
+                gender=_gender_of(raw_cells, gender_header),
                 raw_cells=dict(raw_cells),
             )
         )
@@ -237,6 +261,16 @@ def analyze_rows(
                     field="name",
                     code=ROSTER_ROW_INVALID,
                     message=f"姓名超过 {MAX_NAME_CHARS} 字上限。",
+                )
+            )
+        if row.gender is not None and len(row.gender) > MAX_GENDER_CHARS:
+            issues.append(
+                ErrorIssue(
+                    row=row.row_no,
+                    column="gender",
+                    field="gender",
+                    code=ROSTER_ROW_INVALID,
+                    message=f"性别超过 {MAX_GENDER_CHARS} 字上限。",
                 )
             )
         if row.student_no is not None:
@@ -293,6 +327,7 @@ def analyze_rows(
                 student_no=row.student_no,
                 matched_student_id=matched_student_id,
                 issues=tuple(issues),
+                gender=row.gender,
                 raw_cells=row.raw_cells,
             )
         )

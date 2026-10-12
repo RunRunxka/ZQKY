@@ -40,7 +40,11 @@ ATTENDANCE_VALUES: frozenset[str] = frozenset({"present", "absent", "exempt"})
 AssessmentType = Literal["exam", "quiz", "practice"]
 
 #: 名单表字段（表头/映射只允许这些）
-ROSTER_IMPORT_FIELDS: tuple[str, ...] = ("studentNo", "name")
+ROSTER_IMPORT_FIELDS: tuple[str, ...] = ("studentNo", "name", "gender")
+
+#: 学生性别原文长度上限（R5-BE-b）：可空、≤16 字、**存原文**（如「男/女/其他」）、
+#: 不发明枚举；None/NULL = 未记录（前端显示「未记录」）。
+MAX_GENDER_CHARS = 16
 
 # --------------------------------------------------------------------------- 错误码
 
@@ -179,6 +183,9 @@ class StudentView(_Frozen):
     id: str
     student_no: str | None = Field(default=None, alias="studentNo")
     name: str
+    #: 性别（R5-FE 参考图列，0014 补列）：**存原文**（如「男/女/其他」），不发明枚举；
+    #: 老行/未记录为 ``None``（前端显示「未记录」）。
+    gender: str | None = Field(default=None)
     status: StudentStatus = "active"
     revision: int = Field(ge=0)
     memberships: list[StudentMembershipView] = Field(default_factory=list)
@@ -193,10 +200,15 @@ class StudentList(_Frozen):
 
 
 class StudentCreateRequest(_Strict):
-    """无学号时必须显式建档（studentNo 留空）；姓名允许重名。"""
+    """无学号时必须显式建档（studentNo 留空）；姓名允许重名。
+
+    ``gender`` 可选（R5-FE 参考图列）：**存原文**（如「男/女/其他」），≤16 字，不发明枚举；
+    留空/缺省 = 未记录（NULL）。
+    """
 
     name: str = Field(min_length=1, max_length=120)
     student_no: str | None = Field(default=None, alias="studentNo", max_length=64)
+    gender: str | None = Field(default=None, max_length=16)
     class_id: str | None = Field(default=None, alias="classId")
     joined_on: str | None = Field(default=None, alias="joinedOn", max_length=10)
 
@@ -208,11 +220,27 @@ class StudentCreateRequest(_Strict):
         text = value.strip()
         return text or None
 
+    @field_validator("gender")
+    @classmethod
+    def normalize_gender(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        text = value.strip()
+        return text or None
+
 
 class StudentUpdateRequest(_Strict):
+    """编辑学生身份（姓名/学号/性别）；``expectedRevision`` 乐观锁。
+
+    ``gender`` 与 ``student_no`` 的清空/不修改语义**完全一致**（R5-BE-b 审计结论）：
+    ``None`` = 不修改该字段；空字符串/纯空白 → 422（归档契约不支持清空，
+    ``update_in`` 对 studentNo 即此口径）；填非空文本 = 覆盖为原文（≤16 字，不发明枚举）。
+    """
+
     expected_revision: int = Field(alias="expectedRevision", ge=0)
     name: str | None = Field(default=None, min_length=1, max_length=120)
     student_no: str | None = Field(default=None, alias="studentNo", max_length=64)
+    gender: str | None = Field(default=None, max_length=16)
 
 
 class MembershipTransferRequest(_Strict):

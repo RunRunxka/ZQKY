@@ -393,6 +393,102 @@ def test_student_list_fuzzy_query_and_paging(harness: Harness) -> None:
         harness.service.list_students(limit=0)
 
 
+# --------------------------------------------------------------------------- 性别（0014）
+
+
+def test_student_gender_crud_roundtrip(harness: Harness) -> None:
+    """create/update/读回/老行 None 全链路：存原文、可空、None=不修改、不支持清空。"""
+    # 建档带性别（原文保存，不发明枚举）
+    created = harness.service.create_student(
+        StudentCreateRequest(name="张三", studentNo="0012", gender=" 男 ")
+    )
+    assert created.gender == "男"
+
+    # 缺省建档 → None（未记录）
+    no_gender = _create_student(harness, "李四", "0013")
+    assert no_gender.gender is None
+
+    # 读回
+    fetched = harness.service.get_student(created.id)
+    assert fetched.gender == "男"
+
+    # PATCH 性别 + 读回（revision 递增）
+    updated = harness.service.update_student(
+        created.id,
+        StudentUpdateRequest(expectedRevision=0, name="张三", studentNo="0012", gender="女"),
+    )
+    assert updated.gender == "女"
+    assert updated.revision == 1
+    assert harness.service.get_student(created.id).gender == "女"
+
+    # None = 不修改该字段（与 studentNo 同语义）：不改值、仍递增 revision（有其他字段时）
+    untouched = harness.service.update_student(
+        created.id, StudentUpdateRequest(expectedRevision=1, name="张三丰")
+    )
+    assert untouched.gender == "女"
+    assert untouched.name == "张三丰"
+    assert untouched.revision == 2
+
+    # 空字符串 → 422（不支持清空，与 studentNo 口径一致）
+    with pytest.raises(AppError) as err:
+        harness.service.update_student(
+            created.id, StudentUpdateRequest(expectedRevision=2, gender="")
+        )
+    assert err.value.status_code == 422
+    assert harness.service.get_student(created.id).gender == "女"
+
+    # 超过 16 字：契约层直接拒绝（HTTP 上等价 422 INVALID_REQUEST）
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        StudentUpdateRequest(expectedRevision=2, gender="甲" * 17)
+    with pytest.raises(ValidationError):
+        StudentCreateRequest(name="王五", studentNo="0014", gender="乙" * 17)
+
+    # 仓储层防御（绕过契约直调）：AppError 422 + gender 未被改写
+    with pytest.raises(AppError) as too_long:
+        with harness.catalog.write_transaction() as conn:
+            harness.service._students.update_in(
+                conn, created.id, expected_revision=2, gender="甲" * 17
+            )
+    assert too_long.value.status_code == 422
+    assert harness.service.get_student(created.id).gender == "女"
+
+    # 列表读回：老行 None、新行原文（无枚举改写）
+    listed = harness.service.list_students()
+    by_no = {item.student_no: item for item in listed.items}
+    assert by_no["0012"].gender == "女"
+    assert by_no["0013"].gender is None
+
+
+def test_student_gender_http_roundtrip(client: TestClient) -> None:
+    """HTTP 层 camelCase 别名（gender 无别名）：建带性别 → PATCH 改 → 读回。"""
+    created = client.post(
+        "/api/v1/students",
+        json={"name": "赵六", "studentNo": "0015", "gender": "男"},
+    )
+    assert created.status_code == 201, created.text
+    body = created.json()
+    assert body["gender"] == "男"
+
+    patched = client.patch(
+        f"/api/v1/students/{body['id']}",
+        json={"expectedRevision": 0, "gender": "其他"},
+    )
+    assert patched.status_code == 200, patched.text
+    assert patched.json()["gender"] == "其他"
+
+    fetched = client.get(f"/api/v1/students/{body['id']}")
+    assert fetched.status_code == 200
+    assert fetched.json()["gender"] == "其他"
+
+    # 超限 422（契约层 max_length=16）
+    too_long = client.post(
+        "/api/v1/students", json={"name": "孙七", "gender": "丙" * 17}
+    )
+    assert too_long.status_code == 422
+
+
 # --------------------------------------------------------------------------- 归属与转班
 
 

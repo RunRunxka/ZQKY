@@ -76,9 +76,14 @@ from app.repositories.teaching.roster import (
     RosterImportRecord,
     RosterImportRepository,
     RosterRowPayload,
+    RosterRowRecord,
     RowDecision,
 )
-from app.repositories.teaching.students import StudentRecord, StudentRepository
+from app.repositories.teaching.students import (
+    MAX_GENDER_CHARS,
+    StudentRecord,
+    StudentRepository,
+)
 from app.services.assets.store import AssetStore
 from app.services.roster import imports as row_analysis
 from app.services.roster.imports import AnalyzedRow, ExtractedRow
@@ -164,6 +169,30 @@ def _optional_student_no(value: object) -> str | None:
         raise _invalid(
             f"studentNo 不能超过 {row_analysis.MAX_STUDENT_NO_CHARS} 字。",
             fields=["studentNo"],
+        )
+    return text
+
+
+def _optional_gender(value: object) -> str | None:
+    """性别（R5-BE-b）：与 ``_optional_student_no`` 清空/不修改语义完全一致。
+
+    ``None`` = 不修改；空字符串/纯空白 → 422（不支持清空）；非空文本 = 覆盖为原文
+    （≤16 字、存原文、不发明枚举）。
+    """
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise _invalid("gender 必须是字符串或 null。", fields=["gender"])
+    text = value.strip()
+    if not text:
+        raise _invalid(
+            "gender 不能为空字符串；本批不支持清空性别（留 null = 不修改）。",
+            fields=["gender"],
+        )
+    if len(text) > MAX_GENDER_CHARS:
+        raise _invalid(
+            f"gender 不能超过 {MAX_GENDER_CHARS} 字。",
+            fields=["gender"],
         )
     return text
 
@@ -368,6 +397,14 @@ def _payloads(analyzed: list[AnalyzedRow]) -> list[RosterRowPayload]:
         )
         for row in analyzed
     ]
+
+
+def _row_gender(record: RosterImportRecord, row: RosterRowRecord) -> str | None:
+    """按批次已存映射从审计原文重取性别原文（确认时使用；无性别列/空格 → None）。"""
+    gender_header = record.mapping.get("gender")
+    if gender_header is None:
+        return None
+    return row.raw_cells.get(gender_header, "").strip() or None
 
 
 class RosterService:
@@ -711,7 +748,7 @@ class RosterService:
             if class_id is not None:
                 _reject_archived(self._classes.require_in(conn, class_id), action="加入新学生")
             student = self._students.create_in(
-                conn, name=name, student_no=payload.student_no
+                conn, name=name, student_no=payload.student_no, gender=payload.gender
             )
             if class_id is not None:
                 self._students.insert_membership_in(
@@ -734,6 +771,7 @@ class RosterService:
                 expected_revision=payload.expected_revision,
                 name=_optional_text(payload.name, field="name"),
                 student_no=_optional_student_no(payload.student_no),
+                gender=_optional_gender(payload.gender),
             )
         return record.view()
 
@@ -1209,6 +1247,23 @@ class RosterService:
                             )
                         ],
                     )
+                # 性别（R5-BE-b）：确认时从审计原文 + 已存映射重取原文；超限整批回滚
+                #（与姓名/学号同口径，不静默截断）。link 不改既有学生性别（同"绝不自动改名"）。
+                gender = _row_gender(record, row)
+                if gender is not None and len(gender) > MAX_GENDER_CHARS:
+                    raise _issue_error(
+                        f"第 {row.row_no} 行的性别超出长度上限。",
+                        code=ROSTER_ROW_INVALID,
+                        status_code=422,
+                        issues=[
+                            _issue(
+                                row.row_no,
+                                code=ROSTER_ROW_INVALID,
+                                message=f"性别超过 {MAX_GENDER_CHARS} 字上限，不能新建学生。",
+                                field="gender",
+                            )
+                        ],
+                    )
             resolved[row.row_no] = (action, student_id)
 
         # 按行序执行；任一失败整体回滚（含提交登记）。
@@ -1262,7 +1317,10 @@ class RosterService:
                 continue
             try:
                 student = self._students.create_in(
-                    conn, name=row.name, student_no=row.student_no
+                    conn,
+                    name=row.name,
+                    student_no=row.student_no,
+                    gender=_row_gender(record, row),
                 )
             except AppError as exc:
                 if exc.code == STUDENT_NO_CONFLICT:

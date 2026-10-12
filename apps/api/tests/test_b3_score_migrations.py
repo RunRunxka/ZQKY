@@ -20,6 +20,9 @@ from app.core.sqlite import connect, now_iso
 
 NOW = "2026-10-01T00:00:00Z"
 
+#: students 的业务列（0014 追加可空 gender 列后，数据对账用业务列比较，不含追加列）。
+STUDENT_BUSINESS_COLUMNS = "id, owner_id, student_no, name, status, revision, created_at"
+
 
 def _prefix(database: str, up_to: str) -> tuple:
     """取到 `up_to` 为止的迁移前缀（模拟旧库已应用范围）。"""
@@ -115,11 +118,11 @@ def test_fresh_database_applies_b3_and_restores_active_score_fk(tmp_path: Path) 
     connection = connect(tmp_path / "teaching.sqlite3")
     try:
         applied = apply_migrations(connection, database="teaching")
-        assert applied[-8:] == [
+        assert applied[-9:] == [
             "0006_teaching_score_tables",
             "0007_teaching_assessment_active_score_fk",
             "0008", "0009", "0010", "0011_analysis_runs_archived_at",
-            "0012_score_import_rows_ignored", "0013",
+            "0012_score_import_rows_ignored", "0013", "0014_student_gender",
         ]
         names = {
             row[0]
@@ -277,10 +280,16 @@ def test_b2_database_upgrades_with_business_data_preserved(tmp_path: Path, monke
         applied = apply_migrations(connection, database="teaching")
         assert applied[-1] == "0005_teaching_paper_revision_titles"
         _seed_b2_business(connection)
+        # 0014 给 students 追加了可空 gender 列（老行 NULL）：数据对账按业务列比较，
+        # 不把"追加列导致的行形状变化"误判为数据变更（R5-BE-b 最小适配）。
         before = {
             table: [
                 tuple(row)
-                for row in connection.execute(f"SELECT * FROM {table} ORDER BY 1")
+                for row in connection.execute(
+                    f"SELECT {STUDENT_BUSINESS_COLUMNS} FROM {table} ORDER BY 1"
+                    if table == "students"
+                    else f"SELECT * FROM {table} ORDER BY 1"
+                )
             ]
             for table in ("assessments", "assessment_classes", "assessment_participants", "students", "classes")
         }
@@ -294,12 +303,16 @@ def test_b2_database_upgrades_with_business_data_preserved(tmp_path: Path, monke
             "0006_teaching_score_tables",
             "0007_teaching_assessment_active_score_fk",
             "0008", "0009", "0010", "0011_analysis_runs_archived_at",
-            "0012_score_import_rows_ignored", "0013",
+            "0012_score_import_rows_ignored", "0013", "0014_student_gender",
         ]
         after = {
             table: [
                 tuple(row)
-                for row in connection.execute(f"SELECT * FROM {table} ORDER BY 1")
+                for row in connection.execute(
+                    f"SELECT {STUDENT_BUSINESS_COLUMNS} FROM {table} ORDER BY 1"
+                    if table == "students"
+                    else f"SELECT * FROM {table} ORDER BY 1"
+                )
             ]
             for table in ("assessments", "assessment_classes", "assessment_participants", "students", "classes")
         }
@@ -360,7 +373,8 @@ def test_rebuild_verifications_fail_closed(tmp_path: Path, monkeypatch: pytest.M
         monkeypatch.setitem(REGISTERED_MIGRATIONS, "teaching", full)
         assert apply_migrations(connection, database="teaching") == [
             "0007_teaching_assessment_active_score_fk", "0008", "0009", "0010",
-            "0011_analysis_runs_archived_at", "0012_score_import_rows_ignored", "0013"
+            "0011_analysis_runs_archived_at", "0012_score_import_rows_ignored", "0013",
+            "0014_student_gender"
         ]
         assert connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
     finally:

@@ -874,3 +874,34 @@ from app.core.migrations.b4 import relaxed_migration as _relaxed_migration
 
 MIGRATIONS = MIGRATIONS + (_relaxed_migration(_PAPER_STATEMENTS, _ASSESSMENT_STATEMENTS + _SCORE_STATEMENTS),)
 
+
+# --------------------------------------------------------------------------- 0014 学生性别
+
+#: 学生性别（R5-FE 参考图列）：可空 TEXT，**存原文**（如「男/女/其他」），不发明枚举；
+#: 老行为 NULL（= 未记录，前端显示「未记录」）。``adjust`` 钩子按"列已存在则跳过 ALTER"
+#: 过滤（照 R3 知识点库 ``0004_objectives`` 模式：声明集合不变，散列只对声明语句计算）。
+_GENDER_COLUMN: tuple[str, ...] = (
+    "ALTER TABLE students ADD COLUMN gender TEXT",
+)
+
+
+def _skip_existing_gender_column(connection: sqlite3.Connection) -> Sequence[str]:
+    """``students.gender`` 已存在（手工加列/部分恢复）时跳过 ALTER，保证幂等。"""
+    present = {row[1] for row in connection.execute("PRAGMA table_info(students)")}
+    if "gender" in present:
+        return ()
+    return _GENDER_COLUMN
+
+
+MIGRATIONS = MIGRATIONS + (
+    Migration(
+        id="0014_student_gender",
+        description=(
+            "students 增加可空性别列 gender（存原文、长度由服务层限 16，"
+            "不发明枚举；老行为 NULL=未记录）"
+        ),
+        statements=_GENDER_COLUMN,
+        adjust=_skip_existing_gender_column,
+    ),
+)
+
