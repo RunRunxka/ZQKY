@@ -23,9 +23,10 @@ describe('导航注册表（推倒重做最小骨架）', () => {
     }
   });
 
-  it('登记对话、教材资料库、知识点、题库、学情分析、班级管理、试卷管理与设置八项', () => {
+  it('登记对话、教案工作台、教材资料库、知识点、题库、学情分析、班级管理、试卷管理与设置九项', () => {
     expect(navigation.map((item) => item.id)).toEqual([
       'chat',
+      'lesson-plans',
       'textbooks',
       'knowledge-points',
       'question-bank',
@@ -35,6 +36,7 @@ describe('导航注册表（推倒重做最小骨架）', () => {
       'settings',
     ]);
     expect(navigation.find((item) => item.id === 'chat')?.status).toBe('ready');
+    expect(navigation.find((item) => item.id === 'lesson-plans')?.status).toBe('ready');
     expect(navigation.find((item) => item.id === 'textbooks')?.status).toBe('ready');
     expect(navigation.find((item) => item.id === 'knowledge-points')?.status).toBe('ready');
     expect(navigation.find((item) => item.id === 'question-bank')?.status).toBe('ready');
@@ -67,6 +69,7 @@ describe('唯一主页与当前菜单解析', () => {
   it('每个已实现路由最多解析出一个当前项', () => {
     const cases: [string, string | null][] = [
       ['/chat', 'chat'],
+      ['/lesson-plans', 'lesson-plans'],
       ['/textbooks', 'textbooks'],
       ['/textbooks/libraries/lib-1', 'textbooks'],
       ['/knowledge-points', 'knowledge-points'],

@@ -13,16 +13,19 @@ const independentRoots = new Set<string>([
   'question-bank',
   'learning-analysis',
   'assessments',
-  // 后续批次按注册表登记：practices / lesson-plans
+  'lesson-plans',
+  // 后续批次按注册表登记：practices
 ]);
 export function ModuleWorkspaceShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const root = `/${pathname.split('/')[1]}`;
+  // 注册表条目是**无前导斜杠**的业务根首段（textbooks / lesson-plans …）；
+  // 标题按 navigation 登记表用带斜杠路径反查。
+  const root = pathname.split('/')[1] ?? '';
   if (!independentRoots.has(root)) {
     // 未加壳：向下声明“尚无公共壳”，让 404/错误页自行补一层（R-06）。
     return <ShellScope provided={false}>{children}</ShellScope>;
   }
-  const title = navigation.find((item) => item.path === root)?.label ?? '智启课源';
+  const title = navigation.find((item) => item.path === `/${root}`)?.label ?? '智启课源';
   return (
     <ShellScope provided>
       <WorkspaceShell pageTitle={title} className="module-workspace-shell">

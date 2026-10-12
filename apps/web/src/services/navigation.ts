@@ -11,6 +11,7 @@ import {
   Activity,
   Users,
   FileText,
+  NotebookPen,
 } from 'lucide-react';
 import type { NavigationItem } from '@/contracts/navigation';
 
@@ -30,6 +31,17 @@ export const navigation: NavigationItem[] = [
     home: true,
     icon: MessageSquare,
     sidebarIcon: House,
+  },
+  {
+    // 教案工作台（需求 2）：三栏式（模块/排版 · 编辑 · 第 3 页起 A4 预览）；导出由后端补齐封面目录
+    id: 'lesson-plans',
+    label: '教案工作台',
+    path: '/lesson-plans',
+    status: 'ready',
+    position: 'main',
+    group: '工作台',
+    icon: NotebookPen,
+    sidebarIcon: NotebookPen,
   },
   {
     // 教材资料库（需求 7）：基础库 / 我的教材 / 历史登记 + 导入入库；数据全部来自 FastAPI
