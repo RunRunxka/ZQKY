@@ -202,6 +202,24 @@ def _skip_existing_issues_column(connection: sqlite3.Connection) -> Sequence[str
         return ()
     return _IMPORT_ISSUES_COLUMN
 
+
+#: R3（0004）：知识点详情的「学习目标」。归档实现没有该字段；按追加式迁移补列——
+#: 内容属**当前修订快照**的一部分（改名/改目标都追加修订），因此修订表同步加列；
+#: 既有修订行的 objectives 允许 NULL（＝该修订没有学习目标，视图输出 null）。
+#: ``adjust`` 钩子按"列已存在则跳过 ALTER"过滤（手工加列/部分恢复的库不致报错）。
+_OBJECTIVES_COLUMNS: tuple[str, ...] = (
+    "ALTER TABLE knowledge_point_revisions ADD COLUMN objectives TEXT",
+)
+
+def _skip_existing_objectives_column(connection: sqlite3.Connection) -> Sequence[str]:
+    present = {
+        row[1] for row in connection.execute("PRAGMA table_info(knowledge_point_revisions)")
+    }
+    if "objectives" in present:
+        return ()
+    return _OBJECTIVES_COLUMNS
+
+
 MIGRATIONS: tuple[Migration, ...] = (
     Migration(
         id="0001_knowledge_baseline",
@@ -221,6 +239,12 @@ MIGRATIONS: tuple[Migration, ...] = (
         description="knowledge_imports 补齐批次级 issues_json 列（导入预览的批次问题独立落列）",
         statements=_IMPORT_ISSUES_COLUMN,
         adjust=_skip_existing_issues_column,
+    ),
+    Migration(
+        id="0004_objectives",
+        description="knowledge_point_revisions 补齐学习目标 objectives 列（知识点详情新字段）",
+        statements=_OBJECTIVES_COLUMNS,
+        adjust=_skip_existing_objectives_column,
     ),
 )
 

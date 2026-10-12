@@ -31,9 +31,15 @@ def _client(tmp_path: Path) -> TestClient:
 def test_health_and_unknown_route(tmp_path: Path) -> None:
     with _client(tmp_path) as client:
         assert client.get("/api/v1/health").status_code == 200
+        # R3 起知识点域已装配：/knowledge-points 是真实端点（空库 → 200 空页）
         resp = client.get("/api/v1/knowledge-points")
-        assert resp.status_code == 501
-        assert resp.json()["code"] == "FEATURE_NOT_IMPLEMENTED"
+        assert resp.status_code == 200
+        assert resp.json() == {"items": [], "total": 0, "offset": 0, "limit": 50}
+        # 未知业务路由仍 501 FEATURE_NOT_IMPLEMENTED（不假成功）
+        unknown = client.get("/api/v1/practices")
+        assert unknown.status_code in (501, 503)  # 503 = 域模块在列但装配未回归
+        if unknown.status_code == 501:
+            assert unknown.json()["code"] == "FEATURE_NOT_IMPLEMENTED"
 
 
 def test_chat_and_agent_routes_present(tmp_path: Path) -> None:

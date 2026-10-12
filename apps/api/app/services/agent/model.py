@@ -35,6 +35,7 @@ from app.providers.llm.registry import (
 )
 from app.schemas.model_config import ApiFormat, ModelConnection, ModelProfile
 from app.services.model_readiness import callable_state
+from app.services.model_runtime import model_fingerprint
 
 #: Agent 用途（用于 profile.purpose 校验；None 表示不限制）
 AGENT_PURPOSE = "chat"
@@ -69,13 +70,19 @@ def assert_no_provider_env_keys() -> None:
 
 @dataclass(frozen=True)
 class AgentModelHandle:
-    """一次 Agent 运行冻结的 chat model 句柄：模型 + 连接快照 + 生效输出上限。"""
+    """一次 Agent 运行冻结的 chat model 句柄：模型 + 连接快照 + 生效输出上限。
+
+    ``fingerprint``（R5 起）是非敏感模型指纹（``services.model_runtime.model_fingerprint``
+    同一公式：modelId + protocol + baseHost + apiFormat），供业务域（原卷 AI 建议等）
+    冻结模型快照并在执行期核对漂移（缺指纹 422 / 漂移 409），不含任何凭证。
+    """
 
     profile_id: str
     model_id: str
     chat_model: BaseChatModel
     max_output_tokens: int
     context_tokens: int | None = None
+    fingerprint: str = ""
 
 
 def _resolve_api_key(connection: ModelConnection, secrets: SecretStore) -> str:
@@ -203,12 +210,27 @@ def resolve_agent_chat_model(
 
     api_key = _resolve_api_key(connection, secrets)
     chat_model = _build_chat_model(connection, profile, api_key)
+    # 指纹里的 base_url 与 _build_chat_model 的解析同一口径（显式 baseUrl 优先，
+    # 否则按供应商注册表默认；缺失会在 _build_chat_model 里先拒绝，这里不会为 None）。
+    fingerprint_base_url = connection.baseUrl
+    if not fingerprint_base_url:
+        spec = find_provider(connection.providerId) if connection.providerId else None
+        default_base = (
+            spec.defaultApiBaseFor(connection.apiFormat.value) if spec else None
+        )
+        fingerprint_base_url = default_base.rstrip("/") if default_base else None
     return AgentModelHandle(
         profile_id=profile.id,
         model_id=profile.modelId,
         chat_model=chat_model,
         max_output_tokens=profile.maxOutputTokens or 4096,
         context_tokens=profile.contextTokens,
+        fingerprint=model_fingerprint(
+            model_id=profile.modelId,
+            protocol=str(getattr(connection.protocol, "value", connection.protocol) or ""),
+            base_url=fingerprint_base_url or "",
+            api_format=_effective_api_format(connection),
+        ),
     )
 
 
