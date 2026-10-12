@@ -5,8 +5,8 @@
 TS 镜像的一致性由 `npm run typecheck` 与本文件字段名对照保证（字段名在测试中逐项断言）。
 
 R5 恢复说明：原卷/施测/名单契约（``app/contracts/{papers,assessments,roster}.py``）已随
-R5-BE 回归；题库契约（``app/schemas/question_bank.py``）归 R4-BE，未落盘时
-``test_organize_view_six_states_and_generation_request`` 显式 skip（不静默通过）。
+R5-BE 回归；题库契约（``app/schemas/question_bank.py``）已随 R4-BE 落盘，
+``test_organize_view_six_states_and_generation_request`` 的 defer skip 已取消。
 """
 
 from __future__ import annotations
@@ -32,17 +32,15 @@ from app.contracts.papers import (
     PaperProposalDecisionRequest,
 )
 
-try:  # 题库契约归 R4-BE；缺失时只 skip 题库相关用例
-    from app.schemas.question_bank import (
-        DraftPatchRequest,
-        GenerationJobView,
-        OrganizeJobView,
-        QuestionGenerationRequest,
-    )
+# 题库契约（R4-BE 已落盘）：直接导入，缺失即收集错误（不再 defer skip）
+from app.schemas.question_bank import (
+    DraftPatchRequest,
+    GenerationJobView,
+    OrganizeJobView,
+    QuestionGenerationRequest,
+)
 
-    _QUESTION_BANK_SCHEMA_PRESENT = True
-except ModuleNotFoundError:  # pragma: no cover - R4-BE 未落盘
-    _QUESTION_BANK_SCHEMA_PRESENT = False
+_QUESTION_BANK_SCHEMA_PRESENT = True
 
 
 def test_paper_patch_accepts_camel_case_and_rejects_unknown() -> None:
@@ -162,10 +160,6 @@ def test_assessment_participant_confirmation_must_carry_note() -> None:
     assert add.participants[0].attempt_no == 2
 
 
-@pytest.mark.skipif(
-    not _QUESTION_BANK_SCHEMA_PRESENT,
-    reason="app/schemas/question_bank.py 归 R4-BE，未落盘时题库契约用例 defer",
-)
 def test_organize_view_six_states_and_generation_request() -> None:
     for state in ("queued", "running", "succeeded", "failed", "cancelled", "interrupted"):
         view = OrganizeJobView(jobId="j1", state=state, suggestionCount=0, failedBatches=0, errorCode=None)

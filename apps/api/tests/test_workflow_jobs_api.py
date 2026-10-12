@@ -87,9 +87,16 @@ def test_missing_domain_query_returns_422_with_fields(tmp_path: Path) -> None:
 
 
 def test_engine_not_assembled_returns_503(tmp_path: Path) -> None:
-    # R3 适配：teaching 域由 R5-BE 批次装配（teaching store 在位）；"域未装配"
-    # 用本批尚未回归的 question 域验证同一 503 口径。
+    # R3 适配：teaching 域由 R5-BE 批次装配（teaching store 在位）；R4 起 question
+    # 域也已装配（该域此前被用作"未回归"探针）。本用例改以**显式撤下 question
+    # 域 store** 验证同一 503 口径（引擎在位、域未装配 → 不假成功）。
+    from app.services.jobs.engine import JobEngine
+
     app = create_app(make_settings(tmp_path / "data"), bootstrap_textbooks=False)
+    stores = dict(getattr(app.state, "job_stores", {}) or {})
+    stores.pop("question", None)
+    app.state.job_stores = stores
+    app.state.job_engine = JobEngine(stores)
     with TestClient(app, base_url="http://127.0.0.1:8001") as client:
         response = client.get("/api/v1/workflow-jobs/x?domain=question")
     assert response.status_code == 503
