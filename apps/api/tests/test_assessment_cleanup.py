@@ -22,13 +22,7 @@ from app.contracts.assessments import (
     PARTICIPANT_REMOVE_BLOCKED,
 )
 from tests.assessments_support import AssessmentsHarness, today
-
-try:  # 成绩服务归 R6-BE；缺失时只 defer 成绩相关用例（本卡不伪造成绩能力）
-    from tests.scores_support import SAMPLE_HEADER, ScoresHarness, write_score_xlsx
-
-    _SCORES_PRESENT = True
-except ModuleNotFoundError:  # pragma: no cover - R6-BE 未落盘
-    _SCORES_PRESENT = False
+from tests.scores_support import SAMPLE_HEADER, ScoresHarness, write_score_xlsx
 
 
 @pytest.fixture()
@@ -39,8 +33,6 @@ def harness(tmp_path: Path):
 
 @pytest.fixture()
 def scores(tmp_path: Path):
-    if not _SCORES_PRESENT:  # pragma: no cover - R6-BE 未落盘
-        pytest.skip("tests.scores_support / app.services.scores 归 R6-BE，未落盘时 defer")
     with ScoresHarness(tmp_path) as running:
         yield running
 
