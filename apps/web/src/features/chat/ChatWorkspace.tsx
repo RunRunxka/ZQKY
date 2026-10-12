@@ -19,7 +19,7 @@ import { InfoPanel } from './InfoPanel';
 import { ArtifactPanelItem, WorkspacePanel } from './ArtifactPanel';
 import { ComposerContextChips } from './ComposerContextChips';
 import type { PendingAttachment } from '@/services/doc-attachments';
-import { fileToPendingAttachment, selectAttachmentFiles, ATTACHMENT_ACCEPT } from '@/services/doc-attachments';
+import { fileToPendingAttachment, selectAttachmentFiles, formatBytes, ATTACHMENT_ACCEPT } from '@/services/doc-attachments';
 import './styles/chat.css';
 import './styles/chat-home.css';
 
@@ -352,11 +352,21 @@ function ChatPage() {
               {draftAttachments.length > 0 && (
                 <ul className="chat-attach-row" aria-label="待发送附件">
                   {draftAttachments.map((attachment, index) => (
-                    <li key={`${attachment.filename}-${index}`} className="chat-attach-chip">
-                      <Paperclip size={12} aria-hidden />
-                      <span>{attachment.filename}</span>
+                    <li key={`${attachment.filename}-${index}`} className="chat-attach-card">
+                      <span className="chat-attach-doc" title={attachment.filename}>
+                        <span className="chat-attach-doc-icon">
+                          <Paperclip size={16} strokeWidth={1.6} aria-hidden />
+                        </span>
+                        <span className="chat-attach-doc-text">
+                          <strong>{attachment.filename}</strong>
+                          {typeof attachment.size === 'number' && (
+                            <small>{formatBytes(attachment.size)}</small>
+                          )}
+                        </span>
+                      </span>
                       <button
                         type="button"
+                        className="chat-attach-remove"
                         aria-label={`移除附件 ${attachment.filename}`}
                         onClick={() => removeAttachment(index)}
                       >
@@ -444,12 +454,16 @@ function ChatPage() {
                   presentation="popover"
                 />
                 {store.sending ? (
-                  <button className="chat-send stop" aria-label="停止生成" onClick={() => store.stop()}>
+                  <button
+                    className="chat-send-button stop"
+                    aria-label="停止生成"
+                    onClick={() => store.stop()}
+                  >
                     <Square size={15} />
                   </button>
                 ) : (
                   <button
-                    className="chat-send"
+                    className="chat-send-button"
                     aria-label="发送"
                     disabled={
                       (!selection && !store.waitingInteractionId) ||

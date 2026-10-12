@@ -2644,3 +2644,42 @@
 }
 .chat-effort-picker select:focus { outline: none; border-color: var(--blue); }
 .chat-effort-picker select:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* R10：发送键/附件卡/流式指示补样式（骨架期 JSX 类名与样式契约对齐后仍缺的收尾） */
+.chat-attach-card .chat-attach-remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--muted);
+  cursor: pointer;
+}
+.chat-attach-card .chat-attach-remove:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.chat-stream-dot {
+  display: inline-block;
+  margin-left: 2px;
+  animation: chat-stream-pulse 1.2s ease-in-out infinite;
+}
+@keyframes chat-stream-pulse {
+  0%, 100% { opacity: 0.25; }
+  50% { opacity: 1; }
+}
+html[data-motion='reduced'] .chat-stream-dot {
+  animation: none;
+  opacity: 0.7;
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-stream-dot {
+    animation: none;
+    opacity: 0.7;
+  }
+}
