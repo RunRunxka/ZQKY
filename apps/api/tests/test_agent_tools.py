@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from app.services.agent.tools import _clip, _strip_person, build_read_tools
@@ -171,6 +172,86 @@ class TestReadTools:
         state = _State(knowledge_service=_FakeKnowledge())
         out = _tools_by_name(state)["get_knowledge_point"].invoke({"knowledge_point_id": "kp1"})
         assert "分数的意义" in out
+
+
+class _FakeSearchHit:
+    """SearchHit 的最小替身（工具只读这些属性）。"""
+
+    def __init__(self, title: str, chapter_path: tuple[str, ...], excerpt: str) -> None:
+        self.document_title = title
+        self.edition_label = "人教A版"
+        self.subject_label = "数学"
+        self.chapter_path = chapter_path
+        self.excerpt = excerpt
+
+
+class _FakeTextbookSearch:
+    def __init__(self, hits: list[_FakeSearchHit] | None = None, error: Exception | None = None) -> None:
+        self.hits = hits if hits is not None else [
+            _FakeSearchHit("高中数学必修第一册", ("第一章 集合与函数", "1.1 集合的概念"), "集合元素具有确定性。")
+        ]
+        self.error = error
+        self.calls: list[dict] = []
+
+    def search(self, query, *, limit=6, subject_id=None):  # noqa: ANN001, ANN201
+        self.calls.append({"query": query, "limit": limit, "subject_id": subject_id})
+        if self.error is not None:
+            raise self.error
+        return self.hits
+
+
+class TestSearchTextbooksTool:
+    def test_missing_service_not_registered(self) -> None:
+        tools = _tools_by_name(_State())
+        assert "search_textbooks" not in tools
+
+    def test_registered_when_service_present_and_lists_capability(self) -> None:
+        state = _State(textbook_search=_FakeTextbookSearch())
+        tools = _tools_by_name(state)
+        assert "search_textbooks" in tools
+        assert "教材检索" in tools["list_capabilities"].invoke({})
+
+    def test_search_reports_title_and_chapter_path(self) -> None:
+        state = _State(textbook_search=_FakeTextbookSearch())
+        out = asyncio.run(_tools_by_name(state)["search_textbooks"].ainvoke({"query": "集合的概念"}))
+        assert "高中数学必修第一册" in out
+        assert "第一章 集合与函数" in out
+        assert "集合元素具有确定性。" in out
+        assert "共 1 条" in out
+
+    def test_search_passes_args_to_service(self) -> None:
+        fake = _FakeTextbookSearch()
+        state = _State(textbook_search=fake)
+        asyncio.run(
+            _tools_by_name(state)["search_textbooks"].ainvoke(
+                {"query": "函数的单调性", "limit": 2, "subject_id": "math"}
+            )
+        )
+        assert fake.calls == [{"query": "函数的单调性", "limit": 2, "subject_id": "math"}]
+
+    def test_search_empty_result_is_honest(self) -> None:
+        state = _State(textbook_search=_FakeTextbookSearch(hits=[]))
+        out = asyncio.run(_tools_by_name(state)["search_textbooks"].ainvoke({"query": "微积分"}))
+        assert "没有检索到" in out
+
+    def test_search_service_error_is_reported_not_faked(self) -> None:
+        """服务报错（如索引未就绪）：工具如实返回错误，不返回空结果冒充成功。"""
+        fake = _FakeTextbookSearch(error=Exception("当前没有已发布的教材索引代"))
+        state = _State(textbook_search=fake)
+        out = asyncio.run(_tools_by_name(state)["search_textbooks"].ainvoke({"query": "函数"}))
+        assert "教材检索当前不可用" in out
+        assert "当前没有已发布的教材索引代" in out
+
+    def test_search_long_output_clipped(self) -> None:
+        """多命中超长输出按工具预算截断并标注。"""
+        hits = [
+            _FakeSearchHit(f"教材第{i}册", (f"第{i}章",), "原文片段。" * 500)
+            for i in range(1, 11)
+        ]
+        state = _State(textbook_search=_FakeTextbookSearch(hits=hits))
+        out = asyncio.run(_tools_by_name(state)["search_textbooks"].ainvoke({"query": "函数"}))
+        assert len(out) < 7000
+        assert "已截断" in out
 
 
 class TestClip:

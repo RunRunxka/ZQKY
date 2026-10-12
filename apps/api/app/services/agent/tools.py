@@ -13,6 +13,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import json
 from typing import Any
 
 from langchain_core.tools import BaseTool, tool
@@ -91,20 +93,54 @@ def build_read_tools(app_state: Any) -> list[BaseTool]:
     lessons = getattr(app_state, "lesson_plan_service", None)
     knowledge = getattr(app_state, "knowledge_service", None)
     questions = getattr(app_state, "question_bank_service", None)
+    textbook_search = getattr(app_state, "textbook_search", None)
 
     @tool
     def list_capabilities() -> str:
         """列出本 Agent 已装配的教学闭环服务，帮助判断当前能做什么。"""
         assembled = [label for svc, label in (
-            (roster, "名单/班级"), (papers, "原卷"), (assessments, "施测"), (scores, "成绩"),
-            (analysis, "学情分析"), (practices, "针对练习"), (lessons, "教案"),
-            (knowledge, "知识点库"), (questions, "题库"),
+            (textbook_search, "教材检索"), (roster, "名单/班级"), (papers, "原卷"),
+            (assessments, "施测"), (scores, "成绩"), (analysis, "学情分析"),
+            (practices, "针对练习"), (lessons, "教案"), (knowledge, "知识点库"),
+            (questions, "题库"),
         ) if svc is not None]
         if not assembled:
             return "当前未装配任何教学闭环服务。"
         return "已装配的教学闭环服务：" + "、".join(assembled) + "。"
 
     tools.append(list_capabilities)
+
+    if textbook_search is not None:
+
+        @tool
+        async def search_textbooks(
+            query: str,
+            limit: int = 4,
+            subject_id: str | None = None,
+        ) -> str:
+            """按自然语言问题检索教材原文（当前为高中数学·人教A版），返回章节路径与原文片段。回答"教材/课本/书上怎么说"这类需要教材依据的问题时使用；不要编造教材内容。"""
+            try:
+                hits = await asyncio.to_thread(
+                    textbook_search.search,
+                    query,
+                    limit=max(1, min(int(limit), 10)),
+                    subject_id=subject_id,
+                )
+            except Exception as exc:  # 未就绪/服务异常：如实报告，不冒充成功
+                return _clip(f"教材检索当前不可用：{exc}")
+            if not hits:
+                return "教材中没有检索到相关内容（可能是该内容不在已入库教材中，或换一种说法再试）。"
+            lines = []
+            for index, hit in enumerate(hits, start=1):
+                path = " / ".join(hit.chapter_path) if hit.chapter_path else "（无章节路径）"
+                lines.append(
+                    f"{index}. 《{hit.document_title}》（{hit.edition_label}·{hit.subject_label}）"
+                    f"{path}｜原文：{hit.excerpt}"
+                )
+            header = f"教材检索结果：共 {len(hits)} 条命中。"
+            return _clip(header + "\n" + "\n".join(lines))
+
+        tools.append(search_textbooks)
 
     if knowledge is not None:
         @tool
