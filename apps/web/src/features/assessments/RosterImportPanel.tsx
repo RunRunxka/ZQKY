@@ -1,0 +1,811 @@
+'use client';
+
+/**
+ * 名单导入与逐行校对（R5-FE 取回，逐段同构归档 `features/assessments/RosterImportPanel`）。
+ *
+ * 流程固定为「上传 → 审阅行 → 确认落库」：上传只产生批次与预览行，**不写学生**；
+ * 每一行要么由服务端的自动决策（学号一致自动关联，含已归档身份自动恢复；无匹配自动新建）、
+ * 要么由教师显式选择处理方式，最后整批确认才落库。任何一行没决定完都不允许确认。
+ *
+ * 忠实保留归档的三条硬约束：
+ * 1. 读取失败/确认失败**原样显示** `code` / `message` / `details.issues`（行号 + 列/字段），
+ *    不把失败降级为空名单，不吞原因；
+ * 2. 确认结果未知（没有响应）时冻结 `submissionId` 与原样载荷，重试复用同一标识（幂等），
+ *    不会因为重试而重复入库；
+ * 3. 放弃批次只置 `cancelled`，批次记录、原始文件与预览行保留（可读，不删除）。
+ *
+ * 切班即重挂载会话（`key=classId`）：上一班的在途写入与已选文件不会带到新班。
+ */
+
+import { useEffect, useRef, useState } from 'react';
+import type { ErrorIssue } from '@/contracts/api';
+import type { ApiError } from '@/services/api-client';
+import type {
+  RosterDecision,
+  RosterImportConfirmResult,
+  RosterImportRowPatch,
+  RosterImportRowView,
+  RosterImportState,
+  RosterImportSummary,
+  RosterImportView,
+} from '@/contracts/roster';
+import {
+  confirmRosterImport,
+  createRosterImport,
+  discardRosterImport,
+  getRosterImport,
+  listRosterImports,
+  listStudents,
+  patchRosterImport,
+} from '@/services/assessments-api';
+import { asApiError, useAsyncResource, useFrozenSubmission } from './hooks';
+import { shortId } from './labels';
+
+interface Props {
+  classId: string;
+  onChanged: () => void;
+}
+interface ConfirmPayload {
+  importId: string;
+  expectedRevision: number;
+  identityMatches: { rowNo: number; action: RosterDecision; studentId: string | null }[];
+}
+
+const STATE_LABELS: Record<RosterImportState, string> = {
+  uploaded: '已上传',
+  reviewing: '校对中',
+  confirmed: '已确认',
+  failed: '失败',
+  cancelled: '已取消',
+};
+/** 未确认批次可放弃；`confirmed` 已应用（服务端 409），`cancelled` 已放弃。 */
+const DISCARDABLE_STATES: readonly RosterImportState[] = ['uploaded', 'reviewing', 'failed'];
+
+/**
+ * 自动决策门槛（与服务端 `app/services/roster/imports.py` 同口径，只用于**显示**是否需要人工选择；
+ * 确认时的最终判定始终以服务端为准，前端不自行改写入库语义）：
+ * - 阻断问题（同批重复 / 同名多命中）必须人工消歧；
+ * - 姓名缺失、姓名超过 120 字或学号超过 64 字时不能自动新建，必须给出 link/ignore。
+ * 其余行：命中唯一身份（学号一致，含已归档学生）自动关联；无匹配自动新建。
+ */
+const BLOCKING_REASON_LABELS: Record<string, string> = {
+  ROSTER_ROW_DUPLICATE: '重复行',
+  ROSTER_NAME_CONFLICT: '同名冲突',
+};
+const ARCHIVED_STUDENT_ISSUE_CODE = 'ROSTER_STUDENT_ARCHIVED';
+const ROW_INVALID_CODE = 'ROSTER_ROW_INVALID';
+const MAX_NAME_CHARS = 120;
+const MAX_STUDENT_NO_CHARS = 64;
+
+const DECISION_LABELS: Record<RosterDecision, string> = {
+  link: '关联已有学生',
+  create: '新建学生',
+  ignore: '忽略本行',
+};
+
+/** 本地行草稿：`decision === null` = 已改为手动处理但还没选（保存/确认前必须选）。 */
+interface RowDraft {
+  decision: RosterDecision | null;
+  studentId: string | null;
+}
+
+/**
+ * 行的处理计划：自动决策（只读 chip）或需要人工选择（下拉）。
+ * `origin` 说明人工选择来自哪里：异常行必须选 / 本地已改为手动 / 服务端已记录的决定。
+ */
+type RowPlan =
+  | {
+      kind: 'auto-link';
+      rowNo: number;
+      studentId: string;
+      studentName: string | null;
+      archived: boolean;
+    }
+  | { kind: 'auto-create'; rowNo: number }
+  | {
+      kind: 'manual';
+      rowNo: number;
+      reasons: string[];
+      decision: RosterDecision | null;
+      studentId: string | null;
+      canCreate: boolean;
+      origin: 'required' | 'draft' | 'stored';
+    };
+
+/** 必须人工选择的原因文案（与服务端确认时的判定同口径）。 */
+function manualReasons(row: RosterImportRowView): string[] {
+  const reasons: string[] = [];
+  for (const issue of row.issues) {
+    const label = BLOCKING_REASON_LABELS[issue.code];
+    if (label && !reasons.includes(label)) reasons.push(label);
+  }
+  if (!row.name) reasons.push('姓名缺失');
+  else if (row.name.length > MAX_NAME_CHARS) reasons.push('姓名超限');
+  if ((row.studentNo?.length ?? 0) > MAX_STUDENT_NO_CHARS) reasons.push('学号超限');
+  return reasons;
+}
+
+/** 该行能否新建学生（姓名缺失/超限时服务端会 422 拒绝 create）。 */
+function canCreateRow(row: RosterImportRowView): boolean {
+  return (
+    row.name.length > 0 &&
+    row.name.length <= MAX_NAME_CHARS &&
+    (row.studentNo?.length ?? 0) <= MAX_STUDENT_NO_CHARS
+  );
+}
+
+function planRow(row: RosterImportRowView, draft: RowDraft | undefined): RowPlan {
+  const reasons = manualReasons(row);
+  const decision = draft ? draft.decision : row.decision;
+  const studentId = draft ? draft.studentId : row.matchedStudentId;
+  if (reasons.length === 0 && draft === undefined && decision === null) {
+    if (row.matchedStudentId) {
+      return {
+        kind: 'auto-link',
+        rowNo: row.rowNo,
+        studentId: row.matchedStudentId,
+        studentName: row.matchedStudentName,
+        archived: row.issues.some((issue) => issue.code === ARCHIVED_STUDENT_ISSUE_CODE),
+      };
+    }
+    return { kind: 'auto-create', rowNo: row.rowNo };
+  }
+  return {
+    kind: 'manual',
+    rowNo: row.rowNo,
+    reasons,
+    decision,
+    studentId,
+    canCreate: canCreateRow(row),
+    origin: reasons.length > 0 ? 'required' : draft !== undefined ? 'draft' : 'stored',
+  };
+}
+
+/** 行上只读 chip 的文案（自动决策结果 / 需要人工选择的原因）。 */
+function rowChipText(plan: RowPlan): string {
+  if (plan.kind === 'auto-create') return '将新建学生';
+  if (plan.kind === 'auto-link') {
+    const who = plan.studentName || plan.studentId;
+    return plan.archived ? `将关联并恢复：${who}（原已归档）` : `将关联：${who}（学号一致）`;
+  }
+  const label = plan.decision === null ? null : DECISION_LABELS[plan.decision];
+  if (plan.origin === 'draft') {
+    return label === null ? '已改为手动处理，请选择处理方式' : `已改为手动处理：${label}`;
+  }
+  if (plan.origin === 'stored' && label !== null) return `已记录：${label}`;
+  const reason = `（原因：${plan.reasons.join('、')}）`;
+  return label === null ? `需要你选择${reason}` : `已记录人工决定：${label}${reason}`;
+}
+
+/** chip 色调：关联=绿、新建=蓝、人工选择=琥珀（颜色只是辅助，文案始终自洽）。 */
+function chipTone(plan: RowPlan): 'green' | 'blue' | 'amber' {
+  if (plan.kind === 'auto-link') return 'green';
+  if (plan.kind === 'auto-create') return 'blue';
+  return 'amber';
+}
+
+/** 缺少人工决定（或选了 link 却没给身份）时不能确认。 */
+function needsAttention(plan: RowPlan): boolean {
+  if (plan.kind !== 'manual') return false;
+  return plan.decision === null || (plan.decision === 'link' && !plan.studentId);
+}
+
+/** 阻断/行级非法问题按错误显示；其余（如已归档提示）按提示显示，避免把非阻断提示画成失败。 */
+function isAlertingIssue(issue: ErrorIssue): boolean {
+  return issue.code === ROW_INVALID_CODE || issue.code in BLOCKING_REASON_LABELS;
+}
+
+/** A class switch remounts the session and invalidates all old writes. */
+export function RosterImportPanel(props: Props) {
+  return <RosterImportSession key={props.classId} {...props} />;
+}
+
+function RosterImportSession({ classId, onChanged }: Props) {
+  const [file, setFile] = useState<File | null>(null);
+  const [sheetName, setSheetName] = useState('');
+  const [uploadNameHeader, setUploadNameHeader] = useState('');
+  const [uploadNumberHeader, setUploadNumberHeader] = useState('');
+  const [view, setView] = useState<RosterImportView | null>(null);
+  const [mapping, setMapping] = useState<Record<string, string>>({});
+  const [mappingTouched, setMappingTouched] = useState(false);
+  const [rows, setRows] = useState<Record<number, RowDraft>>({});
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<ApiError | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [studentQuery, setStudentQuery] = useState('');
+  const [appliedStudentQuery, setAppliedStudentQuery] = useState('');
+  /** 放弃批次的写操作身份（禁用按钮防重入）。 */
+  const [discardBusyId, setDiscardBusyId] = useState<string | null>(null);
+  const mounted = useRef(true);
+  const epoch = useRef(0);
+  const busyRef = useRef(false);
+  const submission = useFrozenSubmission<ConfirmPayload, RosterImportConfirmResult>();
+  const batches = useAsyncResource(
+    (signal) => listRosterImports({ classId, limit: 100 }, signal),
+    `roster-batches|${classId}`,
+  );
+  const students = useAsyncResource(
+    (signal) => listStudents({ q: appliedStudentQuery || undefined, limit: 100 }, signal),
+    `roster-link-students|${appliedStudentQuery}`,
+  );
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      epoch.current += 1;
+    };
+  }, []);
+
+  function adopt(next: RosterImportView, preserveEdits = false) {
+    setView(next);
+    if (!preserveEdits) {
+      setMapping(next.mapping);
+      setMappingTouched(false);
+      setRows({});
+    }
+  }
+
+  async function run<T>(request: () => Promise<T>): Promise<T | null> {
+    if (busyRef.current) return null;
+    const token = epoch.current;
+    busyRef.current = true;
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const result = await request();
+      return mounted.current && token === epoch.current ? result : null;
+    } catch (cause) {
+      if (mounted.current && token === epoch.current) setError(asApiError(cause));
+      return null;
+    } finally {
+      if (mounted.current && token === epoch.current) {
+        busyRef.current = false;
+        setBusy(false);
+      }
+    }
+  }
+
+  async function upload() {
+    if (!file) {
+      setNotice('请先选择 CSV 或 XLSX 名单文件。');
+      return;
+    }
+    const manual = uploadNameHeader.trim()
+      ? {
+          name: uploadNameHeader.trim(),
+          ...(uploadNumberHeader.trim() ? { studentNo: uploadNumberHeader.trim() } : {}),
+        }
+      : undefined;
+    const result = await run(() =>
+      createRosterImport(classId, file, {
+        sheetName: sheetName.trim() || undefined,
+        mapping: manual,
+      }),
+    );
+    if (result) {
+      submission.release();
+      adopt(result);
+      batches.reload();
+      setNotice('名单已上传：学号一致的自动关联（含已归档身份，自动恢复），新学生自动新建；异常行需要你选择。');
+    }
+  }
+
+  async function openBatch(importId: string, preserveEdits = false) {
+    const result = await run(() => getRosterImport(importId));
+    if (result) {
+      if (!preserveEdits) submission.release();
+      adopt(result, preserveEdits);
+      setNotice(
+        preserveEdits
+          ? '已读取最新版本，映射和行校对输入保留，请对照后再提交。'
+          : '已恢复服务端名单批次。',
+      );
+    }
+  }
+
+  /**
+   * 放弃未确认批次：只置 `cancelled`，记录/原始文件/预览行保留（不能再校对/确认）。
+   * 成功刷新批次列表；若当前打开的正是该批次，同步读回它的 `cancelled` 状态。
+   */
+  async function discardBatch(batch: RosterImportSummary) {
+    if (locked) return;
+    if (!window.confirm('放弃后批次保留记录但不能再校对/确认。确认放弃该名单批次？')) return;
+    const token = epoch.current;
+    setDiscardBusyId(batch.importId);
+    try {
+      const result = await run(() =>
+        discardRosterImport(batch.importId, { expectedRevision: batch.revision }),
+      );
+      if (!result || !mounted.current || token !== epoch.current) return;
+      if (view?.importId === result.importId) {
+        submission.release();
+        adopt(result);
+      }
+      batches.reload();
+      setNotice(`批次 ${shortId(result.importId)} 已放弃（已取消）；批次记录与原始文件保留，不能再校对/确认。`);
+    } finally {
+      if (mounted.current && token === epoch.current) setDiscardBusyId(null);
+    }
+  }
+
+  async function save() {
+    if (!view) return;
+    const result = await run(() =>
+      patchRosterImport(view.importId, {
+        expectedRevision: view.revision,
+        mapping: mappingTouched
+          ? {
+              name: mapping.name ?? '',
+              ...(mapping.studentNo ? { studentNo: mapping.studentNo } : {}),
+            }
+          : undefined,
+        rows: rowPatches.length ? rowPatches : undefined,
+      }),
+    );
+    if (result) {
+      adopt(result);
+      submission.release();
+      batches.reload();
+      setNotice(`已保存映射与行决策（版本 ${result.revision}）。`);
+    }
+  }
+
+  const unknown = submission.phase === 'unknown';
+  const locked = busy || submission.busy || unknown;
+  const editable = view !== null && (view.state === 'uploaded' || view.state === 'reviewing');
+  const planOf = (row: RosterImportRowView) => planRow(row, rows[row.rowNo]);
+  /** 还缺人工决定的行（异常行未选择 / 已改为手动但未选 / 选了 link 却没给身份）。 */
+  const unsettledRowNos = (view?.rows ?? [])
+    .map(planOf)
+    .filter((plan) => needsAttention(plan))
+    .map((plan) => plan.rowNo);
+  const rowsSettled = !!view?.rows.length && unsettledRowNos.length === 0;
+  /** 只提交需要人工决定的行；全自动行缺省即由服务端自动决策（不逐行必选）。 */
+  const manualMatches = (view?.rows ?? []).flatMap((row) => {
+    const plan = planOf(row);
+    if (plan.kind !== 'manual' || plan.decision === null) return [];
+    return [
+      {
+        rowNo: row.rowNo,
+        action: plan.decision,
+        studentId: plan.decision === 'link' ? plan.studentId : null,
+      },
+    ];
+  });
+  /** 已选好的人工决定（未决定的行不入 patch；`decision` 是 PATCH 的必填字段）。 */
+  const rowPatches: RosterImportRowPatch[] = Object.entries(rows).flatMap(([rowNo, draft]) =>
+    draft.decision === null
+      ? []
+      : [
+          {
+            rowNo: Number(rowNo),
+            decision: draft.decision,
+            studentId: draft.decision === 'link' ? draft.studentId : null,
+          },
+        ],
+  );
+
+  async function confirm() {
+    if (!view) return;
+    const payload: ConfirmPayload =
+      unknown && submission.frozen
+        ? submission.frozen.payload
+        : {
+            importId: view.importId,
+            expectedRevision: view.revision,
+            identityMatches: manualMatches,
+          };
+    const token = epoch.current;
+    const result = await submission.submit(payload, (frozen) =>
+      confirmRosterImport(frozen.payload.importId, {
+        expectedRevision: frozen.payload.expectedRevision,
+        identityMatches: frozen.payload.identityMatches,
+        submissionId: frozen.submissionId,
+      }),
+    );
+    if (!result || !mounted.current || token !== epoch.current) return;
+    setView((current) => (current ? { ...current, state: 'confirmed' } : current));
+    batches.reload();
+    onChanged();
+  }
+
+  function decide(row: RosterImportRowView, decision: RosterDecision) {
+    setRows((current) => ({
+      ...current,
+      [row.rowNo]: {
+        decision,
+        studentId:
+          decision === 'link' ? (current[row.rowNo]?.studentId ?? row.matchedStudentId) : null,
+      },
+    }));
+  }
+
+  /** 「改为手动处理」：只生成本地草稿（decision=null → 必选），不影响自动决策的默认值。 */
+  function takeOver(row: RosterImportRowView) {
+    setRows((current) =>
+      current[row.rowNo] ? current : { ...current, [row.rowNo]: { decision: null, studentId: null } },
+    );
+  }
+
+  /** 放弃本地手动草稿，恢复自动决策（服务端已记录的决定不能用前端撤销）。 */
+  function restoreAuto(rowNo: number) {
+    setRows((current) => {
+      if (!(rowNo in current)) return current;
+      const next = { ...current };
+      delete next[rowNo];
+      return next;
+    });
+  }
+
+  const displayedError = error ?? submission.error;
+  const issues = displayedError?.details?.issues ?? [];
+  const confirmedResult =
+    submission.phase === 'succeeded' &&
+    submission.result &&
+    submission.result.importId === view?.importId
+      ? submission.result
+      : null;
+  return (
+    <section
+      className="assessments-subpanel"
+      aria-label="名单导入与校对"
+      data-testid="roster-import-panel"
+    >
+      <h3>导入名单</h3>
+      <p className="assessments-hint">
+        名单会自动处理：学号一致的自动关联（含已归档身份，自动恢复），新学生自动新建；只有重复/同名冲突等异常行需要你选择。
+      </p>
+      <div className="assessments-form">
+        <label className="assessments-field">
+          名单文件
+          <input
+            aria-label="名单文件"
+            type="file"
+            accept=".xlsx,.csv"
+            disabled={locked}
+            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+          />
+        </label>
+        <label className="assessments-field">
+          工作表名（XLSX 可选）
+          <input
+            className="assessments-input"
+            aria-label="名单工作表名"
+            value={sheetName}
+            disabled={locked}
+            onChange={(event) => setSheetName(event.target.value)}
+          />
+        </label>
+        <label className="assessments-field">
+          上传时姓名表头（自动识别失败时填写）
+          <input
+            className="assessments-input"
+            aria-label="上传时姓名表头"
+            value={uploadNameHeader}
+            disabled={locked}
+            onChange={(event) => setUploadNameHeader(event.target.value)}
+          />
+        </label>
+        <label className="assessments-field">
+          上传时学号表头（可选）
+          <input
+            className="assessments-input"
+            aria-label="上传时学号表头"
+            value={uploadNumberHeader}
+            disabled={locked}
+            onChange={(event) => setUploadNumberHeader(event.target.value)}
+          />
+        </label>
+        <button className="space-button" disabled={locked || !file} onClick={() => void upload()}>
+          上传名单
+        </button>
+      </div>
+      <div className="assessments-subpanel-head">
+        <h4>已有名单批次</h4>
+        <button className="space-button" onClick={batches.reload}>
+          刷新名单批次
+        </button>
+      </div>
+      {batches.state.phase === 'failed' && (
+        <p role="alert" className="assessments-error">
+          批次读取失败（{batches.state.error.code}）：{batches.state.error.message}{' '}
+          已读取的列表仍保留。
+        </p>
+      )}
+      <ul className="assessments-list" aria-label="名单批次列表">
+        {(batches.lastData?.items ?? []).map((batch) => (
+          <li key={batch.importId}>
+            <div className="assessments-actions">
+              <button
+                className="assessments-list-item"
+                title={`批次 ${batch.importId}`}
+                data-testid={`roster-batch-${batch.importId}`}
+                disabled={locked}
+                onClick={() => void openBatch(batch.importId)}
+              >
+                批次 {shortId(batch.importId)} · {STATE_LABELS[batch.state]} · {batch.rowCount} 行 · r
+                {batch.revision}
+              </button>
+              {DISCARDABLE_STATES.includes(batch.state) && (
+                <button
+                  className="space-button danger"
+                  data-testid={`roster-batch-discard-${batch.importId}`}
+                  disabled={locked || discardBusyId !== null}
+                  onClick={() => void discardBatch(batch)}
+                >
+                  {discardBusyId === batch.importId ? '放弃中…' : '放弃'}
+                </button>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+      {view && (
+        <>
+          <p className="assessments-meta">
+            原件：{view.fileAsset.originalName} · {view.className} · 版本 {view.revision} ·{' '}
+            {STATE_LABELS[view.state]}
+          </p>
+          {view.warnings.map((warning) => (
+            <p className="assessments-hint" key={warning}>
+              {warning}
+            </p>
+          ))}
+          <div className="assessments-form">
+            <label className="assessments-field">
+              姓名列
+              <select
+                className="assessments-input"
+                aria-label="名单姓名列"
+                value={mapping.name ?? ''}
+                disabled={locked || !editable}
+                onChange={(event) => {
+                  setMapping((current) => ({ ...current, name: event.target.value }));
+                  setMappingTouched(true);
+                }}
+              >
+                <option value="">请选择姓名列</option>
+                {view.headers.map((header) => (
+                  <option value={header} key={header}>
+                    {header}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="assessments-field">
+              学号列
+              <select
+                className="assessments-input"
+                aria-label="名单学号列"
+                value={mapping.studentNo ?? ''}
+                disabled={locked || !editable}
+                onChange={(event) => {
+                  setMapping((current) => ({ ...current, studentNo: event.target.value }));
+                  setMappingTouched(true);
+                }}
+              >
+                <option value="">不映射学号</option>
+                {view.headers.map((header) => (
+                  <option value={header} key={header}>
+                    {header}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <form
+            className="assessments-form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              setAppliedStudentQuery(studentQuery.trim());
+            }}
+          >
+            <label className="assessments-field">
+              搜索已有学生（关联用）
+              <input
+                className="assessments-input"
+                aria-label="搜索已有学生"
+                value={studentQuery}
+                onChange={(event) => setStudentQuery(event.target.value)}
+              />
+            </label>
+            <button className="space-button" type="submit">
+              搜索学生
+            </button>
+          </form>
+          {students.state.phase === 'failed' && (
+            <p role="alert" className="assessments-error">
+              学生身份读取失败（{students.state.error.code}），请重试；不能把读取失败当作没有学生。
+              <button className="space-button" onClick={students.reload}>
+                重试学生身份
+              </button>
+            </p>
+          )}
+          <ul className="assessments-list" aria-label="名单行校对">
+            {view.rows.map((row) => {
+              const plan = planOf(row);
+              return (
+                <li
+                  key={row.rowNo}
+                  className="assessments-list-static"
+                  data-testid={`roster-row-${row.rowNo}`}
+                >
+                  <strong>
+                    数据第 {row.rowNo} 行：{row.name || '（姓名缺失）'} · 学号{' '}
+                    {row.studentNo ?? '（无）'}
+                  </strong>
+                  <p className="assessments-hint">
+                    <span
+                      className={`space-chip ${chipTone(plan)}`}
+                      data-testid={`roster-row-${row.rowNo}-decision`}
+                    >
+                      {rowChipText(plan)}
+                    </span>
+                  </p>
+                  {row.issues.map((issue, index) => (
+                    <p
+                      className={isAlertingIssue(issue) ? 'assessments-error' : 'assessments-hint'}
+                      key={index}
+                    >
+                      {issue.field ? `${issue.field}：` : ''}
+                      {issue.message}
+                    </p>
+                  ))}
+                  {plan.kind === 'manual' && (
+                    <label className="assessments-field">
+                      处理方式
+                      <select
+                        aria-label={`第 ${row.rowNo} 行处理`}
+                        aria-required="true"
+                        value={plan.decision ?? ''}
+                        disabled={locked || !editable}
+                        onChange={(event) => decide(row, event.target.value as RosterDecision)}
+                      >
+                        <option value="" disabled>
+                          请选择处理方式
+                        </option>
+                        <option value="link">关联已有学生</option>
+                        {plan.canCreate && <option value="create">新建学生</option>}
+                        <option value="ignore">忽略本行</option>
+                      </select>
+                    </label>
+                  )}
+                  {plan.kind === 'manual' && plan.decision === 'link' && (
+                    <label className="assessments-field">
+                      关联学生
+                      <select
+                        aria-label={`第 ${row.rowNo} 行关联学生`}
+                        value={plan.studentId ?? ''}
+                        disabled={locked || !editable}
+                        onChange={(event) =>
+                          setRows((current) => ({
+                            ...current,
+                            [row.rowNo]: {
+                              decision: 'link',
+                              studentId: event.target.value || null,
+                            },
+                          }))
+                        }
+                      >
+                        <option value="">请选择明确身份</option>
+                        {plan.studentId &&
+                          !(students.lastData?.items ?? []).some(
+                            (student) => student.id === plan.studentId,
+                          ) && (
+                            <option value={plan.studentId} title={`学生 ${plan.studentId}`}>
+                              {row.matchedStudentName ?? '已指定身份'}（{shortId(plan.studentId)}）
+                            </option>
+                          )}
+                        {(students.lastData?.items ?? []).map((student) => (
+                          <option key={student.id} value={student.id} title={`学生 ${student.id}`}>
+                            {student.name} · {student.studentNo ?? '无学号'} · {shortId(student.id)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  {plan.kind === 'manual' && plan.origin === 'draft' && (
+                    <div className="assessments-actions">
+                      <button
+                        className="space-button"
+                        data-testid={`roster-row-${row.rowNo}-auto`}
+                        disabled={locked || !editable}
+                        onClick={() => restoreAuto(row.rowNo)}
+                      >
+                        恢复自动处理
+                      </button>
+                    </div>
+                  )}
+                  {plan.kind !== 'manual' && editable && (
+                    <div className="assessments-actions">
+                      <button
+                        className="space-button"
+                        data-testid={`roster-row-${row.rowNo}-manual`}
+                        disabled={locked}
+                        onClick={() => takeOver(row)}
+                      >
+                        改为手动处理
+                      </button>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+          {unsettledRowNos.length > 0 && (
+            <p className="assessments-hint" data-testid="roster-pending-hint">
+              还有 {unsettledRowNos.length} 行需要先选择处理方式：第 {unsettledRowNos.join('、')}{' '}
+              行。
+            </p>
+          )}
+          <div className="assessments-actions">
+            <button
+              className="space-button"
+              disabled={locked || !editable || (!mappingTouched && !rowPatches.length)}
+              onClick={() => void save()}
+            >
+              保存映射与行决策
+            </button>
+            <button
+              className="space-button"
+              disabled={locked}
+              onClick={() => void openBatch(view.importId, true)}
+            >
+              刷新版本对照（保留校对）
+            </button>
+            <button
+              className="space-button primary"
+              disabled={
+                busy || submission.busy || (!unknown && (!editable || !rowsSettled || mappingTouched))
+              }
+              title={
+                editable && !mappingTouched && unsettledRowNos.length > 0
+                  ? `第 ${unsettledRowNos.join('、')} 行还没有选择处理方式`
+                  : undefined
+              }
+              onClick={() => void confirm()}
+            >
+              {submission.busy ? '确认中…' : '确认名单'}
+            </button>
+          </div>
+          {mappingTouched && (
+            <p className="assessments-hint">
+              列映射有未保存修改，请先保存映射，再核对重新提取的每行身份。
+            </p>
+          )}
+        </>
+      )}
+      {notice && (
+        <p role="status" className="assessments-hint">
+          {notice}
+        </p>
+      )}
+      {displayedError && (
+        <div className="assessments-error" role="alert" data-testid="roster-import-error">
+          名单操作失败（{displayedError.code}）：{displayedError.message} 输入已保留。
+          {displayedError.status === 409 && (
+            <p>版本冲突，请刷新版本对照后重试，不会静默覆盖校对。</p>
+          )}
+          {issues.map((issue, index) => (
+            <p key={index}>
+              数据第 {issue.row ?? '未定位'} 行 {issue.column ?? issue.field ?? ''}：{issue.message}
+            </p>
+          ))}
+        </div>
+      )}
+      {submission.unknownNotice && (
+        <p role="alert" className="assessments-error">
+          {submission.unknownNotice} 校对已冻结，请点「确认名单」重放原请求。
+        </p>
+      )}
+      {confirmedResult && (
+        <p role="status" data-testid="roster-import-result" className="space-banner info">
+          名单已确认：处理 {confirmedResult.applied.length} 行，忽略{' '}
+          {confirmedResult.ignored.length} 行。
+        </p>
+      )}
+    </section>
+  );
+}

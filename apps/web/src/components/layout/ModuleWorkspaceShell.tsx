@@ -12,7 +12,8 @@ const independentRoots = new Set<string>([
   'knowledge-points',
   'question-bank',
   'learning-analysis',
-  // 后续批次按注册表登记：assessments / practices / lesson-plans
+  'assessments',
+  // 后续批次按注册表登记：practices / lesson-plans
 ]);
 export function ModuleWorkspaceShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();

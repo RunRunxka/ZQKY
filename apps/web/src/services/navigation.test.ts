@@ -23,13 +23,15 @@ describe('导航注册表（推倒重做最小骨架）', () => {
     }
   });
 
-  it('登记对话、教材资料库、知识点、题库、学情分析与设置六项', () => {
+  it('登记对话、教材资料库、知识点、题库、学情分析、班级管理、试卷管理与设置八项', () => {
     expect(navigation.map((item) => item.id)).toEqual([
       'chat',
       'textbooks',
       'knowledge-points',
       'question-bank',
       'learning-analysis',
+      'assessments-roster',
+      'assessments-papers',
       'settings',
     ]);
     expect(navigation.find((item) => item.id === 'chat')?.status).toBe('ready');
@@ -37,6 +39,8 @@ describe('导航注册表（推倒重做最小骨架）', () => {
     expect(navigation.find((item) => item.id === 'knowledge-points')?.status).toBe('ready');
     expect(navigation.find((item) => item.id === 'question-bank')?.status).toBe('ready');
     expect(navigation.find((item) => item.id === 'learning-analysis')?.status).toBe('ready');
+    expect(navigation.find((item) => item.id === 'assessments-roster')?.status).toBe('ready');
+    expect(navigation.find((item) => item.id === 'assessments-papers')?.status).toBe('ready');
     expect(navigation.find((item) => item.id === 'settings')?.status).toBe('ready');
   });
 
@@ -69,6 +73,8 @@ describe('唯一主页与当前菜单解析', () => {
       ['/question-bank', 'question-bank'],
       ['/question-bank/imports/imp-1', 'question-bank'],
       ['/learning-analysis', 'learning-analysis'],
+      ['/assessments/roster', 'assessments-roster'],
+      ['/assessments/papers', 'assessments-papers'],
       ['/settings', 'settings'],
       ['/definitely-missing', null],
     ];

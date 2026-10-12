@@ -9,6 +9,8 @@ import {
   FileQuestion,
   LineChart,
   Activity,
+  Users,
+  FileText,
 } from 'lucide-react';
 import type { NavigationItem } from '@/contracts/navigation';
 
@@ -72,6 +74,28 @@ export const navigation: NavigationItem[] = [
     group: '学情与施测',
     icon: LineChart,
     sidebarIcon: Activity,
+  },
+  {
+    // 班级管理（需求 6）：班级/学生名单管理与 xlsx 一键导入；删除=归档可恢复
+    id: 'assessments-roster',
+    label: '班级管理',
+    path: '/assessments/roster',
+    status: 'ready',
+    position: 'main',
+    group: '学情与施测',
+    icon: Users,
+    sidebarIcon: Users,
+  },
+  {
+    // 试卷管理（需求 6）：导入试卷（DOCX/PDF 文本层）→ 校对拆题 → AI 知识点分类占比；不显示试卷内容
+    id: 'assessments-papers',
+    label: '试卷管理',
+    path: '/assessments/papers',
+    status: 'ready',
+    position: 'main',
+    group: '学情与施测',
+    icon: FileText,
+    sidebarIcon: FileText,
   },
   {
     id: 'settings',
