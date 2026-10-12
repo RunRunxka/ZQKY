@@ -1,0 +1,1359 @@
+/* 题库模块页面级样式（/question-bank、/question-bank/imports/[importId]）。
+   消费 globals.css 单一变量层：--font-ui/--font-display/--font-mono、--blue/--blue-soft、
+   --surface/--ink/--line、--radius-*、--space-*；与 space.css 共用 .space-* 基础类。
+   作用域：全部选择器以 .question-bank-page 起头。
+   减少动画：公共 useEntrance 遵守全局 motion.css 的 prefers-reduced-motion / html[data-motion] 机制。 */
+
+.question-bank-page {
+  --page-content-width: 1240px;
+}
+
+.question-bank-page .space-content {
+  min-width: 0;
+}
+
+.question-bank-page .space-header-row {
+  align-items: flex-start;
+}
+
+.question-bank-page .qb-panel-body {
+  min-width: 0;
+}
+
+/* ===== 通用小块 ===== */
+.question-bank-page .qb-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.question-bank-page .qb-hint {
+  margin: 6px 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.question-bank-page .qb-warn-text {
+  color: #92610c;
+}
+
+/* AI 整理：云模型的数据外发说明（蓝色变量层，不用新主题色） */
+.question-bank-page .qb-dataflow-note {
+  margin: 6px 0;
+  padding: 6px 10px;
+  border-left: 2px solid var(--blue);
+  border-radius: var(--radius-sm);
+  background: var(--blue-soft);
+  color: var(--ink);
+  font-size: 12.5px;
+  line-height: 1.7;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.question-bank-page .qb-link {
+  color: var(--blue);
+  text-decoration: underline;
+}
+
+.question-bank-page .qb-file-line {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+
+.question-bank-page .qb-warning-list {
+  margin: 6px 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* ===== 列表（导入批次 / 已入库题目） ===== */
+.question-bank-page .qb-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.question-bank-page .qb-import-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  color: var(--ink);
+  transition: border-color 150ms;
+}
+
+.question-bank-page .qb-import-card:hover {
+  border-color: var(--blue);
+}
+
+.question-bank-page .qb-import-icon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.question-bank-page .qb-import-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.question-bank-page .qb-import-name {
+  font-size: 14.5px;
+  overflow-wrap: anywhere;
+}
+
+.question-bank-page .qb-import-chevron {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+.question-bank-page .qb-warnings {
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.question-bank-page .qb-question-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.question-bank-page .qb-stem-preview {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.6;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.question-bank-page .qb-pagination {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+/* ===== 筛选 ===== */
+.question-bank-page .qb-filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.question-bank-page .qb-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.question-bank-page .qb-field input,
+.question-bank-page .qb-field select,
+.question-bank-page .qb-field textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 13.5px;
+}
+
+.question-bank-page .qb-field input:focus-visible,
+.question-bank-page .qb-field select:focus-visible,
+.question-bank-page .qb-field textarea:focus-visible {
+  border-color: var(--blue);
+  outline: none;
+}
+
+.question-bank-page .qb-filters .qb-field {
+  min-width: 140px;
+}
+
+.question-bank-page .qb-filter-keyword {
+  flex: 1 1 200px;
+  max-width: 320px;
+}
+
+/* ===== 校对页布局 ===== */
+.question-bank-page .qb-review-content {
+  min-width: 0;
+}
+
+.question-bank-page .qb-back {
+  align-self: flex-start;
+  margin-bottom: 4px;
+}
+
+.question-bank-page .qb-review-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 16px;
+  align-items: start;
+  min-width: 0;
+}
+
+.question-bank-page .qb-source {
+  position: sticky;
+  top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  /* 自带内滚的吸顶原文栏（与 books-rail 同模式）：不可超出视口，
+     左右两栏各自滚动，不再出现"钉住的内容取不到、到页尾突然解钉"的割裂感。 */
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.question-bank-page .qb-source-section,
+.question-bank-page .qb-editor,
+.question-bank-page .qb-subpanel,
+.question-bank-page .qb-organize,
+.question-bank-page .qb-confirm {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  padding: 14px 16px;
+  min-width: 0;
+}
+
+.question-bank-page .qb-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.question-bank-page .qb-source-head,
+.question-bank-page .qb-editor-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.question-bank-page .qb-source-head h2,
+.question-bank-page .qb-editor-head h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* 原文块：左侧 3px 注释边距编码「已归属 / 未归属」 */
+.question-bank-page .qb-block-list,
+.question-bank-page .qb-span-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.question-bank-page .qb-block,
+.question-bank-page .qb-span {
+  border-left: 3px solid #f2d9a4;
+  padding-left: 10px;
+  min-width: 0;
+}
+
+.question-bank-page .qb-span {
+  border-left-color: var(--line);
+}
+
+.question-bank-page .qb-block-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.question-bank-page .qb-block-ordinal,
+.question-bank-page .qb-block-locator {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.question-bank-page .qb-block-text {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 220px;
+  overflow-y: auto;
+  /* 滚轮在原文块内滚到边界时不再链式带走页面滚动，避免"先不动、再突跳" */
+  overscroll-behavior: contain;
+}
+
+/* ===== 草稿切换条 ===== */
+.question-bank-page .qb-draft-strip {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  min-width: 0;
+}
+
+.question-bank-page .qb-draft-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  max-width: 240px;
+  min-width: 0;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  text-align: left;
+  transition: border-color 150ms;
+}
+
+.question-bank-page .qb-draft-tab:hover {
+  border-color: var(--blue);
+}
+
+.question-bank-page .qb-draft-tab.current {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+}
+
+.question-bank-page .qb-draft-tab-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.question-bank-page .qb-draft-tab-stem {
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* ===== 表单 ===== */
+.question-bank-page .qb-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.question-bank-page .qb-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.question-bank-page .qb-textarea {
+  resize: vertical;
+  line-height: 1.7;
+}
+
+.question-bank-page .qb-fieldset {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 10px 12px 12px;
+  margin: 0;
+  min-width: 0;
+}
+
+.question-bank-page .qb-fieldset legend {
+  padding: 0 6px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.question-bank-page .qb-option-list {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.question-bank-page .qb-option-row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+  min-width: 0;
+}
+
+.question-bank-page .qb-radio-list {
+  display: flex;
+  align-items: center;
+  gap: 8px 16px;
+  flex-wrap: wrap;
+}
+
+.question-bank-page .qb-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.question-bank-page .qb-check input {
+  flex-shrink: 0;
+}
+
+.question-bank-page .qb-merge-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.question-bank-page .qb-merge-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.question-bank-page .qb-merge-stem {
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+/* ===== 工具区（AI 整理 / 合并 / 确认入库） ===== */
+.question-bank-page .qb-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 16px;
+  min-width: 0;
+}
+
+.question-bank-page .qb-subpanel h2,
+.question-bank-page .qb-organize h2,
+.question-bank-page .qb-confirm h2 {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.question-bank-page .qb-suggestion-list,
+.question-bank-page .qb-confirm-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.question-bank-page .qb-suggestion,
+.question-bank-page .qb-confirm-item {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  background: var(--surface);
+  min-width: 0;
+}
+
+.question-bank-page .qb-failure-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.question-bank-page .qb-snapshot {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.question-bank-page .qb-snapshot-line {
+  margin: 4px 0;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+/* ===== 只读预览 ===== */
+.question-bank-page .qb-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.question-bank-page .qb-preview.compact {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+}
+
+.question-bank-page .qb-preview-stem {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.7;
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.question-bank-page .qb-preview-options {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 6px;
+}
+
+.question-bank-page .qb-preview-option {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.question-bank-page .qb-preview-option.correct {
+  border-color: #bfe0d4;
+  background: #ecf7f2;
+}
+
+.question-bank-page .qb-preview-key {
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.question-bank-page .qb-preview-line {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.question-bank-page .qb-preview-label {
+  color: var(--muted);
+  margin-right: 8px;
+}
+
+.question-bank-page .qb-preview-explanation {
+  margin: 0;
+  border-left: 3px solid var(--line);
+  padding: 4px 12px;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ===== 详情元信息 ===== */
+.question-bank-page .qb-meta-list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12.5px;
+}
+
+.question-bank-page .qb-meta-list div {
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+}
+
+.question-bank-page .qb-meta-list dt {
+  flex: 0 0 68px;
+  color: var(--muted);
+}
+
+.question-bank-page .qb-meta-list dd {
+  margin: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+/* ===== 弹层内容 ===== */
+.question-bank-page .qb-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.question-bank-page .qb-detail {
+  max-height: min(64dvh, 620px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 2px;
+}
+
+/* ===== 知识点关联 / 历史标签（F10-QB） ===== */
+.question-bank-page .qb-library-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.question-bank-page .qb-library-head .qb-hint {
+  flex: 1 1 260px;
+  margin: 0;
+}
+
+.question-bank-page .qb-links,
+.question-bank-page .qb-legacy-tags {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  padding: 12px 14px;
+  min-width: 0;
+  margin-top: 10px;
+}
+
+.question-bank-page .qb-links h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.question-bank-page .qb-links-subtitle {
+  margin: 4px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.question-bank-page .qb-link-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.question-bank-page .qb-link-row {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  background: var(--surface);
+  min-width: 0;
+}
+
+.question-bank-page .qb-link-add {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+.question-bank-page .qb-point-select,
+.question-bank-page .qb-point-checklist {
+  min-width: 0;
+}
+
+.question-bank-page .qb-point-search {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.question-bank-page .qb-point-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 180px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  min-width: 0;
+}
+
+/* 历史标签：与正式关联视觉分离（虚线、弱化），不合并、不丢弃 */
+.question-bank-page .qb-legacy-tag {
+  border-style: dashed;
+  color: var(--muted);
+}
+
+.question-bank-page .qb-legacy-tags-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* AI 补题弹层内容：与详情抽屉一致的高度约束 */
+.question-bank-page .qb-generation {
+  max-height: min(70dvh, 640px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 2px;
+}
+
+/* ===== 手机视口（390）：并排视图改为上下堆叠，任何一行都不横向溢出 ===== */
+@media (max-width: 900px) {
+  .question-bank-page .qb-review-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .question-bank-page .qb-source {
+    position: static;
+    top: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .question-bank-page .space-header-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .question-bank-page .qb-filters,
+  .question-bank-page .qb-filters .qb-field,
+  .question-bank-page .qb-filter-keyword {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+  }
+
+  .question-bank-page .qb-option-row {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+  }
+
+  .question-bank-page .qb-draft-tab {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .question-bank-page .qb-library-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .question-bank-page .qb-point-search,
+  .question-bank-page .qb-point-search .qb-field {
+    width: 100%;
+    max-width: none;
+  }
+
+  .question-bank-page .qb-preview-options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .question-bank-page .qb-meta-list div {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .question-bank-page .qb-meta-list dt {
+    flex: none;
+  }
+
+  .question-bank-page .qb-pagination {
+    justify-content: space-between;
+  }
+}
+
+/* ===== 统一工作面与校对节奏 ===== */
+.question-bank-page .qb-library-head {
+  margin-bottom: var(--space-4);
+}
+
+.question-bank-page .qb-filters {
+  padding: var(--space-4);
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+}
+
+.question-bank-page .qb-filters > .qb-field {
+  flex: 1 1 150px;
+  min-width: 0;
+}
+
+.question-bank-page .qb-filter-keyword {
+  max-width: none;
+}
+
+.question-bank-page .qb-review-layout {
+  gap: var(--space-5);
+}
+
+.question-bank-page .qb-source-section,
+.question-bank-page .qb-editor,
+.question-bank-page .qb-subpanel,
+.question-bank-page .qb-organize,
+.question-bank-page .qb-confirm,
+.question-bank-page .qb-question-card {
+  padding: var(--space-5);
+  background: var(--bg);
+}
+
+.question-bank-page .qb-import-card {
+  padding: var(--space-4) var(--space-5);
+}
+
+.question-bank-page .qb-list,
+.question-bank-page .qb-editor,
+.question-bank-page .qb-form {
+  gap: var(--space-4);
+}
+
+.question-bank-page .qb-draft-strip {
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.question-bank-page .qb-draft-tab {
+  padding: var(--space-3) var(--space-4);
+  min-height: 88px;
+}
+
+.question-bank-page .qb-tools {
+  margin-top: var(--space-5);
+  gap: var(--space-5);
+}
+
+.question-bank-page .qb-tools > fieldset {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.question-bank-page .qb-source-head h2,
+.question-bank-page .qb-editor-head h2,
+.question-bank-page .qb-subpanel h2,
+.question-bank-page .qb-organize h2,
+.question-bank-page .qb-confirm h2,
+.question-bank-page .qb-links h2 {
+  font-size: var(--font-size-section, 16px);
+  line-height: 1.5;
+}
+
+.question-bank-page .qb-hint,
+.question-bank-page .qb-warnings,
+.question-bank-page .qb-warning-list,
+.question-bank-page .qb-file-line,
+.question-bank-page .qb-snapshot-line {
+  font-size: var(--font-size-caption, 12px);
+  line-height: 1.65;
+}
+
+.question-bank-page .qb-field {
+  gap: 6px;
+  font-size: var(--font-size-control, 13px);
+}
+
+.question-bank-page .qb-field input:not([type='checkbox']):not([type='radio']),
+.question-bank-page .qb-field select {
+  min-height: var(--control-height, 36px);
+  padding: 8px 12px;
+  font-size: var(--font-size-control, 13px);
+}
+
+.question-bank-page .qb-field textarea {
+  padding: var(--space-3);
+  font-size: var(--font-size-body, 14px);
+}
+
+.question-bank-page .qb-actions {
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+@media (max-width: 900px) {
+  .question-bank-page .qb-review-layout {
+    gap: var(--space-4);
+  }
+}
+
+@media (max-width: 640px) {
+  .question-bank-page .qb-source-section,
+  .question-bank-page .qb-editor,
+  .question-bank-page .qb-subpanel,
+  .question-bank-page .qb-organize,
+  .question-bank-page .qb-confirm,
+  .question-bank-page .qb-question-card,
+  .question-bank-page .qb-import-card {
+    padding: var(--space-4);
+  }
+
+  .question-bank-page .qb-filters > .qb-field {
+    flex-basis: 100%;
+  }
+}
+
+@media (max-width: 767px) {
+  .question-bank-page .qb-field input:not([type='checkbox']):not([type='radio']),
+  .question-bank-page .qb-field select,
+  .question-bank-page .qb-check {
+    min-height: var(--touch-target, 44px);
+  }
+}
+
+/* ===== R4-FE 2026-10-11：参考图布局（筛选条 / 双栏 / 知识点树 / 题目行 / 分页） =====
+   只消费 globals.css 的变量层与 space.css 的 .space-* 基础类，不新增主题与动画。 */
+
+.question-bank-page .qb-library {
+  min-width: 0;
+}
+
+/* --- 顶部筛选条（卡片） --- */
+.question-bank-page .qb-filter-card {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  margin-bottom: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  box-shadow: var(--shadow-card);
+}
+
+.question-bank-page .qb-filter-card .qb-field {
+  min-width: 140px;
+}
+
+.question-bank-page .qb-filter-point {
+  flex: 0 1 220px;
+}
+
+.question-bank-page .qb-filter-difficulty {
+  flex: 0 0 150px;
+}
+
+.question-bank-page .qb-filter-search {
+  flex: 1 1 220px;
+  max-width: 360px;
+}
+
+.question-bank-page .qb-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.question-bank-page .qb-filter-notice {
+  flex-basis: 100%;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* --- 左右双栏卡片 --- */
+.question-bank-page .qb-tree-card,
+.question-bank-page .qb-list-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  box-shadow: var(--shadow-card);
+  padding: 14px 16px;
+  min-width: 0;
+}
+
+.question-bank-page .qb-tree-card {
+  flex: 0 0 264px;
+}
+
+.question-bank-page .qb-list-card {
+  flex: 1 1 auto;
+}
+
+.question-bank-page .qb-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.question-bank-page .qb-card-head h2,
+.question-bank-page .qb-card-head h3 {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* --- 知识点分类树 --- */
+.question-bank-page .qb-tree,
+.question-bank-page .qb-tree-children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.question-bank-page .qb-tree-children {
+  padding-left: 14px;
+  border-left: 1px solid var(--line);
+  margin-left: 12px;
+}
+
+.question-bank-page .qb-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  border-radius: var(--radius-sm);
+}
+
+.question-bank-page .qb-tree-row:hover {
+  background: var(--surface);
+}
+
+.question-bank-page .qb-tree-toggle {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+}
+
+.question-bank-page .qb-tree-toggle-space {
+  flex-shrink: 0;
+  width: 22px;
+}
+
+.question-bank-page .qb-tree-caret {
+  transition: transform 150ms;
+}
+
+.question-bank-page .qb-tree-caret.open {
+  transform: rotate(90deg);
+}
+
+.question-bank-page .qb-tree-label {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  padding: 6px 4px;
+  font-size: 13px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  border-radius: var(--radius-sm);
+}
+
+.question-bank-page .qb-tree-label.current {
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.question-bank-page .qb-tree-count {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.question-bank-page .qb-tree-detached {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+}
+
+/* --- 题目列表 --- */
+.question-bank-page .qb-question-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+
+.question-bank-page .qb-question-row:last-child {
+  border-bottom: 0;
+}
+
+.question-bank-page .qb-question-stem {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.question-bank-page .qb-question-stem p {
+  margin: 0;
+}
+
+.question-bank-page .qb-question-side {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.question-bank-page .qb-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.question-bank-page .qb-badge-easy {
+  border-color: #bfe0d4;
+  background: #ecf7f2;
+  color: var(--green);
+}
+
+.question-bank-page .qb-badge-medium {
+  border-color: #f2d9a4;
+  background: #fdf6e7;
+  color: #92610c;
+}
+
+.question-bank-page .qb-badge-hard {
+  border-color: #f4b6ae;
+  background: #fef3f2;
+  color: var(--danger);
+}
+
+.question-bank-page .qb-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.question-bank-page .qb-text-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--blue);
+  padding: 2px 0;
+  border-radius: var(--radius-sm);
+}
+
+.question-bank-page .qb-text-action:hover {
+  text-decoration: underline;
+}
+
+.question-bank-page .qb-text-action.danger {
+  color: var(--danger);
+}
+
+.question-bank-page .qb-text-action:disabled {
+  color: var(--muted);
+  text-decoration: none;
+}
+
+/* --- 列表底部与分页 --- */
+.question-bank-page .qb-list-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+}
+
+.question-bank-page .qb-total {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.question-bank-page .qb-pager {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.question-bank-page .qb-page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  min-height: 30px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 12.5px;
+}
+
+.question-bank-page .qb-page:hover:not(:disabled) {
+  border-color: var(--blue);
+  color: var(--blue);
+}
+
+.question-bank-page .qb-page.current {
+  border-color: var(--blue);
+  background: var(--blue);
+  color: #fff;
+}
+
+.question-bank-page .qb-page:disabled {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.question-bank-page .qb-page-gap {
+  color: var(--muted);
+  padding: 0 2px;
+}
+
+/* --- 批量导入 / 添加题目面板 --- */
+.question-bank-page .qb-import-section {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+}
+
+.question-bank-page .qb-extract-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+}
+
+.question-bank-page .qb-manual {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.question-bank-page .qb-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-3);
+}
+
+@media (max-width: 960px) {
+  .question-bank-page .space-bank-layout {
+    flex-direction: column;
+  }
+
+  .question-bank-page .qb-tree-card,
+  .question-bank-page .qb-list-card,
+  .question-bank-page .qb-filter-point,
+  .question-bank-page .qb-filter-difficulty,
+  .question-bank-page .qb-filter-search {
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: none;
+  }
+
+  .question-bank-page .qb-filter-actions {
+    margin-left: 0;
+  }
+
+  .question-bank-page .qb-question-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .question-bank-page .qb-question-side {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+}

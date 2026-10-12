@@ -23,15 +23,26 @@ describe('导航注册表（推倒重做最小骨架）', () => {
     }
   });
 
-  it('只登记对话与设置两项', () => {
-    expect(navigation.map((item) => item.id)).toEqual(['chat', 'settings']);
+  it('登记对话、教材资料库、知识点、题库、学情分析与设置六项', () => {
+    expect(navigation.map((item) => item.id)).toEqual([
+      'chat',
+      'textbooks',
+      'knowledge-points',
+      'question-bank',
+      'learning-analysis',
+      'settings',
+    ]);
     expect(navigation.find((item) => item.id === 'chat')?.status).toBe('ready');
+    expect(navigation.find((item) => item.id === 'textbooks')?.status).toBe('ready');
+    expect(navigation.find((item) => item.id === 'knowledge-points')?.status).toBe('ready');
+    expect(navigation.find((item) => item.id === 'question-bank')?.status).toBe('ready');
+    expect(navigation.find((item) => item.id === 'learning-analysis')?.status).toBe('ready');
     expect(navigation.find((item) => item.id === 'settings')?.status).toBe('ready');
   });
 
-  it('主功能分组只有工作台，底部只保留设置', () => {
+  it('主功能分组为工作台、教学资源与学情与施测，底部只保留设置', () => {
     const groups = groupMainNavigation();
-    expect(groups.map((group) => group.label)).toEqual(['工作台']);
+    expect(groups.map((group) => group.label)).toEqual(['工作台', '教学资源', '学情与施测']);
     for (const group of groups) {
       expect(group.items.length).toBeGreaterThan(0);
     }
@@ -52,6 +63,12 @@ describe('唯一主页与当前菜单解析', () => {
   it('每个已实现路由最多解析出一个当前项', () => {
     const cases: [string, string | null][] = [
       ['/chat', 'chat'],
+      ['/textbooks', 'textbooks'],
+      ['/textbooks/libraries/lib-1', 'textbooks'],
+      ['/knowledge-points', 'knowledge-points'],
+      ['/question-bank', 'question-bank'],
+      ['/question-bank/imports/imp-1', 'question-bank'],
+      ['/learning-analysis', 'learning-analysis'],
       ['/settings', 'settings'],
       ['/definitely-missing', null],
     ];

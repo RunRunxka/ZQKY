@@ -1,0 +1,853 @@
+/* 学情分析（R6-FE）：模块样式，全部复用全站 token（字体/蓝主题/圆角/细边框/留白）。
+   作用域限定在 `.learning-analysis-page`，不散写字体名、不新增独立主题；
+   小题分导入的 `assessments-*` / `score-*` 类名取回自归档 assessments 模块样式，
+   并按当前 token 层重写（归档的 --panel 在本骨架不存在，改用 --bg / --surface）。 */
+
+.learning-analysis-page {
+  --page-content-width: 1240px;
+  font-family: var(--font-ui);
+}
+
+.learning-analysis-page .space-header,
+.learning-analysis-page .space-content {
+  min-width: 0;
+}
+
+.learning-analysis-page h2 {
+  font-family: var(--font-display);
+  font-size: var(--font-size-section);
+  line-height: 1.5;
+  margin-bottom: var(--space-4);
+}
+
+.learning-analysis-page h3 {
+  font-size: var(--font-size-section);
+  margin: var(--space-4) 0 var(--space-2);
+}
+
+.learning-analysis-page h4 {
+  font-size: var(--font-size-body);
+  margin: var(--space-3) 0 var(--space-2);
+}
+
+.learning-analysis-page .la-section {
+  margin: 0 0 var(--space-5);
+  padding: var(--space-5);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  min-width: 0;
+}
+
+.learning-analysis-page .la-section > h2 {
+  margin-top: 0;
+}
+
+.learning-analysis-page .la-hint {
+  color: var(--muted);
+  font-size: var(--font-size-caption);
+  line-height: 1.65;
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+}
+
+.learning-analysis-page .la-meta {
+  display: block;
+  color: var(--muted);
+  font-size: var(--font-size-caption);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.learning-analysis-page .la-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+}
+
+/* ===== 顶部筛选行 ===== */
+
+.learning-analysis-page .la-filter-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--space-4);
+  align-items: end;
+  margin-bottom: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+}
+
+.learning-analysis-page .la-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  font-size: var(--font-size-control);
+}
+
+.learning-analysis-page .la-field .space-select {
+  width: 100%;
+  min-width: 0;
+}
+
+.learning-analysis-page .la-filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* ===== 报告列表 ===== */
+
+.learning-analysis-page .la-run-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.learning-analysis-page .la-run-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  text-align: left;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: var(--font-size-control);
+  line-height: 1.6;
+  white-space: normal;
+}
+
+.learning-analysis-page .la-run-item:hover {
+  background: var(--surface);
+}
+
+.learning-analysis-page .la-run-item.current {
+  border-color: #c3d7fd;
+  background: var(--blue-soft);
+  color: var(--blue-deep);
+}
+
+.learning-analysis-page .la-run-item.current .la-meta {
+  color: inherit;
+}
+
+/* ===== 五图卡片 ===== */
+
+.learning-analysis-page .la-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: var(--space-4);
+}
+
+.learning-analysis-page .la-chart-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  min-width: 0;
+}
+
+/* 学生 × 知识点矩阵可宽（表格自身横向滚动），让它占满整行 */
+.learning-analysis-page .la-chart-card:last-child {
+  grid-column: 1 / -1;
+}
+
+.learning-analysis-page .la-chart-head h3 {
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+  font-size: 15px;
+}
+
+.learning-analysis-page .la-chart-caption {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--font-size-caption);
+  line-height: 1.6;
+}
+
+.learning-analysis-page .la-chart-state {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--font-size-caption);
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.learning-analysis-page .la-chart-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.learning-analysis-page .la-chart-canvas {
+  position: relative;
+  height: 260px;
+  min-width: 0;
+}
+
+.learning-analysis-page .la-chart-canvas-ranking {
+  height: 300px;
+}
+
+/* 小题得分热力图 */
+
+.learning-analysis-page .analysis-heatmap-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.learning-analysis-page .analysis-heat-cell {
+  display: grid;
+  gap: 3px;
+  justify-items: center;
+  min-width: 44px;
+}
+
+.learning-analysis-page .analysis-heat-no {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.learning-analysis-page .analysis-heat-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 26px;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.learning-analysis-page .analysis-heat-legend {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: var(--space-3);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.learning-analysis-page .analysis-heat-legend i {
+  width: 18px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.learning-analysis-page .analysis-heat-legend-note {
+  margin-left: var(--space-2);
+}
+
+/* 学生 × 知识点矩阵 */
+
+.learning-analysis-page .la-matrix-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.learning-analysis-page .la-matrix {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+.learning-analysis-page .la-matrix th,
+.learning-analysis-page .la-matrix td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.learning-analysis-page .la-matrix thead th {
+  background: var(--surface);
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.learning-analysis-page .la-matrix tbody th {
+  text-align: left;
+  background: var(--bg);
+  font-weight: 500;
+  position: sticky;
+  left: 0;
+  max-width: 160px;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.learning-analysis-page .la-matrix-cell {
+  color: #123;
+  font-weight: 600;
+}
+
+.learning-analysis-page .la-matrix-cell.empty {
+  color: var(--muted);
+  font-weight: 400;
+  background: var(--surface);
+}
+
+/* ===== AI 评价与导出 ===== */
+
+.learning-analysis-page .analysis-ai-commentary {
+  border: 1px solid var(--blue);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  padding: var(--space-5);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.learning-analysis-page .analysis-ai-commentary h3 {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--blue-deep);
+}
+
+.learning-analysis-page .analysis-ai-note {
+  margin: 0;
+  font-size: var(--font-size-caption);
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.learning-analysis-page .analysis-ai-actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.learning-analysis-page .analysis-ai-actions .space-select {
+  max-width: 220px;
+  min-width: 0;
+}
+
+.learning-analysis-page .analysis-ai-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: 12.5px;
+}
+
+.learning-analysis-page .analysis-ai-body {
+  border-top: 1px solid var(--line);
+  padding-top: var(--space-3);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.learning-analysis-page .analysis-ai-save {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.learning-analysis-page .analysis-export {
+  border-top: 1px dashed var(--line);
+  padding-top: var(--space-3);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.learning-analysis-page .analysis-export .la-actions {
+  margin: 0;
+}
+
+/* ===== 小题分成绩单导入（面板 + 校对 + 确认） ===== */
+
+.learning-analysis-page .visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.learning-analysis-page .space-button.subtle {
+  color: var(--muted);
+}
+
+.learning-analysis-page .space-button.subtle:hover {
+  color: var(--ink);
+}
+
+.learning-analysis-page .assessments-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.learning-analysis-page .assessments-subpanel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  background: var(--bg);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.learning-analysis-page .assessments-subpanel-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.learning-analysis-page .assessments-subpanel-head h2,
+.learning-analysis-page .assessments-subpanel-head h3,
+.learning-analysis-page .assessments-subpanel-head h4 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 15px;
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.learning-analysis-page .assessments-subpanel-head h5 {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink);
+}
+
+.learning-analysis-page .assessments-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.learning-analysis-page .assessments-meta {
+  display: block;
+  color: var(--muted);
+  font-size: var(--font-size-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+.learning-analysis-page .assessments-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: flex-end;
+  min-width: 0;
+}
+
+.learning-analysis-page .assessments-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
+  color: var(--ink);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.learning-analysis-page .assessments-field .space-select {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.learning-analysis-page .assessments-field-inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.learning-analysis-page .assessments-input {
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-control);
+  min-width: 0;
+  min-height: var(--control-height);
+}
+
+.learning-analysis-page .assessments-input-narrow {
+  max-width: 120px;
+}
+
+.learning-analysis-page .assessments-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.learning-analysis-page .assessments-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.learning-analysis-page .assessments-list-item,
+.learning-analysis-page .assessments-list-static {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 100%;
+  text-align: left;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 13px;
+  min-width: 0;
+}
+
+.learning-analysis-page .assessments-list-item:hover {
+  background: var(--surface);
+}
+
+.learning-analysis-page .assessments-list-item.current {
+  border-color: #c3d7fd;
+  background: var(--blue-soft);
+  color: var(--blue-deep);
+}
+
+.learning-analysis-page .assessments-check {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.learning-analysis-page .assessments-issue-list {
+  list-style: none;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid #f2d9a4;
+  border-radius: var(--radius-sm);
+  background: #fdf6e7;
+  color: #7a5209;
+  font-size: 12.5px;
+  line-height: 1.7;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  overflow-wrap: anywhere;
+}
+
+.learning-analysis-page .assessments-mapping-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+
+.learning-analysis-page .assessments-leaf-map {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  min-width: 0;
+}
+
+.learning-analysis-page .assessments-leaf-map legend {
+  padding: 0 6px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/* 四态徽章与图例（颜色 + 文案 + 字形，不只靠颜色） */
+
+.learning-analysis-page .score-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.learning-analysis-page .score-status-glyph {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.learning-analysis-page .score-status-recorded {
+  border-color: #c3d7fd;
+  background: var(--blue-soft);
+  color: var(--blue-deep);
+}
+
+.learning-analysis-page .score-status-missing {
+  border-style: dashed;
+  border-color: #d8b45a;
+  background: #fdf6e7;
+  color: #7a5209;
+}
+
+.learning-analysis-page .score-status-absent {
+  border-color: #c9c9c9;
+  background: #f2f2f2;
+  color: #444;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.learning-analysis-page .score-status-exempt {
+  border-color: #b9c6e6;
+  background: #eef1fa;
+  color: #3d4a70;
+  font-style: italic;
+}
+
+.learning-analysis-page .score-status-unparsed {
+  border-color: var(--danger);
+  background: #fdeceb;
+  color: var(--danger);
+}
+
+.learning-analysis-page .score-legend {
+  list-style: none;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.learning-analysis-page .score-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.learning-analysis-page .score-legend-note {
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+.learning-analysis-page .score-chip-danger {
+  border-color: #f3c2bd;
+  background: #fdeceb;
+  color: var(--danger);
+}
+
+.learning-analysis-page .score-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.learning-analysis-page .score-step {
+  padding: 4px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  color: var(--muted);
+  background: var(--bg);
+}
+
+.learning-analysis-page .score-step.current {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+  color: var(--blue-deep);
+  font-weight: 600;
+}
+
+.learning-analysis-page .score-row-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.learning-analysis-page .score-row {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.learning-analysis-page .score-row-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.learning-analysis-page .score-cell-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.learning-analysis-page .score-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  min-width: 168px;
+}
+
+.learning-analysis-page .score-cell.focused,
+.learning-analysis-page .score-cell[data-issue='true'] {
+  border-color: var(--danger);
+  background: #fdeceb;
+}
+
+.learning-analysis-page .score-cell-address {
+  font-size: 11.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.learning-analysis-page .score-cell-note {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.5;
+  max-width: 220px;
+  overflow-wrap: anywhere;
+}
+
+.learning-analysis-page .score-acknowledge {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.learning-analysis-page .score-ack-group {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.learning-analysis-page .score-confirm-summary {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.learning-analysis-page .score-confirm-summary > div {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  font-size: 12.5px;
+  border-bottom: 1px dashed var(--line);
+  padding-bottom: 4px;
+}
+
+.learning-analysis-page .score-confirm-summary dt {
+  color: var(--muted);
+}
+
+.learning-analysis-page .score-confirm-summary dd {
+  margin: 0;
+  color: var(--ink);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+/* ===== 响应式（390px 不横向溢出） ===== */
+
+@media (max-width: 767px) {
+  .learning-analysis-page {
+    --page-gutter: 16px;
+  }
+
+  .learning-analysis-page .la-section {
+    padding: var(--space-4);
+  }
+
+  .learning-analysis-page .la-filter-bar {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--space-4);
+  }
+
+  .learning-analysis-page .la-charts-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .learning-analysis-page .la-chart-canvas,
+  .learning-analysis-page .la-chart-canvas-ranking {
+    height: 220px;
+  }
+
+  .learning-analysis-page .assessments-input,
+  .learning-analysis-page .assessments-input-narrow {
+    max-width: 100%;
+  }
+
+  .learning-analysis-page .score-cell {
+    min-width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .learning-analysis-page .assessments-list-item {
+    transition: none;
+  }
+}

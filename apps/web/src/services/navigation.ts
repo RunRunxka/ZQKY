@@ -1,9 +1,20 @@
-import { MessageSquare, House, Settings2, Settings } from 'lucide-react';
+import {
+  MessageSquare,
+  House,
+  Settings2,
+  Settings,
+  Library,
+  LibraryBig,
+  ListTree,
+  FileQuestion,
+  LineChart,
+  Activity,
+} from 'lucide-react';
 import type { NavigationItem } from '@/contracts/navigation';
 
 /**
  * 全站模块登记的唯一运行时来源（推倒重做最小骨架）：
- * 对话（home）+ 设置（模型配置）。业务模块随重建逐项回归时在此登记。
+ * 对话（home）+ 教材资料库 + 知识点 + 设置（模型配置）。业务模块随重建逐项回归时在此登记。
  */
 export const navigation: NavigationItem[] = [
   {
@@ -17,6 +28,50 @@ export const navigation: NavigationItem[] = [
     home: true,
     icon: MessageSquare,
     sidebarIcon: House,
+  },
+  {
+    // 教材资料库（需求 7）：基础库 / 我的教材 / 历史登记 + 导入入库；数据全部来自 FastAPI
+    id: 'textbooks',
+    label: '教材资料库',
+    path: '/textbooks',
+    status: 'ready',
+    position: 'main',
+    group: '教学资源',
+    icon: Library,
+    sidebarIcon: LibraryBig,
+  },
+  {
+    // 知识点（需求 3）：按教材目录成树的知识点库，节点可自定义增改；数据全部来自 FastAPI
+    id: 'knowledge-points',
+    label: '知识点',
+    path: '/knowledge-points',
+    status: 'ready',
+    position: 'main',
+    group: '教学资源',
+    icon: ListTree,
+    sidebarIcon: ListTree,
+  },
+  {
+    // 题库（需求 4）：按知识点×难度分类，教材课后习题提取与批量导入；数据全部来自 FastAPI
+    id: 'question-bank',
+    label: '题库',
+    path: '/question-bank',
+    status: 'ready',
+    position: 'main',
+    group: '教学资源',
+    icon: FileQuestion,
+    sidebarIcon: FileQuestion,
+  },
+  {
+    // 学情分析（需求 5）：小题分导入、班级/试卷/时间筛选、五项图表与 AI 评价；数据全部来自 FastAPI
+    id: 'learning-analysis',
+    label: '学情分析',
+    path: '/learning-analysis',
+    status: 'ready',
+    position: 'main',
+    group: '学情与施测',
+    icon: LineChart,
+    sidebarIcon: Activity,
   },
   {
     id: 'settings',

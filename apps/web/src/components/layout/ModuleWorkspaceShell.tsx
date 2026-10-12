@@ -5,8 +5,15 @@ import { navigation } from '@/services/navigation';
 import { WorkspaceShell } from './WorkspaceShell';
 import { ShellScope } from './ShellScope';
 
-// 这些独立模块此前没有全局导航；已有壳的聊天、教案、设置不重复嵌套。
-const independentRoots = new Set<string>([]);  // 骨架期无独立业务根；业务模块回归时在此登记
+// 业务模块根：由本壳统一提供 WorkspaceShell 与可滚动内容容器（.module-workspace-content），
+// 页面本身裸渲染、不再自包壳。聊天、设置、教案（未来）为独立形态，不在此登记。
+const independentRoots = new Set<string>([
+  'textbooks',
+  'knowledge-points',
+  'question-bank',
+  'learning-analysis',
+  // 后续批次按注册表登记：assessments / practices / lesson-plans
+]);
 export function ModuleWorkspaceShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const root = `/${pathname.split('/')[1]}`;
