@@ -191,8 +191,10 @@ export function downloadLessonExport(artifactId: string, signal?: AbortSignal): 
 }
 
 /**
- * 上传学情文件 → `assetRef`。端点名与返回字段以 R7-BE 定稿为准（见交付「未决问题」）；
- * 这里只做 multipart 编码与归一，失败照实抛出。
+ * 上传学情文件 → `assetRef`（`POST /lesson-plans/source-uploads`，2026-10-13 后端补齐）。
+ *
+ * 只做 multipart 编码与归一；服务端口径（可接收类型 / 成绩表指引 / 超限 413）原样抛出，
+ * 不在这里降级成「上传成功」。响应缺 `assetRef` 视为协议错误（不静默继续）。
  */
 export function uploadLessonSource(file: File, signal?: AbortSignal): Promise<LessonSourceUpload> {
   const form = new FormData();
@@ -208,6 +210,9 @@ export function uploadLessonSource(file: File, signal?: AbortSignal): Promise<Le
     return {
       assetRef: value.assetRef,
       fileName: typeof value.fileName === 'string' ? value.fileName : file.name,
+      ...(typeof value.mediaType === 'string' ? { mediaType: value.mediaType } : {}),
+      ...(typeof value.byteSize === 'number' ? { byteSize: value.byteSize } : {}),
+      ...(typeof value.sha256 === 'string' ? { sha256: value.sha256 } : {}),
     };
   });
 }

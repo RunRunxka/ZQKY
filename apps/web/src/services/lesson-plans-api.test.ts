@@ -163,8 +163,16 @@ describe('lesson-plans-api', () => {
   });
 
   it('上传学情文件：multipart（不手写 content-type），响应缺 assetRef 时报错', async () => {
-    const fetchMock = stubFetch(() => jsonResponse(201, { assetRef: 'asset-1', fileName: '七一班.xlsx' }));
-    const file = new File(['x'], '七一班.xlsx');
+    const fetchMock = stubFetch(() =>
+      jsonResponse(201, {
+        assetRef: 'asset-1',
+        fileName: '学情说明.md',
+        mediaType: 'text/markdown',
+        byteSize: 128,
+        sha256: 'a'.repeat(64),
+      }),
+    );
+    const file = new File(['x'], '学情说明.md');
     const result = await uploadLessonSource(file);
     const { url, init } = call(fetchMock);
     expect(url).toBe(`${API_BASE_PATH}/lesson-plans/source-uploads`);
@@ -172,6 +180,10 @@ describe('lesson-plans-api', () => {
     expect(init?.body).toBeInstanceOf(FormData);
     expect((init?.headers as Record<string, string> | undefined)?.['content-type']).toBeUndefined();
     expect(result.assetRef).toBe('asset-1');
+    // 服务端多返回的元数据原样透传（缺省不伪造）
+    expect(result.fileName).toBe('学情说明.md');
+    expect(result.mediaType).toBe('text/markdown');
+    expect(result.byteSize).toBe(128);
 
     stubFetch(() => jsonResponse(201, { fileId: 'x' }));
     await expect(uploadLessonSource(file)).rejects.toThrow(/assetRef/);

@@ -46,6 +46,7 @@ def assemble(app: FastAPI, settings: Settings) -> None:
     for key in (
         "lesson_plan_service",
         "lesson_generation_service",
+        "lesson_source_service",
         "fixed_question_reader",
         "lesson_export_ready",
     ):
@@ -134,6 +135,15 @@ def assemble(app: FastAPI, settings: Settings) -> None:
     register = getattr(app.state.lesson_plan_service, "register_job_executors", None)
     if callable(register) and registry is not None:
         register(registry)
+
+    # 6b) 学情材料服务（2026-10-13 补齐）：上传学情文件 → 受管资产 → 生成流读回。
+    #     只依赖教学库 + 受管资产（R5 已装配），不依赖模型/任务引擎。
+    from app.services.lesson_sources import LessonSourceService
+
+    app.state.lesson_source_service = LessonSourceService(
+        asset_store=asset_store,
+        file_assets=file_assets,
+    )
 
     # 7) 路由：lesson_plans / lesson_stream / lesson_sources 本卡；/workflow-jobs
     #    归 R3-BE（try-import 幂等注册；文件缺失就跳过，不新建/不改写）。

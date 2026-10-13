@@ -3,7 +3,9 @@
  * 中栏「生成教案」面板（R7-FE）。
  *
  * - 输入：课程名称 + 知识点（`GET /knowledge-points?scope=subject`）+ 学情来源
- *   （分析报告 `GET /analysis-runs` / 上传学情文件 assetRef / 不指定）+ 教师要求；
+ *   （分析报告 `GET /analysis-runs` / 上传学情文件 assetRef（.docx/.pdf/.txt/.md，文本按上限
+ *   截断后作为固定数据发给模型；成绩表类由服务端 422 并指引走「分析报告」来源）/ 不指定）
+ *   + 教师要求；
  * - 触发 `POST /lesson-plans/generation-stream`（归档 SSE 协议），文本从上到下按模块流式到达，
  *   每个模块的文本即时解析成字段（逐格）并在预览中高亮为候选；
  * - **候选态**：只有教师点「采用」才写进草稿；可中断，已收到的内容保留为候选；
@@ -317,7 +319,7 @@ export function GeneratePanel({
               <input
                 type="file"
                 data-testid="lw-source-upload"
-                accept=".xlsx,.xls,.csv,.docx,.pdf,.txt,.md"
+                accept=".docx,.pdf,.txt,.md"
                 disabled={uploading}
                 onChange={async (event) => {
                   const file = event.target.files?.[0];
@@ -337,6 +339,11 @@ export function GeneratePanel({
                 }}
               />
             </label>
+            <small className="lw-note" data-testid="lw-source-upload-hint">
+              支持 .docx / .pdf / .txt / .md 的学情说明或学情分析报告；文本会作为固定数据发给模型
+              （超长按上限截断并标注）。成绩表（.xlsx/.csv）请先在「学情分析」导入并确认成绩、
+              生成学情报告，再改用上面的「分析报告」来源——学生以代称进模型，原始姓名/学号不外发。
+            </small>
             {uploaded && (
               <span className="lw-file-chip" data-testid="lw-source-file-chip">
                 <FileUp size={14} aria-hidden />

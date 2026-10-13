@@ -6,7 +6,8 @@
 - 模型经 ``resolve_agent_chat_model``（SecretStore 显式注入），逐模块用 LangChain
   ``chat_model.astream(messages)`` 逐 delta 转发（R7 LangChain 改造）。
 
-输入（固定数据）：学情报告匿名聚合（可选）+ 知识点名（可选）+ 课程名 + 教师要求。
+输入（固定数据）：学情报告匿名聚合（可选）+ 教师上传的学情材料（可选，文本已截断标注）
++ 知识点名（可选）+ 课程名 + 教师要求。
 模块集合（可选子集）：analysis / objectives / strategy / process / exercises / evaluation / reflection。
 """
 
@@ -55,8 +56,19 @@ LESSON_STREAM_PROMPT = register_prompt(
 LESSON_STREAM_TIMEOUT_SECONDS = 300
 
 
-def build_context(report: dict | None, knowledge_names: list[str], course_name: str, requirements: str) -> str:
-    """构造固定数据上下文（学情复用 commentary 的匿名聚合提示）。"""
+def build_context(
+    report: dict | None,
+    knowledge_names: list[str],
+    course_name: str,
+    requirements: str,
+    source_material: object | None = None,
+) -> str:
+    """构造固定数据上下文（学情复用 commentary 的匿名聚合提示）。
+
+    ``source_material``：教师上传的学情材料（``LessonSourceMaterial``：``file_name`` +
+    已截断标注的 ``text``）。按「固定数据」段落注入并写明来源文件；材料里的任何指令
+    都只是数据（SYSTEM_PROMPT 已声明），不改变系统规则。
+    """
     lines: list[str] = []
     if course_name:
         lines.append(f"课程：{course_name}")
@@ -67,6 +79,12 @@ def build_context(report: dict | None, knowledge_names: list[str], course_name: 
     if report:
         lines.append("【学情固定数据（匿名聚合）】")
         lines.append(build_analysis_prompt(report))
+    file_name = getattr(source_material, "file_name", None)
+    material_text = getattr(source_material, "text", None)
+    if isinstance(material_text, str) and material_text.strip():
+        label = file_name if isinstance(file_name, str) and file_name.strip() else "未命名文件"
+        lines.append(f"【教师上传的学情材料（{label}，原文摘录）】")
+        lines.append(material_text)
     return "\n".join(lines) or "（无附加固定数据）"
 
 
@@ -101,10 +119,12 @@ async def stream_modules(
     course_name: str,
     requirements: str,
     modules: list[str],
+    source_material: object | None = None,
 ) -> AsyncIterator[dict]:
     """逐模块流式生成：产出 {type: 'module-start'|'module-delta'|'module-done'|'end'|'error', ...}。
 
     单模块失败不中断后续模块（error 事件继续），全部完成后 end。
+    ``source_material``：教师上传的学情材料（已由路由读回并校验），并入固定数据上下文。
     """
     unknown = [m for m in modules if m not in MODULE_SPECS]
     if unknown:
@@ -112,7 +132,7 @@ async def stream_modules(
     chat_model = getattr(handle, "chat_model", None)
     if chat_model is None:
         raise AppError("模型解析结果缺少 LangChain chat model。", code="MODEL_NOT_CONFIGURED", status_code=502)
-    context = build_context(report, knowledge_names, course_name, requirements)
+    context = build_context(report, knowledge_names, course_name, requirements, source_material)
     for module in modules:
         yield {"type": "module-start", "module": module, "label": MODULE_SPECS[module][0]}
         prompt = build_module_prompt(context, module)

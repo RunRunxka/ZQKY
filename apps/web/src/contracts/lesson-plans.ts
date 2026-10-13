@@ -253,10 +253,19 @@ export interface LessonExportReceipt {
   artifact: ExportArtifactRef;
 }
 
-/** 上传学情文件（assetRef）；端点名待 R7-BE 定稿（见交付「未决问题」）。 */
+/**
+ * 上传学情文件回执（`POST /lesson-plans/source-uploads`，2026-10-13 补齐后端实现）。
+ *
+ * 只接受可提取文本的文档（.docx/.pdf/.txt/.md）；成绩表类（.xlsx/.xls/.csv）由服务端 422
+ * 并给出「去学情分析生成报告、用『分析报告』来源」的指引（含姓名的原始表格不进模型）。
+ */
 export interface LessonSourceUpload {
+  /** 受管资产 id；生成流以它为 `sourceAssetRef` 读回材料文本。 */
   assetRef: string;
   fileName: string;
+  mediaType?: string;
+  byteSize?: number;
+  sha256?: string;
 }
 
 /* ------------------------------------------------------------------ 生成流（归档协议） */

@@ -8,6 +8,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { LessonWorkbench } from './LessonWorkbench';
 import { LESSON_OWNERSHIP_KEY, LOCAL_DRAFT_KEY } from './model/draft-storage';
+import { ApiError } from '@/services/api-client';
 import type { LessonPlansApi } from '@/services/lesson-plans-api';
 import type { LessonStreamInput, LessonStreamHandlers } from '@/services/lesson-stream';
 import type { LessonPlanData, LessonView } from '@/contracts/lesson-plans';
@@ -74,11 +75,16 @@ function generateServices(stream = fakeStream([])) {
 function renderWorkbench(options: {
   api?: LessonPlansApi;
   stream?: ReturnType<typeof fakeStream>;
+  /** 生成面板的服务替身覆盖（如只替换 uploadSource 验证上传口径）。 */
+  generate?: Partial<ReturnType<typeof generateServices>>;
 } = {}) {
   const api = options.api ?? fakeApi();
   const stream = options.stream ?? fakeStream([]);
   const utils = render(
-    <LessonWorkbench api={api} generateServices={generateServices(stream)} />,
+    <LessonWorkbench
+      api={api}
+      generateServices={{ ...generateServices(stream), ...options.generate }}
+    />,
   );
   return { api, stream, ...utils };
 }
@@ -291,6 +297,52 @@ describe('教案工作台 · 生成流（候选 → 采用）', () => {
     await waitFor(() => expect(screen.getByTestId('lw-kp-error').textContent).toContain('后端端点尚未上线'));
     fireEvent.click(screen.getByTestId('lw-source-run'));
     await waitFor(() => expect(screen.getByTestId('lw-analysis-run-error').textContent).toContain('学情服务未装配'));
+  });
+});
+
+describe('教案工作台 · 上传学情文件（2026-10-13 补齐后端端点）', () => {
+  it('上传成功：走上传口、候选文件名进面板，并写明「文本发给模型」的口径', async () => {
+    const uploadSource = vi.fn(async (file: File) => ({
+      assetRef: 'asset-1',
+      fileName: file.name,
+    }));
+    renderWorkbench({ generate: { uploadSource } });
+
+    fireEvent.click(screen.getByTestId('lw-source-file'));
+    const input = screen.getByTestId('lw-source-upload');
+    // accept 与服务端口径一致：只收文档类；成绩表走「分析报告」来源
+    expect(input.getAttribute('accept')).toBe('.docx,.pdf,.txt,.md');
+    expect(screen.getByTestId('lw-source-upload-hint').textContent).toContain('成绩表');
+    expect(screen.getByTestId('lw-source-upload-hint').textContent).toContain('分析报告');
+
+    fireEvent.change(input, {
+      target: { files: [new File(['# 学情说明'], '学情说明.md', { type: 'text/markdown' })] },
+    });
+    await waitFor(() => expect(uploadSource).toHaveBeenCalledTimes(1));
+    expect(await screen.findByTestId('lw-source-file-chip')).toHaveTextContent('学情说明.md');
+  });
+
+  it('成绩表被服务端拒绝：原样显示 code 与指引，不降级成「上传成功」', async () => {
+    const uploadSource = vi.fn(async () => {
+      throw new ApiError(
+        'LESSON_SOURCE_UNSUPPORTED',
+        '成绩表类文件（.xlsx）不直接接收：避免把含学号/姓名的原始表格发给模型。请先在「学情分析」导入并确认成绩、生成学情报告，再回到本面板把来源选成「分析报告」。',
+        422,
+        false,
+      );
+    });
+    renderWorkbench({ generate: { uploadSource } });
+
+    fireEvent.click(screen.getByTestId('lw-source-file'));
+    fireEvent.change(screen.getByTestId('lw-source-upload'), {
+      target: { files: [new File(['x'], '小题分.xlsx')] },
+    });
+
+    const error = await screen.findByTestId('lw-source-upload-error');
+    expect(error).toHaveTextContent('LESSON_SOURCE_UNSUPPORTED');
+    expect(error).toHaveTextContent('学情分析');
+    // 失败不留候选文件名（不假装已导入）
+    expect(screen.queryByTestId('lw-source-file-chip')).toBeNull();
   });
 });
 

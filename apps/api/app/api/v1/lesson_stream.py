@@ -6,9 +6,9 @@
 R7 适配：
 - 模型解析经 ``resolve_agent_chat_model``（LangChain 官方包、显式凭证、env 断言），
   在有界线程执行（构造可能读配置/SecretStore，不阻塞事件循环）；
-- ``sourceAssetRef``（R7 前端追加字段）：上传学情文件来源。R7-BE 本卡**不消费**
-  该字段做学情解析（学情文件→匿名聚合的解析链路未重建），仅按契约接受并忽略；
-  前端契约已注明「后端未实现时忽略，不影响既有字段」。
+- ``sourceAssetRef``（R7 前端追加字段）：上传学情文件来源。**2026-10-13 起本域真正消费**：
+  经 ``lesson_source_service``（须为教师本人的受管资产）读回材料文本，作为固定数据注入
+  每个模块的提示；读不到/为空如实报 HTTP 错误，不再静默忽略该来源。
 """
 
 from __future__ import annotations
@@ -65,6 +65,17 @@ async def lesson_generation_stream(request: Request, body: LessonStreamRequest) 
                 f"学情报告读取失败：{exc}", code=exc.code, status_code=exc.status_code, retryable=exc.retryable
             ) from exc
 
+    source_material = None
+    if body.sourceAssetRef:
+        sources = getattr(request.app.state, "lesson_source_service", None)
+        if sources is None:
+            raise AppError(
+                "学情材料服务未装配，无法读取上传的学情文件。", code="SERVICE_UNAVAILABLE", status_code=503, retryable=True
+            )
+        source_material = await anyio.to_thread.run_sync(
+            functools.partial(sources.read_material, body.sourceAssetRef)
+        )
+
     knowledge_names: list[str] = []
     if body.selectedKnowledgePointIds:
         knowledge = getattr(request.app.state, "knowledge_service", None)
@@ -86,6 +97,7 @@ async def lesson_generation_stream(request: Request, body: LessonStreamRequest) 
             course_name=body.courseName,
             requirements=body.requirements,
             modules=modules,
+            source_material=source_material,
         ):
             kind = event.get("type")
             if kind == "module-start":
