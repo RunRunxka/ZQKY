@@ -325,10 +325,20 @@ export function RosterWorkspacePage() {
             </p>
           )}
           {classes.state.phase === 'ready' && classItems.length === 0 && (
-            <p className="space-empty" data-testid="assessments-classes-empty">
+            <div className="space-empty" data-testid="assessments-classes-empty">
               <strong>还没有班级</strong>
               <span>先新建一个班级，再导入或添加学生名单。</span>
-            </p>
+              <div className="assessments-actions">
+                <button
+                  className="space-button primary"
+                  data-testid="assessments-class-create-empty"
+                  disabled={writeBusyId !== null}
+                  onClick={() => setCreateClassOpen(true)}
+                >
+                  <Plus size={13} aria-hidden /> 新建班级
+                </button>
+              </div>
+            </div>
           )}
           {classItems.length > 0 && (
             <div className="assessments-form">
@@ -356,6 +366,7 @@ export function RosterWorkspacePage() {
               )}
               <button
                 className="space-button primary"
+                data-testid="assessments-class-create"
                 disabled={writeBusyId !== null}
                 onClick={() => setCreateClassOpen(true)}
               >
@@ -430,10 +441,22 @@ export function RosterWorkspacePage() {
           </div>
 
           {!currentClassId && (
-            <p className="space-empty" data-testid="assessments-students-no-class">
+            <div className="space-empty" data-testid="assessments-students-no-class">
               <strong>请先选择或新建一个班级</strong>
               <span>学生名单按班级维护：选定班级后即可添加、导入与编辑学生。</span>
-            </p>
+              {classItems.length === 0 && (
+                <div className="assessments-actions">
+                  <button
+                    className="space-button primary"
+                    data-testid="assessments-students-create-class"
+                    disabled={writeBusyId !== null}
+                    onClick={() => setCreateClassOpen(true)}
+                  >
+                    <Plus size={13} aria-hidden /> 新建班级
+                  </button>
+                </div>
+              )}
+            </div>
           )}
 
           {currentClassId && (

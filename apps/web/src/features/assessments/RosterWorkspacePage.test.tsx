@@ -226,6 +226,95 @@ describe('班级管理页：失败与空态不能互相伪装', () => {
     expect(screen.getByTestId('assessments-students-no-class')).toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
   });
+
+  it('空名单时提供「新建班级」入口（R10-FE）：班级空态与学生区各一个，点开即建班表单', async () => {
+    stubApi((url) => {
+      if (url.includes('/textbook-taxonomy')) {
+        return jsonResponse(true, 200, {
+          stages: [{ id: 'stage-j', label: '初中' }],
+          grades: [{ id: 'g7', label: '七年级', stageId: 'stage-j' }],
+          subjects: [{ id: 'math', label: '数学' }],
+          editions: [{ id: 'rj', label: '人教版' }],
+        });
+      }
+      if (url.includes('/classes')) {
+        return jsonResponse(true, 200, { items: [], total: 0, offset: 0, limit: 200 });
+      }
+      return jsonResponse(false, 404, { code: 'NOT_FOUND', message: url });
+    });
+    render(<RosterWorkspacePage />);
+    await screen.findByTestId('assessments-classes-empty');
+
+    // 一个班都没有时，两个入口都在
+    const emptyEntry = screen.getByTestId('assessments-class-create-empty');
+    const studentsEntry = screen.getByTestId('assessments-students-create-class');
+    expect(emptyEntry).toHaveTextContent('新建班级');
+    expect(studentsEntry).toHaveTextContent('新建班级');
+
+    fireEvent.click(emptyEntry);
+    // 表单以「班级名称」字段定位（'新建班级' 同时是对话框标题与表单 aria-label，不唯一）
+    await screen.findByLabelText('班级名称');
+
+    // 关掉再点学生区那个，走的是同一个表单
+    fireEvent.click(screen.getByRole('button', { name: '取消' }));
+    fireEvent.click(studentsEntry);
+    expect(await screen.findByLabelText('班级名称')).toBeInTheDocument();
+  });
+
+  it('从空态建班：提交 POST /classes（编码/名称/学年/年级）→ 刷新列表并提示已新建', async () => {
+    const fetchMock = stubApi((url, init) => {
+      if (url.includes('/textbook-taxonomy')) {
+        return jsonResponse(true, 200, {
+          stages: [{ id: 'stage-j', label: '初中' }],
+          grades: [{ id: 'g7', label: '七年级', stageId: 'stage-j' }],
+          subjects: [{ id: 'math', label: '数学' }],
+          editions: [{ id: 'rj', label: '人教版' }],
+        });
+      }
+      if (url.includes('/classes') && (init.method ?? 'GET') === 'POST') {
+        expect(JSON.parse(String(init.body))).toEqual({
+          code: 'G7-09',
+          name: '七年九班',
+          schoolYear: '2026',
+          gradeId: 'g7',
+        });
+        return jsonResponse(true, 201, { ...CLASS, id: 'cls-9', code: 'G7-09', name: '七年九班' });
+      }
+      if (url.includes('/classes/cls-9/students')) {
+        return jsonResponse(true, 200, { items: [], total: 0, offset: 0, limit: 50 });
+      }
+      if (url.includes('/classes')) {
+        const created = calls(fetchMock, '/classes', 'POST').length > 0;
+        return jsonResponse(true, 200, {
+          items: created ? [{ ...CLASS, id: 'cls-9', code: 'G7-09', name: '七年九班' }] : [],
+          total: created ? 1 : 0,
+          offset: 0,
+          limit: 200,
+        });
+      }
+      return jsonResponse(false, 404, { code: 'NOT_FOUND', message: url });
+    });
+    render(<RosterWorkspacePage />);
+    fireEvent.click(await screen.findByTestId('assessments-class-create-empty'));
+    const codeInput = await screen.findByLabelText('班级编码');
+    const form = codeInput.closest('form') as HTMLFormElement;
+    expect(form).not.toBeNull();
+    fireEvent.change(within(form).getByLabelText('班级编码'), { target: { value: 'G7-09' } });
+    fireEvent.change(within(form).getByLabelText('班级名称'), { target: { value: '七年九班' } });
+    // 年级字典是必选项：不选则「建立班级」保持禁用（页面既有口径）
+    fireEvent.change(within(form).getByLabelText('年级'), { target: { value: 'g7' } });
+    fireEvent.click(within(form).getByRole('button', { name: '建立班级' }));
+
+    await waitFor(() => expect(calls(fetchMock, '/classes', 'POST')).toHaveLength(1));
+    expect(await screen.findByTestId('assessments-roster-notice')).toHaveTextContent(
+      '已新建班级「七年九班」',
+    );
+    // 列表刷新后不再是空态：当前班级下拉里出现新班
+    await waitFor(() =>
+      expect(screen.getByLabelText('当前班级')).toHaveTextContent('七年九班'),
+    );
+    expect(screen.queryByTestId('assessments-classes-empty')).not.toBeInTheDocument();
+  });
 });
 
 describe('班级管理页：删除学生（DELETE 回执两模式，R10-FE）', () => {
