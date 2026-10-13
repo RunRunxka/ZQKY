@@ -10,24 +10,33 @@
  * - 归档沿用：`analysis-runs`（列表/详情/item-stats/ai-commentary/notes）、
  *   施测 / 班级 / 原卷修订内容、成绩导入（score-imports）；
  * - 本卡冻结新增：`knowledge-stats` / `student-knowledge` / `distribution` / `report`；
- *   下载沿用受管产物 `GET /export-artifacts/{artifactId}/download`。
+ *   下载沿用受管产物 `GET /export-artifacts/{artifactId}/download`；
+ * - 闭环补齐（2026-10-13）：`POST /assessments`（从已确认原卷新建施测）、
+ *   `POST /assessments/{id}/analysis-runs`（生成学情报告）、`/papers`、`/classes/{id}/students`
+ *   （新建施测挑原卷与取参测名单）——此前这些能力只有后端、界面无入口。
  */
 
 import { apiRequest, apiRequestBlob, type BlobDownload } from '@/services/api-client';
 import type {
   AnalysisCommentaryView,
   AnalysisReportReceipt,
+  AnalysisRunCreateRequest,
   AnalysisRunList,
+  AnalysisRunReceipt,
   AnalysisRunView,
+  AssessmentCreateRequest,
+  AssessmentCreateResult,
   AssessmentDeleteResult,
   AssessmentDetailView,
   AssessmentList,
   ClassList,
+  ClassStudentList,
   DistributionResponse,
   ItemStatView,
   KnowledgeStatsResponse,
   NoteRequest,
   NoteView,
+  PaperOptionList,
   PaperRevisionContentView,
   ScoreColumnMapping,
   ScoreImportConfirmRequest,
@@ -87,6 +96,24 @@ export function listAnalysisRuns(
 
 export function getAnalysisRun(runId: string, signal?: AbortSignal): Promise<AnalysisRunView> {
   return apiRequest<AnalysisRunView>(`/analysis-runs/${key(runId)}`, { signal });
+}
+
+/**
+ * 生成学情报告（`POST /assessments/{id}/analysis-runs`，202 受理）。
+ *
+ * 施测必须已存在且有**已确认**成绩修订；`selectedParticipantIds` 取自该修订的
+ * `participantSnapshot`。同提交标识重放 `replayed=true`；同输入复用已有报告 `reused=true`
+ * （都返回同一 `runId`，不重复建）。报告由后台任务计算：`reportReady` 就绪后才可读图表。
+ */
+export function createAnalysisRun(
+  assessmentId: string,
+  body: AnalysisRunCreateRequest,
+  signal?: AbortSignal,
+): Promise<AnalysisRunReceipt> {
+  return apiRequest<AnalysisRunReceipt>(
+    `/assessments/${key(assessmentId)}/analysis-runs`,
+    jsonInit('POST', body, signal),
+  );
 }
 
 /** 小题得分聚合（题号 × 全班得分率；趋势图与热力图共用同一来源）。 */
@@ -212,6 +239,42 @@ export function deleteAssessment(
     `/assessments/${key(assessmentId)}${learningAnalysisQuery({ expectedRevision })}`,
     { method: 'DELETE', signal },
   );
+}
+
+/**
+ * 新建施测（`POST /assessments`，201）：只接受**已确认**的原卷修订（否则 422，原样报错）。
+ *
+ * 施测是成绩链的所有者：它一建好就会出现在本页「试卷」下拉里，随后才谈得上导入小题分
+ * 与生成学情报告。`participants` 的姓名/学号由服务端按 `studentId` 冻结，前端不送姓名。
+ */
+export function createAssessment(
+  body: AssessmentCreateRequest,
+  signal?: AbortSignal,
+): Promise<AssessmentCreateResult> {
+  return apiRequest<AssessmentCreateResult>('/assessments', jsonInit('POST', body, signal));
+}
+
+/**
+ * 原卷（试卷）目录：本模块只用于「新建施测」挑选已确认原卷。
+ *
+ * 与 `@/services/assessments-api` 的同名端点同一契约（模块独立维护的最小镜像，见文件头约定）。
+ */
+export function listPapers(
+  query: { status?: 'active' | 'archived'; offset?: number; limit?: number } = {},
+  signal?: AbortSignal,
+): Promise<PaperOptionList> {
+  return apiRequest<PaperOptionList>(`/papers${learningAnalysisQuery({ ...query })}`, { signal });
+}
+
+/**
+ * 该班成员（`GET /classes/{id}/students`）：新建施测据此把在册学生列为参测人次。
+ * 服务端只给 `includeArchived` 一个筛选参数、没有分页（返回本班成员全集）。
+ */
+export function listClassStudents(
+  classId: string,
+  signal?: AbortSignal,
+): Promise<ClassStudentList> {
+  return apiRequest<ClassStudentList>(`/classes/${key(classId)}/students`, { signal });
 }
 
 export function listClasses(
@@ -357,6 +420,7 @@ export function listScoreRevisions(
 export const learningAnalysisApi = {
   listAnalysisRuns,
   getAnalysisRun,
+  createAnalysisRun,
   getAnalysisItemStats,
   getAnalysisKnowledgeStats,
   getAnalysisStudentKnowledge,
@@ -367,8 +431,11 @@ export const learningAnalysisApi = {
   downloadExportArtifact,
   listAssessments,
   getAssessment,
+  createAssessment,
   deleteAssessment,
   listClasses,
+  listClassStudents,
+  listPapers,
   getPaperRevisionContent,
   createScoreImport,
   listScoreImports,

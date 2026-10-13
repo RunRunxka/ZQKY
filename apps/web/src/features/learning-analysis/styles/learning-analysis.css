@@ -556,6 +556,14 @@
   color: var(--ink);
 }
 
+.learning-analysis-page .assessments-form-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  width: 100%;
+  flex-wrap: wrap;
+}
+
 .learning-analysis-page .assessments-issue-list {
   list-style: none;
   margin: 0;

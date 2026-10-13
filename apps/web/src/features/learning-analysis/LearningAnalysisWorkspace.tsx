@@ -3,8 +3,14 @@
 /**
  * `/learning-analysis` 学情分析页（R6-FE 2026-10-11）。
  *
- * 结构：顶部筛选（班级 / 试卷 / 时间粒度 + 导入小题分 + **删除该施测**）→ 报告列表与所选报告 →
- * 五图（各自独立的数据源、错误与重试）→ AI 评价与导出分析报告。
+ * 结构：顶部筛选（班级 / 试卷 / 时间粒度 + **新建施测** + 导入小题分 + **删除该施测**）→
+ * 报告列表与所选报告 → 五图（各自独立的数据源、错误与重试）→ AI 评价与导出分析报告。
+ *
+ * 闭环补齐（2026-10-13）：「导入的试卷在学情分析里看不到」的根因是本页「试卷」下拉列的是
+ * **施测**，而界面上没有任何建施测/生成报告的入口——
+ * - 「新建施测」把**已确认**的原卷落到一场施测（挑班级、取该班在册学生为参测人次）；
+ * - 「生成学情报告」从所选施测的**已确认**成绩修订创建报告（人次取修订快照）。
+ * 创建路径同样遵守逻辑确认（冻结 `submissionId` + 原样载荷），失败原样报错、不假成功。
  *
  * 数据全部来自 FastAPI；读取失败按卡片显示原因与重试，不当空目录、不静默空图。
  * 公共壳与滚动容器由 layout 的 `ModuleWorkspaceShell` 统一提供（业务根由总控登记），
@@ -15,15 +21,15 @@
  * 成功回执逐项显示服务端级联计数，被教案冻结血缘引用时 409 逐项列出原因（详见 docs/API.md 删除语义）。
  *
  * 归档差异（R6 裁定）：
- * - 报告由后端创建（`POST /assessments/{id}/analysis-runs`）不在本卡范围，本页只读取既有报告；
  * - 趋势图为红色柱状图（覆盖归档的折线）；
  * - 班级筛选经服务端 `GET /assessments?classId=`（收窄试卷）；时间粒度按报告创建时间在
  *   已读取的报告页内过滤，并在界面上显式说明（后端暂无时间查询参数）。
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FileSpreadsheet, RefreshCw, Trash2 } from 'lucide-react';
+import { FilePlus2, FileSpreadsheet, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useEntrance } from '@/components/motion/useEntrance';
+import type { AnalysisRunReceipt, AssessmentCreateResult } from '@/contracts/learning-analysis';
 import { learningAnalysisApi, type LearningAnalysisApi } from '@/services/learning-analysis-api';
 import { asApiError, useAsyncResource } from './score-hooks';
 import { ASSESSMENT_COUNT_LABELS, referenceCounts, shortId } from './score-labels';
@@ -37,6 +43,8 @@ import {
 } from './ScoreCharts';
 import { AiCommentaryPanel } from './AiCommentaryPanel';
 import { ScoreImportPanel } from './ScoreImportPanel';
+import { AssessmentCreatePanel } from './AssessmentCreatePanel';
+import { AnalysisRunCreatePanel } from './AnalysisRunCreatePanel';
 import '@/components/layout/space.css';
 import './styles/learning-analysis.css';
 
@@ -108,6 +116,11 @@ export function LearningAnalysisWorkspace({
   const [runId, setRunId] = useState<string | null>(initialRunId);
   const [runsOffset, setRunsOffset] = useState(0);
   const [showImport, setShowImport] = useState(false);
+  /** 闭环补齐：新建施测（已确认原卷 → 施测）与生成学情报告（已确认成绩 → 报告）两个入口。 */
+  const [showCreateAssessment, setShowCreateAssessment] = useState(false);
+  const [showCreateRun, setShowCreateRun] = useState(false);
+  /** 新建施测 / 生成报告的流程回执与下一步指引（成功信息；页面错误另有错误区，两者不混用）。 */
+  const [flowNotice, setFlowNotice] = useState<string | null>(null);
   /** 删除施测（R10-BE）：忙碌、错误、被引用守卫、成功回执四个独立状态。 */
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -214,6 +227,50 @@ export function LearningAnalysisWorkspace({
   const classesFailed = classes.state.phase === 'failed';
   const reportReady = Boolean(runView?.reportReady);
 
+  /**
+   * 新建施测成功：选中新施测并刷新列表，给出下一步（导入小题分）的指引。
+   *
+   * 施测是成绩链的所有者：列表刷新后它即出现在「试卷」下拉里；这里同时清掉旧报告选中，
+   * 避免把上一场施测的报告视图当成本次的（报告链挂在施测下，新施测此刻必然没有报告）。
+   */
+  function handleAssessmentCreated(result: AssessmentCreateResult) {
+    setShowCreateAssessment(false);
+    setShowCreateRun(false);
+    // 当前班级筛选不含这场新施测时清空筛选：否则「试卷」下拉按班级收窄后看不到它。
+    if (classId && !result.assessment.classIds.includes(classId)) setClassId('');
+    setAssessmentId(result.assessment.assessmentId);
+    resetRunSelection();
+    assessments.reload();
+    runs.reload();
+    setFlowNotice(
+      `已新建施测「${result.assessment.title}」（${result.assessment.heldOn}）：` +
+        `参测 ${result.participants.length} 人次${result.replayed ? '（幂等重放，未重复创建）' : ''}。` +
+        '下一步：确认上方「试卷」选中的是这场施测，用「导入小题分」上传这次考试的成绩表。',
+    );
+  }
+
+  /**
+   * 生成学情报告成功：按服务端回执如实区分「新建 / 复用 / 重放」三种结果，并选中报告。
+   *
+   * 报告由后台任务计算：新建受理时先给「稍后刷新」的指引（列表会标「尚未准备」），
+   * 不假装图表已就绪。
+   */
+  function handleRunCreated(receipt: AnalysisRunReceipt) {
+    setShowCreateRun(false);
+    setRunId(receipt.runId);
+    runs.reload();
+    const short = shortId(receipt.runId);
+    if (receipt.replayed) {
+      setFlowNotice(`已按同一提交标识重放，返回同一份学情报告（报告 ${short}），未重复创建。`);
+    } else if (receipt.reused) {
+      setFlowNotice(`该成绩版本的同一输入已有报告，直接复用（报告 ${short}），未重复创建。`);
+    } else {
+      setFlowNotice(
+        `已受理生成学情报告（报告 ${short}）：报告由后台计算，稍后点「刷新报告」读取五图与 AI 评价。`,
+      );
+    }
+  }
+
   return (
     <div ref={pageRef} className="space-page learning-analysis-page">
       <header className="space-header" data-motion-reveal>
@@ -308,6 +365,13 @@ export function LearningAnalysisWorkspace({
 
           <div className="la-filter-actions">
             <button
+              className="space-button"
+              data-testid="la-create-assessment-open"
+              onClick={() => setShowCreateAssessment(true)}
+            >
+              <Plus size={13} aria-hidden /> 新建施测
+            </button>
+            <button
               className="space-button primary"
               aria-expanded={showImport}
               aria-controls="learning-analysis-import"
@@ -333,14 +397,21 @@ export function LearningAnalysisWorkspace({
         </section>
 
         <p className="la-hint">
-          班级筛选走服务端：只列出该班参测的试卷；试卷筛选只列出该试卷的分析报告。
-          时间粒度按报告创建时间在已读取的报告页内过滤（后端暂未提供时间查询参数），界面不隐藏该口径。
+          「试卷」下拉列的是「施测」（班级 × 原卷的一次具体考试）：在「试卷管理」确认入库的原卷，
+          要先用「新建施测」落到一场施测上才会出现在这里。班级筛选走服务端：只列出该班参测的试卷；
+          试卷筛选只列出该试卷的分析报告。时间粒度按报告创建时间在已读取的报告页内过滤
+          （后端暂未提供时间查询参数），界面不隐藏该口径。
           「删除该施测」作用于上面「试卷」下拉里选中的那一场（删除即删除，不可恢复）。
         </p>
 
         {deleteReceipt && (
           <p className="space-banner info" role="status" data-testid="la-assessment-delete-receipt">
             {deleteReceipt}
+          </p>
+        )}
+        {flowNotice && (
+          <p className="space-banner info" role="status" data-testid="la-flow-notice">
+            {flowNotice}
           </p>
         )}
         {deleteError && (
@@ -385,12 +456,40 @@ export function LearningAnalysisWorkspace({
         )}
 
         <section className="la-section" aria-label="分析报告">
-          <h2>分析报告</h2>
+          <div className="assessments-subpanel-head">
+            <h2>分析报告</h2>
+            <button
+              className="space-button"
+              data-testid="la-create-run-open"
+              disabled={!assessmentId}
+              title={
+                assessmentId
+                  ? '从当前施测的已确认小题分成绩生成学情报告'
+                  : '先在上方「试卷」下拉里选择一场施测'
+              }
+              onClick={() => {
+                setShowCreateRun((value) => !value);
+                setFlowNotice(null);
+              }}
+            >
+              <FilePlus2 size={13} aria-hidden /> {showCreateRun ? '收起生成面板' : '生成学情报告'}
+            </button>
+          </div>
           <p className="la-hint">
-            报告由后端在一次已确认成绩上创建（固定版本，不随成绩修正而变）；本页只读取既有报告，
-            不在此页创建。R10-FE：归档功能已舍弃——本页不提供归档/恢复操作；历史数据里已归档的
-            报告仍按后端返回只读展示（标「已归档（只读）」）。
+            报告固定在一次已确认的小题分成绩修订上（不随成绩修正而变）：用「生成学情报告」创建，
+            同一成绩版本重复生成会复用已有报告；报告由后台计算，就绪后才有五图与 AI 评价。
+            归档功能已舍弃——本页不提供归档/恢复操作；历史数据里已归档的报告仍按后端返回只读展示
+            （标「已归档（只读）」）。
           </p>
+
+          {showCreateRun && assessmentId && (
+            <AnalysisRunCreatePanel
+              assessmentId={assessmentId}
+              activeScoreRevisionId={selectedAssessment?.activeScoreRevisionId ?? null}
+              onCreated={handleRunCreated}
+              onClose={() => setShowCreateRun(false)}
+            />
+          )}
 
           {runs.state.phase === 'failed' && (
             <div className="space-banner error" role="alert" data-testid="la-runs-error">
@@ -405,7 +504,10 @@ export function LearningAnalysisWorkspace({
           {runs.state.phase === 'ready' && (runs.lastData?.items.length ?? 0) === 0 && (
             <p className="space-empty" data-testid="la-runs-empty">
               <strong>该筛选下还没有分析报告</strong>
-              <span>先在该试卷上导入并确认小题分成绩单，或到报告创建入口生成报告后再回到本页。</span>
+              <span>
+                流程：「新建施测」把已确认原卷落成一场施测 → 「导入小题分」导入并确认成绩
+                → 「生成学情报告」。也可以先把「试卷」筛选改回「全部试卷」看看其它施测的报告。
+              </span>
             </p>
           )}
           {runs.state.phase === 'ready' &&
@@ -519,6 +621,15 @@ export function LearningAnalysisWorkspace({
           </>
         )}
       </main>
+
+      {showCreateAssessment && (
+        <AssessmentCreatePanel
+          classes={classes.lastData?.items ?? []}
+          classesFailed={classesFailed}
+          onCreated={handleAssessmentCreated}
+          onClose={() => setShowCreateAssessment(false)}
+        />
+      )}
     </div>
   );
 }

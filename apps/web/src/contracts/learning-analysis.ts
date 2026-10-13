@@ -84,6 +84,30 @@ export interface AnalysisRunView {
 
 export type AnalysisRunList = Page<AnalysisRunView>;
 
+/**
+ * 生成学情报告（`POST /assessments/{assessment_id}/analysis-runs`，202 收据）。
+ *
+ * `selectedParticipantIds` 必须取自**该成绩修订**的 `participantSnapshot`
+ * （服务端按冻结快照逐项校验：不属于该修订/重复人次/同学生重复都会 422）；
+ * `ruleCode` 当前只有 `any_loss_v1`（任一小题有失分即纳入证据）。
+ */
+export interface AnalysisRunCreateRequest {
+  submissionId: string;
+  scoreRevisionId: string;
+  selectedParticipantIds: string[];
+  ruleCode: 'any_loss_v1';
+}
+
+/** 生成回执：`replayed` = 同提交标识重放；`reused` = 同输入已有报告，直接复用同一 `runId`。 */
+export interface AnalysisRunReceipt {
+  runId: string;
+  inputHash: string;
+  scoreRevisionId: string;
+  paperRevisionId: string;
+  replayed: boolean;
+  reused: boolean;
+}
+
 /** 小题得分聚合（`GET /analysis-runs/{run_id}/item-stats`）：题号 × 全班得分率。 */
 export interface ItemStatView {
   itemId: string;
@@ -238,6 +262,68 @@ export interface AssessmentParticipantView {
 export interface AssessmentDetailView {
   assessment: AssessmentSummaryView;
   participants: AssessmentParticipantView[];
+}
+
+/** 施测类型（与后端 `AssessmentType` 逐值镜像）。 */
+export type AssessmentType = 'exam' | 'quiz' | 'practice';
+
+/**
+ * 参测行：姓名/学号由服务端按 `studentId` 读取后冻结，前端只送身份与归属。
+ * `classConfirmed` 用于归属历史未覆盖施测日期时的显式确认（默认不送，由服务端判定后
+ * 以 422 `PARTICIPANT_CLASS_UNCONFIRMED` 给出逐行原因）。
+ */
+export interface AssessmentCreateParticipantInput {
+  studentId: string;
+  classId: string;
+  attendance?: 'present' | 'absent' | 'exempt';
+  classConfirmed?: boolean;
+  classConfirmationNote?: string | null;
+}
+
+/**
+ * 新建施测（`POST /assessments`，201）：只接受**已确认**的原卷修订（否则 422）；
+ * `submissionId` 是逻辑确认标识（结果未知时原样重试，幂等不重复建）。
+ */
+export interface AssessmentCreateRequest {
+  submissionId: string;
+  paperRevisionId: string;
+  title: string;
+  assessmentType: AssessmentType;
+  heldOn: string;
+  classIds: string[];
+  participants: AssessmentCreateParticipantInput[];
+}
+
+export interface AssessmentCreateResult {
+  assessment: AssessmentSummaryView;
+  participants: AssessmentParticipantView[];
+  replayed: boolean;
+}
+
+/** 原卷（试卷）最小视图：学情分析只用于「新建施测」挑选**已确认**原卷。 */
+export interface PaperOptionView {
+  paperId: string;
+  title: string;
+  version: number;
+  /** 当前修订；`currentState !== 'confirmed'` 时不能用于新建施测（后端 422）。 */
+  currentRevisionId: string | null;
+  currentState: 'draft' | 'confirmed' | null;
+  scoredLeafCount: number;
+}
+
+export type PaperOptionList = Page<PaperOptionView>;
+
+/** 班级学生最小视图：新建施测据此把在册学生一次性列为参测人次。 */
+export interface ClassStudentView {
+  id: string;
+  name: string;
+  studentNo: string | null;
+  status: 'active' | 'archived';
+}
+
+export interface ClassStudentList {
+  items: ClassStudentView[];
+  total: number;
 }
 
 export interface ClassView {
@@ -445,7 +531,24 @@ export interface ScoreRevisionView {
   state: ScoreRevisionState;
   confirmedAt?: string | null;
   createdAt: string;
+  /**
+   * 冻结人次快照（服务端多返回、界面按需读取）：生成学情报告的 `selectedParticipantIds`
+   * 必须取自这里（服务端按该修订快照逐项校验）。
+   */
+  participantSnapshot?: ScoreRevisionParticipant[];
 }
+
+/** 成绩修订冻结人次（与后端 `ScoreParticipantSnapshot` 同构的最小集合）。 */
+export interface ScoreRevisionParticipant {
+  participantId: string;
+  studentId: string;
+  studentNo?: string | null;
+  name: string;
+  classId: string;
+  attemptNo: number;
+  attendance: 'present' | 'absent' | 'exempt';
+}
+
 
 export interface ScoreRevisionList {
   items: ScoreRevisionView[];
