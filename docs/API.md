@@ -1,7 +1,7 @@
 # API 契约
 
-更新：2026-10-12（R 系列重建完成）。未列出的 `/api/v1/*` 返回 501 `FEATURE_NOT_IMPLEMENTED`
-（域已装配但依赖缺失时返回 503 `SERVICE_UNAVAILABLE`，绝不假成功）。
+更新：2026-10-13（R10-BE 删除语义：舍弃归档、拆开交叉引用）。未列出的 `/api/v1/*` 返回 501
+`FEATURE_NOT_IMPLEMENTED`（域已装配但依赖缺失时返回 503 `SERVICE_UNAVAILABLE`，绝不假成功）。
 
 ## 公共
 
@@ -69,7 +69,7 @@
 
 | 方法和路径 | 用途 |
 | --- | --- |
-| `/api/v1/classes*`、`/students*`（CRUD、archive/restore、transfer、batch） | 班级与学生管理（`gender` 可空存原文；删除=归档） |
+| `/api/v1/classes*`、`/students*`（CRUD、archive/restore、transfer、batch） | 班级与学生管理（`gender` 可空存原文）；归档端点保留为历史数据兼容（界面与客户端已无入口），**删除是唯一出口** |
 | `/api/v1/roster-imports*`（`/{id}/confirm|discard`） | 名单 xlsx/csv 导入两阶段（含「性别」列表头映射） |
 | POST `/api/v1/paper-imports`、`/api/v1/papers*` | 试卷导入（DOCX/PDF 文本层规则拆题，草稿→确认）/列表/修订/删除 |
 | GET `/api/v1/papers/{id}/knowledge-distribution` | 知识点占比（环图数据；primary 聚合） |
@@ -83,6 +83,28 @@
 | `/api/v1/score-imports*`（`PATCH` 列映射、`refresh`、`confirm`、`discard`） | 小题分成绩单导入（表头识别+人工确认；四态 recorded/missing/absent/exempt 不补零） |
 | `/api/v1/score-revisions/{id}`、`/{id}/matrix` | 成绩版本与矩阵（按行列定位校正） |
 | POST `/api/v1/assessments/{id}/analysis-runs`、`/analysis-runs*` | 学情报告创建/列表/归档/删除、教师备注 |
+
+## 删除语义（R10-BE，2026-10-13 用户裁定「舍弃所有归档功能，只留删除」+「拆开交叉引用」）
+
+**总原则**：删除一个实体 = 删除它自己拥有的行（结构 + 自身审计历史）；对指向它的引用，
+**下游产物级联删除，独立资产置空/409 逐项列出**。所有级联都在单个写事务内完成
+（`BEGIN IMMEDIATE` + 延迟外键），任一步失败整体回滚；不可变兜底触发器在事务内按
+`sqlite_master` 原文摘除、末尾逐字恢复（`repositories/teaching/triggers.py`）。
+
+| 删除对象 | 级联（随行删除） | 置空 | 409 逐项列出（不可删） |
+| --- | --- | --- | --- |
+| `DELETE /students/{id}?expectedRevision=N` | 无参测引用：归属记录 + 学生行；名单导入匹配指针置空 | — | 无（有历史成绩 → 200 `removed_with_history`：关归属 + 身份已移除，成绩保留） |
+| `DELETE /classes/{id}?expectedRevision=N` | 归属、名单批次（+预览行）、**无参测人次的**参测范围行；无归属且无参测引用的学生行 | — | 该班有**参测人次**（成绩链证据）、有**教案**/教案生成输入 → `CLASS_IN_USE` + counts |
+| `DELETE /papers/{id}?expectedRevision=N` | 全部修订（含已确认）+ 小题/知识点/原文块/处置问题/AI 提案 | — | 被施测引用 → `PAPER_IN_USE`（先删施测） |
+| `DELETE /assessments/{id}?expectedRevision=N` | **自有成绩链**：参测人次、成绩导入（+行）、成绩修订（+小题分/修正）、报告（+冻结子表）、派生练习（连带历史）、转换/映射、成绩模板导出（+工件）、参测范围 | — | 链上报告被教案冻结生成血缘引用 → `ASSESSMENT_IN_USE` + counts |
+| `DELETE /analysis-runs/{id}` | 报告六张冻结子表；**派生练习集连带历史**（reviewed 修订/导出/转换/工件） | 教案修订的 `analysis_run_id` 来源指针 | 报告被 `lesson_generation_inputs`/`lesson_ai_proposals`（NOT NULL 冷冻血缘）引用 → `ANALYSIS_RUN_IN_USE` + counts |
+| `DELETE /practice-sets/{id}?expectedRevision=N[&includeHistory=true]` | 草稿修订链；`includeHistory=true` 时连同 reviewed 修订/导出/工件/转换/映射 | 转换生成的原卷修订的来源指针 | 默认路径有 reviewed 修订/导出/转换 → `PRACTICE_IN_USE`（回执给出 `includeHistory` 路径） |
+
+**成绩链保护策略（调研结论）**：成绩链的所有者是**施测**——`assessment_participants`（证据锚点）
+→ 导入 → 成绩修订 → 小题分 → 报告 → 派生练习。因此删除施测 = 删除这条链（唯一的显式销毁入口）；
+其它实体（班级/学生/试卷/报告/练习）的删除**永不静默销毁学生成绩**：能拆的引用置空、自身产物随行，
+剩下的按 409 逐项列出并给出可执行下一步。**保留不动**（不属于任何删除链）：`file_assets`（受管资产
+blob）、`workflow_jobs`（任务历史）、`command_submissions`（提交幂等记录）。
 | GET `/analysis-runs/{id}/item-stats` | 小题得分率（题号×班级） |
 | GET `/analysis-runs/{id}/knowledge-stats` `/student-knowledge` `/distribution` | 知识点得分率排行 / 学生×知识点矩阵（代称脱敏、null=无依据）/ 分数段分布（学生级低<60 / 中60–85 / 高≥85） |
 | POST `/analysis-runs/{id}/ai-commentary` | AI 评价候选（`{commentary, degraded, reason}`；降级不为错误） |
