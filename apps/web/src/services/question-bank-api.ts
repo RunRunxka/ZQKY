@@ -59,6 +59,11 @@ export interface OrganizeQuestionsRequest {
    * 不是模型名、不是空串：后端经共享 `resolve_chat_model` 解析，解析失败返回可读错误。
    */
   modelProfileId: string;
+  /**
+   * `true` = 一键整理并绑定知识点：整理结果（含知识点库绑定）直接写入草稿，
+   * 教师只需多选入库；`false`（默认）= 只产生建议，逐条人工「应用/忽略」。
+   */
+  autoApply?: boolean;
 }
 
 /** 镜像后端 `SuggestionApplyRequest`；`accept: false` 即「忽略该建议」。 */

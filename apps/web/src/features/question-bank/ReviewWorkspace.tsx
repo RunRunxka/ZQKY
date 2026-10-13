@@ -51,7 +51,7 @@ import {
   unavailableOrganizerModel,
   type OrganizerChatModel,
 } from './model-profile';
-import { organizerFailureText, ORGANIZER_SUGGESTION_SEMANTICS } from './organizer-notice';
+import { organizerFailureText } from './organizer-notice';
 import { SourcePane } from './SourcePane';
 import { SuggestionPanel } from './SuggestionPanel';
 import { buildTaxonomyIndex } from './taxonomy';
@@ -198,6 +198,9 @@ function ReviewSession({ importId }: { importId: string }) {
   const [confirmBusy, setConfirmBusy] = useState(false);
   const [confirmState, setConfirmState] = useState<ConfirmState>({ phase: 'idle' });
   const [resolutions, setResolutions] = useState<Record<string, DuplicateResolution>>({});
+  /** 入库选择（「多选即确认」）：未手动调整前默认全选可入库草稿。 */
+  const [selectionTouched, setSelectionTouched] = useState(false);
+  const [confirmSelection, setConfirmSelection] = useState<string[]>([]);
   const submissionIdRef = useRef<string | null>(null);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
   const frozenConfirmRef = useRef<QuestionConfirmRequest | null>(null);
@@ -241,8 +244,34 @@ function ReviewSession({ importId }: { importId: string }) {
   );
 
   const detail = state.phase === 'ready' ? state.detail : null;
-  const drafts = detail?.drafts ?? [];
+  const drafts = useMemo(() => detail?.drafts ?? [], [detail]);
   const selectedDraft = drafts.find((draft) => draft.draftId === selectedDraftId) ?? null;
+
+  /** 可入库草稿（排除 excluded：拆分/合并/并入已有题的结果）。 */
+  const selectableIds = useMemo(
+    () => drafts.filter((draft) => draft.reviewState !== 'excluded').map((draft) => draft.draftId),
+    [drafts],
+  );
+  // 未手动调整过选择 → 默认全选；调整过 → 取交集（新草稿/被排除的草稿不会凭空选中）
+  const selection = selectionTouched
+    ? confirmSelection.filter((draftId) => selectableIds.includes(draftId))
+    : selectableIds;
+  const toggleSelection = (draftId: string) => {
+    const current = selection.includes(draftId);
+    const next = current
+      ? selection.filter((item) => item !== draftId)
+      : selectableIds.filter((item) => item === draftId || selection.includes(item));
+    setSelectionTouched(true);
+    setConfirmSelection(next);
+  };
+  const selectAllDrafts = () => {
+    setSelectionTouched(true);
+    setConfirmSelection(selectableIds);
+  };
+  const clearSelection = () => {
+    setSelectionTouched(true);
+    setConfirmSelection([]);
+  };
 
   useEffect(() => {
     if (!detail) return;
@@ -370,6 +399,9 @@ function ReviewSession({ importId }: { importId: string }) {
           .filter((draft) => draft.reviewState !== 'excluded')
           .map((draft) => draft.draftId),
         includeUnassigned,
+        // 一键整理并绑定知识点：整理结果（含知识点库绑定）直接写入草稿，
+        // 教师只做多选入库（不再逐条应用建议、不再人工校对）
+        autoApply: true,
         // 云端聊天模型 profile id（题库 AI 不使用本机模型）；绝不是模型名、不是空串
         modelProfileId: next.profileId,
       });
@@ -385,6 +417,10 @@ function ReviewSession({ importId }: { importId: string }) {
             ? retryAttemptWindow(result)
             : exactAttemptWindow(result.attempt),
         );
+      } else {
+        // 一键整理（autoApply）返回终态时，草稿已在服务端被写入（修订 +1、绑定已落）：
+        // 必须重新读取批次并等它落地，否则后续「入库」会带着旧修订提交 → REVISION_CONFLICT
+        await silentRefresh(isCurrent);
       }
     } catch (cause) {
       if (!isCurrent()) return;
@@ -526,7 +562,7 @@ function ReviewSession({ importId }: { importId: string }) {
       setPageNotice({
         kind: 'info',
         text: accept
-          ? `已应用 AI 建议：草稿回到${reviewStateLabel(updated.reviewState)}，请重新校对后再入库。`
+          ? `已应用 AI 建议：草稿回到${reviewStateLabel(updated.reviewState)}（一键整理默认不需要人工校对，可直接多选入库）。`
           : '已忽略该 AI 建议，草稿内容未改变。',
       });
     } catch (cause) {
@@ -550,11 +586,11 @@ function ReviewSession({ importId }: { importId: string }) {
 
   async function confirm() {
     if (confirmWritingRef.current) return;
-    const reviewed = drafts.filter((draft) => draft.reviewState === 'reviewed');
-    if (!frozenConfirmRef.current && reviewed.length === 0) {
+    const chosen = drafts.filter((draft) => selection.includes(draft.draftId));
+    if (!frozenConfirmRef.current && chosen.length === 0) {
       setConfirmState({
         phase: 'failed',
-        error: new ApiError('NO_REVIEWED_DRAFTS', '还没有已校对的草稿。', 422, false),
+        error: new ApiError('NO_SELECTED_DRAFTS', '还没有勾选要入库的题目。', 422, false),
       });
       return;
     }
@@ -567,12 +603,12 @@ function ReviewSession({ importId }: { importId: string }) {
       const payload = frozenConfirmRef.current ?? structuredClone({
         submissionId: ensureSubmissionId(),
         importId,
-        items: reviewed.map((draft) => ({
+        items: chosen.map((draft) => ({
           draftId: draft.draftId,
           expectedDraftRevision: draft.revision,
         })),
         // 只提交仍然在本次 items 里的重复处理，避免陈旧条目污染幂等指纹
-        duplicateResolutions: reviewed
+        duplicateResolutions: chosen
           .map((draft) => resolutions[draft.draftId])
           .filter((item): item is DuplicateResolution => Boolean(item)),
       });
@@ -605,15 +641,15 @@ function ReviewSession({ importId }: { importId: string }) {
           <ArrowLeft size={14} aria-hidden />
           返回题库
         </Link>
-        <h1>试题校对</h1>
+        <h1>导入整理与入库</h1>
         {detail ? (
           <p className="space-description">
             {detail.uploadedFileName} · {importStateLabel(detail.state)} · 草稿 {detail.draftCount}{' '}
-            道 （已校对 {detail.reviewedCount}） · 未归属原文 {detail.unassignedCount} 块
+            道 （已选 {selection.length} 道待入库） · 未归属原文 {detail.unassignedCount} 块
           </p>
         ) : (
           <p className="space-description">
-            导入文件的本地解析与规则拆题结果，需要人工校对后才能入库。
+            导入文件的本地解析与规则拆题结果：AI 整理并绑定知识点后，多选题目入库。
           </p>
         )}
       </header>
@@ -704,6 +740,7 @@ function ReviewSession({ importId }: { importId: string }) {
                       importId={importId}
                       draft={selectedDraft}
                       taxonomy={index}
+                      linksReadOnly
                       onDraftUpdated={replaceDraft}
                       onDetailReplaced={(next) => setState({ phase: 'ready', detail: next })}
                       onReloadDraft={reloadDraft}
@@ -717,8 +754,9 @@ function ReviewSession({ importId }: { importId: string }) {
                   <div className="qb-subpanel">
                     <h2>AI 整理</h2>
                     <p className="qb-hint">
-                      把草稿整理成更规范的题目结构（只有点「AI 整理草稿」才调用模型）；
-                      {ORGANIZER_SUGGESTION_SEMANTICS}
+                      一键整理并绑定知识点：把草稿整理成更规范的题目结构，并按知识点库绑定知识点
+                      （只有点「AI 整理并绑定」才调用模型）；整理结果直接写入草稿，教师
+                      <strong>只能查看</strong>知识点绑定，不做人工校对。
                     </p>
                     {activeModel.available ? (
                       <p className="qb-hint" data-testid="qb-organizer-model">
@@ -774,9 +812,10 @@ function ReviewSession({ importId }: { importId: string }) {
                         className="space-button primary"
                         disabled={organizeBusy || organizing || !activeModel.available}
                         onClick={() => void runOrganize()}
+                        data-testid="qb-organize-apply"
                       >
                         <Sparkles size={14} aria-hidden />
-                        {organizeBusy || organizing ? '整理中…' : 'AI 整理草稿'}
+                        {organizeBusy || organizing ? '整理中…' : 'AI 整理并绑定知识点'}
                       </button>
                       <button
                         className="space-button"
@@ -809,6 +848,8 @@ function ReviewSession({ importId }: { importId: string }) {
                     )}
                   </div>
 
+                  {/* 一键整理默认不再产生待处理建议（建议落库即 applied）；面板保留，
+                      用于显示任务状态/失败批与「重试整理」，并兼容旧批次的 pending 建议 */}
                   <SuggestionPanel
                     job={job}
                     suggestions={job?.suggestions ?? []}
@@ -839,6 +880,10 @@ function ReviewSession({ importId }: { importId: string }) {
 
                   <ConfirmPanel
                     drafts={drafts}
+                    selection={selection}
+                    onToggle={toggleSelection}
+                    onSelectAll={selectAllDrafts}
+                    onClearSelection={clearSelection}
                     submissionId={submissionId}
                     state={confirmState}
                     busy={confirmBusy}
@@ -866,8 +911,8 @@ function ReviewSession({ importId }: { importId: string }) {
             )}
 
             <p className="space-footnote">
-              题目来自导入文件的本地解析与规则拆题；AI
-              整理结果只是待校对建议，必须人工校对后才能入库。
+              题目来自导入文件的本地解析与规则拆题；AI 一键整理结果（含知识点绑定）直接写入草稿，
+              教师只读查看知识点并多选入库，无需人工校对。
             </p>
           </>
         )}

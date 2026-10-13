@@ -77,22 +77,23 @@ def answer_state_of(content: QuestionContent) -> str:
 def validate_for_confirm(
     *, content: QuestionContent, review_state: str, missing_answer_acknowledged: bool
 ) -> ValidationIssue | None:
-    if review_state != "reviewed":
+    """确认入库的内容闸门（2026-10-13 起「多选即确认」，AI 整理不再是校对前置）。
+
+    - 只拦 ``excluded``：拆分/合并/并入已有题后自动排除的行不参与入库；
+    - 不再要求 ``reviewed``：教师多选提交即完成确认（AI 整理结果无需人工逐题校对）；
+    - 不再要求缺答案显式确认：无答案题以 ``answerState=not_provided`` 入库并在界面标注
+      （``missing_answer_acknowledged`` 仅为历史字段兼容保留，不参与判定）；
+    - 结构与答案键合法性的逐项校验保持不变。
+    """
+    if review_state == "excluded":
         return ValidationIssue(
-            code="DRAFT_NOT_REVIEWED",
-            message="草稿尚未标记为已校对，不能入库。",
+            code="DRAFT_EXCLUDED",
+            message="该草稿已排除（拆分/合并或并入已有题的结果），不能入库。",
         )
 
     answer: QuestionAnswer | None = content.answer
     option_keys = {option.key for option in content.options}
     provided = answer_has_content(content)
-
-    if not provided and not missing_answer_acknowledged:
-        return ValidationIssue(
-            code="MISSING_ANSWER_NOT_ACKNOWLEDGED",
-            message="原文未提供答案的题目需要显式确认后才能入库。",
-        )
-
     if content.type in CHOICE_TYPES and not content.options:
         return ValidationIssue(
             code="CHOICE_OPTIONS_REQUIRED",

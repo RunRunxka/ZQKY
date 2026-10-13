@@ -93,9 +93,12 @@ export function organizerFailureText(
 export const ORGANIZER_CANCELLED_NOTICE =
   '任务已取消：在途未完成批次的建议不会保存（已完成批次的建议仍保留在下方）。';
 
-/** 建议的固定语义：只落 pending，应用与入库都要人工确认。 */
+/**
+ * 建议面板语义（2026-10-13「一键整理并绑定」起）：默认路径不产生待处理建议——
+ * 整理结果直接写入草稿并绑定知识点；面板里的建议来自历史批次或富文本草稿等降级路径。
+ */
 export const ORGANIZER_SUGGESTION_SEMANTICS =
-  'AI 只给出待校对建议，永不直接覆盖人工草稿；应用建议需要重新校对后再入库，也不会自动入库。';
+  '一键整理默认把结果直接写入草稿并绑定知识点（不产生待处理建议）；下面列出的建议来自历史批次或降级路径，应用建议不会自动入库。';
 
 /** 建议基于的草稿修订已变化时的提示（应用会被服务端拒绝，先明说）。 */
 export function organizerStaleSuggestionText(

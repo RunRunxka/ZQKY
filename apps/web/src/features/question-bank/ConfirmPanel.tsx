@@ -1,19 +1,18 @@
 'use client';
 
 /**
- * 确认入库面板：只收集 `reviewed` 草稿，`submissionId` 由父级生成并在失败重试时复用。
- * 服务端语义：HTTP 200 + `failures` 非空 = 整体不确认、逐条给原因（未登记提交，可重试）。
+ * 选择入库面板（2026-10-13「多选即确认」）：教师勾选要入库的草稿，不再要求逐题校对。
  *
- * 界面纪律（F10-QB）：
- * - `failures` 非空时只显示「**整批未确认**」与逐条清单，**不显示成功徽标**、不出现
- *   「已入库 N 道」；确认按钮保持可用（修正后复用同一提交标识重试）；
- * - AI 候选草稿（`extractionMethod=ai`）逐条显式标识来源，说明仍需人工确认后才入库；
- * - ID 降级：草稿标识用「#序号 题型」（完整 `draftId` 走 `title`），不把 uuid 当主标识。
+ * - 勾选驱动：`selection` 由父级持有，默认全选（教师可取消勾选或再次全选）；
+ * - 知识点**只读**展示：每题列出 AI 绑定的知识点名称（不可在此修改，编辑器也不提供编辑）；
+ * - 缺答案照常可入库：以 `answerState=not_provided` 落库，这里明确标注而不是阻断；
+ * - 已排除的草稿不参与入库（拆分/合并/并入已有题的结果），单独列出并说明；
+ * - 服务端语义：HTTP 200 + `failures` 非空 = 整体不确认、逐条给原因（未登记提交，可重试）。
  */
 
 import type { ConfirmResult, DraftView, DuplicateResolution } from '@/contracts/question-bank';
 import { ApiError } from '@/services/api-client';
-import { confirmBlockers } from './draft-form';
+import { answerHasContent, confirmBlockers } from './draft-form';
 import {
   AI_CANDIDATE_CHIP,
   CONFIRM_UNCONFIRMED_TITLE,
@@ -29,6 +28,10 @@ export type ConfirmState =
 
 export function ConfirmPanel({
   drafts,
+  selection,
+  onToggle,
+  onSelectAll,
+  onClearSelection,
   submissionId,
   state,
   busy,
@@ -39,6 +42,11 @@ export function ConfirmPanel({
   onReload,
 }: {
   drafts: DraftView[];
+  /** 勾选的草稿 id（顺序无关；提交时按批次内顺序生成 items）。 */
+  selection: readonly string[];
+  onToggle: (draftId: string) => void;
+  onSelectAll: () => void;
+  onClearSelection: () => void;
   submissionId: string | null;
   state: ConfirmState;
   busy: boolean;
@@ -48,7 +56,9 @@ export function ConfirmPanel({
   onOpenLibrary: () => void;
   onReload: () => void;
 }) {
-  const reviewed = drafts.filter((draft) => draft.reviewState === 'reviewed');
+  const selectable = drafts.filter((draft) => draft.reviewState !== 'excluded');
+  const excluded = drafts.filter((draft) => draft.reviewState === 'excluded');
+  const selected = selectable.filter((draft) => selection.includes(draft.draftId));
   const completed = state.phase === 'done' && state.result.failures.length === 0;
   const unknown = state.phase === 'failed' && state.error.status === 0;
   /** 草稿在本批次里的序号 → 「#N 题型」；序号未知时退回题型（不显示 uuid 当主文案）。 */
@@ -60,75 +70,134 @@ export function ConfirmPanel({
     draftLabel(positionOf(draft.draftId), draft.content.type);
 
   return (
-    <section className="qb-confirm" aria-label="确认入库">
+    <section className="qb-confirm" aria-label="选择入库">
       <header className="qb-source-head">
-        <h2>确认入库</h2>
-        <span className="space-chip blue">已校对 {reviewed.length} 道</span>
-        {reviewed.some((draft) => draft.extractionMethod === 'ai') && (
+        <h2>选择入库</h2>
+        <span className="space-chip blue" data-testid="qb-confirm-selected-count">
+          已选 {selected.length} 道
+        </span>
+        {selected.some((draft) => draft.extractionMethod === 'ai') && (
           <span className="space-chip amber" data-testid="qb-confirm-ai-count">
-            含 AI 候选 {reviewed.filter((draft) => draft.extractionMethod === 'ai').length} 道（需人工确认）
+            含 AI 候选 {selected.filter((draft) => draft.extractionMethod === 'ai').length} 道
           </span>
         )}
       </header>
 
-      {reviewed.length === 0 ? (
+      {selectable.length === 0 ? (
         <p className="qb-hint" role="status">
-          还没有已校对的草稿：在右侧编辑区点「标记已校对」后才会进入本次入库。
+          该批次没有可入库的草稿（全部已排除）；请返回题库列表重新导入或换一批解析结果。
         </p>
       ) : (
-        <ul className="qb-confirm-list">
-          {reviewed.map((draft) => {
-            const blockers = confirmBlockers(draft.content, draft.missingAnswerAcknowledged);
-            return (
-              <li key={draft.draftId} className="qb-confirm-item">
-                <div className="space-meta-row">
-                  <span className="space-chip" title={draft.draftId}>
-                    {labelOf(draft)}
-                  </span>
-                  <span className="space-chip">修订 r{draft.revision}</span>
-                  <span className="space-chip green">{reviewStateLabel(draft.reviewState)}</span>
-                  <span className="space-chip">{EXTRACTION_METHOD_LABEL[draft.extractionMethod]}</span>
-                  {draft.extractionMethod === 'ai' && (
-                    <span
-                      className="space-chip amber"
-                      data-testid={`qb-confirm-ai-source-${draft.draftId}`}
-                    >
-                      {AI_CANDIDATE_CHIP}
+        <>
+          <div className="qb-actions">
+            <button
+              className="space-button"
+              type="button"
+              onClick={onSelectAll}
+              disabled={busy || completed || selected.length === selectable.length}
+              data-testid="qb-confirm-select-all"
+            >
+              全选（{selectable.length} 道）
+            </button>
+            <button
+              className="space-button"
+              type="button"
+              onClick={onClearSelection}
+              disabled={busy || selected.length === 0}
+              data-testid="qb-confirm-clear-selection"
+            >
+              清空选择
+            </button>
+          </div>
+
+          <ul className="qb-confirm-list">
+            {selectable.map((draft) => {
+              const blockers = confirmBlockers(draft.content, draft.reviewState);
+              const links = draft.knowledgeLinks ?? [];
+              const missingAnswer = !answerHasContent(draft.content.answer);
+              return (
+                <li key={draft.draftId} className="qb-confirm-item">
+                  <label className="qb-check" htmlFor={`qb-confirm-pick-${draft.draftId}`}>
+                    <input
+                      id={`qb-confirm-pick-${draft.draftId}`}
+                      type="checkbox"
+                      checked={selection.includes(draft.draftId)}
+                      disabled={busy || completed}
+                      onChange={() => onToggle(draft.draftId)}
+                      data-testid={`qb-confirm-pick-${draft.draftId}`}
+                    />
+                    <span className="space-chip" title={draft.draftId}>
+                      {labelOf(draft)}
                     </span>
-                  )}
-                </div>
-                <p className="qb-block-text">{draft.content.stemMarkdown.slice(0, 80)}</p>
-                {blockers.map((blocker) => (
-                  <p key={blocker} className="qb-warn-text" role="alert">
-                    {blocker}
-                  </p>
-                ))}
-                {draft.duplicateOfQuestionId && (
-                  <label className="qb-field" htmlFor={`qb-dup-${draft.draftId}`}>
-                    与已有题目 {draft.duplicateOfQuestionId} 重复，本次处理方式
-                    <select
-                      id={`qb-dup-${draft.draftId}`}
-                      className="space-select"
-                      value={resolutions[draft.draftId]?.action ?? 'none'}
-                      disabled={busy || completed || unknown}
-                      onChange={(event) =>
-                        onResolutionChange(
-                          draft.draftId,
-                          event.target.value as DuplicateResolution['action'],
-                        )
-                      }
-                    >
-                      <option value="none">默认（按服务端规则跳过重复）</option>
-                      <option value="skip">跳过（不改动已有题目）</option>
-                      <option value="link_existing">并入已有题目（新增来源记录）</option>
-                      <option value="edit_as_new">作为新题入库（内容需确实不同）</option>
-                    </select>
                   </label>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+                  <div className="space-meta-row">
+                    <span className="space-chip">修订 r{draft.revision}</span>
+                    <span className="space-chip">{reviewStateLabel(draft.reviewState)}</span>
+                    <span className="space-chip">
+                      {EXTRACTION_METHOD_LABEL[draft.extractionMethod]}
+                    </span>
+                    {draft.extractionMethod === 'ai' && (
+                      <span
+                        className="space-chip amber"
+                        data-testid={`qb-confirm-ai-source-${draft.draftId}`}
+                      >
+                        {AI_CANDIDATE_CHIP}
+                      </span>
+                    )}
+                    {missingAnswer && (
+                      <span
+                        className="space-chip amber"
+                        data-testid={`qb-confirm-missing-answer-${draft.draftId}`}
+                      >
+                        原文未提供答案（按缺答案入库）
+                      </span>
+                    )}
+                  </div>
+                  <p className="qb-block-text">{draft.content.stemMarkdown.slice(0, 80)}</p>
+                  <p className="qb-hint" data-testid={`qb-confirm-links-${draft.draftId}`}>
+                    知识点（AI 绑定，只读）：
+                    {links.length > 0
+                      ? links.map((link) => link.knowledgeNameSnapshot || '（名称未提供）').join('、')
+                      : '无绑定'}
+                  </p>
+                  {blockers.map((blocker) => (
+                    <p key={blocker} className="qb-warn-text" role="alert">
+                      {blocker}
+                    </p>
+                  ))}
+                  {draft.duplicateOfQuestionId && (
+                    <label className="qb-field" htmlFor={`qb-dup-${draft.draftId}`}>
+                      与已有题目 {draft.duplicateOfQuestionId} 重复，本次处理方式
+                      <select
+                        id={`qb-dup-${draft.draftId}`}
+                        className="space-select"
+                        value={resolutions[draft.draftId]?.action ?? 'none'}
+                        disabled={busy || completed || unknown}
+                        onChange={(event) =>
+                          onResolutionChange(
+                            draft.draftId,
+                            event.target.value as DuplicateResolution['action'],
+                          )
+                        }
+                      >
+                        <option value="none">默认（按服务端规则跳过重复）</option>
+                        <option value="skip">跳过（不改动已有题目）</option>
+                        <option value="link_existing">并入已有题目（新增来源记录）</option>
+                        <option value="edit_as_new">作为新题入库（内容需确实不同）</option>
+                      </select>
+                    </label>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
+
+      {excluded.length > 0 && (
+        <p className="qb-hint" role="status" data-testid="qb-confirm-excluded">
+          已排除 {excluded.length} 道（拆分/合并或并入已有题的结果），不参与本次入库。
+        </p>
       )}
 
       {submissionId && (
@@ -176,7 +245,7 @@ export function ConfirmPanel({
           </ul>
           <div className="qb-actions">
             <button className="space-button primary" onClick={onConfirm} disabled={busy}>
-              {busy ? '提交中…' : `修正后重新提交（${reviewed.length} 道）`}
+              {busy ? '提交中…' : `修正后重新提交（${selected.length} 道）`}
             </button>
             <button className="space-button" onClick={onReload} disabled={busy}>
               重新读取批次
@@ -211,10 +280,11 @@ export function ConfirmPanel({
       <div className="qb-actions">
         <button
           className="space-button primary"
-          disabled={busy || completed || (!unknown && reviewed.length === 0)}
+          disabled={busy || completed || (!unknown && selected.length === 0)}
           onClick={onConfirm}
+          data-testid="qb-confirm-submit"
         >
-          {busy ? '提交中…' : unknown ? '重试原确认（结果未知）' : `确认入库（${reviewed.length} 道）`}
+          {busy ? '提交中…' : unknown ? '重试原确认（结果未知）' : `入库（${selected.length} 道）`}
         </button>
         <span className="qb-hint">
           入库使用乐观锁与幂等提交：任一条校验失败则整体不确认，失败原因逐条列出。

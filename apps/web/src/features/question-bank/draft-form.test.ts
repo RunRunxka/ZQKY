@@ -108,14 +108,19 @@ describe('结构预检', () => {
     expect(contentErrors(content())).toEqual([]);
   });
 
-  it('入库前预检提示缺失答案需显式确认', () => {
+  it('入库前预检只拦已排除与结构性缺陷（缺答案不再阻断）', () => {
     const missing = content({ answer: null });
-    expect(confirmBlockers(missing, false)).toEqual([
-      '答案缺失：需先「标记原文未提供答案」，或补齐答案后才能入库。',
+    // 「多选即确认」：缺答案可入库（以 answerState=not_provided 落库），不再要求显式确认
+    expect(confirmBlockers(missing, 'needs_review')).toEqual([]);
+    expect(confirmBlockers(missing, 'reviewed')).toEqual([]);
+    expect(confirmBlockers(missing, 'excluded')).toEqual([
+      '该草稿已排除（拆分/合并或并入已有题的结果），不能入库。',
     ]);
-    expect(confirmBlockers(missing, true)).toEqual([]);
     expect(
-      confirmBlockers(content({ type: 'single_choice', options: [], answer: null }), true),
+      confirmBlockers(
+        content({ type: 'single_choice', options: [], answer: null }),
+        'needs_review',
+      ),
     ).toEqual(['选择题必须至少有一个选项。']);
   });
 

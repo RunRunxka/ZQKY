@@ -65,6 +65,11 @@ type DraftEditorProps = {
   onDraftUpdated: (draft: DraftView) => void;
   onDetailReplaced: (detail: QuestionImportDetail) => void;
   onReloadDraft: (draftId: string, isCurrent?: () => boolean) => Promise<DraftView | null>;
+  /**
+   * 「多选即确认」口径：知识点关联由 AI 绑定，教师**只能看不能改**（默认只读）。
+   * 只读时面板不提供增删/换角色，且 PATCH 永不携带 `knowledgeLinks`（不整表替换）。
+   */
+  linksReadOnly?: boolean;
 };
 
 export function DraftEditor(props: DraftEditorProps) {
@@ -78,6 +83,7 @@ function DraftEditorSession({
   onDraftUpdated,
   onDetailReplaced,
   onReloadDraft,
+  linksReadOnly = false,
 }: DraftEditorProps) {
   const [value, setValue] = useState<QuestionFormValue>(() => formValueOfDraft(draft));
   const [dirty, setDirtyState] = useState(false);
@@ -204,7 +210,9 @@ function DraftEditorSession({
         reviewState: options.reviewState ?? null,
         missingAnswerAcknowledged: options.missingAnswerAcknowledged ?? null,
         // 只有用户显式改动过才整表替换；未改动时缺省 → 服务端不动旧关联（不静默清空）
-        knowledgeLinks: linksTouched ? linksToInputs(linkDraft) : undefined,
+        // 只读口径（AI 绑定）：本页永不发送 knowledgeLinks，不覆盖 AI 绑定结果
+        knowledgeLinks:
+          !linksReadOnly && linksTouched ? linksToInputs(linkDraft) : undefined,
       });
       if (!active(token)) return;
       onDraftUpdated(updated);
@@ -276,7 +284,7 @@ function DraftEditorSession({
     }
   }
 
-  const blockers = confirmBlockers(value.content, draft.missingAnswerAcknowledged);
+  const blockers = confirmBlockers(value.content, draft.reviewState);
 
   return (
     <section className="qb-editor" aria-label="草稿编辑">
@@ -398,8 +406,8 @@ function DraftEditorSession({
       <KnowledgeLinksPanel
         read={linksRead}
         links={linkDraft}
-        touched={linksTouched}
-        editable
+        touched={!linksReadOnly && linksTouched}
+        editable={!linksReadOnly}
         disabled={busy}
         subjectId={value.metadata.subjectId}
         originalSubjectId={draft.metadata.subjectId}
@@ -408,19 +416,30 @@ function DraftEditorSession({
         legacyTags={value.metadata.knowledgeTags}
         idPrefix="qb-draft-links"
         newLinkSource="human"
-        onAdd={(link) => patchLinks([...linkDraft, link])}
-        onRemove={(index) => patchLinks(linkDraft.filter((_, itemIndex) => itemIndex !== index))}
-        onRoleChange={(index, role) =>
-          patchLinks(
-            linkDraft.map((item, itemIndex) => (itemIndex === index ? { ...item, role } : item)),
-          )
+        onAdd={linksReadOnly ? undefined : (link) => patchLinks([...linkDraft, link])}
+        onRemove={
+          linksReadOnly ? undefined : (index) => patchLinks(linkDraft.filter((_, i) => i !== index))
         }
-        onClear={() => patchLinks([])}
-        onReset={() => {
-          setLinkDraft(linksRead.status === 'provided' ? linksRead.links : []);
-          setLinksTouched(false);
-          setLinkIssues(NO_LINK_ISSUES);
-        }}
+        onRoleChange={
+          linksReadOnly
+            ? undefined
+            : (index, role) =>
+                patchLinks(
+                  linkDraft.map((item, itemIndex) =>
+                    itemIndex === index ? { ...item, role } : item,
+                  ),
+                )
+        }
+        onClear={linksReadOnly ? undefined : () => patchLinks([])}
+        onReset={
+          linksReadOnly
+            ? undefined
+            : () => {
+                setLinkDraft(linksRead.status === 'provided' ? linksRead.links : []);
+                setLinksTouched(false);
+                setLinkIssues(NO_LINK_ISSUES);
+              }
+        }
       />
 
       {blockers.length > 0 && (

@@ -143,6 +143,7 @@ from app.services.question_bank.organizer import (
     is_current_checkpoint,
     job_level_error_code,
     job_level_message,
+    knowledge_section,
     normalize_reply,
     output_truncated_error,
     pack_batches,
@@ -167,6 +168,15 @@ SPLIT_NOTE = "已按原文偏移拆分为两道草稿；本行仅保留，不再
 MERGE_NOTE = "已与同批草稿合并；本行仅保留，不再参与确认。"
 #: 拆/合后新草稿的关联口径：不继承（覆盖范围已变），明确提示而非静默
 LINK_CLEARED_NOTE = "原知识点关联未继承（拆分/合并后题目覆盖范围已变），请重新校对关联。"
+#: 草稿改学科后旧关联的处置：作废清空 + 明确提示（正式题仍走 422 显式处置）
+SUBJECT_LINK_CLEARED_NOTE = (
+    "改学科后原知识点关联（含 AI 绑定）已清空：它们属于原学科；"
+    "需要时重新执行「AI 整理并绑定知识点」。"
+)
+#: 一键整理并绑定（``autoApply``）写入草稿的提示：明确"未经人工校对"这一事实
+AI_APPLIED_NOTE = "已由 AI 整理并绑定知识点（未经人工校对）；入库前只需多选确认。"
+#: 一键整理的候选知识点上限（同科、活跃、按知识点库排序取前 N 个；清单进 system 消息）
+KNOWLEDGE_CANDIDATE_LIMIT = 120
 
 #: 知识点关联校验的错误码（服务层向知识点库只读校验的稳定对外码）
 KNOWLEDGE_POINT_NOT_FOUND = "KNOWLEDGE_POINT_NOT_FOUND"
@@ -448,6 +458,56 @@ class QuestionBankService:
             for point_id, record in records.items()
             if record.status == "active"
         }
+
+    async def _knowledge_candidates(self, subject_id: str) -> list[Any]:
+        """整理时的候选知识点：该学科**活跃**知识点（上限 ``KNOWLEDGE_CANDIDATE_LIMIT``）。
+
+        只读知识点库；学科为空或知识点库未装配时返回空表（整理照常进行，只是没有可
+        绑定项），不因候选缺失失败整条任务。返回记录同时充当绑定快照来源，避免
+        模型调用与写库之间二次读取造成名称/修订漂移。
+        """
+        subject_id = (subject_id or "").strip()
+        if not subject_id or self.knowledge_catalog is None:
+            return []
+        catalog = self.knowledge_catalog
+
+        def _load() -> list[Any]:
+            from app.repositories.knowledge.points import KnowledgePointRepository
+
+            repository = KnowledgePointRepository()
+            with catalog.read_connection() as conn:
+                records, _total = repository.list_points(
+                    conn,
+                    subject_id=subject_id,
+                    status="active",
+                    limit=KNOWLEDGE_CANDIDATE_LIMIT,
+                )
+            return list(records)
+
+        return await _threaded(_load)
+
+    @staticmethod
+    def _ai_link_rows(
+        knowledge_ids: Sequence[str], candidates: Sequence[Any]
+    ) -> list[dict[str, str]]:
+        """清单内知识点 id → 草稿关联快照行（``source="ai"``；清单外一律丢弃）。"""
+        by_id = {record.point_id: record for record in candidates}
+        rows: list[dict[str, str]] = []
+        for point_id in knowledge_ids:
+            record = by_id.get(point_id)
+            if record is None:
+                continue
+            rows.append(
+                {
+                    "knowledgePointId": record.point_id,
+                    "knowledgeRevisionId": record.revision_id,
+                    "subjectIdSnapshot": record.subject_id,
+                    "knowledgeNameSnapshot": record.name,
+                    "role": "primary",
+                    "source": "ai",
+                }
+            )
+        return rows
 
     async def _resolve_knowledge_snapshots(
         self, point_ids: Sequence[str]
@@ -918,6 +978,7 @@ class QuestionBankService:
         self._verify_new_assets(body.content, previous=record.content)
         content = body.content.model_dump(mode="json")
         link_rows: list[dict[str, str]] | None = None
+        warnings: list[str] | None = None
         if body.knowledgeLinks is not None:
             # 提供即整表替换：[] 清空；知识点只读校验走公共发布路径（同学科/未归档/修订一致）
             link_rows = self._draft_link_rows(
@@ -925,12 +986,12 @@ class QuestionBankService:
                 subject_id=body.metadata.subjectId,
             )
         elif body.metadata.subjectId != str((record.metadata or {}).get("subjectId") or ""):
-            # 学科变化且未显式给关联：不得无条件继承与新学科冲突的旧关联（B2-RV07）
-            self._require_subject_change_links(
-                links=self.catalog.draft_knowledge_links(draft_id),
-                new_subject_id=body.metadata.subjectId,
-                what="草稿",
-            )
+            # 学科变化且未显式给关联：草稿层的旧关联（含 AI 绑定）属于旧学科，一律作废清空
+            # 并留言；AI 一键整理会按新学科重新绑定。正式题（``patch_question``）仍以 422
+            # 要求显式处置（正式题关联可编辑，不静默丢失）。
+            if self.catalog.draft_knowledge_links(draft_id):
+                link_rows = []
+                warnings = [*record.warnings, SUBJECT_LINK_CLEARED_NOTE]
         updated = self.catalog.update_draft(
             draft_id,
             expected_revision=body.expectedRevision,
@@ -938,6 +999,7 @@ class QuestionBankService:
             metadata=body.metadata.model_dump(mode="json"),
             review_state=body.reviewState,
             missing_answer_acknowledged=body.missingAnswerAcknowledged,
+            warnings=warnings,
             content_fingerprint=fp.content_fingerprint(content),
             knowledge_links=link_rows,
         )
@@ -1159,6 +1221,8 @@ class QuestionBankService:
             "modelProfileId": model.profile_id,
             "modelFingerprint": agent_handle_fingerprint(model),
             "includeUnassigned": bool(body.includeUnassigned),
+            # 一键整理并绑定（默认 False = 只产生建议，逐条人工应用）
+            "autoApply": bool(body.autoApply),
             "instruction": ORGANIZE_INSTRUCTION,
             "drafts": [
                 {"draftId": draft.draft_id, "revision": draft.revision} for draft in selected
@@ -1188,21 +1252,27 @@ class QuestionBankService:
         instruction: str,
         batch: Batch,
         max_output_tokens: int,
+        *,
+        knowledge_candidates: Sequence[Any] = (),
     ) -> StructuredOutcome:
         """R4 LangChain 改造：一次结构化调用（``run_structured``，不抛异常）。
 
         归档的 system=指令 / user=批次原文两段保留（``ORGANIZE_PROMPT`` + 批次文本）；
         ``instruction`` 参数保留归档签名（checkpoint 冻结的指令即
         ``ORGANIZE_INSTRUCTION``，本调用始终用登记的 ``ORGANIZE_PROMPT``，两者内容
-        逐字一致）。解析/传输失败降级为失败 outcome（不抛异常），由调用方按批级
-        失败落库。
+        逐字一致）。``v2`` 起候选知识点清单渲染进 system 尾部（``id | 名称``），模型
+        只许从清单里选 id（回归 ``normalize_reply`` 的清单过滤）。解析/传输失败降级为
+        失败 outcome（不抛异常），由调用方按批级失败落库。
         """
         _ = instruction, max_output_tokens  # 归档签名兼容：见 docstring
+        section = knowledge_section(
+            [(record.point_id, record.name) for record in knowledge_candidates]
+        )
         return await run_structured(
             model.chat_model,
             prompt=ORGANIZE_PROMPT,
             schema=structured.OrganizeReplySchema,
-            variables={"input_text": batch.input_text},
+            variables={"input_text": batch.input_text, "knowledge_points": section},
             # 重试≤2 口径内取 1 次尝试：题库的失败单元是「批」（批级失败落库、
             # 原文保留、教师显式重试该批）。run_structured 的二次尝试会带着纠正
             # 提示重问同一批——内容问题（来源块引用错、不符合题库契约）不该被
@@ -1213,12 +1283,14 @@ class QuestionBankService:
 
     @staticmethod
     def _organize_outcome_reply(
-        outcome: StructuredOutcome, allowed_block_ids: Sequence[str]
+        outcome: StructuredOutcome,
+        allowed_block_ids: Sequence[str],
+        allowed_knowledge_ids: Sequence[str] = (),
     ) -> dict[str, Any]:
         """把 ``run_structured`` 的 outcome 变成归档解析结果（批级错误码保持一致）。
 
         - 成功：schema → JSON 文本 → ``normalize_reply``（来源块集合核验、题库契约
-          校验逐字保留；模型多输出的键由解析层按归档口径处理）；
+          校验逐字保留；知识点绑定按清单过滤，清单外 id 丢弃不失败该批）；
         - 截断（输出半截 JSON，LangChain 路径无裸 ``finish_reason``）→
           ``ORGANIZER_OUTPUT_TRUNCATED``；
         - 调用异常（runner 统一降级为 ``outcome.error``；文本可识别为认证/限流/
@@ -1228,7 +1300,11 @@ class QuestionBankService:
         """
         if outcome.ok and outcome.parsed is not None:
             reply = outcome.parsed.model_dump(exclude_none=True, mode="json")
-            return normalize_reply(json.dumps(reply, ensure_ascii=False), allowed_block_ids)
+            return normalize_reply(
+                json.dumps(reply, ensure_ascii=False),
+                allowed_block_ids,
+                allowed_knowledge_ids,
+            )
         if structured.looks_truncated_failure(outcome.raw_text, outcome.error):
             raise output_truncated_error()
         error = outcome.error or ""
@@ -1333,6 +1409,20 @@ class QuestionBankService:
             instruction = str(contract.get("instruction") or ORGANIZE_INSTRUCTION)
             start = int(checkpoint.get("nextBatchIndex", 0))
             max_output_tokens = self._output_budget(handle)
+            # 一键整理并绑定：整理结果直接写入草稿（含知识点绑定），教师只做多选入库
+            auto_apply = bool(contract.get("autoApply"))
+            candidate_cache: dict[str, list[Any]] = {}
+
+            async def knowledge_candidates_for(draft_id: str) -> list[Any]:
+                """该草稿学科下的候选知识点（同一次任务内按学科缓存，只读知识点库）。"""
+                draft = await _threaded(self.catalog.get_draft, draft_id)
+                subject_id = (
+                    str((draft.metadata or {}).get("subjectId") or "") if draft else ""
+                )
+                if subject_id not in candidate_cache:
+                    candidate_cache[subject_id] = await self._knowledge_candidates(subject_id)
+                return candidate_cache[subject_id]
+
             for index in range(start, len(batches)):
                 if await ctx.cancellation_requested():
                     # 取消优先：不调用模型、不写建议；引擎随后置 cancelled
@@ -1341,11 +1431,16 @@ class QuestionBankService:
                 await self._ensure_lease(frozen.job_id, lease)
                 batch = batches[index]
                 base_revision = drafts_snapshot.get(batch.draft_id, 0)
+                candidates = await knowledge_candidates_for(batch.draft_id)
                 try:
                     outcome = await self._call_model(
-                        handle, instruction, batch, max_output_tokens
+                        handle, instruction, batch, max_output_tokens,
+                        knowledge_candidates=candidates,
                     )
-                    parsed = self._organize_outcome_reply(outcome, batch.block_ids)
+                    parsed = self._organize_outcome_reply(
+                        outcome, batch.block_ids,
+                        [record.point_id for record in candidates],
+                    )
                 except AppError as exc:
                     if exc.code in BATCH_LEVEL_ORGANIZER_ERRORS:
                         await self._write_organize_batch(
@@ -1374,6 +1469,12 @@ class QuestionBankService:
                     lease=lease,
                     proposed_content=parsed["content"],
                     source_block_ids=parsed["source_block_ids"],
+                    knowledge_links=(
+                        self._ai_link_rows(parsed["knowledge_point_ids"], candidates)
+                        if auto_apply
+                        else ()
+                    ),
+                    apply=auto_apply,
                 )
                 if await ctx.cancellation_requested():
                     # 取消发生在写入窗口内：该批已按事务语义落库，但不再继续后续批次
@@ -1413,12 +1514,18 @@ class QuestionBankService:
         lease: JobLeaseIdentity,
         proposed_content: dict[str, Any] | None = None,
         source_block_ids: Sequence[str] = (),
+        knowledge_links: Sequence[Mapping[str, Any]] = (),
+        apply: bool = False,
         failure: dict[str, Any] | None = None,
     ) -> None:
         """短事务写入一批：建议 + checkpoint 进度；取消/失权时一个字节都不写。
 
         ``lease`` 是本执行轮开始时取得的租约身份（B2-RV05）：仓储在同一事务里核对
         任务状态、attempt/token 与租约过期时间，旧 attempt 与迟到批次零写入。
+
+        ``apply=True``（一键整理并绑定）：同一事务内把 ``proposed_content`` 与
+        ``knowledge_links`` 写进草稿，建议直接落 ``applied``；richContent 草稿不写内容
+        （保留建议 ``pending`` 交人工），见 ``record_organize_batch``。
         """
         _job_now, _created, _effective = await _threaded(
             self.catalog.record_organize_batch,
@@ -1429,6 +1536,9 @@ class QuestionBankService:
             base_draft_revision=base_revision,
             proposed_content=proposed_content,
             source_block_ids=source_block_ids,
+            knowledge_links=knowledge_links,
+            apply=apply,
+            apply_note=AI_APPLIED_NOTE,
             failure=failure,
             lease_attempt=lease.attempt,
             lease_token=lease.token,

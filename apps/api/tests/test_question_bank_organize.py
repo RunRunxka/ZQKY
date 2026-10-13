@@ -34,6 +34,7 @@ from tests.test_question_bank import (
     CLOUD_PROFILE,
     FAKE_API_KEY,
     LOCAL_PROFILE,
+    SAMPLE_DOC,
     FakeLLMProvider,
     FakeResolver,
     Harness,
@@ -1306,3 +1307,274 @@ def test_excluded_only_drafts_is_rejected(harness: Harness) -> None:
     assert response.json()["code"] == "ORGANIZE_TARGET_EMPTY"
     assert harness.provider.calls == []
     assert job_records(harness) == []
+
+
+# ----------------------------------------- 一键整理并绑定知识点（autoApply，v2 提示词）
+
+
+def organize_with_knowledge(
+    block_ids: Sequence[str], knowledge_ids: Sequence[str]
+) -> str:
+    payload = json.loads(organize_reply(block_ids))
+    payload["knowledgePointIds"] = list(knowledge_ids)
+    return json.dumps(payload, ensure_ascii=False)
+
+
+def open_knowledge_harness(tmp_path: Path, *, wire: bool = True) -> Harness:
+    """整理用例 harness：装配知识点库只读入口（autoApply 绑定路径需要）。"""
+    harness = open_harness(tmp_path)
+    if wire:
+        harness.service.knowledge_catalog = harness.app.state.knowledge
+    return harness
+
+
+def create_math_point(harness: Harness, *, code: str, name: str) -> dict:
+    from app.repositories.knowledge.points import KnowledgePointRepository, SubjectRepository
+
+    catalog = harness.app.state.knowledge
+    with catalog.write_transaction() as conn:
+        SubjectRepository().ensure_subject(conn, subject_id="math", name="数学")
+        record = KnowledgePointRepository().create_point(
+            conn, subject_id="math", code=code, name=name
+        )
+    return {"pointId": record.point_id, "revisionId": record.revision_id, "name": record.name}
+
+
+def test_knowledge_section_lists_candidates_and_empty_hint() -> None:
+    from app.services.question_bank.organizer import (
+        KNOWLEDGE_SECTION_EMPTY,
+        KNOWLEDGE_SECTION_TITLE,
+        knowledge_section,
+    )
+
+    assert knowledge_section([]) == KNOWLEDGE_SECTION_EMPTY
+    section = knowledge_section([("kp-1", "一次函数"), ("kp-2", "反比例函数")])
+    assert "- kp-1 | 一次函数" in section
+    assert "- kp-2 | 反比例函数" in section
+    assert KNOWLEDGE_SECTION_TITLE
+
+
+def test_normalize_reply_coerces_textual_true_false_answer() -> None:
+    """判断题答案归一为 accepted（真机：模型写成文本或「A.正确/B.错误」伪选项，
+    否则确认会卡在 TRUE_FALSE_ANSWER_REQUIRED）；认不出的形态原样保留、由闸门拦住。"""
+    from app.services.question_bank.organizer import normalize_reply
+
+    def reply(answer: object, options: list[dict[str, str]] | None = None) -> dict:
+        payload = {
+            "type": "true_false",
+            "stem": "正比例函数的图象一定经过原点。",
+            "options": list(options or []),
+            "answer": answer,
+            "sourceBlockIds": ["b-1"],
+        }
+        return normalize_reply(json.dumps(payload, ensure_ascii=False), ["b-1"])
+
+    assert reply("正确")["content"]["answer"]["accepted"] is True
+    assert reply("错误。")["content"]["answer"]["accepted"] is False
+    assert reply("对")["content"]["answer"]["accepted"] is True
+    assert reply({"accepted": None, "textMarkdown": "×"})["content"]["answer"]["accepted"] is False
+
+    # 真机形态②：伪选项「A. 正确 / B. 错误」+ choiceKeys → 折算 accepted 并丢掉伪选项
+    pseudo = reply(
+        {"choiceKeys": ["A"], "accepted": None, "textMarkdown": None},
+        [{"key": "A", "text": "正确"}, {"key": "B", "text": "错误"}],
+    )["content"]
+    assert pseudo["answer"]["accepted"] is True
+    assert pseudo["answer"]["choiceKeys"] == []
+    assert pseudo["options"] == []
+
+    # 真机形态③：choiceKeys 直接写成答案文字（没有选项）→ 同样折算，键不再进入选项校验
+    textual_key = reply({"choiceKeys": ["正确"], "accepted": None, "textMarkdown": "正确"})[
+        "content"
+    ]
+    assert textual_key["answer"] == {
+        "choiceKeys": [],
+        "accepted": True,
+        "textMarkdown": None,
+    }
+    assert textual_key["options"] == []
+
+    # 认不出的形态不动：含糊文本、真实选项（可能是选择题误判）一律原样留给闸门
+    assert reply("大约正确一半吧")["content"]["answer"]["accepted"] is None
+    real_options = reply(
+        {"choiceKeys": ["A"], "accepted": None, "textMarkdown": None},
+        [{"key": "A", "text": "甲"}, {"key": "B", "text": "乙"}],
+    )["content"]
+    assert real_options["options"] and real_options["answer"]["accepted"] is None
+
+    # 非判断题不动：选择题的答案照旧
+    choice = normalize_reply(
+        json.dumps(
+            {
+                "type": "single_choice",
+                "stem": "下列说法正确的是？",
+                "options": [{"key": "A", "text": "甲"}],
+                "answer": {"choiceKeys": ["A"]},
+                "sourceBlockIds": ["b-1"],
+            },
+            ensure_ascii=False,
+        ),
+        ["b-1"],
+    )
+    assert choice["content"]["answer"]["choiceKeys"] == ["A"]
+
+
+def test_normalize_reply_filters_knowledge_ids_best_effort() -> None:
+    """清单外 id 丢弃、重复去重、按序截断到 3 个——都不失败该批。"""
+    from app.services.question_bank.organizer import KNOWLEDGE_MAX_PER_QUESTION, normalize_reply
+
+    raw = organize_with_knowledge(
+        ["b-1"], ["kp-2", "kp-unknown", "kp-1", "kp-2", "kp-3", "kp-4"]
+    )
+    parsed = normalize_reply(raw, ["b-1"], ["kp-1", "kp-2", "kp-3", "kp-4"])
+    assert parsed["knowledge_point_ids"] == ["kp-2", "kp-1", "kp-3"]
+    assert len(parsed["knowledge_point_ids"]) == KNOWLEDGE_MAX_PER_QUESTION
+
+    # 候选为空（知识点库未装配 / 无同学科知识点）：一律空表，内容仍正常解析
+    empty = normalize_reply(raw, ["b-1"])
+    assert empty["knowledge_point_ids"] == []
+    assert empty["content"]["stemMarkdown"]
+
+
+def test_organize_auto_apply_writes_draft_and_knowledge_links(tmp_path: Path) -> None:
+    """一键整理并绑定：内容与知识点在同一事务写进草稿，建议落 applied、教师只做多选入库。"""
+    harness = open_knowledge_harness(tmp_path)
+    try:
+        point = create_math_point(harness, code="kp-1", name="一次函数")
+        other = create_math_point(harness, code="kp-2", name="反比例函数")
+        detail = harness.upload(SAMPLE_DOC, subjectId="math").json()
+        import_id = detail["importId"]
+        draft = detail["drafts"][0]
+        assert draft["reviewState"] == "needs_review"
+        assert draft["knowledgeLinks"] == []
+
+        harness.provider.handler = lambda call: organize_with_knowledge(
+            block_ids_of(call.input_text), [point["pointId"], "kp-unknown"]
+        )
+        response = harness.client.post(
+            f"/api/v1/question-imports/{import_id}/organize",
+            json={
+                "draftIds": [draft["draftId"]],
+                "modelProfileId": LOCAL_PROFILE,
+                "autoApply": True,
+            },
+        )
+        assert response.status_code == 200, response.text
+        view = response.json()
+        assert view["state"] == "succeeded"
+        assert view["suggestionCount"] >= 1
+        assert view["suggestions"] == []  # 已应用的建议不再作为待处理项回给界面
+
+        updated = draft_by_id(harness, import_id, draft["draftId"])
+        assert updated["revision"] == draft["revision"] + 1
+        assert updated["reviewState"] == "needs_review"
+        assert updated["content"]["stemMarkdown"] == "整理后的题干（ ）"
+        assert any("AI 整理" in warning for warning in updated["warnings"])
+        assert updated["knowledgeLinks"] == [
+            {
+                "knowledgePointId": point["pointId"],
+                "knowledgeRevisionId": point["revisionId"],
+                "knowledgeNameSnapshot": "一次函数",
+                "subjectIdSnapshot": "math",
+                "role": "primary",
+                "source": "ai",
+            }
+        ]
+        # 清单外的第二个知识点未被绑定（尽力而为，不失败该批）
+        assert other["pointId"] not in {
+            link["knowledgePointId"] for link in updated["knowledgeLinks"]
+        }
+        # 建议行留档为 applied（可追溯，不回到待处理）
+        stored = harness.catalog.list_suggestions(organization_job_id=view["jobId"])
+        assert stored and {item.state for item in stored} == {"applied"}
+    finally:
+        harness.close()
+
+
+def test_organize_auto_apply_replaces_previous_ai_links(tmp_path: Path) -> None:
+    """第二次一键整理的绑定整表替换旧绑定（AI 绑定覆盖 AI 绑定），不叠行。"""
+    harness = open_knowledge_harness(tmp_path)
+    try:
+        first = create_math_point(harness, code="kp-1", name="一次函数")
+        second = create_math_point(harness, code="kp-2", name="反比例函数")
+        detail = harness.upload(SAMPLE_DOC, subjectId="math").json()
+        import_id = detail["importId"]
+        draft = detail["drafts"][0]
+        body = {
+            "draftIds": [draft["draftId"]],
+            "modelProfileId": LOCAL_PROFILE,
+            "autoApply": True,
+        }
+        harness.provider.handler = lambda call: organize_with_knowledge(
+            block_ids_of(call.input_text), [first["pointId"]]
+        )
+        assert (
+            harness.client.post(
+                f"/api/v1/question-imports/{import_id}/organize", json=body
+            ).status_code
+            == 200
+        )
+        harness.provider.handler = lambda call: organize_with_knowledge(
+            block_ids_of(call.input_text), [second["pointId"]]
+        )
+        assert (
+            harness.client.post(
+                f"/api/v1/question-imports/{import_id}/organize", json=body
+            ).status_code
+            == 200
+        )
+        updated = draft_by_id(harness, import_id, draft["draftId"])
+        assert [link["knowledgePointId"] for link in updated["knowledgeLinks"]] == [
+            second["pointId"]
+        ]
+    finally:
+        harness.close()
+
+
+def test_organize_default_keeps_suggestion_pending_and_draft_untouched(
+    tmp_path: Path,
+) -> None:
+    """不传 autoApply（默认）：只产生 pending 建议，草稿一字未动（旧语义不变）。"""
+    harness = open_knowledge_harness(tmp_path)
+    try:
+        point = create_math_point(harness, code="kp-1", name="一次函数")
+        detail = harness.upload(SAMPLE_DOC, subjectId="math").json()
+        import_id = detail["importId"]
+        draft = detail["drafts"][0]
+        harness.provider.handler = lambda call: organize_with_knowledge(
+            block_ids_of(call.input_text), [point["pointId"]]
+        )
+        response = organize(harness, import_id, draftIds=[draft["draftId"]])
+        assert response.status_code == 200, response.text
+        view = response.json()
+        assert view["suggestions"]
+
+        after = draft_by_id(harness, import_id, draft["draftId"])
+        assert after["revision"] == draft["revision"]
+        assert after["content"] == draft["content"]
+        assert after["knowledgeLinks"] == []
+    finally:
+        harness.close()
+
+
+def test_organize_without_knowledge_wiring_still_binds_nothing(tmp_path: Path) -> None:
+    """知识点库未装配：整理照常成功，只是没有可绑定项（不 503、不假绑定）。"""
+    harness = open_knowledge_harness(tmp_path, wire=False)
+    try:
+        detail = harness.upload(SAMPLE_DOC, subjectId="math").json()
+        import_id = detail["importId"]
+        draft = detail["drafts"][0]
+        response = harness.client.post(
+            f"/api/v1/question-imports/{import_id}/organize",
+            json={
+                "draftIds": [draft["draftId"]],
+                "modelProfileId": LOCAL_PROFILE,
+                "autoApply": True,
+            },
+        )
+        assert response.status_code == 200, response.text
+        updated = draft_by_id(harness, import_id, draft["draftId"])
+        assert updated["revision"] == draft["revision"] + 1  # 内容仍写入
+        assert updated["knowledgeLinks"] == []
+    finally:
+        harness.close()

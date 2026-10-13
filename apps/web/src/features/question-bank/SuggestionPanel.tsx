@@ -110,7 +110,7 @@ export function SuggestionPanel({
       )}
 
       {job.failures.length > 0 && (
-        <ul className="qb-failure-list">
+        <ul className="qb-failure-list" data-testid="qb-organizer-failures">
           {job.failures.map((failure) => (
             <li key={`${failure.batchIndex}-${failure.code}`}>
               批次 {failure.batchIndex + 1}（{failure.code}）：
@@ -124,10 +124,11 @@ export function SuggestionPanel({
         suggestions.length === 0 &&
         job.state !== 'queued' &&
         job.state !== 'running' && (
-          <p className="space-banner info" role="status">
-            服务端报告生成 {job.suggestionCount}{' '}
-            条建议，但本次响应没有返回可处理的建议明细（可能已被应用或忽略），
-            因此无法逐条应用或忽略。草稿未被修改；请重新整理或刷新页面后再看。
+          <p className="space-banner info" role="status" data-testid="qb-organizer-applied">
+            服务端报告生成 {job.suggestionCount} 条建议，本次响应没有待处理明细：
+            「AI 整理并绑定知识点」会把结果<strong>直接写进草稿</strong>（建议落 applied），
+            无需逐条应用；历史批次的建议也可能已被应用或忽略。
+            请核对下方草稿的内容与知识点绑定后多选入库。
           </p>
         )}
 

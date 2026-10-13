@@ -172,17 +172,20 @@ export function metadataErrors(metadata: QuestionMetadata): string[] {
 
 /**
  * 入库前的本地预检：提示可提前修正的问题；服务端 `failures` 仍会逐条复核。
+ *
+ * 2026-10-13 起「多选即确认」：与后端 `validate_for_confirm` 同口径——只拦已排除的草稿
+ * 与结构性缺陷（如选择题无选项）；缺答案、未标记校对都不再阻断（AI 整理为主）。
  */
 export function confirmBlockers(
   content: QuestionContent,
-  missingAnswerAcknowledged: boolean,
+  reviewState?: DraftView['reviewState'],
 ): string[] {
   const issues: string[] = [];
+  if (reviewState === 'excluded') {
+    issues.push('该草稿已排除（拆分/合并或并入已有题的结果），不能入库。');
+  }
   if (isChoiceType(content.type) && content.options.length === 0) {
     issues.push('选择题必须至少有一个选项。');
-  }
-  if (!answerHasContent(content.answer) && !missingAnswerAcknowledged) {
-    issues.push('答案缺失：需先「标记原文未提供答案」，或补齐答案后才能入库。');
   }
   return issues;
 }

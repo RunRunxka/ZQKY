@@ -216,13 +216,27 @@ export function subjectChangeState(
   };
 }
 
-/** 学科冲突的固定说明（界面文案唯一一份；不声称服务端一定会失败之外的任何事）。 */
-export function subjectChangeNotice(state: SubjectChangeState, linksTouched: boolean): string | null {
+/** 学科冲突的固定说明（界面文案唯一一份；不声称服务端一定会失败之外的任何事）。
+
+``options.linksReadOnly``（2026-10-13 起草稿导入页默认）：关联由 AI 绑定、教师只能看，
+学科变化且旧绑定属于原学科时**由服务端自动清空**（草稿层语义，见 `patch_draft`），
+这里的文案必须与后端一致，不能再说「服务端会以 422 拒绝 / 请显式替换」。
+*/
+export function subjectChangeNotice(
+  state: SubjectChangeState,
+  linksTouched: boolean,
+  options?: { linksReadOnly?: boolean },
+): string | null {
   if (!state.changed) return null;
+  const readOnly = options?.linksReadOnly === true;
   if (state.conflictIndexes.length === 0) {
+    if (readOnly) return '学科已修改；当前知识点绑定与新学科一致，保存后保持不变。';
     return linksTouched
       ? '学科已修改：保存时会整表替换知识点关联（旧关联在旧修订上保留，不回溯改写）。'
       : '学科已修改；当前关联的学科快照与新学科一致，未改动关联时服务端会继承它们。';
+  }
+  if (readOnly) {
+    return `学科已修改，而 ${state.conflictIndexes.length} 条旧绑定属于原学科：保存时会自动清空这些绑定（它们属于旧学科，不再适用）；需要时重新执行「AI 整理并绑定知识点」按新学科重新绑定。`;
   }
   return linksTouched
     ? '学科已修改：保存时会整表替换知识点关联；请确认新关联都属于新学科，否则服务端会以 422 拒绝。'

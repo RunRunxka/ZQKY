@@ -62,13 +62,15 @@ ORGANIZE_CONTRACT_VERSION = 2
 _BLOCK_SEPARATOR = "\n\n"
 
 ORGANIZE_INSTRUCTION = (
-    "整理提供的试题原文。返回题干、选项、原文已有答案与解析，以及 sourceBlockIds。"
-    "不推断原文缺失的答案，不引用输入之外的来源。"
+    "整理提供的试题原文。返回题干、选项、原文已有答案与解析、sourceBlockIds，"
+    "并在给出可绑定知识点清单时为本题选出对应知识点 id（knowledgePointIds）。"
+    "不推断原文缺失的答案，不引用输入之外的来源，只从清单里选知识点 id。"
     "只输出一个 JSON 对象，字段固定为："
     '{"type":"single_choice|multiple_choice|true_false|fill_blank|short_answer|other",'
     '"stem":"题干 Markdown","options":[{"key":"A","text":"选项文本"}],'
     '"answer":{"choiceKeys":["A"],"accepted":null,"text":null} 或 null,'
-    '"explanation":"解析文本或 null","sourceBlockIds":["<输入中出现的块 id>"]}。'
+    '"explanation":"解析文本或 null","sourceBlockIds":["<输入中出现的块 id>"],'
+    '"knowledgePointIds":["<清单里的知识点 id，最多 3 个>"]}。'
     "没有把握的字段留空或 null，不要编造，不要输出 JSON 以外的任何文字。"
 )
 
@@ -178,20 +180,38 @@ class ChatModelResolver(Protocol):
         ...
 
 
-#: R4 LangChain 改造：提示词集中登记（``PromptSpec`` id/version 显式）。归档
-#: ``ORGANIZE_INSTRUCTION`` 语义逐字保留——JSON 形状示例里的字面花括号在
-#: ChatPromptTemplate f-string 模板中必须转义（``{{``/``}}``），渲染后与归档提示词
-#: 逐字一致（归档结构 system=指令、user=批次原文，同样保留）。
+#: R4 LangChain 改造：提示词集中登记（``PromptSpec`` id/version 显式）。``v2`` 起
+#: ``ORGANIZE_INSTRUCTION`` 增加知识点绑定字段，候选清单渲染进 **system** 尾部
+#: （``id | 名称``，只许选清单内 id）；JSON 形状示例里的字面花括号在
+#: ChatPromptTemplate f-string 模板中必须转义（``{{``/``}}``），渲染后与常量逐字一致；
+#: user 消息保持"本批原文"单一职责（批次预算 6000 的断言与来源解析都不受清单影响）。
 ORGANIZE_PROMPT_ID = "question.organize.batch"
-ORGANIZE_PROMPT_VERSION = "v1"
+ORGANIZE_PROMPT_VERSION = "v2"
+#: 候选项分节标题；渲染后清单只含「id | 名称」，不携带任何学生信息
+KNOWLEDGE_SECTION_TITLE = "【可绑定知识点清单（只能从清单里选 id，最多 3 个）】"
+KNOWLEDGE_SECTION_EMPTY = "（本次没有可用知识点清单：knowledgePointIds 请返回空数组）"
+#: 单题最多绑定的知识点数（模型多返回时按顺序截断，不失败该批）
+KNOWLEDGE_MAX_PER_QUESTION = 3
 ORGANIZE_PROMPT = register_prompt(
     PromptSpec(
         id=ORGANIZE_PROMPT_ID,
         version=ORGANIZE_PROMPT_VERSION,
-        system=ORGANIZE_INSTRUCTION.replace("{", "{{").replace("}", "}}"),
+        system=(
+            ORGANIZE_INSTRUCTION.replace("{", "{{").replace("}", "}}")
+            + "\n\n"
+            + KNOWLEDGE_SECTION_TITLE
+            + "\n{knowledge_points}"
+        ),
         human="{input_text}",
     )
 )
+
+
+def knowledge_section(candidates: Sequence[tuple[str, str]]) -> str:
+    """候选知识点 → system 消息里清单文本（``- <id> | <名称>``）；空清单给明确提示。"""
+    if not candidates:
+        return KNOWLEDGE_SECTION_EMPTY
+    return "\n".join(f"- {point_id} | {name}" for point_id, name in candidates)
 
 
 def agent_handle_fingerprint(handle: Any) -> str:
@@ -366,13 +386,19 @@ _QUESTION_TYPES = frozenset(
 )
 
 
-def normalize_reply(raw: str, allowed_block_ids: Sequence[str]) -> dict[str, Any]:
-    """把模型回复规范化为题库内容与来源；任一处不合法抛对应**批级**错误码。
+def normalize_reply(
+    raw: str,
+    allowed_block_ids: Sequence[str],
+    allowed_knowledge_ids: Sequence[str] = (),
+) -> dict[str, Any]:
+    """把模型回复规范化为题库内容、来源与知识点绑定；非法处抛对应**批级**错误码。
 
     - 非法 JSON / 非对象 → ``ORGANIZER_INVALID_JSON``；
     - 缺 ``sourceBlockIds`` 或引用了输入之外的块 → ``ORGANIZER_UNKNOWN_SOURCE_BLOCK``；
     - 缺题干或不符合题库契约 → ``ORGANIZER_INVALID_CONTENT``；
-    - 以上都失败该批，**原文保留、草稿不变**（由调用方落库失败批记录）。
+    - 以上都失败该批，**原文保留、草稿不变**（由调用方落库失败批记录）；
+    - ``knowledgePointIds`` 是**尽力而为**的绑定：清单之外的 id 直接丢弃、去重后
+      截断到 ``KNOWLEDGE_MAX_PER_QUESTION``，不因它失败该批（知识点库为空时一律空表）。
     """
     allowed = {block_id for block_id in allowed_block_ids}
     text = (raw or "").strip()
@@ -428,8 +454,10 @@ def normalize_reply(raw: str, allowed_block_ids: Sequence[str]) -> dict[str, Any
             status_code=422,
         )
 
+    resolved_type = question_type or infer_type(stem, options, answer)
+    answer, options = _coerce_true_false(resolved_type, answer, options)
     content: dict[str, Any] = {
-        "type": question_type or infer_type(stem, options, answer),
+        "type": resolved_type,
         "stemMarkdown": stem,
         "options": options,
         "answer": answer,
@@ -444,7 +472,83 @@ def normalize_reply(raw: str, allowed_block_ids: Sequence[str]) -> dict[str, Any
             code="ORGANIZER_INVALID_CONTENT",
             status_code=422,
         ) from exc
-    return {"content": content, "source_block_ids": block_ids}
+    return {
+        "content": content,
+        "source_block_ids": block_ids,
+        "knowledge_point_ids": _bindable_knowledge(payload, allowed_knowledge_ids),
+    }
+
+
+#: 判断题文字答案 → accepted 的固定映射（真机 2026-10-13：模型常把「正确/错误」写成文本
+#: 或伪选项 A/B，确认时会卡在 ``TRUE_FALSE_ANSWER_REQUIRED``；语义唯一时不猜、直接归一）
+TRUE_ANSWER_TEXTS = frozenset({"对", "正确", "是", "√", "true", "t", "yes", "y"})
+FALSE_ANSWER_TEXTS = frozenset({"错", "错误", "否", "×", "false", "f", "no", "n"})
+
+
+def _boolean_from_text(text: str) -> bool | None:
+    """「对/正确/是/√/true」→ True，「错/错误/否/×/false」→ False；认不出返回 None。"""
+    stripped = text.strip().rstrip("。.！!？? ")
+    if not stripped:
+        return None
+    lowered = stripped.lower()
+    if stripped in TRUE_ANSWER_TEXTS or lowered in TRUE_ANSWER_TEXTS:
+        return True
+    if stripped in FALSE_ANSWER_TEXTS or lowered in FALSE_ANSWER_TEXTS:
+        return False
+    return None
+
+
+def _coerce_true_false(
+    question_type: str, answer: dict[str, Any] | None, options: list[dict[str, str]]
+) -> tuple[dict[str, Any] | None, list[dict[str, str]]]:
+    """判断题答案归一为 ``accepted``；返回 ``(answer, options)``，认不出一律不动。
+
+    真机实测（deepseek-flash，三次三形态）：模型会把判断题写成
+    ① ``{"textMarkdown": "正确"}``；② 伪选项「A. 正确/B. 错误」+ ``choiceKeys=["A"]``；
+    ③ ``choiceKeys=["正确"]`` + 文本「正确」（没有选项）。三者语义都唯一，直接归一为
+    ``accepted``（判断题按契约不带选项与 choiceKeys，伪选项一并丢掉）；认不出的形态
+    （含糊文本、多个 key、真实选项）原样返回，交给确认闸门。
+    """
+    if question_type != "true_false" or not isinstance(answer, dict):
+        return answer, options
+    keys = [str(key) for key in (answer.get("choiceKeys") or [])]
+    option_flags = {
+        option["key"]: _boolean_from_text(option.get("textMarkdown", "")) for option in options
+    }
+    pseudo_options = bool(options) and all(flag is not None for flag in option_flags.values())
+    flag: bool | None = None
+    accepted = answer.get("accepted")
+    if isinstance(accepted, bool):
+        flag = accepted
+    if flag is None:
+        flag = _boolean_from_text(str(answer.get("textMarkdown") or ""))
+    if flag is None and pseudo_options and len(keys) == 1:
+        flag = option_flags.get(keys[0])
+    if flag is None and len(keys) == 1:
+        flag = _boolean_from_text(keys[0])
+    if flag is None:
+        return answer, options
+    return (
+        {"choiceKeys": [], "accepted": flag, "textMarkdown": None},
+        [] if pseudo_options else options,
+    )
+
+
+def _bindable_knowledge(
+    payload: dict[str, Any], allowed_knowledge_ids: Sequence[str]
+) -> list[str]:
+    """回复里的知识点绑定：只保留清单内 id，去重、按序截断；多余/未知一律丢弃。"""
+    allowed = {point_id for point_id in allowed_knowledge_ids}
+    if not allowed:
+        return []
+    picked: list[str] = []
+    for point_id in _string_list(payload.get("knowledgePointIds")):
+        if point_id not in allowed or point_id in picked:
+            continue
+        picked.append(point_id)
+        if len(picked) >= KNOWLEDGE_MAX_PER_QUESTION:
+            break
+    return picked
 
 
 def _first_text(payload: dict[str, Any], keys: Sequence[str]) -> str:

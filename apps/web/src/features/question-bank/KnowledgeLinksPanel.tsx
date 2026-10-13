@@ -104,7 +104,7 @@ export function KnowledgeLinksPanel({
   onReset,
   legacyTestId,
 }: KnowledgeLinksPanelProps) {
-  const notice = subjectChangeNotice(subjectChange, touched);
+  const notice = subjectChangeNotice(subjectChange, touched, { linksReadOnly: !editable });
   const canEdit = editable && !!onAdd && !!onRemove && !!onRoleChange && !!onClear;
   return (
     <section className="qb-links" aria-label="知识点关联" data-testid="qb-knowledge-links">
@@ -262,6 +262,15 @@ export function KnowledgeLinksPanel({
             </span>
           )}
         </div>
+      )}
+
+      {!editable && subjectChange.blocked && (
+        <p className="qb-hint" role="status" data-testid="qb-knowledge-links-readonly-cleared">
+          当前有 {subjectChange.conflictIndexes.length} 条绑定属于原学科
+          {subjectChange.nextSubjectId ? `（新学科 ${subjectChange.nextSubjectId}）` : ''}
+          ：保存时会由服务端自动清空（旧学科绑定不再适用）；需要时重新执行「AI
+          整理并绑定知识点」按新学科重新绑定。
+        </p>
       )}
 
       {originalSubjectId !== subjectId.trim() && (

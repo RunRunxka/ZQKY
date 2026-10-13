@@ -1742,6 +1742,9 @@ class QuestionBankCatalog:
         base_draft_revision: int,
         proposed_content: dict[str, Any] | None = None,
         source_block_ids: Sequence[str] = (),
+        knowledge_links: Sequence[Mapping[str, Any]] = (),
+        apply: bool = False,
+        apply_note: str = "",
         failure: dict[str, Any] | None = None,
         lease_attempt: int | None = None,
         lease_token: str | None = None,
@@ -1759,7 +1762,10 @@ class QuestionBankCatalog:
         - 校验通过 → 建议与 ``checkpoint``（``nextBatchIndex`` / ``suggestionIds`` /
           ``failedBatches``）同事务提交：崩溃只会重放该批，不会漏批或重复落建议；
         - 草稿不存在 / 修订已变 → 该批建议丢弃，返回生效的失败记录（不写建议）；
-        - 建议的 ``proposed_metadata`` 取事务内读到的当前草稿分类，避免跨事务读到旧值。
+        - 建议的 ``proposed_metadata`` 取事务内读到的当前草稿分类，避免跨事务读到旧值；
+        - ``apply=True``（一键整理并绑定，``OrganizeRequest.autoApply``）：建议落库即为
+          ``applied``，并在**同一事务**内把内容与 ``knowledge_links`` 写进草稿；
+          任一步失败整笔回滚，不出现「建议已应用但草稿未变」的中间态。
 
         ``now`` 只供测试注入（模拟租约过期）；生产路径用统一时钟（``now_iso``）。
         """
@@ -1800,6 +1806,10 @@ class QuestionBankCatalog:
                 ):
                     effective = self._conflict_failure(batch_index, ORGANIZE_DRAFT_CHANGED)
                 elif proposed_content is not None:
+                    current = self._draft_record(draft_row)
+                    # richContent 草稿不自动改写（按原文 Markdown 工作的一键整理不碰富文本）：
+                    # 这类批次退回 pending 建议，交人工在编辑器里处置
+                    effective_apply = apply and current.content.get("richContent") is None
                     suggestion_id = uuid.uuid4().hex
                     self._insert_suggestion_in(
                         conn,
@@ -1809,11 +1819,11 @@ class QuestionBankCatalog:
                             target_draft_id=draft_id,
                             base_draft_revision=base_revision,
                             proposed_content=proposed_content,
-                            proposed_metadata=dict(
-                                self._draft_record(draft_row).metadata
-                            ),
+                            proposed_metadata=dict(current.metadata),
                             source_block_ids=tuple(str(item) for item in source_block_ids),
-                            state="pending",
+                            # apply=True（一键整理并绑定）：建议落库即为已应用，
+                            # 同一事务内把内容与知识点绑定写进草稿，无中间态
+                            state="applied" if effective_apply else "pending",
                         ),
                     )
                     created = self._suggestion_record(
@@ -1823,6 +1833,14 @@ class QuestionBankCatalog:
                         ).fetchone()
                     )
                     suggestion_ids.append(suggestion_id)
+                    if effective_apply:
+                        self._apply_organize_batch_in(
+                            conn,
+                            draft_row=draft_row,
+                            proposed_content=proposed_content,
+                            knowledge_links=knowledge_links,
+                            note=apply_note,
+                        )
             if effective is not None:
                 failures.append(effective)
             checkpoint["nextBatchIndex"] = next_batch_index
@@ -1839,6 +1857,40 @@ class QuestionBankCatalog:
                 created,
                 effective,
             )
+
+    def _apply_organize_batch_in(
+        self,
+        conn: sqlite3.Connection,
+        *,
+        draft_row: sqlite3.Row,
+        proposed_content: dict[str, Any],
+        knowledge_links: Sequence[Mapping[str, Any]],
+        note: str,
+    ) -> None:
+        """一键整理：把该批内容与知识点绑定写进草稿（调用方事务内，紧接建议落库）。
+
+        - 内容替换与 ``apply_suggestion`` 同口径：``needs_review`` + 追加提示 + revision+1
+          （人工已填的分类不动，元数据不是本路径的产物）；
+        - ``knowledge_links`` 非空 → **整表替换**草稿关联（AI 绑定覆盖旧绑定）；
+          空表不动旧关联（模型没给出绑定，不当作"清空"指令）。
+        """
+        draft_id = str(draft_row["id"])
+        warnings = json_fields.read_string_list(
+            draft_row["warnings_json"], field="question_drafts.warnings_json"
+        )
+        if note and note not in warnings:
+            warnings.append(note)
+        conn.execute(
+            "UPDATE question_drafts SET content_json = ?, warnings_json = ?, "
+            "review_state = 'needs_review', revision = revision + 1 WHERE id = ?",
+            (
+                json_fields.write_object(proposed_content, field="content_json"),
+                json_fields.write_string_list(warnings, field="warnings_json"),
+                draft_id,
+            ),
+        )
+        if knowledge_links:
+            self._replace_draft_links_in(conn, draft_id, knowledge_links)
 
     def fail_organize_job(
         self,

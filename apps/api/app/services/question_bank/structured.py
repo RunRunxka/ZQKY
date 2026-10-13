@@ -39,7 +39,7 @@ class _AnswerSchema(_Loose):
 
 
 class OrganizeReplySchema(_Loose):
-    """AI 整理单批回复（归档 JSON 契约的同构形状）。"""
+    """AI 整理单批回复（归档 JSON 契约的同构形状 + v2 知识点绑定）。"""
 
     type: str | None = None
     stem: str | None = None
@@ -49,6 +49,8 @@ class OrganizeReplySchema(_Loose):
     explanation: str | None = None
     explanationMarkdown: str | None = None
     sourceBlockIds: list[str] = Field(default_factory=list)
+    #: 从随批给出的候选清单里选的知识点 id（清单外的一律丢弃，见 normalize_reply）
+    knowledgePointIds: list[str] = Field(default_factory=list)
 
 
 class _GenerationQuestionSchema(_Loose):

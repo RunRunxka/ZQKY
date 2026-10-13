@@ -2,6 +2,9 @@
 
 确认采用「整体成功或整体拒绝」：任一草稿不合法 -> HTTP 200 + ``ConfirmResult.failures``，
 不写入任何题目、也不记 submission；同 submissionId 同载荷重放返回原结果。
+
+2026-10-13 起「多选即确认」：只有 ``excluded`` 草稿被拦（``DRAFT_EXCLUDED``），
+未标记 ``reviewed`` 与缺答案都不再阻断入库（AI 整理结果由教师多选直接确认）。
 """
 
 from __future__ import annotations
@@ -160,10 +163,12 @@ def test_confirm_is_idempotent_per_submission(harness: Harness) -> None:
     assert body["sources"]
 
 
-def test_confirm_requires_reviewed_draft(harness: Harness) -> None:
+def test_confirm_accepts_needs_review_draft_as_multi_select(harness: Harness) -> None:
+    """多选即确认（2026-10-13）：未标记校对的草稿可直接入库（AI 整理不再要求人工校对）。"""
     detail = harness.sample_detail()
     import_id = detail["importId"]
     draft = detail["drafts"][0]
+    assert draft["reviewState"] == "needs_review"
 
     response = confirm(
         harness,
@@ -173,28 +178,32 @@ def test_confirm_requires_reviewed_draft(harness: Harness) -> None:
     )
     assert response.status_code == 200, response.text
     body = response.json()
-    assert body["confirmedQuestionIds"] == []
-    assert [failure["code"] for failure in body["failures"]] == ["DRAFT_NOT_REVIEWED"]
-    assert questions(harness)["total"] == 0
+    assert body["failures"] == []
+    assert len(body["confirmedQuestionIds"]) == 1
+    assert questions(harness)["total"] == 1
 
     # 草稿修订过期（并发编辑）同样逐条拒绝
-    reviewed = reviewed_draft(harness, import_id)
+    fresh = harness.import_detail(import_id)["drafts"][1]
     stale = confirm(
         harness,
         import_id,
-        [{"draftId": reviewed["draftId"], "expectedDraftRevision": reviewed["revision"] + 3}],
+        [{"draftId": fresh["draftId"], "expectedDraftRevision": fresh["revision"] + 3}],
         submission_id="submission-0003",
     )
     assert stale.status_code == 200
     assert [failure["code"] for failure in stale.json()["failures"]] == ["REVISION_CONFLICT"]
-    assert questions(harness)["total"] == 0
+    assert questions(harness)["total"] == 1
 
 
 def test_confirm_failure_is_all_or_nothing(harness: Harness) -> None:
     detail = harness.sample_detail()
     import_id = detail["importId"]
-    good = reviewed_draft(harness, import_id, 0)
-    bad = harness.import_detail(import_id)["drafts"][1]  # 仍未校对
+    good = harness.import_detail(import_id)["drafts"][0]  # 未校对也可入库
+    bad = harness.import_detail(import_id)["drafts"][1]
+    excluded = harness.patch_draft(bad, review_state="excluded")
+    assert excluded.status_code == 200, excluded.text
+    bad = excluded.json()
+    assert bad["reviewState"] == "excluded"
 
     response = confirm(
         harness,
@@ -209,7 +218,7 @@ def test_confirm_failure_is_all_or_nothing(harness: Harness) -> None:
     body = response.json()
     assert body["confirmedQuestionIds"] == []
     assert [failure["draftId"] for failure in body["failures"]] == [bad["draftId"]]
-    assert [failure["code"] for failure in body["failures"]] == ["DRAFT_NOT_REVIEWED"]
+    assert [failure["code"] for failure in body["failures"]] == ["DRAFT_EXCLUDED"]
     assert questions(harness)["total"] == 0
     assert harness.import_detail(import_id)["state"] == "needs_review"
 
@@ -247,43 +256,29 @@ def test_confirm_import_id_mismatch_is_422(harness: Harness) -> None:
 # --------------------------------------------------------------------------- 8
 
 
-def test_missing_answer_requires_acknowledgement(harness: Harness) -> None:
+def test_missing_answer_no_longer_blocks_confirm(harness: Harness) -> None:
+    """无答案题直接入库（``answerState=not_provided``）：不再要求逐题显式确认缺答案。"""
     detail = harness.upload(NO_ANSWER_DOC).json()
     import_id = detail["importId"]
     draft = detail["drafts"][0]
     assert draft["content"]["answer"] is None
 
-    reviewed = reviewed_draft(harness, import_id)
-    assert reviewed["reviewState"] == "reviewed"
-
     response = confirm(
         harness,
         import_id,
-        [{"draftId": reviewed["draftId"], "expectedDraftRevision": reviewed["revision"]}],
+        [{"draftId": draft["draftId"], "expectedDraftRevision": draft["revision"]}],
         submission_id="submission-0006",
     )
     assert response.status_code == 200, response.text
-    failures = response.json()["failures"]
-    assert [failure["code"] for failure in failures] == ["MISSING_ANSWER_NOT_ACKNOWLEDGED"]
-    assert "原文未提供答案" in failures[0]["message"]
-    assert questions(harness)["total"] == 0
+    body = response.json()
+    assert body["failures"] == []
+    assert len(body["confirmedQuestionIds"]) == 1
 
-    acknowledged = reviewed_draft(harness, import_id, acknowledge=True)
-    assert acknowledged["missingAnswerAcknowledged"] is True
-    assert acknowledged["reviewState"] == "reviewed"
-
-    ok = confirm(
-        harness,
-        import_id,
-        [{"draftId": acknowledged["draftId"], "expectedDraftRevision": acknowledged["revision"]}],
-        submission_id="submission-0006",
-    )
-    assert ok.status_code == 200, ok.text
-    question_id = ok.json()["confirmedQuestionIds"][0]
-    detail_body = harness.client.get(f"/api/v1/questions/{question_id}").json()
-    assert detail_body["answerState"] == "not_provided"
-    assert detail_body["content"]["answer"] is None
-    # 答案缺失仍继续显示在列表里
+    stored = harness.client.get(f"/api/v1/questions/{body['confirmedQuestionIds'][0]}")
+    assert stored.status_code == 200, stored.text
+    assert stored.json()["answerState"] == "not_provided"
+    assert stored.json()["content"]["answer"] is None
+    # 答案缺失仍继续显示在列表里（界面据 answerState 标注，不由闸门替教师记住）
     listing = questions(harness)
     assert listing["total"] == 1
     assert listing["questions"][0]["answerState"] == "not_provided"

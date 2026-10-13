@@ -563,9 +563,121 @@ describe('确认入库', () => {
       }),
     }, reviewed);
     render(<ReviewWorkspace importId="imp-1" />);
-    fireEvent.click(await screen.findByRole('button', { name: /确认入库（1 道）/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /入库（\d+ 道）/ }));
     fireEvent.click(await screen.findByRole('button', { name: '查看已入库题目' }));
     expect(pushMock).toHaveBeenCalledWith('/question-bank');
+  });
+
+  it('多选即确认：默认全选、可取消勾选、只提交勾选项；知识点只读、缺答案只标注', async () => {
+    const first = draft({
+      revision: 5,
+      knowledgeLinks: [
+        {
+          knowledgePointId: 'kp-1',
+          knowledgeRevisionId: 'kpr-1',
+          knowledgeNameSnapshot: '有理数',
+          subjectIdSnapshot: 'math',
+          role: 'primary',
+          source: 'ai',
+        },
+      ],
+    });
+    const second = draft({
+      draftId: 'd-2',
+      revision: 2,
+      content: { ...CONTENT, answer: null },
+    });
+    const excluded = draft({ draftId: 'd-3', revision: 1, reviewState: 'excluded' });
+    const fetchMock = router({
+      'GET /api/v1/question-imports/imp-1': () =>
+        jsonResponse(
+          true,
+          200,
+          detail({ drafts: [first, second, excluded], draftCount: 3 }),
+        ),
+      'POST /api/v1/question-imports/imp-1/confirm': () =>
+        jsonResponse(true, 200, {
+          confirmedQuestionIds: ['q-1'],
+          linkedQuestionIds: [],
+          skippedDraftIds: [],
+          failures: [],
+        }),
+    });
+    render(<ReviewWorkspace importId="imp-1" />);
+
+    const panel = await screen.findByRole('region', { name: '选择入库' });
+    // 默认全选可入库草稿；已排除的不参与并单独说明
+    expect(within(panel).getByTestId('qb-confirm-selected-count')).toHaveTextContent('已选 2 道');
+    expect(within(panel).getByTestId('qb-confirm-excluded')).toHaveTextContent('已排除 1 道');
+    expect(within(panel).queryByTestId('qb-confirm-pick-d-3')).not.toBeInTheDocument();
+    // 知识点只读展示（AI 绑定名）；缺答案只标注不阻断
+    expect(within(panel).getByTestId('qb-confirm-links-d-1')).toHaveTextContent('有理数');
+    expect(within(panel).getByTestId('qb-confirm-links-d-2')).toHaveTextContent('无绑定');
+    expect(within(panel).getByTestId('qb-confirm-missing-answer-d-2')).toHaveTextContent('缺答案');
+
+    fireEvent.click(within(panel).getByTestId('qb-confirm-pick-d-2'));
+    expect(within(panel).getByTestId('qb-confirm-selected-count')).toHaveTextContent('已选 1 道');
+    fireEvent.click(screen.getByRole('button', { name: '入库（1 道）' }));
+    await waitFor(() => expect(bodyAt(fetchMock, '/confirm', 'POST')).toBeTruthy());
+    // 只提交勾选的草稿（多选即确认：不再按「已校对」筛）
+    expect(bodyAt(fetchMock, '/confirm', 'POST').items).toEqual([
+      { draftId: 'd-1', expectedDraftRevision: 5 },
+    ]);
+    await screen.findByText(/本次已入库 1 道题/);
+  });
+
+  it('一键整理同步成功后重新读取批次：入库用刷新后的修订提交（不误报 REVISION_CONFLICT）', async () => {
+    let reads = 0;
+    const fetchMock = router({
+      'GET /api/v1/question-imports/imp-1': () => {
+        // 整理是服务端写入：第二次读取（整理后的刷新）才看到 r1 与 AI 绑定
+        reads += 1;
+        return jsonResponse(
+          true,
+          200,
+          detail({
+            drafts: [
+              draft({
+                revision: reads === 1 ? 0 : 1,
+                knowledgeLinks:
+                  reads === 1
+                    ? []
+                    : [
+                        {
+                          knowledgePointId: 'kp-1',
+                          knowledgeRevisionId: 'kpr-1',
+                          knowledgeNameSnapshot: '有理数',
+                          subjectIdSnapshot: 'math',
+                          role: 'primary',
+                          source: 'ai',
+                        },
+                      ],
+              }),
+            ],
+          }),
+        );
+      },
+      'POST /api/v1/question-imports/imp-1/organize': () => jsonResponse(true, 200, jobSucceeded()),
+      'POST /api/v1/question-imports/imp-1/confirm': () =>
+        jsonResponse(true, 200, {
+          confirmedQuestionIds: ['q-1'],
+          linkedQuestionIds: [],
+          skippedDraftIds: [],
+          failures: [],
+        }),
+    });
+    render(<ReviewWorkspace importId="imp-1" />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /AI 整理并绑定知识点/ }));
+    await waitFor(() => expect(reads).toBe(2)); // 终态返回后主动刷新批次
+    expect(await screen.findByTestId('qb-confirm-links-d-1')).toHaveTextContent('有理数');
+
+    fireEvent.click(screen.getByTestId('qb-confirm-submit'));
+    await waitFor(() => expect(bodyAt(fetchMock, '/confirm', 'POST')).toBeTruthy());
+    expect(bodyAt(fetchMock, '/confirm', 'POST').items).toEqual([
+      { draftId: 'd-1', expectedDraftRevision: 1 },
+    ]);
+    await screen.findByText(/本次已入库 1 道题/);
   });
 
   it('丢回执冻结完整确认包，刷新到新草稿修订仍原样重放且锁住编辑', async () => {
@@ -580,15 +692,15 @@ describe('确认入库', () => {
         : jsonResponse(true, 200, { confirmedQuestionIds: ['q-1'], linkedQuestionIds: [], skippedDraftIds: [], failures: [] }),
     });
     render(<ReviewWorkspace importId="imp-1" />);
-    fireEvent.click(await screen.findByRole('button', { name: '确认入库（1 道）' }));
+    fireEvent.click(await screen.findByRole('button', { name: '入库（1 道）' }));
     await screen.findByText(/确认结果未知/);
     expect(screen.getByRole('button', { name: '标记已校对' })).toBeDisabled();
     expect(screen.getByRole('button', { name: '保存修改' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'AI 整理草稿' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'AI 整理并绑定知识点' })).toBeDisabled();
     expect(screen.queryByText(/没有任何题目被入库/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: '重新读取批次（保留冻结确认）' }));
     await waitFor(() => expect(reads).toBe(2));
-    await within(screen.getByRole('region', { name: '确认入库' })).findByText('修订 r5');
+    await within(screen.getByRole('region', { name: '选择入库' })).findByText('修订 r5');
     fireEvent.click(screen.getByRole('button', { name: '重试原确认（结果未知）' }));
     await waitFor(() => expect(requests).toBe(2));
     expect(bodyAt(fetchMock, '/confirm', 'POST', 1)).toEqual(bodyAt(fetchMock, '/confirm', 'POST', 0));
@@ -621,7 +733,7 @@ describe('确认入库', () => {
     });
     render(<ReviewWorkspace importId="imp-1" />);
 
-    fireEvent.click(await screen.findByRole('button', { name: /确认入库（1 道）/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /入库（\d+ 道）/ }));
 
     expect(await screen.findByText('没有任何题目被入库')).toBeInTheDocument();
     // failures 清单里的草稿标识已降级为「#序号 题型」（完整 draftId 在 title 里）
@@ -632,7 +744,7 @@ describe('确认入库', () => {
     expect(within(failureLine).getByTitle('d-1')).toBeInTheDocument();
     expect(screen.getByText(/提交标识 sub-1/)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /确认入库（1 道）/ }));
+    fireEvent.click(screen.getByRole('button', { name: /入库（\d+ 道）/ }));
     await waitFor(() =>
       expect(calls(fetchMock, '/question-imports/imp-1/confirm', 'POST')).toHaveLength(2),
     );
@@ -663,7 +775,7 @@ describe('确认入库', () => {
     router({ 'GET /api/v1/question-imports/imp-1': () => jsonResponse(true, 200, reviewed) }, reviewed);
     render(<ReviewWorkspace importId="imp-1" />);
 
-    const panel = await screen.findByRole('region', { name: '确认入库' });
+    const panel = await screen.findByRole('region', { name: '选择入库' });
     const first = within(panel).getByTitle('d-1');
     expect(first).toHaveTextContent('#1 单选题');
     const second = within(panel).getByTitle('d-2');
@@ -685,7 +797,7 @@ describe('AI 整理：使用点击时的当前聊天模型（v1.1）', () => {
     expect(modelLine).toHaveTextContent(CHAT_MODEL_ID);
     expect(modelLine).toHaveTextContent('使用');
 
-    fireEvent.click(screen.getByRole('button', { name: /AI 整理草稿/ }));
+    fireEvent.click(screen.getByRole('button', { name: /AI 整理并绑定知识点/ }));
     await waitFor(() => expect(calls(fetchMock, '/organize', 'POST')).toHaveLength(1));
 
     const body = bodyAt(fetchMock, '/question-imports/imp-1/organize', 'POST');
@@ -694,9 +806,11 @@ describe('AI 整理：使用点击时的当前聊天模型（v1.1）', () => {
     expect(body.modelProfileId).not.toBe('');
     expect(body.draftIds).toEqual(['d-1']);
     expect(body.includeUnassigned).toBe(false);
+    // 一键整理并绑定知识点：整理结果直接写入草稿（含知识点库绑定），教师只做多选入库
+    expect(body.autoApply).toBe(true);
   });
 
-  it('页面加载、编辑草稿都不调用模型；点「AI 整理草稿」才发 1 次请求', async () => {
+  it('页面加载、编辑草稿都不调用模型；点「AI 整理并绑定知识点」才发 1 次请求', async () => {
     const fetchMock = router({
       'PATCH /api/v1/question-drafts/d-1': () =>
         jsonResponse(
@@ -717,7 +831,7 @@ describe('AI 整理：使用点击时的当前聊天模型（v1.1）', () => {
     expect(calls(fetchMock, '/organize', 'POST')).toHaveLength(0);
     expect(calls(fetchMock, LEGACY_RAG_STATUS)).toHaveLength(0);
 
-    fireEvent.click(screen.getByRole('button', { name: /AI 整理草稿/ }));
+    fireEvent.click(screen.getByRole('button', { name: /AI 整理并绑定知识点/ }));
     await waitFor(() => expect(calls(fetchMock, '/organize', 'POST')).toHaveLength(1));
   });
 
@@ -741,7 +855,7 @@ describe('AI 整理：使用点击时的当前聊天模型（v1.1）', () => {
     expect(localNote).toHaveTextContent('题库 AI 不使用本机模型，请选择云端模型档案');
     expect(localNote).toHaveTextContent('不会自动改用其他模型');
     expect(within(localNote).getByRole('link', { name: /去设置默认问答模型/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /AI 整理草稿/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /AI 整理并绑定知识点/ })).toBeDisabled();
     // 没有任何数据外发提示（本机档案不会发起调用）
     expect(screen.queryByTestId('qb-organizer-dataflow')).not.toBeInTheDocument();
   });
@@ -760,7 +874,7 @@ describe('AI 整理：使用点击时的当前聊天模型（v1.1）', () => {
     });
     render(<ReviewWorkspace importId="imp-1" />);
 
-    fireEvent.click(await screen.findByRole('button', { name: /AI 整理草稿/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /AI 整理并绑定知识点/ }));
     await waitFor(() => expect(calls(fetchMock, '/organize', 'POST')).toHaveLength(1));
 
     // 目录变化（等价于用户切回本页触发的 focus 刷新）
@@ -771,7 +885,7 @@ describe('AI 整理：使用点击时的当前聊天模型（v1.1）', () => {
     expect(await screen.findByTestId('qb-organizer-frozen')).toHaveTextContent('已冻结该模型');
     expect(screen.getByTestId('qb-organizer-model')).toHaveTextContent(CHAT_MODEL_ID);
 
-    fireEvent.click(screen.getByRole('button', { name: /AI 整理草稿/ }));
+    fireEvent.click(screen.getByRole('button', { name: /AI 整理并绑定知识点/ }));
     await waitFor(() => expect(calls(fetchMock, '/organize', 'POST')).toHaveLength(2));
 
     expect(sentProfileIds(fetchMock)).toEqual([CHAT_PROFILE_ID, CHAT_PROFILE_ID]);
@@ -782,7 +896,7 @@ describe('AI 整理：使用点击时的当前聊天模型（v1.1）', () => {
     expect(calls(fetchMock, '/organize', 'POST')).toHaveLength(2);
     expect(screen.getByTestId('qb-organizer-model')).toHaveTextContent('deepseek-chat');
 
-    fireEvent.click(screen.getByRole('button', { name: /AI 整理草稿/ }));
+    fireEvent.click(screen.getByRole('button', { name: /AI 整理并绑定知识点/ }));
     await waitFor(() => expect(calls(fetchMock, '/organize', 'POST')).toHaveLength(3));
     expect(sentProfileIds(fetchMock)).toEqual([CHAT_PROFILE_ID, CHAT_PROFILE_ID, CLOUD_PROFILE_ID]);
   });
@@ -798,7 +912,7 @@ describe('AI 整理：使用点击时的当前聊天模型（v1.1）', () => {
     });
     render(<ReviewWorkspace importId="imp-1" />);
 
-    fireEvent.click(await screen.findByRole('button', { name: /AI 整理草稿/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /AI 整理并绑定知识点/ }));
 
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('MODEL_PROFILE_NOT_FOUND');
@@ -827,7 +941,7 @@ describe('AI 整理：使用点击时的当前聊天模型（v1.1）', () => {
     const modelLine = await screen.findByTestId('qb-organizer-model');
     expect(modelLine).toHaveTextContent('p-chat-gone');
     expect(modelLine).toHaveTextContent('不会自动改用其他模型');
-    const button = screen.getByRole('button', { name: /AI 整理草稿/ });
+    const button = screen.getByRole('button', { name: /AI 整理并绑定知识点/ });
     expect(button).toBeDisabled();
 
     fireEvent.click(button);
@@ -851,7 +965,7 @@ describe('AI 整理：使用点击时的当前聊天模型（v1.1）', () => {
     expect(screen.getByTestId('qb-organizer-model')).toHaveTextContent(
       /读取模型配置失败（SERVICE_UNAVAILABLE）/,
     );
-    expect(screen.getByRole('button', { name: /AI 整理草稿/ })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /AI 整理并绑定知识点/ })).toBeDisabled();
     expect(calls(fetchMock, '/organize', 'POST')).toHaveLength(0);
   });
 
@@ -874,7 +988,7 @@ describe('AI 整理：使用点击时的当前聊天模型（v1.1）', () => {
     });
     render(<ReviewWorkspace importId="imp-1" />);
 
-    fireEvent.click(await screen.findByRole('button', { name: /AI 整理草稿/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /AI 整理并绑定知识点/ }));
 
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent(expected);
@@ -894,7 +1008,7 @@ describe('AI 整理：使用点击时的当前聊天模型（v1.1）', () => {
     });
     render(<ReviewWorkspace importId="imp-1" />);
 
-    fireEvent.click(await screen.findByRole('button', { name: /AI 整理草稿/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /AI 整理并绑定知识点/ }));
 
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('QUESTION_MODEL_NOT_CLOUD');
@@ -926,7 +1040,7 @@ describe('AI 整理：使用点击时的当前聊天模型（v1.1）', () => {
     });
     render(<ReviewWorkspace importId="imp-1" />);
 
-    fireEvent.click(await screen.findByRole('button', { name: /AI 整理草稿/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /AI 整理并绑定知识点/ }));
 
     expect(await screen.findByText('AI 建议题干：下列说法错误的是？')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '应用建议' })).toBeEnabled();
@@ -950,7 +1064,7 @@ describe('AI 整理：使用点击时的当前聊天模型（v1.1）', () => {
     });
     render(<ReviewWorkspace importId="imp-1" />);
 
-    fireEvent.click(await screen.findByRole('button', { name: /AI 整理草稿/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /AI 整理并绑定知识点/ }));
 
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('该整理任务是在旧版本下创建的');
@@ -976,7 +1090,7 @@ describe('AI 整理：使用点击时的当前聊天模型（v1.1）', () => {
     });
     render(<ReviewWorkspace importId="imp-1" />);
 
-    fireEvent.click(await screen.findByRole('button', { name: /AI 整理草稿/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /AI 整理并绑定知识点/ }));
 
     expect(await screen.findByText(/在途未完成批次的建议不会保存/)).toBeInTheDocument();
     expect(screen.getByText('AI 建议题干：下列说法错误的是？')).toBeInTheDocument();
@@ -998,7 +1112,7 @@ describe('AI 整理：使用点击时的当前聊天模型（v1.1）', () => {
     });
     render(<ReviewWorkspace importId="imp-1" />);
 
-    fireEvent.click(await screen.findByRole('button', { name: /AI 整理草稿/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /AI 整理并绑定知识点/ }));
     expect(await screen.findByText('AI 建议题干：下列说法错误的是？')).toBeInTheDocument();
     expect((screen.getByLabelText('题干') as HTMLTextAreaElement).value).toBe(
       '原题干：下列说法正确的是？',
@@ -1072,7 +1186,7 @@ describe('整理任务六态：interrupted 横幅与显式重试（B2 / T50 兼�
     });
 
     render(<ReviewWorkspace importId="imp-1" />);
-    fireEvent.click(await screen.findByRole('button', { name: /AI 整理草稿/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /AI 整理并绑定知识点/ }));
 
     // 第一次观察返回 interrupted（终态）：显示横幅并要求显式重试
     const banner = await screen.findByTestId('qb-organizer-interrupted');
@@ -1111,10 +1225,9 @@ describe('F10-QB：关联字段级错误与 AI 来源标识', () => {
       editions: [{ id: 'renjiao', label: '人教版' }],
     });
 
-  it('跨学科编辑草稿且未处置旧关联：422 字段级错误显示到关联行，编辑内容保留', async () => {
+  it('跨学科编辑草稿：提示旧绑定会被自动清空（绑定只读），保存后绑定为空且编辑保留', async () => {
     const linked = draft({
       revision: 5,
-      reviewState: 'reviewed',
       knowledgeLinks: [
         {
           knowledgePointId: 'kp-1',
@@ -1122,30 +1235,24 @@ describe('F10-QB：关联字段级错误与 AI 来源标识', () => {
           knowledgeNameSnapshot: '有理数',
           subjectIdSnapshot: 'math',
           role: 'primary',
-          source: 'human',
+          source: 'ai',
         },
       ],
     });
+    const cleared = draft({
+      revision: 6,
+      reviewState: 'needs_review',
+      knowledgeLinks: [],
+      warnings: ['改学科后原知识点关联（含 AI 绑定）已清空：它们属于原学科；需要时重新执行「AI 整理并绑定知识点」。'],
+    });
+    let reads = 0;
     const fetchMock = router({
       'GET /api/v1/textbook-taxonomy': PHYSICS_TAXONOMY,
-      'GET /api/v1/question-imports/imp-1': () =>
-        jsonResponse(true, 200, detail({ drafts: [linked], reviewedCount: 1 })),
-      'PATCH /api/v1/question-drafts/d-1': () =>
-        jsonResponse(false, 422, {
-          code: 'KNOWLEDGE_REFERENCE_INVALID',
-          message: '改题目学科后不能继承与新学科不一致的旧知识点关联；请显式提供 knowledgeLinks。',
-          retryable: false,
-          details: {
-            issues: [
-              {
-                field: 'knowledgeLinks[0].knowledgePointId',
-                code: 'KNOWLEDGE_REFERENCE_INVALID',
-                message:
-                  '知识点 kp-1（有理数）属于学科 math，与新学科 physics 不一致；请显式替换或清空该关联。',
-              },
-            ],
-          },
-        }),
+      'GET /api/v1/question-imports/imp-1': () => {
+        reads += 1;
+        return jsonResponse(true, 200, detail({ drafts: [reads === 1 ? linked : cleared] }));
+      },
+      'PATCH /api/v1/question-drafts/d-1': () => jsonResponse(true, 200, cleared),
     });
     render(<ReviewWorkspace importId="imp-1" />);
 
@@ -1153,20 +1260,24 @@ describe('F10-QB：关联字段级错误与 AI 来源标识', () => {
     fireEvent.change(stem, { target: { value: '我的改动' } });
     fireEvent.change(screen.getByLabelText('学科'), { target: { value: 'physics' } });
 
-    // 保存前先说明会被 422 拒绝（不制造「会继承旧关联」的错觉）
-    expect(await screen.findByTestId('qb-knowledge-subject-change')).toHaveTextContent('422');
-    expect(screen.getByTestId('qb-knowledge-links-blocked')).toBeInTheDocument();
+    // 保存前就说明会发生什么：旧学科的绑定由服务端自动清空（只读绑定没有「显式替换」入口）
+    expect(await screen.findByTestId('qb-knowledge-subject-change')).toHaveTextContent('自动清空');
+    expect(screen.getByTestId('qb-knowledge-links-readonly-cleared')).toHaveTextContent('自动清空');
+    // 绑定只读：没有清空/移除/角色编辑入口
+    expect(screen.queryByTestId('qb-knowledge-link-clear')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('qb-knowledge-link-remove-0')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('qb-knowledge-link-role-0')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: '保存修改' }));
 
-    const rowIssue = await screen.findByTestId('qb-knowledge-link-issue-0');
-    expect(rowIssue).toHaveTextContent('kp-1');
-    expect(
-      screen.getByText(/知识点关联校验失败（KNOWLEDGE_REFERENCE_INVALID）/),
-    ).toBeInTheDocument();
-    expect((screen.getByLabelText('题干') as HTMLTextAreaElement).value).toBe('我的改动');
-    // 未改动关联：请求体不能偷偷带 knowledgeLinks（否则等于静默清空/改写）
-    expect(bodyAt(fetchMock, '/question-drafts/d-1', 'PATCH')).not.toHaveProperty('knowledgeLinks');
+    await waitFor(() => expect(bodyAt(fetchMock, '/question-drafts/d-1', 'PATCH')).toBeTruthy());
+    // 只读绑定：请求体永不携带 knowledgeLinks（不整表替换；清空由服务端按学科变化执行）
+    expect(bodyAt(fetchMock, '/question-drafts/d-1', 'PATCH')).not.toHaveProperty(
+      'knowledgeLinks',
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('qb-knowledge-links-empty')).toBeInTheDocument(),
+    );
   });
 
   it('AI 候选草稿在草稿条、编辑区与确认列表明确标识来源', async () => {
@@ -1213,7 +1324,7 @@ describe('F10-QB：关联字段级错误与 AI 来源标识', () => {
     });
     render(<ReviewWorkspace importId="imp-1" />);
 
-    fireEvent.click(await screen.findByRole('button', { name: /确认入库（1 道）/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /入库（\d+ 道）/ }));
 
     const unconfirmed = await screen.findByTestId('qb-confirm-unconfirmed');
     expect(unconfirmed).toHaveTextContent('整批未确认');
@@ -1241,7 +1352,7 @@ describe('F10-QB：关联字段级错误与 AI 来源标识', () => {
     });
     render(<ReviewWorkspace importId="imp-1" />);
 
-    fireEvent.click(await screen.findByRole('button', { name: /AI 整理草稿/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /AI 整理并绑定知识点/ }));
 
     const stale = await screen.findByTestId('qb-suggestion-stale-sg-1');
     expect(stale).toHaveTextContent('过期（stale）');
@@ -1283,7 +1394,7 @@ describe('B3 整理首次排队的真实观察窗口', () => {
           }),
       });
       render(<ReviewWorkspace importId="imp-1" />);
-      fireEvent.click(await screen.findByRole('button', { name: /AI 整理草稿/ }));
+      fireEvent.click(await screen.findByRole('button', { name: /AI 整理并绑定知识点/ }));
       await waitFor(() => expect(reads).toBe(2), { timeout: 3000 });
       expect(screen.queryByText(/该整理任务已被新的尝试接管/)).not.toBeInTheDocument();
       if (terminal === 'succeeded')
@@ -1314,7 +1425,7 @@ describe('B3 整理首次排队的真实观察窗口', () => {
           }),
       });
       render(<ReviewWorkspace importId="imp-1" />);
-      fireEvent.click(await screen.findByRole('button', { name: /AI 整理草稿/ }));
+      fireEvent.click(await screen.findByRole('button', { name: /AI 整理并绑定知识点/ }));
       expect(await screen.findByText(/该整理任务已被新的尝试接管/)).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: '应用建议' })).not.toBeInTheDocument();
     });
@@ -1334,7 +1445,7 @@ describe('校对批次写入的对象与卸载守卫', () => {
             jsonResponse(true, 200, detail({ importId: 'imp-2' })),
         });
         const view = render(<ReviewWorkspace importId="imp-1" />);
-        fireEvent.click(await screen.findByRole('button', { name: /AI 整理草稿/ }));
+        fireEvent.click(await screen.findByRole('button', { name: /AI 整理并绑定知识点/ }));
         fireEvent.click(await screen.findByRole('button', { name: '重试整理' }));
         await waitFor(() =>
           expect(calls(fetchMock, '/workflow-jobs/job-1/retry', 'POST')).toHaveLength(1),
@@ -1366,7 +1477,7 @@ describe('校对批次写入的对象与卸载守卫', () => {
         if (boundary === 'switch') {
           expect(screen.queryByText(/旧重试失败/)).not.toBeInTheDocument();
           expect(screen.queryByTestId('qb-organizer-pending')).not.toBeInTheDocument();
-          expect(screen.getByRole('button', { name: /AI 整理草稿/ })).toBeEnabled();
+          expect(screen.getByRole('button', { name: /AI 整理并绑定知识点/ })).toBeEnabled();
         }
       });
     }
@@ -1397,7 +1508,7 @@ describe('校对批次写入的对象与卸载守卫', () => {
         }),
     });
     render(<ReviewWorkspace importId="imp-1" />);
-    fireEvent.click(await screen.findByRole('button', { name: /AI 整理草稿/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /AI 整理并绑定知识点/ }));
     fireEvent.click(await screen.findByRole('button', { name: '重试整理' }));
     expect(await screen.findByRole('button', { name: '应用建议' })).toBeEnabled();
     expect(screen.queryByText(/该整理任务已被新的尝试接管/)).not.toBeInTheDocument();
@@ -1440,9 +1551,9 @@ describe('校对批次写入的对象与卸载守卫', () => {
               fireEvent.click(checkbox);
             fireEvent.click(within(merge).getByRole('button', { name: /合并所选草稿/ }));
           } else if (operation === 'confirm')
-            fireEvent.click(screen.getByRole('button', { name: /确认入库（1 道）/ }));
+            fireEvent.click(screen.getByRole('button', { name: /入库（\d+ 道）/ }));
           else {
-            fireEvent.click(screen.getByRole('button', { name: /AI 整理草稿/ }));
+            fireEvent.click(screen.getByRole('button', { name: /AI 整理并绑定知识点/ }));
             if (operation !== 'organize')
               fireEvent.click(
                 await screen.findByRole('button', {
@@ -1475,6 +1586,7 @@ describe('校对批次写入的对象与卸载守卫', () => {
                 : operation === 'organize'
                   ? { ...jobSucceeded([]), state: 'queued', attempt: 0 }
                   : draft({ revision: 4, content: { ...CONTENT, stemMarkdown: '旧结果覆盖' } });
+          const readsBeforeLateWrite = calls(fetchMock, '/question-imports/imp-1', 'GET').length;
           await act(async () =>
             pending.resolve(
               status === 409
@@ -1486,7 +1598,10 @@ describe('校对批次写入的对象与卸载守卫', () => {
                 : jsonResponse(true, 200, success),
             ),
           );
-          expect(calls(fetchMock, '/question-imports/imp-1', 'GET')).toHaveLength(1);
+          // 迟到写入不得触发任何新的批次读取（organize 终态后的刷新是它自己那次，已计入基线）
+          expect(calls(fetchMock, '/question-imports/imp-1', 'GET')).toHaveLength(
+            readsBeforeLateWrite,
+          );
           expect(calls(fetchMock, '/workflow-jobs/', 'GET')).toHaveLength(0);
           if (boundary === 'switch') {
             expect(screen.getByLabelText('题干')).toHaveValue('新批次未保存编辑');

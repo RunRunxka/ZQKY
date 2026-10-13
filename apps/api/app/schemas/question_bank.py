@@ -213,6 +213,9 @@ class OrganizeRequest(_Strict):
     #: **当前聊天模型**的 profile id（本地或云端均可）；语义与详解一致，必填。
     #: 后端经 `model_runtime.resolve_chat_model` 解析——不得把 profile id 当模型名用。
     modelProfileId: str = Field(min_length=1, max_length=128)
+    #: ``True`` = 一键整理并绑定知识点：整理结果直接写入草稿（含知识点库绑定），
+    #: 教师只需多选入库；``False``（默认）= 只产生建议，逐条人工「应用/忽略」。
+    autoApply: bool = False
 
 
 class OrganizeBatchFailure(_Frozen):

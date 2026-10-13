@@ -89,8 +89,9 @@ describe('AI 整理错误文案：五类失败', () => {
     expect(isOrganizerBatchFailure(null)).toBe(false);
   });
 
-  it('建议语义与过期建议提示都明说「不覆盖人工草稿 / 不会自动入库」', () => {
-    expect(ORGANIZER_SUGGESTION_SEMANTICS).toContain('永不直接覆盖人工草稿');
+  it('建议语义与过期建议提示都明说「默认不产生待处理建议 / 不会自动入库」', () => {
+    expect(ORGANIZER_SUGGESTION_SEMANTICS).toContain('直接写入草稿并绑定知识点');
+    expect(ORGANIZER_SUGGESTION_SEMANTICS).toContain('不产生待处理建议');
     expect(ORGANIZER_SUGGESTION_SEMANTICS).toContain('不会自动入库');
     expect(organizerStaleSuggestionText(3, 5)).toContain('r3 → 当前 r5');
     expect(organizerStaleSuggestionText(3, null)).toContain('草稿已不在批次中');

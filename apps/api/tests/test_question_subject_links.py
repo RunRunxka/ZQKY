@@ -5,8 +5,11 @@
 
 回归断言（反向对照见 ``docs/qa/TEACHING-LOOP-B2-REVIEW-20261001/probes/question_jobs_probe.py``）：
 
-- 学科变化 + 省略关联 + 旧关联与新学科冲突 → 422 ``KNOWLEDGE_REFERENCE_INVALID``，
-  ``details.issues`` 指向冲突知识点，文案要求显式替换/清空；题目/草稿一字未改；
+- **正式题**：学科变化 + 省略关联 + 旧关联与新学科冲突 → 422
+  ``KNOWLEDGE_REFERENCE_INVALID``，``details.issues`` 指向冲突知识点，文案要求显式
+  替换/清空；题目一字未改；
+- **草稿**（2026-10-13 起）：同一场景改为**自动清空旧关联 + 留言**（导入页知识点由 AI
+  绑定、教师只读，界面无法显式替换/清空），草稿照常保存且不留跨学科关联；
 - 显式 ``knowledgeLinks: []`` → 新修订零关联；
 - 显式新学科关联 → 成功，按新集合替换；
 - 同学科改内容 → 照旧复制旧关联（不误伤）。
@@ -237,34 +240,26 @@ def test_draft_subject_change_without_links_is_rejected_with_locator(tmp_path: P
                 "metadata": moved,
             },
         )
-        assert response.status_code == 422, response.text
+        assert response.status_code == 200, response.text
         body = response.json()
-        assert body["code"] == "KNOWLEDGE_REFERENCE_INVALID"
-        assert point["pointId"] in body["details"]["issues"][0]["message"]
-        # 草稿一字未改：revision 与关联都保持原样
-        after = harness.catalog.get_draft(draft["draftId"])
-        assert after.revision == current["revision"]
-        assert after.metadata["subjectId"] == MATH
-        assert [
-            item.knowledge_point_id
-            for item in harness.catalog.draft_knowledge_links(draft["draftId"])
-        ] == [point["pointId"]]
+        assert body["metadata"]["subjectId"] == CHINESE
+        assert body["knowledgeLinks"] == []
+        assert body["reviewState"] == "needs_review"
+        assert any("清空" in item and "学科" in item for item in body["warnings"])
+        # 库内一致：关联整表清空（不留旧学科绑定），不产生跨学科关联
+        assert harness.catalog.draft_knowledge_links(draft["draftId"]) == []
 
-        # 显式清空 → 新修订、零关联、回到 needs_review
-        cleared = harness.client.patch(
+        # 再改回原学科（此时已无关联）→ 不再重复留言、照常保存
+        back = harness.client.patch(
             f"/api/v1/question-drafts/{draft['draftId']}",
             json={
-                "expectedRevision": current["revision"],
-                "content": current["content"],
-                "metadata": moved,
-                "knowledgeLinks": [],
+                "expectedRevision": body["revision"],
+                "content": body["content"],
+                "metadata": {**moved, "subjectId": MATH},
             },
         )
-        assert cleared.status_code == 200, cleared.text
-        cleared_body = cleared.json()
-        assert cleared_body["metadata"]["subjectId"] == CHINESE
-        assert cleared_body["knowledgeLinks"] == []
-        assert cleared_body["reviewState"] == "needs_review"
+        assert back.status_code == 200, back.text
+        assert back.json()["knowledgeLinks"] == []
     finally:
         harness.close()
 
