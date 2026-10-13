@@ -75,10 +75,17 @@ class AnalysisRunView(Frozen):
 
 
 class AnalysisRunDeleteReceipt(Frozen):
-    """学情报告彻底删除的回执（受引用守卫通过后物理删除报告与其冻结子表行）。"""
+    """学情报告彻底删除的回执（拆开可拆引用后物理删除报告与其冻结子表行）。
+
+    R10-BE：``removedPracticeSets`` = 随报告级联删除的练习集数（连带其全部历史）；
+    ``unlinkedLessonRevisions`` = 来源指针被置 NULL 的教案修订数（教案本体保留）。
+    报告自身的六张冻结子表行不进回执（它们属于报告本身）。
+    """
 
     deleted: bool
     run_id: str = Field(alias="runId")
+    removed_practice_sets: int = Field(default=0, alias="removedPracticeSets", ge=0)
+    unlinked_lesson_revisions: int = Field(default=0, alias="unlinkedLessonRevisions", ge=0)
 
 
 class ClassReportRow(Frozen):

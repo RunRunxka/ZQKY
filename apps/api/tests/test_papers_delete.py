@@ -1,12 +1,13 @@
-"""原卷受引用守卫的彻底删除（DELETE /papers/{id}）。
+"""原卷彻底删除（DELETE /papers/{id}，R10-BE 拆开交叉引用）。
 
 覆盖（真 HTTP API + 真教学库 + tmp_path 隔离）：
 
-- 可删成功：无已确认修订且无施测引用的原卷（含多版本草稿）物理删除，
-  全部子表行消失；
-- 已确认修订 → 409 ``PAPER_HAS_CONFIRMED_REVISION``（数据库触发器禁止删除
-  已确认修订，已确认原卷只能归档）；
-- 被施测引用 → 409 ``PAPER_IN_USE``（``details.counts.assessments`` 附施测数）；
+- 可删成功：无施测引用的原卷（含多版本草稿）物理删除，全部子表行消失；
+- R10-BE：已确认修订**不再阻断**删除——修订链属原卷自身，同事务摘除
+  ``immutable_paper_revisions_delete`` 与 ``freeze_paper_*_delete`` 后级联删除；
+  兜底在删除后恢复（直连 DELETE 仍被拒）；
+- 被施测引用 → 409 ``PAPER_IN_USE``（``details.counts.assessments`` 附施测数）：
+  施测是成绩链锚点，先删施测再删原卷；
 - 乐观锁 409 ``PAPER_REVISION_STALE``；
 - 404（原卷不存在）。
 """
@@ -67,32 +68,40 @@ def test_delete_paper_removes_multiple_draft_versions(harness: AssessmentsHarnes
     assert harness.count("paper_items") == 0
 
 
-def test_delete_paper_blocked_by_confirmed_revision(harness: AssessmentsHarness) -> None:
-    """数据库触发器禁止删除已确认修订：已确认原卷只能归档。"""
+def test_delete_paper_cascades_confirmed_revision_chain(harness: AssessmentsHarness) -> None:
+    """R10-BE：无施测引用时，已确认修订随原卷级联删除（不再 409；无归档替代）。
+
+    删除后兜底触发器必须恢复：对另一张已确认原卷修订的直连 DELETE 仍被拒。
+    """
     confirmed = harness.create_confirmed_paper(tag="pd3")
     paper_id = confirmed.paper_id
+    # 另一张已确认原卷：用于断言兜底触发器在删除后仍生效
+    other = harness.create_confirmed_paper(tag="pd3-other")
     current = harness.client.get(f"/api/v1/papers/{paper_id}")
     assert current.status_code == 200
     revision = current.json()["revision"]
+    revision_id = current.json()["currentRevisionId"]
 
-    blocked = harness.client.delete(f"/api/v1/papers/{paper_id}", params={"expectedRevision": revision})
-    assert blocked.status_code == 409, blocked.text
-    body = blocked.json()
-    assert body["code"] == "PAPER_HAS_CONFIRMED_REVISION"
-    assert body["details"]["counts"]["confirmedRevisions"] >= 1
-    # 零删除
-    assert harness.count("papers", "id = ?", (paper_id,)) == 1
+    deleted = harness.client.delete(
+        f"/api/v1/papers/{paper_id}", params={"expectedRevision": revision}
+    )
+    assert deleted.status_code == 200, deleted.text
+    # 级联：原卷、修订、原文块/小题/知识点/处置问题全部消失（另一张卷不受影响）
+    assert harness.count("papers", "id = ?", (paper_id,)) == 0
+    assert harness.count("paper_revisions", "paper_id = ?", (paper_id,)) == 0
+    assert harness.count("paper_items", "paper_revision_id = ?", (revision_id,)) == 0
+    assert harness.count("paper_item_knowledge", "paper_revision_id = ?", (revision_id,)) == 0
+    assert harness.count("paper_source_blocks", "paper_revision_id = ?", (revision_id,)) == 0
 
-    # 归档（安全出口）之后依然禁止物理删除
-    archived = harness.client.post(
-        f"/api/v1/papers/{paper_id}/archive", json={"expectedRevision": revision}
-    )
-    assert archived.status_code == 200, archived.text
-    still_blocked = harness.client.delete(
-        f"/api/v1/papers/{paper_id}", params={"expectedRevision": revision + 1}
-    )
-    assert still_blocked.status_code == 409
-    assert still_blocked.json()["code"] == "PAPER_HAS_CONFIRMED_REVISION"
+    # 兜底恢复：另一张已确认原卷仍不可直连删除（触发器逐字恢复）
+    import sqlite3
+
+    connection = sqlite3.connect(str(harness.db_path))
+    try:
+        with pytest.raises(sqlite3.IntegrityError, match="IMMUTABLE_REVISION"):
+            connection.execute("DELETE FROM paper_revisions WHERE id = ?", (other.revision_id,))
+    finally:
+        connection.close()
 
 
 def test_delete_paper_blocked_by_assessment_reference(harness: AssessmentsHarness) -> None:

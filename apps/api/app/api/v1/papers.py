@@ -204,7 +204,11 @@ async def delete_paper(
     paper_id: str,
     expectedRevision: int = Query(ge=0),
 ) -> dict:
-    """受引用守卫的彻底删除：已确认修订/被施测引用 → 409 并列出计数；干净草稿卷物理删除。"""
+    """彻底删除试卷（R10-BE 拆开交叉引用）：修订链（含已确认）级联删除。
+
+    被施测引用 → 409 ``PAPER_IN_USE`` 并列出计数（先删施测，再删原卷）；
+    乐观锁不符 → 409；不存在 → 404。
+    """
     service = _service(request)
     payload = PaperRevisionRequest(expectedRevision=expectedRevision)
     return await _run(service.delete_paper, paper_id, payload)

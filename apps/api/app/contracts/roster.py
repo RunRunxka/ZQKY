@@ -50,11 +50,12 @@ MAX_GENDER_CHARS = 16
 
 CLASS_CODE_CONFLICT = "CLASS_CODE_CONFLICT"
 CLASS_ARCHIVED = "CLASS_ARCHIVED"
-#: 受引用守卫：班级仍被名单/施测/教案引用（删除被 409 拒绝，details 列出计数）
+#: 受引用守卫：班级仍被成绩链（参测人次）或教案引用时删除被 409 拒绝，details 列出计数
 CLASS_IN_USE = "CLASS_IN_USE"
 STUDENT_ARCHIVED = "STUDENT_ARCHIVED"
 STUDENT_NO_CONFLICT = "STUDENT_NO_CONFLICT"
-#: 受引用守卫：学生被施测参测快照引用（彻底删除被 409 拒绝，details 列出计数）
+#: 历史错误码（R10-BE 起学生删除不再返回它：有参测引用时按 ``removed_with_history``
+#: 移除身份并保留历史；常量保留供旧客户端与测试识别，不再是任何删除路径的响应）。
 STUDENT_IN_USE = "STUDENT_IN_USE"
 ROSTER_ROW_INVALID = "ROSTER_ROW_INVALID"
 #: 非阻断提示：该行命中的是**已归档**学生，导入会自动恢复其身份（重导场景）

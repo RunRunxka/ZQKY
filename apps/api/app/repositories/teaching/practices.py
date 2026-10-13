@@ -1,57 +1,14 @@
 """Practice SQL reads on the caller's teaching connection."""
 from app.core.exceptions import AppError
+from app.repositories.teaching.triggers import (
+    PRACTICE_HISTORY_TRIGGERS,
+    suspend_triggers,
+)
 
 PRACTICE_SET_STATUSES = frozenset({"active", "archived"})
 
 #: 受引用守卫：练习集有已审核修订/导出/转换引用时按此码 409 拒绝删除
 PRACTICE_IN_USE = "PRACTICE_IN_USE"
-
-#: 连带历史彻底删除（``includeHistory``）需在同一写事务内临时摘除的 10 个触发器，
-#: ``(名称, 恢复原文)`` 形式；摘除顺序无关紧要，恢复在 ``finally`` 中逐字执行。
-#: 文本已用真实迁移库核对：除 ``immutable_paper_revisions_update``（迁移声明带
-#: ``IF NOT EXISTS``，sqlite_master 存储不含该字样）外，其余 9 条与
-#: b4 0008/0009、teaching 0003 声明逐字一致，恢复语句一律以 sqlite_master
-#: 存储文本为准。DDL 可事务化，任一步失败整体回滚，触发器随事务恢复；
-#: BEGIN IMMEDIATE 下无并发写者可见窗口。先例：``scores.delete_revision_in``、
-#: ``practices.delete_conversion_in``。
-_HISTORY_DELETE_TRIGGERS = (
-    ("practice_revision_delete",
-     "CREATE TRIGGER practice_revision_delete BEFORE DELETE ON practice_revisions "
-     "WHEN OLD.state='reviewed' BEGIN SELECT RAISE(ABORT,'IMMUTABLE_REVISION'); END"),
-    ("freeze_practice_selections_delete",
-     "CREATE TRIGGER freeze_practice_selections_delete BEFORE DELETE ON practice_selections "
-     "WHEN (SELECT state FROM practice_revisions WHERE id=OLD.practice_revision_id)='reviewed' "
-     "BEGIN SELECT RAISE(ABORT,'IMMUTABLE_REVISION'); END"),
-    ("freeze_practice_items_delete",
-     "CREATE TRIGGER freeze_practice_items_delete BEFORE DELETE ON practice_items "
-     "WHEN (SELECT state FROM practice_revisions WHERE id=OLD.practice_revision_id)='reviewed' "
-     "BEGIN SELECT RAISE(ABORT,'IMMUTABLE_REVISION'); END"),
-    ("freeze_practice_item_knowledge_delete",
-     "CREATE TRIGGER freeze_practice_item_knowledge_delete BEFORE DELETE ON practice_item_knowledge "
-     "WHEN (SELECT state FROM practice_revisions WHERE id=OLD.practice_revision_id)='reviewed' "
-     "BEGIN SELECT RAISE(ABORT,'IMMUTABLE_REVISION'); END"),
-    ("immutable_practice_exports_delete",
-     "CREATE TRIGGER immutable_practice_exports_delete BEFORE DELETE ON practice_exports "
-     "BEGIN SELECT RAISE(ABORT,'IMMUTABLE_REVISION'); END"),
-    ("immutable_export_artifacts_delete",
-     "CREATE TRIGGER immutable_export_artifacts_delete BEFORE DELETE ON export_artifacts "
-     "BEGIN SELECT RAISE(ABORT,'IMMUTABLE_REVISION'); END"),
-    ("immutable_practice_conversions_delete",
-     "CREATE TRIGGER immutable_practice_conversions_delete BEFORE DELETE ON practice_conversions "
-     "BEGIN SELECT RAISE(ABORT,'IMMUTABLE_REVISION'); END"),
-    ("immutable_practice_paper_item_mappings_delete",
-     "CREATE TRIGGER immutable_practice_paper_item_mappings_delete BEFORE DELETE ON practice_paper_item_mappings "
-     "BEGIN SELECT RAISE(ABORT,'IMMUTABLE_REVISION'); END"),
-    ("immutable_paper_revisions_update",
-     "CREATE TRIGGER immutable_paper_revisions_update BEFORE UPDATE ON paper_revisions "
-     "WHEN OLD.state='confirmed' BEGIN SELECT RAISE(ABORT,'IMMUTABLE_REVISION'); END"),
-    ("paper_source_fixed",
-     "CREATE TRIGGER paper_source_fixed "
-     "BEFORE UPDATE OF paper_id,source_file_id,source_practice_revision_id ON paper_revisions "
-     "WHEN NEW.paper_id IS NOT OLD.paper_id OR NEW.source_file_id IS NOT OLD.source_file_id "
-     "OR NEW.source_practice_revision_id IS NOT OLD.source_practice_revision_id "
-     "BEGIN SELECT RAISE(ABORT,'PAPER_SOURCE_FIXED'); END"),
-)
 
 
 class PracticeRepository:
@@ -126,10 +83,11 @@ class PracticeRepository:
         """连带全部历史彻底删除练习集（``includeHistory=true`` 路径，单写事务内执行）。
 
         前置：调用方已完成 CAS 与 404 校验（本方法内集合行消失时同样按 404 兜底）。
-        严格顺序：同事务摘除 10 个不可变触发器（见 ``_HISTORY_DELETE_TRIGGERS``，
-        ``finally`` 逐字恢复）→ 清 ``current_revision_id`` → 转换生成的原卷修订来源
-        指针置 NULL（``paper_revisions.source_practice_revision_id`` 是实外键；行与
-        内容一律保留）→ 映射/工件/导出/转换 → 题叶知识/题目/选题 → 修订行 → 集合行。
+        严格顺序：同事务摘除 10 个不可变触发器（``PRACTICE_HISTORY_TRIGGERS``，
+        恢复文本取自 ``sqlite_master``，见 ``suspend_triggers``；嵌套调用退化为空操作）
+        → 清 ``current_revision_id`` → 转换生成的原卷修订来源指针置 NULL
+        （``paper_revisions.source_practice_revision_id`` 是实外键；行与内容一律保留）
+        → 映射/工件/导出/转换 → 题叶知识/题目/选题 → 修订行 → 集合行。
 
         来源指针置 NULL 在登记迁移 0013（``paper_source_relaxed_rebuild``）后合法：
         0009 的"恰一非空"互斥 CHECK 已放宽为"至多一源"（``source_file_id IS NULL OR
@@ -146,9 +104,7 @@ class PracticeRepository:
         """
         revision_ids = [row["id"] for row in conn.execute(
             "SELECT id FROM practice_revisions WHERE practice_set_id=?", (set_id,)).fetchall()]
-        for name, _ in _HISTORY_DELETE_TRIGGERS:
-            conn.execute(f"DROP TRIGGER IF EXISTS {name}")
-        try:
+        with suspend_triggers(conn, PRACTICE_HISTORY_TRIGGERS):
             conn.execute("UPDATE practice_sets SET current_revision_id=NULL WHERE id=?", (set_id,))
             conn.execute(
                 "UPDATE paper_revisions SET source_practice_revision_id=NULL WHERE source_practice_revision_id IN "
@@ -178,9 +134,6 @@ class PracticeRepository:
             deleted = conn.execute("DELETE FROM practice_sets WHERE id=?", (set_id,))
             if deleted.rowcount != 1:
                 raise AppError("练习不存在。", code="PRACTICE_NOT_FOUND", status_code=404)
-        finally:
-            for _, statement in _HISTORY_DELETE_TRIGGERS:
-                conn.execute(statement)
         return dict(removedRevisions=int(removed_revisions), removedExports=int(removed_exports),
                     removedConversions=int(removed_conversions), removedArtifacts=int(removed_artifacts))
 

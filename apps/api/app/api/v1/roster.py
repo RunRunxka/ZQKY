@@ -265,7 +265,12 @@ async def delete_student(
     student_id: str,
     expectedRevision: int = Query(ge=0),
 ) -> dict:
-    """受引用守卫的彻底删除：无参测引用才物理删除（连同归属记录）；被引用时 409 ``STUDENT_IN_USE``。"""
+    """删除学生（R10-BE 冻结契约）：200 ``{mode, message}``，两种模式班级计数都下降。
+
+    - ``deleted``：无施测参测快照引用 → 连同归属记录物理删除；
+    - ``removed_with_history``：有历史成绩引用 → 关闭活跃归属 + 身份标记已移除，历史保留；
+    - 乐观锁不符 → 409；不存在 → 404。**无归档路径**（归档入口已按用户裁定移除）。
+    """
     service = _service(request)
     payload = ClassRevisionRequest(expectedRevision=expectedRevision)
     return await _run(service.delete_student, student_id, payload)

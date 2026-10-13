@@ -281,6 +281,44 @@ class StudentRepository:
         ).fetchone()
         return int(row["n"])
 
+    def close_active_memberships_in(
+        self, conn: sqlite3.Connection, *, student_id: str, left_on: str
+    ) -> int:
+        """关闭该生全部活跃归属（``left_on`` = 给定日期）；返回关闭行数。
+
+        R10-BE「removed_with_history」的收口动作：班级 ``studentCount`` 统计
+        ``left_on IS NULL`` 且学生身份活跃的行，关闭后计数立即下降；归属历史行一律
+        保留（与转班同一口径：只置 ``left_on``，不删行）。
+        """
+        student_id = _require_text(student_id, field="studentId")
+        left_on = _require_text(left_on, field="leftOn")
+        try:
+            cursor = conn.execute(
+                "UPDATE class_memberships SET left_on = ? "
+                "WHERE student_id = ? AND left_on IS NULL",
+                (left_on, student_id),
+            )
+        except sqlite3.IntegrityError as exc:
+            raise _invalid("离班日期不能早于入班日期。", fields=["leftOn"]) from exc
+        return int(cursor.rowcount)
+
+    def clear_import_matches_in(
+        self, conn: sqlite3.Connection, student_id: str
+    ) -> int:
+        """把名单导入预览行的学生匹配指针置 NULL（学生被物理删除前的解引用）。
+
+        ``roster_import_rows.matched_student_id`` 是可空审计指针：批次行属于名单
+        导入历史，不随学生删除而消失；把指针置空（而不是删行）保住批次的审计内容，
+        同时满足外键。返回解引用行数。
+        """
+        student_id = _require_text(student_id, field="studentId")
+        cursor = conn.execute(
+            "UPDATE roster_import_rows SET matched_student_id = NULL "
+            "WHERE matched_student_id = ?",
+            (student_id,),
+        )
+        return int(cursor.rowcount)
+
     def student_ids_of_class_in(self, conn: sqlite3.Connection, class_id: str) -> list[str]:
         rows = conn.execute(
             "SELECT DISTINCT student_id FROM class_memberships WHERE class_id = ?",

@@ -7,7 +7,10 @@
 - ``UNIQUE(owner_id, school_year, code)`` 冲突 → 409 ``CLASS_CODE_CONFLICT``（不产生半成品行）；
 - 更新/归档/恢复一律走乐观锁 ``revision``：不符 → 409 ``REVISION_CONFLICT`` + ``details.currentRevision``；
 - 归档班级**仍可读**（``get``/``list`` 不过滤 status，status 只是过滤参数）；
-- ``student_count`` = 该班 ``left_on IS NULL`` 的活跃归属数（SQL 子查询，不用缓存列）。
+- ``student_count`` = 该班 ``left_on IS NULL`` **且学生身份活跃**（``students.status='active'``）
+  的归属数（SQL 子查询，不用缓存列）——与班级学生列表同一口径（列表默认排除已移除学生）；
+  已移除/历史归档的学生不再计入人数（R10-BE：删除学生后人数必须下降，见
+  ``students.close_active_memberships_in`` 与班级删除分流）。
 """
 
 from __future__ import annotations
@@ -35,7 +38,9 @@ _SELECT_CLASS = """
 SELECT c.id, c.owner_id, c.code, c.name, c.school_year, c.grade_id, c.status,
        c.revision, c.created_at,
        (SELECT COUNT(*) FROM class_memberships m
-         WHERE m.class_id = c.id AND m.left_on IS NULL) AS student_count
+          JOIN students s ON s.id = m.student_id
+         WHERE m.class_id = c.id AND m.left_on IS NULL
+           AND s.status = 'active') AS student_count
   FROM classes c
 """
 
@@ -260,14 +265,17 @@ class ClassRepository:
         return self._require_record_in(conn, class_id)
 
     def count_references_in(self, conn: sqlite3.Connection, class_id: str) -> dict[str, int]:
-        """该班在下游表里的引用计数（受引用守卫的数据来源）。
+        """该班在下游表里的引用计数（删除分流的数据来源）。
 
-        ``memberships`` = ``class_memberships`` 行数（含已离班历史）；
-        ``rosterImports`` = ``roster_imports`` 批次数（名单导入历史，FK 指向班级）；
-        ``assessments`` = 参测范围 ``assessment_classes`` 行数；
-        ``lessonPlans`` = 教学库 ``lesson_plans.class_id`` 引用数；
+        R10-BE 起「计数」只作**如实呈现**；是否阻断由服务层按引用种类判定：
+
+        ``memberships`` = ``class_memberships`` 行数（含已离班历史，随班级联删除）；
+        ``rosterImports`` = ``roster_imports`` 批次数（名单导入历史，随班级联删除）；
+        ``assessments`` = 参测范围 ``assessment_classes`` 行数（该班无参测人次时级联摘除）；
+        ``lessonPlans`` = 教学库 ``lesson_plans.class_id`` 引用数（独立成果，阻断删除）；
         ``lessonGenerationInputs`` = ``lesson_generation_inputs.class_id`` 引用数
-        （补题/教案生成的冻结输入行，与教案同生命周期，删除前必须为 0）。
+        （补题/教案生成的冻结输入行，与教案同生命周期，阻断删除）。
+        参测人次（成绩链证据）由 :meth:`participant_count_in` 单独计数。
         """
         class_id = _require_text(class_id, field="classId")
         return {
@@ -302,6 +310,32 @@ class ClassRepository:
                 ).fetchone()["n"]
             ),
         }
+
+    def participant_count_in(self, conn: sqlite3.Connection, class_id: str) -> int:
+        """该班在施测里的参测人次行数（``assessment_participants``，成绩链的证据锚点）。
+
+        R10-BE：这些行不随班级删除（删除会破坏成绩/报告），服务层据此 409 逐项列出。
+        """
+        class_id = _require_text(class_id, field="classId")
+        row = conn.execute(
+            "SELECT COUNT(*) AS n FROM assessment_participants WHERE class_id = ?",
+            (class_id,),
+        ).fetchone()
+        return int(row["n"])
+
+    def delete_class_scopes_in(self, conn: sqlite3.Connection, class_id: str) -> int:
+        """把班级从施测参测范围里摘除（``assessment_classes`` 行；返回删除行数）。
+
+        R10-BE 级联步骤：该班在施测里**没有**参测人次时，参测范围行属于可拆引用，
+        随班级删除（施测本体、原卷与其它班级的范围行一律不动）。调用方保证此时
+        该班没有参测人次（否则复合外键 ``assessment_participants(assessment_id,class_id)``
+        会在提交时拒绝）。
+        """
+        class_id = _require_text(class_id, field="classId")
+        cursor = conn.execute(
+            "DELETE FROM assessment_classes WHERE class_id = ?", (class_id,)
+        )
+        return int(cursor.rowcount)
 
     def delete_memberships_in(self, conn: sqlite3.Connection, *, class_id: str) -> int:
         """删除该班全部归属记录（彻底删除班级的级联步骤）；返回删除行数。"""

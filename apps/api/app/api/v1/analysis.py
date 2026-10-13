@@ -61,10 +61,13 @@ async def restore_run(request: Request, run_id: str, body: AnalysisArchiveReques
 
 @router.delete("/analysis-runs/{run_id}", response_model=AnalysisRunDeleteReceipt)
 async def delete_run(request: Request, run_id: str):
-    """受引用守卫的彻底删除：物理删除报告与其冻结子表行。
+    """删除报告（R10-BE 拆开交叉引用）：可拆引用级联/置空后才物理删除。
 
-    练习引用/教案引用任一存在 → 409 ``ANALYSIS_RUN_IN_USE`` 并列出计数；
-    不存在 → 404；归档与未归档报告同样可删。回执为 ``{"deleted": true, "runId": ...}``。
+    - 由本报告派生的练习集**级联删除**（连带 reviewed 修订/导出/转换/工件）；
+    - 教案修订的 ``analysis_run_id`` 来源指针**置空**（教案本体保留）；
+    - 教案冻结生成血缘（``lesson_generation_inputs`` / ``lesson_ai_proposals``，
+      NOT NULL 且行不可变）存在时 → 409 ``ANALYSIS_RUN_IN_USE``，逐项列出计数；
+    - 不存在 → 404；以上全部在同一写事务内完成，任一步失败整体回滚。
     """
     return await run(service(request).delete_run, run_id)
 

@@ -3,6 +3,10 @@ import json
 import uuid
 from app.core.exceptions import AppError
 from app.core.sqlite import now_iso
+from app.repositories.teaching.triggers import (
+    ANALYSIS_FROZEN_TRIGGERS,
+    suspend_triggers,
+)
 
 
 def dump(value):
@@ -51,32 +55,60 @@ class AnalysisRepository:
     def count_references_in(self, conn, run_id):
         """该报告在下游表的引用计数（彻底删除守卫的数据来源）。
 
-        ``practiceSets`` = ``practice_sets.analysis_run_id`` 引用数；
-        ``lessonReferences`` = 教案侧三处 ``analysis_run_id`` 引用之和
-        （``lesson_plan_revisions`` + ``lesson_generation_inputs`` + ``lesson_ai_proposals``，
-        均经 ``(analysis_run_id, owner_id)`` 复合外键指向本报告）。
+        R10-BE（2026-10-13「舍弃归档只留删除 + 拆开交叉引用」）把四种引用分成两类：
+
+        - **可拆**（删除报告时一并处理，不再 409）：
+          ``practiceSets`` = ``practice_sets.analysis_run_id`` 引用数（报告的下游产物，
+          随报告级联彻底删除）；``lessonRevisions`` = ``lesson_plan_revisions.analysis_run_id``
+          引用数（可空来源指针，置 NULL 摘除来源，教案本体保留）；
+        - **不可拆**（NOT NULL 的冻结 AI 输入，409 逐项列出）：
+          ``lessonGenerationInputs`` = ``lesson_generation_inputs.analysis_run_id``、
+          ``lessonProposals`` = ``lesson_ai_proposals.analysis_run_id``——两表受
+          ``lesson_*_immutable_*`` 触发器与 NOT NULL 复合外键双重保护，删报告即破坏
+          已应用 AI 教案的血缘，拒绝并如实列出。
         """
         return {
             "practiceSets": int(conn.execute(
                 "SELECT count(*) FROM practice_sets WHERE analysis_run_id=?", (run_id,)).fetchone()[0]),
-            "lessonReferences": int(
-                conn.execute("SELECT count(*) FROM lesson_plan_revisions WHERE analysis_run_id=?", (run_id,)).fetchone()[0]
-                + conn.execute("SELECT count(*) FROM lesson_generation_inputs WHERE analysis_run_id=?", (run_id,)).fetchone()[0]
-                + conn.execute("SELECT count(*) FROM lesson_ai_proposals WHERE analysis_run_id=?", (run_id,)).fetchone()[0]),
+            "lessonRevisions": int(conn.execute(
+                "SELECT count(*) FROM lesson_plan_revisions WHERE analysis_run_id=?", (run_id,)).fetchone()[0]),
+            "lessonGenerationInputs": int(conn.execute(
+                "SELECT count(*) FROM lesson_generation_inputs WHERE analysis_run_id=?", (run_id,)).fetchone()[0]),
+            "lessonProposals": int(conn.execute(
+                "SELECT count(*) FROM lesson_ai_proposals WHERE analysis_run_id=?", (run_id,)).fetchone()[0]),
         }
+
+    def practice_set_ids_in(self, conn, run_id) -> list[str]:
+        """引用该报告的练习集 id（删除报告的级联顺序：先练习、后报告）。"""
+        rows = conn.execute(
+            "SELECT id FROM practice_sets WHERE analysis_run_id=? ORDER BY created_at, id",
+            (run_id,)).fetchall()
+        return [row["id"] for row in rows]
+
+    def unlink_lesson_revisions_in(self, conn, run_id) -> int:
+        """把教案修订的 ``analysis_run_id`` 来源指针置 NULL（教案保留，只摘除来源）。
+
+        前置：调用方已摘除 ``lesson_plan_revisions_immutable_update``（见
+        ``triggers.LESSON_REVISION_TRIGGERS``）——教案修订平时整行不可写，
+        摘除来源是本次删除的受控例外。返回受影响修订数。
+        """
+        return conn.execute(
+            "UPDATE lesson_plan_revisions SET analysis_run_id=NULL WHERE analysis_run_id=?",
+            (run_id,)).rowcount
 
     def delete_run_in(self, conn, run_id, owner_id):
         """彻底删除报告自身及其冻结子表行（前置：调用方已通过引用守卫）。
 
-        守卫覆盖下游引用：练习引用（``practice_sets.analysis_run_id``）与教案引用
-        （修订/生成输入/AI 候选三处）；报告自身的六张冻结子表随报告一并删除，
+        守卫覆盖下游引用：不可拆的教案冻结输入（``lesson_generation_inputs`` /
+        ``lesson_ai_proposals``）由服务层先行判定；可拆引用（练习集、教案修订来源）
+        由服务层在同一写事务内先行处理。报告自身六张冻结子表随报告一并删除，
         ``workflow_jobs`` 任务行保留不动（任务历史不属于报告内容）。
 
         FK 图谱（b4 0008/0009 与 0010 迁移核实）：六张子表
         （``analysis_participants``/``analysis_item_snapshots``/``analysis_student_results``/
         ``analysis_class_results``/``analysis_evidence``/``analysis_teacher_notes``）只引用
-        本报告与向外引用；下游仅 ``practice_sets`` 与教案三表（守卫已挡）。报告行删除后
-        无悬挂引用。
+        本报告与向外引用；下游仅 ``practice_sets`` 与教案三表（守卫/级联已挡）。报告行
+        删除后无悬挂引用。
 
         删除顺序（子行 → 身份行）：``analysis_evidence`` → ``analysis_student_results``
         → ``analysis_teacher_notes`` → ``analysis_class_results`` →
@@ -84,33 +116,13 @@ class AnalysisRepository:
 
         ``analysis_no_delete``、五个子表 freeze 触发器的 delete 版与
         ``immutable_analysis_teacher_notes_delete`` 是固定历史的兜底；受守卫的彻底删除
-        是经守卫的受控行为，与教案/知识点仓储同一先例：同一写事务内临时摘除触发器
-        → 删除 → 按登记声明**逐字**恢复（DDL 可事务化，任一步失败整体回滚，触发器随
-        事务恢复；BEGIN IMMEDIATE 下无并发写者可见窗口）。触发器文本与
-        ``app/core/migrations/b4.py`` 0008 登记声明逐字一致（0011 只升级了 UPDATE 版的
-        ``analysis_inputs_fixed``，全部 DELETE 触发器未被重写），不改登记 SQL。
-        行不存在/非本人 → 404，不静默成功。
+        是经守卫的受控行为：同事务摘除（``triggers.suspend_triggers``，恢复文本取自
+        ``sqlite_master``）→ 删除 → 恢复（DDL 可事务化，任一步失败整体回滚，触发器随
+        事务恢复；BEGIN IMMEDIATE 下无并发写者可见窗口）。嵌套在更大级联里时由最外层
+        统一恢复，本层退化为空操作。行不存在/非本人 → 404，不静默成功。
         """
         self.require_in(conn, run_id, owner_id)
-        delete_triggers = (
-            ("analysis_no_delete",
-             "CREATE TRIGGER analysis_no_delete BEFORE DELETE ON analysis_runs BEGIN SELECT RAISE(ABORT,'IMMUTABLE_REVISION'); END"),
-            ("freeze_analysis_participants_delete",
-             "CREATE TRIGGER freeze_analysis_participants_delete BEFORE DELETE ON analysis_participants WHEN (SELECT report_ready FROM analysis_runs WHERE id=OLD.run_id)=1 BEGIN SELECT RAISE(ABORT,'IMMUTABLE_REVISION'); END"),
-            ("freeze_analysis_item_snapshots_delete",
-             "CREATE TRIGGER freeze_analysis_item_snapshots_delete BEFORE DELETE ON analysis_item_snapshots WHEN (SELECT report_ready FROM analysis_runs WHERE id=OLD.run_id)=1 BEGIN SELECT RAISE(ABORT,'IMMUTABLE_REVISION'); END"),
-            ("freeze_analysis_student_results_delete",
-             "CREATE TRIGGER freeze_analysis_student_results_delete BEFORE DELETE ON analysis_student_results WHEN (SELECT report_ready FROM analysis_runs WHERE id=OLD.run_id)=1 BEGIN SELECT RAISE(ABORT,'IMMUTABLE_REVISION'); END"),
-            ("freeze_analysis_class_results_delete",
-             "CREATE TRIGGER freeze_analysis_class_results_delete BEFORE DELETE ON analysis_class_results WHEN (SELECT report_ready FROM analysis_runs WHERE id=OLD.run_id)=1 BEGIN SELECT RAISE(ABORT,'IMMUTABLE_REVISION'); END"),
-            ("freeze_analysis_evidence_delete",
-             "CREATE TRIGGER freeze_analysis_evidence_delete BEFORE DELETE ON analysis_evidence WHEN (SELECT report_ready FROM analysis_runs WHERE id=OLD.run_id)=1 BEGIN SELECT RAISE(ABORT,'IMMUTABLE_REVISION'); END"),
-            ("immutable_analysis_teacher_notes_delete",
-             "CREATE TRIGGER immutable_analysis_teacher_notes_delete BEFORE DELETE ON analysis_teacher_notes BEGIN SELECT RAISE(ABORT,'IMMUTABLE_REVISION'); END"),
-        )
-        for name, _ in delete_triggers:
-            conn.execute(f"DROP TRIGGER IF EXISTS {name}")
-        try:
+        with suspend_triggers(conn, ANALYSIS_FROZEN_TRIGGERS):
             conn.execute("DELETE FROM analysis_evidence WHERE run_id=?", (run_id,))
             conn.execute("DELETE FROM analysis_student_results WHERE run_id=?", (run_id,))
             conn.execute("DELETE FROM analysis_teacher_notes WHERE run_id=?", (run_id,))
@@ -120,6 +132,3 @@ class AnalysisRepository:
             deleted = conn.execute("DELETE FROM analysis_runs WHERE id=? AND owner_id=?", (run_id, owner_id))
             if deleted.rowcount != 1:
                 raise AppError("分析报告不存在。", code="ANALYSIS_NOT_FOUND", status_code=404)
-        finally:
-            for _, statement in delete_triggers:
-                conn.execute(statement)

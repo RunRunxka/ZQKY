@@ -404,33 +404,27 @@ def test_delete_import_failed_state_allowed(harness: ScoresHarness, tmp_path: Pa
 # --------------------------------------------------------------------------- 施测删除联动
 
 
-def test_assessment_deletable_after_scores_cleanup(
+def test_assessment_delete_cascades_scores_without_precleanup(
     harness: ScoresHarness, tmp_path: Path
 ) -> None:
-    """清掉版本 + 批次后，施测的 scoreRevisions/scoreImports 计数归零，施测可删。"""
+    """R10-BE：施测删除直接级联成绩链（不再需要先手删版本/批次）。
+
+    施测是成绩链的所有者：已确认修订、导入批次、小题分矩阵随施测一并删除
+    （回执逐项计数），不再有"被成绩引用就只能归档"的挡路词。
+    """
     scene = _scene(harness, tag="link")
-    confirmed = _confirm_v1(harness, scene, tmp_path, tag="link")
+    _confirm_v1(harness, scene, tmp_path, tag="link")
     aid = scene.assessment["assessmentId"]
     assessment = harness.assessment(aid)
 
-    blocked = harness.client.delete(
+    deleted = harness.client.delete(
         f"/api/v1/assessments/{aid}",
         params={"expectedRevision": assessment["revision"]},
     )
-    assert blocked.status_code == 409, blocked.text
-    counts = blocked.json()["details"]["counts"]
-    assert counts["scoreRevisions"] == 1 and counts["scoreImports"] == 1
-
-    removed = harness.client.delete(f"/api/v1/score-revisions/{confirmed['revisionId']}")
-    assert removed.status_code == 200, removed.text
-    deleted = harness.client.delete(f"/api/v1/score-imports/{confirmed['importId']}")
     assert deleted.status_code == 200, deleted.text
-
-    # 施测删除链解开：成绩两侧计数归零
-    detail = harness.assessment(aid)
-    ok = harness.client.delete(
-        f"/api/v1/assessments/{aid}",
-        params={"expectedRevision": detail["revision"]},
-    )
-    assert ok.status_code == 200, ok.text
+    body = deleted.json()
+    assert body["scoreRevisions"] == 1 and body["scoreImports"] == 1 and body["itemScores"] > 0
     assert harness.count("assessments", "id = ?", (aid,)) == 0
+    assert harness.count("score_revisions", "assessment_id = ?", (aid,)) == 0
+    assert harness.count("score_imports", "assessment_id = ?", (aid,)) == 0
+    assert harness.count("student_item_scores", "assessment_id = ?", (aid,)) == 0

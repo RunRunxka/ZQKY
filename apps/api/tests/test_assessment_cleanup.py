@@ -352,7 +352,11 @@ def test_delete_clean_assessment_succeeds(harness: AssessmentsHarness) -> None:
         params={"expectedRevision": detail["assessment"]["revision"]},
     )
     assert response.status_code == 200, response.text
-    assert response.json() == {"deleted": True, "assessmentId": aid}
+    body = response.json()
+    assert body["deleted"] is True and body["assessmentId"] == aid
+    # R10-BE 回执带级联计数（本例链上除人次外全为 0；_scene 播种 2 名学生人次）
+    assert body["participants"] == 2
+    assert body["scoreRevisions"] == 0 and body["analysisRuns"] == 0
 
     # 物理删除：施测行与参测/范围子行全部消失
     assert harness.count("assessments", "id = ?", (aid,)) == 0
@@ -362,41 +366,73 @@ def test_delete_clean_assessment_succeeds(harness: AssessmentsHarness) -> None:
     assert fetched.status_code == 404
 
 
-def test_delete_assessment_blocked_by_score_revision(harness: AssessmentsHarness) -> None:
+def test_delete_assessment_cascades_owned_score_chain(harness: AssessmentsHarness) -> None:
+    """R10-BE：已确认成绩修订与小题分随施测级联删除（不再 409；施测是成绩链的所有者）。
+
+    已确认修订平时受 ``immutable_score_revisions_delete`` / ``immutable_item_scores_delete``
+    保护不可直连删除——级联路径必须在同一写事务内摘除触发器后整体清掉。
+    播种顺序：草稿修订 + 全矩阵小题分 → 按封存闸门（快照全覆盖）确认。
+    """
     _paper, _klass, _students, detail = _scene(harness, tag="del2")
     aid = detail["assessment"]["assessmentId"]
+    paper_revision = detail["assessment"]["paperRevisionId"]
+    revision = f"sr-{aid}"
     harness.raw_execute(
         "INSERT INTO score_revisions (id, assessment_id, version, state) VALUES (?, ?, 1, 'draft')",
-        (f"sr-{aid}", aid),
+        (revision, aid),
+    )
+    participants = harness.raw_rows(
+        "SELECT id FROM assessment_participants WHERE assessment_id = ?", (aid,)
+    )
+    items = harness.raw_rows(
+        "SELECT id FROM paper_items WHERE paper_revision_id = ? AND is_scored = 1",
+        (paper_revision,),
+    )
+    for participant in participants:
+        for item in items:
+            harness.raw_execute(
+                "INSERT INTO student_item_scores "
+                "(score_revision_id, assessment_id, paper_revision_id, participant_id, item_id, status) "
+                "VALUES (?, ?, ?, ?, ?, 'absent')",
+                (revision, aid, paper_revision, participant["id"], item["id"]),
+            )
+    import json as _json
+
+    harness.raw_execute(
+        "UPDATE score_revisions SET state = 'confirmed', confirmed_at = ?, "
+        "participant_snapshot_json = ?, item_snapshot_json = ? WHERE id = ?",
+        (
+            today(),
+            _json.dumps([{"participantId": row["id"]} for row in participants]),
+            _json.dumps([{"itemId": row["id"]} for row in items]),
+            revision,
+        ),
     )
 
-    blocked = harness.client.delete(
+    response = harness.client.delete(
         f"/api/v1/assessments/{aid}",
         params={"expectedRevision": detail["assessment"]["revision"]},
     )
-    assert blocked.status_code == 409, blocked.text
-    body = blocked.json()
-    assert body["code"] == ASSESSMENT_IN_USE
-    assert body["details"]["counts"]["scoreRevisions"] == 1
-    assert body["details"]["counts"]["scoreImports"] == 0
-    assert body["details"]["counts"]["analysisRuns"] == 0
-    assert body["details"]["counts"]["practiceConversions"] == 0
-    # 零删除
-    assert harness.count("assessments", "id = ?", (aid,)) == 1
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["scoreRevisions"] == 1 and body["participants"] == 2
+    assert body["itemScores"] == len(participants) * len(items)
+    assert harness.count("score_revisions", "assessment_id = ?", (aid,)) == 0
+    assert harness.count("student_item_scores", "assessment_id = ?", (aid,)) == 0
+    assert harness.count("assessments", "id = ?", (aid,)) == 0
 
 
-def test_delete_assessment_blocked_by_import_and_practice_conversion(
+def test_delete_assessment_cascades_import_and_practice_conversion(
     harness: AssessmentsHarness,
 ) -> None:
-    """score_imports 与 practice_conversions 的引用同样拦截（逐项计数）。"""
+    """R10-BE：成绩导入随施测级联删除（含预览行）；原件受管资产登记保留。
+
+    练习转换/成绩模板导出的级联在 ``test_r10_delete_semantics.py`` 用真实闭环
+    （``seed_api_loop``：练习 → 转换 → 导出 → 回流成绩）端到端覆盖。
+    """
     _paper, _klass, _students, detail = _scene(harness, tag="del3")
     aid = detail["assessment"]["assessmentId"]
     now = today()
-    harness.raw_execute(
-        "INSERT INTO workflow_jobs (id, owner_id, kind, state, created_at, updated_at) "
-        "VALUES ('job-del3', 'local', 'analysis', 'succeeded', ?, ?)",
-        (now, now),
-    )
     harness.raw_execute(
         "INSERT INTO file_assets (id, kind, blob_key, sha256, media_type, byte_size, "
         "original_name, created_at) VALUES ('fa-del3', 'score_sheet', 'blobs/' || ?, ?, "
@@ -408,13 +444,21 @@ def test_delete_assessment_blocked_by_import_and_practice_conversion(
         "VALUES ('si-del3', ?, 'fa-del3', 'reviewing', ?)",
         (aid, now),
     )
-    blocked = harness.client.delete(
+    harness.raw_execute(
+        "INSERT INTO score_import_rows (import_id, row_no, raw_cells_json, issues_json) "
+        "VALUES ('si-del3', 1, '{}', '[]')"
+    )
+
+    response = harness.client.delete(
         f"/api/v1/assessments/{aid}",
         params={"expectedRevision": detail["assessment"]["revision"]},
     )
-    assert blocked.status_code == 409
-    counts = blocked.json()["details"]["counts"]
-    assert counts["scoreImports"] == 1
+    assert response.status_code == 200, response.text
+    assert response.json()["scoreImports"] == 1
+    assert harness.count("score_imports", "assessment_id = ?", (aid,)) == 0
+    assert harness.count("score_import_rows", "import_id = ?", ("si-del3",)) == 0
+    # 原件受管资产登记与 blob 保留（不随业务行删除）
+    assert harness.count("file_assets", "id = ?", ("fa-del3",)) == 1
 
 
 def test_delete_assessment_revision_conflict(harness: AssessmentsHarness) -> None:

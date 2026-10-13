@@ -126,6 +126,10 @@ from app.repositories.teaching.papers import (
     RevisionCopyMap,
     RevisionRecord,
 )
+from app.repositories.teaching.triggers import (
+    PAPER_REVISION_TRIGGERS,
+    suspend_triggers,
+)
 from app.services.assets.store import AssetStore, is_managed_blob_key
 from app.services.agent.model import AgentModelHandle, resolve_agent_chat_model
 from app.services.knowledge_refs import (
@@ -665,12 +669,11 @@ class PaperService:
         守卫（同一写事务内、乐观锁核验之后）：
 
         - 任一 ``assessments.paper_revision_id`` 指向本卷修订 → 409 ``PAPER_IN_USE``
-          （``details.counts.assessments`` 附施测数；施测只能引用已确认修订，因此
-          该情况也伴随已确认修订存在，先给"被引用"这个最可行动的提示）；
-        - 否则任一 ``paper_revisions.state='confirmed'`` → 409
-          ``PAPER_HAS_CONFIRMED_REVISION``（数据库触发器
-          ``immutable_paper_revisions_delete`` 本身禁止删除已确认修订；
-          已确认原卷只能归档，历史与既有施测引用保持完整）。
+          （``details.counts.assessments`` 附施测数）——施测是成绩链的锚点，**不随
+          原卷删除**；先删除相关施测（施测删除会级联其成绩/报告/练习）再删原卷；
+        - 无施测引用后，**已确认修订不再阻断删除**（R10-BE 拆开交叉引用）：修订链
+          属于原卷自身，同事务摘除 ``immutable_paper_revisions_delete`` 与四条
+          ``freeze_paper_*_delete`` 后连带删除（恢复文本取自 ``sqlite_master``）。
 
         通过后按外键顺序在同一写事务删除：
         ``paper_item_knowledge`` → ``paper_items`` → ``paper_source_blocks`` →
@@ -684,23 +687,17 @@ class PaperService:
                 paper = self._papers.require_paper_in(conn, paper_id)
                 if paper.revision != payload.expected_revision:
                     raise _stale_conflict(paper.revision)
-                confirmed = self._papers.confirmed_revision_count_in(conn, paper_id)
                 assessments = self._papers.count_references_in(conn, paper_id)
                 if assessments > 0:
                     raise AppError(
-                        "该原卷已被施测引用，不能删除；归档原卷是安全的替代做法。",
+                        "该原卷已被施测引用，不能删除；请先删除引用它的施测"
+                        "（施测删除会连同其成绩、学情报告与派生练习一并删除），再删原卷。",
                         code=PAPER_IN_USE,
                         status_code=409,
                         details={"counts": {"assessments": assessments}},
                     )
-                if confirmed > 0:
-                    raise AppError(
-                        "该原卷存在已确认修订，不能删除（已确认原卷只能归档）。",
-                        code=PAPER_HAS_CONFIRMED_REVISION,
-                        status_code=409,
-                        details={"counts": {"confirmedRevisions": confirmed}},
-                    )
-                self._papers.delete_paper_in(conn, paper_id)
+                with suspend_triggers(conn, PAPER_REVISION_TRIGGERS):
+                    self._papers.delete_paper_in(conn, paper_id)
         return {"deleted": True, "paperId": paper_id}
 
     def knowledge_distribution(self, paper_id: str) -> list[dict]:

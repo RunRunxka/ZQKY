@@ -32,7 +32,6 @@ from app.contracts.roster import (
     ROSTER_IMPORT_CONFIRMED,
     ROSTER_ROW_INVALID,
     STUDENT_ARCHIVED,
-    STUDENT_IN_USE,
     STUDENT_NO_CONFLICT,
     BatchStudentAddRequest,
     BatchStudentAddResult,
@@ -473,15 +472,22 @@ class RosterService:
         return record.view()
 
     def delete_class(self, class_id: str, payload: ClassRevisionRequest) -> dict[str, Any]:
-        """受引用守卫的彻底删除：删除班级及其归属/名单历史，并清理不再被引用的学生。
+        """彻底删除班级（R10-BE 拆开交叉引用，2026-10-13）。
 
-        真实引用（任一 >0 → 409 ``CLASS_IN_USE`` + ``details.counts``）：
-        ``assessment_classes`` 行数（参测范围）、``lesson_plans.class_id`` 引用数（教案）。
-        其余按下述**级联**处理（"删除要彻底"，2026-10-09 用户）：
-        - 该班 ``class_memberships`` 归属记录整批删除；
-        - 该班 ``roster_imports`` 名单批次（+预览行）随班删除（属该班自身的导入历史）；
-        - 归属清理后**无任何归属且未被任何施测参测快照引用**的学生行物理删除；
+        删除即删除（不再归档）。分流规则——**属于班级自身的行级联，成绩链与教案
+        是独立证据则 409 逐项列出**：
+
+        - **级联**：该班 ``class_memberships`` 归属记录整批删除；``roster_imports``
+          名单批次（+预览行）随班删除（属该班自身的导入历史）；``assessment_classes``
+          参测范围行在该班**无任何参测人次**时随班删除（把班级从施测范围里摘除）；
+        - **409 逐项列出**（引用行不属于本删除链，删之会破坏证据/他人成果）：
+          ``assessmentParticipants`` = 该班在施测里的参测人次（成绩与报告的证据锚点，
+          先删除相关施测）；``lessonPlans`` = 该班教案（独立教学成果，请先在教案工作台
+          处置）；``lessonGenerationInputs`` = 教案生成冻结输入。
+          任一命中 → 409 ``CLASS_IN_USE`` + ``details.counts`` 全量计数。
+        - 归属清理后：无任何归属且未被任何施测参测快照引用的学生行物理删除；
           仍被引用的学生只解除归属、保留身份与历史（成绩/报告的证据不丢）。
+
         乐观锁不符 → 409 ``REVISION_CONFLICT``；班级不存在 → 404。
         """
         class_id = _clean_text(class_id, field="classId")
@@ -489,15 +495,22 @@ class RosterService:
             record = self._classes.require_in(conn, class_id)
             _check_revision(record.revision, payload.expected_revision)
             counts = self._classes.count_references_in(conn, class_id)
+            counts["assessmentParticipants"] = self._classes.participant_count_in(
+                conn, class_id
+            )
             blocking = {
                 key: counts.get(key, 0)
-                for key in ("assessments", "lessonPlans", "lessonGenerationInputs")
+                for key in (
+                    "assessmentParticipants",
+                    "lessonPlans",
+                    "lessonGenerationInputs",
+                )
             }
             if any(value > 0 for value in blocking.values()):
                 labels = {
-                    "assessments": "参测范围引用",
-                    "lessonPlans": "教案引用",
-                    "lessonGenerationInputs": "教案生成输入引用",
+                    "assessmentParticipants": "施测参测人次（成绩链证据，先删除相关施测）",
+                    "lessonPlans": "班级教案（独立教学成果，请先在教案工作台处置）",
+                    "lessonGenerationInputs": "教案生成输入（冻结血缘）",
                 }
                 summary = "、".join(
                     f"{labels[key]} {value} 条"
@@ -505,11 +518,13 @@ class RosterService:
                     if value > 0
                 )
                 raise AppError(
-                    f"班级仍被施测或教案引用，不能删除（{summary}）；请先处理相关数据或改为归档。",
+                    f"班级仍被成绩链或教案引用，不能删除（{summary}）；"
+                    "这些行不随班级删除，请先按上述说明处置后再删。",
                     code=CLASS_IN_USE,
                     status_code=409,
                     details={"counts": counts},
                 )
+            removed_scopes = self._classes.delete_class_scopes_in(conn, class_id)
             student_ids = self._students.student_ids_of_class_in(conn, class_id)
             self._classes.delete_memberships_in(conn, class_id=class_id)
             self._classes.delete_imports_in(conn, class_id=class_id)
@@ -523,6 +538,7 @@ class RosterService:
                     # 被施测快照引用的学生保留身份（成绩/报告的锚点），只解除本班归属。
                     kept_students.append(student_id)
                     continue
+                self._students.clear_import_matches_in(conn, student_id)
                 self._students.delete_in(conn, student_id)
                 removed_students.append(student_id)
             self._classes.delete_in(
@@ -533,35 +549,62 @@ class RosterService:
             "classId": class_id,
             "removedStudents": removed_students,
             "keptReferencedStudents": kept_students,
+            "removedAssessmentScopes": removed_scopes,
         }
 
     def delete_student(self, student_id: str, payload: ClassRevisionRequest) -> dict[str, Any]:
-        """受引用守卫的学生彻底删除：无参测引用才物理删除（连同归属记录）。
+        """删除学生（R10-BE 冻结契约，2026-10-13）。
 
-        仍被任何施测参测快照引用 → 409 ``STUDENT_IN_USE`` + ``details.counts``；
-        通过后同一事务删除该生的全部归属记录与学生行。
+        ``DELETE /students/{id}?expectedRevision=N`` → 200 ``{mode, message}``；
+        **不做归档**（归档/恢复入口已按用户裁定移除），两条路径都让班级
+        ``studentCount``（``class_memberships`` 活跃归属 ∧ 学生身份活跃）立即下降：
+
+        - ``deleted``：该生没有任何施测参测快照（无历史成绩锚点）→ 连同全部
+          归属记录物理删除；名单导入预览行里的匹配指针置 NULL（批次审计行保留）。
+        - ``removed_with_history``：该生仍被施测参测快照引用（``assessment_participants``
+          是成绩/报告的证据锚点，物理删除会破坏历史）→ **关闭全部活跃归属**
+          （``left_on`` = 今天，历史行保留）并把身份标记为 ``archived``：名单与
+          班级计数不再包含该生，成绩/报告继续可读。
+
+        乐观锁不符 → 409 ``REVISION_CONFLICT``；学生不存在 → 404 ``STUDENT_NOT_FOUND``。
         """
         student_id = _clean_text(student_id, field="studentId")
+        left_on = _today()
         with self._catalog.write_transaction() as conn:
             record = self._students.require_in(conn, student_id)
             _check_revision(record.revision, payload.expected_revision)
-            counts = {
-                "participants": self._students.participant_reference_count_in(
-                    conn, student_id
-                ),
-                "memberships": self._students.membership_count_in(conn, student_id),
-            }
-            if counts["participants"] > 0:
-                raise AppError(
-                    f"该学生仍被施测参测快照引用，不能删除（参测引用 {counts['participants']} 条）；"
-                    "请改为归档（历史与成绩证据保留）。",
-                    code=STUDENT_IN_USE,
-                    status_code=409,
-                    details={"counts": counts},
+            participants = self._students.participant_reference_count_in(
+                conn, student_id
+            )
+            if participants > 0:
+                closed = self._students.close_active_memberships_in(
+                    conn, student_id=student_id, left_on=left_on
                 )
-            self._students.delete_memberships_in(conn, student_id=student_id)
-            self._students.delete_in(conn, student_id)
-        return {"deleted": True, "studentId": student_id}
+                self._students.set_status_in(
+                    conn,
+                    student_id,
+                    expected_revision=record.revision,
+                    status="archived",
+                )
+                mode = "removed_with_history"
+                message = (
+                    f"该学生有历史成绩（参测 {participants} 条），已从名单移除："
+                    f"关闭 {closed} 条活跃归属，身份标记为已移除；"
+                    "历史成绩与学情报告数据完整保留。"
+                )
+            else:
+                removed = self._students.delete_memberships_in(
+                    conn, student_id=student_id
+                )
+                cleared = self._students.clear_import_matches_in(conn, student_id)
+                self._students.delete_in(conn, student_id)
+                mode = "deleted"
+                message = (
+                    f"该学生没有历史成绩，已彻底删除："
+                    f"连同 {removed} 条班级归属记录一并移除"
+                    f"（另有 {cleared} 条名单导入行解除匹配）。"
+                )
+        return {"mode": mode, "message": message}
 
     # ---------------------------------------------------------------- 学生
 

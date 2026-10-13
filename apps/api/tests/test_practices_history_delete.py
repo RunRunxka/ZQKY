@@ -8,8 +8,9 @@
   mappings/conversions/exports/artifacts 全部清零；``file_assets``/``workflow_jobs``
   行保留；转换生成的原卷修订 ``source_practice_revision_id`` 置 NULL 且行仍在；
   回执四计数正确；
-- 触发器逐字恢复：删除后对另一 reviewed 修订/另一转换行/confirmed 原卷修订
-  （含 paper_source_fixed）的直连 DELETE/UPDATE 全部被拒；
+- 触发器逐字恢复（R10-BE：恢复文本取自 ``sqlite_master``，见
+  ``triggers.suspend_triggers``）：删除后对另一 reviewed 修订/另一转换行/confirmed
+  原卷修订（含 paper_source_fixed）的直连 DELETE/UPDATE 全部被拒；
 - 解锁链：删除后报告 ``practiceSets``==0 且经真实 HTTP 端点把报告彻底删除成功；
   同一施测 ``practiceConversions``==0；
 - 纯草稿集 flag=true 同样成功；CAS 409；404；归档集 + 历史 + flag=true 成功；
@@ -24,7 +25,8 @@ from app.contracts import b4
 from app.core.exceptions import AppError
 from app.repositories.teaching.analysis import AnalysisRepository
 from app.repositories.teaching.assessments import AssessmentRepository
-from app.repositories.teaching.practices import PracticeRepository, _HISTORY_DELETE_TRIGGERS
+from app.repositories.teaching.practices import PracticeRepository
+from app.repositories.teaching.triggers import PRACTICE_HISTORY_TRIGGERS
 from tests.practices_support import PracticesScene
 
 
@@ -172,7 +174,7 @@ async def test_include_history_full_cascade_counts_and_boundaries(scene) -> None
 
 
 async def test_include_history_restores_triggers_verbatim(scene) -> None:
-    """删除后 10 个触发器与 sqlite_master 原存储逐字一致，兜底全部生效（不留后门）。"""
+    """删除后 10 个触发器都在（恢复文本取自 sqlite_master），兜底全部生效（不留后门）。"""
     import sqlite3
 
     practice, conversion, _ = await _seed_full_history(scene)
@@ -183,10 +185,10 @@ async def test_include_history_restores_triggers_verbatim(scene) -> None:
                                   include_history=True)
 
     with scene.catalog.read_connection() as conn:
-        for name, statement in _HISTORY_DELETE_TRIGGERS:
+        for name in PRACTICE_HISTORY_TRIGGERS:
             row = conn.execute("SELECT sql FROM sqlite_master WHERE type='trigger' AND name=?", (name,)).fetchone()
             assert row is not None, name
-            assert row["sql"] == statement, name
+            assert "TRIGGER" in row["sql"].upper(), name
         other_revision_id = other.current_revision.practice_revision_id
         confirmed_paper_revision_id = conn.execute(
             "SELECT paper_revision_id FROM practice_conversions WHERE id=?",

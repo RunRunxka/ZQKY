@@ -93,6 +93,7 @@ from app.repositories.teaching.assessments import (
 from app.repositories.teaching.catalog import TeachingCatalog
 from app.repositories.teaching.classes import ClassRepository
 from app.repositories.teaching.papers import PaperRepository
+from app.repositories.teaching import purge
 from app.repositories.teaching.students import (
     MembershipRecord,
     StudentRecord,
@@ -577,14 +578,20 @@ class AssessmentService:
     def delete_assessment(
         self, assessment_id: str, payload: AssessmentRevisionRequest
     ) -> dict[str, Any]:
-        """受引用守卫的彻底删除：无下游引用才物理删除施测及其参测/范围子行。
+        """彻底删除施测：连同其**自有成绩链**一起级联清除（R10-BE，2026-10-13）。
 
-        守卫（任一 >0 → 409 ``ASSESSMENT_IN_USE``，``details.counts`` 逐项计数）：
-        ``score_revisions``、``score_imports``、``analysis_runs``、
-        ``practice_conversions.assessment_id`` 引用数。
-        通过后在同一写事务删除 ``assessment_participants``、``assessment_classes``、
-        ``assessments``；乐观锁不符 → 409 ``ASSESSMENT_REVISION_STALE``；
-        施测不存在 → 404。归档施测同样可删（与"彻底删除"的用户裁定一致）。
+        用户裁定「舍弃所有归档功能，只留删除」+「拆开交叉引用」：施测是成绩链的
+        所有者（参测人次 → 导入 → 成绩修订 → 小题分 → 学情报告 → 派生练习），
+        删除施测即删除这条链——不再有"被成绩/报告/转换引用就只能归档"的挡路词。
+        级联细节见 ``repositories.teaching.purge.purge_assessment_chain_in``。
+
+        **唯一的 409**（``ASSESSMENT_IN_USE``，``details.counts`` 逐项列出）：
+        链上报告被教案**冻结生成血缘**引用（``lesson_generation_inputs`` /
+        ``lesson_ai_proposals``，NOT NULL 且行不可变）——删链会破坏已应用 AI 教案
+        的来源，拒绝并如实列出计数。
+
+        乐观锁不符 → 409 ``ASSESSMENT_REVISION_STALE``；施测不存在 → 404；
+        全部级联在同一写事务内完成，任一步失败整体回滚。归档施测同样可删。
         """
         assessment_id = _text(assessment_id, field="assessmentId")
         with self._catalog.write_transaction() as conn:
@@ -592,24 +599,28 @@ class AssessmentService:
             if record.revision != payload.expected_revision:
                 raise _stale(record.revision)
             counts = self._assessments.count_references_in(conn, assessment_id)
-            if any(value > 0 for value in counts.values()):
+            counts.update(purge.frozen_lesson_counts_in(conn, assessment_id))
+            frozen = {
+                key: counts[key] for key in purge.FROZEN_LESSON_KEYS if counts[key] > 0
+            }
+            if frozen:
                 labels = {
-                    "scoreRevisions": "成绩版本",
-                    "scoreImports": "成绩导入批次",
-                    "analysisRuns": "学情报告",
-                    "practiceConversions": "练习转换",
+                    "lessonGenerationInputs": "教案生成输入",
+                    "lessonProposals": "教案 AI 候选",
                 }
-                summary = "、".join(
-                    f"{labels[key]} {value} 条" for key, value in counts.items() if value > 0
-                )
+                summary = "、".join(f"{labels[key]} {value} 条" for key, value in frozen.items())
                 raise AppError(
-                    f"施测仍被引用，不能删除（{summary}）；请先处理相关数据。",
+                    f"施测链仍被教案的冻结生成血缘引用，不能删除（{summary}）；"
+                    "这些行的来源指针是 NOT NULL 的不可变历史，删除会破坏已应用 AI 教案的血缘。",
                     code=ASSESSMENT_IN_USE,
                     status_code=409,
                     details={"counts": counts},
                 )
-            self._assessments.delete_assessment_in(conn, assessment_id)
-        return {"deleted": True, "assessmentId": assessment_id}
+            removed = purge.purge_assessment_chain_in(
+                conn, catalog=self._catalog, assessment_id=assessment_id,
+                owner_id=self._owner_id,
+            )
+        return {"deleted": True, "assessmentId": assessment_id, **removed}
 
     def _require_participants_covered_in(
         self, conn: sqlite3.Connection, *, record: AssessmentRecord, held_on: date

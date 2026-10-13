@@ -27,6 +27,12 @@ from app.contracts.teaching_loop import canonical_hash
 from app.core.exceptions import AppError
 from app.core.sqlite import now_iso
 from app.repositories.teaching.analysis import AnalysisRepository, dump, load
+from app.repositories.teaching.practices import PracticeRepository
+from app.repositories.teaching.triggers import (
+    ANALYSIS_FROZEN_TRIGGERS,
+    LESSON_REVISION_TRIGGERS,
+    suspend_triggers,
+)
 from app.services.jobs.engine import JobOutcome
 from app.services.submissions.service import execute_command, make_command
 from .aggregate import aggregate
@@ -76,6 +82,8 @@ class AnalysisService:
         self.file_assets = file_assets
         self.knowledge_catalog = knowledge_catalog
         self.repo = AnalysisRepository()
+        # R10-BE：报告删除级联其派生练习（连带历史），只借仓储不借服务（同事务、同 owner 语义）
+        self.practices = PracticeRepository(catalog)
         self.store = job_engine.store("teaching")
 
     def register_job_executors(self, registry):
@@ -256,27 +264,49 @@ class AnalysisService:
         return self.get_run(run_id)
 
     def delete_run(self, run_id: str) -> AnalysisRunDeleteReceipt:
-        """受引用守卫的彻底删除：报告"干净"时物理删除报告行与其全部冻结子表行。
+        """删除报告：拆开可拆交叉引用（级联/置空）后物理删除报告与其全部冻结子表行。
 
-        守卫（任一命中 → 409 ``ANALYSIS_RUN_IN_USE``，``details.counts`` 恒含两键）：
-        ``practiceSets`` = ``practice_sets.analysis_run_id`` 引用数；
-        ``lessonReferences`` = 教案引用（``lesson_plan_revisions`` +
-        ``lesson_generation_inputs`` + ``lesson_ai_proposals`` 的 ``analysis_run_id``）之和。
-        通过后按子行 → 身份行顺序在同一写事务删除（先例见仓储 ``delete_run_in``）；
-        ``workflow_jobs`` 任务行保留不动。归档与未归档报告同样可删；
-        不存在/非本人 → 404 ``ANALYSIS_NOT_FOUND``。
+        R10-BE（2026-10-13 用户裁定「舍弃所有归档功能，只留删除」+「拆开交叉引用」）：
+        报告的下游引用不再一律 409 挡删除，按"引用行是否属于本删除链"分流——
+
+        - **级联**：``practice_sets.analysis_run_id``（NOT NULL）——练习由该报告派生，
+          随报告一并连带历史彻底删除（走 ``PracticeRepository.delete_set_with_history_in``，
+          含 reviewed 修订/导出/转换/工件；其转换生成的原卷修订只摘来源指针）；
+        - **置空**：``lesson_plan_revisions.analysis_run_id``（可空来源指针）——教案本体保留，
+          只摘除来源（同事务摘除 ``lesson_plan_revisions_immutable_update`` 后置 NULL）；
+        - **409 逐项列出**（不可拆的冻结血缘）：``lesson_generation_inputs`` /
+          ``lesson_ai_proposals`` 的 ``analysis_run_id`` 为 NOT NULL 且行不可变——
+          删报告会破坏已应用 AI 教案的血缘，拒绝并列出计数（``ANALYSIS_RUN_IN_USE``）。
+
+        三类处理与报告子行删除在同一写事务内完成（任一步失败整体回滚）；删除后
+        ``practiceSets``/``lessonRevisions`` 引用自然归零。归档与未归档报告同样可删；
+        不存在/非本人 → 404 ``ANALYSIS_NOT_FOUND``。回执带级联计数。
         """
-        labels = {"practiceSets": "针对练习", "lessonReferences": "教案引用（修订/生成输入/AI 候选）"}
+        labels = {"lessonGenerationInputs": "教案生成输入", "lessonProposals": "教案 AI 候选"}
         with self.catalog.write_transaction() as conn:
             self.repo.require_in(conn, run_id, self.owner)
             counts = self.repo.count_references_in(conn, run_id)
-            blocked = {key: value for key, value in counts.items() if value > 0}
-            if blocked:
-                summary = "、".join(f"{labels[key]} {value} 条" for key, value in blocked.items())
-                raise AppError("学情报告仍被引用，不能删除（" + summary + "）；请先处理相关数据。",
-                               code=ANALYSIS_RUN_IN_USE, status_code=409, details={"counts": counts})
-            self.repo.delete_run_in(conn, run_id, self.owner)
-        return AnalysisRunDeleteReceipt(deleted=True, runId=run_id)
+            frozen = {
+                key: counts[key]
+                for key in ("lessonGenerationInputs", "lessonProposals")
+                if counts[key] > 0
+            }
+            if frozen:
+                summary = "、".join(f"{labels[key]} {value} 条" for key, value in frozen.items())
+                raise AppError(
+                    "学情报告仍被教案的冻结生成血缘引用，不能删除（" + summary + "）；"
+                    "这些行的来源指针是 NOT NULL 的不可变历史，删除会破坏已应用 AI 教案的血缘。",
+                    code=ANALYSIS_RUN_IN_USE, status_code=409, details={"counts": counts})
+            practice_ids = self.repo.practice_set_ids_in(conn, run_id)
+            with suspend_triggers(conn, ANALYSIS_FROZEN_TRIGGERS + LESSON_REVISION_TRIGGERS):
+                for set_id in practice_ids:
+                    self.practices.delete_set_with_history_in(conn, set_id)
+                unlinked = self.repo.unlink_lesson_revisions_in(conn, run_id)
+                self.repo.delete_run_in(conn, run_id, self.owner)
+        return AnalysisRunDeleteReceipt(
+            deleted=True, runId=run_id,
+            removedPracticeSets=len(practice_ids), unlinkedLessonRevisions=int(unlinked),
+        )
 
     def _ready(self, conn, run_id, *, owner=None, class_id=None, participant_id=None, knowledge_point_id=None):
         row = self.repo.require_in(conn, run_id, owner or self.owner)

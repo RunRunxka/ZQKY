@@ -1,10 +1,13 @@
-"""班级受引用守卫的彻底删除（DELETE /classes/{id}）与批量添加学生（students/batch）。
+"""班级彻底删除（DELETE /classes/{id}）与批量添加学生（students/batch）。
 
 覆盖（全部 tmp_path 隔离数据根，真 HTTP API + 真教学库）：
 
-- 班级删除四类用例：
+- 班级删除（R10-BE 拆开交叉引用）：
   * 可删成功：无任何引用的班级物理删除，``class_memberships`` 等子行一并消失；
-  * 被引用 409 ``CLASS_IN_USE``：``details.counts`` 列出归属/施测范围/教案计数；
+  * 范围级联：该班无参测人次时 ``assessment_classes`` 行随班删除（回执 ``removedAssessmentScopes``）；
+  * 成绩链保护 409 ``CLASS_IN_USE``：该班有参测人次时 ``details.counts`` 逐项列出
+    （``assessmentParticipants``/``lessonPlans`` 等，先删相关施测或处置教案）；
+  * 教案 409 ``CLASS_IN_USE``（独立成果不随班删除）；
   * 乐观锁 409 ``REVISION_CONFLICT``（``details.currentRevision``）；
   * 404（班级不存在）。
 - 批量添加学生：部分跳过（学号已存在给出 existingStudentId/existingName）、
@@ -191,12 +194,53 @@ def test_delete_class_cascades_memberships_and_unreferenced_students(
     assert harness.count("students", "id = ?", (student.json()["id"],)) == 0
 
 
-def test_delete_class_blocked_by_assessment_scope(client: TestClient, harness: Harness) -> None:
-    """参测范围行（assessment_classes）是真实外链：按外键顺序播种最小链路后验证守卫计数。"""
+def test_delete_class_cascades_assessment_scope_without_participants(
+    client: TestClient, harness: Harness
+) -> None:
+    """R10-BE 拆开交叉引用：该班无参测人次时，参测范围行随班删除（不再是 409）。"""
     created = _create_class(client)
     class_id = created["id"]
+    _seed_assessment_scope(harness, class_id)
+
+    deleted = client.delete(f"/api/v1/classes/{class_id}", params={"expectedRevision": 0})
+    assert deleted.status_code == 200, deleted.text
+    body = deleted.json()
+    assert body["removedAssessmentScopes"] == 1
+    # 班级与范围行消失；施测本体保留（无班级范围，仍可被其它班加入）
+    assert harness.count("classes", "id = ?", (class_id,)) == 0
+    assert harness.count("assessment_classes", "assessment_id = ?", ("as-x",)) == 0
+    assert harness.count("assessments", "id = ?", ("as-x",)) == 1
+
+
+def test_delete_class_blocked_by_assessment_participants(
+    client: TestClient, harness: Harness
+) -> None:
+    """成绩链保护（R10-BE）：该班在施测里有参测人次时 409 逐项列出（先删相关施测）。"""
+    created = _create_class(client)
+    class_id = created["id"]
+    _seed_assessment_scope(harness, class_id)
+    harness.raw_execute(
+        "INSERT INTO students (id, owner_id, student_no, name, status, revision, created_at) "
+        "VALUES ('s-x', 'local', '0099', '参测生', 'active', 0, '2026-10-07T00:00:00Z')"
+    )
+    harness.raw_execute(
+        "INSERT INTO assessment_participants (id, assessment_id, student_id, class_id, "
+        "attendance, name_snapshot) VALUES ('ap-x', 'as-x', 's-x', ?, 'present', '参测生')",
+        (class_id,),
+    )
+    blocked = client.delete(f"/api/v1/classes/{class_id}", params={"expectedRevision": 0})
+    assert blocked.status_code == 409, blocked.text
+    assert blocked.json()["code"] == "CLASS_IN_USE"
+    counts = blocked.json()["details"]["counts"]
+    assert counts["assessmentParticipants"] == 1 and counts["assessments"] == 1
+    # 零删除：班级与参测行都在
+    assert harness.count("classes", "id = ?", (class_id,)) == 1
+    assert harness.count("assessment_participants", "assessment_id = ?", ("as-x",)) == 1
+
+
+def _seed_assessment_scope(harness: Harness, class_id: str) -> None:
+    """按外键顺序播种最小链路：file_assets → papers → paper_revisions(confirmed) → assessments → assessment_classes。"""
     now = "2026-10-07T00:00:00Z"
-    # file_assets → papers → paper_revisions(confirmed) → assessments → assessment_classes
     harness.raw_execute(
         "INSERT INTO file_assets (id, kind, blob_key, sha256, media_type, byte_size, "
         "original_name, created_at) VALUES ('fa-x', 'paper', 'blobs/' || ? || '0', ?, "
@@ -240,10 +284,6 @@ def test_delete_class_blocked_by_assessment_scope(client: TestClient, harness: H
         "INSERT INTO assessment_classes (assessment_id, class_id) VALUES ('as-x', ?)",
         (class_id,),
     )
-    blocked = client.delete(f"/api/v1/classes/{class_id}", params={"expectedRevision": 0})
-    assert blocked.status_code == 409, blocked.text
-    assert blocked.json()["code"] == "CLASS_IN_USE"
-    assert blocked.json()["details"]["counts"]["assessments"] == 1
 
 
 def test_delete_class_blocked_by_lesson_plan(client: TestClient, harness: Harness) -> None:

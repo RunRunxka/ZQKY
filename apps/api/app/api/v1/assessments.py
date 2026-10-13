@@ -12,7 +12,7 @@
 | ``PATCH /assessments/{id}`` | 标题/类型/日期（``expectedRevision`` 守卫；不改原卷） |
 | ``POST /assessments/{id}/participants`` | 补录/补考：新增人次（不覆盖既有记录） |
 | ``DELETE /assessments/{id}/participants/{pid}`` | 移除误录人次（守卫式：已有成绩版本/导入引用/学情报告 → 409） |
-| ``DELETE /assessments/{id}?expectedRevision=N`` | 受引用守卫的彻底删除（成绩/导入/报告/练习转换任一引用 → 409 ``ASSESSMENT_IN_USE`` 列出计数） |
+| ``DELETE /assessments/{id}?expectedRevision=N`` | 彻底删除施测（R10-BE 级联其自有成绩链：人次/导入/修订/小题分/报告/派生练习/转换）；唯一 409 = 教案冻结生成血缘（``ASSESSMENT_IN_USE`` 列出计数） |
 | ``POST /assessments/{id}/archive``、``/restore`` | 归档/恢复（``expectedRevision``；归档后禁止更新/补录/出勤校正与新成绩导入，历史保留） |
 
 错误码一律用 ``app/contracts/assessments.py`` 的契约常量；这些真实路由注册后，B0 的
@@ -148,7 +148,11 @@ async def delete_assessment(
     assessment_id: str,
     expectedRevision: int = Query(ge=0),
 ) -> dict:
-    """受引用守卫的彻底删除：成绩/导入/报告/练习转换任一引用 → 409 ``ASSESSMENT_IN_USE`` 列出计数。"""
+    """彻底删除施测（R10-BE）：连同自有成绩链级联清除（参测人次/导入/修订/小题分/报告/派生练习/转换）。
+
+    唯一 409：链上报告被教案冻结生成血缘引用 → ``ASSESSMENT_IN_USE`` 列出计数；
+    乐观锁不符 → 409；不存在 → 404。回执带各表级联计数。
+    """
     service = _service(request)
     payload = AssessmentRevisionRequest(expectedRevision=expectedRevision)
     return await _run(service.delete_assessment, assessment_id, payload)

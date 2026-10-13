@@ -511,8 +511,8 @@ class PaperRepository:
     def confirmed_revision_count_in(self, conn: sqlite3.Connection, paper_id: str) -> int:
         """该卷已确认修订数（``paper_revisions.state='confirmed'``）。
 
-        数据库触发器 ``immutable_paper_revisions_delete`` 禁止删除已确认修订，
-        守卫先把这种情况拦下并如实告知"已确认原卷只能归档"。
+        R10-BE 起不再阻断删除：已确认修订随原卷级联删除，由服务层在同一写事务内
+        摘除触发器（见 ``triggers.PAPER_REVISION_TRIGGERS``）；本方法是读数接口。
         """
         paper_id = _require_text(paper_id, field="paper_id")
         row = conn.execute(
