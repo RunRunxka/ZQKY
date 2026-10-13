@@ -11,13 +11,14 @@
 
 import { useMemo, useRef, useState } from 'react';
 import { useEntrance } from '@/components/motion/useEntrance';
-import { ListChecks, Upload } from 'lucide-react';
+import { FolderPlus, ListChecks, Upload } from 'lucide-react';
 // 与既有内容页共享 space 设计语言（只读引入，不修改共享层）
 import '@/components/layout/space.css';
 import '@/features/textbook/styles/textbook.css';
 import type { LibraryKind } from '@/contracts/textbook';
 import { fetchTextbookTaxonomy } from '@/services/textbook-api';
 import { ImportPanel } from './ImportPanel';
+import { LibraryCreateDialog } from './LibraryCreateDialog';
 import { JobsPanel } from './JobsPanel';
 import { LIBRARY_KIND_LABEL } from './labels';
 import { LibraryBrowser } from './LibraryBrowser';
@@ -31,6 +32,7 @@ export function TextbookWorkspace() {
   useEntrance(entranceRef, { preset: 'page' });
   const [tab, setTab] = useState<Tab>('base');
   const [importOpen, setImportOpen] = useState(false);
+  const [libraryCreateOpen, setLibraryCreateOpen] = useState(false);
   const [jobsOpen, setJobsOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
@@ -52,6 +54,14 @@ export function TextbookWorkspace() {
         <div className="space-header-row">
           <h1>教材资料库</h1>
           <div className="space-card-actions">
+            <button
+              className="space-button"
+              data-testid="textbook-library-create-open"
+              onClick={() => setLibraryCreateOpen(true)}
+            >
+              <FolderPlus size={14} aria-hidden />
+              新建逻辑库
+            </button>
             <button className="space-button" onClick={() => setJobsOpen(true)}>
               <ListChecks size={14} aria-hidden />
               入库任务
@@ -97,9 +107,12 @@ export function TextbookWorkspace() {
         )}
 
         {notice && (
-          <div className="space-banner info" role="status">
+          <div className="space-banner info" role="status" data-testid="textbook-notice">
             {notice}
             <div className="textbook-panel-actions">
+              <button className="space-button" onClick={() => setImportOpen(true)}>
+                导入教材
+              </button>
               <button className="space-button" onClick={() => setJobsOpen(true)}>
                 查看入库任务
               </button>
@@ -127,6 +140,21 @@ export function TextbookWorkspace() {
           配置与向量库均可用；任一环节失败都会显示具体原因，不会伪造成功。
         </p>
       </main>
+
+      {libraryCreateOpen && (
+        <LibraryCreateDialog
+          taxonomy={index}
+          onClose={() => setLibraryCreateOpen(false)}
+          onCreated={(created) => {
+            setLibraryCreateOpen(false);
+            setTab(created.kind);
+            setRefreshToken((value) => value + 1);
+            setNotice(
+              `已新建逻辑库「${created.displayName}」（${LIBRARY_KIND_LABEL[created.kind]}）：现在可以导入教材并在第 4 步加入它。`,
+            );
+          }}
+        />
+      )}
 
       {importOpen && (
         <ImportPanel

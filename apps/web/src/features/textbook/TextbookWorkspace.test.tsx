@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import type { LibrarySummary, TextbookTaxonomy } from '@/contracts/textbook';
@@ -42,6 +42,18 @@ function stubApi(handler: (url: string, init: RequestInit) => Response | Promise
   vi.stubGlobal('fetch', fetchMock);
   return fetchMock;
 }
+
+/** jsdom 未实现 dialog 的 showModal/close（公共 Modal 依赖），这里只补最小实现。 */
+beforeAll(() => {
+  if (typeof HTMLDialogElement !== 'undefined' && !HTMLDialogElement.prototype.showModal) {
+    HTMLDialogElement.prototype.showModal = function showModal(this: HTMLDialogElement) {
+      this.setAttribute('open', '');
+    };
+    HTMLDialogElement.prototype.close = function close(this: HTMLDialogElement) {
+      this.removeAttribute('open');
+    };
+  }
+});
 
 afterEach(() => {
   cleanup();
@@ -176,5 +188,108 @@ describe('教材管理页', () => {
     // 重建后不再提供「历史登记」页签（旧产品 localStorage 残留，无写入方）
     expect(screen.queryByRole('tab', { name: '历史登记' })).toBeNull();
     expect(screen.getByRole('tab', { name: '基础库' })).toHaveAttribute('aria-selected', 'false');
+  });
+});
+
+describe('教材管理页 · 新建逻辑库（R10-FE 2026-10-13）', () => {
+  it('填齐必填项后提交：POST 带 kind/displayName/subjectId/editionId/gradeId，成功后切页签、刷新列表并给提示', async () => {
+    const fetchMock = stubApi((url, init) => {
+      if (url.includes('/textbook-taxonomy')) return ok(TAXONOMY);
+      if (url.includes('/textbook-libraries') && (init.method ?? 'GET') === 'POST') {
+        return ok(
+          library({
+            libraryId: 'lib-new',
+            kind: 'personal',
+            displayName: '我的教材',
+            gradeId: null,
+            revision: 0,
+            documentCount: 0,
+            readyDocumentCount: 0,
+          }),
+        );
+      }
+      if (url.includes('kind=base')) return ok({ libraries: [] });
+      if (url.includes('kind=personal')) {
+        return ok({ libraries: [library({ libraryId: 'lib-new', kind: 'personal', displayName: '我的教材' })] });
+      }
+      throw new Error(`未预期的请求 ${url}`);
+    });
+    render(<TextbookWorkspace />);
+
+    fireEvent.click(await screen.findByTestId('textbook-library-create-open'));
+    const form = await screen.findByTestId('textbook-library-create');
+    // 必填未齐：提交键禁用
+    expect(within(form).getByTestId('textbook-library-create-submit')).toBeDisabled();
+
+    fireEvent.change(within(form).getByLabelText('库显示名'), { target: { value: '我的教材' } });
+    fireEvent.change(within(form).getByLabelText('库学科'), { target: { value: 'math' } });
+    fireEvent.change(within(form).getByLabelText('库版本'), { target: { value: 'rj' } });
+    expect(within(form).getByTestId('textbook-library-create-submit')).not.toBeDisabled();
+
+    fireEvent.click(within(form).getByTestId('textbook-library-create-submit'));
+    await waitFor(() => {
+      const posted = fetchMock.mock.calls.find(
+        ([url, init]) =>
+          String(url).includes('/textbook-libraries') && (init as RequestInit)?.method === 'POST',
+      );
+      expect(posted).toBeTruthy();
+      expect(JSON.parse(String((posted?.[1] as RequestInit).body))).toEqual({
+        kind: 'personal',
+        displayName: '我的教材',
+        subjectId: 'math',
+        editionId: 'rj',
+        gradeId: null,
+      });
+    });
+    // 成功提示 + 自动切到该库所在页签 + 列表刷新（再次读取 personal 列表）
+    expect(await screen.findByTestId('textbook-notice')).toHaveTextContent('已新建逻辑库「我的教材」');
+    expect(screen.getByRole('tab', { name: '我的教材' })).toHaveAttribute('aria-selected', 'true');
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.filter(([url]) => String(url).includes('kind=personal')).length,
+      ).toBeGreaterThan(1),
+    );
+    expect(screen.queryByTestId('textbook-library-create')).toBeNull();
+  });
+
+  it('失败（409）：原样显示服务端 code 与 message，保留输入、不给成功提示', async () => {
+    stubApi((url, init) => {
+      if (url.includes('/textbook-taxonomy')) return ok(TAXONOMY);
+      if (url.includes('/textbook-libraries') && (init.method ?? 'GET') === 'POST') {
+        return failed(409, { code: 'LIBRARY_CONFLICT', message: '同一范围（学科/版本/年级）的逻辑库已存在。' });
+      }
+      if (url.includes('/textbook-libraries')) return ok({ libraries: [] });
+      throw new Error(`未预期的请求 ${url}`);
+    });
+    render(<TextbookWorkspace />);
+
+    fireEvent.click(await screen.findByTestId('textbook-library-create-open'));
+    const form = await screen.findByTestId('textbook-library-create');
+    fireEvent.change(within(form).getByLabelText('库显示名'), { target: { value: '我的教材' } });
+    fireEvent.change(within(form).getByLabelText('库学科'), { target: { value: 'math' } });
+    fireEvent.change(within(form).getByLabelText('库版本'), { target: { value: 'rj' } });
+    fireEvent.click(within(form).getByTestId('textbook-library-create-submit'));
+
+    const error = await screen.findByTestId('textbook-library-create-error');
+    expect(error).toHaveTextContent('新建逻辑库失败（LIBRARY_CONFLICT）');
+    expect(error).toHaveTextContent('同一范围（学科/版本/年级）的逻辑库已存在。');
+    // 输入保留、对话框仍在、没有成功提示
+    expect((within(form).getByLabelText('库显示名') as HTMLInputElement).value).toBe('我的教材');
+    expect(screen.queryByTestId('textbook-notice')).toBeNull();
+  });
+
+  it('分类字典不可用时不让提交并说明原因', async () => {
+    stubApi((url) => {
+      if (url.includes('/textbook-taxonomy')) return failed(500, { code: 'DICT_DOWN', message: '字典不可用' });
+      if (url.includes('/textbook-libraries')) return ok({ libraries: [] });
+      throw new Error(`未预期的请求 ${url}`);
+    });
+    render(<TextbookWorkspace />);
+
+    fireEvent.click(await screen.findByTestId('textbook-library-create-open'));
+    const form = await screen.findByTestId('textbook-library-create');
+    expect(within(form).getByTestId('textbook-library-create-dict-error')).toBeInTheDocument();
+    fireEvent.change(within(form).getByLabelText('库显示名'), { target: { value: '我的教材' } });
+    expect(within(form).getByTestId('textbook-library-create-submit')).toBeDisabled();
   });
 });

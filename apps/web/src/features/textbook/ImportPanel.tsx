@@ -650,7 +650,8 @@ export function ImportPanel({
             )}
             {libraries.state.phase === 'ready' && libraries.state.data.libraries.length === 0 && (
               <p className="space-banner info" role="note">
-                还没有可用逻辑库：请先由服务端建立基础库，或创建「我的教材」库后再入库。
+                还没有可用逻辑库：先回教材资料库顶部点「新建逻辑库」（个人库选「我的教材」）后再入库；
+                基础库按成套范围由服务端建立。
               </p>
             )}
             {libraries.state.phase === 'ready' && libraries.state.data.libraries.length > 0 && (

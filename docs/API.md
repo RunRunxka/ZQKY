@@ -40,7 +40,7 @@
 
 | 方法和路径 | 用途 |
 | --- | --- |
-| `/api/v1/textbook-taxonomy`、`/textbook-libraries*`、`/textbooks*` | 分类字典、逻辑库与文档 CRUD（`GET /textbooks/{id}`、PATCH 元数据、DELETE） |
+| `/api/v1/textbook-taxonomy`、`/textbook-libraries*`、`/textbooks*` | 分类字典、逻辑库与文档 CRUD（`GET /textbooks/{id}`、PATCH 元数据、DELETE）。逻辑库 = 教材册的归属/检索范围容器（`kind`=基础库/我的教材 + 学科 + 版本 + 可选年级，书册与库多对多）；界面入口：教材资料库页头「新建逻辑库」+ 导入面板第 4 步「加入逻辑库」（至少一个） |
 | POST `/api/v1/textbook-imports` → `/{id}/commit`、`/{id}/discard` | 导入草稿 → 封存修订并入库；`/textbook-imports/{id}` 观察状态 |
 | `/api/v1/textbook-jobs*`（GET/cancel/retry）、`/textbook-index/status`、`/textbook-index/rebuilds` | 入库任务与索引代状态/受控重建 |
 | `/api/v1/textbook-revisions/{id}/source` | 修订原文区间读取（指纹校验） |

@@ -49,7 +49,10 @@ export function LibraryBrowser({
   );
 
   const filterActive = Boolean(filters.gradeId || filters.subjectId || filters.editionId);
-  const emptyText = kind === 'base' ? '还没有基础库' : '还没有我的教材';
+  const emptyText =
+    kind === 'base'
+      ? '还没有基础库（顶部「新建逻辑库」可建；基础库一般由服务端成套建立）'
+      : '还没有我的教材（点顶部「新建逻辑库」建一个，导入时在第 4 步加入它）';
 
   return (
     <div className="textbook-browser">
