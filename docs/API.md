@@ -117,10 +117,11 @@ blob）、`workflow_jobs`（任务历史）、`command_submissions`（提交幂�
 | 方法和路径 | 用途 |
 | --- | --- |
 | `/api/v1/lesson-plans`（GET/POST）、`/{id}`（GET/PATCH draft/DELETE）、`/{id}/revisions` | 教案草稿/修订（CAS `expectedRevision`；草稿与候选分离）。`POST` 必填 `subjectId`/`classId`（教案必属某班某科）与 `context` 键（手工新建显式 `null`，缺键 422）；`DELETE ?expectedRevision=N` 彻底删除教案自身历史（归档端点保留为历史兼容，界面只留删除，入口在教案工作台「本地教案」） |
-| POST `/api/v1/lesson-plans/generation-stream` | 逐模块流式生成（SSE：`message.start / module.start / module.delta / module.error / module.done / message.end / error`；生成候选采用才写入） |
+| POST `/api/v1/lesson-plans/generation-stream` | 逐模块流式生成（SSE：`message.start / module.start / module.delta / module.error / module.done / message.end / error`；生成候选采用才写入）。固定数据来源：`analysisRunId`（学情报告匿名聚合）与 **`sourceAssetRef`**（教师上传的学情材料，2026-10-13 起真正消费：读回文本按 6000 字上限截断并标注；引用读不到 → 404 `LESSON_SOURCE_NOT_FOUND`，**不静默忽略**） |
 | `/api/v1/lesson-plans/{id}/proposals`（+`/{pid}/apply|reject`） | 五字段 patch 候选（`apply_lesson_proposal` 工具带中断确认） |
 | POST `/api/v1/lesson-plans/{id}/export` | 导出 docx（202）：以空白模板组装，自动补齐封面（第 1 页）+ 目录（第 2 页），正文自第 3 页 |
-| `/api/v1/lesson-plans/source-uploads`、`/lesson-plans/evidence/verify` | 学情来源文件登记、依据核验 |
+| POST `/api/v1/lesson-plans/source-uploads` | 上传学情材料（multipart `file`）→ 201 `{assetRef,fileName,mediaType,byteSize,sha256}`（受管资产 `kind=attachment`）。**只收可提取文本的文档**（.docx/.pdf/.txt/.md）；成绩表类（.xlsx/.xls/.csv）422 `LESSON_SOURCE_UNSUPPORTED` 并指引「先去学情分析生成报告、再用『分析报告』来源」（学生个人信息不进模型的红线：不把含学号/姓名的原始表格送模型）；空文件 422、超限（10 MiB）413；无可提取文本（扫描件）422 `LESSON_SOURCE_EMPTY` |
+| `/api/v1/lesson-plans/evidence/verify` | 教材依据核验 |
 
 ## 练习（teaching 库）
 
