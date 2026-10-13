@@ -1,69 +1,64 @@
 # 智启课源（ZQKY）
 
-面向教师的 AI 教学工作台，采用 **Next.js + FastAPI**。2026-09-29 起的建设核心是教材 RAG、独立知识点库、原卷与小题得分对齐、题库、学情分析与练习回流；学情驱动 AI 教案调整属后续建设。当前任务、验收状态与实现偏差只看 [CURRENT_STATUS](docs/CURRENT_STATUS.md)，稳定规则见 [PROJECT_GUIDE](docs/PROJECT_GUIDE.md)。
+**对话优先的闭环教学 AI 工作台**：一个统一的学习问答界面（`/chat`）承载全部教学 AI 能力，
+八个业务板块既是独立页面，也是问答里的 Agent 工具（一句话或带文件触发）。
+
+- **架构硬性**：全部 LLM 调用经 **LangChain**，多步 AI 流程由 **LangGraph** 编排；
+  业务代码禁止直连供应商 SDK（有门禁测试）。
+- **红线**：AI 输出只进候选、教师确认才落库；学生姓名/学号不进模型；凭证只存后端
+  `apps/api/.env` 经 SecretStore 注入。
+- 唯一进度、台账与下一动作只看 [CURRENT_STATUS](docs/CURRENT_STATUS.md)；稳定决定见
+  [PROJECT_GUIDE](docs/PROJECT_GUIDE.md)；仓库指南见 [AGENTS.md](AGENTS.md)。
 
 ## 功能入口
 
-| 入口 | 能力与边界 |
+| 入口 | 能力 |
 | --- | --- |
-| `/chat` | 真实多模型 SSE 与教材 RAG；默认主页与既有视觉基准 |
-| `/knowledge-bases` | 真实教材上传/解析/目录/修订/索引；历史本地登记只读 |
-| `/knowledge-points` | 独立知识点管理、别名、教材依据、导入校对和候选确认 |
-| `/question-bank` | 独立题库、导入校对、知识点关联与 AI 补题候选；当前审查偏差看状态台账 |
-| `/assessments` | 名单→原卷→施测→成绩→历史五步工作区；当前审查偏差看状态台账 |
-| `/learning-analysis` | 固定已确认成绩与明确人次，班级/学生事实、全题证据与备注；验收状态看状态台账 |
-| `/practices` | 固定正式题建议与缺口、人工审核、双 DOCX/成绩模板、转换施测并回流新成绩/学情；验收状态看状态台账 |
-| `/lesson-plans` | 已有本地规则填充、编辑/草稿恢复、Word 与打印/PDF 导出；学情驱动 AI 调整属后续建设 |
-| `/books`、`/courses` | 保留既有内容和课程会话能力；书籍生成仍为显式本地模拟 |
-| `/settings` | 模型与连接、Embedding/任教范围、外观及扩展管理 |
-
-学情报告、针对练习与成绩回流已有源码实现和独立技术链证据，整体验收与运行依赖以当前状态为准；学情驱动 AI 教案仍属 B5。写作、阅读、学习空间、智能组卷、模板中心保留规划根页，完整运行时路径见 [ROUTES](docs/ROUTES.md)。
+| `/chat` | 学习问答：流式对话、附件上传、上下文容量环、思考强度（受支持档位）、Agent 工具与确认卡；默认主页与视觉基准 |
+| `/lesson-plans` | 教案工作台：三栏（模块/排版 · 编辑 · 第 3 页起 A4 预览）、七模块+自定义、流式生成、导出 docx（自动补封面与目录） |
+| `/textbooks` | 教材资料库：导入→清洗→切块→嵌入→索引；索引代与修订不可变 |
+| `/knowledge-points` | 知识点：教材目录成树、节点增改、学习目标、别名、AI 候选与教材提取 |
+| `/question-bank` | 题库：课后习题提取、AI 整理/补题、知识点×难度分类与筛选 |
+| `/practices` | 练习：学情/描述驱动出题 → 微调 → 确认门槛 → 学生卷/教师卷导出预览 |
+| `/learning-analysis` | 学情分析：小题分导入（四态不补零）、五图、AI 评价、报告导出 |
+| `/assessments/roster` `/assessments/papers` | 班级管理（名单 xlsx 导入）/ 试卷管理（导入拆题、AI 知识点分类占比） |
+| `/settings` | 外观 / 模型与连接 / 关于 |
 
 ## 本地运行
 
-Node.js 26（当前验证环境）、Python ≥3.12、uv。根 npm workspace 和 `apps/api/uv.lock` 是依赖依据。
+Node.js 26（当前验证环境）、Python ≥3.12、uv；本机需 Ollama（`bge-m3` 嵌入）与 Qdrant
+（`docker compose -f infra/qdrant/docker-compose.yml up -d`）。
 
 ```powershell
-Set-Location 'H:\备份xuexi\智启课源'
 npm.cmd ci
-npm.cmd run setup:api
-npm.cmd run dev:api     # 127.0.0.1:8000；另一个终端启动前端
-npm.cmd run dev         # 127.0.0.1:5173
+npm.cmd run setup:api    # 首次：uv sync
+npm.cmd run dev:api      # 127.0.0.1:8000
+npm.cmd run dev          # 127.0.0.1:5173（首页 /chat）
 ```
 
-已有依赖时不需要重复安装。聊天和教学业务需要后端；API Key 在设置中配置，仅由后端存于 `apps/api/.env`。浏览器数据按来源/端口隔离，不用开发或测试来源覆盖用户正式草稿。
-
-## 教材 RAG 与存储
-
-生产 `/api/v1/rag/*` 使用 **RagV2Service**，按教师确认的任教范围和教材目录的当前索引代进行检索；不再把旧四科固定快照、6,745 块或旧 `models.yaml` 当作当前运行条件。
-
-先启动本机 Ollama、Qdrant 和 FastAPI，在设置完成 Embedding 配置与任教范围，在教材资料库导入或重建索引，再在学习问答使用 RAG。首答提供紧凑知识点及可核验教材证据；详解冻结并使用当前选择的聊天模型，可为本地或云端。依赖未就绪时如实报错，不降级为云端检索或假成功。
-
-业务采用四个独立 SQLite：教材、题库、知识点、教学业务；Qdrant 仅存教材向量；原件保存在内容寻址的受管 assets。索引代、原文修订与正式成绩版本有各自唯一权威，不混用 ID 和编辑 revision。数据目录不入 Git，备份/恢复与迁移按 [API](docs/API.md)、[稳定决定](docs/PROJECT_GUIDE.md) 和对应脚本执行。
-
-教材 RAG 的可运行性、检索证据和人工教学质量分别验收，不能以构建或自动化通过宣布教学质量已通过。
+模型在「设置 → 模型与连接」配置；API Key 仅由后端存于 `apps/api/.env`。
 
 ## 常用检查
 
 ```powershell
 $env:NODE_OPTIONS='--no-experimental-webstorage'
-npm.cmd run check       # typecheck + lint + unit + build
-npm.cmd run test:api
-npm.cmd run test:e2e    # 先 build；隔离 5174，跑上一次构建
-npm.cmd run test:chat
-npm.cmd run template:verify
+npm.cmd run check        # typecheck + lint + unit + build
+npm.cmd run test:api     # 后端 pytest（须 uv run python -m pytest，见 AGENTS.md 环境坑）
+npm.cmd run test:e2e     # 先 build；隔离 5174
 ```
 
-自动化使用临时后端数据根、隔离浏览器与测试服务，不读写正式凭证/草稿/6333 向量库。未执行的检查注明原因；文档整理不冒称执行业务回归。
+自动化使用临时数据根与隔离浏览器，不读写正式凭证/草稿；未执行的检查注明原因。
+
+## 闭环测试套件
+
+[test/](test/README.md)：教材 md / 名单 xlsx（40 人）/ 试卷 docx（16 计分叶）/ 小题分 xlsx
+（四态）四件套 + 走查手册，由 `scripts/build-closed-loop-fixtures.py` 生成，并有常驻回归
+（`apps/api/tests/test_closed_loop_fixtures.py`）保证与导入规则同步。
 
 ## 文档
 
-- [当前文档索引](docs/README.md)：阅读顺序与 9 月 29 日起主线。
-- [当前状态与问题](docs/CURRENT_STATUS.md)：唯一下一动作和台账。
-- [教学闭环设计](docs/design/teaching-loop-v1/README.md)、[详细实施计划](docs/design/teaching-loop-v1/多Agent实施任务计划书_v2.0.md)：实体/ER/模块/关系表/伪代码与验收规格。
-- [当前接手入口](docs/NEXT_SESSION_START.md)、[AGENTS](AGENTS.md)：执行范围、规范与数据保护。
-- [API](docs/API.md)、[ROUTES](docs/ROUTES.md)：现行契约和运行时页面索引。
-- [历史归档](docs/archive/README.md)：旧任务/复刻矩阵/原始规划/完整状态快照与散列映射。
-- [第三方许可](docs/licenses/deeptutor-chat/README.md)：保留并继续适用。
-
-DeepTutor 固定提交仅为历史界面参考，保留智启课源品牌、蓝色主题和已有兼容约束；不再以旧全页面复刻路线组织当前任务。
+- [当前状态与交接](docs/CURRENT_STATUS.md)：唯一进度、台账与下一动作。
+- [项目指南](docs/PROJECT_GUIDE.md)：目标、架构硬性与稳定决定。
+- [API](docs/API.md) / [路由](docs/ROUTES.md)：现行接口与页面索引。
+- [文档索引](docs/README.md)；[QA 证据](docs/qa/README.md)；[第三方许可](docs/licenses/deeptutor-chat/README.md)。
+- 历史完整实现（重构前）唯一入口：git tag `archive-full-v1-20261011`。

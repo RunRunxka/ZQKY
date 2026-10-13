@@ -123,10 +123,14 @@ npm.cmd run check         # typecheck + lint + unit + build 串跑
 
 | 文档 | 职责 |
 | --- | --- |
-| [docs/CURRENT_STATUS.md](docs/CURRENT_STATUS.md) | 唯一进度、问题台账、当前任务、下一动作 |
+| [docs/CURRENT_STATUS.md](docs/CURRENT_STATUS.md) | 唯一进度、问题台账、当前任务、下一动作（含交接状态段） |
 | [docs/PROJECT_GUIDE.md](docs/PROJECT_GUIDE.md) | 唯一目标、视觉基准、稳定决定 |
 | [docs/API.md](docs/API.md) / [docs/ROUTES.md](docs/ROUTES.md) | 现行接口契约 / 路由索引 |
-| [docs/archive/History.md](docs/archive/History.md) | 旧合并历史（只读，非当前指令） |
+| [docs/README.md](docs/README.md) / [docs/qa/README.md](docs/qa/README.md) | 文档索引 / 重建后 QA 证据 |
+| [test/README.md](test/README.md) | 闭环测试套件与走查顺序 |
+
+重构前的设计与 QA 文档已清理（2026-10-13）；历史实现与文档的唯一入口是 git tag
+`archive-full-v1-20261011`。
 
 ## 10. 多智能体协作要点
 

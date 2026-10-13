@@ -54,3 +54,41 @@
 - 归档 tag `archive-full-v1-20261011` 仍是历史完整实现的唯一入口；本工作区所有域均按
   「取回参考 + 最小适配 + LangChain 化改造」重建，未直接捞回旧文件。
 <!-- /R-SERIES:20261012 -->
+
+<!-- R10-PAUSE:20261013 -->
+2026-10-13：**用户真机实测四问题处理中（中途暂停交接）**。
+
+## 已完成并提交
+- **问题 1（发送后无显示/侧栏空白/看不到发送键）已修**：三个叠加缺陷——
+  `store.change()` 丢弃就地变更、开发态 StrictMode 使共享 store 永久 `disposed`、
+  发送键类名与样式错配（`chat-send` vs `.chat-send-button`）；实测真实模型端点回答正常，
+  发送键已是 36×36 品牌蓝圆钮。提交 `be1b5ac` + `90e34c8`。
+- **问题 3（滚轮到底左侧导航悬空）已修**：表格隐注元素逃出滚动容器把文档撑高 → `.app-shell`
+  加 `position: relative` 成为包含块；十路由实测文档不可滚动、导航不动。提交 `be1b5ac`。
+- **问题 4c（清空教材/知识点/题目）已执行**：教材库/知识点库/题库目录与全部 Qdrant 教材向量
+  集合已清空并核验（教材无活动索引代、知识点 0、题目 0）；**用户班级（test/冒烟一班）与试卷保留**。
+- **问题 4d（闭环测试套件）已完成**：`test/` 四件套 + README 走查手册（生成器
+  `scripts/build-closed-loop-fixtures.py`；常驻回归 `tests/test_closed_loop_fixtures.py` 5/5）。
+- **文档清理与重写**：删除重构前全部过期文档（docs/archive、design、modules、replica、
+  旧 QA 批次、NEXT_SESSION_START、多智能体提案、根 qa/、项目规划/）；重写根 README、
+  docs/README、docs/qa/README。
+
+## 未完成（暂停时在途，恢复从这项起）
+- **问题 2（删除学生后班级人数不变 + 学生编辑缺「保存」键）与问题 4a/4b（舍弃归档只留删除、
+  拆开交叉引用）**：
+  - 前端半成品在工作区（11 文件：`RosterWorkspacePage`/`PapersWorkspacePage`/
+    `LearningAnalysisWorkspace`/`PracticesWorkspace`/`contracts/roster.ts`/`assessments-api.ts`
+    等），当前 typecheck 与既有测试全绿，但依赖后端的「学生删除回执」等新契约；
+  - **后端未落盘**（R10-BE 停在调研阶段）。已冻结的契约：`DELETE /students/{id}?expectedRevision=N`
+    → 200 `{mode: "deleted"|"removed_with_history", message}`；核心根因是学生归档只改状态、
+    不关闭 `class_memberships` 活跃归属（班级 `studentCount` 统计活跃归属数）。
+  - 恢复后的顺序：后端删除语义（关归属 + 删除级联/置空解引用 + 回执）→ 收口前端 →
+    全量门禁（基线：后端 1837、前端 657+chat、e2e 17）→ 真机复验 2/4a/4b → 提交。
+
+## 现场状态（交接）
+- 服务在跑：后端 `127.0.0.1:8000`（uvicorn，真实数据根）、前端 `127.0.0.1:5173`（dev）；
+  Docker/Qdrant 在跑（集合为空）；Ollama 在跑（`bge-m3`）。
+- 数据：教材/知识点/题库为空；教学库保留用户数据（2 个班、1 份试卷、施测/学情/教案/练习）；
+  `test/` 四件套可直接走闭环导入。
+- 工作区含 11 个未提交的前端在途文件（见上），**不要丢弃**；其余全部已提交。
+<!-- /R10-PAUSE:20261013 -->
