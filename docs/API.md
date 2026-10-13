@@ -76,7 +76,7 @@
 | POST `/api/v1/paper-imports`、`/api/v1/papers*` | 试卷导入（DOCX/PDF 文本层规则拆题，草稿→确认）/列表/修订/删除 |
 | GET `/api/v1/papers/{id}/knowledge-distribution` | 知识点占比（环图数据；primary 聚合） |
 | `/api/v1/paper-proposals/{id}`（GET/apply/reject） | AI 分类提案（只进 ai_proposals、应用复核 stale、只建 ai_confirmed） |
-| `/api/v1/assessments*` | 施测（班级×试卷）创建/参与者/出缺席 |
+| `/api/v1/assessments*` | 施测（班级×试卷）创建/参与者/出缺席（创建界面入口：学情分析页「新建施测」——选已确认原卷 + 班级，参测名单取该班在册学生；2026-10-13 补齐） |
 
 ## 成绩与学情（teaching 库）
 
@@ -84,7 +84,7 @@
 | --- | --- |
 | `/api/v1/score-imports*`（`PATCH` 列映射、`refresh`、`confirm`、`discard`） | 小题分成绩单导入（表头识别+人工确认；四态 recorded/missing/absent/exempt 不补零） |
 | `/api/v1/score-revisions/{id}`、`/{id}/matrix` | 成绩版本与矩阵（按行列定位校正） |
-| POST `/api/v1/assessments/{id}/analysis-runs`、`/analysis-runs*` | 学情报告创建/列表/归档/删除、教师备注 |
+| POST `/api/v1/assessments/{id}/analysis-runs`、`/analysis-runs*` | 学情报告创建/列表/归档/删除、教师备注（创建界面入口：学情分析页「生成学情报告」——已确认成绩修订 + 该修订 `participantSnapshot` 的人次；同输入复用、同标识重放；2026-10-13 补齐） |
 
 ## 删除语义（R10-BE，2026-10-13 用户裁定「舍弃所有归档功能，只留删除」+「拆开交叉引用」）
 
