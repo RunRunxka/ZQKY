@@ -61,9 +61,9 @@
 | 方法和路径 | 用途 |
 | --- | --- |
 | `/api/v1/question-imports*`（含 POST `/question-imports/from-textbook`） | 导入草稿；从教材课后习题提取（无习题 422 `TEXTBOOK_EXERCISES_EMPTY`） |
-| `/question-drafts/{id}`、`/question-imports/{id}/{split,merge,organize}`、`/question-suggestions/{id}/apply` | 草稿编辑/拆分/合并/AI 整理与应用（AI 整理经 `run_structured`，供应商不支持 `json_schema` 时自动降级 `json_mode`） |
+| `/question-drafts/{id}`、`/question-imports/{id}/{split,merge,organize}`、`/question-suggestions/{id}/apply` | 草稿编辑/拆分/合并/AI 整理与应用（AI 整理经 `run_structured`，供应商不支持 `json_schema` 时自动降级 `json_mode`）。**2026-10-13 一键整理并绑定**：`POST .../organize` 请求体新增 `autoApply`（默认 `false`）——`true` 时整理结果（内容 + 知识点库绑定，提示词 v2）在同一事务直接写入草稿（建议落 `applied`），教师只做多选入库；`false` 仍只产生 `pending` 建议。草稿**改学科**且未显式给 `knowledgeLinks` 时，旧关联（含 AI 绑定）自动清空并写 `warnings` 留言（正式题 `PATCH /questions/{id}` 仍 422 `KNOWLEDGE_REFERENCE_INVALID` 要求显式处置） |
 | `DELETE /question-imports/{id}` | 彻底删除导入批次与解析产物。R10：**任何状态可删**（含已确认、含"草稿已并入正式题"）；题目一律保留——`question_sources.import_id` 置空（来源跨度保留，回执 `unlinkedQuestionSources`），批次自身的原文块/草稿/建议/并入记录/生成来源随批次删除 |
-| `/question-imports/{id}/confirm` | 教师确认 → 正式题目入库（发布边界） |
+| `/question-imports/{id}/confirm` | 教师确认 → 正式题目入库（发布边界）。**2026-10-13「多选即确认」**：只拦 `excluded` 草稿（`DRAFT_EXCLUDED`）；未标记 `reviewed`（旧 `DRAFT_NOT_REVIEWED`）与缺答案（旧 `MISSING_ANSWER_NOT_ACKNOWLEDGED`）都不再阻断，缺答案以 `answerState=not_provided` 落库 |
 | GET `/api/v1/questions`（`knowledgePointId`、`difficulty=easy|medium|hard|unspecified`、`q`）、`/questions/{id}`（GET/PATCH/DELETE） | 题目库查询与维护 |
 | POST `/api/v1/question-generation-jobs` | AI 补题（needs_review 草稿） |
 
