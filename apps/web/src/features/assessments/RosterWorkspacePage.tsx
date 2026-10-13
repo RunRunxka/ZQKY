@@ -1,31 +1,34 @@
 'use client';
 
 /**
- * 班级管理独立页（`/assessments/roster`，R5-FE 2026-10-11）。
+ * 班级管理独立页（`/assessments/roster`，R5-FE 2026-10-11；R10-FE 2026-10-12 去归档）。
  *
- * 版面（对齐用户参考图）：顶部班级选择（班级维度保留归档的班级选择器 + 新建/归档/彻底删除），
- * 下方「学生列表」卡：操作行 = 新增学生（主色）/ 批量导入（次色）/ 批量删除（红描边），
- * 再下方搜索框（占位「搜索学生姓名」），表格列 = 复选框 / 姓名 / 学号 / 性别 / 操作（编辑、删除），
- * 底部「共 N 条记录」+ 页码控件。批量导入沿用归档 `RosterImportPanel`（xlsx/csv → 审阅行 →
+ * 版面（对齐用户参考图）：顶部班级选择（新建 / 彻底删除）+ 下方「学生列表」卡：
+ * 操作行 = 新增学生（主色）/ 批量导入（次色）/ 批量删除（红描边），再下方搜索框
+ * （占位「搜索学生姓名」），表格列 = 复选框 / 姓名 / 学号 / 性别 / 操作（编辑、删除），
+ * 底部「共 N 条记录」+ 页码控件。批量导入沿用 `RosterImportPanel`（xlsx/csv → 审阅行 →
  * 确认落库，错误原样展示）。
  *
- * 真实状态全部来自 FastAPI：读取失败显示错误码与重试入口，**绝不显示成空名单**；
- * 删除是**归档**（软删除，可恢复，保留历史归属与既有施测记录），归档对象在「显示已归档」里可恢复。
+ * 真实状态全部来自 FastAPI：读取失败显示错误码与重试入口，**绝不显示成空名单**。
+ *
+ * R10-FE 用户裁定「舍弃所有归档功能，只留删除」：
+ * - 班级/学生的归档与恢复入口、已归档开关与视图分支全部移除（含「改为归档」兜底）；
+ * - 删除学生走 `DELETE /students/{id}?expectedRevision=N`，200 回执 `{mode, message}` 原样呈现：
+ *   `removed_with_history` 用 info 样式提示「有历史成绩，已移除并保留历史」；409/404 原样报错；
+ * - 删除后同时刷新班级列表与学生列表（班级人数即时正确）；
+ * - 「编辑学生」是模态表单：本地状态 + 显式「保存」按钮提交 + 取消放弃修改，保存成功给提示。
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Pencil, Plus, RefreshCw, RotateCcw, Trash2, Upload, UserPlus } from 'lucide-react';
-import type { ClassView, StudentView } from '@/contracts/roster';
+import { Pencil, Plus, RefreshCw, Trash2, Upload, UserPlus } from 'lucide-react';
+import type { ClassView, StudentDeleteMode, StudentDeleteResult, StudentView } from '@/contracts/roster';
 import {
-  archiveClass,
-  archiveStudent,
   createClass,
   createStudent,
   deleteClass,
+  deleteStudent,
   listClassStudents,
   listClasses,
-  restoreClass,
-  restoreStudent,
   updateStudent,
 } from '@/services/assessments-api';
 import { fetchTextbookTaxonomy } from '@/services/textbook-api';
@@ -54,35 +57,47 @@ function writeErrorText(action: string, error: { code: string; message: string }
   return `${action}失败（${error.code}）：${error.message}`;
 }
 
+/** 学生删除成功回执（对象名 + 服务端模式与 message，原样展示）。 */
+interface StudentDeleteReceipt {
+  name: string;
+  mode: StudentDeleteMode;
+  message: string;
+}
+
+/** 删除回执是否含「有历史成绩」：info 样式与文案由它决定（普通删除用中性样式）。 */
+function receiptHasHistory(receipts: readonly StudentDeleteReceipt[]): boolean {
+  return receipts.some((receipt) => receipt.mode === 'removed_with_history');
+}
+
 export function RosterWorkspacePage() {
   const pageRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLElement>(null);
   const importRef = useRef<HTMLDivElement>(null);
-  const [refreshToken, setRefreshToken] = useState(0);
-  /** 默认只取活跃班；打开后不传 status（服务端默认口径 = 全部）。归档班仍可读。 */
-  const [showArchivedClasses, setShowArchivedClasses] = useState(false);
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
-  /** 归档写操作身份（禁用按钮防重入）与错误提示。 */
+  /** 写操作身份（禁用按钮防重入）与错误提示。 */
   const [writeBusyId, setWriteBusyId] = useState<string | null>(null);
   const [writeError, setWriteError] = useState<string | null>(null);
   const [deleteGuard, setDeleteGuard] = useState<DeleteGuardState | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  /** 学生删除成功回执（200 `{mode, message}`）：与错误区分开，单独一条 info/中性横幅。 */
+  const [deleteReceipts, setDeleteReceipts] = useState<StudentDeleteReceipt[] | null>(null);
 
   const [createClassOpen, setCreateClassOpen] = useState(false);
   const [createStudentOpen, setCreateStudentOpen] = useState(false);
   const [editStudent, setEditStudent] = useState<StudentView | null>(null);
   const [importOpen, setImportOpen] = useState(false);
 
+  /**
+   * 只取活跃班（R10-FE：归档功能已移除，界面不再提供已归档视图；
+   * 历史遗留的已归档班级不在本页列出——由后端数据处置，不做前端猜测）。
+   *
+   * 资源 key 不含刷新计数：删除/保存后的刷新走 `reload()`（同一 key），刷新期间沿用上一次
+   * 成功数据——否则 key 变化会让班级列表瞬时清空，班级选择与批量选择被误重置。
+   */
   const classes = useAsyncResource(
-    (signal) =>
-      listClasses(
-        showArchivedClasses ? { limit: 200 } : { status: 'active', limit: 200 },
-        signal,
-      ),
-    `assessments-classes|${refreshToken}|${showArchivedClasses ? 'all' : 'active'}`,
+    (signal) => listClasses({ status: 'active', limit: 200 }, signal),
+    'assessments-classes',
   );
-  const [refreshStudents, setRefreshStudents] = useState(0);
-  const [showArchivedStudents, setShowArchivedStudents] = useState(false);
   const classItems = useMemo(() => classes.lastData?.items ?? [], [classes.lastData]);
   /**
    * 当前班级：显式选择优先；未选择（或所选班级已不在列表里）时回落到列表第一条。
@@ -93,14 +108,13 @@ export function RosterWorkspacePage() {
     return classItems.find((item) => item.id === selectedClassId) ?? classItems[0];
   }, [classItems, selectedClassId]);
   const currentClassId = currentClass?.id ?? null;
+  /** 学生名单同样用 `reload()` 刷新（key 只随班级变化）：删除后列表不会整段闪空。 */
   const students = useAsyncResource(
     (signal) =>
       currentClassId
-        ? listClassStudents(currentClassId, { includeArchived: showArchivedStudents }, signal)
+        ? listClassStudents(currentClassId, {}, signal)
         : Promise.resolve({ items: [], total: 0, offset: 0, limit: 0 }),
-    `assessments-class-students|${currentClassId ?? 'none'}|${
-      showArchivedStudents ? 'all' : 'active'
-    }|${refreshStudents}`,
+    `assessments-class-students|${currentClassId ?? 'none'}`,
   );
 
   const [studentQuery, setStudentQuery] = useState('');
@@ -111,11 +125,11 @@ export function RosterWorkspacePage() {
   useEntrance(tableRef, { preset: 'panel', triggerKey: currentClassId ?? 'none' });
   useEntrance(importRef, { preset: 'panel', enabled: importOpen });
 
-  // 切班/换筛选即清空选择：批量操作的集合不能跨班级偷渡。
+  // 切班即清空选择：批量操作的集合不能跨班级偷渡。
   useEffect(() => {
     setSelectedIds(new Set());
     setPage(0);
-  }, [currentClassId, showArchivedStudents]);
+  }, [currentClassId]);
 
   const allStudents = useMemo(
     () => students.lastData?.items ?? [],
@@ -128,8 +142,7 @@ export function RosterWorkspacePage() {
   const pages = pageCount(filtered.length, STUDENT_PAGE_SIZE);
   const currentPage = clampPage(page, pages);
   const rows = filtered.slice(currentPage * STUDENT_PAGE_SIZE, (currentPage + 1) * STUDENT_PAGE_SIZE);
-  const selectableRows = rows.filter((row) => row.status === 'active');
-  const allRowsSelected = selectableRows.length > 0 && selectableRows.every((row) => selectedIds.has(row.id));
+  const allRowsSelected = rows.length > 0 && rows.every((row) => selectedIds.has(row.id));
 
   const taxonomy = useAsyncResource(fetchTextbookTaxonomy, 'assessments-class-taxonomy');
   const gradeLabel = (gradeId: string) =>
@@ -143,42 +156,21 @@ export function RosterWorkspacePage() {
     };
   }, []);
 
+  /**
+   * 刷新班级与学生两处真实数据（删除/保存/导入后）：都走同一资源的 `reload()`，
+   * 刷新期间保留上一次成功数据，班级人数与学生行不会闪空或误重置选择。
+   */
   function reloadAll() {
     classes.reload();
-    setRefreshStudents((value) => value + 1);
-    setRefreshToken((value) => value + 1);
-  }
-
-  async function writeClass(
-    item: ClassView,
-    archived: boolean,
-    confirmText?: string,
-  ): Promise<boolean> {
-    if (writeBusyId !== null) return false;
-    if (confirmText && !window.confirm(confirmText)) return false;
-    setWriteBusyId(item.id);
-    setWriteError(null);
-    setNotice(null);
-    try {
-      if (archived) await restoreClass(item.id, { expectedRevision: item.revision });
-      else await archiveClass(item.id, { expectedRevision: item.revision });
-      if (!mounted.current) return true;
-      setNotice(`已${archived ? '恢复' : '归档'}班级「${item.name}」。`);
-      reloadAll();
-      return true;
-    } catch (cause) {
-      if (!mounted.current) return false;
-      setWriteError(writeErrorText(`${archived ? '恢复' : '归档'}班级`, asApiError(cause)));
-      return false;
-    } finally {
-      if (mounted.current) setWriteBusyId(null);
-    }
+    students.reload();
   }
 
   /**
-   * 彻底删除班级（受引用守卫的物理删除，二次确认）：被归属/名单导入/施测范围/教案任一引用时
-   * 服务端 409 `CLASS_IN_USE`，把 message 与 `details.counts` 逐项显示，并给「改为归档」；
-   * 乐观锁冲突 / 404 按既有错误区呈现（不伪装成引用问题）。
+   * 彻底删除班级（受引用守卫的物理删除，二次确认）。
+   *
+   * R10-FE：不再提供「改为归档」兜底——被归属记录/名单导入/施测范围/教案引用时服务端 409
+   * `CLASS_IN_USE`，只把 message 与 `details.counts` 逐项列出；乐观锁冲突 / 404 按既有错误区呈现
+   * （不伪装成引用问题）。
    */
   async function deleteClassItem(item: ClassView) {
     if (writeBusyId !== null) return;
@@ -216,23 +208,27 @@ export function RosterWorkspacePage() {
     }
   }
 
-  /** 归档学生（软删除）：历史归属与既有施测记录保留，可在「显示已归档」里恢复。 */
-  async function archiveStudentItem(student: StudentView) {
+  /**
+   * 删除学生（R10-FE 冻结契约：`DELETE /students/{id}?expectedRevision=N`）。
+   *
+   * - 成功 200 `{mode, message}`：message 直接展示；`removed_with_history`（有历史成绩）用 info
+   *   样式提示「有历史成绩，已移除并保留历史」；
+   * - 失败（乐观锁 409 / 404 等）原样展示服务端 code 与 message；
+   * - 成功后同一次刷新**班级列表与学生列表**：班级人数即时正确。
+   */
+  async function deleteStudentItem(student: StudentView) {
     if (writeBusyId !== null) return;
-    if (
-      !window.confirm(
-        `删除学生「${student.name}」？删除为归档：本班名单不再显示，历史归属与既有施测记录保留，可在「显示已归档」中恢复。`,
-      )
-    ) {
+    if (!window.confirm(`删除学生「${student.name}」？若其有历史成绩将保留历史数据。`)) {
       return;
     }
     setWriteBusyId(student.id);
     setWriteError(null);
     setNotice(null);
+    setDeleteReceipts(null);
     try {
-      await archiveStudent(student.id, { expectedRevision: student.revision });
+      const receipt: StudentDeleteResult = await deleteStudent(student.id, student.revision);
       if (!mounted.current) return;
-      setNotice(`已删除（归档）学生「${student.name}」，可随时恢复。`);
+      setDeleteReceipts([{ name: student.name, mode: receipt.mode, message: receipt.message }]);
       setSelectedIds((current) => {
         const next = new Set(current);
         next.delete(student.id);
@@ -247,35 +243,17 @@ export function RosterWorkspacePage() {
     }
   }
 
-  async function restoreStudentItem(student: StudentView) {
-    if (writeBusyId !== null) return;
-    setWriteBusyId(student.id);
-    setWriteError(null);
-    setNotice(null);
-    try {
-      await restoreStudent(student.id, { expectedRevision: student.revision });
-      if (!mounted.current) return;
-      setNotice(`已恢复学生「${student.name}」。`);
-      reloadAll();
-    } catch (cause) {
-      if (!mounted.current) return;
-      setWriteError(writeErrorText('恢复学生', asApiError(cause)));
-    } finally {
-      if (mounted.current) setWriteBusyId(null);
-    }
-  }
-
   /**
-   * 批量删除（归档）：逐名学生走同一条受守卫接口；失败**不静默**——列出失败姓名与原因，
-   * 已成功的照常刷新，未成功的保持选中，便于重试（不做"部分成功却报成功"）。
+   * 批量删除：逐名学生走同一条受守卫删除接口；失败**不静默**——列出失败姓名与原因，
+   * 已成功的照常刷新（回执逐条展示），未成功的保持选中，便于重试（不做"部分成功却报成功"）。
    */
-  async function batchArchive() {
+  async function batchDelete() {
     if (writeBusyId !== null) return;
     const targets = allStudents.filter((student) => selectedIds.has(student.id));
     if (targets.length === 0) return;
     if (
       !window.confirm(
-        `删除选中的 ${targets.length} 名学生？删除为归档：本班名单不再显示，历史归属与既有施测记录保留，可在「显示已归档」中恢复。`,
+        `删除选中的 ${targets.length} 名学生？若其中有学生存在历史成绩，将保留其历史数据。`,
       )
     ) {
       return;
@@ -283,11 +261,14 @@ export function RosterWorkspacePage() {
     setWriteBusyId('batch');
     setWriteError(null);
     setNotice(null);
+    setDeleteReceipts(null);
+    const receipts: StudentDeleteReceipt[] = [];
     const failures: string[] = [];
     const done = new Set<string>();
     for (const student of targets) {
       try {
-        await archiveStudent(student.id, { expectedRevision: student.revision });
+        const receipt: StudentDeleteResult = await deleteStudent(student.id, student.revision);
+        receipts.push({ name: student.name, mode: receipt.mode, message: receipt.message });
         done.add(student.id);
       } catch (cause) {
         const error = asApiError(cause);
@@ -298,12 +279,11 @@ export function RosterWorkspacePage() {
     if (!mounted.current) return;
     setWriteBusyId(null);
     setSelectedIds(new Set(targets.filter((s) => !done.has(s.id)).map((s) => s.id)));
+    if (receipts.length > 0) setDeleteReceipts(receipts);
     if (failures.length > 0) {
       setWriteError(
         `批量删除未全部完成：成功 ${done.size} 人；失败 ${failures.length} 人——${failures.join('；')}`,
       );
-    } else {
-      setNotice(`已删除（归档）选中的 ${done.size} 名学生，可随时恢复。`);
     }
     reloadAll();
   }
@@ -314,22 +294,14 @@ export function RosterWorkspacePage() {
         <div className="space-header-row">
           <h1>班级管理</h1>
           <div className="assessments-actions">
-            <label className="assessments-check">
-              <input
-                type="checkbox"
-                aria-label="显示已归档班级"
-                checked={showArchivedClasses}
-                onChange={(event) => setShowArchivedClasses(event.target.checked)}
-              />
-              <span>显示已归档班级</span>
-            </label>
             <button className="space-button" onClick={reloadAll}>
               <RefreshCw size={13} aria-hidden /> 刷新
             </button>
           </div>
         </div>
         <p className="space-description">
-          按班级维护学生名单：支持一键导入 xlsx/csv 名单、逐个添加与编辑、删除（归档可恢复）。
+          按班级维护学生名单：支持一键导入 xlsx/csv 名单、逐个添加与编辑、删除
+          （有历史成绩的学生会移除并保留历史数据，由服务端回执说明）。
           名单里的学生身份来自后端真实数据，未出现的学生不会自动退班。
         </p>
       </header>
@@ -371,7 +343,6 @@ export function RosterWorkspacePage() {
                   {classItems.map((item) => (
                     <option key={item.id} value={item.id}>
                       {item.name}
-                      {item.status === 'archived' ? '（已归档）' : ''}
                       {` · ${item.code}`}
                     </option>
                   ))}
@@ -389,32 +360,6 @@ export function RosterWorkspacePage() {
               >
                 <Plus size={13} aria-hidden /> 新建班级
               </button>
-              {currentClass && currentClass.status === 'active' && (
-                <button
-                  className="space-button"
-                  disabled={writeBusyId !== null}
-                  data-testid={`assessments-class-archive-${currentClass.id}`}
-                  onClick={() =>
-                    void writeClass(
-                      currentClass,
-                      false,
-                      `归档班级「${currentClass.name}」？归档班级仍可读，但不能再导入名单；历史归属与既有施测保留。`,
-                    )
-                  }
-                >
-                  {writeBusyId === currentClass.id ? '归档中…' : '归档班级'}
-                </button>
-              )}
-              {currentClass && currentClass.status === 'archived' && (
-                <button
-                  className="space-button"
-                  disabled={writeBusyId !== null}
-                  data-testid={`assessments-class-restore-${currentClass.id}`}
-                  onClick={() => void writeClass(currentClass, true)}
-                >
-                  {writeBusyId === currentClass.id ? '恢复中…' : '恢复班级'}
-                </button>
-              )}
               {currentClass && (
                 <button
                   className="space-button danger"
@@ -437,6 +382,33 @@ export function RosterWorkspacePage() {
               {notice}
             </p>
           )}
+          {deleteReceipts && deleteReceipts.length > 0 && (
+            <div
+              className={`space-banner${receiptHasHistory(deleteReceipts) ? ' info' : ''}`}
+              role="status"
+              data-testid="assessments-student-delete-receipt"
+            >
+              {receiptHasHistory(deleteReceipts) && (
+                <p>有历史成绩，已移除并保留历史（服务端回执如下）。</p>
+              )}
+              {deleteReceipts.length === 1 ? (
+                <p>
+                  学生「{deleteReceipts[0].name}」：{deleteReceipts[0].message}
+                </p>
+              ) : (
+                <>
+                  <p>已删除选中的 {deleteReceipts.length} 名学生：</p>
+                  <ul className="assessments-issue-list" aria-label="删除回执清单">
+                    {deleteReceipts.map((receipt, index) => (
+                      <li key={`${receipt.name}|${receipt.mode}|${index}`}>
+                        「{receipt.name}」{receipt.message}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
+          )}
           {deleteGuard && (
             <DeleteGuardNotice
               state={deleteGuard}
@@ -444,12 +416,7 @@ export function RosterWorkspacePage() {
                 classItems.find((item) => item.id === deleteGuard.targetId)?.name,
                 deleteGuard.targetId,
               )}
-              archiving={writeBusyId === deleteGuard.targetId}
               testId="assessments-class-delete-guard"
-              onArchive={() => {
-                const target = classItems.find((item) => item.id === deleteGuard.targetId);
-                if (target) void writeClass(target, false);
-              }}
             />
           )}
         </section>
@@ -458,15 +425,6 @@ export function RosterWorkspacePage() {
           <div className="assessments-subpanel-head">
             <h2 className="assessments-card-title">学生列表</h2>
             {currentClass && <span className="space-chip">{currentClass.name}</span>}
-            <label className="assessments-check">
-              <input
-                type="checkbox"
-                aria-label="显示已归档学生"
-                checked={showArchivedStudents}
-                onChange={(event) => setShowArchivedStudents(event.target.checked)}
-              />
-              <span>显示已归档</span>
-            </label>
           </div>
 
           {!currentClassId && (
@@ -499,7 +457,7 @@ export function RosterWorkspacePage() {
                   className="space-button danger"
                   disabled={writeBusyId !== null || selectedIds.size === 0}
                   data-testid="assessments-student-batch-delete"
-                  onClick={() => void batchArchive()}
+                  onClick={() => void batchDelete()}
                 >
                   <Trash2 size={14} aria-hidden /> 批量删除
                   {selectedIds.size > 0 ? `（${selectedIds.size}）` : ''}
@@ -552,11 +510,11 @@ export function RosterWorkspacePage() {
                               type="checkbox"
                               aria-label="全选本页学生"
                               checked={allRowsSelected}
-                              disabled={selectableRows.length === 0}
+                              disabled={rows.length === 0}
                               onChange={(event) =>
                                 setSelectedIds((current) => {
                                   const next = new Set(current);
-                                  for (const row of selectableRows) {
+                                  for (const row of rows) {
                                     if (event.target.checked) next.add(row.id);
                                     else next.delete(row.id);
                                   }
@@ -573,17 +531,12 @@ export function RosterWorkspacePage() {
                       </thead>
                       <tbody>
                         {rows.map((student) => (
-                          <tr
-                            key={student.id}
-                            data-testid={`assessments-student-${student.id}`}
-                            className={student.status === 'archived' ? 'archived' : undefined}
-                          >
+                          <tr key={student.id} data-testid={`assessments-student-${student.id}`}>
                             <td className="assessments-col-check">
                               <input
                                 type="checkbox"
                                 aria-label={`选择学生 ${student.name}`}
                                 checked={selectedIds.has(student.id)}
-                                disabled={student.status === 'archived'}
                                 onChange={(event) =>
                                   setSelectedIds((current) => {
                                     const next = new Set(current);
@@ -596,11 +549,6 @@ export function RosterWorkspacePage() {
                             </td>
                             <td>
                               <span className="assessments-student-name">{student.name}</span>
-                              {student.status === 'archived' && (
-                                <span className="space-chip" data-testid={`assessments-student-archived-${student.id}`}>
-                                  已归档
-                                </span>
-                              )}
                             </td>
                             <td className="assessments-cell-num">
                               {student.studentNo ?? <span className="assessments-cell-muted">未记录</span>}
@@ -616,25 +564,14 @@ export function RosterWorkspacePage() {
                                 >
                                   <Pencil size={12} aria-hidden /> 编辑
                                 </button>
-                                {student.status === 'archived' ? (
-                                  <button
-                                    className="assessments-link-button"
-                                    disabled={writeBusyId !== null}
-                                    data-testid={`assessments-student-restore-${student.id}`}
-                                    onClick={() => void restoreStudentItem(student)}
-                                  >
-                                    <RotateCcw size={12} aria-hidden /> 恢复
-                                  </button>
-                                ) : (
-                                  <button
-                                    className="assessments-link-button danger"
-                                    disabled={writeBusyId !== null}
-                                    data-testid={`assessments-student-delete-${student.id}`}
-                                    onClick={() => void archiveStudentItem(student)}
-                                  >
-                                    <Trash2 size={12} aria-hidden /> 删除
-                                  </button>
-                                )}
+                                <button
+                                  className="assessments-link-button danger"
+                                  disabled={writeBusyId !== null}
+                                  data-testid={`assessments-student-delete-${student.id}`}
+                                  onClick={() => void deleteStudentItem(student)}
+                                >
+                                  <Trash2 size={12} aria-hidden /> 删除
+                                </button>
                               </div>
                             </td>
                           </tr>
@@ -678,8 +615,9 @@ export function RosterWorkspacePage() {
         </section>
 
         <p className="space-footnote">
-          班级、学生与导入批次都以后端为准：读取失败会显示具体错误码并保留上一次成功数据，
-          删除是归档（可恢复）而不是抹除历史，导入的每一行都要人工确认后才落库。
+          班级、学生与导入批次都以后端为准：读取失败会显示具体错误码并保留上一次成功数据；
+          删除即删除（不做归档）：无历史成绩的学生连同归属记录物理删除，有历史成绩的学生
+          按服务端回执「已移除并保留历史数据」；导入的每一行都要人工确认后才落库。
         </p>
       </main>
 
@@ -709,8 +647,9 @@ export function RosterWorkspacePage() {
           className={currentClass?.name ?? ''}
           student={null}
           onClose={() => setCreateStudentOpen(false)}
-          onSaved={() => {
+          onSaved={(savedName) => {
             setCreateStudentOpen(false);
+            setNotice(`已新增学生「${savedName}」。`);
             reloadAll();
           }}
         />
@@ -723,8 +662,9 @@ export function RosterWorkspacePage() {
           className={currentClass?.name ?? ''}
           student={editStudent}
           onClose={() => setEditStudent(null)}
-          onSaved={() => {
+          onSaved={(savedName) => {
             setEditStudent(null);
+            setNotice(`已保存学生「${savedName}」的信息。`);
             reloadAll();
           }}
         />
@@ -735,10 +675,7 @@ export function RosterWorkspacePage() {
           <div ref={importRef}>
             <RosterImportPanel
               classId={currentClassId}
-              onChanged={() => {
-                setRefreshStudents((value) => value + 1);
-                setRefreshToken((value) => value + 1);
-              }}
+              onChanged={reloadAll}
             />
           </div>
         </Modal>
@@ -875,7 +812,13 @@ function CreateClassDialog({
   );
 }
 
-/** 新增 / 编辑学生：姓名 + 学号（学号按文本保存，保留前导零）。 */
+/**
+ * 新增 / 编辑学生：姓名 + 学号（学号按文本保存，保留前导零）。
+ *
+ * R10-FE：编辑是**模态表单 + 显式保存**——输入先放在本地状态（不即时提交、不随失焦提交），
+ * 点「保存」才提交；「取消」直接关闭，重新打开显示服务端原值（不残留未保存修改）。
+ * 保存成功后由父组件刷新学生名单并给出成功提示；409 版本冲突保留输入并提示刷新对照。
+ */
 function StudentFormDialog({
   mode,
   classId,
@@ -889,7 +832,7 @@ function StudentFormDialog({
   className: string;
   student: StudentView | null;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (savedName: string) => void;
 }) {
   const [name, setName] = useState(student?.name ?? '');
   const [studentNo, setStudentNo] = useState(student?.studentNo ?? '');
@@ -899,25 +842,26 @@ function StudentFormDialog({
 
   async function submit() {
     if (busy) return;
+    const submittedName = name.trim();
     setBusy(true);
     setError(null);
     setConflictRevision(null);
     try {
       if (mode === 'create') {
         await createStudent({
-          name: name.trim(),
+          name: submittedName,
           studentNo: studentNo.trim() === '' ? null : studentNo.trim(),
           classId: classId || null,
         });
       } else if (student) {
         await updateStudent(student.id, {
           expectedRevision: student.revision,
-          name: name.trim(),
+          name: submittedName,
           // 空学号必须显式送 null（服务端按文本保存：空串与"未记录"语义不同）
           studentNo: studentNo.trim() === '' ? null : studentNo.trim(),
         });
       }
-      onSaved();
+      onSaved(submittedName);
     } catch (cause) {
       const issue = asApiError(cause);
       setError(`${writeErrorText(mode === 'create' ? '添加学生' : '保存学生', issue)} 输入已保留，可修改后重试。`);
@@ -962,6 +906,7 @@ function StudentFormDialog({
         {mode === 'edit' && (
           <p className="assessments-hint">
             性别列来自后端名单数据；后端未提供该字段时显示「未记录」，本页不手工改写。
+            修改不会自动保存：点「保存」才提交，点「取消」放弃本次修改。
           </p>
         )}
         {error && (
@@ -976,8 +921,13 @@ function StudentFormDialog({
           <button className="space-button" type="button" disabled={busy} onClick={onClose}>
             取消
           </button>
-          <button className="space-button primary" type="submit" disabled={busy || !name.trim()}>
-            {busy ? '保存中…' : mode === 'create' ? '添加学生' : '保存修改'}
+          <button
+            className="space-button primary"
+            type="submit"
+            data-testid="assessments-student-form-save"
+            disabled={busy || !name.trim()}
+          >
+            {busy ? '保存中…' : '保存'}
           </button>
         </div>
       </form>

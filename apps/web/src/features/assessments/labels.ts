@@ -111,16 +111,23 @@ export interface ReferenceCount {
   count: number;
 }
 
+/**
+ * 班级删除 409 的计数标签（R10-BE 语义）：阻断项是「成绩链证据」（参测人次）与
+ * 「教案」（独立成果）；其余键（归属/名单批次/参测范围）只作如实呈现（它们随班级联），
+ * 服务端给出非零值时仍逐项列出，不隐藏任何一条引用。
+ */
 export const CLASS_REFERENCE_LABELS: Record<string, string> = {
+  assessmentParticipants: '施测参测人次（成绩链证据）',
+  lessonPlans: '班级教案',
+  lessonGenerationInputs: '教案生成输入',
   memberships: '班级归属记录',
   rosterImports: '名单导入批次',
   assessments: '参测范围引用',
-  lessonPlans: '教案引用',
 };
 
 export const PAPER_REFERENCE_LABELS: Record<string, string> = {
   assessments: '引用施测',
-  confirmedRevisions: '已确认修订（已确认原卷只能归档）',
+  confirmedRevisions: '已确认修订',
 };
 
 /**

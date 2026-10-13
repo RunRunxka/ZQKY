@@ -10,6 +10,10 @@
  * 降级为空列表**。失败统一抛 `ApiError`（`details.currentRevision` / `details.issues` /
  * `details.counts` 原样保留，供 409 保留编辑、422 行列定位、守卫原因清单使用）。
  *
+ * R10-FE（2026-10-12，用户裁定「舍弃所有归档功能，只留删除」）：归档/恢复客户端函数
+ * （班级/学生/试卷的 `/archive` 与 `/restore`）已从本文件移除；删除改为携带 `expectedRevision`
+ * 查询参数的物理删除，学生删除按 `StudentDeleteResult` 的两种模式回执呈现。
+ *
  * 重建期范围（R5-FE 2026-10-11）：本模块只做「班级管理」与「试卷管理」两页，因此归档客户端里
  * 的施测（`/assessments*`）与成绩（`/score-*`、`/score-revisions*`）部分不在本文件——
  * 它们属于后续批次，随该批次的页面一并取回，避免出现无人调用的第二套客户端。
@@ -20,7 +24,6 @@ import type {
   ClassCreateRequest,
   ClassDeleteResult,
   ClassList,
-  ClassRevisionRequest,
   ClassView,
   RosterImportConfirmRequest,
   RosterImportConfirmResult,
@@ -29,8 +32,8 @@ import type {
   RosterImportPatchRequest,
   RosterImportView,
   StudentCreateRequest,
+  StudentDeleteResult,
   StudentList,
-  StudentRevisionRequest,
   StudentUpdateRequest,
   StudentView,
 } from '@/contracts/roster';
@@ -46,7 +49,6 @@ import type {
   PaperProposalJobRequest,
   PaperProposalView,
   PaperRevisionContentView,
-  PaperRevisionRequest,
   PaperView,
 } from '@/contracts/papers';
 import type { TeachingJobView } from '@/contracts/assessments';
@@ -102,25 +104,10 @@ export function createClass(body: ClassCreateRequest): Promise<ClassView> {
   return apiRequest<ClassView>('/classes', jsonInit('POST', body));
 }
 
-/** 归档班级：`expectedRevision` 守卫；归档仍可读，归属历史保留。 */
-export function archiveClass(classId: string, body: ClassRevisionRequest): Promise<ClassView> {
-  return apiRequest<ClassView>(
-    `/classes/${encodeURIComponent(classId)}/archive`,
-    jsonInit('POST', body),
-  );
-}
-
-export function restoreClass(classId: string, body: ClassRevisionRequest): Promise<ClassView> {
-  return apiRequest<ClassView>(
-    `/classes/${encodeURIComponent(classId)}/restore`,
-    jsonInit('POST', body),
-  );
-}
-
 /**
  * 彻底删除班级（受引用守卫的物理删除）：`expectedRevision` 走查询参数。
  * 任一引用 >0 → 409 `CLASS_IN_USE` + `details.counts.{memberships,rosterImports,assessments,lessonPlans}`；
- * 乐观锁不符 → 409；不存在 → 404。归档班级同样受守卫（不会因归档而可删）。
+ * 乐观锁不符 → 409；不存在 → 404。**不做归档**：归档能力已从界面与客户端移除（R10-FE）。
  */
 export function deleteClass(classId: string, expectedRevision: number): Promise<ClassDeleteResult> {
   return apiRequest<ClassDeleteResult>(
@@ -183,18 +170,22 @@ export function updateStudent(
   return apiRequest<StudentView>(`/students/${encodeURIComponent(studentId)}`, jsonInit('PATCH', body));
 }
 
-/** 归档学生：`expectedRevision` 守卫；归属历史保留。 */
-export function archiveStudent(studentId: string, body: StudentRevisionRequest): Promise<StudentView> {
-  return apiRequest<StudentView>(
-    `/students/${encodeURIComponent(studentId)}/archive`,
-    jsonInit('POST', body),
-  );
-}
-
-export function restoreStudent(studentId: string, body: StudentRevisionRequest): Promise<StudentView> {
-  return apiRequest<StudentView>(
-    `/students/${encodeURIComponent(studentId)}/restore`,
-    jsonInit('POST', body),
+/**
+ * 彻底删除学生（R10-FE 冻结契约）：`expectedRevision` 走查询参数。
+ *
+ * 200 回执 `{mode, message}` 两种模式都要原样呈现：
+ * - `deleted`：无参测引用，连同归属记录物理删除；
+ * - `removed_with_history`：有历史成绩引用，移除身份/归属但保留历史数据。
+ * 乐观锁不符 → 409（R10-BE：有历史成绩不再 409）；调用方对任何 409 原样展示。
+ * **不做归档**：归档/恢复能力已从界面与客户端移除。
+ */
+export function deleteStudent(
+  studentId: string,
+  expectedRevision: number,
+): Promise<StudentDeleteResult> {
+  return apiRequest<StudentDeleteResult>(
+    `/students/${encodeURIComponent(studentId)}${assessmentsQuery({ expectedRevision })}`,
+    { method: 'DELETE' },
   );
 }
 
@@ -291,26 +282,11 @@ export function getPaperRevisionContent(
   );
 }
 
-/** 归档试卷：`expectedRevision` 守卫；历史引用（施测/成绩）保留。 */
-export function archivePaper(paperId: string, body: PaperRevisionRequest): Promise<PaperView> {
-  return apiRequest<PaperView>(
-    `/papers/${encodeURIComponent(paperId)}/archive`,
-    jsonInit('POST', body),
-  );
-}
-
-export function restorePaper(paperId: string, body: PaperRevisionRequest): Promise<PaperView> {
-  return apiRequest<PaperView>(
-    `/papers/${encodeURIComponent(paperId)}/restore`,
-    jsonInit('POST', body),
-  );
-}
-
 /**
- * 彻底删除试卷（受引用守卫的物理删除）：`expectedRevision` 走查询参数。
- * 被施测引用 → 409 `PAPER_IN_USE` + `details.counts.assessments`；
- * 有已确认修订 → 409 `PAPER_HAS_CONFIRMED_REVISION` + `details.counts.confirmedRevisions`（只能归档）；
- * 乐观锁不符 → 409；不存在 → 404。
+ * 彻底删除试卷（R10-BE 拆开交叉引用）：`expectedRevision` 走查询参数。
+ * 被施测引用 → 409 `PAPER_IN_USE` + `details.counts.assessments`（先删施测，再删原卷）；
+ * 已确认修订不再阻断（随原卷级联删除）；
+ * 乐观锁不符 → 409；不存在 → 404。**不做归档**：归档能力已从界面与客户端移除（R10-FE）。
  */
 export function deletePaper(paperId: string, expectedRevision: number): Promise<PaperDeleteResult> {
   return apiRequest<PaperDeleteResult>(

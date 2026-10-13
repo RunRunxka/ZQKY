@@ -1,11 +1,12 @@
 'use client';
 
 /**
- * 「彻底删除」被引用守卫拒绝（409）时的组件内原因清单（R5-FE 取回，逐段同构）。
+ * 「彻底删除」被引用守卫拒绝（409）时的组件内原因清单（R5-FE 取回，R10-FE 去归档）。
  *
  * - 原样显示服务端 `code` 与 `message`，不弹原生 alert；
  * - `details.counts` 逐项列出（标签 + 计数 + 条；未知键用原始键名兜底，不隐藏引用）；
- * - 提供「改为归档」快捷入口：归档是可恢复操作，历史引用保留；
+ * - R10-FE：归档功能已按用户裁定舍弃，这里不再提供「改为归档」兜底按钮——
+ *   引用未清零前删除会被服务端继续拒绝，界面只如实呈现原因；
  * - 乐观锁冲突 / 404 不走这里（各面板按既有 banner 呈现），避免把版本变化说成引用问题。
  */
 
@@ -23,14 +24,10 @@ export interface DeleteGuardState {
 export function DeleteGuardNotice({
   state,
   targetName,
-  archiving = false,
-  onArchive,
   testId,
 }: {
   state: DeleteGuardState;
   targetName: string;
-  archiving?: boolean;
-  onArchive?: () => void;
   testId?: string;
 }) {
   return (
@@ -52,20 +49,8 @@ export function DeleteGuardNotice({
       )}
       {state.reasons.length === 0 && (
         <p className="assessments-hint">
-          服务端未给出逐项引用计数；请先处理相关数据，或改为归档保证历史完整。
+          服务端未给出逐项引用计数；请先按服务端说明处理相关数据，再重试删除。
         </p>
-      )}
-      {onArchive && (
-        <div className="assessments-actions">
-          <button
-            className="space-button"
-            disabled={archiving}
-            data-testid={testId ? `${testId}-archive` : undefined}
-            onClick={onArchive}
-          >
-            {archiving ? '归档中…' : '改为归档（不删除历史）'}
-          </button>
-        </div>
       )}
     </div>
   );

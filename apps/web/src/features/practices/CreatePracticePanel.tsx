@@ -171,7 +171,7 @@ export function CreatePracticePanel({ services = b4Api, onCreated, onLocked }: C
     : !run.reportReady || run.job.state !== 'succeeded'
       ? '该报告尚未就绪，不能创建练习。'
       : archivedRun
-        ? '该报告已归档，不能用于新建练习（恢复后可新建）。'
+        ? '该报告已归档（只读），不能用于新建练习。'
         : !title.trim()
           ? '请填写练习标题。'
           : targets.length === 0
@@ -295,7 +295,7 @@ export function CreatePracticePanel({ services = b4Api, onCreated, onLocked }: C
                       <span>
                         <strong>{nameOrShortId(item.paperTitle, item.runId)}</strong>
                         <small className="practices-meta">
-                          {stampText(item.createdAt)} · {ready ? '报告就绪' : archived ? '已归档' : '报告未就绪'}
+                          {stampText(item.createdAt)} · {ready ? '报告就绪' : archived ? '已归档（只读）' : '报告未就绪'}
                         </small>
                       </span>
                     </label>

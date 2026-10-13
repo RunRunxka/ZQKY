@@ -113,7 +113,7 @@ export function PracticesWorkspace({ services = b4Api, initialPracticeSetId = nu
           <aside className="practices-list" aria-label="练习列表">
             <header className="practices-card-head">
               <h2>已有练习</h2>
-              <p className="practices-hint">按创建时间倒序（服务端分页）；归档与删除入口在后续批次。</p>
+              <p className="practices-hint">按创建时间倒序（服务端分页）。</p>
             </header>
             <ReadNotice resource={list} label="练习列表" />
             {list.state.phase === 'ready' && list.lastData?.items.length === 0 && (

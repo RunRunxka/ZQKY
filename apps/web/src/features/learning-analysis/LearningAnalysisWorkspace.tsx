@@ -264,7 +264,8 @@ export function LearningAnalysisWorkspace({
           <h2>分析报告</h2>
           <p className="la-hint">
             报告由后端在一次已确认成绩上创建（固定版本，不随成绩修正而变）；本页只读取既有报告，
-            不在此页创建。未归档与已归档报告都按后端返回展示，已归档带明确标记。
+            不在此页创建。R10-FE：归档功能已舍弃——本页不提供归档/恢复操作；历史数据里已归档的
+            报告仍按后端返回只读展示（标「已归档（只读）」）。
           </p>
 
           {runs.state.phase === 'failed' && (
@@ -306,7 +307,7 @@ export function LearningAnalysisWorkspace({
                   <span className="la-meta">
                     {item.reportReady ? '已准备' : '尚未准备'} · 人次{' '}
                     {item.selectionSnapshot?.participantCount ?? '—'} · 报告 {shortId(item.runId)}
-                    {item.archivedAt ? ' · 已归档' : ''}
+                    {item.archivedAt ? ' · 已归档（只读）' : ''}
                   </span>
                 </button>
               </li>
@@ -353,7 +354,7 @@ export function LearningAnalysisWorkspace({
               <p className="la-meta">
                 成绩修订 {shortId(runView.scoreRevisionId)} · 原卷修订 {shortId(runView.paperRevisionId)} ·
                 创建 {runView.createdAt?.slice(0, 10) || '—'}
-                {runView.archivedAt ? ' · 已归档（只读展示）' : ''}
+                {runView.archivedAt ? ' · 已归档（只读）' : ''}
               </p>
               {runView.selectionSnapshot && (
                 <p className="la-hint">

@@ -116,6 +116,26 @@ export interface StudentRevisionRequest {
   expectedRevision: number;
 }
 
+/**
+ * 学生删除回执模式（R10-FE 冻结契约，`DELETE /students/{id}?expectedRevision=N` 的 200 体）。
+ *
+ * - `deleted`：该生没有被任何施测参测快照引用，连同归属记录物理删除；
+ * - `removed_with_history`：该生有历史成绩引用，身份与归属从名单中移除，但历史成绩数据保留。
+ */
+export type StudentDeleteMode = 'deleted' | 'removed_with_history';
+
+/**
+ * 学生删除回执（200）：`message` 为服务端可读中文**原样展示**（不二次翻译）；
+ * 失败（乐观锁 409 / 404）由调用方按既有错误区原样呈现。
+ *
+ * R10-BE（2026-10-13）：有历史成绩的学生不再返回 409（按 `removed_with_history`
+ * 移除身份并保留历史）；`STUDENT_IN_USE` 已不是任何删除路径的响应，错误区仍防御性原样渲染。
+ */
+export interface StudentDeleteResult {
+  mode: StudentDeleteMode;
+  message: string;
+}
+
 export interface RosterImportRowView {
   rowNo: number;
   name: string;

@@ -1,10 +1,11 @@
 /**
- * 试卷管理页（`/assessments/papers`，参考图布局，R5-FE 2026-10-11）。
+ * 试卷管理页（`/assessments/papers`，参考图布局，R5-FE 2026-10-11；R10-FE 2026-10-12 去归档）。
  *
  * 覆盖参考图要求的版面与不可回退的行为：
  * 操作行（导入试卷 / 删除试卷）/ 表格列（试卷名称 / 科目 / 操作：浏览、编辑、删除）/
  * 表格下方「AI 试题知识点分类」环状图卡（含百分比图例）与拆题结构；
- * 列表读取失败显示错误码与重试而**不是**空列表；物理删除被守卫拒绝时逐项列出引用原因并给「改为归档」；
+ * 列表读取失败显示错误码与重试而**不是**空列表；物理删除被守卫拒绝时逐项列出引用原因
+ * （R10-FE：不再提供「改为归档」兜底）；页面没有归档/恢复入口，也不请求 archive/restore 端点；
  * 拆题结构只给题号/分值/知识点，不显示试卷正文。
  */
 
@@ -241,19 +242,16 @@ describe('试卷管理页：列表版面（参考图）', () => {
   });
 });
 
-describe('试卷管理页：物理删除受引用守卫', () => {
-  it('409 PAPER_HAS_CONFIRMED_REVISION：逐项列出引用计数并给「改为归档」', async () => {
+describe('试卷管理页：物理删除受引用守卫（无归档兜底）', () => {
+  it('409 PAPER_IN_USE：逐项列出引用计数，且不再提供「改为归档」', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     const fetchMock = stubApi((url, init) => {
       if (url.includes('/papers/paper-1') && (init.method ?? 'GET') === 'DELETE') {
         return jsonResponse(false, 409, {
-          code: 'PAPER_HAS_CONFIRMED_REVISION',
-          message: '原卷已有已确认修订，只能归档。',
-          details: { counts: { confirmedRevisions: 1 } },
+          code: 'PAPER_IN_USE',
+          message: '该原卷已被施测引用，不能删除；请先删除引用它的施测。',
+          details: { counts: { assessments: 1 } },
         });
-      }
-      if (url.includes('/papers/paper-1/archive')) {
-        return jsonResponse(true, 200, { ...PAPER, status: 'archived', revision: 5 });
       }
       return defaultHandler()(url, init);
     });
@@ -263,16 +261,20 @@ describe('试卷管理页：物理删除受引用守卫', () => {
     fireEvent.click(screen.getByTestId('assessments-paper-delete-selected'));
     await waitFor(() =>
       expect(screen.getByTestId('assessments-paper-delete-guard')).toHaveTextContent(
-        'PAPER_HAS_CONFIRMED_REVISION',
+        'PAPER_IN_USE',
       ),
     );
     const guard = screen.getByTestId('assessments-paper-delete-guard');
-    expect(guard).toHaveTextContent('已确认修订（已确认原卷只能归档） 1 条');
-
-    fireEvent.click(screen.getByTestId('assessments-paper-delete-guard-archive'));
-    await waitFor(() =>
-      expect(calls(fetchMock, '/papers/paper-1/archive', 'POST')).toHaveLength(1),
-    );
+    expect(guard).toHaveTextContent('引用施测 1 条');
+    expect(within(guard).queryByText('改为归档（不删除历史）')).not.toBeInTheDocument();
+    // 只发了删除，没有后续归档请求
+    expect(calls(fetchMock, '/papers/paper-1', 'DELETE')).toHaveLength(1);
+    expect(
+      fetchMock.mock.calls.every(([url]) => {
+        const text = String(url);
+        return !text.includes('/archive') && !text.includes('/restore');
+      }),
+    ).toBe(true);
   });
 
   it('删除成功后清空选中并重新读取列表', async () => {
@@ -286,5 +288,18 @@ describe('试卷管理页：物理删除受引用守卫', () => {
     await waitFor(() =>
       expect(screen.getByTestId('assessments-paper-notice')).toHaveTextContent('已彻底删除试卷'),
     );
+  });
+
+  it('没有归档/恢复入口：无「显示已归档」开关、无归档按钮', async () => {
+    stubApi(defaultHandler());
+    render(<PapersWorkspacePage />);
+    await waitFor(() => expect(screen.getByRole('table')).toBeInTheDocument());
+
+    expect(screen.queryByLabelText('显示已归档试卷')).not.toBeInTheDocument();
+    expect(screen.queryByText('显示已归档')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('assessments-paper-archive-paper-1')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('assessments-paper-restore-paper-1')).not.toBeInTheDocument();
+    expect(screen.queryByText('归档')).not.toBeInTheDocument();
+    expect(screen.queryByText('恢复')).not.toBeInTheDocument();
   });
 });

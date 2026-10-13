@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * 试卷管理独立页（`/assessments/papers`，R5-FE 2026-10-11）。
+ * 试卷管理独立页（`/assessments/papers`，R5-FE 2026-10-11；R10-FE 2026-10-12 去归档）。
  *
  * 版面（对齐用户参考图）：操作行 = 「导入试卷」（主色，接受 DOCX / PDF 文本层）+
  * 「删除试卷」（红描边，作用于当前选中行）；表格列 = 试卷名称 / 科目 / 操作
@@ -12,20 +12,21 @@
  * 范围（用户明确裁定）：本模块不做成绩分析、不显示试卷内容、不提供整卷内容阅读器；
  * AI 结果只进候选、教师确认才落库（草稿 → 确认原卷入库）。扫描件等无法解析的原卷，
  * 后端给什么错误就原样显示什么错误。
+ *
+ * R10-FE 用户裁定「舍弃所有归档功能，只留删除」：已归档开关、归档/恢复按钮与「改为归档」
+ * 兜底全部移除；DELETE 的 409（`PAPER_IN_USE` / `PAPER_HAS_CONFIRMED_REVISION`）明细原样展示。
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Eye, FileUp, Pencil, RefreshCw, RotateCcw, Trash2 } from 'lucide-react';
+import { Eye, FileUp, Pencil, RefreshCw, Trash2 } from 'lucide-react';
 import type { PaperImportView, PaperView } from '@/contracts/papers';
 import {
-  archivePaper,
   createPaperImport,
   deletePaper,
   getPaper,
   getPaperRevisionContent,
   listPapers,
   paperKnowledgeDistribution,
-  restorePaper,
 } from '@/services/assessments-api';
 import { fetchTextbookTaxonomy } from '@/services/textbook-api';
 import { Modal } from '@/components/ui/Modal';
@@ -51,8 +52,6 @@ export function PapersWorkspacePage() {
   const pageRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLElement>(null);
   const [refreshToken, setRefreshToken] = useState(0);
-  /** 默认只取活跃试卷；打开后不传 status（服务端默认口径 = 全部）。归档试卷仍可读。 */
-  const [showArchived, setShowArchived] = useState(false);
   const [selectedPaperId, setSelectedPaperId] = useState<string | null>(null);
   const [editing, setEditing] = useState<PaperImportView | null>(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -61,10 +60,10 @@ export function PapersWorkspacePage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [deleteGuard, setDeleteGuard] = useState<DeleteGuardState | null>(null);
 
+  /** 只取活跃试卷（R10-FE：归档功能已移除，界面不再提供已归档视图）。 */
   const papers = useAsyncResource(
-    (signal) =>
-      listPapers(showArchived ? { limit: 200 } : { status: 'active', limit: 200 }, signal),
-    `assessments-papers|${refreshToken}|${showArchived ? 'all' : 'active'}`,
+    (signal) => listPapers({ status: 'active', limit: 200 }, signal),
+    `assessments-papers|${refreshToken}`,
   );
   const taxonomy = useAsyncResource(fetchTextbookTaxonomy, 'assessments-paper-taxonomy');
 
@@ -105,44 +104,9 @@ export function PapersWorkspacePage() {
   }
 
   /**
-   * 归档 / 恢复试卷（守卫式，`expectedRevision` 用列表项 revision）：
-   * 归档后仍可阅读、历史引用保留，但不能再用它创建新施测。
-   */
-  async function setArchived(paper: PaperView, archived: boolean, skipConfirm = false) {
-    if (writeBusyId !== null) return;
-    if (
-      !archived &&
-      !skipConfirm &&
-      !window.confirm(
-        `归档试卷「${paper.title}」？归档后仍可阅读、历史引用保留，但不能再用它创建新施测。`,
-      )
-    ) {
-      return;
-    }
-    setWriteBusyId(paper.paperId);
-    setWriteError(null);
-    setNotice(null);
-    try {
-      if (archived) await restorePaper(paper.paperId, { expectedRevision: paper.revision });
-      else await archivePaper(paper.paperId, { expectedRevision: paper.revision });
-      if (!mounted.current) return;
-      setNotice(`已${archived ? '恢复' : '归档'}试卷「${paper.title}」。`);
-      reload();
-    } catch (cause) {
-      if (!mounted.current) return;
-      const error = asApiError(cause);
-      setWriteError(
-        `${archived ? '恢复' : '归档'}试卷失败（${error.code}）：${error.message}`,
-      );
-    } finally {
-      if (mounted.current) setWriteBusyId(null);
-    }
-  }
-
-  /**
    * 彻底删除试卷（受引用守卫的物理删除，二次确认）：
    * 被施测引用 409 `PAPER_IN_USE` 或存在已确认修订 409 `PAPER_HAS_CONFIRMED_REVISION` 时，
-   * 把服务端 message 与 `details.counts` 逐项显示在组件内错误区，并给「改为归档」；
+   * 把服务端 message 与 `details.counts` 逐项显示在组件内错误区（R10-FE：不再给「改为归档」）；
    * 乐观锁冲突 / 404 按既有错误区呈现（不伪装成引用问题）。
    */
   async function deletePaperItem(paper: PaperView) {
@@ -218,15 +182,6 @@ export function PapersWorkspacePage() {
         <div className="space-header-row">
           <h1>试卷管理</h1>
           <div className="assessments-actions">
-            <label className="assessments-check">
-              <input
-                type="checkbox"
-                aria-label="显示已归档试卷"
-                checked={showArchived}
-                onChange={(event) => setShowArchived(event.target.checked)}
-              />
-              <span>显示已归档</span>
-            </label>
             <button className="space-button" onClick={reload}>
               <RefreshCw size={13} aria-hidden /> 刷新
             </button>
@@ -307,7 +262,6 @@ export function PapersWorkspacePage() {
                 <tbody>
                   {items.map((paper) => {
                     const isSelected = selectedPaper?.paperId === paper.paperId;
-                    const archived = paper.status === 'archived';
                     return (
                       <tr
                         key={paper.paperId}
@@ -323,7 +277,6 @@ export function PapersWorkspacePage() {
                                 : '无修订'}
                             </span>
                             <span className="space-chip">修订 v{paper.version}</span>
-                            {archived && <span className="space-chip">已归档</span>}
                             {paper.blockingIssueCount > 0 && (
                               <span className="space-chip amber">
                                 阻断问题 {paper.blockingIssueCount}
@@ -355,25 +308,6 @@ export function PapersWorkspacePage() {
                               </button>
                             ) : (
                               <span className="assessments-hint">无修订可编辑</span>
-                            )}
-                            {archived ? (
-                              <button
-                                className="assessments-link-button"
-                                disabled={writeBusyId !== null}
-                                data-testid={`assessments-paper-restore-${paper.paperId}`}
-                                onClick={() => void setArchived(paper, true)}
-                              >
-                                <RotateCcw size={12} aria-hidden /> 恢复
-                              </button>
-                            ) : (
-                              <button
-                                className="assessments-link-button"
-                                disabled={writeBusyId !== null}
-                                data-testid={`assessments-paper-archive-${paper.paperId}`}
-                                onClick={() => void setArchived(paper, false)}
-                              >
-                                归档
-                              </button>
                             )}
                             <button
                               className="assessments-link-button danger"
@@ -410,12 +344,7 @@ export function PapersWorkspacePage() {
                 items.find((item) => item.paperId === deleteGuard.targetId)?.title,
                 deleteGuard.targetId,
               )}
-              archiving={writeBusyId === deleteGuard.targetId}
               testId="assessments-paper-delete-guard"
-              onArchive={() => {
-                const target = items.find((item) => item.paperId === deleteGuard.targetId);
-                if (target) void setArchived(target, false, true);
-              }}
             />
           )}
         </section>
