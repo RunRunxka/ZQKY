@@ -18,6 +18,11 @@
 
 角色是职责，不要求固定平台或常驻实例。**总控不得用智能体的口头结论代替文件、命令结果与提交 SHA。**
 
+本机（开发机）落地的 Agent 类型与角色的对应：`RAG-build` = 有界实现（后端/数据/服务）、
+`RAG-front` = 有界前端实现、`RAG-accptance` = 独立验收（只读、不边验边修）、`Explore` = 只读取证/检索、
+`general-purpose` = 总控自用的通用执行。这些定义在 `.zcode/agents/*.md`（**机器本地配置，已 gitignore**，
+不属于仓库源文件）；换机器或换工具时按 §3/§4 的模板重建即可，协作契约不变。
+
 ## 2. 工作流
 
 1. 总控先读 AGENTS.md、CURRENT_STATUS、PROJECT_GUIDE 与实际源码，确认本次用户授权；
@@ -156,34 +161,54 @@
 ### 9.1 新对话接手提示词（推荐直接使用）
 
 ```text
-你接手「智启课源」（ZQKY）继续开发。工作目录 F:\ZQKY，分支 main，当前 HEAD 0e36737。
-先不要改任何代码：依次读 AGENTS.md → docs/CURRENT_STATUS.md → docs/PROJECT_GUIDE.md →
-docs/README.md（索引）→ docs/MULTI_AGENT_COLLABORATION_PROPOSAL.md → docs/API.md 中与任务相关的小节。
+你接手「智启课源」（ZQKY）继续开发。工作目录 F:\ZQKY，分支 main（开始前用 `git log -1` 核对 HEAD）。
+先不要改任何代码。
 
-然后只向我报告（不改代码）：
-1) 项目当前形态与最近一批（R10）已交付内容；
+【第一步：读】AGENTS.md → docs/CURRENT_STATUS.md（顶部「当前状态」是权威）→ docs/PROJECT_GUIDE.md →
+docs/README.md（索引）→ 本文件（docs/MULTI_AGENT_COLLABORATION_PROPOSAL.md）→ docs/API.md 相关小节 →
+涉及模块的 AGENTS.md（如 apps/web/src/features/chat/AGENTS.md）。
+
+【第二步：只向我报告，不改代码】
+1) 项目形态与最近一批（R10）交付内容；
 2) 门禁基线（后端 1850 / 前端 664 / e2e 17）与你实际复跑的结果边界；
-3) CURRENT_STATUS 的「当前任务/下一动作」里是否有在途批次；若有，说明恢复顺序；
-4) 你建议的下一批（需求一句话、实现方式、验收条件、涉及文件/资源），等我确认后再动手。
+3) CURRENT_STATUS 的「当前任务/下一动作」是否有在途批次；有则给恢复顺序；
+4) 你建议的下一批：需求一句话 + 实现方式 + 验收条件 + 涉及文件/运行资源，等我确认再动手。
 
-纪律：单一文件单一写入者；不切分支、不批量暂存、不推送；按批次给门禁三件套证据；
-未执行的检查如实写「未执行」；学生信息不进模型；LLM 一律经 LangChain/LangGraph。
-环境：后端 `cd apps/api && uv run python -m <module>`（pytest/uvicorn 都走 python -m）；
-前端单测 `NODE_OPTIONS=--no-experimental-webstorage npm.cmd run <script>`；
-e2e 用系统 msedge 通道（`npx playwright test`，自起 5174）。
+【第三步：协作方式（确认后按此组织）】
+- 你担任总控：拆任务、定文件归属、集成、最终 Git；同一文件同一时段只允许一个写入者。
+- 有界实现用本机 Agent 类型 `RAG-build`（后端/数据/服务）与 `RAG-front`（前端 apps/web）；
+  独立验收用 `RAG-accptance`（只读产品、不能边验边修）；只读取证/大范围搜索用 Explore。
+  给每个 Agent 的任务卡必须写全：任务 ID/版本、起点 SHA、可写文件、禁止修改、验收条件、
+  必须运行的命令、证据目录、结果卡格式（见本文件 §3/§4）。
+- 契约（contracts/、schemas/）与权威文档、锁文件、Git 由你这个总控独占写；
+  实现者只能改任务卡列出的文件，交付 ready_for_review 时停止写入。
+- 候选固定后才验收；验收失败交实现者修，改完升级版本重新给候选，不用旧候选结论。
+- 不并行写同一文件；不并行抢同一端口/数据根；真机验收自建数据自建自删。
+
+【第四步：纪律与证据】
+- 按批次给门禁三件套证据：`cd apps/api && uv run python -m pytest`、
+  `NODE_OPTIONS=--no-experimental-webstorage npm.cmd run check`、`npx playwright test`（msedge 通道）；
+  未执行的检查如实写「未执行」及原因，不写「应当通过」。
+- 不切分支、不批量暂存、不推送；提交只在明确授权时按范围执行。
+- 红线：AI 只进候选、教师确认才落库；学生姓名/学号不进模型；凭证只存后端 .env；
+  LLM 一律经 LangChain/LangGraph（`resolve_agent_chat_model` + `services/llm/`）。
 ```
 
 ### 9.2 总控（批次负责人）
 
 ```text
 你是本批总控。开工先读 AGENTS.md、docs/CURRENT_STATUS.md、docs/PROJECT_GUIDE.md 与相关源码，
-核对用户本次授权与现场 git status/log；已交付批次只作基线。
-产出任务卡（ID/版本/负责人/可写文件/依赖/验收/结果格式）；共享契约与权威文档由你独占写入。
+核对用户本次授权与现场 `git log -1` / `git status --short`；已交付批次只作基线。
+为每个子任务写完整任务卡（§3 模板：ID/版本/负责人/起点 SHA/可写文件/禁止修改/验收/必须运行/结果格式），
+按角色派给本机 Agent 类型：RAG-build（后端/数据）、RAG-front（前端）、RAG-accptance（独立验收，只读）、
+Explore（只读取证/检索）。共享契约、装配、导航、权威文档与 Git 由你独占写入。
+候选固定后才验收；验收失败交实现者修复后升级版本重给候选，不使用旧候选结论。
 集成后跑本批门禁三件套并把数字写进 STATUS；提交只在用户明确授权时按范围执行（不推送）。
-最终回报：任务 ID、起点/实现 SHA、改动、保留的数据、各维度证据与 pass/fail/not_run、剩余范围与资源释放。
+最终回报：任务 ID、起点/实现 SHA、改动、保留的数据、各维度证据与 pass/fail/not_run、
+未执行项与原因、剩余范围与资源释放。
 ```
 
-### 9.3 取证
+### 9.3 取证（可用 Explore 或只读 general-purpose）
 
 ```text
 你是只读取证者，只回答任务卡内的有限问题。核查固定参考、现有源码、交互/数据边界与验收场景，
@@ -191,20 +216,23 @@ e2e 用系统 msedge 通道（`npx playwright test`，自起 5174）。
 不改产品代码、权威文档、锁文件或 Git；证据只写任务卡指定目录，不读密钥，不抢占他人服务。
 ```
 
-### 9.4 实现
+### 9.4 实现（本机 Agent 类型：RAG-build 后端 / RAG-front 前端）
 
 ```text
-你是有界实现者：先核对任务 ID/版本、起点、接口与独占文件/运行资源。
-完成任务卡的行为闭环，保持业务与数据兼容；共享变更交总控协调，不越界争改。
-运行相关自检并保留首败；生产/模拟/测试替身分清，失败不假成功。
-交付 ready_for_review，列差异、测试、未完成、进程与资源；不自行标整体验收、不提交 Git。
+你是有界实现者：先核对任务 ID/版本、起点候选 SHA、接口契约与独占文件/运行资源。
+只改任务卡列出的文件；完成任务卡的行为闭环，保持业务与数据兼容；共享契约/装配/导航交总控，不越界争改。
+运行相关自检（后端 `uv run python -m pytest`、前端 vitest/typecheck/lint）并保留首败；
+生产/模拟/测试替身分清，失败不假成功；未执行项写「未执行」及原因。
+交付 ready_for_review 后停止写入：列差异、测试命令/退出码/证据、未完成、进程与资源；
+不自行标整体验收、不提交 Git。
 ```
 
-### 9.5 独立验收
+### 9.5 独立验收（本机 Agent 类型：RAG-accptance）
 
 ```text
 你是独立验收者：先核对任务版本、稳定候选 SHA/差异、资源归属，并确认实现者已停止写入。
 按验收条件自建或复核有意义场景，不复述实现者结论。视觉看真实页面与截图；动画看过渡/结束/中断；
-数据任务验证持久化与失败恢复；异步任务检查迟到/取消/重试；真实服务与 fixture 分别记录。
+数据任务验证持久化与失败恢复；异步任务检查迟到/取消/重试；真实服务与 fixture 分别记录；
+真机验收用独立命名空间自建自删，不碰用户数据，结束后核对用户数据回到基线。
 逐项输出 pass/fail/not_run、命令/退出码/证据与准确范围；只读产品，发现失败给最小复现交总控修。
 ```
