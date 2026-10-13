@@ -58,7 +58,7 @@ afterEach(() => {
 });
 
 describe('导入批次：放弃与彻底删除入口', () => {
-  it('未确认批次同时有放弃与彻底删除；已确认批次两者都没有且给出保留原因', async () => {
+  it('未确认批次同时有放弃与彻底删除；已确认批次可彻底删除（题目保留）但不可放弃', async () => {
     stubApi(() =>
       jsonResponse(true, 200, {
         imports: [
@@ -82,14 +82,13 @@ describe('导入批次：放弃与彻底删除入口', () => {
     expect(
       screen.queryByRole('button', { name: '放弃批次 误上传.docx' }),
     ).not.toBeInTheDocument();
-    // 已确认批次：不提供任何删除入口（服务端也会 409）
+    // 已确认批次（R10）：放弃仍不可用（服务端 409），但必须提供彻底删除出口
     expect(
       screen.queryByRole('button', { name: '放弃批次 闭环测试_针对练习题库.docx' }),
     ).not.toBeInTheDocument();
-    expect(screen.queryByTestId('qb-import-delete-imp-done')).not.toBeInTheDocument();
-    expect(screen.getByTestId('qb-import-retained-imp-done')).toHaveTextContent(
-      '来源追溯必须保留',
-    );
+    expect(screen.getByTestId('qb-import-delete-imp-done')).toHaveTextContent('彻底删除');
+    // 提示写明"题目保留、批次指针置空"，不再说"不能彻底删除"
+    expect(screen.getByTestId('qb-import-retained-imp-done')).toHaveTextContent('题目保留');
   });
 
   it('彻底删除二次确认说明「删除批次与解析产物…原件保留」，成功后刷新列表', async () => {

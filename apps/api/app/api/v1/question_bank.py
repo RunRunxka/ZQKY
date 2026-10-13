@@ -265,12 +265,12 @@ async def discard_question_import(
 async def delete_question_import(
     request: Request, import_id: str
 ) -> QuestionImportDeleteResult:
-    """彻底删除未确认批次及其解析产物（与放弃互补：放弃保留记录，删除移除记录）。
+    """彻底删除导入批次及其解析产物（与放弃互补：放弃保留记录，删除移除记录）。
 
-    守卫（任一命中 409，零删除）：已确认批次 ``IMPORT_ALREADY_CONFIRMED``（正式题
-    源自它，来源追溯必须保留）；草稿被正式题引用 ``IMPORT_IN_USE``（details 带计数）。
-    通过后单写事务按 FK 顺序删除批次全部库行；**受管原件（blobs）不物理删除**——
-    内容寻址、可能被其他批次复用，保留待独立清理策略，本接口不宣称原件已删。
+    R10（2026-10-13 用户裁定「批次只是记录」）：**已确认批次同样可删**，题目一律保留
+    （``question_sources.import_id`` 置空、来源跨度保留，回执 ``unlinkedQuestionSources``）；
+    单写事务按 FK 顺序删除批次全部库行；**受管原件（blobs）不物理删除**——内容寻址、
+    可能被其他批次复用，保留待独立清理策略，本接口不宣称原件已删。
     """
     service = _service(request)
     return await _run(service.delete_import, import_id)

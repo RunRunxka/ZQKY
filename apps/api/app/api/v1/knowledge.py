@@ -354,6 +354,17 @@ async def confirm_knowledge_import(
     return await _run(service.confirm_import, import_id, body)
 
 
+@router.delete("/knowledge-imports/{import_id}")
+async def delete_import(request: Request, import_id: str) -> dict:
+    """彻底删除导入批次（R10：任何状态都可删，含已确认；已入库的知识点保留）。
+
+    只清批次行与预览行（知识点与教材依据不引用导入表）；不存在 → 404。
+    回执 ``{deleted, importId, removedRows}``。
+    """
+    service = _service(request)
+    return await _run(service.delete_import, import_id)
+
+
 @router.post("/knowledge-imports/{import_id}/discard")
 async def discard_knowledge_import(
     request: Request, import_id: str, body: KnowledgeImportDiscardRequest

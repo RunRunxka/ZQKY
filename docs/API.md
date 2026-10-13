@@ -54,14 +54,15 @@
 | `/api/v1/knowledge-points`（GET/POST）、`/{id}`（GET/PATCH/DELETE） | 列表（`scope=subject|taught`、subjectId/status/关键词）与节点 CRUD（含 `objectives` 学习目标；空白=不修改，`clearFields` 显式清空） |
 | `/{id}/archive`、`/{id}/restore`、`/{id}/textbook-links` | 归档/恢复、教材依据链接 |
 | POST `/api/v1/knowledge-points/tree-from-textbook` | 教材目录成树（幂等；水印与纯符号标题段透明过滤） |
-| `/api/v1/knowledge-imports*`、`/knowledge-extraction/preview`、`/knowledge-extraction-jobs`、`/knowledge-suggestion-jobs` | 表格导入两阶段确认、教材抽取预览、AI 候选任务 |
+| `/api/v1/knowledge-imports*`、`/knowledge-extraction/preview`、`/knowledge-extraction-jobs`、`/knowledge-suggestion-jobs` | 表格导入两阶段确认、教材抽取预览、AI 候选任务；``POST /{id}/discard`` 放弃（置 cancelled，记录保留）与 **``DELETE /{id}`` 彻底删除批次+预览行**（任何状态可删，含已确认；已入库知识点/教材依据保留 —— R10 2026-10-13 用户裁定「批次只是导入记录」） |
 
 ## 题库（question_bank 库）
 
 | 方法和路径 | 用途 |
 | --- | --- |
 | `/api/v1/question-imports*`（含 POST `/question-imports/from-textbook`） | 导入草稿；从教材课后习题提取（无习题 422 `TEXTBOOK_EXERCISES_EMPTY`） |
-| `/question-drafts/{id}`、`/question-imports/{id}/{split,merge,organize}`、`/question-suggestions/{id}/apply` | 草稿编辑/拆分/合并/AI 整理与应用 |
+| `/question-drafts/{id}`、`/question-imports/{id}/{split,merge,organize}`、`/question-suggestions/{id}/apply` | 草稿编辑/拆分/合并/AI 整理与应用（AI 整理经 `run_structured`，供应商不支持 `json_schema` 时自动降级 `json_mode`） |
+| `DELETE /question-imports/{id}` | 彻底删除导入批次与解析产物。R10：**任何状态可删**（含已确认、含"草稿已并入正式题"）；题目一律保留——`question_sources.import_id` 置空（来源跨度保留，回执 `unlinkedQuestionSources`），批次自身的原文块/草稿/建议/并入记录/生成来源随批次删除 |
 | `/question-imports/{id}/confirm` | 教师确认 → 正式题目入库（发布边界） |
 | GET `/api/v1/questions`（`knowledgePointId`、`difficulty=easy|medium|hard|unspecified`、`q`）、`/questions/{id}`（GET/PATCH/DELETE） | 题目库查询与维护 |
 | POST `/api/v1/question-generation-jobs` | AI 补题（needs_review 草稿） |

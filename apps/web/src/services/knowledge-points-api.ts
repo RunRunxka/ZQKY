@@ -289,6 +289,20 @@ export function confirmKnowledgeImport(
 }
 
 /** 放弃未确认批次（误上传清理）：只置 `state=cancelled`；记录/原始文件/预览行保留。 */
+/**
+ * 彻底删除导入批次（R10）：任何状态都可删（含已确认入库）；已入库的知识点保留。
+ * 批次不存在 → 404 `KNOWLEDGE_IMPORT_NOT_FOUND`；回执 `{deleted, importId, removedRows}`。
+ * **不做归档**：界面只提供"放弃（收起记录）"与"彻底删除"两个出口。
+ */
+export function deleteKnowledgeImport(
+  id: string,
+): Promise<{ deleted: boolean; importId: string; removedRows: number }> {
+  return apiRequest<{ deleted: boolean; importId: string; removedRows: number }>(
+    `/knowledge-imports/${encodeURIComponent(id)}`,
+    { method: 'DELETE' },
+  );
+}
+
 export function discardKnowledgeImport(
   id: string,
   body: KnowledgeImportDiscardRequest,

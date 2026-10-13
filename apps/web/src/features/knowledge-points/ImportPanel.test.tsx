@@ -241,6 +241,54 @@ describe('导入面板：放弃未确认批次', () => {
     expect(listCalls).toBe(2);
   });
 
+  it('R10：任何状态（含已确认）都有「彻底删除」，确认后 DELETE 并刷新列表', async () => {
+    let listCalls = 0;
+    const prompts: string[] = [];
+    vi.stubGlobal('confirm', (message?: string) => {
+      prompts.push(String(message ?? ''));
+      return true;
+    });
+    stubApi((url, init) => {
+      const method = (init.method ?? 'GET').toUpperCase();
+      if (method === 'DELETE' && url.endsWith('/api/v1/knowledge-imports/imp-file-done')) {
+        return json(true, 200, { deleted: true, importId: 'imp-file-done', removedRows: 2 });
+      }
+      if (method === 'GET' && url.endsWith('/api/v1/knowledge-imports?limit=100')) {
+        listCalls += 1;
+        return json(true, 200, {
+          items:
+            listCalls === 1
+              ? [
+                  {
+                    ...summary('confirmed', 2),
+                    importId: 'imp-file-done',
+                    uploadedFileName: '已确认批次.csv',
+                  },
+                ]
+              : [],
+          total: listCalls === 1 ? 1 : 0,
+          offset: 0,
+          limit: 100,
+        });
+      }
+      return json(false, 500, { code: 'UNEXPECTED_TEST_REQUEST', message: `${method} ${url}` });
+    });
+    renderPanel();
+
+    // 已确认批次：没有「放弃」，但有「彻底删除」
+    expect(
+      screen.queryByRole('button', { name: '放弃批次 已确认批次.csv' }),
+    ).not.toBeInTheDocument();
+    const remove = await screen.findByTestId('kp-import-delete-imp-file-done');
+    expect(remove).toHaveTextContent('彻底删除');
+
+    fireEvent.click(remove);
+    // 二次确认点名"知识点保留"
+    expect(prompts.some((text) => text.includes('已入库的知识点与教材依据保留'))).toBe(true);
+    await waitFor(() => expect(listCalls).toBe(2));
+    expect(await screen.findByText('还没有导入批次')).toBeInTheDocument();
+  });
+
   it('放弃失败如实显示错误码与原因；409 时刷新列表取最新 revision', async () => {
     let listCalls = 0;
     stubApi((url, init) => {

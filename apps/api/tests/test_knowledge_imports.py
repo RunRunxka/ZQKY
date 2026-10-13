@@ -574,6 +574,43 @@ def test_confirm_requires_final_action_for_every_row(harness: ImportHarness) -> 
     assert harness.point_count() == 0
 
 
+def test_delete_import_any_state_keeps_points(harness: ImportHarness) -> None:
+    """R10：导入批次任何状态都可彻底删除（含已确认入库）；已入库知识点保留。
+
+    用户裁定「批次只是导入记录」：删除只清批次行与预览行（知识点/教材依据不引用导入表），
+    已确认批次不再被 409 挡住（此前只能「放弃」收起、记录永远留在库里）。
+    """
+    data = make_xlsx(["编码", "名称"], [["KP-DEL-1", "删除验证点"]])
+    batch = harness.upload_ok(data)
+    import_id = batch["importId"]
+    confirmed = harness.confirm(
+        import_id,
+        harness.confirm_body(import_id, actions=[{"rowNo": 1, "decision": "create"}]),
+    )
+    assert confirmed.status_code == 200, confirmed.text
+    assert confirmed.json()["state"] == "confirmed"
+    assert harness.point_count() == 1
+    rows_before = harness.count(harness.catalog.db_path, "knowledge_import_rows")
+    assert rows_before == 1
+
+    removed = harness.client.delete(f"/api/v1/knowledge-imports/{import_id}")
+    assert removed.status_code == 200, removed.text
+    body = removed.json()
+    assert body == {"deleted": True, "importId": import_id, "removedRows": rows_before}
+
+    # 批次与预览行清除；知识点保留
+    assert harness.client.get(f"/api/v1/knowledge-imports/{import_id}").status_code == 404
+    assert harness.count(harness.catalog.db_path, "knowledge_imports") == 0
+    assert harness.count(harness.catalog.db_path, "knowledge_import_rows") == 0
+    assert harness.point_count() == 1
+    assert harness.points_by_code()["KP-DEL-1"]["name"] == "删除验证点"
+
+    # 重复删除 → 404（不静默成功）
+    again = harness.client.delete(f"/api/v1/knowledge-imports/{import_id}")
+    assert again.status_code == 404
+    assert again.json()["code"] == "KNOWLEDGE_IMPORT_NOT_FOUND"
+
+
 def test_import_list_state_filter(harness: ImportHarness) -> None:
     data = make_xlsx(["编码", "名称"], [["A1", "甲"]])
     preview = harness.upload_ok(data)

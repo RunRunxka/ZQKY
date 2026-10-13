@@ -72,9 +72,13 @@ class _FakeModel:
         self.text_results = list(text_results or [])
         self.calls: list[list] = []
         self.structured_kwargs: dict | None = None
+        self.structured_calls: list[dict] = []
 
     def with_structured_output(self, schema, *, include_raw=False, **kwargs):  # noqa: ANN001, ANN202
         self.structured_kwargs = {"schema": schema, "include_raw": include_raw, **kwargs}
+        if not hasattr(self, "structured_calls"):
+            self.structured_calls = []
+        self.structured_calls.append(dict(self.structured_kwargs))
         return _StructuredRunnable(self)
 
     async def ainvoke(self, messages, config=None):  # noqa: ANN001, ANN202, ARG002
@@ -147,6 +151,65 @@ def test_structured_timeout_degrades() -> None:
     )
     assert not outcome.ok
     assert outcome.error is not None and "TimeoutError" in outcome.error
+
+
+def test_structured_falls_back_to_json_mode_when_provider_rejects_json_schema() -> None:
+    """供应商拒绝 ``json_schema``（DeepSeek 400 "This response_format type is unavailable now"）
+    → 同一次尝试内退到 ``json_mode`` 重发一次，成功且如实记录实际模式。"""
+    model = _FakeModel(
+        [
+            RuntimeError(
+                'OpenAIInvalidRequestError: Error code: 400 - {"error":{"message":'
+                '"This response_format type is unavailable now"}}'
+            ),
+            {
+                "raw": AIMessage(content='{"title":"a","count":1}'),
+                "parsed": _Draft(title="a", count=1),
+                "parsing_error": None,
+            },
+        ]
+    )
+    outcome = asyncio.run(
+        run_structured(model, prompt=_spec("test.runner.fallback"), schema=_Draft, variables=VARS, max_attempts=1)
+    )
+    assert outcome.ok and outcome.attempts == 1
+    assert outcome.structured_method == "json_mode"
+    # 第一次未指定 method（供应商默认 json_schema），降级那次显式 json_mode
+    assert [call.get("method") for call in model.structured_calls] == [None, "json_mode"]
+
+
+def test_structured_does_not_fall_back_on_unrelated_errors() -> None:
+    """与结构化模式无关的失败不触发降级（不把内容/网络错误误判成兼容性问题）。"""
+    model = _FakeModel([RuntimeError("boom：连接被重置")])
+    outcome = asyncio.run(
+        run_structured(model, prompt=_spec("test.runner.nofallback"), schema=_Draft, variables=VARS, max_attempts=1)
+    )
+    assert not outcome.ok and outcome.structured_method is None
+    assert len(model.structured_calls) == 1
+    assert outcome.error and "boom" in outcome.error
+
+
+def test_structured_explicit_method_is_never_overridden() -> None:
+    """调用方显式指定 method 时不做降级（尊重显式契约）。"""
+    model = _FakeModel(
+        [
+            RuntimeError(
+                'Error code: 400 - {"error":{"message":"This response_format type is unavailable now"}}'
+            )
+        ]
+    )
+    outcome = asyncio.run(
+        run_structured(
+            model,
+            prompt=_spec("test.runner.explicit"),
+            schema=_Draft,
+            variables=VARS,
+            max_attempts=1,
+            method="json_schema",
+        )
+    )
+    assert not outcome.ok and outcome.structured_method == "json_schema"
+    assert len(model.structured_calls) == 1
 
 
 def test_structured_method_passthrough() -> None:

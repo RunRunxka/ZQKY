@@ -891,11 +891,10 @@ class QuestionBankService:
 
         - **放弃**（``discard_import``）：保留批次/原文/草稿行，状态置 ``cancelled``，
           供审计与追溯；本方法则把批次与解析产物从库里移除；
-        - 守卫在**同一写事务内**判定（与删除原子，杜绝守卫通过后并发确认入库）：
-          已确认批次（正式题源自它）→ 409 ``IMPORT_ALREADY_CONFIRMED``；
-          草稿被正式题引用（``question_sources.import_id`` 指向本批次或草稿带有
-          并入记录）→ 409 ``IMPORT_IN_USE``，``details`` 带引用计数；
-        - 通过后按 FK 顺序删除：建议 → 草稿关联 → 原文块 → 草稿 → 来源登记 → 批次行；
+        - **无阻断守卫**（R10，2026-10-13 用户裁定）：已确认批次、草稿并入正式题
+          都不再 409——批次只是导入记录；题目一律保留（``question_sources.import_id``
+          置空、来源跨度保留，回执 ``unlinkedQuestionSources``）；
+        - 按 FK 顺序删除：建议 → 草稿关联 → 原文块 → 草稿 → 来源登记 → 批次行；
           触发器核对：题库仅 ``question_knowledge_links``（题目修订关联）带不可变
           触发器，本路径不触碰该表；
         - **受管原件（``blobs/<sha256>``）不物理删除**：内容寻址、可能被其他批次复用，

@@ -326,6 +326,27 @@ class KnowledgeImportRepository:
         ).fetchone()
         return self._record(row) if row is not None else None
 
+    def delete_import(self, conn: sqlite3.Connection, import_id: str) -> dict[str, int]:
+        """彻底删除批次与预览行（R10：任何状态都可删，含已确认）。
+
+        知识点与教材依据**不引用本表**（``knowledge_imports``/``knowledge_import_rows``
+        是导入记录本身），因此删除只清这两张表：预览行 → 批次行。已确认批次删除后
+        已入库的知识点原样保留（它们的修订快照不挂在导入行上）。批次不存在 → 404。
+        """
+        import_id = self._text(import_id, field="importId")
+        self.require_import(conn, import_id)
+        removed_rows = conn.execute(
+            "DELETE FROM knowledge_import_rows WHERE import_id = ?", (import_id,)
+        ).rowcount
+        deleted = conn.execute(
+            "DELETE FROM knowledge_imports WHERE id = ?", (import_id,)
+        )
+        if deleted.rowcount != 1:  # pragma: no cover - 调用前已确认存在
+            raise AppError(
+                "知识点导入不存在。", code="KNOWLEDGE_IMPORT_NOT_FOUND", status_code=404
+            )
+        return {"removedRows": int(removed_rows), "removedImports": 1}
+
     def require_import(self, conn: sqlite3.Connection, import_id: str) -> ImportRecord:
         record = self.get_import(conn, import_id)
         if record is None:

@@ -460,12 +460,14 @@ class QuestionBankCatalog:
     def delete_import(self, import_id: str) -> dict[str, int]:
         """彻底删除一个导入批次及其解析产物（**单写事务**，按外键依赖顺序删除）。
 
-        守卫（任一命中 → 409，一个字节都不删，错误码经 ``AppError`` 抛出）：
+        删除语义（R10，2026-10-13 用户裁定「批次只是导入记录，不因来源追溯而不能删」）：
 
-        - ``state == 'confirmed'``：正式题源自该批次，来源追溯必须保留；
-        - 该批次被正式题引用：``question_sources.import_id`` 指向本批次（确认时
-          冻结的来源行），或本批次草稿 ``duplicate_of_question_id`` 指向正式题
-          （跳过/并入的处置记录）。
+        - **不再有阻断守卫**：``state == 'confirmed'`` 与"草稿已并入正式题"
+          都不再 409——批次是记录，不是题目的宿主；
+        - 删除时**题目一律保留**：``question_sources.import_id`` 置空
+          （题目自己的来源跨度 ``source_span_json`` 原样保留），回执计数
+          ``unlinkedQuestionSources``；
+        - 批次自身的解析产物随批次删除（原文块/草稿/建议/并入记录/生成来源）。
 
         通过后按外键依赖顺序在同一事务内删除：
         ``question_suggestions``（指向本批次草稿的建议）→
@@ -486,43 +488,26 @@ class QuestionBankCatalog:
             row = self._import_row_in(conn, import_id)
             if row is None:
                 raise _not_found("导入不存在。", code="IMPORT_NOT_FOUND")
-            if row["state"] == "confirmed":
-                raise _conflict(
-                    "该导入已确认入库，正式题源自它，来源追溯必须保留；不能彻底删除。",
-                    code=self.DELETE_GUARD_CONFIRMED,
-                )
+            # R10（2026-10-13 用户裁定「导入批次只是记录，不因来源追溯而不能删除」）：
+            # 已确认批次、以及"草稿已并入正式题"**都不再阻断删除**。删除时题目一律保留：
+            # ``question_sources.import_id`` 置空（题目自己的来源跨度 ``source_span_json``
+            # 原样留在行里），批次的解析产物（原文块/草稿/建议/并入记录/生成来源）随批次
+            # 一并清除——批次是导入记录，不是题目的宿主。
+            confirmed_batch = 1 if row["state"] == "confirmed" else 0
             draft_ids = [
                 str(item["id"])
                 for item in conn.execute(
                     "SELECT id FROM question_drafts WHERE import_id = ?", (import_id,)
                 ).fetchall()
             ]
-            source_ref_count = int(
-                conn.execute(
-                    "SELECT COUNT(*) AS total FROM question_sources WHERE import_id = ?",
-                    (import_id,),
-                ).fetchone()["total"]
-            )
-            placeholders = ", ".join("?" for _ in draft_ids) or "NULL"
-            merged_draft_count = 0
-            if draft_ids:
-                merged_draft_count = int(
-                    conn.execute(
-                        "SELECT COUNT(*) AS total FROM question_drafts "
-                        f"WHERE id IN ({placeholders}) AND duplicate_of_question_id IS NOT NULL",
-                        draft_ids,
-                    ).fetchone()["total"]
-                )
-            if source_ref_count or merged_draft_count:
-                raise _conflict(
-                    "该批次的草稿被正式题引用（来源追溯或并入记录存在），不能彻底删除。",
-                    code=self.DELETE_GUARD_IN_USE,
-                    details={
-                        "sourceRefCount": source_ref_count,
-                        "mergedDraftCount": merged_draft_count,
-                    },
-                )
+            unlinked_sources = conn.execute(
+                "UPDATE question_sources SET import_id = NULL WHERE import_id = ?",
+                (import_id,),
+            ).rowcount
             deleted: dict[str, int] = {}
+            deleted["unlinkedQuestionSources"] = int(unlinked_sources)
+            deleted["confirmedBatch"] = confirmed_batch
+            placeholders = ", ".join("?" for _ in draft_ids) or "NULL"
             if draft_ids:
                 # ① AI 建议：target_draft_id 都属于本批次（整理只对本批次草稿提建议）
                 cursor = conn.execute(

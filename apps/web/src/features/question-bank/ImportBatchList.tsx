@@ -4,11 +4,12 @@
  * 导入批次列表：文件名 / 状态 / 草稿数（已校对、未归属）/ 警告 / 时间，
  * 点击进入校对页。加载、失败（含重试）、空态与真实数据严格区分。
  *
- * 删除语义（设计 2.3，四模块统一）：
+ * 删除语义（R10，2026-10-13 用户裁定「批次只是导入记录，不因来源追溯而不能删」）：
+ * - **彻底删除**：任何状态都可删（含已确认入库）；批次与解析产物（原文块、草稿、AI 建议、
+ *   并入记录、生成来源）随批次清除，**题目一律保留**（服务端把题目的来源行批次指针置空、
+ *   来源跨度保留），**受管原件（blobs）保留**待独立清理策略；
  * - **放弃**（未确认批次）：服务端只把状态置 `cancelled`，批次记录/原文/草稿保留，供追溯；
- * - **彻底删除**（未确认批次）：删除批次与解析产物（原文块、草稿、AI 建议），**受管原件保留**；
- *   已确认批次不提供入口（服务端 409 `IMPORT_ALREADY_CONFIRMED`：正式题源自它，来源追溯必须保留）；
- * - 草稿已被正式题引用（并入或来源登记）→ 409 `IMPORT_IN_USE`，逐项渲染计数并保留「放弃」快捷入口；
+ * - 若服务端仍返回引用守卫 409（未来新增守卫的防御性渲染），逐项渲染计数并保留「放弃」快捷入口；
  * - 任何失败都显示服务端原因与下一步，不静默失败、不假装删除成功。
  */
 
@@ -40,11 +41,10 @@ const DISCARDABLE_STATES: readonly QuestionImportState[] = [
 ];
 
 /**
- * 不提供「彻底删除」入口的批次状态：只有已确认入库（正式题源自它，来源追溯必须保留）。
- * 其余状态（含已取消 `cancelled`）都可以彻底删除——放弃只是收起，取消后的批次仍需清理出口；
- * 真正的引用守卫（`IMPORT_IN_USE`）以服务端 409 为准，前端不猜造可删性。
+ * 「彻底删除」入口对所有状态开放（R10）：批次是导入记录，题目不受影响——
+ * 服务端删除时把题目的来源行批次指针置空（来源跨度保留），因此 confirmed 不再是例外。
  */
-const DELETE_BLOCKED_STATES: readonly QuestionImportState[] = ['confirmed'];
+const DELETE_BLOCKED_STATES: readonly QuestionImportState[] = [];
 
 /** 删除被拒的原因（逐条渲染；`counts` 缺失时不编造计数）。 */
 interface DeleteBlock {
@@ -103,14 +103,16 @@ export function ImportBatchList({ refreshToken }: { refreshToken: number }) {
   }
 
   /**
-   * 彻底删除未确认批次与解析产物（原件保留；不可恢复）：二次确认后提交。
-   * 守卫拒绝（409）时把原因与逐项计数留在该批次下面，并给出「放弃」快捷入口；
+   * 彻底删除批次与解析产物（原件保留；不可恢复）：二次确认后提交。
+   * R10：任何状态都可删——**题目不受影响**（服务端把题目的来源行批次指针置空、来源跨度保留）。
+   * 若服务端仍返回引用守卫 409（未来新增守卫的防御），原因与逐项计数留在该批次下面并给「放弃」；
    * 成功或 404（已被别处删除）都刷新列表，避免继续显示不存在的批次。
    */
   async function removeBatch(item: QuestionImportSummary) {
     const confirmed = window.confirm(
-      `彻底删除批次「${item.uploadedFileName}」？将删除批次与解析产物（原文块、草稿、AI 建议），\n` +
-        '受管原件保留；此操作不可恢复。只想从列表收起时请用「放弃」。',
+      `彻底删除批次「${item.uploadedFileName}」？将删除批次与解析产物（原文块、草稿、AI 建议、并入记录），\n` +
+        '已入库的题目保留（来源跨度保留、批次指针置空）；受管原件保留；此操作不可恢复。\n' +
+        '只想从列表收起时请用「放弃」。',
     );
     if (!confirmed) return;
     setDeleteBusyId(item.importId);
@@ -200,9 +202,10 @@ export function ImportBatchList({ refreshToken }: { refreshToken: number }) {
                 <ChevronRight className="qb-import-chevron" size={16} aria-hidden />
               </Link>
 
-              {DELETE_BLOCKED_STATES.includes(item.state) && (
+              {item.state === 'confirmed' && (
                 <p className="qb-hint" data-testid={`qb-import-retained-${item.importId}`}>
-                  该批次已确认入库：正式题源自它，来源追溯必须保留 → 不能彻底删除（放弃入口也已关闭）。
+                  已确认入库：删除该批次只清除导入记录与解析产物，**题目保留**（来源跨度保留、
+                  批次指针置空）；如需删除题目请到题库列表操作。
                 </p>
               )}
 

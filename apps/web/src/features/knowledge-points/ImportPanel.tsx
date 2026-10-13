@@ -15,6 +15,7 @@ import type { KnowledgeImportState, KnowledgeImportSummary } from '@/contracts/k
 import { Modal } from '@/components/ui/Modal';
 import {
   createKnowledgeImport,
+  deleteKnowledgeImport,
   discardKnowledgeImport,
   listKnowledgeImports,
 } from '@/services/knowledge-points-api';
@@ -70,6 +71,9 @@ export function ImportPanel({
   const [uploadOpen, setUploadOpen] = useState(false);
   const [discardBusyId, setDiscardBusyId] = useState<string | null>(null);
   const [discardError, setDiscardError] = useState<string | null>(null);
+  /** 彻底删除（R10）：任何状态都可删，含已确认入库（知识点保留）。 */
+  const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const items: KnowledgeImportSummary[] =
     imports.state.phase === 'ready' ? imports.state.data.items : [];
@@ -79,6 +83,33 @@ export function ImportPanel({
    * 成功后刷新列表；被放弃的批次若正被选中，退回「未选择」以避免继续显示可校对状态。
    * 失败不改变列表：409（revision 过期）时刷新取最新 revision，用户可再次确认。
    */
+  /**
+   * 彻底删除批次与预览行（R10 用户裁定「批次只是导入记录」）：任何状态都可删，
+   * 含已确认入库——已入库的知识点与教材依据保留（它们不引用导入表）。
+   * 二次确认点名"知识点保留"；成功后刷新列表，若删的正是当前选中批次则退回未选择。
+   */
+  async function removeImport(item: KnowledgeImportSummary) {
+    if (deleteBusyId !== null || discardBusyId !== null) return;
+    const confirmed = window.confirm(
+      `彻底删除批次「${batchTitle(item)}」（${batchShortLine(item)}）？\n\n` +
+        '将删除该导入批次与预览行（不可恢复）；已入库的知识点与教材依据保留。\n' +
+        '只想从列表收起时请用「放弃」。',
+    );
+    if (!confirmed) return;
+    setDeleteBusyId(item.importId);
+    setDeleteError(null);
+    try {
+      await deleteKnowledgeImport(item.importId);
+      if (selectedImportId === item.importId) onSelectImport(null);
+      setListTick((value) => value + 1);
+    } catch (cause) {
+      const apiError = asApiError(cause);
+      setDeleteError(`彻底删除批次失败（${apiError.code}）：${apiError.message}`);
+    } finally {
+      setDeleteBusyId(null);
+    }
+  }
+
   async function discard(item: KnowledgeImportSummary) {
     const confirmed = window.confirm(
       `放弃批次「${batchTitle(item)}」（${batchShortLine(item)}）？批次记录与原始文件保留，但放弃后不能再校对或确认入库。`,
@@ -145,6 +176,11 @@ export function ImportPanel({
             </div>
           )}
 
+          {deleteError && (
+            <div className="space-banner error" role="alert" data-testid="kp-import-delete-error">
+              {deleteError}
+            </div>
+          )}
           {discardError && (
             <div className="space-banner error" role="alert">
               {discardError}
@@ -178,18 +214,27 @@ export function ImportPanel({
                 </span>
                 <span className="kp-hint">{formatDateTime(item.updatedAt)}</span>
               </button>
-              {DISCARDABLE_STATES.includes(item.state) && (
-                <div className="kp-actions">
+              <div className="kp-actions">
+                {DISCARDABLE_STATES.includes(item.state) && (
                   <button
-                    className="space-button danger"
+                    className="space-button"
                     aria-label={`放弃批次 ${batchTitle(item)}`}
-                    disabled={discardBusyId === item.importId}
+                    disabled={discardBusyId === item.importId || deleteBusyId === item.importId}
                     onClick={() => void discard(item)}
                   >
                     {discardBusyId === item.importId ? '放弃中…' : '放弃'}
                   </button>
-                </div>
-              )}
+                )}
+                <button
+                  className="space-button danger"
+                  aria-label={`彻底删除批次 ${batchTitle(item)}`}
+                  data-testid={`kp-import-delete-${item.importId}`}
+                  disabled={deleteBusyId === item.importId || discardBusyId === item.importId}
+                  onClick={() => void removeImport(item)}
+                >
+                  {deleteBusyId === item.importId ? '删除中…' : '彻底删除'}
+                </button>
+              </div>
             </div>
           ))}
         </nav>

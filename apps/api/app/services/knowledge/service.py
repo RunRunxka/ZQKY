@@ -970,6 +970,23 @@ class KnowledgeService:
                 versions = _base_versions(conn, rows, self.points)
         return self._import_view(record, rows, base_versions=versions)
 
+    def delete_import(self, import_id: str) -> dict[str, Any]:
+        """彻底删除导入批次（R10，2026-10-13 用户裁定「批次只是导入记录」）。
+
+        任何状态都可删（含已确认）：删除批次行与预览行；**已入库的知识点与教材依据
+        原样保留**（它们不引用导入表）。批次不存在 → 404 ``KNOWLEDGE_IMPORT_NOT_FOUND``。
+        回执 ``{deleted, importId, removedRows}``。
+        """
+        import_id = _text(import_id, field="importId")
+        with self.coordinator.publication(operation="knowledge.import.delete"):
+            with self.catalog.write_transaction() as conn:
+                counts = self.imports.delete_import(conn, import_id)
+        return {
+            "deleted": True,
+            "importId": import_id,
+            "removedRows": counts["removedRows"],
+        }
+
     # ------------------------------------------------------------------ 提取（任务③）
 
     def extraction_preview(self, subject_id: str) -> KnowledgeExtractionPreview:

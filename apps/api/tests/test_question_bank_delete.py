@@ -4,12 +4,12 @@
 - 放弃（``POST .../discard``）：状态置 ``cancelled``，批次/原文/草稿行**保留**（审计）；
 - 彻底删除（``DELETE ...``）：批次与解析产物从库里**移除**。
 
-守卫（任一命中 409，零删除）：
-- ``state == 'confirmed'`` → ``IMPORT_ALREADY_CONFIRMED``（正式题源自它，来源追溯必须保留）；
-- 草稿被正式题引用（``question_sources.import_id`` 指向本批次，或草稿带
-  ``duplicate_of_question_id`` 并入记录）→ ``IMPORT_IN_USE``（details 带计数）。
+删除语义（R10，2026-10-13 用户裁定「批次只是导入记录，不因来源追溯而不能删」）：
+- **不再有阻断守卫**：已确认批次、草稿并入正式题都可删；
+- 题目一律保留：``question_sources.import_id`` 置空（来源跨度保留，回执
+  ``unlinkedQuestionSources``），批次自身的解析产物随批次删除。
 
-通过后单写事务按 FK 顺序删除：建议 → 草稿关联 → 原文块 → 草稿 → 来源登记 → 批次行；
+单写事务按 FK 顺序删除：建议 → 草稿关联 → 原文块 → 草稿 → 来源登记 → 批次行；
 **受管原件（blobs/<sha256>）不物理删除**：内容寻址、可能被其他批次复用，
 回执与报告如实声明"只删库行，原件保留待清理策略"，不伪造"原件已删"。
 
@@ -166,110 +166,53 @@ def test_delete_import_removes_suggestions_and_links_of_batch(harness: Harness) 
     assert harness.catalog.get_import(other["importId"]) is not None
 
 
-# ----------------------------------------------------------------- 守卫：已确认
+# --------------------------------------- 批次只是记录：已确认 / 并入记录都可删（R10）
 
 
-def test_delete_confirmed_import_is_409(harness: Harness) -> None:
-    """已确认批次不可删：409 IMPORT_ALREADY_CONFIRMED，正式题与批次记录全部保留。"""
+def test_delete_confirmed_import_keeps_formal_question(harness: Harness) -> None:
+    """已确认批次可彻底删除（R10 用户裁定「批次只是导入记录」）：
+
+    批次与解析产物清除；**题目保留**，其来源行仍在但批次指针置空（来源跨度保留），
+    回执给出 ``unlinkedQuestionSources`` 计数。
+    """
     detail = harness.upload(ONE_QUESTION_DOC).json()
     import_id = detail["importId"]
-    result = confirm_one(harness, import_id, "sub-delete-confirmed")
-    assert result["confirmedQuestionIds"]
-
-    response = delete_import(harness, import_id)
-    assert response.status_code == 409, response.text
-    body = response.json()
-    assert body["code"] == "IMPORT_ALREADY_CONFIRMED"
-    # 批次、草稿、正式题全部未动
-    assert harness.catalog.get_import(import_id) is not None
-    assert row_count(harness, "question_drafts") == 1
-    assert row_count(harness, "questions") == 1
-
-
-# ----------------------------------------------------------------- 守卫：被引用
-
-
-def test_delete_import_referenced_by_question_sources_is_409(harness: Harness) -> None:
-    """来源引用守卫（真实可达路径）：
-
-    - 批次草稿与正式题重复且选择"跳过"（skip）→ 草稿带 ``duplicate_of_question_id``
-      并入记录、批次**不**置 confirmed → 删除命中 409 ``IMPORT_IN_USE``（带计数）；
-    - ``link_existing`` 处置会同时把批次置 confirmed：守卫按
-      ``IMPORT_ALREADY_CONFIRMED`` 优先命中（来源行 ``question_sources.import_id``
-      的防御性计数保底，两者都不允许删除）。
-    """
-    # 先确认批次 A 建一道正式题
-    first = harness.upload(ONE_QUESTION_DOC).json()
-    question_id = confirm_one(harness, first["importId"], "sub-delete-src-a")[
+    question_id = confirm_one(harness, import_id, "sub-delete-confirmed")[
         "confirmedQuestionIds"
     ][0]
-    # 批次 B 上传完全相同内容（权威题面指纹与正式题相同）→ 走 skip 处置
-    second = harness.upload(ONE_QUESTION_DOC).json()
-    second_id = second["importId"]
-    detail = harness.import_detail(second_id)
-    draft = detail["drafts"][0]
-    reviewed = harness.patch_draft(draft)
-    assert reviewed.status_code == 200, reviewed.text
-    skipped = harness.client.post(
-        f"/api/v1/question-imports/{second_id}/confirm",
-        json={
-            "submissionId": "sub-delete-src-b",
-            "importId": second_id,
-            "items": [
-                {"draftId": draft["draftId"], "expectedDraftRevision": reviewed.json()["revision"]}
-            ],
-            "duplicateResolutions": [
-                {"draftId": draft["draftId"], "action": "skip"}
-            ],
-        },
-    )
-    assert skipped.status_code == 200, skipped.text
-    assert skipped.json()["skippedDraftIds"] == [draft["draftId"]]
-    # skip 不置 confirmed：批次仍是 needs_review，可删除性由 IMPORT_IN_USE 守卫决定
-    assert harness.import_detail(second_id)["state"] == "needs_review"
 
-    response = delete_import(harness, second_id)
-    assert response.status_code == 409, response.text
+    response = delete_import(harness, import_id)
+    assert response.status_code == 200, response.text
     body = response.json()
-    assert body["code"] == "IMPORT_IN_USE"
-    assert body["details"]["mergedDraftCount"] >= 1
-    # 批次与草稿保留
-    assert harness.catalog.get_import(second_id) is not None
-    assert row_count(harness, "question_drafts") >= 2
+    assert body["deleted"] is True and body["importId"] == import_id
 
-    # 对照：link_existing 会把批次置 confirmed，删除按已确认守卫拒绝（不删任何行）
-    third = harness.upload(ONE_QUESTION_DOC).json()
-    third_id = third["importId"]
-    detail = harness.import_detail(third_id)
-    draft = detail["drafts"][0]
-    reviewed = harness.patch_draft(draft)
-    assert reviewed.status_code == 200, reviewed.text
-    linked = harness.client.post(
-        f"/api/v1/question-imports/{third_id}/confirm",
-        json={
-            "submissionId": "sub-delete-src-c",
-            "importId": third_id,
-            "items": [
-                {"draftId": draft["draftId"], "expectedDraftRevision": reviewed.json()["revision"]}
-            ],
-            "duplicateResolutions": [
-                {"draftId": draft["draftId"], "action": "link_existing", "existingQuestionId": question_id}
-            ],
-        },
-    )
-    assert linked.status_code == 200, linked.text
-    blocked = delete_import(harness, third_id)
-    assert blocked.status_code == 409, blocked.text
-    assert blocked.json()["code"] == "IMPORT_ALREADY_CONFIRMED"
+    # 批次与解析产物清除
+    assert harness.catalog.get_import(import_id) is None
+    assert row_count(harness, "question_source_blocks") == 0
+    assert row_count(harness, "question_drafts") == 0
+    assert row_count(harness, "question_import_provenance") == 0
+
+    # 题目保留；来源行保留但 import_id 置空（来源跨度不丢）
+    assert row_count(harness, "questions") == 1
+    connection = sqlite3.connect(harness.catalog.db_path)
+    try:
+        rows = connection.execute(
+            "SELECT import_id, source_span_json FROM question_sources WHERE question_id = ?",
+            (question_id,),
+        ).fetchall()
+    finally:
+        connection.close()
+    assert rows, "题目来源行应保留"
+    assert all(row[0] is None for row in rows), "批次指针应置空"
+    assert all(row[1] for row in rows), "来源跨度应保留"
 
 
-def test_delete_import_with_merged_draft_record_is_409(harness: Harness) -> None:
-    """草稿带并入记录（duplicate_of_question_id 指向正式题）→ 409 IMPORT_IN_USE。"""
+def test_delete_import_with_merged_draft_cascades_records(harness: Harness) -> None:
+    """草稿带并入记录（``duplicate_of_question_id`` 指向正式题）→ 批次可删：并入记录随批次清除。"""
     first = harness.upload(ONE_QUESTION_DOC).json()
     question_id = confirm_one(harness, first["importId"], "sub-delete-merge-a")[
         "confirmedQuestionIds"
     ][0]
-    # 直接在批次草稿上登记并入记录（确认链的 skip 处置等价物）
     other = harness.upload(ONE_QUESTION_DOC).json()
     other_id = other["importId"]
     draft = harness.import_detail(other_id)["drafts"][0]
@@ -282,11 +225,76 @@ def test_delete_import_with_merged_draft_record_is_409(harness: Harness) -> None
         )
 
     response = delete_import(harness, other_id)
-    assert response.status_code == 409, response.text
-    body = response.json()
-    assert body["code"] == "IMPORT_IN_USE"
-    assert body["details"]["mergedDraftCount"] >= 1
-    assert harness.catalog.get_import(other_id) is not None
+    assert response.status_code == 200, response.text
+    assert harness.catalog.get_import(other_id) is None
+    # 被删批次的草稿随批次清除；第一个（保留的）批次的草稿仍在
+    assert row_count(harness, "question_drafts") == 1
+    # 正式题不受影响
+    assert row_count(harness, "questions") == 1
+
+
+def test_delete_import_after_duplicate_skip_and_link_existing(harness: Harness) -> None:
+    """skip 与 link_existing 两条真实可达路径下删除都不再被守卫挡住（R10）。
+
+    - skip：批次仍是 ``needs_review``、草稿带并入记录 → 删除成功；
+    - link_existing：批次置 confirmed 且 ``question_sources.import_id`` 指向它 →
+      删除成功且题目保留（来源指针置空）。
+    """
+    first = harness.upload(ONE_QUESTION_DOC).json()
+    question_id = confirm_one(harness, first["importId"], "sub-delete-src-a")[
+        "confirmedQuestionIds"
+    ][0]
+
+    # 路径一：重复题面 + skip
+    second = harness.upload(ONE_QUESTION_DOC).json()
+    second_id = second["importId"]
+    draft = harness.import_detail(second_id)["drafts"][0]
+    reviewed = harness.patch_draft(draft)
+    assert reviewed.status_code == 200, reviewed.text
+    skipped = harness.client.post(
+        f"/api/v1/question-imports/{second_id}/confirm",
+        json={
+            "submissionId": "sub-delete-src-b",
+            "importId": second_id,
+            "items": [
+                {"draftId": draft["draftId"], "expectedDraftRevision": reviewed.json()["revision"]}
+            ],
+            "duplicateResolutions": [{"draftId": draft["draftId"], "action": "skip"}],
+        },
+    )
+    assert skipped.status_code == 200, skipped.text
+    assert harness.import_detail(second_id)["state"] == "needs_review"
+    removed_skip = delete_import(harness, second_id)
+    assert removed_skip.status_code == 200, removed_skip.text
+
+    # 路径二：重复题面 + link_existing（批次置 confirmed，来源行指向它）
+    third = harness.upload(ONE_QUESTION_DOC).json()
+    third_id = third["importId"]
+    draft = harness.import_detail(third_id)["drafts"][0]
+    reviewed = harness.patch_draft(draft)
+    assert reviewed.status_code == 200, reviewed.text
+    linked = harness.client.post(
+        f"/api/v1/question-imports/{third_id}/confirm",
+        json={
+            "submissionId": "sub-delete-src-c",
+            "importId": third_id,
+            "items": [
+                {"draftId": draft["draftId"], "expectedDraftRevision": reviewed.json()["revision"]}
+            ],
+            "duplicateResolutions": [
+                {
+                    "draftId": draft["draftId"],
+                    "action": "link_existing",
+                    "existingQuestionId": question_id,
+                }
+            ],
+        },
+    )
+    assert linked.status_code == 200, linked.text
+    removed_linked = delete_import(harness, third_id)
+    assert removed_linked.status_code == 200, removed_linked.text
+    assert harness.catalog.get_import(third_id) is None
+    assert row_count(harness, "questions") == 1
 
 
 # ----------------------------------------------------------------- 404 与语义区分
