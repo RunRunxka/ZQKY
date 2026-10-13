@@ -11,7 +11,7 @@
 
 import { useMemo, useRef, useState } from 'react';
 import { useEntrance } from '@/components/motion/useEntrance';
-import { FolderPlus, ListChecks, Upload } from 'lucide-react';
+import { FolderPlus, Fingerprint, ListChecks, Upload } from 'lucide-react';
 // 与既有内容页共享 space 设计语言（只读引入，不修改共享层）
 import '@/components/layout/space.css';
 import '@/features/textbook/styles/textbook.css';
@@ -19,6 +19,7 @@ import type { LibraryKind } from '@/contracts/textbook';
 import { fetchTextbookTaxonomy } from '@/services/textbook-api';
 import { ImportPanel } from './ImportPanel';
 import { LibraryCreateDialog } from './LibraryCreateDialog';
+import { IndexPanel } from './IndexPanel';
 import { JobsPanel } from './JobsPanel';
 import { LIBRARY_KIND_LABEL } from './labels';
 import { LibraryBrowser } from './LibraryBrowser';
@@ -33,6 +34,7 @@ export function TextbookWorkspace() {
   const [tab, setTab] = useState<Tab>('base');
   const [importOpen, setImportOpen] = useState(false);
   const [libraryCreateOpen, setLibraryCreateOpen] = useState(false);
+  const [indexOpen, setIndexOpen] = useState(false);
   const [jobsOpen, setJobsOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
@@ -61,6 +63,14 @@ export function TextbookWorkspace() {
             >
               <FolderPlus size={14} aria-hidden />
               新建逻辑库
+            </button>
+            <button
+              className="space-button"
+              data-testid="textbook-index-open"
+              onClick={() => setIndexOpen(true)}
+            >
+              <Fingerprint size={14} aria-hidden />
+              索引与嵌入
             </button>
             <button className="space-button" onClick={() => setJobsOpen(true)}>
               <ListChecks size={14} aria-hidden />
@@ -141,6 +151,13 @@ export function TextbookWorkspace() {
         </p>
       </main>
 
+      {indexOpen && (
+        <IndexPanel
+          onClose={() => setIndexOpen(false)}
+          onChanged={() => setRefreshToken((value) => value + 1)}
+        />
+      )}
+
       {libraryCreateOpen && (
         <LibraryCreateDialog
           taxonomy={index}
@@ -162,6 +179,7 @@ export function TextbookWorkspace() {
           updateTarget={null}
           onClose={() => setImportOpen(false)}
           onOpenJobs={() => setJobsOpen(true)}
+          onOpenIndex={() => setIndexOpen(true)}
           onCommitted={(job) => {
             setRefreshToken((value) => value + 1);
             setNotice(`已提交入库任务（任务 ${job.jobId}），进度以服务端任务状态为准。`);

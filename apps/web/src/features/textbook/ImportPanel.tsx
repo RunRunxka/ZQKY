@@ -64,6 +64,7 @@ export function ImportPanel({
   onClose,
   onCommitted,
   onOpenJobs,
+  onOpenIndex,
   onTargetStale,
   updateTarget = null,
   initialMetadata = null,
@@ -75,6 +76,8 @@ export function ImportPanel({
   /** 提交成功后的裸 `JobView`；草稿状态由面板随后自行回读。 */
   onCommitted?: (job: JobView) => void;
   onOpenJobs?: () => void;
+  /** 提交失败 INDEX_NOT_READY 时的去处：教材资料库页头的「索引与嵌入」面板。 */
+  onOpenIndex?: () => void;
   /** 更新目标的期望修订已过期（409）时通知父级刷新书册，用户可保留填写后重试。 */
   onTargetStale?: () => void;
   updateTarget?: ImportTarget | null;
@@ -686,9 +689,20 @@ export function ImportPanel({
               {blockReason && <span className="textbook-hint">{blockReason}</span>}
             </div>
             {commitError && (
-              <div className="space-banner error" role="alert">
+              <div className="space-banner error" role="alert" data-testid="textbook-commit-error">
                 {commitError}
+                {commitError.includes('INDEX_NOT_READY') && (
+                  <p className="textbook-hint" data-testid="textbook-commit-index-hint">
+                    还没有已发布的教材索引代：到教材资料库页头的「索引与嵌入」里建立嵌入档案并发布起始索引代，
+                    之后回到这里重试提交。
+                  </p>
+                )}
                 <div className="textbook-panel-actions">
+                  {commitError.includes('INDEX_NOT_READY') && onOpenIndex && (
+                    <button className="space-button" data-testid="textbook-commit-open-index" onClick={onOpenIndex}>
+                      去建立索引与嵌入
+                    </button>
+                  )}
                   <button
                     className="space-button"
                     onClick={() => void commit()}

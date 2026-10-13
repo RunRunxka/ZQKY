@@ -44,7 +44,8 @@
 | POST `/api/v1/textbook-imports` → `/{id}/commit`、`/{id}/discard` | 导入草稿 → 封存修订并入库；`/textbook-imports/{id}` 观察状态 |
 | `/api/v1/textbook-jobs*`（GET/cancel/retry）、`/textbook-index/status`、`/textbook-index/rebuilds` | 入库任务与索引代状态/受控重建 |
 | `/api/v1/textbook-revisions/{id}/source` | 修订原文区间读取（指纹校验） |
-| `/api/v1/embedding-models`（GET/probe） | 本机 Ollama 嵌入模型清单与探测 |
+| `/api/v1/embedding-models`（GET/probe）、`/embedding-profiles*` | 本机 Ollama 嵌入模型清单与真实探测 / 嵌入档案（配置）建立、停用、受守卫删除 |
+| `/api/v1/textbook-index/status`、`/textbook-index/rebuilds` | 索引代状态（代/档案/Qdrant/可检索范围/重建任务）与受控重建（换模型/重算全量）。**空库首启不自动建代**：先建嵌入档案，再发起一次重建发布起始（空）索引代，之后「提交入库」才可用（否则 409 `INDEX_NOT_READY`）；界面入口：教材资料库页头「索引与嵌入」 |
 
 ## 知识点（knowledge 库）
 
