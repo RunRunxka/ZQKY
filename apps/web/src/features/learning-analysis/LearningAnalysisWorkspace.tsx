@@ -3,12 +3,16 @@
 /**
  * `/learning-analysis` 学情分析页（R6-FE 2026-10-11）。
  *
- * 结构：顶部筛选（班级 / 试卷 / 时间粒度 + 导入小题分）→ 报告列表与所选报告 →
+ * 结构：顶部筛选（班级 / 试卷 / 时间粒度 + 导入小题分 + **删除该施测**）→ 报告列表与所选报告 →
  * 五图（各自独立的数据源、错误与重试）→ AI 评价与导出分析报告。
  *
  * 数据全部来自 FastAPI；读取失败按卡片显示原因与重试，不当空目录、不静默空图。
  * 公共壳与滚动容器由 layout 的 `ModuleWorkspaceShell` 统一提供（业务根由总控登记），
  * 本页不自包 WorkspaceShell。
+ *
+ * R10-BE（2026-10-13）：新增「删除该施测」——施测是成绩链的所有者，删除会级联删掉它自己的
+ * 整条链（人次/导入/修订与小题分/报告/派生练习/转换/成绩模板导出）；确认文案按类别点名后果，
+ * 成功回执逐项显示服务端级联计数，被教案冻结血缘引用时 409 逐项列出原因（详见 docs/API.md 删除语义）。
  *
  * 归档差异（R6 裁定）：
  * - 报告由后端创建（`POST /assessments/{id}/analysis-runs`）不在本卡范围，本页只读取既有报告；
@@ -18,11 +22,12 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FileSpreadsheet, RefreshCw } from 'lucide-react';
+import { FileSpreadsheet, RefreshCw, Trash2 } from 'lucide-react';
 import { useEntrance } from '@/components/motion/useEntrance';
 import { learningAnalysisApi, type LearningAnalysisApi } from '@/services/learning-analysis-api';
-import { useAsyncResource } from './score-hooks';
-import { shortId } from './score-labels';
+import { asApiError, useAsyncResource } from './score-hooks';
+import { ASSESSMENT_COUNT_LABELS, referenceCounts, shortId } from './score-labels';
+import { DeleteGuardNotice, type DeleteGuardState } from './DeleteGuardNotice';
 import {
   DistributionCard,
   ItemHeatmapCard,
@@ -60,6 +65,33 @@ function reportLabel(run: { paperTitle?: string | null; createdAt?: string | nul
   return stamp || shortId(run.runId);
 }
 
+/**
+ * 删除施测的二次确认文案（R10-BE）：把**会一起删掉的东西按类别点名**——
+ * 施测是成绩链的所有者，删除即删除整条链，且不可恢复。
+ */
+function deleteConfirmText(title: string, heldOn: string): string {
+  return (
+    `彻底删除施测「${title}」（${heldOn}）？\n\n` +
+    '这会连同它自己的整条数据链一起物理删除、不可恢复：\n' +
+    '参测人次 → 成绩导入批次 → 成绩修订与小题分 → 学情报告 → 由报告派生的练习（含导出件）→ ' +
+    '练习回流转换与成绩模板导出。\n\n' +
+    '学生档案、班级名单、试卷原件与教案不受影响；教案里由本报告生成过的来源指针会被置空。\n' +
+    '只想改成绩或删报告请用其它入口，不要继续。'
+  );
+}
+
+/** 删除成功回执（R10-BE）：只列**实际删到**的项（计数 0 的不提），服务端数字原样呈现。 */
+function deleteReceiptText(title: string, receipt: Record<string, unknown>): string {
+  const parts = Object.entries(ASSESSMENT_COUNT_LABELS)
+    .map(([key, label]) => ({ label, count: receipt[key] }))
+    .filter((entry): entry is { label: string; count: number } =>
+      typeof entry.count === 'number' && entry.count > 0,
+    )
+    .map((entry) => `${entry.label} ${entry.count}`);
+  const cascade = parts.length > 0 ? `级联删除：${parts.join('、')}。` : '该施测下没有成绩与报告数据。';
+  return `已彻底删除施测「${title}」：${cascade}物理删除完成，不可恢复。`;
+}
+
 export function LearningAnalysisWorkspace({
   initialAssessmentId = null,
   initialRunId = null,
@@ -76,6 +108,11 @@ export function LearningAnalysisWorkspace({
   const [runId, setRunId] = useState<string | null>(initialRunId);
   const [runsOffset, setRunsOffset] = useState(0);
   const [showImport, setShowImport] = useState(false);
+  /** 删除施测（R10-BE）：忙碌、错误、被引用守卫、成功回执四个独立状态。 */
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteGuard, setDeleteGuard] = useState<DeleteGuardState | null>(null);
+  const [deleteReceipt, setDeleteReceipt] = useState<string | null>(null);
 
   const classes = useAsyncResource((signal) => services.listClasses({ limit: 200 }, signal), 'la-classes');
   const assessments = useAsyncResource(
@@ -122,6 +159,56 @@ export function LearningAnalysisWorkspace({
     setTimeRange(id);
     setTimeCutoff(days === null ? null : Date.now() - days * 24 * 60 * 60 * 1000);
     setRunsOffset(0);
+  }
+
+  /** 当前选中的施测（下拉里选中那条；没有选中时为 null，删除入口据此禁用）。 */
+  const selectedAssessment = useMemo(
+    () =>
+      (assessments.lastData?.items ?? []).find((item) => item.assessmentId === assessmentId) ?? null,
+    [assessments.lastData, assessmentId],
+  );
+
+  /**
+   * 彻底删除当前选中的施测（R10-BE：施测是成绩链的所有者，删除即删整条链）。
+   *
+   * 二次确认里按类别点名会被删掉的数据；成功 200 回执带级联计数，逐项展示；
+   * 被教案冻结生成血缘引用 → 409 `ASSESSMENT_IN_USE`，逐项列出原因（不显示成功回执）；
+   * 乐观锁 409 / 404 走普通错误区（不伪装成引用问题）。删除后清空筛选并刷新列表与报告。
+   */
+  async function deleteSelectedAssessment() {
+    if (deleteBusy || !selectedAssessment) return;
+    const target = selectedAssessment;
+    if (!window.confirm(deleteConfirmText(target.title, target.heldOn))) return;
+    setDeleteBusy(true);
+    setDeleteError(null);
+    setDeleteGuard(null);
+    setDeleteReceipt(null);
+    try {
+      const receipt = await services.deleteAssessment(target.assessmentId, target.revision);
+      setDeleteReceipt(
+        deleteReceiptText(target.title, receipt as unknown as Record<string, unknown>),
+      );
+      // 施测已不存在：清空筛选与选中报告，收起导入面板，再刷新列表（报告链已随之消失）
+      setAssessmentId('');
+      setRunId(null);
+      setRunsOffset(0);
+      setShowImport(false);
+      assessments.reload();
+      runs.reload();
+    } catch (cause) {
+      const error = asApiError(cause);
+      if (error.status === 409 && error.code === 'ASSESSMENT_IN_USE') {
+        setDeleteGuard({
+          targetId: target.assessmentId,
+          error,
+          reasons: referenceCounts(error.details, ASSESSMENT_COUNT_LABELS),
+        });
+      } else {
+        setDeleteError(`删除施测失败（${error.code}）：${error.message}`);
+      }
+    } finally {
+      setDeleteBusy(false);
+    }
   }
 
   const classesFailed = classes.state.phase === 'failed';
@@ -228,13 +315,50 @@ export function LearningAnalysisWorkspace({
             >
               <FileSpreadsheet size={13} aria-hidden /> {showImport ? '收起导入面板' : '导入小题分'}
             </button>
+            <button
+              className="space-button danger"
+              data-testid="la-assessment-delete"
+              disabled={deleteBusy || !selectedAssessment}
+              title={
+                selectedAssessment
+                  ? `删除施测「${selectedAssessment.title}」及其整条成绩链`
+                  : '先在上面的「试卷」下拉里选择一场施测'
+              }
+              onClick={() => void deleteSelectedAssessment()}
+            >
+              <Trash2 size={13} aria-hidden />
+              {deleteBusy ? '删除中…' : '删除该施测'}
+            </button>
           </div>
         </section>
 
         <p className="la-hint">
           班级筛选走服务端：只列出该班参测的试卷；试卷筛选只列出该试卷的分析报告。
           时间粒度按报告创建时间在已读取的报告页内过滤（后端暂未提供时间查询参数），界面不隐藏该口径。
+          「删除该施测」作用于上面「试卷」下拉里选中的那一场（删除即删除，不可恢复）。
         </p>
+
+        {deleteReceipt && (
+          <p className="space-banner info" role="status" data-testid="la-assessment-delete-receipt">
+            {deleteReceipt}
+          </p>
+        )}
+        {deleteError && (
+          <p className="space-banner error" role="alert" data-testid="la-assessment-delete-error">
+            {deleteError}
+          </p>
+        )}
+        {deleteGuard && (
+          <DeleteGuardNotice
+            state={deleteGuard}
+            targetName={
+              (assessments.lastData?.items ?? []).find(
+                (item) => item.assessmentId === deleteGuard.targetId,
+              )?.title ?? `施测 ${shortId(deleteGuard.targetId)}`
+            }
+            testId="la-assessment-delete-guard"
+          />
+        )}
 
         {assessments.state.phase === 'failed' && (
           <div className="space-banner error" role="alert" data-testid="la-assessments-error">

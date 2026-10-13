@@ -219,6 +219,27 @@ export const SCORE_IMPORT_REFERENCE_LABELS: Record<string, string> = {
 };
 
 /**
+ * 施测计数的统一标签（R10-BE）：既用于删除被拒时 `details.counts` 的逐项原因，
+ * 也用于删除成功回执里的级联计数——同一概念两处同一措辞，避免读者对照两个名字。
+ *
+ * `unlinkedLessonRevisions` 是「置空来源指针」而非删除（教案本体保留），措辞里写明；
+ * 两个教案冻结血缘键是唯一的阻断项，标签明确指出需要先在教案端处置。
+ */
+export const ASSESSMENT_COUNT_LABELS: Record<string, string> = {
+  participants: '参测人次',
+  scoreImports: '成绩导入批次',
+  scoreRevisions: '成绩修订',
+  itemScores: '小题分',
+  analysisRuns: '学情报告',
+  practiceSets: '派生练习（含导出与回流转换）',
+  practiceConversions: '练习回流转换',
+  exports: '成绩模板导出',
+  unlinkedLessonRevisions: '教案修订来源指针置空',
+  lessonGenerationInputs: '教案生成输入（冻结血缘，需先在教案端处置）',
+  lessonProposals: '教案 AI 候选（冻结血缘，需先在教案端处置）',
+};
+
+/**
  * 从 409 的 `details` 里读 `counts` 并逐项列成原因清单：
  * 只保留计数 >0 的键，未知键用原始键名兜底（不隐藏任何一条引用），形状不符返回空数组。
  */

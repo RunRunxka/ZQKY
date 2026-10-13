@@ -12,11 +12,19 @@ export interface ErrorIssue {
   message: string;
 }
 
-/** 错误详情冻结形状：409 版本冲突用 currentRevision，422 用 issues（简单字段错误可用 fields）。 */
+/**
+ * 错误详情冻结形状：409 版本冲突用 currentRevision，422 用 issues（简单字段错误可用 fields），
+ * 受引用守卫的 409（如 `*_IN_USE`）用 counts 逐项列出引用条数。
+ */
 export interface ApiErrorDetails {
   currentRevision?: number;
   issues?: ErrorIssue[];
   fields?: string[];
+  /**
+   * 受引用守卫 409 的逐项引用计数（键 → 条数）。键名是**域内词表**，由各页的标签表解释
+   * （如 `referenceCounts(details, ASSESSMENT_COUNT_LABELS)`）；未知键按原样显示，不隐藏引用。
+   */
+  counts?: Record<string, number>;
 }
 
 export interface ApiErrorEnvelope {

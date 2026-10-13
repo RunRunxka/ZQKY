@@ -11,7 +11,7 @@
 | `/knowledge-points` | 知识点：搜索 + 可展开树 + 详情编辑（含学习目标）、AI 候选/教材提取/导入审阅 | `ready` |
 | `/question-bank`、`/question-bank/imports/[importId]` | 题库：筛选（知识点/难度/搜索）+ 分类树 + 列表分页；批量导入（含课后习题提取）与校对 | `ready` |
 | `/practices` | 练习：学情/描述出题 → 微调 → 确认门槛 → 学生卷/教师卷导出预览 | `ready` |
-| `/learning-analysis` | 学情分析：筛选、小题分导入、五图、AI 评价、报告导出 | `ready` |
+| `/learning-analysis` | 学情分析：筛选、小题分导入、五图、AI 评价、报告导出；**「删除该施测」**（R10-BE 级联成绩链，二次确认 + 回执列级联计数） | `ready` |
 | `/assessments`（重定向到 roster）、`/assessments/roster` | 班级管理：班级/学生名单（xlsx 导入、性别、分页）；删除学生双模式（无成绩=彻底删除 / 有成绩=移除并保留历史），班级人数即时下降；**无归档入口**（2026-10-13 裁定） | `ready` |
 | `/assessments/papers` | 试卷管理：导入（DOCX/PDF 文本层）→ 拆题校对 → AI 知识点分类占比环图；删除即删除（无归档入口） | `ready` |
 | `/settings` | 设置：外观 / 模型与连接 / 关于 | `ready` |

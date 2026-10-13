@@ -339,3 +339,119 @@ describe('学情分析工作区', () => {
     expect(screen.getByText(/学生以代称进模型，不传姓名\/学号/)).toBeInTheDocument();
   });
 });
+
+describe('学情分析：删除施测（R10-BE 施测=成绩链所有者）', () => {
+  it('删除成功：二次确认点名后果 → DELETE 带 expectedRevision → 回执逐项列出级联计数并清空筛选', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const deleteAssessment = vi.fn(async () => ({
+      deleted: true,
+      assessmentId: 'asm-1',
+      participants: 3,
+      scoreImports: 1,
+      scoreRevisions: 1,
+      itemScores: 6,
+      analysisRuns: 1,
+      practiceSets: 0,
+      practiceConversions: 0,
+      exports: 0,
+      unlinkedLessonRevisions: 0,
+    }));
+    const listAssessments = vi.fn(async () =>
+      page([
+        {
+          assessmentId: 'asm-1',
+          paperId: 'paper-1',
+          paperRevisionId: 'paper-1',
+          paperTitle: '第一次月考原卷',
+          title: '第一次月考',
+          heldOn: '2026-09-30',
+          revision: 3,
+          participantCount: 1,
+          classIds: ['class-a'],
+        },
+      ]),
+    );
+    installApi({ deleteAssessment, listAssessments });
+    render(<LearningAnalysisWorkspace initialAssessmentId="asm-1" />);
+    await screen.findByTestId('la-trend-card');
+
+    fireEvent.click(screen.getByTestId('la-assessment-delete'));
+    await waitFor(() => expect(deleteAssessment).toHaveBeenCalledWith('asm-1', 3));
+    // 确认文案按类别点名会被一起删掉的数据（不可恢复）
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('不可恢复'));
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('学情报告'));
+
+    const receipt = await screen.findByTestId('la-assessment-delete-receipt');
+    expect(receipt).toHaveTextContent('已彻底删除施测「第一次月考」');
+    expect(receipt).toHaveTextContent('参测人次 3');
+    expect(receipt).toHaveTextContent('成绩导入批次 1');
+    expect(receipt).toHaveTextContent('小题分 6');
+    expect(receipt).toHaveTextContent('学情报告 1');
+    // 计数为 0 的项不列（不把"没删到"说成删了）
+    expect(receipt).not.toHaveTextContent('派生练习');
+    expect(receipt).not.toHaveTextContent('教案修订来源指针置空');
+    // 删除后清空筛选并重新读取施测列表（报告链已随之消失）
+    await waitFor(() => expect(screen.getByLabelText('试卷筛选')).toHaveValue(''));
+    expect(listAssessments.mock.calls.length).toBeGreaterThan(1);
+    expect(screen.queryByTestId('la-assessment-delete-guard')).not.toBeInTheDocument();
+  });
+
+  it('409 ASSESSMENT_IN_USE：逐项列出教案冻结血缘，不显示成功回执', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    installApi({
+      deleteAssessment: vi.fn(async () => {
+        throw new ApiError(
+          'ASSESSMENT_IN_USE',
+          '施测链仍被教案的冻结生成血缘引用，不能删除（教案生成输入 1 条）；这些行的来源指针是 NOT NULL 的不可变历史。',
+          409,
+          false,
+          undefined,
+          { counts: { lessonGenerationInputs: 1, lessonProposals: 0, scoreRevisions: 1 } },
+        );
+      }),
+    });
+    render(<LearningAnalysisWorkspace initialAssessmentId="asm-1" />);
+    await screen.findByTestId('la-trend-card');
+
+    fireEvent.click(screen.getByTestId('la-assessment-delete'));
+    const guard = await screen.findByTestId('la-assessment-delete-guard');
+    expect(guard).toHaveTextContent('ASSESSMENT_IN_USE');
+    expect(guard).toHaveTextContent('教案生成输入（冻结血缘，需先在教案端处置） 1 条');
+    expect(guard).toHaveTextContent('成绩修订 1 条');
+    // 计数为 0 的引用不列；被拒绝时不显示成功回执
+    expect(guard).not.toHaveTextContent('教案 AI 候选');
+    expect(screen.queryByTestId('la-assessment-delete-receipt')).not.toBeInTheDocument();
+  });
+
+  it('乐观锁 409 走普通错误区（不伪装成引用问题）', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    installApi({
+      deleteAssessment: vi.fn(async () => {
+        throw new ApiError(
+          'ASSESSMENT_REVISION_STALE',
+          '数据已被其他操作更新，请刷新后重试。',
+          409,
+          false,
+          undefined,
+          { currentRevision: 5 },
+        );
+      }),
+    });
+    render(<LearningAnalysisWorkspace initialAssessmentId="asm-1" />);
+    await screen.findByTestId('la-trend-card');
+
+    fireEvent.click(screen.getByTestId('la-assessment-delete'));
+    const error = await screen.findByTestId('la-assessment-delete-error');
+    expect(error).toHaveTextContent('删除施测失败（ASSESSMENT_REVISION_STALE）');
+    expect(screen.queryByTestId('la-assessment-delete-guard')).not.toBeInTheDocument();
+  });
+
+  it('未选择施测时删除键禁用，点击不发起请求', async () => {
+    const api = installApi({ deleteAssessment: vi.fn() });
+    render(<LearningAnalysisWorkspace />);
+    const button = await screen.findByTestId('la-assessment-delete');
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(api.deleteAssessment).not.toHaveBeenCalled();
+  });
+});

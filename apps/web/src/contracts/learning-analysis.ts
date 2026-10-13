@@ -202,6 +202,29 @@ export interface AssessmentList {
   limit: number;
 }
 
+/**
+ * 施测删除回执（R10-BE，`DELETE /assessments/{id}?expectedRevision=N` 的 200 体）。
+ *
+ * 语义：施测是成绩链的所有者——删除施测会**级联删除它自己的整条链**
+ * （参测人次 → 成绩导入 → 成绩修订与小题分 → 学情报告 → 由报告派生的练习含导出 →
+ * 练习回流转换与成绩模板导出）。各字段是**本次实际删除的行数**，未触及的为 0；
+ * `unlinkedLessonRevisions` 是把教案修订的来源指针置空的条数（教案本体保留，不是删除）。
+ * 被教案冻结生成血缘引用时后端返回 409 `ASSESSMENT_IN_USE`（见 docs/API.md 删除语义）。
+ */
+export interface AssessmentDeleteResult {
+  deleted: boolean;
+  assessmentId: string;
+  analysisRuns: number;
+  practiceSets: number;
+  unlinkedLessonRevisions: number;
+  scoreRevisions: number;
+  scoreImports: number;
+  itemScores: number;
+  participants: number;
+  practiceConversions: number;
+  exports: number;
+}
+
 export interface AssessmentParticipantView {
   participantId: string;
   studentId: string;

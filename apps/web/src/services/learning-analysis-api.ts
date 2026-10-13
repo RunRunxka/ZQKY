@@ -19,6 +19,7 @@ import type {
   AnalysisReportReceipt,
   AnalysisRunList,
   AnalysisRunView,
+  AssessmentDeleteResult,
   AssessmentDetailView,
   AssessmentList,
   ClassList,
@@ -194,6 +195,25 @@ export function getAssessment(
   return apiRequest<AssessmentDetailView>(`/assessments/${key(assessmentId)}`, { signal });
 }
 
+/**
+ * 彻底删除施测（R10-BE）：`expectedRevision` 走查询参数，200 回执带级联计数。
+ *
+ * 施测是成绩链的所有者——删除会**级联删除**参测人次、成绩导入、成绩修订与小题分、
+ * 学情报告、由报告派生的练习（含导出与回流转换）与成绩模板导出
+ * （详见 docs/API.md「删除语义」）。被教案冻结生成血缘引用 → 409 `ASSESSMENT_IN_USE`
+ * （`details.counts` 逐项列出）；乐观锁不符 → 409；不存在 → 404。
+ */
+export function deleteAssessment(
+  assessmentId: string,
+  expectedRevision: number,
+  signal?: AbortSignal,
+): Promise<AssessmentDeleteResult> {
+  return apiRequest<AssessmentDeleteResult>(
+    `/assessments/${key(assessmentId)}${learningAnalysisQuery({ expectedRevision })}`,
+    { method: 'DELETE', signal },
+  );
+}
+
 export function listClasses(
   query: { status?: 'active' | 'archived'; offset?: number; limit?: number } = {},
   signal?: AbortSignal,
@@ -347,6 +367,7 @@ export const learningAnalysisApi = {
   downloadExportArtifact,
   listAssessments,
   getAssessment,
+  deleteAssessment,
   listClasses,
   getPaperRevisionContent,
   createScoreImport,

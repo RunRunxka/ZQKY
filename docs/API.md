@@ -96,7 +96,7 @@
 | `DELETE /students/{id}?expectedRevision=N` | 无参测引用：归属记录 + 学生行；名单导入匹配指针置空 | — | 无（有历史成绩 → 200 `removed_with_history`：关归属 + 身份已移除，成绩保留） |
 | `DELETE /classes/{id}?expectedRevision=N` | 归属、名单批次（+预览行）、**无参测人次的**参测范围行；无归属且无参测引用的学生行 | — | 该班有**参测人次**（成绩链证据）、有**教案**/教案生成输入 → `CLASS_IN_USE` + counts |
 | `DELETE /papers/{id}?expectedRevision=N` | 全部修订（含已确认）+ 小题/知识点/原文块/处置问题/AI 提案 | — | 被施测引用 → `PAPER_IN_USE`（先删施测） |
-| `DELETE /assessments/{id}?expectedRevision=N` | **自有成绩链**：参测人次、成绩导入（+行）、成绩修订（+小题分/修正）、报告（+冻结子表）、派生练习（连带历史）、转换/映射、成绩模板导出（+工件）、参测范围 | — | 链上报告被教案冻结生成血缘引用 → `ASSESSMENT_IN_USE` + counts |
+| `DELETE /assessments/{id}?expectedRevision=N` | **自有成绩链**：参测人次、成绩导入（+行）、成绩修订（+小题分/修正）、报告（+冻结子表）、派生练习（连带历史）、转换/映射、成绩模板导出（+工件）、参测范围（界面入口：学情分析页「删除该施测」） | — | 链上报告被教案冻结生成血缘引用 → `ASSESSMENT_IN_USE` + counts |
 | `DELETE /analysis-runs/{id}` | 报告六张冻结子表；**派生练习集连带历史**（reviewed 修订/导出/转换/工件） | 教案修订的 `analysis_run_id` 来源指针 | 报告被 `lesson_generation_inputs`/`lesson_ai_proposals`（NOT NULL 冷冻血缘）引用 → `ANALYSIS_RUN_IN_USE` + counts |
 | `DELETE /practice-sets/{id}?expectedRevision=N[&includeHistory=true]` | 草稿修订链；`includeHistory=true` 时连同 reviewed 修订/导出/工件/转换/映射 | 转换生成的原卷修订的来源指针 | 默认路径有 reviewed 修订/导出/转换 → `PRACTICE_IN_USE`（回执给出 `includeHistory` 路径） |
 
