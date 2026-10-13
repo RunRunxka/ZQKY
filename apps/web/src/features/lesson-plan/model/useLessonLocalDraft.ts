@@ -14,6 +14,7 @@ import {
   clearLocalDraft,
   readLocalDraft,
   writeLocalDraft,
+  safeBrowserStorage,
 } from './draft-storage';
 
 const SAVE_DEBOUNCE_MS = 600;
@@ -26,14 +27,6 @@ export interface LocalDraftStatus {
   saving: boolean;
 }
 
-function browserStorage(): Storage | null {
-  try {
-    return typeof window === 'undefined' ? null : window.localStorage;
-  } catch {
-    return null;
-  }
-}
-
 export function useLessonLocalDraft(store: StoreApi<LessonWorkbenchState>) {
   const [status, setStatus] = useState<LocalDraftStatus>({
     ready: false,
@@ -41,7 +34,7 @@ export function useLessonLocalDraft(store: StoreApi<LessonWorkbenchState>) {
     savedAt: null,
     saving: false,
   });
-  const storage = useMemo(browserStorage, []);
+  const storage = useMemo(safeBrowserStorage, []);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pending = useRef(false);
   const blocked = useRef(false);

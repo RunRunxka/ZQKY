@@ -158,8 +158,37 @@ export interface LessonSummaryPage {
   limit: number;
 }
 
+/**
+ * 教案删除回执（`DELETE /lesson-plans/{id}?expectedRevision=N` 的 200 体）。
+ *
+ * 删除只清教案自身的历史（修订 / 生成输入 / AI 候选 / 校对 / 决定），不动学生、班级、
+ * 成绩与学情报告；教案不存在 → 404，乐观锁不符 → 409，被教案五表之外的引用挡住 → 409
+ * `LESSON_IN_USE`（当前无外部引用表，属结构性防线）。
+ */
+export interface LessonDeleteResult {
+  deleted: boolean;
+  lessonPlanId: string;
+  removedRevisions: number;
+  removedProposals: number;
+  removedInputs: number;
+}
+
+/**
+ * `POST /lesson-plans`：教案必须属于**某班某科**（后端 `LessonCreateRequest` 要求
+ * `subjectId`/`classId` 非空，且 `classId` 是真班级），因此创建前要在「本地教案」对话框里
+ * 选好归属；缺它们后端 422 `LESSON_INVALID`（"教案请求字段不符合契约"）。
+ */
 export interface LessonCreateRequest {
   submissionId: string;
+  /** 学科 id（来自 `GET /textbook-taxonomy` 的 subjects）。 */
+  subjectId: string;
+  /** 班级 id（来自 `GET /classes`；教案随班级归档/删除守卫一起被引用）。 */
+  classId: string;
+  /**
+   * 学情来源上下文：手工新建显式送 `null`（后端 `LessonCreateRequest.context` 是**必填键**，
+   * 只是允许为 null；缺键会 422 "教案请求字段不符合契约"——2026-10-13 修）。
+   */
+  context: null;
   data: LessonPlanData;
 }
 

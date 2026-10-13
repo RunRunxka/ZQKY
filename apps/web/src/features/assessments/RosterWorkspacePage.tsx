@@ -38,6 +38,7 @@ import '@/components/layout/space.css';
 import '@/features/assessments/styles/assessments.css';
 import { asApiError, useAsyncResource } from './hooks';
 import {
+  CLASS_BLOCKING_KEYS,
   CLASS_REFERENCE_LABELS,
   clampPage,
   filterStudentsByName,
@@ -416,6 +417,7 @@ export function RosterWorkspacePage() {
                 classItems.find((item) => item.id === deleteGuard.targetId)?.name,
                 deleteGuard.targetId,
               )}
+              blockingKeys={CLASS_BLOCKING_KEYS}
               testId="assessments-class-delete-guard"
             />
           )}

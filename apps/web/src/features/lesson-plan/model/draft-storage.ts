@@ -12,6 +12,15 @@ import { isRecord } from './records';
 import { withLessonDefaults } from './lesson-data';
 import { normalizeModules, normalizeStyle, type LessonModuleEntry } from './modules';
 
+/** 浏览器存储的安全入口（无 window / 隐私模式不可用 → null，调用方按"无本地记忆"处理）。 */
+export function safeBrowserStorage(): Storage | null {
+  try {
+    return typeof window === 'undefined' ? null : window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
 export const LOCAL_DRAFT_KEY = 'zhiqikeyuan:lesson-plan:v1';
 /** 当前打开的云端教案 id（本机记忆；读取失败不删除）。 */
 export const ACTIVE_PLAN_KEY = 'zhiqikeyuan:lesson-plan:active:v1';
@@ -124,4 +133,33 @@ export function writeActivePlanId(storage: Storage, lessonPlanId: string): void 
 
 export function clearActivePlanId(storage: Storage): void {
   storage.removeItem(ACTIVE_PLAN_KEY);
+}
+
+/** 教案归属（学科 + 班级）本机记忆：教案必须属于某班某科，新建/导出时复用上次选择。 */
+export const LESSON_OWNERSHIP_KEY = 'zhiqikeyuan:lesson-plan:ownership:v1';
+
+export interface LessonOwnership {
+  subjectId: string;
+  classId: string;
+}
+
+const EMPTY_OWNERSHIP: LessonOwnership = { subjectId: '', classId: '' };
+
+export function readOwnership(storage: Storage): LessonOwnership {
+  const raw = storage.getItem(LESSON_OWNERSHIP_KEY);
+  if (!raw) return EMPTY_OWNERSHIP;
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    if (!isRecord(parsed)) return EMPTY_OWNERSHIP;
+    const subjectId = typeof parsed.subjectId === 'string' ? parsed.subjectId : '';
+    const classId = typeof parsed.classId === 'string' ? parsed.classId : '';
+    return { subjectId, classId };
+  } catch {
+    // 记忆损坏不当成"已选"：返回空，让界面重新选（不覆盖、不猜）。
+    return EMPTY_OWNERSHIP;
+  }
+}
+
+export function writeOwnership(storage: Storage, ownership: LessonOwnership): void {
+  storage.setItem(LESSON_OWNERSHIP_KEY, JSON.stringify(ownership));
 }

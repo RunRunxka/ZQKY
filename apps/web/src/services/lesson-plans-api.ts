@@ -22,6 +22,7 @@
 import { apiRequest, apiRequestBlob, type BlobDownload } from '@/services/api-client';
 import type {
   LessonCreateRequest,
+  LessonDeleteResult,
   LessonDraftPatchRequest,
   LessonExportReceipt,
   LessonExportRequest,
@@ -146,6 +147,22 @@ export function createLessonPlan(body: LessonCreateRequest, signal?: AbortSignal
   return apiRequest<unknown>('/lesson-plans', jsonInit('POST', body, signal)).then(normalizeLessonView);
 }
 
+/**
+ * 彻底删除教案（`expectedRevision` 走查询参数）：清掉该教案自身的全部历史，不可恢复。
+ * 乐观锁不符 → 409 `REVISION_CONFLICT`；不存在 → 404；被教案范围之外的引用挡住 → 409 `LESSON_IN_USE`。
+ * **不做归档**：界面只提供删除（归档端点保留为历史数据兼容）。
+ */
+export function deleteLessonPlan(
+  lessonPlanId: string,
+  expectedRevision: number,
+  signal?: AbortSignal,
+): Promise<LessonDeleteResult> {
+  return apiRequest<LessonDeleteResult>(
+    `/lesson-plans/${key(lessonPlanId)}?expectedRevision=${expectedRevision}`,
+    { method: 'DELETE', signal },
+  );
+}
+
 /** autosave（CAS）：409 时 `ApiError.details.currentRevision` 是服务器当前修订号。 */
 export function patchLessonPlanDraft(
   lessonPlanId: string,
@@ -201,6 +218,7 @@ export const lessonPlansApi = {
   getLessonPlan,
   createLessonPlan,
   patchLessonPlanDraft,
+  deleteLessonPlan,
   exportLessonPlan,
   downloadLessonExport,
   uploadLessonSource,

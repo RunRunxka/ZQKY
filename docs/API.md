@@ -114,7 +114,7 @@ blob）、`workflow_jobs`（任务历史）、`command_submissions`（提交幂�
 
 | 方法和路径 | 用途 |
 | --- | --- |
-| `/api/v1/lesson-plans`（GET/POST）、`/{id}`（GET/PATCH draft）、`/{id}/revisions` | 教案草稿/修订（CAS `expectedRevision`；草稿与候选分离） |
+| `/api/v1/lesson-plans`（GET/POST）、`/{id}`（GET/PATCH draft/DELETE）、`/{id}/revisions` | 教案草稿/修订（CAS `expectedRevision`；草稿与候选分离）。`POST` 必填 `subjectId`/`classId`（教案必属某班某科）与 `context` 键（手工新建显式 `null`，缺键 422）；`DELETE ?expectedRevision=N` 彻底删除教案自身历史（归档端点保留为历史兼容，界面只留删除，入口在教案工作台「本地教案」） |
 | POST `/api/v1/lesson-plans/generation-stream` | 逐模块流式生成（SSE：`message.start / module.start / module.delta / module.error / module.done / message.end / error`；生成候选采用才写入） |
 | `/api/v1/lesson-plans/{id}/proposals`（+`/{pid}/apply|reject`） | 五字段 patch 候选（`apply_lesson_proposal` 工具带中断确认） |
 | POST `/api/v1/lesson-plans/{id}/export` | 导出 docx（202）：以空白模板组装，自动补齐封面（第 1 页）+ 目录（第 2 页），正文自第 3 页 |

@@ -118,11 +118,15 @@ export function useLessonServer({
     [api, storage, store],
   );
 
-  const createPlan = useCallback(async () => {
+  const createPlan = useCallback(async (ownership: { subjectId: string; classId: string }) => {
     setServer((current) => ({ ...current, status: 'loading', message: undefined }));
     try {
       const view = await api.createLessonPlan({
         submissionId: newId(),
+        subjectId: ownership.subjectId,
+        classId: ownership.classId,
+        // 手工新建没有学情来源：显式送 null（缺键后端会 422，键可空但必填）
+        context: null,
         data: store.getState().data,
       });
       paused.current = false;
@@ -249,11 +253,14 @@ export function useLessonServer({
   }, [storage]);
 
   /** 导出：必要时先创建云端教案；成功返回文件名与是否已触发下载。 */
-  const exportNow = useCallback(async (): Promise<ExportOutcome> => {
+  const exportNow = useCallback(async (ownership: { subjectId: string; classId: string }): Promise<ExportOutcome> => {
     const { planId } = serverRef.current;
     let targetId = planId;
     if (!targetId) {
-      const created = await createPlan();
+      if (!ownership.subjectId || !ownership.classId) {
+        throw new Error('导出前请先在「本地教案」里选择学科与班级（教案必须属于某班某科）。');
+      }
+      const created = await createPlan(ownership);
       targetId = created.lessonPlanId;
     }
     const receipt = await api.exportLessonPlan(targetId, buildExportRequest());

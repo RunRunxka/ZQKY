@@ -6,10 +6,11 @@
  * `lesson-plans` 登记进 `ModuleWorkspaceShell` 的 `independentRoots` 后统一提供（见交付说明）；
  * 页面自身提供 64px 工作台顶栏（名称输入 + 同步状态 + 导出）与三栏内容，列宽可拖拽、各自滚动。
  *
- * 数据：正文/排版/模块全部进本地草稿（归档键兼容）；云端为可选的 `PATCH /draft` CAS 同步；
+ * 数据：正文/排版/模块全部进本地草稿（浏览器）+ 本机后端（数据目录 `.local-data`，不联网）；
+ * 保存走可选 `PATCH /draft` CAS 同步；
  * AI 只产候选，教师「采用」才进草稿；导出由后端组装，前端只触发 + 下载。
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from 'zustand';
 import { Cloud, Download, LoaderCircle, PanelLeft, PenLine, Redo2, ScanEye, Undo2 } from 'lucide-react';
 import { lessonPlansApi, uploadLessonSource, type LessonPlansApi } from '@/services/lesson-plans-api';
@@ -18,6 +19,12 @@ import { createLessonWorkbenchStore } from './model/store';
 import { emptyLessonData } from './model/lesson-data';
 import { DEFAULT_LESSON_STYLE, defaultModuleLayout, modulesToWire } from './model/modules';
 import { useLessonLocalDraft } from './model/useLessonLocalDraft';
+import {
+  readOwnership,
+  safeBrowserStorage,
+  writeOwnership,
+  type LessonOwnership,
+} from './model/draft-storage';
 import { reasonOf, useLessonServer } from './model/useLessonServer';
 import { mergeCandidateData, parseModuleText } from './services/fill-parsers';
 import { ColumnSplitter } from './components/ColumnSplitter';
@@ -71,6 +78,8 @@ export function LessonWorkbench({
   const [mobilePane, setMobilePane] = useState<MobilePane>('edit');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dismissed, setDismissed] = useState<string[]>([]);
+  /** 教案删除回执（R10-FE）：对话框内删除成功后，关掉对话框仍能看到结果 */
+  const [lessonDeletedNotice, setLessonDeletedNotice] = useState<string | null>(null);
   const [exportState, setExportState] = useState<{
     status: 'idle' | 'busy' | 'ok' | 'error';
     message?: string;
@@ -78,19 +87,45 @@ export function LessonWorkbench({
 
   const navigation = useNavigationGuard();
 
-  /* 离开页面前先落本地草稿（云端为尽力而为，不阻塞导航）。 */
+  /**
+   * 教案归属（学科 + 班级）：教案必须属于某班某科（后端创建契约要求），
+   * 存在本机以便新建/导出复用上次选择；「本地教案」对话框里可改。
+   */
+  const ownershipStorage = useMemo(() => safeBrowserStorage(), []);
+  const [ownership, setOwnership] = useState<LessonOwnership>(() =>
+    ownershipStorage ? readOwnership(ownershipStorage) : { subjectId: '', classId: '' },
+  );
+  const changeOwnership = useCallback(
+    (next: LessonOwnership) => {
+      setOwnership(next);
+      if (ownershipStorage) writeOwnership(ownershipStorage, next);
+    },
+    [ownershipStorage],
+  );
+
+  /* 离开页面前先落本地草稿（服务器同步是尽力而为，不阻塞导航）。 */
   const flushAll = useCallback(async () => {
     local.flush();
     await serverSync.flush().catch(() => undefined);
   }, [local, serverSync]);
 
+  /**
+   * 守卫**只注册一次**：`flushAll` 的身份每次渲染都会变（`useLessonLocalDraft` /
+   * `useLessonServer` 每次返回新对象），而导航守卫会把"守卫集合在决策期间发生增删"
+   * 当作不安全而拒绝该次导航——若跟着 `flushAll` 重新注册，就会出现
+   * 「点导航栏没反应、被锁在教案工作台」。这里用 ref 取最新实现，注册只依赖 provider。
+   */
+  const flushRef = useRef(flushAll);
+  useEffect(() => {
+    flushRef.current = flushAll;
+  }, [flushAll]);
   useEffect(() => {
     if (!navigation.hasProvider) return;
     return navigation.register('lesson-plan:draft', async () => {
-      await flushAll();
+      await flushRef.current();
       return true;
     });
-  }, [navigation, flushAll]);
+  }, [navigation]);
 
   const activeModule = modules.find((module) => module.id === activeModuleId) ?? modules[0];
 
@@ -140,9 +175,18 @@ export function LessonWorkbench({
   }, []);
 
   const onExport = useCallback(async () => {
+    // 教案必须属于某班某科：还没选归属时先让教师去「本地教案」里选，不静默猜班级
+    if (!ownership.subjectId || !ownership.classId) {
+      setDialogOpen(true);
+      setExportState({
+        status: 'error',
+        message: '导出前请先在「本地教案」里选择学科与班级（教案必须属于某班某科）。',
+      });
+      return;
+    }
     setExportState({ status: 'busy' });
     try {
-      const outcome = await serverSync.exportNow();
+      const outcome = await serverSync.exportNow(ownership);
       setExportState({
         status: 'ok',
         message: outcome.downloaded
@@ -152,7 +196,7 @@ export function LessonWorkbench({
     } catch (error) {
       setExportState({ status: 'error', message: `导出失败：${reasonOf(error)}` });
     }
-  }, [serverSync]);
+  }, [ownership, serverSync]);
 
   const notices = useMemo<WorkbenchNotice[]>(() => {
     const list: WorkbenchNotice[] = [];
@@ -187,7 +231,7 @@ export function LessonWorkbench({
       list.push({
         id: 'server-conflict',
         tone: 'error',
-        title: '云端版本冲突',
+        title: '教案版本冲突（本机后端）',
         message: `${serverSync.server.message ?? ''}${
           serverSync.server.conflictRevision != null
             ? `（服务器当前修订 ${serverSync.server.conflictRevision}）`
@@ -211,7 +255,7 @@ export function LessonWorkbench({
       list.push({
         id: 'server-error',
         tone: 'warn',
-        title: '云端同步失败',
+        title: '教案同步失败（本机后端）',
         message: serverSync.server.message,
         actions: [
           { label: '重试', testId: 'lw-server-retry', onClick: () => void serverSync.retrySync() },
@@ -224,6 +268,14 @@ export function LessonWorkbench({
         tone: 'info',
         title: '当前使用本地草稿',
         message: serverSync.server.message,
+      });
+    }
+    if (lessonDeletedNotice) {
+      list.push({
+        id: 'lesson-deleted',
+        tone: 'success',
+        title: '教案已彻底删除',
+        message: lessonDeletedNotice,
       });
     }
     if (exportState.status === 'ok' || exportState.status === 'error') {
@@ -239,6 +291,7 @@ export function LessonWorkbench({
     dismissed,
     exportState.message,
     exportState.status,
+    lessonDeletedNotice,
     local,
     serverSync,
     store,
@@ -247,7 +300,7 @@ export function LessonWorkbench({
   const syncLabel = (() => {
     switch (serverSync.server.status) {
       case 'loading':
-        return '云端读取中…';
+        return '读取教案中…';
       case 'syncing':
         return '正在同步…';
       case 'synced':
@@ -280,7 +333,7 @@ export function LessonWorkbench({
           data-testid="lw-sync-state"
           role="status"
           aria-label={`保存状态：${syncLabel}`}
-          title="本地草稿自动保存；连接云端后同步到服务器"
+          title="草稿自动保存在本机浏览器；「本地教案」把教案保存到本机后端（.local-data，不外发）"
         >
           <Cloud size={13} aria-hidden />
           <span className="lw-sync-label">{syncLabel}</span>
@@ -309,12 +362,12 @@ export function LessonWorkbench({
           <button
             type="button"
             className="lw-button"
-            aria-label="云端教案"
-            data-testid="lw-cloud-button"
+            aria-label="本地教案"
+            data-testid="lw-library-button"
             onClick={() => setDialogOpen(true)}
           >
             <Cloud size={15} aria-hidden />
-            <span className="lw-button-label">云端教案</span>
+            <span className="lw-button-label">本地教案</span>
           </button>
           <button
             type="button"
@@ -453,8 +506,17 @@ export function LessonWorkbench({
         <LessonsDialog
           api={api}
           currentPlanId={serverSync.server.planId}
+          ownership={ownership}
+          onOwnershipChange={changeOwnership}
           onOpen={(id) => serverSync.openPlan(id)}
-          onCreate={() => serverSync.createPlan().then(() => undefined)}
+          onCreate={() => serverSync.createPlan(ownership).then(() => undefined)}
+          onDeleted={(result) => {
+            // 删掉的正是当前打开的教案：退回到"只用本地草稿"，不让同步指向已删教案
+            if (serverSync.server.planId === result.lessonPlanId) serverSync.keepLocalOnly();
+            setLessonDeletedNotice(
+              `已彻底删除教案「${result.title}」：连同 ${result.removedRevisions} 个修订一并物理删除，不可恢复。`,
+            );
+          }}
           onClose={() => setDialogOpen(false)}
         />
       )}

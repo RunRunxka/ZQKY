@@ -117,18 +117,31 @@ export interface ReferenceCount {
  * 服务端给出非零值时仍逐项列出，不隐藏任何一条引用。
  */
 export const CLASS_REFERENCE_LABELS: Record<string, string> = {
-  assessmentParticipants: '施测参测人次（成绩链证据）',
-  lessonPlans: '班级教案',
-  lessonGenerationInputs: '教案生成输入',
+  assessmentParticipants: '施测参测人次（成绩链证据；先在学情分析删除相关施测）',
+  lessonPlans: '班级教案（到教案工作台删除该教案后重试）',
+  lessonGenerationInputs: '教案生成输入（随教案删除）',
   memberships: '班级归属记录',
   rosterImports: '名单导入批次',
   assessments: '参测范围引用',
 };
 
+/**
+ * 班级删除里**真正挡住删除**的计数键（其余键随删除一并清掉，只是如实告知）：
+ * 参测人次是成绩链证据、教案与教案生成输入是独立教学成果——都不随班级删除销毁。
+ */
+export const CLASS_BLOCKING_KEYS: readonly string[] = [
+  'assessmentParticipants',
+  'lessonPlans',
+  'lessonGenerationInputs',
+];
+
 export const PAPER_REFERENCE_LABELS: Record<string, string> = {
-  assessments: '引用施测',
+  assessments: '引用施测（先在学情分析删除该施测，再删原卷）',
   confirmedRevisions: '已确认修订',
 };
+
+/** 试卷删除里真正挡住删除的键：施测是成绩链的锚点；修订链（含已确认）随原卷级联。 */
+export const PAPER_BLOCKING_KEYS: readonly string[] = ['assessments'];
 
 /**
  * 从 409 的 `details` 里读 `counts` 并逐项列成原因清单：

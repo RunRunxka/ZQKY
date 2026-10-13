@@ -46,7 +46,7 @@ afterEach(() => {
 });
 
 describe('lesson-plans-api', () => {
-  it('创建：POST /lesson-plans，body 为 {submissionId, data}', async () => {
+  it('创建：POST /lesson-plans，body 为 {submissionId, subjectId, classId, data}', async () => {
     const fetchMock = stubFetch(() =>
       jsonResponse(201, {
         lessonPlanId: 'plan-1',
@@ -55,11 +55,22 @@ describe('lesson-plans-api', () => {
         currentRevision: { lessonPlanId: 'plan-1', revisionId: 'rev-1', version: 1, data: { title: '新教案' } },
       }),
     );
-    const view = await createLessonPlan({ submissionId: 'sub-1', data: emptyLessonData() });
+    const view = await createLessonPlan({
+      submissionId: 'sub-1',
+      subjectId: 'math',
+      classId: 'class-1',
+      context: null,
+      data: emptyLessonData(),
+    });
     const { url, init } = call(fetchMock);
     expect(url).toBe(`${API_BASE_PATH}/lesson-plans`);
     expect(init?.method).toBe('POST');
-    expect(JSON.parse(String(init?.body))).toMatchObject({ submissionId: 'sub-1' });
+    expect(JSON.parse(String(init?.body))).toMatchObject({
+      submissionId: 'sub-1',
+      subjectId: 'math',
+      classId: 'class-1',
+      context: null,
+    });
     expect(view.lessonPlanId).toBe('plan-1');
     expect(view.revision).toBe(1);
     expect(view.currentRevision.data.title).toBe('新教案');
@@ -181,6 +192,7 @@ describe('lesson-plans-api', () => {
     expect(Object.keys(lessonPlansApi).sort()).toEqual(
       [
         'createLessonPlan',
+        'deleteLessonPlan',
         'downloadLessonExport',
         'exportLessonPlan',
         'getLessonPlan',

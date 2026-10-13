@@ -7,7 +7,7 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { LessonWorkbench } from './LessonWorkbench';
-import { LOCAL_DRAFT_KEY } from './model/draft-storage';
+import { LESSON_OWNERSHIP_KEY, LOCAL_DRAFT_KEY } from './model/draft-storage';
 import type { LessonPlansApi } from '@/services/lesson-plans-api';
 import type { LessonStreamInput, LessonStreamHandlers } from '@/services/lesson-stream';
 import type { LessonPlanData, LessonView } from '@/contracts/lesson-plans';
@@ -294,8 +294,16 @@ describe('教案工作台 · 生成流（候选 → 采用）', () => {
   });
 });
 
-describe('教案工作台 · 导出与云端', () => {
-  it('导出：无云端 id 时先创建再导出 + 下载', async () => {
+describe('教案工作台 · 导出与本地教案', () => {
+  /** 归属（学科 + 班级）存在本机记忆里；导出/新建复用。 */
+  const seedOwnership = () =>
+    window.localStorage.setItem(
+      LESSON_OWNERSHIP_KEY,
+      JSON.stringify({ subjectId: 'math', classId: 'class-1' }),
+    );
+
+  it('导出：无教案 id 时先创建再导出 + 下载', async () => {
+    seedOwnership();
     const createObjectURL = vi.fn(() => 'blob:lesson');
     vi.stubGlobal('URL', Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() }));
     const api = fakeApi();
@@ -309,6 +317,7 @@ describe('教案工作台 · 导出与云端', () => {
   });
 
   it('导出失败如实提示（不宣称已导出）', async () => {
+    seedOwnership();
     const api = fakeApi({
       exportLessonPlan: vi.fn(async () => {
         throw new Error('后端组装未就绪');
@@ -320,19 +329,109 @@ describe('教案工作台 · 导出与云端', () => {
     expect(screen.getByTestId('lw-notice-export').textContent).toContain('后端组装未就绪');
   });
 
-  it('云端教案对话框：列表读取失败显示原因并可重试；空列表提示新建', async () => {
+  it('未选教案归属时导出：打开「本地教案」并如实提示，不静默猜班级', async () => {
+    const api = fakeApi();
+    renderWorkbench({ api });
+    fireEvent.click(screen.getByTestId('lw-export-button'));
+    await waitFor(() =>
+      expect(screen.getByTestId('lw-notice-export').textContent).toContain('先在「本地教案」里选择学科与班级'),
+    );
+    expect(api.createLessonPlan).not.toHaveBeenCalled();
+    expect(api.exportLessonPlan).not.toHaveBeenCalled();
+    expect(screen.getByTestId('lw-lessons-dialog')).toBeTruthy();
+  });
+
+  it('本地教案对话框：列表读取失败显示原因并可重试；空列表提示新建', async () => {
     const api = fakeApi({
       listLessonPlans: vi.fn(async () => {
         throw new Error('SERVICE_UNAVAILABLE：后端服务未运行');
       }),
     });
     renderWorkbench({ api });
-    fireEvent.click(screen.getByTestId('lw-cloud-button'));
+    fireEvent.click(screen.getByTestId('lw-library-button'));
     await waitFor(() => expect(screen.getByTestId('lw-dialog-error').textContent).toContain('SERVICE_UNAVAILABLE'));
 
     (api.listLessonPlans as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ items: [], total: 0, offset: 0, limit: 0 });
     fireEvent.click(screen.getByRole('button', { name: '刷新列表' }));
     await waitFor(() => expect(screen.getByTestId('lw-dialog-empty')).toBeTruthy());
+  });
+});
+
+describe('教案工作台 · 本地教案删除（不归档）', () => {
+  const listWith = (id: string, title: string, revision = 2) => ({
+    items: [{ lessonPlanId: id, title, revision, updatedAt: '2026-10-13T02:00:00Z' }],
+    total: 1,
+    offset: 0,
+    limit: 1,
+  });
+
+  it('删除成功：二次确认点名后果 → DELETE 带列表修订号 → 行消失并留回执（不关闭对话框）', async () => {
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const api = fakeApi({
+      listLessonPlans: vi.fn(async () => listWith('plan-9', '荷塘月色', 4)),
+      deleteLessonPlan: vi.fn(async () => ({
+        deleted: true,
+        lessonPlanId: 'plan-9',
+        removedRevisions: 3,
+        removedProposals: 0,
+        removedInputs: 0,
+      })),
+    });
+    renderWorkbench({ api });
+    fireEvent.click(screen.getByTestId('lw-library-button'));
+    await screen.findByTestId('lw-dialog-list');
+
+    fireEvent.click(screen.getByTestId('lw-dialog-delete-plan-9'));
+    await waitFor(() => expect(api.deleteLessonPlan).toHaveBeenCalledWith('plan-9', 4));
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('不可恢复'));
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('学生、班级、成绩、学情报告与试卷不受影响'));
+
+    // 已删行不留在列表里；对话框仍开着（便于继续处理其它教案）
+    await waitFor(() => expect(screen.queryByTestId('lw-dialog-delete-plan-9')).toBeNull());
+    expect(screen.getByTestId('lw-dialog-empty')).toBeTruthy();
+    // 工作台回执（关掉对话框后可见；这里直接在通知条断言）
+    expect(screen.getByTestId('lw-notice-lesson-deleted').textContent).toContain('已彻底删除教案「荷塘月色」');
+    expect(screen.getByTestId('lw-notice-lesson-deleted').textContent).toContain('3 个修订');
+  });
+
+  it('删除失败（409 乐观锁）：原样显示服务端 code 与 message，行仍在', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const api = fakeApi({
+      listLessonPlans: vi.fn(async () => listWith('plan-8', '故都的秋')),
+      deleteLessonPlan: vi.fn(async () => {
+        const { ApiError } = await import('@/services/api-client');
+        throw new ApiError('REVISION_CONFLICT', '数据已被其他操作更新，请刷新后重试。', 409, false, undefined, {
+          currentRevision: 7,
+        });
+      }),
+    });
+    renderWorkbench({ api });
+    fireEvent.click(screen.getByTestId('lw-library-button'));
+    await screen.findByTestId('lw-dialog-list');
+
+    fireEvent.click(screen.getByTestId('lw-dialog-delete-plan-8'));
+    await waitFor(() =>
+      expect(screen.getByTestId('lw-dialog-action-error').textContent).toContain(
+        '删除教案失败（REVISION_CONFLICT）',
+      ),
+    );
+    expect(screen.getByTestId('lw-dialog-delete-plan-8')).toBeTruthy();
+    expect(screen.queryByTestId('lw-notice-lesson-deleted')).toBeNull();
+  });
+
+  it('取消删除不发起请求', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const api = fakeApi({
+      listLessonPlans: vi.fn(async () => listWith('plan-7', '背影')),
+      deleteLessonPlan: vi.fn(),
+    });
+    renderWorkbench({ api });
+    fireEvent.click(screen.getByTestId('lw-library-button'));
+    await screen.findByTestId('lw-dialog-list');
+
+    fireEvent.click(screen.getByTestId('lw-dialog-delete-plan-7'));
+    expect(api.deleteLessonPlan).not.toHaveBeenCalled();
+    expect(screen.getByTestId('lw-dialog-delete-plan-7')).toBeTruthy();
   });
 });
 
@@ -366,10 +465,10 @@ describe('教案工作台 · 本地草稿', () => {
     expect(window.localStorage.getItem(LOCAL_DRAFT_KEY)).toBe('{broken json');
   });
 
-  it('云端 409 冲突：停在冲突态并提供「载入服务器版本 / 保持本地」', async () => {
+  it('后端 409 冲突：停在冲突态并提供「载入服务器版本 / 保持本地」', async () => {
     const api = fakeApi({
       listLessonPlans: vi.fn(async () => ({
-        items: [{ lessonPlanId: 'plan-9', title: '云端教案', revision: 2, updatedAt: '2026-10-12T00:00:00Z' }],
+        items: [{ lessonPlanId: 'plan-9', title: '本地教案', revision: 2, updatedAt: '2026-10-12T00:00:00Z' }],
         total: 1,
         offset: 0,
         limit: 1,
@@ -381,7 +480,7 @@ describe('教案工作台 · 本地草稿', () => {
       }),
     });
     renderWorkbench({ api });
-    fireEvent.click(screen.getByTestId('lw-cloud-button'));
+    fireEvent.click(screen.getByTestId('lw-library-button'));
     await screen.findByTestId('lw-dialog-open-plan-9');
     fireEvent.click(screen.getByTestId('lw-dialog-open-plan-9'));
     await waitFor(() => expect(screen.getByTestId('lw-sync-state').textContent).toContain('已同步'));
@@ -391,5 +490,46 @@ describe('教案工作台 · 本地草稿', () => {
     expect(screen.getByTestId('lw-conflict-reload')).toBeTruthy();
     fireEvent.click(screen.getByTestId('lw-conflict-keep-local'));
     await waitFor(() => expect(screen.getByTestId('lw-sync-state').textContent).toContain('本地草稿'));
+  });
+});
+
+describe('教案工作台 · 离开守卫注册稳定（导航不被锁死）', () => {
+  /**
+   * 回归（2026-10-13 真机 bug「进入教案工作台后点导航栏无法切换模块」）：
+   * 守卫若跟着**每次渲染都换身份**的 flushAll 重新注册，导航守卫会把"决策期间守卫集合
+   * 被增删"判为不安全而拒绝该次导航。这里断言多次 re-render 后守卫只注册一次、
+   * 且注册的回调放行（返回 true）。
+   */
+  it('多次渲染只注册一次守卫，注册的回调返回放行', async () => {
+    vi.resetModules();
+    const guards: Array<{ key: string; guard: () => Promise<boolean> }> = [];
+    const register = vi.fn((key: string, guard: () => Promise<boolean>) => {
+      guards.push({ key, guard });
+      return vi.fn();
+    });
+    // 真实 provider 的 controller 是 memo 过的稳定对象（每次渲染同引用）；替身必须同形，
+    // 否则抖动来自替身而不是被测的注册逻辑。
+    const controller = {
+      hasProvider: true,
+      register,
+      requestNavigation: vi.fn(async () => true),
+    };
+    vi.doMock('@/services/navigation-guard', () => ({
+      useNavigationGuard: () => controller,
+    }));
+    const { LessonWorkbench: Isolated } = await import('./LessonWorkbench');
+    render(<Isolated api={fakeApi()} generateServices={generateServices(fakeStream([]))} />);
+
+    // 连续改名制造多次 re-render（每次都会刷新 store 与自动保存状态）
+    for (const value of ['第一次', '第二次', '第三次']) {
+      fireEvent.change(screen.getByTestId('lw-name-input'), { target: { value } });
+    }
+    await waitFor(() => expect(register).toHaveBeenCalled());
+
+    expect(register).toHaveBeenCalledTimes(1);
+    expect(guards[0].key).toBe('lesson-plan:draft');
+    await expect(guards[0].guard()).resolves.toBe(true);
+    vi.doUnmock('@/services/navigation-guard');
+    vi.resetModules();
   });
 });

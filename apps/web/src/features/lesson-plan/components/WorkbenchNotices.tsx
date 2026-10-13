@@ -1,5 +1,5 @@
 'use client';
-/** 工作台提示条（本地草稿、云端同步、导出结果）：如实显示原因，并提供明确的处置入口。 */
+/** 工作台提示条（本地草稿、后端同步、导出结果）：如实显示原因，并提供明确的处置入口。 */
 import type { ReactNode } from 'react';
 import { AlertTriangle, CheckCircle2, Info, X, XCircle } from 'lucide-react';
 

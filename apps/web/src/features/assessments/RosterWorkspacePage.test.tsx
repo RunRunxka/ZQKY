@@ -468,4 +468,32 @@ describe('班级管理页：没有归档/恢复入口（R10-FE 舍弃归档）',
     expect(within(guard).queryByText('改为归档（不删除历史）')).not.toBeInTheDocument();
     expect(calls(fetchMock, '/classes/cls-1', 'DELETE')).toHaveLength(1);
   });
+
+  it('409 的引用清单分成两组：阻断项先说去处，随删级联项写明无需处理（R10-FE 2026-10-13）', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    stubApi((url, init) => {
+      if (url.includes('/classes/cls-1') && (init.method ?? 'GET').toUpperCase() === 'DELETE') {
+        return jsonResponse(false, 409, {
+          code: 'CLASS_IN_USE',
+          message: '班级仍被成绩链或教案引用，不能删除（班级教案 1 条）。',
+          details: { counts: { memberships: 26, rosterImports: 1, lessonPlans: 1 } },
+        });
+      }
+      return defaultHandler()(url, init);
+    });
+    render(<RosterWorkspacePage />);
+    await waitFor(() => expect(screen.getByText('学生01')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByTestId('assessments-class-delete-cls-1'));
+    const guard = await screen.findByTestId('assessments-class-delete-guard');
+    // 阻断组：教案（并写明去教案工作台删）
+    expect(guard).toHaveTextContent('必须先处置（它们挡住删除，且不随删除清掉）：');
+    expect(guard).toHaveTextContent('班级教案（到教案工作台删除该教案后重试） 1 条');
+    // 级联组：归属与名单批次（无需处理）
+    expect(guard).toHaveTextContent('随删除一起清掉（无需先处理）：');
+    expect(guard).toHaveTextContent('班级归属记录 26 条');
+    expect(guard).toHaveTextContent('名单导入批次 1 条');
+    expect(within(guard).getByLabelText('阻断删除的引用')).toBeInTheDocument();
+    expect(within(guard).getByLabelText('随删除清掉的引用')).toBeInTheDocument();
+  });
 });

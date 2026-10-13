@@ -265,7 +265,9 @@ describe('试卷管理页：物理删除受引用守卫（无归档兜底）', (
       ),
     );
     const guard = screen.getByTestId('assessments-paper-delete-guard');
-    expect(guard).toHaveTextContent('引用施测 1 条');
+    // R10-FE：引用清单分组后，阻断项写明去处（到学情分析删该施测）
+    expect(guard).toHaveTextContent('必须先处置（它们挡住删除，且不随删除清掉）：');
+    expect(guard).toHaveTextContent('引用施测（先在学情分析删除该施测，再删原卷） 1 条');
     expect(within(guard).queryByText('改为归档（不删除历史）')).not.toBeInTheDocument();
     // 只发了删除，没有后续归档请求
     expect(calls(fetchMock, '/papers/paper-1', 'DELETE')).toHaveLength(1);

@@ -35,6 +35,7 @@ import '@/components/layout/space.css';
 import '@/features/assessments/styles/assessments.css';
 import { asApiError, useAsyncResource } from './hooks';
 import {
+  PAPER_BLOCKING_KEYS,
   PAPER_REFERENCE_LABELS,
   nameOrShortId,
   paperRevisionStateLabel,
@@ -344,6 +345,7 @@ export function PapersWorkspacePage() {
                 items.find((item) => item.paperId === deleteGuard.targetId)?.title,
                 deleteGuard.targetId,
               )}
+              blockingKeys={PAPER_BLOCKING_KEYS}
               testId="assessments-paper-delete-guard"
             />
           )}
