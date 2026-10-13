@@ -1,8 +1,10 @@
 # AGENTS.md — 智启课源
 
 > 面向编码智能体的仓库指南。读完本文件再动手。
-> **2026-10-11 推倒重做 → 2026-10-12 R 系列重建完成**：在最小骨架上按 R0–R8 批重建了
-> 完整教学闭环（八个板块 + 统一问答 + Agent 工具化）。历史完整产品（全量期）仍归档于
+> **2026-10-11 推倒重做 → 2026-10-12 R0–R9 重建完成 → 2026-10-13 R10 收口**：在最小骨架上
+> 按 R 系列批重建了完整教学闭环（八个板块 + 统一问答 + Agent 工具化），并在 R10 处理完用户
+> 真机实测四问题（学习问答发送链路、壳包含块、数据清空、闭环测试套件、**删除语义重做**——
+> 舍弃归档只留删除 + 拆开交叉引用）。历史完整产品（全量期）仍归档于
 > git tag `archive-full-v1-20261011`——**取回参考的唯一入口**，不要把旧文件直接捞回工作区。
 
 ## 1. 项目概述
@@ -29,7 +31,7 @@
 | 内容渲染 | react-markdown、KaTeX、Mermaid、Chart.js | 消息正文与产物预览 |
 | 后端 | FastAPI（Python ≥ 3.12，uv 管理） | `apps/api`，SSE 三协议适配 + 八域装配 |
 | Agent | langgraph 1.2 + langchain 1.4（core 1.6） | `app/services/agent/`；checkpointer 落 SQLite；模块 LLM 走 `app/services/llm/` |
-| 测试 | Vitest（jsdom）+ Playwright + pytest | 单测 / e2e / 后端（后端 1835 例） |
+| 测试 | Vitest（jsdom）+ Playwright + pytest | 单测 / e2e / 后端（后端 1850 例，2026-10-13） |
 
 ## 3. 仓库结构
 
@@ -52,9 +54,10 @@ apps/
     ├── app/repositories/     # 四库仓储（textbook_catalog/knowledge/question_bank/teaching）+ vector_store/jobs
     ├── app/core/             # config / secrets / sqlite / migrations（四库追加式）/ data_lock
     ├── app/resources/        # 教案模板（lesson_templates/）
-    └── tests/                # pytest（1835 例）
-tests/                        # e2e（Playwright）与 fixtures
-docs/                         # 权威文档（CURRENT_STATUS / PROJECT_GUIDE / API / ROUTES）
+    └── tests/                # pytest（1850 例；入口见 §4 环境坑）
+tests/                        # e2e（Playwright，系统 msedge 通道，自起 5174）与 fixtures
+docs/                         # 权威文档（CURRENT_STATUS / PROJECT_GUIDE / API / ROUTES /
+                              #          MULTI_AGENT_COLLABORATION_PROPOSAL）
 ```
 
 ## 4. 开发命令（Windows / 根目录）
@@ -68,6 +71,7 @@ npm.cmd run typecheck     # TypeScript 类型检查
 npm.cmd run lint          # ESLint（0 警告门槛）
 npm.cmd run test:unit     # Vitest 单测（需 NODE_OPTIONS=--no-experimental-webstorage）
 npm.cmd run test:api      # 后端 pytest
+npm.cmd run test:e2e      # Playwright e2e（自起 5174；系统 msedge 通道）
 npm.cmd run check         # typecheck + lint + unit + build 串跑
 ```
 
@@ -76,6 +80,10 @@ npm.cmd run check         # typecheck + lint + unit + build 串跑
   入口的 launcher 可能内嵌旧路径（F:\ZQKY 曾是 H:\备份xuexi\智启课源 的 junction），
   直接走 exe 会 ModuleNotFoundError。
 - 前端单测必须 `NODE_OPTIONS=--no-experimental-webstorage`（Node 26 jsdom 假失败）。
+- Playwright 用**系统 msedge 通道**（`playwright.config.ts` 已默认；自写脚本用
+  `chromium.launch({ channel: 'msedge' })`），本机没有自带 chromium 二进制。
+- `npm.cmd run check` 是串行链：单测挂则 build 不跑；`ScoreImportPanel` 有已知负载型 flake，
+  单跑/复跑即绿（先复跑再下结论）。
 
 ## 5. 代码组织规范
 
@@ -97,9 +105,12 @@ npm.cmd run check         # typecheck + lint + unit + build 串跑
 ## 6. 测试与验收要求
 
 - 提交前跑 `npm.cmd run check`；路由、布局改动另跑 e2e（先 `build`）。
+- 门禁基线（2026-10-13）：后端 **1850**、前端 **664 例**、e2e **17**；数字与命令证据写进
+  `docs/CURRENT_STATUS.md`。
 - 只跑与变更相关且有意义的场景；**未执行的检查明确写「未执行」及原因，不写「应当通过」**。
 - 区分真实服务、本地规则与规划状态；**构建成功不等于业务或视觉验收通过**。
-- 自动化用隔离上下文与测试端口，不读写真实草稿/凭证。
+- 自动化用隔离上下文与测试端口，不读写真实草稿/凭证；浏览器自动化用系统 `msedge` 通道
+  （本机无自带 chromium），e2e 自起 5174，不碰用户 5173 会话。
 
 ## 7. 数据、凭证与安全边界
 
@@ -123,21 +134,26 @@ npm.cmd run check         # typecheck + lint + unit + build 串跑
 
 | 文档 | 职责 |
 | --- | --- |
-| [docs/CURRENT_STATUS.md](docs/CURRENT_STATUS.md) | 唯一进度、问题台账、当前任务、下一动作（含交接状态段） |
+| [docs/CURRENT_STATUS.md](docs/CURRENT_STATUS.md) | 唯一进度、问题台账、当前任务、下一动作、交接状态（顶部「当前状态」为门禁数字权威） |
 | [docs/PROJECT_GUIDE.md](docs/PROJECT_GUIDE.md) | 唯一目标、视觉基准、稳定决定 |
-| [docs/API.md](docs/API.md) / [docs/ROUTES.md](docs/ROUTES.md) | 现行接口契约 / 路由索引 |
+| [docs/API.md](docs/API.md) / [docs/ROUTES.md](docs/ROUTES.md) | 现行接口契约（含删除语义表）/ 路由索引 |
+| [docs/MULTI_AGENT_COLLABORATION_PROPOSAL.md](docs/MULTI_AGENT_COLLABORATION_PROPOSAL.md) | 多智能体协作规范：角色、任务卡/结果卡模板、本项目门槛、可复制提示词 |
 | [docs/README.md](docs/README.md) / [docs/qa/README.md](docs/qa/README.md) | 文档索引 / 重建后 QA 证据 |
 | [test/README.md](test/README.md) | 闭环测试套件与走查顺序 |
 
-重构前的设计与 QA 文档已清理（2026-10-13）；历史实现与文档的唯一入口是 git tag
-`archive-full-v1-20261011`。
+重构前的设计与 QA 文档已清理（2026-10-13；协作规范已重写为现行文档）；历史实现与文档的唯一入口是
+git tag `archive-full-v1-20261011`。
 
 ## 10. 多智能体协作要点
+
+规范、任务卡/结果卡模板与可复制提示词见
+[docs/MULTI_AGENT_COLLABORATION_PROPOSAL.md](docs/MULTI_AGENT_COLLABORATION_PROPOSAL.md)。要点：
 
 - 总控负责拆分、依赖、文件归属、集成与最终交付；共享工作区同一文件同一时段仅一个写入者。
 - 每个任务需有 ID、版本、负责人、可写范围、验收条件与结果格式；共享契约先定单一负责人。
 - 默认由总控独占权威进度文档、验收矩阵、依赖锁文件与最终 Git 操作。
 - 保留用户与其他智能体的改动：不切换共享分支、不批量暂存、不清理未知数据、不撤销他人工作。
+- 真机验收遵守「自建数据自建自删」：脚本用独立命名空间建链，结束后核对用户数据回到基线。
 
 ## 11. 模块级 AGENTS.md
 

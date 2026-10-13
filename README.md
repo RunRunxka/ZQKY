@@ -21,7 +21,7 @@
 | `/question-bank` | 题库：课后习题提取、AI 整理/补题、知识点×难度分类与筛选 |
 | `/practices` | 练习：学情/描述驱动出题 → 微调 → 确认门槛 → 学生卷/教师卷导出预览 |
 | `/learning-analysis` | 学情分析：小题分导入（四态不补零）、五图、AI 评价、报告导出 |
-| `/assessments/roster` `/assessments/papers` | 班级管理（名单 xlsx 导入）/ 试卷管理（导入拆题、AI 知识点分类占比） |
+| `/assessments/roster` `/assessments/papers` | 班级管理（名单 xlsx 导入；删除学生双模式、人数即时下降）/ 试卷管理（导入拆题、AI 知识点分类占比）；删除即删除，无归档入口 |
 | `/settings` | 外观 / 模型与连接 / 关于 |
 
 ## 本地运行
@@ -57,8 +57,9 @@ npm.cmd run test:e2e     # 先 build；隔离 5174
 
 ## 文档
 
-- [当前状态与交接](docs/CURRENT_STATUS.md)：唯一进度、台账与下一动作。
-- [项目指南](docs/PROJECT_GUIDE.md)：目标、架构硬性与稳定决定。
-- [API](docs/API.md) / [路由](docs/ROUTES.md)：现行接口与页面索引。
+- [当前状态与交接](docs/CURRENT_STATUS.md)：唯一进度、台账、当前任务、下一动作（门禁数字以顶部「当前状态」为准）。
+- [项目指南](docs/PROJECT_GUIDE.md)：目标、架构硬性与稳定决定（含「删除即删除」口径）。
+- [API](docs/API.md) / [路由](docs/ROUTES.md)：现行接口（含删除语义表）与页面索引。
+- [多智能体协作规范](docs/MULTI_AGENT_COLLABORATION_PROPOSAL.md)：角色、任务卡/结果卡模板与可复制提示词。
 - [文档索引](docs/README.md)；[QA 证据](docs/qa/README.md)；[第三方许可](docs/licenses/deeptutor-chat/README.md)。
 - 历史完整实现（重构前）唯一入口：git tag `archive-full-v1-20261011`。
