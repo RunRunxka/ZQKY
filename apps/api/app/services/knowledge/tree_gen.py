@@ -6,6 +6,12 @@
 
 R9 修正：路径里的**版式/水印噪声段**（电子课本广告行：微信扫码/免费下载/配套资源等）
 不建节点，且对其**透明**——子级直接挂到其父级，真实章节层级不变。
+
+R11 修正：**习题/练习类标题段不建节点**（``习题1.1`` / ``复习参考题`` / ``章末`` 等不是
+知识点），同样对其透明；判定复用正文/习题区划分的同一权威
+（``regions.is_exercise_marker_line``），不另维护触发词表。调用方按**教材正文标题**
+提供路径（``document_parsing.heading_paths``）而不是逐块采样 ``chapter_path``——短章节
+没有块起点会漏节点、习题标题会被重叠尾巴采样成路径会多节点，这两类偏差都由该口径消除。
 """
 
 from __future__ import annotations
@@ -13,6 +19,8 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass, field
+
+from app.services.document_parsing.regions import is_exercise_marker_line
 
 #: 单次生成的节点上限（防异常教材把库撑爆）。
 MAX_NODES = 400
@@ -28,7 +36,7 @@ _MEANINGFUL_CHAR = re.compile(r"[0-9A-Za-z\u4e00-\u9fff]")
 
 @dataclass(frozen=True)
 class TextbookInput:
-    """一本教材的目录输入：标题 + 该书全部 chunk 的 chapter_path 集合。"""
+    """一本教材的目录输入：标题 + 该书正文的标题路径集合。"""
 
     title: str
     document_id: str
@@ -57,7 +65,7 @@ def _code_for(subject_id: str, doc_title: str, path: tuple[str, ...]) -> str:
 
 
 def plan_tree(subject_id: str, books: list[TextbookInput]) -> TreePlan:
-    """把各教材的 chapter_path 集合规划成节点列表（文档 → 章 → 节，去重、限上限）。"""
+    """把各教材的标题路径集合规划成节点列表（文档 → 章 → 节，去重、限上限）。"""
     nodes: dict[str, NodePlan] = {}
     sort_seed = 0
     for book in books:
@@ -73,6 +81,7 @@ def plan_tree(subject_id: str, books: list[TextbookInput]) -> TreePlan:
                     not name
                     or _NOISE_SEGMENT_PATTERN.search(name)
                     or not _MEANINGFUL_CHAR.search(name)
+                    or is_exercise_marker_line(name)
                 ):
                     continue
                 cumulative = (*cumulative, name)

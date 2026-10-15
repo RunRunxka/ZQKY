@@ -141,16 +141,27 @@ class TreeFromTextbookRequest(_StrictBase):
 
 @router.post("/knowledge-points/tree-from-textbook")
 async def generate_tree_from_textbook(request: Request, body: TreeFromTextbookRequest) -> dict:
-    """从已入库教材的目录（chapter_path）反向生成知识点树（幂等；章节为容器节点）。
+    """从已入库教材的**正文标题**（Markdown 标题路径）反向生成知识点树（幂等；章节为容器节点）。
 
+    R11 口径：按封存原文的标题读目录，不按分块起点采样 ``chapter_path``（短章节会漏、
+    习题标题会被重叠尾巴带进来）；习题/练习类标题段由 ``tree_gen`` 过滤，不作为知识点。
     教师可在生成后的任何节点下继续自定义增删改（走既有 create/update/delete）。
     """
     service = _service(request)
     catalog = getattr(request.app.state, "catalog", None)
     if catalog is None:
         raise AppError("教材目录未装配，无法读取教材目录。", code="SERVICE_UNAVAILABLE", status_code=503, retryable=True)
+    evidence = getattr(request.app.state, "textbook_evidence", None)
+    if evidence is None or not hasattr(evidence, "_source"):
+        raise AppError(
+            "教材原文读取器未装配，无法读取教材目录。",
+            code="SERVICE_UNAVAILABLE",
+            status_code=503,
+            retryable=True,
+        )
 
     def _work() -> dict:
+        from app.services.document_parsing.chunking import heading_paths
         from app.services.knowledge.tree_gen import TextbookInput, plan_tree
 
         documents = catalog.list_documents(subject_id=body.subject_id)
@@ -161,12 +172,45 @@ async def generate_tree_from_textbook(request: Request, body: TreeFromTextbookRe
         for document in documents:
             if document.current_revision_id is None:
                 continue
-            paths: set[tuple[str, ...]] = set()
-            for chunk_set in _chunk_sets_of(catalog, document.current_revision_id):
-                for chunk in catalog.list_chunks(chunk_set.chunk_set_id):
-                    if chunk.chapter_path:
-                        paths.add(tuple(str(part) for part in chunk.chapter_path))
-            books.append(TextbookInput(title=document.title, document_id=document.document_id, chapter_paths=tuple(paths)))
+            revision = catalog.get_revision(document.current_revision_id)
+            if revision is None:
+                raise AppError(
+                    f"教材《{document.title}》的当前修订记录缺失，无法读取目录。",
+                    code="SERVICE_UNAVAILABLE",
+                    status_code=503,
+                    retryable=True,
+                )
+            try:
+                normalized = evidence._source.read_normalized_text(revision)  # noqa: SLF001 - 只读封存正文（生成端点专用）
+            except AppError as exc:
+                # 原文不可读绝不静默跳过：漏一本书的目录等于给出一棵不完整的树
+                raise AppError(
+                    f"教材《{document.title}》的原文当前不可读，无法读取目录：{exc}",
+                    code="SERVICE_UNAVAILABLE",
+                    status_code=503,
+                    retryable=True,
+                ) from exc
+            except Exception as exc:  # noqa: BLE001 - 读取实现未知异常一律按不可用处理
+                raise AppError(
+                    f"教材《{document.title}》的原文当前不可读，无法读取目录。",
+                    code="SERVICE_UNAVAILABLE",
+                    status_code=503,
+                    retryable=True,
+                ) from exc
+            if not isinstance(normalized, str):
+                raise AppError(
+                    f"教材《{document.title}》的规范化原文读取结果非法，无法读取目录。",
+                    code="SERVICE_UNAVAILABLE",
+                    status_code=503,
+                    retryable=True,
+                )
+            books.append(
+                TextbookInput(
+                    title=document.title,
+                    document_id=document.document_id,
+                    chapter_paths=heading_paths(normalized),
+                )
+            )
         plan = plan_tree(body.subject_id, books)
         created, skipped = 0, 0
         for node in plan.nodes:
@@ -185,18 +229,6 @@ async def generate_tree_from_textbook(request: Request, body: TreeFromTextbookRe
         return {"created": created, "skipped": skipped, "total": len(plan.nodes), "books": len(books)}
 
     return await _run(_work)
-
-
-def _chunk_sets_of(catalog, document_revision_id: str):
-    """某文档当前修订的 chunk sets（生成读取用；无公开列法时按 policy 遍历）。"""
-    with catalog._read() as conn:  # noqa: SLF001 - 只读目录内表（生成端点专用）
-        rows = conn.execute(
-            "SELECT id FROM chunk_sets WHERE document_revision_id = ?", (document_revision_id,)
-        ).fetchall()
-    for row in rows:
-        record = catalog.get_chunk_set(row["id"])
-        if record is not None:
-            yield record
 
 
 @router.get("/knowledge-points/{point_id}")

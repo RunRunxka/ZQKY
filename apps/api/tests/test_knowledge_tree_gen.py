@@ -1,9 +1,10 @@
 """教材目录 → 知识点树生成（C4-1）：规划纯函数 + 端点集成 + 幂等回归。
 
-- plan_tree：文档根节点 + 章/节链、同路径幂等 code、MAX_NODES 上限；
-- 端点：真实教材目录临时库（ExtractionHarness 建书与带 chapter_path 的 chunks）→
-  首次生成 created>0、树结构正确；再次生成 created=0 skipped=全部（幂等）；
-- 未装配 catalog → 503。
+- plan_tree：文档根节点 + 章/节链、同路径幂等 code、MAX_NODES 上限、噪声/习题段透明；
+- 端点：真实教材目录临时库（ExtractionHarness 建书与封存正文）→ 目录取正文 Markdown 标题
+  （R11 口径，习题标题不建节点）→ 首次 created>0、树结构正确；再次生成 created=0
+  skipped=全部（幂等）；
+- 未装配 catalog / 教材原文读取器 → 503。
 """
 
 from __future__ import annotations
@@ -81,43 +82,75 @@ class TestPlanTree:
         chapter = next(n for n in plan.nodes if n.name == "第一章 集合")
         assert next(n for n in plan.nodes if n.code == chapter.parent_code).name == "数学必修一"
 
+    def test_exercise_segment_is_transparent(self) -> None:
+        """习题/练习类标题段不建节点，且对其透明（R11 修正）。"""
+        books = [TextbookInput(title="数学必修一", document_id="d", chapter_paths=(
+            ("第一章 集合",),
+            ("第一章 集合", "1.1 集合的概念"),
+            ("第一章 集合", "1.1 集合的概念", "习题1.1"),
+            ("第一章 集合", "1.2 集合间的基本关系"),
+            ("第一章 集合", "习题1.2"),
+            ("第一章 集合", "复习参考题1"),
+        ))]
+        plan = plan_tree("math", books)
+        assert {n.name for n in plan.nodes} == {
+            "数学必修一", "第一章 集合", "1.1 集合的概念", "1.2 集合间的基本关系",
+        }
+
 
 @pytest.mark.asyncio
 async def test_endpoint_generates_and_is_idempotent(tmp_path: Path) -> None:
     harness = ExtractionHarness(tmp_path)
     try:
-        # 两本书：第一本两章各一节，第二本一章（chunks 自建，chapter_path 不同）
-        first = harness.add_document(title="数学教材甲")
-        second = harness.add_document(title="数学教材乙")
-        import hashlib
-        from app.repositories.textbook_catalog.records import ChunkInput
-
-        def make_chunks(revision_id: str, paths: list[list[str]]) -> None:
-            text = "x" * 40
-            harness.catalog.create_chunk_set(
-                revision_id, policy_fingerprint="policy-tree-1", manifest_sha256="m" * 64,
-                chunks=[ChunkInput(ordinal=i, char_start=0, char_end=40, region="body",
-                                   chapter_path=p, text_sha256=hashlib.sha256(text.encode()).hexdigest())
-                        for i, p in enumerate(paths)],
-            )
-        make_chunks(first["revision"].revision_id, [["第一章 有理数"], ["第一章 有理数", "1.1 正数与负数"], ["第二章 整式"]])
-        make_chunks(second["revision"].revision_id, [["第三章 几何初步"]])
+        # 两本书：目录取**封存正文的 Markdown 标题**（R11 口径）；习题标题不建节点
+        book_text = (
+            "# 第一章 有理数\n\n"
+            "有理数的概念与运算。\n\n"
+            "## 1.1 正数与负数\n\n"
+            "大于零的数叫正数。\n\n"
+            "### 习题1.1\n\n"
+            "1. 判断下列各数是正数还是负数。\n\n"
+            "## 1.2 数轴\n\n"
+            "规定了原点、正方向与单位长度的直线叫数轴。\n\n"
+            "## 复习参考题1\n\n"
+            "1. 在数轴上表示下列各数。\n\n"
+            "# 第二章 整式\n\n"
+            "整式的加减运算。\n"
+        )
+        harness.add_document(title="数学教材甲", text=book_text)
+        harness.add_document(title="数学教材乙", text="# 第三章 几何初步\n\n图形的初步认识。\n")
 
         body = {"subjectId": SUBJECT}
         r1 = harness.client.post("/api/v1/knowledge-points/tree-from-textbook", json=body)
         assert r1.status_code == 200, r1.text
         first_result = r1.json()
-        assert first_result["created"] == 7  # 2 根 + 3 章 + 2 节
+        # 2 根 + 3 章 + 2 节 = 7（习题1.1 / 复习参考题1 不是知识点）
+        assert first_result["created"] == 7, first_result
         assert first_result["skipped"] == 0
+        assert first_result["books"] == 2
 
         r2 = harness.client.post("/api/v1/knowledge-points/tree-from-textbook", json=body)
         assert r2.status_code == 200
         assert r2.json()["created"] == 0 and r2.json()["skipped"] == 7
 
-        # 树结构可读：roots 有两个文档节点，第一章有子节点
+        # 树结构可读：两个文档节点；章下有节；习题标题不在树里
         listed = harness.client.get(f"/api/v1/knowledge-points?subjectId={SUBJECT}&limit=200").json()
         names = [item["name"] for item in listed["items"]]
         assert "数学教材甲" in names and "第一章 有理数" in names and "1.1 正数与负数" in names
+        assert not any("习题" in name or "复习参考题" in name for name in names), names
+    finally:
+        harness.close()
+
+
+@pytest.mark.asyncio
+async def test_endpoint_without_evidence_reader_is_unavailable(tmp_path: Path) -> None:
+    """教材原文读取器缺失：503，不按"没有标题"给出空树（不假成功）。"""
+    harness = ExtractionHarness(tmp_path)
+    try:
+        harness.add_document(title="数学教材甲")
+        harness.app.state.textbook_evidence = None
+        resp = harness.client.post("/api/v1/knowledge-points/tree-from-textbook", json={"subjectId": SUBJECT})
+        assert resp.status_code == 503, resp.text
     finally:
         harness.close()
 

@@ -53,7 +53,7 @@
 | --- | --- |
 | `/api/v1/knowledge-points`（GET/POST）、`/{id}`（GET/PATCH/DELETE） | 列表（`scope=subject|taught`、subjectId/status/关键词）与节点 CRUD（含 `objectives` 学习目标；空白=不修改，`clearFields` 显式清空） |
 | `/{id}/archive`、`/{id}/restore`、`/{id}/textbook-links` | 归档/恢复、教材依据链接 |
-| POST `/api/v1/knowledge-points/tree-from-textbook` | 教材目录成树（幂等；水印与纯符号标题段透明过滤） |
+| POST `/api/v1/knowledge-points/tree-from-textbook` | 教材目录成树（幂等；水印与纯符号标题段透明过滤；R11：口径改为读取**封存正文的 Markdown 标题**（`heading_paths`）而非分块 `chapter_path`；习题/复习参考题/章末类标题段透明、不建节点，判定复用 `regions.is_exercise_marker_line`；原文阅读器未装配或原文不可读 → 503，不静默少算） |
 | `/api/v1/knowledge-imports*`、`/knowledge-extraction/preview`、`/knowledge-extraction-jobs`、`/knowledge-suggestion-jobs` | 表格导入两阶段确认、教材抽取预览、AI 候选任务；``POST /{id}/discard`` 放弃（置 cancelled，记录保留）与 **``DELETE /{id}`` 彻底删除批次+预览行**（任何状态可删，含已确认；已入库知识点/教材依据保留 —— R10 2026-10-13 用户裁定「批次只是导入记录」） |
 
 ## 题库（question_bank 库）

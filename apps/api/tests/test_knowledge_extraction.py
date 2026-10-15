@@ -223,8 +223,14 @@ class ExtractionHarness:
         with_revision: bool = True,
         with_chunks: bool = True,
         publish: bool = True,
+        text: str | None = None,
     ) -> dict[str, Any]:
-        """建立替身书册：文档 + 规范化文本修订 + 分块集 + 当前索引代（可选逐项省略）。"""
+        """建立替身书册：文档 + 规范化文本修订 + 分块集 + 当前索引代（可选逐项省略）。
+
+        ``text`` 缺省用台账正文 ``DOC_TEXT``；需要不同目录/标题形状的用例可显式传入
+        （修订哈希与块长都按传入文本计算）。
+        """
+        book_text = DOC_TEXT if text is None else text
         document = self.catalog.create_document(
             owner_id="local-user",
             title=title,
@@ -237,25 +243,25 @@ class ExtractionHarness:
         result: dict[str, Any] = {"document": document}
         if not with_revision:
             return result
-        blob_id = self._blob_store.write_staged_text(DOC_TEXT)
+        blob_id = self._blob_store.write_staged_text(book_text)
         self._blob_store.seal(area="normalized", blob_id=blob_id)
         revision = self.catalog.create_document_revision(
             document.document_id,
-            original_file_sha256=hashlib.sha256(DOC_TEXT.encode("utf-8")).hexdigest(),
-            normalized_text_sha256=sha256_text(DOC_TEXT),
+            original_file_sha256=hashlib.sha256(book_text.encode("utf-8")).hexdigest(),
+            normalized_text_sha256=sha256_text(book_text),
             parser_version="test-parser-1",
             original_blob_id=blob_id,
             normalized_blob_id=blob_id,
             source_map_blob_id=blob_id,
-            char_count=len(DOC_TEXT),
+            char_count=len(book_text),
         )
         result["revision"] = revision
-        if with_chunks:
+        if with_chunks and len(book_text) > 37:
             chunk_set = self.catalog.create_chunk_set(
                 revision.revision_id,
                 policy_fingerprint="policy-test-1",
                 manifest_sha256="m" * 64,
-                chunks=[_chunk_input(0, 0, 36), _chunk_input(1, 37, len(DOC_TEXT))],
+                chunks=[_chunk_input(0, 0, 36), _chunk_input(1, 37, len(book_text))],
             )
             result["chunk_set"] = chunk_set
         if publish:

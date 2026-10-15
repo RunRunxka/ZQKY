@@ -18,6 +18,7 @@ from app.services.document_parsing.chunking import (
     chunk_policy_from_json,
     chunk_policy_json,
     chunk_text,
+    heading_paths,
     retained_for_manifest,
 )
 from app.services.document_parsing.parser import (
@@ -97,6 +98,7 @@ __all__ = [
     "chunk_policy_from_json",
     "chunk_policy_json",
     "chunk_text",
+    "heading_paths",
     "is_exercise_marker_line",
     "is_section_heading_line",
     "looks_like_toc_line",

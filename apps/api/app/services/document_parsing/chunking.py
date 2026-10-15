@@ -636,3 +636,17 @@ def _path_at(entries: Sequence[_Heading], position: int) -> tuple[str, ...]:
         else:
             break
     return path
+
+
+def heading_paths(text: str) -> tuple[tuple[str, ...], ...]:
+    """全文 Markdown 标题路径（按出现顺序去重）。
+
+    与块 ``chapter_path`` 共用同一套标题解析（:func:`_heading_entries`）。**按教材目录读取**
+    （知识点树等）必须用本函数而不是逐块采样 ``chapter_path``：块起点由目标块长决定，
+    比块长短的章节可能完全没有块起点（漏节点），习题标题也可能因重叠尾巴被采样成路径
+    （多节点）。是否把习题标题计入由调用方决定（见 ``tree_gen`` 的透明段过滤）。
+    """
+    seen: dict[tuple[str, ...], None] = {}
+    for entry in _heading_entries(text):
+        seen.setdefault(entry.path, None)
+    return tuple(seen)
