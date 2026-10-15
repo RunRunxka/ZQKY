@@ -6,6 +6,140 @@
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   /* 过程展开（原版 TracePresentation：Tailwind duration-300 ease-out = cubic-bezier(0,0,0.2,1)） */
   --ease-standard: cubic-bezier(0, 0, 0.2, 1);
+  /* 2026-10-13 交互动效批：滑块/按压/浮层的统一节奏。
+     参数取自 transitions.dev 的运动 token（150 关 / 250 开 / 350 提示）与 smoothui 的按压口径。 */
+  --motion-press: 150ms;
+  --motion-slide: 250ms;
+  --motion-enter: 250ms;
+  --motion-toast: 350ms;
+  /* 平滑减速（transitions.dev 默认曲线）：滑块、浮层的主缓动 */
+  --ease-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  /* 对称缓动：循环类（骨架扫光）与位移往返 */
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  /* 轻回弹（transitions.dev --ease-bounce）：小元素落位的末端轻微过冲，不用于大面积位移 */
+  --ease-spring: cubic-bezier(0.34, 1.36, 0.64, 1);
+  --shadow-thumb: 0 1px 2px rgb(23 32 51 / 10%), 0 0 0 1px rgb(23 32 51 / 4%);
+  --skeleton-base: #edf1f7;
+}
+
+/* ===== 滑动指示器（SlidingGroup / useSlidingIndicator） =====
+   容器 ::before 按 CSS 变量落在当前项下方；子项浮在其上。滑块就位后当前项自身底色让位给滑块。
+   各模块可覆盖 --indicator-bg / --indicator-radius / --indicator-shadow 改外观。 */
+[data-sliding-indicator] {
+  position: relative;
+  isolation: isolate;
+}
+[data-sliding-indicator]::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: -1;
+  width: var(--indicator-w, 0);
+  height: var(--indicator-h, 0);
+  transform: translate(var(--indicator-x, 0), var(--indicator-y, 0));
+  border-radius: var(--indicator-radius, 8px);
+  background: var(--indicator-bg, var(--bg));
+  box-shadow: var(--indicator-shadow, var(--shadow-thumb));
+  opacity: 0;
+  pointer-events: none;
+}
+/* 下划线变体：只在当前项底边画 2px 品牌蓝线 */
+[data-sliding-indicator='underline']::before {
+  height: 2px;
+  transform: translate(
+    var(--indicator-x, 0),
+    calc(var(--indicator-y, 0px) + var(--indicator-h, 0px) - 2px)
+  );
+  border-radius: 2px;
+  background: var(--indicator-bg, var(--blue));
+  box-shadow: none;
+  z-index: 1;
+}
+[data-sliding-indicator][data-indicator-ready='true']::before {
+  opacity: 1;
+  transition:
+    transform var(--motion-slide) var(--ease-smooth),
+    width var(--motion-slide) var(--ease-smooth),
+    height var(--motion-slide) var(--ease-smooth),
+    opacity 120ms linear;
+}
+[data-sliding-indicator][data-indicator-ready='true']
+  > :is(.current, .selected, .active, [aria-selected='true'], [aria-pressed='true']) {
+  /* 交接规则：滑块就位后，任何模块写给当前项的底色/描边都必须让位，否则会盖住滑块；
+     模块选择器普遍比这里更具体，故用 !important（只在 ready 态生效，就位前仍是模块自身样式）。 */
+  background: transparent !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
+[data-sliding-indicator] > * {
+  transition:
+    color 160ms,
+    background-color 160ms;
+}
+
+/* ===== 按压反馈：主要按钮按下时轻微收缩（transform 只在按压瞬间生效，不影响布局） ===== */
+:is(.button, .space-button, .icon-button):not(:disabled) {
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s,
+    box-shadow 0.15s,
+    transform var(--motion-press) var(--ease-out);
+}
+:is(.button, .space-button, .icon-button):active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+/* ===== 骨架扫光（affectui 口径）：背景按视口定位（background-attachment: fixed），
+   页面上所有骨架共用同一道光、同步扫过，而不是各扫各的。 ===== */
+@keyframes motion-shimmer {
+  from {
+    background-position: -150vw 0;
+  }
+  to {
+    background-position: 150vw 0;
+  }
+}
+
+/* ===== 提示条入场：横幅/回执出现时自上而下淡入，不再「啪」地出现 ===== */
+@keyframes motion-enter-down {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+    filter: blur(2px);
+  }
+}
+@keyframes motion-enter-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@keyframes motion-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+.space-banner,
+.space-empty {
+  animation: motion-enter-down var(--motion-toast) var(--ease-smooth) both;
+}
+
+/* ===== 浮层：弹窗遮罩淡入、导出菜单自右上角弹出 ===== */
+@keyframes motion-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.workspace-modal::backdrop {
+  animation: motion-fade-in 240ms var(--ease-smooth);
+}
+/* 下拉自触发侧弹出：scale .97 → 1，250ms（transitions.dev dropdown） */
+.export-menu {
+  transform-origin: top right;
+  animation: motion-pop-in var(--motion-enter) var(--ease-smooth);
 }
 @media (prefers-reduced-motion: reduce) {
   *,

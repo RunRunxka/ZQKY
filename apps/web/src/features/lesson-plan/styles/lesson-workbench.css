@@ -1244,6 +1244,12 @@ button.lw-chip:hover {
     font-weight: 600;
   }
 
+  /* 滑块接管选中态：浅蓝底 + 1px 品牌蓝描边随切换滑动 */
+  .lw-pane-tabs[data-sliding-indicator] {
+    --indicator-bg: var(--blue-soft);
+    --indicator-shadow: inset 0 0 0 1px var(--blue);
+  }
+
   .lw-columns {
     display: block;
     overflow-y: auto;

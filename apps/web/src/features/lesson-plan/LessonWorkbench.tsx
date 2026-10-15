@@ -36,6 +36,7 @@ import { LessonsDialog } from './components/LessonsDialog';
 import { WorkbenchNotices, type WorkbenchNotice } from './components/WorkbenchNotices';
 import './styles/lesson-fonts.css';
 import './styles/lesson-workbench.css';
+import { SlidingGroup } from '@/components/ui/SlidingGroup';
 
 type MobilePane = 'layout' | 'edit' | 'preview';
 
@@ -389,7 +390,7 @@ export function LessonWorkbench({
 
       <WorkbenchNotices notices={notices} onDismiss={(id) => setDismissed((current) => [...current, id])} />
 
-      <div className="lw-pane-tabs" role="tablist" aria-label="工作台分栏">
+      <SlidingGroup activeKey={mobilePane} className="lw-pane-tabs" role="tablist" aria-label="工作台分栏">
         {(
           [
             ['layout', '布局与排版', PanelLeft],
@@ -410,7 +411,7 @@ export function LessonWorkbench({
             {label}
           </button>
         ))}
-      </div>
+      </SlidingGroup>
 
       <div
         className={`lw-columns pane-${mobilePane}`}

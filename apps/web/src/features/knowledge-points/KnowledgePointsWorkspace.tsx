@@ -24,6 +24,7 @@ import { PointBrowser } from './PointBrowser';
 import { PointDetailPanel } from './PointDetailPanel';
 import { SuggestionPanel } from './SuggestionPanel';
 import { useAsyncResource } from './hooks';
+import { SlidingGroup } from '@/components/ui/SlidingGroup';
 
 type Tab = 'points' | 'imports' | 'suggestion' | 'extract';
 
@@ -97,7 +98,7 @@ export function KnowledgePointsWorkspace({
       </header>
 
       <main className="space-content">
-        <div className="space-tabs" role="tablist" aria-label="知识点视图" data-motion-reveal>
+        <SlidingGroup activeKey={tab} className="space-tabs" role="tablist" aria-label="知识点视图" data-motion-reveal>
           {TABS.map((item) => (
             <button
               key={item.id}
@@ -111,7 +112,7 @@ export function KnowledgePointsWorkspace({
               {item.label}
             </button>
           ))}
-        </div>
+        </SlidingGroup>
 
         <section
           ref={pointsPanelRef}

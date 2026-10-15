@@ -9,8 +9,8 @@
   box-shadow: var(--shadow-pop);
 }
 .workspace-modal::backdrop {
-  background: #17203355;
-  backdrop-filter: blur(3px);
+  background: rgb(23 32 51 / 38%);
+  backdrop-filter: blur(6px);
 }
 .workspace-modal-body {
   padding: var(--space-5);

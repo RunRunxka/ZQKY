@@ -27,6 +27,7 @@ import { PracticeExportPanel } from './PracticeExportPanel';
 import { ErrorNotice, ReadNotice, nameOrShortId, shortId, stampText } from './ui';
 import '@/components/layout/space.css';
 import './practices.css';
+import { SlidingGroup } from '@/components/ui/SlidingGroup';
 
 const LIST_PAGE_SIZE = 20;
 
@@ -191,7 +192,7 @@ export function PracticesWorkspace({ services = b4Api, initialPracticeSetId = nu
                       </div>
                     </header>
 
-                    <div className="practices-tabs" role="tablist" aria-label="练习视图">
+                    <SlidingGroup activeKey={tab} variant="underline" className="practices-tabs" role="tablist" aria-label="练习视图">
                       <button
                         role="tab"
                         id="practices-view-edit"
@@ -229,7 +230,7 @@ export function PracticesWorkspace({ services = b4Api, initialPracticeSetId = nu
                         导出预览
                         {!hasReviewedRevision && <span className="practices-lock" aria-hidden> · 未确认</span>}
                       </button>
-                    </div>
+                    </SlidingGroup>
 
                     <div
                       id={tab === 'edit' ? 'practices-view-edit-panel' : 'practices-view-export-panel'}

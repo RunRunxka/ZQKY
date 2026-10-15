@@ -24,6 +24,12 @@ import {
   Tooltip,
   type ChartConfiguration,
 } from 'chart.js';
+import {
+  barGradient,
+  barRadius,
+  readToken,
+  barChartTheme,
+} from '@/components/charts/chart-theme';
 import type { AsyncState } from './score-hooks';
 import { useAsyncResource } from './score-hooks';
 import { learningAnalysisApi as api } from '@/services/learning-analysis-api';
@@ -41,12 +47,6 @@ const DANGER_FALLBACK = '#c62d21';
 /** 项目蓝（`--blue`）与薄弱褐（本卡新增，仅用于排行条的薄弱档；不新增独立主题）。 */
 const BLUE_FALLBACK = '#2563eb';
 const WEAK_BROWN = '#8a5a2e';
-
-function readToken(name: string, fallback: string): string {
-  if (typeof window === 'undefined') return fallback;
-  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-  return value || fallback;
-}
 
 /** 得分率（0–1）→ 档色（低=红、中=黄、高=绿；null=中性）。 */
 const HEAT_BANDS: readonly { upper: number; color: string }[] = [
@@ -134,8 +134,10 @@ function ItemTrendCanvas({ stats }: { stats: ItemStatView[] }) {
     try {
       ChartJS.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip);
       const danger = readToken('--danger', DANGER_FALLBACK);
+      const theme = barChartTheme();
       const config: ChartConfiguration<'bar'> = {
         type: 'bar',
+        plugins: [theme.focusPlugin],
         data: {
           labels: stats.map((stat) => stat.itemPath),
           datasets: [
@@ -145,28 +147,37 @@ function ItemTrendCanvas({ stats }: { stats: ItemStatView[] }) {
               data: stats.map((stat) =>
                 stat.scoreRate === null ? null : Math.round(stat.scoreRate * 1000) / 10,
               ),
-              backgroundColor: danger,
-              borderColor: danger,
-              borderRadius: 4,
-              maxBarThickness: 36,
+              backgroundColor: barGradient(danger),
+              hoverBackgroundColor: danger,
+              borderRadius: barRadius(),
+              borderSkipped: false,
+              maxBarThickness: 32,
             },
           ],
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          animation: theme.animation,
+          transitions: theme.transitions,
+          interaction: theme.interaction(),
           scales: {
             y: {
+              ...theme.valueAxis,
               min: 0,
               max: 100,
-              ticks: { callback: (value) => `${value}` },
-              title: { display: true, text: '得分率 %' },
+              ticks: { ...theme.valueAxis.ticks, callback: (value) => `${value}` },
+              title: { ...theme.valueAxis.title, display: true, text: '得分率 %' },
             },
-            x: { grid: { display: false }, title: { display: true, text: '题号' } },
+            x: {
+              ...theme.categoryAxis,
+              title: { ...theme.categoryAxis.title, display: true, text: '题号' },
+            },
           },
           plugins: {
             legend: { display: false },
             tooltip: {
+              ...theme.tooltip,
               callbacks: {
                 label: (context) => {
                   const raw = context.dataset.data[context.dataIndex] as number | null;
@@ -291,21 +302,28 @@ function KnowledgeRankingCanvas({ items }: { items: KnowledgeStatsResponse['item
     try {
       ChartJS.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip);
       const blue = readToken('--blue', BLUE_FALLBACK);
+      const theme = barChartTheme();
       // 倒序展示：按得分率从低到高（最薄弱在最上），褐色标出 ≤60% 的薄弱知识点。
       const ordered = [...items].sort((a, b) => a.scoreRate - b.scoreRate);
       const config: ChartConfiguration<'bar'> = {
         type: 'bar',
+        plugins: [theme.focusPlugin],
         data: {
           labels: ordered.map((item) => (item.path ? `${item.name}（${item.path}）` : item.name)),
           datasets: [
             {
               label: '得分率 %',
               data: ordered.map((item) => Math.round(item.scoreRate * 1000) / 10),
-              backgroundColor: ordered.map((item) =>
+              backgroundColor: (context) =>
+                barGradient((ordered[context.dataIndex]?.scoreRate ?? 1) < 0.6 ? WEAK_BROWN : blue, true)(
+                  context,
+                ),
+              hoverBackgroundColor: ordered.map((item) =>
                 item.scoreRate < 0.6 ? WEAK_BROWN : blue,
               ),
-              borderRadius: 4,
-              maxBarThickness: 26,
+              borderRadius: barRadius(true),
+              borderSkipped: false,
+              maxBarThickness: 22,
             },
           ],
         },
@@ -313,14 +331,23 @@ function KnowledgeRankingCanvas({ items }: { items: KnowledgeStatsResponse['item
           indexAxis: 'y',
           responsive: true,
           maintainAspectRatio: false,
+          animation: theme.animation,
+          transitions: theme.transitions,
+          interaction: theme.interaction(true),
           scales: {
-            x: { min: 0, max: 100, title: { display: true, text: '得分率 %' } },
+            x: {
+              ...theme.valueAxis,
+              min: 0,
+              max: 100,
+              title: { ...theme.valueAxis.title, display: true, text: '得分率 %' },
+            },
             // 横向条形的类目轴不反转：第一条（得分率最低、最薄弱）在最上。
-            y: { grid: { display: false } },
+            y: { ...theme.categoryAxis },
           },
           plugins: {
             legend: { display: false },
             tooltip: {
+              ...theme.tooltip,
               callbacks: {
                 label: (context) => {
                   const item = ordered[context.dataIndex];
@@ -458,30 +485,48 @@ function DistributionCanvas({ buckets }: { buckets: DistributionResponse['bucket
     try {
       ChartJS.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip);
       const blue = readToken('--blue', BLUE_FALLBACK);
+      const theme = barChartTheme();
       const config: ChartConfiguration<'bar'> = {
         type: 'bar',
+        plugins: [theme.focusPlugin],
         data: {
           labels: buckets.map((bucket) => bucket.label),
           datasets: [
             {
               label: '小题数',
               data: buckets.map((bucket) => bucket.count),
-              backgroundColor: blue,
-              borderRadius: 4,
-              maxBarThickness: 48,
+              backgroundColor: barGradient(blue),
+              hoverBackgroundColor: blue,
+              borderRadius: barRadius(),
+              borderSkipped: false,
+              maxBarThickness: 44,
             },
           ],
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          animation: theme.animation,
+          transitions: theme.transitions,
+          interaction: theme.interaction(),
           scales: {
-            y: { beginAtZero: true, ticks: { precision: 0 }, title: { display: true, text: '题数' } },
-            x: { grid: { display: false }, title: { display: true, text: '得分率分档' } },
+            y: {
+              ...theme.valueAxis,
+              beginAtZero: true,
+              ticks: { ...theme.valueAxis.ticks, precision: 0 },
+              title: { ...theme.valueAxis.title, display: true, text: '题数' },
+            },
+            x: {
+              ...theme.categoryAxis,
+              title: { ...theme.categoryAxis.title, display: true, text: '得分率分档' },
+            },
           },
           plugins: {
             legend: { display: false },
-            tooltip: { callbacks: { label: (context) => `${context.parsed.y} 道小题` } },
+            tooltip: {
+              ...theme.tooltip,
+              callbacks: { label: (context) => `${context.parsed.y} 道小题` },
+            },
           },
         },
       };

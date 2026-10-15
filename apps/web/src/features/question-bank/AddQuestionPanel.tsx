@@ -24,6 +24,7 @@ import { GenerationPanel } from './GenerationPanel';
 import { asApiError, errorText } from './hooks';
 import { composeManualQuestion, MANUAL_QUESTION_FILE_NAME } from './manual-question';
 import type { TaxonomyIndex } from './taxonomy';
+import { SlidingGroup } from '@/components/ui/SlidingGroup';
 
 type Mode = 'manual' | 'generation';
 
@@ -88,7 +89,7 @@ export function AddQuestionPanel({
   return (
     <Modal title="添加题目" onClose={onClose}>
       <div className="qb-panel" data-testid="qb-add-question">
-        <div className="space-tabs" role="tablist" aria-label="添加题目方式">
+        <SlidingGroup activeKey={mode} className="space-tabs" role="tablist" aria-label="添加题目方式">
           <button
             role="tab"
             id="qb-add-tab-manual"
@@ -110,7 +111,7 @@ export function AddQuestionPanel({
           >
             AI 补题
           </button>
-        </div>
+        </SlidingGroup>
 
         {mode === 'manual' ? (
           <div

@@ -294,8 +294,35 @@ body[data-chat-resizing='true'] .chat-home-shell .chat-main {
 .chat-home-shell .chat-reasoning[open] > p {
   animation: chat-home-reasoning 180ms cubic-bezier(0.16, 1, 0.3, 1);
 }
-.chat-home-shell .chat-thinking-label {
-  animation: chat-home-breathe 1.8s ease-in-out infinite;
+/* 生成中的状态字：一道高光自左向右扫过文字（text shimmer），比整段呼吸闪烁更安静；
+   减少动画时停在静态的柔和色。 */
+.chat-home-shell :is(.chat-thinking-label, .chat-status-text) {
+  background: linear-gradient(
+      90deg,
+      var(--muted) 0%,
+      var(--muted) 35%,
+      var(--ink) 50%,
+      var(--muted) 65%,
+      var(--muted) 100%
+    )
+    0 0 / 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* smoothui 推理扫光口径：200% 底图、1.8s 匀速、自右向左 */
+  animation: chat-home-text-shimmer 1.8s linear infinite;
+}
+@keyframes chat-home-text-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+/* 新消息入场：只作用于最后两行（本轮的提问与回答），历史消息切换会话时不整页闪动 */
+.chat-home-shell .chat-message-column > .chat-row:nth-last-child(-n + 2) {
+  animation: motion-enter-up 260ms var(--ease-out) both;
 }
 .chat-home-shell .chat-context-chips {
   display: contents;

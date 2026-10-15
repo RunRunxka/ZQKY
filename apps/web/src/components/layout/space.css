@@ -175,9 +175,6 @@
   height: 14px;
   width: 48px;
   border-radius: var(--radius-sm);
-  background: var(--muted);
-  opacity: 0.35;
-  animation: space-pulse 1.4s ease-in-out infinite;
 }
 
 .space-tile-arrow {
@@ -227,29 +224,37 @@
   background: var(--bg);
 }
 
+/* 分段筛选：浅色轨道 + 白色滑块（滑块由 SlidingGroup 的 ::before 绘制，见 motion.css；
+   滑块就位前由按钮自身 .current 底色兜底）。字重各态一致，切换时宽度不跳。 */
 .space-segment {
   display: inline-flex;
+  gap: 2px;
+  padding: 2px;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  overflow: hidden;
+  background: var(--surface);
 }
 
 .space-segment button {
-  min-height: var(--control-height);
-  padding: 6px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: calc(var(--control-height) - 6px);
+  padding: 4px 11px;
+  border-radius: 6px;
   font-size: 13px;
+  font-weight: 500;
   color: var(--muted);
-  background: var(--bg);
 }
 
-.space-segment button + button {
-  border-left: 1px solid var(--line);
+.space-segment button:hover:not(.current) {
+  color: var(--ink);
 }
 
 .space-segment button.current {
-  background: var(--blue-soft);
-  color: var(--blue);
-  font-weight: 600;
+  background: var(--bg);
+  color: var(--blue-deep);
+  box-shadow: var(--shadow-thumb);
 }
 
 .space-banner {
@@ -290,22 +295,25 @@
   white-space: nowrap;
 }
 
+/* 骨架：自左向右扫过的柔光（motion.css @keyframes motion-shimmer），替代整块闪烁；
+   扫光按视口定位，同屏所有骨架同步。 */
 .space-skeleton {
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   padding: 14px 16px;
   margin-bottom: 10px;
-  animation: space-pulse 1.4s ease-in-out infinite;
 }
 
-@keyframes space-pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.45;
-  }
+.space-skeleton,
+.space-tile-skeleton {
+  background: linear-gradient(
+      100deg,
+      transparent 30%,
+      rgb(255 255 255 / 75%) 50%,
+      transparent 70%
+    )
+    var(--skeleton-base) 0 0 / 150vw 100% no-repeat fixed;
+  animation: motion-shimmer 2.2s linear infinite;
 }
 
 .space-empty {
@@ -714,30 +722,100 @@
   gap: 10px;
 }
 
+/* 轨道内的按钮焦点圈画在按钮内侧：轨道（页签可横向滚动）会裁掉向外偏移的 outline。 */
+:is(.space-tabs, .space-segment) button:focus-visible {
+  outline-offset: -2px;
+}
+
+/* 页签：与分段筛选同一轨道/滑块语言，尺寸大一档。 */
 .space-tabs {
   display: inline-flex;
+  gap: 2px;
+  padding: 3px;
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
-  overflow: hidden;
+  background: var(--surface);
   margin-bottom: 16px;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.space-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .space-tabs button {
-  min-height: var(--control-height);
-  padding: 8px 18px;
+  min-height: calc(var(--control-height) - 8px);
+  padding: 5px 16px;
+  border-radius: 9px;
   font-size: var(--font-size-control);
+  font-weight: 500;
   color: var(--muted);
-  background: var(--bg);
+  white-space: nowrap;
 }
 
-.space-tabs button + button {
-  border-left: 1px solid var(--line);
+.space-tabs button:hover:not(.current) {
+  color: var(--ink);
 }
 
 .space-tabs button.current {
+  background: var(--bg);
+  color: var(--blue-deep);
+  box-shadow: var(--shadow-thumb);
+}
+
+/* 文件选择即拖放区：把各导入面板里可见的原生 file input 本身画成虚线投放区。
+   浏览器原生支持把文件拖到 file input 上（触发同一个 change 事件），因此不加任何脚本，
+   键盘/读屏/测试路径与原生控件完全一致。隐藏的 file input（对话附件、教案上传）不受影响。 */
+:is(.assessments-field, .kp-field, .qb-field, .textbook-field) > input[type='file'] {
+  display: block;
+  width: 100%;
+  min-height: 64px;
+  padding: 16px;
+  border: 1.5px dashed #c5d2e6;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: var(--font-size-control);
+  cursor: pointer;
+  transition:
+    border-color 160ms,
+    background-color 160ms,
+    box-shadow 160ms;
+}
+:is(.assessments-field, .kp-field, .qb-field, .textbook-field) > input[type='file']:hover:not(:disabled) {
+  border-color: var(--blue);
   background: var(--blue-soft);
-  color: #1d4ed8;
-  font-weight: 600;
+}
+:is(.assessments-field, .kp-field, .qb-field, .textbook-field) > input[type='file']:focus-visible {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 16%);
+}
+:is(.assessments-field, .kp-field, .qb-field, .textbook-field) > input[type='file']:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+:is(.assessments-field, .kp-field, .qb-field, .textbook-field) > input[type='file']::file-selector-button {
+  margin-right: 12px;
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 500;
+  cursor: inherit;
+  box-shadow: var(--shadow-thumb);
+  transition:
+    border-color 160ms,
+    color 160ms;
+}
+:is(.assessments-field, .kp-field, .qb-field, .textbook-field)
+  > input[type='file']:hover:not(:disabled)::file-selector-button {
+  border-color: var(--blue);
+  color: var(--blue-deep);
 }
 
 .space-toggle {

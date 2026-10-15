@@ -441,6 +441,26 @@
   font-size: var(--font-size-caption, 12px);
   color: var(--muted);
   min-width: 0;
+  margin-inline: -6px;
+  padding: 3px 6px;
+  border-radius: 6px;
+  transition:
+    background-color 160ms,
+    color 160ms;
+}
+
+/* 悬停图例 = 激活对应扇区（KnowledgeDonut.highlight），图例自身同步浅底高亮 */
+.assessments-page .paper-donut-legend-item.highlighted {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.assessments-page .paper-donut-legend-item .paper-donut-swatch {
+  transition: transform 200ms var(--ease-spring);
+}
+
+.assessments-page .paper-donut-legend-item.highlighted .paper-donut-swatch {
+  transform: scale(1.18);
 }
 
 .assessments-page .paper-donut-swatch {

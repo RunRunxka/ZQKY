@@ -34,6 +34,7 @@ import {
 } from './labels';
 import { useAsyncResource } from './hooks';
 import { buildPointTree, type PointTreeNode } from './tree';
+import { SlidingGroup } from '@/components/ui/SlidingGroup';
 
 export interface PointBrowserProps {
   subjects: { id: string; label: string }[];
@@ -176,7 +177,7 @@ export function PointBrowser({
       </form>
 
       <div className="kp-filters">
-        <div className="space-segment" role="group" aria-label="按教材范围筛选">
+        <SlidingGroup activeKey={scope} className="space-segment" role="group" aria-label="按教材范围筛选">
           {(Object.keys(KNOWLEDGE_POINT_SCOPE_LABEL) as KnowledgePointScope[]).map((value) => (
             <button
               key={value}
@@ -188,7 +189,7 @@ export function PointBrowser({
               {KNOWLEDGE_POINT_SCOPE_LABEL[value]}
             </button>
           ))}
-        </div>
+        </SlidingGroup>
 
         <label className="kp-field kp-field-inline">
           <span className="kp-field-label">学科</span>
@@ -235,7 +236,7 @@ export function PointBrowser({
           </select>
         </label>
 
-        <div className="space-segment" role="group" aria-label="按状态筛选">
+        <SlidingGroup activeKey={status} className="space-segment" role="group" aria-label="按状态筛选">
           {STATUS_OPTIONS.map((option) => (
             <button
               key={option.value || 'all'}
@@ -246,9 +247,9 @@ export function PointBrowser({
               {option.label}
             </button>
           ))}
-        </div>
+        </SlidingGroup>
 
-        <div className="space-segment kp-view-switch" role="group" aria-label="视图">
+        <SlidingGroup activeKey={view} className="space-segment kp-view-switch" role="group" aria-label="视图">
           <button
             className={view === 'list' ? 'current' : ''}
             aria-pressed={view === 'list'}
@@ -265,7 +266,7 @@ export function PointBrowser({
             <TreePine size={13} aria-hidden />
             父树
           </button>
-        </div>
+        </SlidingGroup>
       </div>
 
       {points.state.phase === 'loading' && (

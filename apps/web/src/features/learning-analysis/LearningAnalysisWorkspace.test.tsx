@@ -8,7 +8,7 @@
  * - 归档的创建报告 / 归档 / 彻底删除 / 教师备注页签不在本卡交付范围，测试不覆盖。
  */
 
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { ApiError } from '@/services/api-client';
@@ -105,6 +105,70 @@ function page<T>(items: T[]) {
   return { items, total: items.length, offset: 0, limit: 20 };
 }
 
+/** 闭环补齐（2026-10-13）用到的固定数据：已确认原卷、班级学生、新建施测回执、成绩修订。 */
+const CLOSED_LOOP = {
+  paper: {
+    paperId: 'paper-1',
+    title: '第一次月考原卷',
+    version: 1,
+    currentRevisionId: 'paper-1',
+    currentState: 'confirmed' as const,
+    scoredLeafCount: 16,
+  },
+  created: {
+    assessment: {
+      assessmentId: 'asm-9',
+      paperId: 'paper-1',
+      paperRevisionId: 'paper-1',
+      paperTitle: '第一次月考原卷',
+      title: '第一次月考',
+      heldOn: '2026-10-13',
+      revision: 0,
+      participantCount: 1,
+      classIds: ['class-a'],
+    },
+    participants: [
+      {
+        participantId: 'p1',
+        studentId: 's1',
+        nameSnapshot: '甲',
+        classId: 'class-a',
+        attemptNo: 1,
+        attendance: 'present' as const,
+      },
+    ],
+    replayed: false,
+  },
+  revision: {
+    revisionId: 'rev-1',
+    assessmentId: 'asm-1',
+    paperRevisionId: 'paper-1',
+    version: 1,
+    state: 'confirmed' as const,
+    confirmedAt: '2026-10-13T09:00:00Z',
+    createdAt: '2026-10-13T08:00:00Z',
+    participantSnapshot: [
+      {
+        participantId: 'p1',
+        studentId: 's1',
+        studentNo: '001',
+        name: '甲',
+        classId: 'class-a',
+        attemptNo: 1,
+        attendance: 'present' as const,
+      },
+    ],
+  },
+  runReceipt: {
+    runId: 'run-9',
+    inputHash: 'hash-9',
+    scoreRevisionId: 'rev-1',
+    paperRevisionId: 'paper-1',
+    replayed: false,
+    reused: false,
+  },
+};
+
 function baseApi() {
   return {
     listClasses: vi.fn(async () => page([{ id: 'class-a', name: '七一班' }])),
@@ -123,6 +187,16 @@ function baseApi() {
         },
       ]),
     ),
+    listPapers: vi.fn(async () =>
+      page([CLOSED_LOOP.paper, { ...CLOSED_LOOP.paper, paperId: 'paper-2', title: '草稿卷', currentState: 'draft' }]),
+    ),
+    listClassStudents: vi.fn(async () => ({
+      items: [{ id: 's1', name: '甲', studentNo: '001', status: 'active' }],
+      total: 1,
+    })),
+    createAssessment: vi.fn(async () => CLOSED_LOOP.created),
+    listScoreRevisions: vi.fn(async () => ({ items: [CLOSED_LOOP.revision], total: 1 })),
+    createAnalysisRun: vi.fn(async () => CLOSED_LOOP.runReceipt),
     listAnalysisRuns: vi.fn(async () => page([RUN])),
     getAnalysisRun: vi.fn(async () => RUN),
     getAnalysisItemStats: vi.fn(async () => ITEM_STATS),
@@ -174,9 +248,33 @@ function datasetOf(config: Record<string, unknown> | undefined) {
     ?.datasets?.[0];
 }
 
+/**
+ * 柱体底色：主题把纯色换成了自上而下的同色渐变（scriptable 函数）。图表区未布局时渐变函数
+ * 退回基色，这里按此口径逐柱解析出基色，断言颜色仍取自 token（红柱=--danger、薄弱=褐）。
+ */
+function barColorsOf(config: Record<string, unknown> | undefined) {
+  const dataset = datasetOf(config);
+  const background = dataset?.backgroundColor;
+  const count = (dataset?.data as unknown[] | undefined)?.length ?? 0;
+  if (typeof background !== 'function') return background;
+  return Array.from({ length: count }, (_, dataIndex) =>
+    (background as (context: unknown) => unknown)({ chart: { chartArea: undefined }, dataIndex }),
+  );
+}
+
 function labelsOf(config: Record<string, unknown> | undefined) {
   return (config?.data as { labels: unknown[] })?.labels;
 }
+
+beforeAll(() => {
+  // 「新建施测」用 Modal（原生 <dialog>.showModal）；jsdom 不实现，这里按既有先例补桩。
+  HTMLDialogElement.prototype.showModal = function showModal() {
+    this.open = true;
+  };
+  HTMLDialogElement.prototype.close = function close() {
+    this.open = false;
+  };
+});
 
 beforeEach(() => {
   chartStub.configs.length = 0;
@@ -206,7 +304,8 @@ describe('学情分析工作区', () => {
     expect(trend?.type).toBe('bar');
     expect(labelsOf(trend)).toEqual(['1', '2']);
     expect(datasetOf(trend)?.data).toEqual([80, null]);
-    expect(datasetOf(trend)?.backgroundColor).toBe(DANGER);
+    expect(barColorsOf(trend)).toEqual([DANGER, DANGER]);
+    expect(datasetOf(trend)?.hoverBackgroundColor).toBe(DANGER);
     expect(screen.getByRole('img', { name: /小题得分率趋势/ })).toBeInTheDocument();
 
     // 小题得分热力图：80 与「无有效作答」（—）区分显示，不补 0
@@ -221,7 +320,7 @@ describe('学情分析工作区', () => {
     expect(ranking).toBeTruthy();
     expect(labelsOf(ranking)).toEqual(['分式（代数/分式）', '整式']);
     expect(datasetOf(ranking)?.data).toEqual([50, 90]);
-    expect(datasetOf(ranking)?.backgroundColor).toEqual([WEAK_BROWN, '#2563eb']);
+    expect(barColorsOf(ranking)).toEqual([WEAK_BROWN, '#2563eb']);
 
     // 学生 × 知识点：null 显示「尚无」，不显示 0
     const matrix = screen.getByTestId('la-student-matrix');
@@ -453,5 +552,106 @@ describe('学情分析：删除施测（R10-BE 施测=成绩链所有者）', ()
     expect(button).toBeDisabled();
     fireEvent.click(button);
     expect(api.deleteAssessment).not.toHaveBeenCalled();
+  });
+});
+
+describe('学情分析：新建施测 → 生成报告（闭环补齐 2026-10-13）', () => {
+  it('「新建施测」：已确认原卷 + 班级 → 创建成功选中新施测并给出下一步指引', async () => {
+    const createAssessment = vi.fn(async () => CLOSED_LOOP.created);
+    // 创建后刷新列表：新施测出现在「试卷」下拉里（这是「导入的试卷看不到」的修复点）
+    const listAssessments = vi.fn(async () =>
+      page([
+        {
+          assessmentId: 'asm-1',
+          paperId: 'paper-1',
+          paperRevisionId: 'paper-1',
+          paperTitle: '第一次月考原卷',
+          title: '第一次月考',
+          heldOn: '2026-09-30',
+          revision: 3,
+          participantCount: 1,
+          classIds: ['class-a'],
+        },
+        CLOSED_LOOP.created.assessment,
+      ]),
+    );
+    installApi({ createAssessment, listAssessments });
+    render(<LearningAnalysisWorkspace />);
+
+    fireEvent.click(await screen.findByTestId('la-create-assessment-open'));
+    expect(await screen.findByTestId('la-create-assessment')).toBeInTheDocument();
+    // 草稿卷不进候选（后端 422，界面不提前放行）
+    await waitFor(() =>
+      expect(screen.getByLabelText('新建施测原卷')).toHaveValue('paper-1'),
+    );
+    expect(screen.queryByRole('option', { name: /草稿卷/ })).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('新建施测班级'), { target: { value: 'class-a' } });
+    await screen.findByTestId('la-create-participant-count');
+    fireEvent.click(screen.getByTestId('la-create-submit'));
+
+    await waitFor(() => expect(createAssessment).toHaveBeenCalledTimes(1));
+    // 创建成功后：面板关闭、新施测被选中、列表重新读取、并给出「下一步导入小题分」的指引
+    await waitFor(() => expect(screen.queryByTestId('la-create-assessment')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.getByLabelText('试卷筛选')).toHaveValue('asm-9'));
+    const notice = await screen.findByTestId('la-flow-notice');
+    expect(notice).toHaveTextContent('已新建施测「第一次月考」');
+    expect(notice).toHaveTextContent('参测 1 人次');
+    expect(notice).toHaveTextContent('导入小题分');
+    expect(listAssessments.mock.calls.length).toBeGreaterThan(1);
+  });
+
+  it('「生成学情报告」：未选施测时禁用；选中后生成按回执如实提示（复用不重复建）', async () => {
+    const createAnalysisRun = vi.fn(
+      async (
+        assessmentId: string,
+        body: { scoreRevisionId: string; selectedParticipantIds: string[]; ruleCode: string },
+      ) => ({
+        ...CLOSED_LOOP.runReceipt,
+        // 回执按请求回显：runId 带上施测与成绩版本，便于断言「选中的是本次生成的报告」
+        runId: `run-${assessmentId}-${body.scoreRevisionId}`,
+        scoreRevisionId: body.scoreRevisionId,
+        reused: true,
+      }),
+    );
+    installApi({ createAnalysisRun });
+    render(<LearningAnalysisWorkspace initialAssessmentId="asm-1" />);
+    await screen.findByTestId('la-trend-card');
+
+    fireEvent.click(screen.getByTestId('la-create-run-open'));
+    const panel = await screen.findByTestId('la-create-run-panel');
+    await waitFor(() =>
+      expect(within(panel).getByLabelText('生成报告的成绩修订')).toHaveValue('rev-1'),
+    );
+    expect(within(panel).getByTestId('la-create-run-participant-count')).toHaveTextContent(
+      '将对该版本的 1 个人次生成',
+    );
+
+    fireEvent.click(screen.getByTestId('la-create-run-submit'));
+    await waitFor(() => expect(createAnalysisRun).toHaveBeenCalledTimes(1));
+    const [assessmentId, body] = createAnalysisRun.mock.calls[0];
+    expect(assessmentId).toBe('asm-1');
+    expect(body.scoreRevisionId).toBe('rev-1');
+    expect(body.selectedParticipantIds).toEqual(['p1']);
+    expect(body.ruleCode).toBe('any_loss_v1');
+
+    // 复用回执：如实用「直接复用」表述，不谎称新建；新报告被选中读取
+    const notice = await screen.findByTestId('la-flow-notice');
+    expect(notice).toHaveTextContent('直接复用');
+    expect(notice).toHaveTextContent('未重复创建');
+    await waitFor(() => expect(screen.queryByTestId('la-create-run-panel')).not.toBeInTheDocument());
+    await waitFor(() =>
+      expect(mocks.api.getAnalysisRun).toHaveBeenCalledWith('run-asm-1-rev-1', expect.anything()),
+    );
+  });
+
+  it('未选择施测时「生成学情报告」禁用（报告必须挂在明确的施测上）', async () => {
+    const api = installApi();
+    render(<LearningAnalysisWorkspace />);
+    const button = await screen.findByTestId('la-create-run-open');
+    expect(button).toBeDisabled();
+    fireEvent.click(button);
+    expect(screen.queryByTestId('la-create-run-panel')).not.toBeInTheDocument();
+    expect(api.createAnalysisRun).not.toHaveBeenCalled();
   });
 });

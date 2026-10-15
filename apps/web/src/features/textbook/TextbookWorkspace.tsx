@@ -25,6 +25,7 @@ import { LIBRARY_KIND_LABEL } from './labels';
 import { LibraryBrowser } from './LibraryBrowser';
 import { useAsyncResource } from './hooks';
 import { buildTaxonomyIndex } from './taxonomy';
+import { SlidingGroup } from '@/components/ui/SlidingGroup';
 
 type Tab = LibraryKind;
 
@@ -88,7 +89,7 @@ export function TextbookWorkspace() {
       </header>
 
       <main className="space-content">
-        <div className="space-tabs" role="tablist" aria-label="教材视图" data-motion-reveal>
+        <SlidingGroup activeKey={tab} className="space-tabs" role="tablist" aria-label="教材视图" data-motion-reveal>
           {tabs.map((item) => (
             <button
               key={item.id}
@@ -102,7 +103,7 @@ export function TextbookWorkspace() {
               {item.label}
             </button>
           ))}
-        </div>
+        </SlidingGroup>
 
         {taxonomy.state.phase === 'failed' && (
           <div className="space-banner error" role="alert">

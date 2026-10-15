@@ -13,6 +13,7 @@ import type { NavigationItem } from '@/contracts/navigation';
 import { useNavigationPreference } from './NavigationPreference';
 import { useNavigationGuard } from '@/services/navigation-guard';
 import { useEntrance } from '@/components/motion/useEntrance';
+import { useSlidingIndicator } from '@/components/motion/useSlidingIndicator';
 
 const mainGroups = groupMainNavigation();
 const bottomItems = navigation.filter((n) => n.position === 'bottom');
@@ -72,8 +73,11 @@ export function WorkspaceShell({
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const mobileNavRef = useRef<HTMLDialogElement>(null);
   const mobileTriggerRef = useRef<HTMLButtonElement>(null);
+  const navItemsRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname(),
     router = useRouter();
+  // 壳跨路由常驻：切页时当前项高亮从旧项滑到新项；展开/收起后重新测量宽度。
+  useSlidingIndicator(navItemsRef, `${pathname}|${expanded}`);
 
   useEffect(() => {
     if (!mobileNavOpen) return;
@@ -187,7 +191,7 @@ export function WorkspaceShell({
         >
           {expanded ? <PanelLeftClose size={19} /> : <PanelLeftOpen size={19} />}
         </button>
-        <div className="nav-items">
+        <div className="nav-items" ref={navItemsRef} data-sliding-indicator="">
           {mainGroups.map((group, index) => (
             <Fragment key={group.label || `group-${index}`}>
               {group.label && <div className="nav-group-label">{group.label}</div>}

@@ -29,6 +29,15 @@ import {
 } from 'chart.js';
 import type { KnowledgeDistributionBucket } from '@/contracts/papers';
 import {
+  chartEnterAnimation,
+  chartFocusPlugin,
+  chartTooltipTheme,
+  focusAlpha,
+  focusTransitions,
+  setChartFocus,
+  withAlpha,
+} from '@/components/charts/chart-theme';
+import {
   KNOWLEDGE_DONUT_PALETTE,
   formatScoreUnits,
   ratioPercentText,
@@ -40,7 +49,20 @@ export function KnowledgeDonut({
   distribution: readonly KnowledgeDistributionBucket[];
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
+  const chartRef = useRef<ChartJS | null>(null);
   const [canvasUnavailable, setCanvasUnavailable] = useState(false);
+  const [highlighted, setHighlighted] = useState<number | null>(null);
+
+  /** 图例与扇区联动：悬停图例项 = 聚焦对应扇区（其余淡出）并弹出其提示框；无图形时只高亮图例。 */
+  const highlight = (index: number | null) => {
+    setHighlighted(index);
+    const chart = chartRef.current;
+    if (!chart) return;
+    const active = index === null ? [] : [{ datasetIndex: 0, index }];
+    chart.setActiveElements(active);
+    chart.tooltip?.setActiveElements(active, { x: 0, y: 0 });
+    setChartFocus(chart, index);
+  };
 
   useEffect(() => {
     const element = canvas.current;
@@ -48,26 +70,40 @@ export function KnowledgeDonut({
     ChartJS.register(DoughnutController, ArcElement, Tooltip);
     const config: ChartConfiguration<'doughnut'> = {
       type: 'doughnut',
+      // 指向扇区时同步高亮对应图例项（反向联动）
+      plugins: [chartFocusPlugin(setHighlighted)],
       data: {
         labels: distribution.map((bucket) => bucket.name),
         datasets: [
           {
             data: distribution.map((bucket) => bucket.totalScoreUnits),
-            backgroundColor: distribution.map(
+            // 非聚焦扇区淡到 20%（beui / transitions.dev 环图口径）
+            backgroundColor: (context) =>
+              withAlpha(
+                KNOWLEDGE_DONUT_PALETTE[context.dataIndex % KNOWLEDGE_DONUT_PALETTE.length],
+                focusAlpha(context.chart, context.dataIndex, 0.2),
+              ),
+            hoverBackgroundColor: distribution.map(
               (_, index) => KNOWLEDGE_DONUT_PALETTE[index % KNOWLEDGE_DONUT_PALETTE.length],
             ),
-            borderWidth: 2,
-            borderColor: '#fff',
+            borderWidth: 0,
+            spacing: 3,
+            borderRadius: 3,
+            hoverOffset: 6,
           },
         ],
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        cutout: '66%',
+        animation: chartEnterAnimation(),
+        transitions: focusTransitions(),
         // 图例由组件内的 HTML 列表给出（含百分比，读屏可读）
         plugins: {
           legend: { display: false },
           tooltip: {
+            ...chartTooltipTheme(),
             callbacks: {
               label: (context) => {
                 const bucket = distribution[context.dataIndex];
@@ -84,12 +120,22 @@ export function KnowledgeDonut({
     let chart: ChartJS | null = null;
     try {
       chart = new ChartJS(element, config);
+      // 拿不到 2D 上下文时 Chart.js 不抛错而是留下未初始化实例：不登记，并同样给出「图形不可用」提示。
+      if (chart.ctx) {
+        chartRef.current = chart;
+      } else {
+        chart = null;
+        setCanvasUnavailable(true);
+      }
     } catch {
       // 无 2D 上下文（jsdom / 极老浏览器）：保留 HTML 图例并明确说明
       setCanvasUnavailable(true);
       return;
     }
-    return () => chart?.destroy();
+    return () => {
+      chartRef.current = null;
+      chart?.destroy();
+    };
   }, [distribution]);
 
   if (distribution.length === 0) {
@@ -117,7 +163,16 @@ export function KnowledgeDonut({
         </div>
         <ul className="paper-donut-legend" aria-label="知识点占比图例">
           {distribution.map((bucket, index) => (
-            <li className="paper-donut-legend-item" key={bucket.knowledgePointId}>
+            <li
+              className={
+                highlighted === index
+                  ? 'paper-donut-legend-item highlighted'
+                  : 'paper-donut-legend-item'
+              }
+              key={bucket.knowledgePointId}
+              onMouseEnter={() => highlight(index)}
+              onMouseLeave={() => highlight(null)}
+            >
               <span
                 className="paper-donut-swatch"
                 aria-hidden

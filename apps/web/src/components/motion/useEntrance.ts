@@ -87,7 +87,8 @@ export function useEntrance(
           : {
               opacity: 0,
               y: preset === 'page' ? 10 : preset === 'modal' ? 8 : 6,
-              ...(preset === 'modal' ? { scale: 0.985 } : {}),
+              // 弹窗自 .96 放大落位（transitions.dev modal 口径）
+              ...(preset === 'modal' ? { scale: 0.96 } : {}),
             };
       gsap.fromTo(targets, from, {
         opacity: 1,
@@ -95,9 +96,9 @@ export function useEntrance(
         xPercent: 0,
         scale: 1,
         duration:
-          preset === 'page' ? 0.28 : preset === 'panel' ? 0.18 : preset === 'modal' ? 0.22 : 0.2,
+          preset === 'page' ? 0.28 : preset === 'panel' ? 0.18 : preset === 'modal' ? 0.25 : 0.2,
         stagger: preset === 'page' ? 0.035 : 0,
-        ease: 'power2.out',
+        ease: preset === 'modal' ? 'power3.out' : 'power2.out',
         clearProps: 'opacity,transform',
         overwrite: 'auto',
       });

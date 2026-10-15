@@ -31,6 +31,7 @@ import { RichBlocks } from '@/features/question-bank/rich-content';
 import { getQuestionAsset } from '@/services/question-bank-api';
 import { layoutPaper, pageEndLabel, PAPER_PADDING_PX, type PaperLayout, type PaperSegment } from './paper';
 import { ErrorNotice, JobStatusNotice, RichReview, SubmissionNotice, scoreText, shortId } from './ui';
+import { SlidingGroup } from '@/components/ui/SlidingGroup';
 
 const VARIANT_LABEL: Record<ExportRequest['variant'], string> = {
   student: '学生卷 DOCX',
@@ -326,7 +327,7 @@ export function PracticeExportPanel({ view, services = b4Api }: PracticeExportPa
         </label>
       )}
 
-      <div className="practices-tabs" role="tablist" aria-label="卷面页签">
+      <SlidingGroup activeKey={tab} variant="underline" className="practices-tabs" role="tablist" aria-label="卷面页签">
         {(['student', 'teacher'] as const).map((variant) => (
           <button
             key={variant}
@@ -348,7 +349,7 @@ export function PracticeExportPanel({ view, services = b4Api }: PracticeExportPa
             {variant === 'student' ? '学生卷' : '教师卷'}
           </button>
         ))}
-      </div>
+      </SlidingGroup>
 
       <div className="practices-preview" id={`practices-panel-${tab}`} role="tabpanel" aria-labelledby={`practices-tab-${tab}`} data-testid="practices-preview">
         {layout.pages.map((page) => (

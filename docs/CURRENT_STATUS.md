@@ -14,13 +14,24 @@
 - **门禁基线（2026-10-13 实测；教案学情材料批次之后）**：
   - 后端 `cd apps/api && uv run python -m pytest` → **1878 例**（`--collect-only` 计数；本批 +15 例
     `tests/test_lesson_sources.py`），全量执行 **exit 0 / 0 failed**；
-  - 前端 `NODE_OPTIONS=--no-experimental-webstorage npm.cmd run check` → **81 文件 717 例**、
-    typecheck 0 / lint 0 警告 / build 0（本批 +2 例：教案工作台上传口径；既有 `ScoreImportPanel`
-    负载型 flake 在并发跑后端全量时复现一次，单跑即绿——与既有台账记录一致）；
-  - e2e `npx playwright test` → **17 passed**（系统 `msedge` 通道，自起 5174）。
+  - 前端 `NODE_OPTIONS=--no-experimental-webstorage npm.cmd run check` → **81 文件 718 例**、
+    typecheck 0 / lint 0 警告 / build 0 / **退出码 0**；2026-10-15 复跑时 stderr 噪声为 0
+    （`tests/setup.ts` 统一降级 jsdom 的 canvas 与下载导航，并只过滤 Chart.js「无上下文」那一条已知日志；
+    `KnowledgeDonut` 无上下文时补齐「图形不可用」提示，此前该提示只在抛错分支出现，属真实缺陷）；
+  - e2e `npx playwright test` → **17 passed**（2026-10-15；系统 `msedge` 通道，自起 5174）。
+    运行时 web 代理对 `127.0.0.1:8000` 的 `ECONNREFUSED` 是因为**后端未启动**，用例按无后端的错误态验证，不是失败；
+  - 后端本批只跑了知识点/文档解析相关子集（`test_knowledge_tree_gen` / `test_knowledge_extraction` /
+    `test_document_parsing` 等），退出码 0；**全量后端数字本批未复跑**，仍以上条 1878 为准。
 - **当前任务**：**无在途批次**。真机事实（2026-10-13 晚）：用户已走完 原卷→施测→小题分→
   学情报告→教案（其教案 docx 导出成功，见 live `file_assets`）；两处报告的断点均已修复。
   **用户侧待做**：重启后端 8000（`npm.cmd run dev:api`，当前进程未开 `--reload`，新端点要重启才生效）。
+- **R11 知识点现状（2026-10-15，未提交）**：`apps/api` 下 6 个文件（`knowledge.py`、
+  `document_parsing/{__init__,chunking}.py`、`knowledge/tree_gen.py` 及两个测试）未提交。内容：
+  ① 教材目录生成改为读取**封存正文的 Markdown 标题**（`heading_paths`），不再按分块 `chapter_path`
+  采样（短章节会漏节点，习题标题会被重叠尾巴带成多节点）；② `tree_gen` 对「习题/复习参考题/章末」类标题段
+  透明、不建节点（复用 `regions.is_exercise_marker_line`）；③ 原文阅读器未装配或原文不可读时返回 503，
+  不静默少算一本书。相关子集测试已通过；**但尚无真机验收，且本文档与 API.md 均未记录该口径**。
+  下一步：补文档口径 → 单独提交后端 R11 → 用真实教材复跑「生成知识点树」做节点数对照。
 - **下一动作（候选，需用户确认后才开工）**：
   1. 教师端真机走查续（题库 6 个导入批次中 5 个为 2026-10-13 删除演练遗留的自建批次，
      可在新界面「彻底删除」）；

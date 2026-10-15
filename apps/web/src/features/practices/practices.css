@@ -320,22 +320,28 @@
   border-bottom: 1px solid var(--line);
 }
 
+/* 下划线页签：当前项蓝线由 SlidingGroup(variant="underline") 绘制并在切换时滑动；
+   滑块就位前由 .current 的 inset 下边线兜底。 */
 .practices-page .practices-tabs button {
-  border: 1px solid transparent;
-  border-bottom: none;
+  margin-bottom: -1px;
+  border: 0;
   background: transparent;
   color: var(--muted);
-  padding: 8px 14px;
+  padding: 8px 14px 9px;
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
   cursor: pointer;
   font-size: 13px;
+  font-weight: 500;
+}
+
+.practices-page .practices-tabs button:hover:not(.current) {
+  color: var(--ink);
+  background: var(--surface);
 }
 
 .practices-page .practices-tabs button.current {
-  background: var(--bg);
-  border-color: var(--line);
-  color: var(--ink);
-  font-weight: 600;
+  color: var(--blue-deep);
+  box-shadow: inset 0 -2px 0 var(--blue);
 }
 
 .practices-page .practices-tabs button:focus-visible {

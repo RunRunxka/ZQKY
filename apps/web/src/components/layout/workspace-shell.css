@@ -271,6 +271,12 @@
   .unified-shell :is(.global-nav, .mobile-nav-panel) .global-nav-item:hover:not(.current) {
     background: #e7edf6;
   }
+  /* 桌面侧栏当前项高亮由 .nav-items 的滑动指示器绘制（motion.css），切页时滑动到新项 */
+  .unified-shell .global-nav > .nav-items[data-sliding-indicator] {
+    --indicator-bg: #e4edff;
+    --indicator-shadow: none;
+    --indicator-radius: 8px;
+  }
   .unified-shell :is(.nav-toggle, .mobile-nav-toggle, .icon-button) {
     border-radius: var(--radius-sm);
   }
