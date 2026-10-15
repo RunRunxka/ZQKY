@@ -474,3 +474,15 @@
     min-height: var(--touch-target, 44px);
   }
 }
+
+/* 外观主题三态（跟随系统 / 浅色 / 深色）：按钮沿用全局 .button，只补分组排版 */
+.settings-theme-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+.settings-theme-options .button[aria-checked='true'] {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}

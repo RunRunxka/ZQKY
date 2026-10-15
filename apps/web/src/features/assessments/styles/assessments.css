@@ -237,10 +237,10 @@
   list-style: none;
   margin: 0;
   padding: 8px 10px;
-  border: 1px solid #f2d9a4;
+  border: 1px solid var(--warn-line);
   border-radius: var(--radius-sm);
-  background: #fdf6e7;
-  color: #7a5209;
+  background: var(--warn-bg);
+  color: var(--warn-ink);
   font-size: var(--font-size-caption, 12px);
   line-height: 1.7;
   display: flex;
@@ -358,7 +358,7 @@
 }
 
 .assessments-page .assessments-link-button.danger:hover:not(:disabled) {
-  background: #fdeceb;
+  background: var(--danger-bg);
 }
 
 .assessments-page .assessments-pagination {
@@ -468,7 +468,7 @@
   width: 12px;
   height: 12px;
   border-radius: 3px;
-  border: 1px solid rgba(23, 32, 51, 0.12);
+  border: 1px solid var(--line);
 }
 
 .assessments-page .paper-donut-legend-name {

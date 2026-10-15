@@ -14,12 +14,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronRight, RefreshCw } from 'lucide-react';
 import type { KnowledgePointView } from '@/contracts/knowledge';
+import { AnimatedCount } from '@/components/motion/AnimatedCount';
 import { ErrorNotice } from './ErrorNotice';
 import type { AsyncState } from './hooks';
 import {
   buildKnowledgeTree,
   collectNodeIds,
-  countText,
   subtreeTotals,
   type KnowledgeNode,
 } from './knowledge-tree';
@@ -131,7 +131,7 @@ export function KnowledgeTreePanel({
           >
             {node.name}
           </button>
-          <span className="qb-tree-count">（{countText(totalsMap.get(node.id))}）</span>
+          <span className="qb-tree-count">（<AnimatedCount value={totalsMap.get(node.id)} />）</span>
         </div>
         {open && children.length > 0 && (
           <ul className="qb-tree-children">{children.map((child) => renderNode(child, totalsMap))}</ul>
@@ -187,7 +187,7 @@ export function KnowledgeTreePanel({
                 >
                   全部题目
                 </button>
-                <span className="qb-tree-count">（{countText(counts?.root)}）</span>
+                <span className="qb-tree-count">（<AnimatedCount value={counts?.root} />）</span>
               </div>
             </li>
             {tree.roots.map((node) => renderNode(node, totals))}

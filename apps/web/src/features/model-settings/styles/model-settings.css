@@ -96,7 +96,7 @@
   border: 1px solid var(--line);
   border-radius: 9px;
   padding: 0 12px;
-  background: white;
+  background: var(--bg);
 }
 .model-search input {
   border: 0;
@@ -135,7 +135,7 @@
   height: 36px;
   background: var(--blue-soft);
   color: var(--blue);
-  border: 1px solid #dce6f7;
+  border: 1px solid var(--line);
   border-radius: 10px;
   font-weight: 600;
 }
@@ -227,8 +227,8 @@
   padding: 16px 20px;
 }
 .credential-ready {
-  background: #edf7f1;
-  color: #33876b;
+  background: var(--ok-bg);
+  color: var(--green);
 }
 .settings-feedback {
   display: flex;
@@ -344,7 +344,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #a5a5a5;
+  background: var(--subtle);
   flex-shrink: 0;
 }
 .model-dot.ready {

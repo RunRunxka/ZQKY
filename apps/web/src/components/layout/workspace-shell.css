@@ -126,7 +126,7 @@
   }
   .unified-shell .global-nav-item.current {
     color: var(--blue);
-    background: #e6edfc;
+    background: var(--select-bg);
   }
   .unified-shell .global-nav-item.current::before {
     display: none;
@@ -255,7 +255,7 @@
     background: var(--canvas);
   }
   .unified-shell > .global-nav {
-    background: #eef3fb;
+    background: var(--nav-bg);
     border-right: 1px solid var(--line);
   }
   .unified-shell :is(.app-header, .mobile-nav-panel) {
@@ -265,15 +265,15 @@
     border-bottom-color: var(--line);
   }
   .unified-shell :is(.global-nav, .mobile-nav-panel) .global-nav-item.current {
-    background: #e4edff;
+    background: var(--nav-active);
     color: var(--blue-deep);
   }
   .unified-shell :is(.global-nav, .mobile-nav-panel) .global-nav-item:hover:not(.current) {
-    background: #e7edf6;
+    background: var(--nav-hover);
   }
   /* 桌面侧栏当前项高亮由 .nav-items 的滑动指示器绘制（motion.css），切页时滑动到新项 */
   .unified-shell .global-nav > .nav-items[data-sliding-indicator] {
-    --indicator-bg: #e4edff;
+    --indicator-bg: var(--nav-active);
     --indicator-shadow: none;
     --indicator-radius: 8px;
   }
@@ -308,11 +308,11 @@
 @supports (backdrop-filter: blur(12px)) {
   @media screen {
     .unified-shell > .global-nav {
-      background: rgb(238 243 251 / 88%);
+      background: var(--glass-nav);
       backdrop-filter: blur(12px);
     }
     .unified-shell :is(.app-header, .mobile-nav-panel) {
-      background: rgb(255 255 255 / 94%);
+      background: var(--glass-head);
       backdrop-filter: blur(12px);
     }
   }

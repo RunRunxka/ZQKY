@@ -42,6 +42,7 @@ import {
   StudentKnowledgeCard,
 } from './ScoreCharts';
 import { AiCommentaryPanel } from './AiCommentaryPanel';
+import { AnalysisKpiStrip } from './AnalysisKpiStrip';
 import { ScoreImportPanel } from './ScoreImportPanel';
 import { AssessmentCreatePanel } from './AssessmentCreatePanel';
 import { AnalysisRunCreatePanel } from './AnalysisRunCreatePanel';
@@ -606,6 +607,7 @@ export function LearningAnalysisWorkspace({
                 五张图各自读取数据源；任一来源失败只影响该卡（显示原因与重试），不影响其他卡，
                 也不会画成空图。
               </p>
+              <AnalysisKpiStrip runId={runId} participants={runView?.participants?.length ?? null} />
               <div className="la-charts-grid">
                 <ItemTrendCard runId={runId} />
                 <ItemHeatmapCard runId={runId} />

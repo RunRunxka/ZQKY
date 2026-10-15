@@ -28,7 +28,7 @@
 }
 
 .knowledge-points-page .kp-warn-text {
-  color: #92610c;
+  color: var(--warn-ink);
 }
 
 .knowledge-points-page .kp-error-text {
@@ -62,10 +62,10 @@
   list-style: none;
   margin: 8px 0;
   padding: 10px 12px;
-  border: 1px solid #f2d9a4;
+  border: 1px solid var(--warn-line);
   border-radius: var(--radius-md);
-  background: #fdf6e7;
-  color: #7a5209;
+  background: var(--warn-bg);
+  color: var(--warn-ink);
   font-size: 12.5px;
   line-height: 1.7;
   display: flex;
@@ -363,7 +363,7 @@
 
 .knowledge-points-page .kp-tree-row.current {
   background: var(--blue-soft);
-  border-color: #c3d7fd;
+  border-color: var(--info-line);
 }
 
 .knowledge-points-page .kp-tree-toggle {
@@ -386,7 +386,7 @@
 }
 
 .knowledge-points-page .kp-tree-toggle:hover:not(:disabled) {
-  background: #e9eef7;
+  background: var(--hover);
   color: var(--ink);
 }
 
@@ -513,7 +513,7 @@
 }
 
 .knowledge-points-page .kp-path-sep {
-  color: #b9c2cf;
+  color: var(--faint);
   flex-shrink: 0;
 }
 
@@ -559,7 +559,7 @@
 }
 
 .knowledge-points-page .kp-alias-remove:hover:not(:disabled) {
-  background: #fef3f2;
+  background: var(--danger-bg);
   color: var(--danger);
 }
 
@@ -595,7 +595,7 @@
 
 .knowledge-points-page .space-button.danger.kp-delete-node:hover:not(:disabled) {
   border-color: var(--danger);
-  background: #fef3f2;
+  background: var(--danger-bg);
 }
 
 /* ===== 子面板（教材依据 / 映射 / 行校对 / AI 任务） ===== */
@@ -741,7 +741,7 @@
 /* AI 候选批次与人工表格导入明显区分（虚线蓝框 + 浅蓝底） */
 .knowledge-points-page .kp-import-review.ai {
   border: 1px dashed var(--blue);
-  background: linear-gradient(0deg, rgba(37, 99, 235, 0.04), rgba(37, 99, 235, 0.04)), var(--bg);
+  background: var(--blue-soft);
 }
 
 .knowledge-points-page .kp-import-head {
@@ -788,8 +788,8 @@
 }
 
 .knowledge-points-page .kp-row-card.blocking {
-  border-color: #f2d9a4;
-  background: #fffdf6;
+  border-color: var(--warn-line);
+  background: var(--warn-bg);
 }
 
 .knowledge-points-page .kp-row-head {

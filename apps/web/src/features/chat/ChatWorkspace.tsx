@@ -20,6 +20,7 @@ import { ArtifactPanelItem, WorkspacePanel } from './ArtifactPanel';
 import { ComposerContextChips } from './ComposerContextChips';
 import type { PendingAttachment } from '@/services/doc-attachments';
 import { fileToPendingAttachment, selectAttachmentFiles, formatBytes, ATTACHMENT_ACCEPT } from '@/services/doc-attachments';
+import { ChatHeroBackdrop } from './ChatHeroBackdrop';
 import './styles/chat.css';
 import './styles/chat-home.css';
 
@@ -295,6 +296,7 @@ function ChatPage() {
           >
             {!hasMessages && (
               <div className="chat-empty" data-motion-reveal>
+                <ChatHeroBackdrop />
                 <p className="chat-eyebrow">智启课源 · 对话</p>
                 <h1>从一个问题，开始理解。</h1>
                 <p>可直接提问，也可附上传文件（后续能力随 Agent 重建逐步接入）。</p>

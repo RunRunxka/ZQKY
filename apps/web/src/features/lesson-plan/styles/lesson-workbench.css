@@ -93,22 +93,22 @@
 
 .lw-sync-chip.synced {
   color: var(--green);
-  border-color: #bfe0d0;
-  background: #eef8f3;
+  border-color: var(--ok-line);
+  background: var(--ok-bg);
 }
 
 .lw-sync-chip.syncing,
 .lw-sync-chip.loading {
   color: var(--blue-deep);
-  border-color: #bed0f7;
+  border-color: var(--info-line);
   background: var(--blue-soft);
 }
 
 .lw-sync-chip.error,
 .lw-sync-chip.conflict {
   color: var(--danger);
-  border-color: #f2bdb8;
-  background: #fdeceb;
+  border-color: var(--danger-line);
+  background: var(--danger-bg);
 }
 
 .lw-topbar-actions {
@@ -161,13 +161,13 @@
 
 /* 危险动作（彻底删除教案）：与全站 danger 口径一致（红描边 + 悬停浅红底） */
 .lw-button.danger {
-  border-color: #f2bdb8;
+  border-color: var(--danger-line);
   color: var(--danger);
 }
 
 .lw-button.danger:hover:not(:disabled) {
   border-color: var(--danger);
-  background: #fdeceb;
+  background: var(--danger-bg);
   color: var(--danger);
 }
 
@@ -204,7 +204,7 @@
 }
 
 .lw-icon-button.danger:hover:not(:disabled) {
-  background: #fdeceb;
+  background: var(--danger-bg);
   color: var(--danger);
 }
 
@@ -256,17 +256,17 @@ html[data-motion='reduced'] .lw-spin {
 
 .lw-notice.success {
   border-left-color: var(--green);
-  background: #eef8f3;
+  background: var(--ok-bg);
 }
 
 .lw-notice.warn {
-  border-left-color: #d9930d;
-  background: #fff8e6;
+  border-left-color: var(--warn-accent);
+  background: var(--warn-bg);
 }
 
 .lw-notice.error {
   border-left-color: var(--danger);
-  background: #fdeceb;
+  background: var(--danger-bg);
 }
 
 .lw-notice-body {
@@ -532,7 +532,7 @@ html[data-motion='reduced'] .lw-spin {
 }
 
 .lw-module-no.custom {
-  background: #eef1f6;
+  background: var(--surface-2);
   color: var(--muted);
 }
 
@@ -549,11 +549,11 @@ html[data-motion='reduced'] .lw-spin {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #d4dbe6;
+  background: var(--dot-idle);
 }
 
 .lw-module-dot.filled {
-  background: #5abf7a;
+  background: var(--ok-accent);
 }
 
 .lw-module-actions {
@@ -827,19 +827,19 @@ button.lw-chip:hover {
 .lw-candidate-state.streaming {
   background: var(--blue-soft);
   color: var(--blue-deep);
-  border-color: #bed0f7;
+  border-color: var(--info-line);
 }
 
 .lw-candidate-state.done {
-  background: #eef8f3;
+  background: var(--ok-bg);
   color: var(--green);
-  border-color: #bfe0d0;
+  border-color: var(--ok-line);
 }
 
 .lw-candidate-state.error {
-  background: #fdeceb;
+  background: var(--danger-bg);
   color: var(--danger);
-  border-color: #f2bdb8;
+  border-color: var(--danger-line);
 }
 
 /* ---- 预览 ---- */
@@ -913,7 +913,7 @@ button.lw-chip:hover {
   transform-origin: top left;
   display: flex;
   flex-direction: column;
-  background: #fff;
+  background: #fff; /* 纸面恒白，不随深色主题变化 */
   box-shadow: 0 10px 26px -14px rgba(32, 57, 92, 0.32);
   color: #111827;
 }
@@ -1105,7 +1105,7 @@ button.lw-chip:hover {
   border: 1px dashed var(--blue);
   border-radius: var(--radius-pill);
   background: #fff;
-  color: var(--blue-deep);
+  color: #1d4ed8;
   font-size: 10px;
   font-family: var(--font-ui);
 }
@@ -1121,15 +1121,15 @@ button.lw-chip:hover {
 .lw-page-end::after {
   content: '';
   flex: 1;
-  border-top: 1px dashed #e0574a;
+  border-top: 1px dashed var(--danger);
 }
 
 .lw-page-end-label {
   flex: none;
   padding: 1px 10px;
-  border: 1px solid #f0b3ad;
+  border: 1px solid var(--danger-line);
   border-radius: var(--radius-pill);
-  background: #fff5f4;
+  background: var(--danger-bg);
   color: var(--danger);
   font-size: 11px;
   white-space: nowrap;
@@ -1151,7 +1151,7 @@ button.lw-chip:hover {
   padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  background: var(--bg-soft, #f8fafc);
+  background: var(--surface);
   font-size: var(--font-size-caption);
 }
 
@@ -1159,7 +1159,7 @@ button.lw-chip:hover {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: var(--ink-soft, #475569);
+  color: var(--ink-soft);
 }
 
 .lw-dialog-ownership .lw-select {

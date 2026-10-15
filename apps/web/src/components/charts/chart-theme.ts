@@ -13,7 +13,9 @@
  * 只读颜色/字体 token，不在模块顶层读 document（调用发生在 effect 内）。
  */
 
+import { useEffect, useState } from 'react';
 import type { Chart, Plugin, ScriptableContext } from 'chart.js';
+import { resolvedThemeIsDark } from '@/components/layout/theme-preference';
 
 export function readToken(name: string, fallback: string): string {
   if (typeof window === 'undefined') return fallback;
@@ -182,4 +184,27 @@ export function barChartTheme() {
       return { mode: 'index' as const, intersect: false, axis: horizontal ? ('y' as const) : ('x' as const) };
     },
   };
+}
+
+/**
+ * 当前生效的主题键（'light' | 'dark'）：切换应用内主题或系统深浅时变化。
+ * 图表组件把它加入挂载 effect 的依赖——主题变了就用新颜色重建图表（颜色在创建时读取 token）。
+ */
+export function useResolvedThemeKey(): 'light' | 'dark' {
+  const [key, setKey] = useState<'light' | 'dark'>('light');
+  useEffect(() => {
+    const root = document.documentElement;
+    // 无 matchMedia 的环境（如 jsdom）只跟随应用内显式主题，不抛错
+    const media = window.matchMedia?.('(prefers-color-scheme: dark)') ?? null;
+    const update = () => setKey(resolvedThemeIsDark() ? 'dark' : 'light');
+    const observer = new MutationObserver(update);
+    observer.observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+    update();
+    media?.addEventListener('change', update);
+    return () => {
+      observer.disconnect();
+      media?.removeEventListener('change', update);
+    };
+  }, []);
+  return key;
 }

@@ -23,15 +23,15 @@
     transform 150ms ease;
 }
 .provider-card:hover {
-  border-color: #b6b6b6;
+  border-color: var(--faint);
   background: var(--blue-soft);
 }
 .provider-card:active {
   transform: scale(0.995);
 }
 .provider-card.in-use {
-  border-color: #a9c4f5;
-  background: #f5f9ff;
+  border-color: var(--info-line);
+  background: var(--blue-soft);
 }
 .provider-card:focus-visible {
   outline: 2px solid var(--blue);
@@ -71,7 +71,7 @@
   font-size: 11px;
 }
 .credential-chip.ready {
-  border-color: #9ecdb9;
+  border-color: var(--ok-line);
   color: var(--green);
 }
 .provider-card-foot {
@@ -217,7 +217,7 @@
   color: var(--muted);
 }
 .detail-model-actions .icon-button:hover:not(:disabled) {
-  border-color: #a9c4f5;
+  border-color: var(--info-line);
   color: var(--blue);
 }
 .detail-model-actions .icon-button:disabled {
@@ -244,9 +244,9 @@
 }
 .inline-confirm {
   padding: 12px;
-  border: 1px solid #eab8b2;
+  border: 1px solid var(--danger-line);
   border-radius: 10px;
-  background: #fdf5f4;
+  background: var(--danger-bg);
 }
 .inline-confirm p {
   margin: 0 0 8px;
@@ -282,15 +282,15 @@
   color: var(--muted);
 }
 .auth-state-connected {
-  border-color: #9ecdb9;
+  border-color: var(--ok-line);
   color: var(--green);
 }
 .auth-state-authorizing {
-  border-color: #a9c4f5;
+  border-color: var(--info-line);
   color: var(--blue);
 }
 .auth-state-error {
-  border-color: #eab8b2;
+  border-color: var(--danger-line);
   color: var(--danger);
 }
 .auth-account,
@@ -347,7 +347,7 @@
     background-color 150ms ease;
 }
 .provider-option:hover {
-  border-color: #a9c4f5;
+  border-color: var(--info-line);
   background: var(--blue-soft);
 }
 .provider-option span {

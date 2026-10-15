@@ -29,6 +29,7 @@ import {
   barRadius,
   readToken,
   barChartTheme,
+  useResolvedThemeKey,
 } from '@/components/charts/chart-theme';
 import type { AsyncState } from './score-hooks';
 import { useAsyncResource } from './score-hooks';
@@ -127,6 +128,7 @@ function ItemTrendCanvas({ stats }: { stats: ItemStatView[] }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const [failed, setFailed] = useState(false);
 
+  const themeKey = useResolvedThemeKey();
   useEffect(() => {
     const element = canvas.current;
     if (!element) return;
@@ -196,7 +198,7 @@ function ItemTrendCanvas({ stats }: { stats: ItemStatView[] }) {
     return () => {
       chart?.destroy();
     };
-  }, [stats]);
+  }, [stats, themeKey]);
 
   if (failed) {
     return (
@@ -295,6 +297,7 @@ function KnowledgeRankingCanvas({ items }: { items: KnowledgeStatsResponse['item
   const canvas = useRef<HTMLCanvasElement>(null);
   const [failed, setFailed] = useState(false);
 
+  const themeKey = useResolvedThemeKey();
   useEffect(() => {
     const element = canvas.current;
     if (!element) return;
@@ -366,7 +369,7 @@ function KnowledgeRankingCanvas({ items }: { items: KnowledgeStatsResponse['item
     return () => {
       chart?.destroy();
     };
-  }, [items]);
+  }, [items, themeKey]);
 
   if (failed) {
     return (
@@ -478,6 +481,7 @@ function DistributionCanvas({ buckets }: { buckets: DistributionResponse['bucket
   const canvas = useRef<HTMLCanvasElement>(null);
   const [failed, setFailed] = useState(false);
 
+  const themeKey = useResolvedThemeKey();
   useEffect(() => {
     const element = canvas.current;
     if (!element) return;
@@ -538,7 +542,7 @@ function DistributionCanvas({ buckets }: { buckets: DistributionResponse['bucket
     return () => {
       chart?.destroy();
     };
-  }, [buckets]);
+  }, [buckets, themeKey]);
 
   if (failed) {
     return (

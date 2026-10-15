@@ -336,10 +336,12 @@ describe('学情分析工作区', () => {
   });
 
   it('单一数据源失败只影响该卡：显示原因与重试，其他卡照常渲染', async () => {
-    const distribution = vi
-      .fn()
-      .mockRejectedValueOnce(new ApiError('SERVICE_UNAVAILABLE', '后端未上线', 501, true))
-      .mockResolvedValue({ buckets: [{ label: '高（≥70%）', count: 2 }] });
+    // 分布接口同时被「概要指标条」与「分布卡」读取：用开关控制是否失败，而不依赖调用次数。
+    let failing = true;
+    const distribution = vi.fn(async () => {
+      if (failing) throw new ApiError('SERVICE_UNAVAILABLE', '后端未上线', 501, true);
+      return { buckets: [{ label: '高（≥70%）', count: 2 }] };
+    });
     installApi({ getAnalysisDistribution: distribution });
     render(<LearningAnalysisWorkspace initialAssessmentId="asm-1" />);
 
@@ -352,8 +354,8 @@ describe('学情分析工作区', () => {
       configOf((config) => datasetOf(config)?.label === '小题数'),
     ).toBeUndefined();
 
+    failing = false;
     fireEvent.click(within(failed).getByRole('button', { name: '重试' }));
-    await waitFor(() => expect(distribution).toHaveBeenCalledTimes(2));
     await waitFor(() => {
       const distribution2 = configOf((config) => datasetOf(config)?.label === '小题数');
       expect(distribution2).toBeTruthy();

@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@gsap/react": "2.1.2",
+    "@number-flow/react": "0.6.2",
+    "@paper-design/shaders-react": "0.0.81",
     "chart.js": "^4.5.1",
     "docxtemplater": "3.69.3",
     "gsap": "3.15.0",

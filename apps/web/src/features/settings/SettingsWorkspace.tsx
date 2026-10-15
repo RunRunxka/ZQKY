@@ -3,11 +3,17 @@ import { useEffect, useRef, useState } from 'react';
 import { Info, Palette, Plug, X } from 'lucide-react';
 import { WorkspaceShell } from '@/components/layout/WorkspaceShell';
 import { useEntrance } from '@/components/motion/useEntrance';
+import {
+  applyThemePreference,
+  readThemePreference,
+  writeThemePreference,
+  type ThemePreference,
+} from '@/components/layout/theme-preference';
 import { ModelSettingsPanel } from '@/features/model-settings/ModelSettingsPanel';
 import './settings.css';
 import './styles/settings-extend.css';
 const sections = [
-  { id: 'appearance', title: '外观', description: '显示与减少动画', icon: Palette },
+  { id: 'appearance', title: '外观', description: '显示主题与减少动画', icon: Palette },
   { id: 'models', title: '模型与连接', description: '连接、模型目录与默认模型', icon: Plug },
   { id: 'about', title: '关于', description: '实现状态与版本', icon: Info },
 ];
@@ -17,6 +23,7 @@ export function SettingsWorkspace() {
   const [query, setQuery] = useState('');
   const [active, setActive] = useState('appearance');
   const [reduced, setReduced] = useState(false);
+  const [theme, setTheme] = useState<ThemePreference>('system');
   const [notice, setNotice] = useState('');
   const container = useRef<HTMLDivElement>(null);
   const searchInput = useRef<HTMLInputElement>(null);
@@ -29,6 +36,7 @@ export function SettingsWorkspace() {
     } catch {
       /* system preference remains available */
     }
+    setTheme(readThemePreference());
     const navigate = () => {
       const id = location.hash.slice(1);
       if (!sections.some((section) => section.id === id)) return;
@@ -130,7 +138,35 @@ export function SettingsWorkspace() {
         <div className="settings-document" ref={container}>
           <section id="appearance" className="settings-panel" data-motion-reveal>
             <h2>外观</h2>
-            <p>控制工作台的动态效果。</p>
+            <p>控制工作台的显示主题与动态效果。</p>
+            <div className="settings-theme-options" role="radiogroup" aria-label="显示主题">
+              {(
+                [
+                  ['system', '跟随系统'],
+                  ['light', '浅色'],
+                  ['dark', '深色'],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={theme === value}
+                  className={theme === value ? 'button primary' : 'button subtle'}
+                  onClick={() => {
+                    if (!writeThemePreference(value)) {
+                      setNotice('无法保存显示偏好。');
+                      return;
+                    }
+                    applyThemePreference(value);
+                    setTheme(value);
+                    setNotice('显示偏好已保存。');
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             <label className="settings-toggle">
               <input
                 type="checkbox"

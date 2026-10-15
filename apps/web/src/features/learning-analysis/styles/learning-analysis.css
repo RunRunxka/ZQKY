@@ -134,7 +134,7 @@
 }
 
 .learning-analysis-page .la-run-item.current {
-  border-color: #c3d7fd;
+  border-color: var(--info-line);
   background: var(--blue-soft);
   color: var(--blue-deep);
 }
@@ -543,7 +543,7 @@
 }
 
 .learning-analysis-page .assessments-list-item.current {
-  border-color: #c3d7fd;
+  border-color: var(--info-line);
   background: var(--blue-soft);
   color: var(--blue-deep);
 }
@@ -568,10 +568,10 @@
   list-style: none;
   margin: 0;
   padding: 8px 10px;
-  border: 1px solid #f2d9a4;
+  border: 1px solid var(--warn-line);
   border-radius: var(--radius-sm);
-  background: #fdf6e7;
-  color: #7a5209;
+  background: var(--warn-bg);
+  color: var(--warn-ink);
   font-size: 12.5px;
   line-height: 1.7;
   display: flex;
@@ -622,36 +622,36 @@
 }
 
 .learning-analysis-page .score-status-recorded {
-  border-color: #c3d7fd;
+  border-color: var(--info-line);
   background: var(--blue-soft);
   color: var(--blue-deep);
 }
 
 .learning-analysis-page .score-status-missing {
   border-style: dashed;
-  border-color: #d8b45a;
-  background: #fdf6e7;
-  color: #7a5209;
+  border-color: var(--warn-line);
+  background: var(--warn-bg);
+  color: var(--warn-ink);
 }
 
 .learning-analysis-page .score-status-absent {
-  border-color: #c9c9c9;
-  background: #f2f2f2;
-  color: #444;
+  border-color: var(--line);
+  background: var(--surface-2);
+  color: var(--ink-soft);
   text-decoration: line-through;
   text-decoration-thickness: 1px;
 }
 
 .learning-analysis-page .score-status-exempt {
-  border-color: #b9c6e6;
-  background: #eef1fa;
-  color: #3d4a70;
+  border-color: var(--info-line);
+  background: var(--blue-soft);
+  color: var(--ink-soft);
   font-style: italic;
 }
 
 .learning-analysis-page .score-status-unparsed {
   border-color: var(--danger);
-  background: #fdeceb;
+  background: var(--danger-bg);
   color: var(--danger);
 }
 
@@ -681,8 +681,8 @@
 }
 
 .learning-analysis-page .score-chip-danger {
-  border-color: #f3c2bd;
-  background: #fdeceb;
+  border-color: var(--danger-line);
+  background: var(--danger-bg);
   color: var(--danger);
 }
 
@@ -760,7 +760,7 @@
 .learning-analysis-page .score-cell.focused,
 .learning-analysis-page .score-cell[data-issue='true'] {
   border-color: var(--danger);
-  background: #fdeceb;
+  background: var(--danger-bg);
 }
 
 .learning-analysis-page .score-cell-address {

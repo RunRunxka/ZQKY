@@ -8,6 +8,7 @@ import { HOME_LABEL } from '@/services/navigation';
 import { ModuleWorkspaceShell } from '@/components/layout/ModuleWorkspaceShell';
 import { NavigationPreference } from '@/components/layout/NavigationPreference';
 import { NavigationGuardProvider } from '@/services/navigation-guard';
+import { THEME_BOOT_SCRIPT } from '@/components/layout/theme-preference';
 // 默认标题跟随唯一主页，不再是教案工作台（R-02）。
 export const metadata: Metadata = {
   title: `智启课源 · ${HOME_LABEL}`,
@@ -19,6 +20,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="zh-CN">
+      <head>
+        {/* 首帧前设置主题属性（无偏好时不写属性，由系统深浅决定） */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+      </head>
       <body>
         <MotionPreference>
           <NavigationPreference>

@@ -106,7 +106,7 @@
 }
 
 .space-tile:hover {
-  border-color: rgba(13, 13, 13, 0.2);
+  border-color: var(--faint);
   box-shadow: var(--shadow-card);
   transform: translateY(-2px);
 }
@@ -267,15 +267,15 @@
 }
 
 .space-banner.error {
-  border-color: #f4b6ae;
-  background: #fef3f2;
+  border-color: var(--danger-line);
+  background: var(--danger-bg);
   color: var(--danger);
 }
 
 .space-banner.info {
-  border-color: #c3d7fd;
+  border-color: var(--info-line);
   background: var(--blue-soft);
-  color: #1d4ed8;
+  color: var(--blue-deep);
 }
 
 .space-banner-row {
@@ -356,21 +356,21 @@
 }
 
 .space-chip.blue {
-  border-color: #c3d7fd;
+  border-color: var(--info-line);
   background: var(--blue-soft);
-  color: #1d4ed8;
+  color: var(--blue-deep);
 }
 
 .space-chip.green {
-  border-color: #bfe0d4;
-  background: #ecf7f2;
+  border-color: var(--ok-line);
+  background: var(--ok-bg);
   color: var(--green);
 }
 
 .space-chip.amber {
-  border-color: #f2d9a4;
-  background: #fdf6e7;
-  color: #92610c;
+  border-color: var(--warn-line);
+  background: var(--warn-bg);
+  color: var(--warn-ink);
 }
 
 .space-footnote {
@@ -512,8 +512,8 @@
 
 .space-scope-item.current {
   background: var(--blue-soft);
-  border-color: #c3d7fd;
-  color: #1d4ed8;
+  border-color: var(--info-line);
+  color: var(--blue-deep);
   font-weight: 600;
 }
 
@@ -575,13 +575,13 @@
 }
 
 .space-option.correct {
-  border-color: #bfe0d4;
-  background: #ecf7f2;
+  border-color: var(--ok-line);
+  background: var(--ok-bg);
 }
 
 .space-option.user-wrong {
-  border-color: #f4b6ae;
-  background: #fef3f2;
+  border-color: var(--danger-line);
+  background: var(--danger-bg);
 }
 
 .space-explanation {
@@ -607,7 +607,7 @@
   gap: 10px;
   flex-wrap: wrap;
   padding: 10px 14px;
-  border: 1px solid #c3d7fd;
+  border: 1px solid var(--info-line);
   border-radius: var(--radius-md);
   background: var(--blue-soft);
   font-size: 13px;
@@ -773,7 +773,7 @@
   width: 100%;
   min-height: 64px;
   padding: 16px;
-  border: 1.5px dashed #c5d2e6;
+  border: 1.5px dashed var(--info-line);
   border-radius: var(--radius-md);
   background: var(--surface);
   color: var(--muted);

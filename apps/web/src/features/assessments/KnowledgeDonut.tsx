@@ -36,6 +36,7 @@ import {
   focusTransitions,
   setChartFocus,
   withAlpha,
+  useResolvedThemeKey,
 } from '@/components/charts/chart-theme';
 import {
   KNOWLEDGE_DONUT_PALETTE,
@@ -64,6 +65,7 @@ export function KnowledgeDonut({
     setChartFocus(chart, index);
   };
 
+  const themeKey = useResolvedThemeKey();
   useEffect(() => {
     const element = canvas.current;
     if (!element || distribution.length === 0) return;
@@ -136,7 +138,7 @@ export function KnowledgeDonut({
       chartRef.current = null;
       chart?.destroy();
     };
-  }, [distribution]);
+  }, [distribution, themeKey]);
 
   if (distribution.length === 0) {
     return (

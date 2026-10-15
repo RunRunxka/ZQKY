@@ -38,7 +38,7 @@
 }
 
 .question-bank-page .qb-warn-text {
-  color: #92610c;
+  color: var(--warn-ink);
 }
 
 /* AI 整理：云模型的数据外发说明（蓝色变量层，不用新主题色） */
@@ -301,7 +301,7 @@
 
 .question-bank-page .qb-block,
 .question-bank-page .qb-span {
-  border-left: 3px solid #f2d9a4;
+  border-left: 3px solid var(--warn-line);
   padding-left: 10px;
   min-width: 0;
 }
@@ -593,8 +593,8 @@
 }
 
 .question-bank-page .qb-preview-option.correct {
-  border-color: #bfe0d4;
-  background: #ecf7f2;
+  border-color: var(--ok-line);
+  background: var(--ok-bg);
 }
 
 .question-bank-page .qb-preview-key {
@@ -1128,7 +1128,7 @@
 }
 
 .question-bank-page .qb-tree-label.current {
-  color: #1d4ed8;
+  color: var(--blue-deep);
   font-weight: 600;
 }
 
@@ -1193,20 +1193,20 @@
 }
 
 .question-bank-page .qb-badge-easy {
-  border-color: #bfe0d4;
-  background: #ecf7f2;
+  border-color: var(--ok-line);
+  background: var(--ok-bg);
   color: var(--green);
 }
 
 .question-bank-page .qb-badge-medium {
-  border-color: #f2d9a4;
-  background: #fdf6e7;
-  color: #92610c;
+  border-color: var(--warn-line);
+  background: var(--warn-bg);
+  color: var(--warn-ink);
 }
 
 .question-bank-page .qb-badge-hard {
-  border-color: #f4b6ae;
-  background: #fef3f2;
+  border-color: var(--danger-line);
+  background: var(--danger-bg);
   color: var(--danger);
 }
 

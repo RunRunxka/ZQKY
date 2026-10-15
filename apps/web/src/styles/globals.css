@@ -51,6 +51,35 @@
   --green: #28765c;
   --danger: #c62d21;
   --preview: #eceef1;
+  /* 语义别名：侧栏底色、当前项、次要文字、悬停底、滚动条（浅色值即原写死色，深色另定） */
+  --nav-bg: #eef3fb;
+  --nav-active: #e4edff;
+  --subtle: #8b8d91;
+  --ink-soft: #3f4349;
+  --hover: #e9ebee;
+  --scroll-thumb: #d1d4da;
+  --faint: #b3b7bd;
+  --select-bg: #e6edfc;
+  --nav-hover: #e7edf6;
+  --danger-bg: #fef3f2;
+  --danger-line: #f4b6ae;
+  --ok-bg: #ecf7f2;
+  --ok-line: #bfe0d4;
+  --warn-bg: #fdf6e7;
+  --warn-line: #f2d9a4;
+  --warn-ink: #92610c;
+  --info-line: #c3d7fd;
+  --surface-2: #f1f2f4;
+  --chip-bg: #e2e7ee;
+  --selection: #dce8ff;
+  --warn-accent: #d9930d;
+  --dot-idle: #d4dbe6;
+  --ok-accent: #5abf7a;
+  --panel-soft: #fafbfc;
+  --glass-nav: rgb(238 243 251 / 88%);
+  --glass-head: rgb(255 255 255 / 94%);
+  --skeleton-base: #edf1f7;
+  color-scheme: light;
   /* 兼容别名：--serif 现等于文档内容族（历史规则不必同时改名） */
   --serif: var(--font-document);
   /* 圆角 / 阴影 / 间距（提取自学习问答：磁贴 12、弹层 14、控件 8） */
@@ -81,11 +110,130 @@
   font-synthesis: none;
   font-size: 14px;
 }
+
+/* ===== 深色主题（R-DS 设计感批）：与浅色同名 token 逐一覆盖，组件不分支判断。
+   跟随系统（未显式选择时）+ 显式 data-theme="dark"；data-theme="light" 强制浅色。
+   蓝色品牌保留：深色下 --blue 同值（白字按钮仍可读），文字强调改用亮蓝 --blue-deep。 */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #0f1623;
+    --surface: #151e2e;
+    --canvas: #0b1220;
+    --ink: #e6ecf5;
+    --ink-soft: #c9d2df;
+    --muted: #98a4b7;
+    --subtle: #7d889b;
+    --line: #2a3648;
+    --blue-soft: #1a2a48;
+    --blue-deep: #7fb0ff;
+    --green: #3fb68b;
+    --danger: #ef6b5f;
+    --preview: #0b1220;
+    --nav-bg: #121b2b;
+    --nav-active: #1b2a45;
+    --hover: #1f2a3d;
+    --scroll-thumb: #34415a;
+    --faint: #5d6779;
+    --select-bg: #1b2a45;
+    --nav-hover: #1a2638;
+    --danger-bg: #2e1816;
+    --danger-line: #6b2a24;
+    --ok-bg: #112a22;
+    --ok-line: #235a48;
+    --warn-bg: #2a2212;
+    --warn-line: #6b5224;
+    --warn-ink: #f0c978;
+    --info-line: #2a4a7a;
+    --surface-2: #1a2333;
+    --chip-bg: #26324a;
+    --selection: #26406e;
+    --warn-accent: #e8b04a;
+    --dot-idle: #34415a;
+    --ok-accent: #4fc98a;
+    --panel-soft: #131b2a;
+    --glass-nav: rgb(18 27 43 / 88%);
+    --glass-head: rgb(15 22 35 / 94%);
+    --skeleton-base: #1c2638;
+    --shadow-card: 0 4px 18px -10px rgba(0, 0, 0, 0.55);
+    --shadow-pop: 0 12px 36px -8px rgba(0, 0, 0, 0.6);
+    --shadow-thumb: 0 1px 2px rgb(0 0 0 / 40%), 0 0 0 1px rgb(255 255 255 / 6%);
+    color-scheme: dark;
+  }
+}
+:root[data-theme='dark'] {
+  --bg: #0f1623;
+  --surface: #151e2e;
+  --canvas: #0b1220;
+  --ink: #e6ecf5;
+  --ink-soft: #c9d2df;
+  --muted: #98a4b7;
+  --subtle: #7d889b;
+  --line: #2a3648;
+  --blue-soft: #1a2a48;
+  --blue-deep: #7fb0ff;
+  --green: #3fb68b;
+  --danger: #ef6b5f;
+  --preview: #0b1220;
+  --nav-bg: #121b2b;
+  --nav-active: #1b2a45;
+  --hover: #1f2a3d;
+  --scroll-thumb: #34415a;
+  --faint: #5d6779;
+  --select-bg: #1b2a45;
+  --nav-hover: #1a2638;
+  --danger-bg: #2e1816;
+  --danger-line: #6b2a24;
+  --ok-bg: #112a22;
+  --ok-line: #235a48;
+  --warn-bg: #2a2212;
+  --warn-line: #6b5224;
+  --warn-ink: #f0c978;
+  --info-line: #2a4a7a;
+  --surface-2: #1a2333;
+  --chip-bg: #26324a;
+  --selection: #26406e;
+  --warn-accent: #e8b04a;
+  --dot-idle: #34415a;
+  --ok-accent: #4fc98a;
+  --panel-soft: #131b2a;
+  --glass-nav: rgb(18 27 43 / 88%);
+  --glass-head: rgb(15 22 35 / 94%);
+  --skeleton-base: #1c2638;
+  --shadow-card: 0 4px 18px -10px rgba(0, 0, 0, 0.55);
+  --shadow-pop: 0 12px 36px -8px rgba(0, 0, 0, 0.6);
+  --shadow-thumb: 0 1px 2px rgb(0 0 0 / 40%), 0 0 0 1px rgb(255 255 255 / 6%);
+  color-scheme: dark;
+}
+:root[data-theme='light'] {
+  color-scheme: light;
+}
 * {
   box-sizing: border-box;
 }
 body {
   margin: 0;
+  /* 显式背景与文字色：深色主题下避免白底闪烁，且不依赖 :root 的继承 */
+  background: var(--canvas);
+  color: var(--ink);
+}
+/* 通用表单字段（components/ui/Field）：标签在上、控件在下，间距与控件高度沿用 token */
+.field {
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--font-size-control);
+  color: var(--ink);
+}
+.field-label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: var(--font-size-caption);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.field-label small {
+  font-weight: 400;
+  color: var(--subtle);
 }
 button,
 input,
@@ -146,14 +294,14 @@ small {
   font-size: 11px;
 }
 ::selection {
-  background: #dce8ff;
+  background: var(--selection);
 }
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #d1d4da;
+  background: var(--scroll-thumb);
   border-radius: 9px;
 }
 ::-webkit-scrollbar-track {
@@ -179,7 +327,7 @@ small {
   border-bottom: 1px solid var(--line);
   z-index: 20;
   gap: 18px;
-  background: #fff;
+  background: var(--bg);
 }
 .brand {
   display: flex;
@@ -210,11 +358,11 @@ small {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #8b8d91;
+  color: var(--subtle);
   font-size: 12px;
 }
 .breadcrumb span {
-  color: #3f4349;
+  color: var(--ink-soft);
 }
 .header-actions {
   margin-left: auto;
@@ -258,7 +406,7 @@ small {
 }
 .button.subtle {
   border: 1px solid var(--line);
-  background: white;
+  background: var(--bg);
 }
 .button.subtle:hover {
   background: var(--surface);
@@ -275,7 +423,7 @@ small {
   flex-shrink: 0;
 }
 .icon-button:hover:not(:disabled) {
-  background: #e9ebee;
+  background: var(--hover);
   color: var(--ink);
 }
 .export-container {
@@ -287,7 +435,7 @@ small {
   top: 45px;
   width: 236px;
   padding: 6px;
-  background: #fff;
+  background: var(--bg);
   box-shadow: 0 12px 40px #12244226;
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -334,7 +482,7 @@ small {
   justify-content: center;
   height: 28px;
   width: 38px;
-  color: #94979b;
+  color: var(--subtle);
   margin-bottom: 25px;
 }
 .nav-items {
@@ -360,15 +508,15 @@ small {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #777c83;
+  color: var(--subtle);
   position: relative;
 }
 .global-nav-item:hover {
-  background: #e9e9e9;
+  background: var(--hover);
 }
 .global-nav-item.current {
   color: var(--blue);
-  background: #e6edfc;
+  background: var(--select-bg);
 }
 .global-nav-item.current:before {
   content: '';
@@ -395,8 +543,8 @@ small {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #e2e7ee;
-  color: #6f7a8b;
+  background: var(--chip-bg);
+  color: var(--muted);
   font-size: 12px;
   display: grid;
   place-items: center;
@@ -419,7 +567,7 @@ small {
 }
 .nav-expanded .global-nav-item small {
   font-size: 9px;
-  color: #96999e;
+  color: var(--subtle);
 }
 .nav-expanded .nav-toggle {
   align-self: flex-start;
@@ -432,7 +580,7 @@ small {
   margin-top: 8px;
   font-size: 10px;
   letter-spacing: 2px;
-  color: #9a9da3;
+  color: var(--subtle);
   white-space: nowrap;
 }
 .nav-expanded .nav-group-label:first-child {
@@ -455,7 +603,7 @@ small {
   left: 0;
   bottom: 0;
   width: min(78vw, 290px);
-  background: #fff;
+  background: var(--bg);
   z-index: 41;
   box-shadow: 12px 0 40px #1224421f;
   padding: 14px 12px 18px;
@@ -478,7 +626,7 @@ small {
 .mobile-nav-group-label {
   font-size: 10px;
   letter-spacing: 2px;
-  color: #9a9da3;
+  color: var(--subtle);
   padding: 0 6px;
   margin: 12px 0 6px;
 }
@@ -498,7 +646,7 @@ small {
 }
 .mobile-nav-panel .global-nav-item small {
   font-size: 9px;
-  color: #96999e;
+  color: var(--subtle);
 }
 .mobile-nav-footnote {
   margin-top: auto;
@@ -533,8 +681,8 @@ small {
 }
 .status-page .small-badge {
   font-size: 10px;
-  color: #8c929c;
-  background: #f1f2f4;
+  color: var(--subtle);
+  background: var(--surface-2);
   padding: 2px 6px;
   border-radius: 4px;
   font-weight: 400;
@@ -544,7 +692,7 @@ small {
 }
 .planned-page .planned-summary {
   font-size: 15px;
-  color: #3f4349;
+  color: var(--ink-soft);
 }
 .planned-capabilities {
   width: 100%;
@@ -564,7 +712,7 @@ small {
   padding-left: 18px;
 }
 .planned-capabilities li::marker {
-  color: #b3b7bd;
+  color: var(--faint);
 }
 .planned-note {
   font-size: 12px;
@@ -599,7 +747,7 @@ small {
     flex-shrink: 0;
   }
   .mobile-nav-toggle:hover {
-    background: #e9ebee;
+    background: var(--hover);
     color: var(--ink);
   }
   .app-header {

@@ -1,0 +1,44 @@
+/* 报告概要指标条：四张等宽卡，数字用等宽数字，颜色全部走 token（深色自动跟随）。 */
+.learning-analysis-page .analysis-kpi {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.learning-analysis-page .analysis-kpi-card {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  box-shadow: var(--shadow-card);
+}
+.learning-analysis-page .analysis-kpi-label {
+  font-size: var(--font-size-caption);
+  color: var(--muted);
+}
+.learning-analysis-page .analysis-kpi-value {
+  font-size: 28px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  line-height: 1.2;
+}
+.learning-analysis-page .analysis-kpi-name {
+  font-size: var(--font-size-section);
+  font-weight: 600;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.learning-analysis-page .analysis-kpi-hint {
+  font-size: var(--font-size-caption);
+  color: var(--subtle);
+}
+.learning-analysis-page .analysis-kpi-failed {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
