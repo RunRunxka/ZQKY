@@ -1,30 +1,59 @@
 # 当前状态与实施主线
 
-<!-- CURRENT:20261013 -->
+<!-- CURRENT:20261020 -->
 ## 当前状态（权威；门禁数字以本节为准）
 
-- **形态**：对话优先的闭环教学 AI 工作台——`/chat` 统一学习问答（19 个 Agent 工具：13 读 /
-  4 导入 / 1 教案确认中断 / 1 上下文选择）+ 八个业务板块（教材资料库 / 知识点 / 题库 / 班级管理 /
+- **形态**：对话优先的闭环教学 AI 工作台——`/chat` 统一学习问答（21 个 Agent 工具：14 读 /
+  4 导入 / 2 写确认（教案生成、教案候选应用）/ 1 上下文选择）+ 八个业务板块（教材资料库 / 知识点 / 题库 / 班级管理 /
   试卷管理 / 学情分析 / 教案工作台 / 练习）+ 模型配置；**LangChain + LangGraph 为架构硬性**
   （模块 LLM 一律经 `resolve_agent_chat_model` + `services/llm/`，门禁 `test_no_raw_sdk_imports`）。
 - **交付**：R0–R10 全部完成并提交；**2026-10-13 晚两小批**（均用户真机反馈驱动）：
   ① 学情分析补「新建施测」与「生成学情报告」两个缺失入口（导入的原卷可落到施测并出报告）；
   ② 教案工作台补 `POST /lesson-plans/source-uploads`（上传学情文件此前只有前端调用、后端
   未实现 → 501；现端点做实**且生成流真正消费** `sourceAssetRef`）。
-- **门禁基线（2026-10-13 实测；教案学情材料批次之后）**：
-  - 后端 `cd apps/api && uv run python -m pytest` → **1878 例**（`--collect-only` 计数；本批 +15 例
-    `tests/test_lesson_sources.py`），全量执行 **exit 0 / 0 failed**；
-  - 前端 `NODE_OPTIONS=--no-experimental-webstorage npm.cmd run check` → **81 文件 718 例**、
-    typecheck 0 / lint 0 警告 / build 0 / **退出码 0**；2026-10-15 复跑时 stderr 噪声为 0
-    （`tests/setup.ts` 统一降级 jsdom 的 canvas 与下载导航，并只过滤 Chart.js「无上下文」那一条已知日志；
-    `KnowledgeDonut` 无上下文时补齐「图形不可用」提示，此前该提示只在抛错分支出现，属真实缺陷）；
-  - e2e `npx playwright test` → **17 passed**（2026-10-15；系统 `msedge` 通道，自起 5174）。
-    运行时 web 代理对 `127.0.0.1:8000` 的 `ECONNREFUSED` 是因为**后端未启动**，用例按无后端的错误态验证，不是失败；
-  - 后端本批只跑了知识点/文档解析相关子集（`test_knowledge_tree_gen` / `test_knowledge_extraction` /
-    `test_document_parsing` 等），退出码 0；**全量后端数字本批未复跑**，仍以上条 1878 为准。
-- **当前任务**：**无在途批次**。真机事实（2026-10-13 晚）：用户已走完 原卷→施测→小题分→
-  学情报告→教案（其教案 docx 导出成功，见 live `file_assets`）；两处报告的断点均已修复。
-  **用户侧待做**：重启后端 8000（`npm.cmd run dev:api`，当前进程未开 `--reload`，新端点要重启才生效）。
+- **2026-10-19 批（用户真机反馈：chat 生成教案不落工作台 + `AGENT_EVENT_OVERFLOW`）**：
+  ① **事件上限语义修正**：`runtime._MAX_EVENTS` 只统计控制流事件，流式 token 不再计数——
+  长回答（教案级文本）不再被误判为模型失控；`AGENT_EVENT_OVERFLOW` 仅保留给工具/图死循环。
+  ② **确认卡真正可见**：LangGraph 1.2 的待办中断只在 `aget_state().interrupts`，原运行时只查
+  顶层 `on_chain_end` 的 `__interrupt__` → 所有写工具都弹不出确认卡；现已兼容两种来源，且
+  `wait-confirm` 先于 `end` 发出。③ **对话内生成教案**：新增 `list_subjects` 只读工具 +
+  `create_lesson_plan_draft` 写确认工具（七模块结构化并行生成 → 组装 `LessonPlanData` →
+  `create_lesson` 写第 1 版草稿），教师确认后才生成/落库；`apply_lesson_proposal` 同步修正为
+  async + 完整 CAS 请求体。④ **前端确认续跑**：`/agent/confirm` 使用会话模型档位、新
+  GenerationToken 与真实 handlers，恢复流的 text/tool/end 写回同一助手消息；教案列表接收
+  `zqky:lesson-plans-changed` 自动重载；聊天持久化改为 250ms 合并 + 串行队列，避免长流并发
+  写 IndexedDB 误报「其他标签页更新」。
+- **2026-10-20 批（用户真机反馈：教案生成 status 报错 / 知识点不能删 / 全局不需要归档）**：
+  ① **教案工具链错误边界**：`list_classes` 移除 `status` 参数（模型传字符串 `"null"` 触发 422 的根因）；
+  Agent 增加 `AppError → ToolMessage(status=error)` 的 `wrap_tool_call`（**放行 GraphInterrupt**，确认卡不受影响）；
+  `runtime` 对 `AppError` 保留原 `code/retryable`，不再一律 `UPSTREAM_ERROR`；班级为 0 时提示先去「班级管理」。
+  ② **知识点删除**：`DELETE /knowledge-points/{id}` 改为**整棵子树**（递归 CTE + 根节点 CAS）；子树内任一节点
+  有教材依据/原卷/题库引用 → 409，`details.points` 逐节点给计数、`details.subtreeSize` 给节点数；同一事务
+  置空 `knowledge_import_rows.target_knowledge_point_id`（隐藏外键不再导致 500）；引用检查器改为**晚绑定**
+  （修复 knowledge 先装配时 teaching/question_bank 恒为 None）。③ **归档全局移除**：知识点/班级/学生/试卷/
+  施测/学情报告/教案/练习的 archive/restore 端点全部删除；前端归档/恢复入口、已归档筛选、归档 API 客户端
+  死代码清除；题库 `DELETE /questions/{id}` 改为**物理删除**（题目/修订/关联/来源/指纹；被审核练习或教案
+  生成固定输入引用 → 409 `QUESTION_IN_USE`）；`students.status='archived'` 仅保留为「有历史成绩已移除」的
+  内部状态。④ **live 数据归一化**：先备份 `.local-data` 到 `_work/archive-removal-backup-20261020`；dry-run
+  只有 2 道 archived 数学题（同题重复、无练习/教案引用）→ 物理删除；知识点 5 个保留、各库 archived 计数归零、
+  三库 `foreign_key_check` 均 0；学生 archived 未恢复。⑤ **工具内部 LLM token 不再进聊天**：教案七模块
+  结构化生成带 `INTERNAL_TOOL_LLM_TAG` + `callbacks=[]`（不继承外层流回调），Agent 运行器再按标签/工具祖先
+  过滤嵌套 `on_chat_model_stream`；聊天只保留工具回执与最终摘要，不再出现模块 JSON 原文。
+- **门禁基线（2026-10-20 实测；归档移除 + 知识点整树删除之后）**：
+  - 后端 `cd apps/api && uv run python -m pytest` → **1909 passed / 0 failed**（全量复跑 402.56s；本批 +17 例，
+    含 AppError 工具边界、知识点子树/晚绑定/导入外键、归档端点移除、题库物理删除、嵌套 LLM 事件过滤）；
+  - 前端 `NODE_OPTIONS=--no-experimental-webstorage npm.cmd run check` → **85 文件 738 例**、
+    typecheck 0 / lint 0 警告 / build 0 / **退出码 0**（单跑 `ScoreImportPanel` 已知负载型 flake，
+    单跑该文件 5/5、全量复跑 738/738 绿）；本批新增无归档入口、知识点逐节点 409、题库彻底删除文案用例；
+  - e2e `npx playwright test` → **17 passed**（2026-10-20 复跑；系统 `msedge` 通道，自起 5174；
+    web 代理 `ECONNREFUSED 127.0.0.1:8000` 是后端未启动，用例按无后端错误态验证）。
+  - **真机待验收**：重启后端 8000 后，在 `/chat` 生成教案（先确认已有班级；无班级先去「班级管理」新建），
+    在 `/knowledge-points` 试删父节点（整树）与有引用节点（409 逐项计数），在题库确认无“归档”文案。
+    自动化用假模型/临时库，**真实模型与 live 删除路径未在自动化中执行**。
+- **当前任务**：**2026-10-20 批（归档移除 + 知识点整树删除 + 教案报错修复）已完成**，无其他在途批次。
+  **用户侧待做**：重启后端 8000（`npm.cmd run dev:api`，当前进程未开 `--reload`）→ 重跑前端构建/热更新 →
+  在 `/chat` 生成教案（无班级先去「班级管理」建班）、在知识点页试删父子树、在题库确认“彻底删除”文案。
+  live 数据备份在 `_work/archive-removal-backup-20261020`；题库 2 道 archived 题已按用户裁定物理删除。
 - **R11 知识点现状（2026-10-15，未提交）**：`apps/api` 下 6 个文件（`knowledge.py`、
   `document_parsing/{__init__,chunking}.py`、`knowledge/tree_gen.py` 及两个测试）未提交。内容：
   ① 教材目录生成改为读取**封存正文的 Markdown 标题**（`heading_paths`），不再按分块 `chapter_path`

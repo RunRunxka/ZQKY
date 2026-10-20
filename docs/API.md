@@ -1,6 +1,6 @@
 # API 契约
 
-更新：2026-10-13（R10-BE 删除语义：舍弃归档、拆开交叉引用）。未列出的 `/api/v1/*` 返回 501
+更新：2026-10-20（归档功能全局移除：所有 `archive/restore` 端点删除，题库 DELETE 改为物理删除；知识点 DELETE 改为整棵子树）。未列出的 `/api/v1/*` 返回 501
 `FEATURE_NOT_IMPLEMENTED`（域已装配但依赖缺失时返回 503 `SERVICE_UNAVAILABLE`，绝不假成功）。
 
 ## 公共
@@ -27,7 +27,7 @@
 | 方法和路径 | 用途 | 事件 / 说明 |
 | --- | --- | --- |
 | POST `/api/v1/chat/stream` | 普通对话 SSE（三协议适配） | `message.start / text.delta / reasoning.delta / usage / message.end / error` |
-| POST `/api/v1/agent/stream` | Agent 对话 SSE（LangGraph 编排，19 工具） | `message.start / text.delta / tool.call / tool.result / wait-confirm / message.end / error`；`attachments` 上传引用；`reasoningEffort` 本轮覆盖 |
+| POST `/api/v1/agent/stream` | Agent 对话 SSE（LangGraph 编排，21 工具） | `message.start / text.delta / tool.call / tool.result / wait-confirm / message.end / error`；`attachments` 上传引用；`reasoningEffort` 本轮覆盖。事件上限只计控制流事件（流式 token 不计），长回答不会被误判为 `AGENT_EVENT_OVERFLOW` |
 | POST `/api/v1/agent/confirm` | 写操作确认（`Command(resume)` 恢复中断） | `submissionId` 幂等 |
 | POST `/api/v1/agent/upload` | 上传落受管 blob（内容寻址 sha256） | multipart；上限 100 MiB |
 
@@ -35,6 +35,15 @@
 **显式注入**（本地免 Key 用占位符），构造前断言 `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` 进程环境未设置；
 受管认证（Codex/Copilot/CodeBuddy）暂不可用于 Agent/模块（`AGENT_MODEL_UNSUPPORTED`），可用于
 `/chat/stream` 直连。Agent 会话/中断状态经 checkpointer 落 `data/agent/agent_checkpoints.sqlite3`。
+
+**对话内生成教案**：工具表新增 `list_subjects`（学科字典）与 `create_lesson_plan_draft`
+（缺学科/班级时先经 `list_subjects` / `confirm_context(need=subject|class)` 补齐；工具内部
+`interrupt` 弹写确认卡，确认后按教学分析/目标/策略/过程/练习/评价/反思七模块生成正文，
+经 `LessonPlanService.create_lesson` 写入第 1 版教案草稿）。生成是 7 个小结构化调用并行
+（同时 3 路），单模块 120s、最多 2 次尝试；部分模块失败仍保存成功部分并在工具回执中列出缺失模块。
+`apply_lesson_proposal` 同步修正为 async + 完整 `expectedRevision/baseRevisionId/selectedFields` 请求体。
+工具内部的七模块生成调用带 `INTERNAL_TOOL_LLM_TAG` 且不继承外层流回调；Agent 运行器过滤这些嵌套
+`on_chat_model_stream` 事件——聊天里只出现工具回执与最终摘要，不出现模块 JSON 原文。
 
 ## 教材资料库（textbooks 库）
 
@@ -51,8 +60,8 @@
 
 | 方法和路径 | 用途 |
 | --- | --- |
-| `/api/v1/knowledge-points`（GET/POST）、`/{id}`（GET/PATCH/DELETE） | 列表（`scope=subject|taught`、subjectId/status/关键词）与节点 CRUD（含 `objectives` 学习目标；空白=不修改，`clearFields` 显式清空） |
-| `/{id}/archive`、`/{id}/restore`、`/{id}/textbook-links` | 归档/恢复、教材依据链接 |
+| `/api/v1/knowledge-points`（GET/POST）、`/{id}`（GET/PATCH/DELETE） | 列表（`scope=subject|taught`、subjectId/关键词；**`status` 过滤已移除**，归档数据已归一化）与节点 CRUD（含 `objectives` 学习目标；空白=不修改，`clearFields` 显式清空）。`DELETE ?expectedRevision=N` **删除整棵子树**（物理删除，不可恢复）；子树内任一节点有教材依据/原卷/题库引用 → 409 `KNOWLEDGE_POINT_IN_USE`，`details.points` 逐节点给 `pointId/name/total/counts`，`details.subtreeSize` 为节点数；导入预览行的 `targetKnowledgePointId` 在同一事务置空 |
+| `/{id}/textbook-links` | 教材依据链接（归档/恢复端点已于 2026-10-20 移除） |
 | POST `/api/v1/knowledge-points/tree-from-textbook` | 教材目录成树（幂等；水印与纯符号标题段透明过滤；R11：口径改为读取**封存正文的 Markdown 标题**（`heading_paths`）而非分块 `chapter_path`；习题/复习参考题/章末类标题段透明、不建节点，判定复用 `regions.is_exercise_marker_line`；原文阅读器未装配或原文不可读 → 503，不静默少算） |
 | `/api/v1/knowledge-imports*`、`/knowledge-extraction/preview`、`/knowledge-extraction-jobs`、`/knowledge-suggestion-jobs` | 表格导入两阶段确认、教材抽取预览、AI 候选任务；``POST /{id}/discard`` 放弃（置 cancelled，记录保留）与 **``DELETE /{id}`` 彻底删除批次+预览行**（任何状态可删，含已确认；已入库知识点/教材依据保留 —— R10 2026-10-13 用户裁定「批次只是导入记录」） |
 
@@ -64,14 +73,14 @@
 | `/question-drafts/{id}`、`/question-imports/{id}/{split,merge,organize}`、`/question-suggestions/{id}/apply` | 草稿编辑/拆分/合并/AI 整理与应用（AI 整理经 `run_structured`，供应商不支持 `json_schema` 时自动降级 `json_mode`）。**2026-10-13 一键整理并绑定**：`POST .../organize` 请求体新增 `autoApply`（默认 `false`）——`true` 时整理结果（内容 + 知识点库绑定，提示词 v2）在同一事务直接写入草稿（建议落 `applied`），教师只做多选入库；`false` 仍只产生 `pending` 建议。草稿**改学科**且未显式给 `knowledgeLinks` 时，旧关联（含 AI 绑定）自动清空并写 `warnings` 留言（正式题 `PATCH /questions/{id}` 仍 422 `KNOWLEDGE_REFERENCE_INVALID` 要求显式处置） |
 | `DELETE /question-imports/{id}` | 彻底删除导入批次与解析产物。R10：**任何状态可删**（含已确认、含"草稿已并入正式题"）；题目一律保留——`question_sources.import_id` 置空（来源跨度保留，回执 `unlinkedQuestionSources`），批次自身的原文块/草稿/建议/并入记录/生成来源随批次删除 |
 | `/question-imports/{id}/confirm` | 教师确认 → 正式题目入库（发布边界）。**2026-10-13「多选即确认」**：只拦 `excluded` 草稿（`DRAFT_EXCLUDED`）；未标记 `reviewed`（旧 `DRAFT_NOT_REVIEWED`）与缺答案（旧 `MISSING_ANSWER_NOT_ACKNOWLEDGED`）都不再阻断，缺答案以 `answerState=not_provided` 落库 |
-| GET `/api/v1/questions`（`knowledgePointId`、`difficulty=easy|medium|hard|unspecified`、`q`）、`/questions/{id}`（GET/PATCH/DELETE） | 题目库查询与维护 |
+| GET `/api/v1/questions`（`knowledgePointId`、`difficulty=easy|medium|hard|unspecified`、`q`）、`/questions/{id}`（GET/PATCH/DELETE） | 题目库查询与维护。`DELETE ?expectedRevision=N` 为**物理删除**（题目、修订、知识点关联、来源、内容指纹一并删除；任务/提交历史保留）；被审核练习或教案生成固定输入引用 → 409 `QUESTION_IN_USE` + `details.counts={practices, lessonFixedQuestions}`。归档/恢复语义已移除 |
 | POST `/api/v1/question-generation-jobs` | AI 补题（needs_review 草稿） |
 
 ## 班级/名单/试卷/施测（teaching 库）
 
 | 方法和路径 | 用途 |
 | --- | --- |
-| `/api/v1/classes*`、`/students*`（CRUD、archive/restore、transfer、batch） | 班级与学生管理（`gender` 可空存原文）；归档端点保留为历史数据兼容（界面与客户端已无入口），**删除是唯一出口** |
+| `/api/v1/classes*`、`/students*`（CRUD、transfer、batch） | 班级与学生管理（`gender` 可空存原文）；**archive/restore 端点已移除**（2026-10-20），删除是唯一出口。`students.status='archived'` 仅作为「有历史成绩已移除」的内部状态保留（删除回执 `removed_with_history`、名单导入可重新关联），不再作为归档功能暴露 |
 | `/api/v1/roster-imports*`（`/{id}/confirm|discard`） | 名单 xlsx/csv 导入两阶段（含「性别」列表头映射） |
 | POST `/api/v1/paper-imports`、`/api/v1/papers*` | 试卷导入（DOCX/PDF 文本层规则拆题，草稿→确认）/列表/修订/删除 |
 | GET `/api/v1/papers/{id}/knowledge-distribution` | 知识点占比（环图数据；primary 聚合） |
@@ -84,9 +93,14 @@
 | --- | --- |
 | `/api/v1/score-imports*`（`PATCH` 列映射、`refresh`、`confirm`、`discard`） | 小题分成绩单导入（表头识别+人工确认；四态 recorded/missing/absent/exempt 不补零） |
 | `/api/v1/score-revisions/{id}`、`/{id}/matrix` | 成绩版本与矩阵（按行列定位校正） |
-| POST `/api/v1/assessments/{id}/analysis-runs`、`/analysis-runs*` | 学情报告创建/列表/归档/删除、教师备注（创建界面入口：学情分析页「生成学情报告」——已确认成绩修订 + 该修订 `participantSnapshot` 的人次；同输入复用、同标识重放；2026-10-13 补齐） |
+| POST `/api/v1/assessments/{id}/analysis-runs`、`/analysis-runs*` | 学情报告创建/列表/删除、教师备注（创建界面入口：学情分析页「生成学情报告」——已确认成绩修订 + 该修订 `participantSnapshot` 的人次；同输入复用、同标识重放；2026-10-13 补齐；**归档/恢复端点已于 2026-10-20 移除**） |
 
-## 删除语义（R10-BE，2026-10-13 用户裁定「舍弃所有归档功能，只留删除」+「拆开交叉引用」）
+## 删除语义（2026-10-20 全局移除归档；沿 R10-BE「只留删除」+「拆开交叉引用」）
+
+**2026-10-20 变更**：所有 `archive/restore` 端点已删除（知识点/班级/学生/试卷/施测/学情报告/教案/练习）；
+旧库归档数据由 `apps/api/scripts/normalize_archives.py` 归一（恢复 normal，题库 archived 题物理删除）；
+`students.status='archived'` 仅保留为「有历史成绩已移除」的内部状态。题库 `DELETE /questions/{id}`
+不再是归档，改为物理删除。
 
 **总原则**：删除一个实体 = 删除它自己拥有的行（结构 + 自身审计历史）；对指向它的引用，
 **下游产物级联删除，独立资产置空/409 逐项列出**。所有级联都在单个写事务内完成
@@ -95,6 +109,8 @@
 
 | 删除对象 | 级联（随行删除） | 置空 | 409 逐项列出（不可删） |
 | --- | --- | --- | --- |
+| `DELETE /knowledge-points/{id}?expectedRevision=N` | **整棵子树**的知识点身份行、别名、修订；导入预览行的 `targetKnowledgePointId` | — | 子树内任一节点有教材依据/原卷题目/题库正式或草稿关联 → `KNOWLEDGE_POINT_IN_USE` + `details.points`（逐节点） |
+| `DELETE /questions/{id}?expectedRevision=N` | 题目、全部修订、知识点关联、来源跨度、内容指纹；草稿 `duplicateOfQuestionId` 指针 | — | 被审核练习固定题/教案生成冻结输入引用 → `QUESTION_IN_USE` + `counts` |
 | `DELETE /students/{id}?expectedRevision=N` | 无参测引用：归属记录 + 学生行；名单导入匹配指针置空 | — | 无（有历史成绩 → 200 `removed_with_history`：关归属 + 身份已移除，成绩保留） |
 | `DELETE /classes/{id}?expectedRevision=N` | 归属、名单批次（+预览行）、**无参测人次的**参测范围行；无归属且无参测引用的学生行 | — | 该班有**参测人次**（成绩链证据）、有**教案**/教案生成输入 → `CLASS_IN_USE` + counts |
 | `DELETE /papers/{id}?expectedRevision=N` | 全部修订（含已确认）+ 小题/知识点/原文块/处置问题/AI 提案 | — | 被施测引用 → `PAPER_IN_USE`（先删施测） |
@@ -116,7 +132,7 @@ blob）、`workflow_jobs`（任务历史）、`command_submissions`（提交幂�
 
 | 方法和路径 | 用途 |
 | --- | --- |
-| `/api/v1/lesson-plans`（GET/POST）、`/{id}`（GET/PATCH draft/DELETE）、`/{id}/revisions` | 教案草稿/修订（CAS `expectedRevision`；草稿与候选分离）。`POST` 必填 `subjectId`/`classId`（教案必属某班某科）与 `context` 键（手工新建显式 `null`，缺键 422）；`DELETE ?expectedRevision=N` 彻底删除教案自身历史（归档端点保留为历史兼容，界面只留删除，入口在教案工作台「本地教案」） |
+| `/api/v1/lesson-plans`（GET/POST）、`/{id}`（GET/PATCH draft/DELETE）、`/{id}/revisions` | 教案草稿/修订（CAS `expectedRevision`；草稿与候选分离）。`POST` 必填 `subjectId`/`classId`（教案必属某班某科）与 `context` 键（手工新建显式 `null`，缺键 422）；`DELETE ?expectedRevision=N` 彻底删除教案自身历史（**归档/恢复端点已于 2026-10-20 移除**，界面只留删除，入口在教案工作台「本地教案」） |
 | POST `/api/v1/lesson-plans/generation-stream` | 逐模块流式生成（SSE：`message.start / module.start / module.delta / module.error / module.done / message.end / error`；生成候选采用才写入）。固定数据来源：`analysisRunId`（学情报告匿名聚合）与 **`sourceAssetRef`**（教师上传的学情材料，2026-10-13 起真正消费：读回文本按 6000 字上限截断并标注；引用读不到 → 404 `LESSON_SOURCE_NOT_FOUND`，**不静默忽略**） |
 | `/api/v1/lesson-plans/{id}/proposals`（+`/{pid}/apply|reject`） | 五字段 patch 候选（`apply_lesson_proposal` 工具带中断确认） |
 | POST `/api/v1/lesson-plans/{id}/export` | 导出 docx（202）：以空白模板组装，自动补齐封面（第 1 页）+ 目录（第 2 页），正文自第 3 页 |
