@@ -71,6 +71,7 @@ describe('Agent 通道服务', () => {
       turnId: 'turn-1',
       interactionId: 'k1',
       submissionId: 'sub-12345678',
+      modelProfileId: 'p1',
       answers: [{ questionId: 'k1-q', labels: ['确认执行'] }],
       signal: new AbortController().signal,
     });
@@ -79,6 +80,7 @@ describe('Agent 通道服务', () => {
     expect(input.decision).toBe('approve');
     expect(input.confirmId).toBe('k1');
     expect(input.threadId).toBe('session-1');
+    expect(input.modelProfileId).toBe('p1');
   });
 
   it('submitReply 把选择卡选定值经 value 传给后端', async () => {
@@ -89,12 +91,59 @@ describe('Agent 通道服务', () => {
       turnId: 'turn-1',
       interactionId: 'sel-1',
       submissionId: 'sub-12345678',
+      modelProfileId: 'p1',
       answers: [{ questionId: 'sel-1-q', labels: ['三年级二班'] }],
       signal: new AbortController().signal,
     });
     const input = confirmAgentMock.mock.calls[0]?.[0];
     expect(input.decision).toBe('approve');
     expect(input.value).toBe('三年级二班');
+  });
+
+  it('submitReply 把恢复流事件写回同一轮（reply-accepted/text/tool/end）', async () => {
+    const { events, emit } = collect();
+    confirmAgentMock.mockImplementation(async (_input, handlers) => {
+      handlers.onStart?.({ requestId: 'r', messageId: 'm', threadId: 'session-1', modelProfileId: 'p1' });
+      handlers.onText?.('已生成教案');
+      handlers.onToolResult?.({ name: 'create_lesson_plan_draft', callId: 'c2', output: 'lessonId=L1' });
+      handlers.onEnd?.('stop');
+    });
+    const service = createAgentChatService();
+    const ack = await service.submitReply!(
+      {
+        sessionId: 'session-1',
+        turnId: 'turn-1',
+        interactionId: 'k1',
+        submissionId: 'sub-12345678',
+        modelProfileId: 'p1',
+        answers: [{ questionId: 'k1-q', labels: ['确认执行'] }],
+        signal: new AbortController().signal,
+      },
+      emit,
+    );
+    expect(ack.accepted).toBe(true);
+    const types = events.map((event) => event.type);
+    expect(types[0]).toBe('reply-accepted');
+    expect(types).toContain('text');
+    expect(types).toContain('tool');
+    expect(types.at(-1)).toBe('end');
+    const tool = events.find((event) => event.type === 'tool');
+    expect(tool?.call?.name).toBe('create_lesson_plan_draft');
+  });
+
+  it('submitReply 缺模型档位时如实报错且不请求后端', async () => {
+    const service = createAgentChatService();
+    const ack = await service.submitReply!({
+      sessionId: 'session-1',
+      turnId: 'turn-1',
+      interactionId: 'k1',
+      submissionId: 'sub-12345678',
+      answers: [{ questionId: 'k1-q', labels: ['确认执行'] }],
+      signal: new AbortController().signal,
+    });
+    expect(ack.accepted).toBe(false);
+    expect(ack.code).toBe('MODEL_PROFILE_MISSING');
+    expect(confirmAgentMock).not.toHaveBeenCalled();
   });
 
   it('confirmAgent 失败时 submitReply 返回未接受与错误码', async () => {
@@ -105,6 +154,7 @@ describe('Agent 通道服务', () => {
       turnId: 'turn-1',
       interactionId: 'k1',
       submissionId: 'sub-12345678',
+      modelProfileId: 'p1',
       answers: [{ questionId: 'k1-q', labels: ['放弃'] }],
       signal: new AbortController().signal,
     });

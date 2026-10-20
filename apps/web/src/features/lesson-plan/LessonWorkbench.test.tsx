@@ -5,7 +5,7 @@
  * 依赖注入：`api` / `uploadSource` / `generateServices` 全部走替身，不触网、不写真实数据。
  */
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within, act } from '@testing-library/react';
 import { LessonWorkbench } from './LessonWorkbench';
 import { LESSON_OWNERSHIP_KEY, LOCAL_DRAFT_KEY } from './model/draft-storage';
 import { ApiError } from '@/services/api-client';
@@ -406,6 +406,19 @@ describe('教案工作台 · 导出与本地教案', () => {
     (api.listLessonPlans as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ items: [], total: 0, offset: 0, limit: 0 });
     fireEvent.click(screen.getByRole('button', { name: '刷新列表' }));
     await waitFor(() => expect(screen.getByTestId('lw-dialog-empty')).toBeTruthy());
+  });
+
+  it('对话里教案写操作成功的事件会触发列表重载', async () => {
+    const api = fakeApi();
+    renderWorkbench({ api });
+    fireEvent.click(screen.getByTestId('lw-library-button'));
+    await waitFor(() => expect(api.listLessonPlans).toHaveBeenCalledTimes(1));
+
+    const { LESSON_PLANS_CHANGED_EVENT } = await import('@/services/lesson-plans-events');
+    act(() => {
+      window.dispatchEvent(new Event(LESSON_PLANS_CHANGED_EVENT));
+    });
+    await waitFor(() => expect(api.listLessonPlans).toHaveBeenCalledTimes(2));
   });
 });
 

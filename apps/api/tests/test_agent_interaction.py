@@ -91,6 +91,19 @@ class TestCandidates:
         assert "无法" in out
 
 
+class TestSubjectSelection:
+    def test_subject_options_use_taxonomy_ids(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """学科选择卡来自固定字典（id=math 等），供 create_lesson_plan_draft 直接使用。"""
+        captured: dict = {}
+        monkeypatch.setattr(tw, "interrupt", lambda payload: captured.update(payload) or (_ for _ in ()).throw(SystemExit))
+        with pytest.raises(SystemExit):
+            _tool(_state()).invoke({"need": "subject"})
+        assert captured.get("kind") == "select"
+        assert captured.get("prompt") == "选择学科"
+        assert {"label": "数学", "description": "id=math"} in captured.get("options", [])
+        assert {"label": "语文", "description": "id=chinese"} in captured.get("options", [])
+
+
 class TestResume:
     def test_resume_label_maps_to_id(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """approve + value=班级名 → 反查 id= 返回。"""

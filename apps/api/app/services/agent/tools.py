@@ -19,6 +19,8 @@ from typing import Any
 
 from langchain_core.tools import BaseTool, tool
 
+from app.services.textbook_ingest.taxonomy import SUBJECTS
+
 #: 单工具返回给模型的文本预算（防超长把上下文撑爆）；超出截断并标注。
 _MAX_TOOL_OUTPUT_CHARS = 6000
 
@@ -110,6 +112,13 @@ def build_read_tools(app_state: Any) -> list[BaseTool]:
 
     tools.append(list_capabilities)
 
+    @tool
+    def list_subjects() -> str:
+        """列出教案可用的学科（id 与中文名）。生成教案必须同时有学科与班级。"""
+        return "学科：" + "、".join(f"{subject.id}={subject.label}" for subject in SUBJECTS)
+
+    tools.append(list_subjects)
+
     if textbook_search is not None:
 
         @tool
@@ -160,9 +169,9 @@ def build_read_tools(app_state: Any) -> list[BaseTool]:
 
     if roster is not None:
         @tool
-        def list_classes(status: str | None = None, limit: int = 30) -> str:
-            """列出班级（ID、名称、年级、学生数）。不返回任何学生个人信息。"""
-            result = roster.list_classes(status=status, limit=min(limit, 50))
+        def list_classes(limit: int = 30) -> str:
+            """列出全部班级（ID、名称、年级、学生数）。返回所有班级，不含状态过滤，也不返回任何学生个人信息。"""
+            result = roster.list_classes(limit=min(limit, 50))
             items = [_strip_person(_dump(i)) for i in result.items]
             return _page_summary(items, result.total, offset=result.offset, limit=result.limit, noun="班级")
 

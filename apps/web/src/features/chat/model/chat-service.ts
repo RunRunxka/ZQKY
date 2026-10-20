@@ -102,6 +102,8 @@ export interface ChatServiceReplyRequest {
   interactionId: string;
   /** 幂等提交标识：重复提交只消费一次 */
   submissionId: string;
+  /** 续跑使用的模型档位（/agent/confirm 必填；缺省时服务方如实报错） */
+  modelProfileId?: string;
   answers: AskUserAnswer[];
   signal: AbortSignal;
 }
@@ -117,9 +119,10 @@ export interface ChatService {
   run(request: ChatServiceRequest, emit: (event: ChatServiceEvent) => void): Promise<void>;
   /**
    * 回答当前追问（同一轮暂停与续答）。
+   * 续跑事件的回调用于把恢复流写回同一条助手消息（缺省时只提交、不展示续跑结果）。
    * 不支持的实现必须显式报错，不静默转模拟。
    */
-  submitReply?(request: ChatServiceReplyRequest): Promise<ChatReplyAck>;
+  submitReply?(request: ChatServiceReplyRequest, emit?: (event: ChatServiceEvent) => void): Promise<ChatReplyAck>;
   cancel?(request: { sessionId: string; turnId: string }): Promise<unknown>;
 }
 
@@ -134,7 +137,7 @@ export function createRealChatService(deps?: { stream?: typeof streamChat }): Ch
   return {
     kind: 'real',
     cancel: () => Promise.resolve(),
-    async submitReply(request) {
+    async submitReply(request, emit) {
       if (runStream) {
         return {
           accepted: false,
@@ -142,7 +145,7 @@ export function createRealChatService(deps?: { stream?: typeof streamChat }): Ch
           message: '真实问答暂不支持追问回答。',
         };
       }
-      return agent.submitReply!(request);
+      return agent.submitReply!(request, emit);
     },
     async run(request, emit) {
       if (!runStream) return agent.run(request, emit);

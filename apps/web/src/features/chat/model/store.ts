@@ -20,6 +20,10 @@ import {
 } from '@/contracts/chat';
 import { createIdbChatRepository, type ChatRepository, toMeta } from '@/services/chat-repository';
 import { streamChat, type ChatStreamInput } from '@/services/chat-stream';
+import {
+  LESSON_WRITE_TOOLS,
+  notifyLessonPlansChanged,
+} from '@/services/lesson-plans-events';
 import { createRealChatService, type ChatService, type ChatServiceEvent } from './chat-service';
 import { buildChatRequest, requestHistory } from './request-budget';
 import { buildNewConversation } from './new-conversation';
@@ -142,7 +146,7 @@ export function createChatStore(deps: ChatDeps = {}) {
       next.updatedAt = now();
       docs.set(id, next);
       publish();
-      void persist(id);
+      schedulePersist(id);
     }
 
     async function persist(id: string): Promise<boolean> {
@@ -162,6 +166,62 @@ export function createChatStore(deps: ChatDeps = {}) {
         }
         return false;
       }
+    }
+
+    /**
+     * 持久化合并 + 串行队列。
+     *
+     * 长回答每个 token 都会触发一次 change；若每次都立刻 `repository.save`，同一 revision
+     * 上会并发多个保存，后完成者必然抛 `ChatStorageConflict`，界面误报「其他标签页更新」。
+     * 这里按会话合并（250ms）并串行落盘；`flush()` 等待队列清空后再返回。
+     */
+    const pendingPersist = new Set<string>();
+    const persistTimers = new Map<string, ReturnType<typeof setTimeout>>();
+    const persistResults = new Map<string, boolean>();
+    let persistDrain: Promise<void> | null = null;
+
+    function schedulePersist(id: string): void {
+      pendingPersist.add(id);
+      if (persistTimers.has(id)) return;
+      persistTimers.set(
+        id,
+        setTimeout(() => {
+          persistTimers.delete(id);
+          void drainPersist();
+        }, 250),
+      );
+    }
+
+    async function persistAndRecord(id: string): Promise<boolean> {
+      const ok = await persist(id);
+      persistResults.set(id, ok);
+      return ok;
+    }
+
+    function drainPersist(): Promise<void> {
+      if (persistDrain) return persistDrain;
+      persistDrain = (async () => {
+        while (pendingPersist.size > 0) {
+          const ids = [...pendingPersist];
+          pendingPersist.clear();
+          for (const id of ids) await persistAndRecord(id);
+        }
+      })().finally(() => {
+        persistDrain = null;
+        if (pendingPersist.size > 0) void drainPersist();
+      });
+      return persistDrain;
+    }
+
+    async function flushPersist(id: string): Promise<boolean> {
+      const timer = persistTimers.get(id);
+      if (timer) {
+        clearTimeout(timer);
+        persistTimers.delete(id);
+      }
+      pendingPersist.add(id);
+      while (pendingPersist.has(id)) await drainPersist();
+      return persistResults.get(id) ?? true;
     }
 
     function activeConversation(): Conversation | undefined {
@@ -290,6 +350,9 @@ export function createChatStore(deps: ChatDeps = {}) {
               else calls.push(record);
               return { ...m, toolCalls: calls };
             });
+            if (event.call.status === 'done' && LESSON_WRITE_TOOLS.has(event.call.name)) {
+              notifyLessonPlansChanged();
+            }
             return;
           case 'artifact':
             updateAssistant(token, (m) => {
@@ -656,29 +719,90 @@ export function createChatStore(deps: ChatDeps = {}) {
         const sessionId = get().activeId;
         const interactionId = get().waitingInteractionId;
         if (!sessionId || !interactionId) return false;
-        set({ submittingReply: true });
+        const conversation = docs.get(sessionId);
+        if (!conversation) return false;
+        const modelProfileId = conversation.modelProfileId ?? get().modelProfileId ?? '';
+        if (!modelProfileId) {
+          set({ serviceNotice: '未找到本轮模型档位：请重新选择模型后再确认。' });
+          return false;
+        }
+        // 上一轮 message.end 已把旧 token 置 terminal；续跑必须用新 token，
+        // 否则恢复流的事件会被 makeEmitter 全部丢弃。
+        const assistantId =
+          activeToken && activeToken.conversationId === sessionId
+            ? activeToken.assistantId
+            : conversation.messages.find((message) =>
+                message.asks?.some((ask) => ask.interactionId === interactionId),
+              )?.id;
+        if (!assistantId) return false;
+        const token: GenerationToken = {
+          controller: new AbortController(),
+          conversationId: sessionId,
+          assistantId,
+          turnId: activeToken?.turnId ?? uid(),
+          terminal: false,
+          endReason: null,
+        };
+        activeToken = token;
+        updateAssistant(token, (message) => ({ ...message, status: 'streaming', error: undefined }));
+        set({ sending: true, submittingReply: true });
         try {
-          const ack = await service.submitReply?.({
-            sessionId,
-            turnId: activeToken?.turnId ?? '',
-            interactionId,
-            submissionId: uid(),
-            answers,
-            signal: new AbortController().signal,
-          });
+          const ack = await service.submitReply?.(
+            {
+              sessionId,
+              turnId: token.turnId,
+              interactionId,
+              submissionId: uid(),
+              modelProfileId,
+              answers,
+              signal: token.controller.signal,
+            },
+            makeEmitter(token),
+          );
           if (!ack || !ack.accepted) {
+            token.terminal = true;
+            token.endReason = 'error';
+            updateAssistant(token, (message) => ({
+              ...message,
+              status: 'error',
+              error: {
+                code: ack?.code ?? 'REQUEST_FAILED',
+                message: ack?.message ?? '追问提交失败。',
+              },
+              finishedAt: now(),
+            }));
             set({ serviceNotice: ack?.message ?? '追问提交失败。', submittingReply: false });
             return false;
           }
           patchAsk(sessionId, interactionId, { status: 'answered', answers });
-          set({ waitingInteractionId: null, submittingReply: false, askFocus: null });
+          // 续跑流里可能已经弹出了下一张卡（例如先选班级、再确认生成）；
+          // 只清当前这张，不能把新卡的等待状态一起清掉。
+          if (get().waitingInteractionId === interactionId) {
+            set({ waitingInteractionId: null, submittingReply: false, askFocus: null });
+          } else {
+            set({ submittingReply: false });
+          }
           return true;
         } catch (error) {
+          token.terminal = true;
+          token.endReason = 'error';
+          updateAssistant(token, (message) => ({
+            ...message,
+            status: 'error',
+            error: {
+              code: 'REQUEST_FAILED',
+              message: (error as Error).message || '追问提交失败。',
+            },
+            finishedAt: now(),
+          }));
           set({
             serviceNotice: (error as Error).message || '追问提交失败。',
             submittingReply: false,
           });
           return false;
+        } finally {
+          set({ sending: false });
+          void get().flush();
         }
       },
 
@@ -773,7 +897,7 @@ export function createChatStore(deps: ChatDeps = {}) {
       async flush(): Promise<boolean> {
         const sessionId = get().activeId;
         if (!sessionId) return true;
-        return persist(sessionId);
+        return flushPersist(sessionId);
       },
 
       dispose(): void {

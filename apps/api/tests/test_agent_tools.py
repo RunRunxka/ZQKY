@@ -35,7 +35,11 @@ class _View:
 
 
 class _FakeRoster:
-    def list_classes(self, *, status=None, offset=0, limit=50):  # noqa: ANN001, ANN201, ARG002
+    def __init__(self) -> None:
+        self.class_calls: list[dict] = []
+
+    def list_classes(self, *, offset=0, limit=50):  # noqa: ANN001, ANN201
+        self.class_calls.append({"offset": offset, "limit": limit})
         return _Page(
             [_View({"id": "c1", "name": "三一班", "gradeId": "g3", "studentCount": 12, "status": "active"})],
             total=1,
@@ -151,6 +155,24 @@ class TestReadTools:
         assert "共 1 条" in out
         assert "三一班" in out
 
+    def test_list_classes_schema_has_no_status(self) -> None:
+        """工具 schema 不含 status 参数（归档全局移除后不再有状态过滤入口）。"""
+        tool = _tools_by_name(_State(roster_service=_FakeRoster()))["list_classes"]
+        assert "status" not in tool.args
+        assert "limit" in tool.args
+
+    def test_list_classes_never_passes_status_to_service(self) -> None:
+        """工具固定按「全部班级」调用服务，不透传任何状态过滤。"""
+        roster = _FakeRoster()
+        state = _State(roster_service=roster)
+        tool = _tools_by_name(state)["list_classes"]
+        tool.invoke({})
+        tool.invoke({"status": "null"})  # 模型残留的历史入参：被 schema 忽略，不透传
+        assert roster.class_calls
+        for call in roster.class_calls:
+            assert set(call) == {"offset", "limit"}
+        assert roster.class_calls[0]["limit"] == 30
+
     def test_needs_consolidation_filters_zero(self) -> None:
         """只报告 needsCount>0 的知识点；为 0 的不列。"""
         state = _State(analysis_service=_FakeAnalysis())
@@ -255,6 +277,12 @@ class TestSearchTextbooksTool:
 
 
 class TestClip:
+    def test_list_subjects_always_registered(self) -> None:
+        tools = _tools_by_name(_State())
+        assert "list_subjects" in tools
+        out = tools["list_subjects"].invoke({})
+        assert "math=数学" in out and "chinese=语文" in out
+
     def test_clip_truncates_long_text(self) -> None:
         long_text = "x" * 7000
         clipped = _clip(long_text)

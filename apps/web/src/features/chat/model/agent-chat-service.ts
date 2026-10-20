@@ -19,10 +19,12 @@ import {
   confirmAgent,
   streamAgent,
   type AgentConfirmPayload,
+  type AgentStreamHandlers,
 } from '@/services/agent-stream';
 import type {
   ChatReplyAck,
   ChatService,
+  ChatServiceEvent,
   ChatServiceReplyRequest,
 } from './chat-service';
 
@@ -71,6 +73,53 @@ function toInteraction(confirmId: string, payload: AgentWaitPayload): Pick<
   };
 }
 
+/** 两条通道（首轮 / 确认续跑）共用的事件映射：同一套 SSE 事件写回同一轮消息。 */
+function buildHandlers(
+  sessionId: string,
+  turnId: string,
+  emit: (event: ChatServiceEvent) => void,
+  onStart: () => void,
+): AgentStreamHandlers {
+  return {
+    onStart,
+    onText: (delta) => emit({ sessionId, turnId, type: 'text', delta }),
+    onToolCall: (call) =>
+      emit({
+        sessionId,
+        turnId,
+        type: 'tool',
+        call: {
+          callId: call.callId,
+          kind: 'skill',
+          name: call.name,
+          status: 'running',
+        },
+      }),
+    onToolResult: (result) =>
+      emit({
+        sessionId,
+        turnId,
+        type: 'tool',
+        call: {
+          callId: result.callId,
+          kind: 'skill',
+          name: result.name,
+          status: 'done',
+          detail: result.output,
+        },
+      }),
+    onWaitConfirm: (confirm) =>
+      emit({
+        sessionId,
+        turnId,
+        type: 'wait-user',
+        interaction: toInteraction(confirm.confirmId, confirm.payload as AgentWaitPayload),
+      }),
+    onEnd: (finishReason) => emit({ sessionId, turnId, type: 'end', finishReason }),
+    onError: (error) => emit({ sessionId, turnId, type: 'error', error }),
+  };
+}
+
 export function createAgentChatService(): ChatService {
   return {
     kind: 'real',
@@ -102,47 +151,23 @@ export function createAgentChatService(): ChatService {
           ...(reasoningEffort ? { reasoningEffort } : {}),
           signal: request.signal,
         },
-        {
-          onStart: () => emit({ sessionId, turnId, type: 'turn-start' }),
-          onText: (delta) => emit({ sessionId, turnId, type: 'text', delta }),
-          onToolCall: (call) =>
-            emit({
-              sessionId,
-              turnId,
-              type: 'tool',
-              call: {
-                callId: call.callId,
-                kind: 'skill',
-                name: call.name,
-                status: 'running',
-              },
-            }),
-          onToolResult: (result) =>
-            emit({
-              sessionId,
-              turnId,
-              type: 'tool',
-              call: {
-                callId: result.callId,
-                kind: 'skill',
-                name: result.name,
-                status: 'done',
-                detail: result.output,
-              },
-            }),
-          onWaitConfirm: (confirm) =>
-            emit({
-              sessionId,
-              turnId,
-              type: 'wait-user',
-              interaction: toInteraction(confirm.confirmId, confirm.payload as AgentWaitPayload),
-            }),
-          onEnd: (finishReason) => emit({ sessionId, turnId, type: 'end', finishReason }),
-          onError: (error) => emit({ sessionId, turnId, type: 'error', error }),
-        },
+        buildHandlers(sessionId, turnId, emit, () =>
+          emit({ sessionId, turnId, type: 'turn-start' }),
+        ),
       );
     },
-    async submitReply(request: ChatServiceReplyRequest): Promise<ChatReplyAck> {
+    async submitReply(
+      request: ChatServiceReplyRequest,
+      emit?: (event: ChatServiceEvent) => void,
+    ): Promise<ChatReplyAck> {
+      const modelProfileId = request.modelProfileId?.trim() ?? '';
+      if (!modelProfileId) {
+        return {
+          accepted: false,
+          code: 'MODEL_PROFILE_MISSING',
+          message: '未找到本轮模型档位：请重新选择模型后再确认。',
+        };
+      }
       // 写确认/弹窗选择：confirm 映射 approve/reject；select 把选定值经 value 传给后端 resume。
       const answer: AskUserAnswer | undefined = request.answers[0];
       const picked = answer?.labels?.[0] ?? answer?.freeText ?? '';
@@ -152,19 +177,31 @@ export function createAgentChatService(): ChatService {
           ? 'approve'
           : 'reject'
         : 'approve';
+      const handlers: AgentStreamHandlers = emit
+        ? buildHandlers(request.sessionId, request.turnId, emit, () =>
+            emit({
+              sessionId: request.sessionId,
+              turnId: request.turnId,
+              type: 'reply-accepted',
+              interactionId: request.interactionId,
+              submissionId: request.submissionId,
+              answers: request.answers,
+            }),
+          )
+        : {};
       try {
         await confirmAgent(
           {
             submissionId: request.submissionId,
             requestId: request.turnId.replaceAll('-', ''),
             threadId: request.sessionId,
-            modelProfileId: '',
+            modelProfileId,
             confirmId: request.interactionId,
             decision,
             ...(!isConfirm && picked ? { value: picked } : {}),
             signal: request.signal,
           },
-          {},
+          handlers,
         );
         return { accepted: true };
       } catch (error) {

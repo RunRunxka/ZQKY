@@ -14,6 +14,7 @@ import { fetchTextbookTaxonomy } from '@/services/textbook-api';
 import { listClasses } from '@/services/assessments-api';
 import { Modal } from '@/components/ui/Modal';
 import { ApiError } from '@/services/api-client';
+import { LESSON_PLANS_CHANGED_EVENT } from '@/services/lesson-plans-events';
 import type { LessonSummary } from '@/contracts/lesson-plans';
 import type { LessonPlansApi } from '@/services/lesson-plans-api';
 
@@ -39,7 +40,7 @@ export interface LessonOwnershipServices {
 
 const defaultOwnershipServices: LessonOwnershipServices = {
   loadSubjects: async () => (await fetchTextbookTaxonomy()).subjects,
-  loadClasses: async () => (await listClasses({ status: 'active', limit: 200 })).items,
+  loadClasses: async () => (await listClasses({ limit: 200 })).items,
 };
 
 export function LessonsDialog({
@@ -126,6 +127,13 @@ export function LessonsDialog({
 
   useEffect(() => {
     void load();
+  }, [load]);
+
+  /* 对话里生成/应用教案成功后广播事件：已打开的列表立即重载（不要求教师手动刷新）。 */
+  useEffect(() => {
+    const onChange = () => void load();
+    window.addEventListener(LESSON_PLANS_CHANGED_EVENT, onChange);
+    return () => window.removeEventListener(LESSON_PLANS_CHANGED_EVENT, onChange);
   }, [load]);
 
   const run = async (id: string | null, action: () => Promise<unknown>) => {

@@ -79,7 +79,7 @@ class AgentService:
         tools = (
             build_read_tools(self._app_state)
             + build_import_tools(self._app_state)
-            + build_confirm_tools(self._app_state)
+            + build_confirm_tools(self._app_state, handle=handle)
             + build_interaction_tools(self._app_state)
         )
         deps = AgentDeps(
