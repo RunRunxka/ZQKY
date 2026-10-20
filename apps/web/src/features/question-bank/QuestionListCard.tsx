@@ -8,8 +8,10 @@
  *
  * 纪律：
  * - 三态严格区分（loading / failed / ready），失败显示错误码与重试，**不当空列表**；
- * - 「删除」= 归档删除（后端 `DELETE /questions/{id}` + `expectedRevision`），二次确认后才发请求，
+ * - 「删除」= 彻底删除（后端 `DELETE /questions/{id}` + `expectedRevision`），二次确认后才发请求，
  *   成功刷新由父级重取服务端权威列表；失败原样显示原因，不假装成功；
+ * - 409 `QUESTION_IN_USE`（被审核练习固定题 / 教案冻结输入引用）逐项展示计数与解锁路径，
+ *   不提供归档兜底；
  * - 题干来自服务端列表摘要（`stemPreview`）；完整题干与富内容在详情/校对面板渲染。
  */
 
@@ -20,7 +22,13 @@ import { deleteQuestion, listQuestions, type QuestionQuery } from '@/services/qu
 import { ContentMarkdown } from './rich-content';
 import { ErrorNotice } from './ErrorNotice';
 import { asApiError, useAsyncResource } from './hooks';
-import { difficultyBadgeClass, difficultyLabel } from './labels';
+import {
+  difficultyBadgeClass,
+  difficultyLabel,
+  parseQuestionInUseCounts,
+  QUESTION_IN_USE_CODE,
+  type QuestionInUseCount,
+} from './labels';
 import { offsetOf, pageOf, pageWindow, totalPagesOf } from './paging';
 
 export const QUESTION_PAGE_SIZE = 20;
@@ -70,6 +78,11 @@ export function QuestionListCard({
 }) {
   const [deleteBusyId, setDeleteBusyId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteBlock, setDeleteBlock] = useState<{
+    questionId: string;
+    message: string;
+    counts: QuestionInUseCount[] | null;
+  } | null>(null);
 
   const { state, reload } = useAsyncResource(
     (signal) => listQuestions(queryOf(filters, offset), signal),
@@ -85,23 +98,32 @@ export function QuestionListCard({
   }
 
   /**
-   * 归档删除：二次确认（说明后果）后带当前修订提交。
-   * 409（其它入口已改题）→ 刷新列表并提示重试；其它失败原样显示，列表不变。
+   * 彻底删除：二次确认（说明不可恢复的后果）后带当前修订提交。
+   * 409 `QUESTION_IN_USE` → 展示练习/教案引用计数与解锁路径；
+   * 其它 409（入口已改题）→ 刷新列表并提示重试；其它失败原样显示，列表不变。
    */
   async function remove(question: QuestionSummary) {
     const confirmed = window.confirm(
-      `归档删除题目「${question.stemPreview}」？\n` +
-        '归档后该题不再出现在列表中；来源与历史修订保留，可由服务端追溯。',
+      `彻底删除题目「${question.stemPreview}」？\n` +
+        '会物理删除题目、修订、知识点关联、来源与内容指纹，不可恢复；' +
+        '被审核练习或教案固定题引用时不会删除。',
     );
     if (!confirmed) return;
     setDeleteBusyId(question.questionId);
     setDeleteError(null);
+    setDeleteBlock(null);
     try {
       await deleteQuestion(question.questionId, question.revision);
       onDeleted();
     } catch (cause) {
       const apiError = asApiError(cause);
-      if (apiError.status === 409) {
+      if (apiError.status === 409 && apiError.code === QUESTION_IN_USE_CODE) {
+        setDeleteBlock({
+          questionId: question.questionId,
+          message: apiError.message,
+          counts: parseQuestionInUseCounts(apiError.details),
+        });
+      } else if (apiError.status === 409) {
         setDeleteError(
           `删除未执行（${apiError.code}）：${apiError.message} 列表已刷新为服务端最新修订，可重试。`,
         );
@@ -133,6 +155,29 @@ export function QuestionListCard({
       {deleteError && (
         <div className="space-banner error" role="alert" data-testid="qb-question-delete-error">
           {deleteError}
+        </div>
+      )}
+      {deleteBlock && (
+        <div className="space-banner error" role="alert" data-testid="qb-question-delete-blocked">
+          <strong>不能彻底删除：题目仍被教学链引用</strong>
+          <span>{deleteBlock.message}</span>
+          {deleteBlock.counts ? (
+            <ul className="qb-failure-list" data-testid="qb-question-delete-counts">
+              {deleteBlock.counts.map((item) => (
+                <li key={item.key}>
+                  {item.label}：{item.count} 条
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <span data-testid="qb-question-delete-counts-missing">
+              服务端没有给出逐项引用计数：原因以上述说明为准，不在此处编造计数。
+            </span>
+          )}
+          <span>
+            解锁路径：先删除引用它的练习/教案（审核练习固定题 / 教案生成冻结输入），
+            再回来彻底删除；题目删除没有归档兜底。
+          </span>
         </div>
       )}
 
@@ -185,7 +230,7 @@ export function QuestionListCard({
                         onClick={() => void remove(question)}
                       >
                         <Trash2 size={13} aria-hidden />
-                        {deleteBusyId === question.questionId ? '删除中…' : '删除'}
+                        {deleteBusyId === question.questionId ? '删除中…' : '彻底删除'}
                       </button>
                     </div>
                   </div>

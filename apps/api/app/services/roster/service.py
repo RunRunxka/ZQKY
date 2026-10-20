@@ -55,7 +55,6 @@ from app.contracts.roster import (
     RosterIdentityMatch,
     StudentCreateRequest,
     StudentList,
-    StudentRevisionRequest,
     StudentUpdateRequest,
     StudentView,
 )
@@ -428,10 +427,11 @@ class RosterService:
     # ---------------------------------------------------------------- 班级
 
     def list_classes(
-        self, *, status: str | None = None, offset: int = 0, limit: int = 50
+        self, *, offset: int = 0, limit: int = 50
     ) -> ClassList:
+        """班级列表（B3 归档移除）：返回全部班级；status 过滤只保留仓储内部能力。"""
         offset, limit = _page(offset, limit)
-        records, total = self._classes.list(status=status, offset=offset, limit=limit)
+        records, total = self._classes.list(status=None, offset=offset, limit=limit)
         return ClassList(
             items=[record.view() for record in records],
             total=total,
@@ -458,16 +458,6 @@ class RosterService:
             name=_optional_text(payload.name, field="name"),
             school_year=_optional_text(payload.school_year, field="schoolYear"),
             grade_id=_optional_text(payload.grade_id, field="gradeId"),
-        )
-        return record.view()
-
-    def set_archived(
-        self, class_id: str, payload: ClassRevisionRequest, *, archived: bool
-    ) -> ClassView:
-        record = self._classes.set_status(
-            class_id,
-            expected_revision=payload.expected_revision,
-            status="archived" if archived else "active",
         )
         return record.view()
 
@@ -816,17 +806,6 @@ class RosterService:
                 student_no=_optional_student_no(payload.student_no),
                 gender=_optional_gender(payload.gender),
             )
-        return record.view()
-
-    def set_student_archived(
-        self, student_id: str, payload: StudentRevisionRequest, *, archived: bool
-    ) -> StudentView:
-        """归档/恢复学生：只改状态并递增 revision；归属历史与既有参测快照不变。"""
-        record = self._students.set_status(
-            student_id,
-            expected_revision=payload.expected_revision,
-            status="archived" if archived else "active",
-        )
         return record.view()
 
     def transfer_student(

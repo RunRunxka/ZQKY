@@ -92,7 +92,8 @@ async def test_successful_replay_ignores_later_reference_and_asset_failure(scene
     practice = scene.create_set()
     body = command(scene, practice, question=question)
     first = scene.service.save_draft(practice.practice_set_id, body)
-    scene.questions.archive_question(question.question_id)
+    with scene.questions.write_transaction() as conn:
+        conn.execute("UPDATE questions SET status='archived' WHERE id=?", (question.question_id,))
     monkeypatch.setattr(scene.service, "read_question_asset", lambda _: (_ for _ in ()).throw(AssertionError("replay asset IO")))
     monkeypatch.setattr(scene.service, "_prepared", lambda *_: (_ for _ in ()).throw(AssertionError("replay preflight")))
     monkeypatch.setattr(scene.service, "_active_refs", lambda *_: (_ for _ in ()).throw(AssertionError("replay refs")))
@@ -152,7 +153,8 @@ async def test_archive_between_preparation_and_publication_rejects_zero_partial(
     prepare = scene.service._prepared
     def archive_after_prepare(*args):
         prepared = prepare(*args)
-        scene.questions.archive_question(question.question_id)
+        with scene.questions.write_transaction() as conn:
+            conn.execute("UPDATE questions SET status='archived' WHERE id=?", (question.question_id,))
         return prepared
     monkeypatch.setattr(scene.service, "_prepared", archive_after_prepare)
     with pytest.raises(AppError) as error:

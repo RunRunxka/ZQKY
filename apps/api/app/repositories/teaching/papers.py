@@ -480,20 +480,6 @@ class PaperRepository:
         row = conn.execute("SELECT revision FROM papers WHERE id = ?", (paper_id,)).fetchone()
         return _row_int(row, "revision")
 
-    def set_status_in(self, conn: sqlite3.Connection, paper_id: str, status: str) -> None:
-        """归档/恢复：改状态并**递增编辑锁 revision**（在途草稿/确认按陈旧冲突处理）。
-
-        原卷不存在时不静默无操作，直接 404。
-        """
-        if status not in _PAPER_STATUSES:
-            raise _invalid(f"status 必须是 {sorted(_PAPER_STATUSES)} 之一。", fields=["status"])
-        cursor = conn.execute(
-            "UPDATE papers SET status = ?, revision = revision + 1 WHERE id = ?",
-            (status, paper_id),
-        )
-        if not cursor.rowcount:
-            raise _not_found(f"原卷不存在：{paper_id}。")
-
     def count_references_in(self, conn: sqlite3.Connection, paper_id: str) -> int:
         """该卷修订被施测引用的次数（``assessments.paper_revision_id``）。
 

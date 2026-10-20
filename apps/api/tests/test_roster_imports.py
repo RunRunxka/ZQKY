@@ -29,7 +29,6 @@ from app.contracts.roster import (
     ROSTER_MAPPING_INVALID,
     STUDENT_NO_CONFLICT,
     ClassCreateRequest,
-    ClassRevisionRequest,
     MembershipTransferRequest,
     RosterImportConfirmRequest,
     RosterImportDiscardRequest,
@@ -74,6 +73,15 @@ class Harness:
                     f"SELECT COUNT(*) AS n FROM {table}{clause}", params
                 ).fetchone()["n"]
             )
+        finally:
+            connection.close()
+
+    def raw_execute(self, sql: str, params: tuple[object, ...] = ()) -> None:
+        connection = connect(self.catalog.db_path)
+        try:
+            connection.execute("PRAGMA foreign_keys = ON")
+            connection.execute(sql, params)
+            connection.commit()
         finally:
             connection.close()
 
@@ -935,13 +943,15 @@ def test_batch_state_transition_and_editable_guard(harness: Harness) -> None:
     assert harness.count("students") == 0
 
 
-def test_confirm_rejected_for_archived_class(harness: Harness) -> None:
+def test_confirm_rejected_for_stale_archived_class(harness: Harness) -> None:
+    """旧库残留 archived 班级（模拟）：确认被只读兜底拒绝且不落任何行。"""
     created = make_class(harness)
     content = csv_bytes([["学号", "姓名"], ["0013", "李四"]])
     view = upload(harness, created.id, content=content, file_name="roster.csv")
 
-    harness.service.set_archived(
-        created.id, ClassRevisionRequest(expectedRevision=0), archived=True
+    harness.raw_execute(
+        "UPDATE classes SET status='archived', revision=revision+1 WHERE id=?",
+        (created.id,),
     )
     with pytest.raises(AppError) as err:
         confirm(
@@ -956,18 +966,6 @@ def test_confirm_rejected_for_archived_class(harness: Harness) -> None:
     assert harness.count("students") == 0
     assert harness.count("class_memberships") == 0
     assert harness.count("command_submissions") == 0
-
-    harness.service.set_archived(
-        created.id, ClassRevisionRequest(expectedRevision=1), archived=False
-    )
-    ok = confirm(
-        harness,
-        view.import_id,
-        expected_revision=view.revision,
-        submission_id="archived-2",
-        identity_matches=[{"rowNo": 1, "action": "create"}],
-    )
-    assert ok.state == "confirmed"
 
 
 def test_confirm_joined_on_is_confirm_date(harness: Harness) -> None:

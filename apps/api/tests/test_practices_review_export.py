@@ -57,7 +57,8 @@ async def test_real_docx_whole_zip_student_teacher_material_formula_image_table(
     _,teacherdata=scene.artifact(practice,teacher.export_id)
     teach=b"\n".join(package_parts(teacherdata).values())
     assert b"ANS_PRIVATE" in teach and b"EXPL_PRIVATE" in teach
-    scene.questions.archive_question(practice.current_revision.items[0].question_id)
+    with scene.questions.write_transaction() as conn:
+        conn.execute("UPDATE questions SET status='archived' WHERE id=?", (practice.current_revision.items[0].question_id,))
     assert (await scene.export(practice,submission="same-fixed" )).reused is True
 
 
@@ -178,7 +179,8 @@ async def test_review_archive_during_lock_free_asset_preflight_no_publish(scene,
     def archive(asset_id):
         assert not scene.coordinator.busy
         with scene.coordinator.publication(operation="question.archive"):
-            scene.questions.archive_question(q.question_id)
+            with scene.questions.write_transaction() as conn:
+                conn.execute("UPDATE questions SET status='archived' WHERE id=?", (q.question_id,))
         return original(asset_id)
     monkeypatch.setattr(scene.service,"read_question_asset",archive)
     with pytest.raises(AppError) as error:scene.review(practice)

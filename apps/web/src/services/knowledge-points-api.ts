@@ -27,7 +27,6 @@ import type {
   KnowledgePointCreateRequest,
   KnowledgePointList,
   KnowledgePointScope,
-  KnowledgePointStatus,
   KnowledgePointUpdateRequest,
   KnowledgePointView,
   KnowledgeSuggestionRequest,
@@ -62,7 +61,6 @@ function jsonInit(method: string, body: unknown): RequestInit {
 /** 知识点列表筛选（对应后端 `list_knowledge_points` 的查询参数）。 */
 export interface KnowledgePointQuery {
   subjectId?: string;
-  status?: KnowledgePointStatus;
   parentId?: string;
   q?: string;
   /**
@@ -91,7 +89,6 @@ export function listKnowledgePoints(
   return apiRequest<KnowledgePointList>(
     `/knowledge-points${knowledgeQuery({
       subjectId: query.subjectId,
-      status: query.status,
       parentId: query.parentId,
       q: query.q,
       scope: query.scope,
@@ -128,36 +125,14 @@ export function updateKnowledgePoint(
   );
 }
 
-/** 归档（保留历史引用；新引用禁选归档）。 */
-export function archiveKnowledgePoint(
-  id: string,
-  expectedRevision: number,
-): Promise<KnowledgePointView> {
-  return apiRequest<KnowledgePointView>(
-    `/knowledge-points/${encodeURIComponent(id)}/archive`,
-    jsonInit('POST', { expectedRevision }),
-  );
-}
-
-export function restoreKnowledgePoint(
-  id: string,
-  expectedRevision: number,
-): Promise<KnowledgePointView> {
-  return apiRequest<KnowledgePointView>(
-    `/knowledge-points/${encodeURIComponent(id)}/restore`,
-    jsonInit('POST', { expectedRevision }),
-  );
-}
-
 /**
- * **彻底删除**知识点（204 无返回体；`expectedRevision` 走查询参数，乐观锁）。
+ * **彻底删除整棵子树**（204 无返回体；`expectedRevision` 走查询参数，乐观锁）。
  *
- * 与「归档」语义不同：归档保留历史引用、可恢复；彻底删除是物理删除、不可恢复。
+ * 物理删除、不可恢复：根节点及其全部子节点、修订、别名与教材依据关联一并删除。
  * 守卫（任一命中即 409，服务端不删任何行）：
- * - 被引用 → `KNOWLEDGE_POINT_IN_USE`，`details.counts` 逐库逐项给出计数
- *   （knowledge/textbookKnowledgeLinks、teaching/paperItemKnowledge、
- *   question_bank/questionKnowledgeLinks、questionDraftKnowledgeLinks）；
- * - 仍有子节点 → 同码 409（message 含子节点数）；
+ * - 子树内任一节点被引用 → `KNOWLEDGE_POINT_IN_USE`：`details.points` 逐节点给出
+ *   `{pointId, name, total, counts}`，`details.counts` 同时保留聚合计数，`details.subtreeSize`
+ *   给出子树节点数；
  * - `expectedRevision` 过期 → 409 `REVISION_CONFLICT`（`details.currentRevision`）；不存在 → 404。
  */
 export function deleteKnowledgePoint(id: string, expectedRevision: number): Promise<void> {

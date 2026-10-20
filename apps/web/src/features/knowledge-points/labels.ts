@@ -12,17 +12,12 @@ import type { ErrorIssue } from '@/contracts/api';
 import type {
   KnowledgeImportSource,
   KnowledgeImportState,
+  KnowledgePointInUsePoint,
   KnowledgePointReferenceCount,
   KnowledgePointScope,
-  KnowledgePointStatus,
   KnowledgeRowAction,
 } from '@/contracts/knowledge';
 import type { KnowledgeJobState } from '@/contracts/knowledge';
-
-export const KNOWLEDGE_STATUS_LABEL: Record<KnowledgePointStatus, string> = {
-  active: '在用',
-  archived: '已归档',
-};
 
 export const KNOWLEDGE_IMPORT_STATE_LABEL: Record<KnowledgeImportState, string> = {
   uploaded: '已上传',
@@ -86,7 +81,7 @@ export const KNOWLEDGE_POINT_SCOPE_LABEL: Record<KnowledgePointScope, string> = 
 /** `scope=taught` 未能就绪（未设置任教范围 / 索引代未发布）：409，绝不静默回退全部。 */
 export const KNOWLEDGE_SCOPE_UNAVAILABLE_CODE = 'KNOWLEDGE_SCOPE_UNAVAILABLE';
 
-/** 知识点仍被引用（含仍有子节点）：409 `KNOWLEDGE_POINT_IN_USE`。 */
+/** 知识点仍被引用（删除整棵子树时任一节点被引用）：409 `KNOWLEDGE_POINT_IN_USE`。 */
 export const KNOWLEDGE_POINT_IN_USE_CODE = 'KNOWLEDGE_POINT_IN_USE';
 
 /** 教材提取受理时书册未就绪：409 `KNOWLEDGE_EXTRACTION_NOT_READY`（逐册给原因）。 */
@@ -115,25 +110,69 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * 解析 409 `KNOWLEDGE_POINT_IN_USE` 的 `details.counts`。
- * 形状不认识、缺 `counts` 或全部计数为 0 时返回 null（**不伪造原因清单**）；
+ * 解析引用计数字段（`details.counts` 或逐节点的 `counts`）。
+ * 形状不认识或没有 `count > 0` 的项时返回 null（**不伪造原因清单**）；
  * `count` 非有限数字的项直接丢弃（宁可少一行，也不显示假计数）。
+ */
+function parseReferenceCountItems(raw: unknown): KnowledgePointReferenceCount[] | null {
+  if (!Array.isArray(raw)) return null;
+  const counts: KnowledgePointReferenceCount[] = [];
+  for (const item of raw) {
+    if (!isRecord(item)) continue;
+    if (
+      typeof item.library !== 'string' ||
+      typeof item.key !== 'string' ||
+      typeof item.count !== 'number' ||
+      !Number.isFinite(item.count)
+    ) {
+      continue;
+    }
+    counts.push({ library: item.library, key: item.key, count: item.count });
+  }
+  const hits = counts.filter((item) => item.count > 0);
+  return hits.length > 0 ? hits : null;
+}
+
+/**
+ * 解析 409 `KNOWLEDGE_POINT_IN_USE` 的聚合 `details.counts`。
+ * 形状不认识、缺 `counts` 或全部计数为 0 时返回 null（**不伪造原因清单**）。
  */
 export function parseKnowledgeReferenceCounts(
   details: unknown,
 ): KnowledgePointReferenceCount[] | null {
   if (!isRecord(details) || !Array.isArray(details.counts)) return null;
-  const counts: KnowledgePointReferenceCount[] = [];
-  for (const item of details.counts) {
+  return parseReferenceCountItems(details.counts);
+}
+
+/**
+ * 解析 409 `KNOWLEDGE_POINT_IN_USE` 的 `details.points`（逐节点引用原因）。
+ * 节点缺 `pointId/name/total` 或没有可展示的计数时跳过；全部跳过返回 null。
+ */
+export function parseKnowledgeInUsePoints(details: unknown): KnowledgePointInUsePoint[] | null {
+  if (!isRecord(details) || !Array.isArray(details.points)) return null;
+  const points: KnowledgePointInUsePoint[] = [];
+  for (const item of details.points) {
     if (!isRecord(item)) continue;
-    const library = typeof item.library === 'string' ? item.library : '';
-    const key = typeof item.key === 'string' ? item.key : '';
-    const count = item.count;
-    if (typeof count !== 'number' || !Number.isFinite(count)) continue;
-    counts.push({ library, key, count });
+    if (
+      typeof item.pointId !== 'string' ||
+      typeof item.name !== 'string' ||
+      typeof item.total !== 'number' ||
+      !Number.isFinite(item.total)
+    ) {
+      continue;
+    }
+    const counts = parseReferenceCountItems(item.counts);
+    if (!counts) continue;
+    points.push({ pointId: item.pointId, name: item.name, total: item.total, counts });
   }
-  const hits = counts.filter((item) => item.count > 0);
-  return counts.length > 0 ? hits : null;
+  return points.length > 0 ? points : null;
+}
+
+/** 解析 `details.subtreeSize`（子树节点数，含根）；缺失或非法返回 null。 */
+export function parseKnowledgeSubtreeSize(details: unknown): number | null {
+  if (!isRecord(details)) return null;
+  const value = details.subtreeSize;
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
 }
 
 /** 单条引用计数的可读文案（库名 · 引用键：N 处）。 */
@@ -182,10 +221,6 @@ export function collectResultGradeIds(items: readonly { gradeIds?: string[] }[])
     }
   }
   return ordered;
-}
-
-export function knowledgeStatusLabel(status: KnowledgePointStatus): string {
-  return KNOWLEDGE_STATUS_LABEL[status] ?? String(status);
 }
 
 export function importStateLabel(state: KnowledgeImportState): string {

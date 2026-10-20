@@ -24,7 +24,9 @@ ImportState = Literal[
     "uploaded", "extracting", "needs_review", "failed", "cancelled", "confirmed"
 ]
 SuggestionState = Literal["pending", "applied", "rejected"]
-QuestionStatus = Literal["confirmed", "archived"]
+#: B3（2026-10-20 归档移除）：题目对外只有 ``confirmed`` 一种状态；归档语义已由
+#: 物理删除取代。保留 Literal 形状供仓储校验与旧库读路径容错。
+QuestionStatus = Literal["confirmed"]
 AnswerState = Literal["provided", "not_provided"]
 
 

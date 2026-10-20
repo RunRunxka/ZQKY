@@ -147,7 +147,7 @@ describe('知识点工作台：页签与建立', () => {
         return jsonResponse(true, 201, created);
       },
       'GET /api/v1/knowledge-points/kp-2': () => jsonResponse(true, 200, created),
-      'GET /api/v1/knowledge-points?subjectId=math&status=active&limit=200': () =>
+      'GET /api/v1/knowledge-points?subjectId=math&limit=200': () =>
         jsonResponse(true, 200, { items: [], total: 0, offset: 0, limit: 200 }),
     });
     render(<KnowledgePointsWorkspace />);

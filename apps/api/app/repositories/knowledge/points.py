@@ -173,6 +173,11 @@ def translate_integrity_error(exc: sqlite3.IntegrityError) -> AppError:
 # --------------------------------------------------------------------------- 值校验
 
 
+def _chunks(values: Sequence[str], size: int = 400) -> list[list[str]]:
+    """把 id 列表切成 SQLite 变量数安全的分片（子树删除的 ``IN (...)`` 用）。"""
+    return [list(values[index:index + size]) for index in range(0, len(values), size)]
+
+
 def _text(value: object, *, field: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise invalid(f"{field} 必须是非空字符串。")
@@ -270,6 +275,15 @@ class PointRecord:
     version: int
     aliases: tuple[str, ...]
     created_at: str
+
+
+@dataclass(frozen=True)
+class SubtreeNode:
+    """待删除子树的一个节点（``depth`` 越大越先删，满足自引用父外键）。"""
+
+    point_id: str
+    depth: int
+    name: str
 
 
 @dataclass(frozen=True)
@@ -476,7 +490,11 @@ class KnowledgePointRepository:
         expected_revision: int,
         archived: bool,
     ) -> PointRecord:
-        """归档/恢复：核乐观锁，状态实际变化才 ``revision + 1``（幂等空操作）。"""
+        """**内部/测试专用**：设置知识点状态（公开归档端点已于 2026-10-20 移除）。
+
+        产品路径不再写入 archived；保留此方法用于旧库迁移、回归测试构造历史状态，
+        以及服务层对残留 archived 行的防御性守卫。新代码不得从路由/工具调用它。
+        """
         point_id = _text(point_id, field="point_id")
         target = "archived" if archived else "active"
         current = self.require_point(conn, point_id)
@@ -526,6 +544,86 @@ class KnowledgePointRepository:
             conn.execute("DELETE FROM knowledge_aliases WHERE knowledge_point_id = ?", (point_id,))
             conn.execute("DELETE FROM knowledge_point_revisions WHERE knowledge_point_id = ?", (point_id,))
             conn.execute("DELETE FROM knowledge_points WHERE id = ?", (point_id,))
+            conn.execute(
+                "CREATE TRIGGER IF NOT EXISTS immutable_knowledge_point_revisions_delete "
+                "BEFORE DELETE ON knowledge_point_revisions "
+                "BEGIN SELECT RAISE(ABORT,'IMMUTABLE_REVISION'); END"
+            )
+        except sqlite3.IntegrityError as exc:
+            raise translate_integrity_error(exc) from exc
+
+    def subtree(self, conn: sqlite3.Connection, point_id: str) -> list[SubtreeNode]:
+        """返回该点及其全部后代（含 depth/当前名称），``depth`` 倒序便于自底向上删。"""
+        point_id = _text(point_id, field="point_id")
+        rows = conn.execute(
+            "WITH RECURSIVE subtree(id, depth) AS ("
+            "  SELECT id, 0 FROM knowledge_points WHERE id = ?"
+            "  UNION"
+            "  SELECT kp.id, s.depth + 1 FROM knowledge_points kp"
+            "  JOIN subtree s ON kp.parent_id = s.id"
+            "  WHERE s.depth < 512"
+            ") SELECT s.id AS id, s.depth AS depth, COALESCE(r.name, '') AS name "
+            "FROM subtree s JOIN knowledge_points kp ON kp.id = s.id "
+            "LEFT JOIN knowledge_point_revisions r ON r.id = kp.current_revision_id "
+            "ORDER BY s.depth DESC, s.id ASC",
+            (point_id,),
+        ).fetchall()
+        return [
+            SubtreeNode(point_id=row["id"], depth=int(row["depth"]), name=row["name"] or "")
+            for row in rows
+        ]
+
+    def delete_subtree(
+        self,
+        conn: sqlite3.Connection,
+        point_id: str,
+        *,
+        expected_revision: int,
+        nodes: Sequence[SubtreeNode],
+    ) -> None:
+        """整棵子树物理删除（根节点 CAS；子节点先删以满足自引用父外键）。
+
+        与 ``delete_point`` 的差异：
+        - 先解除 ``knowledge_import_rows.target_knowledge_point_id``（导入预览的隐藏外键，
+          不解除会在 COMMIT 阶段失败）；
+        - 别名/修订/身份行按全部节点批量删除，身份行按 depth 倒序逐条删；
+        - 触发器摘除/恢复与单点删除同一纪律（DDL 可事务化，失败整体回滚）。
+        """
+        point_id = _text(point_id, field="point_id")
+        current = self.require_point(conn, point_id)
+        if current.revision != expected_revision:
+            raise revision_conflict(current.revision)
+        by_id = {node.point_id: node for node in nodes}
+        if point_id not in by_id:
+            raise corrupt("知识点子树缺少根节点。")
+        ordered_ids = [
+            node.point_id
+            for node in sorted(nodes, key=lambda item: item.depth, reverse=True)
+        ]
+        try:
+            for chunk in _chunks(ordered_ids):
+                placeholders = ",".join("?" for _ in chunk)
+                conn.execute(
+                    "UPDATE knowledge_import_rows SET target_knowledge_point_id = NULL "
+                    f"WHERE target_knowledge_point_id IN ({placeholders})",
+                    chunk,
+                )
+            conn.execute(
+                "DROP TRIGGER IF EXISTS immutable_knowledge_point_revisions_delete"
+            )
+            for chunk in _chunks(ordered_ids):
+                placeholders = ",".join("?" for _ in chunk)
+                conn.execute(
+                    f"DELETE FROM knowledge_aliases WHERE knowledge_point_id IN ({placeholders})",
+                    chunk,
+                )
+                conn.execute(
+                    "DELETE FROM knowledge_point_revisions "
+                    f"WHERE knowledge_point_id IN ({placeholders})",
+                    chunk,
+                )
+            for node_id in ordered_ids:
+                conn.execute("DELETE FROM knowledge_points WHERE id = ?", (node_id,))
             conn.execute(
                 "CREATE TRIGGER IF NOT EXISTS immutable_knowledge_point_revisions_delete "
                 "BEFORE DELETE ON knowledge_point_revisions "

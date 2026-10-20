@@ -33,7 +33,6 @@ import type {
   QuestionImportList,
   QuestionList,
   QuestionPatchRequest,
-  QuestionStatus,
   SuggestionView,
 } from '@/contracts/question-bank';
 
@@ -77,7 +76,6 @@ export interface QuestionQuery {
   subjectId?: string;
   gradeId?: string;
   editionId?: string;
-  status?: QuestionStatus;
   q?: string;
   /**
    * 按**正式**知识点关联筛选（后端只匹配当前最新修订上的关联；历史修订不算当前归属）。
@@ -490,7 +488,6 @@ export function listQuestions(
       subjectId: query.subjectId,
       gradeId: query.gradeId,
       editionId: query.editionId,
-      status: query.status,
       q: query.q,
       knowledgePointId: query.knowledgePointId,
       // 难度过滤（C4-2）：归档实现漏传这一个键，题库页的难度下拉会静默失效（R4-FE 修正）
@@ -527,7 +524,12 @@ export function patchQuestion(id: string, body: QuestionPatchRequest): Promise<Q
 }
 
 /**
- * 归档删除题目；`expectedRevision` 是可选查询参数。
+ * **彻底删除**题目（物理删除）；`expectedRevision` 是可选查询参数。
+ *
+ * 同一写事务删除题目、修订、知识点关联、来源与内容指纹，不可恢复；指向本题的草稿
+ * 「重复题」指针置空（草稿与批次历史保留）。
+ * 被审核练习固定题或教案生成冻结输入引用 → 409 `QUESTION_IN_USE`
+ * （`details.counts = {practices, lessonFixedQuestions}`）；乐观锁不符 → 409 `REVISION_CONFLICT`。
  * 后端以 204 应答（无返回体），`apiRequest` 归一为 undefined。
  */
 export function deleteQuestion(id: string, expectedRevision?: number): Promise<void> {

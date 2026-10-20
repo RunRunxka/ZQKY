@@ -203,7 +203,7 @@ export function downloadExportArtifact(
 
 export interface AssessmentQuery {
   classId?: string;
-  state?: 'open' | 'closed' | 'archived';
+  state?: 'open' | 'closed';
   offset?: number;
   limit?: number;
 }
@@ -260,7 +260,7 @@ export function createAssessment(
  * 与 `@/services/assessments-api` 的同名端点同一契约（模块独立维护的最小镜像，见文件头约定）。
  */
 export function listPapers(
-  query: { status?: 'active' | 'archived'; offset?: number; limit?: number } = {},
+  query: { offset?: number; limit?: number } = {},
   signal?: AbortSignal,
 ): Promise<PaperOptionList> {
   return apiRequest<PaperOptionList>(`/papers${learningAnalysisQuery({ ...query })}`, { signal });
@@ -278,7 +278,7 @@ export function listClassStudents(
 }
 
 export function listClasses(
-  query: { status?: 'active' | 'archived'; offset?: number; limit?: number } = {},
+  query: { offset?: number; limit?: number } = {},
   signal?: AbortSignal,
 ): Promise<ClassList> {
   return apiRequest<ClassList>(`/classes${learningAnalysisQuery({ ...query })}`, { signal });

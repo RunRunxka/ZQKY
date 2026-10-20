@@ -285,7 +285,7 @@ def test_create_rejects_empty_and_invalid_date(harness: AssessmentsHarness) -> N
     assert harness.count("assessments") == 0
 
 
-def test_create_rejects_missing_and_archived_class(harness: AssessmentsHarness) -> None:
+def test_create_rejects_missing_and_stale_archived_class(harness: AssessmentsHarness) -> None:
     scene = _scene(harness)
     missing = _body(scene, classIds=["class-does-not-exist"])
     response = _create(harness, scene, missing)
@@ -293,8 +293,12 @@ def test_create_rejects_missing_and_archived_class(harness: AssessmentsHarness) 
     assert response.json()["code"] == PARTICIPANT_INVALID
     assert response.json()["details"]["issues"][0]["field"] == "classIds[0]"
 
+    # 归档端点已移除（B3）：直接写库模拟旧库残留 archived 班级
     archived_class = harness.create_class(code="C-ARCHIVED")
-    harness.archive_class(archived_class["id"], expected_revision=0)
+    harness.raw_execute(
+        "UPDATE classes SET status='archived', revision=revision+1 WHERE id=?",
+        (archived_class["id"],),
+    )
     student = harness.create_student(
         name="王五",
         student_no="0031",

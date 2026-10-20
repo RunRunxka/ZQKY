@@ -61,9 +61,9 @@ export function PapersWorkspacePage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [deleteGuard, setDeleteGuard] = useState<DeleteGuardState | null>(null);
 
-  /** 只取活跃试卷（R10-FE：归档功能已移除，界面不再提供已归档视图）。 */
+  /** 试卷列表（归档功能已移除；服务端不再接受 status 归档筛选）。 */
   const papers = useAsyncResource(
-    (signal) => listPapers({ status: 'active', limit: 200 }, signal),
+    (signal) => listPapers({ limit: 200 }, signal),
     `assessments-papers|${refreshToken}`,
   );
   const taxonomy = useAsyncResource(fetchTextbookTaxonomy, 'assessments-paper-taxonomy');

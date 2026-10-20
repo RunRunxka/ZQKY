@@ -352,14 +352,132 @@ def test_delete_guarded_by_question_bank_links(harness: DeleteHarness) -> None:
     assert harness.client.get(f"/api/v1/knowledge-points/{point['id']}").status_code == 200
 
 
-def test_delete_guarded_by_child_points(harness: DeleteHarness) -> None:
+def test_delete_parent_cascades_subtree(harness: DeleteHarness) -> None:
+    """父节点删除 = 整棵子树物理删除（用户 2026-10-20 裁定）。"""
     parent = harness.create_point(code="M7-GP", name="父")
-    harness.create_point(code="M7-GC", name="子", parentId=parent["id"])
+    child = harness.create_point(code="M7-GC", name="子", parentId=parent["id"])
+    grandchild = harness.create_point(code="M7-GG", name="孙", parentId=child["id"])
+
+    deleted = harness.delete(parent["id"], expected_revision=0)
+    assert deleted.status_code == 204, deleted.text
+    for point in (parent, child, grandchild):
+        assert harness.client.get(f"/api/v1/knowledge-points/{point['id']}").status_code == 404
+    assert harness.counts("knowledge_points", harness.catalog.db_path) == 0
+    assert harness.counts("knowledge_point_revisions", harness.catalog.db_path) == 0
+
+
+def test_delete_subtree_blocked_by_child_reference(harness: DeleteHarness) -> None:
+    """子树中任一节点被引用 → 409，details.points 点名该子节点。"""
+    parent = harness.create_point(code="M7-GP2", name="父")
+    child = harness.create_point(code="M7-GC2", name="子", parentId=parent["id"])
+    harness.add_textbook_link(child, revision_id="rev-child")
+
     response = harness.delete(parent["id"], expected_revision=0)
     assert response.status_code == 409
     body = response.json()
     assert body["code"] == "KNOWLEDGE_POINT_IN_USE"
-    assert "子节点" in body["message"]
+    details = body["details"]
+    assert details["subtreeSize"] == 2
+    blocked = {item["pointId"]: item for item in details["points"]}
+    assert set(blocked) == {child["id"]}
+    assert blocked[child["id"]]["name"] == "子"
+    counts = {item["key"]: item["count"] for item in blocked[child["id"]]["counts"]}
+    assert counts["textbookKnowledgeLinks"] == 1
+    # 数据不乱：父子都还在
+    assert harness.client.get(f"/api/v1/knowledge-points/{parent['id']}").status_code == 200
+    assert harness.client.get(f"/api/v1/knowledge-points/{child['id']}").status_code == 200
+
+
+def test_delete_clears_import_row_target(harness: DeleteHarness) -> None:
+    """导入预览行的 target 外键不再是删除死路：同事务置 NULL 后删除成功。"""
+    point = harness.create_point(code="M7-IMP", name="导入命中点")
+    import_id = uuid.uuid4().hex
+    with harness.catalog.write_transaction() as conn:
+        conn.execute(
+            "INSERT INTO knowledge_imports (id, source, subject_id, file_asset_id, "
+            "created_at, updated_at) VALUES (?, 'file', 'math', 'blob-1', "
+            "'2026-10-20T00:00:00Z', '2026-10-20T00:00:00Z')",
+            (import_id,),
+        )
+        conn.execute(
+            "INSERT INTO knowledge_import_rows (import_id, row_no, name, code, "
+            "target_knowledge_point_id) VALUES (?, 1, '导入行', 'X1', ?)",
+            (import_id, point["id"]),
+        )
+
+    deleted = harness.delete(point["id"], expected_revision=0)
+    assert deleted.status_code == 204, deleted.text
+    connection = sqlite3.connect(harness.catalog.db_path)
+    try:
+        row = connection.execute(
+            "SELECT target_knowledge_point_id FROM knowledge_import_rows WHERE import_id = ?",
+            (import_id,),
+        ).fetchone()
+        assert row is not None and row[0] is None
+    finally:
+        connection.close()
+
+
+def test_reference_checker_late_binding_resolves_catalogs() -> None:
+    """知识域先装配：provider 在调用时解析 teaching/question_bank，而不是构造时。"""
+    from app.services.knowledge.references import CrossLibraryReferenceChecker
+
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        harness = DeleteHarness(Path(tmp))
+        try:
+            point = harness.create_point(code="M7-LATE", name="晚绑定")
+            state: dict[str, object | None] = {"teaching": None, "question_bank": None}
+            checker = CrossLibraryReferenceChecker(
+                knowledge_catalog=harness.catalog,
+                teaching_catalog_provider=lambda: state["teaching"],
+                question_bank_catalog_provider=lambda: state["question_bank"],
+            )
+            assert checker.count_references(point["id"]).total == 0
+
+            state["teaching"] = harness.teaching
+            state["question_bank"] = harness.question_bank
+            harness.teaching_exec(
+                "INSERT INTO paper_item_knowledge (item_id, paper_revision_id, knowledge_point_id, "
+                "knowledge_revision_id, knowledge_name_snapshot, role, source) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (f"item-{uuid.uuid4().hex[:8]}", f"paperrev-{uuid.uuid4().hex[:8]}",
+                 point["id"], point["revisionId"], "知识点 M7-LATE", "primary", "human"),
+            )
+            assert checker.count_references(point["id"]).paper_items == 1
+        finally:
+            harness.close()
+
+
+def test_build_reference_checker_uses_late_binding() -> None:
+    """真实装配函数也必须晚绑定（生产 main.py 的域装配顺序）。"""
+    from app.services.knowledge.assembly import _build_reference_checker
+
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        harness = DeleteHarness(Path(tmp))
+        try:
+            class _App:
+                def __init__(self) -> None:
+                    self.state = type("_State", (), {})()
+                    self.state.knowledge = harness.catalog
+
+            app = _App()
+            checker = _build_reference_checker(app)
+            point = harness.create_point(code="M7-LATE2", name="装配晚绑定")
+            assert checker.count_references(point["id"]).total == 0
+
+            app.state.teaching = harness.teaching
+            harness.teaching_exec(
+                "INSERT INTO paper_item_knowledge (item_id, paper_revision_id, knowledge_point_id, "
+                "knowledge_revision_id, knowledge_name_snapshot, role, source) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (f"item-{uuid.uuid4().hex[:8]}", f"paperrev-{uuid.uuid4().hex[:8]}",
+                 point["id"], point["revisionId"], "知识点 M7-LATE2", "primary", "human"),
+            )
+            assert checker.count_references(point["id"]).paper_items == 1
+        finally:
+            harness.close()
 
 
 # --------------------------------------------------------------------------- 404 / 乐观锁 / 端口缺失

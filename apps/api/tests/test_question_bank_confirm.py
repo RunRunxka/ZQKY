@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import copy
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -536,7 +537,7 @@ def test_question_list_filters_and_pagination(harness: Harness) -> None:
     assert too_many.json()["code"] == "INVALID_REQUEST"
 
 
-def test_question_patch_and_archive(harness: Harness) -> None:
+def test_question_patch_and_delete(harness: Harness) -> None:
     import_id, draft = upload_and_review(harness, ONE_QUESTION_DOC)
     created = confirm(
         harness,
@@ -576,33 +577,58 @@ def test_question_patch_and_archive(harness: Harness) -> None:
     assert stale.status_code == 409
     assert stale.json()["code"] == "REVISION_CONFLICT"
 
-    # 归档（逻辑删除）：不物理删除
-    archived = harness.client.delete(
+    # 物理删除（B3 归档移除）：题目、修订、来源、关联、指纹全部移除
+    deleted = harness.client.delete(
         f"/api/v1/questions/{question_id}", params={"expectedRevision": 2}
     )
-    assert archived.status_code == 204
-    detail = harness.client.get(f"/api/v1/questions/{question_id}").json()
-    assert detail["status"] == "archived"
-    assert detail["content"]["stemMarkdown"] == "修改后的题干（ ）"
-    assert questions(harness)["total"] == 0
-    assert questions(harness, status="archived")["total"] == 1
-    assert questions(harness, status="all")["total"] == 1
-
-    # 已归档题目不能继续编辑
-    blocked = harness.client.patch(
-        f"/api/v1/questions/{question_id}",
-        json={
-            "expectedRevision": 2,
-            "content": edited,
-            "metadata": current["metadata"],
-        },
-    )
-    assert blocked.status_code == 409
-    assert blocked.json()["code"] == "QUESTION_ARCHIVED"
-
-    missing = harness.client.get("/api/v1/questions/nope")
+    assert deleted.status_code == 204, deleted.text
+    missing = harness.client.get(f"/api/v1/questions/{question_id}")
     assert missing.status_code == 404
     assert missing.json()["code"] == "QUESTION_NOT_FOUND"
+    assert questions(harness)["total"] == 0
+    assert questions(harness, status="all")["total"] == 0
+    # 库行清零：题目/修订/来源/指纹/关联；任务历史与批次记录保留
+    connection = sqlite3.connect(harness.catalog.db_path)
+    try:
+        for table in (
+            "questions",
+            "question_revisions",
+            "question_sources",
+            "question_content_fingerprints",
+            "question_knowledge_links",
+        ):
+            remaining = connection.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+            assert remaining == 0, f"{table} 仍有 {remaining} 行"
+        assert connection.execute("SELECT COUNT(*) FROM question_submissions").fetchone()[0] > 0
+    finally:
+        connection.close()
+    # 触发器逐字恢复：不可变关联守卫仍生效（先造题目/修订/关联行，再核对 DELETE 被拒）
+    with harness.catalog.write_transaction() as conn:
+        conn.execute(
+            "INSERT INTO questions (id, owner_id, current_revision_id, status, created_at) "
+            "VALUES ('q-t', 'local-user', 'r-t', 'confirmed', '2026-01-01T00:00:00Z')"
+        )
+        conn.execute(
+            "INSERT INTO question_revisions (id, question_id, content_json, metadata_json, "
+            "answer_state, content_fingerprint, confirmed_at) VALUES ('r-t', 'q-t', '{}', '{}', "
+            "'provided', 'f', '2026-01-01T00:00:00Z')"
+        )
+        conn.execute(
+            "UPDATE questions SET current_revision_id='r-t' WHERE id='q-t'"
+        )
+        conn.execute(
+            "INSERT INTO question_knowledge_links (question_revision_id, knowledge_point_id, "
+            "knowledge_revision_id, subject_id_snapshot, knowledge_name_snapshot, role) VALUES "
+            "('r-t', 'kp-t', 'kpr-t', 'math', '点', 'primary')"
+        )
+        with pytest.raises(sqlite3.DatabaseError, match="IMMUTABLE_REVISION"):
+            conn.execute("DELETE FROM question_knowledge_links WHERE question_revision_id = 'r-t'")
+
+    missing_delete = harness.client.delete(
+        "/api/v1/questions/nope", params={"expectedRevision": 0}
+    )
+    assert missing_delete.status_code == 404
+    assert missing_delete.json()["code"] == "QUESTION_NOT_FOUND"
 
 
 # -------------------------------------------------------------------------- 10

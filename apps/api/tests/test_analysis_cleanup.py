@@ -262,14 +262,19 @@ async def test_delete_blocked_by_frozen_lesson_generation_inputs(tmp_path):
         assert conn.execute("SELECT count(*) FROM lesson_generation_inputs").fetchone()[0] == 1
 
 
-# --------------------------------------------------------------------------- 归档可删
+# --------------------------------------------------------------------------- 残留归档可删
 
 
-async def test_delete_archived_run(tmp_path):
-    """已归档（archived_at 非空）的报告同样可彻底删除。"""
+async def test_delete_stale_archived_run(tmp_path):
+    """残留 archived_at 非空的报告（模拟旧库）同样可彻底删除；服务层已无 set_archived。"""
     scene = AnalysisScene(tmp_path)
     receipt = await scene.ready()
-    scene.service.set_archived(receipt.run_id, None, archived=True)
+    assert not hasattr(scene.service, "set_archived")
+    with scene.catalog.write_transaction() as conn:
+        conn.execute(
+            "UPDATE analysis_runs SET archived_at='2020-01-01T00:00:00Z' WHERE id=?",
+            (receipt.run_id,),
+        )
     assert scene.service.get_run(receipt.run_id).archived_at is not None
     result = scene.service.delete_run(receipt.run_id)
     assert result.deleted is True

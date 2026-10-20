@@ -329,11 +329,6 @@ def test_list_pagination_and_filters(harness: KnowledgeHarness) -> None:
     ).json()
     assert [item["code"] for item in by_name["items"]] == ["M7-C"]
 
-    archived_view = harness.client.get(
-        "/api/v1/knowledge-points", params={"subjectId": "math", "status": "archived"}
-    ).json()
-    assert archived_view["total"] == 0
-
     too_large = harness.client.get("/api/v1/knowledge-points", params={"limit": 201})
     assert too_large.status_code == 422
     assert too_large.json()["code"] == "INVALID_REQUEST"
@@ -571,47 +566,22 @@ def test_parent_trigger_backstop_reports_same_details_shape(
     assert harness.point(first["id"])["parentId"] is None
 
 
-def test_archived_point_rejects_new_references_and_restore_allows(
-    harness: KnowledgeHarness,
-) -> None:
-    parent = harness.create_point(code="P", name="父")
-    archived = harness.client.post(
-        f"/api/v1/knowledge-points/{parent['id']}/archive",
-        json={"expectedRevision": 0},
-    )
-    assert archived.status_code == 200, archived.text
-    assert archived.json()["status"] == "archived"
-    assert archived.json()["revision"] == 1
-
-    child = harness.client.post(
-        "/api/v1/knowledge-points",
-        json={"subjectId": "math", "code": "C", "name": "子", "parentId": parent["id"]},
-    )
-    assert child.status_code == 409
-    assert child.json()["code"] == "KNOWLEDGE_ARCHIVED"
-
-    link = harness.client.post(
-        f"/api/v1/knowledge-points/{parent['id']}/textbook-links",
-        json={
-            "expectedRevision": 1,
-            "documentRevisionId": "rev-1",
-            "charStart": 0,
-            "charEnd": 10,
-        },
-    )
-    assert link.status_code == 409
-    assert link.json()["code"] == "KNOWLEDGE_ARCHIVED"
-
-    restored = harness.client.post(
-        f"/api/v1/knowledge-points/{parent['id']}/restore", json={"expectedRevision": 1}
-    )
-    assert restored.status_code == 200
-    assert restored.json()["status"] == "active"
-    ok = harness.client.post(
-        "/api/v1/knowledge-points",
-        json={"subjectId": "math", "code": "C", "name": "子", "parentId": parent["id"]},
-    )
-    assert ok.status_code == 201, ok.text
+def test_archive_restore_endpoints_were_removed(harness: KnowledgeHarness) -> None:
+    """2026-10-20 用户裁定：知识点不再有归档/恢复功能（删除即删除）。"""
+    point = harness.create_point(code="P", name="归档端点已移除")
+    before = harness.point(point["id"])
+    for action in ("archive", "restore"):
+        response = harness.client.post(
+            f"/api/v1/knowledge-points/{point['id']}/{action}",
+            json={"expectedRevision": 0},
+        )
+        assert response.status_code in (404, 501), response.text
+        assert response.json()["code"] in (
+            "FEATURE_NOT_IMPLEMENTED",
+            "ARCHIVE_ENDPOINT_REMOVED",
+        )
+    after = harness.point(point["id"])
+    assert after["status"] == "active" and after["revision"] == before["revision"]
 
 
 # --------------------------------------------------------------------------- 别名

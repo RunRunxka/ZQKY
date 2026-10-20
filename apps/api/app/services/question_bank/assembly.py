@@ -113,6 +113,10 @@ def _build_question_bank_service(app: FastAPI, settings: Settings) -> None:
             model_config_repo=app.state.model_config_repo,
             secret_store=app.state.secret_store,
             model_auth_service=getattr(app.state, "model_auth_service", None),
+            # B3 物理删除引用守卫：教学库只读入口（题目被审核练习/教案冻结输入引用
+            # 时 409 QUESTION_IN_USE）。教学域在题库之后装配，注入零参延迟读取，
+            # 删除时再解析 app.state.teaching。
+            teaching_catalog=lambda: getattr(app.state, "teaching", None),
         )
     except Exception as exc:  # pragma: no cover - 服务构建失败如实降级
         app.state.question_bank_service = None

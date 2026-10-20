@@ -395,14 +395,18 @@ describe('题库首页：题目行操作', () => {
     expect(within(dialog).getByLabelText('题干')).toHaveValue('下列各数中，是负数的有？');
   });
 
-  it('「删除」二次确认后带 expectedRevision 归档删除，并刷新列表', async () => {
+  it('「删除」二次确认后带 expectedRevision 彻底删除，并刷新列表', async () => {
     const fetchMock = router({ 'DELETE /api/v1/questions/q-1': () => jsonResponse(true, 204, null) });
-    vi.stubGlobal('confirm', vi.fn(() => true));
+    const confirmSpy = vi.fn(() => true);
+    vi.stubGlobal('confirm', confirmSpy);
     render(<QuestionBankWorkspace />);
     await screen.findByText(/下列各数中，是负数的有/);
 
     fireEvent.click(screen.getByRole('button', { name: '删除题目 下列各数中，是负数的有？' }));
 
+    // 二次确认文案写明物理删除、不可恢复
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('物理删除'));
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringContaining('不可恢复'));
     await waitFor(() => expect(calls(fetchMock, '/questions/q-1', 'DELETE')).toHaveLength(1));
     expect(String(calls(fetchMock, '/questions/q-1', 'DELETE')[0][0])).toBe(
       '/api/v1/questions/q-1?expectedRevision=2',
@@ -411,6 +415,30 @@ describe('题库首页：题目行操作', () => {
     await waitFor(() =>
       expect(calls(fetchMock, '/questions?offset=0&limit=20', 'GET').length).toBeGreaterThan(1),
     );
+  });
+
+  it('409 QUESTION_IN_USE：展示练习/教案引用计数与解锁路径，不当作已删除', async () => {
+    const fetchMock = router({
+      'DELETE /api/v1/questions/q-1': () =>
+        jsonResponse(false, 409, {
+          code: 'QUESTION_IN_USE',
+          message: '题目仍被教学链引用，不能删除。',
+          retryable: false,
+          details: { counts: { practices: 2, lessonFixedQuestions: 1 } },
+        }),
+    });
+    vi.stubGlobal('confirm', vi.fn(() => true));
+    render(<QuestionBankWorkspace />);
+    await screen.findByText(/下列各数中，是负数的有/);
+
+    fireEvent.click(screen.getByRole('button', { name: '删除题目 下列各数中，是负数的有？' }));
+
+    const blocked = await screen.findByTestId('qb-question-delete-blocked');
+    expect(blocked).toHaveTextContent('审核练习固定题：2 条');
+    expect(blocked).toHaveTextContent('教案生成冻结输入：1 条');
+    expect(blocked).toHaveTextContent('先删除引用它的练习/教案');
+    expect(calls(fetchMock, '/questions/q-1', 'DELETE')).toHaveLength(1);
+    expect(screen.getByText(/下列各数中，是负数的有/)).toBeInTheDocument();
   });
 
   it('删除取消时不发请求；删除失败原样显示原因且列表保留', async () => {

@@ -114,19 +114,18 @@ class PracticeService:
 
     @staticmethod
     def _guard_archived(status):
-        """归档练习集只读：所有写路径在恢复前一律拒绝；读取不受影响。"""
+        """残留归档练习集只读兜底（B3 归档移除）：写路径一律拒绝。
+
+        归档/恢复入口已移除（删除即删除）；归一化脚本把残留 ``status='archived'``
+        行转为 active。在此之前这些行保持只读，文案指向归一化脚本。
+        """
         if status == "archived":
-            raise AppError("练习已归档，不能修改或导出；请先恢复练习。", code="PRACTICE_ARCHIVED", status_code=409)
+            raise AppError(
+                "练习已标记移除（残留归档数据，请先运行归一化脚本），不能修改或导出。",
+                code="PRACTICE_ARCHIVED", status_code=409)
 
     def get_practice(self, set_id):
         with self.catalog.read_connection() as conn:
-            return self._set_view(conn, set_id)
-
-    def set_archived(self, set_id, payload, *, archived):
-        """归档/恢复练习集：只改 status 并递增 revision；修订与历史原样保留。"""
-        with self.catalog.write_transaction() as conn:
-            practice = self.repo.set_archived_in(conn, set_id, self.owner_id,
-                expected_revision=payload.expected_revision, archived=archived)
             return self._set_view(conn, set_id)
 
     def delete_practice(self, set_id, payload, *, include_history=False):
@@ -209,8 +208,10 @@ class PracticeService:
 
     def list_practices(self, *, analysis_run_id=None, status=None, offset=0, limit=50):
         page(offset, limit)
-        if status is not None and status not in ("active", "archived"):
-            raise invalid("status 只能是 active 或 archived。", "status")
+        # B3 归档移除：公开过滤只剩 active（archived 行只可能来自旧库残留，
+        # 由归一化脚本清理；列表默认全部可见，不给 archived 开过滤入口）。
+        if status is not None and status != "active":
+            raise invalid("status 只能是 active。", "status")
         with self.catalog.read_connection() as conn:
             conditions = ["owner_id=?"]
             args = [self.owner_id]
@@ -240,10 +241,11 @@ class PracticeService:
             return b4.PracticeSetView.model_validate(replay)
         self._constraints(body.constraints)
         report = self.analysis.read_ready_report(body.analysis_run_id, owner_id=self.owner_id)
-        # 归档报告只读：既有练习不受影响，但不允许据此**新建**练习（恢复后可新建）
+        # B3 归档移除：残留归档报告（旧库 archived_at 非空）按只读兜底拒绝新建练习，
+        # 文案指向归一化脚本；归一化后此分支不可达。
         if report.get("archivedAt") is not None:
             raise AppError(
-                "该学情报告已归档，不能用于新建练习；请先恢复报告。",
+                "该学情报告状态异常（残留归档数据，请先运行归一化脚本），不能用于新建练习。",
                 code="ANALYSIS_RUN_ARCHIVED",
                 status_code=409,
             )

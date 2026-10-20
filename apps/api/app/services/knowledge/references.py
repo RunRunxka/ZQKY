@@ -22,6 +22,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Protocol
 
@@ -88,7 +89,12 @@ def in_use_error(counts: ReferenceCounts) -> AppError:
 
 
 class CrossLibraryReferenceChecker:
-    """跨库引用计数真实实现：三个库路径在装配时注入，每次调用只读打开。"""
+    """跨库引用计数真实实现：三个库路径在装配时注入，每次调用只读打开。
+
+    teaching/question_bank 支持**晚绑定 provider**：知识点的装配顺序早于这两个域，
+    构造时它们还不存在；provider 在 ``count_references`` 调用时再从 ``app.state``
+    解析，避免生产环境把引用检查器永久固定成 ``None``（守卫失效）。
+    """
 
     def __init__(
         self,
@@ -96,10 +102,24 @@ class CrossLibraryReferenceChecker:
         knowledge_catalog: Any,
         teaching_catalog: Any | None = None,
         question_bank_catalog: Any | None = None,
+        teaching_catalog_provider: Callable[[], Any | None] | None = None,
+        question_bank_catalog_provider: Callable[[], Any | None] | None = None,
     ) -> None:
         self._knowledge = knowledge_catalog
         self._teaching = teaching_catalog
         self._question_bank = question_bank_catalog
+        self._teaching_provider = teaching_catalog_provider
+        self._question_bank_provider = question_bank_catalog_provider
+
+    def _resolve_teaching(self) -> Any | None:
+        if self._teaching_provider is not None:
+            return self._teaching_provider()
+        return self._teaching
+
+    def _resolve_question_bank(self) -> Any | None:
+        if self._question_bank_provider is not None:
+            return self._question_bank_provider()
+        return self._question_bank
 
     def count_references(self, point_id: str) -> ReferenceCounts:
         """清点知识点库 / 教学库 / 题库对该点的全部引用（只读，无连接共享）。"""
@@ -130,9 +150,10 @@ class CrossLibraryReferenceChecker:
 
         教学库未装配（隔离部署）时按 0 处理：没有库就没有引用，不伪造"被引用"。
         """
-        if self._teaching is None:
+        teaching = self._resolve_teaching()
+        if teaching is None:
             return 0
-        conn = open_readonly(self._teaching.db_path, required_tables=_TEACHING_REQUIRED)
+        conn = open_readonly(teaching.db_path, required_tables=_TEACHING_REQUIRED)
         try:
             row = conn.execute(
                 "SELECT COUNT(*) AS total FROM paper_item_knowledge "
@@ -147,9 +168,10 @@ class CrossLibraryReferenceChecker:
 
     def _count_question_links(self, point_id: str) -> int:
         """题库正式关联数：question_knowledge_links 引用本点的行（不可变表）。"""
-        if self._question_bank is None:
+        question_bank = self._resolve_question_bank()
+        if question_bank is None:
             return 0
-        conn = open_readonly(self._question_bank.db_path, required_tables=_QUESTION_BANK_REQUIRED)
+        conn = open_readonly(question_bank.db_path, required_tables=_QUESTION_BANK_REQUIRED)
         try:
             row = conn.execute(
                 "SELECT COUNT(*) AS total FROM question_knowledge_links "
@@ -162,9 +184,10 @@ class CrossLibraryReferenceChecker:
 
     def _count_question_draft_links(self, point_id: str) -> int:
         """题库草稿关联数：question_draft_knowledge_links 引用本点的行。"""
-        if self._question_bank is None:
+        question_bank = self._resolve_question_bank()
+        if question_bank is None:
             return 0
-        conn = open_readonly(self._question_bank.db_path, required_tables=_QUESTION_BANK_REQUIRED)
+        conn = open_readonly(question_bank.db_path, required_tables=_QUESTION_BANK_REQUIRED)
         try:
             row = conn.execute(
                 "SELECT COUNT(*) AS total FROM question_draft_knowledge_links "

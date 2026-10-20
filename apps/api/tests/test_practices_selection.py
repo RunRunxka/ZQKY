@@ -141,7 +141,8 @@ async def test_review_ref_archive_and_replay_before_activity(scene):
     q=scene.question()
     practice=scene.save(scene.create_set(),[scene.item(q)])
     reviewed=scene.review(practice)
-    scene.questions.archive_question(q.question_id)
+    with scene.questions.write_transaction() as conn:
+        conn.execute("UPDATE questions SET status='archived' WHERE id=?", (q.question_id,))
     assert scene.review(practice).replayed is True
     new=scene.service.new_revision(reviewed.practice_set_id,b4.PracticeRevisionRequest(submissionId="copy",sourceRevisionId=reviewed.current_revision.practice_revision_id))
     assert new.current_revision.items and new.current_revision.state=="draft"

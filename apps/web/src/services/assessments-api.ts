@@ -83,7 +83,6 @@ function jsonInit(method: string, body: unknown): RequestInit {
 /* ------------------------------------------------------------------ 班级 */
 
 export interface ClassQuery {
-  status?: 'active' | 'archived';
   offset?: number;
   limit?: number;
 }
@@ -91,7 +90,6 @@ export interface ClassQuery {
 export function listClasses(query: ClassQuery = {}, signal?: AbortSignal): Promise<ClassList> {
   return apiRequest<ClassList>(
     `/classes${assessmentsQuery({
-      status: query.status,
       offset: query.offset,
       limit: query.limit,
     })}`,
@@ -250,7 +248,6 @@ export function discardRosterImport(
 /* ------------------------------------------------------------------ 试卷 */
 
 export interface PaperQuery {
-  status?: 'active' | 'archived';
   offset?: number;
   limit?: number;
 }
@@ -258,7 +255,6 @@ export interface PaperQuery {
 export function listPapers(query: PaperQuery = {}, signal?: AbortSignal): Promise<PaperList> {
   return apiRequest<PaperList>(
     `/papers${assessmentsQuery({
-      status: query.status,
       offset: query.offset,
       limit: query.limit,
     })}`,

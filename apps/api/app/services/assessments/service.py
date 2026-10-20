@@ -83,7 +83,6 @@ from app.contracts.teaching_loop import ErrorIssue, error_details
 from app.core.exceptions import AppError
 from app.core.sqlite import now_iso
 from app.repositories.teaching.assessments import (
-    ASSESSMENT_STATES,
     DEFAULT_OWNER_ID,
     MAX_LIST_LIMIT,
     AssessmentRecord,
@@ -186,10 +185,14 @@ def _paper_invalid(message: str) -> AppError:
 
 
 def _reject_archived_assessment(record: AssessmentRecord) -> None:
-    """归档施测只读：更新/补录/出勤校正在恢复前一律拒绝（历史与成绩不动）。"""
+    """残留归档施测只读兜底（B3 归档移除）：更新/补录/出勤校正一律拒绝。
+
+    归档/恢复入口已移除（删除即删除）；归一化脚本把残留 ``state='archived'`` 行
+    转为 ``closed``。在此之前这些行保持只读，文案指向归一化脚本。
+    """
     if record.state == "archived":
         raise AppError(
-            "施测已归档，不能修改或补录；请先恢复施测。",
+            "施测状态异常（残留归档数据，请先运行归一化脚本），不能修改或补录。",
             code=ASSESSMENT_ARCHIVED,
             status_code=409,
         )
@@ -413,9 +416,11 @@ class AssessmentService:
         subject = _optional_filter(subject_id, field="subjectId")
         class_filter = _optional_filter(class_id, field="classId")
         state_filter = _optional_filter(state, field="state")
-        if state_filter is not None and state_filter not in ASSESSMENT_STATES:
+        # B3 归档移除：公开过滤只剩 open/closed（archived 行只可能来自旧库残留，
+        # 由归一化脚本转 closed；列表默认全部可见，不给 archived 开过滤入口）。
+        if state_filter is not None and state_filter not in ("open", "closed"):
             raise _invalid(
-                "state 只能是 open / closed / archived。", fields=["state"]
+                "state 只能是 open / closed。", fields=["state"]
             )
         with self._catalog.read_connection() as conn:
             records, total = self._assessments.list_in(
@@ -524,24 +529,6 @@ class AssessmentService:
         return result.model_dump(by_alias=True)
 
     # ---------------------------------------------------------------- 更新
-
-    def set_archived(
-        self, assessment_id: str, payload: AssessmentRevisionRequest, *, archived: bool
-    ) -> AssessmentView:
-        """归档/恢复施测：归档后不可更新/补录/出勤校正，也不能新建成绩导入与报告。
-
-        只改 ``assessments.state`` 并原子递增 revision；参测人次、成绩修订、
-        学情报告与练习一律保留（归档仍可读，恢复即可继续）。
-        """
-        assessment_id = _text(assessment_id, field="assessmentId")
-        with self._catalog.write_transaction() as conn:
-            record = self._assessments.require_in(conn, assessment_id)
-            if record.revision != payload.expected_revision:
-                raise _stale(record.revision)
-            record = self._assessments.set_state_in(
-                conn, assessment_id, state="archived" if archived else "open"
-            )
-        return record.view()
 
     def update_assessment(
         self, assessment_id: str, payload: AssessmentUpdateRequest

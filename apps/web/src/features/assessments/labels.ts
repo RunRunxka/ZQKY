@@ -9,7 +9,7 @@
  */
 
 import type { ErrorIssue } from '@/contracts/api';
-import type { PaperItemView, PaperRevisionState, PaperStatus } from '@/contracts/papers';
+import type { PaperItemView, PaperRevisionState } from '@/contracts/papers';
 import type { StudentView } from '@/contracts/roster';
 
 /* ------------------------------------------------------------------ 分数文本 */
@@ -27,15 +27,6 @@ export function formatScoreUnits(units: number | null | undefined): string {
 }
 
 /* ------------------------------------------------------------------ 状态文案 */
-
-const PAPER_STATUS_LABELS: Record<PaperStatus, string> = {
-  active: '启用',
-  archived: '已归档',
-};
-
-export function paperStatusLabel(status: PaperStatus): string {
-  return PAPER_STATUS_LABELS[status] ?? status;
-}
 
 const PAPER_REVISION_STATE_LABELS: Record<PaperRevisionState, string> = {
   draft: '草稿（不可用于施测）',

@@ -184,7 +184,7 @@ export function PaperImportReview({
   const knowledge = useAsyncResource(
     (signal) =>
       listKnowledgePoints(
-        { subjectId: revision.subjectId, status: 'active', q: knowledgeSearch, limit: 200 },
+        { subjectId: revision.subjectId, q: knowledgeSearch, limit: 200 },
         signal,
       ),
     `paper-knowledge|${revision.subjectId}|${knowledgeSearch}`,

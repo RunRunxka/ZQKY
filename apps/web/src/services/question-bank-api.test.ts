@@ -521,14 +521,13 @@ describe('已入库题目', () => {
       subjectId: 'math',
       gradeId: 'grade-7',
       editionId: 'renjiao',
-      status: 'confirmed',
       q: '二次函数',
       offset: 0,
       limit: 20,
     });
 
     expect(call(fetchMock).url).toBe(
-      `${API_BASE_PATH}/questions?subjectId=math&gradeId=grade-7&editionId=renjiao&status=confirmed&q=%E4%BA%8C%E6%AC%A1%E5%87%BD%E6%95%B0&offset=0&limit=20`,
+      `${API_BASE_PATH}/questions?subjectId=math&gradeId=grade-7&editionId=renjiao&q=%E4%BA%8C%E6%AC%A1%E5%87%BD%E6%95%B0&offset=0&limit=20`,
     );
   });
 

@@ -11,7 +11,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { useEntrance } from '@/components/motion/useEntrance';
-import type { KnowledgePointStatus, KnowledgePointView } from '@/contracts/knowledge';
+import type { KnowledgePointView } from '@/contracts/knowledge';
 import '@/components/layout/space.css';
 import '@/features/knowledge-points/styles/knowledge-points.css';
 import { fetchTextbookTaxonomy } from '@/services/textbook-api';
@@ -53,7 +53,6 @@ export function KnowledgePointsWorkspace({
 
   const [tab, setTab] = useState<Tab>('points');
   const [subjectId, setSubjectId] = useState('');
-  const [status, setStatus] = useState<'' | KnowledgePointStatus>('');
   const [listRefresh, setListRefresh] = useState(0);
   const [selectedPointId, setSelectedPointId] = useState<string | null>(null);
   const [selectedPoint, setSelectedPoint] = useState<KnowledgePointView | null>(null);
@@ -73,8 +72,7 @@ export function KnowledgePointsWorkspace({
       prev &&
       prev.id === next.id &&
       prev.revision === next.revision &&
-      prev.version === next.version &&
-      prev.status === next.status
+      prev.version === next.version
         ? prev
         : next,
     );
@@ -129,10 +127,8 @@ export function KnowledgePointsWorkspace({
               taxonomyReady={taxonomy.state.phase === 'ready'}
               grades={grades}
               subjectId={subjectId}
-              status={status}
               selectedPointId={selectedPointId}
               onSubjectChange={setSubjectId}
-              onStatusChange={setStatus}
               onSelect={(pointId) => setSelectedPointId(pointId)}
               onCreate={() => setCreateOpen(true)}
               refreshToken={listRefresh}

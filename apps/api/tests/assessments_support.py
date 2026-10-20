@@ -98,14 +98,6 @@ class AssessmentsHarness:
         assert response.status_code == 201, response.text
         return response.json()
 
-    def archive_class(self, class_id: str, *, expected_revision: int) -> dict[str, Any]:
-        response = self.client.post(
-            f"/api/v1/classes/{class_id}/archive",
-            json={"expectedRevision": expected_revision},
-        )
-        assert response.status_code == 200, response.text
-        return response.json()
-
     def create_student(
         self,
         *,

@@ -2,7 +2,11 @@
 
 /**
  * 已入库题目详情（抽屉）：全文 / 答案 / 解析 / 分类 / 来源，支持带乐观锁的编辑与
- * 归档删除（二次确认）。409 冲突保留用户输入，展示服务端最新内容并给出两个明确动作。
+ * 彻底删除（二次确认）。409 冲突保留用户输入，展示服务端最新内容并给出两个明确动作。
+ *
+ * 彻底删除（2026-10-20 去归档）：物理删除题目、修订、知识点关联、来源与内容指纹，不可恢复；
+ * 被审核练习固定题 / 教案生成冻结输入引用时 409 `QUESTION_IN_USE`，界面逐项展示 counts 并
+ * 提示先删除引用它的练习/教案——不提供归档兜底。
  *
  * F10-QB 增量：
  * - **知识点关联**可查看与更新（整表替换；未改动时不发送、服务端沿用旧关联，界面明说）；
@@ -35,7 +39,15 @@ import {
   type KnowledgeLinkView,
   type LinkIssueLocation,
 } from './knowledge-links';
-import { ANSWER_STATE_LABEL, difficultyLabel, formatDateTime, questionStemSummary } from './labels';
+import {
+  ANSWER_STATE_LABEL,
+  difficultyLabel,
+  formatDateTime,
+  parseQuestionInUseCounts,
+  QUESTION_IN_USE_CODE,
+  questionStemSummary,
+  type QuestionInUseCount,
+} from './labels';
 import { KnowledgeLinksPanel } from './KnowledgeLinksPanel';
 import { QuestionPreview } from './QuestionPreview';
 import { aiSourceTraceOf, aiSourceTraceText, aiSourceTraceUnavailableText } from './source-trace';
@@ -86,6 +98,11 @@ function QuestionDetailSession({
   const [conflict, setConflict] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [deleteArmed, setDeleteArmed] = useState(false);
+  /** 彻底删除被教学链引用（409 `QUESTION_IN_USE`）：服务端 message + 逐项计数。 */
+  const [deleteBlock, setDeleteBlock] = useState<{
+    message: string;
+    counts: QuestionInUseCount[] | null;
+  } | null>(null);
   const mountedRef = useRef(false);
   const epochRef = useRef(0);
   const writingRef = useRef(false);
@@ -257,6 +274,7 @@ function QuestionDetailSession({
     writingRef.current = true;
     setBusy(true);
     setError(null);
+    setDeleteBlock(null);
     try {
       await deleteQuestion(questionId, state.detail.revision);
       if (!active(token)) return;
@@ -265,7 +283,12 @@ function QuestionDetailSession({
     } catch (cause) {
       if (!active(token)) return;
       const apiError = asApiError(cause);
-      if (apiError.status === 409) {
+      if (apiError.status === 409 && apiError.code === QUESTION_IN_USE_CODE) {
+        setDeleteBlock({
+          message: apiError.message,
+          counts: parseQuestionInUseCounts(apiError.details),
+        });
+      } else if (apiError.status === 409) {
         setConflict(
           `内容已在别处被修改（${apiError.code}）：${apiError.message} 已重新读取服务端最新内容，请确认后重试。`,
         );
@@ -318,9 +341,7 @@ function QuestionDetailSession({
               <span className="space-chip" title={state.detail.questionId}>
                 {questionStemSummary(state.detail.stemPreview)}
               </span>
-              <span className="space-chip blue">
-                {state.detail.status === 'confirmed' ? '已入库' : '已归档'}
-              </span>
+              <span className="space-chip blue">已入库</span>
               <span
                 className={
                   state.detail.answerState === 'not_provided'
@@ -345,6 +366,31 @@ function QuestionDetailSession({
               <p className="space-banner info" role="status">
                 {notice}
               </p>
+            )}
+
+            {deleteBlock && (
+              <div className="space-banner error" role="alert" data-testid="qb-question-delete-blocked">
+                <strong>不能彻底删除：题目仍被教学链引用</strong>
+                <span>{deleteBlock.message}</span>
+                {deleteBlock.counts && (
+                  <ul className="qb-failure-list" data-testid="qb-question-delete-counts">
+                    {deleteBlock.counts.map((item) => (
+                      <li key={item.key}>
+                        {item.label}：{item.count} 条
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {!deleteBlock.counts && (
+                  <span data-testid="qb-question-delete-counts-missing">
+                    服务端没有给出逐项引用计数：原因以上述说明为准，不在此处编造计数。
+                  </span>
+                )}
+                <span>
+                  解锁路径：先删除引用它的练习/教案（审核练习固定题 / 教案生成冻结输入），
+                  再回来彻底删除；题目删除没有归档兜底。
+                </span>
+              </div>
             )}
 
             {conflict && (
@@ -544,7 +590,7 @@ function QuestionDetailSession({
                         onClick={() => void remove()}
                         disabled={busy}
                       >
-                        确认归档删除
+                        确认彻底删除
                       </button>
                       <button
                         className="space-button"
@@ -557,16 +603,20 @@ function QuestionDetailSession({
                   ) : (
                     <button
                       className="space-button danger"
-                      onClick={() => setDeleteArmed(true)}
+                      onClick={() => {
+                        setDeleteBlock(null);
+                        setDeleteArmed(true);
+                      }}
                       disabled={busy}
                     >
-                      归档删除…
+                      彻底删除…
                     </button>
                   )}
                 </div>
                 {deleteArmed && (
                   <p className="qb-hint" role="alert">
-                    归档删除会让题目不再出现在列表中（逻辑失效），不会删除其他题目的来源记录。确认继续？
+                    将物理删除这道题目及其修订、知识点关联、来源与内容指纹，<strong>不可恢复</strong>；
+                    不会删除其他题目的来源记录。确认继续？
                   </p>
                 )}
               </>

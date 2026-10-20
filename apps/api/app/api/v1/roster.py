@@ -11,15 +11,17 @@
 | 方法与路径 | 说明 |
 | --- | --- |
 | GET/POST `/classes`、GET/PATCH `/classes/{id}` | 班级 CRUD（`schoolYear`+`code` 用户内唯一） |
-| POST `/classes/{id}/archive`、`/restore` | 归档/恢复（`expectedRevision`；归档仍可读） |
 | DELETE `/classes/{id}?expectedRevision=N` | 受引用守卫的彻底删除（归属/施测范围/教案任一引用 → 409 `CLASS_IN_USE` 列出计数） |
 | POST `/classes/{id}/students/batch` | 批量添加学生（`submissionId` 幂等；学号已存在跳过并说明） |
-| GET `/classes/{id}/students` | 该班活跃成员（含归属历史；默认不含已归档学生，`includeArchived=true` 可带出） |
+| GET `/classes/{id}/students` | 该班活跃成员（含归属历史；`includeArchived=true` 可带出内部"已移除"学生） |
 | GET `/students`（`q` 模糊 / `status` 过滤）、GET/POST `/students` | 学生身份 |
-| PATCH `/students/{id}`、POST `/students/{id}/transfer` | 改名/改学号（乐观锁）、转班（归档学生拒绝） |
-| POST `/students/{id}/archive`、`/restore` | 归档/恢复学生（`expectedRevision`；归属历史保留） |
+| PATCH `/students/{id}`、POST `/students/{id}/transfer` | 改名/改学号（乐观锁）、转班（已移除学生拒绝） |
+| DELETE `/students/{id}?expectedRevision=N` | 删除学生：无历史物理删除 / 有历史 `removed_with_history`（内部保留 `status='archived'`） |
 | POST `/classes/{id}/roster-imports` | multipart 名单上传 + 预览 |
 | GET `/roster-imports`、GET/PATCH `/roster-imports/{id}`、POST `/{id}/confirm`、POST `/{id}/discard` | 批次/预览/校对/确认（幂等）/放弃未确认批次 |
+
+归档/恢复端点已按 2026-10-20 用户裁定**全部移除**（删除即删除）；`students.status='archived'`
+只作为内部"有历史成绩已移除"状态保留（名单导入可自动恢复）。
 """
 
 from __future__ import annotations
@@ -116,17 +118,30 @@ def _mapping_option(form: dict[str, MultipartPart]) -> dict[str, str] | None:
 # --------------------------------------------------------------------------- 班级
 
 
+@router.post("/classes/{class_id}/archive", include_in_schema=False)
+@router.post("/classes/{class_id}/restore", include_in_schema=False)
+async def class_archive_removed(class_id: str) -> None:
+    """归档/恢复端点已移除（B3，2026-10-20 用户裁定「删除即删除」）：显式 404。
+
+    注册占位是为了把「端点不存在」与通配 501 ``FEATURE_NOT_IMPLEMENTED`` 区分开：
+    归档概念不再存在，任何 POST 都不会命中业务逻辑。
+    """
+    raise AppError(
+        f"班级 {class_id} 的归档/恢复端点已移除；删除请用 DELETE /classes/{{id}}。",
+        code="ARCHIVE_ENDPOINT_REMOVED",
+        status_code=404,
+    )
+
+
 @router.get("/classes")
 async def list_classes(
     request: Request,
-    status_filter: str | None = Query(default=None, alias="status"),
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=200),
 ) -> ClassList:
+    """班级列表（B3 归档移除）：返回全部班级；归档概念已由删除取代。"""
     service = _service(request)
-    return await _run(
-        service.list_classes, status=status_filter, offset=offset, limit=limit
-    )
+    return await _run(service.list_classes, offset=offset, limit=limit)
 
 
 @router.post("/classes", status_code=status.HTTP_201_CREATED)
@@ -147,22 +162,6 @@ async def update_class(
 ) -> ClassView:
     service = _service(request)
     return await _run(service.update_class, class_id, body)
-
-
-@router.post("/classes/{class_id}/archive")
-async def archive_class(
-    request: Request, class_id: str, body: ClassRevisionRequest
-) -> ClassView:
-    service = _service(request)
-    return await _run(service.set_archived, class_id, body, archived=True)
-
-
-@router.post("/classes/{class_id}/restore")
-async def restore_class(
-    request: Request, class_id: str, body: ClassRevisionRequest
-) -> ClassView:
-    service = _service(request)
-    return await _run(service.set_archived, class_id, body, archived=False)
 
 
 @router.delete("/classes/{class_id}")
@@ -199,6 +198,18 @@ async def list_class_students(
 
 
 # --------------------------------------------------------------------------- 学生
+
+
+@router.post("/students/{student_id}/archive", include_in_schema=False)
+@router.post("/students/{student_id}/restore", include_in_schema=False)
+async def student_archive_removed(student_id: str) -> None:
+    """归档/恢复端点已移除（B3）：显式 404（见班级同款占位说明）。"""
+    raise AppError(
+        f"学生 {student_id} 的归档/恢复端点已移除；"
+        "删除请用 DELETE /students/{id}（有历史成绩走 removed_with_history）。",
+        code="ARCHIVE_ENDPOINT_REMOVED",
+        status_code=404,
+    )
 
 
 @router.get("/students")
@@ -241,22 +252,6 @@ async def transfer_student(
 ) -> StudentView:
     service = _service(request)
     return await _run(service.transfer_student, student_id, body)
-
-
-@router.post("/students/{student_id}/archive")
-async def archive_student(
-    request: Request, student_id: str, body: StudentRevisionRequest
-) -> StudentView:
-    service = _service(request)
-    return await _run(service.set_student_archived, student_id, body, archived=True)
-
-
-@router.post("/students/{student_id}/restore")
-async def restore_student(
-    request: Request, student_id: str, body: StudentRevisionRequest
-) -> StudentView:
-    service = _service(request)
-    return await _run(service.set_student_archived, student_id, body, archived=False)
 
 
 @router.delete("/students/{student_id}")

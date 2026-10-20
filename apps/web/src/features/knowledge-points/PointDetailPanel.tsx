@@ -10,29 +10,32 @@
  *   「用服务端最新值覆盖表单」出口（不强制覆盖，也不静默丢弃）；
  * - 422：用 `details.issues` 定位字段并逐条显示；
  * - 读取失败显示错误与重试，不显示空态；
- * - **彻底删除**与归档是两回事：删除是物理删除、不可恢复；被引用（教材依据 / 原卷题目 /
- *   题库正式题或草稿）或仍有子节点时服务端 409 拒绝，界面把 `details.counts` 逐项列成
- *   原因清单，并给出「改为归档」出口——绝不把「删不掉」显示成失败或静默重试。
+ * - **彻底删除整棵子树**：物理删除、不可恢复（含全部子节点、修订、别名与教材依据关联）；
+ *   子树内任一节点被引用（教材依据 / 原卷题目 / 题库正式题或草稿）时服务端 409 拒绝，
+ *   界面把 `details.points` 逐节点、逐项列成原因清单并给出解锁路径——不提供归档兜底。
  */
 
 import { Fragment, useEffect, useMemo, useState } from 'react';
-import { Archive, ChevronRight, Plus, RefreshCw, RotateCcw, Save, Trash2, X } from 'lucide-react';
+import { ChevronRight, Plus, RefreshCw, Save, Trash2, X } from 'lucide-react';
 import type { ErrorIssue } from '@/contracts/api';
-import type { KnowledgePointReferenceCount, KnowledgePointView } from '@/contracts/knowledge';
+import type {
+  KnowledgePointInUsePoint,
+  KnowledgePointReferenceCount,
+  KnowledgePointView,
+} from '@/contracts/knowledge';
 import { Modal } from '@/components/ui/Modal';
 import {
-  archiveKnowledgePoint,
   deleteKnowledgePoint,
   getKnowledgePoint,
   listKnowledgePoints,
-  restoreKnowledgePoint,
   updateKnowledgePoint,
 } from '@/services/knowledge-points-api';
 import { asApiError, useAsyncResource } from './hooks';
 import {
   KNOWLEDGE_POINT_IN_USE_CODE,
-  knowledgeStatusLabel,
+  parseKnowledgeInUsePoints,
   parseKnowledgeReferenceCounts,
+  parseKnowledgeSubtreeSize,
   referenceCountLabel,
   shortId,
 } from './labels';
@@ -92,16 +95,19 @@ export function PointDetailPanel({
     null,
   );
   const [notice, setNotice] = useState<string | null>(null);
-  const [archiveOpen, setArchiveOpen] = useState(false);
-  const [archiveBusy, setArchiveBusy] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   /** 彻底删除：是否已在本地确认删除成功（父级未接管选中时也不至于继续显示已删知识点）。 */
   const [deleted, setDeleted] = useState(false);
-  /** 彻底删除被拒（409）的原因：服务端 message + 逐项引用计数（缺 counts 时为 null）。 */
+  /**
+   * 彻底删除被拒（409 `KNOWLEDGE_POINT_IN_USE`）的原因：
+   * 服务端 message + 逐节点引用计数（新形状）+ 聚合计数（旧形状兼容）+ 子树节点数。
+   */
   const [deleteBlock, setDeleteBlock] = useState<{
     message: string;
+    points: KnowledgePointInUsePoint[] | null;
     counts: KnowledgePointReferenceCount[] | null;
+    subtreeSize: number | null;
   } | null>(null);
 
   // 表单只在「对象身份变化」时从服务端初始化：409 冲突后重新读取不会冲掉用户输入。
@@ -125,22 +131,45 @@ export function PointDetailPanel({
   const parentCandidates = useAsyncResource(
     (signal) =>
       loaded
-        ? listKnowledgePoints(
-            { subjectId: loaded.subjectId, status: 'active', limit: 200 },
-            signal,
-          ).then((list) => list.items)
-        : Promise.resolve([] as KnowledgePointView[]),
+        ? listKnowledgePoints({ subjectId: loaded.subjectId, limit: 200 }, signal)
+        : Promise.resolve(null),
     `kp-parents|${pointId}|${loaded?.subjectId ?? ''}`,
   );
-  const parents =
-    parentCandidates.state.phase === 'ready'
-      ? parentCandidates.state.data.filter(
-          (item) => item.id !== loaded?.id && item.status === 'active',
-        )
-      : [];
+  const parentList = parentCandidates.state.phase === 'ready' ? parentCandidates.state.data : null;
+  const parents = (parentList?.items ?? []).filter((item) => item.id !== loaded?.id);
 
   /**
-   * 所属节点面包屑：只由服务端返回的 `parentId` + 同科目活跃列表推导（最多上溯
+   * 当前子树的后代节点数（不含根）：只由同科目当前列表推导。
+   * 列表被分页截断（`total > items.length`）时无法确认完整性 → null，界面改说「整棵子树」，
+   * 不拿本页数据冒充整棵树。
+   */
+  const descendantCount = useMemo(() => {
+    if (!loaded || !parentList || parentList.total > parentList.items.length) return null;
+    const children = new Map<string, string[]>();
+    for (const item of parentList.items) {
+      if (!item.parentId) continue;
+      const siblings = children.get(item.parentId) ?? [];
+      siblings.push(item.id);
+      children.set(item.parentId, siblings);
+    }
+    const seen = new Set<string>([loaded.id]);
+    const queue = [...(children.get(loaded.id) ?? [])];
+    let count = 0;
+    while (queue.length > 0) {
+      const next = queue.shift() as string;
+      if (seen.has(next)) continue;
+      seen.add(next);
+      count += 1;
+      queue.push(...(children.get(next) ?? []));
+    }
+    return count;
+  }, [loaded, parentList]);
+  /** 删除确认里的子树描述：能确认时给具体子节点数，否则只说「整棵子树」。 */
+  const deleteSubtreeText =
+    descendantCount === null ? '整棵子树' : `${descendantCount} 个子节点`;
+
+  /**
+   * 所属节点面包屑：只由服务端返回的 `parentId` + 同科目列表推导（最多上溯
    * `parents.length` 步、自带环保护）；父节点取不到名称时停在 `parentCode` 并标注，
    * **不编造上级名称**。读取失败时列表为空 → 只显示可核对的编码。
    */
@@ -215,44 +244,10 @@ export function PointDetailPanel({
     }
   }
 
-  async function setArchived(next: boolean) {
-    if (!loaded) return;
-    setArchiveBusy(true);
-    setErrorText(null);
-    try {
-      const updated = next
-        ? await archiveKnowledgePoint(loaded.id, loaded.revision)
-        : await restoreKnowledgePoint(loaded.id, loaded.revision);
-      setArchiveOpen(false);
-      resetFormFrom(updated);
-      setNotice(
-        next
-          ? '已归档：历史引用保留；新关联/教材依据在恢复前不可选。'
-          : '已恢复：该知识点可以重新被关联与引用。',
-      );
-      onPointPatched(updated);
-      point.reload();
-    } catch (cause) {
-      const error = asApiError(cause);
-      setArchiveOpen(false);
-      if (error.status === 409) {
-        setConflict({
-          revision: error.details?.currentRevision ?? null,
-          message: error.message,
-        });
-        point.reload();
-      } else {
-        setErrorText(`${next ? '归档' : '恢复'}失败（${error.code}）：${error.message}`);
-      }
-    } finally {
-      setArchiveBusy(false);
-    }
-  }
-
   /**
-   * 彻底删除：二次确认后按当前 `revision` 提交（乐观锁）。
+   * 彻底删除整棵子树：二次确认后按根节点当前 `revision` 提交（乐观锁）。
    * - 成功 → 通知父级刷新列表并取消选中；父级未接管时本地切到「已删除」态；
-   * - 409 `KNOWLEDGE_POINT_IN_USE` → 逐项渲染引用计数（有 counts 时）与「改为归档」出口；
+   * - 409 `KNOWLEDGE_POINT_IN_USE` → 逐节点渲染引用计数（`details.points`）与解锁路径；
    * - 409 `REVISION_CONFLICT` → 与保存冲突同一套处理：刷新取最新值，不静默重试；
    * - 其他失败 → 保留页面原状并给出错误码与可重试说明。
    */
@@ -265,7 +260,9 @@ export function PointDetailPanel({
       await deleteKnowledgePoint(loaded.id, loaded.revision);
       setDeleteOpen(false);
       setDeleted(true);
-      setNotice(`已彻底删除知识点「${loaded.name}」（物理删除，不可恢复）。`);
+      setNotice(
+        `已彻底删除知识点「${loaded.name}」及其${deleteSubtreeText}（物理删除，不可恢复）。`,
+      );
       onDeleted?.(loaded.id);
     } catch (cause) {
       const error = asApiError(cause);
@@ -273,7 +270,9 @@ export function PointDetailPanel({
       if (error.status === 409 && error.code === KNOWLEDGE_POINT_IN_USE_CODE) {
         setDeleteBlock({
           message: error.message,
+          points: parseKnowledgeInUsePoints(error.details),
           counts: parseKnowledgeReferenceCounts(error.details),
+          subtreeSize: parseKnowledgeSubtreeSize(error.details),
         });
       } else if (error.status === 409) {
         setConflict({
@@ -283,7 +282,7 @@ export function PointDetailPanel({
         point.reload();
       } else {
         setErrorText(
-          `彻底删除失败（${error.code}）：${error.message} 没有删除任何数据，可重试或改用归档。`,
+          `彻底删除失败（${error.code}）：${error.message} 没有删除任何数据，可重试。`,
         );
       }
     } finally {
@@ -324,7 +323,7 @@ export function PointDetailPanel({
         <div className="space-banner info" role="status">
           <strong>该知识点已彻底删除</strong>
           <span>
-            物理删除已完成、不可恢复；相关教材依据与别名随之删除。列表与选中状态已刷新，
+            整棵子树已物理删除、不可恢复；相关修订、别名与教材依据关联随之删除。列表与选中状态已刷新，
             请从左侧选择其他知识点。
           </span>
         </div>
@@ -379,11 +378,6 @@ export function PointDetailPanel({
           <div className="space-meta-row">
             <span className="space-chip blue">{loaded.code}</span>
             <span className="space-chip">学科 {loaded.subjectId}</span>
-            <span
-              className={loaded.status === 'archived' ? 'space-chip amber' : 'space-chip green'}
-            >
-              {knowledgeStatusLabel(loaded.status)}
-            </span>
             <span className="space-chip">版本 v{loaded.version}</span>
             <span className="space-chip">编辑锁 r{loaded.revision}</span>
             {loaded.revisionId && (
@@ -399,29 +393,10 @@ export function PointDetailPanel({
           </div>
         </div>
         <div className="kp-card-actions">
-          <button className="space-button" disabled={archiveBusy} onClick={point.reload}>
+          <button className="space-button" disabled={deleteBusy} onClick={point.reload}>
             <RefreshCw size={13} aria-hidden />
             重新读取
           </button>
-          {loaded.status === 'active' ? (
-            <button
-              className="space-button danger"
-              disabled={archiveBusy}
-              onClick={() => setArchiveOpen(true)}
-            >
-              <Archive size={13} aria-hidden />
-              归档
-            </button>
-          ) : (
-            <button
-              className="space-button"
-              disabled={archiveBusy}
-              onClick={() => void setArchived(false)}
-            >
-              <RotateCcw size={13} aria-hidden />
-              恢复
-            </button>
-          )}
         </div>
       </header>
 
@@ -480,34 +455,44 @@ export function PointDetailPanel({
 
       {deleteBlock && (
         <div className="space-banner error" role="alert" data-testid="kp-delete-blocked">
-          <strong>不能彻底删除：「{loaded.name}」仍在使用中</strong>
+          <strong>不能彻底删除：「{loaded.name}」所在子树仍在使用中</strong>
           <span>{deleteBlock.message}</span>
-          {deleteBlock.counts ? (
+          {deleteBlock.subtreeSize !== null && (
+            <span data-testid="kp-delete-subtree-size">
+              整棵子树共 {deleteBlock.subtreeSize} 个节点（含当前节点）。
+            </span>
+          )}
+          {deleteBlock.points ? (
+            <div data-testid="kp-delete-points">
+              {deleteBlock.points.map((point) => (
+                <div key={point.pointId} data-testid={`kp-delete-point-${point.pointId}`}>
+                  <strong>
+                    {point.name}（{shortId(point.pointId)}，共 {point.total} 处引用）
+                  </strong>
+                  <ul className="kp-issue-list">
+                    {point.counts.map((item) => (
+                      <li key={`${item.library}-${item.key}`}>{referenceCountLabel(item)}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          ) : deleteBlock.counts ? (
             <ul className="kp-issue-list" data-testid="kp-delete-counts">
               {deleteBlock.counts.map((item) => (
                 <li key={`${item.library}-${item.key}`}>{referenceCountLabel(item)}</li>
               ))}
             </ul>
           ) : (
-            <span>
-              服务端没有给出逐项引用计数（可能是子节点或其他引用）：原因以上述说明为准，
-              不在此处编造计数。
+            <span data-testid="kp-delete-counts-missing">
+              服务端没有给出逐项引用计数：原因以上述说明为准，不在此处编造计数。
             </span>
           )}
           <span>
-            先解除上述引用（在原卷 / 题库 / 教材依据里移除该知识点的关联）后再来删除；
-            只想把它从在用列表里收起来时用「归档」——归档保留历史引用且可恢复。
+            解锁路径：先在「教材依据」、原卷题目或题库（正式题 / 草稿）中解除上述知识点的引用，
+            再回来删除；删除整棵子树没有归档兜底，也不会替你把引用静默置空。
           </span>
           <div className="kp-actions">
-            <button
-              className="space-button danger"
-              disabled={archiveBusy}
-              data-testid="kp-delete-to-archive"
-              onClick={() => setArchiveOpen(true)}
-            >
-              <Archive size={13} aria-hidden />
-              改为归档
-            </button>
             <button
               className="space-button"
               onClick={() => {
@@ -748,7 +733,7 @@ export function PointDetailPanel({
       <div className="kp-detail-footer">
         <button
           className="space-button danger kp-delete-node"
-          disabled={archiveBusy || deleteBusy}
+          disabled={deleteBusy}
           data-testid="kp-delete-open"
           onClick={() => {
             setDeleteBlock(null);
@@ -775,41 +760,15 @@ export function PointDetailPanel({
 
       <TextbookLinksPanel point={loaded} onPointChanged={onPointPatched} />
 
-      {archiveOpen && (
-        <Modal title="归档知识点" onClose={() => setArchiveOpen(false)}>
-          <p className="kp-hint">
-            归档「{loaded.name}
-            」后：历史引用与修订保留；该知识点不能再被新的题目关联或新增教材依据，
-            需要用「恢复」重新启用。确认归档？
-          </p>
-          <div className="kp-actions">
-            <button
-              className="space-button danger"
-              disabled={archiveBusy}
-              onClick={() => void setArchived(true)}
-            >
-              {archiveBusy ? '归档中…' : '确认归档'}
-            </button>
-            <button
-              className="space-button"
-              disabled={archiveBusy}
-              onClick={() => setArchiveOpen(false)}
-            >
-              取消
-            </button>
-          </div>
-        </Modal>
-      )}
-
       {deleteOpen && (
         <Modal title="彻底删除知识点" onClose={() => setDeleteOpen(false)}>
-          <p className="kp-hint">
-            将<strong>物理删除</strong>知识点「{loaded.name}」（编码 {loaded.code}
-            ）及其修订与别名，<strong>不可恢复</strong>，也不会进入归档。
+          <p className="kp-hint" data-testid="kp-delete-summary">
+            将删除知识点「{loaded.name}」（编码 {loaded.code}）及其 {deleteSubtreeText}
+            （<strong>物理删除，不可恢复</strong>），连同子树的修订、别名与教材依据关联一并删除。
           </p>
           <p className="kp-hint">
-            仍被引用时服务端会拒绝并逐项给出原因（教材依据 / 原卷题目 / 题库正式题 / 题库草稿），
-            删除因此不会破坏历史引用。
+            删除整棵子树：子树内任一节点仍被引用时服务端会拒绝并逐节点给出原因
+            （教材依据 / 原卷题目 / 题库正式题 / 题库草稿），删除因此不会破坏历史引用。
           </p>
           <div className="kp-actions">
             <button

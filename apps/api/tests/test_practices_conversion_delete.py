@@ -190,12 +190,15 @@ async def test_delete_conversion_unblocks_practice_guard_conversions(scene) -> N
         assert PracticeRepository(scene.catalog).count_references_in(conn, set_id)["conversions"] == 0
 
 
-async def test_delete_conversion_archived_set_allowed(scene) -> None:
-    """归档不影响解除回流关联（与 delete_practice 同口径）：归档练习集 → 删除成功，回执正常。"""
+async def test_delete_conversion_stale_archived_set_allowed(scene) -> None:
+    """残留归档行（模拟旧库）不影响解除回流关联（与 delete_practice 同口径）。"""
     practice = reviewed(scene)
     receipt = scene.conversion(practice)
-    scene.service.set_archived(practice.practice_set_id,
-                               b4.PracticeSetStatusRequest(expectedRevision=practice.revision), archived=True)
+    with scene.catalog.write_transaction() as conn:
+        conn.execute(
+            "UPDATE practice_sets SET status='archived' WHERE id=?",
+            (practice.practice_set_id,),
+        )
     result = scene.service.delete_conversion(practice.practice_set_id,
                                              practice.current_revision.practice_revision_id)
     assert result.deleted is True

@@ -169,7 +169,8 @@ def test_repeated_export_produces_new_artifact_rows(tmp_path):
         asyncio.run(scene.close())
 
 
-def test_archived_lesson_export_is_rejected(tmp_path):
+def test_stale_archived_lesson_export_is_rejected(tmp_path):
+    """B3 归档移除：残留 archived_at 行（模拟旧库）导出被只读兜底拒绝。"""
     import asyncio
 
     from app.core.exceptions import AppError
@@ -179,7 +180,11 @@ def test_archived_lesson_export_is_rejected(tmp_path):
         scene = await LessonScene.create(tmp_path)
         try:
             lesson = scene.be.create_lesson(scene.create_request())
-            scene.be.set_archived(lesson["lessonPlanId"], {"expectedRevision": lesson["revision"]}, archived=True)
+            with scene.catalog.write_transaction() as conn:
+                conn.execute(
+                    "UPDATE lesson_plans SET archived_at='2026-10-03T09:00:00Z' WHERE id=?",
+                    (lesson["lessonPlanId"],),
+                )
             scene.be.export_lesson(lesson["lessonPlanId"], {"data": lesson["currentRevision"]["data"], "style": {}, "modules": []})
         finally:
             await scene.close()

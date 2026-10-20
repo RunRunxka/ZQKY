@@ -7,7 +7,7 @@ from tests.test_question_bank_confirm import ONE_QUESTION_DOC, confirm, upload_a
 
 
 @pytest.mark.parametrize("method", ["get", "patch", "delete"])
-def test_other_owner_cannot_read_edit_or_archive_confirmed_question(tmp_path, method):
+def test_other_owner_cannot_read_edit_or_delete_confirmed_question(tmp_path, method):
     harness = open_harness(tmp_path)
     other = None
     try:

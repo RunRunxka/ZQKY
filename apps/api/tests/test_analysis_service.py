@@ -210,58 +210,48 @@ def test_migration_0011_upgrade_and_idempotent_on_existing_database(tmp_path, mo
         connection.close()
 
 
-async def test_archive_restore_roundtrip_keeps_report_readable(tmp_path):
-    """归档/恢复只写 archived_at；报告内容、子表与读取路径全部不变。"""
+async def test_archive_removed_and_stale_row_reads_and_deletes(tmp_path):
+    """B3 归档移除：服务层 ``set_archived`` 已删除；残留 archived_at 行（模拟旧库）
+    仍可读可删；不可变闸门只放行 archived_at 置 NULL（恢复转换）。"""
     scene = AnalysisScene(tmp_path)
     receipt = await scene.ready()
     before = scene.service.get_run(receipt.run_id)
     assert before.archived_at is None and before.report_ready
     snapshot = dict(scene.service.read_ready_report(receipt.run_id), archivedAt=None)
-
-    archived = scene.service.set_archived(receipt.run_id, None, archived=True)
-    assert archived.archived_at is not None
-    # 幂等：重复归档返回当前视图不报错，时间戳不刷新
-    again = scene.service.set_archived(receipt.run_id, None, archived=True)
-    assert again == archived
-    # 归档后仍可读：详情、四个报告视图、教师备注（archivedAt 是预期内的归档字段变化）
-    assert scene.service.get_run(receipt.run_id).archived_at == archived.archived_at
-    assert dict(scene.service.read_ready_report(receipt.run_id), archivedAt=None) == snapshot
-    assert scene.service.list_report_rows(receipt.run_id, "classes").total == 2
-    assert scene.service.list_report_rows(receipt.run_id, "students").total == 8
-    assert scene.service.list_report_rows(receipt.run_id, "evidence").total == 12
-    scene.service.add_note(receipt.run_id, NoteRequest(submissionId="n-arch", note="归档后仍可备注"))
-    assert scene.service.list_notes(receipt.run_id).total == 1
-    # 列表过滤：缺省全部、True 只看已归档、False 只看未归档
+    assert not hasattr(scene.service, "set_archived")
+    # 模拟旧库残留：直接写 archived_at（仍受 analysis_inputs_fixed 放行）
+    with scene.catalog.write_transaction() as conn:
+        conn.execute(
+            "UPDATE analysis_runs SET archived_at='2020-01-01T00:00:00Z' WHERE id=?",
+            (receipt.run_id,),
+        )
+    # 残留行可读、列表可见（archivedAt 只作为只读字段透出）
+    assert scene.service.get_run(receipt.run_id).archived_at == "2020-01-01T00:00:00Z"
     assert scene.service.list_runs().total == 1
-    assert scene.service.list_runs(archived=True).total == 1
-    assert scene.service.list_runs(archived=False).total == 0
-
-    restored = scene.service.set_archived(receipt.run_id, None, archived=False)
-    assert restored.archived_at is None
-    assert scene.service.set_archived(receipt.run_id, None, archived=False) == restored
-    assert scene.service.list_runs(archived=False).total == 1
-    assert scene.service.list_runs(archived=True).total == 0
-    assert scene.service.read_ready_report(receipt.run_id) == snapshot
-    assert scene.service.get_run(receipt.run_id).model_dump(exclude={"job"}) == before.model_dump(exclude={"job"})
-
-
-async def test_archive_missing_run_is_404_and_unsealed_row_untouched(tmp_path):
-    scene = AnalysisScene(tmp_path)
-    receipt = await scene.accept()  # 未封存（report_ready=0）
-    with pytest.raises(AppError) as missing:
-        scene.service.set_archived("no-such-run", None, archived=True)
-    assert missing.value.status_code == 404 and missing.value.code == "ANALYSIS_NOT_FOUND"
-    # 未封存报告同样允许归档（列表清理不等任务结束）
-    archived = scene.service.set_archived(receipt.run_id, None, archived=True)
-    assert archived.archived_at is not None and not archived.report_ready
-    # 不可变闸门仍然生效：归档列之外的一切写入照旧拒绝
+    assert scene.service.list_report_rows(receipt.run_id, "evidence").total == 12
+    # 不可变闸门仍然生效：archived_at 置空（归一化语义）之外的一切写入照旧拒绝
     with pytest.raises(sqlite3.IntegrityError, match="IMMUTABLE_REVISION"):
         with scene.catalog.write_transaction() as conn:
             conn.execute("UPDATE analysis_runs SET input_json='{}' WHERE id=?", (receipt.run_id,))
     with pytest.raises(sqlite3.IntegrityError, match="IMMUTABLE_REVISION"):
         with scene.catalog.write_transaction() as conn:
-            conn.execute("DELETE FROM analysis_runs WHERE id=?", (receipt.run_id,))
-    # 已归档时间戳不得改写（NULL↔时间戳的归档/恢复转换之外一律拒绝）
+            conn.execute("UPDATE analysis_runs SET archived_at='2021-01-01T00:00:00Z' WHERE id=?", (receipt.run_id,))
     with pytest.raises(sqlite3.IntegrityError, match="IMMUTABLE_REVISION"):
         with scene.catalog.write_transaction() as conn:
-            conn.execute("UPDATE analysis_runs SET archived_at='2020-01-01T00:00:00Z' WHERE id=?", (receipt.run_id,))
+            conn.execute("DELETE FROM analysis_runs WHERE id=?", (receipt.run_id,))
+    # 残留行可删（唯一清理出口）
+    assert scene.service.delete_run(receipt.run_id).deleted is True
+    assert scene.service.list_runs().total == 0
+    _ = snapshot
+
+
+async def test_analysis_missing_run_is_404(tmp_path):
+    scene = AnalysisScene(tmp_path)
+    receipt = await scene.accept()  # 未封存（report_ready=0）
+    with pytest.raises(AppError) as missing:
+        scene.service.delete_run("no-such-run")
+    assert missing.value.status_code == 404 and missing.value.code == "ANALYSIS_NOT_FOUND"
+    # 未封存报告的不可变闸门：身份列写入照旧拒绝
+    with pytest.raises(sqlite3.IntegrityError, match="IMMUTABLE_REVISION"):
+        with scene.catalog.write_transaction() as conn:
+            conn.execute("UPDATE analysis_runs SET input_json='{}' WHERE id=?", (receipt.run_id,))

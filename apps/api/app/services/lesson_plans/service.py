@@ -108,7 +108,9 @@ class LessonPlanService:
         if base_revision_id is not None and doc["current_revision_id"] != base_revision_id:
             raise conflict(doc, ("baseRevisionId", "expectedRevision"))
         if doc["archived_at"] is not None:
-            raise AppError("归档教案不能写入。", code="LESSON_INVALID", status_code=422)
+            # B3 归档移除：残留归档行按只读兜底（文案指向归一化脚本，不再有"恢复"入口）。
+            raise AppError("教案状态异常（残留归档数据，请先运行归一化脚本），不能写入。",
+                           code="LESSON_INVALID", status_code=422)
         return doc
 
     def get_lesson(self, lesson_id):
@@ -120,13 +122,16 @@ class LessonPlanService:
             self.repo.document(conn, lesson_id, self.owner)
             return revision_view(self.repo.revision(conn, lesson_id, revision_id, self.owner))
 
-    def list_lessons(self, subject_id=None, class_id=None, offset=0, limit=50, archived=False):
+    def list_lessons(self, subject_id=None, class_id=None, offset=0, limit=50):
+        """教案列表（B3 归档移除）：返回全部正常数据，不再按 archived 过滤。
+
+        旧库残留的 ``archived_at`` 非空行（若有）仍会列出（读取不受影响），
+        归一化脚本负责清空该列。
+        """
         self._pagination(offset, limit)
-        if type(archived) is not bool:
-            raise invalid("archived", "archived须为布尔值。")
         with self.catalog.read_connection() as conn:
             rows, total = self.repo.list_documents(conn, self.owner, subject_id=subject_id, class_id=class_id,
-                archived=archived, offset=offset, limit=limit)
+                archived=False, offset=offset, limit=limit)
             items = [validate(lp.LessonSummary, dict(lessonPlanId=row["id"], subjectId=row["subject_id"], classId=row["class_id"],
                 revision=row["revision"], currentRevisionId=row["current_revision_id"], title=row["title"], source=row["source"],
                 analysisRunId=row["analysis_run_id"], updatedAt=row["updated_at"])) for row in rows]
@@ -177,24 +182,6 @@ class LessonPlanService:
                 source=source, context=context, source_metadata=metadata, revision_id=revision_id, created_at=created_at, import_envelope=envelope)
             return lesson_view(self.repo, conn, lesson_id, self.owner)
         return self._publish(command, apply, lambda: revalidate_context(self, context))
-
-    def set_archived(self, lesson_id, payload, *, archived):
-        """归档/恢复教案：只写 ``archived_at``，历史修订与 head 指针原样保留。
-
-        ``lesson_plan_identity_fixed`` 触发器要求 current_revision_id 不变时 revision
-        不得变化，因此归档**不递增** revision（与施测/原卷递增口径不同，见该触发器）。
-        后续写入的 CAS 感知由 ``_current()`` 的归档守卫承担：归档后任何新提交
-        （save/generate/apply）先命中 LESSON_INVALID，不允许绕过归档继续写入；恢复后
-        按原 revision 继续编辑，修订历史逐条不变。与施测/原卷归档一致，本操作不
-        走提交幂等回执，直接在同一写事务内核对 ``expectedRevision`` 乐观锁。
-        """
-        body = freeze(lp.LessonRevisionRequest, payload)
-        operation = "lesson.archive" if archived else "lesson.restore"
-        with self.coordinator.publication(operation=operation):
-            with self.catalog.write_transaction() as conn:
-                self.repo.set_archived_in(conn, lesson_id=lesson_id, owner_id=self.owner, archived=archived,
-                    expected_revision=body.expected_revision)
-                return lesson_view(self.repo, conn, lesson_id, self.owner)
 
     def delete_lesson(self, lesson_id, payload):
         """受守卫的彻底删除：物理删除教案行及其自身历史（归档与否都允许删除）。
@@ -390,7 +377,8 @@ class LessonPlanService:
         with self.catalog.read_connection() as conn:
             document = self.repo.document(conn, lesson_id, self.owner)
             if document["archived_at"] is not None:
-                raise AppError("归档教案不能导出。", code="LESSON_INVALID", status_code=422)
+                raise AppError("教案状态异常（残留归档数据，请先运行归一化脚本），不能导出。",
+                               code="LESSON_INVALID", status_code=422)
             revision = self.repo.revision(conn, lesson_id, document["current_revision_id"], self.owner)
         data = load(revision["data_json"])
         payload = ExportPayload.parse({

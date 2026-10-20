@@ -232,36 +232,20 @@ class AnalysisService:
             raise AppError("分页范围非法。", code="INVALID_REQUEST", status_code=422,
                            details={"issues": [{"field": "offset/limit", "code": "PAGE_INVALID", "message": "分页范围非法。"}]})
 
-    def list_runs(self, *, assessment_id=None, score_revision_id=None, archived=None, offset=0, limit=50):
+    def list_runs(self, *, assessment_id=None, score_revision_id=None, offset=0, limit=50):
+        """报告列表（B3 归档移除）：返回全部行；``archivedAt`` 只作为旧库残留的只读
+        字段透出，归一化脚本负责清空。不再提供 archived 过滤参数。"""
         self._page(offset, limit)
         where, args = ["owner_id=?"], [self.owner]
         for column, value in (("assessment_id", assessment_id), ("score_revision_id", score_revision_id)):
             if value is not None:
                 where.append(f"{column}=?")
                 args.append(value)
-        if archived is not None:
-            # 缺省返回全部；True 只看已归档，False 只看未归档（已归档报告仍可按 id 读取）。
-            where.append("archived_at IS NOT NULL" if archived else "archived_at IS NULL")
         with self.catalog.read_connection() as conn:
             clause = " AND ".join(where)
             total = conn.execute(f"SELECT count(*) FROM analysis_runs WHERE {clause}", args).fetchone()[0]
             rows = conn.execute(f"SELECT * FROM analysis_runs WHERE {clause} ORDER BY created_at,id LIMIT ? OFFSET ?", [*args, limit, offset]).fetchall()
             return Page[AnalysisRunView](items=[self._view(conn, r) for r in rows], total=total, offset=offset, limit=limit)
-
-    def set_archived(self, run_id: str, payload, *, archived: bool) -> AnalysisRunView:
-        """软归档/恢复：只写 ``archived_at``，报告内容与子表一概不动。
-
-        ``analysis_no_delete`` 触发器保持报告不可删除，本方法也不绕过它；
-        ``analysis_inputs_fixed``（0011 升级版）只放行已封存报告的 archived_at 写。
-        报告没有 revision 列，按"存在性 + 幂等"语义处理：重复归档/重复恢复返回
-        当前视图，不报错；归档不要求 report_ready（未完成任务也可先行归档隐藏）。
-        """
-        with self.catalog.write_transaction() as conn:
-            row = self.repo.require_in(conn, run_id, self.owner)
-            if bool(row["archived_at"]) is not archived:
-                conn.execute("UPDATE analysis_runs SET archived_at=? WHERE id=?",
-                             (now_iso() if archived else None, run_id))
-        return self.get_run(run_id)
 
     def delete_run(self, run_id: str) -> AnalysisRunDeleteReceipt:
         """删除报告：拆开可拆交叉引用（级联/置空）后物理删除报告与其全部冻结子表行。

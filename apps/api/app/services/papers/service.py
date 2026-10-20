@@ -622,14 +622,14 @@ class PaperService:
         self,
         *,
         subject_id: str | None = None,
-        status: str | None = None,
         q: str | None = None,
         offset: int = 0,
         limit: int = 50,
     ) -> PaperList:
+        """原卷列表（B3 归档移除）：返回全部原卷；status 过滤只保留仓储内部能力。"""
         with self._catalog.read_connection() as conn:
             summaries, total = self._papers.list_papers(
-                conn, subject_id=subject_id, status=status, q=q, offset=offset, limit=limit
+                conn, subject_id=subject_id, status=None, q=q, offset=offset, limit=limit
             )
         return PaperList(
             items=[self._paper_view(summary) for summary in summaries],
@@ -643,25 +643,6 @@ class PaperService:
         with self._catalog.read_connection() as conn:
             summary = self._papers.summary_in(conn, paper_id)
         return self._paper_view(summary)
-
-    def set_archived(
-        self, paper_id: str, payload: PaperRevisionRequest, *, archived: bool
-    ) -> PaperView:
-        """归档/恢复原卷：归档后不可编辑/确认/发起建议，也不能用于新建施测；历史保留。
-
-        只改 ``papers.status`` 并递增编辑锁（``expectedRevision`` 乐观锁；在途草稿
-        会按陈旧冲突处理）。未确认草稿与已确认原卷都可归档——归档正是"误上传清理"出口。
-        """
-        paper_id = _clean_text(paper_id, field="paperId")
-        with self._coordinator.publication(operation="paper.archive"):
-            with self._catalog.write_transaction() as conn:
-                paper = self._papers.require_paper_in(conn, paper_id)
-                if paper.revision != payload.expected_revision:
-                    raise _stale_conflict(paper.revision)
-                self._papers.set_status_in(
-                    conn, paper_id, "archived" if archived else "active"
-                )
-        return self.get_paper(paper_id)
 
     def delete_paper(self, paper_id: str, payload: PaperRevisionRequest) -> dict[str, Any]:
         """受引用守卫的彻底删除：仅当"干净"（无已确认修订、无施测引用）时物理删除。
@@ -1076,8 +1057,8 @@ class PaperService:
             items = self._papers.list_items_in(conn, revision.revision_id)
         if paper.revision != payload.expected_revision:
             raise _stale_conflict(paper.revision)
-        if paper.status == "archived":
-            raise self._not_editable("原卷已归档")
+        if paper.status != "active":
+            raise self._not_editable("原卷状态异常（残留归档数据，请先运行归一化脚本）")
         if revision.state != "draft":
             raise self._not_editable("只有草稿修订可以发起 AI 建议")
         children = _child_counts(items)
@@ -1200,8 +1181,8 @@ class PaperService:
             self._require_proposal_pending(proposal)
             if paper.revision != payload.expected_revision:
                 raise _stale_conflict(paper.revision)
-            if paper.status == "archived":
-                raise self._not_editable("原卷已归档")
+            if paper.status != "active":
+                raise self._not_editable("原卷状态异常（残留归档数据，请先运行归一化脚本）")
             if revision.state != "draft":
                 raise self._not_editable("只有草稿修订可以应用建议")
             if paper.revision != proposal.base_revision:
@@ -1384,13 +1365,15 @@ class PaperService:
         )
 
     def _require_editable_paper(self, paper: PaperRecord) -> None:
-        if paper.status == "archived":
-            raise self._not_editable("原卷已归档")
+        if paper.status != "active":
+            # B3 归档移除：正常数据只会是 active；旧库残留 archived 行按只读兜底拒绝
+            # （文案指向归一化脚本，不再有"恢复"入口）。
+            raise self._not_editable("原卷状态异常（残留归档数据，请先运行归一化脚本）")
 
     @staticmethod
     def _not_editable(detail: str) -> AppError:
         return AppError(
-            f"{detail}：不能修改或确认；请先恢复。", code=PAPER_NOT_EDITABLE, status_code=409
+            f"{detail}：不能修改或确认。", code=PAPER_NOT_EDITABLE, status_code=409
         )
 
     def _set_paper_title_in(

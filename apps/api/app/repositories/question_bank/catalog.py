@@ -1029,11 +1029,9 @@ class QuestionBankCatalog:
         if limit > 200:
             raise _invalid("limit 不能超过 200。")
         statuses: tuple[str, ...]
-        if status is None:
-            # 默认只看在用题目；归档需显式 status=archived，status=all 才两者都返回
+        if status is None or status == "all":
+            # B3 归档移除：题目只有 confirmed 一种状态；status=all 兼容保留为同义。
             statuses = ("confirmed",)
-        elif status == "all":
-            statuses = tuple(sorted(QUESTION_STATUSES))
         else:
             statuses = (_choice(status, field="status", allowed=QUESTION_STATUSES),)
         placeholders = ", ".join("?" for _ in statuses)
@@ -1122,7 +1120,9 @@ class QuestionBankCatalog:
         with self._write() as conn:
             row = self._require_question_row_in(conn, question_id)
             if row["status"] != "confirmed":
-                raise _conflict("已归档的题目不能再修改。", code="QUESTION_ARCHIVED")
+                # B3 归档移除：正常数据不会落到这里（题目只有 confirmed）；旧库残留
+                # archived 行按只读兜底处理，编辑被拒而不是改出第二份语义。
+                raise _conflict("该题目不可编辑（状态异常，请先运行归一化脚本）。", code="QUESTION_ARCHIVED")
             revision_count = self._revision_count_in(conn, question_id)
             self._check_revision(revision_count, expected_revision, what="题目")
             previous_revision_id = row["current_revision_id"]
@@ -1171,17 +1171,141 @@ class QuestionBankCatalog:
             )
             return self._question_record(conn, self._require_question_row_in(conn, question_id))
 
-    def archive_question(self, question_id: str, *, expected_revision: int | None = None) -> QuestionRecord:
-        """归档（逻辑删除）：不物理删除题目、修订与来源。"""
+    #: 彻底删除题目的引用守卫错误码（服务层转 409 响应）。
+    #: ``practices`` = 教学库 ``practice_selections`` 的固定题引用（跨库，只给守卫口径，
+    #: 由服务层经注入的教学库只读连接计数）；``lessonFixedQuestions`` = 教案生成冻结输入
+    #: 引用的修订（同样跨库只读计数）。库内引用（``question_drafts.duplicate_of_question_id``）
+    #: 删除时置空，不阻断。
+    QUESTION_IN_USE = "QUESTION_IN_USE"
+
+    def question_revision_ids_in(self, conn: sqlite3.Connection, question_id: str) -> list[str]:
+        """该题目的全部修订 id（物理删除的级联范围）。"""
         question_id = _text(question_id, field="question_id")
-        with self._write() as conn:
-            row = self._require_question_row_in(conn, question_id)
-            if expected_revision is not None:
-                revision_count = self._revision_count_in(conn, question_id)
-                self._check_revision(revision_count, expected_revision, what="题目")
-            if row["status"] != "archived":
-                conn.execute("UPDATE questions SET status = 'archived' WHERE id = ?", (question_id,))
-            return self._question_record(conn, self._require_question_row_in(conn, question_id))
+        return [
+            str(row["id"])
+            for row in conn.execute(
+                "SELECT id FROM question_revisions WHERE question_id = ?", (question_id,)
+            ).fetchall()
+        ]
+
+    def count_external_references_in(
+        self,
+        teaching_conn: sqlite3.Connection,
+        question_id: str,
+    ) -> dict[str, int]:
+        """跨库引用计数（物理删除守卫的数据来源；教学库**只读**连接）。
+
+        - ``practices``：教学库 ``practice_selections``（列 ``question_id``）指向本题的
+          行数——练习快照带内容冻结副本，但身份锚点在题库；物理删除会让审核练习的
+          ``_active_refs`` 与回流映射失去指向，按 R10 口径列为阻断项；
+        - ``lessonFixedQuestions``：教案冻结输入 ``lesson_generation_inputs.frozen_json``
+          的 ``source.questions[].questionId`` 引用（JSON 路径扫描，只统计未消费完成
+          的生成输入行——与教案同生命周期的冻结血缘）。
+
+        :param teaching_conn: 教学库连接（服务层从注入的 ``teaching_catalog`` 打开）。
+        """
+        question_id = _text(question_id, field="question_id")
+        counts = {"practices": 0, "lessonFixedQuestions": 0}
+        counts["practices"] = int(
+            teaching_conn.execute(
+                "SELECT COUNT(*) AS n FROM practice_selections WHERE question_id = ?",
+                (question_id,),
+            ).fetchone()["n"]
+        )
+        counts["lessonFixedQuestions"] = int(
+            teaching_conn.execute(
+                "SELECT COUNT(*) AS n FROM lesson_generation_inputs "
+                "WHERE EXISTS (SELECT 1 FROM json_each(frozen_json, '$.source.questions') "
+                "WHERE json_each.value ->>'questionId' = ?)",
+                (question_id,),
+            ).fetchone()["n"]
+        )
+        return counts
+
+    def delete_question_in(
+        self,
+        conn: sqlite3.Connection,
+        question_id: str,
+        *,
+        expected_revision: int | None,
+    ) -> dict[str, int]:
+        """物理删除一道题目及其全部库内产物（**单写事务**，按外键依赖顺序删除）。
+
+        删除语义（B3，2026-10-20 用户裁定「全局移除归档，题库 DELETE 一律物理删除」）：
+
+        - 乐观锁：``expected_revision`` 提供时核对该题当前修订数（与 ``patch_question``
+          的 ``revision`` 口径一致），不符 → 409 ``REVISION_CONFLICT``；
+        - 指向本题的草稿并入指针（``question_drafts.duplicate_of_question_id``）先置空：
+          草稿批次与审计记录保留，只是"重复题"不再可跳转；
+        - ``question_knowledge_links`` 挂在题目修订上，受不可变 UPDATE/DELETE 触发器
+          保护——同事务摘除两个触发器 → 删除 → 按 ``sqlite_master`` 原文逐字恢复
+          （DDL 可事务化；``BEGIN IMMEDIATE`` 下无并发写者可见窗口）；
+        - **任务历史保留**：``question_jobs``（整理/补题任务）与 ``question_submissions``
+          （确认幂等记录）不删——与 R10「批次只是记录」同口径；批次行
+          （``question_imports``）与草稿也**不**随题目删除（它们是导入历史）。
+
+        通过后按外键依赖顺序删除：
+        ``question_content_fingerprints``（按修订）→ ``question_knowledge_links``
+        （按修订）→ ``question_revisions`` → ``question_sources`` → ``questions``。
+
+        返回各类删除/置空行数（供测试与回执断言）；题目不存在 → 404。
+        """
+        question_id = _text(question_id, field="question_id")
+        row = self._require_question_row_in(conn, question_id)
+        if expected_revision is not None:
+            revision_count = self._revision_count_in(conn, question_id)
+            self._check_revision(revision_count, expected_revision, what="题目")
+        revision_ids = self.question_revision_ids_in(conn, question_id)
+        placeholders = ", ".join("?" for _ in revision_ids) or "NULL"
+        deleted: dict[str, int] = {}
+        cleared = conn.execute(
+            "UPDATE question_drafts SET duplicate_of_question_id = NULL "
+            "WHERE duplicate_of_question_id = ?",
+            (question_id,),
+        ).rowcount
+        deleted["clearedDraftDuplicates"] = int(cleared)
+        saved_triggers: list[tuple[str, str]] = []
+        for name in (
+            "immutable_question_knowledge_links_delete",
+            "immutable_question_knowledge_links_update",
+        ):
+            trigger = conn.execute(
+                "SELECT name, sql FROM sqlite_master WHERE type = 'trigger' AND name = ?",
+                (name,),
+            ).fetchone()
+            if trigger is not None and trigger["sql"]:
+                conn.execute(f'DROP TRIGGER "{trigger["name"]}"')
+                saved_triggers.append((str(trigger["name"]), str(trigger["sql"])))
+        try:
+            cursor = conn.execute(
+                "DELETE FROM question_content_fingerprints "
+                f"WHERE question_revision_id IN ({placeholders})",
+                revision_ids,
+            )
+            deleted["contentFingerprints"] = cursor.rowcount
+            cursor = conn.execute(
+                "DELETE FROM question_knowledge_links "
+                f"WHERE question_revision_id IN ({placeholders})",
+                revision_ids,
+            )
+            deleted["knowledgeLinks"] = cursor.rowcount
+            cursor = conn.execute(
+                "DELETE FROM question_revisions WHERE question_id = ?", (question_id,)
+            )
+            deleted["revisions"] = cursor.rowcount
+            cursor = conn.execute(
+                "DELETE FROM question_sources WHERE question_id = ?", (question_id,)
+            )
+            deleted["sources"] = cursor.rowcount
+            cursor = conn.execute("DELETE FROM questions WHERE id = ?", (question_id,))
+            deleted["questions"] = cursor.rowcount
+        finally:
+            # 逐字恢复（含失败回滚路径）：恢复文本取自摘除时的 sqlite_master 原文，
+            # 不在代码里复制第二份触发器 DDL。
+            for _name, statement in saved_triggers:
+                conn.execute(statement)
+        _ = row  # _require_question_row_in 已保证存在性（不存在 → 404）
+        return deleted
 
     def question_knowledge_links(
         self, question_id: str

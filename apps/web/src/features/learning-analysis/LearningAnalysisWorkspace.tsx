@@ -479,8 +479,6 @@ export function LearningAnalysisWorkspace({
           <p className="la-hint">
             报告固定在一次已确认的小题分成绩修订上（不随成绩修正而变）：用「生成学情报告」创建，
             同一成绩版本重复生成会复用已有报告；报告由后台计算，就绪后才有五图与 AI 评价。
-            归档功能已舍弃——本页不提供归档/恢复操作；历史数据里已归档的报告仍按后端返回只读展示
-            （标「已归档（只读）」）。
           </p>
 
           {showCreateRun && assessmentId && (
@@ -534,7 +532,6 @@ export function LearningAnalysisWorkspace({
                   <span className="la-meta">
                     {item.reportReady ? '已准备' : '尚未准备'} · 人次{' '}
                     {item.selectionSnapshot?.participantCount ?? '—'} · 报告 {shortId(item.runId)}
-                    {item.archivedAt ? ' · 已归档（只读）' : ''}
                   </span>
                 </button>
               </li>
@@ -581,7 +578,6 @@ export function LearningAnalysisWorkspace({
               <p className="la-meta">
                 成绩修订 {shortId(runView.scoreRevisionId)} · 原卷修订 {shortId(runView.paperRevisionId)} ·
                 创建 {runView.createdAt?.slice(0, 10) || '—'}
-                {runView.archivedAt ? ' · 已归档（只读）' : ''}
               </p>
               {runView.selectionSnapshot && (
                 <p className="la-hint">

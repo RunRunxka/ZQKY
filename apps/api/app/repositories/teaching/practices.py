@@ -212,19 +212,6 @@ class PracticeRepository:
                 conn.execute(statement)
         return dict(conversion_id=row["conversion_id"], assessment_id=row["assessment_id"])
 
-    def set_archived_in(self, conn, set_id: str, owner_id: str, *, expected_revision: int, archived: bool):
-        """归档/恢复：一条 UPDATE 同时改 ``status`` 并原子递增 ``revision``；历史修订原样保留。"""
-        status = "archived" if archived else "active"
-        if status not in PRACTICE_SET_STATUSES:
-            raise AppError("status 只能是 active 或 archived。", code="INVALID_REQUEST", status_code=422)
-        current = self.set_in(conn, set_id, owner_id)
-        if current["revision"] != expected_revision:
-            raise AppError("数据已被其他操作更新，请刷新后重试。", code="REVISION_CONFLICT", status_code=409,
-                details={"currentRevision": current["revision"], "fields": ["expectedRevision"]})
-        conn.execute("UPDATE practice_sets SET status=?, revision=revision+1 WHERE id=? AND owner_id=? AND revision=?",
-            (status, set_id, owner_id, expected_revision))
-        return self.set_in(conn, set_id, owner_id)
-
     def revision_in(self, conn, set_id: str, revision_id: str, owner_id: str):
         self.set_in(conn, set_id, owner_id)
         row = conn.execute("SELECT * FROM practice_revisions WHERE id=? AND practice_set_id=?", (revision_id, set_id)).fetchone()

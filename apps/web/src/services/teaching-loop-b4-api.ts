@@ -9,11 +9,11 @@
 import { apiRequest, apiRequestBlob } from './api-client';
 import { assessmentsQuery } from './assessments-api';
 import type {
-  AnalysisArchiveRequest, AnalysisCreateRequest, AnalysisReceipt, AnalysisRunView, ClassReportRow,
+  AnalysisCreateRequest, AnalysisReceipt, AnalysisRunView, ClassReportRow,
   StudentReportRow, EvidenceRow, ItemStatView, NoteRequest, NoteView, Page,
   AnalysisRunDeleteResult,
   PracticeCreateRequest, PracticeSetView, PracticeRevisionView,
-  PracticeSetStatusRequest, PracticeSetDeleteReceipt,
+  PracticeSetDeleteReceipt,
   PracticeSuggestionsRequest, PracticeSuggestions, PracticeDraftPatch,
   PracticeReviewRequest, PracticeRevisionRequest, ExportRequest, ExportReceipt,
   ExportArtifact, PracticeConversionRequest, PracticeConversionReceipt,
@@ -24,12 +24,10 @@ const key = encodeURIComponent;
 const write = (method: string, body: unknown, signal?: AbortSignal): RequestInit => ({
   method, headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal,
 });
-/** 归档/恢复请求体：后端 `AnalysisArchiveRequest` 当前无字段（`extra="forbid"`），固定空对象。 */
-const analysisArchiveBody: AnalysisArchiveRequest = {};
 export interface PageQuery { offset?: number; limit?: number }
-export interface AnalysisQuery extends PageQuery { assessmentId?: string; scoreRevisionId?: string; archived?: boolean }
+export interface AnalysisQuery extends PageQuery { assessmentId?: string; scoreRevisionId?: string }
 export interface ReportQuery extends PageQuery { classId?: string; participantId?: string; knowledgePointId?: string }
-export interface PracticeQuery extends PageQuery { analysisRunId?: string; status?: 'active' | 'archived' }
+export type PracticeQuery = PageQuery & { analysisRunId?: string };
 
 export function createAnalysisRun(assessmentId: string, body: AnalysisCreateRequest, signal?: AbortSignal): Promise<AnalysisReceipt> {
   return apiRequest(`/assessments/${key(assessmentId)}/analysis-runs`, write('POST', body, signal));
@@ -39,13 +37,6 @@ export function listAnalysisRuns(query: AnalysisQuery = {}, signal?: AbortSignal
 }
 export function getAnalysisRun(runId: string, signal?: AbortSignal): Promise<AnalysisRunView> {
   return apiRequest(`/analysis-runs/${key(runId)}`, { signal });
-}
-/** 软归档学情运行：只写 `archivedAt`，报告内容与子表一概不动；幂等。 */
-export function archiveAnalysisRun(runId: string, signal?: AbortSignal): Promise<AnalysisRunView> {
-  return apiRequest(`/analysis-runs/${key(runId)}/archive`, write('POST', analysisArchiveBody, signal));
-}
-export function restoreAnalysisRun(runId: string, signal?: AbortSignal): Promise<AnalysisRunView> {
-  return apiRequest(`/analysis-runs/${key(runId)}/restore`, write('POST', analysisArchiveBody, signal));
 }
 /**
  * 彻底删除学情报告（受引用守卫的物理删除）：物理删除报告与其冻结的班级/学生依据、题证据、教师备注，不可恢复。
@@ -87,13 +78,6 @@ export function listPractices(query: PracticeQuery = {}, signal?: AbortSignal): 
 }
 export function getPractice(setId: string, signal?: AbortSignal): Promise<PracticeSetView> {
   return apiRequest(`/practice-sets/${key(setId)}`, { signal });
-}
-/** 练习集归档：`expectedRevision` 守卫；历史修订与导出产物保留。 */
-export function archivePracticeSet(setId: string, body: PracticeSetStatusRequest, signal?: AbortSignal): Promise<PracticeSetView> {
-  return apiRequest(`/practice-sets/${key(setId)}/archive`, write('POST', body, signal));
-}
-export function restorePracticeSet(setId: string, body: PracticeSetStatusRequest, signal?: AbortSignal): Promise<PracticeSetView> {
-  return apiRequest(`/practice-sets/${key(setId)}/restore`, write('POST', body, signal));
 }
 /**
  * 练习集彻底删除（受引用守卫的物理删除）：`expectedRevision` 走查询参数。
@@ -152,6 +136,5 @@ export const b4Api = {
   getPractice, getPracticeRevision, suggestPractice, patchPracticeDraft, reviewPractice,
   createPracticeRevision, createPracticeExport, listPracticeExports, getExportArtifact,
   downloadExportArtifact, getPracticeAsset, convertPractice, deletePracticeConversion,
-  archiveAnalysisRun, restoreAnalysisRun, deleteAnalysisRun, archivePracticeSet, restorePracticeSet,
-  deletePracticeSet,
+  deleteAnalysisRun, deletePracticeSet,
 };

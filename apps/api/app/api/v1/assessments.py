@@ -13,7 +13,9 @@
 | ``POST /assessments/{id}/participants`` | 补录/补考：新增人次（不覆盖既有记录） |
 | ``DELETE /assessments/{id}/participants/{pid}`` | 移除误录人次（守卫式：已有成绩版本/导入引用/学情报告 → 409） |
 | ``DELETE /assessments/{id}?expectedRevision=N`` | 彻底删除施测（R10-BE 级联其自有成绩链：人次/导入/修订/小题分/报告/派生练习/转换）；唯一 409 = 教案冻结生成血缘（``ASSESSMENT_IN_USE`` 列出计数） |
-| ``POST /assessments/{id}/archive``、``/restore`` | 归档/恢复（``expectedRevision``；归档后禁止更新/补录/出勤校正与新成绩导入，历史保留） |
+
+归档/恢复端点已按 2026-10-20 用户裁定**全部移除**（删除即删除；归一化脚本把残留
+``state='archived'`` 施测转为 ``closed``）。
 
 错误码一律用 ``app/contracts/assessments.py`` 的契约常量；这些真实路由注册后，B0 的
 ``/api/v1/{rest:path}`` 通配占位不再命中本前缀（路由按注册顺序优先匹配）。
@@ -67,6 +69,17 @@ async def _run(fn, /, *args, **kwargs):
 
 
 # --------------------------------------------------------------------------- 施测
+
+
+@router.post("/assessments/{assessment_id}/archive", include_in_schema=False)
+@router.post("/assessments/{assessment_id}/restore", include_in_schema=False)
+async def assessment_archive_removed(assessment_id: str) -> None:
+    """归档/恢复端点已移除（B3，2026-10-20 用户裁定「删除即删除」）：显式 404。"""
+    raise AppError(
+        f"施测 {assessment_id} 的归档/恢复端点已移除；删除请用 DELETE /assessments/{{id}}。",
+        code="ARCHIVE_ENDPOINT_REMOVED",
+        status_code=404,
+    )
 
 
 @router.get("/assessments")
@@ -156,22 +169,6 @@ async def delete_assessment(
     service = _service(request)
     payload = AssessmentRevisionRequest(expectedRevision=expectedRevision)
     return await _run(service.delete_assessment, assessment_id, payload)
-
-
-@router.post("/assessments/{assessment_id}/archive")
-async def archive_assessment(
-    request: Request, assessment_id: str, body: AssessmentRevisionRequest
-) -> AssessmentView:
-    service = _service(request)
-    return await _run(service.set_archived, assessment_id, body, archived=True)
-
-
-@router.post("/assessments/{assessment_id}/restore")
-async def restore_assessment(
-    request: Request, assessment_id: str, body: AssessmentRevisionRequest
-) -> AssessmentView:
-    service = _service(request)
-    return await _run(service.set_archived, assessment_id, body, archived=False)
 
 
 __all__ = ["router"]

@@ -319,9 +319,11 @@ def test_delete_class_blocked_by_lesson_plan(client: TestClient, harness: Harnes
 def test_delete_class_revision_conflict(client: TestClient) -> None:
     created = _create_class(client)
     class_id = created["id"]
-    # 先归档一次使 revision 变 1，再用旧 revision 删除
-    archived = client.post(f"/api/v1/classes/{class_id}/archive", json={"expectedRevision": 0})
-    assert archived.status_code == 200, archived.text
+    # 先 PATCH 一次使 revision 变 1，再用旧 revision 删除（归档入口已移除）
+    patched = client.patch(
+        f"/api/v1/classes/{class_id}", json={"expectedRevision": 0, "name": "改名"}
+    )
+    assert patched.status_code == 200, patched.text
 
     stale = client.delete(f"/api/v1/classes/{class_id}", params={"expectedRevision": 0})
     assert stale.status_code == 409
@@ -475,13 +477,16 @@ def test_batch_add_students_invalid_row_rolls_back_all(
     assert len(ok.json()["created"]) == 1
 
 
-def test_batch_add_students_archived_class_rejected(
+def test_batch_add_students_stale_archived_class_rejected(
     client: TestClient, harness: Harness
 ) -> None:
+    """旧库残留 archived 班级（模拟）：批量添加被只读兜底拒绝。"""
     created_class = _create_class(client)
     class_id = created_class["id"]
-    archived = client.post(f"/api/v1/classes/{class_id}/archive", json={"expectedRevision": 0})
-    assert archived.status_code == 200, archived.text
+    harness.raw_execute(
+        "UPDATE classes SET status='archived', revision=revision+1 WHERE id=?",
+        (class_id,),
+    )
 
     response = client.post(
         f"/api/v1/classes/{class_id}/students/batch",

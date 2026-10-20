@@ -95,7 +95,7 @@ from app.services.knowledge import extraction as extraction_rules
 from app.services.knowledge import imports as import_rules
 from app.services.knowledge import suggestions as suggestion_rules
 from app.services.knowledge.evidence import TextbookEvidenceReader
-from app.services.knowledge.references import in_use_error
+from app.services.knowledge.references import ReferenceCounts
 from app.services.llm.runner import run_structured
 from app.services.model_runtime import (
     MODEL_CONFIG_DRIFT,
@@ -313,7 +313,6 @@ class KnowledgeService:
         self,
         *,
         subject_id: str | None = None,
-        status: str | None = None,
         parent_id: str | None = None,
         q: str | None = None,
         scope: str | None = None,
@@ -342,7 +341,6 @@ class KnowledgeService:
             items, total = self.points.list_points(
                 conn,
                 subject_id=subject_id,
-                status=status,
                 parent_id=parent_id,
                 q=q,
                 scope_point_ids=None if scope_point_ids is None else scope_point_ids,
@@ -563,34 +561,16 @@ class KnowledgeService:
                     )
         return _point_view(record)
 
-    def set_archived(
-        self,
-        point_id: str,
-        payload: KnowledgePointRevisionRequest,
-        *,
-        archived: bool,
-    ) -> KnowledgePointView:
-        point_id = _text(point_id, field="pointId")
-        operation = "knowledge.archive" if archived else "knowledge.restore"
-        with self.coordinator.publication(operation=operation):
-            with self.catalog.write_transaction() as conn:
-                record = self.points.set_status(
-                    conn,
-                    point_id,
-                    expected_revision=payload.expected_revision,
-                    archived=archived,
-                )
-        return _point_view(record)
-
     def delete_point(self, point_id: str, payload: KnowledgePointRevisionRequest) -> None:
-        """彻底删除（任务①）：跨库守卫 → 同一写事务删除别名/修订/身份行。
+        """彻底删除整棵子树：跨库守卫 → 同一写事务删除别名/修订/身份行。
 
-        - 守卫：任一库仍有引用 → 409 ``KNOWLEDGE_POINT_IN_USE`` + ``details.counts``
-          逐项计数；守卫端口缺失 → 503 ``SERVICE_UNAVAILABLE``（不静默放行）；
-        - 本学科仍有子节点 → 409 ``KNOWLEDGE_POINT_IN_USE``（子节点引用父节点，
-          先处理子节点）；404 ``KNOWLEDGE_POINT_NOT_FOUND`` / 409 ``REVISION_CONFLICT``
-          语义与既有更新一致；
-        - 引用计数在发布协调器锁内、删除写事务之前完成（锁内只做数据库读取）。
+        - 根节点 ``expectedRevision`` 是乐观锁；404 / 409 语义与既有更新一致；
+        - 子树内**任一节点**仍有引用 → 409 ``KNOWLEDGE_POINT_IN_USE``；
+          ``details.points`` 逐节点给出 ``pointId/name/total/counts``，
+          ``details.counts`` 保留聚合计数（兼容旧客户端）；
+        - 守卫端口缺失 → 503 ``SERVICE_UNAVAILABLE``（不静默放行）；
+        - 引用计数在发布协调器锁内、删除写事务之前完成（锁内只做数据库读取）；
+        - 删除事务同时解除 ``knowledge_import_rows`` 的隐藏外键（置 NULL）。
         """
         point_id = _text(point_id, field="pointId")
         with self.coordinator.publication(operation="knowledge.delete"):
@@ -603,26 +583,54 @@ class KnowledgeService:
                     status_code=503,
                     retryable=True,
                 )
-            # ② 本库前置校验：存在 / 子节点（都在守卫计数之前给出可定位错误）
+            # ② 取子树（含根）并在锁内核对根修订号
             with self.catalog.read_connection() as conn:
-                current = self.points.require_point(conn, point_id)
-                row = conn.execute(
-                    "SELECT COUNT(*) AS total FROM knowledge_points WHERE parent_id = ?",
-                    (point_id,),
-                ).fetchone()
-                child_count = int(row["total"]) if row is not None else 0
-                if child_count:
-                    raise _conflict(
-                        f"该知识点还有 {child_count} 个子节点；先删除或移动子节点。",
-                        code=KNOWLEDGE_POINT_IN_USE,
+                root = self.points.require_point(conn, point_id)
+                if root.revision != payload.expected_revision:
+                    raise revision_conflict(root.revision)
+                nodes = self.points.subtree(conn, point_id)
+            # ③ 逐节点清点引用：只要子树里有一个节点被引用就阻止
+            aggregate = {
+                "textbook_links": 0,
+                "paper_items": 0,
+                "question_links": 0,
+                "question_draft_links": 0,
+            }
+            blocked: list[dict[str, Any]] = []
+            for node in nodes:
+                counts = self.reference_checker.count_references(node.point_id)
+                aggregate["textbook_links"] += counts.textbook_links
+                aggregate["paper_items"] += counts.paper_items
+                aggregate["question_links"] += counts.question_links
+                aggregate["question_draft_links"] += counts.question_draft_links
+                if counts.total:
+                    blocked.append(
+                        {
+                            "pointId": node.point_id,
+                            "name": node.name,
+                            "total": counts.total,
+                            "counts": counts.as_details(),
+                        }
                     )
-            counts = self.reference_checker.count_references(point_id)
-            if counts.total:
-                raise in_use_error(counts)
-            # ③ 同一写事务删除：别名 → 修订 → 身份（乐观锁在仓储删除方法内核对）
+            if blocked:
+                total = ReferenceCounts(**aggregate)
+                raise AppError(
+                    f"知识点子树仍在使用中：{len(blocked)} 个节点存在引用，先解除引用。",
+                    code=KNOWLEDGE_POINT_IN_USE,
+                    status_code=409,
+                    details={
+                        "counts": total.as_details(),
+                        "points": blocked,
+                        "subtreeSize": len(nodes),
+                    },
+                )
+            # ④ 同一写事务删除：别名 → 修订 → 身份（depth 倒序），根 CAS 再核一次
             with self.catalog.write_transaction() as conn:
-                self.points.delete_point(
-                    conn, point_id, expected_revision=payload.expected_revision
+                self.points.delete_subtree(
+                    conn,
+                    point_id,
+                    expected_revision=payload.expected_revision,
+                    nodes=nodes,
                 )
         return None
 

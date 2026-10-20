@@ -17,10 +17,6 @@ from app.core.exceptions import AppError
 router = APIRouter(tags=["analysis"])
 
 
-class AnalysisArchiveRequest(Frozen):
-    """归档/恢复请求体：当前无字段，预留扩展位（教师无需提交任何内容）。"""
-
-
 def service(request):
     value = getattr(request.app.state, "analysis_service", None)
     if value is None:
@@ -39,9 +35,14 @@ async def create_run(request: Request, assessment_id: str, body: AnalysisCreateR
 
 @router.get("/analysis-runs", response_model=Page[AnalysisRunView])
 async def list_runs(request: Request, assessmentId: str | None = None, scoreRevisionId: str | None = None,
-                    archived: bool | None = Query(None), offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=200)):
+                    offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=200)):
+    """报告列表：归档/恢复端点已移除（删除即删除）；列表返回全部正常数据。
+
+    ``archivedAt`` 字段在视图里保留（旧库残留行的只读时间戳），归一化脚本会把
+    残留行的 ``archived_at`` 清空。
+    """
     return await run(service(request).list_runs, assessment_id=assessmentId, score_revision_id=scoreRevisionId,
-                     archived=archived, offset=offset, limit=limit)
+                     offset=offset, limit=limit)
 
 
 @router.get("/analysis-runs/{run_id}", response_model=AnalysisRunView)
@@ -49,14 +50,15 @@ async def get_run(request: Request, run_id: str):
     return await run(service(request).get_run, run_id)
 
 
-@router.post("/analysis-runs/{run_id}/archive", response_model=AnalysisRunView)
-async def archive_run(request: Request, run_id: str, body: AnalysisArchiveRequest):
-    return await run(service(request).set_archived, run_id, body, archived=True)
-
-
-@router.post("/analysis-runs/{run_id}/restore", response_model=AnalysisRunView)
-async def restore_run(request: Request, run_id: str, body: AnalysisArchiveRequest):
-    return await run(service(request).set_archived, run_id, body, archived=False)
+@router.post("/analysis-runs/{run_id}/archive", include_in_schema=False)
+@router.post("/analysis-runs/{run_id}/restore", include_in_schema=False)
+async def run_archive_removed(run_id: str):
+    """归档/恢复端点已移除（B3，2026-10-20 用户裁定「删除即删除」）：显式 404。"""
+    raise AppError(
+        f"学情报告 {run_id} 的归档/恢复端点已移除；删除请用 DELETE /analysis-runs/{{id}}。",
+        code="ARCHIVE_ENDPOINT_REMOVED",
+        status_code=404,
+    )
 
 
 @router.delete("/analysis-runs/{run_id}", response_model=AnalysisRunDeleteReceipt)

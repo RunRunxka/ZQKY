@@ -59,46 +59,52 @@ def _scene(harness: AssessmentsHarness, *, tag: str = "cl"):
     return paper, klass, students, response.json()
 
 
-def _archive(harness: AssessmentsHarness, assessment_id: str, revision: int):
-    return harness.client.post(
-        f"/api/v1/assessments/{assessment_id}/archive",
-        json={"expectedRevision": revision},
+def _stale_archive(harness: AssessmentsHarness, assessment_id: str) -> None:
+    """模拟旧库残留 archived 施测（归档端点已移除，直接写库）。"""
+    harness.raw_execute(
+        "UPDATE assessments SET state='archived', revision=revision+1 WHERE id=?",
+        (assessment_id,),
     )
 
 
-def _restore(harness: AssessmentsHarness, assessment_id: str, revision: int):
-    return harness.client.post(
-        f"/api/v1/assessments/{assessment_id}/restore",
-        json={"expectedRevision": revision},
-    )
+# --------------------------------------------------------------------------- 残留归档（B3 归档移除）
 
 
-# --------------------------------------------------------------------------- 归档
-
-
-def test_archive_blocks_writes_and_restore_reopens(harness: AssessmentsHarness) -> None:
+def test_archive_routes_are_gone_and_stale_row_blocks_writes(harness: AssessmentsHarness) -> None:
     _paper, klass, students, detail = _scene(harness)
     assessment = detail["assessment"]
     aid = assessment["assessmentId"]
 
-    archived = _archive(harness, aid, assessment["revision"])
-    assert archived.status_code == 200, archived.text
-    body = archived.json()
-    assert body["state"] == "archived"
-    assert body["revision"] == assessment["revision"] + 1
+    # 归档/恢复端点已移除（B3 删除即删除）
+    assert harness.client.post(
+        f"/api/v1/assessments/{aid}/archive",
+        json={"expectedRevision": assessment["revision"]},
+    ).status_code == 404
+    assert harness.client.post(
+        f"/api/v1/assessments/{aid}/restore",
+        json={"expectedRevision": assessment["revision"]},
+    ).status_code == 404
+    # 数据零变化，可继续写
+    renamed = harness.client.patch(
+        f"/api/v1/assessments/{aid}",
+        json={"expectedRevision": assessment["revision"], "title": "改名"},
+    )
+    assert renamed.status_code == 200, renamed.text
 
-    # 更新 / 补录 / 出勤校正：归档后一律 409，即使 revision 正确
+    # 模拟旧库残留 archived 行：只读兜底（更新/补录/出勤校正一律 409）
+    _stale_archive(harness, aid)
+    current = harness.client.get(f"/api/v1/assessments/{aid}").json()["assessment"]
     updated = harness.client.patch(
         f"/api/v1/assessments/{aid}",
-        json={"expectedRevision": body["revision"], "title": "改名"},
+        json={"expectedRevision": current["revision"], "title": "再改"},
     )
     assert updated.status_code == 409 and updated.json()["code"] == ASSESSMENT_ARCHIVED
 
     added = harness.client.post(
         f"/api/v1/assessments/{aid}/participants",
         json={
-            "expectedRevision": body["revision"],
-            "submissionId": "add-after-archive",
+            "expectedRevision": current["revision"],
+            "submissionId": "add-after-stale",
             "participants": [
                 AssessmentsHarness.participant(students[0]["id"], klass["id"], attempt_no=2)
             ],
@@ -110,52 +116,32 @@ def test_archive_blocks_writes_and_restore_reopens(harness: AssessmentsHarness) 
     attendance = harness.client.patch(
         f"/api/v1/assessments/{aid}/participants/{participant_id}/attendance",
         json={
-            "submissionId": "att-after-archive",
-            "expectedRevision": body["revision"],
+            "submissionId": "att-after-stale",
+            "expectedRevision": current["revision"],
             "attendance": "absent",
             "reason": "教师更正",
         },
     )
     assert attendance.status_code == 409 and attendance.json()["code"] == ASSESSMENT_ARCHIVED
 
-    # 归档仍可读（列表/详情）
-    listed = harness.client.get("/api/v1/assessments", params={"state": "archived"})
+    # 残留行仍可读（列表不过滤、state=closed 过滤为空）；删除是清理出口
+    listed = harness.client.get("/api/v1/assessments")
     assert listed.status_code == 200
-    assert [item["assessmentId"] for item in listed.json()["items"]] == [aid]
-
-    # 恢复后可写
-    restored = _restore(harness, aid, body["revision"])
-    assert restored.status_code == 200, restored.text
-    reopened = restored.json()
-    assert reopened["state"] == "open"
-    renamed = harness.client.patch(
-        f"/api/v1/assessments/{aid}",
-        json={"expectedRevision": reopened["revision"], "title": "恢复后改名"},
+    assert aid in [item["assessmentId"] for item in listed.json()["items"]]
+    closed_only = harness.client.get("/api/v1/assessments", params={"state": "closed"})
+    assert closed_only.json()["total"] == 0
+    deleted = harness.client.delete(
+        f"/api/v1/assessments/{aid}", params={"expectedRevision": current["revision"]}
     )
-    assert renamed.status_code == 200, renamed.text
-    assert renamed.json()["title"] == "恢复后改名"
+    assert deleted.status_code == 200, deleted.text
 
 
-def test_archive_revision_conflict_and_missing(harness: AssessmentsHarness) -> None:
-    _paper, _klass, _students, detail = _scene(harness, tag="cl2")
-    aid = detail["assessment"]["assessmentId"]
-
-    stale = _archive(harness, aid, detail["assessment"]["revision"] + 5)
-    assert stale.status_code == 409
-    assert stale.json()["details"]["currentRevision"] == detail["assessment"]["revision"]
-
-    missing = harness.client.post(
-        "/api/v1/assessments/missing-assessment/archive",
-        json={"expectedRevision": 0},
-    )
-    assert missing.status_code == 404
-
-
-def test_archived_assessment_rejects_new_score_import(scores: ScoresHarness, tmp_path: Path) -> None:
+def test_stale_archived_assessment_rejects_new_score_import(scores: ScoresHarness, tmp_path: Path) -> None:
     scene = scores.create_scene(tag="arch-score", students=[("甲", "0001")])
     aid = scene.assessment["assessmentId"]
-    archived = _archive(scores, aid, scene.assessment["revision"])
-    assert archived.status_code == 200, archived.text
+    scores.raw_execute(
+        "UPDATE assessments SET state='archived', revision=revision+1 WHERE id=?", (aid,)
+    )
 
     path = write_score_xlsx(
         tmp_path / "scores.xlsx", SAMPLE_HEADER, [["0001", "甲", 2, 2, 5]]
@@ -292,11 +278,11 @@ def test_remove_participant_blocked_when_archived(harness: AssessmentsHarness) -
     aid = assessment["assessmentId"]
     target = detail["participants"][0]["participantId"]
 
-    archived = _archive(harness, aid, assessment["revision"])
-    assert archived.status_code == 200, archived.text
+    _stale_archive(harness, aid)
+    current = harness.client.get(f"/api/v1/assessments/{aid}").json()["assessment"]
     blocked = harness.client.delete(
         f"/api/v1/assessments/{aid}/participants/{target}",
-        params={"expectedRevision": archived.json()["revision"]},
+        params={"expectedRevision": current["revision"]},
     )
     assert blocked.status_code == 409
     assert blocked.json()["code"] == ASSESSMENT_ARCHIVED

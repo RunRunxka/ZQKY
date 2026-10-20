@@ -436,6 +436,57 @@ describe('来源追溯：AI 候选确认路径', () => {
   });
 });
 
+/* -------------------------- 彻底删除：物理删除与 409 引用守卫 */
+
+describe('彻底删除：回答不可恢复，409 逐项展示教学链引用', () => {
+  it('确认文案写明物理删除内容；409 QUESTION_IN_USE 展示练习/教案计数与解锁路径', async () => {
+    const onClose = vi.fn();
+    const onChanged = vi.fn();
+    router({
+      'DELETE /api/v1/questions/q-1': () =>
+        jsonResponse(false, 409, {
+          code: 'QUESTION_IN_USE',
+          message: '题目仍被教学链引用，不能删除。',
+          retryable: false,
+          details: { counts: { practices: 2, lessonFixedQuestions: 1 } },
+        }),
+    });
+    renderDetail(onClose, onChanged);
+
+    fireEvent.click(await screen.findByRole('button', { name: '彻底删除…' }));
+    expect(screen.getByText(/物理删除这道题目及其修订、知识点关联、来源与内容指纹/)).toHaveTextContent(
+      '不可恢复',
+    );
+    fireEvent.click(screen.getByRole('button', { name: '确认彻底删除' }));
+
+    const blocked = await screen.findByTestId('qb-question-delete-blocked');
+    expect(blocked).toHaveTextContent('审核练习固定题：2 条');
+    expect(blocked).toHaveTextContent('教案生成冻结输入：1 条');
+    expect(blocked).toHaveTextContent('先删除引用它的练习/教案');
+    expect(screen.queryByText('归档')).not.toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(onChanged).not.toHaveBeenCalled();
+  });
+
+  it('409 没有 counts 时如实说明，不编造计数', async () => {
+    router({
+      'DELETE /api/v1/questions/q-1': () =>
+        jsonResponse(false, 409, {
+          code: 'QUESTION_IN_USE',
+          message: '题目仍被教学链引用，不能删除。',
+          retryable: false,
+        }),
+    });
+    renderDetail();
+
+    fireEvent.click(await screen.findByRole('button', { name: '彻底删除…' }));
+    fireEvent.click(screen.getByRole('button', { name: '确认彻底删除' }));
+    expect(await screen.findByTestId('qb-question-delete-counts-missing')).toHaveTextContent(
+      '服务端没有给出逐项引用计数',
+    );
+  });
+});
+
 function deferredResponse() {
   let resolve!: (response: Response) => void;
   const promise = new Promise<Response>((done) => {
@@ -467,8 +518,8 @@ describe('题目详情写入的对象与卸载守卫', () => {
             await openEdit();
             fireEvent.click(screen.getByRole('button', { name: '保存修改' }));
           } else {
-            fireEvent.click(await screen.findByRole('button', { name: '归档删除…' }));
-            fireEvent.click(screen.getByRole('button', { name: '确认归档删除' }));
+            fireEvent.click(await screen.findByRole('button', { name: '彻底删除…' }));
+            fireEvent.click(screen.getByRole('button', { name: '确认彻底删除' }));
           }
           if (boundary === 'switch') {
             view.rerender(
@@ -530,8 +581,8 @@ describe('题目详情写入的对象与卸载守卫', () => {
         await openEdit();
         fireEvent.click(screen.getByRole('button', { name: '保存修改' }));
       } else {
-        fireEvent.click(await screen.findByRole('button', { name: '归档删除…' }));
-        fireEvent.click(screen.getByRole('button', { name: '确认归档删除' }));
+        fireEvent.click(await screen.findByRole('button', { name: '彻底删除…' }));
+        fireEvent.click(screen.getByRole('button', { name: '确认彻底删除' }));
       }
       await waitFor(() => expect(reads).toBe(2));
       view.rerender(

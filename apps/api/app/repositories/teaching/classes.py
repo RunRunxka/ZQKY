@@ -19,7 +19,7 @@ import sqlite3
 import uuid
 from dataclasses import dataclass
 
-from app.contracts.roster import CLASS_CODE_CONFLICT, ClassStatus, ClassView
+from app.contracts.roster import CLASS_CODE_CONFLICT, ClassView
 from app.contracts.teaching_loop import REVISION_CONFLICT, error_details
 from app.core.exceptions import AppError
 from app.core.sqlite import now_iso
@@ -236,32 +236,6 @@ class ClassRepository:
                 )
             except sqlite3.IntegrityError as exc:
                 raise _class_conflict(exc) from exc
-        return self._require_record_in(conn, class_id)
-
-    def set_status(
-        self, class_id: str, *, expected_revision: int, status: ClassStatus
-    ) -> ClassRecord:
-        with self._catalog.write_transaction() as conn:
-            return self.set_status_in(
-                conn, class_id, expected_revision=expected_revision, status=status
-            )
-
-    def set_status_in(
-        self,
-        conn: sqlite3.Connection,
-        class_id: str,
-        *,
-        expected_revision: int,
-        status: ClassStatus,
-    ) -> ClassRecord:
-        if status not in CLASS_STATUSES:
-            raise _invalid("status 只能是 active 或 archived。", fields=["status"])
-        current = self._require_row_in(conn, class_id)
-        _check_revision(current["revision"], expected_revision)
-        conn.execute(
-            "UPDATE classes SET status = ?, revision = revision + 1 WHERE id = ?",
-            (status, class_id),
-        )
         return self._require_record_in(conn, class_id)
 
     def count_references_in(self, conn: sqlite3.Connection, class_id: str) -> dict[str, int]:

@@ -217,21 +217,23 @@ async def test_apply_new_attempt_rechecks_active_references_but_keeps_candidate(
     assert scene.be.get_proposal("lesson",proposal["proposalId"])["state"]=="pending"
 
 
-async def test_archived_lesson_blocks_generate_apply_and_reject_keeps_history(scene):
+async def test_stale_archived_lesson_blocks_generate_apply_and_reject_keeps_history(scene):
+    """B3 归档移除：残留 archived_at 行（模拟旧库）挡生成/应用，reject 仍可终结记录。"""
     proposal,_=await scene.proposal()
     lesson=scene.be.get_lesson("lesson")
-    assert scene.be.set_archived("lesson",lp.LessonRevisionRequest(expectedRevision=lesson["revision"]),archived=True)
+    with scene.catalog.write_transaction() as conn:
+        conn.execute("UPDATE lesson_plans SET archived_at='2026-10-03T09:00:00Z' WHERE id='lesson'")
     before=tuple(scene.count(t) for t in ("lesson_ai_proposals","lesson_generation_inputs","lesson_proposal_decisions","lesson_plan_revisions"))
-    # 归档后生成建议被既有守卫挡住。
+    # 残留归档行挡生成建议（只读兜底）。
     with pytest.raises(AppError) as generate:
-        await scene.be.generate_proposal("lesson",scene.generate_request(lesson,submission="archived-generate"))
+        await scene.be.generate_proposal("lesson",scene.generate_request(lesson,submission="stale-generate"))
     assert generate.value.code=="LESSON_INVALID" and generate.value.status_code==422
-    # 归档后应用既有建议被挡住：建议保持 pending，无终结决定。
+    # 残留归档行挡应用既有建议：建议保持 pending，无终结决定。
     with pytest.raises(AppError) as apply_blocked:
         await scene.be.apply_proposal("lesson",proposal["proposalId"],scene.apply_request(proposal))
     assert apply_blocked.value.code=="LESSON_INVALID" and apply_blocked.value.status_code==422
-    # reject 不写教案内容（不经过 _current 守卫），归档后仍可终结建议记录。
-    rejected=scene.be.reject_proposal("lesson",proposal["proposalId"],lp.LessonRejectRequest(submissionId="archived-reject"))
+    # reject 不写教案内容（不经过 _current 守卫），仍可终结建议记录。
+    rejected=scene.be.reject_proposal("lesson",proposal["proposalId"],lp.LessonRejectRequest(submissionId="stale-reject"))
     assert rejected["state"]=="rejected"
     # 教案本身未被 reject 改动：revision、head 指针与修订历史保持不变。
     assert scene.be.get_lesson("lesson")==lesson and scene.be.get_lesson("lesson")["revision"]==1

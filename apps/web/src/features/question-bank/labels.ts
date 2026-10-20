@@ -191,6 +191,40 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
+const QUESTION_IN_USE_KEY_LABEL: Record<string, string> = {
+  practices: '审核练习固定题',
+  lessonFixedQuestions: '教案生成冻结输入',
+};
+
+/** 彻底删除被教学链引用：409 `QUESTION_IN_USE`。 */
+export const QUESTION_IN_USE_CODE = 'QUESTION_IN_USE';
+
+export interface QuestionInUseCount {
+  key: string;
+  label: string;
+  count: number;
+}
+
+/**
+ * 解析 409 `QUESTION_IN_USE` 的 `details.counts`（`{practices, lessonFixedQuestions}`）。
+ * 形状不认识或没有 `count > 0` 的项时返回 null（不伪造计数）；
+ * 未知键按原样显示（不隐藏引用）。
+ */
+export function parseQuestionInUseCounts(details: unknown): QuestionInUseCount[] | null {
+  if (!isRecord(details) || !isRecord(details.counts)) return null;
+  const counts: QuestionInUseCount[] = [];
+  for (const [key, value] of Object.entries(details.counts)) {
+    if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) continue;
+    counts.push({ key, label: QUESTION_IN_USE_KEY_LABEL[key] ?? key, count: value });
+  }
+  return counts.length > 0 ? counts : null;
+}
+
+/** 引用计数的一句话摘要（详情面板与列表共用；没有可展示计数时返回 null）。 */
+export function questionInUseSummary(counts: QuestionInUseCount[] | null): string | null {
+  return counts ? counts.map((item) => `${item.label} ${item.count} 条`).join('、') : null;
+}
+
 /**
  * 解析 409 `IMPORT_IN_USE` 的 `details`（`{sourceRefCount, mergedDraftCount}`）。
  * 形状不认识或两个计数都不是有限数字时返回 null（**不伪造计数**）。

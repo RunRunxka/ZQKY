@@ -59,10 +59,8 @@ function renderBrowser(overrides: Partial<Parameters<typeof PointBrowser>[0]> = 
     subjects: TAXONOMY_SUBJECTS,
     taxonomyReady: true,
     subjectId: '',
-    status: '' as const,
     selectedPointId: null,
     onSubjectChange: vi.fn(),
-    onStatusChange: vi.fn(),
     onSelect: vi.fn(),
     onCreate: vi.fn(),
     refreshToken: 0,
@@ -127,6 +125,24 @@ describe('知识点浏览：列表 / 筛选 / 空态 / 失败重试', () => {
     // 空态不是错误态：页面自己的错误横幅不存在
     expect(screen.queryByTestId('kp-list-error')).not.toBeInTheDocument();
     expect(calls(fetchMock, 'q=%E5%87%BD%E6%95%B0').length).toBe(1);
+  });
+
+  it('不再有「已归档」筛选项与 archived chip，列表请求不带 status', async () => {
+    const fetchMock = stubApi((url) => {
+      if (url.includes('/knowledge-points')) {
+        return listResponse([point({ status: 'archived', name: '历史节点' })]);
+      }
+      return jsonResponse(false, 500, { code: 'UNEXPECTED_TEST_REQUEST', message: url });
+    });
+    renderBrowser();
+
+    expect(await screen.findByText('历史节点')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '已归档' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: '按状态筛选' })).not.toBeInTheDocument();
+    expect(screen.queryByText('已归档')).not.toBeInTheDocument();
+    const requests = calls(fetchMock, '/knowledge-points');
+    expect(requests.length).toBeGreaterThan(0);
+    expect(requests.every(([url]) => !String(url).includes('status='))).toBe(true);
   });
 
   it('父树视图把父级不在当前结果的节点单独列出，不伪造层级', async () => {

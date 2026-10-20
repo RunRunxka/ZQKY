@@ -96,7 +96,7 @@ export function RosterWorkspacePage() {
    * 成功数据——否则 key 变化会让班级列表瞬时清空，班级选择与批量选择被误重置。
    */
   const classes = useAsyncResource(
-    (signal) => listClasses({ status: 'active', limit: 200 }, signal),
+    (signal) => listClasses({ limit: 200 }, signal),
     'assessments-classes',
   );
   const classItems = useMemo(() => classes.lastData?.items ?? [], [classes.lastData]);

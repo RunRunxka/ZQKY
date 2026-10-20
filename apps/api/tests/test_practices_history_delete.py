@@ -292,16 +292,18 @@ async def test_include_history_cas_conflict_and_not_found(scene) -> None:
     assert _set_counts(scene, practice.practice_set_id)["revisions"] == 1
 
 
-async def test_include_history_archived_set_with_history_succeeds(scene) -> None:
-    """归档练习集 + 历史 + flag=true → 成功（归档只挡修改类写路径，不挡彻底删除）。"""
+async def test_include_history_stale_archived_set_with_history_succeeds(scene) -> None:
+    """残留归档行（模拟旧库）+ 历史 + flag=true → 成功（删除是唯一出口）。"""
     practice, conversion, artifact = await _seed_full_history(scene)
     set_id = practice.practice_set_id
-    archived = scene.service.set_archived(set_id,
-                                          b4.PracticeSetStatusRequest(expectedRevision=practice.revision),
-                                          archived=True)
-    assert archived.status == "archived"
+    with scene.catalog.write_transaction() as conn:
+        conn.execute(
+            "UPDATE practice_sets SET status='archived' WHERE id=?",
+            (set_id,),
+        )
+    assert scene.service.get_practice(set_id).status == "archived"
     receipt = scene.service.delete_practice(set_id,
-                                            b4.PracticeSetStatusRequest(expectedRevision=archived.revision),
+                                            b4.PracticeSetStatusRequest(expectedRevision=practice.revision),
                                             include_history=True)
     assert receipt.deleted is True
     assert receipt.removed_revisions == 1 and receipt.removed_conversions == 1

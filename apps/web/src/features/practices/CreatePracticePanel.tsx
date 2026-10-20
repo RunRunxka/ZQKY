@@ -163,20 +163,17 @@ export function CreatePracticePanel({ services = b4Api, onCreated, onLocked }: C
   }, [run, runPoints]);
 
   const readyRun = run !== null && run.reportReady && run.job.state === 'succeeded';
-  const archivedRun = typeof run?.archivedAt === 'string' && run.archivedAt.length > 0;
   const canCreate =
-    readyRun && !archivedRun && title.trim().length > 0 && targets.length > 0 && submission.phase !== 'unknown';
+    readyRun && title.trim().length > 0 && targets.length > 0 && submission.phase !== 'unknown';
   const createBlockReason = !run
     ? '请选择一份学情分析报告：练习按报告冻结的目标知识点选拔题库固定题。'
     : !run.reportReady || run.job.state !== 'succeeded'
       ? '该报告尚未就绪，不能创建练习。'
-      : archivedRun
-        ? '该报告已归档（只读），不能用于新建练习。'
-        : !title.trim()
-          ? '请填写练习标题。'
-          : targets.length === 0
-            ? '请至少选择一个目标知识点。'
-            : '';
+      : !title.trim()
+        ? '请填写练习标题。'
+        : targets.length === 0
+          ? '请至少选择一个目标知识点。'
+          : '';
 
   async function create() {
     if (!run) return;
@@ -279,8 +276,7 @@ export function CreatePracticePanel({ services = b4Api, onCreated, onLocked }: C
           {runs.lastData && runs.lastData.items.length > 0 && (
             <ul className="practices-run-list" aria-label="选择学情报告">
               {runs.lastData.items.map((item) => {
-                const archived = typeof item.archivedAt === 'string' && item.archivedAt.length > 0;
-                const ready = item.reportReady && item.job.state === 'succeeded' && !archived;
+                const ready = item.reportReady && item.job.state === 'succeeded';
                 return (
                   <li key={item.runId}>
                     <label className={runId === item.runId ? 'current' : ''}>
@@ -295,7 +291,7 @@ export function CreatePracticePanel({ services = b4Api, onCreated, onLocked }: C
                       <span>
                         <strong>{nameOrShortId(item.paperTitle, item.runId)}</strong>
                         <small className="practices-meta">
-                          {stampText(item.createdAt)} · {ready ? '报告就绪' : archived ? '已归档（只读）' : '报告未就绪'}
+                          {stampText(item.createdAt)} · {ready ? '报告就绪' : '报告未就绪'}
                         </small>
                       </span>
                     </label>

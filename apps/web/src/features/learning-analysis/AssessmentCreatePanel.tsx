@@ -74,7 +74,7 @@ export function AssessmentCreatePanel({
   onClose,
 }: AssessmentCreatePanelProps) {
   const papers = useAsyncResource(
-    (signal) => api.listPapers({ status: 'active', limit: 200 }, signal),
+    (signal) => api.listPapers({ limit: 200 }, signal),
     'la-create-assessment-papers',
   );
   /** 可建施测的原卷：只有已确认入库的修订（草稿没有可用的固定拆题）。 */
@@ -277,7 +277,7 @@ export function AssessmentCreatePanel({
         {classId && students.state.phase === 'ready' && (
           <p className="assessments-hint" data-testid="la-create-participant-count">
             将把该班 {activeStudents.length} 名在册学生列为参测人次（共{' '}
-            {students.lastData?.total ?? 0} 名成员，已排除已归档学生）；姓名/学号由服务端按学生
+            {students.lastData?.total ?? 0} 名成员，已排除已移除学生）；姓名/学号由服务端按学生
             id 读取后冻结。
           </p>
         )}

@@ -289,10 +289,17 @@ describe('教材依据', () => {
   });
 });
 
-describe('彻底删除（三态：成功 / 被引用 / 版本冲突）', () => {
-  it('成功：二次确认后按 expectedRevision 删除，通知父级并切到已删除态', async () => {
+describe('彻底删除整棵子树（成功 / 被引用 / 版本冲突）', () => {
+  it('成功：确认文案写明子节点数，按 expectedRevision 删除并通知父级', async () => {
     const onDeleted = vi.fn();
+    const children = [
+      point(),
+      point({ id: 'kp-2', parentId: 'kp-1', parentCode: 'M.7.1', name: '数轴' }),
+      point({ id: 'kp-3', parentId: 'kp-1', parentCode: 'M.7.1', name: '相反数' }),
+    ];
     const fetchMock = router({
+      'GET /api/v1/knowledge-points?subjectId=math&limit=200': () =>
+        jsonResponse(true, 200, { items: children, total: 3, offset: 0, limit: 200 }),
       'DELETE /api/v1/knowledge-points/kp-1': () =>
         ({ ok: true, status: 204, json: async () => null }) as Response,
     });
@@ -300,11 +307,15 @@ describe('彻底删除（三态：成功 / 被引用 / 版本冲突）', () => {
       <PointDetailPanel pointId="kp-1" onPointPatched={vi.fn()} onDeleted={onDeleted} />,
     );
 
-    fireEvent.click(await screen.findByTestId('kp-delete-open'));
+    // 归档/恢复入口已移除
+    expect(await screen.findByTestId('kp-delete-open')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '归档' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '恢复' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('kp-delete-open'));
     const dialog = await screen.findByRole('dialog', { name: '彻底删除知识点' });
-    expect(dialog).toHaveTextContent('物理删除');
-    expect(dialog).toHaveTextContent('不可恢复');
-    expect(dialog).toHaveTextContent('仍被引用时服务端会拒绝');
+    expect(dialog).toHaveTextContent('2 个子节点');
+    expect(dialog).toHaveTextContent('物理删除，不可恢复');
     // 第一步确认不含删除请求
     expect(calls(fetchMock, '/knowledge-points/kp-1', 'DELETE')).toHaveLength(0);
 
@@ -317,20 +328,55 @@ describe('彻底删除（三态：成功 / 被引用 / 版本冲突）', () => {
     expect(await screen.findByTestId('kp-deleted')).toHaveTextContent('该知识点已彻底删除');
   });
 
-  it('被引用 409：逐项渲染 count>0 的原因清单，并给出「改为归档」出口', async () => {
+  it('拿不到当前树数据时确认文案只说「整棵子树」，不编造子节点数', async () => {
+    router({
+      'GET /api/v1/knowledge-points?subjectId=math&limit=200': () =>
+        jsonResponse(false, 503, {
+          code: 'SERVICE_UNAVAILABLE',
+          message: '知识点列表暂不可用。',
+          retryable: true,
+        }),
+    });
+    render(<PointDetailPanel pointId="kp-1" onPointPatched={vi.fn()} />);
+
+    fireEvent.click(await screen.findByTestId('kp-delete-open'));
+    const dialog = await screen.findByRole('dialog', { name: '彻底删除知识点' });
+    expect(dialog).toHaveTextContent('整棵子树');
+    expect(dialog).not.toHaveTextContent('个子节点');
+  });
+
+  it('被引用 409：逐节点展示 details.points 的引用计数与解锁路径，无归档兜底', async () => {
     const fetchMock = router({
       'DELETE /api/v1/knowledge-points/kp-1': () =>
         jsonResponse(false, 409, {
           code: 'KNOWLEDGE_POINT_IN_USE',
-          message: '知识点仍在使用中：存在教材依据、原卷题目或题库引用，先解除引用或改用归档。',
+          message: '知识点子树仍在使用中：2 个节点存在引用，先解除引用。',
           retryable: false,
           details: {
             counts: [
               { library: 'knowledge', key: 'textbookKnowledgeLinks', count: 1 },
-              { library: 'teaching', key: 'paperItemKnowledge', count: 0 },
+              { library: 'teaching', key: 'paperItemKnowledge', count: 2 },
               { library: 'question_bank', key: 'questionKnowledgeLinks', count: 6 },
               { library: 'question_bank', key: 'questionDraftKnowledgeLinks', count: 2 },
             ],
+            points: [
+              {
+                pointId: 'kp-1',
+                name: '有理数',
+                total: 7,
+                counts: [
+                  { library: 'knowledge', key: 'textbookKnowledgeLinks', count: 1 },
+                  { library: 'question_bank', key: 'questionKnowledgeLinks', count: 6 },
+                ],
+              },
+              {
+                pointId: 'kp-2',
+                name: '数轴',
+                total: 2,
+                counts: [{ library: 'teaching', key: 'paperItemKnowledge', count: 2 }],
+              },
+            ],
+            subtreeSize: 3,
           },
         }),
     });
@@ -340,41 +386,69 @@ describe('彻底删除（三态：成功 / 被引用 / 版本冲突）', () => {
     fireEvent.click(await screen.findByTestId('kp-delete-confirm'));
 
     const blocked = await screen.findByTestId('kp-delete-blocked');
-    expect(blocked).toHaveTextContent('不能彻底删除');
-    const counts = within(blocked).getByTestId('kp-delete-counts');
-    expect(counts).toHaveTextContent('知识点库 · 教材依据：1 处');
-    expect(counts).toHaveTextContent('题库 · 题库正式题关联：6 处');
-    expect(counts).toHaveTextContent('题库 · 题库草稿关联：2 处');
-    // count=0 的项不渲染（不把「没引用」当原因）
-    expect(counts).not.toHaveTextContent('原卷题目关联');
+    expect(blocked).toHaveTextContent('所在子树仍在使用中');
+    expect(blocked).toHaveTextContent('整棵子树共 3 个节点（含当前节点）');
+
+    const first = within(blocked).getByTestId('kp-delete-point-kp-1');
+    expect(first).toHaveTextContent('有理数');
+    expect(first).toHaveTextContent('共 7 处引用');
+    expect(first).toHaveTextContent('知识点库 · 教材依据：1 处');
+    expect(first).toHaveTextContent('题库 · 题库正式题关联：6 处');
+    const second = within(blocked).getByTestId('kp-delete-point-kp-2');
+    expect(second).toHaveTextContent('数轴');
+    expect(second).toHaveTextContent('教学库 · 原卷题目关联：2 处');
+    // 解锁路径写明教材依据 / 原卷 / 题库；没有归档兜底
+    expect(blocked).toHaveTextContent('教材依据');
+    expect(blocked).toHaveTextContent('原卷题目');
+    expect(blocked).toHaveTextContent('题库');
+    expect(within(blocked).queryByTestId('kp-delete-to-archive')).not.toBeInTheDocument();
+    expect(within(blocked).queryByText('改为归档')).not.toBeInTheDocument();
     // 失败不删除、不刷新成空详情
     expect(calls(fetchMock, '/knowledge-points/kp-1', 'DELETE')).toHaveLength(1);
     expect(screen.queryByTestId('kp-deleted')).not.toBeInTheDocument();
-
-    fireEvent.click(within(blocked).getByTestId('kp-delete-to-archive'));
-    expect(await screen.findByRole('dialog', { name: '归档知识点' })).toBeInTheDocument();
   });
 
-  it('仍有子节点（同码 409 但无 counts）如实说明不编造计数；版本冲突走冲突横幅并重读', async () => {
-    const fetchMock = router({
-      'DELETE /api/v1/knowledge-points/kp-1': () =>
-        jsonResponse(false, 409, {
-          code: 'KNOWLEDGE_POINT_IN_USE',
-          message: '该知识点还有 2 个子节点；先删除或移动子节点。',
-          retryable: false,
-        }),
+  it('只有聚合 counts 时按旧形状逐项展示；什么都没有时不编造计数', async () => {
+    let attempt = 0;
+    router({
+      'DELETE /api/v1/knowledge-points/kp-1': () => {
+        attempt += 1;
+        return attempt === 1
+          ? jsonResponse(false, 409, {
+              code: 'KNOWLEDGE_POINT_IN_USE',
+              message: '知识点仍在使用中。',
+              retryable: false,
+              details: {
+                counts: [
+                  { library: 'knowledge', key: 'textbookKnowledgeLinks', count: 1 },
+                  { library: 'question_bank', key: 'questionKnowledgeLinks', count: 0 },
+                ],
+              },
+            })
+          : jsonResponse(false, 409, {
+              code: 'KNOWLEDGE_POINT_IN_USE',
+              message: '原因由服务端消息给出。',
+              retryable: false,
+            });
+      },
     });
     render(<PointDetailPanel pointId="kp-1" onPointPatched={vi.fn()} />);
 
     fireEvent.click(await screen.findByTestId('kp-delete-open'));
     fireEvent.click(await screen.findByTestId('kp-delete-confirm'));
-    const blocked = await screen.findByTestId('kp-delete-blocked');
-    expect(blocked).toHaveTextContent('该知识点还有 2 个子节点');
-    expect(blocked).toHaveTextContent('服务端没有给出逐项引用计数');
-    expect(within(blocked).queryByTestId('kp-delete-counts')).not.toBeInTheDocument();
+    const counts = await screen.findByTestId('kp-delete-counts');
+    expect(counts).toHaveTextContent('知识点库 · 教材依据：1 处');
+    // count=0 的项不渲染（不把「没引用」当原因）
+    expect(counts).not.toHaveTextContent('题库正式题关联');
 
-    // 版本冲突（REVISION_CONFLICT）：按服务端 currentRevision 刷新并给重试出口
-    fetchMock.mockClear();
+    fireEvent.click(screen.getByTestId('kp-delete-open'));
+    fireEvent.click(await screen.findByTestId('kp-delete-confirm'));
+    expect(await screen.findByTestId('kp-delete-counts-missing')).toHaveTextContent(
+      '服务端没有给出逐项引用计数',
+    );
+  });
+
+  it('版本冲突 409 走冲突横幅并重读，不显示已删除态', async () => {
     router({
       'DELETE /api/v1/knowledge-points/kp-1': () =>
         jsonResponse(false, 409, {
@@ -384,13 +458,13 @@ describe('彻底删除（三态：成功 / 被引用 / 版本冲突）', () => {
           details: { currentRevision: 5 },
         }),
     });
-    cleanup();
     render(<PointDetailPanel pointId="kp-1" onPointPatched={vi.fn()} />);
     fireEvent.click(await screen.findByTestId('kp-delete-open'));
     fireEvent.click(await screen.findByTestId('kp-delete-confirm'));
     const conflict = await screen.findByTestId('kp-conflict');
     expect(conflict).toHaveTextContent('当前版本 5，已刷新为最新，请重试。');
     expect(screen.queryByTestId('kp-deleted')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('kp-delete-blocked')).not.toBeInTheDocument();
   });
 });
 

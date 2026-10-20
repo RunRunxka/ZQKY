@@ -4,7 +4,7 @@
  * 表格导入校对：表头映射 → 行处理动作（create/update/ignore）→ 整批确认。
  *
  * - 预览只展示，**不能一上传就入库**；确认前每一行必须有最终动作（后端 422
- *   `KNOWLEDGE_ROW_INVALID` 逐行定位），阻断问题（父树/重复/归档等）未解决时禁止确认；
+ *   `KNOWLEDGE_ROW_INVALID` 逐行定位），阻断问题（父树/重复/引用等）未解决时禁止确认；
  * - 保存校对带 `expectedRevision`；409 保留本地编辑并刷新服务端版本供比较；
  * - 确认带幂等 `submissionId`：同批次重复提交命中重放 → 显示「已确认（重放）」；
  *   传输失败（拿不到响应）时如实说「结果未知」，并引导用**同一提交标识**重试；
@@ -572,7 +572,7 @@ function ImportReviewBody({
       {confirmOpen && (
         <Modal title="整批确认入库" onClose={() => setConfirmOpen(false)}>
           <p className="kp-hint">
-            将按下列动作一次性写入正式知识点表（后端在同一事务内重校验父树/重复/归档）：
+            将按下列动作一次性写入正式知识点表（后端在同一事务内重校验父树/重复/引用）：
           </p>
           <ul className="kp-confirm-summary">
             {view.rows.map((row) => {

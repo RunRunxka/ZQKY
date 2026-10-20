@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * 知识点树（左栏卡片）：范围（任教范围 / 学科全部）+ 学科/年级/状态/关键字筛选 +
+ * 知识点树（左栏卡片）：范围（任教范围 / 学科全部）+ 学科/年级/关键字筛选 +
  * 可展开父树 / 列表两种视图。
  *
  * 范围口径（设计 3.2）：
@@ -23,14 +23,13 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ChevronRight, List, Plus, RefreshCw, Search, TreePine } from 'lucide-react';
-import type { KnowledgePointScope, KnowledgePointStatus } from '@/contracts/knowledge';
+import type { KnowledgePointScope } from '@/contracts/knowledge';
 import { listKnowledgePoints } from '@/services/knowledge-points-api';
 import {
   KNOWLEDGE_POINT_SCOPE_LABEL,
   KNOWLEDGE_SCOPE_UNAVAILABLE_CODE,
   TAUGHT_SCOPE_SETTINGS_HREF,
   collectResultGradeIds,
-  knowledgeStatusLabel,
 } from './labels';
 import { useAsyncResource } from './hooks';
 import { buildPointTree, type PointTreeNode } from './tree';
@@ -42,21 +41,13 @@ export interface PointBrowserProps {
   /** `GET /textbook-taxonomy` 的年级字典；不可用时传空数组（自动降级为结果汇总）。 */
   grades?: { id: string; label: string }[];
   subjectId: string;
-  status: '' | KnowledgePointStatus;
   selectedPointId: string | null;
   onSubjectChange: (value: string) => void;
-  onStatusChange: (value: '' | KnowledgePointStatus) => void;
   onSelect: (pointId: string) => void;
   onCreate: () => void;
   /** 创建成功后由父级触发刷新。 */
   refreshToken: number;
 }
-
-const STATUS_OPTIONS: { value: '' | KnowledgePointStatus; label: string }[] = [
-  { value: '', label: '全部' },
-  { value: 'active', label: '在用' },
-  { value: 'archived', label: '已归档' },
-];
 
 // 默认学科口径：新架构不把「任教范围」作为前置（该口径未就绪时保持服务端拒绝语义，
 // 显式切到 taught 才会请求，不做静默回退）。
@@ -67,10 +58,8 @@ export function PointBrowser({
   taxonomyReady,
   grades = [],
   subjectId,
-  status,
   selectedPointId,
   onSubjectChange,
-  onStatusChange,
   onSelect,
   onCreate,
   refreshToken,
@@ -84,13 +73,12 @@ export function PointBrowser({
   /** 已折叠的节点 id：默认全部展开；折叠状态只影响显示。 */
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set<string>());
 
-  const listKey = `${subjectId}|${status}|${appliedQuery}|${scope}|${gradeId}|${refreshToken}`;
+  const listKey = `${subjectId}|${appliedQuery}|${scope}|${gradeId}|${refreshToken}`;
   const points = useAsyncResource(
     (signal) =>
       listKnowledgePoints(
         {
           subjectId: subjectId || undefined,
-          status: status || undefined,
           q: appliedQuery || undefined,
           scope,
           gradeId: gradeId || undefined,
@@ -236,19 +224,6 @@ export function PointBrowser({
           </select>
         </label>
 
-        <SlidingGroup activeKey={status} className="space-segment" role="group" aria-label="按状态筛选">
-          {STATUS_OPTIONS.map((option) => (
-            <button
-              key={option.value || 'all'}
-              className={status === option.value ? 'current' : ''}
-              aria-pressed={status === option.value}
-              onClick={() => onStatusChange(option.value)}
-            >
-              {option.label}
-            </button>
-          ))}
-        </SlidingGroup>
-
         <SlidingGroup activeKey={view} className="space-segment kp-view-switch" role="group" aria-label="视图">
           <button
             className={view === 'list' ? 'current' : ''}
@@ -338,7 +313,7 @@ export function PointBrowser({
         <div className="space-empty">
           <strong>没有符合条件的数据</strong>
           <span>
-            当前筛选（{KNOWLEDGE_POINT_SCOPE_LABEL[scope]} / 学科 / 年级 / 状态 / 关键字）下服务端
+            当前筛选（{KNOWLEDGE_POINT_SCOPE_LABEL[scope]} / 学科 / 年级 / 关键字）下服务端
             返回 0 条知识点。可调整筛选或新建知识点。
           </span>
         </div>
@@ -366,13 +341,6 @@ export function PointBrowser({
                   ))}
                   <span className="space-chip">版本 v{point.version}</span>
                   <span className="space-chip">编辑锁 r{point.revision}</span>
-                  <span
-                    className={
-                      point.status === 'archived' ? 'space-chip amber' : 'space-chip green'
-                    }
-                  >
-                    {knowledgeStatusLabel(point.status)}
-                  </span>
                   {point.aliases.length > 0 && (
                     <span className="space-chip">别名 {point.aliases.length}</span>
                   )}
@@ -423,10 +391,10 @@ export function PointBrowser({
       )}
 
       {points.state.phase === 'ready' && (
-        <p className="space-footnote">
-          共 {points.state.data.total} 条（本页 {items.length} 条，上限 100）。 父树只由
-          `parentId`/`parentCode` 计算；归档保留历史引用，但新关联不能再选已归档知识点。
-        </p>
+          <p className="space-footnote">
+            共 {points.state.data.total} 条（本页 {items.length} 条，上限 100）。 父树只由
+            `parentId`/`parentCode` 计算；删除知识点会物理删除整棵子树，不可恢复。
+          </p>
       )}
     </section>
   );
@@ -493,9 +461,6 @@ function PointTreeBranch({
           ))}
           {unknownParent && point.parentCode && (
             <span className="space-chip amber kp-tree-chip">父级 {point.parentCode}（不在当前结果）</span>
-          )}
-          {point.status === 'archived' && (
-            <span className="space-chip amber kp-tree-chip">已归档</span>
           )}
         </button>
       </div>

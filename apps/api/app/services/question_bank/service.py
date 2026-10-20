@@ -327,6 +327,7 @@ class QuestionBankService:
         model_config_repo: Any | None = None,
         secret_store: Any | None = None,
         model_auth_service: Any | None = None,
+        teaching_catalog: Any | None = None,
     ) -> None:
         self.catalog = catalog
         self.settings = settings
@@ -344,6 +345,11 @@ class QuestionBankService:
         self._frozen_model_resolver = build_frozen_model_resolver(
             model_config_repo, secret_store, model_auth_service
         )
+        # B3 物理删除的跨库引用守卫：教学库**只读**入口（practice_selections /
+        # lesson_generation_inputs 计数）。装配顺序上教学域在题库之后，因此支持
+        # 传零参 callable（延迟读 ``app.state.teaching``）；缺省时（隔离装配）不做
+        # 跨库守卫，由文档与脚本说明该口径。
+        self._teaching_catalog = teaching_catalog
 
     def close(self) -> None:
         """无长连接需要关闭；保留方法以便统一生命周期调用。"""
@@ -2149,11 +2155,55 @@ class QuestionBankService:
         return written
 
     def delete_question(self, question_id: str, *, expected_revision: int | None = None) -> None:
+        """物理删除一道题目（B3，2026-10-20 归档移除：DELETE 一律物理删除）。
+
+        - 乐观锁：``expected_revision`` 提供时核对该题修订数，不符 → 409
+          ``REVISION_CONFLICT``；题目不存在或非本 owner → 404（越界不泄露存在性）；
+        - **引用守卫**：题目被审核练习固定题（``practice_selections``）或教案生成
+          冻结输入（``lesson_generation_inputs.frozen_json`` 的固定题引用）指向时
+          → 409 ``QUESTION_IN_USE``，``details.counts`` 列出计数（教学库只读）；
+          教学库未装配时跳过跨库守卫（隔离装配/测试口径，生产装配注入
+          ``teaching_catalog``）；
+        - 同一写事务内按 FK 顺序删除：内容指纹 → 知识点关联（同事务摘除不可变
+          触发器并逐字恢复）→ 修订 → 来源 → 题目行；指向本题的草稿"重复题"指针
+          置空（草稿与批次历史保留）；
+        - **任务历史保留**：``question_jobs`` / ``question_submissions`` 不删（R10 口径）。
+        """
         record = self.catalog.get_question(question_id)
         if record is None or record.owner_id != self.owner_id:
             raise _not_found("题目不存在。", code="QUESTION_NOT_FOUND")
-        with self._publication("question.archive"):
-            self.catalog.archive_question(question_id, expected_revision=expected_revision)
+
+        # 跨库引用计数：本方法整体跑在有界线程里（路由 _run），同步读取教学库即可。
+        catalog = self._teaching_catalog
+        if callable(catalog) and not isinstance(catalog, (str, bytes)):
+            catalog = catalog()
+        if catalog is None:
+            counts = {"practices": 0, "lessonFixedQuestions": 0}
+        else:
+            with catalog.read_connection() as conn:
+                counts = self.catalog.count_external_references_in(conn, question_id)
+        if any(value > 0 for value in counts.values()):
+            labels = {
+                "practices": "审核练习固定题",
+                "lessonFixedQuestions": "教案生成冻结输入",
+            }
+            summary = "、".join(
+                f"{labels[key]} {value} 条"
+                for key, value in counts.items()
+                if value > 0
+            )
+            raise AppError(
+                f"题目仍被教学链引用，不能删除（{summary}）；"
+                "请先删除引用它的审核练习或教案生成输入。",
+                code=self.catalog.QUESTION_IN_USE,
+                status_code=409,
+                details={"counts": counts},
+            )
+        with self._publication("question.delete"):
+            with self.catalog.write_transaction() as conn:
+                self.catalog.delete_question_in(
+                    conn, question_id, expected_revision=expected_revision
+                )
 
     # ------------------------------------------------------------------ 内部
 
@@ -2628,6 +2678,7 @@ def build_question_bank_service(
     model_config_repo: Any | None = None,
     secret_store: Any | None = None,
     model_auth_service: Any | None = None,
+    teaching_catalog: Any | None = None,
 ) -> QuestionBankService:
     """装配入口：总控在 ``main.py`` 里用 ``settings.question_bank_root`` 构造目录与本服务。
 
@@ -2645,6 +2696,10 @@ def build_question_bank_service(
     使恢复/重试路径走 LangChain 冻结适配；总控可把
     ``app.state.{model_config_repo,secret_store,model_auth_service}`` 一并传入，
     缺省时用 ``model_resolver`` + ``agent_handle_fingerprint`` 核对（同一判定与错误码）。
+
+    B3 归档移除追加注入：``teaching_catalog``（教学库**只读**入口）——题目物理删除的
+    跨库引用守卫（审核练习/教案冻结输入计数）从这里读取；缺省时跳过跨库守卫
+    （隔离测试口径）。生产装配注入 ``app.state.teaching``。
     """
     return QuestionBankService(
         catalog,
@@ -2658,4 +2713,5 @@ def build_question_bank_service(
         model_config_repo=model_config_repo,
         secret_store=secret_store,
         model_auth_service=model_auth_service,
+        teaching_catalog=teaching_catalog,
     )

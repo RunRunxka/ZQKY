@@ -110,20 +110,30 @@ async def create_paper_import(request: Request) -> PaperImportView:
 # --------------------------------------------------------------------------- 原卷
 
 
+@router.post("/papers/{paper_id}/archive", include_in_schema=False)
+@router.post("/papers/{paper_id}/restore", include_in_schema=False)
+async def paper_archive_removed(paper_id: str) -> None:
+    """归档/恢复端点已移除（B3，2026-10-20 用户裁定「删除即删除」）：显式 404。"""
+    raise AppError(
+        f"原卷 {paper_id} 的归档/恢复端点已移除；删除请用 DELETE /papers/{{id}}。",
+        code="ARCHIVE_ENDPOINT_REMOVED",
+        status_code=404,
+    )
+
+
 @router.get("/papers")
 async def list_papers(
     request: Request,
     subjectId: str | None = None,
-    status_filter: str | None = Query(default=None, alias="status"),
     q: str | None = None,
     offset: int = Query(default=0, ge=0),
     limit: int = Query(default=50, ge=1, le=200),
 ) -> PaperList:
+    """原卷列表（B3 归档移除）：返回全部原卷；归档概念已由删除取代。"""
     service = _service(request)
     return await _run(
         service.list_papers,
         subject_id=subjectId,
-        status=status_filter,
         q=q,
         offset=offset,
         limit=limit,
@@ -180,22 +190,6 @@ async def confirm_paper(
 ) -> PaperConfirmResult:
     service = _service(request)
     return await _run(service.confirm, paper_id, body)
-
-
-@router.post("/papers/{paper_id}/archive")
-async def archive_paper(
-    request: Request, paper_id: str, body: PaperRevisionRequest
-) -> PaperView:
-    service = _service(request)
-    return await _run(service.set_archived, paper_id, body, archived=True)
-
-
-@router.post("/papers/{paper_id}/restore")
-async def restore_paper(
-    request: Request, paper_id: str, body: PaperRevisionRequest
-) -> PaperView:
-    service = _service(request)
-    return await _run(service.set_archived, paper_id, body, archived=False)
 
 
 @router.delete("/papers/{paper_id}")

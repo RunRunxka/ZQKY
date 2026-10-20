@@ -4,8 +4,8 @@
  * 知识点选择控件（TEACHING-LOOP B3 · F10-QB）。
  *
  * 数据来自知识点库只读接口 `GET /api/v1/knowledge-points`（经 `@/services/knowledge-points-api`，
- * 不复制第二份客户端）：默认只列**在用**知识点（归档不能建立新关联；后端会 422，
- * 前端不提供该选项）。三态严格区分：读取失败显示错误码与重试入口，**不当空目录**；
+ * 不复制第二份客户端）：列出当前可选知识点（不存在或已删除的知识点不能建立新关联；
+ * 后端会 422，前端不提供该选项）。三态严格区分：读取失败显示错误码与重试入口，**不当空目录**；
  * 真正没有知识点时才显示空态。学科变化即重新读取（旧学科的选中项由调用方清理）。
  */
 
@@ -30,7 +30,7 @@ interface OptionsState {
 }
 
 /**
- * 知识点选项（在用；按学科 + 关键词）。`subjectId` 为空时列全部学科（后端支持，界面提示更精确）。
+ * 知识点选项（按学科 + 关键词）。`subjectId` 为空时列全部学科（后端支持，界面提示更精确）。
  * 读取失败原样暴露（调用方展示错误与重试），不返回空数组冒充。
  */
 export function useKnowledgePointOptions(subjectId: string, query: string): OptionsState {
@@ -38,7 +38,6 @@ export function useKnowledgePointOptions(subjectId: string, query: string): Opti
     const list = await listKnowledgePoints(
       {
         subjectId: subjectId || undefined,
-        status: 'active',
         q: query || undefined,
         limit: 200,
       },
@@ -83,7 +82,7 @@ function OptionNotice({
   if (state.data.length === 0) {
     return (
       <p className="qb-hint" role="status" data-testid="qb-knowledge-points-empty">
-        没有可用的在用知识点：请先到「知识点」页面创建并确认知识点。
+        没有可用的知识点：请先到「知识点」页面创建并确认知识点。
       </p>
     );
   }

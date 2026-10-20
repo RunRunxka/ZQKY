@@ -319,7 +319,11 @@ class AssessmentRepository:
     def set_state_in(
         self, conn: sqlite3.Connection, assessment_id: str, *, state: str
     ) -> AssessmentRecord:
-        """归档/恢复：改 ``state`` 并**原子递增 revision**（在途写入按陈旧冲突处理）。"""
+        """改 ``state`` 并**原子递增 revision**（在途写入按陈旧冲突处理）。
+
+        B3 归档移除：公开写路径只有归一化脚本使用（archived → closed）；路由层
+        不再暴露归档/恢复端点。白名单保留 archived 以接受旧库行的受控转换。
+        """
         assessment_id = _require_text(assessment_id, field="assessmentId")
         if state not in ASSESSMENT_STATES:
             raise _invalid(
@@ -332,10 +336,6 @@ class AssessmentRepository:
         if cursor.rowcount != 1:
             raise _not_found(assessment_id)
         return self.require_in(conn, assessment_id)
-
-    def set_state(self, assessment_id: str, *, state: str) -> AssessmentRecord:
-        with self._catalog.write_transaction() as conn:
-            return self.set_state_in(conn, assessment_id, state=state)
 
     # -------------------------------------------------------------- 读取
 

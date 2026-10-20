@@ -65,7 +65,7 @@ export function PracticesWorkspace({ services = b4Api, initialPracticeSetId = nu
   }, [initialPracticeSetId]);
 
   const list = useAsyncResource(
-    (signal) => services.listPractices({ status: 'active', offset, limit: LIST_PAGE_SIZE }, signal),
+    (signal) => services.listPractices({ offset, limit: LIST_PAGE_SIZE }, signal),
     `practices-list|${offset}`,
   );
   const detail = useAsyncResource(

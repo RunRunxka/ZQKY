@@ -30,7 +30,8 @@ async def test_convert_real_same_transaction_paper_source_and_mapping_replay(sce
         assert len(mapped)==len(practice.current_revision.items)
         assert all(x["pc"]==x["ic"] and x["ps"]==x["isc"] for x in mapped)
         assert json.loads(mapped[0]["source_locator_json"])["practiceItemId"]==practice.current_revision.items[0].practice_item_id
-    scene.questions.archive_question(practice.current_revision.items[0].question_id)
+    with scene.questions.write_transaction() as conn:
+        conn.execute("UPDATE questions SET status='archived' WHERE id=?", (practice.current_revision.items[0].question_id,))
     assert scene.conversion(practice).replayed
 
 

@@ -298,6 +298,25 @@ export interface KnowledgePointReferenceCount {
   count: number;
 }
 
+/**
+ * 409 `KNOWLEDGE_POINT_IN_USE` 的逐节点原因（删除整棵子树；任一节点有引用即拒绝）：
+ * `pointId/name` 定位节点，`total` 是该节点引用合计，`counts` 是逐项引用计数。
+ */
+export interface KnowledgePointInUsePoint {
+  pointId: string;
+  name: string;
+  total: number;
+  counts: KnowledgePointReferenceCount[];
+}
+
+/** 409 `KNOWLEDGE_POINT_IN_USE` 的 `details`（`points` 逐节点；`counts` 聚合计数兼容旧客户端）。 */
+export interface KnowledgePointInUseDetails {
+  counts?: KnowledgePointReferenceCount[];
+  points?: KnowledgePointInUsePoint[];
+  /** 被尝试删除的子树节点数（含根节点）。 */
+  subtreeSize?: number;
+}
+
 /* ------------------------------------------------------------------ 从教材提取（AI 候选） */
 
 /** 预览清单里的一本教材：取材范围 + 就绪状态（未就绪书册带 reason，不伪造就绪）。 */

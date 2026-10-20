@@ -1,9 +1,9 @@
 """班级 / 学生 / 归属历史（TEACHING-LOOP B1 / T30-a，验收 A9）。
 
-覆盖：班级 CRUD 与乐观锁、同 code+学年冲突、归档行为（仍可读 / 拒绝新导入）、
-``studentCount`` 只计活跃归属；学生创建（``0012`` 原样、无学号 NULL、同名可建）、
-学号冲突、列表模糊查询；转班保留旧归属与重复转班语义；同班重复归属幂等；
-``UnavailablePaperReader`` 返回 501（本批只冻结施测契约）。
+覆盖：班级 CRUD 与乐观锁、同 code+学年冲突、归档端点已移除（B3）与残留归档行的
+只读兜底、``studentCount`` 只计活跃归属；学生创建（``0012`` 原样、无学号 NULL、
+同名可建）、学号冲突、列表模糊查询；转班保留旧归属与重复转班语义；同班重复归属
+幂等；``UnavailablePaperReader`` 返回 501（本批只冻结施测契约）。
 
 全部使用 ``tmp_path`` 隔离数据根，不联网、不读写正式 ``.local-data``。
 """
@@ -27,12 +27,10 @@ from app.contracts.roster import (
     STUDENT_ARCHIVED,
     STUDENT_NO_CONFLICT,
     ClassCreateRequest,
-    ClassRevisionRequest,
     ClassUpdateRequest,
     MembershipTransferRequest,
     RosterImportConfirmRequest,
     StudentCreateRequest,
-    StudentRevisionRequest,
     StudentUpdateRequest,
     UnavailablePaperReader,
 )
@@ -175,25 +173,19 @@ def test_class_crud_roundtrip_via_http(client: TestClient) -> None:
     assert patched.json()["name"] == "七年级一班（改）"
     assert patched.json()["revision"] == 1
 
-    archived = client.post(
+    # 归档/恢复端点已移除（B3 删除即删除）：两个路由都 404，数据零变化。
+    assert client.post(
         f"/api/v1/classes/{class_id}/archive", json={"expectedRevision": 1}
-    )
-    assert archived.status_code == 200
-    assert archived.json()["status"] == "archived"
-    assert archived.json()["revision"] == 2
-
-    # 归档班级仍可读
+    ).status_code == 404
+    assert client.post(
+        f"/api/v1/classes/{class_id}/restore", json={"expectedRevision": 1}
+    ).status_code == 404
     still_readable = client.get(f"/api/v1/classes/{class_id}")
     assert still_readable.status_code == 200
-    assert still_readable.json()["status"] == "archived"
+    assert still_readable.json()["status"] == "active"
+    assert still_readable.json()["revision"] == 1
 
-    restored = client.post(
-        f"/api/v1/classes/{class_id}/restore", json={"expectedRevision": 2}
-    )
-    assert restored.status_code == 200
-    assert restored.json()["status"] == "active"
-    assert restored.json()["revision"] == 3
-
+    # 列表无 status 过滤（B3）：status 查询参数被忽略，返回全部班级
     listed = client.get("/api/v1/classes?status=active")
     assert listed.status_code == 200
     assert listed.json()["total"] == 1
@@ -226,31 +218,14 @@ def test_class_update_revision_conflict_reports_current_revision(harness: Harnes
     assert err.value.status_code == 409
     assert err.value.details == {"currentRevision": 1}
 
-    with pytest.raises(AppError) as err2:
-        harness.service.set_archived(
-            created.id, ClassRevisionRequest(expectedRevision=0), archived=True
-        )
-    assert err2.value.code == REVISION_CONFLICT
-    assert err2.value.details == {"currentRevision": 1}
 
-
-def test_class_list_status_filter_and_paging(harness: Harness) -> None:
+def test_class_list_returns_all_and_pagination(harness: Harness) -> None:
     first = _create_class(harness, code="701")
     _create_class(harness, code="702")
-    harness.service.set_archived(
-        first.id, ClassRevisionRequest(expectedRevision=0), archived=True
-    )
-
-    active = harness.service.list_classes(status="active")
-    assert active.total == 1 and active.items[0].code == "702"
-    archived = harness.service.list_classes(status="archived", offset=0, limit=1)
-    assert archived.total == 1 and archived.items[0].code == "701"
     every = harness.service.list_classes()
     assert every.total == 2 and len(every.items) == 2
-
-    with pytest.raises(AppError) as err:
-        harness.service.list_classes(status="bogus")
-    assert err.value.status_code == 422
+    assert {item.code for item in every.items} == {"701", "702"}
+    _ = first
 
 
 def test_class_student_count_counts_active_memberships_only(harness: Harness) -> None:
@@ -284,11 +259,14 @@ def test_class_student_count_counts_active_memberships_only(harness: Harness) ->
     assert harness.service.get_class(class_b.id).student_count == 1
 
 
-def test_archived_class_rejects_new_roster_import(harness: Harness) -> None:
+def test_stale_archived_class_rejects_new_roster_import(harness: Harness) -> None:
+    """旧库残留 archived 班级（模拟）：导入被只读兜底拒绝；删除不受影响。"""
     created = _create_class(harness)
-    harness.service.set_archived(
-        created.id, ClassRevisionRequest(expectedRevision=0), archived=True
-    )
+    with harness.catalog.write_transaction() as conn:
+        conn.execute(
+            "UPDATE classes SET status='archived', revision=revision+1 WHERE id=?",
+            (created.id,),
+        )
     content = "学号,姓名\n0012,张三\n".encode("utf-8")
     with pytest.raises(AppError) as err:
         harness.service.create_roster_import(
@@ -563,7 +541,7 @@ def test_transfer_keeps_history_and_repeat_semantics(harness: Harness) -> None:
     assert harness.service.list_class_students(class_b.id).total == 1
 
 
-def test_transfer_rejects_same_class_and_archived_target(harness: Harness) -> None:
+def test_transfer_rejects_same_class_and_stale_archived_target(harness: Harness) -> None:
     class_a = _create_class(harness, code="701")
     class_b = _create_class(harness, code="702")
     student = harness.service.create_student(
@@ -581,9 +559,12 @@ def test_transfer_rejects_same_class_and_archived_target(harness: Harness) -> No
         )
     assert err.value.status_code == 422
 
-    harness.service.set_archived(
-        class_b.id, ClassRevisionRequest(expectedRevision=0), archived=True
-    )
+    # 旧库残留 archived 班级（模拟）：转入被只读兜底拒绝。
+    with harness.catalog.write_transaction() as conn:
+        conn.execute(
+            "UPDATE classes SET status='archived', revision=revision+1 WHERE id=?",
+            (class_b.id,),
+        )
     with pytest.raises(AppError) as err2:
         harness.service.transfer_student(
             student.id,
@@ -657,11 +638,15 @@ def test_route_without_service_returns_503(tmp_path: Path) -> None:
     assert body["retryable"] is True
 
 
-# --------------------------------------------------------------------------- 学生归档（误录入清理）
+# --------------------------------------------------------------------------- 学生内部"已移除"状态
 
 
-def test_student_archive_hides_from_members_and_filters(harness: Harness) -> None:
-    """归档 = 退出新流程但历史保留：成员列表默认隐藏、显式可见、可恢复。"""
+def test_student_removed_status_hides_from_members_and_filters(harness: Harness) -> None:
+    """``students.status='archived'`` 现在只是内部"有历史成绩已移除"状态（B3）。
+
+    归档端点已移除；这里模拟该内部状态（有历史成绩的删除路径会写入），核对成员
+    列表默认隐藏、显式可见；**不批量恢复**（恢复只走名单导入的既有语义）。
+    """
     klass = _create_class(harness)
     student = harness.service.create_student(
         StudentCreateRequest(
@@ -670,12 +655,15 @@ def test_student_archive_hides_from_members_and_filters(harness: Harness) -> Non
     )
     assert harness.service.list_class_students(klass.id).total == 1
 
-    archived = harness.service.set_student_archived(
-        student.id, StudentRevisionRequest(expectedRevision=0), archived=True
-    )
-    assert archived.status == "archived"
-    assert archived.revision == 1
-    assert len(archived.memberships) == 1  # 归属历史保留
+    # 模拟 removed_with_history 的内部状态写入（不做任何删除）
+    with harness.catalog.write_transaction() as conn:
+        conn.execute(
+            "UPDATE students SET status='archived', revision=revision+1 WHERE id=?",
+            (student.id,),
+        )
+    current = harness.service.get_student(student.id)
+    assert current.status == "archived"
+    assert len(current.memberships) == 1  # 归属历史保留
 
     assert harness.service.list_class_students(klass.id).total == 0
     included = harness.service.list_class_students(klass.id, include_archived=True)
@@ -684,40 +672,25 @@ def test_student_archive_hides_from_members_and_filters(harness: Harness) -> Non
 
     assert harness.service.list_students(status="active").total == 0
     assert harness.service.list_students(status="archived").total == 1
-    # 不带过滤仍可读（与班级归档同口径，列表由调用方决定过滤）
+    # 不带过滤仍可读（内部状态对管理列表可见，列表由调用方决定过滤）
     assert harness.service.list_students().total == 1
 
-    restored = harness.service.set_student_archived(
-        student.id, StudentRevisionRequest(expectedRevision=1), archived=False
-    )
-    assert restored.status == "active" and restored.revision == 2
-    assert harness.service.list_class_students(klass.id).total == 1
 
-
-def test_student_archive_routes_and_revision_conflict(client: TestClient) -> None:
+def test_student_archive_routes_are_gone(client: TestClient) -> None:
+    """B3 归档移除：学生归档/恢复端点 404，数据零变化。"""
     harness = client.app.state.roster_service  # type: ignore[attr-defined]
     klass = harness.create_class(ClassCreateRequest(**_class_payload()))
     student = harness.create_student(
         StudentCreateRequest(name="李四", classId=klass.id, joinedOn="2025-09-01")
     )
 
-    response = client.post(
+    assert client.post(
         f"/api/v1/students/{student.id}/archive", json={"expectedRevision": 0}
-    )
-    assert response.status_code == 200
-    assert response.json()["status"] == "archived"
-
-    stale = client.post(
+    ).status_code == 404
+    assert client.post(
         f"/api/v1/students/{student.id}/restore", json={"expectedRevision": 0}
-    )
-    assert stale.status_code == 409
-    assert stale.json()["code"] == REVISION_CONFLICT
-
-    restored = client.post(
-        f"/api/v1/students/{student.id}/restore", json={"expectedRevision": 1}
-    )
-    assert restored.status_code == 200
-    assert restored.json()["status"] == "active"
+    ).status_code == 404
+    assert client.get(f"/api/v1/students/{student.id}").json()["status"] == "active"
 
 
 def test_archived_student_rejects_update_and_transfer(harness: Harness) -> None:
@@ -726,9 +699,12 @@ def test_archived_student_rejects_update_and_transfer(harness: Harness) -> None:
     student = harness.service.create_student(
         StudentCreateRequest(name="王五", classId=class_a.id, joinedOn="2025-09-01")
     )
-    harness.service.set_student_archived(
-        student.id, StudentRevisionRequest(expectedRevision=0), archived=True
-    )
+    # 模拟内部"已移除"状态（removed_with_history 的写入形状）
+    with harness.catalog.write_transaction() as conn:
+        conn.execute(
+            "UPDATE students SET status='archived', revision=revision+1 WHERE id=?",
+            (student.id,),
+        )
 
     with pytest.raises(AppError) as err:
         harness.service.update_student(
@@ -753,10 +729,11 @@ def test_archived_student_rejects_update_and_transfer(harness: Harness) -> None:
 
 
 def test_archived_student_is_rematched_and_restored_on_reimport(harness: Harness) -> None:
-    """重导场景：归档学生参与匹配（非阻断提示将恢复），确认后自动恢复身份并加入本班。
+    """重导场景：内部"已移除"学生参与匹配（非阻断提示将恢复），确认后自动恢复身份并加入本班。
 
     2026-10-09 用户实测："删除班级后学生学号依旧存在、无法重新导入该学生"——旧口径
-    归档身份不参与匹配，会走新建并撞 UNIQUE(owner_id, student_no)。
+    归档身份不参与匹配，会走新建并撞 UNIQUE(owner_id, student_no)。B3 起 students
+    的 archived 只剩内部"有历史成绩已移除"语义，名单导入的恢复路径保持不变。
     """
     klass = _create_class(harness)
     student = harness.service.create_student(
@@ -764,9 +741,11 @@ def test_archived_student_is_rematched_and_restored_on_reimport(harness: Harness
             name="赵六", studentNo="0025", classId=klass.id, joinedOn="2025-09-01"
         )
     )
-    harness.service.set_student_archived(
-        student.id, StudentRevisionRequest(expectedRevision=0), archived=True
-    )
+    with harness.catalog.write_transaction() as conn:
+        conn.execute(
+            "UPDATE students SET status='archived', revision=revision+1 WHERE id=?",
+            (student.id,),
+        )
     view = harness.service.create_roster_import(
         class_id=klass.id,
         file_name="roster.csv",
@@ -794,9 +773,9 @@ def test_route_invalid_query_params_return_422_with_fields(client: TestClient) -
     assert body["code"] == "INVALID_REQUEST"
     assert body["details"]["fields"]
 
+    # status 过滤参数已移除（B3）：传入被忽略，返回全部
     bogus = client.get("/api/v1/classes?status=bogus")
-    assert bogus.status_code == 422
-    assert bogus.json()["code"] == "INVALID_REQUEST"
+    assert bogus.status_code == 200
 
 
 def test_route_student_flow(client: TestClient) -> None:

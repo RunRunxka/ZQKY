@@ -111,33 +111,23 @@ def test_missing_service_returns_503(scene):
         assert response.status_code==503 and response.json()["code"]=="SERVICE_UNAVAILABLE"
 
 
-def test_archive_restore_routes_and_list_archived_filter(scene):
+def test_archive_restore_routes_are_gone(scene):
+    """B3 归档移除：教案归档/恢复端点 404，数据零变化；archived 过滤参数移除。"""
     with scene.client() as (client,_):
         base="/api/v1/lesson-plans"
         created=client.post(base,json=scene.create_request().model_dump(by_alias=True,mode="json")).json()
         lid=created["lessonPlanId"]
-        # 缺省请求体：expectedRevision 缺省为 0 时按 CAS 语义冲突。
-        empty=client.post(base+f"/{lid}/archive",json={})
-        assert empty.status_code==409 and empty.json()["code"]=="REVISION_CONFLICT"
-        archived=client.post(base+f"/{lid}/archive",json={"expectedRevision":created["revision"]})
-        assert archived.status_code==200,archived.text
-        assert archived.json()["revision"]==created["revision"] and archived.json()["currentRevisionId"]==created["currentRevisionId"]
-        assert client.get(base,params={"archived":"true"}).json()["items"][0]["lessonPlanId"]==lid
-        assert lid not in [x["lessonPlanId"] for x in client.get(base).json()["items"]]
-        # 归档后写入被守卫拒绝。
-        request=scene.save_request(archived.json(),submission="http-after-archive",
-            content=changed(archived.json()["currentRevision"]["data"],title="HTTP 归档后写入"))
-        blocked=client.patch(base+f"/{lid}/draft",json=request.model_dump(by_alias=True,mode="json"))
-        assert blocked.status_code==422 and blocked.json()["code"]=="LESSON_INVALID"
-        # 恢复后可继续编辑。
-        restored=client.post(base+f"/{lid}/restore",json={"expectedRevision":archived.json()["revision"]})
-        assert restored.status_code==200 and restored.json()["revision"]==created["revision"]
-        assert client.get(base,params={"archived":"true"}).json()["items"]==[]
-        saved=client.patch(base+f"/{lid}/draft",json=scene.save_request(restored.json(),submission="http-after-restore",
-            content=changed(restored.json()["currentRevision"]["data"],title="HTTP 恢复后写入")).model_dump(by_alias=True,mode="json"))
+        assert client.post(base+f"/{lid}/archive",json={"expectedRevision":created["revision"]}).status_code==404
+        assert client.post(base+f"/{lid}/restore",json={"expectedRevision":created["revision"]}).status_code==404
+        # archived 查询参数已移除（传入被忽略，返回全部——场景含预置种子教案）
+        ignored=client.get(base,params={"archived":"true"})
+        assert ignored.status_code==200 and ignored.json()["total"]==2
+        # 数据零变化：详情/列表照常，仍可继续编辑
+        assert client.get(base+f"/{lid}").json()["revision"]==created["revision"]
+        assert client.get(base).json()["total"]==2
+        saved=client.patch(base+f"/{lid}/draft",json=scene.save_request(created,submission="after-routes-gone",
+            content=changed(created["currentRevision"]["data"],title="端点移除后写入")).model_dump(by_alias=True,mode="json"))
         assert saved.status_code==200 and saved.json()["revision"]==created["revision"]+1
-        history=client.get(base+f"/{lid}/revisions").json()
-        assert [x["version"] for x in history["items"]]==[2,1]
 
 
 def test_archived_new_save_is_422_without_revision_receipt_and_old_receipt_replays(scene):
@@ -174,13 +164,10 @@ def test_http_delete_lesson_route_guard_receipt_and_list_refresh(scene):
         assert missing.status_code==404 and missing.json()["code"]=="NOT_FOUND"
         negative=client.delete(base+f"/{lid}",params={"expectedRevision":-1})
         assert negative.status_code==422 and negative.json()["code"]=="VALIDATION_ERROR"
-        # 归档件也允许删除：这是归档件的物理出口。
-        archived=client.post(base+f"/{lid}/archive",json={"expectedRevision":updated["revision"]}).json()
-        assert client.get(base,params={"archived":"true"}).json()["total"]==1
-        receipt=client.delete(base+f"/{lid}",params={"expectedRevision":archived["revision"]})
+        # 删除是唯一清理出口：物理删除教案行及其历史。
+        receipt=client.delete(base+f"/{lid}",params={"expectedRevision":updated["revision"]})
         assert receipt.status_code==200,receipt.text
         assert receipt.json()=={"deleted":True,"lessonPlanId":lid,"removedRevisions":2,"removedProposals":0,"removedInputs":0}
         assert client.get(base+f"/{lid}").status_code==404
         assert lid not in [x["lessonPlanId"] for x in client.get(base).json()["items"]]
-        assert lid not in [x["lessonPlanId"] for x in client.get(base,params={"archived":"true"}).json()["items"]]
         assert client.get(base+f"/{lid}/revisions").status_code==404

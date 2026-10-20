@@ -102,7 +102,6 @@ def _json_object(part: MultipartPart | None, *, field: str) -> dict | None:
 async def list_knowledge_points(
     request: Request,
     subjectId: str | None = None,
-    status_filter: str | None = Query(default=None, alias="status"),
     parentId: str | None = None,
     q: str | None = None,
     scope: str | None = None,
@@ -114,7 +113,6 @@ async def list_knowledge_points(
     return await _run(
         service.list_points,
         subject_id=subjectId,
-        status=status_filter,
         parent_id=parentId,
         q=q,
         scope=scope,
@@ -245,32 +243,17 @@ async def update_knowledge_point(
     return await _run(service.update_point, point_id, body)
 
 
-@router.post("/knowledge-points/{point_id}/archive")
-async def archive_knowledge_point(
-    request: Request, point_id: str, body: KnowledgePointRevisionRequest
-) -> KnowledgePointView:
-    service = _service(request)
-    return await _run(service.set_archived, point_id, body, archived=True)
-
-
-@router.post("/knowledge-points/{point_id}/restore")
-async def restore_knowledge_point(
-    request: Request, point_id: str, body: KnowledgePointRevisionRequest
-) -> KnowledgePointView:
-    service = _service(request)
-    return await _run(service.set_archived, point_id, body, archived=False)
-
-
 @router.delete("/knowledge-points/{point_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_knowledge_point(
     request: Request,
     point_id: str,
     expectedRevision: int = Query(ge=0),
 ) -> Response:
-    """彻底删除（任务①）：跨库守卫任一命中 409 ``KNOWLEDGE_POINT_IN_USE``。
+    """彻底删除知识点**及其整棵子树**（物理删除，不可恢复）。
 
-    守卫覆盖知识点库教材依据、教学库原卷题目关联、题库正式/草稿关联；
-    通过后同一写事务删除别名 → 修订 → 身份行。
+    子树内任一节点有教材依据、原卷题目或题库引用 → 409 ``KNOWLEDGE_POINT_IN_USE``，
+    ``details.points`` 逐节点给出引用计数；引用检查端口缺失 → 503。根节点
+    ``expectedRevision`` 不符 → 409 ``REVISION_CONFLICT``。
     """
     service = _service(request)
     await _run(

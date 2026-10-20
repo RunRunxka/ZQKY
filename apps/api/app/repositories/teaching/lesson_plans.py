@@ -81,21 +81,6 @@ class LessonPlanRepository:
             raise AppError("教案版本已变化。", code="REVISION_CONFLICT", status_code=409,
                            details={"currentRevision": self.document(conn, lesson_id, owner_id)["revision"], "fields": ["expectedRevision"]})
 
-    def set_archived_in(self, conn, *, lesson_id, owner_id, archived, expected_revision):
-        """归档/恢复：只写 ``archived_at``，head 指针与 ``revision`` 原样保留。
-
-        ``lesson_plan_identity_fixed`` 触发器要求 current_revision_id 不变时 revision
-        不得变化，因此归档不递增 revision；后续写入经 ``_current()`` 的归档守卫
-        拒绝，CAS 不依赖 revision 递增也能感知归档动作。expected_revision 乐观锁
-        在本事务内先行核对，不符时按既有 CAS 语义报 409。
-        """
-        document = self.document(conn, lesson_id, owner_id)
-        if document["revision"] != expected_revision:
-            raise AppError("教案版本已变化。", code="REVISION_CONFLICT", status_code=409,
-                           details={"currentRevision": document["revision"], "fields": ["expectedRevision"]})
-        conn.execute("UPDATE lesson_plans SET archived_at=?,updated_at=? WHERE id=? AND owner_id=? AND revision=?",
-                     (now_iso() if archived else None, now_iso(), lesson_id, owner_id, expected_revision))
-
     def insert_decision(self, conn, *, lesson_id, owner_id, proposal_id, state, selected_fields=None, revision_id=None):
         conn.execute("""INSERT INTO lesson_proposal_decisions
             (proposal_id,lesson_plan_id,owner_id,state,selected_fields_json,accepted_revision_id,created_at) VALUES(?,?,?,?,?,?,?)""",

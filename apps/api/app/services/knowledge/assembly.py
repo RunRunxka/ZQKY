@@ -203,7 +203,12 @@ def _build_evidence_reader(app: FastAPI) -> Any | None:
 
 
 def _build_reference_checker(app: FastAPI) -> Any | None:
-    """跨库引用计数（删除守卫）；教学库/题库缺失按无引用处理，知识点库必在。"""
+    """跨库引用计数（删除守卫）；教学库/题库缺失按无引用处理，知识点库必在。
+
+    teaching/question_bank 在 ``_DOMAIN_ASSEMBLIES`` 中晚于 knowledge 装配，构造时
+    还不能直接取值；这里注入 provider，在 ``count_references`` 调用时再解析，
+    避免生产环境把引用检查器永久固定成 ``None``（守卫静默失效）。
+    """
     try:
         from app.services.knowledge.references import CrossLibraryReferenceChecker
     except ImportError as exc:  # pragma: no cover - 实现未落地
@@ -211,8 +216,8 @@ def _build_reference_checker(app: FastAPI) -> Any | None:
         return None
     return CrossLibraryReferenceChecker(
         knowledge_catalog=app.state.knowledge,
-        teaching_catalog=getattr(app.state, "teaching", None),
-        question_bank_catalog=getattr(app.state, "question_bank", None),
+        teaching_catalog_provider=lambda: getattr(app.state, "teaching", None),
+        question_bank_catalog_provider=lambda: getattr(app.state, "question_bank", None),
     )
 
 

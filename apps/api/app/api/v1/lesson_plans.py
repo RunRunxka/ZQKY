@@ -45,10 +45,13 @@ async def run(fn, *args, **kwargs):
 
 @router.get("/lesson-plans", response_model=Page[lp.LessonSummary])
 async def listing(request: Request, subjectId: str | None = None, classId: str | None = None,
-                  archived: bool = Query(default=False),
                   offset: int = Query(0, ge=0), limit: int = Query(50, ge=1, le=200)):
+    """教案列表：归档/恢复端点已移除（删除即删除）；列表返回全部正常数据。
+
+    旧库残留的 ``archived_at`` 非空行由归一化脚本清空；本接口不再按 archived 过滤。
+    """
     return await run(service(request).list_lessons, subject_id=subjectId, class_id=classId,
-                     archived=archived, offset=offset, limit=limit)
+                     offset=offset, limit=limit)
 
 
 @router.post("/lesson-plans", response_model=lp.LessonView, status_code=201)
@@ -66,21 +69,20 @@ async def verify_evidence(request: Request, body: lp.LessonEvidenceRequest):
     return await run(service(request).verify_evidence, body)
 
 
-@router.post("/lesson-plans/{lesson_id}/archive", response_model=lp.LessonView)
-async def archive(request: Request, lesson_id: str, body: lp.LessonRevisionRequest):
-    """归档教案：请求体 ``{"expectedRevision": <int>}``，返回最新 ``LessonView``。"""
-    return await run(service(request).set_archived, lesson_id, body, archived=True)
-
-
-@router.post("/lesson-plans/{lesson_id}/restore", response_model=lp.LessonView)
-async def restore(request: Request, lesson_id: str, body: lp.LessonRevisionRequest):
-    """恢复教案：清除 ``archived_at``，按原 revision 继续编辑。"""
-    return await run(service(request).set_archived, lesson_id, body, archived=False)
+@router.post("/lesson-plans/{lesson_id}/archive", include_in_schema=False)
+@router.post("/lesson-plans/{lesson_id}/restore", include_in_schema=False)
+async def lesson_archive_removed(lesson_id: str):
+    """归档/恢复端点已移除（B3，2026-10-20 用户裁定「删除即删除」）：显式 404。"""
+    raise AppError(
+        f"教案 {lesson_id} 的归档/恢复端点已移除；删除请用 DELETE /lesson-plans/{{id}}。",
+        code="ARCHIVE_ENDPOINT_REMOVED",
+        status_code=404,
+    )
 
 
 @router.delete("/lesson-plans/{lesson_id}")
 async def delete_lesson(request: Request, lesson_id: str, expectedRevision: int = Query(ge=0)):
-    """受守卫的彻底删除：物理删除教案行及其自身历史（归档与否都允许删除）。
+    """彻底删除教案：物理删除教案行及其自身历史（唯一删除出口，归档入口已移除）。
 
     乐观锁不符 → 409 ``REVISION_CONFLICT``；不存在 → 404；本行被教案范围之外的
     表引用 → 409 ``LESSON_IN_USE`` 并列出计数。回执为

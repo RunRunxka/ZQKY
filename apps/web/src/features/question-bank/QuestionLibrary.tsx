@@ -38,7 +38,7 @@ export function QuestionLibrary({ taxonomy }: { taxonomy: TaxonomyIndex }) {
   const [addOpen, setAddOpen] = useState(false);
 
   const points = useAsyncResource(
-    (signal) => listKnowledgePoints({ status: 'active', limit: POINT_PAGE_LIMIT }, signal),
+    (signal) => listKnowledgePoints({ limit: POINT_PAGE_LIMIT }, signal),
     'qb-points',
   );
   const pointsState: AsyncState<KnowledgePointView[]> = useMemo(

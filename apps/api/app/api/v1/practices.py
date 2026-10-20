@@ -34,9 +34,15 @@ async def detail(request: Request, set_id: str):
     return await run(service(request).get_practice, set_id)
 
 
-@router.post("/practice-sets/{set_id}/archive", response_model=b4.PracticeSetView)
-async def archive(request: Request, set_id: str, body: b4.PracticeSetStatusRequest):
-    return await run(service(request).set_archived, set_id, body, archived=True)
+@router.post("/practice-sets/{set_id}/archive", include_in_schema=False)
+@router.post("/practice-sets/{set_id}/restore", include_in_schema=False)
+async def practice_archive_removed(set_id: str):
+    """归档/恢复端点已移除（B3，2026-10-20 用户裁定「删除即删除」）：显式 404。"""
+    raise AppError(
+        f"练习集 {set_id} 的归档/恢复端点已移除；删除请用 DELETE /practice-sets/{{id}}。",
+        code="ARCHIVE_ENDPOINT_REMOVED",
+        status_code=404,
+    )
 
 
 @router.delete("/practice-sets/{set_id}", response_model=b4.PracticeSetDeleteReceipt)
@@ -50,11 +56,6 @@ async def delete_set(request: Request, set_id: str, expectedRevision: int = Quer
     """
     payload = b4.PracticeSetStatusRequest(expectedRevision=expectedRevision)
     return await run(service(request).delete_practice, set_id, payload, include_history=includeHistory)
-
-
-@router.post("/practice-sets/{set_id}/restore", response_model=b4.PracticeSetView)
-async def restore(request: Request, set_id: str, body: b4.PracticeSetStatusRequest):
-    return await run(service(request).set_archived, set_id, body, archived=False)
 
 
 @router.get("/practice-sets/{set_id}/revisions/{revision_id}", response_model=b4.PracticeRevisionView)

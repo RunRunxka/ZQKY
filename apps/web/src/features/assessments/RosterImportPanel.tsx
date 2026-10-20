@@ -4,8 +4,8 @@
  * 名单导入与逐行校对（R5-FE 取回，逐段同构归档 `features/assessments/RosterImportPanel`）。
  *
  * 流程固定为「上传 → 审阅行 → 确认落库」：上传只产生批次与预览行，**不写学生**；
- * 每一行要么由服务端的自动决策（学号一致自动关联，含已归档身份自动恢复；无匹配自动新建）、
- * 要么由教师显式选择处理方式，最后整批确认才落库。任何一行没决定完都不允许确认。
+ * 每一行要么由服务端的自动决策（学号一致自动关联，含已移除身份重新关联并保留历史成绩；
+ * 无匹配自动新建）、要么由教师显式选择处理方式，最后整批确认才落库。任何一行没决定完都不允许确认。
  *
  * 忠实保留归档的三条硬约束：
  * 1. 读取失败/确认失败**原样显示** `code` / `message` / `details.issues`（行号 + 列/字段），
@@ -66,7 +66,7 @@ const DISCARDABLE_STATES: readonly RosterImportState[] = ['uploaded', 'reviewing
  * 确认时的最终判定始终以服务端为准，前端不自行改写入库语义）：
  * - 阻断问题（同批重复 / 同名多命中）必须人工消歧；
  * - 姓名缺失、姓名超过 120 字或学号超过 64 字时不能自动新建，必须给出 link/ignore。
- * 其余行：命中唯一身份（学号一致，含已归档学生）自动关联；无匹配自动新建。
+ * 其余行：命中唯一身份（学号一致，含已移除学生）自动重新关联（保留历史成绩）；无匹配自动新建。
  */
 const BLOCKING_REASON_LABELS: Record<string, string> = {
   ROSTER_ROW_DUPLICATE: '重复行',
@@ -166,7 +166,7 @@ function rowChipText(plan: RowPlan): string {
   if (plan.kind === 'auto-create') return '将新建学生';
   if (plan.kind === 'auto-link') {
     const who = plan.studentName || plan.studentId;
-    return plan.archived ? `将关联并恢复：${who}（原已归档）` : `将关联：${who}（学号一致）`;
+    return plan.archived ? `将重新关联：${who}（已移除，保留历史成绩）` : `将关联：${who}（学号一致）`;
   }
   const label = plan.decision === null ? null : DECISION_LABELS[plan.decision];
   if (plan.origin === 'draft') {
@@ -190,7 +190,7 @@ function needsAttention(plan: RowPlan): boolean {
   return plan.decision === null || (plan.decision === 'link' && !plan.studentId);
 }
 
-/** 阻断/行级非法问题按错误显示；其余（如已归档提示）按提示显示，避免把非阻断提示画成失败。 */
+/** 阻断/行级非法问题按错误显示；其余（如已移除学生的重新关联提示）按提示显示，避免把非阻断提示画成失败。 */
 function isAlertingIssue(issue: ErrorIssue): boolean {
   return issue.code === ROW_INVALID_CODE || issue.code in BLOCKING_REASON_LABELS;
 }
@@ -288,7 +288,7 @@ function RosterImportSession({ classId, onChanged }: Props) {
       submission.release();
       adopt(result);
       batches.reload();
-      setNotice('名单已上传：学号一致的自动关联（含已归档身份，自动恢复），新学生自动新建；异常行需要你选择。');
+      setNotice('名单已上传：学号一致的重新关联（含已移除学生，保留历史成绩），新学生自动新建；异常行需要你选择。');
     }
   }
 
@@ -455,7 +455,7 @@ function RosterImportSession({ classId, onChanged }: Props) {
     >
       <h3>导入名单</h3>
       <p className="assessments-hint">
-        名单会自动处理：学号一致的自动关联（含已归档身份，自动恢复），新学生自动新建；只有重复/同名冲突等异常行需要你选择。
+        名单会自动处理：学号一致的重新关联（含已移除学生，保留历史成绩），新学生自动新建；只有重复/同名冲突等异常行需要你选择。
       </p>
       <div className="assessments-form">
         <label className="assessments-field">
