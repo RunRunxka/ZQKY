@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Loader2, Plus, Settings2, Star, Trash2, Wand2, Waves, Zap } from 'lucide-react';
+import { Loader2, Plus, RefreshCw, Settings2, Star, Trash2, Wand2, Waves, Zap } from 'lucide-react';
 import {
   API_FORMAT_LABELS,
   CAPABILITY_EVIDENCE_LABELS,
@@ -50,6 +50,9 @@ export function ConnectionDetail({
   onDeleteConnection,
   onEditModel,
   onTestModel,
+  onRefreshModelMetadata,
+  onRefreshAllMetadata,
+  refreshingMetadata = false,
   onAuthChanged,
   tests,
   busy,
@@ -71,6 +74,11 @@ export function ConnectionDetail({
   onDeleteConnection: () => void;
   onEditModel: (profile: ModelProfileView) => void;
   onTestModel: (profile: ModelProfileView, stream: boolean) => void;
+  /** 自动读取该模型的上下文/输出上限（供应商 /models + models.dev） */
+  onRefreshModelMetadata: (profile: ModelProfileView) => void;
+  /** 自动读取本连接全部模型的元数据 */
+  onRefreshAllMetadata: () => void;
+  refreshingMetadata?: boolean;
   /** 受管认证状态变化（授权完成/退出）后通知父层刷新目录与可调用性 */
   onAuthChanged: () => void;
   tests: Record<string, { running: boolean; result?: ModelTestResult; stream: boolean }>;
@@ -228,6 +236,15 @@ export function ConnectionDetail({
         <div className="detail-section-head">
           <h3>模型</h3>
           <div className="detail-section-actions">
+            <button
+              className="button subtle"
+              disabled={busy || refreshingMetadata || profiles.length === 0}
+              title="从供应商 /models 与 models.dev 读取上下文/输出上限；已有值会更新并提示"
+              onClick={onRefreshAllMetadata}
+            >
+              <RefreshCw size={14} className={refreshingMetadata ? 'spin' : undefined} />
+              {refreshingMetadata ? '获取中…' : '自动获取信息'}
+            </button>
             <button className="button subtle" disabled={busy || importing} onClick={onDiscover}>
               {importing ? <Loader2 size={14} className="spin" /> : <Wand2 size={14} />}
               {importing ? '获取中…' : '从服务获取'}
@@ -248,6 +265,7 @@ export function ConnectionDetail({
                   <strong>{profile.displayName}</strong>
                   <code>{profile.modelId}</code>
                   <div className="model-facts">
+                    <span>上下文 {profile.contextTokens?.toLocaleString() ?? '未获取'}</span>
                     <span>输出 {profile.maxOutputTokens?.toLocaleString() ?? '默认'}</span>
                     <span>对话 · {CAPABILITY_EVIDENCE_LABELS[profile.capabilities.chat ?? 'unknown']}</span>
                     {profile.reasoningEnabled === false && <span>推理已关闭</span>}
@@ -265,6 +283,15 @@ export function ConnectionDetail({
                       用于问答
                     </button>
                   )}
+                  <button
+                    className="icon-button"
+                    aria-label={`自动获取模型信息 ${profile.displayName}`}
+                    title="从供应商 /models 与 models.dev 读取上下文/输出上限（已有值会更新并提示）"
+                    disabled={busy || refreshingMetadata}
+                    onClick={() => onRefreshModelMetadata(profile)}
+                  >
+                    <RefreshCw size={14} className={refreshingMetadata ? 'spin' : undefined} />
+                  </button>
                   <button
                     className="icon-button"
                     aria-label={`连接测试 ${profile.displayName}`}

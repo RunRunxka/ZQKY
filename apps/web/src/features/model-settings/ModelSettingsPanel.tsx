@@ -3,10 +3,13 @@ import { useMemo, useRef, useState } from 'react';
 import { useEntrance } from '@/components/motion/useEntrance';
 import { Check, ChevronRight, CircleHelp, Plus, Search, Settings2, Star, Zap } from 'lucide-react';
 import {
+  type BatchRefreshMetadataResult,
+  type DiscoveryModel,
   type ModelConnectionView,
   type ModelProfileView,
   type ModelProviderView,
   type ModelTestResult,
+  type RefreshMetadataResult,
 } from '@/contracts/model-settings';
 import {
   createConnection,
@@ -14,6 +17,8 @@ import {
   deleteConnection,
   deleteProfile,
   notifyModelCatalogChanged,
+  refreshProfileMetadata,
+  refreshProfilesMetadata,
   setDefaultModel,
   testProfile,
   updateConnection,
@@ -229,25 +234,46 @@ export function ModelSettingsPanel() {
     }, existing ? '模型已保存' : '模型已添加');
   }
 
-  async function importModels(connectionId: string, ids: string[]): Promise<{ ok: boolean; error?: string }> {
+  async function importModels(
+    connectionId: string,
+    models: DiscoveryModel[],
+  ): Promise<{ ok: boolean; error?: string }> {
     setImportError(null);
     setImporting(true);
     let failure: string | null = null;
+    let metadataNotice: string | null = null;
     try {
       const ok = await runAction(async () => {
         const failures: string[] = [];
-        for (const id of ids) {
+        const createdIds: string[] = [];
+        for (const model of models) {
+          const id = model.id;
           const exists = catalog?.profiles.some(
             (profile) => profile.connectionId === connectionId && profile.modelId === id,
           );
           if (exists) continue;
           try {
-            await createProfile({
+            const contextTokens =
+              model.contextLength && model.contextLength > 0 && model.contextLength <= 100_000_000
+                ? model.contextLength
+                : null;
+            const maxOutputTokens =
+              model.maxOutputTokens && model.maxOutputTokens > 0 && model.maxOutputTokens <= 1_000_000
+                ? model.maxOutputTokens
+                : null;
+            const supportedParams = (model.supportedParameters ?? []).filter(
+              (item) => item === 'temperature' || item === 'top_p',
+            );
+            const created = await createProfile({
               connectionId,
-              displayName: id.slice(0, 64),
+              displayName: (model.displayName || id).slice(0, 64),
               modelId: id,
               purpose: 'chat',
+              ...(contextTokens ? { contextTokens } : {}),
+              ...(maxOutputTokens ? { maxOutputTokens } : {}),
+              ...(supportedParams.length > 0 ? { supportedParams } : {}),
             });
+            createdIds.push(created.id);
           } catch (e) {
             failures.push(`${id}：${e instanceof Error ? e.message : '添加失败'}`);
           }
@@ -256,16 +282,43 @@ export function ModelSettingsPanel() {
           failure = `部分模型未能添加：${failures.join('；')}`;
           throw new Error(failure);
         }
+        if (createdIds.length > 0) {
+          try {
+            const refreshed = await refreshProfilesMetadata({ profileIds: createdIds });
+            metadataNotice = refreshed.message;
+          } catch (e) {
+            metadataNotice = `模型已添加，但自动获取信息失败：${
+              e instanceof Error ? e.message : '未知错误'
+            }；可在档案手填。`;
+          }
+        }
       }, '所选模型已添加');
       if (!ok) {
         const message = failure ?? '部分模型未能添加，请重试。';
         setImportError(message);
         return { ok: false, error: message };
       }
+      if (metadataNotice) setNotice(`所选模型已添加；${metadataNotice}`);
       return { ok: true };
     } finally {
       setImporting(false);
     }
+  }
+
+  async function refreshMetadataFor(profile: ModelProfileView) {
+    const holder: { value: RefreshMetadataResult | null } = { value: null };
+    const ok = await runAction(async () => {
+      holder.value = await refreshProfileMetadata(profile.id);
+    }, '模型信息已刷新');
+    if (ok && holder.value) setNotice(holder.value.message);
+  }
+
+  async function refreshAllMetadata(connectionId: string) {
+    const holder: { value: BatchRefreshMetadataResult | null } = { value: null };
+    const ok = await runAction(async () => {
+      holder.value = await refreshProfilesMetadata({ connectionId });
+    }, '模型信息已刷新');
+    if (ok && holder.value) setNotice(holder.value.message);
   }
 
   function requestTest(profile: ModelProfileView, stream: boolean) {
@@ -530,6 +583,9 @@ export function ModelSettingsPanel() {
               void runAction(() => setDefaultModel(profile.id, catalog.revision), '已设为问答默认模型')
             }
             onTestModel={(profile, stream) => requestTest(profile, stream)}
+            onRefreshModelMetadata={(profile) => void refreshMetadataFor(profile)}
+            onRefreshAllMetadata={() => void refreshAllMetadata(overlayConnection.id)}
+            refreshingMetadata={busy}
             onAuthChanged={() => {
               void refresh();
               notifyModelCatalogChanged();
@@ -574,8 +630,8 @@ export function ModelSettingsPanel() {
               .filter((profile) => profile.connectionId === overlayConnection.id)
               .map((profile) => profile.modelId)}
             error={importError}
-            onAdd={async (ids) => {
-              const result = await importModels(overlayConnection.id, ids);
+            onAdd={async (models) => {
+              const result = await importModels(overlayConnection.id, models);
               return result.ok;
             }}
             onManual={() => setChild({ kind: 'profile', profile: null })}

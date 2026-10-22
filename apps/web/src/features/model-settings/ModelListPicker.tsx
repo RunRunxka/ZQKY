@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Loader2, RefreshCw, Search } from 'lucide-react';
-import type { DiscoveryResult } from '@/contracts/model-settings';
+import type { DiscoveryModel, DiscoveryResult } from '@/contracts/model-settings';
 import { discoverModels } from '@/services/model-settings-api';
 import { ProviderMark } from './ProviderMark';
 
@@ -30,7 +30,8 @@ export function ModelListPicker({
   existingIds: string[];
   /** 导入失败时由父层传入，展示在本弹窗内（MR-13） */
   error?: string | null;
-  onAdd: (ids: string[]) => Promise<boolean>;
+  /** 选中条目的完整元数据（含上游 contextLength），用于写入档案 */
+  onAdd: (models: DiscoveryModel[]) => Promise<boolean>;
   onManual: () => void;
   onClose: () => void;
 }) {
@@ -65,8 +66,8 @@ export function ModelListPicker({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connectionId]);
 
-  const ids = result?.models.map((model) => model.id) ?? [];
-  const filtered = ids.filter((id) => id.toLowerCase().includes(query.toLowerCase()));
+  const models = result?.models ?? [];
+  const filtered = models.filter((model) => model.id.toLowerCase().includes(query.toLowerCase()));
   const manualOnly = result?.source === 'manual';
 
   return (
@@ -101,7 +102,7 @@ export function ModelListPicker({
           {result.note && <p className="settings-hint">{result.note}</p>}
           {manualOnly ? (
             <p className="detail-empty">该供应商没有公开的模型列表接口，请手动添加模型 ID。</p>
-          ) : ids.length === 0 ? (
+          ) : models.length === 0 ? (
             <p className="detail-empty">服务返回了空列表。你仍可手动添加任意合法模型 ID。</p>
           ) : (
             <>
@@ -115,7 +116,8 @@ export function ModelListPicker({
                 />
               </div>
               <div className="discovery-list">
-                {filtered.map((id) => {
+                {filtered.map((model) => {
+                  const id = model.id;
                   const already = existing.has(id);
                   return (
                     <label key={id} className={already ? 'already' : ''}>
@@ -132,6 +134,23 @@ export function ModelListPicker({
                         }
                       />
                       <span>{id}</span>
+                      {model.displayName && model.displayName !== id ? (
+                        <small className="model-display-name">{model.displayName}</small>
+                      ) : null}
+                      {(model.contextLength || model.maxOutputTokens) && (
+                        <small className="model-limits">
+                          {[
+                            model.contextLength
+                              ? `${formatContextLength(model.contextLength)} 上下文`
+                              : null,
+                            model.maxOutputTokens
+                              ? `输出 ${formatContextLength(model.maxOutputTokens)}`
+                              : null,
+                          ]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </small>
+                      )}
                       {already && <small>已添加</small>}
                     </label>
                   );
@@ -158,7 +177,8 @@ export function ModelListPicker({
               setSaving(true);
               try {
                 // 只有真正成功才清空选择；失败保留勾选以便重试（MR-13）
-                const ok = await onAdd(selected);
+                const picked = models.filter((model) => selected.includes(model.id));
+                const ok = await onAdd(picked);
                 if (ok) setSelected([]);
               } finally {
                 setSaving(false);
@@ -178,4 +198,11 @@ function sourceLabel(source: string): string {
   if (source === 'manual') return '该供应商无模型列表接口';
   if (source.startsWith('catalog:')) return '来自内置回退目录（非实时）';
   return '模型列表';
+}
+
+function formatContextLength(tokens: number): string {
+  if (!Number.isFinite(tokens) || tokens <= 0) return '';
+  if (tokens >= 1_000_000) return `${Math.round(tokens / 100_000) / 10}M`;
+  if (tokens >= 1_000) return `${Math.round(tokens / 1_000)}K`;
+  return String(tokens);
 }

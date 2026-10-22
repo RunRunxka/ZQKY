@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { ModelSettingsPanel } from './ModelSettingsPanel';
@@ -20,6 +20,9 @@ const mocks = vi.hoisted(() => ({
   setDefaultModel: vi.fn(),
   discoverModels: vi.fn(),
   notifyModelCatalogChanged: vi.fn(),
+  refreshProfilesMetadata: vi.fn(),
+  refreshProfileMetadata: vi.fn(),
+  previewProfileMetadata: vi.fn(),
   getAuthStatus: vi.fn(),
   startAuth: vi.fn(),
   cancelAuth: vi.fn(),
@@ -111,6 +114,45 @@ describe('模型管理审查回归', () => {
     HTMLDialogElement.prototype.close = function close() {
       this.open = false;
     };
+  });
+  beforeEach(() => {
+    mocks.refreshProfilesMetadata.mockResolvedValue({
+      updatedCount: 0,
+      unchangedCount: 0,
+      results: [],
+      message: '已检查 0 个模型，更新 0 个。',
+    });
+    mocks.refreshProfileMetadata.mockResolvedValue({
+      updated: false,
+      changes: [],
+      metadata: {
+        contextTokens: null,
+        maxOutputTokens: null,
+        supportedParams: [],
+        capabilities: {},
+        source: 'unavailable',
+        sources: {},
+        matchedProvider: null,
+        matchedModelId: null,
+        notes: [],
+      },
+      message: '未获取到可写回的上下文/输出上限；可在档案手填。',
+    });
+    mocks.previewProfileMetadata.mockResolvedValue({
+      connectionId: 'c',
+      modelId: 'test-model',
+      metadata: {
+        contextTokens: null,
+        maxOutputTokens: null,
+        supportedParams: [],
+        capabilities: {},
+        source: 'unavailable',
+        sources: {},
+        matchedProvider: null,
+        matchedModelId: null,
+        notes: [],
+      },
+    });
   });
   afterEach(() => {
     cleanup();

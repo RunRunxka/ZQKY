@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, fireEvent } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { ModelSettingsPanel } from './ModelSettingsPanel';
 
@@ -8,7 +8,11 @@ const mocks = vi.hoisted(() => ({
   loadProviderDirectory: vi.fn(),
   setDefaultModel: vi.fn(),
   discoverModels: vi.fn(),
+  createProfile: vi.fn(),
   notifyModelCatalogChanged: vi.fn(),
+  refreshProfilesMetadata: vi.fn(),
+  refreshProfileMetadata: vi.fn(),
+  previewProfileMetadata: vi.fn(),
 }));
 vi.mock('@/services/model-settings-api', async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -87,6 +91,44 @@ describe('模型管理', () => {
     HTMLDialogElement.prototype.close = function close() {
       this.open = false;
     };
+    mocks.refreshProfilesMetadata.mockResolvedValue({
+      updatedCount: 0,
+      unchangedCount: 0,
+      results: [],
+      message: '已检查 0 个模型，更新 0 个。',
+    });
+    mocks.createProfile.mockResolvedValue({ id: 'new-profile' });
+    mocks.refreshProfileMetadata.mockResolvedValue({
+      updated: false,
+      changes: [],
+      metadata: {
+        contextTokens: null,
+        maxOutputTokens: null,
+        supportedParams: [],
+        capabilities: {},
+        source: 'unavailable',
+        sources: {},
+        matchedProvider: null,
+        matchedModelId: null,
+        notes: [],
+      },
+      message: '未获取到可写回的上下文/输出上限；可在档案手填。',
+    });
+    mocks.previewProfileMetadata.mockResolvedValue({
+      connectionId: 'c',
+      modelId: 'test-model',
+      metadata: {
+        contextTokens: null,
+        maxOutputTokens: null,
+        supportedParams: [],
+        capabilities: {},
+        source: 'unavailable',
+        sources: {},
+        matchedProvider: null,
+        matchedModelId: null,
+        notes: [],
+      },
+    });
   });
 
   afterEach(() => {
@@ -154,5 +196,94 @@ describe('模型管理', () => {
     fireEvent.click(await screen.findByRole('button', { name: '打开 测试供应商 的详情' }));
     fireEvent.click(screen.getByRole('button', { name: /从服务获取/ }));
     expect(await screen.findByText(/没有公开的模型列表接口/)).toBeInTheDocument();
+  });
+
+  it('从服务获取后写入上下文/输出上限并批量刷新元数据', async () => {
+    mockCatalog({
+      revision: 3,
+      defaultChatProfileId: null,
+      connections: [connection],
+      profiles: [],
+    });
+    mocks.discoverModels.mockResolvedValue({
+      models: [
+        {
+          id: 'deepseek-flash',
+          displayName: 'DeepSeek Flash',
+          contextLength: 1_000_000,
+          maxOutputTokens: 384_000,
+          supportedParameters: ['temperature'],
+        },
+      ],
+      source: 'upstream',
+    });
+    mocks.refreshProfilesMetadata.mockResolvedValue({
+      updatedCount: 1,
+      unchangedCount: 0,
+      results: [],
+      message: '已检查 1 个模型，更新 1 个。',
+    });
+
+    render(<ModelSettingsPanel />);
+    fireEvent.click(await screen.findByRole('button', { name: '打开 测试供应商 的详情' }));
+    fireEvent.click(screen.getByRole('button', { name: /从服务获取/ }));
+    fireEvent.click(await screen.findByRole('checkbox'));
+    fireEvent.click(screen.getByRole('button', { name: '添加所选 1 个' }));
+
+    await waitFor(() => expect(mocks.createProfile).toHaveBeenCalledTimes(1));
+    expect(mocks.createProfile).toHaveBeenCalledWith(
+      expect.objectContaining({
+        connectionId: 'c',
+        modelId: 'deepseek-flash',
+        contextTokens: 1_000_000,
+        maxOutputTokens: 384_000,
+        supportedParams: ['temperature'],
+      }),
+    );
+    await waitFor(() =>
+      expect(mocks.refreshProfilesMetadata).toHaveBeenCalledWith({
+        profileIds: ['new-profile'],
+      }),
+    );
+  });
+
+  it('模型卡片显示上下文并提供单模型自动获取按钮', async () => {
+    mockCatalog({
+      revision: 3,
+      defaultChatProfileId: null,
+      connections: [connection],
+      profiles: [{ ...profile, contextTokens: 1_000_000, maxOutputTokens: 384_000 }],
+    });
+    mocks.refreshProfileMetadata.mockResolvedValue({
+      updated: true,
+      changes: [
+        {
+          field: 'contextTokens',
+          label: '上下文',
+          oldValue: 128000,
+          newValue: 1_000_000,
+          source: 'models.dev',
+        },
+      ],
+      metadata: {
+        contextTokens: 1_000_000,
+        maxOutputTokens: 384_000,
+        supportedParams: [],
+        capabilities: {},
+        source: 'models.dev',
+        sources: { contextTokens: 'models.dev' },
+        matchedProvider: 'deepseek',
+        matchedModelId: 'deepseek-v4-flash',
+        notes: [],
+      },
+      message: '已更新：上下文 128,000 → 1,000,000（models.dev）。',
+    });
+
+    render(<ModelSettingsPanel />);
+    fireEvent.click(await screen.findByRole('button', { name: '打开 测试供应商 的详情' }));
+    expect(screen.getByText('上下文 1,000,000')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '自动获取模型信息 测试模型' }));
+    await waitFor(() => expect(mocks.refreshProfileMetadata).toHaveBeenCalledWith('p'));
+    expect(await screen.findByText(/上下文 128,000 → 1,000,000/)).toBeInTheDocument();
   });
 });

@@ -7,10 +7,12 @@ import {
   REASONING_EFFORT_VALUES,
   REASONING_STYLE_LABELS,
   type ModelConnectionView,
+  type ModelMetadataResult,
   type ModelProfileView,
   type ProfileInput,
   type ReasoningEffort,
 } from '@/contracts/model-settings';
+import { previewProfileMetadata } from '@/services/model-settings-api';
 
 export type ProfileFormValue = ProfileInput;
 
@@ -53,6 +55,60 @@ export function ProfileForm({
   );
   const selectedConnection = connections.find((connection) => connection.id === connectionId) ?? null;
   const styleHint = profile?.reasoningStyle ?? null;
+  const [metadataFetching, setMetadataFetching] = useState(false);
+  const [metadataNotice, setMetadataNotice] = useState<string | null>(null);
+  const [metadataCaps, setMetadataCaps] = useState<ModelMetadataResult['capabilities'] | null>(null);
+
+  function metadataSourceLabel(source: ModelMetadataResult['source']): string {
+    if (source === 'provider') return '供应商接口';
+    if (source === 'models.dev') return 'models.dev';
+    if (source === 'bundled') return '内置模型表';
+    return '未获取到';
+  }
+
+  async function fetchModelMetadata(): Promise<void> {
+    const model = modelId.trim();
+    if (!model || !connectionId || metadataFetching) return;
+    setMetadataFetching(true);
+    setMetadataNotice(null);
+    try {
+      const result = await previewProfileMetadata({ connectionId, modelId: model });
+      const metadata = result.metadata;
+      const filled: string[] = [];
+      if (metadata.contextTokens) {
+        setContext(String(metadata.contextTokens));
+        filled.push('上下文');
+      }
+      if (metadata.maxOutputTokens) {
+        setOutput(String(metadata.maxOutputTokens));
+        filled.push('输出上限');
+      }
+      if (metadata.supportedParams.length > 0 && supported.length === 0) {
+        setSupported(metadata.supportedParams);
+      }
+      setMetadataCaps(metadata.capabilities);
+      const matched = metadata.matchedModelId ? ` · 匹配 ${metadata.matchedModelId}` : '';
+      const notes = metadata.notes.length > 0 ? ` · ${metadata.notes.join('；')}` : '';
+      setMetadataNotice(
+        filled.length > 0
+          ? `已填充${filled.join('、')}（${metadataSourceLabel(metadata.source)}）${matched}${notes}`
+          : `未获取到可填充的上下文/输出上限（${metadataSourceLabel(metadata.source)}）${notes}`,
+      );
+    } catch (error) {
+      setMetadataNotice(
+        `自动获取失败：${error instanceof Error ? error.message : '未知错误'}；可手动填写。`,
+      );
+    } finally {
+      setMetadataFetching(false);
+    }
+  }
+
+  const capabilityLabels = [
+    metadataCaps?.toolCall ? '工具调用' : null,
+    metadataCaps?.reasoning ? '推理' : null,
+    metadataCaps?.structuredOutput ? '结构化输出' : null,
+    metadataCaps?.inputModalities?.includes('image') ? '图片输入' : null,
+  ].filter((item): item is string => Boolean(item));
 
   function submit() {
     if (busy) return;
@@ -122,6 +178,25 @@ export function ProfileForm({
             onChange={(e) => setContext(e.target.value)}
             placeholder="tokens，未知留空"
           />
+          {profile?.contextWindow && (
+            <small className="settings-hint">
+              当前解析：
+              {profile.contextWindow.tokens
+                ? `${profile.contextWindow.tokens.toLocaleString()} tokens`
+                : '未知'}
+              （
+              {profile.contextWindow.source === 'profile'
+                ? '模型档案'
+                : profile.contextWindow.source === 'model'
+                  ? '按模型 ID 已知值'
+                  : profile.contextWindow.source === 'upstream'
+                    ? '来自上游模型信息'
+                    : profile.contextWindow.source === 'model-table'
+                      ? '按模型族暂估'
+                      : '未知'}
+              ）
+            </small>
+          )}
         </label>
         <label>
           输出上限
@@ -134,6 +209,25 @@ export function ProfileForm({
             placeholder="tokens，默认 2048"
           />
         </label>
+      </div>
+      <div className="settings-metadata-row">
+        <button
+          type="button"
+          className="button subtle"
+          disabled={busy || metadataFetching || !modelId.trim() || !connectionId}
+          title="从供应商 /models 与 models.dev 读取上下文、输出上限与能力"
+          onClick={() => void fetchModelMetadata()}
+        >
+          {metadataFetching ? '获取中…' : '自动获取模型信息'}
+        </button>
+        {metadataNotice && (
+          <small className="settings-hint" role="status">
+            {metadataNotice}
+          </small>
+        )}
+        {capabilityLabels.length > 0 && (
+          <small className="settings-hint">能力：{capabilityLabels.join(' · ')}</small>
+        )}
       </div>
 
       <fieldset className="settings-reasoning">
