@@ -19,7 +19,9 @@ export const metadata: Metadata = {
 };
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="zh-CN">
+    // 主题引导脚本会在 hydration 前写入 data-theme；这是有意的首帧防闪行为，
+    // 服务端无法预知 localStorage，故只对该元素的属性差异关闭 hydration 警告。
+    <html lang="zh-CN" suppressHydrationWarning>
       <head>
         {/* 首帧前设置主题属性（无偏好时不写属性，由系统深浅决定） */}
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
