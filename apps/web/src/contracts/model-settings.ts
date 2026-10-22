@@ -66,20 +66,34 @@ export interface ReasoningLevel {
  */
 export interface ReasoningSupportView {
   supported: boolean;
-  /** 受支持档位（不含 none）；supported 为 false 时通常为空数组 */
+  /**
+   * 是否展示思考强度控件（2026-10-22 起）：除档案显式关闭思考外恒为 true。
+   * 缺字段时前端回退 `supported`（兼容旧后端）。
+   */
+  selectable?: boolean;
+  /** 可选档位（不含 none）；selectable 为 true 时始终非空 */
   levels: ReasoningLevel[];
   /** 未显式指定时实际使用的档位 */
   default: ReasoningEffort | null;
   style: ReasoningSupportStyle | null;
-  source: 'profile' | 'registry' | 'model-table';
+  source: 'profile' | 'registry' | 'model-family' | 'fallback' | 'model-table';
   note: string | null;
 }
 
 /** 只读派生（GET /model-catalog）：解析后的上下文窗口；tokens 为 null 表示未知。 */
 export interface ContextWindowView {
   tokens: number | null;
-  source: 'profile' | 'model-table' | 'unknown';
+  source: 'profile' | 'model' | 'upstream' | 'model-table' | 'unknown';
   note: string | null;
+}
+
+/** POST /model-profiles/{id}/refresh-context：兼容旧前端的上下文刷新别名。 */
+export interface RefreshContextResult {
+  contextTokens: number | null;
+  source: ModelMetadataSource;
+  /** 是否真正写回档案（没有可写值时为 false） */
+  updated: boolean;
+  message: string;
 }
 
 export type CapabilityEvidence = 'verified' | 'claimed' | 'unknown';
@@ -249,10 +263,83 @@ export interface ModelProviderDirectory {
 /** 模型发现来源：upstream=上游实时；catalog=有来源的目录；manual=无发现能力。 */
 export type DiscoverySource = 'upstream' | 'manual' | `catalog:${string}`;
 
+export interface DiscoveryModel {
+  id: string;
+  /** 上游返回的展示名（有则展示） */
+  displayName?: string | null;
+  /** 上游返回的上下文长度（有则作为档案 contextTokens 的默认值） */
+  contextLength?: number | null;
+  /** 上游返回的输出上限（有则作为档案 maxOutputTokens 的默认值） */
+  maxOutputTokens?: number | null;
+  /** 上游声明的受支持参数（只取档案可用的 temperature/top_p） */
+  supportedParameters?: string[];
+  /** 上游声明的能力（仅展示，不自动改推理开关） */
+  capabilities?: ModelMetadataCapabilities;
+}
+
 export interface DiscoveryResult {
-  models: { id: string }[];
+  models: DiscoveryModel[];
   source: DiscoverySource;
   note?: string;
+}
+
+export interface ModelMetadataCapabilities {
+  toolCall?: boolean;
+  reasoning?: boolean;
+  structuredOutput?: boolean;
+  temperature?: boolean;
+  inputModalities?: string[];
+}
+
+export type ModelMetadataSource = 'provider' | 'models.dev' | 'bundled' | 'unavailable';
+
+/** 自动获取到的模型信息（不写库的预览结果 / 写库后的元数据）。 */
+export interface ModelMetadataResult {
+  contextTokens: number | null;
+  maxOutputTokens: number | null;
+  supportedParams: string[];
+  capabilities: ModelMetadataCapabilities;
+  source: ModelMetadataSource;
+  /** 每个字段各自的来源（如上下文来自 provider、输出上限来自 models.dev） */
+  sources: Partial<Record<'contextTokens' | 'maxOutputTokens', string>>;
+  matchedProvider: string | null;
+  matchedModelId: string | null;
+  notes: string[];
+  catalogSource?: string | null;
+  catalogFetchedAt?: number | null;
+}
+
+export interface MetadataPreviewResult {
+  connectionId: string;
+  modelId: string;
+  metadata: ModelMetadataResult;
+}
+
+export interface MetadataChange {
+  field: 'contextTokens' | 'maxOutputTokens';
+  label: string;
+  oldValue: number | null;
+  newValue: number;
+  source: string;
+}
+
+export interface RefreshMetadataResult {
+  updated: boolean;
+  changes: MetadataChange[];
+  metadata: ModelMetadataResult;
+  message: string;
+}
+
+export interface BatchRefreshMetadataResult {
+  updatedCount: number;
+  unchangedCount: number;
+  results: Array<
+    RefreshMetadataResult & {
+      profileId: string;
+      modelId: string;
+    }
+  >;
+  message: string;
 }
 
 export const DISCOVERY_SOURCE_LABELS: Record<string, string> = {

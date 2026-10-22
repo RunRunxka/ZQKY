@@ -14,6 +14,7 @@ import type {
   ChatArtifact,
   ChatRole,
   ChatServiceKind,
+  ChatUsage,
   TurnExtensionSnapshot,
 } from '@/contracts/chat';
 import { streamChat } from '@/services/chat-stream';
@@ -73,7 +74,7 @@ export type ChatServiceEvent =
     })
   | (ChatServiceEventBase & {
       type: 'usage';
-      usage: { inputTokens?: number | null; outputTokens?: number | null };
+      usage: ChatUsage;
     })
   | (ChatServiceEventBase & { type: 'end'; finishReason: string })
   | (ChatServiceEventBase & {
@@ -104,6 +105,8 @@ export interface ChatServiceReplyRequest {
   submissionId: string;
   /** 续跑使用的模型档位（/agent/confirm 必填；缺省时服务方如实报错） */
   modelProfileId?: string;
+  /** 本轮思考强度：确认续跑沿用触发该卡的档位，不能回退到 profile 默认值 */
+  reasoningEffort?: string;
   answers: AskUserAnswer[];
   signal: AbortSignal;
 }

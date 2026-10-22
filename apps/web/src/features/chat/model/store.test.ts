@@ -8,7 +8,12 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 import { createMemoryChatRepository } from '@/services/chat-repository';
-import type { ChatService, ChatServiceEvent, ChatServiceReplyRequest } from './chat-service';
+import type {
+  ChatService,
+  ChatServiceEvent,
+  ChatServiceReplyRequest,
+  ChatServiceRequest,
+} from './chat-service';
 import { createChatStore } from './store';
 
 function waitingCard(interactionId: string) {
@@ -150,5 +155,92 @@ describe('对话 store · 确认续跑', () => {
       { questionId: 'confirm-first-q', labels: ['确认执行'] },
     ]);
     expect(store.getState().waitingInteractionId).toBe('confirm-next');
+  });
+
+  it('usage 事件：输入取最近一次调用，输出按轮累计', async () => {
+    const repository = createMemoryChatRepository();
+    const service: ChatService = {
+      kind: 'real',
+      async run(request, emit) {
+        const base = { sessionId: request.sessionId, turnId: request.turnId };
+        emit({
+          ...base,
+          type: 'usage',
+          usage: { inputTokens: 1000, outputTokens: 50, totalTokens: 1050 },
+        });
+        emit({
+          ...base,
+          type: 'usage',
+          usage: { inputTokens: 1200, outputTokens: 30, totalTokens: 1230, cachedInputTokens: 400 },
+        });
+        emit({ ...base, type: 'end', finishReason: 'stop' });
+      },
+    };
+    const store = createChatStore({ repository, service });
+    await store.getState().init();
+    await store.getState().send('你好', { id: 'p1', modelLabel: '模型一' });
+    const assistant = store.getState().messages.at(-1)!;
+    expect(assistant.usage).toEqual({
+      inputTokens: 1200,
+      outputTokens: 80,
+      totalTokens: 1230,
+      cachedInputTokens: 400,
+    });
+  });
+
+  it('重试沿用原轮的扩展快照（思考强度不丢失）', async () => {
+    const repository = createMemoryChatRepository();
+    const run = vi.fn(
+      async (request: ChatServiceRequest, emit: (event: ChatServiceEvent) => void) => {
+        const base = { sessionId: request.sessionId, turnId: request.turnId };
+        emit({ ...base, type: 'end', finishReason: 'stop' });
+      },
+    );
+    const service: ChatService = { kind: 'real', run };
+    const store = createChatStore({ repository, service });
+    await store.getState().init();
+    await store.getState().send('你好', { id: 'p1', modelLabel: '模型一' }, {
+      mcps: [],
+      skills: [],
+      capability: { value: '', label: '对话', config: { reasoningEffort: 'low' } },
+    });
+    const user = store.getState().messages.find((message) => message.role === 'user')!;
+
+    await store.getState().retry(user.id, { id: 'p1', modelLabel: '模型一' });
+
+    expect(run).toHaveBeenCalledTimes(2);
+    const second = run.mock.calls[1]![0] as { extensions?: { capability?: { config?: Record<string, unknown> } } };
+    expect(second.extensions?.capability?.config?.reasoningEffort).toBe('low');
+  });
+
+  it('确认续跑携带触发该卡的思考强度', async () => {
+    const repository = createMemoryChatRepository();
+    const submitReply = vi.fn(async (_request: ChatServiceReplyRequest) => {
+      void _request;
+      return { accepted: true };
+    });
+    const service: ChatService = {
+      kind: 'real',
+      async run(request, emit) {
+        const base = { sessionId: request.sessionId, turnId: request.turnId };
+        emit({ ...base, type: 'wait-user', interaction: waitingCard('confirm-effort') });
+        emit({ ...base, type: 'end', finishReason: 'stop' });
+      },
+      submitReply,
+    };
+    const store = createChatStore({ repository, service });
+    await store.getState().init();
+    await store.getState().send('生成教案', { id: 'p1', modelLabel: '模型一' }, {
+      mcps: [],
+      skills: [],
+      capability: { value: '', label: '对话', config: { reasoningEffort: 'high' } },
+    });
+
+    await store.getState().submitReply([
+      { questionId: 'confirm-effort-q', labels: ['确认执行'] },
+    ]);
+
+    const request = submitReply.mock.calls[0]?.[0] as ChatServiceReplyRequest;
+    expect(request.reasoningEffort).toBe('high');
   });
 });

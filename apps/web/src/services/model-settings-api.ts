@@ -12,6 +12,10 @@ import type {
   ModelProviderDirectory,
   ModelTestResult,
   ProfileInput,
+  RefreshContextResult,
+  MetadataPreviewResult,
+  RefreshMetadataResult,
+  BatchRefreshMetadataResult,
 } from '@/contracts/model-settings';
 
 export function listConnections(): Promise<ModelConnectionView[]> {
@@ -79,6 +83,33 @@ export const loadModelCatalog = () => apiRequest<ModelCatalog>('/model-catalog')
 export const loadProviderDirectory = () => apiRequest<ModelProviderDirectory>('/model-providers');
 export const discoverModels = (id: string) =>
   apiRequest<DiscoveryResult>(`/model-connections/${id}/models`);
+export const refreshProfileContext = (id: string) =>
+  apiRequest<RefreshContextResult>(`/model-profiles/${id}/refresh-context`, { method: 'POST' });
+export const previewProfileMetadata = (input: {
+  connectionId: string;
+  modelId: string;
+  force?: boolean;
+}) =>
+  apiRequest<MetadataPreviewResult>('/model-metadata/preview', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+export const refreshProfileMetadata = (id: string, force = false) =>
+  apiRequest<RefreshMetadataResult>(
+    `/model-profiles/${id}/refresh-metadata${force ? '?force=true' : ''}`,
+    { method: 'POST' },
+  );
+export const refreshProfilesMetadata = (input: {
+  profileIds?: string[];
+  connectionId?: string;
+  force?: boolean;
+}) =>
+  apiRequest<BatchRefreshMetadataResult>('/model-metadata/refresh', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  });
 export const setDefaultModel = (modelProfileId: string | null, expectedRevision: number) =>
   apiRequest<ModelCatalog>('/model-defaults', {
     method: 'PUT',

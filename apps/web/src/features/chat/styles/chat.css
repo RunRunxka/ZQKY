@@ -2010,6 +2010,15 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* 真实 token 用量（agent/chat 两条 SSE 通道的 usage 事件） */
+.chat-usage {
+  color: var(--muted);
+  font-size: 10px;
+  margin-left: 6px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 /* ===== S3 结果工作区：标签页 + 宽度可调 + 220ms 展开（对照参考 SessionViewerPanel） ===== */
 .chat-info {
   display: flex;

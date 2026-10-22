@@ -108,6 +108,7 @@ function buildHandlers(
           detail: result.output,
         },
       }),
+    onUsage: (usage) => emit({ sessionId, turnId, type: 'usage', usage }),
     onWaitConfirm: (confirm) =>
       emit({
         sessionId,
@@ -199,6 +200,7 @@ export function createAgentChatService(): ChatService {
             confirmId: request.interactionId,
             decision,
             ...(!isConfirm && picked ? { value: picked } : {}),
+            ...(request.reasoningEffort ? { reasoningEffort: request.reasoningEffort } : {}),
             signal: request.signal,
           },
           handlers,

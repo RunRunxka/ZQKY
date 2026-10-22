@@ -63,6 +63,31 @@ describe('Agent 通道服务', () => {
     expect(streamAgentMock.mock.calls[0]?.[0]?.threadId).toBe('session-1');
   });
 
+  it('把 usage 事件映射为统一事件（真实 token 用量）', async () => {
+    const { events, emit } = collect();
+    streamAgentMock.mockImplementation(async (_input, handlers) => {
+      handlers.onUsage?.({ inputTokens: 1000, outputTokens: 50, cachedInputTokens: 200 });
+      handlers.onEnd?.('stop');
+    });
+    const service = createAgentChatService();
+    await service.run(
+      {
+        sessionId: 'session-1',
+        turnId: 'turn-1',
+        messages: [{ role: 'user', content: '你好' }],
+        modelProfileId: 'p1',
+        signal: new AbortController().signal,
+      },
+      emit,
+    );
+    const usage = events.find((event) => event.type === 'usage');
+    expect(usage?.usage).toEqual({
+      inputTokens: 1000,
+      outputTokens: 50,
+      cachedInputTokens: 200,
+    });
+  });
+
   it('submitReply 把确认卡决定映射为 approve/reject 并调 confirmAgent', async () => {
     confirmAgentMock.mockResolvedValue(undefined);
     const service = createAgentChatService();
@@ -72,6 +97,7 @@ describe('Agent 通道服务', () => {
       interactionId: 'k1',
       submissionId: 'sub-12345678',
       modelProfileId: 'p1',
+      reasoningEffort: 'high',
       answers: [{ questionId: 'k1-q', labels: ['确认执行'] }],
       signal: new AbortController().signal,
     });
@@ -81,6 +107,7 @@ describe('Agent 通道服务', () => {
     expect(input.confirmId).toBe('k1');
     expect(input.threadId).toBe('session-1');
     expect(input.modelProfileId).toBe('p1');
+    expect(input.reasoningEffort).toBe('high');
   });
 
   it('submitReply 把选择卡选定值经 value 传给后端', async () => {

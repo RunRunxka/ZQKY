@@ -9,6 +9,7 @@ import { StreamingMarkdown } from './StreamingMarkdown';
 import { TraceStages } from './TraceStages';
 import { AskUserCard } from './AskUserCard';
 import { ToolProcessPanel } from './ToolProcessPanel';
+import { formatTokenCount } from './context-usage';
 
 /**
  * 单条消息（骨架版）：用户气泡 / 助手卡（推理、阶段、工具过程、产物入口、追问卡）。
@@ -94,6 +95,15 @@ export function Message({
           </strong>
           {message.startedAt && (
             <TurnDuration startedAt={message.startedAt} finishedAt={message.finishedAt} />
+          )}
+          {message.usage?.inputTokens != null && (
+            <span
+              className="chat-usage"
+              title="输入 = 最近一次模型调用的上下文快照（含系统提示/历史/工具结果）；输出 = 本轮累计"
+            >
+              ↑{formatTokenCount(message.usage.inputTokens)} ↓
+              {formatTokenCount(message.usage.outputTokens ?? 0)}
+            </span>
           )}
         </ReasoningDisclosure>
         <ToolProcessPanel toolCalls={message.toolCalls} />

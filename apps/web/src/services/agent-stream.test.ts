@@ -155,6 +155,22 @@ describe('agent-stream', () => {
     expect(body.attachments[0].assetId).toBe('a1');
     expect(body.attachments[0].kind).toBe('paper');
   });
+
+  it('把 usage 帧解析为真实 token 用量', async () => {
+    const frames =
+      'event: message.start\ndata: {"requestId":"r1","messageId":"r1","threadId":"t1","modelProfileId":"p1"}\n\n' +
+      'event: usage\ndata: {"messageId":"r1","inputTokens":1200,"outputTokens":80,"totalTokens":1280,"cachedInputTokens":640}\n\n' +
+      'event: message.end\ndata: {"messageId":"r1","finishReason":"stop"}\n\n';
+    stubFetch(async () => sseResponse(frames));
+    let usage: unknown = null;
+    await streamAgent(BASE_INPUT, { onUsage: (value) => (usage = value) });
+    expect(usage).toEqual({
+      inputTokens: 1200,
+      outputTokens: 80,
+      totalTokens: 1280,
+      cachedInputTokens: 640,
+    });
+  });
 });
 
 describe('agent confirm', () => {
@@ -181,6 +197,27 @@ describe('agent confirm', () => {
     expect(body.decision).toBe('approve');
     expect(body.submissionId).toBe('sub-12345678');
     expect(texts.join('')).toBe('已应用调整');
+  });
+
+  it('confirm 透传本轮思考强度', async () => {
+    const frames =
+      'event: message.start\ndata: {"requestId":"r2","messageId":"r2","threadId":"t1","modelProfileId":"p1"}\n\n' +
+      'event: message.end\ndata: {"messageId":"r2","finishReason":"stop"}\n\n';
+    const fetchMock = stubFetch(async () => sseResponse(frames));
+    await confirmAgent(
+      {
+        submissionId: 'sub-12345678',
+        requestId: 'r2',
+        threadId: 't1',
+        modelProfileId: 'p1',
+        confirmId: 'k1',
+        decision: 'approve',
+        reasoningEffort: 'low',
+      },
+      {},
+    );
+    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    expect(body.reasoningEffort).toBe('low');
   });
 });
 

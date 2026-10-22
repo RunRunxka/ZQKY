@@ -54,7 +54,7 @@ test('/chat：composer 控件齐备（附件 / 上下文环 / 思考强度受支
   await page.goto('/chat');
   await expect(page.locator('.chat-page')).toBeVisible();
   await expect(page.getByRole('button', { name: '添加附件' })).toBeVisible();
-  await expect(page.getByLabel(/上下文估算/)).toBeVisible();
+  await expect(page.getByLabel(/上下文占用/)).toBeVisible();
   // 思考强度：仅列受支持档位（低/中/高）
   const effort = page.getByLabel('思考强度');
   await expect(effort).toBeVisible();

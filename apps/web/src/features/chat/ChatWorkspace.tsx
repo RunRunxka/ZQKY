@@ -7,6 +7,10 @@ import { ChatProvider, useChatStore } from './model/ChatContext';
 import { useModelCatalog } from '@/features/model-settings/useModelCatalog';
 import { ModelSelector } from '@/features/model-settings/ModelSelector';
 import {
+  notifyModelCatalogChanged,
+  refreshProfileMetadata,
+} from '@/services/model-settings-api';
+import {
   REASONING_EFFORT_LABELS,
   REASONING_EFFORT_VALUES,
   type ModelProfileView,
@@ -18,6 +22,7 @@ import { SessionPanel } from './SessionPanel';
 import { InfoPanel } from './InfoPanel';
 import { ArtifactPanelItem, WorkspacePanel } from './ArtifactPanel';
 import { ComposerContextChips } from './ComposerContextChips';
+import { computeContextUsage } from './context-usage';
 import type { PendingAttachment } from '@/services/doc-attachments';
 import { fileToPendingAttachment, selectAttachmentFiles, formatBytes, ATTACHMENT_ACCEPT } from '@/services/doc-attachments';
 import { ChatHeroBackdrop } from './ChatHeroBackdrop';
@@ -37,18 +42,20 @@ export function ChatWorkspace() {
 }
 
 interface ReasoningChoices {
-  /** 是否展示思考强度下拉：由后端受支持档位决定（缺失时回退旧行为） */
+  /** 是否展示思考强度下拉：由后端 selectable 决定（缺字段时回退 supported） */
   visible: boolean;
   defaultLabel: string;
   levels: { value: ReasoningEffort; label: string }[];
+  /** 后端说明（未验证模型会提示“上游可能忽略或报错”） */
+  note: string | null;
 }
 
 /**
- * 思考强度可选项：有 `reasoningSupport` 时只列当前模型受支持的档位（用后端 label）；
+ * 思考强度可选项：有 `reasoningSupport` 时只列当前模型可选档位（用后端 label）；
  * 字段缺失（旧后端/旧缓存目录）时回退 `reasoningEnabled` + 全量档位表。提交值始终是 effort 字符串。
  */
 function reasoningChoices(profile: ModelProfileView | null): ReasoningChoices {
-  if (!profile) return { visible: false, defaultLabel: '默认', levels: [] };
+  if (!profile) return { visible: false, defaultLabel: '默认', levels: [], note: null };
   const support = profile.reasoningSupport;
   if (support) {
     const levels = support.levels.filter((level) => level.value !== 'none');
@@ -56,7 +63,12 @@ function reasoningChoices(profile: ModelProfileView | null): ReasoningChoices {
     const defaultLabel = fallback
       ? `默认（${levels.find((level) => level.value === fallback)?.label ?? REASONING_EFFORT_LABELS[fallback]}）`
       : '默认';
-    return { visible: support.supported && levels.length > 0, defaultLabel, levels };
+    return {
+      visible: (support.selectable ?? support.supported) && levels.length > 0,
+      defaultLabel,
+      levels,
+      note: support.note,
+    };
   }
   return {
     visible: !!profile.reasoningEnabled,
@@ -65,6 +77,7 @@ function reasoningChoices(profile: ModelProfileView | null): ReasoningChoices {
       value,
       label: REASONING_EFFORT_LABELS[value],
     })),
+    note: null,
   };
 }
 
@@ -81,6 +94,8 @@ function ChatPage() {
   const [uploading, setUploading] = useState(false);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const [reasoningEffort, setReasoningEffort] = useState<string | null>(null);
+  const [refreshingContext, setRefreshingContext] = useState(false);
+  const [contextNotice, setContextNotice] = useState<string | null>(null);
   const [panelView, setPanelView] = useState<'workspace' | null>(null);
   const [artifactKey, setArtifactKey] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -97,13 +112,23 @@ function ChatPage() {
     const selectedId = modelPreference ?? store.modelProfileId ?? catalog?.defaultChatProfileId;
     return catalog?.profiles.find((p) => p.id === selectedId) ?? null;
   }, [modelPreference, store.modelProfileId, catalog]);
+  // 档案值优先；来源也随之一致（档案有值时不沿用后端派生值的来源）
+  const resolvedContextTokens = profile?.contextTokens ?? profile?.contextWindow?.tokens ?? null;
+  const contextWindowSource =
+    profile?.contextTokens != null ? 'profile' : profile?.contextWindow?.source ?? null;
+  const canRefreshContext =
+    !!profile &&
+    (contextWindowSource === 'model-table' ||
+      contextWindowSource === 'unknown' ||
+      (contextWindowSource === null && profile.contextTokens == null));
   const selection = useMemo(() => {
     const valid = !!profile?.connection?.hasCredential && (profile.purpose === 'chat' || profile.purpose === null);
     return profile && valid
       ? {
           id: profile.id,
           modelLabel: `${profile.displayName} · ${profile.modelId}`,
-          contextTokens: profile.contextTokens,
+          // 档案显式值永远优先：避免后端派生估算（如 deepseek 128k）盖掉档案里的 1M
+          contextTokens: profile.contextTokens ?? profile.contextWindow?.tokens ?? null,
           maxOutputTokens: profile.maxOutputTokens,
         }
       : null;
@@ -116,6 +141,31 @@ function ChatPage() {
 
   const hasMessages = store.messages.length > 0;
   const effort = useMemo(() => reasoningChoices(profile), [profile]);
+  // 切换模型后旧档位可能不在新模型的可选集合里：既不显示也不发送，避免“隐藏值”继续生效。
+  const activeReasoningEffort = useMemo(() => {
+    if (!effort.visible || !reasoningEffort) return null;
+    return effort.levels.some((level) => level.value === reasoningEffort) ? reasoningEffort : null;
+  }, [effort, reasoningEffort]);
+
+  useEffect(() => {
+    if (reasoningEffort && !effort.levels.some((level) => level.value === reasoningEffort)) {
+      setReasoningEffort(null);
+    }
+  }, [effort, reasoningEffort]);
+
+  useEffect(() => {
+    setContextNotice(null);
+  }, [profile?.id]);
+
+  // 切换会话时清掉页面级临时选择，让会话自己的 modelProfileId 成为唯一真值。
+  useEffect(() => {
+    setModelPreference(null);
+  }, [store.activeId]);
+
+  const contextUsage = useMemo(
+    () => computeContextUsage(store.messages, store.draft, profile?.id ?? null),
+    [store.messages, store.draft, profile?.id],
+  );
   const activeTitle =
     store.conversations.find((c) => c.id === store.activeId)?.title?.trim() || '新的对话';
 
@@ -167,6 +217,21 @@ function ChatPage() {
     setUploadedRefs((prev) => prev.filter((_, i) => i !== index));
   }
 
+  async function refreshContextWindow() {
+    if (!profile || refreshingContext) return;
+    setRefreshingContext(true);
+    setContextNotice(null);
+    try {
+      const result = await refreshProfileMetadata(profile.id);
+      setContextNotice(result.message);
+      if (result.updated) notifyModelCatalogChanged();
+    } catch (error) {
+      setContextNotice((error as Error).message || '读取模型信息失败。');
+    } finally {
+      setRefreshingContext(false);
+    }
+  }
+
   function submit() {
     if (store.sending || store.waitingInteractionId) {
       // 追问等待中：主输入框走追问提交
@@ -185,7 +250,7 @@ function ChatPage() {
       capability: {
         value: '',
         label: '对话',
-        ...(reasoningEffort ? { config: { reasoningEffort } } : {}),
+        ...(activeReasoningEffort ? { config: { reasoningEffort: activeReasoningEffort } } : {}),
       },
       ...(uploadedRefs.length ? { attachments: uploadedRefs } : {}),
     });
@@ -423,16 +488,23 @@ function ChatPage() {
                 </button>
                 <span className="chat-flex-spacer" />
                 <ComposerContextChips
-                  contextTokens={profile?.contextWindow?.tokens ?? profile?.contextTokens}
-                  contextSource={profile?.contextWindow?.source}
-                  contentChars={store.messages.reduce((total, m) => total + m.content.length, 0) + store.draft.length}
+                  contextTokens={resolvedContextTokens}
+                  contextSource={contextWindowSource}
+                  usage={contextUsage}
+                  canRefresh={canRefreshContext}
+                  refreshing={refreshingContext}
+                  notice={contextNotice}
+                  onRefresh={() => void refreshContextWindow()}
                 />
                 {effort.visible && (
-                  <label className="chat-effort-picker" title="思考强度（本轮覆盖，仅列当前模型受支持的档位）">
+                  <label
+                    className="chat-effort-picker"
+                    title={effort.note ?? '思考强度（本轮覆盖，仅列当前模型可选档位）'}
+                  >
                     <Brain size={14} strokeWidth={1.8} aria-hidden="true" />
                     <select
                       aria-label="思考强度"
-                      value={reasoningEffort ?? ''}
+                      value={activeReasoningEffort ?? ''}
                       disabled={store.sending}
                       onChange={(event) => setReasoningEffort(event.target.value || null)}
                     >

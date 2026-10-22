@@ -5,8 +5,8 @@ import type { ChatMessage, RequestBudgetRecord } from '@/contracts/chat';
 export const BACKEND_REQUEST_LIMITS = {
   /** 后端单条消息字符上限（与 /chat/stream 校验一致） */
   maxMessageChars: 32000,
-  /** 后端消息总长度字符上限 */
-  maxTotalChars: 128000,
+  /** 后端消息总长度字符上限（与 /chat/stream 的 MAX_TOTAL_CHARS 一致） */
+  maxTotalChars: 120000,
 } as const;
 
 export interface BackendRequestLimits {

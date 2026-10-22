@@ -161,6 +161,18 @@ export interface TraceStageRecord {
 }
 
 
+/** 供应商返回的真实 token 用量（Agent /chat 两条 SSE 通道共用） */
+export interface ChatUsage {
+  /** 最近一次模型调用的输入 tokens（= 当前上下文快照，含系统提示/历史/工具结果） */
+  inputTokens?: number | null;
+  /** 本轮累计输出 tokens（工具循环内多次模型调用相加） */
+  outputTokens?: number | null;
+  /** 最近一次调用的总 tokens（供应商口径） */
+  totalTokens?: number | null;
+  /** 最近一次调用的缓存命中输入 tokens（有则显示） */
+  cachedInputTokens?: number | null;
+}
+
 export interface ChatMessage {
   id: string;
   role: ChatRole;
@@ -196,7 +208,8 @@ export interface ChatMessage {
   startedAt?: string;
   finishedAt?: string;
   finishReason?: string;
-  usage?: { inputTokens?: number | null; outputTokens?: number | null };
+  /** 供应商返回的真实 token 用量；旧消息没有此字段时上下文环回退估算 */
+  usage?: ChatUsage;
   error?: ChatMessageError;
 }
 

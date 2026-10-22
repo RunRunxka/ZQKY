@@ -9,6 +9,7 @@
 
 import { API_BASE_PATH, ApiError } from './api-client';
 import { createSseParser } from './chat-sse';
+import type { ChatUsage } from '@/contracts/chat';
 
 export interface AgentAttachment {
   assetId: string;
@@ -45,6 +46,8 @@ export interface AgentConfirmInput {
   decision: 'approve' | 'reject';
   /** 选择卡的选定值（select 类卡片；confirm 类省略） */
   value?: string;
+  /** 续跑沿用本轮思考强度；省略用 profile 默认 */
+  reasoningEffort?: string;
   signal?: AbortSignal;
 }
 
@@ -58,6 +61,8 @@ export interface AgentStreamHandlers {
   onText?: (delta: string) => void;
   onToolCall?: (call: { name: string; args: Record<string, unknown>; callId: string }) => void;
   onToolResult?: (result: { name: string; callId: string; output: string }) => void;
+  /** 供应商返回的真实 token 用量（一轮内可能多次模型调用） */
+  onUsage?: (usage: ChatUsage) => void;
   onWaitConfirm?: (confirm: { confirmId: string; payload: AgentConfirmPayload }) => void;
   onEnd?: (finishReason: string) => void;
   onError?: (error: { code: string; message: string; retryable?: boolean }) => void;
@@ -68,6 +73,7 @@ const KNOWN_EVENTS = new Set([
   'text.delta',
   'tool.call',
   'tool.result',
+  'usage',
   'wait-confirm',
   'message.end',
   'error',
@@ -144,6 +150,14 @@ async function consume(response: Response, handlers: AgentStreamHandlers): Promi
         callId: String(payload.callId ?? ''),
         output: String(payload.output ?? ''),
       });
+    } else if (name === 'usage') {
+      handlers.onUsage?.({
+        inputTokens: typeof payload.inputTokens === 'number' ? payload.inputTokens : null,
+        outputTokens: typeof payload.outputTokens === 'number' ? payload.outputTokens : null,
+        totalTokens: typeof payload.totalTokens === 'number' ? payload.totalTokens : null,
+        cachedInputTokens:
+          typeof payload.cachedInputTokens === 'number' ? payload.cachedInputTokens : null,
+      });
     } else if (name === 'wait-confirm') {
       handlers.onWaitConfirm?.({
         confirmId: String(payload.confirmId ?? ''),
@@ -207,6 +221,7 @@ export async function confirmAgent(input: AgentConfirmInput, handlers: AgentStre
       confirmId: input.confirmId,
       decision: input.decision,
       ...(input.value !== undefined ? { value: input.value } : {}),
+      ...(input.reasoningEffort ? { reasoningEffort: input.reasoningEffort } : {}),
     },
     input.signal,
   );

@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef } from 'react';
 import type { ContextWindowView } from '@/contracts/model-settings';
+import { formatTokenCount, type ContextUsage } from './context-usage';
 
 /** 上下文容量环形进度：随已占用上下文顺时针逐渐填充；超 80% 转橙、超 95% 转红。 */
 function ContextRing({ ratio }: { ratio: number | null }) {
@@ -34,16 +35,26 @@ function ContextRing({ ratio }: { ratio: number | null }) {
   );
 }
 
-/** 参考工具栏中的上下文胶囊；角色选择走可直达的空间菜单，这里只保留上下文估算。 */
+/** 参考工具栏中的上下文胶囊；角色选择走可直达的空间菜单，这里只保留上下文占用。 */
 export function ComposerContextChips({
   contextTokens,
   contextSource,
-  contentChars,
+  usage,
+  canRefresh = false,
+  refreshing = false,
+  notice = null,
+  onRefresh,
 }: {
   contextTokens?: number | null;
-  /** 上限来源（profile=档案手填；model-table=按模型族推断；unknown/缺失=不标注来源） */
+  /** 上限来源（profile=档案；model=精确模型 ID；upstream=上游读取；model-table=族暂估；unknown=未知） */
   contextSource?: ContextWindowView['source'] | null;
-  contentChars: number;
+  /** 真实用量优先、草稿估算补齐的上下文占用 */
+  usage: ContextUsage;
+  /** 当前上限是否来自估算/未知，可请求上游读取 */
+  canRefresh?: boolean;
+  refreshing?: boolean;
+  notice?: string | null;
+  onRefresh?: () => void;
 }) {
   const root = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -57,15 +68,25 @@ export function ComposerContextChips({
     document.addEventListener('pointerdown', close);
     return () => document.removeEventListener('pointerdown', close);
   }, []);
-  const tokens = Math.ceil(contentChars / 2);
+  const tokens = usage.usedTokens;
   const ratio = contextTokens ? tokens / contextTokens : null;
   const percent = ratio === null ? null : Math.ceil(ratio * 100);
-  // 上限来源：档案手填给精确值；按模型族推断的上限标注约值与可覆盖位置；未知不猜造数值。
+  // 上限来源：档案/精确模型 ID/上游读取给明确值；模型族暂估标注约值与覆盖路径；未知不猜造数值。
   const limitNote = !contextTokens
     ? '，模型上下文上限未知'
     : contextSource === 'model-table'
-      ? `，模型上下文上限约 ${contextTokens.toLocaleString()}（按模型族推断，可在设置→模型档案中手填覆盖）`
-      : `，模型上下文上限 ${contextTokens.toLocaleString()}`;
+      ? `，模型上下文上限约 ${contextTokens.toLocaleString()}（按模型族暂估，可点下方“读取模型信息”或在模型档案手填覆盖）`
+      : contextSource === 'model'
+        ? `，模型上下文上限 ${contextTokens.toLocaleString()}（按模型 ID 已知值）`
+        : contextSource === 'upstream'
+          ? `，模型上下文上限 ${contextTokens.toLocaleString()}（来自上游模型信息）`
+          : contextSource === 'profile'
+            ? `，模型上下文上限 ${contextTokens.toLocaleString()}（来自模型档案）`
+            : `，模型上下文上限 ${contextTokens.toLocaleString()}`;
+  const sourceText =
+    usage.source === 'provider'
+      ? `基准是最近一轮供应商返回的输入 ${formatTokenCount(usage.baselineTokens)} tokens（含系统提示、历史与工具结果）；其后新增约 ${formatTokenCount(usage.tailTokens)} tokens、输入框约 ${formatTokenCount(usage.draftTokens)} tokens 为本地估算`
+      : `尚无可用的真实用量，按可见消息与输入框约 ${formatTokenCount(usage.usedTokens)} tokens 估算（不含系统提示与工具结果）`;
   return (
     <div
       className="chat-context-chips"
@@ -82,20 +103,32 @@ export function ComposerContextChips({
       }}
     >
       <details className="chat-context-chip chat-budget-chip">
-        <summary aria-label={`上下文估算${percent === null ? '' : ` ${percent}%`}`}>
+        <summary
+          aria-label={`上下文占用${percent === null ? '' : ` ${percent}%`}`}
+          title={usage.source === 'provider' ? '上下文占用（真实用量）' : '上下文占用（本地估算）'}
+        >
           <ContextRing ratio={ratio} />
           <span>{percent === null ? '—' : `${percent}%`}</span>
         </summary>
         <div className="chat-chip-popover">
-          <strong>上下文估算</strong>
+          <strong>上下文占用</strong>
           <p>
-            当前消息与输入约 {tokens.toLocaleString()} tokens
+            当前约 {formatTokenCount(tokens)} tokens
             {limitNote}。
           </p>
-          <p>
-            按约 2 字符 / token
-            估算，不含系统提示或附件；实际请求沿用原有历史截断与输出预留规则，以供应商返回用量为准。
-          </p>
+          <p>{sourceText}。</p>
+          {usage.outputTokens !== null && (
+            <p>基准轮输出累计 {formatTokenCount(usage.outputTokens)} tokens。</p>
+          )}
+          {usage.cachedInputTokens !== null && usage.cachedInputTokens > 0 && (
+            <p>其中缓存命中输入 {formatTokenCount(usage.cachedInputTokens)} tokens。</p>
+          )}
+          {notice && <p role="status">{notice}</p>}
+          {canRefresh && onRefresh && (
+            <button type="button" disabled={refreshing} onClick={onRefresh}>
+              {refreshing ? '正在读取…' : '读取模型信息'}
+            </button>
+          )}
         </div>
       </details>
     </div>

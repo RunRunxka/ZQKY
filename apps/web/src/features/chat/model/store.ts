@@ -365,7 +365,20 @@ export function createChatStore(deps: ChatDeps = {}) {
             });
             return;
           case 'usage':
-            updateAssistant(token, (m) => ({ ...m, usage: event.usage }));
+            updateAssistant(token, (m) => {
+              const previous = m.usage;
+              return {
+                ...m,
+                usage: {
+                  // 输入取最近一次模型调用（= 当前上下文快照）；输出按轮累计。
+                  inputTokens: event.usage.inputTokens ?? previous?.inputTokens ?? null,
+                  outputTokens: (previous?.outputTokens ?? 0) + (event.usage.outputTokens ?? 0),
+                  totalTokens: event.usage.totalTokens ?? previous?.totalTokens ?? null,
+                  cachedInputTokens:
+                    event.usage.cachedInputTokens ?? previous?.cachedInputTokens ?? null,
+                },
+              };
+            });
             return;
           case 'wait-user': {
             updateAssistant(token, (m) => {
@@ -698,11 +711,15 @@ export function createChatStore(deps: ChatDeps = {}) {
         const index = conversation.messages.findIndex((m) => m.id === id && m.role === 'user');
         if (index < 0) return;
         const text = conversation.messages[index]!.content;
+        // 重试沿用原轮的扩展快照（思考强度、附件等），否则会悄悄回退到档案默认值。
+        const previous = conversation.messages[index + 1];
+        const extensions =
+          previous?.role === 'assistant' ? previous.extensions : undefined;
         const sessionId = conversation.id;
         change(sessionId, (doc) => {
           doc.messages = doc.messages.slice(0, index);
         });
-        await get().send(text, profile);
+        await get().send(text, profile, extensions);
       },
 
       setAskDraft(interactionId, questionId, draft): void {
@@ -735,6 +752,11 @@ export function createChatStore(deps: ChatDeps = {}) {
                 message.asks?.some((ask) => ask.interactionId === interactionId),
               )?.id;
         if (!assistantId) return false;
+        // 确认续跑沿用触发该卡的思考强度（冻结在 assistant.extensions 里）。
+        const rawEffort = conversation.messages.find((message) => message.id === assistantId)
+          ?.extensions?.capability?.config?.reasoningEffort;
+        const reasoningEffort =
+          typeof rawEffort === 'string' && rawEffort ? rawEffort : undefined;
         const token: GenerationToken = {
           controller: new AbortController(),
           conversationId: sessionId,
@@ -754,6 +776,7 @@ export function createChatStore(deps: ChatDeps = {}) {
               interactionId,
               submissionId: uid(),
               modelProfileId,
+              ...(reasoningEffort ? { reasoningEffort } : {}),
               answers,
               signal: token.controller.signal,
             },
