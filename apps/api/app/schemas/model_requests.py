@@ -108,10 +108,28 @@ class ProfileTestRequest(BaseModel):
     params: dict[str, Any] | None = None
 
 
+class MetadataPreviewRequest(BaseModel):
+    """读取单个模型的元数据（不写库），用于新建档案表单自动填充。"""
+
+    connectionId: str = Field(min_length=1, max_length=64)
+    modelId: str = Field(min_length=1, max_length=128)
+    force: bool = False
+
+
+class MetadataRefreshRequest(BaseModel):
+    """批量刷新已保存档案的模型元数据；不传筛选时刷新全部。"""
+
+    profileIds: list[str] | None = None
+    connectionId: str | None = Field(default=None, max_length=64)
+    force: bool = False
+
+
 __all__ = [
     "ConnectionCreate",
     "ConnectionUpdate",
     "CredentialAction",
+    "MetadataPreviewRequest",
+    "MetadataRefreshRequest",
     "ProfileCreate",
     "ProfileTestRequest",
     "ProfileUpdate",

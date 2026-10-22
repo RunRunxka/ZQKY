@@ -13,7 +13,7 @@ from fastapi import APIRouter, Request
 from app.api.v1.model_views import profile_view
 from app.core.exceptions import InvalidRequestError, NotFoundError, RevisionConflictError
 from app.core.secrets import SecretStore
-from app.providers.llm.base import LLMRequest, LLMMessage
+from app.providers.llm.base import LLMRequest, LLMMessage, ProviderError
 from app.repositories.model_config_repository import ModelConfigRepository
 from app.schemas.model_config import (
     KnownParam,
@@ -22,7 +22,15 @@ from app.schemas.model_config import (
     validate_capability_map,
     now_utc,
 )
-from app.schemas.model_requests import ProfileCreate, ProfileTestRequest, ProfileUpdate
+from app.schemas.model_requests import (
+    MetadataPreviewRequest,
+    MetadataRefreshRequest,
+    ProfileCreate,
+    ProfileTestRequest,
+    ProfileUpdate,
+)
+from app.services.model_discovery import discover_connection_models
+from app.services.model_metadata import resolve_metadata
 from app.services.model_runtime import build_llm_config, build_provider
 
 router = APIRouter(tags=["model-settings"])
@@ -137,6 +145,258 @@ def update_profile(request: Request, profile_id: str, body: ProfileUpdate) -> di
 def delete_profile(request: Request, profile_id: str, expectedRevision: int | None = None) -> None:
     repo, _secrets = _deps(request)
     repo.delete_profile(profile_id, expectedRevision)
+
+
+def _metadata_changes(profile: ModelProfile, metadata: dict) -> list[dict]:
+    """只把有数值变化的上下限列入 changes；来源逐字段给出。"""
+    changes: list[dict] = []
+    for field_name, label in (("contextTokens", "上下文"), ("maxOutputTokens", "输出上限")):
+        new_value = metadata.get(field_name)
+        if not isinstance(new_value, int) or isinstance(new_value, bool) or new_value <= 0:
+            continue
+        old_value = getattr(profile, field_name)
+        if old_value == new_value:
+            continue
+        sources = metadata.get("sources")
+        source = (
+            sources.get(field_name)
+            if isinstance(sources, dict) and sources.get(field_name)
+            else metadata.get("source")
+        )
+        changes.append(
+            {
+                "field": field_name,
+                "label": label,
+                "oldValue": old_value,
+                "newValue": new_value,
+                "source": source or "unknown",
+            }
+        )
+    return changes
+
+
+def _apply_metadata(profile: ModelProfile, metadata: dict) -> bool:
+    """按用户选择自动覆盖上下限；supportedParams 只在档案为空时补。"""
+    changed = False
+    for field_name in ("contextTokens", "maxOutputTokens"):
+        value = metadata.get(field_name)
+        if isinstance(value, int) and not isinstance(value, bool) and value > 0:
+            if getattr(profile, field_name) != value:
+                setattr(profile, field_name, value)
+                changed = True
+    params = metadata.get("supportedParams")
+    if not profile.supportedParams and isinstance(params, list):
+        allowed = [item for item in params if item in {"temperature", "top_p"}]
+        if allowed:
+            profile.supportedParams = list(dict.fromkeys(allowed))
+            changed = True
+    return changed
+
+
+def _metadata_message(
+    changes: list[dict], metadata: dict, *, params_added: bool = False
+) -> str:
+    if changes:
+        parts = [
+            f"{item['label']} "
+            f"{format(item['oldValue'], ',') if item['oldValue'] is not None else '—'}"
+            f" → {format(item['newValue'], ',')}（{item['source']}）"
+            for item in changes
+        ]
+        return "已更新：" + "；".join(parts) + "。"
+    if params_added:
+        return "已补充模型支持参数声明。"
+    notes = metadata.get("notes") or []
+    suffix = f"（{'；'.join(str(note) for note in notes)}）" if notes else ""
+    return "未获取到可写回的上下文/输出上限；可在档案手填。" + suffix
+
+
+async def _refresh_one_metadata(
+    request: Request,
+    profile: ModelProfile,
+    *,
+    force: bool = False,
+    upstream_rows: list[dict] | None = None,
+) -> dict:
+    repo, secrets = _deps(request)
+    connection = repo.get_connection(profile.connectionId)
+    metadata = await resolve_metadata(
+        request.app.state.settings,
+        connection,
+        profile.modelId,
+        key=secrets.resolve(connection.id),
+        existing_output=profile.maxOutputTokens,
+        force_catalog=force,
+        upstream_rows=upstream_rows,
+    )
+    return metadata
+
+
+@router.post("/model-profiles/{profile_id}/refresh-metadata")
+async def refresh_profile_metadata(
+    request: Request, profile_id: str, force: bool = False
+) -> dict:
+    """自动读取并写回上下文容量与输出上限（已有值也覆盖，返回 old→new）。"""
+    repo, _secrets = _deps(request)
+    profile = repo.get_profile(profile_id)
+    metadata = await _refresh_one_metadata(request, profile, force=force)
+    changes = _metadata_changes(profile, metadata)
+    params_added = not profile.supportedParams and bool(metadata.get("supportedParams"))
+    if not changes and not params_added:
+        return {
+            "updated": False,
+            "changes": [],
+            "metadata": metadata,
+            "message": _metadata_message([], metadata),
+        }
+
+    def apply(item: ModelProfile) -> None:
+        _apply_metadata(item, metadata)
+
+    repo.update_profile(profile.id, apply)
+    return {
+        "updated": True,
+        "changes": changes,
+        "metadata": metadata,
+        "message": _metadata_message(changes, metadata, params_added=params_added),
+    }
+
+
+@router.post("/model-profiles/{profile_id}/refresh-context")
+async def refresh_profile_context(request: Request, profile_id: str) -> dict:
+    """兼容旧前端的上下文刷新别名：内部转调 refresh-metadata，只返回上下文部分。"""
+    result = await refresh_profile_metadata(request, profile_id, force=False)
+    metadata = result["metadata"]
+    context_change = next(
+        (change for change in result["changes"] if change["field"] == "contextTokens"),
+        None,
+    )
+    return {
+        "contextTokens": metadata.get("contextTokens"),
+        "source": metadata.get("source") or "unavailable",
+        "updated": bool(context_change),
+        "message": result["message"],
+    }
+
+
+@router.post("/model-metadata/preview")
+async def preview_model_metadata(request: Request, body: MetadataPreviewRequest) -> dict:
+    """读取单个模型的元数据但不写库；供新建档案表单自动填充。"""
+    repo, secrets = _deps(request)
+    connection = repo.get_connection(body.connectionId)
+    metadata = await resolve_metadata(
+        request.app.state.settings,
+        connection,
+        body.modelId,
+        key=secrets.resolve(connection.id),
+        force_catalog=body.force,
+    )
+    return {
+        "connectionId": body.connectionId,
+        "modelId": body.modelId,
+        "metadata": metadata,
+    }
+
+
+@router.post("/model-metadata/refresh")
+async def refresh_model_metadata(request: Request, body: MetadataRefreshRequest) -> dict:
+    """批量自动获取模型信息：目录只拉一次、每个连接只发现一次。"""
+    repo, secrets = _deps(request)
+    settings = request.app.state.settings
+    profiles, connections = repo.with_document(
+        lambda doc: (list(doc.profiles), {connection.id: connection for connection in doc.connections})
+    )
+    selected_ids = set(body.profileIds or [])
+    targets = [
+        profile
+        for profile in profiles
+        if (not selected_ids or profile.id in selected_ids)
+        and (body.connectionId is None or profile.connectionId == body.connectionId)
+    ]
+
+    upstream_by_connection: dict[str, list[dict]] = {}
+    discovery_notes: dict[str, str] = {}
+    results: list[dict] = []
+    updates: dict[str, dict] = {}
+    for index, profile in enumerate(targets):
+        connection = connections.get(profile.connectionId)
+        if connection is None:
+            results.append(
+                {
+                    "profileId": profile.id,
+                    "modelId": profile.modelId,
+                    "updated": False,
+                    "changes": [],
+                    "metadata": {"source": "unavailable", "notes": ["模型连接不存在。"]},
+                    "message": "模型连接不存在。",
+                }
+            )
+            continue
+        key = secrets.resolve(connection.id)
+        if profile.connectionId not in upstream_by_connection:
+            try:
+                discovery = await discover_connection_models(connection, key)
+                upstream_by_connection[profile.connectionId] = [
+                    entry for entry in (discovery.get("models") or []) if isinstance(entry, dict)
+                ]
+            except ProviderError as exc:
+                upstream_by_connection[profile.connectionId] = []
+                discovery_notes[profile.connectionId] = f"供应商模型列表读取失败：{exc}"
+            except Exception as exc:  # pragma: no cover - 防御异常上游
+                upstream_by_connection[profile.connectionId] = []
+                discovery_notes[profile.connectionId] = (
+                    f"供应商模型列表读取失败（{type(exc).__name__}）。"
+                )
+
+        metadata = await resolve_metadata(
+            settings,
+            connection,
+            profile.modelId,
+            key=key,
+            existing_output=profile.maxOutputTokens,
+            # force 只对第一个模型生效；后续使用刚更新的进程内缓存，避免重复拉目录
+            force_catalog=body.force and index == 0,
+            upstream_rows=upstream_by_connection[profile.connectionId],
+        )
+        note = discovery_notes.get(profile.connectionId)
+        if note:
+            metadata["notes"] = [note, *list(metadata.get("notes") or [])]
+        changes = _metadata_changes(profile, metadata)
+        params_added = not profile.supportedParams and bool(metadata.get("supportedParams"))
+        updated = bool(changes or params_added)
+        if updated:
+            updates[profile.id] = metadata
+        results.append(
+            {
+                "profileId": profile.id,
+                "modelId": profile.modelId,
+                "updated": updated,
+                "changes": changes,
+                "metadata": metadata,
+                "message": _metadata_message(changes, metadata, params_added=params_added),
+            }
+        )
+
+    if updates:
+
+        def apply(document) -> None:  # noqa: ANN001
+            by_id = {profile.id: profile for profile in document.profiles}
+            for profile_id, metadata in updates.items():
+                profile = by_id.get(profile_id)
+                if profile is None:
+                    continue
+                _apply_metadata(profile, metadata)
+                profile.updatedAt = now_utc()
+
+        repo.mutate(apply)
+
+    unchanged = len(results) - len(updates)
+    return {
+        "updatedCount": len(updates),
+        "unchangedCount": unchanged,
+        "results": results,
+        "message": f"已检查 {len(results)} 个模型，更新 {len(updates)} 个。",
+    }
 
 
 @router.post("/model-profiles/{profile_id}/test")
