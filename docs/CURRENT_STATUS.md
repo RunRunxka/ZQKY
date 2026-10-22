@@ -1,6 +1,6 @@
 # 当前状态与实施主线
 
-<!-- CURRENT:20261020 -->
+<!-- CURRENT:20261022 -->
 ## 当前状态（权威；门禁数字以本节为准）
 
 - **形态**：对话优先的闭环教学 AI 工作台——`/chat` 统一学习问答（21 个 Agent 工具：14 读 /
@@ -11,6 +11,40 @@
   ① 学情分析补「新建施测」与「生成学情报告」两个缺失入口（导入的原卷可落到施测并出报告）；
   ② 教案工作台补 `POST /lesson-plans/source-uploads`（上传学情文件此前只有前端调用、后端
   未实现 → 501；现端点做实**且生成流真正消费** `sourceAssetRef`）。
+- **2026-10-22 晚批（模型管理自动获取模型信息）**：
+  ① **数据来源**：供应商 `/models` → models.dev 公开目录（24h 本地缓存；`ZQKY_MODELS_DEV_URL`
+  可覆盖/置空）→ 内置精确模型表 → 模型族暂估；只发静态 GET，不带凭证，缓存不含密钥。
+  ② **自动字段**：上下文 `contextTokens`、输出上限 `maxOutputTokens`、空档案的
+  `temperature/top_p` 支持声明；工具/推理/结构化输出/图片输入只作能力展示，不自动改推理开关。
+  ③ **自动覆盖并提示**：已有手填值也会被 provider/models.dev/内置精确值覆盖，接口返回
+  `changes` 的 old→new 与来源；模型族估算不写回。
+  ④ **入口**：模型发现列表显示上下文/输出；导入时直接写入并批量补全；档案表单「自动获取
+  模型信息」；连接详情「自动获取所有模型信息」/单模型刷新；对话上下文胶囊「读取模型信息」
+  一次更新两个字段。
+  ⑤ **真机验证**：真实后端 `POST /model-metadata/preview` 对 `deepseek-flash` 与
+  `deepseek-v4-pro` 均返回 `contextTokens=1048576 / maxOutputTokens=393216`，`source=provider`；
+  供应商 `/models` 直接提供了这两个字段（models.dev 兜底同样可用）。预览不写档案。
+- **2026-10-22 批（用户真机反馈：切换模型后思考强度消失 / 上下文容量只是估算）**：
+  ① **思考强度切换模型不再消失**：`resolve_reasoning_support` 增加模型族兜底（custom 连接的
+  `deepseek-v4*`/`deepseek-flash`/qwen3/o1/o3/gpt-5/codex 等）与 `selectable` 字段；除档案显式
+  `reasoningEnabled=false` 外，切换任意 chat 模型都保留控件；档案声明的 `max` 补进可选档位并作为
+  默认；切换到新集合不含的旧档位时回到“默认”且不再静默发送；`/agent/confirm` 与重试沿用本轮档位。
+  ② **上下文真实统计**：Agent 链路显式开启 LangChain `stream_usage`，运行器读取
+  `on_chat_model_end`/最后一个 chunk 的 `usage_metadata`，经 SSE `usage` 事件回传
+  `inputTokens/outputTokens/totalTokens/cachedInputTokens`（工具内部 LLM 不计入）；上下文环以
+  最近一轮真实 `input_tokens` 为基准，仅对之后新增内容与草稿做语言感知估算；助手消息显示
+  `↑输入 ↓输出`；模型发现返回的 `contextLength` 导入档案作为真实上限。
+  ③ **真机验证**：重启后端后用自建临时 thread 对 `deepseek-flash` 发一轮极短请求，SSE 返回
+  `usage input=3063 / output=2 / total=3065 / cached=2816`；`deepseek-v4-pro` 能力解析由
+  `supported=false` 变为 `supported=true, selectable=true` 四档。临时 thread 与临时文件已自删。
+  ④ **上下文上限读取（同日追加）**：前端环/请求预算改为**档案 `contextTokens` 优先**，派生估算
+  不再覆盖显式 1M；后端解析顺序为「档案 → 精确模型 ID 已知值（`deepseek-flash`/`deepseek-v4-flash`
+  = 1M）→ 上游读取 → 模型族暂估」；新增 `POST /model-profiles/{id}/refresh-context`，从上游
+  `/models` 读取 `contextLength` 并只在档案为空时写回；上下文胶囊在族暂估/未知时显示
+  「读取模型信息」按钮，弹层标注来源（档案/模型 ID/上游/族暂估）。
+  ⑤ **/chat hydration 报错修复**：根 `<html>` 加 `suppressHydrationWarning`；主题引导脚本仍在
+  首帧前写 `data-theme`（防闪），只是关闭该元素的有意属性差异警告。5175 dev + 系统 Edge 实测
+  `zqky.theme=light` 刷新后 Console 0 error / 0 hydration 警告。
 - **2026-10-19 批（用户真机反馈：chat 生成教案不落工作台 + `AGENT_EVENT_OVERFLOW`）**：
   ① **事件上限语义修正**：`runtime._MAX_EVENTS` 只统计控制流事件，流式 token 不再计数——
   长回答（教案级文本）不再被误判为模型失控；`AGENT_EVENT_OVERFLOW` 仅保留给工具/图死循环。
@@ -39,21 +73,32 @@
   三库 `foreign_key_check` 均 0；学生 archived 未恢复。⑤ **工具内部 LLM token 不再进聊天**：教案七模块
   结构化生成带 `INTERNAL_TOOL_LLM_TAG` + `callbacks=[]`（不继承外层流回调），Agent 运行器再按标签/工具祖先
   过滤嵌套 `on_chat_model_stream`；聊天只保留工具回执与最终摘要，不再出现模块 JSON 原文。
-- **门禁基线（2026-10-20 实测；归档移除 + 知识点整树删除之后）**：
-  - 后端 `cd apps/api && uv run python -m pytest` → **1909 passed / 0 failed**（全量复跑 402.56s；本批 +17 例，
-    含 AppError 工具边界、知识点子树/晚绑定/导入外键、归档端点移除、题库物理删除、嵌套 LLM 事件过滤）；
-  - 前端 `NODE_OPTIONS=--no-experimental-webstorage npm.cmd run check` → **85 文件 738 例**、
-    typecheck 0 / lint 0 警告 / build 0 / **退出码 0**（单跑 `ScoreImportPanel` 已知负载型 flake，
-    单跑该文件 5/5、全量复跑 738/738 绿）；本批新增无归档入口、知识点逐节点 409、题库彻底删除文案用例；
-  - e2e `npx playwright test` → **17 passed**（2026-10-20 复跑；系统 `msedge` 通道，自起 5174；
-    web 代理 `ECONNREFUSED 127.0.0.1:8000` 是后端未启动，用例按无后端错误态验证）。
-  - **真机待验收**：重启后端 8000 后，在 `/chat` 生成教案（先确认已有班级；无班级先去「班级管理」新建），
-    在 `/knowledge-points` 试删父节点（整树）与有引用节点（409 逐项计数），在题库确认无“归档”文案。
-    自动化用假模型/临时库，**真实模型与 live 删除路径未在自动化中执行**。
-- **当前任务**：**2026-10-20 批（归档移除 + 知识点整树删除 + 教案报错修复）已完成**，无其他在途批次。
-  **用户侧待做**：重启后端 8000（`npm.cmd run dev:api`，当前进程未开 `--reload`）→ 重跑前端构建/热更新 →
-  在 `/chat` 生成教案（无班级先去「班级管理」建班）、在知识点页试删父子树、在题库确认“彻底删除”文案。
-  live 数据备份在 `_work/archive-removal-backup-20261020`；题库 2 道 archived 题已按用户裁定物理删除。
+- **门禁基线（2026-10-22 实测；思考强度、真实上下文统计、上限读取与模型信息自动获取之后）**：
+  - 后端 `cd apps/api && uv run python -m pytest` → **1943 passed / 0 failed**（`--collect-only` 1943；
+    本批累计 +34 例，含模型族能力兜底、selectable/默认 max、Agent usage 提取与工具内部过滤、
+    confirm 透传 reasoningEffort、精确模型上下文覆盖、refresh-context/refresh-metadata、
+    models.dev 匹配/合并/缓存（含缓存写失败降级）、元数据 preview/批量刷新）；
+  - 前端分项执行 `NODE_OPTIONS=--no-experimental-webstorage npm.cmd run test:unit`、`npm.cmd run typecheck`、
+    `npm.cmd run lint`、`npm.cmd run build` → **87 文件 762 例**、typecheck 0 / lint 0 警告 / build 0
+    （本批累计 +24 例：切换模型保留控件、旧档位清理、真实 usage 合并、上下文环真实/估算文案、
+    档案值优先、来源文案、导入自动填充、档案自动获取、连接详情刷新）；未串跑
+    `npm.cmd run check`，以上为分项实测。
+  - e2e `npx playwright test` → **17 passed**（2026-10-22 复跑；系统 `msedge` 通道，自起 5174；
+    web 代理 `ECONNREFUSED 127.0.0.1:8000` 是后端未启动，用例按无后端错误态验证）；
+  - **真机已执行**：后端 8000 + 自建临时 thread 的一次极短 `deepseek-flash` 请求返回
+    `usage input=3063/output=2/total=3065/cached=2816`；`deepseek-v4-pro` 解析为
+    `supported=true/selectable=true` 四档；真实 `/model-catalog` 中 `deepseek-flash`
+    `contextTokens=1000000`、`contextWindow={tokens:1000000, source:"profile"}`；
+    真实 `/model-metadata/preview` 对 flash/pro 均返回 `1048576/393216`（`source=provider`）。
+    临时 thread checkpoint 与临时文件已删除。前端视觉与多轮长上下文未做真机走查，
+    **自动化用假模型/临时库覆盖**。
+- **当前任务**：**2026-10-22 批（思考强度不消失 + 真实上下文统计 + 上下文上限读取 +
+  模型信息自动获取）已完成**，无其他在途批次。**用户侧待做**：重启后端 8000
+  （`npm.cmd run dev:api`）并刷新前端 → 在 `/chat` 切换 `deepseek-flash ↔ deepseek-v4-pro`
+  确认思考强度与 1,000,000 上下文；打开设置 → 模型 → 连接详情，点「自动获取信息」或单模型
+  刷新，确认上下文/输出上限被更新并提示 old→new（已有手填值会被覆盖）；模型发现抽屉会显示
+  「上下文 · 输出」；对话页上下文胶囊的「读取模型信息」也会一次更新两个字段。
+  live 数据备份仍在 `_work/archive-removal-backup-20261020`。
 - **R11 知识点现状（2026-10-15，未提交）**：`apps/api` 下 6 个文件（`knowledge.py`、
   `document_parsing/{__init__,chunking}.py`、`knowledge/tree_gen.py` 及两个测试）未提交。内容：
   ① 教材目录生成改为读取**封存正文的 Markdown 标题**（`heading_paths`），不再按分块 `chapter_path`

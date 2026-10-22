@@ -19,16 +19,22 @@
 | `/api/v1/model-providers` | 供应商目录（38 条注册表） |
 | `/api/v1/model-connections`（GET/POST/PUT/DELETE） | 连接 CRUD；凭证经 SecretStore（响应只返回凭证状态，不回显明文） |
 | `/api/v1/model-connections/{id}/auth/{start,cancel,logout}` | OAuth 受管认证（Codex/Copilot） |
-| `/api/v1/model-catalog`、`/model-defaults`、`/model-connections/{id}/models` | 模型清单（含上游上下文长度/受支持参数透传）与默认配置 |
+| `/api/v1/model-catalog`、`/model-defaults`、`/model-connections/{id}/models` | 模型清单与默认配置；发现条目透传 `contextLength/maxOutputTokens/supportedParameters/capabilities`；`reasoningSupport` 带 `selectable`（除档案显式关闭思考外恒为 true，未验证模型也保留档位控件）；`contextWindow.source` 为 `profile/model/model-table/unknown` |
+| POST `/api/v1/model-metadata/preview` | 只读预览单个模型的自动元数据（`connectionId + modelId`），不写档案；供新建档案表单填充 |
+| POST `/api/v1/model-profiles/{id}/refresh-metadata` | 自动读取并写回上下文/输出上限（已有值按用户策略覆盖，返回 `changes` 的 old→new 与来源）；`?force=true` 强制刷新 models.dev 缓存 |
+| POST `/api/v1/model-metadata/refresh` | 批量刷新：`{profileIds?, connectionId?, force?}`；catalog 只拉一次、每个连接只发现一次，返回逐模型 `changes` 与汇总 |
+| POST `/api/v1/model-profiles/{id}/refresh-context` | 兼容旧前端的上下文刷新别名（内部转调 refresh-metadata，只返回上下文部分） |
 | `/api/v1/model-profiles`（CRUD + `/{id}/test`） | 模型档案与真实连接测试 |
+
+**模型元数据来源优先级**：供应商 `/models` → models.dev 公开目录（`https://models.dev/api.json`，24h 本地缓存，失败回退过期缓存）→ 内置精确模型表 → 模型族暂估（仅展示，不写回）。缓存只含公开元数据，不含凭证；`ZQKY_MODELS_DEV_URL` 可覆盖目录地址，置空禁用远端。
 
 ## 对话与 Agent
 
 | 方法和路径 | 用途 | 事件 / 说明 |
 | --- | --- | --- |
 | POST `/api/v1/chat/stream` | 普通对话 SSE（三协议适配） | `message.start / text.delta / reasoning.delta / usage / message.end / error` |
-| POST `/api/v1/agent/stream` | Agent 对话 SSE（LangGraph 编排，21 工具） | `message.start / text.delta / tool.call / tool.result / wait-confirm / message.end / error`；`attachments` 上传引用；`reasoningEffort` 本轮覆盖。事件上限只计控制流事件（流式 token 不计），长回答不会被误判为 `AGENT_EVENT_OVERFLOW` |
-| POST `/api/v1/agent/confirm` | 写操作确认（`Command(resume)` 恢复中断） | `submissionId` 幂等 |
+| POST `/api/v1/agent/stream` | Agent 对话 SSE（LangGraph 编排，21 工具） | `message.start / text.delta / tool.call / tool.result / usage / wait-confirm / message.end / error`；`attachments` 上传引用；`reasoningEffort` 本轮覆盖。`usage` 为供应商返回的真实 token（`inputTokens`=最近一次模型调用的上下文快照，`outputTokens`=本轮累计，另含 `totalTokens/cachedInputTokens`）；工具内部 LLM 的用量不计入。事件上限只计控制流事件（流式 token 不计），长回答不会被误判为 `AGENT_EVENT_OVERFLOW` |
+| POST `/api/v1/agent/confirm` | 写操作确认（`Command(resume)` 恢复中断） | `submissionId` 幂等；`reasoningEffort` 可选，续跑沿用触发该卡的思考强度 |
 | POST `/api/v1/agent/upload` | 上传落受管 blob（内容寻址 sha256） | multipart；上限 100 MiB |
 
 **模型接入**：Agent 与全部模块 LLM 调用统一经 LangChain 官方包；凭证只经后端 `SecretStore`

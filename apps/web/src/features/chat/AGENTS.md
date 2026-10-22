@@ -7,9 +7,12 @@
 
 - `ChatWorkspace.tsx`：页面（会话侧栏 + 消息列 + composer + 右侧产物面板）。
   composer = textarea + 附件（`uploadAgent` 落 blob → extensions.attachments）+ 上下文容量环
-  （`ComposerContextChips`，总量取 `profile.contextWindow.tokens ?? contextTokens`，随占用顺时针填充，
-  模型族推断值会提示可在档案手填覆盖）+ 思考强度（**只列 `profile.reasoningSupport.levels`
-  受支持档位**，字段缺失回退旧行为）+ `ModelSelector`。
+  （`ComposerContextChips`：上限**档案 `contextTokens` 优先**，其次后端 `contextWindow`
+  的 `model/upstream/model-table` 解析值；来源为族暂估/未知时弹层提供「读取模型信息」按钮，
+  调 `POST /model-profiles/{id}/refresh-metadata` 一次更新**上下文与输出上限**并展示 old→new；
+  占用以最近一轮供应商真实 usage 为基准，`context-usage.ts` 只估算其后新增内容与输入框草稿）+ 思考强度
+  （`reasoningSupport.selectable` 为 true 即显示；未验证模型带“上游可能忽略或报错”提示）+ `ModelSelector`。
+  切换模型时旧档位不在新集合内会回到“默认”，不会静默发送隐藏值。
 - `model/store.ts`：对话单 store（会话 CRUD、消息状态机、事件路由、追问卡、持久化）。
   事件必须匹配当前轮次与会话（迟到/串会话/重复丢弃）；`send` 经 `buildChatRequest` 组装历史。
 - `model/chat-service.ts`：通道分流——**默认 Agent 通道**（`agent-chat-service` → `/agent/stream`，
