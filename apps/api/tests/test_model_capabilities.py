@@ -82,6 +82,7 @@ def test_reasoning_disabled_by_profile():
     result = resolve_reasoning_support(profile, connection, spec)
     assert result == {
         "supported": False,
+        "selectable": False,
         "levels": [],
         "default": None,
         "style": "thinking_type",
@@ -127,7 +128,7 @@ def test_openai_effort_base_four_levels():
     result = resolve_reasoning_support(profile, connection, spec)
     assert result["supported"] is True
     assert result["style"] == "openai_effort"
-    assert result["source"] == "registry"
+    assert result["source"] == "model-family"
     assert [item["value"] for item in result["levels"]] == ["minimal", "low", "medium", "high"]
 
 
@@ -177,18 +178,64 @@ def test_default_effort_normalized_and_filtered():
     )["default"] is None
 
 
-# ---------- 未标注模型 unsupported ----------
+# ---------- 未标注模型：supported=false 但控件仍可选 ----------
 
-def test_unannotated_model_unsupported():
+def test_unannotated_model_still_selectable():
     profile = make_profile(modelId="totally-unknown-model", reasoningEnabled=None)
     connection = make_connection("openai")
     spec = ProviderSpec(providerId="openai", label="OpenAI")  # 无 thinkingStyle、无 patterns
 
     result = resolve_reasoning_support(profile, connection, spec)
     assert result["supported"] is False
-    assert result["levels"] == []
-    assert result["source"] == "registry"
-    assert result["note"] == "注册表未标注该模型支持思考；可在档案中显式开启。"
+    assert result["selectable"] is True
+    assert [item["value"] for item in result["levels"]] == ["minimal", "low", "medium", "high"]
+    assert result["source"] == "fallback"
+    assert result["note"] == "未在注册表标注该模型支持思考；档位作为本轮覆盖发送，上游可能忽略或报错。"
+
+
+# ---------- custom 连接（旧配置迁移 providerId=custom）按模型族兜底 ----------
+
+def test_custom_deepseek_v4_pro_is_supported_by_model_family():
+    profile = make_profile(modelId="deepseek-v4-pro", reasoningEnabled=None, reasoningEffort=None)
+    connection = make_connection("custom")
+    spec = ProviderSpec(providerId="custom", label="Custom")
+
+    result = resolve_reasoning_support(profile, connection, spec)
+    assert result["supported"] is True
+    assert result["selectable"] is True
+    assert result["source"] == "model-family"
+    assert result["style"] == "openai_effort"
+    assert [item["value"] for item in result["levels"]] == ["minimal", "low", "medium", "high"]
+    assert result["default"] is None
+
+
+def test_custom_deepseek_flash_profile_max_stays_visible():
+    profile = make_profile(
+        modelId="deepseek-flash", reasoningEnabled=True, reasoningEffort="max"
+    )
+    connection = make_connection("custom")
+    spec = ProviderSpec(providerId="custom", label="Custom")
+
+    result = resolve_reasoning_support(profile, connection, spec)
+    assert result["supported"] is True
+    # max 不在基础四档内，必须补进来，否则「默认（最高）」无法显示/选择
+    assert [item["value"] for item in result["levels"]] == [
+        "minimal", "low", "medium", "high", "max",
+    ]
+    assert result["default"] == "max"
+
+
+def test_real_openai_registry_without_thinking_style_recognizes_gpt5():
+    # 真实注册表里 openai spec 没有 thinkingStyle/patterns，模型族兜底必须命中
+    from app.providers.llm.registry import find_provider
+
+    spec = find_provider("openai")
+    profile = make_profile(modelId="gpt-5.1", reasoningEnabled=None)
+    connection = make_connection("openai")
+
+    result = resolve_reasoning_support(profile, connection, spec)
+    assert result["supported"] is True
+    assert result["source"] == "model-family"
 
 
 # ---------- 上下文窗口 ----------
@@ -220,6 +267,27 @@ def test_context_window_unknown_model():
     assert result == {"tokens": None, "source": "unknown", "note": None}
 
 
+# ---------- 精确模型 ID 已知值（不再被 deepseek 泛条目 128k 覆盖） ----------
+
+def test_context_window_exact_model_override_deepseek_flash():
+    result = resolve_context_window(None, None, "deepseek-flash")
+    assert result["tokens"] == 1_000_000
+    assert result["source"] == "model"
+    assert "deepseek-flash" in result["note"]
+
+
+def test_context_window_exact_model_override_with_gateway_prefix():
+    result = resolve_context_window(None, None, "openrouter/deepseek/deepseek-flash")
+    assert result["tokens"] == 1_000_000
+    assert result["source"] == "model"
+
+
+def test_context_window_profile_beats_exact_model_override():
+    profile = make_profile(modelId="deepseek-flash", contextTokens=64000)
+    result = resolve_context_window(profile, None, "deepseek-flash")
+    assert result == {"tokens": 64000, "source": "profile", "note": None}
+
+
 # ---------- None 输入不抛异常 ----------
 
 def test_none_inputs_do_not_raise():
@@ -232,7 +300,7 @@ def test_none_inputs_do_not_raise():
     empty = SimpleNamespace()
     assert resolve_context_window(empty, None, None)["source"] == "unknown"
     support = resolve_reasoning_support(empty, None, None)
-    assert support["source"] == "registry"
+    assert support["source"] == "fallback"
 
 
 @pytest.mark.parametrize(

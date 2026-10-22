@@ -58,6 +58,8 @@ class AgentConfirmRequest(BaseModel):
     confirmId: str = Field(min_length=1, max_length=128)
     decision: str = Field(pattern="^(approve|reject)$")
     value: str | None = Field(default=None, max_length=2000)
+    #: 续跑沿用本轮思考强度（D6）：确认卡恢复时不能丢档位；省略用 profile 默认。
+    reasoningEffort: str | None = Field(default=None, max_length=16)
 
 
 class AgentUploadResponse(BaseModel):

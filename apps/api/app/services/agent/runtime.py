@@ -8,6 +8,8 @@
 - ``{"type": "text", "text": str}``            正文增量
 - ``{"type": "tool_call", "name", "args", "callId"}``
 - ``{"type": "tool_result", "name", "callId", "output"}``
+- ``{"type": "usage", "inputTokens", "outputTokens", "totalTokens", "cachedInputTokens"}``
+  供应商返回的真实 token 用量（工具内部 LLM 的不计入）
 - ``{"type": "wait-confirm", "confirmId", "payload"}``  写操作确认卡（A4 全面启用）
 - ``{"type": "end", "finishReason"}``
 - ``{"type": "error", "code", "message", "retryable"}``
@@ -86,11 +88,72 @@ async def _pending_interrupts(agent, config) -> tuple:
     return tuple(getattr(snapshot, "interrupts", ()) or ())
 
 
+def _int_or_none(value: Any) -> int | None:
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+def _usage_payload(
+    input_tokens: int | None,
+    output_tokens: int | None,
+    total_tokens: int | None,
+    cached_input_tokens: int | None = None,
+) -> dict | None:
+    if input_tokens is None and output_tokens is None and total_tokens is None:
+        return None
+    return {
+        "inputTokens": input_tokens,
+        "outputTokens": output_tokens,
+        "totalTokens": total_tokens,
+        "cachedInputTokens": cached_input_tokens,
+    }
+
+
+def _usage_from_message(message: Any) -> dict | None:
+    """从 LangChain AIMessage/AIMessageChunk 的 usage_metadata 提取真实用量。"""
+    meta = getattr(message, "usage_metadata", None)
+    if isinstance(meta, dict):
+        details = meta.get("input_token_details")
+        cached = _int_or_none(details.get("cache_read")) if isinstance(details, dict) else None
+        parsed = _usage_payload(
+            _int_or_none(meta.get("input_tokens")),
+            _int_or_none(meta.get("output_tokens")),
+            _int_or_none(meta.get("total_tokens")),
+            cached,
+        )
+        if parsed is not None:
+            return parsed
+
+    # 兼容部分供应商/旧 LangChain 只把 usage 放在 response_metadata 里的情况
+    response_meta = getattr(message, "response_metadata", None)
+    if not isinstance(response_meta, dict):
+        return None
+    raw = response_meta.get("token_usage") or response_meta.get("usage")
+    if not isinstance(raw, dict):
+        return None
+    prompt_details = raw.get("prompt_tokens_details")
+    cached = None
+    if isinstance(prompt_details, dict):
+        cached = _int_or_none(prompt_details.get("cached_tokens"))
+    if cached is None:
+        cached = _int_or_none(raw.get("cache_read_input_tokens"))
+    prompt = _int_or_none(raw.get("prompt_tokens"))
+    completion = _int_or_none(raw.get("completion_tokens"))
+    if prompt is None:
+        prompt = _int_or_none(raw.get("input_tokens"))
+    if completion is None:
+        completion = _int_or_none(raw.get("output_tokens"))
+    total = _int_or_none(raw.get("total_tokens"))
+    return _usage_payload(prompt, completion, total, cached)
+
+
 async def _iter_events(agent, invoke_input, config) -> AsyncIterator[dict]:
     """把 astream_events 原始事件翻译成内部事件；文本只取主模型的 chat_model_stream。"""
     emitted_end = False
     count = 0
     active_tool_runs: set[str] = set()
+    # 流式 usage 兜底：部分供应商只在最后一个 chunk 上带 usage_metadata，
+    # on_chat_model_end 的 output 可能没有；按 run_id 暂存后到 end 再发。
+    usage_by_run: dict[str, dict] = {}
     async for ev in agent.astream_events(invoke_input, config, version="v2"):
         kind = ev.get("event")
         run_id = str(ev.get("run_id") or "")
@@ -118,8 +181,25 @@ async def _iter_events(agent, invoke_input, config) -> AsyncIterator[dict]:
         if kind == "on_chat_model_stream":
             chunk = data.get("chunk")
             text = getattr(chunk, "content", None) if chunk is not None else None
+            if run_id:
+                parsed = _usage_from_message(chunk)
+                if parsed is not None:
+                    usage_by_run[run_id] = parsed
             if isinstance(text, str) and text:
                 yield {"type": "text", "text": text}
+        elif kind == "on_chat_model_end":
+            # 主模型的真实 token 用量；工具内部 LLM 的调用不计入聊天上下文。
+            if _is_internal_stream_event(ev, active_tool_runs):
+                usage_by_run.pop(run_id, None)
+                continue
+            output = data.get("output")
+            parsed = _usage_from_message(output)
+            if parsed is None:
+                parsed = usage_by_run.pop(run_id, None)
+            else:
+                usage_by_run.pop(run_id, None)
+            if parsed is not None:
+                yield {"type": "usage", **parsed}
         elif kind == "on_tool_start":
             yield {
                 "type": "tool_call",

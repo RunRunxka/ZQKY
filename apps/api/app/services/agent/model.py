@@ -148,6 +148,12 @@ def _build_chat_model(
         "base_url": base_url,
         "default_headers": dict(connection.extraHeaders),
     }
+    # 流式 usage 统计：ChatOpenAI 对非默认 base_url 默认不开启 stream_usage，
+    # 必须显式打开才会在流末尾返回 prompt/completion tokens。注册表声明不支持
+    # stream_options 的供应商（如 CodeBuddy）保持关闭，避免上游 400。
+    spec = find_provider(connection.providerId) if connection.providerId else None
+    if bool(getattr(spec, "supportsStreamOptions", True)):
+        common["stream_usage"] = True
     if profile.maxOutputTokens:
         common["max_tokens"] = profile.maxOutputTokens
     temperature = profile.params.get("temperature")

@@ -248,6 +248,39 @@ class TestUploadEndpoint:
 
 
 class TestConfirmEndpoint:
+    def test_confirm_forwards_reasoning_effort(self, tmp_path: Path) -> None:
+        """续跑必须沿用本轮思考强度，不能悄悄回退到 profile 默认值。"""
+
+        class _FakeService:
+            def __init__(self) -> None:
+                self.prepared: list[tuple[str, str | None]] = []
+
+            def prepare(self, model_profile_id: str, *, reasoning_effort: str | None = None):
+                self.prepared.append((model_profile_id, reasoning_effort))
+                return object()
+
+            async def resume_turn(self, agent, *, thread_id: str, decision):  # noqa: ANN001, ARG002
+                yield {"type": "end", "finishReason": "stop"}
+
+        with _client(tmp_path) as client:
+            fake = _FakeService()
+            client.app.state.agent_service = fake
+            resp = client.post(
+                "/api/v1/agent/confirm",
+                json={
+                    "submissionId": "sub-12345678",
+                    "requestId": "r1",
+                    "threadId": "t1",
+                    "modelProfileId": "p1",
+                    "confirmId": "k1",
+                    "decision": "approve",
+                    "reasoningEffort": "low",
+                },
+            )
+            assert resp.status_code == 200
+            assert "event: message.end" in resp.text
+            assert fake.prepared == [("p1", "low")]
+
     def test_confirm_model_not_found(self, tmp_path: Path) -> None:
         with _client(tmp_path) as client:
             resp = client.post(

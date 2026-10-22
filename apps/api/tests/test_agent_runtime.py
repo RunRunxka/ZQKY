@@ -14,6 +14,7 @@ import asyncio
 import json
 import tempfile
 from pathlib import Path
+from types import SimpleNamespace
 
 import aiosqlite
 import pytest
@@ -205,6 +206,146 @@ async def test_internal_tagged_model_stream_is_not_chat_text() -> None:
     ]
     out = [event async for event in runtime._iter_events(_EventAgent(events), {}, {})]
     assert [event["text"] for event in out if event["type"] == "text"] == ["VISIBLE"]
+
+
+@pytest.mark.asyncio
+async def test_chat_model_end_emits_provider_usage() -> None:
+    """主模型 on_chat_model_end 的 usage_metadata → usage 事件（真实 token）。"""
+    events = [
+        {
+            "event": "on_chat_model_stream",
+            "run_id": "main-1",
+            "data": {"chunk": SimpleNamespace(content="答")},
+        },
+        {
+            "event": "on_chat_model_end",
+            "run_id": "main-1",
+            "data": {
+                "output": SimpleNamespace(
+                    usage_metadata={
+                        "input_tokens": 1200,
+                        "output_tokens": 80,
+                        "total_tokens": 1280,
+                        "input_token_details": {"cache_read": 640},
+                    }
+                )
+            },
+        },
+        {"event": "on_chain_end", "name": "LangGraph", "data": {"output": {}}},
+    ]
+    out = [event async for event in runtime._iter_events(_EventAgent(events), {}, {})]
+    usages = [event for event in out if event["type"] == "usage"]
+    assert usages == [
+        {
+            "type": "usage",
+            "inputTokens": 1200,
+            "outputTokens": 80,
+            "totalTokens": 1280,
+            "cachedInputTokens": 640,
+        }
+    ]
+    assert out[-1]["type"] == "end"
+
+
+@pytest.mark.asyncio
+async def test_nested_tool_model_usage_is_filtered() -> None:
+    """工具内部 LLM 的 usage 不得计入聊天上下文（只保留主模型一次）。"""
+    events = [
+        {"event": "on_tool_start", "name": "create_lesson_plan_draft", "run_id": "tool-1", "data": {"input": {}}},
+        {
+            "event": "on_chat_model_end",
+            "run_id": "nested-1",
+            "parent_ids": ["tool-1"],
+            "data": {"output": SimpleNamespace(usage_metadata={"input_tokens": 9999, "output_tokens": 333})},
+        },
+        {"event": "on_tool_end", "name": "create_lesson_plan_draft", "run_id": "tool-1", "data": {"output": "ok"}},
+        {
+            "event": "on_chat_model_end",
+            "run_id": "main-1",
+            "data": {"output": SimpleNamespace(usage_metadata={"input_tokens": 500, "output_tokens": 20})},
+        },
+    ]
+    out = [event async for event in runtime._iter_events(_EventAgent(events), {}, {})]
+    usages = [event for event in out if event["type"] == "usage"]
+    assert len(usages) == 1
+    assert usages[0]["inputTokens"] == 500
+    assert usages[0]["outputTokens"] == 20
+
+
+@pytest.mark.asyncio
+async def test_usage_falls_back_to_last_chunk_metadata() -> None:
+    """end output 不带 usage 时，用最后一个流式 chunk 的 usage_metadata 兜底。"""
+    events = [
+        {
+            "event": "on_chat_model_stream",
+            "run_id": "main-2",
+            "data": {
+                "chunk": SimpleNamespace(
+                    content="",
+                    usage_metadata={"input_tokens": 42, "output_tokens": 7, "total_tokens": 49},
+                )
+            },
+        },
+        {
+            "event": "on_chat_model_end",
+            "run_id": "main-2",
+            "data": {"output": SimpleNamespace(usage_metadata=None, response_metadata={})},
+        },
+    ]
+    out = [event async for event in runtime._iter_events(_EventAgent(events), {}, {})]
+    usages = [event for event in out if event["type"] == "usage"]
+    assert usages == [
+        {
+            "type": "usage",
+            "inputTokens": 42,
+            "outputTokens": 7,
+            "totalTokens": 49,
+            "cachedInputTokens": None,
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_usage_falls_back_to_response_metadata() -> None:
+    """没有 usage_metadata 时兼容 response_metadata.token_usage（OpenAI 风格）。"""
+    events = [
+        {
+            "event": "on_chat_model_end",
+            "run_id": "main-3",
+            "data": {
+                "output": SimpleNamespace(
+                    usage_metadata=None,
+                    response_metadata={
+                        "token_usage": {
+                            "prompt_tokens": 300,
+                            "completion_tokens": 30,
+                            "total_tokens": 330,
+                            "prompt_tokens_details": {"cached_tokens": 100},
+                        }
+                    },
+                )
+            },
+        },
+    ]
+    out = [event async for event in runtime._iter_events(_EventAgent(events), {}, {})]
+    usages = [event for event in out if event["type"] == "usage"]
+    assert usages[0]["inputTokens"] == 300
+    assert usages[0]["outputTokens"] == 30
+    assert usages[0]["totalTokens"] == 330
+    assert usages[0]["cachedInputTokens"] == 100
+
+
+@pytest.mark.asyncio
+async def test_no_usage_metadata_does_not_fabricate_event() -> None:
+    events = [
+        {
+            "event": "on_chat_model_end",
+            "run_id": "main-4",
+            "data": {"output": SimpleNamespace(usage_metadata=None, response_metadata={})},
+        },
+    ]
+    out = [event async for event in runtime._iter_events(_EventAgent(events), {}, {})]
+    assert not any(event["type"] == "usage" for event in out)
 
 
 # --------------------------------------------------------------- 工具错误边界

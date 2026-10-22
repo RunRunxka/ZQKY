@@ -148,6 +148,13 @@ class TestProtocolMapping:
         assert handle.profile_id == "prof-1"
         assert handle.model_id == "test-model"
 
+    def test_openai_compatible_stream_usage_enabled(self) -> None:
+        """自定义/兼容端点默认 base_url 下 LangChain 不自动开 stream_usage，必须显式打开。"""
+        repo = _FakeRepo(_conn(provider_id="custom"), _profile())
+        handle = resolve_agent_chat_model(repo, _secrets({"conn-1": "sk-real"}), "prof-1")
+        assert isinstance(handle.chat_model, ChatOpenAI)
+        assert handle.chat_model.stream_usage is True
+
     def test_openai_responses(self) -> None:
         repo = _FakeRepo(
             _conn(protocol=ModelProtocol.openai_responses, api_format=ApiFormat.openai_responses),

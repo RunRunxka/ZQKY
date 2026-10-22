@@ -2,7 +2,7 @@
 
 协议与 /chat、/rag 一致：流开始前失败用 HTTP 错误，流开始后用 error 事件；
 首事件产出后才进入 SSE 流。事件：message.start / text.delta / tool.call /
-tool.result / wait-confirm / message.end / error。
+tool.result / usage / wait-confirm / message.end / error。
 
 写操作确认：写类工具（confirm/apply）内部 interrupt 挂起 → wait-confirm 事件 →
 教师确认后 POST /agent/confirm 用 Command(resume=decision) 恢复同一 thread。
@@ -71,6 +71,17 @@ def _to_sse(event: dict, *, message_id: str, request_id: str) -> bytes | None:
                 "name": event["name"],
                 "callId": event["callId"],
                 "output": event["output"],
+            },
+        )
+    if kind == "usage":
+        return _sse(
+            "usage",
+            {
+                "messageId": message_id,
+                "inputTokens": event.get("inputTokens"),
+                "outputTokens": event.get("outputTokens"),
+                "totalTokens": event.get("totalTokens"),
+                "cachedInputTokens": event.get("cachedInputTokens"),
             },
         )
     if kind == "wait-confirm":
@@ -185,7 +196,8 @@ async def agent_confirm(request: Request, body: AgentConfirmRequest) -> Streamin
     恢复后的事件同样以 SSE 流回（继续的文本/工具调用/结束）。
     """
     service = _service(request)
-    agent = service.prepare(body.modelProfileId)
+    # 续跑沿用本轮思考强度：确认卡恢复时不能悄悄回退到 profile 默认值。
+    agent = service.prepare(body.modelProfileId, reasoning_effort=body.reasoningEffort)
 
     message_id = body.requestId
     request_id = body.requestId

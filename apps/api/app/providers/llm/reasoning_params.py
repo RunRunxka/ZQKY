@@ -42,6 +42,24 @@ CUSTOM_MODEL_THINKING_STYLES: tuple[tuple[tuple[str, ...], str], ...] = (
     (("deepseek-v4-pro", "deepseek-reasoner", "deepseek-r1"), "thinking_type"),
 )
 
+# 通用推理模型族：注册表与供应商表都未声明时，能力解析层用它兜底识别
+# （自定义 OpenAI 兼容端点最常见）。运行时仍按供应商表/模型族推断，避免默认行为漂移。
+MODEL_FAMILY_REASONING_PATTERNS: tuple[str, ...] = (
+    "deepseek-v4",
+    "deepseek-reasoner",
+    "deepseek-r1",
+    "deepseek-flash",
+    "qwen3",
+    "qwen-3",
+    "qwq",
+    "qwen-plus",
+    "o1",
+    "o3",
+    "o4",
+    "gpt-5",
+    "codex",
+)
+
 # effort 归一：参考把 "minimum" 写作 minimal
 _EFFORT_ALIASES = {"minimum": "minimal", "off": "none", "disabled": "none", "enabled": "high"}
 
@@ -60,6 +78,21 @@ def _custom_thinking_style(model_name: str) -> tuple[str, tuple[str, ...]]:
         if _matches(model_name, patterns):
             return style, patterns
     return "", ()
+
+
+def reasoning_patterns_for(spec: Any, provider_id: str | None) -> tuple[str, ...]:
+    """推理模型匹配模式的统一来源（能力解析层使用；运行时另按供应商表/模型族推断）。
+
+    优先级：供应商注册表显式声明 → 供应商默认表 → 通用模型族表。
+    模型族表兜底保证 custom 连接（旧配置迁移后 providerId=custom）也能识别
+    deepseek-v4-pro / deepseek-flash / qwen3 / o3 / gpt-5 等推理族，不再出现
+    UI 与运行时判定不一致（UI 说支持、控件却消失）。
+    """
+    patterns = tuple(getattr(spec, "reasoningModelPatterns", ()) or ())
+    if patterns:
+        return patterns
+    provider_name = _spec_name(spec, provider_id)
+    return PROVIDER_REASONING_PATTERNS.get(provider_name, MODEL_FAMILY_REASONING_PATTERNS)
 
 
 def default_reasoning_effort_for(
@@ -81,7 +114,9 @@ def default_reasoning_effort_for(
 def normalize_effort(value: str | None) -> str | None:
     if value is None:
         return None
-    normalized = str(value).strip().lower()
+    # 兼容 str-subclass Enum（ReasoningEffort.max）：str() 会给出 "ReasoningEffort.max"
+    raw = getattr(value, "value", value)
+    normalized = str(raw).strip().lower()
     if not normalized:
         return None
     return _EFFORT_ALIASES.get(normalized, normalized)
@@ -175,9 +210,11 @@ def reasoning_style_for(spec: Any, provider_id: str | None) -> str | None:
 
 
 __all__ = [
+    "MODEL_FAMILY_REASONING_PATTERNS",
     "THINKING_STYLE_MAP",
     "build_reasoning_kwargs",
     "default_reasoning_effort_for",
     "normalize_effort",
+    "reasoning_patterns_for",
     "reasoning_style_for",
 ]
