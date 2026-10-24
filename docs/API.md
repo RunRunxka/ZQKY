@@ -1,6 +1,6 @@
 # API 契约
 
-更新：2026-10-23（R12 教案导出：`sectionPages` 目录页码、评价四项/反思三项、过程行克隆；归档功能自 2026-10-20 起全局移除）。未列出的 `/api/v1/*` 返回 501
+更新：2026-10-24（R13：教案导出正文按预览模块布局重建、预览复刻模板视觉、逻辑库物理删除、班级失效 `CLASS_NOT_FOUND`）。未列出的 `/api/v1/*` 返回 501
 `FEATURE_NOT_IMPLEMENTED`（域已装配但依赖缺失时返回 503 `SERVICE_UNAVAILABLE`，绝不假成功）。
 
 ## 公共
@@ -55,7 +55,7 @@
 
 | 方法和路径 | 用途 |
 | --- | --- |
-| `/api/v1/textbook-taxonomy`、`/textbook-libraries*`、`/textbooks*` | 分类字典、逻辑库与文档 CRUD（`GET /textbooks/{id}`、PATCH 元数据、DELETE）。逻辑库 = 教材册的归属/检索范围容器（`kind`=基础库/我的教材 + 学科 + 版本 + 可选年级，书册与库多对多）；界面入口：教材资料库页头「新建逻辑库」+ 导入面板第 4 步「加入逻辑库」（至少一个） |
+| `/api/v1/textbook-taxonomy`、`/textbook-libraries*`、`/textbooks*` | 分类字典、逻辑库与文档 CRUD（`GET /textbooks/{id}`、PATCH 元数据、DELETE）。逻辑库 = 教材册的归属/检索范围容器（`kind`=基础库/我的教材 + 学科 + 版本 + 可选年级，书册与库多对多）；界面入口：教材资料库页头「新建逻辑库」、导入面板第 4 步「加入逻辑库」、列表卡片/详情页「删除逻辑库」（物理删除，见删除语义表） |
 | POST `/api/v1/textbook-imports` → `/{id}/commit`、`/{id}/discard` | 导入草稿 → 封存修订并入库；`/textbook-imports/{id}` 观察状态 |
 | `/api/v1/textbook-jobs*`（GET/cancel/retry）、`/textbook-index/status`、`/textbook-index/rebuilds` | 入库任务与索引代状态/受控重建 |
 | `/api/v1/textbook-revisions/{id}/source` | 修订原文区间读取（指纹校验） |
@@ -123,6 +123,11 @@
 | `DELETE /assessments/{id}?expectedRevision=N` | **自有成绩链**：参测人次、成绩导入（+行）、成绩修订（+小题分/修正）、报告（+冻结子表）、派生练习（连带历史）、转换/映射、成绩模板导出（+工件）、参测范围（界面入口：学情分析页「删除该施测」） | — | 链上报告被教案冻结生成血缘引用 → `ASSESSMENT_IN_USE` + counts |
 | `DELETE /analysis-runs/{id}` | 报告六张冻结子表；**派生练习集连带历史**（reviewed 修订/导出/转换/工件） | 教案修订的 `analysis_run_id` 来源指针 | 报告被 `lesson_generation_inputs`/`lesson_ai_proposals`（NOT NULL 冷冻血缘）引用 → `ANALYSIS_RUN_IN_USE` + counts |
 | `DELETE /practice-sets/{id}?expectedRevision=N[&includeHistory=true]` | 草稿修订链；`includeHistory=true` 时连同 reviewed 修订/导出/工件/转换/映射 | 转换生成的原卷修订的来源指针 | 默认路径有 reviewed 修订/导出/转换 → `PRACTICE_IN_USE`（回执给出 `includeHistory` 路径） |
+| `DELETE /textbook-libraries/{id}`（body `{expectedRevision}`） | 逻辑库行 + `library_documents` 书册关联（界面入口：教材资料库列表卡片/详情页「删除逻辑库」） | — | 无引用守卫；`documents`/`document_revisions` 保留，只在本库中的书册不再出现在教材库列表 |
+
+**2026-10-24 变更**：逻辑库 DELETE 从软删除（`deleted_at`）改为**物理删除**（库行 + 书册关联），
+`includeDeleted=true` 不再能查回；书册与原文修订保留。**2026-10-23** 起教案正文按前端 `modules` 的
+顺序/显隐/自定义位置重建，模板只提供行样式与表格样式。
 
 **成绩链保护策略（调研结论）**：成绩链的所有者是**施测**——`assessment_participants`（证据锚点）
 → 导入 → 成绩修订 → 小题分 → 报告 → 派生练习。因此删除施测 = 删除这条链（唯一的显式销毁入口）；
@@ -138,10 +143,10 @@ blob）、`workflow_jobs`（任务历史）、`command_submissions`（提交幂�
 
 | 方法和路径 | 用途 |
 | --- | --- |
-| `/api/v1/lesson-plans`（GET/POST）、`/{id}`（GET/PATCH draft/DELETE）、`/{id}/revisions` | 教案草稿/修订（CAS `expectedRevision`；草稿与候选分离）。`POST` 必填 `subjectId`/`classId`（教案必属某班某科）与 `context` 键（手工新建显式 `null`，缺键 422）；`DELETE ?expectedRevision=N` 彻底删除教案自身历史（**归档/恢复端点已于 2026-10-20 移除**，界面只留删除，入口在教案工作台「本地教案」） |
+| `/api/v1/lesson-plans`（GET/POST）、`/{id}`（GET/PATCH draft/DELETE）、`/{id}/revisions` | 教案草稿/修订（CAS `expectedRevision`；草稿与候选分离）。`POST` 必填 `subjectId`/`classId`（教案必属某班某科）与 `context` 键（手工新建显式 `null`，缺键 422）；`classId` 已失效 → 404 **`CLASS_NOT_FOUND`**（「班级不存在或已删除，请重新选择班级。」）；`DELETE ?expectedRevision=N` 彻底删除教案自身历史（**归档/恢复端点已于 2026-10-20 移除**，界面只留删除，入口在教案工作台「本地教案」） |
 | POST `/api/v1/lesson-plans/generation-stream` | 逐模块流式生成（SSE：`message.start / module.start / module.delta / module.error / module.done / message.end / error`；生成候选采用才写入）。固定数据来源：`analysisRunId`（学情报告匿名聚合）与 **`sourceAssetRef`**（教师上传的学情材料，2026-10-13 起真正消费：读回文本按 6000 字上限截断并标注；引用读不到 → 404 `LESSON_SOURCE_NOT_FOUND`，**不静默忽略**） |
 | `/api/v1/lesson-plans/{id}/proposals`（+`/{pid}/apply|reject`） | 五字段 patch 候选（`apply_lesson_proposal` 工具带中断确认） |
-| POST `/api/v1/lesson-plans/{id}/export` | 导出 docx（202）：以空白模板组装，自动补齐封面（第 1 页）+ 目录（第 2 页），正文自第 3 页。请求 `{data, style, modules, sectionPages?}`；`sectionPages` 是预览分页算出的「模块 id → 正文页码（1 起）」，目录页码与预览同源（缺省回退行数估算）。`六、评价反馈` 保留模板四项小标题、`七、教学反思` 保留三项；教学过程超出模板 5 阶段/6 内容行时按行克隆，不丢环节；字号/行高/段距随 `style` 写入 docx |
+| POST `/api/v1/lesson-plans/{id}/export` | 导出 docx（202）：以空白模板提供行/表格样式，自动补齐封面（第 1 页）+ 目录（第 2 页），正文自第 3 页。请求 `{data, style, modules, sectionPages?}`；**正文按 `modules` 的顺序/`hidden`/custom 位置重建**（相邻同 `tableId` 的模块合表：目标+策略、评价+反思；过程单独；custom 各自成表），目录与正文同一套动态编号；`sectionPages` 是预览分页算出的「模块 id → 正文页码（1 起）」，目录页码与预览同源（缺省回退行数估算）。`六、评价反馈` 保留模板四项小标题、`七、教学反思` 保留三项；教学过程行按数据克隆；字号/行高/段距/页边距/模块间距随 `style` 写入 docx，默认值即模板口径（14pt/24pt exact/72px/8px/0 段距） |
 | POST `/api/v1/lesson-plans/source-uploads` | 上传学情材料（multipart `file`）→ 201 `{assetRef,fileName,mediaType,byteSize,sha256}`（受管资产 `kind=attachment`）。**只收可提取文本的文档**（.docx/.pdf/.txt/.md）；成绩表类（.xlsx/.xls/.csv）422 `LESSON_SOURCE_UNSUPPORTED` 并指引「先去学情分析生成报告、再用『分析报告』来源」（学生个人信息不进模型的红线：不把含学号/姓名的原始表格送模型）；空文件 422、超限（10 MiB）413；无可提取文本（扫描件）422 `LESSON_SOURCE_EMPTY` |
 | `/api/v1/lesson-plans/evidence/verify` | 教材依据核验 |
 
