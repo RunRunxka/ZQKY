@@ -34,7 +34,7 @@ export const navigation: NavigationItem[] = [
     sidebarIcon: House,
   },
   {
-    // 教案工作台（需求 2）：三栏式（模块/排版 · 编辑 · 第 3 页起 A4 预览）；导出由后端补齐封面目录
+    // 教案工作台：三栏（模块轨 · 章节编辑 · 第 3 页起 A4 校样台）+ 悬浮 dock；导出由后端补齐封面目录
     id: 'lesson-plans',
     label: '教案工作台',
     path: '/lesson-plans',

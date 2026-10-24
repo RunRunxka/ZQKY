@@ -18,6 +18,7 @@ import { lessonPlansApi, type LessonPlansApi, uploadLessonSource } from '@/servi
 import { newId, withLessonDefaults } from './lesson-data';
 import { describeError } from '../services/errors';
 import { modulesToWire } from './modules';
+import { layoutPreview, sectionPageMap } from '../services/pagination';
 import type { LessonWorkbenchState } from './store';
 import { ACTIVE_PLAN_KEY, clearActivePlanId, readActivePlanId, writeActivePlanId } from './draft-storage';
 import { triggerBlobDownload } from '../services/download';
@@ -78,7 +79,14 @@ export function useLessonServer({
 
   const buildExportRequest = useCallback((): LessonExportRequest => {
     const state = store.getState();
-    return { data: state.data, style: state.style, modules: modulesToWire(state.modules) };
+    const modules = modulesToWire(state.modules);
+    const layout = layoutPreview(state.data, modules, state.style);
+    return {
+      data: state.data,
+      style: state.style,
+      modules,
+      sectionPages: sectionPageMap(layout.pages),
+    };
   }, [store]);
 
   /* ---------------- 读取 / 创建 ---------------- */

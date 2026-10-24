@@ -1,16 +1,20 @@
 'use client';
 /**
- * 中栏模块表单（按内置模块的表格字段结构）。
+ * 中栏模块表单（magic-resume EditPanel + ExperienceItem 的移植）。
  *
+ * - 顶部是当前章节卡（模板序号 + 名称 + 提示；自定义模块可就地改名）；
+ * - 字段按卡片分组，两列栅格；
+ * - 教学过程用可拖拽的手风琴行：摘要行（环节名 / 阶段）+ 展开后的三列栅格与三个文本域，
+ *   ↑/↓ 与删除保留为键盘路径；
  * - 教学目标用 `readObjectives/writeObjectives` 行编解码（知识/能力/思政），旧整体文本
- *   退回单框编辑——不猜测、不重排、不丢字；
- * - 教学过程行支持增删、上下移动、阶段（phase）与阶段小标题；
- * - 自定义模块编辑标题与正文。
+ *   退回单框编辑——不猜测、不重排、不丢字。
  */
-import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { AnimatePresence, Reorder, motion, useDragControls, useReducedMotion } from 'framer-motion';
+import { ArrowDown, ArrowUp, ChevronDown, GripVertical, Plus, Sparkles, Trash2 } from 'lucide-react';
 import type { LessonPlanData, ProcessItemV2, ProcessPhase } from '@/contracts/lesson-plans';
 import { PHASE_LABELS, PROCESS_PHASES, emptyProcessV2Row } from '../model/lesson-data';
-import { builtinDef, type LessonModuleEntry } from '../model/modules';
+import { builtinDef, moduleFilled, type LessonModuleEntry } from '../model/modules';
 import { readKeyPoints, readObjectives, writeKeyPoints, writeObjectives } from '../model/objectives';
 
 export interface ModuleEditorProps {
@@ -88,6 +92,8 @@ function ProcessRowEditor({
   row,
   index,
   count,
+  expanded,
+  onToggle,
   onChange,
   onMove,
   onRemove,
@@ -95,94 +101,146 @@ function ProcessRowEditor({
   row: ProcessItemV2;
   index: number;
   count: number;
+  expanded: boolean;
+  onToggle: () => void;
   onChange: (patch: Partial<ProcessItemV2>) => void;
   onMove: (delta: number) => void;
   onRemove: () => void;
 }) {
+  const controls = useDragControls();
+  const reduce = useReducedMotion();
+  const summary = row.title.trim() || '未命名环节';
+  const phase = row.phaseLabel.trim() || PHASE_LABELS[row.phase];
+
   return (
-    <li className="lw-process-row" data-testid={`lw-process-row-${index}`}>
-      <div className="lw-process-row-head">
-        <strong>环节 {index + 1}</strong>
-        <span className="lw-process-row-actions">
-          <button
-            type="button"
-            className="lw-icon-button"
-            aria-label={`上移环节 ${index + 1}`}
-            disabled={index === 0}
-            onClick={() => onMove(-1)}
-          >
-            <ArrowUp size={14} />
-          </button>
-          <button
-            type="button"
-            className="lw-icon-button"
-            aria-label={`下移环节 ${index + 1}`}
-            disabled={index === count - 1}
-            onClick={() => onMove(1)}
-          >
-            <ArrowDown size={14} />
-          </button>
-          <button
-            type="button"
-            className="lw-icon-button danger"
-            aria-label={`删除环节 ${index + 1}`}
-            onClick={onRemove}
-          >
-            <Trash2 size={14} />
-          </button>
-        </span>
+    <Reorder.Item
+      value={row.id}
+      dragListener={false}
+      dragControls={controls}
+      data-testid={`lw-process-row-${index}`}
+      className={`lw-process-row ${expanded ? 'expanded' : ''}`}
+      whileDrag={reduce ? undefined : { scale: 1.01, zIndex: 2 }}
+    >
+      <div className="lw-process-grip">
+        <button
+          type="button"
+          className="lw-module-grip"
+          aria-label={`拖动排序：环节 ${index + 1}`}
+          data-testid={`lw-process-drag-${index}`}
+          onPointerDown={(event) => controls.start(event)}
+        >
+          <GripVertical size={14} aria-hidden />
+        </button>
       </div>
-      <div className="lw-process-row-grid">
-        <label className="lw-field" htmlFor={`lw-process-phase-${index}`}>
-          <span>阶段</span>
-          <select
-            id={`lw-process-phase-${index}`}
-            value={row.phase}
-            onChange={(event) => onChange({ phase: event.target.value as ProcessPhase })}
-          >
-            {PROCESS_PHASES.map((phase) => (
-              <option key={phase} value={phase}>
-                {PHASE_LABELS[phase]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <TextField
-          id={`lw-process-phase-label-${index}`}
-          label="阶段小标题"
-          value={row.phaseLabel}
-          placeholder="留空则用阶段名"
-          onChange={(value) => onChange({ phaseLabel: value })}
-        />
-        <TextField
-          id={`lw-process-title-${index}`}
-          label="教学环节"
-          value={row.title}
-          onChange={(value) => onChange({ title: value })}
-        />
+      <div className="lw-process-main">
+        <button
+          type="button"
+          className="lw-process-summary"
+          aria-expanded={expanded}
+          aria-label={`${expanded ? '收起' : '展开'}环节 ${index + 1}`}
+          onClick={onToggle}
+        >
+          <span className="lw-process-index">环节 {index + 1}</span>
+          <span className="lw-process-title">{summary}</span>
+          <span className="lw-process-phase">{phase}</span>
+          <ChevronDown size={15} className="lw-process-chevron" aria-hidden />
+        </button>
+
+        <AnimatePresence initial={false}>
+          {expanded && (
+            <motion.div
+              key="body"
+              className="lw-process-body"
+              initial={reduce ? false : { height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={reduce ? { opacity: 0 } : { height: 0, opacity: 0 }}
+              transition={{ duration: reduce ? 0 : 0.2, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <div className="lw-process-body-inner">
+                <div className="lw-process-row-grid">
+                  <label className="lw-field" htmlFor={`lw-process-phase-${index}`}>
+                    <span>阶段</span>
+                    <select
+                      id={`lw-process-phase-${index}`}
+                      value={row.phase}
+                      onChange={(event) => onChange({ phase: event.target.value as ProcessPhase })}
+                    >
+                      {PROCESS_PHASES.map((item) => (
+                        <option key={item} value={item}>
+                          {PHASE_LABELS[item]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <TextField
+                    id={`lw-process-phase-label-${index}`}
+                    label="阶段小标题"
+                    value={row.phaseLabel}
+                    placeholder="留空则用阶段名"
+                    onChange={(value) => onChange({ phaseLabel: value })}
+                  />
+                  <TextField
+                    id={`lw-process-title-${index}`}
+                    label="教学环节"
+                    value={row.title}
+                    onChange={(value) => onChange({ title: value })}
+                  />
+                </div>
+                <TextArea
+                  id={`lw-process-teacher-${index}`}
+                  label="教师活动"
+                  value={row.teacherActivity}
+                  rows={3}
+                  onChange={(value) => onChange({ teacherActivity: value })}
+                />
+                <TextArea
+                  id={`lw-process-student-${index}`}
+                  label="学生活动"
+                  value={row.studentActivity}
+                  rows={3}
+                  onChange={(value) => onChange({ studentActivity: value })}
+                />
+                <TextArea
+                  id={`lw-process-intent-${index}`}
+                  label="设计意图"
+                  value={row.intent}
+                  rows={2}
+                  onChange={(value) => onChange({ intent: value })}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-      <TextArea
-        id={`lw-process-teacher-${index}`}
-        label="教师活动"
-        value={row.teacherActivity}
-        rows={3}
-        onChange={(value) => onChange({ teacherActivity: value })}
-      />
-      <TextArea
-        id={`lw-process-student-${index}`}
-        label="学生活动"
-        value={row.studentActivity}
-        rows={3}
-        onChange={(value) => onChange({ studentActivity: value })}
-      />
-      <TextArea
-        id={`lw-process-intent-${index}`}
-        label="设计意图"
-        value={row.intent}
-        rows={2}
-        onChange={(value) => onChange({ intent: value })}
-      />
-    </li>
+      <div className="lw-process-actions">
+        <button
+          type="button"
+          className="lw-icon-button"
+          aria-label={`上移环节 ${index + 1}`}
+          disabled={index === 0}
+          onClick={() => onMove(-1)}
+        >
+          <ArrowUp size={14} />
+        </button>
+        <button
+          type="button"
+          className="lw-icon-button"
+          aria-label={`下移环节 ${index + 1}`}
+          disabled={index === count - 1}
+          onClick={() => onMove(1)}
+        >
+          <ArrowDown size={14} />
+        </button>
+        <button
+          type="button"
+          className="lw-icon-button danger"
+          aria-label={`删除环节 ${index + 1}`}
+          onClick={onRemove}
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+    </Reorder.Item>
   );
 }
 
@@ -195,14 +253,42 @@ export function ModuleEditor({
   setCustomBody,
 }: ModuleEditorProps) {
   const def = entry.kind === 'builtin' ? builtinDef(entry.builtinId ?? '') : undefined;
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(() => {
+    const rows = data.processV2 ?? [];
+    return new Set(rows.length > 0 ? [rows[0].id] : []);
+  });
+  const filled = moduleFilled(entry, data);
+
+  const header = (
+    <header className="lw-editor-head">
+      <span className={`lw-editor-numeral ${entry.kind === 'custom' ? 'custom' : ''}`}>
+        {entry.kind === 'custom' ? '自' : (def?.no ?? '')}
+      </span>
+      <div className="lw-editor-titles">
+        <h2>{entry.kind === 'custom' ? '自定义模块' : `${def?.no ?? ''}、${def?.label ?? entry.label}`}</h2>
+        <span className="lw-card-hint">{def?.hint ?? '预览中追加一张单独的表格'}</span>
+      </div>
+      {entry.builtinId === 'process' && (data.processV2 ?? []).length > 0 && (
+        <button
+          type="button"
+          className="lw-button small"
+          onClick={() =>
+            setExpandedRows((current) => {
+              const all = (data.processV2 ?? []).map((row) => row.id);
+              return current.size === all.length ? new Set() : new Set(all);
+            })
+          }
+        >
+          {expandedRows.size === (data.processV2 ?? []).length ? '收起全部' : '展开全部'}
+        </button>
+      )}
+    </header>
+  );
 
   if (entry.kind === 'custom') {
     return (
-      <section className="lw-card" aria-label={`编辑模块：${entry.label}`} data-testid="lw-module-editor">
-        <header className="lw-card-head">
-          <h2>自定义模块</h2>
-          <span className="lw-card-hint">预览中追加一张单独的表格</span>
-        </header>
+      <section className="lw-card lw-module-editor" aria-label={`编辑模块：${entry.label}`} data-testid="lw-module-editor">
+        {header}
         <TextField
           id="lw-custom-title"
           label="模块标题"
@@ -229,12 +315,43 @@ export function ModuleEditor({
   const keyPoints = readKeyPoints(data.keyPoints);
   const rows = data.processV2 ?? [];
 
+  const moveRow = (id: string, delta: number) => {
+    updateData((current) => {
+      const list = [...(current.processV2 ?? [])];
+      const from = list.findIndex((item) => item.id === id);
+      const to = from + delta;
+      if (from < 0 || to < 0 || to >= list.length) return current;
+      const [item] = list.splice(from, 1);
+      list.splice(to, 0, item);
+      return { ...current, processV2: list };
+    });
+  };
+
+  const reorderRows = (nextIds: string[]) => {
+    updateData((current) => {
+      const list = [...(current.processV2 ?? [])];
+      for (let index = 0; index < list.length; index += 1) {
+        if (list[index].id !== nextIds[index]) {
+          const to = nextIds.indexOf(list[index].id);
+          if (to < 0) return current;
+          const [item] = list.splice(index, 1);
+          list.splice(to, 0, item);
+          return { ...current, processV2: list };
+        }
+      }
+      return current;
+    });
+  };
+
   return (
-    <section className="lw-card" aria-label={`编辑模块：${entry.label}`} data-testid="lw-module-editor">
-      <header className="lw-card-head">
-        <h2>{def ? `${def.no}、${def.label}` : entry.label}</h2>
-        <span className="lw-card-hint">{def?.hint}</span>
-      </header>
+    <section className="lw-card lw-module-editor" aria-label={`编辑模块：${entry.label}`} data-testid="lw-module-editor">
+      {header}
+      {!filled && (
+        <p className="lw-editor-empty">
+          <Sparkles size={14} aria-hidden />
+          这一节还没写：可以在下方用 AI 生成，或直接填写。
+        </p>
+      )}
 
       {entry.builtinId === 'basic' && (
         <>
@@ -322,39 +439,41 @@ export function ModuleEditor({
         <>
           {objectives.structured ? (
             <>
-              <TextArea
-                id="lw-objectives-knowledge"
-                label="知识"
-                value={objectives.rows.knowledge}
-                rows={3}
-                onChange={(value) => {
-                  const view = { ...objectives, structured: true };
-                  view.rows = { ...view.rows, knowledge: value };
-                  setData({ coreCompetencies: writeObjectives(view) });
-                }}
-              />
-              <TextArea
-                id="lw-objectives-ability"
-                label="能力"
-                value={objectives.rows.ability}
-                rows={3}
-                onChange={(value) => {
-                  const view = { ...objectives, structured: true };
-                  view.rows = { ...view.rows, ability: value };
-                  setData({ coreCompetencies: writeObjectives(view) });
-                }}
-              />
-              <TextArea
-                id="lw-objectives-ideological"
-                label="思政"
-                value={objectives.rows.ideological}
-                rows={3}
-                onChange={(value) => {
-                  const view = { ...objectives, structured: true };
-                  view.rows = { ...view.rows, ideological: value };
-                  setData({ coreCompetencies: writeObjectives(view) });
-                }}
-              />
+              <div className="lw-objectives-grid">
+                <TextArea
+                  id="lw-objectives-knowledge"
+                  label="知识目标"
+                  value={objectives.rows.knowledge}
+                  rows={3}
+                  onChange={(value) => {
+                    const view = { ...objectives, structured: true };
+                    view.rows = { ...view.rows, knowledge: value };
+                    setData({ coreCompetencies: writeObjectives(view) });
+                  }}
+                />
+                <TextArea
+                  id="lw-objectives-ability"
+                  label="能力目标"
+                  value={objectives.rows.ability}
+                  rows={3}
+                  onChange={(value) => {
+                    const view = { ...objectives, structured: true };
+                    view.rows = { ...view.rows, ability: value };
+                    setData({ coreCompetencies: writeObjectives(view) });
+                  }}
+                />
+                <TextArea
+                  id="lw-objectives-ideological"
+                  label="思政目标"
+                  value={objectives.rows.ideological}
+                  rows={3}
+                  onChange={(value) => {
+                    const view = { ...objectives, structured: true };
+                    view.rows = { ...view.rows, ideological: value };
+                    setData({ coreCompetencies: writeObjectives(view) });
+                  }}
+                />
+              </div>
               {objectives.other.length > 0 && (
                 <p className="lw-note" data-testid="lw-objectives-other">
                   另有 {objectives.other.length} 行未归类内容，保留在目标字段并随导出一起带上。
@@ -371,24 +490,22 @@ export function ModuleEditor({
               onChange={(value) => setData({ coreCompetencies: value })}
             />
           )}
-          <TextArea
-            id="lw-objectives-key"
-            label="教学重点"
-            value={keyPoints.key}
-            rows={2}
-            onChange={(value) =>
-              setData({ keyPoints: writeKeyPoints({ ...keyPoints, key: value }) })
-            }
-          />
-          <TextArea
-            id="lw-objectives-difficulty"
-            label="教学难点"
-            value={keyPoints.difficulty}
-            rows={2}
-            onChange={(value) =>
-              setData({ keyPoints: writeKeyPoints({ ...keyPoints, difficulty: value }) })
-            }
-          />
+          <div className="lw-field-grid">
+            <TextArea
+              id="lw-objectives-key"
+              label="教学重点"
+              value={keyPoints.key}
+              rows={3}
+              onChange={(value) => setData({ keyPoints: writeKeyPoints({ ...keyPoints, key: value }) })}
+            />
+            <TextArea
+              id="lw-objectives-difficulty"
+              label="教学难点"
+              value={keyPoints.difficulty}
+              rows={3}
+              onChange={(value) => setData({ keyPoints: writeKeyPoints({ ...keyPoints, difficulty: value }) })}
+            />
+          </div>
         </>
       )}
 
@@ -418,6 +535,7 @@ export function ModuleEditor({
             label="教学设计（板书/思路）"
             value={data.teachingDesign}
             rows={3}
+            hint="「设计思路」为空时作为它的兜底"
             onChange={(value) => setData({ teachingDesign: value })}
           />
         </>
@@ -425,16 +543,28 @@ export function ModuleEditor({
 
       {entry.builtinId === 'process' && (
         <>
-          <p className="lw-note">
-            每个环节一行；预览中按阶段插入小标题行（如「课程引入」）。
-          </p>
-          <ul className="lw-process-list">
+          <p className="lw-note">每个环节一行；阶段小标题留空时用阶段名（课前热身 / 课程引入 / 深入研讨 / 练习巩固 / 总结提升）。</p>
+          <Reorder.Group
+            axis="y"
+            values={rows.map((row) => row.id)}
+            onReorder={reorderRows}
+            className="lw-process-list"
+          >
             {rows.map((row, index) => (
               <ProcessRowEditor
                 key={row.id}
                 row={row}
                 index={index}
                 count={rows.length}
+                expanded={expandedRows.has(row.id)}
+                onToggle={() =>
+                  setExpandedRows((current) => {
+                    const next = new Set(current);
+                    if (next.has(row.id)) next.delete(row.id);
+                    else next.add(row.id);
+                    return next;
+                  })
+                }
                 onChange={(patch) =>
                   updateData((current) => ({
                     ...current,
@@ -443,17 +573,7 @@ export function ModuleEditor({
                     ),
                   }))
                 }
-                onMove={(delta) =>
-                  updateData((current) => {
-                    const list = [...(current.processV2 ?? [])];
-                    const from = list.findIndex((item) => item.id === row.id);
-                    const to = from + delta;
-                    if (from < 0 || to < 0 || to >= list.length) return current;
-                    const [item] = list.splice(from, 1);
-                    list.splice(to, 0, item);
-                    return { ...current, processV2: list };
-                  })
-                }
+                onMove={(delta) => moveRow(row.id, delta)}
                 onRemove={() =>
                   updateData((current) => ({
                     ...current,
@@ -462,10 +582,10 @@ export function ModuleEditor({
                 }
               />
             ))}
-          </ul>
+          </Reorder.Group>
           <button
             type="button"
-            className="lw-button"
+            className="lw-button dashed"
             data-testid="lw-process-add"
             onClick={() =>
               updateData((current) => ({
@@ -482,10 +602,12 @@ export function ModuleEditor({
 
       {entry.builtinId === 'evaluation' && (
         <>
+          <p className="lw-note">按模板排入四项：课后测试 / 课后作业 / 课后调查反馈 / 督导专家反馈；（三）（四）在预览中保留标题。</p>
           <TextArea
             id="lw-evaluation-exercises"
             label="练习与作业"
             value={data.exercises}
+            hint="并入「（二）学生课后作业情况」"
             onChange={(value) => setData({ exercises: value })}
           />
           <TextArea
@@ -509,7 +631,8 @@ export function ModuleEditor({
           label="教学反思"
           value={data.reflection}
           rows={8}
-          placeholder="目标达成度 / 教学特色 / 改进方向"
+          placeholder={'（一）目标达成度分析\n（二）教学特色与可供借鉴之处\n（三）教学后记'}
+          hint="带小标题时可自动分到模板三项"
           onChange={(value) => setData({ reflection: value })}
         />
       )}

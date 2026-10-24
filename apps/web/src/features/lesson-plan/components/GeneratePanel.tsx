@@ -12,7 +12,7 @@
  * - 模型档位取自 `/model-catalog` 的默认对话档案（本页不调整思考强度）。
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertCircle, Check, FileUp, LoaderCircle, Sparkles, Square, Upload, X } from 'lucide-react';
+import { AlertCircle, Check, ChevronDown, FileUp, LoaderCircle, Sparkles, Square, Upload, X } from 'lucide-react';
 import { ApiError } from '@/services/api-client';
 import { streamLessonModules, type LessonStreamModule } from '@/services/lesson-stream';
 import { listKnowledgePoints } from '@/services/knowledge-points-api';
@@ -24,6 +24,7 @@ import { LESSON_STREAM_MODULE_KEYS } from '@/contracts/lesson-plans';
 import { newId } from '../model/lesson-data';
 import { describeError } from '../services/errors';
 import type { LessonCandidate } from '../model/store';
+import { SettingCard } from './SettingCard';
 
 export interface GeneratePanelServices {
   streamModules: typeof streamLessonModules;
@@ -69,6 +70,8 @@ export function GeneratePanel({
   onAdopt,
   parsePreview,
   services = defaultServices,
+  open,
+  onOpenChange,
 }: {
   data: LessonPlanData;
   candidate: LessonCandidate | null;
@@ -81,7 +84,16 @@ export function GeneratePanel({
   /** 已解析字段（用于「逐格」摘要展示）。 */
   parsePreview: (key: string) => { labels: string[]; unparsed: number };
   services?: GeneratePanelServices;
+  /** 展开状态（由工作台的 dock 控制）；不传时组件自管。 */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
+  const [localOpen, setLocalOpen] = useState(true);
+  const expanded = open ?? localOpen;
+  const setExpanded = (next: boolean) => {
+    setLocalOpen(next);
+    onOpenChange?.(next);
+  };
   const [courseName, setCourseName] = useState(
     () => data.basic?.courseName || data.title || '',
   );
@@ -243,12 +255,26 @@ export function GeneratePanel({
   const candidateKeys = candidate?.order ?? [];
 
   return (
-    <section className="lw-card" aria-label="生成教案" data-testid="lw-generate-panel">
-      <header className="lw-card-head">
-        <h2>生成教案</h2>
-        <span className="lw-card-hint">AI 结果先进候选，采用后才写入草稿</span>
-      </header>
-
+    <SettingCard
+      icon={Sparkles}
+      title="生成教案"
+      hint="AI 结果先进候选，采用后才写入草稿"
+      testId="lw-generate-panel"
+      ariaLabel="生成教案"
+      className={`lw-generate-card ${expanded ? '' : 'collapsed'}`}
+      action={
+        <button
+          type="button"
+          className="lw-icon-button"
+          aria-label={expanded ? '收起生成面板' : '展开生成面板'}
+          aria-expanded={expanded}
+          onClick={() => setExpanded(!expanded)}
+        >
+          <ChevronDown size={15} className={`lw-chevron ${expanded ? 'open' : ''}`} />
+        </button>
+      }
+    >
+      <div className="lw-generate-body" hidden={!expanded}>
       <label className="lw-field" htmlFor="lw-generate-course">
         <span>课程名称</span>
         <input
@@ -565,6 +591,7 @@ export function GeneratePanel({
           {candidate && <p className="lw-note">候选内容已在右侧预览中以「AI 候选」标注，采用前不影响草稿。</p>}
         </div>
       )}
-    </section>
+      </div>
+    </SettingCard>
   );
 }

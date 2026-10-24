@@ -69,13 +69,13 @@ export const BUILTIN_MODULES: readonly BuiltinModuleDef[] = [
     id: 'evaluation',
     no: '六',
     label: '评价反馈',
-    hint: '练习与作业 / 课后测试情况 / 作业情况',
+    hint: '模板四项：课后测试 / 课后作业 / 课后调查反馈 / 督导专家反馈',
   },
   {
     id: 'reflection',
     no: '七',
     label: '教学反思',
-    hint: '目标达成度 / 特色 / 改进方向',
+    hint: '目标达成度 / 教学特色 / 教学后记',
   },
 ] as const;
 

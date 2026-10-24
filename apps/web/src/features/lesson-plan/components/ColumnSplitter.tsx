@@ -11,11 +11,13 @@ export function ColumnSplitter({
   label,
   testId,
   onResize,
+  className,
 }: {
   label: string;
   testId: string;
   /** delta 为占容器宽度的百分比（可为负）；返回实际应用的百分比变化。 */
   onResize: (deltaPercent: number) => void;
+  className?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
@@ -53,7 +55,7 @@ export function ColumnSplitter({
   return (
     <div
       ref={ref}
-      className="lw-splitter"
+      className={`lw-splitter ${className ?? ''}`.trim()}
       role="separator"
       aria-orientation="vertical"
       aria-label={label}

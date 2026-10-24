@@ -241,6 +241,11 @@ export interface LessonExportRequest {
   data: LessonPlanData;
   style: LessonWorkbenchStyleWire;
   modules: LessonWorkbenchModuleWire[];
+  /**
+   * 各模块在**正文**中的起始页码（1 起），由预览分页算出。
+   * 后端据此写 docx 目录，避免预览与导出各用一套估算。
+   */
+  sectionPages?: Record<string, number>;
 }
 
 export interface ExportArtifactRef {

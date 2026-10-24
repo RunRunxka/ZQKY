@@ -1,24 +1,171 @@
 'use client';
 /**
- * 左栏两块卡片：布局（模块列表 + 添加模块 + 已移除）与排版（字体/字号/行高/间距）。
+ * 左栏三张设置卡：模块轨（magic-resume LayoutSetting 的移植）与排版。
  *
- * - 排序：拖拽手柄（pointer 事件，实时换位）与 ↑/↓ 按钮两种方式，键盘可达；
- * - 显隐、删除（内置固定模块只能隐藏）；删除的自定义模块进入「已移除」可还原；
- * - 所有排版控件都是受控 slider/select，改值实时进预览（同一份 style 状态）。
+ * - 模块轨：framer-motion `Reorder` 拖拽手柄排序（基本模块固定在第一项），保留 ↑/↓、
+ *   显隐、删除与「已移除」还原；每行显示模板序号、名称与已填状态点；
+ * - 排版：字体与字号 / 间距 / 纸张三张卡，全部是受控控件，改值实时进预览。
  */
-import { useRef, useState } from 'react';
-import { ChevronDown, ChevronUp, Eye, EyeOff, GripVertical, Plus, RotateCcw, Trash2, Undo2 } from 'lucide-react';
+import { useState } from 'react';
+import { Reorder, useDragControls, useReducedMotion } from 'framer-motion';
+import {
+  ChevronDown,
+  ChevronUp,
+  Eye,
+  EyeOff,
+  GripVertical,
+  ListTree,
+  Plus,
+  RotateCcw,
+  Ruler,
+  ScrollText,
+  Trash2,
+  Type,
+  Undo2,
+} from 'lucide-react';
 import type { LessonPlanData, LessonWorkbenchStyleWire } from '@/contracts/lesson-plans';
 import {
   BUILTIN_MODULES,
   LESSON_FONTS,
   STYLE_LIMITS,
-  chineseNumber,
   moduleFilled,
   type LessonModuleEntry,
 } from '../model/modules';
+import { SettingCard } from './SettingCard';
 
 /* ------------------------------------------------------------------ 布局 */
+
+function ModuleItem({
+  entry,
+  index,
+  count,
+  numeral,
+  active,
+  filled,
+  onSelect,
+  onMove,
+  onToggleHidden,
+  onRemove,
+}: {
+  entry: LessonModuleEntry;
+  index: number;
+  count: number;
+  numeral: string;
+  active: boolean;
+  filled: boolean;
+  onSelect: () => void;
+  onMove: (delta: number) => void;
+  onToggleHidden: () => void;
+  onRemove: () => void;
+}) {
+  const controls = useDragControls();
+  const reduce = useReducedMotion();
+  const fixed = entry.kind === 'builtin' && entry.builtinId === 'basic';
+
+  return (
+    <Reorder.Item
+      value={entry.id}
+      dragListener={false}
+      dragControls={controls}
+      data-module-index={index}
+      data-testid={`lw-module-item-${entry.id}`}
+      className={[
+        'lw-module-item',
+        active ? 'selected' : '',
+        entry.hidden ? 'hidden' : '',
+        fixed ? 'fixed' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      whileDrag={reduce ? undefined : { scale: 1.015, boxShadow: '0 12px 28px -14px rgb(23 32 51 / 35%)' }}
+    >
+      <button
+        type="button"
+        className="lw-module-grip"
+        aria-label={`拖动排序（聚焦后 ↑/↓ 移动）：${entry.label}`}
+        title={fixed ? '基本信息固定在首位' : `拖动排序：${entry.label}（聚焦后 ↑/↓ 移动）`}
+        data-testid={`lw-module-drag-${entry.id}`}
+        disabled={fixed}
+        onPointerDown={(event) => {
+          if (fixed) return;
+          controls.start(event);
+        }}
+        onKeyDown={(event) => {
+          if (fixed) return;
+          if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            onMove(-1);
+          } else if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            onMove(1);
+          }
+        }}
+      >
+        <GripVertical size={14} aria-hidden />
+      </button>
+      <button
+        type="button"
+        className="lw-module-name"
+        title={entry.label}
+        data-testid={`lw-module-select-${entry.id}`}
+        onClick={onSelect}
+        aria-current={active ? 'true' : undefined}
+      >
+        <span className={`lw-module-no ${entry.kind === 'custom' ? 'custom' : ''}`}>{numeral}</span>
+        <span className="lw-module-label">{entry.label}</span>
+        <span
+          className={`lw-module-dot ${filled ? 'filled' : ''}`}
+          title={filled ? '已有内容' : '尚未填写'}
+          aria-label={filled ? '已有内容' : '尚未填写'}
+        />
+      </button>
+      <span className="lw-module-actions">
+        <span className="lw-module-move">
+          <button
+            type="button"
+            className="lw-icon-button"
+            aria-label={`上移：${entry.label}`}
+            data-testid={`lw-module-up-${entry.id}`}
+            disabled={index === 0}
+            onClick={() => onMove(-1)}
+          >
+            <ChevronUp size={14} />
+          </button>
+          <button
+            type="button"
+            className="lw-icon-button"
+            aria-label={`下移：${entry.label}`}
+            data-testid={`lw-module-down-${entry.id}`}
+            disabled={index === count - 1}
+            onClick={() => onMove(1)}
+          >
+            <ChevronDown size={14} />
+          </button>
+        </span>
+        <button
+          type="button"
+          className="lw-icon-button"
+          aria-label={entry.hidden ? `显示：${entry.label}` : `隐藏：${entry.label}`}
+          data-testid={`lw-module-hide-${entry.id}`}
+          disabled={fixed}
+          onClick={onToggleHidden}
+        >
+          {entry.hidden ? <EyeOff size={14} /> : <Eye size={14} />}
+        </button>
+        <button
+          type="button"
+          className="lw-icon-button danger"
+          aria-label={`删除：${entry.label}`}
+          data-testid={`lw-module-remove-${entry.id}`}
+          disabled={entry.kind === 'builtin'}
+          onClick={onRemove}
+        >
+          <Trash2 size={14} />
+        </button>
+      </span>
+    </Reorder.Item>
+  );
+}
 
 export function LayoutPanel({
   modules,
@@ -46,126 +193,56 @@ export function LayoutPanel({
   onAddCustom: (label: string) => void;
 }) {
   const [customLabel, setCustomLabel] = useState('');
-  const dragIndex = useRef<number | null>(null);
+  const visibleCount = modules.filter((entry) => !entry.hidden).length;
 
-  const builtinNo = new Map<string, string>();
-  let visibleBuiltin = 0;
-  for (const entry of modules) {
-    if (entry.kind !== 'builtin') continue;
-    if (!entry.hidden) visibleBuiltin += 1;
-    const def = BUILTIN_MODULES.find((item) => item.id === entry.builtinId);
-    builtinNo.set(entry.id, def ? def.no : chineseNumber(visibleBuiltin));
-  }
+  const numeralOf = (entry: LessonModuleEntry): string => {
+    if (entry.kind === 'builtin') {
+      return BUILTIN_MODULES.find((item) => item.id === entry.builtinId)?.no ?? '';
+    }
+    return '自';
+  };
+
+  const handleReorder = (nextIds: string[]) => {
+    for (let index = 0; index < modules.length; index += 1) {
+      if (modules[index].id !== nextIds[index]) {
+        const to = nextIds.indexOf(modules[index].id);
+        if (to >= 0) onReorder(index, to);
+        return;
+      }
+    }
+  };
 
   return (
-    <section className="lw-card" aria-label="布局" data-testid="lw-layout-card">
-      <header className="lw-card-head">
-        <h2>布局</h2>
-        <span className="lw-card-hint">{modules.filter((m) => !m.hidden).length} 个模块进预览</span>
-      </header>
-      <ul className="lw-module-list" data-testid="lw-module-list">
-        {modules.map((entry, index) => {
-          const filled = moduleFilled(entry, data);
-          return (
-            <li
-              key={entry.id}
-              className={`lw-module-item ${entry.id === activeModuleId ? 'selected' : ''} ${
-                entry.hidden ? 'hidden' : ''
-              }`}
-              data-module-index={index}
-              data-testid={`lw-module-item-${entry.id}`}
-            >
-              <button
-                type="button"
-                className="lw-drag"
-                aria-label={`拖动排序：${entry.label}`}
-                data-testid={`lw-module-drag-${entry.id}`}
-                onPointerDown={(event) => {
-                  dragIndex.current = index;
-                  event.currentTarget.setPointerCapture(event.pointerId);
-                }}
-                onPointerMove={(event) => {
-                  if (dragIndex.current === null) return;
-                  const node = document
-                    .elementFromPoint(event.clientX, event.clientY)
-                    ?.closest('[data-module-index]');
-                  const target = node ? Number(node.getAttribute('data-module-index')) : NaN;
-                  if (Number.isInteger(target) && target !== dragIndex.current) {
-                    onReorder(dragIndex.current, target);
-                    dragIndex.current = target;
-                  }
-                }}
-                onPointerUp={(event) => {
-                  dragIndex.current = null;
-                  if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-                    event.currentTarget.releasePointerCapture(event.pointerId);
-                  }
-                }}
-              >
-                <GripVertical size={14} aria-hidden />
-              </button>
-              <button
-                type="button"
-                className="lw-module-name"
-                data-testid={`lw-module-select-${entry.id}`}
-                onClick={() => onSelect(entry.id)}
-                aria-current={entry.id === activeModuleId ? 'true' : undefined}
-              >
-                <span className={`lw-module-no ${entry.kind === 'custom' ? 'custom' : ''}`}>
-                  {entry.kind === 'custom' ? '自' : (builtinNo.get(entry.id) ?? '')}
-                </span>
-                <span className="lw-module-label">{entry.label}</span>
-                <span
-                  className={`lw-module-dot ${filled ? 'filled' : ''}`}
-                  title={filled ? '已有内容' : '尚未填写'}
-                />
-              </button>
-              <span className="lw-module-actions">
-                <button
-                  type="button"
-                  className="lw-icon-button"
-                  aria-label={`上移：${entry.label}`}
-                  data-testid={`lw-module-up-${entry.id}`}
-                  disabled={index === 0}
-                  onClick={() => onMove(entry.id, -1)}
-                >
-                  <ChevronUp size={14} />
-                </button>
-                <button
-                  type="button"
-                  className="lw-icon-button"
-                  aria-label={`下移：${entry.label}`}
-                  data-testid={`lw-module-down-${entry.id}`}
-                  disabled={index === modules.length - 1}
-                  onClick={() => onMove(entry.id, 1)}
-                >
-                  <ChevronDown size={14} />
-                </button>
-                <button
-                  type="button"
-                  className="lw-icon-button"
-                  aria-label={entry.hidden ? `显示：${entry.label}` : `隐藏：${entry.label}`}
-                  data-testid={`lw-module-hide-${entry.id}`}
-                  disabled={entry.kind === 'builtin' && entry.builtinId === 'basic'}
-                  onClick={() => onToggleHidden(entry.id)}
-                >
-                  {entry.hidden ? <EyeOff size={14} /> : <Eye size={14} />}
-                </button>
-                <button
-                  type="button"
-                  className="lw-icon-button danger"
-                  aria-label={`删除：${entry.label}`}
-                  data-testid={`lw-module-remove-${entry.id}`}
-                  disabled={entry.kind === 'builtin'}
-                  onClick={() => onRemove(entry.id)}
-                >
-                  <Trash2 size={14} />
-                </button>
-              </span>
-            </li>
-          );
-        })}
-      </ul>
+    <SettingCard
+      icon={ListTree}
+      title="模块"
+      hint={`${visibleCount} 个进入预览`}
+      testId="lw-layout-card"
+      action={<span className="lw-count-pill">{modules.length}</span>}
+    >
+      <Reorder.Group
+        axis="y"
+        values={modules.map((entry) => entry.id)}
+        onReorder={handleReorder}
+        className="lw-module-list"
+        data-testid="lw-module-list"
+      >
+        {modules.map((entry, index) => (
+          <ModuleItem
+            key={entry.id}
+            entry={entry}
+            index={index}
+            count={modules.length}
+            numeral={numeralOf(entry)}
+            active={entry.id === activeModuleId}
+            filled={moduleFilled(entry, data)}
+            onSelect={() => onSelect(entry.id)}
+            onMove={(delta) => onMove(entry.id, delta)}
+            onToggleHidden={() => onToggleHidden(entry.id)}
+            onRemove={() => onRemove(entry.id)}
+          />
+        ))}
+      </Reorder.Group>
 
       <form
         className="lw-add-module"
@@ -195,22 +272,24 @@ export function LayoutPanel({
 
       {removed.length > 0 && (
         <div className="lw-removed" data-testid="lw-removed-modules">
-          <span className="lw-removed-label">已移除：</span>
-          {removed.map((entry) => (
-            <button
-              key={entry.id}
-              type="button"
-              className="lw-chip"
-              data-testid={`lw-module-restore-${entry.id}`}
-              onClick={() => onRestore(entry.id)}
-            >
-              <Undo2 size={13} aria-hidden />
-              {entry.label}
-            </button>
-          ))}
+          <span className="lw-removed-label">已移除</span>
+          <div className="lw-removed-chips">
+            {removed.map((entry) => (
+              <button
+                key={entry.id}
+                type="button"
+                className="lw-chip"
+                data-testid={`lw-module-restore-${entry.id}`}
+                onClick={() => onRestore(entry.id)}
+              >
+                <Undo2 size={13} aria-hidden />
+                {entry.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
-    </section>
+    </SettingCard>
   );
 }
 
@@ -267,86 +346,96 @@ export function StylePanel({
   onReset: () => void;
 }) {
   return (
-    <section className="lw-card" aria-label="排版与间距" data-testid="lw-style-card">
-      <header className="lw-card-head">
-        <h2>排版</h2>
-        <button type="button" className="lw-icon-button" aria-label="恢复默认排版" onClick={onReset}>
-          <RotateCcw size={14} />
-        </button>
-      </header>
-      <label className="lw-field">
-        <span>字体</span>
-        <select
-          data-testid="lw-font-select"
-          value={style.fontId}
-          onChange={(event) => onChange({ fontId: event.target.value as LessonWorkbenchStyleWire['fontId'] })}
-        >
-          {LESSON_FONTS.map((font) => (
-            <option key={font.id} value={font.id}>
-              {font.label}
-            </option>
-          ))}
-        </select>
-      </label>
-      <RangeField
-        label="正文字号"
-        testId="lw-size-base"
-        value={style.baseSize}
-        {...STYLE_LIMITS.baseSize}
-        suffix="px"
-        onChange={(value) => onChange({ baseSize: value })}
-      />
-      <RangeField
-        label="模块标题字号"
-        testId="lw-size-heading"
-        value={style.headingSize}
-        {...STYLE_LIMITS.headingSize}
-        suffix="px"
-        onChange={(value) => onChange({ headingSize: value })}
-      />
-      <RangeField
-        label="字段标签字号"
-        testId="lw-size-label"
-        value={style.labelSize}
-        {...STYLE_LIMITS.labelSize}
-        suffix="px"
-        onChange={(value) => onChange({ labelSize: value })}
-      />
-      <RangeField
-        label="行高"
-        testId="lw-line-height"
-        value={style.lineHeight}
-        {...STYLE_LIMITS.lineHeight}
-        onChange={(value) => onChange({ lineHeight: value })}
-      />
+    <div className="lw-style-stack" data-testid="lw-style-card">
+      <SettingCard icon={Type} title="字体与字号" hint="实时作用于右侧纸张">
+        <label className="lw-field lw-field-inline">
+          <span>字体</span>
+          <select
+            data-testid="lw-font-select"
+            value={style.fontId}
+            onChange={(event) => onChange({ fontId: event.target.value as LessonWorkbenchStyleWire['fontId'] })}
+          >
+            {LESSON_FONTS.map((font) => (
+              <option key={font.id} value={font.id}>
+                {font.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <RangeField
+          label="正文字号"
+          testId="lw-size-base"
+          value={style.baseSize}
+          {...STYLE_LIMITS.baseSize}
+          suffix="px"
+          onChange={(value) => onChange({ baseSize: value })}
+        />
+        <RangeField
+          label="模块标题字号"
+          testId="lw-size-heading"
+          value={style.headingSize}
+          {...STYLE_LIMITS.headingSize}
+          suffix="px"
+          onChange={(value) => onChange({ headingSize: value })}
+        />
+        <RangeField
+          label="字段标签字号"
+          testId="lw-size-label"
+          value={style.labelSize}
+          {...STYLE_LIMITS.labelSize}
+          suffix="px"
+          onChange={(value) => onChange({ labelSize: value })}
+        />
+      </SettingCard>
 
-      <header className="lw-card-head sub">
-        <h2>间距</h2>
-      </header>
-      <RangeField
-        label="页边距"
-        testId="lw-page-margin"
-        value={style.pageMargin}
-        {...STYLE_LIMITS.pageMargin}
-        suffix="px"
-        onChange={(value) => onChange({ pageMargin: value })}
-      />
-      <RangeField
-        label="模块间距"
-        testId="lw-module-gap"
-        value={style.moduleGap}
-        {...STYLE_LIMITS.moduleGap}
-        suffix="px"
-        onChange={(value) => onChange({ moduleGap: value })}
-      />
-      <RangeField
-        label="段落间距"
-        testId="lw-paragraph-gap"
-        value={style.paragraphGap}
-        {...STYLE_LIMITS.paragraphGap}
-        suffix="px"
-        onChange={(value) => onChange({ paragraphGap: value })}
-      />
-    </section>
+      <SettingCard icon={Ruler} title="间距" hint="行距与页面留白">
+        <RangeField
+          label="行高"
+          testId="lw-line-height"
+          value={style.lineHeight}
+          {...STYLE_LIMITS.lineHeight}
+          onChange={(value) => onChange({ lineHeight: value })}
+        />
+        <RangeField
+          label="页边距"
+          testId="lw-page-margin"
+          value={style.pageMargin}
+          {...STYLE_LIMITS.pageMargin}
+          suffix="px"
+          onChange={(value) => onChange({ pageMargin: value })}
+        />
+        <RangeField
+          label="模块间距"
+          testId="lw-module-gap"
+          value={style.moduleGap}
+          {...STYLE_LIMITS.moduleGap}
+          suffix="px"
+          onChange={(value) => onChange({ moduleGap: value })}
+        />
+        <RangeField
+          label="段落间距"
+          testId="lw-paragraph-gap"
+          value={style.paragraphGap}
+          {...STYLE_LIMITS.paragraphGap}
+          suffix="px"
+          onChange={(value) => onChange({ paragraphGap: value })}
+        />
+      </SettingCard>
+
+      <SettingCard
+        icon={ScrollText}
+        title="纸张"
+        hint="A4 · 正文从第 3 页起"
+        action={
+          <button type="button" className="lw-icon-button" aria-label="恢复默认排版" title="恢复默认排版" onClick={onReset}>
+            <RotateCcw size={14} />
+          </button>
+        }
+      >
+        <p className="lw-note">
+          预览与导出共用同一份排版：字体、字号、行高与页边距会同时进入 docx。页脚按模板从 1 起编号。
+        </p>
+      </SettingCard>
+    </div>
   );
 }

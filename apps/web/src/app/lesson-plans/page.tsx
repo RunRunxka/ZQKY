@@ -3,16 +3,16 @@ import { LessonWorkbench } from '@/features/lesson-plan/LessonWorkbench';
 export const metadata = { title: '智启课源 · 教案工作台' };
 
 /**
- * 教案工作台（`/lesson-plans`，需求 2，三栏沉浸式旗舰模块）。
+ * 教案工作台（`/lesson-plans`，R12：magic-resume 形态的三栏沉浸式编辑器）。
  *
- * 裸页面：壳与滚动容器由 `ModuleWorkspaceShell` 统一提供——需要总控把 `lesson-plans`
- * 登记进该壳的 `independentRoots`（与 textbooks / knowledge-points 等业务根同级），
- * 页面本身不再自包 `WorkspaceShell`（本卡不改导航与壳文件）。
+ * 裸页面：壳与滚动容器由 `ModuleWorkspaceShell` 统一提供——`lesson-plans` 已登记在
+ * `independentRoots`，页面本身不再自包 `WorkspaceShell`。
  *
- * 页面结构：64px 工作台顶栏（教案名称 + 同步状态 + 撤销/重做 + 云端 + 导出）
- * + 三栏（布局排版 / 内容编辑与生成 / A4 预览），列宽可拖拽、三栏独立滚动。
- * 数据：本机草稿自动保存；云端为可选的 CAS autosave；AI 只产候选，采用后才进草稿；
- * 封面与目录不预览，导出由后端组装后下载。
+ * 页面结构：64px 顶栏（课题名 + 保存胶囊 + 撤销/重做 + 本地教案 + 导出）
+ * + 三栏（模块轨与排版 / 当前章节与 AI 生成 / A4 校样台）+ 右侧悬浮 dock；
+ * 列宽可拖拽、面板可折叠、三栏独立滚动。正文按 Word 模板四表还原（第 3 页起），
+ * 封面与目录在导出时生成；目录页码取预览分页（`sectionPages`）。
+ * 数据：本机草稿自动保存；云端为可选的 CAS autosave；AI 只产候选，采用后才进草稿。
  */
 export default function LessonPlansPage() {
   return <LessonWorkbench />;

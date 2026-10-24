@@ -362,6 +362,11 @@ describe('教案工作台 · 导出与本地教案', () => {
     renderWorkbench({ api });
     fireEvent.click(screen.getByTestId('lw-export-button'));
     await waitFor(() => expect(api.exportLessonPlan).toHaveBeenCalledWith('plan-1', expect.anything()));
+    const exportBody = vi.mocked(api.exportLessonPlan).mock.calls[0][1];
+    expect(exportBody.modules).toHaveLength(7);
+    // 预览分页结果随导出发出：目录页码与预览同源（正文从 1 起）。
+    expect(exportBody.sectionPages?.basic).toBe(1);
+    expect(Object.keys(exportBody.sectionPages ?? {}).length).toBeGreaterThanOrEqual(7);
     expect(api.createLessonPlan).toHaveBeenCalledTimes(1);
     expect(api.downloadLessonExport).toHaveBeenCalledWith('art-1');
     expect(createObjectURL).toHaveBeenCalled();
