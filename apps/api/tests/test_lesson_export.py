@@ -41,12 +41,29 @@ STYLE = {"fontId": "puhuiti", "baseSize": 14, "headingSize": 16, "labelSize": 12
          "lineHeight": 1.7, "pageMargin": 48, "moduleGap": 16, "paragraphGap": 6}
 
 
-def _payload(data=None, modules=None, style=None) -> ExportPayload:
-    return ExportPayload.parse({
+def _payload(data=None, modules=None, style=None, section_pages=None) -> ExportPayload:
+    body = {
         "data": full_data() if data is None else data,
         "style": STYLE if style is None else style,
         "modules": [{"id": "custom-1", "kind": "custom", "label": "安全须知", "body": "实验安全第一"}] if modules is None else modules,
-    })
+    }
+    if section_pages is not None:
+        body["sectionPages"] = section_pages
+    return ExportPayload.parse(body)
+
+
+def _row_with(table, needle: str):
+    for row in table.rows:
+        if needle in row.cells[0].text:
+            return row
+    raise AssertionError(f"找不到包含「{needle}」的行")
+
+
+def _row_after(table, needle: str):
+    for index, row in enumerate(table.rows):
+        if needle in row.cells[0].text:
+            return table.rows[index + 1]
+    raise AssertionError(f"找不到「{needle}」之后的行")
 
 
 def test_export_preserves_two_sections_footer_page_and_tables():
@@ -77,9 +94,10 @@ def test_export_fills_cover_toc_and_body_tables():
     assert cover.rows[1].cells[1].text == "王老师"
     assert cover.rows[2].cells[1].text == "本科二年级"
     assert cover.rows[3].cells[1].text == "2"
-    # 目录：七条（含页码列）
+    # 目录：七条（含页码列），页码按正文从 1 起
     toc = [p.text for p in document.paragraphs if p.text.startswith(("一、", "七、"))]
     assert len(toc) == 2 and "\t" in toc[0]
+    assert toc[0].endswith("\t1")
     # 正文标题（第 3 页起）
     body_titles = [p.text for p in document.paragraphs if "　教学设计" in p.text]
     assert body_titles == ["通信电子线路　教学设计"]
@@ -96,9 +114,59 @@ def test_export_fills_cover_toc_and_body_tables():
     process = document.tables[4]
     assert process.rows[3].cells[0].text == "课前热身"
     assert process.rows[4].cells[1].text == "教师演示"
-    # 评价/反思入位
-    assert "课后测试" in process.rows[15].cells[0].text
-    assert "反思正文" in process.rows[17].cells[0].text
+    # 评价/反思入位（行数随数据重建，按标题定位）
+    evaluation_row = _row_after(process, "六、评价反馈")
+    reflection_row = _row_after(process, "七、教学反思")
+    assert "课后测试" in evaluation_row.cells[0].text
+    assert "反思正文" in reflection_row.cells[0].text
+
+
+def test_export_keeps_template_evaluation_and_reflection_subitems():
+    """六、评价反馈保留模板四项；（三）（四）没有数据也保留标题。七、教学反思保留三项。"""
+    content = build_document(_payload(modules=[], data={
+        **full_data(),
+        "reflection": "（一）目标达成度分析\n达成较好\n（二）教学特色与可供借鉴之处\n案例教学\n（三）教学后记\n继续改进",
+    }))
+    process = Document(io.BytesIO(content)).tables[4]
+    evaluation = _row_after(process, "六、评价反馈").cells[0].text
+    for heading in ("（一）学生课后测试情况", "（二）学生课后作业情况", "（三）学生课后调查反馈", "（四）督导专家课后反馈"):
+        assert heading in evaluation
+    assert "课后测试" in evaluation
+    assert "作业" in evaluation
+    assert "课本 P12 1-3" in evaluation
+    reflection = _row_after(process, "七、教学反思").cells[0].text
+    for heading in ("（一）目标达成度分析", "（二）教学特色与可供借鉴之处", "（三）教学后记"):
+        assert heading in reflection
+    assert "达成较好" in reflection
+    assert "案例教学" in reflection
+    assert "继续改进" in reflection
+
+
+def test_export_uses_preview_section_pages_for_toc():
+    content = build_document(
+        _payload(modules=[], section_pages={"basic": 1, "analysis": 2, "objectives": 2, "strategy": 3,
+                                            "process": 4, "evaluation": 6, "reflection": 7})
+    )
+    document = Document(io.BytesIO(content))
+    toc = {p.text.split("\t")[0]: p.text.rsplit("\t", 1)[-1] for p in document.paragraphs if "\t" in p.text and p.text.startswith(("一、", "二、", "三、", "四、", "五、", "六、", "七、"))}
+    assert toc["一、基本信息"] == "1"
+    assert toc["七、教学反思"] == "7"
+
+
+def test_export_rebuilds_process_rows_beyond_template_capacity():
+    """模板只有 5 阶段 / 6 内容行；更多环节按行克隆，不丢行。"""
+    rows = []
+    for index in range(1, 6):
+        rows.append({"id": f"p{index}", "phase": "exploration", "phaseLabel": f"第{index}阶段",
+                     "title": f"环节{index}", "teacherActivity": f"教师{index}",
+                     "studentActivity": f"学生{index}", "intent": f"意图{index}"})
+    content = build_document(_payload(modules=[], data={**full_data(), "processV2": rows}))
+    process = Document(io.BytesIO(content)).tables[4]
+    texts = "\n".join(row.cells[0].text for row in process.rows)
+    for index in range(1, 6):
+        assert f"第{index}阶段" in texts
+        assert f"环节{index}" in texts
+    assert _row_with(process, "六、评价反馈") is not None
 
 
 def test_export_custom_module_appends_table_in_module_order():

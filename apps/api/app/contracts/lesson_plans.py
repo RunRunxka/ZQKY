@@ -481,6 +481,22 @@ class LessonExportRequest(RequestModel):
     data: LessonPlanData
     style: LessonExportStyle = Field(default_factory=LessonExportStyle)
     modules: list[LessonExportModule] = Field(default_factory=list, max_length=100)
+    #: 预览分页算出的「模块 id → 正文页码（1 起）」；缺省时后端回退到行数估算。
+    section_pages: dict[str, int] | None = Field(default=None, alias="sectionPages")
+
+    @field_validator("section_pages")
+    @classmethod
+    def _check_section_pages(cls, value: dict[str, int] | None) -> dict[str, int] | None:
+        if value is None:
+            return None
+        if len(value) > 200:
+            raise ValueError("sectionPages has too many entries")
+        for key, page in value.items():
+            if not key or len(key) > 128:
+                raise ValueError("sectionPages keys must be 1..128 characters")
+            if page < 1 or page > 10000:
+                raise ValueError("sectionPages values must be positive page numbers")
+        return value
 
 
 class LessonExportReceipt(Frozen):

@@ -385,6 +385,7 @@ class LessonPlanService:
             "data": data,
             "style": body.style.model_dump(by_alias=True, mode="json"),
             "modules": [module.model_dump(by_alias=True, mode="json", exclude_none=True) for module in body.modules],
+            "sectionPages": body.section_pages,
         })
         try:
             content = build_document(payload)

@@ -13,25 +13,28 @@
 
 1. 封面（第 1 页）：标题「（课题名称）」→ ``data.title``；封面表 4 行
    （课程名称/授课教师/授课对象/授课学时）从 ``data.basic`` 取值；
-2. 目录（第 2 页）：按 ``modules``（可见模块）重写条目行（样式沿用模板：
-   仿宋 sz30、行距 exact 680、右对齐点线制表位）；**页码列为估算值**
-   （正文按内容行数近似估算，docx 分页由 Word 排版引擎决定，python-docx
-   无法精确分页；样张比对显示估算与实际可偏差 ±1 页，见交付说明）；
+2. 目录（第 2 页）：按 ``modules`` 重写条目行（样式沿用模板：
+   仿宋 sz30、行距 exact 680、右对齐点线制表位）；**页码优先取请求里的
+   ``sectionPages``**（前端预览分页的「模块 → 正文页码」，正文 1 起），缺省才回退
+   行数估算；目录与预览同源；
 3. 第 3 页起正文：页眉标题「（课程名称）　教学设计」→「{courseName}　教学设计」；
    各内置模块按模板四表口径填充：
    - 一、基本信息（4 列表：课程名称/授课对象/授课时间/授课地点/教学章节）；
    - 二、教学分析（2 列：学情/教材/内容/思政）；
-   - 三、教学目标（3 列 vMerge：教学目标跨 3 行 + 知识/能力/思政；重点/难点）；
+   - 三、教学目标（3 列 vMerge：教学目标跨 3 行 + 知识/能力/思政；重点/难点两行）；
    - 四、教学策略（在目标表尾部 3 行：设计思路/教学流程/教学手段——模板里
      策略与目标同表）；
-   - 五、教学过程（4 列：环节/教师活动/学生活动/设计意图，阶段跨列行）；
-   - 六、评价反馈（跨列表：课后测试/作业）；
-   - 七、教学反思（跨列表：目标达成/特色/改进）；
+   - 五、教学过程（4 列：环节/教师活动/学生活动/设计意图，阶段跨列行；
+     超出模板 5 阶段/6 内容行时按行克隆，不丢环节）；
+   - 六、评价反馈（跨列表：模板四项小标题常驻——（一）课后测试、（二）课后作业、
+     （三）课后调查反馈、（四）督导专家反馈；（二）承接 homework，空则 exercises）；
+   - 七、教学反思（跨列表：模板三项小标题常驻——目标达成度/教学特色/教学后记，
+     带标题的文本按标题拆分）；
    - **自定义模块**：克隆模板表样式新增「标题跨列 + 正文」表，按 ``modules``
      顺序插入到正文表序列末尾；
-4. 字体：正文/标题 run 的 ``w:eastAsia``/``w:ascii`` 按 ``style.fontFamily``
-   的首个字体族写入（未装字体由 Word 回退，可接受；见交付说明）。
-   模板默认「黑体标题/宋体正文」；``fontId`` 映射到中文俗名字体名。
+4. 字体与字号：``w:eastAsia``/``w:ascii`` 按 ``style.fontId`` 写入中文俗名；
+   板块标题用 ``headingSize``、标签格用 ``labelSize``、正文用 ``baseSize``，
+   行高与段距写入段落间距（预览滑杆在 docx 里同样生效）。
 
 **重开校验**（``verify_document``）：导出后用 python-docx 重新打开断言
 节数=2、第 2 节 footer 引用 PAGE、表数=四表+自定义数、关键文本入位、
@@ -117,6 +120,7 @@ class ExportPayload:
     data: dict
     style: dict = field(default_factory=dict)
     modules: list[dict] = field(default_factory=list)
+    section_pages: dict[str, int] = field(default_factory=dict)
 
     @classmethod
     def parse(cls, body: Any) -> "ExportPayload":
@@ -131,7 +135,13 @@ class ExportPayload:
         if not modules:
             # 缺省：全部内置模块按默认顺序可见（与前端默认布局一致）。
             modules = [{"id": key, "kind": "builtin", "builtinId": key, "label": BUILTIN_LABEL[key]} for key in BUILTIN_ORDER]
-        return cls(data=body["data"], style=style, modules=modules)
+        raw_pages = body.get("sectionPages")
+        section_pages: dict[str, int] = {}
+        if isinstance(raw_pages, dict):
+            for key, page in raw_pages.items():
+                if isinstance(key, str) and isinstance(page, int) and page >= 1:
+                    section_pages[key] = page
+        return cls(data=body["data"], style=style, modules=modules, section_pages=section_pages)
 
 
 #: 教案正文可识别的键（至少命中一个才算教案文档；与前端 isLessonDataShaped 同口径）。
@@ -156,16 +166,6 @@ def _px_to_half_pt(px: float | int | None, fallback: float) -> int:
         px_value = fallback
     half = round(px_value * 0.75 * 2)
     return max(8, min(120, int(half)))
-
-
-def _px_to_twips_line(px: float | int | None, *, base_size_px: float) -> int:
-    """前端行高（倍数）× 基础字号 → 行距 twips（exact）。"""
-    try:
-        multiple = float(px)
-    except (TypeError, ValueError):
-        multiple = 1.7
-    multiple = min(2.0, max(1.0, multiple))
-    return max(240, min(2000, int(base_size_px * 0.75 * multiple * 20)))
 
 
 def _set_run_font(run: Any, *, east_asia: str, size_half_pt: int | None = None, bold: bool | None = None) -> None:
@@ -245,11 +245,11 @@ def _visible_custom_modules(modules: list[dict]) -> list[dict]:
 
 
 def _estimate_page_starts(payload: ExportPayload, visible: list[str], custom: list[dict]) -> dict[str, int]:
-    """目录页码估算：按每模块内容行数累加（≈12 行/页，向上取整）。
+    """目录页码回退估算：按每模块内容行数累加（≈12 行/页，向上取整）。
 
-    **近似口径**：docx 实际分页由 Word 排版引擎决定（行距/表格跨页/字体内置
-    度量都有影响），python-docx 无法精确计算分页；目录页码以内容行数近似，
-    样张量级偏差 ±1 页。交付说明中已注明，如需精确可在 Word 中更新域。
+    **只有前端没带 ``sectionPages`` 时才用**。页码口径与文档一致：正文从 1 起
+    （模板第 2 节 ``pgNumType start=1``），不再是文档页序号 3。实际分页由 Word
+    排版引擎决定；预览带页码时以后者为准。
     """
     data = payload.data
     rows_of: dict[str, int] = {}
@@ -262,10 +262,12 @@ def _estimate_page_starts(payload: ExportPayload, visible: list[str], custom: li
     rows_of["objectives"] = 5 + len(_text(data.get("coreCompetencies")).split("\n"))
     rows_of["strategy"] = 3 + sum(len(_text(strategy.get(key)).split("\n")) for key in ("designThinking", "teachingFlow", "methods"))
     rows_of["process"] = 2 + len(data.get("processV2") or []) * 2
-    rows_of["evaluation"] = 2 + len(_text(data.get("exercises")).split("\n")) + len(_text(evaluation.get("afterClassTest")).split("\n"))
-    rows_of["reflection"] = 2 + len(_text(data.get("reflection")).split("\n"))
+    rows_of["evaluation"] = 6 + len(_text(evaluation.get("afterClassTest")).split("\n")) + len(
+        (_text(evaluation.get("homework")) or _text(data.get("exercises"))).split("\n")
+    )
+    rows_of["reflection"] = 5 + len(_text(data.get("reflection")).split("\n"))
     starts: dict[str, int] = {}
-    page, used = 3, 0  # 正文从第 3 页起（pgNumType 显示 1，但目录按文档页序号写）
+    page, used = 1, 0  # 正文从第 1 页起（pgNumType start=1）
     for key in visible:
         starts[key] = page
         used += rows_of.get(key, 2)
@@ -281,6 +283,14 @@ def _estimate_page_starts(payload: ExportPayload, visible: list[str], custom: li
     return starts
 
 
+def _section_page_starts(payload: ExportPayload, visible: list[str], custom: list[dict]) -> dict[str, int]:
+    """优先用预览分页结果，缺失的模块（如被隐藏）回退到行数估算（口径都是正文 1 起）。"""
+    estimated = _estimate_page_starts(payload, visible, custom)
+    if payload.section_pages:
+        estimated.update(payload.section_pages)
+    return estimated
+
+
 def _rewrite_toc(document: Any, payload: ExportPayload, visible: list[str], custom: list[dict]) -> None:
     """按当前模块清单重写目录条目（样式沿用模板：仿宋 sz30、行距 exact、点线制表位）。
 
@@ -292,7 +302,7 @@ def _rewrite_toc(document: Any, payload: ExportPayload, visible: list[str], cust
     east_asia = _font_family(payload.style)
     base_size = payload.style.get("baseSize") or 14
     toc_size = max(TOC_FONT_SIZE_HALF_PT, _px_to_half_pt(base_size, 14))
-    starts = _estimate_page_starts(payload, visible, custom)
+    starts = _section_page_starts(payload, visible, custom)
     titles: list[str] = [f"{BUILTIN_NO[key]}、{BUILTIN_LABEL[key]}" for key in visible]
     for entry in custom:
         titles.append(_text(entry.get("label")) or "自定义模块")
@@ -443,8 +453,11 @@ def _phase_label_of(item: dict) -> str:
     return phases.get(_text(item.get("phase")), "")
 
 
-def _process_rows(data: dict) -> list[tuple[str, str, str, str]]:
-    """教学过程行：阶段跨列行（label, "", "", ""）与内容行（title, teacher, student, intent）。"""
+def _process_sequence(data: dict) -> list[tuple[str, tuple[str, str, str, str]]]:
+    """教学过程行序列：``("stage", (label, "", "", ""))`` 与 ``("content", (title, teacher, student, intent))``。
+
+    阶段行与内容行分开标记，便于按模板行样式克隆/重建（不再受模板 5 阶段 / 6 内容行限制）。
+    """
     rows_v2 = data.get("processV2")
     if isinstance(rows_v2, list) and rows_v2:
         items = [item for item in rows_v2 if isinstance(item, dict)]
@@ -457,30 +470,233 @@ def _process_rows(data: dict) -> list[tuple[str, str, str, str]]:
             for index, item in enumerate(data.get("process") or [])
             if isinstance(item, dict)
         ]
-    result: list[tuple[str, str, str, str]] = []
+    sequence: list[tuple[str, tuple[str, str, str, str]]] = []
     current_phase: str | None = None
     for item in items:
         label = _phase_label_of(item)
         if label and label != current_phase:
-            result.append((label, "", "", ""))
+            sequence.append(("stage", (label, "", "", "")))
             current_phase = label
-        result.append((_text(item.get("title")), _text(item.get("teacherActivity")),
-                       _text(item.get("studentActivity")), _text(item.get("intent"))))
-    return result
+        sequence.append(
+            (
+                "content",
+                (
+                    _text(item.get("title")),
+                    _text(item.get("teacherActivity")),
+                    _text(item.get("studentActivity")),
+                    _text(item.get("intent")),
+                ),
+            )
+        )
+    return sequence
 
 
-def _apply_font_to_table(table: Any, *, east_asia: str, size_half_pt: int, skip_cells: set[Any] | None = None) -> None:
-    """整表 run 字体统一（标题行黑体语义按模板保留加粗，但族改为所选字体）。"""
-    skip_cells = skip_cells or set()
-    for row in table.rows:
-        seen: set[Any] = set()
-        for cell in row.cells:
-            if cell._tc in seen or cell._tc in skip_cells:
-                continue
-            seen.add(cell._tc)
-            for para in cell.paragraphs:
-                for run in para.runs:
-                    _set_run_font(run, east_asia=east_asia, size_half_pt=size_half_pt)
+#: 模板评价反馈的四项小标题（与预览同一口径）。
+EVALUATION_HEADINGS = (
+    "（一）学生课后测试情况",
+    "（二）学生课后作业情况",
+    "（三）学生课后调查反馈",
+    "（四）督导专家课后反馈",
+)
+
+#: 模板教学反思的三项小标题（与预览同一口径）。
+REFLECTION_HEADINGS = (
+    "（一）目标达成度分析",
+    "（二）教学特色与可供借鉴之处",
+    "（三）教学后记",
+)
+
+_REFLECTION_MARKERS = (
+    ("achievement", re.compile(r"^\s*(?:[（(]\s*[一二三]\s*[）)]|[一二三]\s*[、.．])\s*目标达成度")),
+    ("features", re.compile(r"^\s*(?:[（(]\s*[一二三]\s*[）)]|[一二三]\s*[、.．])\s*教学特色")),
+    ("postscript", re.compile(r"^\s*(?:[（(]\s*[一二三]\s*[）)]|[一二三]\s*[、.．])\s*教学后记")),
+)
+
+
+def _evaluation_text(data: dict) -> str:
+    """评价反馈一格：模板四项标题常驻；（二）承接 homework（空则 exercises，都有则合并）。"""
+    evaluation = data.get("evaluation") or {}
+    homework = _text(evaluation.get("homework")).strip()
+    exercises = _text(data.get("exercises")).strip()
+    if homework and exercises and homework != exercises:
+        homework_text = f"{homework}\n{exercises}"
+    else:
+        homework_text = homework or exercises
+    return "\n".join(
+        [
+            EVALUATION_HEADINGS[0],
+            _text(evaluation.get("afterClassTest")).strip(),
+            EVALUATION_HEADINGS[1],
+            homework_text,
+            EVALUATION_HEADINGS[2],
+            "",
+            EVALUATION_HEADINGS[3],
+            "",
+        ]
+    )
+
+
+def _reflection_parts(text: str) -> dict[str, str]:
+    buckets: dict[str, list[str]] = {"achievement": [], "features": [], "postscript": []}
+    current = "achievement"
+    for line in (text or "").splitlines():
+        hit = next((key for key, pattern in _REFLECTION_MARKERS if pattern.match(line)), None)
+        if hit:
+            current = hit
+            continue
+        buckets[current].append(line)
+    return {key: "\n".join(lines).strip() for key, lines in buckets.items()}
+
+
+def _reflection_text(data: dict) -> str:
+    """教学反思一格：模板三项标题常驻；无标题文本整体进（一）。"""
+    parts = _reflection_parts(_text(data.get("reflection")))
+    return "\n".join(
+        [
+            REFLECTION_HEADINGS[0],
+            parts["achievement"],
+            REFLECTION_HEADINGS[1],
+            parts["features"],
+            REFLECTION_HEADINGS[2],
+            parts["postscript"],
+        ]
+    )
+
+
+def _row_index_by_text(table: Any, needle: str) -> int | None:
+    for index, row in enumerate(table.rows):
+        if needle in " ".join(cell.text for cell in row.cells):
+            return index
+    return None
+
+
+def _rebuild_process_rows(
+    table: Any,
+    data: dict,
+    *,
+    east_asia: str,
+    body_half: int,
+) -> None:
+    """按数据重建「五、教学过程」行区：模板 5 阶段 / 6 内容行的上限不再丢行。
+
+    模板行区：row 3 起是阶段/内容行，直到「六、评价反馈」标题行。这里删除旧行，
+    用 row 3（阶段）与 row 4（内容）为样式样板克隆出与数据等长的行序列。
+    """
+    rows = table.rows
+    eval_index = _row_index_by_text(table, "六、评价反馈")
+    if eval_index is None or eval_index <= 4:
+        raise ExportAssemblyError("模板教学过程表结构异常（找不到「六、评价反馈」）。")
+    stage_template = copy.deepcopy(rows[3]._tr)
+    content_template = copy.deepcopy(rows[4]._tr)
+    eval_tr = rows[eval_index]._tr
+    for row in list(rows)[3:eval_index]:
+        row._tr.getparent().remove(row._tr)
+
+    sequence = _process_sequence(data)
+    if not sequence:
+        sequence = [("content", ("", "", "", ""))]
+    for kind, _ in sequence:
+        clone = copy.deepcopy(stage_template if kind == "stage" else content_template)
+        eval_tr.addprevious(clone)
+
+    for offset, (kind, cells_text) in enumerate(sequence):
+        row = table.rows[3 + offset]
+        if kind == "stage":
+            _fill_cell(row.cells[0], cells_text[0], east_asia=east_asia, size_half_pt=body_half)
+            continue
+        for cell, text in zip(row.cells, cells_text):
+            _fill_cell(cell, text, east_asia=east_asia, size_half_pt=body_half)
+
+
+def _fill_paragraphs_with_bold_headings(cell: Any, text: str, *, east_asia: str, size_half_pt: int) -> None:
+    """整格多段写入：以「（一）…」开头的段落加粗（模板评价/反思的小标题）。"""
+    lines = text.split("\n")
+    paragraphs = cell.paragraphs
+    for para in paragraphs[len(lines):]:
+        para._p.getparent().remove(para._p)
+    for index, line in enumerate(lines):
+        para = paragraphs[index] if index < len(paragraphs) else cell.add_paragraph()
+        for run in list(para.runs):
+            run._element.getparent().remove(run._element)
+        run = para.add_run(line)
+        heading = bool(re.match(r"^\s*（[一二三四五六七八九十]+）", line))
+        _set_run_font(run, east_asia=east_asia, size_half_pt=size_half_pt, bold=heading)
+
+
+#: 模板里的标签格文本（表头/字段名）；字号用 style.labelSize。
+LABEL_TEXTS = frozenset(
+    {
+        "课程名称", "授课教师", "授课对象", "授课学时",
+        "授课时间", "授课地点", "教学章节",
+        "学情分析", "教材分析", "教学内容", "思政资源",
+        "教学目标", "知识目标", "能力目标", "思政目标", "教学重点", "教学难点",
+        "设计思路", "教学流程", "教学手段",
+        "教学环节", "教学活动", "教师活动", "学生活动", "设计意图",
+    }
+)
+
+_SECTION_BAND = re.compile(r"^[一二三四五六七]、")
+_STAGE_LABEL = re.compile(r"^(?:第[一二三四五六七八九十]+阶段|课前热身|课程引入|深入研讨|练习巩固|总结提升)")
+
+
+def _apply_paragraph_spacing(paragraph: Any, *, line_height: float, paragraph_gap_px: float) -> None:
+    p_pr = paragraph._p.get_or_add_pPr()
+    spacing = p_pr.find(qn("w:spacing"))
+    if spacing is None:
+        spacing = p_pr.makeelement(qn("w:spacing"), {})
+        p_pr.append(spacing)
+    spacing.set(qn("w:line"), str(int(round(240 * min(2.0, max(1.0, line_height))))))
+    spacing.set(qn("w:lineRule"), "auto")
+    spacing.set(qn("w:after"), str(max(0, int(round(paragraph_gap_px * 15)))))
+
+
+def _apply_template_typography(
+    document: Any,
+    *,
+    style: dict,
+    east_asia: str,
+    heading_half: int,
+    label_half: int,
+    body_half: int,
+) -> None:
+    """正文表格逐格套字号：板块标题 heading、标签格 label、正文 base；行高/段距进段落。
+
+    模板的「黑体标题 / 宋体正文」只是默认样式；这里统一成用户选择的字体族与字号，
+    保证预览滑杆在 docx 里也生效。
+    """
+    try:
+        line_height = float(style.get("lineHeight") or 1.7)
+    except (TypeError, ValueError):
+        line_height = 1.7
+    try:
+        paragraph_gap = float(style.get("paragraphGap") or 0)
+    except (TypeError, ValueError):
+        paragraph_gap = 0
+    for table in document.tables:
+        for row in table.rows:
+            seen: set[Any] = set()
+            for cell in row.cells:
+                if cell._tc in seen:
+                    continue
+                seen.add(cell._tc)
+                text = cell.text.strip()
+                first_line = text.split("\n", 1)[0].strip()
+                if _SECTION_BAND.match(first_line):
+                    size, bold = heading_half, True
+                elif first_line in LABEL_TEXTS or _STAGE_LABEL.match(first_line):
+                    size, bold = label_half, True
+                else:
+                    size, bold = body_half, None
+                for para in cell.paragraphs:
+                    _apply_paragraph_spacing(para, line_height=line_height, paragraph_gap_px=paragraph_gap)
+                    heading_para = bool(re.match(r"^\s*（[一二三四五六七八九十]+）", para.text))
+                    for run in para.runs:
+                        _set_run_font(
+                            run,
+                            east_asia=east_asia,
+                            size_half_pt=size,
+                            bold=True if (heading_para and size == body_half) else bold,
+                        )
 
 
 def build_document(payload: ExportPayload) -> bytes:
@@ -491,8 +707,10 @@ def build_document(payload: ExportPayload) -> bytes:
     east_asia = _font_family(payload.style)
     base_size = payload.style.get("baseSize") or 14
     heading_size = payload.style.get("headingSize") or 16
+    label_size = payload.style.get("labelSize") or 12
     body_half = _px_to_half_pt(base_size, 14)
     head_half = _px_to_half_pt(heading_size, 16)
+    label_half = _px_to_half_pt(label_size, 12)
     visible = _visible_builtin_ids(payload.modules)
     custom = _visible_custom_modules(payload.modules)
 
@@ -558,47 +776,23 @@ def build_document(payload: ExportPayload) -> bytes:
         _fill_cell(row.cells[1], value, east_asia=east_asia, size_half_pt=body_half)
 
     # 五、教学过程 + 六、评价反馈 + 七、教学反思（同表）
-    process_rows = _process_rows(data)
-    # 模板骨架行：4/6/8/10/12 是内容行，3/5/7/9/11 是阶段行；13 是追加内容行。
-    # 组装策略：重写 13 行骨架为「阶段行/内容行」序列，不足补行、多余清空。
-    template_rows = process_table.rows
-    skeleton_content = [4, 6, 8, 10, 12, 13]
-    skeleton_stage = [3, 5, 7, 9, 11]
-    stage_iter = (row for row in process_rows if not row[1] and not row[2] and not row[3])
-    content_iter = (row for row in process_rows if row[1] or row[2] or row[3])
-    for index in skeleton_stage:
-        if index >= len(template_rows):
-            break
-        row = template_rows[index]
-        try:
-            stage = next(stage_iter)
-        except StopIteration:
-            _fill_cell(row.cells[0], "", east_asia=east_asia, size_half_pt=body_half)
-            continue
-        _fill_cell(row.cells[0], stage[0], east_asia=east_asia, size_half_pt=body_half)
-    for index in skeleton_content:
-        if index >= len(template_rows):
-            break
-        row = template_rows[index]
-        try:
-            content = next(content_iter)
-        except StopIteration:
-            for cell in {c._tc: c for c in row.cells}.values():
-                _fill_cell(cell, "", east_asia=east_asia, size_half_pt=body_half)
-            continue
-        _fill_cell(row.cells[0], content[0], east_asia=east_asia, size_half_pt=body_half)
-        _fill_cell(row.cells[1], content[1], east_asia=east_asia, size_half_pt=body_half)
-        _fill_cell(row.cells[2], content[2], east_asia=east_asia, size_half_pt=body_half)
-        _fill_cell(row.cells[3], content[3], east_asia=east_asia, size_half_pt=body_half)
-    evaluation = data.get("evaluation") or {}
-    evaluation_text = "\n".join(
-        part for part in (
-            f"（一）学生课后测试情况\n{_text(evaluation.get('afterClassTest'))}" if _text(evaluation.get("afterClassTest")) else "",
-            f"（二）学生课后作业情况\n{_text(evaluation.get('homework')) or _text(data.get('exercises'))}" if (_text(evaluation.get("homework")) or _text(data.get("exercises"))) else "",
-        ) if part
+    _rebuild_process_rows(process_table, data, east_asia=east_asia, body_half=body_half)
+    evaluation_index = _row_index_by_text(process_table, "六、评价反馈")
+    reflection_index = _row_index_by_text(process_table, "七、教学反思")
+    if evaluation_index is None or reflection_index is None:
+        raise ExportAssemblyError("模板评价/反思段缺失。")
+    _fill_paragraphs_with_bold_headings(
+        process_table.rows[evaluation_index + 1].cells[0],
+        _evaluation_text(data),
+        east_asia=east_asia,
+        size_half_pt=body_half,
     )
-    _fill_cell(template_rows[15].cells[0], evaluation_text or "（一）学生课后测试情况\n（二）学生课后作业情况", east_asia=east_asia, size_half_pt=body_half)
-    _fill_cell(template_rows[17].cells[0], _text(data.get("reflection")), east_asia=east_asia, size_half_pt=body_half)
+    _fill_paragraphs_with_bold_headings(
+        process_table.rows[reflection_index + 1].cells[0],
+        _reflection_text(data),
+        east_asia=east_asia,
+        size_half_pt=body_half,
+    )
 
     # ---- 自定义模块：克隆「标题跨列 + 正文」表（样式沿用模板 TableGrid），插到正文末尾 ----
     for entry in custom:
@@ -634,9 +828,15 @@ def build_document(payload: ExportPayload) -> bytes:
         _fill_cell(new_table.rows[1].cells[0], body_text, east_asia=east_asia, size_half_pt=body_half)
         document.element.body.append(new_tbl)
 
-    # ---- 字体统一（封面/正文表；目录已单独设置）----
-    for table in document.tables:
-        _apply_font_to_table(table, east_asia=east_asia, size_half_pt=body_half)
+    # ---- 字体与字号统一（封面/正文表；目录已单独设置）----
+    _apply_template_typography(
+        document,
+        style=payload.style,
+        east_asia=east_asia,
+        heading_half=head_half,
+        label_half=label_half,
+        body_half=body_half,
+    )
     for para in document.paragraphs:
         if para.text.strip():
             for run in para.runs:
