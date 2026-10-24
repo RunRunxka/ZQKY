@@ -4,8 +4,10 @@
 > **2026-10-11 推倒重做 → 2026-10-12 R0–R9 重建完成 → 2026-10-13 R10 收口**：在最小骨架上
 > 按 R 系列批重建了完整教学闭环（八个板块 + 统一问答 + Agent 工具化），并在 R10 处理完用户
 > 真机实测四问题（学习问答发送链路、壳包含块、数据清空、闭环测试套件、**删除语义重做**——
-> 舍弃归档只留删除 + 拆开交叉引用）。历史完整产品（全量期）仍归档于
-> git tag `archive-full-v1-20261011`——**取回参考的唯一入口**，不要把旧文件直接捞回工作区。
+> 舍弃归档只留删除 + 拆开交叉引用）。**2026-10-23 R12** 把教案工作台重做为 magic-resume
+> 形态的三栏编辑器，正文预览按 Word 模板四表逐行还原，导出目录页码与预览同源。历史完整产品
+> （全量期）仍归档于 git tag `archive-full-v1-20261011`——**取回参考的唯一入口**，不要把旧文件
+> 直接捞回工作区。
 
 ## 1. 项目概述
 
@@ -29,9 +31,10 @@
 | 样式 | Tailwind CSS 3.4 + 单一 CSS 变量层 | `apps/web/src/styles/globals.css`；字体走 token |
 | 状态 | Zustand 5 | 对话单 store（`features/chat/model/store.ts`）|
 | 内容渲染 | react-markdown、KaTeX、Mermaid、Chart.js | 消息正文与产物预览 |
+| 交互动效 | framer-motion 14 + @radix-ui/react-tooltip | 教案工作台（Reorder 拖拽 / 手风琴 / 悬浮提示）；仅该页客户端加载 |
 | 后端 | FastAPI（Python ≥ 3.12，uv 管理） | `apps/api`，SSE 三协议适配 + 八域装配 |
 | Agent | langgraph 1.2 + langchain 1.4（core 1.6） | `app/services/agent/`；checkpointer 落 SQLite；模块 LLM 走 `app/services/llm/` |
-| 测试 | Vitest（jsdom）+ Playwright + pytest | 单测 / e2e / 后端（后端 1850 例，2026-10-13） |
+| 测试 | Vitest（jsdom）+ Playwright + pytest | 单测 / e2e / 后端（后端 1946 例，2026-10-23） |
 
 ## 3. 仓库结构
 
@@ -54,7 +57,7 @@ apps/
     ├── app/repositories/     # 四库仓储（textbook_catalog/knowledge/question_bank/teaching）+ vector_store/jobs
     ├── app/core/             # config / secrets / sqlite / migrations（四库追加式）/ data_lock
     ├── app/resources/        # 教案模板（lesson_templates/）
-    └── tests/                # pytest（1850 例；入口见 §4 环境坑）
+    └── tests/                # pytest（1946 例；入口见 §4 环境坑）
 tests/                        # e2e（Playwright，系统 msedge 通道，自起 5174）与 fixtures
 docs/                         # 权威文档（CURRENT_STATUS / PROJECT_GUIDE / API / ROUTES /
                               #          MULTI_AGENT_COLLABORATION_PROPOSAL）
@@ -84,6 +87,11 @@ npm.cmd run check         # typecheck + lint + unit + build 串跑
   `chromium.launch({ channel: 'msedge' })`），本机没有自带 chromium 二进制。
 - `npm.cmd run check` 是串行链：单测挂则 build 不跑；`ScoreImportPanel` 有已知负载型 flake，
   单跑/复跑即绿（先复跑再下结论）。
+- **不要在 dev server 运行时执行 `npm.cmd run build`**：`next build` 会改写 `apps/web/.next`，
+  而 Turbopack 开发服务器仍持有旧模块工厂，浏览器会报
+  `(0, ...someExport) is not a function`（典型：设置 → 模型与连接 →「自动获取信息」）。
+  处理顺序：停 dev → 删 `apps/web/.next` → 重新 `npm.cmd run dev` → 浏览器
+  **Ctrl+Shift+R 硬刷新**。同理，HMR 出现莫名其妙的 `is not a function` 时先清 `.next` 再重启。
 
 ## 5. 代码组织规范
 
@@ -101,11 +109,16 @@ npm.cmd run check         # typecheck + lint + unit + build 串跑
   在 `main.py _DOMAIN_ASSEMBLIES` 按依赖顺序登记；不要改他人域的装配。
 - **前端壳纪律**：新业务页在 `ModuleWorkspaceShell.independentRoots` 登记（无斜杠首段）+
   `navigation.ts` 登记后由壳统一提供侧栏与滚动，页面裸渲染（不自包 WorkspaceShell）。
+- **动效与浮层纪律**：拖拽 / 手风琴 / 入场动画用 **framer-motion**（尊重 `useReducedMotion`），
+  悬浮提示用 **@radix-ui/react-tooltip**；不引入第二套主题或第二套动效库。
+- **教案工作台纪律**：样式作用域 `.lesson-workbench`；三栏 + 悬浮 dock + 面板折叠；预览与导出
+  共用 `features/lesson-plan/services/pagination.ts` 的分页与字号口径，导出请求携带
+  `sectionPages`（模块 → 正文页码），不得让预览与 docx 目录各算一套。
 
 ## 6. 测试与验收要求
 
 - 提交前跑 `npm.cmd run check`；路由、布局改动另跑 e2e（先 `build`）。
-- 门禁基线（2026-10-13）：后端 **1850**、前端 **664 例**、e2e **17**；数字与命令证据写进
+- 门禁基线（2026-10-23）：后端 **1946**、前端 **87 文件 771 例**、e2e **17**；数字与命令证据写进
   `docs/CURRENT_STATUS.md`。
 - 只跑与变更相关且有意义的场景；**未执行的检查明确写「未执行」及原因，不写「应当通过」**。
 - 区分真实服务、本地规则与规划状态；**构建成功不等于业务或视觉验收通过**。

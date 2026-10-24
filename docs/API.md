@@ -1,6 +1,6 @@
 # API 契约
 
-更新：2026-10-20（归档功能全局移除：所有 `archive/restore` 端点删除，题库 DELETE 改为物理删除；知识点 DELETE 改为整棵子树）。未列出的 `/api/v1/*` 返回 501
+更新：2026-10-23（R12 教案导出：`sectionPages` 目录页码、评价四项/反思三项、过程行克隆；归档功能自 2026-10-20 起全局移除）。未列出的 `/api/v1/*` 返回 501
 `FEATURE_NOT_IMPLEMENTED`（域已装配但依赖缺失时返回 503 `SERVICE_UNAVAILABLE`，绝不假成功）。
 
 ## 公共
@@ -141,7 +141,7 @@ blob）、`workflow_jobs`（任务历史）、`command_submissions`（提交幂�
 | `/api/v1/lesson-plans`（GET/POST）、`/{id}`（GET/PATCH draft/DELETE）、`/{id}/revisions` | 教案草稿/修订（CAS `expectedRevision`；草稿与候选分离）。`POST` 必填 `subjectId`/`classId`（教案必属某班某科）与 `context` 键（手工新建显式 `null`，缺键 422）；`DELETE ?expectedRevision=N` 彻底删除教案自身历史（**归档/恢复端点已于 2026-10-20 移除**，界面只留删除，入口在教案工作台「本地教案」） |
 | POST `/api/v1/lesson-plans/generation-stream` | 逐模块流式生成（SSE：`message.start / module.start / module.delta / module.error / module.done / message.end / error`；生成候选采用才写入）。固定数据来源：`analysisRunId`（学情报告匿名聚合）与 **`sourceAssetRef`**（教师上传的学情材料，2026-10-13 起真正消费：读回文本按 6000 字上限截断并标注；引用读不到 → 404 `LESSON_SOURCE_NOT_FOUND`，**不静默忽略**） |
 | `/api/v1/lesson-plans/{id}/proposals`（+`/{pid}/apply|reject`） | 五字段 patch 候选（`apply_lesson_proposal` 工具带中断确认） |
-| POST `/api/v1/lesson-plans/{id}/export` | 导出 docx（202）：以空白模板组装，自动补齐封面（第 1 页）+ 目录（第 2 页），正文自第 3 页 |
+| POST `/api/v1/lesson-plans/{id}/export` | 导出 docx（202）：以空白模板组装，自动补齐封面（第 1 页）+ 目录（第 2 页），正文自第 3 页。请求 `{data, style, modules, sectionPages?}`；`sectionPages` 是预览分页算出的「模块 id → 正文页码（1 起）」，目录页码与预览同源（缺省回退行数估算）。`六、评价反馈` 保留模板四项小标题、`七、教学反思` 保留三项；教学过程超出模板 5 阶段/6 内容行时按行克隆，不丢环节；字号/行高/段距随 `style` 写入 docx |
 | POST `/api/v1/lesson-plans/source-uploads` | 上传学情材料（multipart `file`）→ 201 `{assetRef,fileName,mediaType,byteSize,sha256}`（受管资产 `kind=attachment`）。**只收可提取文本的文档**（.docx/.pdf/.txt/.md）；成绩表类（.xlsx/.xls/.csv）422 `LESSON_SOURCE_UNSUPPORTED` 并指引「先去学情分析生成报告、再用『分析报告』来源」（学生个人信息不进模型的红线：不把含学号/姓名的原始表格送模型）；空文件 422、超限（10 MiB）413；无可提取文本（扫描件）422 `LESSON_SOURCE_EMPTY` |
 | `/api/v1/lesson-plans/evidence/verify` | 教材依据核验 |
 

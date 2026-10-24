@@ -186,8 +186,8 @@ docs/README.md（索引）→ 本文件（docs/MULTI_AGENT_COLLABORATION_PROPOSA
 涉及模块的 AGENTS.md（如 apps/web/src/features/chat/AGENTS.md）。
 
 【第二步：只向我报告，不改代码】
-1) 项目形态与最近一批（R10）交付内容；
-2) 门禁基线（后端 1850 / 前端 664 / e2e 17）与你实际复跑的结果边界；
+1) 项目形态与最近一批（R12 教案工作台）交付内容；
+2) 门禁基线（后端 1946 / 前端 768 / e2e 17，以 CURRENT_STATUS 顶部为准）与你实际复跑的结果边界；
 3) CURRENT_STATUS 的「当前任务/下一动作」是否有在途批次；有则给恢复顺序；
 4) 你建议的下一批：需求一句话 + 实现方式 + 验收条件 + 涉及文件/运行资源，等我确认再动手。
 

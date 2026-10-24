@@ -13,13 +13,15 @@
 | [PROJECT_GUIDE.md](PROJECT_GUIDE.md) | 唯一目标、架构硬性（LangChain+LangGraph）、稳定决定 |
 | [MULTI_AGENT_COLLABORATION_PROPOSAL.md](MULTI_AGENT_COLLABORATION_PROPOSAL.md) | 多智能体协作规范：角色、任务卡/结果卡模板、本项目门槛、可复制提示词 |
 | [API.md](API.md) / [ROUTES.md](ROUTES.md) | 现行接口契约（含 R10 删除语义表）/ 路由与模块索引 |
-| [qa/README.md](qa/README.md) | 重建后 QA 证据索引（R6/R7/R8 探针与截图） |
+| [qa/README.md](qa/README.md) | QA 证据索引（R6/R8 历史探针 + R12 教案工作台） |
 | [../test/README.md](../test/README.md) | 闭环测试套件与走查顺序 |
 | [licenses/deeptutor-chat/README.md](licenses/deeptutor-chat/README.md) | 第三方（参考产品）许可，保留适用 |
 
 ## 已清理（可经 git 历史恢复）
 
 `docs/archive/`、`docs/design/teaching-loop-v1/`、`docs/modules/`、`docs/replica/`、
-`docs/NEXT_SESSION_START.md`、根 `qa/`、`项目规划/` 以及 `docs/qa/` 中除 R6/R7/R8 外的全部旧批次证据
+`docs/NEXT_SESSION_START.md`、根 `qa/`、`项目规划/` 以及 `docs/qa/` 中除 R6/R8/R12 外的全部旧批次证据
 ——均属重构前材料，2026-10-13 清理。（`docs/MULTI_AGENT_COLLABORATION_PROPOSAL.md` 同日重写为现行
-协作规范，不再属于已清理范围。）
+协作规范，不再属于已清理范围。）2026-10-23 R12 重做教案工作台后，旧版
+`docs/qa/R7-LESSON-WORKBENCH-20261012`（旧 UI 取证，未入库）与 2026-09 的 Playwright 临时输出已删除；
+现行教案取证见 `docs/qa/R12-LESSON-WORKBENCH-20261023/`。

@@ -40,7 +40,11 @@
   **学生姓名/学号不进模型**（学情一律代称）。
 - SQL/IO 在 `anyio.to_thread` 有界线程；出站调用不阻塞事件循环。
 - 错误统一 `AppError`（code/status/retryable）→ 错误信封；未实现路由 501、缺依赖 503，不假成功。
+- **教案导出**（`services/lesson_plans/export.py`）：以空白模板组装；请求可选 `sectionPages`
+  （预览分页的「模块 → 正文页码」）写目录，缺省回退估算；`六、评价反馈` 常驻四项、
+  `七、教学反思` 常驻三项；教学过程按数据克隆行（不受模板 5 阶段/6 内容行限制）；
+  字号/行高/段距随 `style` 写入。预览与 docx 的目录页码必须同源，不得各算一套。
 - 冻结件：已提交迁移的 SQL 与 `rag_v2/{retrieval,scope,source_text,evidence}.py`、
   `document_parsing/*` 不得改写；新需求走追加迁移或新版本号。
 - 测试：`uv run python -m pytest`（入口坑见根 AGENTS.md）；新增能力必须带正/负用例；
-  当前基线 1835 passed / 0 skipped。
+  当前基线 1946 passed / 0 skipped（2026-10-23）。
