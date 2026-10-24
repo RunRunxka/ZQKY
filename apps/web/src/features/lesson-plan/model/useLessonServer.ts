@@ -271,11 +271,28 @@ export function useLessonServer({
       const created = await createPlan(ownership);
       targetId = created.lessonPlanId;
     }
-    const receipt = await api.exportLessonPlan(targetId, buildExportRequest());
+    let receipt: Awaited<ReturnType<LessonPlansApi['exportLessonPlan']>>;
+    try {
+      receipt = await api.exportLessonPlan(targetId, buildExportRequest());
+    } catch (error) {
+      // 原来打开的教案已被删除（另一窗口/数据目录切换）：清掉记忆，
+      // 按当前归属新建一份再重试一次。没有 planId 的新建失败不重试，避免重复落库。
+      if (!(error instanceof ApiError) || error.status !== 404 || !planId) throw error;
+      if (storage) clearActivePlanId(storage);
+      setServer({
+        planId: null,
+        revision: 0,
+        status: 'local',
+        message: '原教案已不存在，正在按当前归属新建一份后重新导出。',
+      });
+      const created = await createPlan(ownership);
+      targetId = created.lessonPlanId;
+      receipt = await api.exportLessonPlan(targetId, buildExportRequest());
+    }
     const { blob, fileName } = await api.downloadLessonExport(receipt.artifact.artifactId);
     const suggested = receipt.artifact.fileName || fileName || '教案.docx';
     return { fileName: suggested, downloaded: triggerBlobDownload(blob, suggested) };
-  }, [api, buildExportRequest, createPlan]);
+  }, [api, buildExportRequest, createPlan, storage]);
 
   return {
     server,

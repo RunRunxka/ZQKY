@@ -98,6 +98,44 @@ describe('本地草稿读写', () => {
     expect(readLocalDraft(shapeless).status).toBe('error');
   });
 
+  it('旧默认排版一次性迁移到模板口径；用户改过的值保留', () => {
+    const legacy = {
+      fontId: 'puhuiti',
+      baseSize: 14,
+      headingSize: 16,
+      labelSize: 12,
+      lineHeight: 1.7,
+      pageMargin: 48,
+      moduleGap: 16,
+      paragraphGap: 6,
+    };
+    const migrated = normalizeDraftEnvelope({
+      schemaVersion: 1,
+      revision: 1,
+      updatedAt: '2026-10-01T00:00:00.000Z',
+      data: { title: '旧默认' },
+      style: legacy,
+    });
+    expect(migrated.style?.baseSize).toBe(DEFAULT_LESSON_STYLE.baseSize);
+    expect(migrated.style?.labelSize).toBe(DEFAULT_LESSON_STYLE.labelSize);
+    expect(migrated.style?.lineHeight).toBe(DEFAULT_LESSON_STYLE.lineHeight);
+    expect(migrated.style?.pageMargin).toBe(72);
+    expect(migrated.style?.moduleGap).toBe(8);
+    expect(migrated.style?.paragraphGap).toBe(0);
+
+    // 已写 styleVersion=2 的草稿不再迁移：用户主动选 48/14 时保留。
+    const versioned = normalizeDraftEnvelope({
+      schemaVersion: 1,
+      styleVersion: 2,
+      revision: 1,
+      updatedAt: '2026-10-01T00:00:00.000Z',
+      data: { title: '自定义' },
+      style: legacy,
+    });
+    expect(versioned.style?.baseSize).toBe(14);
+    expect(versioned.style?.pageMargin).toBe(48);
+  });
+
   it('normalizeDraftEnvelope 对 style 越界值做夹取（不写坏预览）', () => {
     const envelope = normalizeDraftEnvelope({
       schemaVersion: 1,

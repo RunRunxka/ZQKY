@@ -52,6 +52,17 @@ def test_actual_http_create_import_list_save_history_and_errors(scene):
         assert client.get(base,params={"offset":-1}).status_code==422
 
 
+def test_create_with_missing_class_returns_class_not_found(scene):
+    """本机记忆里的 classId 失效时，后端给出可识别的 CLASS_NOT_FOUND，而不是误导性的教案 404。"""
+    with scene.client() as (client, _):
+        body = scene.create_request().model_dump(by_alias=True, mode="json")
+        body["classId"] = "missing-class"
+        response = client.post("/api/v1/lesson-plans", json=body)
+        assert response.status_code == 404
+        assert response.json()["code"] == "CLASS_NOT_FOUND"
+        assert "班级" in response.json()["message"]
+
+
 def test_actual_http_same_body_parallel_saves_return_one_receipt(scene):
     created=scene.be.create_lesson(scene.create_request())
     body=scene.save_request(created,content=changed(created["currentRevision"]["data"],title="HTTP 并发")).model_dump(by_alias=True,mode="json")

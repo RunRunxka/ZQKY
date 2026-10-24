@@ -368,8 +368,17 @@
 .lw-columns.layout-collapsed > .lw-splitter-left,
 .lw-columns.editor-collapsed > .lw-col-mid,
 .lw-columns.editor-collapsed > .lw-splitter-mid,
-.lw-columns.preview-collapsed > .lw-col-right {
+.lw-columns.preview-collapsed > .lw-col-right,
+.lw-columns.preview-collapsed > .lw-splitter-mid,
+.lw-columns.editor-collapsed.preview-collapsed > .lw-splitter-left {
   display: none;
+}
+
+/* 预览折叠后，最右侧可见栏会顶到悬浮 dock 下面；给 dock 让出 58px，
+   避免表单/滑杆数值被浮层遮住。默认三栏时 dock 落在预览右侧留白上，不需要让位。 */
+.lw-columns.preview-collapsed > .lw-col-mid,
+.lw-columns.preview-collapsed.editor-collapsed > .lw-col-left {
+  padding-right: 58px;
 }
 
 .lw-splitter {
@@ -1349,31 +1358,33 @@
 .lw-paper-content {
   flex: 1 1 auto;
   min-height: 0;
-  padding: var(--lp-page-margin, 48px);
+  overflow: hidden;
+  padding: var(--lp-page-margin, 72px);
   font-family: var(--lp-font, var(--font-document));
-  font-size: var(--lp-base, 14px);
-  line-height: var(--lp-line, 1.7);
+  font-size: var(--lp-base, 18.67px);
+  line-height: var(--lp-line, 1.714);
   color: #111827;
 }
 
 .lw-paper-title {
-  margin: 0 0 12px;
+  margin: 0 0 8px;
   text-align: center;
-  font-size: var(--lp-heading, 16px);
+  font-size: 22.67px;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  line-height: 1.4;
+  line-height: 40px;
 }
 
 .lw-paper-foot {
-  flex: 0 0 auto;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: var(--lp-footer-bottom, 48px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 0 12px;
-  color: #64748b;
-  font-family: var(--font-ui);
-  font-size: 10.5px;
+  color: #111827;
+  font-family: var(--lp-font, var(--font-document));
+  font-size: 14px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1383,7 +1394,7 @@
   width: 100%;
   table-layout: fixed;
   border-collapse: collapse;
-  margin-top: var(--lp-module-gap, 16px);
+  margin-top: var(--lp-module-gap, 8px);
 }
 
 .lw-sheet-table:first-of-type,
@@ -1392,22 +1403,23 @@
 }
 
 .lw-sheet-table td {
-  border: 1px solid #1f2937;
-  padding: 5px 7px;
+  border: 0.5pt solid #000;
+  padding: 0 7.2px;
   vertical-align: middle;
   overflow-wrap: anywhere;
 }
 
 .lw-sheet-band td {
-  padding: 6px 8px;
-  font-size: var(--lp-heading, 16px);
+  padding: 0 7.2px;
+  background: #8eaadb;
+  font-size: var(--lp-heading, 20px);
   font-weight: 700;
-  text-align: left;
+  text-align: center;
   color: #111827;
 }
 
 .lw-sheet-band:not(:first-child) td {
-  padding-top: calc(6px + var(--lp-module-gap, 16px));
+  padding-top: var(--lp-module-gap, 8px);
 }
 
 .lw-sheet-band.custom td {
@@ -1416,38 +1428,46 @@
 
 .lw-sheet-row td.lw-sheet-label {
   text-align: center;
-  font-size: var(--lp-label, 12px);
+  font-size: var(--lp-label, 18.67px);
   font-weight: 700;
   color: #111827;
 }
 
 .lw-sheet-cell {
-  font-size: var(--lp-base, 14px);
+  font-size: var(--lp-base, 18.67px);
   color: #111827;
 }
 
 .lw-sheet-head td.header {
   text-align: center;
-  font-size: var(--lp-label, 12px);
+  font-size: var(--lp-label, 18.67px);
   font-weight: 700;
 }
 
 .lw-sheet-phase td {
-  padding: 4px 8px;
-  background: #f3f4f6;
-  font-size: var(--lp-label, 12px);
+  padding: 0 7.2px;
+  font-size: var(--lp-label, 18.67px);
   font-weight: 700;
-  text-align: left;
+  text-align: center;
 }
 
 .lw-sheet-table[data-table='process'] .lw-sheet-row td.lw-sheet-label {
-  text-align: left;
-  font-weight: 600;
+  text-align: center;
+  font-weight: 700;
 }
 
 .lw-sheet-subrow td.subcell {
-  padding: 7px 9px;
+  padding: 0 7.2px;
+}
+
+/* 评价/反思的同一格多段：首个子项保留上边框（与板块条共用一条线），
+   后续子项不画内部横线；跨页续表由 .continued 首行规则补上页首边框。 */
+.lw-sheet-subrow.no-top td.subcell {
   border-top: 0;
+}
+
+.lw-sheet-table.continued > tbody > tr:first-child > td {
+  border-top: 0.5pt solid #000;
 }
 
 .lw-sheet-subrow td.subcell .lw-sheet-line:first-child {
@@ -2055,16 +2075,16 @@ html[data-motion='reduced'] .lw-splitter-line {
   }
 
   .lw-paper {
-    position: static !important;
+    position: relative !important;
     transform: none !important;
     width: auto !important;
-    height: auto !important;
+    height: 297mm !important;
     box-shadow: none !important;
     overflow: visible !important;
   }
 
   .lw-paper-content {
-    padding: 20mm 19mm;
+    padding: var(--lp-page-margin, 72px);
   }
 
   .lw-page-end,

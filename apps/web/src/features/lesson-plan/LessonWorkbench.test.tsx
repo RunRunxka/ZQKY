@@ -7,7 +7,7 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within, act } from '@testing-library/react';
 import { LessonWorkbench } from './LessonWorkbench';
-import { LESSON_OWNERSHIP_KEY, LOCAL_DRAFT_KEY } from './model/draft-storage';
+import { LESSON_OWNERSHIP_KEY, LOCAL_DRAFT_KEY, ACTIVE_PLAN_KEY } from './model/draft-storage';
 import { ApiError } from '@/services/api-client';
 import type { LessonPlansApi } from '@/services/lesson-plans-api';
 import type { LessonStreamInput, LessonStreamHandlers } from '@/services/lesson-stream';
@@ -207,6 +207,36 @@ describe('教案工作台 · 三栏与预览', () => {
     expect(columns.style.getPropertyValue('--lw-left')).toBe('19%');
   });
 
+  it('折叠预览/编辑/布局：最后一个可见栏占满剩余，不留 0px 空洞', () => {
+    const { container } = renderWorkbench();
+    const columns = container.querySelector('.lw-columns') as HTMLElement;
+    const tracks = () => columns.style.gridTemplateColumns;
+
+    expect(tracks()).toBe('20% 8px 32% 8px minmax(0,1fr)');
+
+    // 隐藏预览：布局 + 编辑，编辑占满剩余
+    fireEvent.click(screen.getByTestId('lw-dock-preview'));
+    expect(columns.className).toContain('preview-collapsed');
+    expect(tracks()).toBe('20% 8px minmax(0,1fr)');
+
+    // 再隐藏编辑：只剩布局，仍有可见轨道
+    fireEvent.click(screen.getByTestId('lw-dock-editor'));
+    expect(tracks()).toBe('minmax(0,1fr)');
+
+    // 恢复编辑与预览，再隐藏布局：编辑 + 预览
+    fireEvent.click(screen.getByTestId('lw-dock-editor'));
+    fireEvent.click(screen.getByTestId('lw-dock-preview'));
+    expect(tracks()).toBe('20% 8px 32% 8px minmax(0,1fr)');
+    fireEvent.click(screen.getByTestId('lw-dock-layout'));
+    expect(tracks()).toBe('32% 8px minmax(0,1fr)');
+
+    // 只留预览，再全部隐藏
+    fireEvent.click(screen.getByTestId('lw-dock-editor'));
+    expect(tracks()).toBe('minmax(0,1fr)');
+    fireEvent.click(screen.getByTestId('lw-dock-preview'));
+    expect(tracks()).toBe('0px');
+  });
+
   it('中栏模块表单：教学设计内容写入草稿并出现在预览（表格行）', async () => {
     renderWorkbench();
     await screen.findByTestId('lw-paper-3');
@@ -384,6 +414,46 @@ describe('教案工作台 · 导出与本地教案', () => {
     fireEvent.click(screen.getByTestId('lw-export-button'));
     await waitFor(() => expect(screen.getByTestId('lw-notice-export').textContent).toContain('导出失败'));
     expect(screen.getByTestId('lw-notice-export').textContent).toContain('后端组装未就绪');
+  });
+
+  it('导出遇到 CLASS_NOT_FOUND：清空班级、打开本地教案并提示重选', async () => {
+    seedOwnership();
+    const api = fakeApi({
+      createLessonPlan: vi.fn(async () => {
+        throw new ApiError('CLASS_NOT_FOUND', '班级不存在或已删除，请重新选择班级。', 404, false);
+      }),
+    });
+    renderWorkbench({ api });
+    fireEvent.click(screen.getByTestId('lw-export-button'));
+    await waitFor(() =>
+      expect(screen.getByTestId('lw-notice-export').textContent).toContain('原选择的班级已不存在'),
+    );
+    expect(JSON.parse(window.localStorage.getItem(LESSON_OWNERSHIP_KEY)!).classId).toBe('');
+    expect(screen.getByTestId('lw-lessons-dialog')).toBeTruthy();
+    expect(api.exportLessonPlan).not.toHaveBeenCalled();
+  });
+
+  it('原教案已被删除：清掉记忆后按当前归属新建并重试导出一次', async () => {
+    seedOwnership();
+    window.localStorage.setItem(ACTIVE_PLAN_KEY, 'plan-old');
+    const createObjectURL = vi.fn(() => 'blob:lesson');
+    vi.stubGlobal('URL', Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() }));
+    const exportLessonPlan = vi
+      .fn()
+      .mockRejectedValueOnce(new ApiError('NOT_FOUND', '教案或固定版本不存在。', 404, false))
+      .mockResolvedValueOnce({ artifact: { artifactId: 'art-1', fileName: '荷塘月色.docx' } });
+    const api = fakeApi({ exportLessonPlan });
+    renderWorkbench({ api });
+
+    await waitFor(() => expect(api.getLessonPlan).toHaveBeenCalledWith('plan-old'));
+    fireEvent.click(screen.getByTestId('lw-export-button'));
+
+    await waitFor(() => expect(exportLessonPlan).toHaveBeenCalledTimes(2));
+    expect(api.createLessonPlan).toHaveBeenCalledTimes(1);
+    expect(window.localStorage.getItem(ACTIVE_PLAN_KEY)).toBe('plan-1');
+    await waitFor(() =>
+      expect(screen.getByTestId('lw-notice-export').textContent).toContain('荷塘月色.docx'),
+    );
   });
 
   it('未选教案归属时导出：打开「本地教案」并如实提示，不静默猜班级', async () => {

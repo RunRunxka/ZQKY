@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import {
   A4_HEIGHT_PX,
   FIRST_CONTENT_PAGE,
-  PAGE_FOOTER_RESERVE_PX,
+  TITLE_RESERVE_PX,
   buildPreviewBlocks,
   layoutPreview,
   pageEndLabel,
@@ -238,15 +238,80 @@ describe('预览分页', () => {
     }
   });
 
-  it('目标 vMerge 三行不跨页拆分', () => {
+  it('目标第 2/3 行按第 3 列测量，不再把正文按标签列宽放大', () => {
     const data = emptyLessonData();
-    data.analysis = { learning: longText(26), textbook: '', content: '', ideological: '' };
-    data.coreCompetencies = '知识：甲\n能力：乙\n思政：丙';
-    const pages = paginateBlocks(buildPreviewBlocks(data, defaultModuleLayout(), DEFAULT_LESSON_STYLE), DEFAULT_LESSON_STYLE);
+    const text = longText(8);
+    data.coreCompetencies = `知识：${text}\n能力：${text}\n思政：${text}`;
+    const blocks = buildPreviewBlocks(data, defaultModuleLayout(), DEFAULT_LESSON_STYLE);
+    const knowledge = blocks.find((block) => block.id === 'objectives.knowledge')!;
+    const ability = blocks.find((block) => block.id === 'objectives.ability')!;
+    const ideological = blocks.find((block) => block.id === 'objectives.ideological')!;
+    expect(ability.columnOffset).toBe(1);
+    expect(ideological.columnOffset).toBe(1);
+    // 同样 8 行文本：修复前能力/思政按 113px 宽测量，会是知识行的数倍高。
+    expect(Math.abs(ability.height - knowledge.height)).toBeLessThanOrEqual(2);
+    expect(Math.abs(ideological.height - knowledge.height)).toBeLessThanOrEqual(2);
+    expect(ability.height).toBeLessThan(8 * 18.67 * 1.714 + 20);
+  });
+
+  it('目标三行跨页：rowspan 按本页行数，续页标签留空（与 Word vMerge 一致）且不丢字', () => {
+    const data = emptyLessonData();
+    const objectiveText = longText(40);
+    data.coreCompetencies = `知识：${objectiveText}\n能力：${objectiveText}\n思政：${objectiveText}`;
+    data.analysis = { learning: longText(20), textbook: '', content: '', ideological: '' };
+    const style = normalizeStyle(DEFAULT_LESSON_STYLE);
+    const pages = paginateBlocks(buildPreviewBlocks(data, defaultModuleLayout(), style), style);
+    const groupPages = pages.filter((page) =>
+      page.blocks.some((block) => block.mergeGroup === 'objectives'),
+    );
+    expect(groupPages.length).toBeGreaterThan(1);
+
     for (const page of pages) {
-      const groupRows = page.blocks.filter((block) => block.mergeGroup === 'objectives');
-      expect([0, 3]).toContain(groupRows.length);
+      const rows = page.blocks.filter((block) => block.mergeGroup === 'objectives');
+      if (rows.length === 0) continue;
+      const merged = rows[0].cells.find((cell) => cell.role === 'label' && (cell.rowspan ?? 0) > 0);
+      expect(merged?.rowspan).toBe(rows.length);
+      if (rows[0].id !== 'objectives.knowledge') {
+        expect(rows[0].cells[0].text).toBe('');
+      }
     }
+
+    const ids = pages
+      .flatMap((page) => page.blocks)
+      .filter((block) => block.mergeGroup === 'objectives')
+      .map((block) => block.id.replace(/~cont\d+$/, ''));
+    expect(new Set(ids)).toEqual(
+      new Set(['objectives.knowledge', 'objectives.ability', 'objectives.ideological']),
+    );
+    for (const label of ['知识', '能力', '思政']) {
+      const parts = pages
+        .flatMap((page) => page.blocks)
+        .filter((block) => block.mergeGroup === 'objectives' && block.subLabel === `${label}目标`);
+      const joined = parts.map((block) => block.cells.at(-1)?.text ?? '').join('');
+      expect(joined.replace(/\s+/g, '')).toBe(objectiveText.replace(/\s+/g, ''));
+    }
+
+    const capacity = A4_HEIGHT_PX - style.pageMargin * 2;
+    for (const page of pages.slice(0, -1)) {
+      const used = page.blocks.reduce((sum, block) => sum + block.height + block.gapBefore, 0);
+      const limit = page.number === FIRST_CONTENT_PAGE ? capacity - TITLE_RESERVE_PX : capacity;
+      expect(used).toBeGreaterThan(limit * 0.6);
+    }
+  });
+
+  it('教学目标 other 文本与导出同口径：无标签进知识行，混合重点行进思政行', () => {
+    const data = emptyLessonData();
+    data.coreCompetencies = '一段没有标签的目标';
+    let blocks = buildPreviewBlocks(data, defaultModuleLayout(), DEFAULT_LESSON_STYLE);
+    expect(blocks.find((block) => block.id === 'objectives.knowledge')?.cells[2].text).toBe(
+      '一段没有标签的目标',
+    );
+
+    data.coreCompetencies = '知识：甲\n教学重点：乙';
+    blocks = buildPreviewBlocks(data, defaultModuleLayout(), DEFAULT_LESSON_STYLE);
+    expect(blocks.find((block) => block.id === 'objectives.ideological')?.cells[1].text).toContain(
+      '教学重点：乙',
+    );
   });
 
   it('sectionPageMap 给出正文页码（从 1 起）', () => {
@@ -267,8 +332,8 @@ describe('预览分页', () => {
     const layout = layoutPreview(data, defaultModuleLayout(), style);
     expect(layout.pages.length).toBeGreaterThan(2);
 
-    const capacity = A4_HEIGHT_PX - style.pageMargin * 2 - PAGE_FOOTER_RESERVE_PX;
-    const titleReserve = Math.round(style.headingSize * 1.4 + 12);
+    const capacity = A4_HEIGHT_PX - style.pageMargin * 2;
+    const titleReserve = TITLE_RESERVE_PX;
     for (const page of layout.pages) {
       const used = page.blocks.reduce((sum, block) => sum + block.height + block.gapBefore, 0);
       const limit = page.number === FIRST_CONTENT_PAGE ? capacity - titleReserve : capacity;
@@ -290,8 +355,8 @@ describe('预览分页', () => {
     const style = normalizeStyle(DEFAULT_LESSON_STYLE);
     const layout = layoutPreview(data, defaultModuleLayout(), style);
     const first = layout.pages[0];
-    const capacity = A4_HEIGHT_PX - style.pageMargin * 2 - PAGE_FOOTER_RESERVE_PX;
-    const titleReserve = Math.round(style.headingSize * 1.4 + 12);
+    const capacity = A4_HEIGHT_PX - style.pageMargin * 2;
+    const titleReserve = TITLE_RESERVE_PX;
     const used = first.blocks.reduce((sum, block) => sum + block.height + block.gapBefore, 0);
     expect(used).toBeGreaterThan((capacity - titleReserve) * 0.9);
 
@@ -300,7 +365,7 @@ describe('预览分页', () => {
       .filter((block) => block.id === 'analysis.learning' || block.id.startsWith('analysis.learning~cont'));
     expect(parts.length).toBeGreaterThan(1);
     const [head, tail] = parts;
-    expect(head.cells[0].text).toBe('学情分析');
+    expect(head.cells[0].text.replace(/\s+/g, '')).toBe('学情分析');
     expect(tail.cells[0].text).toBe('');
     expect(tail.cells[1].candidateIds).toContain('analysis.learning');
     expect(tail.continuation).toBe(true);
@@ -312,11 +377,11 @@ describe('预览分页', () => {
     data.reflection = longText(20);
     const style = normalizeStyle(DEFAULT_LESSON_STYLE);
     const pages = paginateBlocks(buildPreviewBlocks(data, defaultModuleLayout(), style), style);
-    const capacity = A4_HEIGHT_PX - style.pageMargin * 2 - PAGE_FOOTER_RESERVE_PX;
+    const capacity = A4_HEIGHT_PX - style.pageMargin * 2;
     for (const page of pages) {
       const used = page.blocks.reduce((sum, block) => sum + block.height + block.gapBefore, 0);
       const limit = page.number === FIRST_CONTENT_PAGE
-        ? capacity - Math.round(style.headingSize * 1.4 + 12)
+        ? capacity - TITLE_RESERVE_PX
         : capacity;
       // 允许不可拆的标题/表头/短行留下少量空间，但不应出现半页空白。
       expect(used).toBeGreaterThan(limit * 0.75);

@@ -107,6 +107,8 @@ export interface LessonPlanData {
 /** 本地草稿信封（`schemaVersion=1` 与归档一致，旧草稿可继续读取）。 */
 export interface DraftEnvelope {
   schemaVersion: 1;
+  /** 排版默认值版本：2 = 模板口径（14pt / 24pt exact / 72px 边距 / 8px 模块间距 / 0 段距）。 */
+  styleVersion?: number;
   revision: number;
   updatedAt: string;
   data: LessonPlanData;

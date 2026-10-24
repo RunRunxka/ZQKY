@@ -14,6 +14,7 @@ import { useStore } from 'zustand';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Cloud, Download, LoaderCircle, NotebookPen, PanelLeft, PenLine, Redo2, ScanEye, Undo2 } from 'lucide-react';
 import { lessonPlansApi, uploadLessonSource, type LessonPlansApi } from '@/services/lesson-plans-api';
+import { ApiError } from '@/services/api-client';
 import { useNavigationGuard } from '@/services/navigation-guard';
 import { createLessonWorkbenchStore } from './model/store';
 import { emptyLessonData } from './model/lesson-data';
@@ -246,9 +247,19 @@ export function LessonWorkbench({
           : `已生成 ${outcome.fileName}，但当前浏览器未触发下载，请在下载列表中确认。`,
       });
     } catch (error) {
+      if (error instanceof ApiError && error.code === 'CLASS_NOT_FOUND') {
+        // 班级被删除后本机记忆里的 classId 已失效：清空并让教师重选，不静默换班。
+        changeOwnership({ ...ownership, classId: '' });
+        setDialogOpen(true);
+        setExportState({
+          status: 'error',
+          message: '原选择的班级已不存在，请在「本地教案」里重新选择班级后重试。',
+        });
+        return;
+      }
       setExportState({ status: 'error', message: `导出失败：${reasonOf(error)}` });
     }
-  }, [ownership, serverSync]);
+  }, [changeOwnership, ownership, serverSync]);
 
   const focusGenerate = useCallback(() => {
     setGenerateOpen(true);
@@ -374,16 +385,18 @@ export function LessonWorkbench({
   })();
 
   const gridTracks = useMemo(() => {
+    const visible: Array<{ key: PanelKey; track: string }> = [];
+    if (panels.layout) visible.push({ key: 'layout', track: `${columns.left}%` });
+    if (panels.editor) visible.push({ key: 'editor', track: `${columns.mid}%` });
+    if (panels.preview) visible.push({ key: 'preview', track: 'minmax(0,1fr)' });
+    if (visible.length === 0) return '0px';
     const tracks: string[] = [];
-    if (panels.layout) {
-      tracks.push(`${columns.left}%`);
-      if (panels.editor) tracks.push('8px');
-    }
-    if (panels.editor) {
-      tracks.push(`${columns.mid}%`);
-      if (panels.preview) tracks.push('8px');
-    }
-    tracks.push(panels.preview ? 'minmax(0,1fr)' : '0px');
+    visible.forEach((panel, index) => {
+      if (index > 0) tracks.push('8px');
+      // 最后一个可见栏占满剩余宽度；前面的栏保留用户拖出来的比例。
+      // 这样折叠预览/编辑/布局时不会留下无人占用的空白轨道。
+      tracks.push(index === visible.length - 1 ? 'minmax(0,1fr)' : panel.track);
+    });
     return tracks.join(' ');
   }, [columns.left, columns.mid, panels]);
 

@@ -10,7 +10,12 @@
 import type { DraftEnvelope, LessonPlanData, LessonWorkbenchStyleWire } from '@/contracts/lesson-plans';
 import { isRecord } from './records';
 import { withLessonDefaults } from './lesson-data';
-import { normalizeModules, normalizeStyle, type LessonModuleEntry } from './modules';
+import {
+  DEFAULT_LESSON_STYLE,
+  normalizeModules,
+  normalizeStyle,
+  type LessonModuleEntry,
+} from './modules';
 
 /** 浏览器存储的安全入口（无 window / 隐私模式不可用 → null，调用方按"无本地记忆"处理）。 */
 export function safeBrowserStorage(): Storage | null {
@@ -24,6 +29,38 @@ export function safeBrowserStorage(): Storage | null {
 export const LOCAL_DRAFT_KEY = 'zhiqikeyuan:lesson-plan:v1';
 /** 当前打开的云端教案 id（本机记忆；读取失败不删除）。 */
 export const ACTIVE_PLAN_KEY = 'zhiqikeyuan:lesson-plan:active:v1';
+
+/** 排版默认值版本：2 = 模板口径（14pt / 24pt exact / 72px 边距 / 8px 模块间距 / 0 段距）。 */
+export const STYLE_VERSION = 2;
+
+/** R12 旧默认：仅当草稿排版完全等于这套值时，才一次性迁移到模板口径。 */
+const LEGACY_DEFAULT_STYLE: LessonWorkbenchStyleWire = {
+  fontId: 'puhuiti',
+  baseSize: 14,
+  headingSize: 16,
+  labelSize: 12,
+  lineHeight: 1.7,
+  pageMargin: 48,
+  moduleGap: 16,
+  paragraphGap: 6,
+};
+
+const STYLE_KEYS: Array<keyof LessonWorkbenchStyleWire> = [
+  'fontId',
+  'baseSize',
+  'headingSize',
+  'labelSize',
+  'lineHeight',
+  'pageMargin',
+  'moduleGap',
+  'paragraphGap',
+];
+
+/** 旧草稿没有 styleVersion：只有整套值仍是旧默认时升级，用户改过任意一项就保留。 */
+function upgradeLegacyStyle(style: LessonWorkbenchStyleWire): LessonWorkbenchStyleWire {
+  const isLegacyDefault = STYLE_KEYS.every((key) => style[key] === LEGACY_DEFAULT_STYLE[key]);
+  return isLegacyDefault ? { ...DEFAULT_LESSON_STYLE } : style;
+}
 
 export interface WorkbenchDraft {
   data: LessonPlanData;
@@ -52,12 +89,16 @@ export function normalizeDraftEnvelope(value: unknown): DraftEnvelope {
   if (!isRecord(value)) throw new Error('草稿不是对象');
   if (value.schemaVersion !== 1) throw new Error(`草稿版本不兼容：${String(value.schemaVersion)}`);
   if (!hasLessonShape(value.data)) throw new Error('草稿正文结构损坏');
+  const normalizedStyle = normalizeStyle(value.style);
+  const style =
+    value.styleVersion === STYLE_VERSION ? normalizedStyle : upgradeLegacyStyle(normalizedStyle);
   return {
     schemaVersion: 1,
+    styleVersion: STYLE_VERSION,
     revision: typeof value.revision === 'number' ? value.revision : 0,
     updatedAt: typeof value.updatedAt === 'string' ? value.updatedAt : new Date(0).toISOString(),
     data: withLessonDefaults(value.data),
-    style: normalizeStyle(value.style),
+    style,
     modules: normalizeModules(value.modules),
     removedModules: Array.isArray(value.removedModules)
       ? normalizeModules(value.removedModules).filter((entry) => entry.kind === 'custom')
@@ -95,6 +136,7 @@ export function readRawLocalDraft(storage: Storage): string | null {
 export function writeLocalDraft(storage: Storage, draft: WorkbenchDraft): void {
   const envelope: DraftEnvelope = {
     schemaVersion: 1,
+    styleVersion: STYLE_VERSION,
     revision: draft.revision,
     updatedAt: draft.updatedAt,
     data: draft.data,

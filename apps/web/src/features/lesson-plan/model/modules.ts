@@ -118,22 +118,25 @@ export const LESSON_FONTS: readonly LessonFontOption[] = [
   },
 ] as const;
 
+/** 模板实测口径（lesson-plan-blank.docx）：正文/标签 14pt≈18.67px、band 15pt=20px、
+ * 行距 24pt exact（18.67px × 1.714）、页边距约 1.9cm=72px、段距 0、模块间距 8px。
+ * 预览与导出都以这套值为默认；滑杆改动时两端同步使用同一份 style。 */
 export const DEFAULT_LESSON_STYLE: LessonWorkbenchStyleWire = {
   fontId: 'puhuiti',
-  baseSize: 14,
-  headingSize: 16,
-  labelSize: 12,
-  lineHeight: 1.7,
-  pageMargin: 48,
-  moduleGap: 16,
-  paragraphGap: 6,
+  baseSize: 18.67,
+  headingSize: 20,
+  labelSize: 18.67,
+  lineHeight: 1.714,
+  pageMargin: 72,
+  moduleGap: 8,
+  paragraphGap: 0,
 };
 
 export const STYLE_LIMITS = {
   baseSize: { min: 12, max: 20, step: 1 },
   headingSize: { min: 13, max: 26, step: 1 },
-  labelSize: { min: 10, max: 18, step: 1 },
-  lineHeight: { min: 1, max: 2, step: 0.05 },
+  labelSize: { min: 10, max: 20, step: 1 },
+  lineHeight: { min: 1, max: 2, step: 0.01 },
   pageMargin: { min: 24, max: 96, step: 4 },
   moduleGap: { min: 0, max: 40, step: 2 },
   paragraphGap: { min: 0, max: 24, step: 2 },
@@ -143,9 +146,10 @@ export function fontFamilyOf(fontId: string): string {
   return (LESSON_FONTS.find((font) => font.id === fontId) ?? LESSON_FONTS[0]).family;
 }
 
-function clamp(value: unknown, min: number, max: number, fallback: number): number {
+function clamp(value: unknown, min: number, max: number, fallback: number, precision = 2): number {
   const numeric = typeof value === 'number' && Number.isFinite(value) ? value : fallback;
-  return Math.min(max, Math.max(min, Math.round(numeric * 100) / 100));
+  const factor = 10 ** precision;
+  return Math.min(max, Math.max(min, Math.round(numeric * factor) / factor));
 }
 
 /** 容错补全排版设置（旧草稿缺 style 时取默认值，不抛错）。 */
@@ -170,6 +174,7 @@ export function normalizeStyle(value: unknown): LessonWorkbenchStyleWire {
       STYLE_LIMITS.lineHeight.min,
       STYLE_LIMITS.lineHeight.max,
       DEFAULT_LESSON_STYLE.lineHeight,
+      3,
     ),
     pageMargin: clamp(
       source.pageMargin,

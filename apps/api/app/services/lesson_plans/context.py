@@ -13,7 +13,7 @@ def freeze_context(service, subject_id, class_id, selection):
     with service.catalog.read_connection() as conn:
         klass = conn.execute("SELECT name FROM classes WHERE id=? AND owner_id=?", (class_id, service.owner)).fetchone()
         if klass is None:
-            raise AppError("教案或固定版本不存在。", code="NOT_FOUND", status_code=404)
+            raise AppError("班级不存在或已删除，请重新选择班级。", code="CLASS_NOT_FOUND", status_code=404)
         class_name = klass["name"]
     analysis = None
     if selection is not None:
@@ -45,7 +45,7 @@ def freeze_context(service, subject_id, class_id, selection):
 def revalidate_context(service, context):
     with service.catalog.read_connection() as conn:
         if conn.execute("SELECT 1 FROM classes WHERE id=? AND owner_id=?", (context["classId"], service.owner)).fetchone() is None:
-            raise AppError("教案或固定版本不存在。", code="NOT_FOUND", status_code=404)
+            raise AppError("班级不存在或已删除，请重新选择班级。", code="CLASS_NOT_FOUND", status_code=404)
     if context["analysis"]:
         refs = [KnowledgeReference(point["knowledgePointId"], point["knowledgeRevisionId"], point["role"])
                 for point in context["analysis"]["knowledgePoints"]]

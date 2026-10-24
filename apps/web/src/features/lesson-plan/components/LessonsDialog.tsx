@@ -73,6 +73,7 @@ export function LessonsDialog({
   const [subjects, setSubjects] = useState<{ id: string; label: string }[] | null>(null);
   const [classes, setClasses] = useState<{ id: string; name: string }[] | null>(null);
   const [ownershipError, setOwnershipError] = useState<string | null>(null);
+  const [ownershipNotice, setOwnershipNotice] = useState<string | null>(null);
 
   const loadOwnership = useCallback(async () => {
     setOwnershipError(null);
@@ -96,15 +97,22 @@ export function LessonsDialog({
     void loadOwnership();
   }, [loadOwnership]);
 
-  /* 首次进来归属为空时给一个**可见、可改**的默认（取字典/班级列表第一项），
-     而不是让"新建"键一直灰着；用户改了会写入本机记忆。 */
+  /* 学科/班级列表读出来后与本地记忆对账：班级被删除、数据目录切换后残留的
+     classId 会让后端返回 CLASS_NOT_FOUND。这里把失效项清空并要求重新选择，
+     不静默改成别的班级（避免把教案保存到错误归属）。 */
   useEffect(() => {
-    if (ownership.subjectId || ownership.classId) return;
-    const firstSubject = subjects?.[0]?.id ?? '';
-    const firstClass = classes?.[0]?.id ?? '';
-    if (firstSubject || firstClass) {
-      onOwnershipChange({ subjectId: firstSubject, classId: firstClass });
-    }
+    if (subjects === null || classes === null) return;
+    const subjectValid =
+      !ownership.subjectId || subjects.some((subject) => subject.id === ownership.subjectId);
+    const classValid = !ownership.classId || classes.some((klass) => klass.id === ownership.classId);
+    if (subjectValid && classValid) return;
+    onOwnershipChange({
+      subjectId: subjectValid ? ownership.subjectId : '',
+      classId: classValid ? ownership.classId : '',
+    });
+    setOwnershipNotice(
+      classValid ? '原选择的学科已不存在，请重新选择学科。' : '原选择的班级已不存在，请重新选择班级。',
+    );
   }, [classes, onOwnershipChange, ownership.classId, ownership.subjectId, subjects]);
 
   const load = useCallback(async () => {
@@ -143,6 +151,11 @@ export function LessonsDialog({
       await action();
       onClose();
     } catch (error) {
+      if (error instanceof ApiError && error.code === 'CLASS_NOT_FOUND') {
+        // 记住的班级已失效：清空并提示重选，避免下一次继续用坏 id 提交。
+        onOwnershipChange({ ...ownership, classId: '' });
+        setOwnershipNotice('班级不存在或已删除，请重新选择班级。');
+      }
       setActionError(error instanceof Error ? error.message : '操作失败。');
     } finally {
       setBusyId(null);
@@ -210,7 +223,10 @@ export function LessonsDialog({
               data-testid="lw-dialog-subject"
               value={ownership.subjectId}
               disabled={busyId !== null || subjects === null}
-              onChange={(event) => onOwnershipChange({ ...ownership, subjectId: event.target.value })}
+              onChange={(event) => {
+                setOwnershipNotice(null);
+                onOwnershipChange({ ...ownership, subjectId: event.target.value });
+              }}
             >
               <option value="">请选择学科</option>
               {(subjects ?? []).map((subject) => (
@@ -228,7 +244,10 @@ export function LessonsDialog({
               data-testid="lw-dialog-class"
               value={ownership.classId}
               disabled={busyId !== null || classes === null}
-              onChange={(event) => onOwnershipChange({ ...ownership, classId: event.target.value })}
+              onChange={(event) => {
+                setOwnershipNotice(null);
+                onOwnershipChange({ ...ownership, classId: event.target.value });
+              }}
             >
               <option value="">请选择班级</option>
               {(classes ?? []).map((klass) => (
@@ -241,6 +260,16 @@ export function LessonsDialog({
           {classes !== null && classes.length === 0 && (
             <span className="lw-note" data-testid="lw-dialog-no-class">
               还没有班级：先到「班级管理」新建班级，再回来保存教案。
+            </span>
+          )}
+          {classes !== null && classes.length > 0 && !ownership.classId && (
+            <span className="lw-note" data-testid="lw-dialog-select-class">
+              请选择班级后再新建或导出。
+            </span>
+          )}
+          {ownershipNotice && (
+            <span className="lw-note" role="status" data-testid="lw-dialog-ownership-notice">
+              {ownershipNotice}
             </span>
           )}
           {subjects !== null && subjects.length === 0 && (

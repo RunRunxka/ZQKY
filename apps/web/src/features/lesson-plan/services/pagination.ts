@@ -24,8 +24,8 @@ export const A4_WIDTH_PX = 794;
 export const A4_HEIGHT_PX = 1123;
 /** 内容第一页的页码（封面 1 / 目录 2 不预览）。 */
 export const FIRST_CONTENT_PAGE = 3;
-/** 页脚页码与页面留白预留。 */
-export const PAGE_FOOTER_RESERVE_PX = 34;
+/** 正文标题在首页占用的高度：40px 行高 + 8px 下边距（与导出模板一致）。 */
+export const TITLE_RESERVE_PX = 48;
 
 /** 模板表列宽（twips，来自 lesson-plan-blank.docx 的 tblGrid）。 */
 const TABLE_COLUMNS: Record<string, readonly number[]> = {
@@ -81,9 +81,11 @@ export interface PreviewBlock {
   gapBefore: number;
   /**
    * 纵向合并单元格分组（模板「三、教学目标」的知识/能力/思政三行 vMerge）：
-   * 连续同组行在预览里合并左侧标签列，分页时整组不拆页。
+   * 连续同组行在预览里合并左侧标签列；分页时可逐行拆分，续页重建标签。
    */
   mergeGroup?: string;
+  /** 本行第一个单元格在表格中的列偏移（目标第 2/3 行被上一行 rowspan 占掉第 1 列）。 */
+  columnOffset?: number;
   groupLabel?: string;
   /** 行内前缀（知识 / 能力 / 思政）。 */
   subLabel?: string;
@@ -168,13 +170,20 @@ export function wrapTextLines(text: string, widthPx: number, fontSize: number): 
   return lines;
 }
 
-/** 单元格内边距（上下 / 左右）与表格最小行高。 */
-const CELL_PAD_Y = 12;
-const CELL_PAD_X = 14;
-const BAND_EXTRA = 12;
-const PHASE_EXTRA = 8;
-/** 跨页拆分时至少留在本页的行数（也用于判断标题能否与下一行同页）。 */
-export const MIN_SPLIT_LINES = 3;
+/** 单元格内边距（上下 / 左右）与表格最小行高。
+ * 模板 TableGrid：上下 0、左右 108tw（7.2px）；这里只额外留 0.5pt 边框的占位。
+ */
+const CELL_PAD_Y = 0.7;
+const CELL_PAD_X = 15.1;
+const BAND_EXTRA = 0;
+const PHASE_EXTRA = 0;
+/** 跨页拆分时至少留在本页的行数（也用于判断标题能否与下一行同页）。
+ * 模板的内容行没有 cantSplit，Word 会按剩余空间拆到 2 行甚至 1 行；取 2 行
+ * 兼顾可读性与「预览与 docx 同页」的目标。 */
+export const MIN_SPLIT_LINES = 2;
+/** 模板基本信息行的 trHeight（twips）换算 px。 */
+const BASIC_ROW_MIN_PX = 680 / 15;
+const BASIC_CHAPTER_MIN_PX = 1020 / 15;
 
 function paragraphCount(text: string): number {
   return text ? text.split(/\r?\n/).length : 1;
@@ -204,8 +213,9 @@ function measureCells(
   contentWidth: number,
   style: ReturnType<typeof normalizeStyle>,
   minHeight: number,
+  columnOffset = 0,
 ): number {
-  let cursor = 0;
+  let cursor = columnOffset;
   let height = minHeight;
   for (const cell of cells) {
     const span = cell.colspan ?? 1;
@@ -240,11 +250,18 @@ function tableRow(
   tableId: string,
   cells: PreviewCell[],
   style: ReturnType<typeof normalizeStyle>,
-  options: { minHeight?: number; splittable?: boolean; subRow?: boolean; noTopBorder?: boolean } = {},
+  options: {
+    minHeight?: number;
+    splittable?: boolean;
+    subRow?: boolean;
+    noTopBorder?: boolean;
+    columnOffset?: number;
+  } = {},
 ): PreviewRowSeed {
   const columns = tableColumns(tableId);
   const contentWidth = A4_WIDTH_PX - style.pageMargin * 2;
   const minHeight = options.minHeight ?? 0;
+  const columnOffset = options.columnOffset ?? 0;
   return {
     id,
     tableId,
@@ -253,10 +270,11 @@ function tableRow(
     label: cells.find((cell) => cell.role === 'label')?.text ?? '',
     cells,
     minHeight,
-    height: measureCells(cells, columns, contentWidth, style, minHeight),
+    height: measureCells(cells, columns, contentWidth, style, minHeight, columnOffset),
     splittable: options.splittable ?? true,
     ...(options.subRow ? { subRow: true } : {}),
     ...(options.noTopBorder ? { noTopBorder: true } : {}),
+    ...(columnOffset ? { columnOffset } : {}),
   };
 }
 
@@ -304,10 +322,22 @@ function labelCell(text: string, options: { colspan?: number; rowspan?: number }
   };
 }
 
-/** 教学目标三行的 vMerge 组：首行带跨行标签，其余行只有「子标签 + 正文」。 */
+/** 教学目标三行的 vMerge 组：首行带跨行标签，其余行只有「子标签 + 正文」。
+ *
+ * 第 2/3 行的第一列被首行的 rowspan 占据，所以测量宽度必须从第 2 列开始；
+ * 否则 438px 的目标正文会按 113px 估算，行数与高度放大约 4 倍。
+ */
 function objectivesGroup(data: LessonPlanData, style: ReturnType<typeof normalizeStyle>): PreviewRowSeed[] {
   const objectives = readObjectives(data.coreCompetencies);
   const tableId = 'objectives';
+  const otherText = objectives.other.join('\n');
+  // 与导出同一口径：有结构化标签时 other 追加到思政行；完全无标签时整体进知识行。
+  const knowledge = objectives.structured
+    ? objectives.rows.knowledge
+    : [objectives.rows.knowledge, otherText].filter(Boolean).join('\n');
+  const ideological = objectives.structured
+    ? [objectives.rows.ideological, otherText].filter(Boolean).join('\n')
+    : objectives.rows.ideological;
   const rows: PreviewRowSeed[] = [
     tableRow(
       'objectives.knowledge',
@@ -315,7 +345,7 @@ function objectivesGroup(data: LessonPlanData, style: ReturnType<typeof normaliz
       [
         labelCell('教学目标', { rowspan: 3 }),
         labelCell('知识目标'),
-        textCell(objectives.rows.knowledge, ['objectives.knowledge']),
+        textCell(knowledge, ['objectives.knowledge']),
       ],
       style,
     ),
@@ -324,19 +354,21 @@ function objectivesGroup(data: LessonPlanData, style: ReturnType<typeof normaliz
       tableId,
       [labelCell('能力目标'), textCell(objectives.rows.ability, ['objectives.ability'])],
       style,
+      { columnOffset: 1 },
     ),
     tableRow(
       'objectives.ideological',
       tableId,
-      [labelCell('思政目标'), textCell(objectives.rows.ideological, ['objectives.ideological'])],
+      [labelCell('思政目标'), textCell(ideological, ['objectives.ideological'])],
       style,
+      { columnOffset: 1 },
     ),
   ];
   for (const row of rows) {
     row.mergeGroup = 'objectives';
     row.groupLabel = '教学目标';
     row.subLabel = row.cells[row.cells.length - 2]?.text;
-    row.splittable = false;
+    row.splittable = true;
   }
   return rows;
 }
@@ -487,6 +519,7 @@ export function buildModuleRows(
                 textCell(basic?.audience ?? '', ['basic.audience']),
               ],
               style,
+              { minHeight: BASIC_ROW_MIN_PX },
             ),
             tableRow(
               'basic.teachingTime',
@@ -498,12 +531,14 @@ export function buildModuleRows(
                 textCell(basic?.location ?? '', ['basic.location']),
               ],
               style,
+              { minHeight: BASIC_ROW_MIN_PX },
             ),
             tableRow(
               'basic.chapter',
               'basic',
               [labelCell('教学章节'), textCell(basic?.chapter ?? '', ['basic.chapter'], { colspan: 3 })],
               style,
+              { minHeight: BASIC_CHAPTER_MIN_PX },
             ),
           ],
         });
@@ -717,12 +752,14 @@ export function buildPreviewBlocks(
   return blocks;
 }
 
-/** 连续同组行（vMerge / 两行表头）视为一个不可拆单元。 */
+/** 连续同组行（两行表头）视为一个不可拆单元；教学目标三行可逐行分页。 */
+const OBJECTIVES_GROUP = 'objectives';
+
 function groupBlocks(blocks: PreviewBlock[]): PreviewBlock[][] {
   const units: PreviewBlock[][] = [];
   for (let index = 0; index < blocks.length; index += 1) {
     const block = blocks[index];
-    if (!block.mergeGroup) {
+    if (!block.mergeGroup || block.mergeGroup === OBJECTIVES_GROUP) {
       units.push([block]);
       continue;
     }
@@ -770,11 +807,12 @@ export function splitRow(
   rawStyle: unknown,
 ): { head: PreviewBlock; tail: PreviewBlock | null } | null {
   const style = normalizeStyle(rawStyle);
-  if (!block.splittable || block.kind !== 'row' || block.mergeGroup) return null;
+  if (!block.splittable || block.kind !== 'row') return null;
+  if (block.mergeGroup && block.mergeGroup !== OBJECTIVES_GROUP) return null;
   if (available < minSplitHeight(style)) return null;
   const columns = tableColumns(block.tableId);
   const contentWidth = A4_WIDTH_PX - style.pageMargin * 2;
-  let cursor = 0;
+  let cursor = block.columnOffset ?? 0;
   const cellLines = block.cells.map((cell) => {
     const span = cell.colspan ?? 1;
     const width = cellWidth(columns, cursor, span, contentWidth);
@@ -815,7 +853,7 @@ export function splitRow(
     head: {
       ...block,
       cells: headCells,
-      height: measureCells(headCells, columns, contentWidth, style, 0),
+      height: measureCells(headCells, columns, contentWidth, style, 0, block.columnOffset ?? 0),
       minHeight: 0,
       gapBefore: block.gapBefore,
       keepWithNext: false,
@@ -824,7 +862,7 @@ export function splitRow(
       ...block,
       id: nextContinuationId(block.id),
       cells: tailCells,
-      height: measureCells(tailCells, columns, contentWidth, style, 0),
+      height: measureCells(tailCells, columns, contentWidth, style, 0, block.columnOffset ?? 0),
       minHeight: 0,
       gapBefore: 0,
       keepWithNext: false,
@@ -833,12 +871,48 @@ export function splitRow(
   };
 }
 
+/**
+ * 教学目标三行跨页后，逐页重建左侧 vMerge 标签：
+ * - 本页从首行开始时，把既有的「教学目标」标签 rowspan 改成本页行数；
+ * - 本页从组中段（或拆分尾行）开始时，保留空标签格（与 Word 的 vMerge
+ *   跨页表现一致：续页不重复标签文字），没有标签格则补一个空格子。
+ */
+function finalizeMergeRowspans(pages: PreviewPage[]): PreviewPage[] {
+  return pages.map((page) => {
+    const blocks = [...page.blocks];
+    let index = 0;
+    while (index < blocks.length) {
+      const block = blocks[index];
+      if (block.mergeGroup !== OBJECTIVES_GROUP) {
+        index += 1;
+        continue;
+      }
+      let end = index;
+      while (end < blocks.length && blocks[end].mergeGroup === OBJECTIVES_GROUP) end += 1;
+      const runLength = end - index;
+      const first = blocks[index];
+      const cells = first.cells.map((cell) => ({ ...cell }));
+      const mergedIndex = cells.findIndex(
+        (cell) => cell.role === 'label' && (cell.rowspan ?? 0) > 1,
+      );
+      if (mergedIndex >= 0) {
+        cells[mergedIndex] = { ...cells[mergedIndex], rowspan: runLength };
+      } else {
+        cells.unshift({ text: '', role: 'label', rowspan: runLength });
+      }
+      blocks[index] = { ...first, cells };
+      index = end;
+    }
+    return { ...page, blocks };
+  });
+}
+
 /** 按内容流分页；页码从 3 开始。长行按可用高度跨页拆分，避免整行跳页留下空白。 */
 export function paginateBlocks(blocks: PreviewBlock[], rawStyle: unknown): PreviewPage[] {
   const style = normalizeStyle(rawStyle);
-  const capacity = A4_HEIGHT_PX - style.pageMargin * 2 - PAGE_FOOTER_RESERVE_PX;
-  /** 第一张正文纸顶部有「{课程名称}　教学设计」标题，占一行加下边距。 */
-  const titleReserve = Math.round(style.headingSize * 1.4 + 12);
+  // 页脚绝对定位在页边距内，不再从正文高度里扣预留。
+  const capacity = A4_HEIGHT_PX - style.pageMargin * 2;
+  const titleReserve = TITLE_RESERVE_PX;
   const minSplit = minSplitHeight(style);
   const queue = groupBlocks(blocks);
   const pages: PreviewBlock[][] = [];
@@ -916,7 +990,7 @@ export function paginateBlocks(blocks: PreviewBlock[], rawStyle: unknown): Previ
   flush();
   const result = pages.map((page, index) => ({ number: FIRST_CONTENT_PAGE + index, blocks: page }));
   if (result.length === 0) result.push({ number: FIRST_CONTENT_PAGE, blocks: [] });
-  return result;
+  return finalizeMergeRowspans(result);
 }
 
 export function layoutPreview(
@@ -962,5 +1036,7 @@ export function paperStyleVars(rawStyle: unknown): Record<string, string> {
     '--lp-page-margin': `${style.pageMargin}px`,
     '--lp-module-gap': `${style.moduleGap}px`,
     '--lp-paragraph-gap': `${style.paragraphGap}px`,
+    // 页脚在页边距内；页边距很小时下移距离跟着缩小，避免压到正文。
+    '--lp-footer-bottom': `${Math.min(48, Math.max(8, style.pageMargin - 16))}px`,
   };
 }
