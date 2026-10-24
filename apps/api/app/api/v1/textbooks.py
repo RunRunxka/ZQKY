@@ -141,7 +141,7 @@ async def get_textbook_library(request: Request, library_id: str) -> LibraryDeta
     def load() -> LibraryDetail:
         record = catalog.get_library(library_id)
         if record is None or record.deleted_at is not None:
-            raise AppError("逻辑库不存在或已停用。", code="LIBRARY_NOT_FOUND", status_code=404)
+            raise AppError("逻辑库不存在或已删除。", code="LIBRARY_NOT_FOUND", status_code=404)
         return ViewContext(catalog).library_detail(record)
 
     return await run_in_thread(load)

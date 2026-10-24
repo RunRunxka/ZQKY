@@ -33,6 +33,25 @@
   position: relative;
 }
 
+.textbook-page .textbook-library-card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.textbook-page .textbook-library-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.textbook-page .textbook-library-confirm {
+  white-space: pre-line;
+}
+
 .textbook-page .space-card-title {
   min-width: 0;
   overflow-wrap: anywhere;

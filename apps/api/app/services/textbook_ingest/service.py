@@ -756,7 +756,7 @@ class IngestService:
                 continue
             library = self.catalog.get_library(library_id)
             if library is None or library.is_deleted:
-                raise _not_found("逻辑库不存在或已停用。", code="LIBRARY_NOT_FOUND")
+                raise _not_found("逻辑库不存在或已删除。", code="LIBRARY_NOT_FOUND")
             unique.append(library_id)
         return unique
 

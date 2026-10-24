@@ -8,9 +8,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ChevronRight, Database } from 'lucide-react';
-import type { LibraryKind } from '@/contracts/textbook';
-import { listLibraries } from '@/services/textbook-api';
-import { useAsyncResource } from './hooks';
+import type { LibraryKind, LibrarySummary } from '@/contracts/textbook';
+import { deleteLibrary, listLibraries } from '@/services/textbook-api';
+import { asApiError, useAsyncResource } from './hooks';
 import { LIBRARY_KIND_LABEL } from './labels';
 import type { TaxonomyIndex } from './taxonomy';
 
@@ -21,6 +21,15 @@ interface Filters {
 }
 
 const NO_FILTERS: Filters = { gradeId: '', subjectId: '', editionId: '' };
+
+/** 逻辑库删除确认：写明会删库与书册关联、书册/原文保留。 */
+export function deleteLibraryConfirmText(library: LibrarySummary): string {
+  return (
+    `彻底删除逻辑库「${library.displayName}」？\n\n` +
+    `库本身与该库的书册关联（${library.documentCount} 册）会被删除，不可恢复。\n` +
+    '书册、原文修订与历史引用保留；只在本库中的书册将不再出现在教材库列表。'
+  );
+}
 
 export function LibraryBrowser({
   kind,
@@ -49,6 +58,38 @@ export function LibraryBrowser({
   );
 
   const filterActive = Boolean(filters.gradeId || filters.subjectId || filters.editionId);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const removeLibrary = async (library: LibrarySummary) => {
+    if (busyId !== null) return;
+    setBusyId(library.libraryId);
+    setActionError(null);
+    try {
+      await deleteLibrary(library.libraryId, { expectedRevision: library.revision });
+      setConfirmId(null);
+      setNotice(`已彻底删除逻辑库「${library.displayName}」；书册与原文修订保留。`);
+      reload();
+    } catch (cause) {
+      const error = asApiError(cause);
+      if (error.status === 404) {
+        setConfirmId(null);
+        setNotice(`逻辑库「${library.displayName}」已不存在。`);
+        reload();
+        return;
+      }
+      setActionError(
+        error.status === 409
+          ? `删除冲突（${error.code}）：${error.message} 已重新读取列表，请比较后重试。`
+          : `删除逻辑库失败（${error.code}）：${error.message}`,
+      );
+      if (error.status === 409) reload();
+    } finally {
+      setBusyId(null);
+    }
+  };
   const emptyText =
     kind === 'base'
       ? '还没有基础库（顶部「新建逻辑库」可建；基础库一般由服务端成套建立）'
@@ -116,6 +157,27 @@ export function LibraryBrowser({
         {!taxonomy.ready && <span className="textbook-hint">字典未加载，筛选暂不可用。</span>}
       </div>
 
+      {notice && (
+        <div className="space-banner info" role="status" data-testid="textbook-library-notice">
+          {notice}
+          <div className="textbook-panel-actions">
+            <button className="space-button" onClick={() => setNotice(null)}>
+              关闭
+            </button>
+          </div>
+        </div>
+      )}
+      {actionError && (
+        <div className="space-banner error" role="alert" data-testid="textbook-library-delete-error">
+          {actionError}
+          <div className="textbook-panel-actions">
+            <button className="space-button" onClick={() => setActionError(null)}>
+              关闭
+            </button>
+          </div>
+        </div>
+      )}
+
       {state.phase === 'loading' && (
         <div aria-hidden>
           {[0, 1, 2].map((index) => (
@@ -159,28 +221,75 @@ export function LibraryBrowser({
       {state.phase === 'ready' && state.data.libraries.length > 0 && (
         <div className="space-card-grid">
           {state.data.libraries.map((library) => (
-            <Link
-              className="space-persona-card"
+            <div
+              className="space-persona-card textbook-library-card"
               key={library.libraryId}
-              href={`/textbooks/libraries/${encodeURIComponent(library.libraryId)}`}
+              data-testid={`textbook-library-card-${library.libraryId}`}
             >
-              <ChevronRight className="kb-card-chevron" size={16} aria-hidden />
-              <div className="space-card-title">{library.displayName}</div>
-              <div className="space-meta-row">
-                <span className="space-chip">{LIBRARY_KIND_LABEL[library.kind]}</span>
-                {library.gradeId && (
-                  <span className="space-chip">年级：{taxonomy.gradeLabel(library.gradeId)}</span>
+              <Link
+                className="textbook-library-card-main"
+                href={`/textbooks/libraries/${encodeURIComponent(library.libraryId)}`}
+              >
+                <ChevronRight className="kb-card-chevron" size={16} aria-hidden />
+                <div className="space-card-title">{library.displayName}</div>
+                <div className="space-meta-row">
+                  <span className="space-chip">{LIBRARY_KIND_LABEL[library.kind]}</span>
+                  {library.gradeId && (
+                    <span className="space-chip">年级：{taxonomy.gradeLabel(library.gradeId)}</span>
+                  )}
+                  <span className="space-chip">学科：{taxonomy.subjectLabel(library.subjectId)}</span>
+                  <span className="space-chip">版本：{taxonomy.editionLabel(library.editionId)}</span>
+                </div>
+                <div className="space-meta-row">
+                  <span className="space-chip">书册 {library.documentCount}</span>
+                  <span className={`space-chip ${library.readyDocumentCount > 0 ? 'green' : ''}`}>
+                    已就绪 {library.readyDocumentCount}
+                  </span>
+                </div>
+              </Link>
+              <div className="textbook-library-card-actions">
+                {confirmId === library.libraryId ? (
+                  <>
+                    <button
+                      type="button"
+                      className="space-button danger"
+                      data-testid={`textbook-library-confirm-${library.libraryId}`}
+                      disabled={busyId !== null}
+                      onClick={() => void removeLibrary(library)}
+                    >
+                      {busyId === library.libraryId ? '删除中…' : '确认删除'}
+                    </button>
+                    <button
+                      type="button"
+                      className="space-button"
+                      disabled={busyId !== null}
+                      onClick={() => setConfirmId(null)}
+                    >
+                      取消
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className="space-button"
+                    data-testid={`textbook-library-delete-${library.libraryId}`}
+                    title={`彻底删除「${library.displayName}」（不可恢复）`}
+                    disabled={busyId !== null}
+                    onClick={() => {
+                      setActionError(null);
+                      setConfirmId(library.libraryId);
+                    }}
+                  >
+                    删除逻辑库
+                  </button>
                 )}
-                <span className="space-chip">学科：{taxonomy.subjectLabel(library.subjectId)}</span>
-                <span className="space-chip">版本：{taxonomy.editionLabel(library.editionId)}</span>
               </div>
-              <div className="space-meta-row">
-                <span className="space-chip">书册 {library.documentCount}</span>
-                <span className={`space-chip ${library.readyDocumentCount > 0 ? 'green' : ''}`}>
-                  已就绪 {library.readyDocumentCount}
-                </span>
-              </div>
-            </Link>
+              {confirmId === library.libraryId && (
+                <p className="textbook-hint textbook-library-confirm" role="alert">
+                  {deleteLibraryConfirmText(library)}
+                </p>
+              )}
+            </div>
           ))}
         </div>
       )}

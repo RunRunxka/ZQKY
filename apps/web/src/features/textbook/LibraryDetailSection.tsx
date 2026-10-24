@@ -17,6 +17,7 @@ import '@/features/textbook/styles/textbook.css';
 import type { DocumentMetadataInput, DocumentSummary, LibraryDetail } from '@/contracts/textbook';
 import {
   deleteDocument,
+  deleteLibrary,
   fetchTextbookTaxonomy,
   getDocument,
   getLibrary,
@@ -65,6 +66,9 @@ function LibraryDetailSession({ libraryId }: { libraryId: string }) {
   const [importOpen, setImportOpen] = useState(false);
   const [retainedLibrary, setRetainedLibrary] = useState<LibraryDetail | null>(null);
   const [refreshPending, setRefreshPending] = useState(false);
+  const [confirmLibraryDelete, setConfirmLibraryDelete] = useState(false);
+  const [libraryDeleteBusy, setLibraryDeleteBusy] = useState(false);
+  const [libraryDeletedName, setLibraryDeletedName] = useState<string | null>(null);
 
   const refresh = () => {
     setRefreshPending(true);
@@ -152,6 +156,53 @@ function LibraryDetailSession({ libraryId }: { libraryId: string }) {
     }
   }
 
+  async function removeLibrary() {
+    if (!library || !listFresh || libraryDeleteBusy) return;
+    setLibraryDeleteBusy(true);
+    setActionError(null);
+    try {
+      await deleteLibrary(library.libraryId, { expectedRevision: library.revision });
+      setConfirmLibraryDelete(false);
+      setLibraryDeletedName(library.displayName);
+    } catch (cause) {
+      const error = asApiError(cause);
+      if (error.status === 404) {
+        // 已被另一窗口/另一轮删除：按已删除处理，不再重复报错。
+        setConfirmLibraryDelete(false);
+        setLibraryDeletedName(library.displayName);
+        return;
+      }
+      setActionError(
+        error.status === 409
+          ? `删除冲突（${error.code}）：${error.message} 已重新读取库信息，请比较后重试。`
+          : `删除逻辑库失败（${error.code}）：${error.message}`,
+      );
+      if (error.status === 409) refresh();
+    } finally {
+      setLibraryDeleteBusy(false);
+    }
+  }
+
+  if (libraryDeletedName) {
+    return (
+      <div className="space-page textbook-page textbook-detail">
+        <header className="space-header">
+          <h1>逻辑库已删除</h1>
+        </header>
+        <main className="space-content">
+          <div className="space-banner info" role="status" data-testid="textbook-library-deleted">
+            已彻底删除逻辑库「{libraryDeletedName}」。书册、原文修订与历史引用保留。
+            <div className="textbook-panel-actions">
+              <Link className="space-button" href="/textbooks">
+                返回教材资料库
+              </Link>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="space-page textbook-page textbook-detail" ref={entranceRef}>
       <header className="space-header" data-motion-reveal>
@@ -166,12 +217,48 @@ function LibraryDetailSession({ libraryId }: { libraryId: string }) {
               <RefreshCw size={14} aria-hidden />
               刷新
             </button>
+            {library &&
+              (confirmLibraryDelete ? (
+                <>
+                  <button
+                    className="space-button danger"
+                    data-testid="textbook-library-confirm-delete"
+                    disabled={!listFresh || libraryDeleteBusy}
+                    onClick={() => void removeLibrary()}
+                  >
+                    {libraryDeleteBusy ? '删除中…' : '确认删除'}
+                  </button>
+                  <button
+                    className="space-button"
+                    disabled={libraryDeleteBusy}
+                    onClick={() => setConfirmLibraryDelete(false)}
+                  >
+                    取消
+                  </button>
+                </>
+              ) : (
+                <button
+                  className="space-button"
+                  data-testid="textbook-library-delete"
+                  disabled={!listFresh || libraryDeleteBusy}
+                  title={`彻底删除逻辑库「${library.displayName}」（不可恢复）`}
+                  onClick={() => setConfirmLibraryDelete(true)}
+                >
+                  删除逻辑库
+                </button>
+              ))}
           </div>
         </div>
         {library && <LibraryMeta library={library} taxonomy={index} />}
       </header>
 
       <main className="space-content">
+        {confirmLibraryDelete && library && (
+          <div className="space-banner info" role="alert" data-testid="textbook-library-delete-confirm">
+            彻底删除逻辑库「{library.displayName}」？库本身与 {library.documentCount}{' '}
+            册书册的库关联会被删除，不可恢复；书册、原文修订与历史引用保留。
+          </div>
+        )}
         {!library && state.phase === 'loading' && (
           <div aria-hidden>
             {[0, 1, 2].map((index) => (

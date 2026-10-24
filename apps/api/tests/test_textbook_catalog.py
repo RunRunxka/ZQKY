@@ -265,7 +265,9 @@ def test_library_crud_and_optimistic_lock(catalog: TextbookCatalog) -> None:
 
     catalog.delete_library(library.library_id, expected_revision=updated.revision)
     assert catalog.list_libraries() == []
-    assert catalog.list_libraries(include_deleted=True)[0].deleted_at is not None
+    # 彻底删除：库行与书册关联都物理消失，includeDeleted 也查不到。
+    assert catalog.list_libraries(include_deleted=True) == []
+    assert catalog.get_library(library.library_id) is None
     with pytest.raises(AppError) as gone:
         catalog.update_library(library.library_id, expected_revision=updated.revision + 1, display_name="已删")
     assert gone.value.code == "LIBRARY_NOT_FOUND"
@@ -618,6 +620,9 @@ def test_resolve_selection_rejects_library_gaps_deleted_and_unlinked(catalog: Te
     with pytest.raises(AppError) as removed:
         catalog.resolve_selection(selection_for(removed_doc.document_id))
     assert removed.value.code == "RAG_SCOPE_CHANGED"
+    # 书册本身与修订保留，只是不再属于任何库。
+    assert catalog.get_library(removed_library.library_id) is None
+    assert catalog.get_document(removed_doc.document_id).library_ids == ()
 
 
 def test_resolve_selection_rejects_pending_generation_revision(catalog: TextbookCatalog) -> None:

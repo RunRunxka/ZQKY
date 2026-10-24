@@ -241,6 +241,15 @@ def test_library_crud_and_revision_conflict(api: ApiHarness) -> None:
     )
     assert deleted.status_code == 204
     assert api.client.get("/api/v1/textbook-libraries").json()["libraries"] == []
+    # 彻底删除：includeDeleted 也查不到，详情 404。
+    assert (
+        api.client.get("/api/v1/textbook-libraries", params={"includeDeleted": True})
+        .json()["libraries"]
+        == []
+    )
+    assert (
+        api.client.get(f"/api/v1/textbook-libraries/{library['libraryId']}").status_code == 404
+    )
 
 
 # ----------------------------------------------------------------------- 导入

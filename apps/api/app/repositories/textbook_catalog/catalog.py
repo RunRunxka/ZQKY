@@ -344,11 +344,10 @@ class TextbookCatalog:
         with self._write() as conn:
             row = self._live_library_row(conn, library_id)
             self._check_revision(row["revision"], expected_revision, what="逻辑库")
-            # 逻辑删除只标记；library_documents 关联保留，范围解析与列表按 deleted_at 过滤
-            conn.execute(
-                "UPDATE libraries SET deleted_at = ?, revision = revision + 1 WHERE id = ?",
-                (now_iso(), library_id),
-            )
+            # 彻底删除：先清书册关联，再删库行；documents/document_revisions 保留，
+            # 只在本库中的书册从此不再出现在教材库列表（原文与历史引用仍可追溯）。
+            conn.execute("DELETE FROM library_documents WHERE library_id = ?", (library_id,))
+            conn.execute("DELETE FROM libraries WHERE id = ?", (library_id,))
             self._touch_catalog(conn)
 
     def link_document(self, library_id: str, document_id: str) -> None:

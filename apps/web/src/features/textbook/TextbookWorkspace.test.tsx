@@ -293,3 +293,62 @@ describe('教材管理页 · 新建逻辑库（R10-FE 2026-10-13）', () => {
     expect(within(form).getByTestId('textbook-library-create-submit')).toBeDisabled();
   });
 });
+
+describe('教材管理页 · 逻辑库删除', () => {
+  it('卡片二次确认后彻底删除，DELETE 带 expectedRevision，列表刷新后卡片消失', async () => {
+    let deleted = false;
+    const fetchMock = stubApi((url, init) => {
+      if (url.includes('/textbook-taxonomy')) return ok(TAXONOMY);
+      if (url.includes('/textbook-libraries/lib-base') && init.method === 'DELETE') {
+        deleted = true;
+        return { ok: true, status: 204, json: async () => null } as Response;
+      }
+      if (url.includes('kind=base')) return ok({ libraries: deleted ? [] : [library()] });
+      return ok({ libraries: [] });
+    });
+    render(<TextbookWorkspace />);
+
+    await screen.findByRole('link', { name: /七年级数学基础库/ });
+    fireEvent.click(screen.getByTestId('textbook-library-delete-lib-base'));
+    expect(screen.getByTestId('textbook-library-confirm-lib-base')).toBeTruthy();
+    expect(screen.getByText(/彻底删除逻辑库「七年级数学基础库」/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('textbook-library-confirm-lib-base'));
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find(
+        ([url, init]) =>
+          String(url).includes('/textbook-libraries/lib-base') &&
+          (init as RequestInit)?.method === 'DELETE',
+      );
+      expect(call).toBeTruthy();
+      expect(JSON.parse(String((call?.[1] as RequestInit).body))).toEqual({ expectedRevision: 5 });
+    });
+    await waitFor(() => expect(screen.queryByTestId('textbook-library-card-lib-base')).toBeNull());
+    expect(screen.getByTestId('textbook-library-notice')).toHaveTextContent('已彻底删除逻辑库');
+  });
+
+  it('409 冲突：显示服务端 code 并刷新列表', async () => {
+    let listCalls = 0;
+    stubApi((url, init) => {
+      if (url.includes('/textbook-taxonomy')) return ok(TAXONOMY);
+      if (url.includes('/textbook-libraries/lib-base') && init.method === 'DELETE') {
+        return failed(409, { code: 'REVISION_CONFLICT', message: '逻辑库已被修改。' });
+      }
+      if (url.includes('kind=base')) {
+        listCalls += 1;
+        return ok({ libraries: [library()] });
+      }
+      return ok({ libraries: [] });
+    });
+    render(<TextbookWorkspace />);
+
+    await screen.findByRole('link', { name: /七年级数学基础库/ });
+    fireEvent.click(screen.getByTestId('textbook-library-delete-lib-base'));
+    fireEvent.click(screen.getByTestId('textbook-library-confirm-lib-base'));
+
+    const error = await screen.findByTestId('textbook-library-delete-error');
+    expect(error).toHaveTextContent('删除冲突（REVISION_CONFLICT）');
+    expect(error).toHaveTextContent('逻辑库已被修改。');
+    await waitFor(() => expect(listCalls).toBeGreaterThan(1));
+  });
+});

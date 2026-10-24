@@ -561,3 +561,70 @@ describe('教材库详情 · 更新入口', () => {
     });
   });
 });
+
+describe('教材库详情 · 逻辑库删除', () => {
+  it('二次确认后 DELETE 带 expectedRevision，成功后显示已删除状态', async () => {
+    const calls: { url: string; body: unknown }[] = [];
+    stubApi((url, init) => {
+      if (url.includes('/textbook-taxonomy')) return ok(TAXONOMY);
+      if (url.includes('/textbook-libraries/lib-1') && init.method === 'DELETE') {
+        calls.push({ url, body: JSON.parse(String(init.body)) });
+        return { ok: true, status: 204, json: async () => null } as Response;
+      }
+      if (url.includes('/textbook-libraries/lib-1')) return ok(libraryDetail());
+      throw new Error(`未预期的请求 ${url} ${String(init.method)}`);
+    });
+    render(<LibraryDetailSection libraryId="lib-1" />);
+
+    await screen.findByRole('heading', { name: '七年级数学基础库' });
+    fireEvent.click(screen.getByTestId('textbook-library-delete'));
+    expect(screen.getByTestId('textbook-library-delete-confirm')).toHaveTextContent(
+      '彻底删除逻辑库「七年级数学基础库」',
+    );
+
+    fireEvent.click(screen.getByTestId('textbook-library-confirm-delete'));
+    await waitFor(() => expect(calls).toHaveLength(1));
+    expect(calls[0].url).toBe('/api/v1/textbook-libraries/lib-1');
+    expect(calls[0].body).toEqual({ expectedRevision: 3 });
+    expect(await screen.findByTestId('textbook-library-deleted')).toHaveTextContent(
+      '已彻底删除逻辑库',
+    );
+    expect(screen.getByRole('link', { name: '返回教材资料库' })).toHaveAttribute(
+      'href',
+      '/textbooks',
+    );
+  });
+
+  it('404 按已删除处理；409 显示冲突并刷新', async () => {
+    stubApi((url, init) => {
+      if (url.includes('/textbook-taxonomy')) return ok(TAXONOMY);
+      if (url.includes('/textbook-libraries/lib-1') && init.method === 'DELETE') {
+        return failed(404, { code: 'LIBRARY_NOT_FOUND', message: '逻辑库不存在或已删除。' });
+      }
+      if (url.includes('/textbook-libraries/lib-1')) return ok(libraryDetail());
+      throw new Error(`未预期的请求 ${url} ${String(init.method)}`);
+    });
+    const { unmount } = render(<LibraryDetailSection libraryId="lib-1" />);
+    await screen.findByRole('heading', { name: '七年级数学基础库' });
+    fireEvent.click(screen.getByTestId('textbook-library-delete'));
+    fireEvent.click(screen.getByTestId('textbook-library-confirm-delete'));
+    expect(await screen.findByTestId('textbook-library-deleted')).toHaveTextContent(
+      '已彻底删除逻辑库',
+    );
+    unmount();
+
+    stubApi((url, init) => {
+      if (url.includes('/textbook-taxonomy')) return ok(TAXONOMY);
+      if (url.includes('/textbook-libraries/lib-1') && init.method === 'DELETE') {
+        return failed(409, { code: 'REVISION_CONFLICT', message: '逻辑库已被修改。' });
+      }
+      if (url.includes('/textbook-libraries/lib-1')) return ok(libraryDetail());
+      throw new Error(`未预期的请求 ${url} ${String(init.method)}`);
+    });
+    render(<LibraryDetailSection libraryId="lib-1" />);
+    await screen.findByRole('heading', { name: '七年级数学基础库' });
+    fireEvent.click(screen.getByTestId('textbook-library-delete'));
+    fireEvent.click(screen.getByTestId('textbook-library-confirm-delete'));
+    expect(await screen.findByText(/删除冲突（REVISION_CONFLICT）/)).toBeInTheDocument();
+  });
+});
