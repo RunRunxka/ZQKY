@@ -1,0 +1,33 @@
+/**
+ * 模型选择器基础样式（/chat 与 /settings 共用）。
+ *
+ * 这些规则原先只在 model-settings.css（仅 /settings 路由加载）里；
+ * /chat 直接渲染 ModelSelector 时缺少 inline-flex，品牌图标/文字/chevron
+ * 会按 inline 基线折行，整个选择器再被 composer 的 flex-wrap 挤到下一行。
+ * 由组件自身引入这份小样式，保证两条路由使用同一套基础布局。
+ */
+.model-select-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.model-select-trigger:hover {
+  background: var(--surface);
+}
+
+.model-select-trigger > span:nth-child(2) {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-select-trigger > :is(img, svg) {
+  flex-shrink: 0;
+}

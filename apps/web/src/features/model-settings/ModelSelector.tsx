@@ -5,6 +5,7 @@ import { Check, ChevronDown, Search } from 'lucide-react';
 import type { ModelCatalog } from '@/contracts/model-settings';
 import { Modal } from '@/components/ui/Modal';
 import { ModelBrandIcon } from './ModelBrandIcon';
+import './styles/model-selector.css';
 
 function PickerPanel({
   children,

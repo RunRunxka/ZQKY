@@ -8,7 +8,7 @@ import { test, expect } from '@playwright/test';
 const PROFILE = {
   id: 'profile-1',
   connectionId: 'conn-1',
-  displayName: '模拟模型',
+  displayName: 'glm-5.3-flashx-超长模型名称用于验证单行省略',
   modelId: 'sim-chat-1',
   purpose: 'chat',
   contextTokens: 8000,
@@ -69,8 +69,52 @@ test('/chat：空输入不可发送，输入后可发送', async ({ page }) => {
   await page.goto('/chat');
   const send = page.getByRole('button', { name: '发送' });
   await expect(send).toBeDisabled();
+  await expect(send.locator('.lucide-arrow-up')).toHaveCount(1);
   await page.getByLabel('输入问题').fill('函数的单调性');
   await expect(send).toBeEnabled();
+});
+
+test('/chat：长模型名单行省略，图标/文字/chevron 对齐', async ({ page }) => {
+  // 窄桌面宽度：模型名再长也只能省略，不能把 chevron 挤到第二行。
+  await page.setViewportSize({ width: 900, height: 800 });
+  await page.goto('/chat');
+  const trigger = page.locator('.model-select-trigger').first();
+  await expect(trigger).toBeVisible();
+
+  const layout = await trigger.evaluate((element) => {
+    const style = getComputedStyle(element);
+    const children = Array.from(element.children) as HTMLElement[];
+    const centers = children.map((child) => {
+      const rect = child.getBoundingClientRect();
+      return rect.top + rect.height / 2;
+    });
+    return {
+      display: style.display,
+      alignItems: style.alignItems,
+      height: element.getBoundingClientRect().height,
+      centerSpread: centers.length > 1 ? Math.max(...centers) - Math.min(...centers) : 0,
+    };
+  });
+  expect(layout.display).toBe('inline-flex');
+  expect(layout.alignItems).toBe('center');
+  expect(layout.height).toBeLessThan(40);
+  expect(layout.centerSpread).toBeLessThan(3);
+
+  const label = trigger.locator('span:nth-child(2)');
+  const labelStyle = await label.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      whiteSpace: style.whiteSpace,
+      textOverflow: style.textOverflow,
+      overflow: style.overflow,
+      scrollWidth: element.scrollWidth,
+      clientWidth: element.clientWidth,
+    };
+  });
+  expect(labelStyle.whiteSpace).toBe('nowrap');
+  expect(labelStyle.textOverflow).toBe('ellipsis');
+  expect(labelStyle.overflow).toBe('hidden');
+  expect(labelStyle.scrollWidth).toBeGreaterThan(labelStyle.clientWidth);
 });
 
 test('/chat：prefers-reduced-motion 下仍可用', async ({ page }) => {

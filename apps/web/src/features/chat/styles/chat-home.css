@@ -205,14 +205,22 @@
   gap: 6px;
   padding: 4px 6px;
   max-width: 220px;
+  min-width: 0;
 }
-.chat-home-shell .model-select-trigger > span {
+.chat-home-shell .model-select-trigger > span:nth-child(2) {
+  flex: 0 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .chat-home-shell .model-selector {
   position: relative;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+.chat-home-shell .chat-effort-picker {
+  flex-shrink: 0;
 }
 .chat-home-shell .chat-model-popover {
   position: absolute;
@@ -829,12 +837,19 @@ html[data-motion='reduced'] .chat-activity-chevron {
     grid-template-columns: minmax(0, 1fr) 44px minmax(44px, max-content);
     grid-template-rows: repeat(2, 44px);
     grid-template-areas:
-      'capability attachment context'
+      'effort attachment context'
       'model voice send';
     gap: 8px 6px;
   }
+  .chat-home-shell .chat-composer-tools > .chat-effort-picker {
+    grid-area: effort;
+    min-width: 0;
+  }
+  .chat-home-shell .chat-effort-picker select {
+    max-width: 100%;
+  }
   .chat-home-shell .chat-composer-tools > .chat-cap-picker {
-    grid-area: capability;
+    grid-area: effort;
     min-width: 0;
   }
   .chat-home-shell .chat-cap-trigger {

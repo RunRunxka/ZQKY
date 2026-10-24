@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowDown, Paperclip, PanelRight, Plus, Square, X, Brain } from 'lucide-react';
+import { ArrowDown, ArrowUp, Paperclip, PanelRight, Plus, Square, X, Brain } from 'lucide-react';
 import { WorkspaceShell } from '@/components/layout/WorkspaceShell';
 import { useEntrance } from '@/components/motion/useEntrance';
 import { ChatProvider, useChatStore } from './model/ChatContext';
@@ -545,7 +545,7 @@ function ChatPage() {
                     }
                     onClick={submit}
                   >
-                    <ArrowDown size={16} className="chat-send-arrow" />
+                    <ArrowUp size={16} className="chat-send-arrow" />
                   </button>
                 )}
               </div>

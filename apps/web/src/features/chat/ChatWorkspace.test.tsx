@@ -331,6 +331,13 @@ describe('对话编辑区：思考档位与上下文环数据源', () => {
     expect(extensions.capability?.config?.reasoningEffort).toBe('low');
   });
 
+  it('发送键是向上箭头（向下箭头只留给滚动到底部）', () => {
+    renderWorkspace(profileFixture(), '你好');
+    const send = screen.getByRole('button', { name: '发送' });
+    expect(send.querySelector('.lucide-arrow-up')).toBeTruthy();
+    expect(send.querySelector('.lucide-arrow-down')).toBeNull();
+  });
+
   it('缺失 reasoningSupport 时回退旧行为（含 none 之外的全量档位表）', () => {
     renderWorkspace(profileFixture({ reasoningEnabled: true, reasoningEffort: 'low' }));
     expect(effortOptions()).toEqual(['默认（低）', '最低', '低', '中', '高', '很高', '最高']);

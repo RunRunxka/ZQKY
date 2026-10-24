@@ -333,23 +333,8 @@
   padding: 40px;
   display: block;
 }
-.model-select-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  max-width: 100%;
-  padding: 8px 10px;
-  border-radius: 8px;
-  font-size: 12px;
-}
-.model-select-trigger:hover {
-  background: var(--surface);
-}
-.model-select-trigger > span:nth-child(2) {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+/* `.model-select-trigger` 基础规则在 ModelSelector 组件自带
+   styles/model-selector.css（/chat 与 /settings 共用），这里不再重复。 */
 .model-dot {
   width: 6px;
   height: 6px;
