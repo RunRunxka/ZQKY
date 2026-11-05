@@ -1,6 +1,7 @@
 # 学习问答参考资源与本地改动
 
-本批由用户指定 `C:\Users\96022\Documents\Codex\2026-09-09\wo\outputs\deeptutor-page` 为学习问答视觉参考，读取于 2026-09-09。参考包的 `REFERENCE.md` 标明 DeepTutor v1.6.5 / `42fab3cf429a1fbf36b257ab8d116a3814964202`，本批不修改参考目录。
+本批以用户提供的 DeepTutor 页面快照（读取于 2026-09-09）为学习问答视觉参考；参考包的
+`REFERENCE.md` 标明 DeepTutor v1.6.5 / `42fab3cf429a1fbf36b257ab8d116a3814964202`，参考目录只读，不修改。
 
 固定输入 SHA256：
 

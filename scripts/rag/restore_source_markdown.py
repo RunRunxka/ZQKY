@@ -1,11 +1,11 @@
-"""把归档里的 markdown 恢复到 F:\\人教版教材\\markdown（只补 .md，不覆盖既有文件）。
+"""把归档里的 markdown 恢复到指定源目录（只补 .md，不覆盖既有文件）。
 
 背景：迁移脚本早期把**源文件**直接传给上传暂存接口（该接口是移动语义），
 把这批 .md 从源目录搬走了。文件内容并未丢失（在归档 zip 与受管 blobs 里），
 本脚本负责把源目录恢复到原状。
 
 安全约束：
-- 只写 `.md`，只写 `F:\\人教版教材\\markdown` 下；
+- 只写 `.md`，且只写 `--target` 指定的目录；
 - **已存在的文件一律跳过**（不覆盖用户任何现有内容）；
 - 先解到临时目录校验，再落盘；
 - 默认 `--dry-run`，要真正写入必须显式 `--apply`。
@@ -39,8 +39,8 @@ def collect(zip_path: Path) -> list[tuple[str, str]]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="从归档恢复源目录的 markdown")
-    parser.add_argument("--zip", default="F:/人教版教材.zip")
-    parser.add_argument("--target", default="F:/人教版教材/markdown")
+    parser.add_argument("--zip", required=True, help="教材 markdown 归档 zip")
+    parser.add_argument("--target", required=True, help="要恢复到的教材源目录")
     parser.add_argument("--apply", action="store_true", help="真正写入（默认只报告）")
     args = parser.parse_args()
 

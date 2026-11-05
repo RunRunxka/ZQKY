@@ -199,7 +199,7 @@ def ensure_profile_and_generation(index: IndexService, *, model_name: str):
 def stage_from_zip(zip_path: Path, staging: Path) -> Path:
     """把归档里的 ``markdown/`` 树解到临时目录，返回可作为 source_root 的路径。
 
-    原始归档（`F:\\人教版教材.zip`）与 `F:\\人教版教材\\markdown` 都只读；解压只写 `_work`。
+    原始归档（例如 `教材.zip`）与源目录都只读；解压只写 `_work`。
     归档里 markdown 只占很小一部分，这里只解 `.md`，避免把 1.4 GB 的图片一起展开。
     **调用方必须传本次运行独占的目录**：两次迁移并发时共用同一个暂存目录会互相截断文件
     （实测 58 册在共用目录下会瞬时只剩 56 册）。
@@ -470,7 +470,7 @@ def main() -> int:
     parser.add_argument("--source", help="原始教材目录（默认取 ZQKY_TEXTBOOK_SOURCE_DIR）")
     parser.add_argument(
         "--source-zip",
-        help="从归档读取 markdown（源目录不可用时的可复现来源，例如 F:/人教版教材.zip）",
+        help="从归档读取 markdown（源目录不可用时的可复现来源，例如 /path/to/教材.zip）",
     )
     parser.add_argument(
         "--staging",

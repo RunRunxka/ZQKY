@@ -17,7 +17,6 @@
     "lint": "eslint apps/web/src tests scripts --max-warnings=0",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
-    "test:chat": "node scripts/test-chat.mjs",
     "rag:db:start": "docker compose -f infra/qdrant/docker-compose.yml up -d",
     "rag:db:stop": "docker compose -f infra/qdrant/docker-compose.yml stop",
     "rag:db:status": "docker compose -f infra/qdrant/docker-compose.yml ps",
@@ -30,8 +29,6 @@
     "rag:backup": "cd apps/api && uv run python ../../scripts/rag/backup.py create",
     "rag:backup:verify": "cd apps/api && uv run python ../../scripts/rag/backup.py verify",
     "rag:restore": "cd apps/api && uv run python ../../scripts/rag/backup.py restore",
-    "template:build": "node scripts/build-template.mjs",
-    "template:verify": "node scripts/verify-template.mjs",
     "format:check": "prettier --check apps/web/src tests scripts",
     "check": "npm run typecheck && npm run lint && npm run test:unit && npm run build"
   },

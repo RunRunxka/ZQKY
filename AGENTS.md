@@ -34,7 +34,7 @@
 | 交互动效 | framer-motion 14 + @radix-ui/react-tooltip | 教案工作台（Reorder 拖拽 / 手风琴 / 悬浮提示）；仅该页客户端加载 |
 | 后端 | FastAPI（Python ≥ 3.12，uv 管理） | `apps/api`，SSE 三协议适配 + 八域装配 |
 | Agent | langgraph 1.2 + langchain 1.4（core 1.6） | `app/services/agent/`；checkpointer 落 SQLite；模块 LLM 走 `app/services/llm/` |
-| 测试 | Vitest（jsdom）+ Playwright + pytest | 单测 / e2e / 后端（后端 1946 例，2026-10-23） |
+| 测试 | Vitest（jsdom）+ Playwright + pytest | 单测 / e2e / 后端（门禁数字以 `docs/CURRENT_STATUS.md` 顶部为准） |
 
 ## 3. 仓库结构
 
@@ -57,7 +57,7 @@ apps/
     ├── app/repositories/     # 四库仓储（textbook_catalog/knowledge/question_bank/teaching）+ vector_store/jobs
     ├── app/core/             # config / secrets / sqlite / migrations（四库追加式）/ data_lock
     ├── app/resources/        # 教案模板（lesson_templates/）
-    └── tests/                # pytest（1946 例；入口见 §4 环境坑）
+    └── tests/                # pytest（入口见 §4 环境坑；门禁数字见 CURRENT_STATUS）
 tests/                        # e2e（Playwright，系统 msedge 通道，自起 5174）与 fixtures
 docs/                         # 权威文档（CURRENT_STATUS / PROJECT_GUIDE / API / ROUTES /
                               #          MULTI_AGENT_COLLABORATION_PROPOSAL）
@@ -79,9 +79,11 @@ npm.cmd run check         # typecheck + lint + unit + build 串跑
 ```
 
 **已知环境坑（务必遵守）**：
-- 后端一律 `uv run python -m <module>`（pytest/uvicorn 均然）——`.venv\Scripts\*.exe`
-  入口的 launcher 可能内嵌旧路径（F:\ZQKY 曾是 H:\备份xuexi\智启课源 的 junction），
-  直接走 exe 会 ModuleNotFoundError。
+- 后端一律 `uv run python -m <module>`（pytest/uvicorn 均然）——若项目目录曾用
+  junction/符号链接迁移，`.venv\Scripts\*.exe` 的 launcher 可能内嵌旧路径，直接走 exe
+  会 ModuleNotFoundError；统一用 `uv run python -m` 可从根上规避。
+- 跑后端测试前确认进程环境没有 `OPENAI_API_KEY` / `ANTHROPIC_API_KEY`：项目按红线拒绝
+  进程环境供应商 Key，相关用例会按设计返回 500（清空后再跑即可）。
 - 前端单测必须 `NODE_OPTIONS=--no-experimental-webstorage`（Node 26 jsdom 假失败）。
 - Playwright 用**系统 msedge 通道**（`playwright.config.ts` 已默认；自写脚本用
   `chromium.launch({ channel: 'msedge' })`），本机没有自带 chromium 二进制。
@@ -118,8 +120,8 @@ npm.cmd run check         # typecheck + lint + unit + build 串跑
 ## 6. 测试与验收要求
 
 - 提交前跑 `npm.cmd run check`；路由、布局改动另跑 e2e（先 `build`）。
-- 门禁基线（2026-10-23）：后端 **1946**、前端 **87 文件 771 例**、e2e **17**；数字与命令证据写进
-  `docs/CURRENT_STATUS.md`。
+- 门禁数字与命令证据以 `docs/CURRENT_STATUS.md` 顶部「当前状态」为准（不在本文件重复硬编码，
+  避免历史数字过期）。
 - 只跑与变更相关且有意义的场景；**未执行的检查明确写「未执行」及原因，不写「应当通过」**。
 - 区分真实服务、本地规则与规划状态；**构建成功不等于业务或视觉验收通过**。
 - 自动化用隔离上下文与测试端口，不读写真实草稿/凭证；浏览器自动化用系统 `msedge` 通道
@@ -131,7 +133,7 @@ npm.cmd run check         # typecheck + lint + unit + build 串跑
   密钥不进前端、源码、日志、截图、测试样本。
 - **Agent 模型接入**：LangChain 官方包**必须显式传 key**（本地免 Key 用占位符），
   构造前断言 `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` 未在进程环境出现。
-- **参考产品只读**：`F:\DeepTutor` 固定提交不升级、不写入；教材原文件只读。
+- **参考产品只读**：DeepTutor 固定提交只读（不升级、不写入）；教材原文件只读。
 - **数据保护**：不覆盖用户正在编辑的浏览器会话；读取失败/结构损坏不当空库覆盖。
 - **不外发**：不发布网站、不推送远程、不发外部消息，除非用户明确授权。
 

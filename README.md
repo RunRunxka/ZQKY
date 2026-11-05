@@ -63,3 +63,8 @@ npm.cmd run test:e2e     # 先 build；隔离 5174
 - [多智能体协作规范](docs/MULTI_AGENT_COLLABORATION_PROPOSAL.md)：角色、任务卡/结果卡模板与可复制提示词。
 - [文档索引](docs/README.md)；[QA 证据](docs/qa/README.md)；[第三方许可](docs/licenses/deeptutor-chat/README.md)。
 - 历史完整实现（重构前）唯一入口：git tag `archive-full-v1-20261011`。
+
+## 许可证
+
+本项目采用 [MIT License](LICENSE)。随仓库分发的第三方组件与字体许可见
+[docs/licenses](docs/licenses/) 与 [apps/web/public/fonts/README.md](apps/web/public/fonts/README.md)。

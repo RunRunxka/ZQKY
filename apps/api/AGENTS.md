@@ -47,4 +47,4 @@
 - 冻结件：已提交迁移的 SQL 与 `rag_v2/{retrieval,scope,source_text,evidence}.py`、
   `document_parsing/*` 不得改写；新需求走追加迁移或新版本号。
 - 测试：`uv run python -m pytest`（入口坑见根 AGENTS.md）；新增能力必须带正/负用例；
-  当前基线 1946 passed / 0 skipped（2026-10-23）。
+  当前门禁数字以 `docs/CURRENT_STATUS.md` 顶部为准。

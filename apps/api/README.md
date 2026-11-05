@@ -46,5 +46,10 @@ tests/               health、capabilities、防护、配置/凭证、Provider �
 | `ZQKY_API_PORT` | `8000` | 监听端口 |
 | `ZQKY_ALLOWED_ORIGINS` | `http://127.0.0.1:5173,http://127.0.0.1:5174` | 允许的浏览器来源 |
 | `ZQKY_ENV` | `development` | 环境名称（仅用于日志） |
+| `ZQKY_DATA_DIR` | `<repo>/.local-data` | 四库、教材库、模型配置与受管资产的本地数据根 |
+| `ZQKY_QDRANT_URL` | `http://127.0.0.1:6333` | 本机 Qdrant 地址 |
+| `ZQKY_EMBEDDING_BASE_URL` | `http://127.0.0.1:11434` | 本机 Ollama 地址（bge-m3 嵌入） |
+| `ZQKY_TEXTBOOK_SOURCE_DIR` | `<repo>/textbook-source` | 只读教材源目录（迁移脚本用；仓库不附带教材原文） |
+| `ZQKY_MODELS_DEV_URL` | `https://models.dev/api.json` | 模型元数据公开目录；置空禁用远端 |
 
 示例见 `.env.example`，不得填入真实密钥后提交。凭证由设置页写入 .env，也可按连接编辑窗口显示的变量名手动配置；启动时同名进程环境变量优先于文件。运行配置与凭证文件的读取边界见 [API](../../docs/API.md)。

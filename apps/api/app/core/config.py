@@ -17,8 +17,9 @@ LOCAL_HOSTNAMES = frozenset({"127.0.0.1", "localhost", "::1"})
 # 项目根 = apps/api/app/core/config.py 向上四级（core→app→api→apps→根）
 REPO_ROOT = Path(__file__).resolve().parents[4]
 DEFAULT_DATA_DIR = REPO_ROOT / ".local-data"
-# 只读原始教材目录（人教版 markdown）；仅迁移与基准导入读取，运行时不写入
-DEFAULT_TEXTBOOK_SOURCE_DIR = Path("F:/人教版教材/markdown")
+# 只读原始教材目录（默认放在仓库同级 textbook-source/，可用 ZQKY_TEXTBOOK_SOURCE_DIR 覆盖）；
+# 仅迁移与基准导入读取，运行时不写入
+DEFAULT_TEXTBOOK_SOURCE_DIR = REPO_ROOT / "textbook-source"
 DEFAULT_QDRANT_URL = "http://127.0.0.1:6333"
 DEFAULT_EMBEDDING_BASE_URL = "http://127.0.0.1:11434"
 

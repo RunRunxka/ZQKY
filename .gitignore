@@ -11,11 +11,13 @@ test-results/
 tests/.e2e-output-*/
 playwright-report/
 .npm-cache/
-教案模板部分/node_modules/
-教案模板部分/.npm-cache/
-教案模板部分/dist/
-教案模板部分/qa/*.pdf
-教案模板部分/qa/*.docx
+coverage/
+.ruff_cache/
+
+# OS / 编辑器临时文件
+.DS_Store
+Thumbs.db
+Desktop.ini
 
 # Python 后端（apps/api）
 __pycache__/
@@ -29,9 +31,8 @@ __pycache__/
 .zcode/
 .zcodeignore
 
-# docs/qa 取证产物默认整目录不入库：本批产物含 3.5GB trace.zip/截图/DOCX/巨型审计 JSON，
-# 规模远超历史惯例（已提交证据共 76.8MB）。白名单放行批次文本证据与冻结指纹；
-# 其余文件（含截图与审计 JSON）如确需入库，由批次会话显式 `git add -f` 精选。
+# docs/qa 只随仓库发布批次 README 文本；截图、探针脚本与临时输出默认不入库。
+# 如确需入库，由批次会话显式 `git add -f` 精选。
 docs/qa/**
 !docs/qa/**/
 !docs/qa/**/*.md
@@ -41,7 +42,11 @@ docs/qa/**
 # IDE
 .idea/
 
-# 本地临时材料：设计批次的视觉取证与转存附件，不入库
+# 本地临时材料：个人附件、演示文稿与设计取证，不入库
 /.taste-skill/
 /微信图片_*.jpg
 /智启课源项目计划书.docx
+/智启课源答辩PPT_*
+/教师备课教案模板.docx
+/start-dev.cmd
+/textbook-source/

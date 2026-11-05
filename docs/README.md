@@ -13,7 +13,7 @@
 | [PROJECT_GUIDE.md](PROJECT_GUIDE.md) | 唯一目标、架构硬性（LangChain+LangGraph）、稳定决定 |
 | [MULTI_AGENT_COLLABORATION_PROPOSAL.md](MULTI_AGENT_COLLABORATION_PROPOSAL.md) | 多智能体协作规范：角色、任务卡/结果卡模板、本项目门槛、可复制提示词 |
 | [API.md](API.md) / [ROUTES.md](ROUTES.md) | 现行接口契约（含 R10 删除语义表）/ 路由与模块索引 |
-| [qa/README.md](qa/README.md) | QA 证据索引（R6/R8 历史探针 + R12 教案工作台） |
+| [qa/README.md](qa/README.md) | QA 证据索引（R12/R13 教案工作台文字记录；截图不入库） |
 | [../test/README.md](../test/README.md) | 闭环测试套件与走查顺序 |
 | [licenses/deeptutor-chat/README.md](licenses/deeptutor-chat/README.md) | 第三方（参考产品）许可，保留适用 |
 

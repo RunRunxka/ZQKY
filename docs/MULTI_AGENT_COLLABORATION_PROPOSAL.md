@@ -178,16 +178,16 @@
 ### 9.1 新对话接手提示词（推荐直接使用）
 
 ```text
-你接手「智启课源」（ZQKY）继续开发。工作目录 F:\ZQKY，分支 main（开始前用 `git log -1` 核对 HEAD）。
-先不要改任何代码。
+你接手「智启课源」（ZQKY）继续开发。工作目录为仓库根目录，分支以现场 `git branch --show-current`
+为准（开始前用 `git log -1` 核对 HEAD）。先不要改任何代码。
 
 【第一步：读】AGENTS.md → docs/CURRENT_STATUS.md（顶部「当前状态」是权威）→ docs/PROJECT_GUIDE.md →
 docs/README.md（索引）→ 本文件（docs/MULTI_AGENT_COLLABORATION_PROPOSAL.md）→ docs/API.md 相关小节 →
 涉及模块的 AGENTS.md（如 apps/web/src/features/chat/AGENTS.md）。
 
 【第二步：只向我报告，不改代码】
-1) 项目形态与最近一批（R12 教案工作台）交付内容；
-2) 门禁基线（后端 1946 / 前端 768 / e2e 17，以 CURRENT_STATUS 顶部为准）与你实际复跑的结果边界；
+1) 项目形态与最近一批（以 CURRENT_STATUS 顶部为准）交付内容；
+2) 门禁基线（以 CURRENT_STATUS 顶部为准）与你实际复跑的结果边界；
 3) CURRENT_STATUS 的「当前任务/下一动作」是否有在途批次；有则给恢复顺序；
 4) 你建议的下一批：需求一句话 + 实现方式 + 验收条件 + 涉及文件/运行资源，等我确认再动手。
 

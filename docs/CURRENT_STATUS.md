@@ -1,8 +1,19 @@
 # 当前状态与实施主线
 
-<!-- CURRENT:20261024 -->
+<!-- CURRENT:20261106 -->
 ## 当前状态（权威；门禁数字以本节为准）
 
+- **2026-11-06 批（开源准备：文件清理与许可证）**：
+  ① **许可证**：新增根 `LICENSE`（MIT），README 增加许可与第三方资源入口。
+  ② **删除失效件**：模板构建链（`scripts/build-template.mjs`、`verify-template.mjs`、
+  `assets/templates/source/`、`apps/web/public/templates/`）与引用已删除旧 QA 目录的
+  `scripts/teaching-quality/`；移除 `test:chat` / `template:*` 脚本与根目录重复模板。
+  ③ **本机产物**：`_work/`、旧 QA 截图、个人 PPT/照片/项目计划书移至仓库外归档，不随开源发布；
+  `.gitignore` 补齐个人材料与跨平台临时文件。
+  ④ **文档可移植性**：去除本机绝对路径（AGENTS、MULTI_AGENT、第三方许可说明、Qdrant 注释、
+  配置默认教材源）；门禁数字统一改为指向本节，避免历史数字过期。
+  ⑤ **验证**：后端 **1991 passed**（先清空进程环境 `ANTHROPIC_API_KEY`；否则门禁会按设计返回 500）、
+  前端 **88 文件 788 例**、typecheck 0、lint 0 警告、build 成功；e2e 未执行（本批未改路由/布局）。
 - **形态**：对话优先的闭环教学 AI 工作台——`/chat` 统一学习问答（21 个 Agent 工具：14 读 /
   4 导入 / 2 写确认（教案生成、教案候选应用）/ 1 上下文选择）+ 八个业务板块（教材资料库 / 知识点 / 题库 / 班级管理 /
   试卷管理 / 学情分析 / 教案工作台 / 练习）+ 模型配置；**LangChain + LangGraph 为架构硬性**
@@ -209,7 +220,8 @@
 - 本机 Ollama（`127.0.0.1:11434`，`bge-m3` 嵌入 + `qwen2.5:7b` 可选对话）与 Qdrant
   （Docker 容器 `zqky-qdrant`，`6333`）运行中；2026-10-12 时集合 `textbooks_55e27956…` 有 427 点，
   2026-10-13 问题 4c 已清空全部教材向量集合（当前为空）。
-- 数据根 `.local-data`（四库 + 教材库 + 模型配置）；教材源 `F:\人教版教材\markdown`（只读）。
+- 数据根 `.local-data`（四库 + 教材库 + 模型配置）；教材源目录由
+  `ZQKY_TEXTBOOK_SOURCE_DIR` 指定（本机只读，仓库不附带教材原文）。
 
 ## 台账（待办与已知边界）
 
