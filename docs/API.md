@@ -59,7 +59,8 @@
 | POST `/api/v1/textbook-imports` → `/{id}/commit`、`/{id}/discard` | 导入草稿 → 封存修订并入库；`/textbook-imports/{id}` 观察状态 |
 | `/api/v1/textbook-jobs*`（GET/cancel/retry）、`/textbook-index/status`、`/textbook-index/rebuilds` | 入库任务与索引代状态/受控重建 |
 | `/api/v1/textbook-revisions/{id}/source` | 修订原文区间读取（指纹校验） |
-| `/api/v1/embedding-models`（GET/probe）、`/embedding-profiles*` | 本机 Ollama 嵌入模型清单与真实探测 / 嵌入档案（配置）建立、停用、受守卫删除 |
+| `/api/v1/embedding-models`（GET）、`/embedding-probes` | 本机 Ollama 候选 + 云端百炼受控模型清单与真实探测（`source=local|cloud`；云端带 `connectionId`/`dimensions`，连接与凭证复用「设置 → 模型与连接」）。本机不可达不影响云端清单 |
+| `/api/v1/embedding-profiles*` | 嵌入档案建立、停用、受守卫删除；`adapter=ollama|dashscope`；云端 `digestKind=declared`（声明式身份，非权重哈希），连接地址/凭证/维度漂移即 409 `EMBEDDING_MODEL_CHANGED` 或 400 `EMBEDDING_AUTH_MISSING` |
 | `/api/v1/textbook-index/status`、`/textbook-index/rebuilds` | 索引代状态（代/档案/Qdrant/可检索范围/重建任务）与受控重建（换模型/重算全量）。**空库首启不自动建代**：先建嵌入档案，再发起一次重建发布起始（空）索引代，之后「提交入库」才可用（否则 409 `INDEX_NOT_READY`）；界面入口：教材资料库页头「索引与嵌入」 |
 
 ## 知识点（knowledge 库）

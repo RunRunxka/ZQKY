@@ -99,6 +99,7 @@ class DocumentIndexer:
         lease_seconds: int = DEFAULT_LEASE_SECONDS,
         renew_seconds: float = DEFAULT_RENEW_SECONDS,
         monotonic: Callable[[], float] = time.monotonic,
+        provider_resolver: Any = None,
     ) -> None:
         self.catalog = catalog
         self.embeddings = embeddings
@@ -109,12 +110,21 @@ class DocumentIndexer:
         self.max_attempts = max(0, int(max_attempts))
         self.retry_backoff = tuple(retry_backoff) or (0.0,)
         self.lease_seconds = int(lease_seconds)
+        self._resolver = provider_resolver
         self.leases = LeaseKeeper(
             catalog,
             renew_seconds=renew_seconds,
             lease_seconds=self.lease_seconds,
             monotonic=monotonic,
         )
+
+    # ------------------------------------------------------- provider 分派
+
+    def provider_for(self, profile: ProfileRecord) -> Any:
+        """按配置取 provider；未注入解析器时一律使用构造时的适配器（旧测试路径）。"""
+        if self._resolver is None:
+            return self.embeddings
+        return self._resolver.for_profile(profile)
 
     # ------------------------------------------------------------------ 租约
 
@@ -250,9 +260,14 @@ class DocumentIndexer:
                 status_code=409,
             )
 
-    def require_digest(self, profile: ProfileRecord) -> str:
-        """核对模型身份；同名 tag 的 digest 变化一律拒绝继续。"""
-        digest = self.embeddings.manifest_digest(profile.model_name)
+    def require_digest(self, profile: ProfileRecord, *, provider: Any = None) -> str:
+        """核对模型身份；同名 tag 的 digest 变化一律拒绝继续。
+
+        云端适配器不提供权重清单（``supports_digest_verification=False``），此时核对的是
+        声明式身份（连接 / 模型 / 维度是否仍与登记一致），结果同样要求与登记值相等。
+        """
+        active = provider if provider is not None else self.provider_for(profile)
+        digest = active.manifest_digest(profile.model_name)
         if digest != profile.model_manifest_digest:
             raise AppError(
                 "模型清单 digest 与配置不一致，禁止继续使用错误模型空间。",
@@ -261,8 +276,11 @@ class DocumentIndexer:
             )
         return digest
 
-    def embed_batch(self, *, profile: ProfileRecord, texts: list[str]) -> tuple[list[list[float]], int]:
+    def embed_batch(
+        self, *, profile: ProfileRecord, texts: list[str], provider: Any = None
+    ) -> tuple[list[list[float]], int]:
         """嵌入一批文本；返回 (向量, 生效批大小)。"""
+        active = provider if provider is not None else self.provider_for(profile)
         size = max(1, len(texts))
         attempt = 0
         pending = list(texts)
@@ -270,7 +288,7 @@ class DocumentIndexer:
         while pending:
             window = pending[:size]
             try:
-                vectors = self.embeddings.embed(model=profile.model_name, texts=list(window))
+                vectors = active.embed(model=profile.model_name, texts=list(window))
             except AppError as exc:
                 if exc.code in {"EMBEDDING_OUT_OF_MEMORY", "EMBEDDING_INVALID_OUTPUT"} and len(window) > 1:
                     size = max(1, len(window) // 2)
@@ -403,6 +421,7 @@ class DocumentIndexer:
         所以点数与 ``expected_chunk_count`` 永远一致。
         """
         self.require_profile_usable(profile)
+        provider = self.provider_for(profile)
         policy = generation_policy(generation)
         total = len(chunks)
         batch_size = self.batch_size
@@ -423,9 +442,11 @@ class DocumentIndexer:
                 )
                 for chunk, projection in zip(batch, projections)
             ]
-            self.require_digest(profile)
-            vectors, batch_size = self.embed_batch(profile=profile, texts=texts)
-            self.require_digest(profile)
+            self.require_digest(profile, provider=provider)
+            vectors, batch_size = self.embed_batch(
+                profile=profile, texts=texts, provider=provider
+            )
+            self.require_digest(profile, provider=provider)
             points = [
                 VectorPoint(
                     point_id=point_id_for(

@@ -17,12 +17,13 @@
  * 不伪造成功、不假装可用；重建任务状态以服务端为准（轮询有界，未完成时保留刷新入口）。
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { LoaderCircle, RefreshCw, Sparkles } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import type {
   EmbeddingModelList,
   EmbeddingProfileList,
+  EmbeddingSource,
   IndexStatusView,
   JobView,
 } from '@/contracts/textbook';
@@ -37,8 +38,11 @@ import { asApiError, useAsyncResource } from './hooks';
 import { newSubmissionId } from './ids';
 import { jobStateLabel } from './labels';
 
-/** 首选嵌入模型（本机 Ollama 默认）；列表里没有时用第一个 embedding 能力模型。 */
+/** 首选本机嵌入模型（Ollama 默认）。 */
 const PREFERRED_MODEL = 'bge-m3';
+/** 云端首选模型与默认维度（百炼 text-embedding-v4）。 */
+const PREFERRED_CLOUD_MODEL = 'text-embedding-v4';
+const PREFERRED_CLOUD_DIMENSIONS = 1024;
 
 export interface IndexPanelServices {
   getIndexStatus: typeof getIndexStatus;
@@ -79,7 +83,11 @@ export function IndexPanel({
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [source, setSource] = useState<EmbeddingSource>('local');
   const [modelName, setModelName] = useState('');
+  const [connectionId, setConnectionId] = useState('');
+  const [cloudModel, setCloudModel] = useState(PREFERRED_CLOUD_MODEL);
+  const [cloudDimensions, setCloudDimensions] = useState(PREFERRED_CLOUD_DIMENSIONS);
   const [rebuildProfileId, setRebuildProfileId] = useState('');
   const [job, setJob] = useState<JobView | null>(null);
 
@@ -98,6 +106,38 @@ export function IndexPanel({
     const preferred = candidates.find((item) => item.name === PREFERRED_MODEL) ?? candidates[0];
     setModelName(preferred.name);
   }, [modelList, modelName]);
+
+  const cloudConnections = useMemo(
+    () => modelList?.cloudConnections ?? [],
+    [modelList],
+  );
+  const cloudModels = useMemo(() => modelList?.cloudModels ?? [], [modelList]);
+
+  /* 来源默认值：有可用的百炼连接时默认云端，否则保持本机。 */
+  useEffect(() => {
+    if (cloudConnections.some((item) => item.ready)) setSource('cloud');
+  }, [cloudConnections]);
+
+  /* 云端连接默认值：优先可调用连接，否则第一个。 */
+  useEffect(() => {
+    if (connectionId) return;
+    const first = cloudConnections.find((item) => item.ready) ?? cloudConnections[0];
+    if (first) setConnectionId(first.connectionId);
+  }, [cloudConnections, connectionId]);
+
+  const activeCloudModel =
+    cloudModels.find((item) => item.name === cloudModel) ?? cloudModels[0] ?? null;
+
+  /* 维度默认值：模型切换后若当前维度不受支持，落回默认 1024（或该模型首项）。 */
+  useEffect(() => {
+    if (!activeCloudModel) return;
+    if (activeCloudModel.dimensions.includes(cloudDimensions)) return;
+    setCloudDimensions(
+      activeCloudModel.dimensions.includes(PREFERRED_CLOUD_DIMENSIONS)
+        ? PREFERRED_CLOUD_DIMENSIONS
+        : activeCloudModel.dimensions[0],
+    );
+  }, [activeCloudModel, cloudDimensions]);
 
   /* 重建配置下拉默认值：现有（未停用）配置里的第一个。 */
   useEffect(() => {
@@ -135,15 +175,29 @@ export function IndexPanel({
 
   /** 建立嵌入档案（探针 + 保存）→ 若无活动索引代则顺手发起一次重建发布首个空代。 */
   async function createProfileAndMaybePublish() {
-    if (busy !== null || !modelName) return;
+    if (busy !== null) return;
+    if (source === 'local' && !modelName) return;
+    if (source === 'cloud' && (!connectionId || !cloudModel)) return;
     setBusy('profile');
     setError(null);
     setNotice(null);
     try {
-      const created = await services.createEmbeddingProfile({ modelName });
+      const created = await services.createEmbeddingProfile(
+        source === 'cloud'
+          ? {
+              modelName: cloudModel,
+              source: 'cloud',
+              connectionId,
+              dimensions: cloudDimensions,
+            }
+          : { modelName, source: 'local' },
+      );
+      const label = created?.providerLabel ? `${created.providerLabel} · ` : '';
       setNotice(
         created
-          ? `已保存嵌入档案（${created.modelName} · ${created.dimensions} 维）。`
+          ? `已保存嵌入档案（${label}${created.modelName} · ${created.dimensions} 维）${
+              created.digestKind === 'declared' ? '；云端身份为声明式记录，非权重哈希' : ''
+            }。`
           : '嵌入档案已存在（同指纹），直接复用。',
       );
       profiles.reload();
@@ -189,9 +243,15 @@ export function IndexPanel({
   /** 受控重建：换模型或重算全量（服务端闸门会拒绝并说明原因）。 */
   async function rebuild() {
     if (busy !== null || !rebuildProfileId) return;
+    const target = (profileList?.profiles ?? []).find((item) => item.profileId === rebuildProfileId);
+    const isCloud = target?.adapter === 'dashscope';
     if (
       !window.confirm(
-        '发起受控重建？重建期间新入库提交会被拒绝；完成前检索仍使用旧索引代。',
+        isCloud
+          ? `发起受控重建到「${target?.providerLabel ?? '云端'} · ${target?.modelName ?? ''}」？` +
+              '重建会把现有教材切块发送给云供应商并可能产生费用；期间新入库会被拒绝，' +
+              '完成前检索仍使用旧索引代。'
+          : '发起受控重建？重建期间新入库提交会被拒绝；完成前检索仍使用旧索引代。',
       )
     ) {
       return;
@@ -271,10 +331,98 @@ export function IndexPanel({
         <section className="textbook-index-section" aria-label="建立嵌入档案">
           <h3>建立嵌入档案</h3>
           <p className="textbook-hint">
-            用本机 Ollama 的嵌入模型（默认 bge-m3）：先真实探测一次（列出向量维度与连通性），
-            通过后再保存为配置。
+            选择嵌入来源：云端用已配置的阿里云百炼连接（默认 text-embedding-v4），本机用
+            Ollama（默认 bge-m3）。保存前都会真实探测一次（返回向量维度与连通性）。
           </p>
-          {modelList && !modelList.available && (
+          <div className="textbook-index-form">
+            <label className="textbook-field">
+              <span>来源</span>
+              <select
+                className="space-select"
+                aria-label="嵌入来源"
+                data-testid="textbook-embedding-source"
+                value={source}
+                disabled={busy !== null}
+                onChange={(event) => setSource(event.target.value as EmbeddingSource)}
+              >
+                <option value="cloud">云端 · 阿里云百炼</option>
+                <option value="local">本机 · Ollama</option>
+              </select>
+            </label>
+          </div>
+
+          {source === 'cloud' && (
+            <>
+              {cloudConnections.length === 0 ? (
+                <p className="space-banner info" role="note" data-testid="textbook-embedding-no-connection">
+                  还没有百炼连接：请先到「设置 → 模型与连接」添加阿里云百炼（DashScope）连接并保存
+                  API Key，再回到这里选择云端来源。
+                </p>
+              ) : (
+                <div className="textbook-index-form">
+                  <label className="textbook-field">
+                    <span>连接</span>
+                    <select
+                      className="space-select"
+                      aria-label="百炼连接"
+                      data-testid="textbook-embedding-connection"
+                      value={connectionId}
+                      disabled={busy !== null}
+                      onChange={(event) => setConnectionId(event.target.value)}
+                    >
+                      {cloudConnections.map((item) => (
+                        <option key={item.connectionId} value={item.connectionId}>
+                          {item.displayName}
+                          {item.ready ? '' : '（缺少凭证）'}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="textbook-field">
+                    <span>模型</span>
+                    <select
+                      className="space-select"
+                      aria-label="云端嵌入模型"
+                      data-testid="textbook-embedding-cloud-model"
+                      value={activeCloudModel?.name ?? ''}
+                      disabled={busy !== null}
+                      onChange={(event) => setCloudModel(event.target.value)}
+                    >
+                      {cloudModels.map((item) => (
+                        <option key={item.name} value={item.name}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="textbook-field">
+                    <span>维度</span>
+                    <select
+                      className="space-select"
+                      aria-label="云端向量维度"
+                      data-testid="textbook-embedding-cloud-dimensions"
+                      value={String(cloudDimensions)}
+                      disabled={busy !== null}
+                      onChange={(event) => setCloudDimensions(Number(event.target.value))}
+                    >
+                      {(activeCloudModel?.dimensions ?? []).map((value) => (
+                        <option key={value} value={String(value)}>
+                          {value}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              )}
+              <p className="textbook-hint" data-testid="textbook-embedding-cloud-notice">
+                保存只发送两条固定短样例用于探测；已有教材只有在你确认「受控重建」后才会上传切块。
+                使用云端索引后，教材切块与检索问题都会发送给阿里云百炼，并可能产生费用；
+                使用前请确认教材内容可以外发。
+              </p>
+            </>
+          )}
+
+          {source === 'local' && modelList && !modelList.available && (
             <p className="space-banner error" role="alert" data-testid="textbook-embedding-unavailable">
               本机嵌入服务不可达（{modelList.baseUrl}）：{modelList.reason ?? '原因未知'}
               <button className="space-button" onClick={models.reload}>
@@ -290,7 +438,7 @@ export function IndexPanel({
               </button>
             </p>
           )}
-          {modelList?.available && (
+          {source === 'local' && modelList?.available && (
             <div className="textbook-index-form">
               <label className="textbook-field">
                 <span>模型</span>
@@ -311,10 +459,19 @@ export function IndexPanel({
                     ))}
                 </select>
               </label>
+            </div>
+          )}
+
+          {((source === 'local' && modelList?.available) ||
+            (source === 'cloud' && cloudConnections.length > 0)) && (
+            <div className="textbook-index-form">
               <button
                 className="space-button primary"
                 data-testid="textbook-embedding-save"
-                disabled={busy !== null || !modelName}
+                disabled={
+                  busy !== null ||
+                  (source === 'local' ? !modelName : !connectionId || !cloudModel)
+                }
                 onClick={() => void createProfileAndMaybePublish()}
               >
                 {busy === 'profile' ? (
@@ -332,6 +489,7 @@ export function IndexPanel({
           <h3>受控重建</h3>
           <p className="textbook-hint">
             换嵌入模型或重算全量时用；重建期间新入库会被拒绝，检索仍用旧索引代。
+            已有教材要迁移到云端向量空间，必须在这里手动发起并再次确认。
           </p>
           {profileList && profileList.profiles.filter((item) => !item.retiredAt).length === 0 && (
             <p className="textbook-hint">还没有可用配置：先在上面的「建立嵌入档案」保存一个。</p>
@@ -352,7 +510,9 @@ export function IndexPanel({
                     .filter((item) => !item.retiredAt)
                     .map((item) => (
                       <option key={item.profileId} value={item.profileId}>
-                        {item.modelName}
+                        {item.providerLabel ? `${item.providerLabel} · ` : '本机 · '}
+                        {item.modelName}（{item.dimensions} 维）
+                        {item.installed ? '' : '（当前不可用）'}
                         {item.profileId === profileList.activeProfileId ? '（当前）' : ''}
                       </option>
                     ))}

@@ -26,8 +26,13 @@
 
 ## 本地运行
 
-Node.js 26（当前验证环境）、Python ≥3.12、uv；本机需 Ollama（`bge-m3` 嵌入）与 Qdrant
-（`docker compose -f infra/qdrant/docker-compose.yml up -d`）。
+Node.js 26（当前验证环境）、Python ≥3.12、uv；Qdrant 必需
+（`docker compose -f infra/qdrant/docker-compose.yml up -d`）。嵌入可选两种来源：
+
+- **云端（默认推荐）**：阿里云百炼 `text-embedding-v4`。在「设置 → 模型与连接」添加
+  阿里云百炼（DashScope）连接并保存 API Key，再到教材资料库 →「索引与嵌入」选云端来源。
+  教材切块与检索问题会发送给百炼，可能产生费用。
+- **本机**：Ollama + `bge-m3`（无需云端凭证；历史索引继续可查、可回退）。
 
 ```powershell
 npm.cmd ci

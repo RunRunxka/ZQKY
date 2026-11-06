@@ -223,7 +223,7 @@ class TestSearchService:
         assert all("\n" not in hit.excerpt for hit in hits)
 
     def test_retriever_cached_across_calls(self, env: dict) -> None:
-        """惰性构建的 retriever 被复用（不重复实例化）。"""
+        """惰性构建的 retriever 被复用（同一配置指纹下不重复实例化）。"""
         _ingest(env, topic="指数函数")
         service: TextbookSearchService = env["service"]
         assert service._retriever is None
@@ -232,6 +232,19 @@ class TestSearchService:
         assert first is not None
         service.search("指数函数")
         assert service._retriever is first
+
+    def test_retriever_rebuilt_when_profile_changes(self, env: dict) -> None:
+        """切换索引配置后必须重建 retriever，不能沿用旧向量空间的 provider。"""
+        _ingest(env, topic="指数函数")
+        service: TextbookSearchService = env["service"]
+        service.search("指数函数")
+        first = service._retriever
+        assert first is not None
+        # 模拟另一个配置指纹成为活动代：缓存键不同 → 重建
+        retriever = service._retriever_or_raise(profile=type("P", (), {"fingerprint": "other"})())
+        assert retriever is not first
+        service._retriever = first  # 复位，避免影响同文件后续用例
+        service._retriever_profile = None
 
     def test_thread_safety_serialized(self, env: dict) -> None:
         """多线程并发调用不崩（内部锁串行化检索）。"""

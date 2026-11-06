@@ -29,7 +29,8 @@
 - `app/repositories/`：四库仓储（textbook_catalog / knowledge / question_bank / teaching）+
   `vector_store`（memory/qdrant）+ `jobs`；迁移在 `app/core/migrations/`（追加式 + 散列漂移检测，
   0014 为最新教学库迁移）。
-- `app/providers/`：llm（三协议，38 供应商）+ embeddings（Ollama bge-m3）。
+- `app/providers/`：llm（三协议，38 供应商）+ embeddings（Ollama bge-m3 与阿里云百炼
+  `text-embedding-v4`；云端身份为声明式，`digestKind=declared`，无权重哈希）。
 - `app/resources/lesson_templates/`：教案导出模板（空白 + 填充样张）。
 
 ## 纪律

@@ -67,7 +67,7 @@ class SearchHit:
 
 
 class TextbookSearchService:
-    """同步教材检索服务：惰性构建并缓存一个 ``HybridRetriever``。"""
+    """同步教材检索服务：按当前索引配置惰性构建并缓存 ``HybridRetriever``。"""
 
     def __init__(
         self,
@@ -78,15 +78,19 @@ class TextbookSearchService:
         dense_limit: int | None = None,
         lexical_limit: int | None = None,
         rrf_k: int | None = None,
+        provider_resolver: object = None,
     ) -> None:
         self.catalog = catalog
         self.vectors = vectors
         self.embeddings = embeddings
+        self._resolver = provider_resolver
         self._dense_limit = dense_limit
         self._lexical_limit = lexical_limit
         self._rrf_k = rrf_k
         self._lock = threading.Lock()
         self._retriever: HybridRetriever | None = None
+        #: 缓存 retriever 绑定的配置指纹；切换索引代/向量空间时必须重建。
+        self._retriever_profile: str | None = None
 
     # ------------------------------------------------------------------ 检索
 
@@ -118,7 +122,7 @@ class TextbookSearchService:
         # 串行化：HybridRetriever 的词法 LRU 缓存与诊断计数器不承诺并发安全；
         # 片段切片复用同一 ImmutableSource 缓存，也一并纳入临界区。
         with self._lock:
-            retriever = self._retriever_or_raise()
+            retriever = self._retriever_or_raise(profile)
             candidates = retriever.retrieve(
                 question=query.strip(),
                 scope=scopes,
@@ -228,8 +232,20 @@ class TextbookSearchService:
 
     # -------------------------------------------------------------- 内部
 
-    def _retriever_or_raise(self) -> HybridRetriever:
-        if self._retriever is None:
+    def _retriever_or_raise(self, profile=None) -> HybridRetriever:
+        """按当前配置缓存 retriever；配置指纹变化（换模型/切回本机）时重建。
+
+        旧实现只缓存一个 retriever 并持有构造时的适配器；云端与本机并存后，
+        同一个服务实例必须先解出"当前代的配置"再绑定 provider，否则会拿本机
+        Ollama 去算云端档案的查询向量（或反之），得到跨向量空间的错误结果。
+        """
+        embeddings = self.embeddings
+        fingerprint = None
+        if profile is not None:
+            fingerprint = profile.fingerprint
+            if self._resolver is not None:
+                embeddings = self._resolver.for_profile(profile)
+        if self._retriever is None or self._retriever_profile != fingerprint:
             kwargs: dict[str, int] = {}
             if self._dense_limit is not None:
                 kwargs["dense_limit"] = self._dense_limit
@@ -240,10 +256,11 @@ class TextbookSearchService:
             self._retriever = HybridRetriever(
                 self.catalog,
                 self.vectors,
-                self.embeddings,
+                embeddings,
                 texts=ImmutableSource(catalog=self.catalog),
                 **kwargs,
             )
+            self._retriever_profile = fingerprint
         return self._retriever
 
 

@@ -157,6 +157,7 @@ class IngestService:
         max_attempts: int = 3,
         retry_backoff: tuple[float, ...] = (2.0, 10.0, 30.0),
         owner_id: str = DEFAULT_OWNER_ID,
+        provider_resolver: Any = None,
     ) -> None:
         self.catalog = catalog
         self.parser = parser
@@ -180,6 +181,7 @@ class IngestService:
             lease_seconds=lease_seconds,
             renew_seconds=renew_seconds,
             monotonic=monotonic,
+            provider_resolver=provider_resolver,
         )
         self._running = threading.Lock()
         self._commit_lock = threading.Lock()

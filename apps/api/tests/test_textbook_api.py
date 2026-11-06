@@ -527,6 +527,13 @@ def test_embedding_models_available_and_unavailable(api: ApiHarness) -> None:
     assert body["baseUrl"] == "http://127.0.0.1:11434"
     assert body["models"][0]["name"] == "bge-m3:latest"
     assert body["models"][0]["isEmbeddingCapable"] is True
+    # 云端清单恒返回受控模型；连接列表在有百炼连接之前为空（不伪造可用）。
+    assert body["cloudModels"]
+    assert {item["name"] for item in body["cloudModels"]} == {
+        "text-embedding-v4",
+        "text-embedding-v3",
+    }
+    assert body["cloudConnections"] == []
 
     def boom(request: httpx.Request) -> httpx.Response:
         raise httpx.ConnectError("refused", request=request)
@@ -539,6 +546,8 @@ def test_embedding_models_available_and_unavailable(api: ApiHarness) -> None:
     assert unavailable.json()["available"] is False
     assert unavailable.json()["reason"]
     assert unavailable.json()["models"] == []
+    # 本机不可达不影响云端清单（两个来源各自独立报告）。
+    assert unavailable.json()["cloudModels"]
 
 
 def test_embedding_probe_and_profile_creation(api: ApiHarness) -> None:

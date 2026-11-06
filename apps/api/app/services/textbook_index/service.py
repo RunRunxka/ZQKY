@@ -84,6 +84,8 @@ class _ProbeOutcome:
     view: EmbeddingProbeView
     fingerprint: str
     base_url: str
+    adapter: str = "ollama"
+    options: dict[str, Any] | None = None
 
 
 class IndexService:
@@ -97,6 +99,7 @@ class IndexService:
         parser: Callable[..., ParsedDocument] = parse_document,
         chunker: Callable[..., list] | None = None,
         provider_factory: Callable[[str], Any] | None = None,
+        provider_resolver: Any = None,
         batch_size: int = 8,
         worker_id: str = DEFAULT_WORKER_ID,
         sleep: Callable[[float], None] = time.sleep,
@@ -113,6 +116,7 @@ class IndexService:
         self.worker_id = worker_id
         self.lease_seconds = lease_seconds
         self._provider_factory = provider_factory
+        self._resolver = provider_resolver
         self.blobs = BlobStore(settings.textbooks_root)
         self.indexer = DocumentIndexer(
             catalog,
@@ -126,6 +130,7 @@ class IndexService:
             lease_seconds=lease_seconds,
             renew_seconds=renew_seconds,
             monotonic=monotonic,
+            provider_resolver=provider_resolver,
         )
         self._gate_lock = threading.Lock()
         self._running = threading.Lock()
@@ -212,11 +217,26 @@ class IndexService:
             self._profile_view(
                 profile,
                 is_active=profile.profile_id == active_profile_id,
-                installed=self._is_installed(profile.model_name, installed),
+                installed=self._profile_installed(profile, installed),
             )
             for profile in self.catalog.list_embedding_profiles()
         ]
         return EmbeddingProfileList(profiles=profiles, activeProfileId=active_profile_id)
+
+    def _profile_installed(self, profile: ProfileRecord, installed: set[str] | None) -> bool:
+        """本机：按 Ollama tag 归一等值判定在场（服务不可达返回 False，不猜）。
+
+        云端：不读本机模型清单；按"连接仍在、凭证仍在、配置身份未漂移"判定可用。
+        """
+        if (profile.adapter or "") == "dashscope":
+            if self._resolver is None:
+                return False
+            try:
+                self._resolver.for_profile(profile)
+            except AppError:
+                return False
+            return True
+        return self._is_installed(profile.model_name, installed)
 
     def _installed_model_names(self) -> set[str] | None:
         """本机在场模型名（按 Ollama tag 语义归一：``bge-m3`` 与 ``bge-m3:latest`` 视为同一模型）。
@@ -240,10 +260,12 @@ class IndexService:
     def _profile_view(
         profile: ProfileRecord, *, is_active: bool, installed: bool
     ) -> EmbeddingProfileView:
+        is_cloud = (profile.adapter or "") == "dashscope"
+        connection_id = str(profile.options.get("connectionId") or "").strip() or None
         return EmbeddingProfileView(
             profileId=profile.profile_id,
             fingerprint=profile.fingerprint,
-            adapter="ollama",
+            adapter=profile.adapter,
             nativeBaseUrl=profile.native_base_url,
             modelName=profile.model_name,
             modelManifestDigest=profile.model_manifest_digest,
@@ -256,6 +278,9 @@ class IndexService:
             retiredAt=profile.retired_at,
             isActive=is_active,
             installed=installed,
+            providerLabel="阿里云百炼" if is_cloud else None,
+            connectionId=connection_id,
+            digestKind="declared" if is_cloud else "manifest",
         )
 
     def _provider_for(self, base_url: str | None):
@@ -269,6 +294,34 @@ class IndexService:
 
         return OllamaEmbeddingProvider(target)
 
+    def _provider_for_profile(self, profile: ProfileRecord):
+        """按配置取 provider：未注入解析器时用本机适配器（旧测试路径与单机部署）。"""
+        if self._resolver is None:
+            return self.embeddings
+        return self._resolver.for_profile(profile)
+
+    def _probe_provider(
+        self,
+        *,
+        source: str,
+        model_name: str,
+        connection_id: str | None,
+        dimensions: int | None,
+        base_url: str | None,
+    ):
+        """探测用 provider：有解析器时统一分派，否则退回本机适配器（测试兼容）。"""
+        if self._resolver is not None:
+            return self._resolver.probe_provider(
+                source=source,
+                model_name=model_name,
+                connection_id=connection_id,
+                dimensions=dimensions,
+                base_url=base_url,
+            )
+        if source == "cloud":
+            raise _invalid("云端 Embedding 未装配模型配置服务，暂不可用。")
+        return self._provider_for(base_url)
+
     def _probe_internal(
         self,
         *,
@@ -277,16 +330,38 @@ class IndexService:
         query_prefix: str,
         document_prefix: str,
         normalization: str,
+        source: str = "local",
+        connection_id: str | None = None,
+        dimensions: int | None = None,
     ) -> _ProbeOutcome:
-        provider = self._provider_for(base_url)
+        provider = self._probe_provider(
+            source=source,
+            model_name=model_name,
+            connection_id=connection_id,
+            dimensions=dimensions,
+            base_url=base_url,
+        )
         result = provider.verify_embedding_candidate(model_name=model_name)
+        adapter = str(getattr(provider, "adapter", "ollama") or "ollama")
+        options: dict[str, Any] = {}
+        if adapter == "dashscope":
+            connection = (connection_id or "").strip()
+            if not connection:
+                raise _invalid("云端 Embedding 需要选择一个已保存凭证的百炼连接。")
+            options = {
+                "connectionId": connection,
+                "providerId": "dashscope",
+                "model": result.model_name,
+                "dimensions": result.dimensions,
+            }
         fingerprint = embedding_fingerprint(
+            adapter=adapter,
             model_manifest_digest=result.model_manifest_digest,
             dimensions=result.dimensions,
             query_prefix=query_prefix,
             document_prefix=document_prefix,
             normalization=normalization,
-            options={},
+            options=options,
         )
         existing = self.catalog.find_embedding_profile(fingerprint)
         native_base_url = str(
@@ -304,9 +379,14 @@ class IndexService:
                 stableDigest=result.stable_digest,
                 alreadyConfigured=existing is not None,
                 existingProfileId=existing.profile_id if existing is not None else None,
+                adapter=adapter,
+                connectionId=(connection_id or None) if adapter == "dashscope" else None,
+                digestKind="declared" if adapter == "dashscope" else "manifest",
             ),
             fingerprint=fingerprint,
             base_url=native_base_url,
+            adapter=adapter,
+            options=options,
         )
 
     def probe(
@@ -317,6 +397,9 @@ class IndexService:
         query_prefix: str = "",
         document_prefix: str = "",
         normalization: str = "none",
+        source: str = "local",
+        connection_id: str | None = None,
+        dimensions: int | None = None,
     ) -> EmbeddingProbeView:
         outcome = self._probe_internal(
             model_name=model_name,
@@ -324,6 +407,9 @@ class IndexService:
             query_prefix=query_prefix,
             document_prefix=document_prefix,
             normalization=normalization,
+            source=source,
+            connection_id=connection_id,
+            dimensions=dimensions,
         )
         return outcome.view
 
@@ -335,6 +421,9 @@ class IndexService:
         query_prefix: str = "",
         document_prefix: str = "",
         normalization: str = "none",
+        source: str = "local",
+        connection_id: str | None = None,
+        dimensions: int | None = None,
     ) -> EmbeddingProfileView:
         outcome = self._probe_internal(
             model_name=model_name,
@@ -342,6 +431,9 @@ class IndexService:
             query_prefix=query_prefix,
             document_prefix=document_prefix,
             normalization=normalization,
+            source=source,
+            connection_id=connection_id,
+            dimensions=dimensions,
         )
         if outcome.view.existingProfileId is not None:
             existing = self.catalog.get_embedding_profile(outcome.view.existingProfileId)
@@ -349,7 +441,7 @@ class IndexService:
                 return self._profile_view(existing, is_active=False, installed=True)
         profile = self.catalog.create_embedding_profile(
             fingerprint=outcome.fingerprint,
-            adapter="ollama",
+            adapter=outcome.adapter,
             native_base_url=outcome.base_url,
             model_name=outcome.view.modelName,
             model_manifest_digest=outcome.view.modelManifestDigest,
@@ -358,7 +450,7 @@ class IndexService:
             query_prefix=query_prefix,
             document_prefix=document_prefix,
             normalization=normalization,
-            options_json={},
+            options_json=dict(outcome.options or {}),
         )
         return self._profile_view(profile, is_active=False, installed=True)
 
@@ -371,7 +463,7 @@ class IndexService:
         return self._profile_view(
             profile,
             is_active=self._is_active_profile(profile),
-            installed=self._is_installed(profile.model_name, self._installed_model_names()),
+            installed=self._profile_installed(profile, self._installed_model_names()),
         )
 
     def delete_profile(self, profile_id: str) -> None:
@@ -497,13 +589,9 @@ class IndexService:
                 )
             return job_view(existing)
 
-        # 事务外先核模型身份：清单 digest 变化拒绝继续（不换模型）
-        digest = self.embeddings.manifest_digest(profile.model_name)
-        if digest != profile.model_manifest_digest:
-            raise _conflict(
-                "模型清单 digest 与配置不一致，禁止使用错误模型空间；请重新检测并保存配置。",
-                code="EMBEDDING_MODEL_CHANGED",
-            )
+        # 事务外先核模型身份：本机核 digest，云端核声明式身份（无权重哈希可核）。
+        provider = self._provider_for_profile(profile)
+        self.indexer.require_digest(profile, provider=provider)
 
         with self._gate_lock:
             state = self.catalog.catalog_state()

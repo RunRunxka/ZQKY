@@ -74,6 +74,7 @@ _DOMAIN_ASSEMBLIES: tuple[str, ...] = (
 TEXTBOOK_STATE_KEYS = (
     "catalog",
     "embedding_provider",
+    "embedding_resolver",
     "vector_store",
     "ingest_service",
     "index_service",
@@ -224,6 +225,7 @@ def _build_textbook_runtime(app: FastAPI, settings: Settings) -> None:
         from app.repositories.vector_store.qdrant import HttpQdrantStore
         from app.services.document_parsing.chunking import chunk_document
         from app.services.document_parsing.parser import parse_document
+        from app.services.embedding_runtime import EmbeddingProviderResolver
         from app.services.textbook_index.service import IndexService
         from app.services.textbook_ingest.service import IngestService
     except ImportError as exc:  # pragma: no cover - 实现未落地
@@ -236,18 +238,37 @@ def _build_textbook_runtime(app: FastAPI, settings: Settings) -> None:
     vectors = HttpQdrantStore(settings.qdrant_url)
     app.state.embedding_provider = provider
     app.state.vector_store = vectors
+    # 按索引配置分派：历史本机档案继续用 Ollama；云端百炼档案绑定设置里的连接与凭证。
+    # 解析器只持有仓储/凭证引用，构造阶段不发起网络请求。
+    resolver = EmbeddingProviderResolver(
+        provider,
+        settings,
+        model_config_repo=getattr(app.state, "model_config_repo", None),
+        secret_store=getattr(app.state, "secret_store", None),
+    )
+    app.state.embedding_resolver = resolver
     # 入库与重建各自持有 worker；两者共用同一 SQLite 权威与同一向量库。
     app.state.ingest_service = IngestService(
-        app.state.catalog, parse_document, chunk_document, provider, vectors, settings
+        app.state.catalog,
+        parse_document,
+        chunk_document,
+        provider,
+        vectors,
+        settings,
+        provider_resolver=resolver,
     )
-    app.state.index_service = IndexService(app.state.catalog, provider, vectors, settings)
+    app.state.index_service = IndexService(
+        app.state.catalog, provider, vectors, settings, provider_resolver=resolver
+    )
 
     # 检索服务（R2-BE3）：学习问答 Agent 的 search_textbooks 工具经它检索教材。
-    # 沿用同一目录/向量库/Embedding 适配器；失败只降级该键（工具不注册），不影响入库链路。
+    # 沿用同一目录/向量库；provider 按活动档案解析，失败只降级该键（工具不注册）。
     try:
         from app.services.textbook_search import TextbookSearchService
 
-        app.state.textbook_search = TextbookSearchService(app.state.catalog, vectors, provider)
+        app.state.textbook_search = TextbookSearchService(
+            app.state.catalog, vectors, provider, provider_resolver=resolver
+        )
     except Exception as exc:  # pragma: no cover - 依赖缺失时工具不注册，不假成功
         app.state.textbook_search = None
         app.state.textbooks_error = f"教材检索服务未装配：{exc}"

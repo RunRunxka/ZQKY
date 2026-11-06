@@ -253,12 +253,31 @@ export interface EmbeddingModelCandidate {
   isEmbeddingCapable: boolean;
 }
 
+export interface EmbeddingCloudConnection {
+  connectionId: string;
+  displayName: string;
+  baseUrl: string;
+  ready: boolean;
+  reason: string | null;
+}
+
+export interface EmbeddingCloudModel {
+  name: string;
+  dimensions: number[];
+}
+
 export interface EmbeddingModelList {
   baseUrl: string;
   available: boolean;
   reason: string | null;
   models: EmbeddingModelCandidate[];
+  /** 云端百炼可用连接；未装配或没有连接时为空数组。 */
+  cloudConnections: EmbeddingCloudConnection[];
+  /** 云端受控模型清单（只含官方支持维度的文本 Embedding 模型）。 */
+  cloudModels: EmbeddingCloudModel[];
 }
+
+export type EmbeddingSource = 'local' | 'cloud';
 
 export interface EmbeddingProbeRequest {
   modelName: string;
@@ -266,6 +285,10 @@ export interface EmbeddingProbeRequest {
   queryPrefix?: string;
   documentPrefix?: string;
   normalization?: 'none' | 'l2';
+  /** local=本机 Ollama（默认）；cloud=阿里云百炼。 */
+  source?: EmbeddingSource;
+  connectionId?: string | null;
+  dimensions?: number | null;
 }
 
 export interface EmbeddingProbeView {
@@ -279,12 +302,16 @@ export interface EmbeddingProbeView {
   stableDigest: boolean;
   alreadyConfigured: boolean;
   existingProfileId: string | null;
+  adapter: 'ollama' | 'dashscope';
+  connectionId: string | null;
+  /** 云端无权重哈希：declared 表示声明式身份，不得描述成可核验摘要。 */
+  digestKind: 'manifest' | 'declared';
 }
 
 export interface EmbeddingProfileView {
   profileId: string;
   fingerprint: string;
-  adapter: 'ollama';
+  adapter: 'ollama' | 'dashscope';
   nativeBaseUrl: string;
   modelName: string;
   modelManifestDigest: string;
@@ -297,6 +324,9 @@ export interface EmbeddingProfileView {
   retiredAt: string | null;
   isActive: boolean;
   installed: boolean;
+  providerLabel: string | null;
+  connectionId: string | null;
+  digestKind: 'manifest' | 'declared';
 }
 
 export interface EmbeddingProfileList {

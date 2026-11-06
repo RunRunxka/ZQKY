@@ -993,7 +993,7 @@ class TextbookCatalog:
         options_json: object = "{}",
     ) -> ProfileRecord:
         fingerprint = _text(fingerprint, field="fingerprint")
-        adapter = _choice(adapter, field="adapter", allowed=frozenset({"ollama"}))
+        adapter = _choice(adapter, field="adapter", allowed=frozenset({"ollama", "dashscope"}))
         native_base_url = _text(native_base_url, field="native_base_url")
         model_name = _text(model_name, field="model_name")
         model_manifest_digest = _text(model_manifest_digest, field="model_manifest_digest")
@@ -1892,7 +1892,7 @@ class TextbookCatalog:
 
     def _profile_record(self, row: sqlite3.Row) -> ProfileRecord:
         if (
-            row["adapter"] not in {"ollama"}
+            row["adapter"] not in {"ollama", "dashscope"}
             or row["distance"] != "cosine"
             or row["normalization"] not in NORMALIZATIONS
         ):

@@ -1,7 +1,10 @@
 """Embedding 配置指纹：进入向量空间身份的字段一处定义、canonical JSON 取 sha256。
 
-指纹只包含会影响向量空间的参数（适配器、模型清单 digest、维度、距离、前缀、归一化与选项）；
+指纹只包含会影响向量空间的参数（适配器、模型身份、维度、距离、前缀、归一化与选项）；
 地址、超时、代理等连接参数不进入指纹。同一逻辑内容必须产生同一字节串与同一指纹。
+
+``adapter`` 必须显式传入：本机 Ollama 与云端百炼即使模型名相同（例如都叫 bge 系列）
+也属于不同向量空间，指纹必须能区分，不能靠默认值把两者算成同一个配置。
 """
 
 from __future__ import annotations
@@ -47,3 +50,12 @@ def embedding_fingerprint(
         "options": dict(options or {}),
     }
     return sha256_hex(canonical_json(payload))
+
+
+__all__ = [
+    "EMBEDDING_ADAPTER",
+    "EMBEDDING_DISTANCE",
+    "canonical_json",
+    "embedding_fingerprint",
+    "sha256_hex",
+]

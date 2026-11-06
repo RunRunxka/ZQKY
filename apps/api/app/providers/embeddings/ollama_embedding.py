@@ -11,39 +11,22 @@
 
 from __future__ import annotations
 
-import math
-from dataclasses import dataclass
 from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 
 from app.core.exceptions import AppError
+from app.providers.embeddings.output_validation import invalid_output, normalize_vectors
+from app.providers.embeddings.probe import EMBEDDING_PROBE_TEXTS, EmbeddingProbeResult
 from app.schemas.textbook import EmbeddingModelCandidate
 
 ADAPTER = "ollama"
 DEFAULT_TIMEOUT_SECONDS = 120.0
 #: 只允许本机回环主机；与核心配置的 LOCAL_HOSTNAMES 语义一致（此处按 URL host 判定）。
 LOOPBACK_HOSTS = frozenset({"127.0.0.1", "localhost", "::1"})
-#: 检测流程固定样例：与计划 §4.2 一致，两类学科文本各一条。
-EMBEDDING_PROBE_TEXTS: tuple[str, ...] = ("集合与函数", "物质的结构与性质")
 _DIGEST_PREFIX = "sha256:"
 _REDIRECT_STATUSES = frozenset({301, 302, 303, 307, 308})
 _OOM_MARKERS = ("out of memory", "oom", "cuda", "memory")
-
-
-@dataclass(frozen=True)
-class EmbeddingProbeResult:
-    """一次真实嵌入能力检测的结果；不含地址与凭证。"""
-
-    model_name: str
-    model_manifest_digest: str
-    dimensions: int
-    sample_count: int
-    non_zero: bool
-    finite: bool
-    stable_digest: bool
-    family: str
-    parameter_size: str
 
 
 def normalize_loopback_base_url(base_url: str) -> str:
@@ -148,11 +131,7 @@ def model_names_match(left: str, right: str) -> bool:
 
 
 def _invalid_output(message: str) -> AppError:
-    return AppError(
-        f"Embedding 输出不合法：{message}",
-        code="EMBEDDING_INVALID_OUTPUT",
-        status_code=502,
-    )
+    return invalid_output(message)
 
 
 class OllamaEmbeddingProvider:
@@ -338,35 +317,7 @@ class OllamaEmbeddingProvider:
             "/api/embed",
             json_body={"model": name, "input": list(texts), "truncate": False},
         )
-        embeddings = payload.get("embeddings")
-        if not isinstance(embeddings, list):
-            raise _invalid_output("响应缺少 embeddings 数组。")
-        if len(embeddings) != len(texts):
-            raise _invalid_output(
-                f"返回 {len(embeddings)} 条，与输入 {len(texts)} 条不一致。"
-            )
-        vectors: list[list[float]] = []
-        dimension: int | None = None
-        for index, vector in enumerate(embeddings):
-            if not isinstance(vector, list) or not vector:
-                raise _invalid_output(f"第 {index} 条向量为空或不是数组。")
-            values: list[float] = []
-            for value in vector:
-                if isinstance(value, bool) or not isinstance(value, (int, float)):
-                    raise _invalid_output(f"第 {index} 条向量包含非数值元素。")
-                values.append(float(value))
-            if dimension is None:
-                dimension = len(values)
-            elif len(values) != dimension:
-                raise _invalid_output(
-                    f"第 {index} 条向量维度 {len(values)} 与首条 {dimension} 不一致。"
-                )
-            if not all(math.isfinite(value) for value in values):
-                raise _invalid_output(f"第 {index} 条向量包含非有限值。")
-            if not any(value != 0.0 for value in values):
-                raise _invalid_output(f"第 {index} 条向量全为零向量。")
-            vectors.append(values)
-        return vectors
+        return normalize_vectors(payload.get("embeddings"), expected=len(texts))
 
     # ----------------------------------------------------------------- 检测
 

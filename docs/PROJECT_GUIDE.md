@@ -58,7 +58,7 @@
 
 | 板块 | 页面 | 后端域 | 关键口径 |
 | --- | --- | --- | --- |
-| 教材资料库 | `/textbooks` | textbooks | PDF/DOCX/md 导入→清洗（含 C4-5 页眉页脚/页码剔除）→切块→Ollama bge-m3→Qdrant；索引代/修订不可变 |
+| 教材资料库 | `/textbooks` | textbooks | PDF/DOCX/md 导入→清洗（含 C4-5 页眉页脚/页码剔除）→切块→嵌入（云端阿里云百炼 `text-embedding-v4` 或本机 Ollama bge-m3，按档案分派）→Qdrant；索引代/修订不可变 |
 | 知识点 | `/knowledge-points` | knowledge | 教材目录成树（噪声段透明过滤）；节点 CRUD + 别名 + **学习目标**；AI 候选/教材提取只进候选 |
 | 题库 | `/question-bank` | question_bank | 课后习题提取→草稿→确认；AI 整理/补题（needs_review）；知识点×难度过滤 |
 | 班级管理 | `/assessments/roster` | teaching | 名单 xlsx 导入（含性别列）；删除学生双模式（无成绩=彻底删除 / 有成绩=移除并保留历史），班级人数即时下降；无归档入口 |

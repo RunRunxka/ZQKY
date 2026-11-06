@@ -54,6 +54,21 @@ const MODELS: EmbeddingModelList = {
     { name: 'qwen2.5:7b', digest: 'd1', sizeBytes: 1, family: 'qwen2', parameterSize: '7B', isEmbeddingCapable: false },
     { name: 'bge-m3', digest: 'd2', sizeBytes: 1, family: 'bert', parameterSize: '568M', isEmbeddingCapable: true },
   ],
+  cloudConnections: [],
+  cloudModels: [{ name: 'text-embedding-v4', dimensions: [2048, 1536, 1024, 768, 512, 256, 128, 64] }],
+};
+
+const CLOUD_MODELS: EmbeddingModelList = {
+  ...MODELS,
+  cloudConnections: [
+    {
+      connectionId: 'conn-cloud',
+      displayName: '百炼·主账号',
+      baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+      ready: true,
+      reason: null,
+    },
+  ],
 };
 
 const PROFILES: EmbeddingProfileList = { profiles: [], activeProfileId: null };
@@ -79,6 +94,9 @@ function services(overrides: Partial<IndexPanelServices> = {}): IndexPanelServic
       retiredAt: null,
       isActive: false,
       installed: true,
+      providerLabel: null,
+      connectionId: null,
+      digestKind: 'manifest' as const,
     })),
     startRebuild: vi.fn(async () => ({
       jobId: 'job-rebuild-1',
@@ -170,7 +188,7 @@ describe('索引与嵌入面板', () => {
     await clickSaveWhenEnabled();
 
     await waitFor(() =>
-      expect(api.createEmbeddingProfile).toHaveBeenCalledWith({ modelName: 'bge-m3' }),
+      expect(api.createEmbeddingProfile).toHaveBeenCalledWith({ modelName: 'bge-m3', source: 'local' }),
     );
     await waitFor(
       () =>
@@ -235,6 +253,8 @@ describe('索引与嵌入面板', () => {
         available: false,
         reason: '连接被拒绝',
         models: [],
+        cloudConnections: [],
+        cloudModels: [{ name: 'text-embedding-v4', dimensions: [1024, 768] }],
       })),
     });
     render(<IndexPanel services={api} onClose={() => {}} />);
@@ -259,5 +279,68 @@ describe('索引与嵌入面板', () => {
     expect(error).toHaveTextContent('建立嵌入档案失败（EMBEDDING_MODEL_CHANGED）');
     expect(error).toHaveTextContent('模型清单 digest 与配置不一致。');
     expect(screen.queryByTestId('textbook-index-notice')).toBeNull();
+  });
+
+  it('有百炼连接：默认云端，按连接/模型/维度保存并提示外发范围', async () => {
+    const created = {
+      profileId: 'profile-cloud',
+      fingerprint: 'fp-cloud',
+      adapter: 'dashscope' as const,
+      nativeBaseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+      modelName: 'text-embedding-v4',
+      modelManifestDigest: 'dashscope-declared:abc',
+      dimensions: 1024,
+      distance: 'cosine' as const,
+      queryPrefix: '',
+      documentPrefix: '',
+      normalization: 'none',
+      verifiedAt: '2026-11-03T00:00:00Z',
+      retiredAt: null,
+      isActive: false,
+      installed: true,
+      providerLabel: '阿里云百炼',
+      connectionId: 'conn-cloud',
+      digestKind: 'declared' as const,
+    };
+    const api = services({
+      listEmbeddingModels: vi.fn(async () => CLOUD_MODELS),
+      createEmbeddingProfile: vi.fn(async () => created),
+    });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    render(<IndexPanel services={api} onClose={() => {}} />);
+
+    const source = await screen.findByTestId('textbook-embedding-source', undefined, { timeout: 8000 });
+    await waitFor(() => expect(source).toHaveValue('cloud'));
+    expect(await screen.findByTestId('textbook-embedding-cloud-notice')).toHaveTextContent(
+      '教材切块与检索问题都会发送',
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('textbook-embedding-cloud-dimensions')).toHaveValue('1024'),
+    );
+
+    await clickSaveWhenEnabled();
+    await waitFor(() =>
+      expect(api.createEmbeddingProfile).toHaveBeenCalledWith({
+        modelName: 'text-embedding-v4',
+        source: 'cloud',
+        connectionId: 'conn-cloud',
+        dimensions: 1024,
+      }),
+    );
+    // 空库首启会紧接着发起受控重建：提示被重建状态覆盖（服务端为准），确认链路已推进。
+    await waitFor(() => expect(api.startRebuild).toHaveBeenCalled(), { timeout: 8000 });
+  });
+
+  it('没有百炼连接：云端来源给出配置指引，不提供伪造的连接', async () => {
+    const api = services();
+    render(<IndexPanel services={api} onClose={() => {}} />);
+
+    const source = await screen.findByTestId('textbook-embedding-source', undefined, { timeout: 8000 });
+    fireEvent.change(source, { target: { value: 'cloud' } });
+
+    expect(await screen.findByTestId('textbook-embedding-no-connection')).toHaveTextContent(
+      '设置 → 模型与连接',
+    );
+    expect(screen.queryByTestId('textbook-embedding-save')).toBeNull();
   });
 });

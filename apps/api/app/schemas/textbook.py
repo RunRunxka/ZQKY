@@ -345,11 +345,28 @@ class EmbeddingModelCandidate(_ReadModel):
     isEmbeddingCapable: bool
 
 
+class EmbeddingCloudConnection(_ReadModel):
+    """可用于云端 Embedding 的连接（不含凭证；``ready`` 表示当前可发起调用）。"""
+
+    connectionId: str
+    displayName: str
+    baseUrl: str
+    ready: bool
+    reason: str | None
+
+
 class EmbeddingModelList(_ReadModel):
     baseUrl: str
     available: bool
     reason: str | None
     models: list[EmbeddingModelCandidate]
+    #: 云端百炼可用连接；服务未装配或没有连接时为空列表（不伪造可用）。
+    cloudConnections: list[EmbeddingCloudConnection] = Field(default_factory=list)
+    #: 云端受控模型清单与各自支持的维度（官方文档口径）。
+    cloudModels: list[dict] = Field(default_factory=list)
+
+
+EmbeddingSource = Literal["local", "cloud"]
 
 
 class EmbeddingProbeRequest(StrictModel):
@@ -358,6 +375,10 @@ class EmbeddingProbeRequest(StrictModel):
     queryPrefix: str = Field(default="", max_length=200)
     documentPrefix: str = Field(default="", max_length=200)
     normalization: Literal["none", "l2"] = "none"
+    #: 来源：local=本机 Ollama（默认，保持旧请求兼容）；cloud=阿里云百炼。
+    source: EmbeddingSource = "local"
+    connectionId: str | None = Field(default=None, max_length=64)
+    dimensions: int | None = Field(default=None, ge=1, le=4096)
 
 
 class EmbeddingProbeView(_ReadModel):
@@ -371,6 +392,10 @@ class EmbeddingProbeView(_ReadModel):
     stableDigest: bool
     alreadyConfigured: bool
     existingProfileId: str | None
+    adapter: Literal["ollama", "dashscope"] = "ollama"
+    connectionId: str | None = None
+    #: 云端没有权重哈希：界面据此提示"声明式身份"，不得描述成可核验摘要。
+    digestKind: Literal["manifest", "declared"] = "manifest"
 
 
 class EmbeddingProfileCreate(StrictModel):
@@ -379,12 +404,15 @@ class EmbeddingProfileCreate(StrictModel):
     queryPrefix: str = Field(default="", max_length=200)
     documentPrefix: str = Field(default="", max_length=200)
     normalization: Literal["none", "l2"] = "none"
+    source: EmbeddingSource = "local"
+    connectionId: str | None = Field(default=None, max_length=64)
+    dimensions: int | None = Field(default=None, ge=1, le=4096)
 
 
 class EmbeddingProfileView(_ReadModel):
     profileId: str
     fingerprint: str
-    adapter: Literal["ollama"]
+    adapter: Literal["ollama", "dashscope"]
     nativeBaseUrl: str
     modelName: str
     modelManifestDigest: str
@@ -397,6 +425,10 @@ class EmbeddingProfileView(_ReadModel):
     retiredAt: str | None
     isActive: bool
     installed: bool
+    #: 云端配置的来源标签（本机为空），供界面与重建下拉展示，不含凭证。
+    providerLabel: str | None = None
+    connectionId: str | None = None
+    digestKind: Literal["manifest", "declared"] = "manifest"
 
 
 class EmbeddingProfileList(_ReadModel):
